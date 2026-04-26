@@ -1,0 +1,63 @@
+# Lint configuration for the ai-workflow Go monorepo.
+# See tools/CLAUDE.md for the full discipline.
+
+run:
+  timeout: 5m
+  go: "1.22"
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gocritic
+    - revive
+    - gosec
+    - bodyclose
+    - unconvert
+    - misspell
+    - gofumpt
+    - goimports
+
+linters-settings:
+  gofumpt:
+    extra-rules: true
+  goimports:
+    local-prefixes: github.com/23min/ai-workflow-v2
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment   # noisy on small structs; not worth the rearrangement cost
+  revive:
+    rules:
+      - name: exported
+        arguments: ["checkPrivateReceivers", "disableStutteringCheck"]
+      - name: var-naming
+      - name: package-comments
+      - name: unused-parameter
+        disabled: true   # too noisy on interface implementations
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+    disabled-checks:
+      - hugeParam        # closed-set enums often need to be passed by value
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec      # tests intentionally use predictable inputs
+        - errcheck   # test setup/teardown often ignores errors
+
+output:
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true
