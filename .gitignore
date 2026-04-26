@@ -25,5 +25,10 @@ node_modules/
 .ai/
 .ai-repo/
 work/epics/
-.claude/
 .github/skills/
+
+# .claude/ is gitignored except the shared project config: the status line
+# script and the project-level settings.json. Per-user files stay local.
+.claude/*
+!.claude/settings.json
+!.claude/statusline.sh
