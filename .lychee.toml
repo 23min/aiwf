@@ -1,0 +1,38 @@
+# Configuration for lychee link checker.
+# https://lychee.cli.rs/usage/config/
+
+# Don't fail on these status codes (rate-limited / temporary issues).
+accept = [200, 206, 429]
+
+# External link timeouts.
+timeout = 20
+max_retries = 2
+retry_wait_time = 5
+
+# Don't show progress bar in CI logs.
+no_progress = true
+
+# Skip these paths entirely.
+exclude_path = [
+  "node_modules",
+  ".git",
+]
+
+# Skip URLs matching these regexes (locally-bound, examples, or
+# repo-internal URLs that may not exist yet during the build phase).
+exclude = [
+  "^https?://localhost",
+  "^https?://127\\.0\\.0\\.1",
+  "^https?://example\\.com",
+  "^https?://example\\.org",
+  # The install.sh raw URL is referenced in the README but the file
+  # doesn't exist yet; install.sh ships in Stage 3.
+  "^https?://raw\\.githubusercontent\\.com/23min/ai-workflow-v2/.*/install\\.sh$",
+  # GitHub Discussions URLs 404 until the feature is enabled with the
+  # referenced category. Re-evaluate after enabling Discussions.
+  "^https?://github\\.com/23min/ai-workflow-v2/discussions",
+]
+
+# Cache results between runs to keep CI fast.
+cache = true
+max_cache_age = "1d"

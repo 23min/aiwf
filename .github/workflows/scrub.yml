@@ -1,0 +1,48 @@
+name: scrub
+
+# Belt-and-suspenders against accidentally introducing legacy identifiers
+# (project names from the framework's predecessor) into the public repo.
+# Also fail-safe against any other forbidden identifier we add later.
+#
+# Runs on every PR and every push to main. Cheap (sub-second on a typical
+# repo) so it's fine to run unconditionally.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  scrub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for forbidden identifiers
+        run: |
+          # Add new identifiers here as needed. Match is case-insensitive.
+          FORBIDDEN='(liminara|flowtime|deathcleaning)'
+
+          # Exclude this workflow file itself (it contains the pattern by definition).
+          if grep -rni -E "$FORBIDDEN" \
+              --include="*.md" \
+              --include="*.go" \
+              --include="*.yaml" \
+              --include="*.yml" \
+              --include="*.sh" \
+              --include="*.json" \
+              --include="*.txt" \
+              --exclude=scrub.yml \
+              --exclude-dir=.git \
+              --exclude-dir=node_modules \
+              .; then
+            echo "::error::Found a forbidden identifier above."
+            echo ""
+            echo "These identifiers must not appear in this repo. Remove the"
+            echo "occurrences and resubmit. If you believe an identifier on the"
+            echo "list should be allowed, raise it in a Discussion before"
+            echo "modifying this workflow."
+            exit 1
+          fi
+
+          echo "Scrub check passed."

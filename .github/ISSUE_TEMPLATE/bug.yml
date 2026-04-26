@@ -1,0 +1,71 @@
+name: Bug
+description: Report a bug in shipped behavior.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when shipped behavior diverges from documented behavior.
+        For "should we add X?" questions, please open a [Discussion](../../discussions) instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `aiwf --version` (or commit SHA if unreleased).
+      placeholder: "v0.1.0 / 7a3f9b2"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Build stage
+      description: Which stage of the build are you testing? See `docs/build-plan.md`.
+      options:
+        - Stage 1 (architecture-only)
+        - Stage 2 (kernel)
+        - Stage 3 (core verbs and required modules)
+        - Stage 4 (optional modules)
+        - Stage 5+ (validation / released)
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Minimal steps that reproduce the bug. A failing test or a small repo pointing at the issue is ideal.
+      placeholder: |
+        1. `aiwf init` in a fresh directory
+        2. ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen? Cite the doc/section if relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead? Include any stderr output, finding codes, or hashes.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirms
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I read `docs/architecture.md` and confirmed this is a bug, not designed behavior.
+          required: true
+        - label: I searched existing Issues and Discussions; this isn't a duplicate.
+          required: true

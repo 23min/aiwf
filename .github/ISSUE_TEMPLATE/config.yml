@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Feature ideas and "should we?" questions
+    url: https://github.com/23min/ai-workflow-v2/discussions/categories/ideas
+    about: Open a Discussion. Once it converges into a concrete work item, it can graduate to an Issue.
+  - name: Q&A and usage help
+    url: https://github.com/23min/ai-workflow-v2/discussions/categories/q-a
+    about: General questions about the architecture or how to use the framework.
+  - name: Read the architecture document first
+    url: https://github.com/23min/ai-workflow-v2/blob/main/docs/architecture.md
+    about: Most "should we?" and "why does it work this way?" questions are answered here.

@@ -1,0 +1,29 @@
+# Build artifacts
+/bin/
+/dist/
+*.test
+*.out
+coverage.*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (for documentation tooling, e.g., link-check action runs)
+node_modules/
+
+# Defense-in-depth: this repo is the framework, not a consumer of it.
+# These directories belong only in consumer repositories. If they ever
+# appear here, something is wrong; gitignore them so they cannot land.
+.ai/
+.ai-repo/
+work/epics/
+.claude/
+.github/skills/
