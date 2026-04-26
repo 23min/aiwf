@@ -102,11 +102,33 @@ There is no devcontainer. Work directly against macOS / Linux; the installer mus
 
 ---
 
-## Issue and PR conventions
+## Work tracking
 
-- **Issues:** bugs go to GitHub Issues with the `bug` template. Architecture clarifications go to GitHub Issues with the `design-question` template. There's no "feature request" template — feature ideas start as GitHub Discussions; once the conversation converges, they graduate to an Issue.
-- **PRs:** every PR description references the Issue or Discussion that established the work is wanted. Drive-by PRs without prior conversation will be asked to open one.
-- **Commit-message style:** Conventional Commits (`feat(...)`, `fix(...)`, `docs(...)`, `chore(...)`). One commit per logical change; small commits beat large ones for review.
+This repo does **not** dogfood the framework yet — the engine isn't stable enough to track its own construction without a bootstrap problem. Until it is, work tracking lives in three text artifacts plus GitHub, wired together so CI can enforce the link between them.
+
+### The three layers
+
+1. **Plan** — `ROADMAP.md` (long view) and `docs/build-plan.md` (ordered build sequence). Each row in `build-plan.md` maps to one tracking Issue. New work that is not on the build plan needs justification in the issue's "Why now" field; if the deviation reflects a real change in direction, update `build-plan.md` in the same PR.
+2. **Spec** — the Issue body. Every non-trivial Issue uses the `task` template, which requires explicit **Acceptance criteria** (a bullet checklist where each bullet is independently verifiable — by a command, a file, or a test) and a **Principles-checklist risks** section. The PR description re-asserts the acceptance bullets and shows how each is met. There is no separate spec doc per task; the Issue *is* the spec.
+3. **Verify** — CI (`.github/workflows/pr-conventions.yml`) mechanically enforces: PR title is a Conventional Commit, PR body cites an Issue or Discussion, `CHANGELOG.md` was modified under `[Unreleased]` (skip with the `internal-only` label). Substantive review — "is this actually the right thing?" — stays human, against the principles checklist.
+
+### Issue types
+
+- **`task`** — the workhorse. A unit of planned work; pins to a build-plan row when one exists. Use this for anything that isn't a bug or a design question.
+- **`bug`** — shipped behavior diverges from documented behavior.
+- **`design-question`** — `docs/architecture.md` is unclear, inconsistent, or missing rationale.
+- Feature ideas and "should we?" questions are **not** Issues until they have converged. They start as GitHub Discussions; once a direction is agreed, the Discussion graduates to a `task` Issue that cites it.
+
+### PR conventions
+
+- Every PR description cites the Issue or Discussion that established the work is wanted. Drive-by PRs without prior conversation will be asked to open one.
+- The PR template (`.github/pull_request_template.md`) prompts for: the closing `Closes #NN` line, re-asserted acceptance criteria, principles-checklist conformance notes, and CHANGELOG confirmation.
+- Commit-message style: Conventional Commits (`feat(...)`, `fix(...)`, `docs(...)`, `chore(...)`, `refactor(...)`, `test(...)`, `build(...)`, `ci(...)`, `perf(...)`, `revert(...)`). One commit per logical change; small commits beat large ones for review.
+- The `internal-only` label exempts a PR from the CHANGELOG-touch check. Use it sparingly: refactors with no observable effect, CI-only tweaks, comment fixes. When in doubt, add a CHANGELOG entry.
+
+### When to revisit this
+
+Once the engine ships milestone tracking and `aiwf verify` is stable for at least one release, revisit whether to migrate this repo's work tracking onto its own framework. At that point dogfooding strengthens the product instead of risking it.
 
 ---
 

@@ -1,0 +1,101 @@
+name: Task
+description: A unit of work to be done. Use this for everything that isn't a bug report or a design question.
+title: "task: "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tasks are the workhorse issue type — they track planned work derived from the roadmap.
+        For a bug, use the `bug` template. For an architecture clarification, use `design-question`.
+        For "should we do X?" feature ideas, open a Discussion first; once it converges, file a task.
+
+  - type: input
+    id: build_plan_row
+    attributes:
+      label: Build-plan row
+      description: |
+        Which row in `docs/build-plan.md` does this task implement? Use the form `Stage N — PR M` (e.g. `Stage 2 — PR 3`).
+        If this task does NOT correspond to a build-plan row (e.g. a small chore, infra fix, or doc edit), enter `n/a` and justify in "Why now".
+      placeholder: "Stage 2 — PR 3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: why_now
+    attributes:
+      label: Why now
+      description: |
+        One paragraph: what motivates picking this up now? Cite the roadmap stage, the prerequisite that just shipped, the
+        Discussion that converged, or the constraint that makes it timely. If "Build-plan row" is `n/a`, justify the deviation here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: |
+        Bullet what is in scope and what is explicitly out. Out-of-scope items become follow-up issues — link them when they're filed.
+      placeholder: |
+        In:
+        - Define `event.append` JSON Schema with the required envelope fields.
+        - Generate Go types from the schema; lock the contract in tests.
+
+        Out:
+        - Persistence layer (separate task).
+        - The `aiwf event append` CLI verb (separate task).
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: |
+        A bullet checklist that defines "done." Each bullet should be independently verifiable — either by running a command,
+        reading a specific file, or pointing at a test. PRs implementing this task re-assert these bullets and show how each is met.
+
+        Avoid vague bullets like "well tested" or "works correctly." Prefer "table-driven test in `tools/internal/event/event_test.go`
+        covers all required-field combinations" and "running `aiwf event validate examples/valid.json` exits 0."
+      placeholder: |
+        - [ ] JSON Schema at `framework/schemas/actions/event-append.json` covers all envelope fields from architecture §3.
+        - [ ] `tools/internal/event/types.go` defines Go types matching the schema; round-trip test asserts equality.
+        - [ ] Canonicalization helper in `tools/internal/event/canonical.go` produces RFC 8785 output; golden test fixture committed.
+        - [ ] `golangci-lint run` and `go test -race ./tools/...` both green.
+        - [ ] CHANGELOG `[Unreleased]` entry added under `### Added`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: principles_risk
+    attributes:
+      label: Principles checklist — risks
+      description: |
+        Walk the principles checklist in `CLAUDE.md` (or §12 of `docs/architecture.md`). Note any item where this task is
+        at risk of regressing — e.g. "could leave events.jsonl in a half-written state" (item 7) or "introduces a verb that
+        only makes sense via the AI assistant" (item 10). If none apply, write "no risks identified."
+      placeholder: |
+        Item 5 (trace-first ordering): the writer appends the event before flushing the projection; recovery test
+        will assert that a crash between the two leaves the event present and the projection rebuildable from it.
+    validations:
+      required: true
+
+  - type: input
+    id: depends_on
+    attributes:
+      label: Depends on
+      description: Issues or PRs that must land before this can start. Comma-separated. Leave empty if none.
+      placeholder: "#7, #12"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirms
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I have read the relevant section of `docs/architecture.md` and `docs/build-plan.md`.
+          required: true
+        - label: I have searched existing Issues; this task is not a duplicate.
+          required: true
