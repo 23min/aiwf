@@ -56,7 +56,7 @@ Once a PR is open:
 
 Conventional Commits, in the form:
 
-```
+```text
 <type>(<scope>): <short subject>
 
 <body — what changed and why, not how>

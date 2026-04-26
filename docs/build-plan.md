@@ -92,7 +92,7 @@ The framework ships as a small **core kernel** plus **opt-in modules**. New cons
 
 Every module ships in `framework/modules/<name>/` with this shape:
 
-```
+```text
 framework/modules/<name>/
 ├── MODULE.yaml          # metadata: name, description, version, requires, provides, default
 ├── README.md            # human-readable doc

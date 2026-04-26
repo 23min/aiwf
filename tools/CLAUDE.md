@@ -85,18 +85,21 @@ The event log is the framework's source of truth. Code that writes to it must:
 Before opening a PR that touches `tools/`, walk this checklist against your diff. Report conformance in the PR description.
 
 **Architecture:**
+
 - [ ] No new package-level mutable state. New dependencies passed via struct fields at construction.
 - [ ] `context.Context` as the first arg of every new IO function (subprocess, file, network).
 - [ ] No new closed-set constants without a current call site.
 - [ ] Any code path that writes structural state appends an event before applying its effect.
 
 **Errors and IO:**
+
 - [ ] Every error returned across a function boundary wrapped with `%w` and context.
 - [ ] `errors.Is`/`errors.As` for comparisons (never `==` on non-sentinel errors).
 - [ ] `log/slog` for logging (not `fmt.Fprintln` to stderr).
 - [ ] Library code never `panic`s or `os.Exit`s — only `cmd/<tool>/main.go` calls `os.Exit`.
 
 **Tests and quality:**
+
 - [ ] `go vet ./tools/...` clean.
 - [ ] `golangci-lint run` clean.
 - [ ] `go test -race ./tools/...` clean.
@@ -105,6 +108,7 @@ Before opening a PR that touches `tools/`, walk this checklist against your diff
 - [ ] No legacy project identifiers introduced (the `scrub` workflow will catch these, but check locally first).
 
 **Docs:**
+
 - [ ] Future integrations referenced in skill / template / changelog prose cite an open issue number.
 - [ ] `CHANGELOG.md` `[Unreleased]` updated for any user-visible change. Skip only for internal-only refactors with no observable effect.
 

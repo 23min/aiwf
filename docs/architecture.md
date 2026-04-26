@@ -160,7 +160,7 @@ This is a closed enum. Adding an action requires shipping a payload schema, the 
 
 The graph projection (`graph.json`) is computed by a pure function from the event log:
 
-```
+```text
 graph := project(events)
 ```
 
@@ -168,7 +168,7 @@ The projection is canonicalized using **JSON Canonicalization Scheme (RFC 8785)*
 
 The verify command:
 
-```
+```bash
 aiwf verify
 ```
 
@@ -184,7 +184,7 @@ Verify is also run as a CI gate and as the final step of every engine invocation
 
 Terminal states are terminal. The engine rejects transitions out of `complete` and `cancelled`. To correct a defect in completed work:
 
-```
+```bash
 aiwf hotfix M-PACK-A-02 --reason "discovered missing acceptance criterion"
 ```
 
@@ -583,7 +583,7 @@ The framework ships as a **core kernel** plus **opt-in modules**. Each module is
 
 Every module is a directory under `framework/modules/<name>/`:
 
-```
+```text
 framework/modules/<name>/
 ├── MODULE.yaml          # metadata: name, description, version, requires, provides, default
 ├── README.md            # human-readable doc
@@ -721,7 +721,7 @@ Each of these non-goals exists to keep the framework's surface small. Many adjac
 
 A consumer repository using ai-workflow has this layout:
 
-```
+```text
 <repo-root>/
 ├── .ai/                           # framework submodule (read-only from consumer)
 │   ├── skills/

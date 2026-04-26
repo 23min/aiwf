@@ -24,7 +24,7 @@ AI assistants are stochastic; project state cannot afford to be. The framework d
 
 ## How it fits together
 
-```
+```text
                                  ┌────────────────────────────┐
    ┌───────────────────┐         │         The engine         │
    │  AI assistant     │ propose │                            │
