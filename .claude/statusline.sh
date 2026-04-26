@@ -56,14 +56,16 @@ fmt_tokens() {
     printf '%s' "$t"
   fi
 }
-tokens_fmt="$(fmt_tokens "$tokens") tokens"
-
-# Color ball: green <50%, yellow <80%, red otherwise.
+# Color thresholds — same scale for ball and token text.
+# green <50%, yellow <80%, red >=80% (start a new session soon).
 pct=$(( tokens * 100 / ctx_max ))
-if   [ "$pct" -lt 50 ]; then ball=$'\033[32m●\033[0m'   # green
-elif [ "$pct" -lt 80 ]; then ball=$'\033[33m●\033[0m'   # yellow
-else                         ball=$'\033[31m●\033[0m'   # red
+if   [ "$pct" -lt 50 ]; then color=$'\033[32m'   # green
+elif [ "$pct" -lt 80 ]; then color=$'\033[33m'   # yellow
+else                         color=$'\033[31m'   # red
 fi
+reset=$'\033[0m'
+ball="${color}●${reset}"
+tokens_fmt="${color}$(fmt_tokens "$tokens") tokens${reset}"
 
 # --- Repo name --------------------------------------------------------------
 
