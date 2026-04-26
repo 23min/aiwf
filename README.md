@@ -60,8 +60,8 @@ For the full design see [`docs/architecture.md`](docs/architecture.md).
 
 **Engagement:**
 
-- [Issues](../../issues) track bugs and confirmed work items. Two templates: `bug` (against shipped behavior) and `design-question` (clarifies the architecture doc).
-- [Discussions](../../discussions) host design RFCs, feature ideas, and "should we?" questions. Feature ideas start here; once a discussion converges, it graduates to an issue.
+- [Issues](https://github.com/23min/ai-workflow-v2/issues) track bugs and confirmed work items. Two templates: `bug` (against shipped behavior) and `design-question` (clarifies the architecture doc).
+- [Discussions](https://github.com/23min/ai-workflow-v2/discussions) host design RFCs, feature ideas, and "should we?" questions. Feature ideas start here; once a discussion converges, it graduates to an issue.
 - Pull requests reference an issue or discussion in their description. New here? Read `docs/architecture.md` first; most "should we add X?" questions have an answer there.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full engagement model.
