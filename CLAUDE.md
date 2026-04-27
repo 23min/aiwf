@@ -18,6 +18,19 @@ For Go-specific rules (formatting, linting, testing, coverage, error handling, C
 
 ---
 
+## Working with the user
+
+- **Q&A / interview format.** When the user says "Q&A", "interview me", or anything similar, present questions or findings **one at a time**, not as a batch. For each item, give:
+  1. **Context** — what the question is about and why it matters here.
+  2. **Pros / cons** (or whys / why-nots) for each option.
+  3. **Risks**, if any.
+  4. **Your lean** and the reasoning behind it.
+  5. A **numbered list of options** the user can pick from (including "something else").
+
+  Wait for the user's choice before moving to the next item.
+
+---
+
 ## What the PoC commits to
 
 These are the load-bearing properties any change must preserve. They are distilled from the research arc (which lives on `main`, not here) and recorded in [`docs/poc-design-decisions.md`](docs/poc-design-decisions.md).

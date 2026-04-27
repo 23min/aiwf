@@ -16,11 +16,11 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 - [ ] Six kind types defined as Go structs with their hardcoded status enums.
 - [ ] `aiwf check` with these checks (each as a small function):
   - [ ] `ids-unique` — no duplicate ids (severity: error). Detected via path prefix collision.
-  - [ ] `refs-resolve` — `parent`, `depends_on`, `supersedes`, `superseded_by`, `discovered_in`, `addressed_by`, `relates_to` all resolve (severity: error).
+  - [ ] `refs-resolve` — every reference field resolves to an existing entity of the kind permitted by the frontmatter schema (severity: error). Findings distinguish *unresolved* (no such id) from *wrong-kind* (id exists but is the wrong kind).
   - [ ] `status-valid` — every status is in the allowed set for the kind (severity: error).
   - [ ] `frontmatter-shape` — required fields present, types correct (severity: error).
-  - [ ] `no-cycles` — no cycle in `depends_on` or `parent` (severity: error).
-  - [ ] `contract-artifact-exists` — for every contract, the `artifact:` path resolves (severity: error).
+  - [ ] `no-cycles` — no cycle in `depends_on` (milestone DAG) or in the `supersedes`/`superseded_by` chain (ADR DAG) (severity: error).
+  - [ ] `contract-artifact-exists` — for every contract, `artifact:` is a relative path with no `..` segments that resolves to an existing file *inside* the contract directory (severity: error).
   - [ ] `titles-nonempty` — title is set and non-empty (severity: warning).
   - [ ] `adr-supersession-mutual` — if `A.superseded_by = B`, then `B.supersedes ⊇ {A}` (severity: warning).
   - [ ] `gap-resolved-has-resolver` — addressed gap has non-empty `addressed_by` (severity: warning).
@@ -45,9 +45,9 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 - [ ] `aiwf promote <id> <status>` — read entity, validate transition (one Go function per kind), edit frontmatter, commit.
 - [ ] `aiwf cancel <id>` — promote to the kind's terminal-cancel status (`cancelled`/`wontfix`/`rejected`/`retired`).
 - [ ] `aiwf rename <id> <new-slug>` — `git mv` + frontmatter title update + commit. The id is preserved.
-- [ ] `aiwf reallocate <id>` — pick next free id, `git mv`, walk every entity's frontmatter and rewrite reference fields, surface body-prose references as findings, commit.
-- [ ] Every mutating verb runs `aiwf check` post-mutation; abort and roll back working-tree changes if errors are found.
-- [ ] Every commit-producing verb writes structured trailers: `aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`.
+- [ ] `aiwf reallocate <id|path>` — pick next free id, `git mv`, walk every entity's frontmatter and rewrite reference fields, surface body-prose references as findings, commit. Accepts a path (instead of an id) when the id is ambiguous — required after a merge collision where two files share the same id.
+- [ ] Every mutating verb computes the projected new tree in memory, runs `aiwf check` against the projection, and either (a) writes files and creates the single commit when clean, or (b) returns findings without touching the working tree. No rollback path: nothing is written until the projection is known good.
+- [ ] Every commit-producing verb writes structured trailers: `aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`. `reallocate` additionally writes `aiwf-prior-entity: <old-id>` so both the old and new id's histories are queryable.
 - [ ] Round-trip tests for each verb against a fresh git repo fixture.
 
 **Deliverable:** end-to-end planning workflow works. `aiwf init && aiwf add epic && aiwf add milestone && aiwf promote ... && aiwf rename ...` produces a sensible git history.
@@ -65,16 +65,17 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
   - [ ] `wf-reallocate` — how to resolve id collisions.
   - [ ] `wf-history` — how to ask "what happened here?".
   - [ ] `wf-check` — what `aiwf check` reports and how to fix common findings.
-- [ ] `aiwf init`:
-  - [ ] writes `aiwf.yaml` (~10 lines) at consumer repo root,
-  - [ ] scaffolds `work/epics/`, `work/gaps/`, `work/decisions/`, `work/contracts/`, `docs/adr/`,
-  - [ ] materializes skills to `.claude/skills/wf-*/SKILL.md`,
-  - [ ] adds materialized-skill paths to `.gitignore`,
-  - [ ] writes a short `CLAUDE.md` template if none exists,
-  - [ ] installs `.git/hooks/pre-push` that runs `aiwf check`.
-- [ ] `aiwf update` — re-materialize skills (no commit; updates gitignored files).
-- [ ] `aiwf history <id>` — read `git log` filtered for `aiwf-entity: <id>` trailers; pretty-print.
-- [ ] `aiwf doctor` — check binary version vs. `aiwf.yaml`'s `aiwf_version`, check skill freshness, check id-collision health.
+- [ ] `aiwf init` (idempotent; safe to re-run; produces no git commit — the user commits when ready):
+  - [ ] writes `aiwf.yaml` (~10 lines) at the consumer repo root if missing; preserves an existing file unchanged. The `actor` field defaults to `human/<local-part-of-git-config-user.email>` (e.g., `human/peter` for `peter@example.com`); if neither `user.email` nor `user.name` is set, errors with an instruction to set git config or pass `--actor`. The actor value (whether derived or explicit) is validated against `^\S+/\S+$` before write; the same regex validates `aiwf.yaml`'s `actor:` field on every verb invocation and any `--actor` flag override.
+  - [ ] scaffolds `work/epics/`, `work/gaps/`, `work/decisions/`, `work/contracts/`, `docs/adr/` if missing; never modifies existing directories or their contents.
+  - [ ] materializes skills to `.claude/skills/wf-*/SKILL.md` (wipe-and-rewrite per the cache contract; non-`wf-*` skill directories are untouched).
+  - [ ] appends materialized-skill paths to `.gitignore` if not already present; does not rewrite the file.
+  - [ ] writes a short `CLAUDE.md` template only if the file is missing.
+  - [ ] installs `.git/hooks/pre-push` that runs `aiwf check`. The hook carries an `# aiwf:pre-push` marker comment. If a hook exists with the marker → overwrite (idempotent). If a hook exists without the marker → refuse with a useful error explaining how to integrate `aiwf check` into the existing hook manually, or use a hook manager (husky/lefthook) that composes hooks.
+  - [ ] pre-existing entity files in `work/` and `docs/adr/` are not modified or validated by `init`; they show up as findings on the next `aiwf check` and serve as the migration to-do list when adopting `aiwf` against an existing repo.
+- [ ] `aiwf update` — remove every `.claude/skills/wf-*/` directory and re-materialize from the binary's embedded skills (no commit; updates gitignored files). Directories not matching `wf-*` are untouched (user-authored skills are namespace-isolated).
+- [ ] `aiwf history <id>` — read `git log` filtered for `aiwf-entity: <id>` *or* `aiwf-prior-entity: <id>` trailers (so reallocate events are visible from both the old and new id). Default output is one line per event: `DATE  ACTOR  VERB  DETAIL  COMMIT`, where `DETAIL` is the commit subject line shaped by the verb at commit time (`"title"` for add, `old → new` for promote, `slug → <new>` for rename, `→ cancelled` for cancel, `<old-id> → <new-id>` for reallocate). `--format=json` mirrors `aiwf check`'s machine-readable contract. Trailer-matched events only — `aiwf history` does not show side-effect file edits (use `git log -- <path>` for byte-level history).
+- [ ] `aiwf doctor` — check binary version vs. `aiwf.yaml`'s `aiwf_version`, byte-compare each materialized skill against its embedded version and report drift, check id-collision health.
 - [ ] Tests: `aiwf init` in a fresh git repo produces the expected layout; `aiwf history` returns the expected events for a multi-step fixture.
 
 **Deliverable:** in a fresh consumer repo, `aiwf init` sets things up; the AI host (Claude Code) sees the skills; the pre-push hook catches errors before push.

@@ -51,17 +51,60 @@ These are quality bars every part of the framework must respect:
 
 Hardcoded in Go for the PoC. Extensible to YAML-driven kinds later if real consumers need to customize the vocabulary.
 
+### Frontmatter schema and body templates
+
+Every entity is a markdown file (or, for epics and contracts, a directory containing `epic.md` / `contract.md`) with YAML frontmatter and a prose body. Frontmatter is canonical structured state; the body is human prose, not parsed.
+
+**Common to every kind:**
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | yes | Matches the kind's id format. Primary key. |
+| `title` | string | yes | Display name; freely renamable. |
+| `status` | string | yes | Must be in the kind's status set. |
+
+**Per-kind reference fields** (checked by `refs-resolve`; `parent` and `depends_on` also feed `no-cycles`):
+
+| Kind | Field | Type | Required | Target |
+|---|---|---|---|---|
+| Milestone | `parent` | id | yes | epic |
+| Milestone | `depends_on` | []id | no | other milestones |
+| ADR | `supersedes` | []id | no | other ADRs |
+| ADR | `superseded_by` | id | no | another ADR |
+| Gap | `discovered_in` | id | no | milestone or epic |
+| Gap | `addressed_by` | []id | no | any kind |
+| Decision | `relates_to` | []id | no | any kind |
+| Contract | `format` | string | yes | e.g., `openapi`, `json-schema`, `proto` |
+| Contract | `artifact` | path | yes | relative to the contract directory; existence checked by `contract-artifact-exists` |
+
+Timestamps (`created`, `updated`) are deliberately absent from frontmatter; `git log` carries them. Putting them in YAML would be redundant state and a future drift target.
+
+**Body templates** are short section stubs written by `aiwf add`. They are starting points, not enforced structure:
+
+| Kind | Body sections |
+|---|---|
+| Epic | `## Goal` / `## Scope` / `## Out of scope` |
+| Milestone | `## Goal` / `## Acceptance criteria` |
+| ADR | `## Context` / `## Decision` / `## Consequences` |
+| Gap | `## What's missing` / `## Why it matters` |
+| Decision | `## Question` / `## Decision` / `## Reasoning` |
+| Contract | `## Purpose` / `## Stability` |
+
+Bodies are not validated. The framework guarantees structural and referential stability of frontmatter; prose is the human's responsibility.
+
 ### Stable ids and rename ergonomics
 
-- IDs are sequential within a kind, allocated by scanning the tree at allocation time and picking `max + 1`.
-- The id is encoded in the file or directory path (`E-19-<slug>/`, `M-001-<slug>.md`).
+- IDs are sequential within a kind, allocated by scanning the tree at allocation time and picking `max + 1`. There is no cross-branch coordination; the allocator only sees the current branch's tree.
+- The id is encoded in the file or directory path (`E-19-<slug>/`, `M-001-<slug>.md`). Because the slug is part of the path, two parallel branches that allocate the same id for different titles produce different paths — git merges both files in cleanly. The collision is *semantic* (two files share an id in their frontmatter), not textual, and surfaces only when `aiwf check` runs. This slug-as-collision-buffer property is what makes the simple allocator viable without coordination.
 - Renames preserve the id: `aiwf rename <id> <new-slug>` does `git mv` plus a title update.
 - Removals are not deletions. `aiwf cancel <id>` flips status to the kind's terminal value (`cancelled`/`wontfix`/`rejected`/`retired`). The file stays. References stay valid.
-- Collisions are detected by `aiwf check` (two paths starting with the same `E-NN-` prefix). Resolution is `aiwf reallocate <id>`, which picks the next free id, `git mv`s, walks every entity's frontmatter to update reference fields, and surfaces body-prose references as findings for human review.
+- Collisions are detected by `aiwf check`'s `ids-unique` finding. The pre-push hook makes this fatal before push. Resolution is `aiwf reallocate`, which accepts either an id (when unambiguous) or a path (required when two entities collide on the same id). It picks the next free id (`max + 1` at call time), `git mv`s, walks every entity's frontmatter to rewrite reference fields, and surfaces body-prose references as findings for human review. The id format is never extended with suffixes (no `M-007a`/`M-007b`); collision recovery always renumbers.
 
 ### Markdown is the source of truth; git is the time machine
 
 There is no separate event log file. There is no separate graph projection file. The markdown frontmatter is canonical state; `git log` is history; structured commit trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) make the log queryable. `aiwf history <id>` reads `git log` filtered by trailer.
+
+The `reallocate` verb additionally writes an `aiwf-prior-entity: <old-id>` trailer alongside the new id's `aiwf-entity:`. This is the bridge that keeps both ids' histories complete: `aiwf history M-008` matches `aiwf-entity: M-008` and shows the reallocate as an event in M-008's life; `aiwf history M-007` matches `aiwf-prior-entity: M-007` and shows the reallocate as the terminal event in M-007's life ("renumbered to M-008"). Without this, querying the old id after a reallocation would silently come up empty — a footgun, since the user would think the entity was deleted.
 
 This is a deliberate departure from designs that maintain a parallel transaction log. The research that motivates this departure is on `main`; the short version is that an append-only event log file fights git's branching model in ways that are expensive to fix and unnecessary at this scale.
 
@@ -79,13 +122,34 @@ This is a deliberate departure from designs that maintain a parallel transaction
 | Per-project policy (`aiwf.yaml`) | In the consumer repo, git-tracked | Team-shared, CI-readable, travels with clone |
 | Per-project planning state (`work/`, `docs/adr/`) | In the consumer repo, git-tracked | Co-evolves with code, bisectable, no API friction |
 | Per-developer config | `~/.config/aiwf/` | Personal preferences and tool-path overrides |
-| Materialized skill adapters (`.claude/skills/wf-*`) | In the consumer repo, gitignored | Composed from the binary on `aiwf init`/`update`; stable across `git checkout` |
+| Materialized skill adapters (`.claude/skills/wf-*`) | In the consumer repo, gitignored | Composed from the binary on `aiwf init`/`update`; stable across `git checkout`. The `wf-` prefix is the namespace boundary; non-`wf-*` skill directories are untouched. |
 
-The materialization invariant is load-bearing: skills are regenerated only on explicit `aiwf init` / `aiwf update`, never implicitly on `git checkout` or every verb invocation. This is what keeps the AI's behavior stable when switching branches.
+The materialization invariant is load-bearing: skills are regenerated only on explicit `aiwf init` / `aiwf update`, never implicitly on `git checkout` or every verb invocation. This is what keeps the AI's behavior stable when switching branches. The on-disk files are a cache, not state: `aiwf update` wipes every `.claude/skills/wf-*/` directory and rewrites them from the binary's embedded skills; `aiwf doctor` reports drift via byte-compare against the embedded version. No state file, no manifest, no version stamp.
+
+Skills are embedded in the `aiwf` binary via Go's `embed.FS` and copied out on `init` / `update`. This deliberately couples skill content to the binary version: skills are adapters that call binary-provided commands, so version-skew between them would silently break things. Distributing skills via a separate channel — e.g., as a Claude Code plugin — is a viable future *packaging* path for easier installation, but as an architecture choice it would re-introduce the version-skew problem that embedding avoids.
+
+### `aiwf.yaml` config
+
+A short YAML file at the consumer repo root. Read by `aiwf` on every invocation; written by `aiwf init`. The file's presence is also how `aiwf` discovers the repo root: it walks up from the current working directory until it finds one.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `aiwf_version` | string | yes | Engine version the repo expects (e.g., `0.1.0`). `aiwf doctor` warns on mismatch. |
+| `actor` | string | yes | Default value of the `aiwf-actor:` commit trailer (e.g., `human/peter`). Format: `<role>/<identifier>` — must match `^\S+/\S+$` (exactly one `/`, no whitespace; otherwise freeform). Override on a single invocation via `--actor`. `aiwf init` derives a default of `human/<local-part-of-git-config-user.email>` when not explicitly provided. |
+| `hosts` | []string | no | Hosts to materialize skills for. PoC default and only supported value: `[claude-code]`. |
+
+Example (the typical file):
+
+```yaml
+aiwf_version: 0.1.0
+actor: human/peter
+```
+
+That's the entire file in normal use. `hosts` is omitted to take the default. No project-name field, no per-project skill paths, no policy knobs in the PoC; the kind FSM, id formats, and status sets are hardcoded in the engine — see *Six entity kinds*.
 
 ### One git commit per mutating verb
 
-Every mutating verb (`add`, `promote`, `cancel`, `rename`, `reallocate`) produces exactly one git commit. This gives per-mutation atomicity for free: if the working tree changes don't pass `aiwf check`, the verb aborts before the commit lands. There is no separate journal file, no two-phase commit ceremony, no event-log-then-confirm protocol. The git commit *is* the atomic boundary.
+Every mutating verb (`add`, `promote`, `cancel`, `rename`, `reallocate`) produces exactly one git commit, or no change at all. Verbs are *validate-then-write*: the verb computes the projected new tree in memory (an overlay on top of the loaded tree), runs `aiwf check` against the projection, and only when the projection is clean writes files (and `git mv`s) and creates the commit. On findings the working tree is never touched. This gives per-mutation atomicity for free without a rollback path, and lets verbs run safely while the user has unstaged edits in flight. There is no separate journal file, no two-phase commit ceremony, no event-log-then-confirm protocol. The git commit *is* the atomic boundary.
 
 ---
 
@@ -101,6 +165,7 @@ In rough order of "if needed, here's how to add it":
 | FSM-as-YAML | When kinds need per-project customization | Move the hardcoded transition functions to YAML |
 | Module system | When the framework grows past ~20 verbs | Module loader controlled by `aiwf.yaml` |
 | Tombstones beyond status-cancel | When entities need to be hidden from view, not just terminal | A `removed: true` flag plus render filter |
+| Automatic migration from prior frameworks | When a second concrete migration source emerges | A bespoke transform script (likely external to `aiwf`); `aiwf check`'s findings are the diagnostic |
 | GitHub Issues / Linear sync | When a project wants tickets mirrored | Opt-in sync module |
 | CRDT registry, custom merge driver | When concurrent branches produce real merge conflicts on planning state | Modeled in research; not built in PoC |
 | Pre-PR Workshop tooling | When PR review becomes a regular workflow | `aiwf prepush`, `aiwf preview-merge`, etc. |
