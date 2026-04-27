@@ -57,7 +57,7 @@ func Rename(t *tree.Tree, id, newSlug, actor string) (*Result, error) {
 	}
 
 	proj := projectReplace(t, &modified, planned...)
-	if fs := validateProjection(proj); check.HasErrors(fs) {
+	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
 		return findings(fs), nil
 	}
 

@@ -73,9 +73,34 @@ func withPlanned(existing map[string]struct{}, additions []string) map[string]st
 	return out
 }
 
-// validateProjection runs all checks against an in-memory projected
-// tree. There are no load errors to surface (the projection lives
-// only in memory).
-func validateProjection(t *tree.Tree) []check.Finding {
-	return check.Run(t, nil)
+// projectionFindings returns the findings introduced by going from
+// `original` to `projected`: any finding present on `projected` whose
+// equivalent does not appear on `original` is considered "introduced
+// by this verb." Pre-existing tree problems unrelated to the verb's
+// change do not block it; the user can see them via `aiwf check`.
+//
+// Equivalence is by code + subcode + path + entity-id + message.
+// That's strict enough that "same kind of problem on a different
+// entity" is treated as a new finding (which is the right call:
+// adding an entity that triggers a new ids-unique conflict, even when
+// the tree already had unrelated ids-unique conflicts, is still the
+// verb's responsibility).
+func projectionFindings(original, projected *tree.Tree) []check.Finding {
+	pre := check.Run(original, nil)
+	post := check.Run(projected, nil)
+	seen := make(map[string]bool, len(pre))
+	for _, f := range pre {
+		seen[findingKey(f)] = true
+	}
+	var introduced []check.Finding
+	for _, f := range post {
+		if !seen[findingKey(f)] {
+			introduced = append(introduced, f)
+		}
+	}
+	return introduced
+}
+
+func findingKey(f check.Finding) string {
+	return f.Code + "|" + f.Subcode + "|" + f.Path + "|" + f.EntityID + "|" + f.Message
 }

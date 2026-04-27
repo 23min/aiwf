@@ -318,3 +318,271 @@ func mustHaveTrailer(t *testing.T, trailers []gitops.Trailer, key, value string)
 	}
 	t.Errorf("trailer %s=%q missing from %+v", key, value, trailers)
 }
+
+// --- Edge cases (items 1-7 from the test-coverage audit) ---
+
+// TestReallocate_ByPath_DisambiguatesCollision exercises the
+// merge-collision recovery flow: two entities share an id (impossible
+// to reach via aiwf verbs alone, but realistic after `git merge`
+// merges two branches that each independently allocated M-001 with
+// different slugs). `aiwf reallocate <path>` picks the entity at that
+// specific path and renumbers it.
+func TestReallocate_ByPath_DisambiguatesCollision(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.tree(), entity.KindMilestone, "Original", testActor, verb.AddOptions{EpicID: "E-01"}))
+
+	// Manually create a colliding M-001 with a different slug — the
+	// shape a merge from a parallel branch would land in. Stage and
+	// commit so git considers it tracked (real merges produce tracked
+	// files; bare working-tree files would fail the eventual git mv).
+	collidingPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-from-other-branch.md")
+	if err := os.WriteFile(collidingPath, []byte(`---
+id: M-001
+title: From other branch
+status: draft
+parent: E-01
+---
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(r.ctx, r.root, "work/epics/E-01-platform/M-001-from-other-branch.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(r.ctx, r.root, "simulate merge of colliding M-001", nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// Resolving "M-001" by id is now ambiguous — t.ByID returns the
+	// first one, which is the original. Resolve by path instead.
+	collidingRel := "work/epics/E-01-platform/M-001-from-other-branch.md"
+	res, err := verb.Reallocate(r.tree(), collidingRel, testActor)
+	if err != nil {
+		t.Fatalf("reallocate by path: %v", err)
+	}
+	if res.Plan == nil || check.HasErrors(res.Findings) {
+		t.Fatalf("unexpected: %+v", res)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+
+	tr := r.tree()
+	// Original M-001 still present; the colliding one became M-002.
+	if e := tr.ByID("M-001"); e == nil || e.Title != "Original" {
+		t.Errorf("M-001 = %+v, want the original", e)
+	}
+	if e := tr.ByID("M-002"); e == nil || e.Title != "From other branch" {
+		t.Errorf("M-002 = %+v, want the renumbered colliding entity", e)
+	}
+
+	// Tree validates clean.
+	if findings := check.Run(tr, nil); check.HasErrors(findings) {
+		t.Errorf("post-reallocate tree has errors: %+v", findings)
+	}
+
+	// Trailer carries both new and prior id.
+	trailers, _ := gitops.HeadTrailers(r.ctx, r.root)
+	mustHaveTrailer(t, trailers, "aiwf-entity", "M-002")
+	mustHaveTrailer(t, trailers, "aiwf-prior-entity", "M-001")
+}
+
+// TestReallocate_Contract exercises the directory-rename + nested-
+// artifact flow: reallocate a contract (which lives in a directory
+// containing schema/) and verify that the dir moved, the artifact came
+// along, and the contract.md's frontmatter id was rewritten.
+func TestReallocate_Contract(t *testing.T) {
+	r := newRunner(t)
+
+	srcDir := filepath.Join(r.root, "tmp")
+	if err := os.MkdirAll(srcDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	srcPath := filepath.Join(srcDir, "openapi.yaml")
+	if err := os.WriteFile(srcPath, []byte("openapi: 3.1.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	r.must(verb.Add(r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{
+		Format: "openapi", ArtifactSource: srcPath,
+	}))
+
+	// Trigger reallocate (any reason — we're testing the directory move).
+	r.must(verb.Reallocate(r.tree(), "C-001", testActor))
+
+	// New contract dir holds both contract.md and the artifact under schema/.
+	newDir := filepath.Join(r.root, "work", "contracts", "C-002-orders-api")
+	if _, err := os.Stat(filepath.Join(newDir, "contract.md")); err != nil {
+		t.Fatalf("contract.md missing in new dir: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(newDir, "schema", "openapi.yaml")); err != nil {
+		t.Fatalf("artifact missing in new dir's schema/: %v", err)
+	}
+
+	// Old dir is gone.
+	oldDir := filepath.Join(r.root, "work", "contracts", "C-001-orders-api")
+	if _, err := os.Stat(oldDir); err == nil {
+		t.Errorf("old contract dir still present at %s", oldDir)
+	}
+
+	// Frontmatter id is rewritten.
+	c := r.tree().ByID("C-002")
+	if c == nil {
+		t.Fatal("C-002 not found")
+	}
+	if c.Format != "openapi" || c.Artifact != "schema/openapi.yaml" {
+		t.Errorf("C-002 fields not preserved across reallocate: %+v", c)
+	}
+
+	// Tree validates clean.
+	if findings := check.Run(r.tree(), nil); check.HasErrors(findings) {
+		t.Errorf("post-reallocate tree has errors: %+v", findings)
+	}
+}
+
+// TestPromote_NonExistentID returns a Go error before any disk work.
+func TestPromote_NonExistentID(t *testing.T) {
+	r := newRunner(t)
+	_, err := verb.Promote(r.tree(), "E-99", "active", testActor)
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected not-found error, got %v", err)
+	}
+}
+
+// TestCancel_NonExistentID covers the same path for cancel.
+func TestCancel_NonExistentID(t *testing.T) {
+	r := newRunner(t)
+	_, err := verb.Cancel(r.tree(), "M-99", testActor)
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected not-found error, got %v", err)
+	}
+}
+
+// TestRename_NonExistentID covers the same path for rename.
+func TestRename_NonExistentID(t *testing.T) {
+	r := newRunner(t)
+	_, err := verb.Rename(r.tree(), "E-99", "new-slug", testActor)
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected not-found error, got %v", err)
+	}
+}
+
+// TestReallocate_NonExistentTarget covers the same path for reallocate.
+func TestReallocate_NonExistentTarget(t *testing.T) {
+	r := newRunner(t)
+	_, err := verb.Reallocate(r.tree(), "X-99", testActor)
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected not-found error, got %v", err)
+	}
+}
+
+// TestCancel_AlreadyTerminal returns an error rather than producing a
+// no-op commit.
+func TestCancel_AlreadyTerminal(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Doomed twice", testActor, verb.AddOptions{}))
+	r.must(verb.Cancel(r.tree(), "E-01", testActor))
+
+	_, err := verb.Cancel(r.tree(), "E-01", testActor)
+	if err == nil || !strings.Contains(err.Error(), "already") {
+		t.Errorf("expected 'already cancelled' error, got %v", err)
+	}
+}
+
+// TestRename_SameSlug returns an error rather than producing a no-op
+// commit.
+func TestRename_SameSlug(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Same name", testActor, verb.AddOptions{}))
+	_, err := verb.Rename(r.tree(), "E-01", "same-name", testActor)
+	if err == nil || !strings.Contains(err.Error(), "matches the current slug") {
+		t.Errorf("expected same-slug error, got %v", err)
+	}
+}
+
+// TestAdd_GapWithDiscoveredIn confirms the --discovered-in flag wires
+// through to the gap's frontmatter and resolves correctly.
+func TestAdd_GapWithDiscoveredIn(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.tree(), entity.KindGap, "Need a thing", testActor, verb.AddOptions{DiscoveredIn: "M-001"}))
+
+	g := r.tree().ByID("G-001")
+	if g == nil || g.DiscoveredIn != "M-001" {
+		t.Errorf("G-001 = %+v, want discovered_in: M-001", g)
+	}
+	if findings := check.Run(r.tree(), nil); check.HasErrors(findings) {
+		t.Errorf("tree errors: %+v", findings)
+	}
+}
+
+// --- Pre-existing-error isolation (item 15) ---
+
+// TestAdd_PreExistingErrorDoesNotBlockUnrelatedVerb verifies the
+// behavior change from item 15: a verb's projection only blocks on
+// findings *introduced* by the change, not on errors that already
+// existed in the loaded tree. Lets users incrementally fix a partially
+// broken tree without first having to clean up unrelated breakage.
+func TestAdd_PreExistingErrorDoesNotBlockUnrelatedVerb(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+
+	// Hand-edit a broken state into the tree: a gap whose
+	// discovered_in points to a non-existent milestone. This is a
+	// pre-existing refs-resolve/unresolved error.
+	gapPath := filepath.Join(r.root, "work", "gaps", "G-001-broken.md")
+	if err := os.MkdirAll(filepath.Dir(gapPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(gapPath, []byte(`---
+id: G-001
+title: Broken gap
+status: open
+discovered_in: M-999
+---
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Confirm the tree is in fact broken before we try anything.
+	pre := check.Run(r.tree(), nil)
+	if !check.HasErrors(pre) {
+		t.Fatal("setup invalid: expected pre-existing error before testing")
+	}
+
+	// Add an unrelated epic — the verb should not block on the gap's
+	// pre-existing error.
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Second epic", testActor, verb.AddOptions{}))
+
+	// New entity exists.
+	if e := r.tree().ByID("E-02"); e == nil {
+		t.Error("E-02 was not created — pre-existing error blocked the verb")
+	}
+	// Pre-existing error still exists (verbs don't fix unrelated state).
+	if !check.HasErrors(check.Run(r.tree(), nil)) {
+		t.Error("pre-existing error disappeared somehow — fixture drift?")
+	}
+}
+
+// TestAdd_DecisionWithRelatesTo confirms the --relates-to flag wires
+// through to the decision's relates_to list and resolves correctly.
+func TestAdd_DecisionWithRelatesTo(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.tree(), entity.KindDecision, "Pin the order", testActor, verb.AddOptions{
+		RelatesTo: []string{"E-01", "M-001"},
+	}))
+
+	d := r.tree().ByID("D-001")
+	if d == nil || len(d.RelatesTo) != 2 {
+		t.Fatalf("D-001 = %+v, want relates_to: [E-01 M-001]", d)
+	}
+	if d.RelatesTo[0] != "E-01" || d.RelatesTo[1] != "M-001" {
+		t.Errorf("relates_to = %v", d.RelatesTo)
+	}
+	if findings := check.Run(r.tree(), nil); check.HasErrors(findings) {
+		t.Errorf("tree errors: %+v", findings)
+	}
+}

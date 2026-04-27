@@ -7,9 +7,10 @@ import (
 	"strings"
 )
 
-// actorPattern enforces the Q10 format: <role>/<identifier> with a
-// single forward slash and no whitespace.
-var actorPattern = regexp.MustCompile(`^\S+/\S+$`)
+// actorPattern enforces the Q10 format: <role>/<identifier> with
+// exactly one forward slash and no whitespace. Both sides must be
+// non-empty and themselves slash-free.
+var actorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 
 // resolveActor picks the actor string for a verb's commit trailer.
 // Precedence: explicit > git config user.email derivation. Returns an

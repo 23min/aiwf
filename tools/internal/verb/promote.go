@@ -41,7 +41,7 @@ func Promote(t *tree.Tree, id, newStatus, actor string) (*Result, error) {
 	}
 
 	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
-	if fs := validateProjection(proj); check.HasErrors(fs) {
+	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
 		return findings(fs), nil
 	}
 
@@ -87,7 +87,7 @@ func Cancel(t *tree.Tree, id, actor string) (*Result, error) {
 	}
 
 	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
-	if fs := validateProjection(proj); check.HasErrors(fs) {
+	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
 		return findings(fs), nil
 	}
 

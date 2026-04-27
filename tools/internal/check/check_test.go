@@ -331,3 +331,132 @@ var errFake = &fakeError{msg: "synthetic load error"}
 type fakeError struct{ msg string }
 
 func (e *fakeError) Error() string { return e.msg }
+
+// --- Edge cases (items 8-12 from the test-coverage audit) ---
+
+// TestIDsUnique_ThreeWayCollision verifies that every duplicate after
+// the first surfaces as its own finding (so a 3-way collision yields
+// 2 findings, not 1).
+func TestIDsUnique_ThreeWayCollision(t *testing.T) {
+	tr := makeTree(
+		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Path: "a.md"},
+		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Path: "b.md"},
+		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Path: "c.md"},
+	)
+	got := idsUnique(tr)
+	if len(got) != 2 {
+		t.Fatalf("findings = %d, want 2: %+v", len(got), got)
+	}
+	gotPaths := []string{got[0].Path, got[1].Path}
+	if gotPaths[0] != "b.md" || gotPaths[1] != "c.md" {
+		t.Errorf("paths = %v, want [b.md c.md] (the second and third occurrences)", gotPaths)
+	}
+}
+
+// TestNoCycles_DiamondIsAcyclic confirms that a DAG with two paths
+// from the same source converging on the same target is not flagged
+// as a cycle.
+func TestNoCycles_DiamondIsAcyclic(t *testing.T) {
+	tr := makeTree(
+		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, DependsOn: []string{"M-002", "M-003"}},
+		&entity.Entity{ID: "M-002", Kind: entity.KindMilestone, DependsOn: []string{"M-004"}},
+		&entity.Entity{ID: "M-003", Kind: entity.KindMilestone, DependsOn: []string{"M-004"}},
+		&entity.Entity{ID: "M-004", Kind: entity.KindMilestone},
+	)
+	got := noCycles(tr)
+	if len(got) != 0 {
+		t.Errorf("diamond DAG flagged as cyclic: %+v", got)
+	}
+}
+
+// TestNoCycles_TwoDisjointCycles surfaces both cycles independently.
+func TestNoCycles_TwoDisjointCycles(t *testing.T) {
+	tr := makeTree(
+		// Cycle A: M-001 <-> M-002
+		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, DependsOn: []string{"M-002"}, Path: "1.md"},
+		&entity.Entity{ID: "M-002", Kind: entity.KindMilestone, DependsOn: []string{"M-001"}, Path: "2.md"},
+		// Cycle B: M-003 <-> M-004
+		&entity.Entity{ID: "M-003", Kind: entity.KindMilestone, DependsOn: []string{"M-004"}, Path: "3.md"},
+		&entity.Entity{ID: "M-004", Kind: entity.KindMilestone, DependsOn: []string{"M-003"}, Path: "4.md"},
+	)
+	got := noCycles(tr)
+	if len(got) != 4 {
+		t.Fatalf("findings = %d, want 4 (both cycles, both nodes): %+v", len(got), got)
+	}
+	seen := map[string]bool{}
+	for _, f := range got {
+		seen[f.EntityID] = true
+	}
+	for _, want := range []string{"M-001", "M-002", "M-003", "M-004"} {
+		if !seen[want] {
+			t.Errorf("cycle finding for %s missing", want)
+		}
+	}
+}
+
+// TestParse_TypeErrorsBecomeLoadErrors verifies that YAML type
+// mismatches (a sequence where a string is expected, or vice versa)
+// surface as parse failures and become load-error findings.
+func TestParse_TypeErrorsBecomeLoadErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{
+			"parent as list",
+			`---
+id: M-001
+title: Foo
+status: draft
+parent:
+  - E-01
+  - E-02
+---
+`,
+		},
+		{
+			"depends_on as scalar",
+			`---
+id: M-001
+title: Foo
+status: draft
+parent: E-01
+depends_on: M-002
+---
+`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := entity.Parse("synthetic.md", []byte(tt.content))
+			if err == nil {
+				t.Error("expected parse error for type mismatch")
+			}
+		})
+	}
+}
+
+// TestContractArtifactExists_DirectoryAtArtifactPath rejects a
+// directory present where a regular file is expected (the Q1 schema
+// declares `artifact` is a path to a file, not a folder).
+func TestContractArtifactExists_DirectoryAtArtifactPath(t *testing.T) {
+	root := t.TempDir()
+	// Create a directory at the artifact path instead of a file.
+	if err := os.MkdirAll(filepath.Join(root, "work", "contracts", "C-001-foo", "schema", "openapi.yaml"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{
+			{
+				ID: "C-001", Kind: entity.KindContract, Title: "Dir-as-artifact", Status: "draft",
+				Format: "openapi", Artifact: "schema/openapi.yaml",
+				Path: "work/contracts/C-001-foo/contract.md",
+			},
+		},
+	}
+	got := contractArtifactExists(tr)
+	if len(got) != 1 || got[0].EntityID != "C-001" {
+		t.Errorf("got %+v, want one finding for C-001", got)
+	}
+}

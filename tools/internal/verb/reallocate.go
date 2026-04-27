@@ -65,7 +65,7 @@ func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
 	}
 
 	proj := projectReallocate(t, target, &modified, rewrites, planned)
-	projFindings := validateProjection(proj)
+	projFindings := projectionFindings(t, proj)
 	if check.HasErrors(projFindings) {
 		// Body-prose warnings are also worth surfacing alongside the projection errors.
 		all := append([]check.Finding{}, projFindings...)

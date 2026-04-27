@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -111,5 +112,92 @@ func TestWalkUpFor(t *testing.T) {
 	}
 	if _, ok := walkUpFor(deep, "nonsuch.txt"); ok {
 		t.Errorf("nonsuch.txt should not be found")
+	}
+}
+
+// setupCLITestRepo gives the test process a git identity and an
+// initialized repo; returns the repo root.
+func setupCLITestRepo(t *testing.T) string {
+	t.Helper()
+	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
+	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
+	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
+	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
+	root := t.TempDir()
+	if got := run([]string{"check", "--root=" + root}); got != exitOK {
+		t.Fatalf("baseline check on tmpdir = %d", got)
+	}
+	// Initialize git repo so the verb can commit.
+	cmd := os.Getenv("PATH")
+	_ = cmd
+	if err := osExec(t, root, "git", "init", "-q"); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	return root
+}
+
+// osExec runs a command in workdir. Returns the error if any.
+func osExec(t *testing.T, workdir string, name string, args ...string) error {
+	t.Helper()
+	cmd := exec.Command(name, args...)
+	cmd.Dir = workdir
+	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Logf("%s output: %s", name, out)
+	}
+	return err
+}
+
+// TestRun_AddVerbThroughDispatcher verifies the `add` subcommand wires
+// through main's dispatcher: flags parse, actor resolves, the verb
+// runs, and a commit lands.
+func TestRun_AddVerbThroughDispatcher(t *testing.T) {
+	root := setupCLITestRepo(t)
+
+	got := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root})
+	if got != exitOK {
+		t.Fatalf("run(add epic) = %d, want %d", got, exitOK)
+	}
+	if _, err := os.Stat(filepath.Join(root, "work", "epics", "E-01-foundations", "epic.md")); err != nil {
+		t.Errorf("epic.md missing after add: %v", err)
+	}
+	if got := run([]string{"check", "--root", root}); got != exitOK {
+		t.Errorf("post-add check = %d, want %d", got, exitOK)
+	}
+}
+
+// TestRun_AddThenPromoteThenCancel exercises the verb chain through
+// the dispatcher to confirm flag handling and commit ordering.
+func TestRun_AddThenPromoteThenCancel(t *testing.T) {
+	root := setupCLITestRepo(t)
+
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add: %d", rc)
+	}
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+		t.Fatalf("promote: %d", rc)
+	}
+	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "E-01"}); rc != exitOK {
+		t.Fatalf("cancel: %d", rc)
+	}
+	if rc := run([]string{"check", "--root", root}); rc != exitOK {
+		t.Errorf("final check: %d", rc)
+	}
+}
+
+// TestRun_AddBadKind reports a usage error without touching the repo.
+func TestRun_AddBadKind(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if got := run([]string{"add", "widget", "--title", "X", "--actor", "human/test", "--root", root}); got != exitUsage {
+		t.Errorf("got %d, want %d", got, exitUsage)
+	}
+}
+
+// TestRun_PromoteMissingArgs reports a usage error.
+func TestRun_PromoteMissingArgs(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if got := run([]string{"promote", "--root", root, "M-001"}); got != exitUsage {
+		t.Errorf("got %d, want %d (missing new-status)", got, exitUsage)
 	}
 }

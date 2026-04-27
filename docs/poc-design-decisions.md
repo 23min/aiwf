@@ -135,7 +135,7 @@ A short YAML file at the consumer repo root. Read by `aiwf` on every invocation;
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `aiwf_version` | string | yes | Engine version the repo expects (e.g., `0.1.0`). `aiwf doctor` warns on mismatch. |
-| `actor` | string | yes | Default value of the `aiwf-actor:` commit trailer (e.g., `human/peter`). Format: `<role>/<identifier>` — must match `^\S+/\S+$` (exactly one `/`, no whitespace; otherwise freeform). Override on a single invocation via `--actor`. `aiwf init` derives a default of `human/<local-part-of-git-config-user.email>` when not explicitly provided. |
+| `actor` | string | yes | Default value of the `aiwf-actor:` commit trailer (e.g., `human/peter`). Format: `<role>/<identifier>` — must match `^[^\s/]+/[^\s/]+$` (exactly one `/`, no whitespace, neither side empty; otherwise freeform). Override on a single invocation via `--actor`. `aiwf init` derives a default of `human/<local-part-of-git-config-user.email>` when not explicitly provided. |
 | `hosts` | []string | no | Hosts to materialize skills for. PoC default and only supported value: `[claude-code]`. |
 
 Example (the typical file):
@@ -150,6 +150,8 @@ That's the entire file in normal use. `hosts` is omitted to take the default. No
 ### One git commit per mutating verb
 
 Every mutating verb (`add`, `promote`, `cancel`, `rename`, `reallocate`) produces exactly one git commit, or no change at all. Verbs are *validate-then-write*: the verb computes the projected new tree in memory (an overlay on top of the loaded tree), runs `aiwf check` against the projection, and only when the projection is clean writes files (and `git mv`s) and creates the commit. On findings the working tree is never touched. This gives per-mutation atomicity for free without a rollback path, and lets verbs run safely while the user has unstaged edits in flight. There is no separate journal file, no two-phase commit ceremony, no event-log-then-confirm protocol. The git commit *is* the atomic boundary.
+
+Verbs only block on findings *introduced* by the projection — pre-existing tree errors (e.g., a broken reference left over from a prior hand-edit) do not refuse an unrelated `aiwf add`. The diff is by `code + subcode + path + entity + message`. This lets users incrementally fix a partially broken tree with `aiwf` itself rather than first having to clean up by hand. To see the full set of current problems regardless of any verb, run `aiwf check` directly.
 
 ---
 

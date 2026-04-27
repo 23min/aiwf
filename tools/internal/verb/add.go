@@ -76,7 +76,7 @@ func Add(t *tree.Tree, kind entity.Kind, title, actor string, opts AddOptions) (
 		}
 	}
 	proj := projectAdd(t, e, planned...)
-	if fs := validateProjection(proj); check.HasErrors(fs) {
+	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
 		return findings(fs), nil
 	}
 
