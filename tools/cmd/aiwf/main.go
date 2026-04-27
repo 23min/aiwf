@@ -1,9 +1,9 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
-// Stage 2 lands the kernel: events.jsonl, projection, verify. Verb
-// implementations land in subsequent PRs; this stub binary recognizes
-// the verb names so test scaffolding can target them, but returns a
-// "not yet implemented" finding for any verb that hasn't shipped.
+// This is a stub. The PoC build sequence is in docs/poc-plan.md; verb
+// implementations land across the four sessions described there. Until
+// they ship, this stub returns a "not yet implemented" finding for any
+// verb that hasn't been built yet.
 package main
 
 import (
