@@ -1,5 +1,7 @@
 # Roadmap
 
+> **Note:** This roadmap predates the research arc in [`docs/research/`](docs/research/) and is preserved as historical context. The stages below target the earlier event-sourced architecture that the research walked back. The active near-term work is the PoC described in [`docs/research/06-poc-build-plan.md`](docs/research/06-poc-build-plan.md), being built on the `poc/aiwf-v3` branch.
+
 Tracks where the framework is in the build sequence described in [`docs/build-plan.md`](docs/build-plan.md). Updated as stages land.
 
 ## Status legend
