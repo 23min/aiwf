@@ -6,6 +6,8 @@ This repository is two things at once: a body of design research that worked thr
 
 It is not currently a usable framework. It is a *thinking-out-loud* about what such a framework should be, plus a small implementation that validates the core ideas.
 
+**Single-document entry point:** [`docs/working-paper.md`](docs/working-paper.md) is a thesis-style synthesis of the research arc. Read it instead of (or before) the numbered docs in `docs/research/` if you want one document rather than seven.
+
 ---
 
 ## Why this repo exists
@@ -38,7 +40,7 @@ The research in this repo takes the problem seriously: what should an AI-aware p
 
 The conclusions are distilled into [`docs/research/KERNEL.md`](docs/research/KERNEL.md) (the eight things the framework needs to do and the cross-cutting properties any solution must respect) and [`docs/research/06-poc-build-plan.md`](docs/research/06-poc-build-plan.md) (the smallest concrete shape that delivers them at solo + short-horizon scale).
 
-For visitors trying to follow the trajectory: read `KERNEL.md` first, then skim `06-poc-build-plan.md`. The numbered docs in between are the intermediate reasoning.
+For visitors who want a single synthesized document, [`docs/working-paper.md`](docs/working-paper.md) is the thesis-style version of the same argument. For visitors who want to follow the trajectory, read `KERNEL.md` first, then skim `06-poc-build-plan.md`; the numbered docs in between are the intermediate reasoning.
 
 ---
 
@@ -80,7 +82,8 @@ The intent is to validate concepts quickly, iterate from there, and not paint ou
 
 ```text
 docs/
-├── research/                # the design arc — start here to understand the project
+├── working-paper.md         # thesis-style synthesis of the research arc — single-document entry point
+├── research/                # the design arc — full reasoning across seven documents
 │   ├── KERNEL.md
 │   ├── 00-fighting-git.md
 │   ├── 01-git-native-planning.md
