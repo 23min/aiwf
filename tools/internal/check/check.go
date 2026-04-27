@@ -459,6 +459,10 @@ func contractArtifactExists(t *tree.Tree) []Finding {
 		}
 		// Resolve relative to the contract directory (the dir holding contract.md).
 		contractDir := filepath.Dir(e.Path)
+		relArtifact := filepath.ToSlash(filepath.Join(contractDir, clean))
+		if t.HasPlannedFile(relArtifact) {
+			continue
+		}
 		artifactPath := filepath.Join(t.Root, contractDir, clean)
 		if !fileExists(artifactPath) {
 			findings = append(findings, Finding{

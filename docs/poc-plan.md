@@ -36,19 +36,19 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 
 **Goal:** the verbs that produce git commits with structured trailers.
 
-- [ ] `aiwf add epic --title "..."` — allocate `E-NN`, write `work/epics/E-NN-<slug>/epic.md`, commit.
-- [ ] `aiwf add milestone --epic E-NN --title "..."` — allocate `M-NNN`, write file under epic, commit.
-- [ ] `aiwf add adr --title "..."` — allocate `ADR-NNNN`, write file, commit.
-- [ ] `aiwf add gap --title "..." [--discovered-in M-NNN]` — allocate `G-NNN`, commit.
-- [ ] `aiwf add decision --title "..." [--relates-to E-NN,M-NNN]` — allocate `D-NNN`, commit.
-- [ ] `aiwf add contract --title "..." --format <fmt> --artifact <path>` — allocate `C-NNN`, create directory + `contract.md`, optionally move artifact into `schema/`, commit.
-- [ ] `aiwf promote <id> <status>` — read entity, validate transition (one Go function per kind), edit frontmatter, commit.
-- [ ] `aiwf cancel <id>` — promote to the kind's terminal-cancel status (`cancelled`/`wontfix`/`rejected`/`retired`).
-- [ ] `aiwf rename <id> <new-slug>` — `git mv` + frontmatter title update + commit. The id is preserved.
-- [ ] `aiwf reallocate <id|path>` — pick next free id, `git mv`, walk every entity's frontmatter and rewrite reference fields, surface body-prose references as findings, commit. Accepts a path (instead of an id) when the id is ambiguous — required after a merge collision where two files share the same id.
-- [ ] Every mutating verb computes the projected new tree in memory, runs `aiwf check` against the projection, and either (a) writes files and creates the single commit when clean, or (b) returns findings without touching the working tree. No rollback path: nothing is written until the projection is known good.
-- [ ] Every commit-producing verb writes structured trailers: `aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`. `reallocate` additionally writes `aiwf-prior-entity: <old-id>` so both the old and new id's histories are queryable.
-- [ ] Round-trip tests for each verb against a fresh git repo fixture.
+- [x] `aiwf add epic --title "..."` — allocate `E-NN`, write `work/epics/E-NN-<slug>/epic.md`, commit.
+- [x] `aiwf add milestone --epic E-NN --title "..."` — allocate `M-NNN`, write file under epic, commit.
+- [x] `aiwf add adr --title "..."` — allocate `ADR-NNNN`, write file, commit.
+- [x] `aiwf add gap --title "..." [--discovered-in M-NNN]` — allocate `G-NNN`, commit.
+- [x] `aiwf add decision --title "..." [--relates-to E-NN,M-NNN]` — allocate `D-NNN`, commit.
+- [x] `aiwf add contract --title "..." --format <fmt> --artifact-source <path>` — allocate `C-NNN`, create directory + `contract.md`, copy artifact into `schema/`, commit.
+- [x] `aiwf promote <id> <status>` — read entity, validate transition (one Go function per kind), edit frontmatter, commit.
+- [x] `aiwf cancel <id>` — promote to the kind's terminal-cancel status (`cancelled`/`wontfix`/`rejected`/`retired`).
+- [x] `aiwf rename <id> <new-slug>` — `git mv` + commit. The id is preserved; title is unchanged (edit frontmatter manually if you want it tracked).
+- [x] `aiwf reallocate <id|path>` — pick next free id, `git mv`, walk every entity's frontmatter and rewrite reference fields, surface body-prose references as findings, commit. Accepts a path (instead of an id) when the id is ambiguous — required after a merge collision where two files share the same id.
+- [x] Every mutating verb computes the projected new tree in memory, runs `aiwf check` against the projection, and either (a) writes files and creates the single commit when clean, or (b) returns findings without touching the working tree. No rollback path: nothing is written until the projection is known good.
+- [x] Every commit-producing verb writes structured trailers: `aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`. `reallocate` additionally writes `aiwf-prior-entity: <old-id>` so both the old and new id's histories are queryable.
+- [x] Round-trip tests for each verb against a fresh git repo fixture.
 
 **Deliverable:** end-to-end planning workflow works. `aiwf init && aiwf add epic && aiwf add milestone && aiwf promote ... && aiwf rename ...` produces a sensible git history.
 

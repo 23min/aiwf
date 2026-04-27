@@ -1,0 +1,275 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/23min/ai-workflow-v2/tools/internal/check"
+	"github.com/23min/ai-workflow-v2/tools/internal/entity"
+	"github.com/23min/ai-workflow-v2/tools/internal/render"
+	"github.com/23min/ai-workflow-v2/tools/internal/tree"
+	"github.com/23min/ai-workflow-v2/tools/internal/verb"
+)
+
+// runAdd handles `aiwf add <kind> --title "..." [kind-specific flags]`.
+func runAdd(args []string) int {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "aiwf add: missing kind. Usage: aiwf add <epic|milestone|adr|gap|decision|contract> --title \"...\"")
+		return exitUsage
+	}
+	kindArg := args[0]
+	k, ok := parseKind(kindArg)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "aiwf add: unknown kind %q\n", kindArg)
+		return exitUsage
+	}
+
+	fs := flag.NewFlagSet("add "+kindArg, flag.ContinueOnError)
+	title := fs.String("title", "", "entity title (required)")
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	root := fs.String("root", "", "consumer repo root")
+
+	epicID := fs.String("epic", "", "parent epic id (milestone only)")
+	discoveredIn := fs.String("discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
+	relatesTo := fs.String("relates-to", "", "comma-separated ids the decision relates to (decision only)")
+	format := fs.String("format", "", "machine-readable schema format (contract only)")
+	artifactSource := fs.String("artifact-source", "", "source path of the artifact to copy into the new contract dir's schema/ (contract only)")
+
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args[1:]); err != nil {
+		return exitUsage
+	}
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf add: loading tree: %v\n", err)
+		return exitInternal
+	}
+
+	opts := verb.AddOptions{
+		EpicID:         *epicID,
+		DiscoveredIn:   *discoveredIn,
+		Format:         *format,
+		ArtifactSource: *artifactSource,
+	}
+	if *relatesTo != "" {
+		for _, s := range strings.Split(*relatesTo, ",") {
+			if s = strings.TrimSpace(s); s != "" {
+				opts.RelatesTo = append(opts.RelatesTo, s)
+			}
+		}
+	}
+
+	result, err := verb.Add(tr, k, *title, actorStr, opts)
+	return finishVerb(ctx, rootDir, "aiwf add", result, err)
+}
+
+// runPromote handles `aiwf promote <id> <new-status>`.
+func runPromote(args []string) int {
+	fs := flag.NewFlagSet("promote", flag.ContinueOnError)
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	root := fs.String("root", "", "consumer repo root")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+	if len(rest) != 2 {
+		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status>")
+		return exitUsage
+	}
+	id, newStatus := rest[0], rest[1]
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf promote: loading tree: %v\n", err)
+		return exitInternal
+	}
+
+	result, err := verb.Promote(tr, id, newStatus, actorStr)
+	return finishVerb(ctx, rootDir, "aiwf promote", result, err)
+}
+
+// runCancel handles `aiwf cancel <id>`.
+func runCancel(args []string) int {
+	fs := flag.NewFlagSet("cancel", flag.ContinueOnError)
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	root := fs.String("root", "", "consumer repo root")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		fmt.Fprintln(os.Stderr, "aiwf cancel: usage: aiwf cancel <id>")
+		return exitUsage
+	}
+	id := rest[0]
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf cancel: loading tree: %v\n", err)
+		return exitInternal
+	}
+	result, err := verb.Cancel(tr, id, actorStr)
+	return finishVerb(ctx, rootDir, "aiwf cancel", result, err)
+}
+
+// runRename handles `aiwf rename <id> <new-slug>`.
+func runRename(args []string) int {
+	fs := flag.NewFlagSet("rename", flag.ContinueOnError)
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	root := fs.String("root", "", "consumer repo root")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+	if len(rest) != 2 {
+		fmt.Fprintln(os.Stderr, "aiwf rename: usage: aiwf rename <id> <new-slug>")
+		return exitUsage
+	}
+	id, newSlug := rest[0], rest[1]
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf rename: loading tree: %v\n", err)
+		return exitInternal
+	}
+	result, err := verb.Rename(tr, id, newSlug, actorStr)
+	return finishVerb(ctx, rootDir, "aiwf rename", result, err)
+}
+
+// runReallocate handles `aiwf reallocate <id-or-path>`.
+func runReallocate(args []string) int {
+	fs := flag.NewFlagSet("reallocate", flag.ContinueOnError)
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	root := fs.String("root", "", "consumer repo root")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		fmt.Fprintln(os.Stderr, "aiwf reallocate: usage: aiwf reallocate <id-or-path>")
+		return exitUsage
+	}
+	target := rest[0]
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf reallocate: loading tree: %v\n", err)
+		return exitInternal
+	}
+	result, err := verb.Reallocate(tr, target, actorStr)
+	return finishVerb(ctx, rootDir, "aiwf reallocate", result, err)
+}
+
+// finishVerb is the post-verb handler shared by every mutating
+// subcommand: it surfaces a Go error as a usage error, renders any
+// findings, applies the plan when present, and prints a one-line
+// summary on success.
+func finishVerb(ctx context.Context, root, label string, result *verb.Result, err error) int {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", label, err)
+		return exitUsage
+	}
+	if result == nil {
+		fmt.Fprintf(os.Stderr, "%s: no result returned\n", label)
+		return exitInternal
+	}
+	if check.HasErrors(result.Findings) {
+		_ = render.Text(os.Stderr, result.Findings)
+		return exitFindings
+	}
+	if result.Plan == nil {
+		fmt.Fprintf(os.Stderr, "%s: validation passed but no plan produced\n", label)
+		return exitInternal
+	}
+	if applyErr := verb.Apply(ctx, root, result.Plan); applyErr != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", label, applyErr)
+		return exitInternal
+	}
+	if len(result.Findings) > 0 {
+		// Warning-level findings travel with a successful plan
+		// (e.g., reallocate body-prose mentions). Surface them but
+		// keep the exit code clean.
+		_ = render.Text(os.Stderr, result.Findings)
+	}
+	fmt.Println(result.Plan.Subject)
+	return exitOK
+}
+
+// parseKind parses a CLI kind argument (lowercase string) into the
+// entity.Kind constant.
+func parseKind(s string) (entity.Kind, bool) {
+	for _, k := range entity.AllKinds() {
+		if string(k) == s {
+			return k, true
+		}
+	}
+	return "", false
+}

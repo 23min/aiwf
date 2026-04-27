@@ -1,8 +1,8 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
-// Session 1 ships only the `check` verb plus help/version. Subsequent
-// sessions wire up `add`, `promote`, `cancel`, `rename`, `reallocate`,
-// `history`, `init`, `update`, and `doctor` per docs/poc-plan.md.
+// Sessions 1–2 ship: check, add, promote, cancel, rename, reallocate,
+// plus help/version. Subsequent sessions wire up history, init, update,
+// and doctor per docs/poc-plan.md.
 package main
 
 import (
@@ -49,6 +49,16 @@ func run(args []string) int {
 		return exitOK
 	case "check":
 		return runCheck(args[1:])
+	case "add":
+		return runAdd(args[1:])
+	case "promote":
+		return runPromote(args[1:])
+	case "cancel":
+		return runCancel(args[1:])
+	case "rename":
+		return runRename(args[1:])
+	case "reallocate":
+		return runReallocate(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "aiwf: unknown subcommand %q. Try 'aiwf help'.\n", args[0])
 		return exitUsage
@@ -58,17 +68,32 @@ func run(args []string) int {
 func printHelp() {
 	fmt.Println(`aiwf — ai-workflow framework CLI
 
-Usage: aiwf <verb> [flags]
+Usage: aiwf <verb> [args]
 
 Verbs:
-  check               validate the consumer repo's planning state
-  help, --help        show this message
-  version, --version  print the binary version
+  check                          validate the consumer repo's planning state
+  add <kind> --title "..."       create a new entity of the given kind
+  promote <id> <new-status>      advance an entity's status
+  cancel <id>                    promote to the kind's terminal-cancel status
+  rename <id> <new-slug>         rename the file/dir slug; id preserved
+  reallocate <id-or-path>        renumber the entity; rewrite refs in others
+  help, --help                   show this message
+  version, --version             print the binary version
+
+Common flags:
+  --root <path>                  consumer repo root (default: walk up looking for aiwf.yaml, else cwd)
+  --actor <role>/<identifier>    actor for the commit trailer (default: derived from git config user.email)
+
+Flags for 'add':
+  --epic <id>                    parent epic id (milestone)
+  --discovered-in <id>           discovery context (gap)
+  --relates-to <id,id,...>       related entities (decision)
+  --format <fmt>                 schema format (contract)
+  --artifact-source <path>       source path of the schema file (contract)
 
 Flags for 'check':
-  --root <path>       consumer repo root (default: walk up looking for aiwf.yaml, else cwd)
-  --format <fmt>      output format: text (default) or json
-  --pretty            indent JSON output (only with --format=json)
+  --format <fmt>                 output format: text (default) or json
+  --pretty                       indent JSON output (only with --format=json)
 
 Exit codes: 0 = no errors, 1 = errors found, 2 = usage error, 3 = internal error.
 

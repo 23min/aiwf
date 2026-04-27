@@ -29,6 +29,22 @@ type Tree struct {
 	// order encountered during the directory walk, which is stable
 	// across runs but not otherwise specified.
 	Entities []*entity.Entity
+	// PlannedFiles records repo-relative file paths (forward-slash form)
+	// that a verb plans to write but hasn't yet. Used by checks that
+	// otherwise consult disk (notably contract-artifact-exists) so that
+	// validate-then-write verbs can validate the projected world,
+	// including files about to be created. Loaded trees leave this nil.
+	PlannedFiles map[string]struct{}
+}
+
+// HasPlannedFile reports whether path (forward-slash, repo-relative)
+// appears in PlannedFiles. Safe to call when PlannedFiles is nil.
+func (t *Tree) HasPlannedFile(path string) bool {
+	if t.PlannedFiles == nil {
+		return false
+	}
+	_, ok := t.PlannedFiles[path]
+	return ok
 }
 
 // LoadError is a per-file error encountered during loading. The loader
