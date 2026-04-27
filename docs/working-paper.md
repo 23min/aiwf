@@ -40,7 +40,7 @@ What does not appear in that list is equally important. *Maintaining a totally-o
 
 ## 3. Related work
 
-The space adjacent to this problem has grown rapidly in the last two years. We summarize it in five clusters, distinguishing what has been formalized in peer-reviewed work from what is currently presented in product documentation and industry essays.
+The space adjacent to this problem has grown rapidly in the last two years. We summarize it in six clusters, distinguishing what has been formalized in peer-reviewed work from what is currently presented in product documentation and industry essays.
 
 ### 3.1 Spec-driven and AI-coding tooling
 
@@ -68,6 +68,12 @@ Outside the AI-coding space, several lineages have studied how structured data c
 - **Versioned databases** — Dolt for SQL, TerminusDB for graph data, XTDB and Datomic for bitemporal queries, Irmin for git-like data structures — each demonstrating that branch-and-merge semantics can be lifted from text into structured domains.
 - **The local-first software movement** [Kleppmann et al., 2019], which articulates the constraint set that this framework operates under: collaborative, offline-tolerant, multi-writer, no required server.
 - **Edits-as-substrate work**, recently exemplified by *Denicek* [Petricek, 2025], representing programs as series of edits over a document — relevant to representation choice if not to location.
+
+### 3.6 Ontology- and graph-based agent memory
+
+A distinct lineage argues that AI agents need *structured* memory — a defined ontology plus a graph-based store that can represent typed entities, named relationships, hierarchical organization, and temporal dynamics. The reference is Yang et al. [2026], *Graph-based Agent Memory: Taxonomy, Techniques, and Applications*, surveying 200+ works and articulating a two-layer model: **knowledge memory** (the ontological scaffolding) and **experience memory** (instances filling that scaffolding). Production systems in this lineage include Graphiti for temporal-graph memory and a growing set of knowledge-graph-backed agent platforms.
+
+This work is adjacent to ours, not the same. The Yang-et-al. lineage addresses *agent cognitive memory* — what an autonomous agent retains across sessions and tasks: facts learned, entities encountered, conclusions drawn. Our framework addresses *project artifact persistence* — epics, milestones, decisions, gaps, contracts that humans and assistants both consult because *the team* needs them as durable structure. The two share substrate concerns (typed relationships matter; flat similarity-search is insufficient) but they are not the same problem. We argue in §6 and §7 that for the scale we target, the typed-relationships need is met by markdown frontmatter validated by Go, without the cost of a graph database — and that conflating "structured" with "graph-DB-and-OWL" produces overdesigned solutions for project tracking. Where projects scale into long-horizon multi-agent territory, the Yang-et-al. apparatus becomes more appropriate; we treat that as a clean future graduation, not as a constraint on the PoC.
 
 These are the bodies of work we considered before settling on the position in §6.
 
@@ -120,7 +126,7 @@ We claim three load-bearing things.
 
 **The framework's residual job is small.** Six things are needed: a tree loader that parses frontmatter into typed structs; a validator that reports findings on the loaded tree (referential integrity, status legality, no cycles, frontmatter well-formedness); a small set of verbs that perform multi-file mutations atomically (one git commit per verb, with structured trailers); identity ergonomics that survive rename and collision (slug-in-path, `aiwf rename`, `aiwf reallocate`); a skill-materialization step that gives AI hosts the conventions in their native shape; and a pre-push git hook that runs the validator. The PoC implements this in roughly 2,500 lines of Go.
 
-What this is not: a project-management replacement, a state-management abstraction layered on git, a knowledge graph, a multi-agent orchestrator, or a code-execution agent. The framework is a small, opinionated, deterministic shim between humans and AI assistants doing project-tracking work in markdown files inside a git repository.
+What this is not: a project-management replacement, a state-management abstraction layered on git, a knowledge graph, a multi-agent orchestrator, or a code-execution agent. It is also explicitly not an *agent cognitive memory system* in the sense of Yang et al. [2026]: we track project artifacts that humans and assistants both consult, not the assistant's own learned recall across sessions. Those are different problems with different scales and different substrates; an agent that needs cognitive memory should compose our framework with a memory system designed for that purpose, not expect ours to serve both roles. The framework is a small, opinionated, deterministic shim between humans and AI assistants doing project-tracking work in markdown files inside a git repository.
 
 ---
 
@@ -175,6 +181,7 @@ The position does not settle several questions; we name them so future work can 
 - **Compliance and regulated industries.** The PoC's provenance is sufficient for engineering hygiene but has not been evaluated against specific regulatory frameworks (21 CFR Part 11, SOX evidence, ISO 27001 audit trails). Whether the structured-commit-trailer model can carry that load, or whether regulated environments need a richer provenance store, is open.
 - **The boundary between discipline and automation.** The framework draws the line at "validate; do not auto-fix." For a single-developer or small-team setting, this is the right default; for higher-volume settings, automation of the validator's findings (auto-fix safe ones, surface the rest) becomes more attractive. Where exactly that line should move is open.
 - **A CRDT-modeled metadata layer.** We argued that a small subset of the framework's state (the identifier registry, the reference graph, status registers over partial orders) is naturally CRDT-shaped. The PoC does not implement this; it uses path-prefix collision detection and a manual reallocation verb. The case for a small CRDT layer remains, especially as concurrency increases.
+- **Graduation to graph-substrate memory at long-horizon scale.** Yang et al. [2026] argue that long-horizon, multi-agent, regulated-domain settings need ontology-plus-graph memory architectures with explicit knowledge / experience / temporal layers. Our framework is sized below that threshold; whether it can graduate cleanly to such a substrate (e.g., emit triples derivable from frontmatter, sync with an external knowledge graph) or whether projects in that range need a different framework entirely is open. The on-disk format (markdown frontmatter with closed-set vocabularies and structured commit trailers) is simple enough that mechanical extraction into a graph store is plausible; whether that extraction preserves enough fidelity to be useful is not yet measured.
 
 ---
 
@@ -199,6 +206,7 @@ We set out to design an AI-aware project-tracking framework and ended up with on
 - Petricek, T. (2025). *Denicek: Computational Substrate for Document-Oriented End-User Programming.* UIST '25.
 - Shapiro, M., Preguiça, N., Baquero, C., & Zawirski, M. (2011). *Conflict-Free Replicated Data Types.* SSS 2011.
 - Terry, D. B., Theimer, M. M., Petersen, K., Spreitzer, A. J., Demers, A. J., & Welch, B. B. (1995). *Managing Update Conflicts in Bayou, a Weakly Connected Replicated Storage System.* SOSP '95.
+- Yang, et al. (2026). *Graph-based Agent Memory: Taxonomy, Techniques, and Applications.* Survey covering 200+ works on memory systems for LLM agents, including the knowledge-memory / experience-memory distinction and a taxonomy of knowledge graphs, hierarchical graphs, temporal graphs, and hypergraphs as memory substrates.
 
 ### Industry essays and books
 
@@ -216,6 +224,7 @@ We set out to design an AI-aware project-tracking framework and ended up with on
 - *Irmin.* https://irmin.org/ — Git-like distributed data store for OCaml/MirageOS.
 - *Datomic.* — bitemporal database with point-in-time queries.
 - *XTDB.* — bitemporal database emphasizing valid-time and transaction-time.
+- *Graphiti.* — temporal-graph memory system for AI agents, cited by Yang et al. [2026] as the canonical example of graph-based memory with distinct creation and expiration timestamps.
 - *GitHub Spec Kit (`spec-kit`).* — methodology and CLI for spec-driven development with AI agents.
 - *Kiro* (AWS). — agentic IDE with in-repo spec/design/tasks.
 - *Tessl.* — spec-centric coding workflow.
