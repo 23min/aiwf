@@ -30,6 +30,8 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 
 **Deliverable:** `aiwf check` runs against a hand-crafted `work/` directory and reports findings correctly.
 
+**Shipped (commit `162bf54`):** entity package (six kinds, status enums, id regexes, frontmatter parser), tree loader, nine validators, JSON + text renderers, exit codes, fixture-driven integration test (`testdata/clean` and `testdata/messy`).
+
 ---
 
 ## Session 2 — Mutating verbs and commit trailers
@@ -51,6 +53,8 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 - [x] Round-trip tests for each verb against a fresh git repo fixture.
 
 **Deliverable:** end-to-end planning workflow works. `aiwf init && aiwf add epic && aiwf add milestone && aiwf promote ... && aiwf rename ...` produces a sensible git history.
+
+**Shipped (commits `9230fa4`, `deaf72f`):** five mutating verbs (add for all six kinds, promote, cancel, rename, reallocate); `entity` extended with serialize/slug/templates/transitions/allocator; new `gitops` and `verb` packages; `Apply` orchestrator; PlannedFiles overlay so `contract-artifact-exists` validates the projected world; round-trip tests for every verb. Follow-up commit added edge-case coverage (reallocate by path/contract; cancel-already-terminal; same-slug rename; CLI dispatcher tests; actor regex fix) and the `projectionFindings` diff so pre-existing tree errors don't block unrelated verbs.
 
 ---
 
