@@ -1,105 +1,107 @@
 # ai-workflow
 
-> Disciplined AI-assisted software engineering, with the human always in the loop. AI writes; the framework validates; humans decide.
+> Design research and an experimental PoC for AI-assisted software engineering with structured planning state in the repo.
 
-ai-workflow is a framework for software repositories where humans and AI assistants build software together over long horizons. It is human-in-the-loop by design: AI does the creative work — writing code, drafting decisions, authoring documentation — humans make the calls that matter, and a deterministic engine in between records every structural change as an event, validates it against typed contracts, and projects it into a hash-verified read-model. The result is a project history you can audit, replay, and trust, even when most of the work was AI-generated.
+This repository is two things at once: a body of design research that worked through what an "AI workflow framework" should actually be, and a small working PoC that puts the lightest plausible answer to the test.
 
----
-
-## Why this exists
-
-AI assistants generate code, decisions, and documentation faster than projects accumulate the trail of who decided what, when, and why. We are entering what might be called the *Prove-It era* of AI-assisted software development: the moment when "the AI wrote it" stops being a sufficient answer to "how did this get here?" Compliance, engineering hygiene, team trust, and the basic comprehensibility of long-running projects all push the same way — every structural change to a project should be answerable.
-
-ai-workflow is provenance-first by construction. Every structural change is recorded as a typed event before its effect is applied. Every event names the actor (human, AI assistant, CI), the correlating intent, and a content hash. The project's read-model is reproducibly derived from that log; if it ever diverges, the framework reports it. The result is an auditable, replayable project history that survives long-running, multi-agent, AI-assisted work without losing its receipts.
+It is not currently a usable framework. It is a *thinking-out-loud* about what such a framework should be, plus a small implementation that validates the core ideas.
 
 ---
 
-## Determinism, by construction
+## Why this repo exists
 
-The framework's engine is deterministic. Given the same event log, it produces the same projection — bit-for-bit, every time, on every machine. This is what makes audit and replay cheap: any divergence between the projection on disk and the projection re-derived from the events is detectable in O(1) by hash comparison.
+AI-assisted software development has changed what "tracking the work" means. The AI helps plan, design, code, and decide — but it does so across stateless sessions, often on partial context, and without a consistent place to consult what was already settled. Existing approaches cover parts of the problem and miss others: external project-management tools (Linear, Jira, GitHub Projects) keep planning state out of the AI's working set; ADRs alone are too thin for evolving plans; ad-hoc in-repo conventions vary across teams and degrade as work scales.
 
-AI assistants are stochastic; project state cannot afford to be. The framework draws that line and holds it: AI proposes through typed actions, the engine validates and persists deterministically, humans review and decide. The boundary is sharp on purpose.
+Concrete symptoms we have hit repeatedly:
+
+- The AI re-plans from scratch each session because it cannot find the current plan.
+- Renaming or rescoping a milestone silently breaks references elsewhere in the repo.
+- Switching branches changes the rules the AI thinks it should follow.
+- Decisions get re-litigated because no one knows whether something was already settled.
+- Plans drift faster than they're recorded, and structural state quietly desynchronizes from the code it claims to describe.
+
+The research in this repo takes the problem seriously: what should an AI-aware planning framework actually be, given that the AI is now half the team and that git is already a state-management system? The PoC is the smallest concrete answer the research could justify — a place to validate the ideas in working code on real projects rather than only on paper.
 
 ---
 
-## How it fits together
+## The research
+
+`docs/research/` contains an arc of seven documents (`KERNEL.md`, then `00`–`06`) that walk through the load-bearing problems and how they interact:
+
+- How a totally-ordered event log fights git's branching model.
+- Whether the framework should reinvent state management or let git be the time machine.
+- Whether a framework is needed at all, or whether ADRs plus a discipline are enough.
+- Where discipline can live so it does not depend on the LLM remembering to enforce it.
+- Where governance and provenance UX belong, and how the project-shape spectrum (solo↔team, short↔long, regulated↔not) shapes what's needed.
+- Where state lives — in repo, outside, or layered — and which model is more successful.
+- A concrete PoC build plan that survives all of the above.
+
+The conclusions are distilled into [`docs/research/KERNEL.md`](docs/research/KERNEL.md) (the eight things the framework needs to do and the cross-cutting properties any solution must respect) and [`docs/research/06-poc-build-plan.md`](docs/research/06-poc-build-plan.md) (the smallest concrete shape that delivers them at solo + short-horizon scale).
+
+For visitors trying to follow the trajectory: read `KERNEL.md` first, then skim `06-poc-build-plan.md`. The numbered docs in between are the intermediate reasoning.
+
+---
+
+## What we've learned
+
+Six conclusions distilled from the research arc — each is the answer to a question we did not have a settled answer to when we started:
+
+- **An append-only, totally-ordered event log fights git's branching model.** We walked back from the original event-sourced architecture; the merge story does not work cleanly at any scale.
+- **Markdown is the source of truth; git is the time machine.** No separate event log file, no graph projection file, no hash chain. Structured commit trailers make `git log` queryable per entity.
+- **Yes, a framework is needed — but a much smaller one than originally scoped.** ADRs plus a discipline is too thin; an event-sourced kernel is too thick. The right shape is a small validator plus a few verbs that produce well-shaped commits.
+- **Enforcement must live where the LLM cannot skip it.** Skills are advisory; the LLM may not invoke them. The pre-push git hook and `aiwf check` are authoritative. A guarantee that depends on the LLM remembering is not a guarantee.
+- **State must be layered.** Engine binary external (machine-installed). Per-project policy and planning state in-repo. Materialized AI skill adapters in-repo but gitignored, regenerated only on explicit `aiwf init` / `aiwf update`. Each layer lives where its constraints are best served.
+- **Referential stability is achievable; semantic stability of prose is not.** The framework guarantees that ids like `E-19` keep meaning the same entity through rename, cancel, and collision. It does not pretend to guarantee that the meaning of the prose stays fixed; that is a property of human and AI understanding.
+
+The full arguments live in `docs/research/`.
+
+---
+
+## The PoC
+
+**Why now:** the conclusions above are settled enough on paper that more documents will not strengthen them. What strengthens them is working code we can use on real projects and learn from. We want to validate the core ideas with a few focused sessions of implementation rather than committing months of engineering to the more ambitious original design. Real friction will tell us what to add next; nothing else is committed to in advance.
+
+The PoC is a deliberately minimal expression of the kernel. It lives on the branch [`poc/aiwf-v3`](../../tree/poc/aiwf-v3):
+
+- A single Go binary `aiwf`, installed via `go install`.
+- Six entity kinds — epic, milestone, ADR, gap, decision, contract — each with a closed status set.
+- Stable ids (`E-01`, `M-001`, `ADR-0001`, `G-001`, `D-001`, `C-001`) that survive rename, cancel, and collision.
+- A small `aiwf check` validator that runs as a pre-push git hook.
+- Skills materialized into the consumer repo's `.claude/skills/` directory and gitignored, regenerated only on explicit `aiwf init` / `aiwf update`.
+- No event log, no graph projection, no CRDTs, no module system, no registry, no multi-host adapters — yet.
+
+The intent is to validate concepts quickly, iterate from there, and not paint ourselves into a corner. Decisions made in the PoC are deliberately reversible: the PoC branch is not planned to merge back to `main`, so a future redesign is free to take a different shape without paying for the PoC's choices.
+
+**On forward compatibility:** if you adopt the PoC and we later build a successor framework, your repository will still be readable. The PoC's on-disk format (markdown files with frontmatter, a conventional directory layout, and structured commit trailers in `git log`) is simple enough that a future framework can import a PoC-shaped repo mechanically — even if that future framework takes a different internal shape. The door to a backwards-compatible successor is left explicitly open; the PoC is not a dead end for repositories that adopt it.
+
+---
+
+## Layout
 
 ```text
-                                 ┌────────────────────────────┐
-   ┌───────────────────┐         │         The engine         │
-   │  AI assistant     │ propose │                            │
-   │  (Claude, Copilot,├────────►│  validate → trace-first    │
-   │   GPT, others)    │         │  append event → apply      │
-   └─────────▲─────────┘         │  effect → confirm event    │
-             │                   │                            │
-             │ findings          │  +  hash-verified           │
-             │                   │     projection (graph.json) │
-             │                   │  +  audit pipeline          │
-             │                   └────────────┬───────────────┘
-             │                                │
-             │             ┌──────────────────┘
-             │             │ surfaces (structured findings,
-             │             │ propagation previews, queries)
-             │             ▼
-             │   ┌────────────────────┐
-             └───┤  Human in the loop │
-                 │  (review, decide,  │
-                 │   author intent)   │
-                 └────────────────────┘
+docs/
+├── research/                # the design arc — start here to understand the project
+│   ├── KERNEL.md
+│   ├── 00-fighting-git.md
+│   ├── 01-git-native-planning.md
+│   ├── 02-do-we-need-this.md
+│   ├── 03-discipline-where-the-llm-cant-skip-it.md
+│   ├── 04-governance-provenance-and-the-pre-pr-tier.md
+│   ├── 05-where-state-lives.md
+│   └── 06-poc-build-plan.md
+├── architecture.md          # earlier design (preserved as historical context)
+└── build-plan.md            # earlier build sequence (likewise)
+ROADMAP.md                   # earlier stage list (likewise)
+tools/                       # source for the PoC binary (active development on poc/aiwf-v3)
 ```
 
-Three actors. AI assistants compose typed action envelopes; the engine validates against per-kind boundary contracts and applies effects through trace-first writes; humans review the propagation preview and make the calls that matter. Markdown specs in the repo are the shared source of truth; everything else (the event log, the projection, the adapter surfaces) is derived or generated.
-
-For the full design see [`docs/architecture.md`](docs/architecture.md).
+The earlier `architecture.md`, `build-plan.md`, and `ROADMAP.md` describe a more ambitious design (event-sourced kernel with hash-verified projections) that the research walked back. They are preserved because the reasoning is useful and a future version of the framework may revisit pieces of it. See [`docs/research/00-fighting-git.md`](docs/research/00-fighting-git.md) for why the original direction was reconsidered.
 
 ---
 
 ## Status
 
-**Preview / under construction.** This is a clean rewrite of an internal framework, being developed in the open. The architecture document is settled; the implementation lands in stages (see [`docs/build-plan.md`](docs/build-plan.md)). Not production-ready.
-
-**Engagement:**
-
-- [Issues](https://github.com/23min/ai-workflow-v2/issues) track bugs and confirmed work items. Two templates: `bug` (against shipped behavior) and `design-question` (clarifies the architecture doc).
-- [Discussions](https://github.com/23min/ai-workflow-v2/discussions) host design RFCs, feature ideas, and "should we?" questions. Feature ideas start here; once a discussion converges, it graduates to an issue.
-- Pull requests reference an issue or discussion in their description. New here? Read `docs/architecture.md` first; most "should we add X?" questions have an answer there.
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full engagement model.
-
----
-
-## Get started
-
-> Stages 2-3 add the engine and the install script. Until then, this section sketches the intended flow; commands work from Stage 3 onward.
-
-**Recommended (manual, auditable):**
-
-```bash
-git submodule add https://github.com/23min/ai-workflow-v2.git .ai
-cd .ai && git checkout v0.1.0   # pin to a release
-cd .. && bash .ai/install.sh
-```
-
-The installer detects existing repository structure (looks for `docs/decisions/`, `ROADMAP.md`, `CLAUDE.md`, etc.), suggests modules to enable, shows a preview of what it will create or modify, and confirms before writing anything. It never overwrites consumer-owned files — fenced sections are appended with delimiters the engine can manage on subsequent runs.
-
-**Convenience (one-liner; review before running):**
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/23min/ai-workflow-v2/main/install.sh)
-```
-
-Both forms are idempotent. Re-running reconciles state; it does not redo.
-
-A `go install` path for the binary lands in Stage 3 once `aiwf` is shippable.
-
----
-
-## Documents
-
-- **[Architecture](docs/architecture.md)** — data model, event-sourced kernel, LLM/engine boundary, verbs, contracts, modules, principles checklist.
-- **[Build plan](docs/build-plan.md)** — what gets built, in what order, and the friction-removal principles guiding consumer onboarding.
-- **[Contributing](CONTRIBUTING.md)** — engagement model, issue/PR conventions, pre-PR audit.
-- **[Engineering principles](CLAUDE.md)** — the discipline contributors are expected to apply.
+Pre-alpha. The PoC branch is being built; nothing is published yet. Not recommended for production use, or any use, at present.
 
 ---
 
