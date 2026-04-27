@@ -41,17 +41,17 @@ var idPrefix = map[Kind]string{
 // the frontmatter-shape check; the allocator does not need to refuse
 // to start.
 func AllocateID(k Kind, entities []*Entity) string {
-	max := 0
+	highest := 0
 	for _, e := range entities {
 		if e.Kind != k {
 			continue
 		}
 		n := parseIDNumber(k, e.ID)
-		if n > max {
-			max = n
+		if n > highest {
+			highest = n
 		}
 	}
-	next := max + 1
+	next := highest + 1
 	pad, ok := canonicalPad[k]
 	if !ok {
 		return fmt.Sprintf("%s%d", idPrefix[k], next)

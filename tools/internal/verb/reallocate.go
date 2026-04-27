@@ -272,12 +272,11 @@ func projectReallocate(t *tree.Tree, original, modified *entity.Entity, rewrites
 	proj := *t
 	proj.Entities = make([]*entity.Entity, len(t.Entities))
 	for i, e := range t.Entities {
-		switch {
-		case e == original:
+		if e == original {
 			proj.Entities[i] = modified
-		default:
-			proj.Entities[i] = e
+			continue
 		}
+		proj.Entities[i] = e
 	}
 	for _, rw := range rewrites {
 		for i, e := range proj.Entities {

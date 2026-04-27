@@ -27,6 +27,7 @@ import (
 // are also present.
 type Severity string
 
+// Severity values used by every check.
 const (
 	SeverityError   Severity = "error"
 	SeverityWarning Severity = "warning"

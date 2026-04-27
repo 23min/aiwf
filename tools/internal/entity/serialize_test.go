@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -125,7 +126,7 @@ Build a cache warmer.
 
 	// Body should also round-trip identically.
 	_, body2, _ := Split(out)
-	if string(body) != string(body2) {
+	if !bytes.Equal(body, body2) {
 		t.Errorf("body mismatch:\nwant: %q\ngot:  %q", body, body2)
 	}
 }

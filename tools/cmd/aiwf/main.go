@@ -101,12 +101,12 @@ Docs: docs/poc-plan.md and docs/poc-design-decisions.md.`)
 }
 
 func runCheck(args []string) int {
-	fs := flag.NewFlagSet("check", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root (default: discover via aiwf.yaml)")
-	format := fs.String("format", "text", "output format: text or json")
-	pretty := fs.Bool("pretty", false, "indent JSON output (only with --format=json)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
+	flags := flag.NewFlagSet("check", flag.ContinueOnError)
+	root := flags.String("root", "", "consumer repo root (default: discover via aiwf.yaml)")
+	format := flags.String("format", "text", "output format: text or json")
+	pretty := flags.Bool("pretty", false, "indent JSON output (only with --format=json)")
+	flags.SetOutput(os.Stderr)
+	if err := flags.Parse(args); err != nil {
 		return exitUsage
 	}
 

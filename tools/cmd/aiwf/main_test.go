@@ -137,7 +137,7 @@ func setupCLITestRepo(t *testing.T) string {
 }
 
 // osExec runs a command in workdir. Returns the error if any.
-func osExec(t *testing.T, workdir string, name string, args ...string) error {
+func osExec(t *testing.T, workdir, name string, args ...string) error {
 	t.Helper()
 	cmd := exec.Command(name, args...)
 	cmd.Dir = workdir

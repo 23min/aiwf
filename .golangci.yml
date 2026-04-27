@@ -44,6 +44,17 @@ linters:
           - errcheck
           - gosec
         path: _test\.go
+      # gosec noise that doesn't apply to a developer-CLI threat model:
+      # - G204: subprocess via variable (gitops shells out to git with
+      #         controlled args; that's its whole purpose)
+      # - G304: file inclusion via variable (the loader and verbs read
+      #         user-named entity files; that's their whole purpose)
+      # - G301/G306: 0755 dirs and 0644 files are the standard for a
+      #         developer's working repo, not a multi-tenant server
+      # - G122: WalkDir symlink TOCTOU; the consumer repo is the user's
+      #         own working tree, not adversarial input
+      - linters: [gosec]
+        text: "G204|G304|G301|G306|G122"
     paths:
       - third_party$
       - builtin$

@@ -57,8 +57,8 @@ func Rename(t *tree.Tree, id, newSlug, actor string) (*Result, error) {
 	}
 
 	proj := projectReplace(t, &modified, planned...)
-	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
-		return findings(fs), nil
+	if introduced := projectionFindings(t, proj); check.HasErrors(introduced) {
+		return findings(introduced), nil
 	}
 
 	subject := fmt.Sprintf("aiwf rename %s slug -> %s", id, cleanSlug)

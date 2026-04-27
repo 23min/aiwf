@@ -18,6 +18,7 @@ import (
 // in error messages.
 type Kind string
 
+// The six aiwf entity kinds. Hardcoded; see docs/poc-design-decisions.md.
 const (
 	KindEpic      Kind = "epic"
 	KindMilestone Kind = "milestone"
