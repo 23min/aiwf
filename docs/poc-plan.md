@@ -10,23 +10,23 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 
 **Goal:** an executable that loads the tree, validates it, reports findings. No mutating verbs yet.
 
-- [ ] Go module skeleton in place under `tools/cmd/aiwf/` and `tools/internal/`.
-- [ ] Frontmatter parser (use `gopkg.in/yaml.v3`).
-- [ ] Tree loader: walks `work/epics/**`, `work/gaps/**`, `work/decisions/**`, `work/contracts/**`, `docs/adr/**`. Parses every entity into a typed in-memory model.
-- [ ] Six kind types defined as Go structs with their hardcoded status enums.
-- [ ] `aiwf check` with these checks (each as a small function):
-  - [ ] `ids-unique` — no duplicate ids (severity: error). Detected via path prefix collision.
-  - [ ] `refs-resolve` — every reference field resolves to an existing entity of the kind permitted by the frontmatter schema (severity: error). Findings distinguish *unresolved* (no such id) from *wrong-kind* (id exists but is the wrong kind).
-  - [ ] `status-valid` — every status is in the allowed set for the kind (severity: error).
-  - [ ] `frontmatter-shape` — required fields present, types correct (severity: error).
-  - [ ] `no-cycles` — no cycle in `depends_on` (milestone DAG) or in the `supersedes`/`superseded_by` chain (ADR DAG) (severity: error).
-  - [ ] `contract-artifact-exists` — for every contract, `artifact:` is a relative path with no `..` segments that resolves to an existing file *inside* the contract directory (severity: error).
-  - [ ] `titles-nonempty` — title is set and non-empty (severity: warning).
-  - [ ] `adr-supersession-mutual` — if `A.superseded_by = B`, then `B.supersedes ⊇ {A}` (severity: warning).
-  - [ ] `gap-resolved-has-resolver` — addressed gap has non-empty `addressed_by` (severity: warning).
-- [ ] JSON output (`--format=json`) and human-readable text (default).
-- [ ] Exit codes: `0` clean, `1` findings, `2` usage error, `3` internal.
-- [ ] Synthetic-tree fixtures under `testdata/`, one per finding type.
+- [x] Go module skeleton in place under `tools/cmd/aiwf/` and `tools/internal/`.
+- [x] Frontmatter parser (use `gopkg.in/yaml.v3`).
+- [x] Tree loader: walks `work/epics/**`, `work/gaps/**`, `work/decisions/**`, `work/contracts/**`, `docs/adr/**`. Parses every entity into a typed in-memory model.
+- [x] Six kind types defined as Go structs with their hardcoded status enums.
+- [x] `aiwf check` with these checks (each as a small function):
+  - [x] `ids-unique` — no duplicate ids (severity: error). Detected via path prefix collision.
+  - [x] `refs-resolve` — every reference field resolves to an existing entity of the kind permitted by the frontmatter schema (severity: error). Findings distinguish *unresolved* (no such id) from *wrong-kind* (id exists but is the wrong kind).
+  - [x] `status-valid` — every status is in the allowed set for the kind (severity: error).
+  - [x] `frontmatter-shape` — required fields present, types correct (severity: error).
+  - [x] `no-cycles` — no cycle in `depends_on` (milestone DAG) or in the `supersedes`/`superseded_by` chain (ADR DAG) (severity: error).
+  - [x] `contract-artifact-exists` — for every contract, `artifact:` is a relative path with no `..` segments that resolves to an existing file *inside* the contract directory (severity: error).
+  - [x] `titles-nonempty` — title is set and non-empty (severity: warning).
+  - [x] `adr-supersession-mutual` — if `A.superseded_by = B`, then `B.supersedes ⊇ {A}` (severity: warning).
+  - [x] `gap-resolved-has-resolver` — addressed gap has non-empty `addressed_by` (severity: warning).
+- [x] JSON output (`--format=json`) and human-readable text (default).
+- [x] Exit codes: `0` clean, `1` findings, `2` usage error, `3` internal.
+- [x] Synthetic-tree fixtures under `testdata/`, one per finding type.
 
 **Deliverable:** `aiwf check` runs against a hand-crafted `work/` directory and reports findings correctly.
 
