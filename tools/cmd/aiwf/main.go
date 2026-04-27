@@ -1,124 +1,184 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
-// This is a stub. The PoC build sequence is in docs/poc-plan.md; verb
-// implementations land across the four sessions described there. Until
-// they ship, this stub returns a "not yet implemented" finding for any
-// verb that hasn't been built yet.
+// Session 1 ships only the `check` verb plus help/version. Subsequent
+// sessions wire up `add`, `promote`, `cancel`, `rename`, `reallocate`,
+// `history`, `init`, `update`, and `doctor` per docs/poc-plan.md.
 package main
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
+	"flag"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
+
+	"github.com/23min/ai-workflow-v2/tools/internal/check"
+	"github.com/23min/ai-workflow-v2/tools/internal/render"
+	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 )
 
-// Version is the binary's reported version. Set via -ldflags at build time
-// once releases start shipping; defaults to "dev" otherwise.
+// Version is the binary's reported version. Set via -ldflags at build
+// time once releases start shipping; defaults to "dev" otherwise.
 var Version = "dev"
 
-// envelope is the JSON shape every aiwf invocation writes to stdout.
-// The full envelope schema is described in docs/architecture.md §5.5.
-type envelope struct {
-	Tool     string         `json:"tool"`
-	Version  string         `json:"version"`
-	Status   string         `json:"status"`
-	Findings []finding      `json:"findings"`
-	Result   any            `json:"result,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-}
-
-// finding is a single structured report. Real verbs will emit richer
-// findings; the stub uses this shape so the envelope is correct from day one.
-type finding struct {
-	Code     string         `json:"code"`
-	Severity string         `json:"severity"`
-	Message  string         `json:"message"`
-	Context  map[string]any `json:"context,omitempty"`
-}
+// Exit codes per docs/poc-plan.md and tools/CLAUDE.md.
+const (
+	exitOK       = 0 // no error-severity findings (warnings allowed)
+	exitFindings = 1 // at least one error-severity finding
+	exitUsage    = 2
+	exitInternal = 3
+)
 
 func main() {
-	args := os.Args[1:]
+	os.Exit(run(os.Args[1:]))
+}
 
+func run(args []string) int {
 	if len(args) == 0 {
-		emit(usageEnvelope())
-		os.Exit(2)
+		fmt.Fprintln(os.Stderr, "aiwf: missing subcommand. Try 'aiwf help'.")
+		return exitUsage
 	}
-
 	switch args[0] {
 	case "--help", "-h", "help":
-		emit(helpEnvelope())
-		os.Exit(0)
+		printHelp()
+		return exitOK
 	case "--version", "-v", "version":
-		emit(versionEnvelope())
-		os.Exit(0)
+		fmt.Println(Version)
+		return exitOK
+	case "check":
+		return runCheck(args[1:])
 	default:
-		emit(notImplementedEnvelope(args[0]))
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "aiwf: unknown subcommand %q. Try 'aiwf help'.\n", args[0])
+		return exitUsage
 	}
 }
 
-func emit(env envelope) {
-	enc := json.NewEncoder(os.Stdout)
-	if err := enc.Encode(env); err != nil {
-		// If JSON encoding fails, fall back to a minimal stderr line.
-		// Library code never panics; main can write diagnostics directly.
-		fmt.Fprintf(os.Stderr, "aiwf: failed to encode envelope: %v\n", err)
-		os.Exit(3)
-	}
+func printHelp() {
+	fmt.Println(`aiwf — ai-workflow framework CLI
+
+Usage: aiwf <verb> [flags]
+
+Verbs:
+  check               validate the consumer repo's planning state
+  help, --help        show this message
+  version, --version  print the binary version
+
+Flags for 'check':
+  --root <path>       consumer repo root (default: walk up looking for aiwf.yaml, else cwd)
+  --format <fmt>      output format: text (default) or json
+  --pretty            indent JSON output (only with --format=json)
+
+Exit codes: 0 = no errors, 1 = errors found, 2 = usage error, 3 = internal error.
+
+Docs: docs/poc-plan.md and docs/poc-design-decisions.md.`)
 }
 
-func usageEnvelope() envelope {
-	return envelope{
-		Tool:    "aiwf",
-		Version: Version,
-		Status:  "error",
-		Findings: []finding{{
-			Code:     "USAGE",
-			Severity: "high",
-			Message:  "missing subcommand. Try 'aiwf --help'.",
-		}},
+func runCheck(args []string) int {
+	fs := flag.NewFlagSet("check", flag.ContinueOnError)
+	root := fs.String("root", "", "consumer repo root (default: discover via aiwf.yaml)")
+	format := fs.String("format", "text", "output format: text or json")
+	pretty := fs.Bool("pretty", false, "indent JSON output (only with --format=json)")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
 	}
-}
 
-func helpEnvelope() envelope {
-	return envelope{
-		Tool:    "aiwf",
-		Version: Version,
-		Status:  "ok",
-		Result: map[string]any{
-			"description": "ai-workflow CLI. Stage 2 (kernel) is in flight; most verbs land in subsequent PRs.",
-			"verbs": map[string]string{
-				"--help":    "show this message",
-				"--version": "show binary version",
+	if *format != "text" && *format != "json" {
+		fmt.Fprintf(os.Stderr, "aiwf check: --format must be 'text' or 'json', got %q\n", *format)
+		return exitUsage
+	}
+	if *pretty && *format != "json" {
+		fmt.Fprintln(os.Stderr, "aiwf check: --pretty has no effect without --format=json")
+	}
+
+	resolved, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	tr, loadErrs, err := tree.Load(ctx, resolved)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
+		return exitInternal
+	}
+
+	findings := check.Run(tr, loadErrs)
+
+	switch *format {
+	case "text":
+		if err := render.Text(os.Stdout, findings); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return exitInternal
+		}
+	case "json":
+		env := render.Envelope{
+			Tool:     "aiwf",
+			Version:  Version,
+			Status:   render.StatusFor(findings),
+			Findings: findings,
+			Metadata: map[string]any{
+				"root":     resolved,
+				"entities": len(tr.Entities),
+				"findings": len(findings),
 			},
-			"docs": "https://github.com/23min/ai-workflow-v2/blob/main/docs/architecture.md",
-		},
+		}
+		if err := render.JSON(os.Stdout, env, *pretty); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return exitInternal
+		}
 	}
+
+	if check.HasErrors(findings) {
+		return exitFindings
+	}
+	return exitOK
 }
 
-func versionEnvelope() envelope {
-	return envelope{
-		Tool:    "aiwf",
-		Version: Version,
-		Status:  "ok",
-		Result:  map[string]any{"version": Version},
+// resolveRoot picks the consumer repo root. If explicit is non-empty,
+// it is used as-is (resolved to absolute). Otherwise, walks up from cwd
+// looking for aiwf.yaml; if found, uses its parent. If not found, falls
+// back to cwd (lenient pre-init behavior; tightens once `aiwf init` is
+// part of the standard adoption path in Session 3).
+func resolveRoot(explicit string) (string, error) {
+	if explicit != "" {
+		abs, err := filepath.Abs(explicit)
+		if err != nil {
+			return "", fmt.Errorf("resolving --root: %w", err)
+		}
+		return abs, nil
 	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("getting cwd: %w", err)
+	}
+	if found, ok := walkUpFor(cwd, "aiwf.yaml"); ok {
+		return found, nil
+	}
+	return cwd, nil
 }
 
-func notImplementedEnvelope(verb string) envelope {
-	return envelope{
-		Tool:    "aiwf",
-		Version: Version,
-		Status:  "findings",
-		Findings: []finding{{
-			Code:     "NOT_YET_IMPLEMENTED",
-			Severity: "high",
-			Message:  fmt.Sprintf("verb %q not yet implemented in this build", verb),
-			Context: map[string]any{
-				"verb":          verb,
-				"current_stage": "Stage 2 (kernel)",
-				"reference":     "https://github.com/23min/ai-workflow-v2/blob/main/docs/build-plan.md",
-			},
-		}},
+// walkUpFor walks from start toward root looking for filename.
+// Returns the directory containing filename (not the filename itself),
+// and true if found.
+func walkUpFor(start, filename string) (string, bool) {
+	dir := start
+	for {
+		candidate := filepath.Join(dir, filename)
+		info, err := os.Stat(candidate)
+		if err == nil && !info.IsDir() {
+			return dir, true
+		}
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", false
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", false
+		}
+		dir = parent
 	}
 }
