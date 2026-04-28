@@ -40,13 +40,37 @@ The framework is usable end-to-end today: clone, `go install`, `aiwf init` in a 
 
 ## Install
 
+The fastest path is to let the Go toolchain fetch and build directly from the repo — no clone, no rebuild of any container, just one command:
+
+```bash
+go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@poc/aiwf-v3
+```
+
+Re-run the same command anytime to refresh to the latest commit on the branch. Pin a commit SHA instead of `poc/aiwf-v3` for a reproducible install (e.g. in CI):
+
+```bash
+go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@<sha>
+```
+
+The binary lands in `$GOBIN` (defaults to `$GOPATH/bin`, typically `~/go/bin`). Make sure that directory is on `$PATH`.
+
+After re-installing, run `aiwf init` once to refresh the pre-push hook, which bakes in the binary's absolute path at install time.
+
+### Prerequisites
+
+- **Go 1.22+** in the environment running the install. Verify with `go version`.
+- **`$HOME/go/bin` (or `$GOBIN`) on `$PATH`.** Verify with `command -v aiwf` after install.
+- **Network access to GitHub.** If you're offline or behind a proxy without GitHub access, fall back to the clone path below.
+
+### Alternate: clone-and-install
+
+If you want a local checkout to read or modify the source:
+
 ```bash
 git clone https://github.com/23min/ai-workflow-v2 && cd ai-workflow-v2
 git checkout poc/aiwf-v3
 go install ./tools/cmd/aiwf
 ```
-
-`aiwf` lands in `$GOBIN` (typically `~/go/bin`). Add to PATH if not already.
 
 Distribution via brew/apt/scoop/winget will come if and when the PoC graduates.
 
