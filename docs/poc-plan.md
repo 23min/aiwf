@@ -1,6 +1,6 @@
-# PoC plan — four sessions
+# PoC plan — five sessions
 
-This is the working document for the `poc/aiwf-v3` branch. Four focused sessions, each with a deliverable that runs end-to-end before moving on. Mark items as you go; commit per logical step.
+This is the working document for the `poc/aiwf-v3` branch. Each session has a deliverable that runs end-to-end before moving on. Mark items as you go; commit per logical step.
 
 For the design context that justifies this shape, see [`poc-design-decisions.md`](poc-design-decisions.md). For the engineering principles, see the root [`CLAUDE.md`](../CLAUDE.md) and [`tools/CLAUDE.md`](../tools/CLAUDE.md).
 
@@ -102,9 +102,32 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 
 ---
 
+## Session 5 — Adoption surface
+
+**Goal:** the framework can be adopted in repos that already have planning data, without aiwf needing to know what produced that data.
+
+The shape of this session is set by the design constraint that aiwf must be a clean public surface: any knowledge of a specific prior planning system stays out of the aiwf source tree, fixtures, and docs. The public surface is generic; producer-side conversion happens entirely in private tooling.
+
+- [ ] `aiwf init --dry-run` — print the actions `init` would take without writing anything. Same exit codes as `init`.
+- [ ] `aiwf init --skip-hook` — perform `init` without installing the pre-push hook. For repos that want the framework but aren't ready to gate pushes on `aiwf check`.
+- [ ] `aiwf import <manifest.yaml>` — generic batch entity creator. Reads a declarative manifest (see [`poc-import-format.md`](poc-import-format.md)), validates the projected tree, and writes one atomic commit (default) or one commit per entity (`commit.mode: per-entity`).
+  - [ ] YAML and JSON manifest parsers (same schema, two lexers).
+  - [ ] Two-pass id resolution: explicit ids reserved first, `auto` ids allocated next.
+  - [ ] Reference resolution against the union of existing-tree ids and manifest-declared ids.
+  - [ ] `--dry-run`, `--on-collision={fail,skip,update}` flags.
+  - [ ] Single-mode commits use `aiwf-verb: import`; per-entity-mode commits match the per-entity `add` trailers.
+  - [ ] Synthetic-tree fixtures under `testdata/import/` covering: clean import, id collision, ref-resolution across manifest entries, mixed explicit + `auto`, dry-run.
+- [ ] `wf-track` skill — describes the convention of maintaining a tracking document alongside an in-progress milestone (purpose, location, section structure). Advisory only; aiwf does not validate tracking docs. Drafted from first principles; not transcribed from any prior system's skills.
+- [ ] Roadmap `## Candidates` rendering — `aiwf render roadmap` includes the verbatim contents of any `## Candidates` (or `## Backlog`) section it finds in `ROADMAP.md`. The section is human-curated, free-form, and not parsed as entities. Promoting a candidate is an explicit `aiwf add epic` step.
+- [ ] `docs/poc-migrating-from-prior-systems.md` — a generic migration guide. Frames migration as a two-stage producer-side job (tidy source data; project to manifest), then `aiwf import`. References no specific prior system.
+
+**Deliverable:** a consumer repo with existing planning data can be adopted by writing a private producer that emits an import manifest, iterating against `aiwf import --dry-run`, and committing the result. aiwf has no awareness of how the manifest was produced.
+
+---
+
 ## Total
 
-Roughly 3–4 days of focused work. After session 4 the framework is small, self-contained, and self-validating. Real use surfaces the next priority; nothing else is committed to in advance.
+Roughly 4–5 days of focused work across five sessions. After session 5 the framework is small, self-contained, self-validating, and adoptable against existing planning data via a clean public contract. Real use surfaces the next priority; nothing else is committed to in advance.
 
 ---
 
