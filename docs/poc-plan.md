@@ -62,27 +62,29 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 
 **Goal:** the AI can use it; `git log` becomes queryable.
 
-- [ ] Skill markdown files written and embedded via `embed.FS`. Skills shipped:
-  - [ ] `wf-add` — how to create each kind with proper frontmatter.
-  - [ ] `wf-promote` — how to advance status legally per kind.
-  - [ ] `wf-rename` — how to rename without breaking references.
-  - [ ] `wf-reallocate` — how to resolve id collisions.
-  - [ ] `wf-history` — how to ask "what happened here?".
-  - [ ] `wf-check` — what `aiwf check` reports and how to fix common findings.
-- [ ] `aiwf init` (idempotent; safe to re-run; produces no git commit — the user commits when ready):
-  - [ ] writes `aiwf.yaml` (~10 lines) at the consumer repo root if missing; preserves an existing file unchanged. The `actor` field defaults to `human/<local-part-of-git-config-user.email>` (e.g., `human/peter` for `peter@example.com`); if neither `user.email` nor `user.name` is set, errors with an instruction to set git config or pass `--actor`. The actor value (whether derived or explicit) is validated against `^\S+/\S+$` before write; the same regex validates `aiwf.yaml`'s `actor:` field on every verb invocation and any `--actor` flag override.
-  - [ ] scaffolds `work/epics/`, `work/gaps/`, `work/decisions/`, `work/contracts/`, `docs/adr/` if missing; never modifies existing directories or their contents.
-  - [ ] materializes skills to `.claude/skills/wf-*/SKILL.md` (wipe-and-rewrite per the cache contract; non-`wf-*` skill directories are untouched).
-  - [ ] appends materialized-skill paths to `.gitignore` if not already present; does not rewrite the file.
-  - [ ] writes a short `CLAUDE.md` template only if the file is missing.
-  - [ ] installs `.git/hooks/pre-push` that runs `aiwf check`. The hook carries an `# aiwf:pre-push` marker comment. If a hook exists with the marker → overwrite (idempotent). If a hook exists without the marker → refuse with a useful error explaining how to integrate `aiwf check` into the existing hook manually, or use a hook manager (husky/lefthook) that composes hooks.
-  - [ ] pre-existing entity files in `work/` and `docs/adr/` are not modified or validated by `init`; they show up as findings on the next `aiwf check` and serve as the migration to-do list when adopting `aiwf` against an existing repo.
-- [ ] `aiwf update` — remove every `.claude/skills/wf-*/` directory and re-materialize from the binary's embedded skills (no commit; updates gitignored files). Directories not matching `wf-*` are untouched (user-authored skills are namespace-isolated).
-- [ ] `aiwf history <id>` — read `git log` filtered for `aiwf-entity: <id>` *or* `aiwf-prior-entity: <id>` trailers (so reallocate events are visible from both the old and new id). Default output is one line per event: `DATE  ACTOR  VERB  DETAIL  COMMIT`, where `DETAIL` is the commit subject line shaped by the verb at commit time (`"title"` for add, `old → new` for promote, `slug → <new>` for rename, `→ cancelled` for cancel, `<old-id> → <new-id>` for reallocate). `--format=json` mirrors `aiwf check`'s machine-readable contract. Trailer-matched events only — `aiwf history` does not show side-effect file edits (use `git log -- <path>` for byte-level history).
-- [ ] `aiwf doctor` — check binary version vs. `aiwf.yaml`'s `aiwf_version`, byte-compare each materialized skill against its embedded version and report drift, check id-collision health.
-- [ ] Tests: `aiwf init` in a fresh git repo produces the expected layout; `aiwf history` returns the expected events for a multi-step fixture.
+- [x] Skill markdown files written and embedded via `embed.FS`. Skills shipped:
+  - [x] `wf-add` — how to create each kind with proper frontmatter.
+  - [x] `wf-promote` — how to advance status legally per kind.
+  - [x] `wf-rename` — how to rename without breaking references.
+  - [x] `wf-reallocate` — how to resolve id collisions.
+  - [x] `wf-history` — how to ask "what happened here?".
+  - [x] `wf-check` — what `aiwf check` reports and how to fix common findings.
+- [x] `aiwf init` (idempotent; safe to re-run; produces no git commit — the user commits when ready):
+  - [x] writes `aiwf.yaml` (~10 lines) at the consumer repo root if missing; preserves an existing file unchanged. The `actor` field defaults to `human/<local-part-of-git-config-user.email>` (e.g., `human/peter` for `peter@example.com`); if neither `user.email` nor `user.name` is set, errors with an instruction to set git config or pass `--actor`. The actor value (whether derived or explicit) is validated against `^\S+/\S+$` before write; the same regex validates `aiwf.yaml`'s `actor:` field on every verb invocation and any `--actor` flag override.
+  - [x] scaffolds `work/epics/`, `work/gaps/`, `work/decisions/`, `work/contracts/`, `docs/adr/` if missing; never modifies existing directories or their contents.
+  - [x] materializes skills to `.claude/skills/wf-*/SKILL.md` (wipe-and-rewrite per the cache contract; non-`wf-*` skill directories are untouched).
+  - [x] appends materialized-skill paths to `.gitignore` if not already present; does not rewrite the file.
+  - [x] writes a short `CLAUDE.md` template only if the file is missing.
+  - [x] installs `.git/hooks/pre-push` that runs `aiwf check`. The hook carries an `# aiwf:pre-push` marker comment. If a hook exists with the marker → overwrite (idempotent). If a hook exists without the marker → refuse with a useful error explaining how to integrate `aiwf check` into the existing hook manually, or use a hook manager (husky/lefthook) that composes hooks.
+  - [x] pre-existing entity files in `work/` and `docs/adr/` are not modified or validated by `init`; they show up as findings on the next `aiwf check` and serve as the migration to-do list when adopting `aiwf` against an existing repo.
+- [x] `aiwf update` — remove every `.claude/skills/wf-*/` directory and re-materialize from the binary's embedded skills (no commit; updates gitignored files). Directories not matching `wf-*` are untouched (user-authored skills are namespace-isolated).
+- [x] `aiwf history <id>` — read `git log` filtered for `aiwf-entity: <id>` *or* `aiwf-prior-entity: <id>` trailers (so reallocate events are visible from both the old and new id). Default output is one line per event: `DATE  ACTOR  VERB  DETAIL  COMMIT`, where `DETAIL` is the commit subject line shaped by the verb at commit time (`"title"` for add, `old → new` for promote, `slug → <new>` for rename, `→ cancelled` for cancel, `<old-id> → <new-id>` for reallocate). `--format=json` mirrors `aiwf check`'s machine-readable contract. Trailer-matched events only — `aiwf history` does not show side-effect file edits (use `git log -- <path>` for byte-level history).
+- [x] `aiwf doctor` — check binary version vs. `aiwf.yaml`'s `aiwf_version`, byte-compare each materialized skill against its embedded version and report drift, check id-collision health.
+- [x] Tests: `aiwf init` in a fresh git repo produces the expected layout; `aiwf history` returns the expected events for a multi-step fixture.
 
 **Deliverable:** in a fresh consumer repo, `aiwf init` sets things up; the AI host (Claude Code) sees the skills; the pre-push hook catches errors before push.
+
+**Shipped:** new `skills` package with embedded `wf-*/SKILL.md` files for the six verbs; new `config` package owning `aiwf.yaml` parse/validate/write (and `--actor` resolution now consults it); new `initrepo` package with idempotent setup (config, scaffolding, skill materialization, `.gitignore` append, `CLAUDE.md` template, marker-aware `pre-push` hook); four new CLI subcommands (`init`, `update`, `history`, `doctor`); `gitops.GitDir` helper for worktree-aware hook install; `aiwf history` consumes structured trailers via `git log --grep` with `\x1f`/`\x1e` field separators and queries both `aiwf-entity:` and `aiwf-prior-entity:` so reallocate events surface from either id; `aiwf doctor` byte-compares embedded vs. on-disk skills and runs `ids-unique` from `check`. Coverage: `initrepo`, `skills`, `config` unit-tested; CLI dispatcher tests cover init/update/history/doctor through the top-level `run`.
 
 ---
 

@@ -33,7 +33,7 @@ func TestActorPattern(t *testing.T) {
 }
 
 func TestResolveActor_ExplicitValid(t *testing.T) {
-	got, err := resolveActor("human/peter")
+	got, err := resolveActor("human/peter", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestResolveActor_ExplicitValid(t *testing.T) {
 func TestResolveActor_ExplicitInvalid(t *testing.T) {
 	for _, bad := range []string{"human:peter", "human / peter", "no-slash", ""} {
 		t.Run(bad, func(t *testing.T) {
-			_, err := resolveActor(bad)
+			_, err := resolveActor(bad, "")
 			if bad == "" {
 				// Empty falls through to git-config derivation; not an "invalid" path.
 				return
@@ -54,6 +54,37 @@ func TestResolveActor_ExplicitInvalid(t *testing.T) {
 				t.Errorf("expected format error for %q, got %v", bad, err)
 			}
 		})
+	}
+}
+
+// TestResolveActor_FromConfig verifies that an aiwf.yaml's actor wins
+// over git-config derivation when no --actor flag is passed.
+func TestResolveActor_FromConfig(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
+		[]byte("aiwf_version: 0.1.0\nactor: human/from-config\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := resolveActor("", root)
+	if err != nil {
+		t.Fatalf("resolveActor: %v", err)
+	}
+	if got != "human/from-config" {
+		t.Errorf("got %q, want human/from-config", got)
+	}
+}
+
+// TestResolveActor_ConfigMalformed_Errors propagates a parse error so
+// the user is not silently dropped to a git-config-derived fallback
+// after writing a broken aiwf.yaml.
+func TestResolveActor_ConfigMalformed_Errors(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(":::not yaml"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := resolveActor("", root)
+	if err == nil {
+		t.Fatal("expected error from malformed aiwf.yaml")
 	}
 }
 
@@ -70,7 +101,7 @@ func TestResolveActor_DerivedFromGitConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := resolveActor("")
+	got, err := resolveActor("", "")
 	if err != nil {
 		t.Fatalf("resolveActor: %v", err)
 	}
@@ -88,7 +119,7 @@ func TestResolveActor_NoConfigErrors(t *testing.T) {
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	// Intentionally no .gitconfig.
 
-	_, err := resolveActor("")
+	_, err := resolveActor("", "")
 	if err == nil {
 		t.Fatal("expected error when neither --actor nor git config is set")
 	}

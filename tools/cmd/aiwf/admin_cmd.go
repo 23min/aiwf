@@ -1,0 +1,358 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
+	"github.com/23min/ai-workflow-v2/tools/internal/check"
+	"github.com/23min/ai-workflow-v2/tools/internal/config"
+	"github.com/23min/ai-workflow-v2/tools/internal/initrepo"
+	"github.com/23min/ai-workflow-v2/tools/internal/render"
+	"github.com/23min/ai-workflow-v2/tools/internal/skills"
+	"github.com/23min/ai-workflow-v2/tools/internal/tree"
+)
+
+// runInit handles `aiwf init`: writes aiwf.yaml, scaffolds entity
+// directories, materializes skills, appends to .gitignore, writes a
+// CLAUDE.md template, and installs the pre-push hook. No commit.
+func runInit(args []string) int {
+	fs := flag.NewFlagSet("init", flag.ContinueOnError)
+	root := fs.String("root", "", "consumer repo root (default: cwd)")
+	actor := fs.String("actor", "", "default actor for the commit trailer (overrides git config derivation)")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+
+	rootDir, err := resolveInitRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
+		return exitUsage
+	}
+
+	res, err := initrepo.Init(context.Background(), rootDir, initrepo.Options{
+		ActorOverride: *actor,
+		AiwfVersion:   Version,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
+		if errors.Is(err, initrepo.ErrPreHookConflict) {
+			return exitFindings
+		}
+		return exitInternal
+	}
+
+	for _, s := range res.Steps {
+		if s.Detail != "" {
+			fmt.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
+		} else {
+			fmt.Printf("  %-9s  %s\n", s.Action, s.What)
+		}
+	}
+	fmt.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
+	return exitOK
+}
+
+// runUpdate handles `aiwf update`: re-materializes skills only.
+func runUpdate(args []string) int {
+	fs := flag.NewFlagSet("update", flag.ContinueOnError)
+	root := fs.String("root", "", "consumer repo root")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
+		return exitUsage
+	}
+
+	if err := skills.Materialize(rootDir); err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
+		return exitInternal
+	}
+	fmt.Println("aiwf update: skills re-materialized.")
+	return exitOK
+}
+
+// runHistory handles `aiwf history <id>`: filters git log for the
+// entity's structured trailers and prints one line per event.
+func runHistory(args []string) int {
+	fs := flag.NewFlagSet("history", flag.ContinueOnError)
+	root := fs.String("root", "", "consumer repo root")
+	format := fs.String("format", "text", "output format: text or json")
+	pretty := fs.Bool("pretty", false, "indent JSON output (only with --format=json)")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		fmt.Fprintln(os.Stderr, "aiwf history: usage: aiwf history <id>")
+		return exitUsage
+	}
+	if *format != "text" && *format != "json" {
+		fmt.Fprintf(os.Stderr, "aiwf history: --format must be text or json, got %q\n", *format)
+		return exitUsage
+	}
+	id := rest[0]
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
+		return exitUsage
+	}
+
+	events, err := readHistory(context.Background(), rootDir, id)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
+		return exitInternal
+	}
+
+	switch *format {
+	case "text":
+		if len(events) == 0 {
+			fmt.Printf("no history for %s\n", id)
+			return exitOK
+		}
+		for _, e := range events {
+			fmt.Printf("%s  %-16s  %-10s  %s  %s\n", e.Date, e.Actor, e.Verb, e.Detail, e.Commit)
+		}
+	case "json":
+		env := render.Envelope{
+			Tool:    "aiwf",
+			Version: Version,
+			Status:  "ok",
+			Result:  map[string]any{"id": id, "events": events},
+			Metadata: map[string]any{
+				"root":   rootDir,
+				"events": len(events),
+			},
+		}
+		if err := render.JSON(os.Stdout, env, *pretty); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
+			return exitInternal
+		}
+	}
+	return exitOK
+}
+
+// HistoryEvent is one line of `aiwf history`. The JSON representation
+// is the structured form callers consume.
+type HistoryEvent struct {
+	Date   string `json:"date"`
+	Actor  string `json:"actor"`
+	Verb   string `json:"verb"`
+	Detail string `json:"detail"`
+	Commit string `json:"commit"`
+}
+
+// readHistory shells out to `git log` and returns one HistoryEvent per
+// commit whose `aiwf-entity:` or `aiwf-prior-entity:` trailer matches
+// id. Events are returned oldest-first.
+//
+// The git format string carries five fields per record separated by
+// the ASCII unit separator (\x1f), with the ASCII record separator
+// (\x1e) between commits — none of these appear in subjects or
+// trailers, so a single split suffices.
+func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
+	if !hasCommits(ctx, root) {
+		return nil, nil
+	}
+	const sep = "\x1f"
+	const recSep = "\x1e\n"
+	cmd := exec.CommandContext(ctx, "git", "log",
+		"--reverse",
+		"-E",
+		"--grep", "^aiwf-entity: "+id+"$",
+		"--grep", "^aiwf-prior-entity: "+id+"$",
+		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)\x1e",
+	)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, fmt.Errorf("git log: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
+		}
+		return nil, fmt.Errorf("git log: %w", err)
+	}
+
+	var events []HistoryEvent
+	for _, rec := range strings.Split(string(out), recSep) {
+		rec = strings.TrimSpace(rec)
+		if rec == "" {
+			continue
+		}
+		parts := strings.SplitN(rec, sep, 5)
+		if len(parts) < 5 {
+			continue
+		}
+		events = append(events, HistoryEvent{
+			Commit: shortHash(parts[0]),
+			Date:   parts[1],
+			Detail: strings.TrimSpace(parts[2]),
+			Verb:   strings.TrimSpace(parts[3]),
+			Actor:  strings.TrimSpace(parts[4]),
+		})
+	}
+	return events, nil
+}
+
+// shortHash returns the first 7 hex digits of a SHA, the conventional
+// short form. Falls back to the full hash if it is shorter.
+func shortHash(sha string) string {
+	if len(sha) <= 7 {
+		return sha
+	}
+	return sha[:7]
+}
+
+// hasCommits reports whether root's HEAD points at a real commit.
+// `git log` on an empty repo errors with "your current branch X does
+// not have any commits yet"; this guard converts that into "no events".
+func hasCommits(ctx context.Context, root string) bool {
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "HEAD")
+	cmd.Dir = root
+	return cmd.Run() == nil
+}
+
+// runDoctor handles `aiwf doctor`: version check, materialized-skill
+// drift check, id-collision check.
+func runDoctor(args []string) int {
+	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
+	root := fs.String("root", "", "consumer repo root")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf doctor: %v\n", err)
+		return exitUsage
+	}
+
+	report, problems := doctorReport(rootDir)
+	for _, line := range report {
+		fmt.Println(line)
+	}
+	if problems > 0 {
+		return exitFindings
+	}
+	return exitOK
+}
+
+// doctorReport collects every doctor finding into a slice of human
+// strings and returns the count of problems. Pure for testability.
+func doctorReport(rootDir string) (lines []string, problems int) {
+	// 1. Version check.
+	cfg, err := config.Load(rootDir)
+	switch {
+	case errors.Is(err, config.ErrNotFound):
+		lines = append(lines, "config:    aiwf.yaml not found (run `aiwf init`)")
+		problems++
+	case err != nil:
+		lines = append(lines, "config:    "+err.Error())
+		problems++
+	case cfg.AiwfVersion != Version:
+		lines = append(lines, fmt.Sprintf("config:    aiwf.yaml requests aiwf_version=%s, binary is %s", cfg.AiwfVersion, Version))
+		problems++
+	default:
+		lines = append(lines, fmt.Sprintf("config:    ok (aiwf_version=%s, actor=%s)", cfg.AiwfVersion, cfg.Actor))
+	}
+
+	// 2. Materialized-skill drift.
+	embedded, err := skills.List()
+	if err != nil {
+		lines = append(lines, "skills:    "+err.Error())
+		problems++
+	} else {
+		drift, missing := skillDrift(rootDir, embedded)
+		switch {
+		case len(missing) > 0:
+			lines = append(lines, fmt.Sprintf("skills:    %d missing — run `aiwf init` or `aiwf update`", len(missing)))
+			for _, m := range missing {
+				lines = append(lines, "             - "+m)
+			}
+			problems++
+		case len(drift) > 0:
+			lines = append(lines, fmt.Sprintf("skills:    %d drifted — run `aiwf update` to refresh", len(drift)))
+			for _, d := range drift {
+				lines = append(lines, "             - "+d)
+			}
+			problems++
+		default:
+			lines = append(lines, fmt.Sprintf("skills:    ok (%d skills, byte-equal to embed)", len(embedded)))
+		}
+	}
+
+	// 3. id-collision check (only ids-unique findings; all other
+	// errors are reported by `aiwf check`).
+	tr, loadErrs, err := tree.Load(context.Background(), rootDir)
+	if err != nil {
+		lines = append(lines, "ids:       "+err.Error())
+		problems++
+	} else {
+		findings := check.Run(tr, loadErrs)
+		collisions := 0
+		for _, f := range findings {
+			if f.Code == "ids-unique" {
+				collisions++
+				lines = append(lines, fmt.Sprintf("ids:       collision %s @ %s", f.EntityID, f.Path))
+			}
+		}
+		if collisions == 0 {
+			lines = append(lines, "ids:       ok (no collisions)")
+		} else {
+			problems++
+		}
+	}
+
+	return lines, problems
+}
+
+// skillDrift compares each embedded skill against its on-disk copy
+// and reports two sets: drifted (file exists but differs) and missing
+// (file absent).
+func skillDrift(rootDir string, embedded []skills.Skill) (drifted, missing []string) {
+	for _, s := range embedded {
+		on := filepath.Join(rootDir, skills.SkillsDir, s.Name, "SKILL.md")
+		got, err := os.ReadFile(on)
+		switch {
+		case errors.Is(err, os.ErrNotExist):
+			missing = append(missing, s.Name)
+		case err != nil:
+			drifted = append(drifted, s.Name+": "+err.Error())
+		case !bytes.Equal(got, s.Content):
+			drifted = append(drifted, s.Name)
+		}
+	}
+	return drifted, missing
+}
+
+// resolveInitRoot picks the root directory for `aiwf init`. Unlike
+// resolveRoot, it does not error when aiwf.yaml is missing — that's
+// the normal case for init.
+func resolveInitRoot(explicit string) (string, error) {
+	if explicit != "" {
+		abs, err := filepath.Abs(explicit)
+		if err != nil {
+			return "", fmt.Errorf("resolving --root: %w", err)
+		}
+		return abs, nil
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("getting cwd: %w", err)
+	}
+	return cwd, nil
+}

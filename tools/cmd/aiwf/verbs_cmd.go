@@ -48,7 +48,7 @@ func runAdd(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor)
+	actorStr, err := resolveActor(*actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
 		return exitUsage
@@ -100,7 +100,7 @@ func runPromote(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor)
+	actorStr, err := resolveActor(*actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
 		return exitUsage
@@ -138,7 +138,7 @@ func runCancel(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor)
+	actorStr, err := resolveActor(*actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
 		return exitUsage
@@ -175,7 +175,7 @@ func runRename(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor)
+	actorStr, err := resolveActor(*actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
 		return exitUsage
@@ -212,7 +212,7 @@ func runReallocate(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor)
+	actorStr, err := resolveActor(*actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
 		return exitUsage

@@ -1,8 +1,8 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
-// Sessions 1–2 ship: check, add, promote, cancel, rename, reallocate,
-// plus help/version. Subsequent sessions wire up history, init, update,
-// and doctor per docs/poc-plan.md.
+// Verbs: check, add, promote, cancel, rename, reallocate, init, update,
+// history, doctor, plus help/version. See docs/poc-plan.md for the
+// session breakdown that produced this surface.
 package main
 
 import (
@@ -59,6 +59,14 @@ func run(args []string) int {
 		return runRename(args[1:])
 	case "reallocate":
 		return runReallocate(args[1:])
+	case "init":
+		return runInit(args[1:])
+	case "update":
+		return runUpdate(args[1:])
+	case "history":
+		return runHistory(args[1:])
+	case "doctor":
+		return runDoctor(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "aiwf: unknown subcommand %q. Try 'aiwf help'.\n", args[0])
 		return exitUsage
@@ -77,6 +85,10 @@ Verbs:
   cancel <id>                    promote to the kind's terminal-cancel status
   rename <id> <new-slug>         rename the file/dir slug; id preserved
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
+  init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
+  update                         re-materialize embedded skills into .claude/skills/wf-*/
+  history <id>                   show the entity's lifecycle from git log trailers
+  doctor                         drift / version / id-collision health check
   help, --help                   show this message
   version, --version             print the binary version
 
@@ -91,7 +103,7 @@ Flags for 'add':
   --format <fmt>                 schema format (contract)
   --artifact-source <path>       source path of the schema file (contract)
 
-Flags for 'check':
+Flags for 'check' and 'history':
   --format <fmt>                 output format: text (default) or json
   --pretty                       indent JSON output (only with --format=json)
 

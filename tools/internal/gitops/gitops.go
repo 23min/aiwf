@@ -81,6 +81,18 @@ func IsRepo(ctx context.Context, workdir string) bool {
 	return cmd.Run() == nil
 }
 
+// GitDir returns the absolute path to the git directory for workdir.
+// Handles worktrees (where `.git` is a file, not a directory) and
+// submodules transparently. Returns an error when workdir is not in a
+// git repo.
+func GitDir(ctx context.Context, workdir string) (string, error) {
+	out, err := output(ctx, workdir, "rev-parse", "--absolute-git-dir")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
+}
+
 // HeadSubject returns the subject line of HEAD's commit. Used by tests
 // to verify a commit landed; not used at runtime.
 func HeadSubject(ctx context.Context, workdir string) (string, error) {
