@@ -1,9 +1,9 @@
 ---
-name: wf-add
+name: aiwf-add
 description: Use when the user wants to add a new aiwf entity (epic, milestone, ADR, gap, decision, or contract). Runs `aiwf add` so the id allocation, frontmatter, and commit happen mechanically.
 ---
 
-# wf-add
+# aiwf-add
 
 The `aiwf add` verb creates a new entity and produces exactly one git commit. Skills like this one are advisory; the binary is authoritative.
 

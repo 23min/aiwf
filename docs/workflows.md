@@ -38,7 +38,7 @@ git config user.email peter@example.com
 aiwf init                                 # writes aiwf.yaml, scaffolds dirs, installs pre-push hook
 ```
 
-After `aiwf init` the repo has the conventional layout, a pre-push hook that runs `aiwf check`, and the materialized `wf-*` skills in `.claude/skills/` (gitignored).
+After `aiwf init` the repo has the conventional layout, a pre-push hook that runs `aiwf check`, and the materialized `aiwf-*` skills in `.claude/skills/` (gitignored).
 
 **1. Plan the epic.**
 
@@ -196,7 +196,7 @@ ADRs, gaps, and decisions don't appear in the roadmap by design — the roadmap 
 
 ## 3. AI prompts
 
-The verbs above are for you. When you're working *through* an AI host (Claude Code with the `wf-*` skills materialized by `aiwf init`), you usually don't need to remember the verb syntax — you describe the intent in English and the AI picks the right command.
+The verbs above are for you. When you're working *through* an AI host (Claude Code with the `aiwf-*` skills materialized by `aiwf init`), you usually don't need to remember the verb syntax — you describe the intent in English and the AI picks the right command.
 
 These are concrete examples of what to say. The AI's response is the verb sequence in the second column.
 

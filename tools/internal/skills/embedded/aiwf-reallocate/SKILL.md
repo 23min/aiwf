@@ -1,9 +1,9 @@
 ---
-name: wf-reallocate
+name: aiwf-reallocate
 description: Use when `aiwf check` reports an `ids-unique` finding (two entities share an id, typically after a branch merge). Runs `aiwf reallocate` to renumber one of them and rewrite all references.
 ---
 
-# wf-reallocate
+# aiwf-reallocate
 
 The `aiwf reallocate` verb resolves id collisions by picking the next free id, `git mv`-ing the colliding entity, and walking every other entity's frontmatter to rewrite reference fields. Body-prose mentions are surfaced as findings — humans review those.
 

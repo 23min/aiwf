@@ -1,9 +1,9 @@
 ---
-name: wf-check
+name: aiwf-check
 description: Use when the user wants to validate the planning tree or asks why `aiwf check` reported a finding. Explains each finding code and the typical fix.
 ---
 
-# wf-check
+# aiwf-check
 
 The `aiwf check` verb is a pure function from the working tree to a list of findings. It runs as a `pre-push` git hook; that hook is the chokepoint that turns the framework's guarantees into mechanical enforcement.
 
@@ -27,7 +27,7 @@ aiwf check --format=json --pretty
 |---|---|---|
 | `ids-unique` | Two entities share an id. Almost always from a parallel-branch merge. | `aiwf reallocate <path>` on the loser. |
 | `frontmatter-shape` | Required field missing or malformed. | Add the field; check the kind's id format. |
-| `status-valid` | Status is not in the kind's allowed set. | Pick a status from the kind's set (see `wf-promote`). |
+| `status-valid` | Status is not in the kind's allowed set. | Pick a status from the kind's set (see `aiwf-promote`). |
 | `refs-resolve/unresolved` | A reference points at an id that does not exist. | Either the target was never created, or the id is mistyped. |
 | `refs-resolve/wrong-kind` | A reference points at an entity of the wrong kind. | A milestone's `parent` must be an epic; an ADR's `supersedes` must be ADRs; etc. |
 | `no-cycles` | A cycle in the milestone `depends_on` DAG or the ADR `supersedes` chain. | Remove a back-edge. |

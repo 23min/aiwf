@@ -1,9 +1,9 @@
 ---
-name: wf-rename
+name: aiwf-rename
 description: Use when the user wants to rename an entity's slug (the human-readable suffix in the file/dir name). Runs `aiwf rename` so the id is preserved and references stay valid.
 ---
 
-# wf-rename
+# aiwf-rename
 
 The `aiwf rename` verb changes the slug portion of an entity's path while preserving the id. References to the entity (which use the id) keep working.
 

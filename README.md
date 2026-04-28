@@ -179,7 +179,7 @@ Verb-specific flags for `add`:
 ├── docs/
 │   └── adr/
 │       └── ADR-NNNN-<slug>.md
-└── .claude/skills/wf-*/                   # gitignored; materialized by aiwf init
+└── .claude/skills/aiwf-*/                 # gitignored; materialized by aiwf init
 ```
 
 For the full kind/status/transition reference and the per-kind state-machine diagrams, see [`docs/overview.md`](docs/overview.md).
@@ -188,22 +188,22 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 
 ## Coexistence with your `.claude/`
 
-`aiwf` is designed to live alongside your own Claude Code setup — your own skills, agents, slash commands, output styles, and any other tooling you've configured. It uses a strict `wf-*` namespace and never touches anything outside it.
+`aiwf` is designed to live alongside your own Claude Code setup — your own skills, agents, slash commands, output styles, and any other tooling you've configured. It uses a strict `aiwf-*` namespace and never touches anything outside it.
 
 **What aiwf writes:**
 
-- `.claude/skills/wf-*/SKILL.md` — six skill files materialized from the binary. Wiped and rewritten by `aiwf init` / `aiwf update`.
-- `.gitignore` — appends *only* the six `wf-*` skill paths. Your other `.claude/` content is yours to commit or gitignore as you choose; `aiwf` does not gitignore the directory wholesale.
+- `.claude/skills/aiwf-*/SKILL.md` — six skill files materialized from the binary. Wiped and rewritten by `aiwf init` / `aiwf update`.
+- `.gitignore` — appends *only* the six `aiwf-*` skill paths. Your other `.claude/` content is yours to commit or gitignore as you choose; `aiwf` does not gitignore the directory wholesale.
 - `aiwf.yaml`, `CLAUDE.md`, `.git/hooks/pre-push` — written only if absent. The pre-push hook carries an `# aiwf:pre-push` marker; if a hook without the marker already exists, `aiwf init` skips the hook step (leaving the existing one untouched), prints the per-step ledger so you can see exactly what landed, and finishes with a remediation block — either add `aiwf check || exit 1` inside your existing hook, or compose hooks with husky/lefthook. The exit code in that case is 1 so CI notices.
 
 **What aiwf does *not* touch:**
 
-- Skills outside the `wf-*` namespace. Your own user-authored skills sit next to aiwf's and are never overwritten by `aiwf update`.
-- Anything under `.claude/agents/`, `.claude/commands/`, `.claude/output-styles/`, your `.claude/settings.json`, or any other path under `.claude/` outside `skills/wf-*/`.
+- Skills outside the `aiwf-*` namespace. Your own user-authored skills sit next to aiwf's and are never overwritten by `aiwf update`. Optional companion plugins (such as the planned [ai-workflow-rituals](https://github.com/23min/ai-workflow-rituals) marketplace, which uses the `aiwfx-*` and `wf-*` namespaces) are installed by Claude Code into separate plugin directories — they don't share `.claude/skills/` with aiwf core.
+- Anything under `.claude/agents/`, `.claude/commands/`, `.claude/output-styles/`, your `.claude/settings.json`, or any other path under `.claude/` outside `skills/aiwf-*/`.
 - An existing `CLAUDE.md`, `.gitignore`, or `aiwf.yaml`.
 - Anything outside the consumer repo. There are no writes to `~/.claude/`, no changes to your MCP server config, and no API settings touched.
 
-**Why the `wf-*` skills are gitignored.** The materialized skills are a derivable cache: `aiwf init` and `aiwf update` regenerate them byte-for-byte from the binary's embedded copies. Gitignoring the cache rather than committing it means teammates on different `aiwf` versions don't fight merge conflicts, an old `git checkout` doesn't drag stale skill text along with it, and the source of truth stays in the binary. `aiwf doctor` byte-compares the on-disk copies against the embedded ones and surfaces drift; `aiwf update` is the one-button restore.
+**Why the `aiwf-*` skills are gitignored.** The materialized skills are a derivable cache: `aiwf init` and `aiwf update` regenerate them byte-for-byte from the binary's embedded copies. Gitignoring the cache rather than committing it means teammates on different `aiwf` versions don't fight merge conflicts, an old `git checkout` doesn't drag stale skill text along with it, and the source of truth stays in the binary. `aiwf doctor` byte-compares the on-disk copies against the embedded ones and surfaces drift; `aiwf update` is the one-button restore.
 
 ---
 

@@ -73,7 +73,7 @@ func TestInit_FreshRepo(t *testing.T) {
 	}
 
 	// Skills materialized.
-	for _, name := range []string{"wf-add", "wf-promote", "wf-rename", "wf-reallocate", "wf-history", "wf-check", "wf-track"} {
+	for _, name := range []string{"aiwf-add", "aiwf-promote", "aiwf-rename", "aiwf-reallocate", "aiwf-history", "aiwf-check"} {
 		path := filepath.Join(root, ".claude", "skills", name, "SKILL.md")
 		if _, sErr := os.Stat(path); sErr != nil {
 			t.Errorf("skill %s missing: %v", name, sErr)
@@ -85,7 +85,7 @@ func TestInit_FreshRepo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(gi), ".claude/skills/wf-add/") {
+	if !strings.Contains(string(gi), ".claude/skills/aiwf-add/") {
 		t.Errorf(".gitignore missing skill paths: %s", gi)
 	}
 
@@ -199,7 +199,7 @@ func TestInit_SkipsAlienPreHook(t *testing.T) {
 		"aiwf.yaml",
 		"work/epics", "work/gaps", "work/decisions", "work/contracts",
 		"docs/adr",
-		".claude/skills/wf-*",
+		".claude/skills/aiwf-*",
 		".gitignore",
 		"CLAUDE.md",
 		".git/hooks/pre-push",
@@ -274,7 +274,7 @@ func TestInit_GitignorePreservesExisting(t *testing.T) {
 	if !strings.HasPrefix(string(got), "# user gitignore\nnode_modules/\n") {
 		t.Errorf("existing .gitignore prefix lost: %s", got)
 	}
-	if !strings.Contains(string(got), ".claude/skills/wf-add/") {
+	if !strings.Contains(string(got), ".claude/skills/aiwf-add/") {
 		t.Errorf("skill paths not appended: %s", got)
 	}
 }
@@ -290,7 +290,7 @@ func TestInit_GitignoreNoDoubleAppend(t *testing.T) {
 		t.Fatalf("Init #2: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
-	count := strings.Count(string(got), ".claude/skills/wf-add/")
+	count := strings.Count(string(got), ".claude/skills/aiwf-add/")
 	if count != 1 {
 		t.Errorf("skill path appears %d times, want 1\n%s", count, got)
 	}
@@ -323,7 +323,7 @@ func TestInit_DryRun(t *testing.T) {
 		"CLAUDE.md",
 		".gitignore",
 		filepath.Join("work", "epics"),
-		filepath.Join(".claude", "skills", "wf-add", "SKILL.md"),
+		filepath.Join(".claude", "skills", "aiwf-add", "SKILL.md"),
 		filepath.Join(".git", "hooks", "pre-push"),
 	} {
 		if _, sErr := os.Stat(filepath.Join(root, p)); !os.IsNotExist(sErr) {
@@ -360,7 +360,7 @@ func TestInit_SkipHook(t *testing.T) {
 		config.FileName,
 		"CLAUDE.md",
 		".gitignore",
-		filepath.Join(".claude", "skills", "wf-add", "SKILL.md"),
+		filepath.Join(".claude", "skills", "aiwf-add", "SKILL.md"),
 	} {
 		if _, sErr := os.Stat(filepath.Join(root, p)); sErr != nil {
 			t.Errorf("expected %s to exist after --skip-hook init: %v", p, sErr)

@@ -95,7 +95,7 @@ Repeat until the dry-run is clean.
 | Migration report (skip log, TODOs) | Your private tooling | Private |
 | The manifest format spec | aiwf docs | Public |
 | `aiwf import` | aiwf binary | Public |
-| Embedded skills (`wf-*`) | aiwf binary | Public |
+| Embedded skills (`aiwf-*`) | aiwf binary | Public |
 
 The manifest is the only artifact that crosses the public/private boundary. Anything aiwf sees is fully canonical, fully resolved, and could plausibly have been authored by hand.
 

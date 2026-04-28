@@ -242,9 +242,9 @@ If real friction shows up later, port from v1 then. YAGNI.
 
 | Step | State | Owner |
 |---|---|---|
-| 1.1 — rename `wf-*` → `aiwf-*` | not started | this repo |
-| 1.2 — drop `wf-track` from poc plan | not started | this repo |
-| 1.3 — update README §coexistence | not started | this repo |
+| 1.1 — rename `wf-*` → `aiwf-*` | ✅ done (branch `poc/aiwf-rename-skills`) | this repo |
+| 1.2 — drop `wf-track` from poc plan | ✅ done (same branch) | this repo |
+| 1.3 — update README §coexistence | ✅ done (same branch) | this repo |
 | 2.x — scaffold rituals repo | not started | new repo |
 | 3.x — port `wf-rituals` plugin | not started | new repo |
 | 4.x — port `aiwf-extensions` plugin | not started | new repo |

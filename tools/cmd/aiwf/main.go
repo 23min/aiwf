@@ -95,7 +95,7 @@ Verbs:
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
-  update                         re-materialize embedded skills into .claude/skills/wf-*/
+  update                         re-materialize embedded skills into .claude/skills/aiwf-*/
   history <id>                   show the entity's lifecycle from git log trailers
   doctor [--self-check]          drift / version / id-collision health check; --self-check drives every verb against a temp repo
   render roadmap [--write]       print ROADMAP.md (markdown of epics + milestones); --write commits it

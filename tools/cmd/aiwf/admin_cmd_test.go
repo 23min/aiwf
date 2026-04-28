@@ -26,8 +26,8 @@ func TestRun_InitThroughDispatcher(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "aiwf.yaml")); err != nil {
 		t.Errorf("aiwf.yaml missing: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "wf-add", "SKILL.md")); err != nil {
-		t.Errorf("wf-add skill missing: %v", err)
+	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")); err != nil {
+		t.Errorf("aiwf-add skill missing: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".git", "hooks", "pre-push")); err != nil {
 		t.Errorf("pre-push hook missing: %v", err)
@@ -56,7 +56,7 @@ func TestRun_InitDryRun(t *testing.T) {
 		"dry-run",
 		"created    aiwf.yaml",
 		"created    work/epics",
-		"updated    .claude/skills/wf-*",
+		"updated    .claude/skills/aiwf-*",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q\nfull output:\n%s", want, out)
@@ -65,7 +65,7 @@ func TestRun_InitDryRun(t *testing.T) {
 	// Nothing on disk.
 	for _, p := range []string{
 		"aiwf.yaml",
-		filepath.Join(".claude", "skills", "wf-add", "SKILL.md"),
+		filepath.Join(".claude", "skills", "aiwf-add", "SKILL.md"),
 		filepath.Join(".git", "hooks", "pre-push"),
 	} {
 		if _, err := os.Stat(filepath.Join(root, p)); !os.IsNotExist(err) {
@@ -129,7 +129,7 @@ func TestRun_InitSkipsAlienHook(t *testing.T) {
 	for _, want := range []string{
 		"created    aiwf.yaml", // earlier steps still ran
 		"created    work/epics",
-		"updated    .claude/skills/wf-*",
+		"updated    .claude/skills/aiwf-*",
 		"skipped    .git/hooks/pre-push",
 		"aiwf init: setup landed except the pre-push hook.",
 		"aiwf check || exit 1", // remediation option 1
@@ -144,8 +144,8 @@ func TestRun_InitSkipsAlienHook(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "aiwf.yaml")); err != nil {
 		t.Errorf("aiwf.yaml missing after partial init: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "wf-add", "SKILL.md")); err != nil {
-		t.Errorf("wf-add skill missing after partial init: %v", err)
+	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")); err != nil {
+		t.Errorf("aiwf-add skill missing after partial init: %v", err)
 	}
 	// Alien hook is intact.
 	got, _ := os.ReadFile(filepath.Join(hookDir, "pre-push"))
@@ -161,7 +161,7 @@ func TestRun_UpdateMaterializes(t *testing.T) {
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	skillPath := filepath.Join(root, ".claude", "skills", "wf-add", "SKILL.md")
+	skillPath := filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")
 	if err := os.WriteFile(skillPath, []byte("tampered"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -172,8 +172,8 @@ func TestRun_UpdateMaterializes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(got), "name: wf-add") {
-		t.Errorf("wf-add not restored: %s", got)
+	if !strings.Contains(string(got), "name: aiwf-add") {
+		t.Errorf("aiwf-add not restored: %s", got)
 	}
 }
 
@@ -360,7 +360,7 @@ func TestRun_DoctorDetectsSkillDrift(t *testing.T) {
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	skillPath := filepath.Join(root, ".claude", "skills", "wf-add", "SKILL.md")
+	skillPath := filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")
 	if err := os.WriteFile(skillPath, []byte("tampered"), 0o644); err != nil {
 		t.Fatal(err)
 	}

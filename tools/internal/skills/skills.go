@@ -1,12 +1,12 @@
 // Package skills owns the materialization of aiwf's host adapters
-// (Claude Code skills) into a consumer repo's `.claude/skills/wf-*/`
+// (Claude Code skills) into a consumer repo's `.claude/skills/aiwf-*/`
 // tree.
 //
 // The skill markdown lives under embedded/ and is compiled into the
 // binary via go:embed. The on-disk skill files are a cache, not state:
-// `aiwf init` and `aiwf update` wipe every `wf-*/` dir and rewrite from
-// the embed. Non-`wf-*` directories under `.claude/skills/` are
-// untouched — the `wf-` prefix is the namespace boundary.
+// `aiwf init` and `aiwf update` wipe every `aiwf-*/` dir and rewrite from
+// the embed. Non-`aiwf-*` directories under `.claude/skills/` are
+// untouched — the `aiwf-` prefix is the namespace boundary.
 //
 // `aiwf doctor` consumes List() to byte-compare the on-disk files
 // against the embedded content and report drift.
@@ -23,17 +23,17 @@ import (
 	"strings"
 )
 
-// embedFS holds the canonical SKILL.md content for every wf-* skill.
+// embedFS holds the canonical SKILL.md content for every aiwf-* skill.
 // The directory layout under embedded/ mirrors what materializes
 // on disk under `.claude/skills/`.
 //
 //go:embed embedded
 var embedFS embed.FS
 
-// Skill is one embedded skill: its directory name (e.g. "wf-add") and
+// Skill is one embedded skill: its directory name (e.g. "aiwf-add") and
 // the bytes that should be written to `.claude/skills/<name>/SKILL.md`.
 type Skill struct {
-	Name    string // directory name, e.g. "wf-add"
+	Name    string // directory name, e.g. "aiwf-add"
 	Content []byte // SKILL.md contents
 }
 
@@ -56,7 +56,7 @@ func List() ([]Skill, error) {
 			continue
 		}
 		name := e.Name()
-		if !strings.HasPrefix(name, "wf-") {
+		if !strings.HasPrefix(name, "aiwf-") {
 			continue
 		}
 		content, err := fs.ReadFile(embedFS, filepath.ToSlash(filepath.Join("embedded", name, "SKILL.md")))
@@ -69,8 +69,8 @@ func List() ([]Skill, error) {
 	return out, nil
 }
 
-// Materialize wipes every `.claude/skills/wf-*/` directory under root
-// and writes the embedded skills back. Non-`wf-*` directories are
+// Materialize wipes every `.claude/skills/aiwf-*/` directory under root
+// and writes the embedded skills back. Non-`aiwf-*` directories are
 // untouched. Creates `.claude/skills/` if missing.
 //
 // This is the operation behind both `aiwf init` (first-time setup) and
@@ -81,7 +81,7 @@ func Materialize(root string) error {
 		return fmt.Errorf("creating %s: %w", SkillsDir, err)
 	}
 
-	// Wipe existing wf-* dirs so we never leave stale skills behind.
+	// Wipe existing aiwf-* dirs so we never leave stale skills behind.
 	entries, readErr := os.ReadDir(skillsRoot)
 	if readErr != nil && !errors.Is(readErr, fs.ErrNotExist) {
 		return fmt.Errorf("reading %s: %w", SkillsDir, readErr)
@@ -90,7 +90,7 @@ func Materialize(root string) error {
 		if !e.IsDir() {
 			continue
 		}
-		if !strings.HasPrefix(e.Name(), "wf-") {
+		if !strings.HasPrefix(e.Name(), "aiwf-") {
 			continue
 		}
 		if rmErr := os.RemoveAll(filepath.Join(skillsRoot, e.Name())); rmErr != nil {

@@ -1,9 +1,9 @@
 ---
-name: wf-history
+name: aiwf-history
 description: Use when the user asks "what happened to <entity>" or wants the timeline of an aiwf entity. Runs `aiwf history` which reads `git log` filtered by structured commit trailers.
 ---
 
-# wf-history
+# aiwf-history
 
 The `aiwf history` verb answers "what happened to this entity?" by filtering `git log` for the entity's commit trailers. There is no separate event log; the git log is the time machine, made queryable by `aiwf-verb` / `aiwf-entity` / `aiwf-prior-entity` trailers.
 

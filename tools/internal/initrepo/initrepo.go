@@ -54,7 +54,7 @@ This repository uses [aiwf](https://github.com/23min/ai-workflow-v2) to track pl
 
 The pre-push hook runs ` + "`aiwf check`" + ` automatically; broken state cannot be pushed.
 
-Skills under ` + "`.claude/skills/wf-*/`" + ` are gitignored and regenerated on ` + "`aiwf update`" + `.
+Skills under ` + "`.claude/skills/aiwf-*/`" + ` are gitignored and regenerated on ` + "`aiwf update`" + `.
 `
 
 // preHookScript renders the body of the pre-push hook installed by
@@ -292,7 +292,7 @@ func ensureSkills(root string, dryRun bool) (StepResult, error) {
 			return StepResult{}, err
 		}
 		return StepResult{
-			What:   ".claude/skills/wf-*",
+			What:   ".claude/skills/aiwf-*",
 			Action: ActionUpdated,
 			Detail: fmt.Sprintf("would materialize %d skills from embedded", len(embedded)),
 		}, nil
@@ -301,7 +301,7 @@ func ensureSkills(root string, dryRun bool) (StepResult, error) {
 		return StepResult{}, fmt.Errorf("materializing skills: %w", err)
 	}
 	return StepResult{
-		What:   ".claude/skills/wf-*",
+		What:   ".claude/skills/aiwf-*",
 		Action: ActionUpdated,
 		Detail: "materialized from embedded skills",
 	}, nil

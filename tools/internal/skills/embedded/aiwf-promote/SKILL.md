@@ -1,9 +1,9 @@
 ---
-name: wf-promote
+name: aiwf-promote
 description: Use when the user wants to advance an entity to a new status. Runs `aiwf promote` so the transition is checked against the kind's legal moves and recorded as a single commit.
 ---
 
-# wf-promote
+# aiwf-promote
 
 The `aiwf promote` verb edits an entity's `status` field. Allowed transitions are hardcoded per kind; illegal moves are refused before any disk change.
 

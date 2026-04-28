@@ -10,8 +10,7 @@ import (
 )
 
 // TestList_AllShippedSkillsPresent guards the contract that we ship
-// the six verb skills from session 3 plus the wf-track advisory skill
-// added in session 5.
+// the six verb skills from session 3.
 func TestList_AllShippedSkillsPresent(t *testing.T) {
 	skills, err := List()
 	if err != nil {
@@ -21,7 +20,7 @@ func TestList_AllShippedSkillsPresent(t *testing.T) {
 	for i, s := range skills {
 		got[i] = s.Name
 	}
-	want := []string{"wf-add", "wf-check", "wf-history", "wf-promote", "wf-reallocate", "wf-rename", "wf-track"}
+	want := []string{"aiwf-add", "aiwf-check", "aiwf-history", "aiwf-promote", "aiwf-reallocate", "aiwf-rename"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d skills, want %d (%v vs %v)", len(got), len(want), got, want)
 	}
@@ -79,11 +78,11 @@ func TestMaterialize_FreshDir(t *testing.T) {
 	}
 }
 
-// TestMaterialize_WipesStale puts a stale wf-something/ dir in place
+// TestMaterialize_WipesStale puts a stale aiwf-something/ dir in place
 // and verifies Materialize removes it (the cache contract).
 func TestMaterialize_WipesStale(t *testing.T) {
 	root := t.TempDir()
-	stale := filepath.Join(root, SkillsDir, "wf-removed")
+	stale := filepath.Join(root, SkillsDir, "aiwf-removed")
 	if err := os.MkdirAll(stale, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -94,14 +93,14 @@ func TestMaterialize_WipesStale(t *testing.T) {
 		t.Fatalf("Materialize: %v", err)
 	}
 	if _, err := os.Stat(stale); !os.IsNotExist(err) {
-		t.Errorf("stale wf-removed/ should have been wiped, stat err=%v", err)
+		t.Errorf("stale aiwf-removed/ should have been wiped, stat err=%v", err)
 	}
 }
 
-// TestMaterialize_PreservesNonWfDirs guards the namespace boundary —
-// user-authored `.claude/skills/<not-wf>/` directories must not be
+// TestMaterialize_PreservesNonAiwfDirs guards the namespace boundary —
+// user-authored `.claude/skills/<not-aiwf>/` directories must not be
 // touched by Materialize.
-func TestMaterialize_PreservesNonWfDirs(t *testing.T) {
+func TestMaterialize_PreservesNonAiwfDirs(t *testing.T) {
 	root := t.TempDir()
 	user := filepath.Join(root, SkillsDir, "my-custom-skill")
 	if err := os.MkdirAll(user, 0o755); err != nil {
@@ -131,7 +130,7 @@ func TestMaterializedPaths(t *testing.T) {
 		t.Fatal("expected non-empty list")
 	}
 	for _, p := range got {
-		if !strings.HasPrefix(p, SkillsDir+"/wf-") {
+		if !strings.HasPrefix(p, SkillsDir+"/aiwf-") {
 			t.Errorf("path %q lacks expected prefix", p)
 		}
 		if !strings.HasSuffix(p, "/") {
