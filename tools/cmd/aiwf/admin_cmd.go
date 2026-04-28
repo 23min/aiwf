@@ -22,10 +22,15 @@ import (
 // runInit handles `aiwf init`: writes aiwf.yaml, scaffolds entity
 // directories, materializes skills, appends to .gitignore, writes a
 // CLAUDE.md template, and installs the pre-push hook. No commit.
+//
+// --dry-run reports the would-be ledger without touching disk.
+// --skip-hook performs every other step but omits hook installation.
 func runInit(args []string) int {
 	fs := flag.NewFlagSet("init", flag.ContinueOnError)
 	root := fs.String("root", "", "consumer repo root (default: cwd)")
 	actor := fs.String("actor", "", "default actor for the commit trailer (overrides git config derivation)")
+	dryRun := fs.Bool("dry-run", false, "report what init would do without writing anything")
+	skipHook := fs.Bool("skip-hook", false, "skip installing the pre-push hook (every other step still runs)")
 	fs.SetOutput(os.Stderr)
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
@@ -40,12 +45,17 @@ func runInit(args []string) int {
 	res, err := initrepo.Init(context.Background(), rootDir, initrepo.Options{
 		ActorOverride: *actor,
 		AiwfVersion:   Version,
+		DryRun:        *dryRun,
+		SkipHook:      *skipHook,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
 		return exitInternal
 	}
 
+	if res.DryRun {
+		fmt.Println("aiwf init: dry-run — nothing was written.")
+	}
 	for _, s := range res.Steps {
 		if s.Detail != "" {
 			fmt.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
@@ -69,7 +79,15 @@ func runInit(args []string) int {
 		return exitFindings
 	}
 
-	fmt.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
+	switch {
+	case res.DryRun:
+		fmt.Println("\naiwf init: dry-run complete. Re-run without --dry-run to apply.")
+	case *skipHook:
+		fmt.Println("\naiwf init: done (pre-push hook skipped). Commit aiwf.yaml when you're ready.")
+		fmt.Println("Run `aiwf init` again later to install the hook, or wire `aiwf check` into your push flow manually.")
+	default:
+		fmt.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
+	}
 	return exitOK
 }
 

@@ -98,19 +98,28 @@ type StepResult struct {
 // Result is the per-step ledger init returns. Order matches the order
 // of operations. HookConflict is set when init declined to install
 // the pre-push hook because a non-aiwf hook was already in place;
-// callers should surface remediation guidance to the user.
+// callers should surface remediation guidance to the user. DryRun
+// echoes Options.DryRun so callers can format output appropriately
+// (a dry-run ledger looks identical but no writes occurred).
 type Result struct {
 	Steps        []StepResult
 	HookConflict bool
+	DryRun       bool
 }
 
 // Options carries init-time inputs that override or supplement the
 // defaults. ActorOverride bypasses git-config derivation when set.
 // AiwfVersion stamps aiwf.yaml's `aiwf_version`; the CLI passes the
 // binary's Version constant.
+//
+// DryRun computes the would-be ledger without performing any
+// filesystem mutations. SkipHook omits pre-push hook installation
+// entirely (still reported in the ledger as a skipped step).
 type Options struct {
 	ActorOverride string
 	AiwfVersion   string
+	DryRun        bool
+	SkipHook      bool
 }
 
 // Init runs the documented setup steps in order. Returns a Result that
@@ -122,7 +131,7 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 		return nil, errors.New("AiwfVersion is required")
 	}
 
-	res := &Result{}
+	res := &Result{DryRun: opts.DryRun}
 
 	// 1. aiwf.yaml — write only if missing.
 	cfgStep, err := ensureConfig(root, opts)
@@ -132,31 +141,28 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	res.Steps = append(res.Steps, cfgStep)
 
 	// 2. Scaffold entity directories.
-	scaffoldSteps, err := scaffoldDirs(root)
+	scaffoldSteps, err := scaffoldDirs(root, opts.DryRun)
 	if err != nil {
 		return nil, err
 	}
 	res.Steps = append(res.Steps, scaffoldSteps...)
 
 	// 3. Materialize skills (wipe-and-rewrite per cache contract).
-	if mErr := skills.Materialize(root); mErr != nil {
-		return nil, fmt.Errorf("materializing skills: %w", mErr)
+	skillsStep, err := ensureSkills(root, opts.DryRun)
+	if err != nil {
+		return nil, err
 	}
-	res.Steps = append(res.Steps, StepResult{
-		What:   ".claude/skills/wf-*",
-		Action: ActionUpdated,
-		Detail: "materialized from embedded skills",
-	})
+	res.Steps = append(res.Steps, skillsStep)
 
 	// 4. Append skill paths to .gitignore.
-	gitignoreStep, err := ensureGitignore(root)
+	gitignoreStep, err := ensureGitignore(root, opts.DryRun)
 	if err != nil {
 		return nil, err
 	}
 	res.Steps = append(res.Steps, gitignoreStep)
 
 	// 5. CLAUDE.md template — write only if missing.
-	claudeStep, err := ensureClaudeMd(root)
+	claudeStep, err := ensureClaudeMd(root, opts.DryRun)
 	if err != nil {
 		return nil, err
 	}
@@ -164,14 +170,22 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 
 	// 6. Pre-push hook — install, overwrite-if-marker-present, or
 	// skip-with-remediation when a non-aiwf hook is already in place.
-	// A skipped hook is not a fatal error: the user gets the full
-	// ledger of everything else that landed plus a clear next step.
-	hookStep, conflict, err := ensurePreHook(ctx, root)
-	if err != nil {
-		return nil, err
+	// SkipHook bypasses the install entirely (reported as skipped); a
+	// skipped hook is never a fatal error.
+	if opts.SkipHook {
+		res.Steps = append(res.Steps, StepResult{
+			What:   ".git/hooks/pre-push",
+			Action: ActionSkipped,
+			Detail: "--skip-hook flag set",
+		})
+	} else {
+		hookStep, conflict, hErr := ensurePreHook(ctx, root, opts.DryRun)
+		if hErr != nil {
+			return nil, hErr
+		}
+		res.Steps = append(res.Steps, hookStep)
+		res.HookConflict = conflict
 	}
-	res.Steps = append(res.Steps, hookStep)
-	res.HookConflict = conflict
 
 	return res, nil
 }
@@ -187,6 +201,14 @@ func ensureConfig(root string, opts Options) (StepResult, error) {
 	actor, err := deriveActor(opts.ActorOverride, root)
 	if err != nil {
 		return StepResult{}, err
+	}
+
+	if opts.DryRun {
+		return StepResult{
+			What:   config.FileName,
+			Action: ActionCreated,
+			Detail: "actor=" + actor,
+		}, nil
 	}
 
 	cfg := &config.Config{
@@ -233,7 +255,7 @@ func deriveActor(override, root string) (string, error) {
 	return candidate, nil
 }
 
-func scaffoldDirs(root string) ([]StepResult, error) {
+func scaffoldDirs(root string, dryRun bool) ([]StepResult, error) {
 	dirs := []string{
 		filepath.Join("work", "epics"),
 		filepath.Join("work", "gaps"),
@@ -250,15 +272,42 @@ func scaffoldDirs(root string) ([]StepResult, error) {
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("statting %s: %w", d, err)
 		}
-		if err := os.MkdirAll(full, 0o755); err != nil {
-			return nil, fmt.Errorf("creating %s: %w", d, err)
+		if !dryRun {
+			if err := os.MkdirAll(full, 0o755); err != nil {
+				return nil, fmt.Errorf("creating %s: %w", d, err)
+			}
 		}
 		out = append(out, StepResult{What: d, Action: ActionCreated})
 	}
 	return out, nil
 }
 
-func ensureGitignore(root string) (StepResult, error) {
+// ensureSkills materializes skill files (wipe-and-rewrite per cache
+// contract). In dry-run mode, returns the would-be ledger entry
+// without touching disk.
+func ensureSkills(root string, dryRun bool) (StepResult, error) {
+	if dryRun {
+		embedded, err := skills.List()
+		if err != nil {
+			return StepResult{}, err
+		}
+		return StepResult{
+			What:   ".claude/skills/wf-*",
+			Action: ActionUpdated,
+			Detail: fmt.Sprintf("would materialize %d skills from embedded", len(embedded)),
+		}, nil
+	}
+	if err := skills.Materialize(root); err != nil {
+		return StepResult{}, fmt.Errorf("materializing skills: %w", err)
+	}
+	return StepResult{
+		What:   ".claude/skills/wf-*",
+		Action: ActionUpdated,
+		Detail: "materialized from embedded skills",
+	}, nil
+}
+
+func ensureGitignore(root string, dryRun bool) (StepResult, error) {
 	paths, err := skills.MaterializedPaths()
 	if err != nil {
 		return StepResult{}, err
@@ -299,12 +348,14 @@ func ensureGitignore(root string) (StepResult, error) {
 		b.WriteString(p)
 		b.WriteString("\n")
 	}
-	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
-		return StepResult{}, fmt.Errorf("writing .gitignore: %w", err)
-	}
 	action := ActionUpdated
 	if readErr != nil {
 		action = ActionCreated
+	}
+	if !dryRun {
+		if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
+			return StepResult{}, fmt.Errorf("writing .gitignore: %w", err)
+		}
 	}
 	return StepResult{
 		What:   ".gitignore",
@@ -313,15 +364,17 @@ func ensureGitignore(root string) (StepResult, error) {
 	}, nil
 }
 
-func ensureClaudeMd(root string) (StepResult, error) {
+func ensureClaudeMd(root string, dryRun bool) (StepResult, error) {
 	path := filepath.Join(root, "CLAUDE.md")
 	if _, err := os.Stat(path); err == nil {
 		return StepResult{What: "CLAUDE.md", Action: ActionPreserved}, nil
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return StepResult{}, fmt.Errorf("statting CLAUDE.md: %w", err)
 	}
-	if err := os.WriteFile(path, []byte(CLAUDETemplate), 0o644); err != nil {
-		return StepResult{}, fmt.Errorf("writing CLAUDE.md: %w", err)
+	if !dryRun {
+		if err := os.WriteFile(path, []byte(CLAUDETemplate), 0o644); err != nil {
+			return StepResult{}, fmt.Errorf("writing CLAUDE.md: %w", err)
+		}
 	}
 	return StepResult{What: "CLAUDE.md", Action: ActionCreated}, nil
 }
@@ -331,14 +384,19 @@ func ensureClaudeMd(root string) (StepResult, error) {
 // without aiwf's marker already exists, ensurePreHook returns a
 // skipped StepResult and `true`, leaving the user's hook untouched.
 // Skipping is not a fatal error — the caller surfaces remediation.
-func ensurePreHook(ctx context.Context, root string) (StepResult, bool, error) {
+//
+// In dry-run mode, conflict detection still runs (read-only) but no
+// directory or file is created.
+func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, bool, error) {
 	gitDir, err := gitops.GitDir(ctx, root)
 	if err != nil {
 		return StepResult{}, false, fmt.Errorf("locating git dir: %w", err)
 	}
 	hooksDir := filepath.Join(gitDir, "hooks")
-	if mkErr := os.MkdirAll(hooksDir, 0o755); mkErr != nil {
-		return StepResult{}, false, fmt.Errorf("creating hooks dir: %w", mkErr)
+	if !dryRun {
+		if mkErr := os.MkdirAll(hooksDir, 0o755); mkErr != nil {
+			return StepResult{}, false, fmt.Errorf("creating hooks dir: %w", mkErr)
+		}
 	}
 	hookPath := filepath.Join(hooksDir, "pre-push")
 
@@ -363,12 +421,14 @@ func ensurePreHook(ctx context.Context, root string) (StepResult, bool, error) {
 	if err != nil {
 		return StepResult{}, false, fmt.Errorf("resolving aiwf binary path: %w", err)
 	}
-	if err := os.WriteFile(hookPath, []byte(preHookScript(exePath)), 0o755); err != nil {
-		return StepResult{}, false, fmt.Errorf("writing pre-push hook: %w", err)
-	}
 	action := ActionCreated
 	if !errors.Is(readErr, fs.ErrNotExist) {
 		action = ActionUpdated
+	}
+	if !dryRun {
+		if err := os.WriteFile(hookPath, []byte(preHookScript(exePath)), 0o755); err != nil {
+			return StepResult{}, false, fmt.Errorf("writing pre-push hook: %w", err)
+		}
 	}
 	return StepResult{
 		What:   ".git/hooks/pre-push",

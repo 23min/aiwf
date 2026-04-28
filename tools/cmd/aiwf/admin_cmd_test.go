@@ -39,6 +39,71 @@ func TestRun_InitThroughDispatcher(t *testing.T) {
 	}
 }
 
+// TestRun_InitDryRun confirms `aiwf init --dry-run` reports the
+// would-be ledger, prefixes the output with a dry-run banner, and
+// writes nothing to disk.
+func TestRun_InitDryRun(t *testing.T) {
+	root := setupCLITestRepo(t)
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--dry-run"}); rc != exitOK {
+			t.Errorf("got rc=%d, want %d", rc, exitOK)
+		}
+	})
+	out := string(captured)
+
+	for _, want := range []string{
+		"dry-run",
+		"created    aiwf.yaml",
+		"created    work/epics",
+		"updated    .claude/skills/wf-*",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q\nfull output:\n%s", want, out)
+		}
+	}
+	// Nothing on disk.
+	for _, p := range []string{
+		"aiwf.yaml",
+		filepath.Join(".claude", "skills", "wf-add", "SKILL.md"),
+		filepath.Join(".git", "hooks", "pre-push"),
+	} {
+		if _, err := os.Stat(filepath.Join(root, p)); !os.IsNotExist(err) {
+			t.Errorf("dry-run wrote %s (stat err=%v); should be untouched", p, err)
+		}
+	}
+}
+
+// TestRun_InitSkipHook confirms `aiwf init --skip-hook` lands every
+// step except the hook installation. Exit is OK (skip is requested,
+// not a conflict).
+func TestRun_InitSkipHook(t *testing.T) {
+	root := setupCLITestRepo(t)
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+			t.Errorf("got rc=%d, want %d", rc, exitOK)
+		}
+	})
+	out := string(captured)
+
+	for _, want := range []string{
+		"skipped    .git/hooks/pre-push",
+		"--skip-hook",
+		"pre-push hook skipped",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q\nfull output:\n%s", want, out)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(root, "aiwf.yaml")); err != nil {
+		t.Errorf("aiwf.yaml missing after --skip-hook init: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".git", "hooks", "pre-push")); !os.IsNotExist(err) {
+		t.Errorf("hook installed despite --skip-hook (stat err=%v)", err)
+	}
+}
+
 // TestRun_InitSkipsAlienHook: when a non-aiwf pre-push hook is in
 // place, init lands every other step, leaves the alien hook
 // untouched, prints both the ledger and the remediation block, and

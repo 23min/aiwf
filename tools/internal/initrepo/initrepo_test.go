@@ -296,6 +296,113 @@ func TestInit_GitignoreNoDoubleAppend(t *testing.T) {
 	}
 }
 
+// TestInit_DryRun reports the would-be ledger but writes nothing.
+// A second non-dry-run pass on the same repo must still treat it as
+// fresh (i.e. dry-run leaves no side effects).
+func TestInit_DryRun(t *testing.T) {
+	root := freshGitRepo(t)
+	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0", DryRun: true})
+	if err != nil {
+		t.Fatalf("Init dry-run: %v", err)
+	}
+	if !res.DryRun {
+		t.Errorf("Result.DryRun = false, want true")
+	}
+	if len(res.Steps) == 0 {
+		t.Fatal("expected non-empty step ledger from dry-run")
+	}
+	// Ledger reports actions as if writes happened.
+	for _, s := range res.Steps {
+		if s.Action == "" {
+			t.Errorf("step %q has empty action", s.What)
+		}
+	}
+	// No artifacts on disk.
+	for _, p := range []string{
+		config.FileName,
+		"CLAUDE.md",
+		".gitignore",
+		filepath.Join("work", "epics"),
+		filepath.Join(".claude", "skills", "wf-add", "SKILL.md"),
+		filepath.Join(".git", "hooks", "pre-push"),
+	} {
+		if _, sErr := os.Stat(filepath.Join(root, p)); !os.IsNotExist(sErr) {
+			t.Errorf("dry-run wrote %s (stat err=%v); should be untouched", p, sErr)
+		}
+	}
+	// Real init still runs cleanly afterwards.
+	res2, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	if err != nil {
+		t.Fatalf("Init after dry-run: %v", err)
+	}
+	if res2.DryRun {
+		t.Errorf("second pass DryRun = true, want false")
+	}
+	if _, sErr := os.Stat(filepath.Join(root, config.FileName)); sErr != nil {
+		t.Errorf("aiwf.yaml missing after real init: %v", sErr)
+	}
+}
+
+// TestInit_SkipHook: every step except hook installation runs; the
+// hook step is reported as Skipped with a clear detail; HookConflict
+// is not set (skipping is by user request, not a conflict).
+func TestInit_SkipHook(t *testing.T) {
+	root := freshGitRepo(t)
+	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0", SkipHook: true})
+	if err != nil {
+		t.Fatalf("Init --skip-hook: %v", err)
+	}
+	if res.HookConflict {
+		t.Errorf("HookConflict = true on --skip-hook; want false (skip is requested, not a conflict)")
+	}
+	// All other artifacts present.
+	for _, p := range []string{
+		config.FileName,
+		"CLAUDE.md",
+		".gitignore",
+		filepath.Join(".claude", "skills", "wf-add", "SKILL.md"),
+	} {
+		if _, sErr := os.Stat(filepath.Join(root, p)); sErr != nil {
+			t.Errorf("expected %s to exist after --skip-hook init: %v", p, sErr)
+		}
+	}
+	// Hook absent.
+	if _, sErr := os.Stat(filepath.Join(root, ".git", "hooks", "pre-push")); !os.IsNotExist(sErr) {
+		t.Errorf("pre-push hook installed despite --skip-hook (stat err=%v)", sErr)
+	}
+	// Final step is the hook, marked Skipped with a reason.
+	last := res.Steps[len(res.Steps)-1]
+	if last.What != ".git/hooks/pre-push" {
+		t.Errorf("last step.What = %q, want .git/hooks/pre-push", last.What)
+	}
+	if last.Action != ActionSkipped {
+		t.Errorf("last step.Action = %q, want %q", last.Action, ActionSkipped)
+	}
+	if !strings.Contains(last.Detail, "skip-hook") {
+		t.Errorf("last step.Detail = %q, want a reference to --skip-hook", last.Detail)
+	}
+}
+
+// TestInit_DryRunWithSkipHook combines both flags. The hook step is
+// reported skipped (not "would-create"), and nothing is written.
+func TestInit_DryRunWithSkipHook(t *testing.T) {
+	root := freshGitRepo(t)
+	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0", DryRun: true, SkipHook: true})
+	if err != nil {
+		t.Fatalf("Init dry-run + skip-hook: %v", err)
+	}
+	if !res.DryRun {
+		t.Errorf("Result.DryRun = false, want true")
+	}
+	last := res.Steps[len(res.Steps)-1]
+	if last.Action != ActionSkipped {
+		t.Errorf("last step.Action = %q, want %q", last.Action, ActionSkipped)
+	}
+	if _, sErr := os.Stat(filepath.Join(root, config.FileName)); !os.IsNotExist(sErr) {
+		t.Errorf("dry-run wrote aiwf.yaml (stat err=%v)", sErr)
+	}
+}
+
 // TestInit_PreservesExistingEntities: pre-existing entity files in
 // work/ must not be touched (they show up as findings on the next
 // `aiwf check` and serve as a migration to-do list).
