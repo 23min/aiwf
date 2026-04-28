@@ -73,7 +73,7 @@ func TestInit_FreshRepo(t *testing.T) {
 	}
 
 	// Skills materialized.
-	for _, name := range []string{"wf-add", "wf-promote", "wf-rename", "wf-reallocate", "wf-history", "wf-check"} {
+	for _, name := range []string{"wf-add", "wf-promote", "wf-rename", "wf-reallocate", "wf-history", "wf-check", "wf-track"} {
 		path := filepath.Join(root, ".claude", "skills", name, "SKILL.md")
 		if _, sErr := os.Stat(path); sErr != nil {
 			t.Errorf("skill %s missing: %v", name, sErr)

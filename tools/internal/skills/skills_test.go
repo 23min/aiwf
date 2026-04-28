@@ -9,9 +9,10 @@ import (
 	"testing"
 )
 
-// TestList_AllSixSkillsPresent guards the contract that we ship exactly
-// the six wf-* skills called out in poc-plan.md Session 3.
-func TestList_AllSixSkillsPresent(t *testing.T) {
+// TestList_AllShippedSkillsPresent guards the contract that we ship
+// the six verb skills from session 3 plus the wf-track advisory skill
+// added in session 5.
+func TestList_AllShippedSkillsPresent(t *testing.T) {
 	skills, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -20,7 +21,7 @@ func TestList_AllSixSkillsPresent(t *testing.T) {
 	for i, s := range skills {
 		got[i] = s.Name
 	}
-	want := []string{"wf-add", "wf-check", "wf-history", "wf-promote", "wf-reallocate", "wf-rename"}
+	want := []string{"wf-add", "wf-check", "wf-history", "wf-promote", "wf-reallocate", "wf-rename", "wf-track"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d skills, want %d (%v vs %v)", len(got), len(want), got, want)
 	}

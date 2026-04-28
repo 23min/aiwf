@@ -108,20 +108,22 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 
 The shape of this session is set by the design constraint that aiwf must be a clean public surface: any knowledge of a specific prior planning system stays out of the aiwf source tree, fixtures, and docs. The public surface is generic; producer-side conversion happens entirely in private tooling.
 
-- [ ] `aiwf init --dry-run` — print the actions `init` would take without writing anything. Same exit codes as `init`.
-- [ ] `aiwf init --skip-hook` — perform `init` without installing the pre-push hook. For repos that want the framework but aren't ready to gate pushes on `aiwf check`.
-- [ ] `aiwf import <manifest.yaml>` — generic batch entity creator. Reads a declarative manifest (see [`poc-import-format.md`](poc-import-format.md)), validates the projected tree, and writes one atomic commit (default) or one commit per entity (`commit.mode: per-entity`).
-  - [ ] YAML and JSON manifest parsers (same schema, two lexers).
-  - [ ] Two-pass id resolution: explicit ids reserved first, `auto` ids allocated next.
-  - [ ] Reference resolution against the union of existing-tree ids and manifest-declared ids.
-  - [ ] `--dry-run`, `--on-collision={fail,skip,update}` flags.
-  - [ ] Single-mode commits use `aiwf-verb: import`; per-entity-mode commits match the per-entity `add` trailers.
-  - [ ] Synthetic-tree fixtures under `testdata/import/` covering: clean import, id collision, ref-resolution across manifest entries, mixed explicit + `auto`, dry-run.
-- [ ] `wf-track` skill — describes the convention of maintaining a tracking document alongside an in-progress milestone (purpose, location, section structure). Advisory only; aiwf does not validate tracking docs. Drafted from first principles; not transcribed from any prior system's skills.
-- [ ] Roadmap `## Candidates` rendering — `aiwf render roadmap` includes the verbatim contents of any `## Candidates` (or `## Backlog`) section it finds in `ROADMAP.md`. The section is human-curated, free-form, and not parsed as entities. Promoting a candidate is an explicit `aiwf add epic` step.
-- [ ] `docs/poc-migrating-from-prior-systems.md` — a generic migration guide. Frames migration as a two-stage producer-side job (tidy source data; project to manifest), then `aiwf import`. References no specific prior system.
+- [x] `aiwf init --dry-run` — print the actions `init` would take without writing anything. Same exit codes as `init`.
+- [x] `aiwf init --skip-hook` — perform `init` without installing the pre-push hook. For repos that want the framework but aren't ready to gate pushes on `aiwf check`.
+- [x] `aiwf import <manifest.yaml>` — generic batch entity creator. Reads a declarative manifest (see [`poc-import-format.md`](poc-import-format.md)), validates the projected tree, and writes one atomic commit (default) or one commit per entity (`commit.mode: per-entity`).
+  - [x] YAML and JSON manifest parsers (same schema, two lexers).
+  - [x] Two-pass id resolution: explicit ids reserved first, `auto` ids allocated next.
+  - [x] Reference resolution against the union of existing-tree ids and manifest-declared ids.
+  - [x] `--dry-run`, `--on-collision={fail,skip,update}` flags.
+  - [x] Single-mode commits use `aiwf-verb: import`; per-entity-mode commits match the per-entity `add` trailers.
+  - [x] Synthetic-tree fixtures inline in tests covering: clean import, id collision (all three modes), ref-resolution across manifest entries, mixed explicit + `auto`, dry-run.
+- [x] `wf-track` skill — describes the convention of maintaining a tracking document alongside an in-progress milestone (purpose, location, section structure). Advisory only; aiwf does not validate tracking docs. Drafted from first principles; not transcribed from any prior system's skills.
+- [x] Roadmap `## Candidates` rendering — `aiwf render roadmap` includes the verbatim contents of any `## Candidates` (or `## Backlog`) section it finds in `ROADMAP.md`. The section is human-curated, free-form, and not parsed as entities. Promoting a candidate is an explicit `aiwf add epic` step.
+- [x] `docs/poc-migrating-from-prior-systems.md` — a generic migration guide. Frames migration as a two-stage producer-side job (tidy source data; project to manifest), then `aiwf import`. References no specific prior system.
 
 **Deliverable:** a consumer repo with existing planning data can be adopted by writing a private producer that emits an import manifest, iterating against `aiwf import --dry-run`, and committing the result. aiwf has no awareness of how the manifest was produced.
+
+**Shipped (commits `edcdf3d`, `841effc`, `ea5381a`, `e69f4ea`, this commit):** import manifest format spec; `aiwf init --dry-run` and `--skip-hook` flags with refactored ensure* steps; `aiwf import` verb in `internal/manifest` (parser + structural validator) and `internal/verb/import.go` (two-pass id resolution, forward refs across manifest, all three collision modes, single + per-entity commit modes); CLI integration with `--dry-run`/`--on-collision`/`--actor` flags; `wf-track` advisory skill embedded under `internal/skills/embedded/wf-track/`; `aiwf render roadmap` preserves a hand-curated `## Candidates`/`## Backlog` block round-trip; generic migration guide framing the public/private boundary.
 
 ---
 
