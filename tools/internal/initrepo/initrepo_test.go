@@ -73,7 +73,7 @@ func TestInit_FreshRepo(t *testing.T) {
 	}
 
 	// Skills materialized.
-	for _, name := range []string{"aiwf-add", "aiwf-promote", "aiwf-rename", "aiwf-reallocate", "aiwf-history", "aiwf-check"} {
+	for _, name := range []string{"aiwf-add", "aiwf-promote", "aiwf-rename", "aiwf-reallocate", "aiwf-history", "aiwf-check", "aiwf-status"} {
 		path := filepath.Join(root, ".claude", "skills", name, "SKILL.md")
 		if _, sErr := os.Stat(path); sErr != nil {
 			t.Errorf("skill %s missing: %v", name, sErr)

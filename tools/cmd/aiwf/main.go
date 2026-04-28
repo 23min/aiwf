@@ -75,6 +75,8 @@ func run(args []string) int {
 		return runImport(args[1:])
 	case "whoami":
 		return runWhoami(args[1:])
+	case "status":
+		return runStatus(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "aiwf: unknown subcommand %q. Try 'aiwf help'.\n", args[0])
 		return exitUsage
@@ -101,6 +103,7 @@ Verbs:
   render roadmap [--write]       print ROADMAP.md (markdown of epics + milestones); --write commits it
   import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
   whoami                         print the resolved actor and the source it came from
+  status                         project snapshot: in-flight work, open decisions, gaps, recent activity
   help, --help                   show this message
   version, --version             print the binary version
 

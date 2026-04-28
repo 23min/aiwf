@@ -77,6 +77,7 @@ func runSelfCheck() int {
 		{"add move-target epic", []string{"add", "epic", "--title", "Move target", "--actor", actor, "--root", tmp}},
 		{"move", []string{"move", "--actor", actor, "--root", tmp, "--epic", "E-03", "M-001"}},
 		{"history", []string{"history", "--root", tmp, "E-02"}},
+		{"status", []string{"status", "--root", tmp}},
 		{"render roadmap", []string{"render", "roadmap", "--root", tmp}},
 		{"update", []string{"update", "--root", tmp}},
 		{"check", []string{"check", "--root", tmp}},
