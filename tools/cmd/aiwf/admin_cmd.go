@@ -85,8 +85,14 @@ func runInit(args []string) int {
 	case *skipHook:
 		fmt.Println("\naiwf init: done (pre-push hook skipped). Commit aiwf.yaml when you're ready.")
 		fmt.Println("Run `aiwf init` again later to install the hook, or wire `aiwf check` into your push flow manually.")
+		if !ritualsPluginInstalled(rootDir) {
+			printRitualsSuggestion()
+		}
 	default:
 		fmt.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
+		if !ritualsPluginInstalled(rootDir) {
+			printRitualsSuggestion()
+		}
 	}
 	return exitOK
 }
@@ -354,6 +360,23 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 		} else {
 			problems++
 		}
+	}
+
+	// 4. Rituals-plugin presence (soft note — does not increment
+	// problems). Best-effort heuristic: greps project/local settings
+	// for `aiwf-extensions`. User-scope installs are invisible here,
+	// so a "not detected" result is a hint, not a finding.
+	if ritualsPluginInstalled(rootDir) {
+		lines = append(lines, "plugin:    rituals plugin detected (aiwf-extensions in .claude/settings)")
+	} else {
+		lines = append(lines,
+			"plugin:    rituals plugin not detected in .claude/settings.{json,local.json}",
+			"             aiwf works alone, but the workflow skills and role agents that turn it",
+			"             into an end-to-end loop ship via the companion plugin. To install:",
+			"               /plugin marketplace add "+ritualsMarketplaceSlug,
+			"               /plugin install aiwf-extensions@"+ritualsMarketplaceName,
+			"             User-scope plugin installs aren't visible to this check; ignore if installed.",
+		)
 	}
 
 	return lines, problems

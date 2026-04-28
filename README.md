@@ -78,6 +78,10 @@ Distribution via brew/apt/scoop/winget will come if and when the PoC graduates.
 
 ## Quick start
 
+aiwf adoption is two steps: install the binary and install the companion rituals plugin.
+
+### 1. Install aiwf core
+
 In a consumer repository (or a fresh `mkdir + git init`):
 
 ```bash
@@ -95,6 +99,27 @@ aiwf render roadmap                                       # markdown table of ep
 ```
 
 Each mutating verb produces a single git commit with structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`). The pre-push hook installed by `aiwf init` runs `aiwf check` on every push so an inconsistent tree never reaches the remote.
+
+### 2. Install the companion rituals plugin
+
+aiwf core is the planning data layer. The end-to-end workflow — milestone-lifecycle skills, the four role agents (planner, builder, reviewer, deployer), and templates — ships separately as a Claude Code plugin marketplace at [`23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals).
+
+In a Claude Code session inside the consumer repo:
+
+```
+/plugin marketplace add 23min/ai-workflow-rituals
+/plugin install aiwf-extensions@ai-workflow-rituals
+```
+
+Pick **Project** scope when Claude Code prompts — it commits `.claude/settings.json` so collaborators on this repo get the same plugins on clone. Other projects on your machine using a different framework stay clean.
+
+Optional second plugin (generic engineering rituals — TDD cycle, code review, doc-lint; works with or without aiwf):
+
+```
+/plugin install wf-rituals@ai-workflow-rituals
+```
+
+You can skip the rituals plugin and use aiwf as a planning data store only — it works alone — but the workflow surface that turns aiwf into an end-to-end loop lives in that plugin.
 
 To verify your install works end-to-end, run `aiwf doctor --self-check` — it spins up a throwaway repo, drives every verb, and reports pass/fail per step.
 
