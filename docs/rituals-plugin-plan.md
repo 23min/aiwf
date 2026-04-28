@@ -247,7 +247,7 @@ If real friction shows up later, port from v1 then. YAGNI.
 | 1.3 — update README §coexistence | ✅ done (same branch) | this repo |
 | 2.x — scaffold rituals repo | ✅ done; marketplace + 2 plugin manifests pushed; `/plugin marketplace add` validated | new repo |
 | 3.x — port `wf-rituals` plugin | ✅ done; 4 skills (wf-patch, wf-tdd-cycle, wf-review-code, wf-doc-lint) ported aiwf-free | new repo |
-| 4.x — port `aiwf-extensions` plugin | not started | new repo |
-| 5.x — rituals repo README | not started | new repo |
+| 4.x — port `aiwf-extensions` plugin | ✅ done; 8 skills, 4 agents, 5 templates pushed | new repo |
+| 5.x — rituals repo README | ✅ done (landed alongside step 2 scaffold) | new repo |
 
 Resume from this document. The conversation that produced it is ephemeral; the decisions captured here are not.
