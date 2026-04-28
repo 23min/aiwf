@@ -31,6 +31,14 @@ import (
 // pre-existing user hook has its own logic).
 const preHookMarker = "# aiwf:pre-push"
 
+// shellQuoteSingle wraps s in single quotes for safe /bin/sh
+// interpolation. Single quotes prevent every shell expansion; to
+// embed a literal single quote we close the quote, write a
+// backslash-escaped quote, then reopen — see POSIX shell quoting.
+func shellQuoteSingle(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
 // CLAUDETemplate is the boilerplate written to CLAUDE.md when no file
 // exists. Short by design — consumers customize it freely.
 const CLAUDETemplate = `# CLAUDE.md
@@ -49,15 +57,21 @@ The pre-push hook runs ` + "`aiwf check`" + ` automatically; broken state cannot
 Skills under ` + "`.claude/skills/wf-*/`" + ` are gitignored and regenerated on ` + "`aiwf update`" + `.
 `
 
-// preHookScript is the body of the pre-push hook installed by init.
-// It carries the marker on its first commented line so re-runs can
-// distinguish "hook we own" from "hook someone else wrote".
-const preHookScript = `#!/bin/sh
+// preHookScript renders the body of the pre-push hook installed by
+// init, with the absolute path of the binary baked in. Hardcoding
+// the path is more robust than relying on `$PATH` at push time —
+// `git push` runs hooks under whatever shell git chose, and the
+// user's interactive PATH may not match. Re-running `aiwf init`
+// after a binary upgrade refreshes the path (idempotent because the
+// marker tells us we own the hook).
+func preHookScript(execPath string) string {
+	return `#!/bin/sh
 ` + preHookMarker + `
 # Installed by aiwf init. To customize, replace this hook with one
 # managed by husky/lefthook (etc.) and call ` + "`aiwf check`" + ` from there.
-exec aiwf check
+exec ` + shellQuoteSingle(execPath) + ` check
 `
+}
 
 // ErrPreHookConflict is returned when a pre-push hook exists without
 // the aiwf marker. Init refuses to clobber user-authored hooks; the
@@ -116,7 +130,11 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	res.Steps = append(res.Steps, cfgStep)
 
 	// 2. Scaffold entity directories.
-	res.Steps = append(res.Steps, scaffoldDirs(root)...)
+	scaffoldSteps, err := scaffoldDirs(root)
+	if err != nil {
+		return nil, err
+	}
+	res.Steps = append(res.Steps, scaffoldSteps...)
 
 	// 3. Materialize skills (wipe-and-rewrite per cache contract).
 	if mErr := skills.Materialize(root); mErr != nil {
@@ -209,7 +227,7 @@ func deriveActor(override, root string) (string, error) {
 	return candidate, nil
 }
 
-func scaffoldDirs(root string) []StepResult {
+func scaffoldDirs(root string) ([]StepResult, error) {
 	dirs := []string{
 		filepath.Join("work", "epics"),
 		filepath.Join("work", "gaps"),
@@ -223,20 +241,15 @@ func scaffoldDirs(root string) []StepResult {
 		if _, err := os.Stat(full); err == nil {
 			out = append(out, StepResult{What: d, Action: ActionPreserved})
 			continue
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("statting %s: %w", d, err)
 		}
-		// MkdirAll silently no-ops if the dir already exists; we use
-		// it for the "create from nothing" case after the Stat failed.
 		if err := os.MkdirAll(full, 0o755); err != nil {
-			// Surface as a step-level Detail; init keeps going so the
-			// user gets the rest of the ledger before the error
-			// surfaces. (Not pursued: a partial-failure mode that
-			// gathers all errors. KISS.)
-			out = append(out, StepResult{What: d, Action: ActionCreated, Detail: "error: " + err.Error()})
-			continue
+			return nil, fmt.Errorf("creating %s: %w", d, err)
 		}
 		out = append(out, StepResult{What: d, Action: ActionCreated})
 	}
-	return out
+	return out, nil
 }
 
 func ensureGitignore(root string) (StepResult, error) {
@@ -313,8 +326,8 @@ func ensurePreHook(ctx context.Context, root string) (StepResult, error) {
 		return StepResult{}, fmt.Errorf("locating git dir: %w", err)
 	}
 	hooksDir := filepath.Join(gitDir, "hooks")
-	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
-		return StepResult{}, fmt.Errorf("creating hooks dir: %w", err)
+	if mkErr := os.MkdirAll(hooksDir, 0o755); mkErr != nil {
+		return StepResult{}, fmt.Errorf("creating hooks dir: %w", mkErr)
 	}
 	hookPath := filepath.Join(hooksDir, "pre-push")
 
@@ -330,20 +343,43 @@ func ensurePreHook(ctx context.Context, root string) (StepResult, error) {
 		return StepResult{}, fmt.Errorf("%w: leave it in place and call `aiwf check` from inside it, or use a hook manager (husky/lefthook)", ErrPreHookConflict)
 	}
 
-	if err := os.WriteFile(hookPath, []byte(preHookScript), 0o755); err != nil {
+	exePath, err := resolveExecutable()
+	if err != nil {
+		return StepResult{}, fmt.Errorf("resolving aiwf binary path: %w", err)
+	}
+	if err := os.WriteFile(hookPath, []byte(preHookScript(exePath)), 0o755); err != nil {
 		return StepResult{}, fmt.Errorf("writing pre-push hook: %w", err)
 	}
 	action := ActionCreated
 	if !errors.Is(readErr, fs.ErrNotExist) {
 		action = ActionUpdated
 	}
-	return StepResult{What: ".git/hooks/pre-push", Action: action}, nil
+	return StepResult{
+		What:   ".git/hooks/pre-push",
+		Action: action,
+		Detail: "exec " + exePath,
+	}, nil
+}
+
+// resolveExecutable returns the absolute, symlink-resolved path of
+// the running binary. The hook bakes this in so push-time hook
+// execution never depends on `$PATH`.
+func resolveExecutable() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	resolved, err := filepath.EvalSymlinks(exe)
+	if err != nil {
+		// Symlink resolution can fail on some platforms or for
+		// unusual paths; fall back to the unresolved exe rather than
+		// failing init outright. Re-running init after a `mv` will
+		// fix it.
+		return exe, nil
+	}
+	return resolved, nil
 }
 
 // HookMarker exposes the marker line for tests that assert the hook
 // was installed by aiwf vs. someone else.
 func HookMarker() string { return preHookMarker }
-
-// HookScript exposes the canonical hook body for tests and `aiwf
-// doctor` byte-compare.
-func HookScript() string { return preHookScript }

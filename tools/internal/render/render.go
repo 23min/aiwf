@@ -1,6 +1,31 @@
 // Package render formats check findings for stdout — either as
 // human-readable text (default) or as a structured JSON envelope
 // (--format=json).
+//
+// # JSON envelope contract
+//
+// Every aiwf invocation that emits JSON writes a single object with
+// these slots:
+//
+//	tool      // always "aiwf"
+//	version   // the binary's reported version
+//	status    // "ok" | "findings" | "error" — overall outcome
+//	findings  // []Finding — validation outcomes, cross-cutting; may
+//	          // be present on any verb that runs the validators.
+//	          // Empty when the run produced none.
+//	result    // verb-specific payload. Different shape per verb:
+//	          //   - check    → omitted (findings is the result)
+//	          //   - history  → { id, events: [...] }
+//	          //   - future verbs → their own shape
+//	metadata  // counts, timing, root path, correlation_id when
+//	          // present — auxiliary data, not load-bearing
+//
+// findings vs result is the load-bearing distinction: findings is
+// always the same shape across verbs (so a CI script can grep one
+// thing), result is whatever the verb returns (so each verb can
+// model its own output without compromise). Downstream tooling that
+// touches both reads findings the same way everywhere and switches
+// on the verb name to interpret result.
 package render
 
 import (

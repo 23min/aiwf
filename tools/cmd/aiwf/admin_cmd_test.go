@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -111,6 +114,86 @@ func TestRun_HistoryShowsAddPromoteCancel(t *testing.T) {
 	}
 }
 
+// TestRun_HistoryJSON exercises the --format=json path. Capturing
+// stdout requires redirecting os.Stdout for the duration of the call;
+// we then parse the envelope and assert its shape.
+func TestRun_HistoryJSON(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add: %d", rc)
+	}
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+		t.Fatalf("promote: %d", rc)
+	}
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"history", "--root", root, "--format=json", "E-01"}); rc != exitOK {
+			t.Fatalf("history: %d", rc)
+		}
+	})
+
+	var env struct {
+		Tool    string `json:"tool"`
+		Status  string `json:"status"`
+		Version string `json:"version"`
+		Result  struct {
+			ID     string         `json:"id"`
+			Events []HistoryEvent `json:"events"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("parse JSON: %v\n%s", err, captured)
+	}
+	if env.Tool != "aiwf" {
+		t.Errorf("tool = %q", env.Tool)
+	}
+	if env.Status != "ok" {
+		t.Errorf("status = %q", env.Status)
+	}
+	if env.Result.ID != "E-01" {
+		t.Errorf("result.id = %q", env.Result.ID)
+	}
+	if len(env.Result.Events) != 2 {
+		t.Fatalf("events len = %d, want 2:\n%s", len(env.Result.Events), captured)
+	}
+	if env.Result.Events[0].Verb != "add" || env.Result.Events[1].Verb != "promote" {
+		t.Errorf("verbs = [%q,%q], want [add,promote]",
+			env.Result.Events[0].Verb, env.Result.Events[1].Verb)
+	}
+	for i, e := range env.Result.Events {
+		if e.Date == "" || e.Actor == "" || e.Commit == "" {
+			t.Errorf("event[%d] missing required field: %+v", i, e)
+		}
+	}
+}
+
+// captureStdout replaces os.Stdout with a pipe for the duration of fn
+// and returns whatever was written.
+func captureStdout(t *testing.T, fn func()) []byte {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	orig := os.Stdout
+	os.Stdout = w
+	defer func() { os.Stdout = orig }()
+
+	done := make(chan []byte, 1)
+	go func() {
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, r)
+		done <- buf.Bytes()
+	}()
+
+	fn()
+	_ = w.Close()
+	return <-done
+}
+
 // TestRun_HistoryUnknownIDIsEmpty: querying a never-allocated id
 // returns no events and exits cleanly.
 func TestRun_HistoryUnknownIDIsEmpty(t *testing.T) {
@@ -193,6 +276,33 @@ func TestRun_DoctorReportsMissingConfig(t *testing.T) {
 	root := t.TempDir()
 	if rc := run([]string{"doctor", "--root", root}); rc != exitFindings {
 		t.Errorf("doctor on un-init'd repo = %d, want %d", rc, exitFindings)
+	}
+}
+
+// TestRun_DoctorVersionSkew exercises the path where aiwf.yaml's
+// aiwf_version differs from the binary's Version constant. The CLI
+// should exit with `findings` and the report should mention both
+// values so the user knows what changed.
+func TestRun_DoctorVersionSkew(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	// Replace aiwf.yaml with a version that does not match Version.
+	contents := []byte("aiwf_version: 9.9.9-skew\nactor: human/test\n")
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	if problems == 0 {
+		t.Errorf("expected version-skew problem, got clean report:\n%s", strings.Join(lines, "\n"))
+	}
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "9.9.9-skew") || !strings.Contains(joined, Version) {
+		t.Errorf("report should mention both versions; got:\n%s", joined)
+	}
+	if rc := run([]string{"doctor", "--root", root}); rc != exitFindings {
+		t.Errorf("CLI exit on version skew = %d, want %d", rc, exitFindings)
 	}
 }
 

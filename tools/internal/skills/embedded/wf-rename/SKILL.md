@@ -17,7 +17,7 @@ The user wants the file or directory name to read better but the entity itself i
 aiwf rename <id> <new-slug>
 ```
 
-The new slug is a kebab-case word — no spaces, no leading hyphen, no path separators. `aiwf` validates the slug shape and refuses garbage.
+`aiwf` normalizes the new slug into kebab-case (lowercases, ASCII-only, runs of non-alphanumerics collapse into single hyphens, trailing hyphens trimmed). `"Acceptance Criteria!"` becomes `acceptance-criteria`. The verb refuses only when normalization yields the empty string or the same slug as the current path.
 
 ## What aiwf does
 
