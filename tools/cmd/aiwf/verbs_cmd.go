@@ -84,13 +84,14 @@ func runPromote(args []string) int {
 	fs := flag.NewFlagSet("promote", flag.ContinueOnError)
 	actor := fs.String("actor", "", "actor for the commit trailer")
 	root := fs.String("root", "", "consumer repo root")
+	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
 	if len(rest) != 2 {
-		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status>")
+		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status> [--reason \"...\"]")
 		return exitUsage
 	}
 	id, newStatus := rest[0], rest[1]
@@ -113,22 +114,23 @@ func runPromote(args []string) int {
 		return exitInternal
 	}
 
-	result, err := verb.Promote(tr, id, newStatus, actorStr)
+	result, err := verb.Promote(tr, id, newStatus, actorStr, *reason)
 	return finishVerb(ctx, rootDir, "aiwf promote", result, err)
 }
 
-// runCancel handles `aiwf cancel <id>`.
+// runCancel handles `aiwf cancel <id> [--reason "..."]`.
 func runCancel(args []string) int {
 	fs := flag.NewFlagSet("cancel", flag.ContinueOnError)
 	actor := fs.String("actor", "", "actor for the commit trailer")
 	root := fs.String("root", "", "consumer repo root")
+	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
 	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf cancel: usage: aiwf cancel <id>")
+		fmt.Fprintln(os.Stderr, "aiwf cancel: usage: aiwf cancel <id> [--reason \"...\"]")
 		return exitUsage
 	}
 	id := rest[0]
@@ -150,7 +152,7 @@ func runCancel(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.Cancel(tr, id, actorStr)
+	result, err := verb.Cancel(tr, id, actorStr, *reason)
 	return finishVerb(ctx, rootDir, "aiwf cancel", result, err)
 }
 

@@ -21,7 +21,7 @@ func gitTestEnv(t *testing.T) {
 }
 
 func TestCommitMessage(t *testing.T) {
-	got := CommitMessage("add milestone M-007", []Trailer{
+	got := CommitMessage("add milestone M-007", "", []Trailer{
 		{Key: "aiwf-verb", Value: "add"},
 		{Key: "aiwf-entity", Value: "M-007"},
 		{Key: "aiwf-actor", Value: "human/peter"},
@@ -33,9 +33,28 @@ func TestCommitMessage(t *testing.T) {
 }
 
 func TestCommitMessage_NoTrailers(t *testing.T) {
-	got := CommitMessage("subject only", nil)
+	got := CommitMessage("subject only", "", nil)
 	if got != "subject only\n" {
 		t.Errorf("got %q, want %q", got, "subject only\n")
+	}
+}
+
+func TestCommitMessage_WithBody(t *testing.T) {
+	got := CommitMessage("aiwf cancel M-002 -> cancelled", "scope folded into M-001", []Trailer{
+		{Key: "aiwf-verb", Value: "cancel"},
+		{Key: "aiwf-entity", Value: "M-002"},
+	})
+	want := "aiwf cancel M-002 -> cancelled\n\nscope folded into M-001\n\naiwf-verb: cancel\naiwf-entity: M-002\n"
+	if got != want {
+		t.Errorf("got:\n%q\nwant:\n%q", got, want)
+	}
+}
+
+func TestCommitMessage_BodyTrimmed(t *testing.T) {
+	// Whitespace at body edges is trimmed; an all-whitespace body produces no body section.
+	got := CommitMessage("subject", "   ", nil)
+	if got != "subject\n" {
+		t.Errorf("got %q, want %q", got, "subject\n")
 	}
 }
 
@@ -70,7 +89,7 @@ func TestEndToEnd_InitAddMvCommit(t *testing.T) {
 	if err := Add(ctx, root, "alpha.md"); err != nil {
 		t.Fatalf("add: %v", err)
 	}
-	if err := Commit(ctx, root, "first commit", []Trailer{
+	if err := Commit(ctx, root, "first commit", "", []Trailer{
 		{Key: "aiwf-verb", Value: "add"},
 		{Key: "aiwf-entity", Value: "E-01"},
 		{Key: "aiwf-actor", Value: "human/peter"},
@@ -103,7 +122,7 @@ func TestEndToEnd_InitAddMvCommit(t *testing.T) {
 	if err := Mv(ctx, root, "alpha.md", "beta.md"); err != nil {
 		t.Fatalf("mv: %v", err)
 	}
-	if err := Commit(ctx, root, "rename to beta", []Trailer{
+	if err := Commit(ctx, root, "rename to beta", "", []Trailer{
 		{Key: "aiwf-verb", Value: "rename"},
 	}); err != nil {
 		t.Fatalf("second commit: %v", err)
@@ -128,7 +147,7 @@ func TestRun_ErrorIncludesStderr(t *testing.T) {
 	// Trying to commit in a non-repo directory should fail with
 	// stderr embedded in the error message.
 	root := t.TempDir()
-	err := Commit(ctx, root, "wat", nil)
+	err := Commit(ctx, root, "wat", "", nil)
 	if err == nil {
 		t.Fatal("want error, got nil")
 	}

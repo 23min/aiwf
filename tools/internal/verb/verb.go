@@ -30,9 +30,15 @@ type Result struct {
 
 // Plan describes the work the orchestrator must do after validation
 // passes: a set of file operations to apply on disk, plus the commit
-// subject and trailers to record once they're staged.
+// subject, optional body, and trailers to record once they're staged.
+//
+// Body is free-form prose: typically the human-supplied --reason for a
+// status transition. Empty when the verb has no narrative to record.
+// Stored in the commit body (between subject and trailers), surfaced
+// by `aiwf history` for events that carry one.
 type Plan struct {
 	Subject  string
+	Body     string
 	Trailers []gitops.Trailer
 	Ops      []FileOp
 }

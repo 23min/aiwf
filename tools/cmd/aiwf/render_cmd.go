@@ -105,7 +105,7 @@ func runRenderRoadmap(args []string) int {
 		{Key: "aiwf-verb", Value: "render-roadmap"},
 		{Key: "aiwf-actor", Value: actorStr},
 	}
-	if err := gitops.Commit(ctx, rootDir, subject, trailers); err != nil {
+	if err := gitops.Commit(ctx, rootDir, subject, "", trailers); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return exitInternal
 	}

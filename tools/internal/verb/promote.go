@@ -16,10 +16,15 @@ import (
 // projection runs, so unknown statuses and illegal jumps are rejected
 // with a clear error rather than as a `status-valid` finding.
 //
+// reason is optional free-form prose explaining *why* the transition
+// happens. When non-empty, it lands in the commit body (between
+// subject and trailers) so future readers can see the why, not just
+// the what. Empty reason produces a body-less commit (today's shape).
+//
 // Returns a Go error for "couldn't even start": id not found, illegal
 // transition. Tree-level findings caused by the change are returned as
 // a Result with non-empty Findings.
-func Promote(t *tree.Tree, id, newStatus, actor string) (*Result, error) {
+func Promote(t *tree.Tree, id, newStatus, actor, reason string) (*Result, error) {
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
@@ -48,6 +53,7 @@ func Promote(t *tree.Tree, id, newStatus, actor string) (*Result, error) {
 	subject := fmt.Sprintf("aiwf promote %s %s -> %s", id, e.Status, newStatus)
 	return plan(&Plan{
 		Subject: subject,
+		Body:    reason,
 		Trailers: []gitops.Trailer{
 			{Key: "aiwf-verb", Value: "promote"},
 			{Key: "aiwf-entity", Value: id},
@@ -61,7 +67,11 @@ func Promote(t *tree.Tree, id, newStatus, actor string) (*Result, error) {
 // `cancelled` for epic/milestone, `rejected` for adr/decision,
 // `wontfix` for gap, `retired` for contract. Errors when the entity is
 // already in a terminal state or when the kind is unknown.
-func Cancel(t *tree.Tree, id, actor string) (*Result, error) {
+//
+// reason is optional free-form prose; when non-empty, it lands in the
+// commit body so the cancellation's "why" is preserved for future
+// readers. Empty reason matches today's body-less behaviour.
+func Cancel(t *tree.Tree, id, actor, reason string) (*Result, error) {
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
@@ -94,6 +104,7 @@ func Cancel(t *tree.Tree, id, actor string) (*Result, error) {
 	subject := fmt.Sprintf("aiwf cancel %s -> %s", id, target)
 	return plan(&Plan{
 		Subject: subject,
+		Body:    reason,
 		Trailers: []gitops.Trailer{
 			{Key: "aiwf-verb", Value: "cancel"},
 			{Key: "aiwf-entity", Value: id},

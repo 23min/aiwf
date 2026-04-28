@@ -162,6 +162,11 @@ func runHistory(args []string) int {
 		}
 		for _, e := range events {
 			fmt.Printf("%s  %-16s  %-10s  %s  %s\n", e.Date, e.Actor, e.Verb, e.Detail, e.Commit)
+			if e.Body != "" {
+				for _, line := range strings.Split(e.Body, "\n") {
+					fmt.Printf("    %s\n", line)
+				}
+			}
 		}
 	case "json":
 		env := render.Envelope{
@@ -184,12 +189,18 @@ func runHistory(args []string) int {
 
 // HistoryEvent is one line of `aiwf history`. The JSON representation
 // is the structured form callers consume.
+//
+// Body carries the commit's free-form body — typically the human's
+// `--reason` for a status transition, or empty when the verb wasn't
+// invoked with one. Trailers are stripped before storage so Body is
+// pure prose.
 type HistoryEvent struct {
 	Date   string `json:"date"`
 	Actor  string `json:"actor"`
 	Verb   string `json:"verb"`
 	Detail string `json:"detail"`
 	Commit string `json:"commit"`
+	Body   string `json:"body,omitempty"`
 }
 
 // readHistory shells out to `git log` and returns one HistoryEvent per
@@ -211,7 +222,7 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 		"-E",
 		"--grep", "^aiwf-entity: "+id+"$",
 		"--grep", "^aiwf-prior-entity: "+id+"$",
-		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)\x1e",
+		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"+sep+"%b\x1e",
 	)
 	cmd.Dir = root
 	out, err := cmd.Output()
@@ -229,8 +240,8 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 		if rec == "" {
 			continue
 		}
-		parts := strings.SplitN(rec, sep, 5)
-		if len(parts) < 5 {
+		parts := strings.SplitN(rec, sep, 6)
+		if len(parts) < 6 {
 			continue
 		}
 		events = append(events, HistoryEvent{
@@ -239,9 +250,78 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 			Detail: strings.TrimSpace(parts[2]),
 			Verb:   strings.TrimSpace(parts[3]),
 			Actor:  strings.TrimSpace(parts[4]),
+			Body:   stripTrailers(strings.TrimSpace(parts[5])),
 		})
 	}
 	return events, nil
+}
+
+// stripTrailers removes the trailing trailer block from a commit body.
+// `git log %(body)` includes everything after the subject and the
+// separating blank line, including trailers; we only want the prose.
+//
+// The heuristic walks backward through a contiguous run of
+// trailer-shape `<Token>: <value>` lines at the end of the body. The
+// run is only treated as a trailer block when (a) the run is preceded
+// by a blank line or is the entire body, and (b) the run contains at
+// least one `aiwf-*` trailer. The aiwf-* marker is what distinguishes
+// real trailers (which we always emit) from body prose that happens to
+// look like a trailer (e.g. "decided: 30 days" written by a human).
+func stripTrailers(body string) string {
+	if body == "" {
+		return ""
+	}
+	lines := strings.Split(body, "\n")
+
+	// Walk backward, eating trailing blank lines.
+	end := len(lines)
+	for end > 0 && lines[end-1] == "" {
+		end--
+	}
+	// Walk backward through the contiguous trailer-shape block.
+	trailerStart := end
+	for trailerStart > 0 && isTrailerLine(lines[trailerStart-1]) {
+		trailerStart--
+	}
+	hasTrailer := trailerStart < end
+	precededByBlank := trailerStart == 0 || lines[trailerStart-1] == ""
+	hasAiwfMarker := false
+	for i := trailerStart; i < end; i++ {
+		if strings.HasPrefix(lines[i], "aiwf-") {
+			hasAiwfMarker = true
+			break
+		}
+	}
+	if !hasTrailer || !precededByBlank || !hasAiwfMarker {
+		return strings.TrimSpace(body)
+	}
+	// Strip the trailer block plus the blank line separating it.
+	cut := trailerStart
+	for cut > 0 && lines[cut-1] == "" {
+		cut--
+	}
+	return strings.TrimSpace(strings.Join(lines[:cut], "\n"))
+}
+
+// isTrailerLine reports whether s looks like a git commit trailer:
+// a `Key: value` line where Key matches the conventional shape
+// (alphanumerics, hyphens, no whitespace before the colon).
+func isTrailerLine(s string) bool {
+	idx := strings.Index(s, ": ")
+	if idx <= 0 {
+		return false
+	}
+	for _, r := range s[:idx] {
+		switch {
+		case r == '-':
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r >= '0' && r <= '9':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // shortHash returns the first 7 hex digits of a SHA, the conventional

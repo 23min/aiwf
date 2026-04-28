@@ -250,7 +250,7 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryE
 	cmd := exec.CommandContext(ctx, "git", "log",
 		"-n", fmt.Sprintf("%d", limit),
 		"--grep", "^aiwf-verb: ",
-		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)\x1e",
+		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"+sep+"%b\x1e",
 	)
 	cmd.Dir = root
 	out, err := cmd.Output()
@@ -268,8 +268,8 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryE
 		if rec == "" {
 			continue
 		}
-		parts := strings.SplitN(rec, sep, 5)
-		if len(parts) < 5 {
+		parts := strings.SplitN(rec, sep, 6)
+		if len(parts) < 6 {
 			continue
 		}
 		events = append(events, HistoryEvent{
@@ -278,6 +278,7 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryE
 			Detail: strings.TrimSpace(parts[2]),
 			Verb:   strings.TrimSpace(parts[3]),
 			Actor:  strings.TrimSpace(parts[4]),
+			Body:   stripTrailers(strings.TrimSpace(parts[5])),
 		})
 	}
 	return events, nil

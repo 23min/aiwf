@@ -137,7 +137,7 @@ func TestAdd_AllocatesSequentially(t *testing.T) {
 func TestPromote_RoundTrip(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.tree(), "E-01", "active", testActor))
+	r.must(verb.Promote(r.tree(), "E-01", "active", testActor, ""))
 
 	if e := r.tree().ByID("E-01"); e == nil || e.Status != "active" {
 		t.Errorf("E-01 = %+v", e)
@@ -147,7 +147,7 @@ func TestPromote_RoundTrip(t *testing.T) {
 func TestPromote_RejectsBadTransition(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	_, err := verb.Promote(r.tree(), "E-01", "done", testActor)
+	_, err := verb.Promote(r.tree(), "E-01", "done", testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "cannot transition") {
 		t.Errorf("expected illegal-transition error, got %v", err)
 	}
@@ -156,10 +156,41 @@ func TestPromote_RejectsBadTransition(t *testing.T) {
 func TestCancel_RoundTrip(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
-	r.must(verb.Cancel(r.tree(), "E-01", testActor))
+	r.must(verb.Cancel(r.tree(), "E-01", testActor, ""))
 
 	if e := r.tree().ByID("E-01"); e == nil || e.Status != "cancelled" {
 		t.Errorf("E-01 = %+v", e)
+	}
+}
+
+// TestCancel_WithReason: --reason prose lands in the commit body
+// between the subject and the trailers, queryable via `git show`.
+func TestCancel_WithReason(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
+	r.must(verb.Cancel(r.tree(), "E-01", testActor, "scope folded into E-02"))
+
+	body, err := gitops.HeadBody(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadBody: %v", err)
+	}
+	if !strings.Contains(body, "scope folded into E-02") {
+		t.Errorf("body missing reason text: %q", body)
+	}
+}
+
+// TestPromote_WithReason mirrors TestCancel_WithReason for promote.
+func TestPromote_WithReason(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.tree(), "E-01", "active", testActor, "kicking off after the planning review"))
+
+	body, err := gitops.HeadBody(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadBody: %v", err)
+	}
+	if !strings.Contains(body, "kicking off after the planning review") {
+		t.Errorf("body missing reason text: %q", body)
 	}
 }
 
@@ -349,7 +380,7 @@ parent: E-01
 	if err := gitops.Add(r.ctx, r.root, "work/epics/E-01-platform/M-001-from-other-branch.md"); err != nil {
 		t.Fatal(err)
 	}
-	if err := gitops.Commit(r.ctx, r.root, "simulate merge of colliding M-001", nil); err != nil {
+	if err := gitops.Commit(r.ctx, r.root, "simulate merge of colliding M-001", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -485,7 +516,7 @@ func TestReallocate_EpicWithMilestoneInside(t *testing.T) {
 // TestPromote_NonExistentID returns a Go error before any disk work.
 func TestPromote_NonExistentID(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.Promote(r.tree(), "E-99", "active", testActor)
+	_, err := verb.Promote(r.tree(), "E-99", "active", testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected not-found error, got %v", err)
 	}
@@ -494,7 +525,7 @@ func TestPromote_NonExistentID(t *testing.T) {
 // TestCancel_NonExistentID covers the same path for cancel.
 func TestCancel_NonExistentID(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.Cancel(r.tree(), "M-99", testActor)
+	_, err := verb.Cancel(r.tree(), "M-99", testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected not-found error, got %v", err)
 	}
@@ -523,9 +554,9 @@ func TestReallocate_NonExistentTarget(t *testing.T) {
 func TestCancel_AlreadyTerminal(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.tree(), entity.KindEpic, "Doomed twice", testActor, verb.AddOptions{}))
-	r.must(verb.Cancel(r.tree(), "E-01", testActor))
+	r.must(verb.Cancel(r.tree(), "E-01", testActor, ""))
 
-	_, err := verb.Cancel(r.tree(), "E-01", testActor)
+	_, err := verb.Cancel(r.tree(), "E-01", testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "already") {
 		t.Errorf("expected 'already cancelled' error, got %v", err)
 	}

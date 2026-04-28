@@ -63,7 +63,7 @@ func Apply(ctx context.Context, root string, p *Plan) error {
 		}
 	}
 
-	if err := gitops.Commit(ctx, root, p.Subject, p.Trailers); err != nil {
+	if err := gitops.Commit(ctx, root, p.Subject, p.Body, p.Trailers); err != nil {
 		return fmt.Errorf("git commit: %w", err)
 	}
 	return nil

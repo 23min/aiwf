@@ -23,13 +23,20 @@ type Trailer struct {
 	Value string
 }
 
-// CommitMessage assembles a subject + trailers into the conventional
-// commit-message form: subject, blank line, trailers (one per line).
-// Exposed so callers (and tests) can construct messages without
-// invoking git.
-func CommitMessage(subject string, trailers []Trailer) string {
+// CommitMessage assembles a subject, optional body, and trailers into
+// the conventional commit-message form: subject, blank line, body
+// (when non-empty) blank line, trailers (one per line). Exposed so
+// callers (and tests) can construct messages without invoking git.
+//
+// The body is free-form prose. Whitespace is trimmed from both ends;
+// an empty body produces no body section.
+func CommitMessage(subject, body string, trailers []Trailer) string {
 	var b strings.Builder
 	b.WriteString(strings.TrimRight(subject, "\n"))
+	if trimmed := strings.TrimSpace(body); trimmed != "" {
+		b.WriteString("\n\n")
+		b.WriteString(trimmed)
+	}
 	if len(trailers) > 0 {
 		b.WriteString("\n\n")
 		for i, tr := range trailers {
@@ -66,11 +73,12 @@ func Add(ctx context.Context, workdir string, paths ...string) error {
 	return run(ctx, workdir, args...)
 }
 
-// Commit creates a commit with the given subject line and trailers.
-// The commit's index is whatever has been staged with Add prior to this
-// call; this is intentionally low-level — verbs control staging.
-func Commit(ctx context.Context, workdir, subject string, trailers []Trailer) error {
-	msg := CommitMessage(subject, trailers)
+// Commit creates a commit with the given subject line, optional body,
+// and trailers. The commit's index is whatever has been staged with
+// Add prior to this call; this is intentionally low-level — verbs
+// control staging. An empty body produces no body section.
+func Commit(ctx context.Context, workdir, subject, body string, trailers []Trailer) error {
+	msg := CommitMessage(subject, body, trailers)
 	return run(ctx, workdir, "commit", "-m", msg)
 }
 
@@ -97,6 +105,14 @@ func GitDir(ctx context.Context, workdir string) (string, error) {
 // to verify a commit landed; not used at runtime.
 func HeadSubject(ctx context.Context, workdir string) (string, error) {
 	out, err := output(ctx, workdir, "log", "-1", "--pretty=%s")
+	return strings.TrimSpace(out), err
+}
+
+// HeadBody returns the body of HEAD's commit (the part between the
+// subject and any trailers). Used by tests to verify a `--reason` text
+// landed in the commit; not used at runtime.
+func HeadBody(ctx context.Context, workdir string) (string, error) {
+	out, err := output(ctx, workdir, "log", "-1", "--pretty=%b")
 	return strings.TrimSpace(out), err
 }
 
