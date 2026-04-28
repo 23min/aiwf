@@ -1,11 +1,17 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build test test-race lint fmt vet coverage ci clean
+.PHONY: help build install test test-race lint fmt vet coverage ci clean
+
+# Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
+# Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
+AIWF_VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)@$(shell git describe --always --dirty 2>/dev/null)
+LDFLAGS := -X main.Version=$(AIWF_VERSION)
 
 help:
 	@echo "Targets:"
-	@echo "  build     - build the aiwf binary into ./bin/"
+	@echo "  build     - build the aiwf binary into ./bin/ (with embedded version)"
+	@echo "  install   - go install the aiwf binary into \$$GOBIN (with embedded version)"
 	@echo "  test      - run unit tests"
 	@echo "  test-race - run unit tests with -race"
 	@echo "  lint      - run golangci-lint"
@@ -17,7 +23,10 @@ help:
 
 build:
 	mkdir -p bin
-	CGO_ENABLED=0 go build -o bin/aiwf ./tools/cmd/aiwf
+	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/aiwf ./tools/cmd/aiwf
+
+install:
+	CGO_ENABLED=0 go install -ldflags "$(LDFLAGS)" ./tools/cmd/aiwf
 
 test:
 	go test ./tools/...

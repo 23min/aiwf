@@ -69,8 +69,10 @@ If you want a local checkout to read or modify the source:
 ```bash
 git clone https://github.com/23min/ai-workflow-v2 && cd ai-workflow-v2
 git checkout poc/aiwf-v3
-go install ./tools/cmd/aiwf
+make install                                                # embeds branch + short SHA in --version
 ```
+
+`make install` is preferred over `go install ./tools/cmd/aiwf` because it embeds the current branch and short SHA into the binary via `-ldflags`, so `aiwf --version` later tells you exactly what's running. Plain `go install` works but leaves `--version` reporting `dev`.
 
 Distribution via brew/apt/scoop/winget will come if and when the PoC graduates.
 
