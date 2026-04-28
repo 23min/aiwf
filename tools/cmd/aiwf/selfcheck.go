@@ -63,6 +63,7 @@ func runSelfCheck() int {
 		args  []string
 	}{
 		{"init", []string{"init", "--root", tmp, "--actor", actor}},
+		{"whoami", []string{"whoami", "--root", tmp}},
 		{"add epic", []string{"add", "epic", "--title", "Self-check epic", "--actor", actor, "--root", tmp}},
 		{"add milestone", []string{"add", "milestone", "--epic", "E-01", "--title", "Schema", "--actor", actor, "--root", tmp}},
 		{"add adr", []string{"add", "adr", "--title", "Use Postgres", "--actor", actor, "--root", tmp}},
@@ -73,6 +74,8 @@ func runSelfCheck() int {
 		{"cancel", []string{"cancel", "--actor", actor, "--root", tmp, "G-001"}},
 		{"rename", []string{"rename", "--actor", actor, "--root", tmp, "E-01", "self-check-renamed"}},
 		{"reallocate", []string{"reallocate", "--actor", actor, "--root", tmp, "E-01"}},
+		{"add move-target epic", []string{"add", "epic", "--title", "Move target", "--actor", actor, "--root", tmp}},
+		{"move", []string{"move", "--actor", actor, "--root", tmp, "--epic", "E-03", "M-001"}},
 		{"history", []string{"history", "--root", tmp, "E-02"}},
 		{"render roadmap", []string{"render", "roadmap", "--root", tmp}},
 		{"update", []string{"update", "--root", tmp}},

@@ -57,6 +57,8 @@ func run(args []string) int {
 		return runCancel(args[1:])
 	case "rename":
 		return runRename(args[1:])
+	case "move":
+		return runMove(args[1:])
 	case "reallocate":
 		return runReallocate(args[1:])
 	case "init":
@@ -71,6 +73,8 @@ func run(args []string) int {
 		return runRender(args[1:])
 	case "import":
 		return runImport(args[1:])
+	case "whoami":
+		return runWhoami(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "aiwf: unknown subcommand %q. Try 'aiwf help'.\n", args[0])
 		return exitUsage
@@ -88,6 +92,7 @@ Verbs:
   promote <id> <new-status>      advance an entity's status
   cancel <id>                    promote to the kind's terminal-cancel status
   rename <id> <new-slug>         rename the file/dir slug; id preserved
+  move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
   update                         re-materialize embedded skills into .claude/skills/wf-*/
@@ -95,6 +100,7 @@ Verbs:
   doctor [--self-check]          drift / version / id-collision health check; --self-check drives every verb against a temp repo
   render roadmap [--write]       print ROADMAP.md (markdown of epics + milestones); --write commits it
   import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
+  whoami                         print the resolved actor and the source it came from
   help, --help                   show this message
   version, --version             print the binary version
 

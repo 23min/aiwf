@@ -191,6 +191,49 @@ func runRename(args []string) int {
 	return finishVerb(ctx, rootDir, "aiwf rename", result, err)
 }
 
+// runMove handles `aiwf move <M-id> --epic <E-id>`: relocates a
+// milestone to a different epic in one commit.
+func runMove(args []string) int {
+	fs := flag.NewFlagSet("move", flag.ContinueOnError)
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	root := fs.String("root", "", "consumer repo root")
+	epic := fs.String("epic", "", "target epic id (e.g., E-04)")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		fmt.Fprintln(os.Stderr, "aiwf move: usage: aiwf move <M-id> --epic <E-id>")
+		return exitUsage
+	}
+	id := rest[0]
+	if *epic == "" {
+		fmt.Fprintln(os.Stderr, "aiwf move: --epic <E-id> is required")
+		return exitUsage
+	}
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf move: loading tree: %v\n", err)
+		return exitInternal
+	}
+	result, err := verb.Move(tr, id, *epic, actorStr)
+	return finishVerb(ctx, rootDir, "aiwf move", result, err)
+}
+
 // runReallocate handles `aiwf reallocate <id-or-path>`.
 func runReallocate(args []string) int {
 	fs := flag.NewFlagSet("reallocate", flag.ContinueOnError)
