@@ -1,8 +1,8 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
 // Verbs: check, add, promote, cancel, rename, reallocate, init, update,
-// history, doctor, render, plus help/version. See docs/poc-plan.md for
-// the session breakdown that produced this surface.
+// history, doctor, render, import, plus help/version. See docs/poc-plan.md
+// for the session breakdown that produced this surface.
 package main
 
 import (
@@ -69,6 +69,8 @@ func run(args []string) int {
 		return runDoctor(args[1:])
 	case "render":
 		return runRender(args[1:])
+	case "import":
+		return runImport(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "aiwf: unknown subcommand %q. Try 'aiwf help'.\n", args[0])
 		return exitUsage
@@ -92,6 +94,7 @@ Verbs:
   history <id>                   show the entity's lifecycle from git log trailers
   doctor [--self-check]          drift / version / id-collision health check; --self-check drives every verb against a temp repo
   render roadmap [--write]       print ROADMAP.md (markdown of epics + milestones); --write commits it
+  import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
   help, --help                   show this message
   version, --version             print the binary version
 
@@ -109,6 +112,10 @@ Flags for 'add':
 Flags for 'check' and 'history':
   --format <fmt>                 output format: text (default) or json
   --pretty                       indent JSON output (only with --format=json)
+
+Flags for 'import':
+  --on-collision <mode>          fail (default) | skip | update — behavior when an explicit id already exists
+  --dry-run                      validate the projection and print the would-be plans without writing
 
 Exit codes: 0 = no errors, 1 = errors found, 2 = usage error, 3 = internal error.
 
