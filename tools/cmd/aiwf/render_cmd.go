@@ -60,6 +60,19 @@ func runRenderRoadmap(args []string) int {
 
 	content := roadmap.Render(tr)
 
+	// Preserve a hand-curated `## Candidates` (or `## Backlog`) block
+	// from any existing ROADMAP.md. The section is verbatim user
+	// content — aiwf doesn't parse it — and survives regenerate
+	// cycles. When --write is off we still merge so stdout matches
+	// what --write would produce.
+	dest := filepath.Join(rootDir, "ROADMAP.md")
+	existing, readErr := os.ReadFile(dest)
+	if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
+		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", readErr)
+		return exitInternal
+	}
+	content = roadmap.AppendCandidates(content, roadmap.ExtractCandidates(existing))
+
 	if !*write {
 		if _, werr := os.Stdout.Write(content); werr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", werr)
@@ -68,12 +81,6 @@ func runRenderRoadmap(args []string) int {
 		return exitOK
 	}
 
-	dest := filepath.Join(rootDir, "ROADMAP.md")
-	existing, readErr := os.ReadFile(dest)
-	if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
-		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", readErr)
-		return exitInternal
-	}
 	if bytes.Equal(existing, content) {
 		fmt.Println("aiwf render roadmap: ROADMAP.md is already up to date.")
 		return exitOK

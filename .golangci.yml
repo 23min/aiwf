@@ -53,8 +53,12 @@ linters:
       #         developer's working repo, not a multi-tenant server
       # - G122: WalkDir symlink TOCTOU; the consumer repo is the user's
       #         own working tree, not adversarial input
+      # - G703: path traversal via taint analysis; aiwf writes to paths
+      #         it built from rootDir (user-supplied via --root or
+      #         walk-up). Same threat model as G304: developer CLI on
+      #         the developer's own repo.
       - linters: [gosec]
-        text: "G204|G304|G301|G306|G122"
+        text: "G204|G304|G301|G306|G122|G703"
     paths:
       - third_party$
       - builtin$

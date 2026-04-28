@@ -134,3 +134,102 @@ func TestRender_IgnoresNonEpicNonMilestoneKinds(t *testing.T) {
 		}
 	}
 }
+
+// TestExtractCandidates_FromCanonicalSection: the documented `##
+// Candidates` heading is recognized and the section body is returned
+// verbatim, stopping at the next `## ` heading.
+func TestExtractCandidates_FromCanonicalSection(t *testing.T) {
+	src := []byte(`# Roadmap
+
+## E-01 — Foo (active)
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-001 | x | draft |
+
+## Candidates
+
+- Anomaly detection — interesting if telemetry lands.
+- Subsystem boundaries — needs a champion.
+
+## Notes
+
+other stuff
+`)
+	got := ExtractCandidates(src)
+	if got == nil {
+		t.Fatal("ExtractCandidates returned nil")
+	}
+	want := "## Candidates\n\n- Anomaly detection — interesting if telemetry lands.\n- Subsystem boundaries — needs a champion.\n"
+	if string(got) != want {
+		t.Errorf("got:\n%q\nwant:\n%q", got, want)
+	}
+}
+
+// TestExtractCandidates_BacklogAlias: "Backlog" is accepted as a
+// drop-in heading for repos that prefer that wording.
+func TestExtractCandidates_BacklogAlias(t *testing.T) {
+	src := []byte("## Backlog\n\n- One\n- Two\n")
+	got := ExtractCandidates(src)
+	if got == nil {
+		t.Fatal("Backlog heading not recognized")
+	}
+	if !bytes.Contains(got, []byte("- One")) {
+		t.Errorf("body lost: %s", got)
+	}
+}
+
+// TestExtractCandidates_None: no recognized heading returns nil so
+// the caller can skip the append.
+func TestExtractCandidates_None(t *testing.T) {
+	src := []byte("# Roadmap\n\n## E-01 — Foo (active)\n\nstuff\n")
+	if got := ExtractCandidates(src); got != nil {
+		t.Errorf("expected nil, got %s", got)
+	}
+}
+
+// TestExtractCandidates_RunsToEOF: when the candidates section is
+// the last block in the file it captures through EOF.
+func TestExtractCandidates_RunsToEOF(t *testing.T) {
+	src := []byte("## Candidates\n\n- One\n- Two\n")
+	got := ExtractCandidates(src)
+	if !bytes.Contains(got, []byte("- Two")) {
+		t.Errorf("EOF section truncated: %s", got)
+	}
+}
+
+// TestAppendCandidates_RoundTrip ensures a regenerated roadmap with
+// candidates appended matches the input shape closely enough that a
+// second pass leaves it unchanged.
+func TestAppendCandidates_RoundTrip(t *testing.T) {
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active"},
+		},
+	}
+	gen := Render(tr)
+	cands := []byte("## Candidates\n\n- Idea A\n- Idea B\n")
+	merged := AppendCandidates(gen, cands)
+	if !bytes.Contains(merged, []byte("## E-01")) {
+		t.Errorf("epic section lost in merge:\n%s", merged)
+	}
+	if !bytes.Contains(merged, []byte("- Idea A")) {
+		t.Errorf("candidates lost in merge:\n%s", merged)
+	}
+	// Re-extracting the candidates from the merged output yields back
+	// the same section.
+	roundTrip := ExtractCandidates(merged)
+	if !bytes.Equal(bytes.TrimSpace(roundTrip), bytes.TrimSpace(cands)) {
+		t.Errorf("round trip changed candidates:\nbefore: %q\nafter:  %q", cands, roundTrip)
+	}
+}
+
+// TestAppendCandidates_NilCandidates: a nil candidates input returns
+// the generated output verbatim.
+func TestAppendCandidates_NilCandidates(t *testing.T) {
+	gen := []byte("# Roadmap\n\n_x_\n")
+	got := AppendCandidates(gen, nil)
+	if !bytes.Equal(got, gen) {
+		t.Errorf("AppendCandidates with nil tail mutated input:\n%q", got)
+	}
+}

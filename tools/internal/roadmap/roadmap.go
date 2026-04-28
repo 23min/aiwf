@@ -100,3 +100,75 @@ func escape(s string) string {
 	s = strings.ReplaceAll(s, "\r", "")
 	return s
 }
+
+// candidateHeadings names the section titles aiwf treats as
+// human-curated, free-form lists of unscheduled work. The section is
+// preserved verbatim across `aiwf render roadmap --write` cycles.
+// "Candidates" is canonical; "Backlog" is accepted as an alias for
+// repos that prefer that wording.
+var candidateHeadings = []string{"Candidates", "Backlog"}
+
+// ExtractCandidates returns the bytes of the first recognized
+// candidates-or-backlog section in src, including its `## ` heading
+// and trailing newline, up to (but not including) the next `## `
+// heading at the same level. Returns nil when no recognized section
+// is present.
+//
+// Recognition is case-sensitive on the heading word and tolerates
+// trailing whitespace. The function does not parse list items; the
+// caller appends the bytes verbatim to a generated roadmap so
+// hand-curated content survives a regenerate.
+func ExtractCandidates(src []byte) []byte {
+	lines := bytes.Split(src, []byte("\n"))
+	start := -1
+	for i, line := range lines {
+		if !bytes.HasPrefix(line, []byte("## ")) {
+			continue
+		}
+		title := strings.TrimSpace(string(line[3:]))
+		for _, h := range candidateHeadings {
+			if title == h {
+				start = i
+				break
+			}
+		}
+		if start >= 0 {
+			break
+		}
+	}
+	if start < 0 {
+		return nil
+	}
+	end := len(lines)
+	for j := start + 1; j < len(lines); j++ {
+		if bytes.HasPrefix(lines[j], []byte("## ")) {
+			end = j
+			break
+		}
+	}
+	section := bytes.Join(lines[start:end], []byte("\n"))
+	// Ensure trailing newline so concatenation is well-formed.
+	if !bytes.HasSuffix(section, []byte("\n")) {
+		section = append(section, '\n')
+	}
+	return section
+}
+
+// AppendCandidates returns the concatenation of generated and
+// candidates, with a single blank line between them. If candidates is
+// empty, generated is returned unchanged.
+func AppendCandidates(generated, candidates []byte) []byte {
+	if len(candidates) == 0 {
+		return generated
+	}
+	var buf bytes.Buffer
+	buf.Write(generated)
+	if !bytes.HasSuffix(generated, []byte("\n")) {
+		buf.WriteByte('\n')
+	}
+	if !bytes.HasSuffix(buf.Bytes(), []byte("\n\n")) {
+		buf.WriteByte('\n')
+	}
+	buf.Write(candidates)
+	return buf.Bytes()
+}
