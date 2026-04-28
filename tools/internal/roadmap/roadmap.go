@@ -7,6 +7,8 @@ package roadmap
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -57,6 +59,11 @@ func Render(t *tree.Tree) []byte {
 
 	for _, e := range epics {
 		fmt.Fprintf(&buf, "## %s — %s (%s)\n\n", e.ID, escape(e.Title), e.Status)
+		if goal := readEpicGoal(t.Root, e.Path); goal != nil {
+			buf.WriteString("### Goal\n\n")
+			buf.Write(goal)
+			buf.WriteString("\n\n")
+		}
 		ms := byParent[e.ID]
 		if len(ms) == 0 {
 			buf.WriteString("_No milestones yet._\n\n")
@@ -90,6 +97,61 @@ func Render(t *tree.Tree) []byte {
 	}
 	buf.WriteString("\n")
 	return buf.Bytes()
+}
+
+// readEpicGoal reads the epic file at root+relPath and returns the body
+// of its `## Goal` section with leading and trailing whitespace
+// trimmed. Returns nil if the file can't be read, has no frontmatter,
+// has no `## Goal` heading, or the goal body is whitespace-only — so
+// callers can skip emitting an empty goal block. Tests that build
+// in-memory trees without on-disk files get nil here, which means the
+// roadmap output reduces to its pre-Goal form for those callers.
+func readEpicGoal(root, relPath string) []byte {
+	if root == "" || relPath == "" {
+		return nil
+	}
+	content, err := os.ReadFile(filepath.Join(root, relPath))
+	if err != nil {
+		return nil
+	}
+	_, body, ok := entity.Split(content)
+	if !ok {
+		return nil
+	}
+	return extractSection(body, "Goal")
+}
+
+// extractSection returns the contents of the first second-level section
+// in src whose heading text equals heading (matched after trimming
+// trailing whitespace). The heading line itself is excluded; the
+// section ends at the next `# ` or `## ` heading or EOF. Trailing and
+// leading whitespace are stripped, and a whitespace-only body returns
+// nil so callers can skip empty sections cleanly.
+func extractSection(src []byte, heading string) []byte {
+	target := []byte("## " + heading)
+	lines := bytes.Split(src, []byte("\n"))
+	start := -1
+	for i, line := range lines {
+		if bytes.Equal(bytes.TrimRight(line, " \t\r"), target) {
+			start = i + 1
+			break
+		}
+	}
+	if start < 0 {
+		return nil
+	}
+	end := len(lines)
+	for j := start; j < len(lines); j++ {
+		if bytes.HasPrefix(lines[j], []byte("## ")) || bytes.HasPrefix(lines[j], []byte("# ")) {
+			end = j
+			break
+		}
+	}
+	body := bytes.TrimSpace(bytes.Join(lines[start:end], []byte("\n")))
+	if len(body) == 0 {
+		return nil
+	}
+	return body
 }
 
 // escape protects markdown table cells from `|` (which would split the

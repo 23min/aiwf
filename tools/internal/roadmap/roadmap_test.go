@@ -2,12 +2,30 @@ package roadmap
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 )
+
+// writeEpicFile writes an epic.md fixture under root with the given
+// frontmatter+body content and returns the repo-relative path the
+// roadmap renderer will look up.
+func writeEpicFile(t *testing.T, root, slug, content string) string {
+	t.Helper()
+	rel := filepath.Join("work", "epics", slug, "epic.md")
+	full := filepath.Join(root, rel)
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return rel
+}
 
 func TestRender_EmptyTree(t *testing.T) {
 	got := string(Render(&tree.Tree{}))
@@ -132,6 +150,122 @@ func TestRender_IgnoresNonEpicNonMilestoneKinds(t *testing.T) {
 		if strings.Contains(got, mustNotContain) {
 			t.Errorf("output should not mention %q (only epics + milestones):\n%s", mustNotContain, got)
 		}
+	}
+}
+
+// TestRender_IncludesEpicGoal: when an epic's body has a populated
+// `## Goal` section, the roadmap surfaces it as `### Goal` between the
+// epic heading and the milestone table.
+func TestRender_IncludesEpicGoal(t *testing.T) {
+	root := t.TempDir()
+	path := writeEpicFile(t, root, "E-01-foo", `---
+id: E-01
+title: Foo
+status: active
+---
+
+## Goal
+
+Land the foundation pieces:
+
+- piece A
+- piece B
+
+## Scope
+
+unrelated content
+`)
+
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{
+			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active", Path: path},
+		},
+	}
+	got := string(Render(tr))
+
+	if !strings.Contains(got, "### Goal\n\nLand the foundation pieces:\n\n- piece A\n- piece B") {
+		t.Errorf("goal body missing or malformed:\n%s", got)
+	}
+	if strings.Contains(got, "unrelated content") {
+		t.Errorf("scope section leaked into goal:\n%s", got)
+	}
+	// Goal must appear before the (empty) milestones notice.
+	if idxGoal, idxMs := strings.Index(got, "### Goal"), strings.Index(got, "_No milestones yet._"); idxGoal < 0 || idxMs < 0 || idxGoal > idxMs {
+		t.Errorf("goal not positioned before milestones:\n%s", got)
+	}
+}
+
+// TestRender_SkipsEmptyGoal: an epic whose `## Goal` section is
+// whitespace-only (the BodyTemplate default) does not introduce an
+// empty `### Goal` block.
+func TestRender_SkipsEmptyGoal(t *testing.T) {
+	root := t.TempDir()
+	path := writeEpicFile(t, root, "E-01-foo", `---
+id: E-01
+title: Foo
+status: active
+---
+
+## Goal
+
+## Scope
+`)
+
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{
+			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active", Path: path},
+		},
+	}
+	got := string(Render(tr))
+	if strings.Contains(got, "### Goal") {
+		t.Errorf("empty Goal section should not be emitted:\n%s", got)
+	}
+}
+
+// TestRender_NoBodyFile_NoGoal: a tree with no on-disk file (Path
+// unset, or root unset) skips the goal lookup silently. This keeps
+// purely-in-memory tests working.
+func TestRender_NoBodyFile_NoGoal(t *testing.T) {
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active"},
+		},
+	}
+	got := string(Render(tr))
+	if strings.Contains(got, "### Goal") {
+		t.Errorf("Goal emitted without a backing file:\n%s", got)
+	}
+}
+
+func TestExtractSection_StopsAtNextH2(t *testing.T) {
+	src := []byte("## Goal\n\nfirst\n\n## Scope\n\nsecond\n")
+	got := extractSection(src, "Goal")
+	if string(got) != "first" {
+		t.Errorf("got %q, want %q", got, "first")
+	}
+}
+
+func TestExtractSection_RunsToEOF(t *testing.T) {
+	src := []byte("## Goal\n\nlone-section\n")
+	got := extractSection(src, "Goal")
+	if string(got) != "lone-section" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestExtractSection_MissingHeading(t *testing.T) {
+	src := []byte("## Scope\n\nno goal here\n")
+	if got := extractSection(src, "Goal"); got != nil {
+		t.Errorf("got %q, want nil", got)
+	}
+}
+
+func TestExtractSection_WhitespaceOnly(t *testing.T) {
+	src := []byte("## Goal\n\n   \n\n## Scope\n")
+	if got := extractSection(src, "Goal"); got != nil {
+		t.Errorf("got %q, want nil", got)
 	}
 }
 
