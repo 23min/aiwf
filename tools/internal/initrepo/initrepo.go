@@ -73,11 +73,6 @@ exec ` + shellQuoteSingle(execPath) + ` check
 `
 }
 
-// ErrPreHookConflict is returned when a pre-push hook exists without
-// the aiwf marker. Init refuses to clobber user-authored hooks; the
-// caller surfaces a remediation instruction.
-var ErrPreHookConflict = errors.New("pre-push hook exists without aiwf marker")
-
 // Action classifies what init did for a single step. The CLI uses this
 // to render a friendly summary.
 type Action string
@@ -87,6 +82,10 @@ const (
 	ActionCreated   Action = "created"
 	ActionPreserved Action = "preserved"
 	ActionUpdated   Action = "updated"
+	// ActionSkipped marks a step that init declined to perform because
+	// doing so would clobber user-managed state. The Detail field on
+	// the StepResult explains why and what the user should do next.
+	ActionSkipped Action = "skipped"
 )
 
 // StepResult is one line of init's per-step ledger.
@@ -97,9 +96,12 @@ type StepResult struct {
 }
 
 // Result is the per-step ledger init returns. Order matches the order
-// of operations.
+// of operations. HookConflict is set when init declined to install
+// the pre-push hook because a non-aiwf hook was already in place;
+// callers should surface remediation guidance to the user.
 type Result struct {
-	Steps []StepResult
+	Steps        []StepResult
+	HookConflict bool
 }
 
 // Options carries init-time inputs that override or supplement the
@@ -160,12 +162,16 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	}
 	res.Steps = append(res.Steps, claudeStep)
 
-	// 6. Pre-push hook — install or overwrite-if-marker-present.
-	hookStep, err := ensurePreHook(ctx, root)
+	// 6. Pre-push hook — install, overwrite-if-marker-present, or
+	// skip-with-remediation when a non-aiwf hook is already in place.
+	// A skipped hook is not a fatal error: the user gets the full
+	// ledger of everything else that landed plus a clear next step.
+	hookStep, conflict, err := ensurePreHook(ctx, root)
 	if err != nil {
 		return nil, err
 	}
 	res.Steps = append(res.Steps, hookStep)
+	res.HookConflict = conflict
 
 	return res, nil
 }
@@ -320,14 +326,19 @@ func ensureClaudeMd(root string) (StepResult, error) {
 	return StepResult{What: "CLAUDE.md", Action: ActionCreated}, nil
 }
 
-func ensurePreHook(ctx context.Context, root string) (StepResult, error) {
+// ensurePreHook installs (or refreshes) the marker-protected pre-push
+// hook. The bool return is "skipped due to conflict": when a hook
+// without aiwf's marker already exists, ensurePreHook returns a
+// skipped StepResult and `true`, leaving the user's hook untouched.
+// Skipping is not a fatal error — the caller surfaces remediation.
+func ensurePreHook(ctx context.Context, root string) (StepResult, bool, error) {
 	gitDir, err := gitops.GitDir(ctx, root)
 	if err != nil {
-		return StepResult{}, fmt.Errorf("locating git dir: %w", err)
+		return StepResult{}, false, fmt.Errorf("locating git dir: %w", err)
 	}
 	hooksDir := filepath.Join(gitDir, "hooks")
 	if mkErr := os.MkdirAll(hooksDir, 0o755); mkErr != nil {
-		return StepResult{}, fmt.Errorf("creating hooks dir: %w", mkErr)
+		return StepResult{}, false, fmt.Errorf("creating hooks dir: %w", mkErr)
 	}
 	hookPath := filepath.Join(hooksDir, "pre-push")
 
@@ -336,19 +347,24 @@ func ensurePreHook(ctx context.Context, root string) (StepResult, error) {
 	case errors.Is(readErr, fs.ErrNotExist):
 		// no existing hook: create
 	case readErr != nil:
-		return StepResult{}, fmt.Errorf("reading pre-push hook: %w", readErr)
+		return StepResult{}, false, fmt.Errorf("reading pre-push hook: %w", readErr)
 	case strings.Contains(string(existing), preHookMarker):
 		// our own hook: overwrite is safe
 	default:
-		return StepResult{}, fmt.Errorf("%w: leave it in place and call `aiwf check` from inside it, or use a hook manager (husky/lefthook)", ErrPreHookConflict)
+		// non-aiwf hook in place: skip without clobbering.
+		return StepResult{
+			What:   ".git/hooks/pre-push",
+			Action: ActionSkipped,
+			Detail: "existing hook has no aiwf marker — left untouched (see remediation below)",
+		}, true, nil
 	}
 
 	exePath, err := resolveExecutable()
 	if err != nil {
-		return StepResult{}, fmt.Errorf("resolving aiwf binary path: %w", err)
+		return StepResult{}, false, fmt.Errorf("resolving aiwf binary path: %w", err)
 	}
 	if err := os.WriteFile(hookPath, []byte(preHookScript(exePath)), 0o755); err != nil {
-		return StepResult{}, fmt.Errorf("writing pre-push hook: %w", err)
+		return StepResult{}, false, fmt.Errorf("writing pre-push hook: %w", err)
 	}
 	action := ActionCreated
 	if !errors.Is(readErr, fs.ErrNotExist) {
@@ -358,7 +374,7 @@ func ensurePreHook(ctx context.Context, root string) (StepResult, error) {
 		What:   ".git/hooks/pre-push",
 		Action: action,
 		Detail: "exec " + exePath,
-	}, nil
+	}, false, nil
 }
 
 // resolveExecutable returns the absolute, symlink-resolved path of

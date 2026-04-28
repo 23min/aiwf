@@ -1,8 +1,8 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
 // Verbs: check, add, promote, cancel, rename, reallocate, init, update,
-// history, doctor, plus help/version. See docs/poc-plan.md for the
-// session breakdown that produced this surface.
+// history, doctor, render, plus help/version. See docs/poc-plan.md for
+// the session breakdown that produced this surface.
 package main
 
 import (
@@ -67,6 +67,8 @@ func run(args []string) int {
 		return runHistory(args[1:])
 	case "doctor":
 		return runDoctor(args[1:])
+	case "render":
+		return runRender(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "aiwf: unknown subcommand %q. Try 'aiwf help'.\n", args[0])
 		return exitUsage
@@ -88,7 +90,8 @@ Verbs:
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
   update                         re-materialize embedded skills into .claude/skills/wf-*/
   history <id>                   show the entity's lifecycle from git log trailers
-  doctor                         drift / version / id-collision health check
+  doctor [--self-check]          drift / version / id-collision health check; --self-check drives every verb against a temp repo
+  render roadmap [--write]       print ROADMAP.md (markdown of epics + milestones); --write commits it
   help, --help                   show this message
   version, --version             print the binary version
 

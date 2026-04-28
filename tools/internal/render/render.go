@@ -61,17 +61,21 @@ func StatusFor(findings []check.Finding) string {
 
 // Text writes one finding per line in linter-style format:
 //
-//	{path}: {severity} {code}[/{subcode}]: {message}
+//	{path}:{line}: {severity} {code}[/{subcode}]: {message} — hint: {hint}
 //
-// followed by a one-line summary. Findings without a path are still
-// rendered (the path field is omitted but the rest is shown).
+// followed by a one-line summary. The `:line` is omitted when the
+// finding has no line (load-errors that fail before parsing). The
+// `— hint: ...` suffix is omitted when the finding has no hint.
+// Findings without a path are still rendered (the path:line prefix
+// is dropped but the rest of the line is unchanged).
 func Text(w io.Writer, findings []check.Finding) error {
 	if len(findings) == 0 {
 		_, err := fmt.Fprintln(w, "ok — no findings")
 		return err
 	}
 	errCount, warnCount := 0, 0
-	for _, f := range findings {
+	for i := range findings {
+		f := &findings[i]
 		switch f.Severity {
 		case check.SeverityError:
 			errCount++
@@ -82,14 +86,23 @@ func Text(w io.Writer, findings []check.Finding) error {
 		if f.Subcode != "" {
 			code = code + "/" + f.Subcode
 		}
-		if f.Path != "" {
-			if _, err := fmt.Fprintf(w, "%s: %s %s: %s\n", f.Path, f.Severity, code, f.Message); err != nil {
+		hint := ""
+		if f.Hint != "" {
+			hint = " — hint: " + f.Hint
+		}
+		switch {
+		case f.Path != "" && f.Line > 0:
+			if _, err := fmt.Fprintf(w, "%s:%d: %s %s: %s%s\n", f.Path, f.Line, f.Severity, code, f.Message, hint); err != nil {
 				return err
 			}
-			continue
-		}
-		if _, err := fmt.Fprintf(w, "%s %s: %s\n", f.Severity, code, f.Message); err != nil {
-			return err
+		case f.Path != "":
+			if _, err := fmt.Fprintf(w, "%s: %s %s: %s%s\n", f.Path, f.Severity, code, f.Message, hint); err != nil {
+				return err
+			}
+		default:
+			if _, err := fmt.Fprintf(w, "%s %s: %s%s\n", f.Severity, code, f.Message, hint); err != nil {
+				return err
+			}
 		}
 	}
 	_, err := fmt.Fprintf(w, "\n%d findings (%d errors, %d warnings)\n", len(findings), errCount, warnCount)

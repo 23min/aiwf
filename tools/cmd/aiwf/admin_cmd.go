@@ -43,9 +43,6 @@ func runInit(args []string) int {
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
-		if errors.Is(err, initrepo.ErrPreHookConflict) {
-			return exitFindings
-		}
 		return exitInternal
 	}
 
@@ -56,6 +53,22 @@ func runInit(args []string) int {
 			fmt.Printf("  %-9s  %s\n", s.Action, s.What)
 		}
 	}
+
+	if res.HookConflict {
+		fmt.Println()
+		fmt.Println("aiwf init: setup landed except the pre-push hook.")
+		fmt.Println("A non-aiwf hook is already at .git/hooks/pre-push and was left untouched.")
+		fmt.Println("To finish wiring validation into your push flow, do one of:")
+		fmt.Println("  1. Add this line inside the existing hook:    aiwf check || exit 1")
+		fmt.Println("  2. Use a hook manager (husky/lefthook/etc.) to compose hooks; have it run `aiwf check`.")
+		fmt.Println("Then drop the marker comment `# aiwf:pre-push` somewhere in the hook so future")
+		fmt.Println("`aiwf init` runs recognise it as managed and refresh it on binary upgrades.")
+		fmt.Println()
+		fmt.Println("Without this, `aiwf check` won't run automatically on `git push`.")
+		fmt.Println("You can still validate manually any time with `aiwf check`.")
+		return exitFindings
+	}
+
 	fmt.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
 	return exitOK
 }
@@ -226,13 +239,20 @@ func hasCommits(ctx context.Context, root string) bool {
 }
 
 // runDoctor handles `aiwf doctor`: version check, materialized-skill
-// drift check, id-collision check.
+// drift check, id-collision check. With --self-check, instead drives
+// every mutating verb against a throwaway repo to prove the binary
+// works end-to-end.
 func runDoctor(args []string) int {
 	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
 	root := fs.String("root", "", "consumer repo root")
+	selfCheck := fs.Bool("self-check", false, "run every verb against a temp repo and report pass/fail")
 	fs.SetOutput(os.Stderr)
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
+	}
+
+	if *selfCheck {
+		return runSelfCheck()
 	}
 
 	rootDir, err := resolveRoot(*root)
@@ -304,7 +324,8 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 	} else {
 		findings := check.Run(tr, loadErrs)
 		collisions := 0
-		for _, f := range findings {
+		for i := range findings {
+			f := &findings[i]
 			if f.Code == "ids-unique" {
 				collisions++
 				lines = append(lines, fmt.Sprintf("ids:       collision %s @ %s", f.EntityID, f.Path))

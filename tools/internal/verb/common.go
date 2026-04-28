@@ -1,10 +1,25 @@
 package verb
 
 import (
+	"path/filepath"
+	"strings"
+
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 )
+
+// pathInside reports whether the repo-relative path p is the directory
+// dir or lives somewhere underneath it. Comparison is forward-slash so
+// callers don't need to normalize.
+func pathInside(p, dir string) bool {
+	p = filepath.ToSlash(p)
+	dir = filepath.ToSlash(dir)
+	if p == dir {
+		return true
+	}
+	return strings.HasPrefix(p, dir+"/")
+}
 
 // initialStatus is the status `aiwf add` assigns to a freshly-created
 // entity. Each kind starts at the leftmost state of its FSM.
@@ -89,18 +104,18 @@ func projectionFindings(original, projected *tree.Tree) []check.Finding {
 	pre := check.Run(original, nil)
 	post := check.Run(projected, nil)
 	seen := make(map[string]bool, len(pre))
-	for _, f := range pre {
-		seen[findingKey(f)] = true
+	for i := range pre {
+		seen[findingKey(&pre[i])] = true
 	}
 	var introduced []check.Finding
-	for _, f := range post {
-		if !seen[findingKey(f)] {
-			introduced = append(introduced, f)
+	for i := range post {
+		if !seen[findingKey(&post[i])] {
+			introduced = append(introduced, post[i])
 		}
 	}
 	return introduced
 }
 
-func findingKey(f check.Finding) string {
+func findingKey(f *check.Finding) string {
 	return f.Code + "|" + f.Subcode + "|" + f.Path + "|" + f.EntityID + "|" + f.Message
 }

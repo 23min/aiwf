@@ -440,6 +440,48 @@ func TestReallocate_Contract(t *testing.T) {
 	}
 }
 
+// TestReallocate_EpicWithMilestoneInside is the regression for a bug
+// where reallocating an epic correctly rewrote the inner milestone's
+// `parent` field but wrote the milestone's file at its pre-move path,
+// which recreated the old epic directory and produced both
+// ids-unique and refs-resolve errors. The milestone should land
+// inside the new epic dir with the rewritten parent.
+func TestReallocate_EpicWithMilestoneInside(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.tree(), entity.KindMilestone, "Cache layer", testActor, verb.AddOptions{EpicID: "E-01"}))
+
+	r.must(verb.Reallocate(r.tree(), "E-01", testActor))
+
+	// New epic dir holds both epic.md and the milestone, parented to E-02.
+	newDir := filepath.Join(r.root, "work", "epics", "E-02-platform")
+	if _, err := os.Stat(filepath.Join(newDir, "epic.md")); err != nil {
+		t.Errorf("epic.md missing in new dir: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(newDir, "M-001-cache-layer.md")); err != nil {
+		t.Errorf("milestone missing in new dir: %v", err)
+	}
+
+	// Old dir is gone (no resurrection of the source).
+	oldDir := filepath.Join(r.root, "work", "epics", "E-01-platform")
+	if _, err := os.Stat(oldDir); err == nil {
+		t.Errorf("old epic dir resurrected at %s", oldDir)
+	}
+
+	// Tree validates clean: no ids-unique, no unresolved parent refs.
+	if findings := check.Run(r.tree(), nil); check.HasErrors(findings) {
+		t.Errorf("post-reallocate tree has errors: %+v", findings)
+	}
+
+	m1 := r.tree().ByID("M-001")
+	if m1 == nil {
+		t.Fatal("M-001 missing after reallocate")
+	}
+	if m1.Parent != "E-02" {
+		t.Errorf("M-001.parent = %q, want %q", m1.Parent, "E-02")
+	}
+}
+
 // TestPromote_NonExistentID returns a Go error before any disk work.
 func TestPromote_NonExistentID(t *testing.T) {
 	r := newRunner(t)

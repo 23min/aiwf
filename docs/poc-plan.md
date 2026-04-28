@@ -92,11 +92,11 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 
 **Goal:** ready for use on a real project.
 
-- [ ] `aiwf render roadmap` — print a markdown table of epics + milestones; with `--write` updates `ROADMAP.md` and commits.
-- [ ] `aiwf doctor --self-check` — runs all the verbs against a temp directory.
-- [ ] Error-message polish — every finding is one line, names file:line, suggests a fix.
-- [ ] README polish — clear install instructions, quick-start that works.
-- [ ] A short usage walk-through in `docs/` showing a typical first session.
+- [x] `aiwf render roadmap` — print a markdown table of epics + milestones; with `--write` updates `ROADMAP.md` and commits.
+- [x] `aiwf doctor --self-check` — runs all the verbs against a temp directory.
+- [x] Error-message polish — every finding is one line, names file:line, suggests a fix.
+- [x] README polish — clear install instructions, quick-start that works.
+- [x] A short usage walk-through in `docs/` showing a typical first session.
 
 **Deliverable:** the framework is good enough to start using on a real project.
 

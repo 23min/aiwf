@@ -3,7 +3,6 @@ package initrepo
 import (
 	"bytes"
 	"context"
-	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -167,10 +166,12 @@ func TestInit_PreservesExistingClaudeMd(t *testing.T) {
 	}
 }
 
-// TestInit_RefusesAlienPreHook: a pre-push hook that doesn't carry the
-// marker is treated as user-managed; init reports an error and does
-// not clobber.
-func TestInit_RefusesAlienPreHook(t *testing.T) {
+// TestInit_SkipsAlienPreHook: a pre-push hook that doesn't carry the
+// marker is treated as user-managed. Init reports the skip via
+// HookConflict + a "skipped" step in the ledger, leaves the user's
+// hook untouched, and still completes every other step so the user
+// sees the full picture of what landed.
+func TestInit_SkipsAlienPreHook(t *testing.T) {
 	root := freshGitRepo(t)
 	hookDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hookDir, 0o755); err != nil {
@@ -180,13 +181,42 @@ func TestInit_RefusesAlienPreHook(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(hookDir, "pre-push"), alien, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
-	if !errors.Is(err, ErrPreHookConflict) {
-		t.Errorf("got %v, want ErrPreHookConflict", err)
+	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	if err != nil {
+		t.Fatalf("Init returned error on alien hook (should be soft skip): %v", err)
 	}
+	if !res.HookConflict {
+		t.Errorf("HookConflict = false, want true")
+	}
+	// Alien hook is intact.
 	got, _ := os.ReadFile(filepath.Join(hookDir, "pre-push"))
 	if !bytes.Equal(got, alien) {
 		t.Errorf("alien hook clobbered: %s", got)
+	}
+	// All non-hook steps still ran. Ledger contains the expected What
+	// values, with the hook step itself marked Skipped.
+	wantWhats := []string{
+		"aiwf.yaml",
+		"work/epics", "work/gaps", "work/decisions", "work/contracts",
+		"docs/adr",
+		".claude/skills/wf-*",
+		".gitignore",
+		"CLAUDE.md",
+		".git/hooks/pre-push",
+	}
+	gotWhats := make([]string, len(res.Steps))
+	for i, s := range res.Steps {
+		gotWhats[i] = s.What
+	}
+	if strings.Join(gotWhats, "|") != strings.Join(wantWhats, "|") {
+		t.Errorf("step ledger:\n got  %v\n want %v", gotWhats, wantWhats)
+	}
+	hookStep := res.Steps[len(res.Steps)-1]
+	if hookStep.Action != ActionSkipped {
+		t.Errorf("hook step action = %q, want %q", hookStep.Action, ActionSkipped)
+	}
+	if hookStep.Detail == "" {
+		t.Errorf("hook step Detail empty; want a remediation hint")
 	}
 }
 

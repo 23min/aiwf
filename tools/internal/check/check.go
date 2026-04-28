@@ -37,19 +37,39 @@ const (
 // Code, Severity, and Message; Path and EntityID provide locator
 // context where they apply; Subcode distinguishes variants of the same
 // finding (e.g., "unresolved" vs "wrong-kind" within refs-resolve).
+//
+// Line is a 1-based line number in the file at Path. It is filled in
+// post-hoc by Run() based on the Field annotation each check sets;
+// when the field cannot be located in the file (or no field applies),
+// Line is 1 so editors still receive a clickable file:line link.
+//
+// Hint is a one-line suggestion for what to change to clear the
+// finding. It is set by Run() from a Code+Subcode → hint table; checks
+// don't populate it directly, so the wording stays consistent.
+//
+// Field is an internal annotation naming the YAML key the finding is
+// "about" (e.g., "parent", "status"). It is not part of the JSON
+// envelope; it exists so Run() can resolve a useful Line.
 type Finding struct {
 	Code     string   `json:"code"`
 	Severity Severity `json:"severity"`
 	Message  string   `json:"message"`
 	Path     string   `json:"path,omitempty"`
+	Line     int      `json:"line,omitempty"`
 	EntityID string   `json:"entity_id,omitempty"`
 	Subcode  string   `json:"subcode,omitempty"`
+	Hint     string   `json:"hint,omitempty"`
+	Field    string   `json:"-"`
 }
 
 // Run executes every check against the tree and returns all findings,
 // ordered first by severity (errors first), then by code, then by path.
 // Per-file load errors from the tree loader are surfaced as
 // load-error findings ahead of the regular checks.
+//
+// Run also fills in Line (1-based) and Hint on every finding. Line is
+// derived from the field name the check annotated; Hint is looked up
+// from a Code+Subcode → hint table.
 func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	var findings []Finding
 	findings = append(findings, loadErrorsToFindings(loadErrs)...)
@@ -62,6 +82,8 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, titlesNonempty(t)...)
 	findings = append(findings, adrSupersessionMutual(t)...)
 	findings = append(findings, gapResolvedHasResolver(t)...)
+	resolveLines(t.Root, findings)
+	applyHints(findings)
 	sortFindings(findings)
 	return findings
 }
@@ -80,8 +102,8 @@ func sortFindings(fs []Finding) {
 
 // HasErrors reports whether the slice contains any error-severity finding.
 func HasErrors(fs []Finding) bool {
-	for _, f := range fs {
-		if f.Severity == SeverityError {
+	for i := range fs {
+		if fs[i].Severity == SeverityError {
 			return true
 		}
 	}
@@ -115,6 +137,7 @@ func idsUnique(t *tree.Tree) []Finding {
 				Message:  fmt.Sprintf("id %q is also used by %s", e.ID, existing.Path),
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "id",
 			})
 			continue
 		}
@@ -136,6 +159,7 @@ func frontmatterShape(t *tree.Tree) []Finding {
 				Severity: SeverityError,
 				Message:  "missing required field: id",
 				Path:     e.Path,
+				Field:    "id",
 			})
 		} else if err := entity.ValidateID(e.Kind, e.ID); err != nil {
 			findings = append(findings, Finding{
@@ -144,6 +168,7 @@ func frontmatterShape(t *tree.Tree) []Finding {
 				Message:  err.Error(),
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "id",
 			})
 		}
 		if e.Status == "" {
@@ -153,6 +178,7 @@ func frontmatterShape(t *tree.Tree) []Finding {
 				Message:  "missing required field: status",
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "status",
 			})
 		}
 		findings = append(findings, perKindRequiredFields(e)...)
@@ -171,6 +197,7 @@ func perKindRequiredFields(e *entity.Entity) []Finding {
 				Message:  "milestone missing required field: parent",
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "parent",
 			})
 		}
 	case entity.KindContract:
@@ -181,6 +208,7 @@ func perKindRequiredFields(e *entity.Entity) []Finding {
 				Message:  "contract missing required field: format",
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "format",
 			})
 		}
 		if e.Artifact == "" {
@@ -190,6 +218,7 @@ func perKindRequiredFields(e *entity.Entity) []Finding {
 				Message:  "contract missing required field: artifact",
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "artifact",
 			})
 		}
 	}
@@ -213,6 +242,7 @@ func statusValid(t *tree.Tree) []Finding {
 					e.Status, e.Kind, strings.Join(entity.AllowedStatuses(e.Kind), ", ")),
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "status",
 			})
 		}
 	}
@@ -244,6 +274,7 @@ func refsResolve(t *tree.Tree) []Finding {
 						e.Kind, ref.field, ref.target),
 					Path:     e.Path,
 					EntityID: e.ID,
+					Field:    ref.field,
 				})
 				continue
 			}
@@ -266,6 +297,7 @@ func refsResolve(t *tree.Tree) []Finding {
 						e.Kind, ref.field, joinKinds(ref.allowed), ref.target, target.Kind),
 					Path:     e.Path,
 					EntityID: e.ID,
+					Field:    ref.field,
 				})
 			}
 		}
@@ -344,6 +376,7 @@ func noCycles(t *tree.Tree) []Finding {
 			Message:  fmt.Sprintf("milestone %s is on a depends_on cycle", id),
 			Path:     path,
 			EntityID: id,
+			Field:    "depends_on",
 		})
 	}
 
@@ -367,6 +400,7 @@ func noCycles(t *tree.Tree) []Finding {
 			Message:  fmt.Sprintf("ADR %s is on a supersedes/superseded_by cycle", id),
 			Path:     path,
 			EntityID: id,
+			Field:    "superseded_by",
 		})
 	}
 
@@ -445,6 +479,7 @@ func contractArtifactExists(t *tree.Tree) []Finding {
 				Message:  fmt.Sprintf("artifact path %q must be relative, not absolute", e.Artifact),
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "artifact",
 			})
 			continue
 		}
@@ -455,6 +490,7 @@ func contractArtifactExists(t *tree.Tree) []Finding {
 				Message:  fmt.Sprintf("artifact path %q must not contain '..' segments", e.Artifact),
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "artifact",
 			})
 			continue
 		}
@@ -472,6 +508,7 @@ func contractArtifactExists(t *tree.Tree) []Finding {
 				Message:  fmt.Sprintf("artifact %q does not exist (looked in %s)", e.Artifact, contractDir),
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "artifact",
 			})
 		}
 	}
@@ -499,6 +536,7 @@ func titlesNonempty(t *tree.Tree) []Finding {
 				Message:  "title is empty or whitespace-only",
 				Path:     e.Path,
 				EntityID: e.ID,
+				Field:    "title",
 			})
 		}
 	}
@@ -541,6 +579,7 @@ func adrSupersessionMutual(t *tree.Tree) []Finding {
 					a.ID, b.ID, b.ID, a.ID),
 				Path:     a.Path,
 				EntityID: a.ID,
+				Field:    "superseded_by",
 			})
 		}
 	}
@@ -560,6 +599,7 @@ func gapResolvedHasResolver(t *tree.Tree) []Finding {
 				Message:  "gap is marked addressed but addressed_by is empty",
 				Path:     g.Path,
 				EntityID: g.ID,
+				Field:    "addressed_by",
 			})
 		}
 	}

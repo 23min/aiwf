@@ -39,19 +39,53 @@ func TestRun_InitThroughDispatcher(t *testing.T) {
 	}
 }
 
-// TestRun_InitRefusesAlienHook bubbles the conflict error up as exit
-// code 1 (findings) so CI surfaces it.
-func TestRun_InitRefusesAlienHook(t *testing.T) {
+// TestRun_InitSkipsAlienHook: when a non-aiwf pre-push hook is in
+// place, init lands every other step, leaves the alien hook
+// untouched, prints both the ledger and the remediation block, and
+// exits with `exitFindings` so CI notices.
+func TestRun_InitSkipsAlienHook(t *testing.T) {
 	root := setupCLITestRepo(t)
 	hookDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hookDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(hookDir, "pre-push"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+	alien := []byte("#!/bin/sh\nexit 0\n")
+	if err := os.WriteFile(filepath.Join(hookDir, "pre-push"), alien, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitFindings {
-		t.Errorf("got %d, want %d", rc, exitFindings)
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitFindings {
+			t.Errorf("got %d, want %d", rc, exitFindings)
+		}
+	})
+	out := string(captured)
+
+	for _, want := range []string{
+		"created    aiwf.yaml", // earlier steps still ran
+		"created    work/epics",
+		"updated    .claude/skills/wf-*",
+		"skipped    .git/hooks/pre-push",
+		"aiwf init: setup landed except the pre-push hook.",
+		"aiwf check || exit 1", // remediation option 1
+		"husky/lefthook",       // remediation option 2
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q\nfull output:\n%s", want, out)
+		}
+	}
+
+	// Other steps actually landed on disk.
+	if _, err := os.Stat(filepath.Join(root, "aiwf.yaml")); err != nil {
+		t.Errorf("aiwf.yaml missing after partial init: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "wf-add", "SKILL.md")); err != nil {
+		t.Errorf("wf-add skill missing after partial init: %v", err)
+	}
+	// Alien hook is intact.
+	got, _ := os.ReadFile(filepath.Join(hookDir, "pre-push"))
+	if !bytes.Equal(got, alien) {
+		t.Errorf("alien hook clobbered:\n%s", got)
 	}
 }
 
@@ -303,6 +337,68 @@ func TestRun_DoctorVersionSkew(t *testing.T) {
 	}
 	if rc := run([]string{"doctor", "--root", root}); rc != exitFindings {
 		t.Errorf("CLI exit on version skew = %d, want %d", rc, exitFindings)
+	}
+}
+
+// TestRun_DoctorSelfCheck_Passes runs doctor --self-check end-to-end
+// and asserts the run reports a clean pass. The self-check spins up
+// its own throwaway repo, so no setup is needed beyond the test
+// process's git identity (which setupCLITestRepo provides).
+func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
+	// The test process needs git identity for the self-check repo's
+	// commits; setupCLITestRepo already exports it. We don't actually
+	// use the returned root — self-check ignores --root.
+	_ = setupCLITestRepo(t)
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"doctor", "--self-check"}); rc != exitOK {
+			t.Fatalf("doctor --self-check rc = %d, want %d", rc, exitOK)
+		}
+	})
+
+	out := string(captured)
+	if !strings.Contains(out, "self-check passed") {
+		t.Errorf("output missing pass marker:\n%s", out)
+	}
+	// Each verb appears in the step list.
+	for _, label := range []string{
+		"ok    init",
+		"ok    add epic",
+		"ok    add milestone",
+		"ok    add adr",
+		"ok    add gap",
+		"ok    add decision",
+		"ok    add contract",
+		"ok    promote",
+		"ok    cancel",
+		"ok    rename",
+		"ok    reallocate",
+		"ok    history",
+		"ok    render roadmap",
+		"ok    update",
+		"ok    check",
+		"ok    doctor",
+	} {
+		if !strings.Contains(out, label) {
+			t.Errorf("output missing %q:\n%s", label, out)
+		}
+	}
+
+	// On success the self-check repo should be removed; the path is
+	// printed at the start of the run.
+	prefix := "self-check repo: "
+	idx := strings.Index(out, prefix)
+	if idx < 0 {
+		t.Fatalf("missing repo path line:\n%s", out)
+	}
+	after := out[idx+len(prefix):]
+	end := strings.IndexByte(after, '\n')
+	if end < 0 {
+		t.Fatalf("malformed repo path line:\n%s", out)
+	}
+	repoPath := strings.TrimSpace(after[:end])
+	if _, err := os.Stat(repoPath); !os.IsNotExist(err) {
+		t.Errorf("self-check should clean up its repo on success: stat %s err=%v", repoPath, err)
 	}
 }
 

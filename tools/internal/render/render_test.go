@@ -30,7 +30,7 @@ func TestText_Empty(t *testing.T) {
 	}
 }
 
-func TestText_PathSeverityCodeMessage(t *testing.T) {
+func TestText_PathLineSeverityCodeMessageHint(t *testing.T) {
 	findings := []check.Finding{
 		{
 			Code:     "refs-resolve",
@@ -38,13 +38,17 @@ func TestText_PathSeverityCodeMessage(t *testing.T) {
 			Subcode:  "unresolved",
 			Message:  `milestone field "parent" references unknown id "E-99"`,
 			Path:     "work/epics/E-01-foo/M-007.md",
+			Line:     5,
 			EntityID: "M-007",
+			Hint:     "check the spelling, or remove the reference if the target was deleted",
 		},
 		{
 			Code:     "titles-nonempty",
 			Severity: check.SeverityWarning,
 			Message:  "title is empty or whitespace-only",
 			Path:     "work/epics/E-01-foo/epic.md",
+			Line:     3,
+			Hint:     "set a non-empty `title:` in the frontmatter",
 		},
 	}
 	var buf bytes.Buffer
@@ -53,13 +57,34 @@ func TestText_PathSeverityCodeMessage(t *testing.T) {
 	}
 	got := buf.String()
 	for _, want := range []string{
-		"work/epics/E-01-foo/M-007.md: error refs-resolve/unresolved:",
-		"work/epics/E-01-foo/epic.md: warning titles-nonempty:",
+		`work/epics/E-01-foo/M-007.md:5: error refs-resolve/unresolved: milestone field "parent" references unknown id "E-99" — hint: check the spelling, or remove the reference if the target was deleted`,
+		"work/epics/E-01-foo/epic.md:3: warning titles-nonempty: title is empty or whitespace-only — hint: set a non-empty `title:` in the frontmatter",
 		"2 findings (1 errors, 1 warnings)",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("output missing %q\nfull output:\n%s", want, got)
 		}
+	}
+}
+
+// TestText_PathWithoutLine: a finding with a path but no resolved line
+// (e.g., a load error whose file failed to parse) should still render
+// path-prefixed but without the :line suffix.
+func TestText_PathWithoutLine(t *testing.T) {
+	findings := []check.Finding{{
+		Code:     "load-error",
+		Severity: check.SeverityError,
+		Message:  "yaml: line 2: malformed",
+		Path:     "work/epics/E-01-foo/epic.md",
+	}}
+	var buf bytes.Buffer
+	if err := Text(&buf, findings); err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	want := "work/epics/E-01-foo/epic.md: error load-error: yaml: line 2: malformed"
+	if !strings.Contains(got, want) {
+		t.Errorf("output missing %q:\n%s", want, got)
 	}
 }
 
@@ -75,6 +100,26 @@ func TestText_NoPath(t *testing.T) {
 	}
 	if !strings.HasPrefix(buf.String(), "error load-error: could not list directory") {
 		t.Errorf("got %q", buf.String())
+	}
+}
+
+// TestText_HintOmittedWhenEmpty: a finding without a Hint produces no
+// trailing "— hint: ..." suffix. The renderer is responsible for
+// degrading gracefully when checks haven't been hint-annotated.
+func TestText_HintOmittedWhenEmpty(t *testing.T) {
+	findings := []check.Finding{{
+		Code:     "ids-unique",
+		Severity: check.SeverityError,
+		Message:  `id "M-001" is also used by other.md`,
+		Path:     "work/epics/dup.md",
+		Line:     2,
+	}}
+	var buf bytes.Buffer
+	if err := Text(&buf, findings); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(buf.String(), "— hint:") {
+		t.Errorf("expected no hint suffix; got:\n%s", buf.String())
 	}
 }
 

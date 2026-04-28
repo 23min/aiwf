@@ -26,8 +26,8 @@ func makeTree(es ...*entity.Entity) *tree.Tree {
 // codes extracts just the codes from findings, preserving order.
 func codes(fs []Finding) []string {
 	out := make([]string, len(fs))
-	for i, f := range fs {
-		out[i] = f.Code
+	for i := range fs {
+		out[i] = fs[i].Code
 	}
 	return out
 }
@@ -458,5 +458,92 @@ func TestContractArtifactExists_DirectoryAtArtifactPath(t *testing.T) {
 	got := contractArtifactExists(tr)
 	if len(got) != 1 || got[0].EntityID != "C-001" {
 		t.Errorf("got %+v, want one finding for C-001", got)
+	}
+}
+
+// TestRun_PopulatesHintsAndLines exercises the post-processing pass:
+// after every check has run, Run() should fill Line (1-based, derived
+// from the field name) and Hint (from the code+subcode table) on each
+// finding. We construct a real on-disk fixture so the line resolver
+// has something to scan.
+func TestRun_PopulatesHintsAndLines(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "work", "epics", "E-01-foo")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Layout: parent on line 5, status on line 4. The line resolver
+	// indexes the first occurrence of `<key>:` per file.
+	body := "---\nid: M-001\ntitle: Bad parent\nstatus: draft\nparent: E-99\n---\n"
+	mPath := filepath.Join(dir, "M-001-bad.md")
+	if err := os.WriteFile(mPath, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Minimal epic so the milestone has a tree to live in (its parent
+	// is intentionally pointing at E-99 to trigger the finding).
+	epicBody := "---\nid: E-01\ntitle: Foo\nstatus: active\n---\n"
+	if err := os.WriteFile(filepath.Join(dir, "epic.md"), []byte(epicBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{
+			{ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: "work/epics/E-01-foo/epic.md"},
+			{ID: "M-001", Kind: entity.KindMilestone, Title: "Bad parent", Status: "draft", Parent: "E-99", Path: "work/epics/E-01-foo/M-001-bad.md"},
+		},
+	}
+
+	findings := Run(tr, nil)
+	var refsFinding *Finding
+	for i := range findings {
+		if findings[i].Code == "refs-resolve" {
+			refsFinding = &findings[i]
+			break
+		}
+	}
+	if refsFinding == nil {
+		t.Fatalf("expected refs-resolve finding, got: %+v", findings)
+	}
+	if refsFinding.Line != 5 {
+		t.Errorf("Line = %d, want 5 (the line of `parent:`)", refsFinding.Line)
+	}
+	if refsFinding.Hint == "" {
+		t.Errorf("Hint should be populated for refs-resolve/unresolved")
+	}
+}
+
+// TestRun_LineFallsBackToOne: when the field annotation doesn't match
+// any line in the file (or the file can't be read), Line falls back to 1
+// so editors still get a clickable file:line link.
+func TestRun_LineFallsBackToOne(t *testing.T) {
+	tr := makeTree(&entity.Entity{
+		ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "bogus",
+		Path: "synthetic-no-such-file.md",
+	})
+	findings := Run(tr, nil)
+	if len(findings) == 0 {
+		t.Fatalf("expected at least one finding")
+	}
+	for _, f := range findings {
+		if f.Path == "" {
+			continue
+		}
+		if f.Line == 0 {
+			t.Errorf("finding %s: Line=0, want 1 (fallback)", f.Code)
+		}
+	}
+}
+
+// TestHintFor_KnownAndUnknown probes the public hint table.
+func TestHintFor_KnownAndUnknown(t *testing.T) {
+	if HintFor("refs-resolve", "unresolved") == "" {
+		t.Errorf("known code+subcode should return a hint")
+	}
+	if HintFor("titles-nonempty", "") == "" {
+		t.Errorf("known code (no subcode) should return a hint")
+	}
+	if HintFor("never-registered", "") != "" {
+		t.Errorf("unknown code should return empty string")
 	}
 }

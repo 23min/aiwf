@@ -49,13 +49,24 @@ func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
 	// Rewrite references in every entity that points at the old id.
 	rewrites := rewriteReferences(t.Entities, target, oldID, newID)
 
+	// For entities that live inside the moved directory (e.g., a
+	// milestone inside the epic dir we're renumbering), their file
+	// arrives at a new path after `git mv`. Update the rewritten
+	// entity's Path so the subsequent write lands at the new location;
+	// reads still come from the original path.
+	for _, rw := range rewrites {
+		if pathInside(rw.original.Path, source) {
+			rw.entity.Path = newEntityPathAfterRename(rw.entity, source, dest)
+		}
+	}
+
 	// Body-prose mentions of the old id become warnings (not auto-rewrite).
 	bodyFindings := scanBodyProse(t, target, oldID)
 
 	// Plan paths (every file the verb intends to land):
 	//   - the moved entity's new path
 	//   - the contents of any directory it dragged along
-	//   - the rewritten reference files (already at their existing paths)
+	//   - the rewritten reference files (at their post-move paths)
 	planned, err := plannedDestinations(t.Root, source, dest, newEntityPath)
 	if err != nil {
 		return nil, err
@@ -90,7 +101,10 @@ func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
 	ops = append(ops, FileOp{Type: OpWrite, Path: newEntityPath, Content: movedContent})
 
 	for _, rw := range rewrites {
-		body, err := readBody(t.Root, rw.entity.Path)
+		// Read from the pre-move path; write to the post-move path.
+		// They differ only when the rewritten entity lives inside the
+		// moved directory.
+		body, err := readBody(t.Root, rw.original.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -317,6 +331,7 @@ func scanBodyProse(t *tree.Tree, target *entity.Entity, oldID string) []check.Fi
 				Message:  fmt.Sprintf("body still mentions %s; consider updating prose for clarity", oldID),
 				Path:     e.Path,
 				EntityID: e.ID,
+				Hint:     check.HintFor("reallocate-body-reference", ""),
 			})
 		}
 	}
