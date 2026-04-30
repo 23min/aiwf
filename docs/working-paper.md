@@ -304,7 +304,8 @@ Where the framework is wrong — regulated industries, large enterprises, ops, s
 - [`08-the-pr-bottleneck`](https://proliminal.net/theses/the-pr-bottleneck/) — continuous ratification replaces batched review.
 - [`09-orchestrators-and-project-managers`](https://proliminal.net/theses/orchestrators-and-project-managers/) — the orchestration craft and its relation to PM work.
 - [`10-spec-based-as-waterfall`](https://proliminal.net/theses/spec-based-as-waterfall/) — argues that spec-based development encodes the same artifact-handoff structure as waterfall, and that continuous ratification is structurally different.
-- [more is much more](https://proliminal.net/notes/more-is-much-more/) — satellite note: the LLM-era inversion of Mies van der Rohe's credo, and why the right human response is fewer artifacts to ratify, not more.
+- [`11-should-the-framework-model-the-code`](https://proliminal.net/theses/should-the-framework-model-the-code/) — audits whether aiwf should absorb code-graph functionality (graphify, GitNexus); concludes the framework's lane is decisions about code, not code structure.
+- [more is much more](https://proliminal.net/notes/more-is-much-more/) — satellite note: a riff on the LLM-era inversion of "more is more" — production is abundant, ratification is the leverage.
 
 ---
 

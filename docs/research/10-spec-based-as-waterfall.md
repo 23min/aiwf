@@ -127,6 +127,7 @@ The framework's bet, restated: for the work LLMs are reshaping, the artifact is 
 ## In this series
 
 - Previous: [09 — Orchestrators and project managers](https://proliminal.net/theses/orchestrators-and-project-managers/)
+- Next: [11 — Should the framework model the code?](https://proliminal.net/theses/should-the-framework-model-the-code/)
 - Related: [07 — State, not workflow](https://proliminal.net/theses/state-not-workflow/), [08 — The PR bottleneck](https://proliminal.net/theses/the-pr-bottleneck/)
 - Synthesis: [working paper](https://proliminal.net/theses/working-paper/)
 - Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

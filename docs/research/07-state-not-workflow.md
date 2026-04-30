@@ -294,5 +294,7 @@ This belongs in the working paper's abstract or §6 ("The position"), and at the
 
 - Previous: [06 — PoC build plan](https://proliminal.net/theses/poc-build-plan/)
 - Next: [08 — The PR bottleneck](https://proliminal.net/theses/the-pr-bottleneck/)
+- Forward: [10 — Spec-based development is waterfall in disguise](https://proliminal.net/theses/spec-based-as-waterfall/) — applies state-not-workflow to the spec-based methodology specifically; argues spec-based encodes workflow's artifact-handoff structure.
+- Forward: [11 — Should the framework model the code?](https://proliminal.net/theses/should-the-framework-model-the-code/) — uses §4.1's state-vs-render distinction as the central lens.
 - Synthesis: [working paper](https://proliminal.net/theses/working-paper/)
 - Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

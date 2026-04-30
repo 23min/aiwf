@@ -73,6 +73,7 @@ A short map of the series. Read top to bottom on first encounter; cross-referenc
 - **[`08-the-pr-bottleneck`](https://proliminal.net/theses/the-pr-bottleneck/)** — the PR is where the throughput limit becomes visible; continuous ratification by humans at state transitions replaces batched post-hoc review; HITL strengthens rather than dissolves under LLM amplification.
 - **[`09-orchestrators-and-project-managers`](https://proliminal.net/theses/orchestrators-and-project-managers/)** — analyzes the relation between orchestration as an emerging craft and traditional PM work; some PMs become orchestrators, some don't, and orchestrators come from many disciplines.
 - **[`10-spec-based-as-waterfall`](https://proliminal.net/theses/spec-based-as-waterfall/)** — argues that spec-based development tools (Spec Kit, Kiro, Tessl) encode the same artifact-handoff dependency graph as waterfall, and that continuous ratification is structurally different because it ratifies state transitions on a single artifact rather than handoffs between artifacts.
+- **[`11-should-the-framework-model-the-code`](https://proliminal.net/theses/should-the-framework-model-the-code/)** — applies the audit voice (`02`), layer model (`05`), and state-vs-render boundary (`07`) to the question of whether the framework should absorb code-graph functionality (graphify, GitNexus). Concludes the framework's lane is decisions about code, not code structure; one narrow consistency check (symbol-level reference resolution for fields like `live_source`) survives.
 
 Plus one reference document and one satellite note outside the linear chain:
 
@@ -83,7 +84,7 @@ Plus one reference document and one satellite note outside the linear chain:
 
 Three reasonable paths, depending on what you want.
 
-**If you're new and want to follow the discovery,** read in order from `00` through `10`. Expect to disagree with `00`'s starting assumptions; the series disagrees with them too, which is partly the point. By `06` the position is settled; `07`–`10` extend it into adjacent questions.
+**If you're new and want to follow the discovery,** read in order from `00` through `11`. Expect to disagree with `00`'s starting assumptions; the series disagrees with them too, which is partly the point. By `06` the position is settled; `07`–`11` extend it into adjacent questions.
 
 **If you're oriented and want the current position,** read the [working paper](https://proliminal.net/theses/working-paper/) first, then [`KERNEL.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md) (or the §2 summary above), then [`06-poc-build-plan`](https://proliminal.net/theses/poc-build-plan/). The series itself becomes a citation network rather than required reading.
 

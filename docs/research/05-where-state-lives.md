@@ -471,4 +471,5 @@ The framework that emerges from this layering is *smaller* than the current arch
 
 - Previous: [04 — Governance, provenance, and the pre-PR tier](https://proliminal.net/theses/governance-provenance-and-the-pre-pr-tier/)
 - Next: [06 — PoC build plan](https://proliminal.net/theses/poc-build-plan/)
+- Forward: [11 — Should the framework model the code?](https://proliminal.net/theses/should-the-framework-model-the-code/) — applies this layer model to the code-graph question (graphify, GitNexus) and concludes the framework's lane is decisions about code, not code structure.
 - Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

@@ -343,4 +343,5 @@ The honest summary: the wheel exists, in several mature shapes. The reason to bu
 
 - Previous: [01 — Git-native planning](https://proliminal.net/theses/git-native-planning/)
 - Next: [03 — Discipline where the LLM can't skip it](https://proliminal.net/theses/discipline-where-the-llm-cant-skip-it/)
+- Forward: [11 — Should the framework model the code?](https://proliminal.net/theses/should-the-framework-model-the-code/) — same audit voice applied to a later temptation (the code-graph question).
 - Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

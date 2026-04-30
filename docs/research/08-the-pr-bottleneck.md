@@ -125,4 +125,5 @@ The PR bottleneck is the symptom. Continuous ratification is the process. Humans
 - Previous: [07 — State, not workflow](https://proliminal.net/theses/state-not-workflow/)
 - Next: [09 — Orchestrators and project managers](https://proliminal.net/theses/orchestrators-and-project-managers/)
 - Related: [03 — Discipline where the LLM can't skip it](https://proliminal.net/theses/discipline-where-the-llm-cant-skip-it/)
+- Forward: [10 — Spec-based development is waterfall in disguise](https://proliminal.net/theses/spec-based-as-waterfall/) — names the closest competing organizing shape (spec-based) and argues why continuous ratification is structurally different.
 - Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)
