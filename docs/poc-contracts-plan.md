@@ -729,7 +729,7 @@ Updated as work lands. Granularity matches §13's increments, broken down into t
 |---|---|---|
 | I1.1 — Entity narrowing | `entity.Contract`: drop `Format`/`Artifact`, add `LinkedADRs`; narrow status set to `proposed → accepted → deprecated → retired` (+ `rejected`); update transition function; drop `contract-artifact-exists` validator; update fixtures and tests | ✅ done |
 | I1.2 — `aiwfyaml` package | `tools/internal/aiwfyaml/`: yaml-Node-level reader/writer for the `contracts:` block, comment-preserving outside the block, normalizing within; anchors/aliases inside the block are a hard error | ✅ done |
-| I1.3 — `contractverify` package | `tools/internal/contractverify/`: substitution runner (`{{schema}}`, `{{fixture}}`, `{{contract_id}}`, `{{version}}`), fixture walker (`<fixtures>/<version>/{valid,invalid}/*`), verify pass, evolve pass | ⏳ not started |
+| I1.3 — `contractverify` package | `tools/internal/contractverify/`: substitution runner (`{{schema}}`, `{{fixture}}`, `{{contract_id}}`, `{{version}}`), fixture walker (`<fixtures>/<version>/{valid,invalid}/*`), verify pass, evolve pass | ✅ done |
 | I1.4 — `aiwf contract verify` verb | CLI integration of the verify+evolve runner; new finding codes (`contract-verify-fail`, `contract-evolve-fail`, `contract-config`, `contract-environment`) | ⏳ not started |
 | I1.5 — Bind/unbind verbs | `aiwf contract bind`, `aiwf contract unbind`; extend `aiwf add contract` with `--validator/--schema/--fixtures` flags; lifecycle commit trailers | ⏳ not started |
 | I1.6 — Recipe verbs + embedded recipes | `aiwf contract recipes`, `recipe show`, `recipe install [<name>\|--from <path>]`, `recipe remove`; embed CUE + JSON Schema recipes via `embed.FS` | ⏳ not started |
