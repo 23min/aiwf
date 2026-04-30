@@ -93,7 +93,7 @@ State is what survives when the flow shape doesn't. The questions that have answ
 
 These questions don't care whether the team practices waterfall, dual-track agile, trunk-based development, or no methodology at all. They don't care whether the work moves through stations or happens in parallel. They don't care whether the PRD was written first or emerged from prototype iteration. They have answers; the framework's job is to keep those answers coherent.
 
-A workflow-shaped tool answers "where is this?" — which station, which queue, which assignee. A state-shaped tool answers "what is true about this?" — which scope, which dependencies, which ratifications. The first question becomes meaningless when stations dissolve. The second remains meaningful regardless.
+A workflow-shaped tool answers "where is this?" — which station, which queue, which assignee. A state-shaped tool answers "what is true about this?" — which scope, which dependencies, which ratifications. The first question loses much of its meaning when stations thin. The second remains meaningful regardless of how station-bound the work is.
 
 ### 4.1 Workflow as a render
 
@@ -101,7 +101,7 @@ This does not mean workflow disappears as a *visualization*. A team that wants t
 
 The framework's stance: **state is canonical; workflow is one possible render among many.** Different teams render the state differently. None of those renders is the framework. None is privileged. The render is a courtesy for the team that finds it useful; the state is what's true.
 
-This reverses the usual tool design. Jira, Linear, Asana, GitHub Projects all model workflow as primary (the board, the column, the assignee, the transition rule) and state as a property of where-it-is-in-the-workflow. The framework models state as primary and lets workflow be a derived view. The reversal is the design choice that survives the LLM-era erosion of queues.
+This reverses the usual tool design. Jira, Linear, Asana, GitHub Projects all model workflow as primary (the board, the column, the assignee, the transition rule) and state as a property of where-it-is-in-the-workflow. The framework models state as primary and lets workflow be a derived view. The bet behind the reversal is that this design choice survives the LLM-era thinning of queues better than the workflow-primary alternative.
 
 ### 4.2 What this preserves and what it discards
 
@@ -114,7 +114,7 @@ Preserved:
 Discarded:
 - "Stage" as a vocabulary item. There is no `stage:` field in frontmatter, no `stages:` enum in contracts, no built-in `requirements → design → implementation` ordering.
 - Handoff entities. A handoff is just a state transition with a role-typed actor; modeling it separately is double-bookkeeping.
-- Workflow rules that encode *typical process order* (e.g., "design must complete before implementation can start"). This smuggles stages back in as cross-entity invariants. The framework should resist these; teams that need them can write them as project-specific checks, not as framework rules.
+- Workflow rules that encode *typical process order* (e.g., "design must complete before implementation can start"). These smuggle stages back in as cross-entity invariants. The framework's design point is to resist them at the framework level; teams that genuinely need them can write them as project-specific checks rather than expect the framework to bake them in.
 
 ---
 
@@ -186,17 +186,17 @@ The framework's existing design (per `01`–`06` and `KERNEL.md`) is mostly stat
 
 ### 7.2 Sharpens the framing
 
-- The framework's pitch should lead with **"state model for the durable structural decisions of software work."** Not workflow tool. Not project-management tool. Not collaboration workspace. State model. This sharpens what it's for and removes ambiguity about whether it competes with Jira or Linear (it doesn't; they're workflow tools, this isn't).
-- Skill content should describe operations as state transitions, not workflow steps. *"How to promote a milestone to `in_progress`"* not *"how to move a milestone from design to implementation."* Skills like `wf-promote`, `wf-add`, `wf-cancel` are already in this voice; keep them this way.
-- Documentation that talks about the framework's value should foreground *"what is currently true about this work"* as the load-bearing question the framework answers.
+- The framework's pitch leads with **"state model for the durable structural decisions of software work."** Not workflow tool. Not project-management tool. Not collaboration workspace. State model. This sharpens what it is for and clarifies that it does not compete with Jira or Linear (those are workflow tools; this is not).
+- Skill content describes operations as state transitions, not workflow steps. *"How to promote a milestone to `in_progress`"* rather than *"how to move a milestone from design to implementation."* Skills like `wf-promote`, `wf-add`, `wf-cancel` are already in this voice.
+- Documentation that talks about the framework's value foregrounds *"what is currently true about this work"* as the load-bearing question the framework answers.
 
 ### 7.3 What to refuse
 
 - **No `phase:` or `stage:` field on entities.** Tempting for visualization. Bad for the model. If a team wants stage labels, they can compute them from status groupings.
 - **No handoff entity.** A handoff is a state transition with a role-typed actor. Modeling it separately is double-bookkeeping.
-- **No cross-entity workflow rules** that encode typical process order beyond what's already encoded as `depends_on` (which is a structural dependency, not a process rule). Resist "design must complete before implementation."
-- **No assignee field as primary.** Assignment is a workflow concept. The actor on a state transition is recorded in the commit trailer; that's enough. If a team needs a "who's looking at this" surface, it's a render of recent activity, not a frontmatter field.
-- **No SLAs, escalations, or time-bound transitions.** These are pipeline tools. The framework doesn't enforce them.
+- **No cross-entity workflow rules** that encode typical process order beyond what's already encoded as `depends_on` (which is a structural dependency, not a process rule). Resist "design must complete before implementation" at the framework level.
+- **No assignee field as primary.** Assignment is a workflow concept. The actor on a state transition is recorded in the commit trailer; that suffices for state-keeping. A "who's looking at this" surface, if a team wants one, is a render of recent activity, not a frontmatter field.
+- **No SLAs, escalations, or time-bound transitions.** These are pipeline tools. The framework does not enforce them.
 
 ### 7.4 What workflow renders the framework can produce
 
@@ -206,13 +206,13 @@ For teams that want them:
 - A burndown / cumulative flow diagram, computed from status changes over time in `git log`.
 - A pipeline view (for CI / deploy / compliance), computed from a small per-team config that maps pipeline steps to status transitions.
 
-Each of these is a renderer over the state, opt-in, computed on demand. None is a primary surface. None is privileged.
+Each of these is a renderer over the state, opt-in, computed on demand. None is a primary surface in the framework's design.
 
 ### 7.5 What this means for the build plan
 
-The PoC plan in `06` does not need to change. Its entity model, status enums, and verbs are already state-shaped. The change is in *framing* (working paper, README, skill descriptions), not in code. Resist the urge to redesign code around this insight; the insight clarifies what's already being built.
+The PoC plan in `06` does not need to change. Its entity model, status enums, and verbs are already state-shaped. The change is in *framing* (working paper, README, skill descriptions), not in code. The insight clarifies what's already being built rather than asking for a redesign.
 
-The next layer (MCP server, web view, role-typed actors) should be designed with state-not-workflow as an explicit constraint. The MCP server exposes state queries and state mutations, not workflow operations. The web view shows current state, with workflow renders as opt-in views. The role concept is chokepoint authority over state transitions, not workflow position.
+A future next layer (MCP server, web view, role-typed actors) is best designed with state-not-workflow as an explicit constraint. The MCP server exposes state queries and state mutations, not workflow operations. The web view shows current state, with workflow renders as opt-in views. The role concept is chokepoint authority over state transitions, not workflow position.
 
 ---
 
@@ -227,7 +227,7 @@ This position has a failure mode worth naming.
 - **Operations and incident response** where the sequence of actions is load-bearing (page → triage → mitigate → resolve → postmortem) and assignment matters in real-time. Runbook tools fit this; state models don't.
 - **Sales and CRM-shaped work**. The pipeline is real; the stages are stations; the throughput matters. Salesforce was not a category error.
 
-The framework's positioning, then, is for **teams where LLM amplification has already eroded the workflow shape**: solo developers, small teams doing trunk-based work, small product organizations, research-flavored engineering. These are not the only teams that exist. Pretending the framework is universal would be the same overreach as Spec Kit, Kiro, and ACE.
+The framework's positioning, then, is for **teams where LLM amplification has thinned the workflow shape**: solo developers, small teams doing trunk-based work, small product organizations, research-flavored engineering. These are not the only teams that exist; framing the framework as universal would be the same overreach as treating Spec Kit, Kiro, or ACE as one-size-fits-all.
 
 This is worth saying out loud in any framing document. The competitive position is not "workflow tools are obsolete." It is "for *these specific shapes of work*, state is the better organizing concept than workflow, and here's a small framework that takes that bet seriously."
 

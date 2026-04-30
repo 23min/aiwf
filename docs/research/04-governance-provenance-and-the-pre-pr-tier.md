@@ -74,22 +74,22 @@ A first-class governance UX should make these surfaces clear:
 - **What can I do here?** Given the current entity and the current actor, list the legal next operations. The verb `aiwf transitions M-005` should answer "what state changes are allowed; what would each require (e.g., reviewer approval, prerequisite milestone closure, ADR ratification)."
 - **What's required for this PR to merge?** Given a PR's diff, surface every governance check that will run, with current pass/fail status. Today a PR shows "8 checks passing" — opaque. A good surface lists the *substantive* checks: "FSM transitions valid ✓ / no id collisions ✓ / two reviewers required ✗."
 - **Who decided this rule?** Governance rules are themselves entities (ADRs, contracts, or framework principles). The UX should let any rule be inspected: "this transition requires two reviewers because of ADR-0042, ratified in PR #87."
-- **Override path.** Governance must be overridable in genuine emergencies, with the override itself being a high-provenance event (named approver, named reason, follow-up issue). Currently, `--no-verify` and "merge without checks" are the override mechanisms — silent, ungoverned, untraceable.
+- **Override path.** Governance benefits from being overridable in genuine emergencies, with the override itself being a high-provenance event (named approver, named reason, follow-up issue). Today `--no-verify` and "merge without checks" are the override mechanisms in common use — silent, ungoverned, untraceable.
 
-The user's chief concern (`03`, §1) about skills being non-deterministic applies tenfold to governance: if "review" or "approval" lives only as a convention the LLM is supposed to follow, it isn't governance. Governance only exists where it's mechanically enforced and visibly surfaced.
+The user's chief concern (`03`, §1) about skills being non-deterministic applies with extra force to governance: if "review" or "approval" lives only as a convention the LLM is supposed to follow, it is not the kind of governance that holds. Governance worth the name lives where it's mechanically enforced and visibly surfaced.
 
 ### 2.5 Storage implications
 
 For provenance to render well:
 
-- **Per-mutation actor + rationale must be captured at write time.** The verb (or the commit trailer) records `actor`, `verb`, `inputs`, optionally `rationale`. Direct edits without this metadata are still allowed, but produce lower-fidelity provenance — and that fidelity loss is itself visible.
-- **External-system links must be first-class.** "This was discussed in Linear ENG-1234" or "this came out of PR #87" should be machine-resolvable and renderable, not buried in prose.
-- **Tombstones (from `03`) must carry full provenance.** Why the entity was removed, by whom, in which PR, what supersedes it.
+- **Per-mutation actor + rationale captured at write time.** The verb (or the commit trailer) records `actor`, `verb`, `inputs`, optionally `rationale`. Direct edits without this metadata are still allowed, but produce lower-fidelity provenance — and that fidelity loss is itself visible.
+- **External-system links as first-class fields.** "This was discussed in Linear ENG-1234" or "this came out of PR #87" benefit from being machine-resolvable and renderable, not buried in prose.
+- **Tombstones (from `03`) carrying full provenance.** Why the entity was removed, by whom, in which PR, what supersedes it.
 
 For governance to enforce well:
 
-- **Rules must be declarative and citeable.** A YAML contract that says "milestone promotion to `complete` requires two reviewers" is also the answer to "why does this need two reviewers?" — the rule and its justification colocate.
-- **Enforcement must be at chokepoints (CI, branch protection, server-side hooks).** Per `03`. Skills that "remind" the LLM to ask for approval are not governance.
+- **Declarative and citeable rules.** A YAML contract that says "milestone promotion to `complete` requires two reviewers" is also the answer to "why does this need two reviewers?" — the rule and its justification colocate.
+- **Enforcement at chokepoints (CI, branch protection, server-side hooks).** Per `03`. Skills that "remind" the LLM to ask for approval are not, on this analysis, governance.
 
 ### 2.6 The minimal shape
 
@@ -217,7 +217,7 @@ Genuinely different shapes need genuinely different framework subsets:
 | Brownfield depth | Greenfield | Legacy with deep history |
 | Regulation | Unregulated personal | Regulated (HIPAA, SOX, ISO 27001, etc.) |
 
-A single project sits at one point on each axis. A solo greenfield short-horizon unregulated project (e.g., a weekend hackathon) and a large-team brownfield long-horizon regulated project (e.g., a bank's core ledger rewrite) need *different framework features*.
+A single project sits at one point on each axis. The four axes are not strictly orthogonal in practice — solo / short / greenfield / unregulated tends to cluster, as does large-team / long / brownfield / regulated, with the middle of the matrix sparser than the corners. But even acknowledging that clustering, a weekend hackathon and a bank's core ledger rewrite need *different framework features*.
 
 ### 4.2 What changes along each axis
 
@@ -231,10 +231,10 @@ A single project sits at one point on each axis. A solo greenfield short-horizon
 
 ### 4.3 Implications
 
-- **The kernel must be small enough that solo-greenfield-short-unregulated finds it useful.** If the smallest viable use is heavyweight, the framework excludes its most numerous potential users.
-- **The framework must be modular enough that large-team-brownfield-long-regulated can compose what it needs without dragging in everything.** Modules should be opt-in, ideally enableable after the project is started.
-- **There is no "default config."** There is a kernel that is always on; everything else is per-project enable/disable in `.ai-repo/config/`.
-- **The framework must integrate with external tooling, not replace it.** Brownfield projects already have Jira, GitHub Projects, an internal ADR convention. The framework adapts; the project doesn't.
+- **A kernel small enough that solo-greenfield-short-unregulated finds it useful.** If the smallest viable use is heavyweight, the framework excludes most of its plausible users.
+- **Modularity sufficient for large-team-brownfield-long-regulated to compose what it needs** without dragging in everything else. Modules are opt-in, ideally enableable after the project has started.
+- **No "default config."** There is a kernel that is always on; everything else is per-project enable/disable in `.ai-repo/config/`.
+- **Integration with external tooling rather than replacement.** Brownfield projects already have Jira, GitHub Projects, an internal ADR convention. The framework's posture is to adapt to the project, not the other way around.
 
 ### 4.4 Module candidates
 
@@ -293,7 +293,7 @@ Equally important — naming where CRDTs do *not* belong:
 - **The prose body of an entity.** Sequence CRDTs (Yjs, Automerge text) exist, but for prose that humans write and edit deliberately, git's text merge is adequate and human-resolvable conflicts are *good* (they prompt review). A CRDT here would silently auto-merge prose in ways the human didn't intend.
 - **The human-friendly id (`E-19`).** This must be sequential and short; the CRDT-friendly version (ULID, content hash) is hostile to the user's stated requirement.
 - **Decisions and rationales.** Their meaning is human; their merge is human judgment. The framework can detect that they changed; it should not auto-resolve.
-- **Cross-branch ordering of unrelated decisions.** "Did we decide A before B, or B before A?" is genuinely incomparable across branches. Any storage that pretends otherwise is lying.
+- **Cross-branch ordering of unrelated decisions.** "Did we decide A before B, or B before A?" is genuinely incomparable across branches. Any storage that imposes a global order on such pairs is fabricating one.
 
 ### 5.4 The hybrid shape
 
@@ -303,7 +303,7 @@ A working answer looks like:
 - **Plain markdown for everything else** — prose bodies, ADR contents, narrative roadmap. Git-merged.
 - **CI verifies the merge result is consistent.** If the metadata layer's merged state is invalid (cycle, illegal transition, etc.), CI surfaces a finding.
 
-This is *not* "use Automerge for the planning state" — that would be heavy-handed. It is "use CRDT *primitives* where they precisely match the data shape, and stick with markdown elsewhere." The engine's merge logic for the metadata is small (a few hundred lines of Go, modeled on the standard CRDT primitives).
+This is *not* "use Automerge for the planning state" — that would be heavy-handed. It is "use CRDT *primitives* where they precisely match the data shape, and stick with markdown elsewhere." The engine's merge logic for the metadata is intended to be small — modeled on the standard CRDT primitives — though the actual size is unknown until prototyped.
 
 ### 5.5 Why this is more promising than full CRDT-substrate
 
@@ -341,7 +341,7 @@ What they do *not* offer:
 
 Meanwhile, before the PR exists, on the user's machine, *all of those things are available*: the AI is in active conversation, local tools run instantly, the git history is mutable, and the human's attention is already engaged.
 
-The user's question — "isn't half of the PR done on the client side, while still on the branch?" — is exactly right. Most reconciliation work *should* happen there. The PR should be a checkpoint that confirms work already done well, not the place where work first gets done.
+The user's question — "isn't half of the PR done on the client side, while still on the branch?" — points at the right shape. Much of the reconciliation work belongs there. The PR can then function as a checkpoint that confirms work already done well, rather than the place where work first gets done.
 
 ### 6.2 Pre-PR tier: what it is
 
@@ -354,7 +354,7 @@ Re-tier the model from `03`:
 | PR Workshop | After push, GitHub/GitLab UI | CI + reviewers (human + AI) + comments |
 | Museum | After merge to main | Branch protections, audit |
 
-The Pre-PR Workshop is where the framework can do its best work, because:
+The Pre-PR Workshop is, on this analysis, where the framework can do its best work, because:
 
 - The AI has full context (ongoing conversation).
 - Local tools run in milliseconds, not minutes.
@@ -363,7 +363,7 @@ The Pre-PR Workshop is where the framework can do its best work, because:
 - The human is engaged, not async.
 - No webhook latency, no notification fatigue.
 
-The PR Workshop is then narrower in scope: it confirms the Pre-PR work, gathers asynchronous reviewer input, gates merge. It is genuinely necessary (especially for multi-person teams) but it should not be where the framework expects most reconciliation to happen.
+The PR Workshop is then narrower in scope: it confirms the Pre-PR work, gathers asynchronous reviewer input, gates merge. It is genuinely necessary (especially for multi-person teams), but it is not where the framework expects most reconciliation to happen.
 
 ### 6.3 What pre-PR tooling looks like
 
@@ -422,7 +422,7 @@ The user noted: *"I suppose some people want to just automate everything and are
 - Make the pre-push hook configurable: warn-only (disciplined-but-pragmatic) vs. block (disciplined-strict) vs. off (autonomy-first).
 - Document the trade-offs visibly.
 
-The framework's principle is not "everyone must be disciplined." It is "discipline should be *available* and *easy*; the absence of discipline should be a configured choice, not an accidental one."
+The framework's principle is not "everyone must be disciplined." It is closer to "discipline is *available* and *easy*; the absence of discipline is a configured choice, not an accidental one."
 
 ---
 
@@ -488,7 +488,7 @@ The next step, when you're ready, is not more research — it is choosing one or
 2. The provenance renderers (`aiwf history`, `aiwf trace`).
 3. The pre-PR tier verb (`aiwf prepush`).
 
-Each is a few weeks of work. Each delivers immediate value. Each can be adopted independently. Each is consistent with the kernel and with the prior research's constraints. The framework, in its real shape, is starting to look very tractable.
+Each is sized in weeks rather than months. Each plausibly delivers immediate value. Each can be adopted independently. Each is consistent with the kernel and with the prior research's constraints. The framework, in this shape, looks tractable.
 
 ---
 
