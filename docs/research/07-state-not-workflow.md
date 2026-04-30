@@ -66,7 +66,7 @@ LLMs collapse the production time. A solo person with LLMs can produce a passabl
 
 What happens to "stages" when production is fast?
 
-- **Queues evaporate.** The PM's tray doesn't fill up; the LLM produces drafts on demand. The architect's tray doesn't fill up. The designer's tray doesn't fill up. The thing that used to define a stage — a queue of work in process at a station — disappears because the station produces output as fast as the input arrives.
+- **Queues thin sharply for the work LLMs handle well.** The PM's tray doesn't fill up the same way; the LLM produces drafts on demand. The architect's tray doesn't fill up the same way. The designer's tray doesn't fill up the same way. Some queues remain (priority decisions, attention, real-world dependencies, customer feedback cycles, decision latency). But the queues that defined stages — work-in-process backed up because a specialist couldn't produce fast enough — thin to the point that they stop being the bottleneck.
 - **Specialist throughput stops being the bottleneck.** The bottleneck moves to *judgment*: which of these LLM-produced artifacts is actually good? Does this PRD reflect what users want? Does this architecture have the failure modes the LLM didn't see? Does this mockup match the brand voice? Judgment doesn't queue the same way production queued. Judgment is fast, can happen in parallel, and can re-enter prior decisions when new information arrives.
 - **Re-entry becomes routine.** A session that started as "implement this milestone" routinely surfaces a requirements gap. A session that started as "design this screen" routinely changes the data model. Pre-LLM, this was painful because going back meant re-queuing through earlier stages. With LLMs, going back is cheap: the LLM can revise the PRD in minutes, not weeks, so the cost of re-entry approaches zero.
 - **Specialization becomes about judgment, not production.** A "designer" in 2026 is not someone who can produce a wireframe (LLMs can produce wireframes). A designer is someone whose *taste* and *judgment* about wireframes is reliable. Same for architects, PMs, engineers. The role doesn't disappear; what defines the role shifts from "can produce X" to "can judge X reliably."
@@ -79,7 +79,7 @@ So the right claim is more nuanced than the slogan: **most of the workflow we in
 
 ## 4. The reframe — state as primary, workflow as render
 
-If queues evaporate and re-entry becomes routine, the question "what stage is this in?" stops describing the work. The artifact isn't *in* a stage; it's in a state. The state describes what's currently true about the artifact, regardless of how it got there or who acted on it last.
+If the throughput-bound queues thin and re-entry becomes routine, the question "what stage is this in?" stops describing the work as well as it used to. The artifact isn't *in* a stage; it's in a state. The state describes what's currently true about the artifact, regardless of how it got there or who acted on it last.
 
 State is what survives when the flow shape doesn't. The questions that have answers regardless of process shape:
 
@@ -243,7 +243,7 @@ This is not "work" in the labor-applied-to-material sense. It's closer to *belie
 
 If we wanted to be ruthlessly precise, the framework would be a **belief-state model** rather than a state model — but "belief state" is a term of art from AI/robotics that would confuse readers, and "state" is close enough. The framing in §6 ("state model for the durable structural decisions of software work") is the right level of precision: it points at belief state without using the technical term.
 
-This substitution explains why workflow shape erodes: workflow is a model of *labor flow*, and the work-as-labor frame is dissolving. State is a model of *belief convergence*, and belief convergence is what's left when labor evaporates. The framework's bet is that belief convergence is the durable shape — the thing that survives "work" being increasingly done by LLMs.
+This substitution explains why workflow shape erodes: workflow is a model of *labor flow*, and the work-as-labor frame is dissolving. State is a model of *belief convergence*, and belief convergence is what's left when labor thins. Belief convergence is what the framework actually tracks — the thing that survives "work" being increasingly done by LLMs.
 
 ---
 

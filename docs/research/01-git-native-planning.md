@@ -231,7 +231,7 @@ The user asked specifically: is there research on AI assistants whose agents/ski
 
 A guess: the problem is one to two years old at any scale. Multi-agent repos with branch-divergent rules became common only as IDE-integrated assistants (Copilot, Cursor, Claude Code) shipped widely (2023–2025). The research community hasn't yet caught up to "prompts and rules as a versioned artifact in collaborative codebases."
 
-**The framework being built here is an opportunity to be one of the first articulations of this problem and a worked solution.** The research doc you are reading now plus a future formal write-up of how this framework handles rule divergence would be a contribution to that literature, not a derivative of it.
+**The framework being built here is an opportunity to articulate this problem — *for AI rules specifically* — and to attempt a worked solution.** Adjacent literatures (configuration management, lockfiles, semver merges, dotfiles conventions) treat related problems for non-AI artifacts; what's thin in 2026 is treatment of branch-divergent *agent rules* as a versioned-artifact problem. The research doc you are reading now plus a future formal write-up of how this framework handles rule divergence would, to the author's knowledge, be among the earlier articulations of that specific corner.
 
 ### 5.4 What we can borrow from elsewhere
 
@@ -388,7 +388,7 @@ It should *not* feel obligated to preserve every architectural commitment. Sever
 
 ## 12. Summary — the move in one paragraph
 
-The original architecture invented an event log and a derived graph because it wanted total ordering, atomicity, hash-verifiable provenance, and replayable history. Git already provides all four — for files. By making the canonical state live exclusively in markdown files (which git understands), the framework gets total ordering, atomicity, provenance, and replay *for free, from git*, and pays no merge-reconciliation cost. The framework's residual job is what git cannot do: validate cross-file semantic invariants, render derived views, and provide ergonomic verbs that produce well-shaped commits. This is a smaller, simpler, and git-native framework that does not fight the substrate it lives on. The cost is giving up sub-commit-granularity provenance and accepting that some merge questions (cross-branch ordering of independent decisions) genuinely have no canonical answer — but the original model lied about both, while this model is honest.
+The original architecture invented an event log and a derived graph because it wanted total ordering, atomicity, hash-verifiable provenance, and replayable history. Git already provides serviceable answers to all four for files: per-file linearity within a branch, atomic commits, blame-attributable provenance, and per-commit checkout-as-replay. By making the canonical state live exclusively in markdown files (which git understands), the framework gets those properties *with much less mechanism* — by leaning on git's per-file merge — and pays no merge-reconciliation cost on a separate store. The framework's residual job is what git cannot do: validate cross-file semantic invariants, render derived views, and provide ergonomic verbs that produce well-shaped commits. This is a smaller, simpler, and git-native framework that does not fight the substrate it lives on. The cost is giving up sub-commit-granularity provenance and accepting that some merge questions (cross-branch ordering of independent decisions) genuinely have no canonical answer — but the original model concealed both, while this model is honest.
 
 ---
 
@@ -402,7 +402,7 @@ The author of any proposal adopting this model should cite:
 - Kleppmann, M., Beresford, A. R. (2017). *A Conflict-Free Replicated JSON Datatype.* IEEE TPDS. — For comparison: the merge-aware substrate alternative.
 - (Practical) Documentation for Cursor `.cursorrules`, Aider `CONVENTIONS.md`, GitHub Copilot custom instructions, Claude Code `CLAUDE.md` and `.claude/skills/`. — All exhibit the same branch-divergence problem; none formalize a solution.
 
-The lack of academic treatment is itself a finding. A formal write-up of how this framework handles rule divergence would, to the author's knowledge, be among the first.
+The thinness of academic treatment for *AI rule divergence specifically* is itself worth noting. A formal write-up of how this framework handles rule divergence would, to the author's knowledge, be among the earlier such articulations — narrower than a "first" claim, but still a contribution worth making.
 
 ---
 
