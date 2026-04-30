@@ -1,8 +1,8 @@
 # ai-workflow Architecture
 
-> **Note:** This document predates the research arc in [`research/`](research/) and is preserved as historical context. The event-sourced kernel and hash-verified projection it describes were substantially walked back; see [`research/00-fighting-git.md`](research/00-fighting-git.md) for the reasons and [`research/KERNEL.md`](research/KERNEL.md) plus [`research/06-poc-build-plan.md`](research/06-poc-build-plan.md) for the current direction. The reasoning here remains useful and a future framework version may revisit pieces of it; do not treat this document as the active design.
+> **⚠ Superseded.** This document captures the framework's *original* ambition — an event-sourced kernel, hash-verified projections, monotonic IDs, RFC 8785 canonicalization. It is **not** the current design. The research arc in [`research/`](research/) walked most of this back; the current direction lives in [`docs/working-paper.md`](working-paper.md), [`research/KERNEL.md`](research/KERNEL.md), and [`research/06-poc-build-plan.md`](research/06-poc-build-plan.md). This file is kept for lineage — the reasoning is useful and a future framework version may revisit parts of it — but new readers should start with the working paper, not here.
 
-**Status:** foundational reference. This document defines what ai-workflow is, the data model it manages, the runtime kernel, the boundary between AI assistants and the deterministic engine, and the principles by which future changes are evaluated.
+**Status:** historical reference. The sections below describe what ai-workflow was *first imagined* to be: the data model, the event-sourced runtime kernel, the boundary between AI assistants and the deterministic engine, and the principles by which the original design proposed to evaluate future changes. Treat the document as a starting point the project moved on from, not as the active design.
 
 ---
 

@@ -14,6 +14,14 @@ AI-assisted software development changes what it means to track work. Plans, dec
 
 ---
 
+## Who this is for
+
+This is a working notebook of one developer thinking through what AI-assisted software work needs, and building the smallest plausible answer to find out. It is aimed at solo practitioners and small teams — where the author feels the friction directly and where the framework, if it ships, has the best chance of fitting. Adjacent readers are welcome: technical project managers and tech leads, spec-driven-development practitioners, tool-builders working on neighboring problems, and engineers earlier in their AI adoption who want a serious treatment of what changes when AI is structurally in the loop.
+
+It is not aimed at large enterprise teams with mature workflow tooling, regulated work where process is the compliance artifact, or anyone looking for a finished product to adopt. The focus on solo and small-team work is a deliberate scoping of the experiment, not a claim about where the interesting problems live; the contribution is the thinking, done in public, with the PoC as a concrete attempt to act on it.
+
+---
+
 ## 1. Introduction
 
 The medium of software work is changing. AI assistants now plan, design, code, and decide alongside humans on tasks measured in days, weeks, or months. They do this from a stateless starting point each session, often on partial context, and without a consistent place to consult what was already settled. The artifacts of long-horizon work — epics, milestones, decisions, gaps, contracts — must be both human-editable and machine-readable, both individually authored and collectively coherent.

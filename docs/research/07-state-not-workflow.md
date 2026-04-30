@@ -264,6 +264,8 @@ The position does not settle several things; they're worth naming so future rese
 
 Software work in 2026 is dissolving the queue-based, station-bound, throughput-limited shape that "workflow" described well for several decades. LLMs collapse production time at every station, which evaporates queues, which dissolves stages, which makes "where is this in the pipeline?" stop being a meaningful question. What's left is *state* — what's currently true about the artifacts the team is converging on. The framework's bet is that state is the durable shape: the question "what is currently true about this milestone, this decision, this contract?" has an answer regardless of process shape, regardless of role specialization, regardless of how LLM-heavy the team's work is. Workflow remains real where genuine pipelines exist (CI, deploy, regulatory chains) and dissolves where it was scaffolding around throughput. The framework models state as canonical and workflow as one possible render among many. This is the position; "there is no workflow" is its slogan, with the standard caveat that slogans overreach and the careful version is in the body of this document.
 
+> **A note on the framework's name.** "ai-workflow" predates this position. By the time the research arc landed on state-as-canonical and workflow-as-render, the name was already attached to the repo, the install script, the consumer adapters, and a body of writing. Renaming has real cost and is not the most pressing question; for now, the name is what it is, and the framework is a state model regardless of what it's called. Whether to rename is an open question, deferred.
+
 ---
 
 ## 12. References to the rest of the arc

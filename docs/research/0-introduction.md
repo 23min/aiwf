@@ -95,7 +95,8 @@ Three reasonable paths, depending on what you want.
 A few things this series does not try to be, named to prevent disappointment:
 
 - **Not a finished design.** The PoC is small and unproven. Real use is what would tell us if the position holds. Nothing here has been pressure-tested at scale.
-- **Not normative for other projects.** The framework targets a specific shape of work — solo through small-team, weeks-to-months horizons, AI-amplified, willing to live in markdown and git. Teams outside that shape may find different positions correct.
+- **Not normative for other projects.** The framework targets a specific shape of work — solo through small-team, weeks-to-months horizons, AI-amplified, willing to live in markdown and git. The focus on solo and small-team work is a deliberate scoping of the experiment, not a claim about where the interesting problems live; teams outside that shape may find different positions correct. Adjacent readers — technical project managers and tech leads, spec-driven-development practitioners, tool-builders, engineers earlier in their AI adoption — are welcome regardless.
+- **Not a sales pitch.** The author works through these problems in solo and small-team settings because that is where personal experimentation is tractable. The PoC may ship, may pivot, or may end up endorsing a different framework that solves these problems better. The contribution is the thinking, done in public, with the PoC as a concrete attempt to act on it.
 - **Not a survey of the field.** Where the series cites other work (Automerge, Pijul, Bayou, MetaGPT, Spec Kit, Kiro, ACE), it does so to position this framework's bets, not to comprehensively review the literature.
 - **Not stable yet.** Docs marked `thesis-draft` are explicitly works-in-progress. Docs marked `defended-position` have been pushed back on and held, but may still be revised as the PoC encounters real friction.
 
