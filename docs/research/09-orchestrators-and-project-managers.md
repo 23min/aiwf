@@ -134,5 +134,6 @@ If that sounds like a senior PM you've worked with, you've worked with a good on
 ## In this series
 
 - Previous: [08 — The PR bottleneck](https://proliminal.net/theses/the-pr-bottleneck/)
+- Next: [10 — Spec-based development is waterfall in disguise](https://proliminal.net/theses/spec-based-as-waterfall/)
 - Related: [07 — State, not workflow](https://proliminal.net/theses/state-not-workflow/)
 - Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

@@ -72,16 +72,18 @@ A short map of the series. Read top to bottom on first encounter; cross-referenc
 - **[`07-state-not-workflow`](https://proliminal.net/theses/state-not-workflow/)** — argues that workflow is one render of state, not the substrate; the framework is a state model with optional workflow renders, not a workflow engine.
 - **[`08-the-pr-bottleneck`](https://proliminal.net/theses/the-pr-bottleneck/)** — the PR is where the throughput limit becomes visible; continuous ratification by humans at state transitions replaces batched post-hoc review; HITL strengthens rather than dissolves under LLM amplification.
 - **[`09-orchestrators-and-project-managers`](https://proliminal.net/theses/orchestrators-and-project-managers/)** — analyzes the relation between orchestration as an emerging craft and traditional PM work; some PMs become orchestrators, some don't, and orchestrators come from many disciplines.
+- **[`10-spec-based-as-waterfall`](https://proliminal.net/theses/spec-based-as-waterfall/)** — argues that spec-based development tools (Spec Kit, Kiro, Tessl) encode the same artifact-handoff dependency graph as waterfall, and that continuous ratification is structurally different because it ratifies state transitions on a single artifact rather than handoffs between artifacts.
 
-Plus one reference document outside the linear chain:
+Plus one reference document and one satellite note outside the linear chain:
 
 - **[`KERNEL.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)** — the eight needs and cross-cutting properties any framework proposal must serve. The rubric the series uses to evaluate its own claims.
+- **[more is much more](https://proliminal.net/notes/more-is-much-more/)** — short note on the LLM-era inversion of Mies van der Rohe's "less is more" credo: with abundant production, the right human response is fewer artifacts to ratify, not more output to consume.
 
 ## 5. How to read this
 
 Three reasonable paths, depending on what you want.
 
-**If you're new and want to follow the discovery,** read in order from `00` through `09`. Expect to disagree with `00`'s starting assumptions; the series disagrees with them too, which is partly the point. By `06` the position is settled; `07`–`09` extend it into adjacent questions.
+**If you're new and want to follow the discovery,** read in order from `00` through `10`. Expect to disagree with `00`'s starting assumptions; the series disagrees with them too, which is partly the point. By `06` the position is settled; `07`–`10` extend it into adjacent questions.
 
 **If you're oriented and want the current position,** read the [working paper](https://proliminal.net/theses/working-paper/) first, then [`KERNEL.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md) (or the §2 summary above), then [`06-poc-build-plan`](https://proliminal.net/theses/poc-build-plan/). The series itself becomes a citation network rather than required reading.
 
