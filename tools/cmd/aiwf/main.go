@@ -109,6 +109,10 @@ Verbs:
   contract verify                run the verify and evolve passes for every contract binding in aiwf.yaml
   contract bind <C-id>           add or replace a binding in aiwf.yaml (--validator, --schema, --fixtures; --force to replace)
   contract unbind <C-id>         remove a binding from aiwf.yaml (entity status untouched)
+  contract recipes               list embedded validator recipes and currently declared validators
+  contract recipe show <name>    print an embedded recipe's markdown
+  contract recipe install <name|--from <path>> [--force]  install a validator from the embedded set or from a YAML file
+  contract recipe remove <name>  remove a declared validator (errors when bindings still reference it)
   help, --help                   show this message
   version, --version             print the binary version
 

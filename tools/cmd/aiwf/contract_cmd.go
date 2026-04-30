@@ -13,14 +13,15 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/contractcheck"
 	"github.com/23min/ai-workflow-v2/tools/internal/contractverify"
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
+	"github.com/23min/ai-workflow-v2/tools/internal/recipe"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 	"github.com/23min/ai-workflow-v2/tools/internal/verb"
 )
 
 // runContract is the dispatcher for `aiwf contract <subcommand>`.
-// I1.4 shipped `verify`; I1.5 adds `bind` and `unbind`. The recipe
-// family lands in I1.6.
+// I1.4 shipped `verify`; I1.5 added `bind`/`unbind`; I1.6 adds the
+// recipe family.
 func runContract(args []string) int {
 	if len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "aiwf contract: missing subcommand. Try 'aiwf contract verify'.")
@@ -33,8 +34,32 @@ func runContract(args []string) int {
 		return runContractBind(args[1:])
 	case "unbind":
 		return runContractUnbind(args[1:])
+	case "recipes":
+		return runContractRecipes(args[1:])
+	case "recipe":
+		return runContractRecipe(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "aiwf contract: unknown subcommand %q\n", args[0])
+		return exitUsage
+	}
+}
+
+// runContractRecipe is the second-level dispatcher for
+// `aiwf contract recipe <subcommand>`.
+func runContractRecipe(args []string) int {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "aiwf contract recipe: missing subcommand. Try 'aiwf contract recipe show <name>'.")
+		return exitUsage
+	}
+	switch args[0] {
+	case "show":
+		return runContractRecipeShow(args[1:])
+	case "install":
+		return runContractRecipeInstall(args[1:])
+	case "remove":
+		return runContractRecipeRemove(args[1:])
+	default:
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe: unknown subcommand %q\n", args[0])
 		return exitUsage
 	}
 }
@@ -207,6 +232,180 @@ func runContractBind(args []string) int {
 		Force:     *force,
 	})
 	return finishVerb(ctx, rootDir, "aiwf contract bind", result, err)
+}
+
+// runContractRecipes handles `aiwf contract recipes`. Lists embedded
+// recipes plus the validators currently declared in aiwf.yaml so the
+// user (or LLM) can see both sides at a glance.
+func runContractRecipes(args []string) int {
+	fs := flag.NewFlagSet("contract recipes", flag.ContinueOnError)
+	root := fs.String("root", "", "consumer repo root")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
+		return exitUsage
+	}
+
+	embedded, err := recipe.List()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
+		return exitInternal
+	}
+
+	contracts, err := loadContractsBlock(rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
+		return exitInternal
+	}
+
+	fmt.Println("Embedded recipes (install via `aiwf contract recipe install <name>`):")
+	for _, r := range embedded {
+		fmt.Printf("  %s\n", r.Name)
+	}
+	fmt.Println()
+	fmt.Println("Currently declared validators in aiwf.yaml.contracts.validators:")
+	if contracts == nil || len(contracts.Validators) == 0 {
+		fmt.Println("  (none)")
+	} else {
+		names := make([]string, 0, len(contracts.Validators))
+		for n := range contracts.Validators {
+			names = append(names, n)
+		}
+		sortStrings(names)
+		for _, n := range names {
+			v := contracts.Validators[n]
+			fmt.Printf("  %s — %s\n", n, v.Command)
+		}
+	}
+	return exitOK
+}
+
+// runContractRecipeShow handles `aiwf contract recipe show <name>`.
+// Prints the embedded recipe's full markdown to stdout.
+func runContractRecipeShow(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "aiwf contract recipe show: usage: aiwf contract recipe show <name>")
+		return exitUsage
+	}
+	r, err := recipe.Get(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe show: %v\n", err)
+		return exitUsage
+	}
+	if _, err := os.Stdout.Write(r.Markdown); err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe show: %v\n", err)
+		return exitInternal
+	}
+	return exitOK
+}
+
+// runContractRecipeInstall handles `aiwf contract recipe install
+// <name>` and `aiwf contract recipe install --from <path>`. The two
+// flag shapes are mutually exclusive: the positional name reads the
+// embedded recipe set; `--from` reads a custom-validator YAML file.
+func runContractRecipeInstall(args []string) int {
+	fs := flag.NewFlagSet("contract recipe install", flag.ContinueOnError)
+	root := fs.String("root", "", "consumer repo root")
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	from := fs.String("from", "", "path to a custom-validator YAML file")
+	force := fs.Bool("force", false, "replace an existing validator with a different definition")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor", "from", "force"})); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+
+	var (
+		r       recipe.Recipe
+		loadErr error
+	)
+	switch {
+	case *from != "" && len(rest) > 0:
+		fmt.Fprintln(os.Stderr, "aiwf contract recipe install: pass either <name> or --from <path>, not both")
+		return exitUsage
+	case *from != "":
+		r, loadErr = recipe.ParseFile(*from)
+	case len(rest) == 1:
+		r, loadErr = recipe.Get(rest[0])
+	default:
+		fmt.Fprintln(os.Stderr, "aiwf contract recipe install: usage: aiwf contract recipe install <name> | --from <path>")
+		return exitUsage
+	}
+	if loadErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", loadErr)
+		return exitUsage
+	}
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
+		return exitUsage
+	}
+	doc, contracts, err := loadContractsDoc(rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	result, err := verb.RecipeInstall(doc, contracts, r.Name, r.Validator, actorStr, verb.RecipeInstallOptions{Force: *force})
+	return finishVerb(ctx, rootDir, "aiwf contract recipe install", result, err)
+}
+
+// runContractRecipeRemove handles `aiwf contract recipe remove <name>`.
+func runContractRecipeRemove(args []string) int {
+	fs := flag.NewFlagSet("contract recipe remove", flag.ContinueOnError)
+	root := fs.String("root", "", "consumer repo root")
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor"})); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		fmt.Fprintln(os.Stderr, "aiwf contract recipe remove: usage: aiwf contract recipe remove <name>")
+		return exitUsage
+	}
+	name := rest[0]
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
+		return exitUsage
+	}
+	doc, contracts, err := loadContractsDoc(rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	result, err := verb.RecipeRemove(doc, contracts, name, actorStr)
+	return finishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err)
+}
+
+// sortStrings is the local insertion-sort used to keep the listing
+// output deterministic without pulling in the sort package.
+func sortStrings(ss []string) {
+	for i := 1; i < len(ss); i++ {
+		for j := i; j > 0 && ss[j-1] > ss[j]; j-- {
+			ss[j-1], ss[j] = ss[j], ss[j-1]
+		}
+	}
 }
 
 // runContractUnbind handles `aiwf contract unbind <C-id>`.
