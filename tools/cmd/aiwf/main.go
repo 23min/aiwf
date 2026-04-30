@@ -77,6 +77,8 @@ func run(args []string) int {
 		return runWhoami(args[1:])
 	case "status":
 		return runStatus(args[1:])
+	case "contract":
+		return runContract(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "aiwf: unknown subcommand %q. Try 'aiwf help'.\n", args[0])
 		return exitUsage
@@ -104,6 +106,7 @@ Verbs:
   import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
   whoami                         print the resolved actor and the source it came from
   status                         project snapshot: in-flight work, open decisions, gaps, recent activity
+  contract verify                run the verify and evolve passes for every contract binding in aiwf.yaml
   help, --help                   show this message
   version, --version             print the binary version
 
@@ -115,10 +118,8 @@ Flags for 'add':
   --epic <id>                    parent epic id (milestone)
   --discovered-in <id>           discovery context (gap)
   --relates-to <id,id,...>       related entities (decision)
-  --format <fmt>                 schema format (contract)
-  --artifact-source <path>       source path of the schema file (contract)
 
-Flags for 'check' and 'history':
+Flags for 'check', 'history', and 'contract verify':
   --format <fmt>                 output format: text (default) or json
   --pretty                       indent JSON output (only with --format=json)
 
