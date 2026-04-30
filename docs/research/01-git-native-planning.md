@@ -176,7 +176,7 @@ Right — and a per-file-per-entity model treats it that way. There is no `backl
 
 This is the deepest worry. Branch A pins ai-framework@v1.5; branch B pins v1.7 (which adds a new entity kind). What happens?
 
-The framework lives as a git submodule under `.ai/` (per architecture §11). The submodule's commit pin is part of the consumer's git tree. So:
+The framework lives as a git submodule under `.ai/` (per architecture Appendix A). The submodule's commit pin is part of the consumer's git tree. So:
 
 - Branch A's `.gitmodules` (or submodule pointer) → ai-framework@v1.5.
 - Branch B's submodule pointer → ai-framework@v1.7.

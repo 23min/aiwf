@@ -28,7 +28,7 @@ The research in this repo takes the problem seriously: what should an AI-aware p
 
 ## The research
 
-`docs/research/` contains an arc of seven documents (`KERNEL.md`, then `00`–`06`) that walk through the load-bearing problems and how they interact:
+`docs/research/` contains an arc of documents (`KERNEL.md`, `0-introduction.md`, then `00`–`11`) that walk through the load-bearing problems and how they interact:
 
 - How a totally-ordered event log fights git's branching model.
 - Whether the framework should reinvent state management or let git be the time machine.
@@ -83,7 +83,7 @@ The intent is to validate concepts quickly, iterate from there, and not paint ou
 ```text
 docs/
 ├── working-paper.md         # thesis-style synthesis of the research arc — single-document entry point
-├── research/                # the design arc — full reasoning across seven documents
+├── research/                # the design arc — full reasoning across the numbered documents
 │   ├── KERNEL.md
 │   ├── 00-fighting-git.md
 │   ├── 01-git-native-planning.md

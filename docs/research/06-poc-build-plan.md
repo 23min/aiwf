@@ -43,7 +43,7 @@ That trims the design surface dramatically.
 
 ## 2. The PoC, in one paragraph
 
-A single Go binary `aiwf`, installed via `go install`. The repo gets one config file (`aiwf.yaml`), one planning directory (`work/`), one decisions directory (`docs/adr/`), and one gitignored materialized-skills directory (`.claude/skills/wf-*`). Three entity kinds: `epic`, `milestone`, `adr`. A handful of verbs that each produce one git commit with a structured trailer. A `aiwf check` command that validates the tree and is run by a `pre-push` git hook. A `aiwf history <id>` that renders `git log` for an entity. That's it. No event log, no graph projection, no CRDTs, no FSM-as-data, no module system, no registry, no multi-host adapters, no tombstones, no cross-branch merge handling.
+A single Go binary `aiwf`, installed via `go install`. The repo gets one config file (`aiwf.yaml`), one planning directory (`work/`), one decisions directory (`docs/adr/`), and one gitignored materialized-skills directory (`.claude/skills/wf-*`). Six entity kinds: `epic`, `milestone`, `adr`, `gap`, `decision`, `contract`. A handful of verbs that each produce one git commit with a structured trailer. A `aiwf check` command that validates the tree and is run by a `pre-push` git hook. A `aiwf history <id>` that renders `git log` for an entity. That's it. No event log, no graph projection, no CRDTs, no FSM-as-data, no module system, no registry, no multi-host adapters, no tombstones, no cross-branch merge handling.
 
 ---
 
@@ -307,7 +307,7 @@ Tasks:
 - Go module skeleton (`tools/cmd/aiwf/main.go`, `tools/internal/`).
 - Frontmatter parser (use `gopkg.in/yaml.v3` + the existing parsing code if any is already in this repo's `tools/` that's safe to reuse; otherwise write 50 lines).
 - Tree loader: walks `work/epics/**` and `docs/adr/**`, parses every entity, returns an in-memory model.
-- `aiwf check` with the seven checks from §5. JSON output (`--format=json`) and human-readable text (default).
+- `aiwf check` with the nine checks from §5. JSON output (`--format=json`) and human-readable text (default).
 - Tests: a synthetic-tree fixture for each finding type.
 
 Deliverable: `aiwf check` runs against a hand-crafted `work/` directory and reports findings. Exit code 0 for clean, 1 for errors.

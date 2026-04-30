@@ -18,7 +18,7 @@ The user proposed installing the framework via `brew` with skills/agents materia
 
 DOI `10.1145/3746059.3747646` resolves to:
 
-**Tomas Petricek, "Denicek: Computational Substrate for Document-Oriented End-User Programming"** — UIST '25, the 38th ACM Symposium on User Interface Software and Technology.
+**Tomas Petricek and Jonathan Edwards, "Denicek: Computational Substrate for Document-Oriented End-User Programming"** — UIST '25, the 38th ACM Symposium on User Interface Software and Technology.
 
 What it actually is: a substrate that represents a program as **a series of edits that construct and transform a document consisting of data and formulas.** It is intended to make hard-to-build end-user programming experiences (collaborative editing, programming by demonstration, incremental recomputation, schema change control, end-user debugging, concrete programming) easier to implement.
 
@@ -74,9 +74,9 @@ This is the answer to the user's question. The choice is not binary; it is layer
 
 ---
 
-## 3. The five layers — what's actually at stake when we say "where does state live?"
+## 3. The six layers — what's actually at stake when we say "where does state live?"
 
-Treating "where state lives" as one question conflates five layers with very different constraints:
+Treating "where state lives" as one question conflates six layers with very different constraints:
 
 | Layer | What it is | Update frequency | Cross-machine? | CI needs it? | Team-shared? |
 |---|---|---|---|---|---|

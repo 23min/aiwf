@@ -340,8 +340,8 @@ Listed roughly in order of relevance to this framework's specific problem.
   The Automerge paper. JSON CRDT with convergence guarantees. **Read first** — it is the closest existing solution to "what if `events.jsonl` were merge-aware out of the box?"
 - **Kleppmann, M., Wiggins, A., van Hardenberg, P., & McGranaghan, M.** (2019). *Local-First Software: You Own Your Data, in Spite of the Cloud.* Onward! 2019.
   Articulates the problem class. Argues collaborative-offline-first is the right model for software-that-edits-shared-state-without-a-central-server. The framework is local-first software whether or not it has acknowledged it.
-- **Tankink, C., & Mimram, S.** (2013, ongoing). *Pijul / patch theory.*
-  Patches as morphisms; merges as pushouts. The rigorous answer to "what does merging two logs mean." Production VCS exists; the theory is the deeper contribution.
+- **Mimram, S., & Di Giusto, C.** (2013). *A Categorical Theory of Patches.* ENTCS 298:283–307.
+  Patches as morphisms; merges as pushouts. The rigorous answer to "what does merging two logs mean." The Pijul VCS (Pierre-Étienne Meunier and Florent Becker, ongoing) is the production realization; the theory is the deeper contribution.
 
 ### Foundational
 
