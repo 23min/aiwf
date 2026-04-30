@@ -733,7 +733,7 @@ Updated as work lands. Granularity matches §13's increments, broken down into t
 | I1.4 — `aiwf contract verify` verb | CLI integration of the verify+evolve runner; new `contract-config` finding (schema/fixtures path existence, entry id matches a contract entity); per-fixture finding codes (`fixture-rejected`, `fixture-accepted`, `evolution-regression`, `validator-error`, `environment`) shipped with the contractverify package in I1.3 | ✅ done |
 | I1.5 — Bind/unbind verbs | `aiwf contract bind`, `aiwf contract unbind`; extend `aiwf add contract` with `--validator/--schema/--fixtures` flags; lifecycle commit trailers | ✅ done |
 | I1.6 — Recipe verbs + embedded recipes | `aiwf contract recipes`, `recipe show`, `recipe install [<name>\|--from <path>]`, `recipe remove`; embed CUE + JSON Schema recipes via `embed.FS` | ✅ done |
-| I1.7 — Pre-push integration | `aiwf check` runs verify+evolve when `aiwf.yaml.contracts.entries[]` is non-empty; terminal-status contracts (`rejected`, `retired`) skipped | ⏳ not started |
+| I1.7 — Pre-push integration | `aiwf check` runs verify+evolve when `aiwf.yaml.contracts.entries[]` is non-empty; terminal-status contracts (`rejected`, `retired`) skipped | ✅ done |
 | I1.8 — `aiwf-contract` skill | Embed and materialize the skill at `.claude/skills/aiwf-contract/SKILL.md` (source draft is §16 of this doc) | ⏳ not started |
 | I2 — Migration manifest extension | `contracts:` top-level block in import manifest parser; collision semantics; trailer; producer mapping documented | ⏳ deferred (after I1) |
 | I3 — Recipe ecosystem | Recipes for Protobuf, OpenAPI, Pydantic added when a real consumer needs each | ⏳ deferred (real-friction trigger) |

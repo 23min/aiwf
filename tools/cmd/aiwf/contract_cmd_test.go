@@ -123,6 +123,100 @@ contracts:
 	_ = captured
 }
 
+// TestRun_CheckIncludesContractFindings: `aiwf check` (the entity-tree
+// validator) must also surface contract-config and verify-pass
+// findings when bindings exist. This is the pre-push integration:
+// the same hook fires both kinds of validation.
+func TestRun_CheckIncludesContractFindings(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("add contract: %d", rc)
+	}
+
+	script := fakeValidatorCLI(t, root)
+	// One valid PASS, one valid FAIL → fixture-rejected expected.
+	writeFixtureFile(t, root, "fixtures/v1/valid/good.json", "PASS")
+	writeFixtureFile(t, root, "fixtures/v1/valid/bad.json", "FAIL")
+	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
+
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: 0.1.0
+actor: human/test
+contracts:
+  validators:
+    fake:
+      command: `+script+`
+      args:
+        - "{{fixture}}"
+  entries:
+    - id: C-001
+      validator: fake
+      schema: schema.cue
+      fixtures: fixtures
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"check", "--root", root}); rc != exitFindings {
+			t.Errorf("got rc=%d, want %d (findings)", rc, exitFindings)
+		}
+	})
+	out := string(captured)
+	if !strings.Contains(out, "fixture-rejected") {
+		t.Errorf("expected `fixture-rejected` finding from `aiwf check`:\n%s", out)
+	}
+}
+
+// TestRun_CheckSkipsTerminalContracts: a rejected/retired contract
+// is excluded from verify, so a binding pointing at a fixture that
+// would otherwise fail does not block `aiwf check`.
+func TestRun_CheckSkipsTerminalContracts(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "contract", "--title", "Old API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("add contract: %d", rc)
+	}
+	if rc := run([]string{"cancel", "--root", root, "--actor", "human/test", "C-001"}); rc != exitOK {
+		t.Fatalf("cancel C-001: %d", rc)
+	}
+
+	script := fakeValidatorCLI(t, root)
+	writeFixtureFile(t, root, "fixtures/v1/valid/bad.json", "FAIL")
+	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
+
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: 0.1.0
+actor: human/test
+contracts:
+  validators:
+    fake:
+      command: `+script+`
+      args:
+        - "{{fixture}}"
+  entries:
+    - id: C-001
+      validator: fake
+      schema: schema.cue
+      fixtures: fixtures
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"check", "--root", root}); rc != exitOK {
+			t.Errorf("got rc=%d, want %d (terminal contract skipped)", rc, exitOK)
+		}
+	})
+	out := string(captured)
+	if strings.Contains(out, "fixture-rejected") {
+		t.Errorf("terminal contract should not produce fixture findings:\n%s", out)
+	}
+}
+
 // TestRun_ContractVerifyReportsConfigMissingSchema verifies the
 // contract-config check fires for a binding whose schema path
 // doesn't resolve.

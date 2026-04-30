@@ -85,7 +85,12 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	return findings
 }
 
-func sortFindings(fs []Finding) {
+// SortFindings orders findings by severity (errors first), then code,
+// then path. Stable so callers that pre-sort within a code group keep
+// their order. Exported for callers that merge findings from multiple
+// sources (e.g. the CLI's `aiwf check` after appending contract
+// findings to the entity-tree slice).
+func SortFindings(fs []Finding) {
 	sort.SliceStable(fs, func(i, j int) bool {
 		if fs[i].Severity != fs[j].Severity {
 			return fs[i].Severity == SeverityError
@@ -96,6 +101,11 @@ func sortFindings(fs []Finding) {
 		return fs[i].Path < fs[j].Path
 	})
 }
+
+// sortFindings is the internal alias used by Run. Kept as a separate
+// symbol so the package's per-call sort can evolve independently of
+// the exported shape if needed.
+func sortFindings(fs []Finding) { SortFindings(fs) }
 
 // HasErrors reports whether the slice contains any error-severity finding.
 func HasErrors(fs []Finding) bool {

@@ -175,6 +175,16 @@ func runCheck(args []string) int {
 
 	findings := check.Run(tr, loadErrs)
 
+	contracts, contractErr := loadContractsBlock(resolved)
+	if contractErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", contractErr)
+		return exitInternal
+	}
+	contractFindings := runContractValidation(ctx, tr, resolved, contracts)
+	findings = append(findings, contractFindings...)
+	applyHintsLikeRun(findings)
+	check.SortFindings(findings)
+
 	switch *format {
 	case "text":
 		if err := render.Text(os.Stdout, findings); err != nil {
@@ -190,6 +200,7 @@ func runCheck(args []string) int {
 			Metadata: map[string]any{
 				"root":     resolved,
 				"entities": len(tr.Entities),
+				"bindings": bindingCount(contracts),
 				"findings": len(findings),
 			},
 		}

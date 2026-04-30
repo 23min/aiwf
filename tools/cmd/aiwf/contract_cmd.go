@@ -64,6 +64,40 @@ func runContractRecipe(args []string) int {
 	}
 }
 
+// runContractValidation is the shared entry point for both the CLI
+// `aiwf contract verify` and the pre-push integration in `aiwf check`.
+// It runs contractcheck (config correspondence) plus contractverify
+// (subprocess validators) and returns the combined findings slice
+// (un-sorted, hints not applied — caller composes).
+//
+// A nil contracts argument is treated as "no contracts configured":
+// the function returns nil. Terminal-state contract entities
+// (rejected, retired) are excluded from verification.
+func runContractValidation(ctx context.Context, tr *tree.Tree, rootDir string, contracts *aiwfyaml.Contracts) []check.Finding {
+	if contracts == nil {
+		return nil
+	}
+	configFindings := contractcheck.Run(tr, contracts, rootDir)
+
+	skip := make(map[string]bool)
+	for _, e := range tr.ByKind(entity.KindContract) {
+		if e.Status == "rejected" || e.Status == "retired" {
+			skip[e.ID] = true
+		}
+	}
+	verifyResults := contractverify.Run(ctx, contractverify.Options{
+		RepoRoot:  rootDir,
+		Contracts: contracts,
+		SkipIDs:   skip,
+	})
+
+	out := append([]check.Finding(nil), configFindings...)
+	for _, r := range verifyResults {
+		out = append(out, resultToFinding(r))
+	}
+	return out
+}
+
 // runContractVerify runs the verify and evolve passes for every
 // non-terminal contract binding in aiwf.yaml. Output respects the
 // standard --format=text/json envelope and exit codes.
@@ -100,25 +134,9 @@ func runContractVerify(args []string) int {
 		return exitInternal
 	}
 
-	configFindings := contractcheck.Run(tr, contracts, rootDir)
-
-	skip := make(map[string]bool)
-	for _, e := range tr.ByKind(entity.KindContract) {
-		if e.Status == "rejected" || e.Status == "retired" {
-			skip[e.ID] = true
-		}
-	}
-	verifyResults := contractverify.Run(ctx, contractverify.Options{
-		RepoRoot:  rootDir,
-		Contracts: contracts,
-		SkipIDs:   skip,
-	})
-
-	findings := append([]check.Finding(nil), configFindings...)
-	for _, r := range verifyResults {
-		findings = append(findings, resultToFinding(r))
-	}
+	findings := runContractValidation(ctx, tr, rootDir, contracts)
 	applyHintsLikeRun(findings)
+	check.SortFindings(findings)
 
 	switch *format {
 	case "text":

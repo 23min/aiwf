@@ -31,6 +31,12 @@ aiwf check --format=json --pretty
 | `refs-resolve/unresolved` | A reference points at an id that does not exist. | Either the target was never created, or the id is mistyped. |
 | `refs-resolve/wrong-kind` | A reference points at an entity of the wrong kind. | A milestone's `parent` must be an epic; an ADR's `supersedes` must be ADRs; etc. |
 | `no-cycles` | A cycle in the milestone `depends_on` DAG or the ADR `supersedes` chain. | Remove a back-edge. |
+| `contract-config` | A contract binding in `aiwf.yaml` references an id with no entity, a missing schema/fixtures path, or a contract entity has no binding. | Run `aiwf contract bind` / `aiwf add contract`, fix the path, or `aiwf contract unbind`. |
+| `fixture-rejected` | A `valid/` fixture failed the schema. | Make the schema accept it, or move it to `invalid/`. |
+| `fixture-accepted` | An `invalid/` fixture passed the schema. | Tighten the schema, or move to `valid/`. |
+| `evolution-regression` | A historical `valid/` fixture fails the HEAD schema. | Revert the schema change, migrate the fixture, or rebind. |
+| `validator-error` | Every valid fixture for a contract was rejected — the schema or validator invocation is likely broken. | Inspect the captured stderr and fix the schema or validator command. |
+| `environment` | Validator binary not on PATH. | Install it (see the recipe's install instructions) or fix `command:` in `aiwf.yaml`. |
 
 ## Findings (warnings)
 
