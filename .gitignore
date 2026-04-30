@@ -32,3 +32,7 @@ work/epics/
 .claude/*
 !.claude/settings.json
 !.claude/statusline.sh
+
+# Drafts that ship to proliminal.net/notes are written and revised locally,
+# not tracked in this repo. They face publicly via proliminal, not via git.
+docs/notes/
