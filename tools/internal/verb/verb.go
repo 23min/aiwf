@@ -15,17 +15,23 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
 )
 
-// Result is what every verb returns. Exactly one of Findings or Plan
-// is populated:
+// Result is what every verb returns. Exactly one of Findings, Plan,
+// or the NoOp signal is populated:
 //
 //   - Findings non-empty   → validation failed; no disk changes pending.
 //     Caller renders findings and exits 1.
 //   - Plan non-nil         → projection is clean; caller should apply
 //     Operations, stage them, and commit with
 //     the plan's subject + trailers.
+//   - NoOp == true         → validation passed, but the requested change
+//     is already in place. Caller prints
+//     NoOpMessage on stdout and exits 0. Used by
+//     idempotent verbs (bind on exact match, etc.).
 type Result struct {
-	Findings []check.Finding
-	Plan     *Plan
+	Findings    []check.Finding
+	Plan        *Plan
+	NoOp        bool
+	NoOpMessage string
 }
 
 // Plan describes the work the orchestrator must do after validation

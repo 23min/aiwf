@@ -107,6 +107,8 @@ Verbs:
   whoami                         print the resolved actor and the source it came from
   status                         project snapshot: in-flight work, open decisions, gaps, recent activity
   contract verify                run the verify and evolve passes for every contract binding in aiwf.yaml
+  contract bind <C-id>           add or replace a binding in aiwf.yaml (--validator, --schema, --fixtures; --force to replace)
+  contract unbind <C-id>         remove a binding from aiwf.yaml (entity status untouched)
   help, --help                   show this message
   version, --version             print the binary version
 
@@ -118,6 +120,10 @@ Flags for 'add':
   --epic <id>                    parent epic id (milestone)
   --discovered-in <id>           discovery context (gap)
   --relates-to <id,id,...>       related entities (decision)
+  --linked-adr <id,id,...>       ADRs motivating the contract (contract)
+  --validator <name>             validator name to bind (contract; with --schema, --fixtures: atomic add+bind)
+  --schema <path>                schema path (contract; pairs with --validator and --fixtures)
+  --fixtures <path>              fixtures-tree root (contract; pairs with --validator and --schema)
 
 Flags for 'check', 'history', and 'contract verify':
   --format <fmt>                 output format: text (default) or json

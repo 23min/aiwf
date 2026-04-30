@@ -35,6 +35,10 @@ func runAdd(args []string) int {
 	epicID := fs.String("epic", "", "parent epic id (milestone only)")
 	discoveredIn := fs.String("discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
 	relatesTo := fs.String("relates-to", "", "comma-separated ids the decision relates to (decision only)")
+	linkedADRs := fs.String("linked-adr", "", "comma-separated ADR ids motivating the contract (contract only)")
+	bindValidator := fs.String("validator", "", "validator name (contract only; if set, --schema and --fixtures are also required and the binding is added atomically)")
+	bindSchema := fs.String("schema", "", "repo-relative path to the schema (contract only; pairs with --validator and --fixtures)")
+	bindFixtures := fs.String("fixtures", "", "repo-relative path to the fixtures-tree root (contract only; pairs with --validator and --schema)")
 
 	fs.SetOutput(os.Stderr)
 	if err := fs.Parse(args[1:]); err != nil {
@@ -60,19 +64,43 @@ func runAdd(args []string) int {
 	}
 
 	opts := verb.AddOptions{
-		EpicID:       *epicID,
-		DiscoveredIn: *discoveredIn,
+		EpicID:        *epicID,
+		DiscoveredIn:  *discoveredIn,
+		BindValidator: *bindValidator,
+		BindSchema:    *bindSchema,
+		BindFixtures:  *bindFixtures,
 	}
-	if *relatesTo != "" {
-		for _, s := range strings.Split(*relatesTo, ",") {
-			if s = strings.TrimSpace(s); s != "" {
-				opts.RelatesTo = append(opts.RelatesTo, s)
-			}
+	opts.RelatesTo = splitCommaList(*relatesTo)
+	opts.LinkedADRs = splitCommaList(*linkedADRs)
+
+	if k == entity.KindContract && *bindValidator != "" {
+		doc, contracts, loadErr := loadContractsDoc(rootDir)
+		if loadErr != nil {
+			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", loadErr)
+			return exitUsage
 		}
+		opts.AiwfDoc = doc
+		opts.AiwfContracts = contracts
 	}
 
 	result, err := verb.Add(tr, k, *title, actorStr, opts)
 	return finishVerb(ctx, rootDir, "aiwf add", result, err)
+}
+
+// splitCommaList parses comma-separated CLI values into a clean slice
+// (trimmed, empty entries dropped). Shared between --relates-to and
+// --linked-adr.
+func splitCommaList(s string) []string {
+	if s == "" {
+		return nil
+	}
+	var out []string
+	for _, item := range strings.Split(s, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 // runPromote handles `aiwf promote <id> <new-status>`.
@@ -272,7 +300,8 @@ func runReallocate(args []string) int {
 // finishVerb is the post-verb handler shared by every mutating
 // subcommand: it surfaces a Go error as a usage error, renders any
 // findings, applies the plan when present, and prints a one-line
-// summary on success.
+// summary on success. NoOp results bypass the apply path entirely
+// and print NoOpMessage on stdout.
 func finishVerb(ctx context.Context, root, label string, result *verb.Result, err error) int {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", label, err)
@@ -285,6 +314,10 @@ func finishVerb(ctx context.Context, root, label string, result *verb.Result, er
 	if check.HasErrors(result.Findings) {
 		_ = render.Text(os.Stderr, result.Findings)
 		return exitFindings
+	}
+	if result.NoOp {
+		fmt.Println(result.NoOpMessage)
+		return exitOK
 	}
 	if result.Plan == nil {
 		fmt.Fprintf(os.Stderr, "%s: validation passed but no plan produced\n", label)

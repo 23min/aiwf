@@ -26,7 +26,7 @@ The six kinds and their required flags:
 | adr | `--title` | Allocates `ADR-NNNN` under `docs/adr/`. |
 | gap | `--title` | Optional `--discovered-in <id>`. |
 | decision | `--title` | Optional `--relates-to <id,id,...>`. |
-| contract | `--title` | Allocates `C-NNN` and creates `work/contracts/C-NNN-<slug>/contract.md`. Schema and validator binding land later via `aiwf contract bind`. |
+| contract | `--title` | Allocates `C-NNN` and creates `work/contracts/C-NNN-<slug>/contract.md`. Optional `--linked-adr <id,id,...>` records the motivating ADRs. Pass `--validator <name> --schema <path> --fixtures <path>` together to also bind the contract in aiwf.yaml within the same commit. |
 
 ## What aiwf does
 
