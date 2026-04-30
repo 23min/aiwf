@@ -18,7 +18,7 @@ The user proposed installing the framework via `brew` with skills/agents materia
 
 DOI `10.1145/3746059.3747646` resolves to:
 
-**Tomas Petricek, "Denicek: Computational Substrate for Document-Oriented End-User Programming"** — UIST '25, the 38th ACM Symposium on User Interface Software and Technology.
+**Tomas Petricek and Jonathan Edwards, "Denicek: Computational Substrate for Document-Oriented End-User Programming"** — UIST '25, the 38th ACM Symposium on User Interface Software and Technology.
 
 What it actually is: a substrate that represents a program as **a series of edits that construct and transform a document consisting of data and formulas.** It is intended to make hard-to-build end-user programming experiences (collaborative editing, programming by demonstration, incremental recomputation, schema change control, end-user debugging, concrete programming) easier to implement.
 
@@ -66,17 +66,17 @@ In place of empirical findings, here are observed patterns from the field as of 
 - **Long-horizon open-source projects almost universally keep architectural decisions in-repo** (ADRs, CONTRIBUTING.md, governance docs). They keep operational tickets external (GitHub Issues, Discussions). The split is by *kind of artifact*, not by tool ideology.
 - **Solo and small-team AI-coding projects** trend toward all-in-repo (CLAUDE.md, in-repo specs, ROADMAP.md). The friction of an external system is high relative to the value for one person.
 - **Mature companies with regulatory exposure** keep audit-bearing artifacts in systems with formal access controls and immutability guarantees (Jira, ServiceNow, Confluence with retention policies). They sometimes mirror summaries to the repo.
-- **The fastest-growing AI-coding tools** (Cursor, Claude Code, Copilot, Aider, Continue) all add per-repo configuration files, which is empirical evidence of a kind — every tool reaches independently for in-repo configuration as the necessary surface, even when the rest of the system is external. The ergonomic pull toward in-repo *for some things* is consistent.
+- **The fastest-growing AI-coding tools** (Cursor, Claude Code, Copilot, Aider, Continue) all add per-repo configuration files. Convergent industry practice is a weak signal on its own — it can equally reflect path dependence, fashion, or vendor incentives — but the consistency of the pull toward in-repo *for some things* is at least suggestive.
 
-The pattern is not "in-repo wins" or "external wins." The pattern is **stratification**: different layers of the system gravitate toward different locations based on their constraints, and the successful designs explicitly stratify rather than picking one location for everything.
+The pattern visible in the field is not "in-repo wins" or "external wins." It is **stratification**: different layers of the system gravitate toward different locations based on their constraints, and the more successful designs (judging by adoption and longevity) explicitly stratify rather than picking one location for everything.
 
-This is the answer to the user's question. The choice is not binary; it is layered. Section §3 unpacks the layers.
+On this reading, the choice is not binary; it is layered. Section §3 unpacks the layers.
 
 ---
 
-## 3. The five layers — what's actually at stake when we say "where does state live?"
+## 3. The six layers — what's actually at stake when we say "where does state live?"
 
-Treating "where state lives" as one question conflates five layers with very different constraints:
+Treating "where state lives" as one question conflates six layers with very different constraints:
 
 | Layer | What it is | Update frequency | Cross-machine? | CI needs it? | Team-shared? |
 |---|---|---|---|---|---|
@@ -93,9 +93,9 @@ Let me walk each.
 
 ### 3.1 L1 — The engine binary
 
-**Where it should live: outside the repo, on the machine, package-managed.**
+**Argued placement: outside the repo, on the machine, package-managed.**
 
-This is the right answer and the framework currently mishandles it. The architecture's "framework as a git submodule under `.ai/`" pattern (per `architecture.md` §11) was a workaround for not having a build/distribution story. With a real binary distributed via brew, apt, scoop, or a `go install` step, the submodule disappears.
+The framework currently handles this differently. The architecture's "framework as a git submodule under `.ai/`" pattern (per `architecture.md` Appendix A) was a workaround for not having a build/distribution story. With a real binary distributed via brew, apt, scoop, or a `go install` step, the submodule disappears.
 
 Properties this gets right:
 
@@ -109,7 +109,7 @@ The only subtlety: the binary's *required version* is a per-project policy decis
 
 ### 3.2 L2 — Per-project policy
 
-**Where it should live: in the repo, small, YAML.**
+**Argued placement: in the repo, small, YAML.**
 
 This is the layer the user's proposal under-specifies. "PM-agnostic" and "process-agnostic" are properties; they still need to be *configured* somewhere, and that somewhere is per-project, team-shared, and travels with clones.
 
@@ -151,24 +151,24 @@ A minimal `aiwf.yaml` (or `.ai-repo/config.yaml`) at the project root.
 
 #### Where they break down
 
-The case for outside-the-repo collapses on these facts:
+The case for outside-the-repo weakens substantially on these points (each is conditional — a defender of L3-external can paper over individual ones with extra infrastructure, but the cumulative pile is what shifts the verdict):
 
-- **Project identity.** "This project" needs an id that is stable across clones, forks, transfers, and renames. `git config remote.origin.url` is fragile (forks, transfers); the repo path is fragile (move the directory); a `.aiwf-project-id` file is back to in-repo. There is no clean answer that doesn't put *something* in the repo.
-- **Multi-machine without a server.** Engineer works on desktop and laptop. State on desktop only. Solutions: a sync service (which is a server, the thing we were avoiding), Dropbox-like external sync (fragile, partial-sync issues, conflict resolution still needed), or manual rsync (terrible UX). For the brew-install model to work multi-machine, *some* server is required somewhere.
-- **Multi-user without a server.** Two engineers on the same project. Each has their own local state. To collaborate they must sync. You are now building Linear from scratch but worse, because Linear has had years to harden.
-- **CI in fresh containers.** CI clones the repo, installs the binary, and runs `aiwf check`. With L3 in-repo, this works. With L3 external, CI must fetch state from somewhere — credentials, network, race conditions, vendor lock-in, API rate limits.
-- **Bisectability.** Permanently lost. A code regression that traces to "we changed our minds about this milestone two months ago" cannot be bisected if the milestone state is current-only.
-- **Compliance for regulated industries.** "Show me the planning state at the time this commit was authored" is a compliance question some teams must answer. Out-of-repo current-only state cannot.
+- **Project identity.** "This project" needs an id that is stable across clones, forks, transfers, and renames. `git config remote.origin.url` is fragile (forks, transfers); the repo path is fragile (move the directory); a `.aiwf-project-id` file is back to in-repo. No clean answer avoids putting *something* in the repo.
+- **Multi-machine without a server.** Engineer works on desktop and laptop. State on desktop only. Solutions: a sync service (a server — the thing the proposal aimed to avoid), Dropbox-like external sync (fragile, partial-sync issues, conflict resolution still needed), or manual rsync (poor UX). For the brew-install model to work multi-machine, *some* server is required somewhere — unless the user is comfortable depending on a general-purpose sync tool they already run.
+- **Multi-user without a server.** Two engineers on the same project. Each has their own local state. To collaborate they have to sync. The result is a path toward rebuilding Linear-shaped infrastructure, against tools that have had years to harden.
+- **CI in fresh containers.** CI clones the repo, installs the binary, and runs `aiwf check`. With L3 in-repo, this works without further setup. With L3 external, CI fetches state from somewhere — credentials, network, race conditions, vendor lock-in, API rate limits — assuming the CI is allowed to reach that somewhere.
+- **Bisectability.** Lost when state is current-only. A code regression that traces to "we changed our minds about this milestone two months ago" cannot be bisected if the milestone state is not co-versioned with the code. (Whether teams actually bisect plans is a separate question; the option disappears either way.)
+- **Compliance for regulated industries.** "Show me the planning state at the time this commit was authored" is a compliance question some teams have to answer. Out-of-repo current-only state cannot — unless the external store is itself a versioned-history system, which is rare.
 
 #### The honest verdict on L3
 
-For a **solo developer on a single machine**, out-of-repo is *almost* viable, and the convenience is real. For anything else, the costs of out-of-repo dominate. And designing the framework for solo-on-single-machine and then trying to scale up later is the bad direction; designing for the harder case and degrading gracefully to the easy one is the good direction.
+For a **solo developer on a single machine**, out-of-repo is *almost* viable, and the convenience is real. For anything else, the costs of out-of-repo tend to dominate. And designing the framework for solo-on-single-machine first and then attempting to scale up trades a known pattern (degrade gracefully from the harder case) for one with more sharp edges (retrofit a sync model after the fact).
 
 **L3 belongs in the repo.** This is the conclusion the prior research arrived at and the user's proposal does not (yet) overturn.
 
 ### 3.4 L4 — Per-developer ergonomic state
 
-**Where it should live: outside the repo, in the developer's home directory or XDG config.**
+**Argued placement: outside the repo, in the developer's home directory or XDG config.**
 
 What L4 contains:
 
@@ -284,7 +284,7 @@ This intuition is right for L1 and not for L2/L3. Walk it precisely:
 - **The LLM's invocation context** (system prompt fragments, rules, tools available) is partly external (what the host like Claude Code adds) and partly **in-repo** (`CLAUDE.md`, `.claude/skills/`, `.cursorrules`, `.github/copilot-instructions.md`). This is empirical: every major AI coding host has converged on a per-repo configuration file. **Even LLMs don't keep their per-project configuration external.**
 - **The LLM's per-project planning state** is whatever the human or the host gives it. Today there is no good answer — which is exactly why this framework is being designed.
 
-So the analogy supports "framework binary external" (L1) but actively undermines "framework state external" (L3). The empirical pattern across every AI coding tool in 2026 is: external binary, in-repo configuration. The framework should follow that pattern.
+So the analogy supports "framework binary external" (L1) and works against "framework state external" (L3). The pattern across major AI coding tools in 2026 is: external binary, in-repo configuration. Following that pattern is the conservative move; deviating from it earns its own justification.
 
 ---
 
@@ -442,21 +442,21 @@ These belong in subsequent research docs or in implementation proposals.
 
 > *Is there any information out there regarding which model is more successful or more promising?*
 
-No rigorous empirical comparison exists for "all in-repo" vs. "all out-of-repo" planning state in AI-assisted teams. What does exist is **convergent practice across successful tools**, which is itself a kind of evidence: the answer is **layered, not binary**. Successful patterns put the binary outside, the policy and content (including project skills) inside, third-party skills cached locally and lockfile-pinned, the personal and materialized adapters outside. The user's proposal is right where it matches that pattern (L1, L5a, L6, and the user's revision adding L5b/c/d) and wrong where it deviates (L3).
+No rigorous empirical comparison exists for "all in-repo" vs. "all out-of-repo" planning state in AI-assisted teams. What does exist is **convergent practice across visibly successful tools** — a weaker signal than empirical study, but consistent enough to take seriously: the answer is **layered, not binary**. The visible pattern puts the binary outside, the policy and content (including project skills) inside, third-party skills cached locally and lockfile-pinned, the personal and materialized adapters outside. The user's proposal aligns with that pattern at L1, L5a, L6, and the user's revision adding L5b/c/d; it diverges at L3, where the convergent pattern and the §3.3 case both lean against external storage.
 
 > *What's so wrong about having the framework installed as a tool via brew?*
 
-Nothing. That part is right and should be adopted. The error is conflating "framework binary external" (correct) with "framework state external" (wrong for almost any team).
+Nothing. That part fits and is worth adopting. The mistake — on this analysis — is conflating "framework binary external" with "framework state external"; the second move is harder to defend at most team sizes.
 
 > *Isn't that how LLMs work?*
 
-The model is external. The per-project configuration is in-repo. Every successful AI coding tool in 2026 confirms this split. The framework should match.
+The model is external. The per-project configuration is in-repo. Major AI coding tools in 2026 follow this split. The framework's layered placement matches it.
 
 > *I'd `brew install aiwf` and get agents and skills (versioned, gitignored) in my repo folder.*
 
 Yes — with the user's revision sharpening this. Skills come from three sources (binary-bundled framework skills, in-repo project skills, registry-installed third-party skills) plus per-machine local config; the materialized adapters that the AI host actually reads are composed from those sources, gitignored, and **regenerated only on explicit `aiwf init` / `aiwf update`** — so the AI's behavior is stable across `git checkout`. This cleanly fixes the AI-rule-divergence problem identified in `04` while honoring the reality that skills must evolve independently of the framework binary, that projects have their own skills, and that local environments differ.
 
-The framework that emerges from this layering is *smaller* than the current architecture, *more deployable* than the current architecture (brew install vs. submodule wrangling), and *more honest* about which problems live where.
+The framework that emerges from this layering is *smaller* than the current architecture and *more deployable* (brew install vs. submodule wrangling). It is also more explicit about which problems live where — at the cost of a brew/apt distribution pile (taps, signing, reproducible binaries) the original submodule pattern didn't carry.
 
 ---
 

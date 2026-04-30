@@ -60,7 +60,7 @@ There are three loci where enforcement can live, ranked by reliability:
 | `aiwf` verbs that the LLM is supposed to invoke | Low | Only if invoked | Trivially — the LLM just edits files directly |
 | Skills that document what to do | Lowest | Only if loaded and followed | Skills are advisory text; not enforcement at all |
 
-**The framework's correctness story must rest on the top of this table, not the bottom.** Skills are useful — they speed the LLM up, give it the right verbs to reach for — but they cannot be the layer that *guarantees* anything. CI on the PR must be the layer that guarantees.
+**The framework's correctness story benefits from resting on the top of this table, not the bottom.** Skills are useful — they speed the LLM up, give it the right verbs to reach for — but they are an unreliable layer to lean on for *guarantees*. CI on the PR is where the guarantees actually hold.
 
 This reframes "trace-first writes," "the assistant never writes the projection directly," "the assistant never invents IDs," and similar architectural commitments. As written in `CLAUDE.md`, those commitments are *requests to the assistant*. They will be obeyed sometimes and not obeyed other times. **They become real guarantees only when CI checks them on every PR.**
 
@@ -81,7 +81,7 @@ This is the design lever. The framework's structural choices should be made to m
 9. **Branch carries the milestone it claims to carry.** If branch is named `milestone/M-005-...`, the PR contains commits that touch `M-005`.
 10. **PR template fields are filled.** Closes-link, acceptance-criteria checklist, principles-checklist conformance.
 
-Items 1–7 are the **structural correctness layer**. Items 8–10 are the **discipline layer**. Both should run on every PR. Both should block merge on failure (with override-with-reason for emergencies).
+Items 1–7 are the **structural correctness layer**. Items 8–10 are the **discipline layer**. The framework's design point is to run both on every PR and block merge on failure (with override-with-reason for emergencies).
 
 What CI **cannot** check:
 - Whether the prose body of a milestone accurately describes the work.
@@ -163,7 +163,7 @@ For referential stability, CI runs (on every PR, blocking):
 3. **`aiwf check tombstones`** — every removed entity has a tombstone; no entity went missing without one.
 4. **`aiwf check renames`** — if frontmatter `slug` changed, the id is unchanged; if path changed, it was via a recognized rename (git mv detected).
 
-These four checks deliver the referential stability the user wants. They are mechanical, fast, and impossible for the LLM to silently bypass because they run on the PR, not in the LLM's session.
+These four checks deliver the referential stability the user is asking for. They are mechanical, fast, and not silently bypassable by the LLM because they run on the PR, not in the LLM's session.
 
 ---
 
@@ -179,7 +179,7 @@ The user said: *"Somewhere we need discipline. Somewhere between the studio and 
 | Workshop | PR (open, awaiting review) | Stricter, structured, reviewed | CI checks, blocking on failures |
 | Museum | `main` after merge | Hard, append-only-in-meaning, citeable | Merge protections, branch protections |
 
-The framework's mistake (and my own in earlier docs) was conflating Studio with Workshop. The user's clay-and-garden metaphor describes Studio. The user's "museum can't be broken" describes Museum. But the *enforcement* lives in Workshop.
+A pattern these earlier docs and the original architecture share is conflating Studio with Workshop. The user's clay-and-garden metaphor describes Studio. The user's "museum can't be broken" describes Museum. The *enforcement*, on the analysis here, lives in Workshop.
 
 ### 5.2 What happens at each tier
 
@@ -282,7 +282,7 @@ This further reduces the miss rate.
 
 Whatever the prior two layers miss, CI catches. The user pushes to a PR. CI runs. Findings appear. The user (or the LLM) addresses them before merge.
 
-This is the only layer that turns "the LLM might miss it" into "missed work cannot reach main." Without this layer, skills and verbs are just suggestions.
+This is the layer that converts "the LLM might miss it" into "missed work cannot quietly reach main." Without it, skills and verbs are useful suggestions but not guarantees.
 
 ---
 
@@ -292,13 +292,13 @@ Practical consequences of taking this synthesis seriously:
 
 1. **`docs/architecture.md` should be split.** A core "what the framework actually guarantees" section (small, mechanical, CI-enforced) and a "current direction of exploration" section (the rest). Today the document presents the full ambition as if all of it is committed.
 
-2. **`CLAUDE.md`'s "Architectural commitments" need re-stating as enforcement layers.** Every commitment should answer: where is this enforced? Skill (advisory)? Verb (helpful but bypassable)? CI (mechanical, blocking)? Today the commitments read as obligations on the assistant; they should read as guarantees the framework provides via specific mechanisms.
+2. **`CLAUDE.md`'s "Architectural commitments" benefit from being re-stated as enforcement layers.** Each commitment can answer: where is this enforced? Skill (advisory)? Verb (helpful but bypassable)? CI (mechanical, blocking)? Today the commitments read as obligations on the assistant; reframing them as guarantees the framework provides via specific mechanisms makes the enforcement story legible.
 
 3. **The build plan should be reordered.** CI checks (`aiwf check *`) and the id/tombstone/rename mechanics should land *before* any of the event log or projection work. They are the load-bearing parts. The rest is optional optimization.
 
 4. **The first new code to write is `aiwf check`**, with `ids`, `refs`, `tombstones`, `renames`, `transitions` subcommands. Each is a small, testable, deterministic function from the working tree to a list of findings. Each is independently useful. Together they constitute the enforcement layer.
 
-5. **The events.jsonl and graph.json work in `docs/build-plan.md` Stage 2 should be paused.** Not deleted (the design might still be right for a later, larger-scoped version), but explicitly deferred until the CI-checks layer has been used long enough to demonstrate what the events.jsonl would actually be needed for.
+5. **The events.jsonl and graph.json work in `docs/build-plan.md` Stage 2 is a candidate for pausing.** Not deletion — the design might still fit a later, larger-scoped version — but explicit deferral until the CI-checks layer has been used long enough to show what the event log would actually be needed for.
 
 ---
 
@@ -350,7 +350,7 @@ And critically: the user can stop worrying about whether the LLM "remembered" to
 
 ## 11. The deepest reframe
 
-The user's frustration with skills is, I think, the most important signal in the entire research series. It says: *this framework's correctness must not depend on the LLM's behavior.* That principle, taken seriously, dictates the whole shape:
+The user's frustration with skills is, on this reading, one of the most important signals in the research series. It says: *this framework's correctness should not depend on the LLM's behavior.* That principle, taken seriously, shapes most of the rest of the design:
 
 - Storage choices are made for what CI can check, not for what reads well in prose.
 - Verb design is about producing outcomes CI can verify, not about ritual the LLM should follow.
@@ -359,7 +359,7 @@ The user's frustration with skills is, I think, the most important signal in the
 - The Museum tier (main) is what the discipline layer protects.
 - The Studio tier (branch) gets to be soft because the Workshop catches what slips.
 
-Once that principle is internalized, most of the prior architecture's complexity reveals itself as scaffolding for a guarantee model that did not need to be that elaborate. A small, well-scoped CI check layer plus referentially-stable ids plus tombstones delivers the user's actual ask, and the LLM's reliability stops being a load-bearing assumption.
+Once that principle is internalized, much of the prior architecture's complexity reads as scaffolding for a guarantee model larger than the situation requires. A small, well-scoped CI check layer plus referentially-stable ids plus tombstones plausibly covers the user's actual ask at this scale, and the LLM's reliability stops being a load-bearing assumption.
 
 ---
 

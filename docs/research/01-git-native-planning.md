@@ -37,9 +37,9 @@ If we can satisfy items 1–8 without them, we should — because as `fighting-g
 
 A repository already has a state-management system: **git itself.** Git tracks every file, records every change, attributes every edit, supports branching, merging, blame, bisect, and time-travel checkout. It is, fundamentally, an event-sourced database with a Merkle DAG of states.
 
-The architecture's mistake — proposing this carefully — is **building a second state-management system inside the first one.** `events.jsonl` is a parallel transaction log. `graph.json` is a parallel projection. Both invent what git already provides, and pay the cost of having to reconcile with git at every merge.
+The architecture's choice — and on this reading, its overreach — is **building a second state-management system inside the first one.** `events.jsonl` is a parallel transaction log. `graph.json` is a parallel projection. Both invent what git already provides, and pay the cost of having to reconcile with git at every merge.
 
-The first-principles alternative: **let git be the state-management system, and let the framework be only what git is not.**
+The first-principles alternative considered here: **let git be the state-management system, and let the framework be only what git is not.**
 
 What is git not?
 
@@ -103,13 +103,13 @@ The original architecture introduced trace-first writes (event-before-effect) to
 
 The git-native solution: **every `aiwf` verb produces exactly one git commit.** The verb writes its file changes to the working tree, validates, and commits in one atomic operation. If the process crashes mid-write, `git status` reveals the partial state and the verb (or `aiwf recover`) can either complete or rollback to the last commit.
 
-Within a single verb's execution, a journal file in `.ai-repo/journal/<verb-id>.jsonl` (gitignored) records intent before file edits, and is deleted on commit success. On startup, orphaned journals are surfaced as "incomplete verb attempts" and the user is prompted to retry or discard. **This is the same trace-first pattern, but localized to crash recovery — not maintained as a permanent ledger.**
+Within a single verb's execution, a journal file in `.ai-repo/journal/<verb-id>.jsonl` (gitignored) records intent before file edits, and is deleted on commit success. On startup, orphaned journals are surfaced as "incomplete verb attempts" and the user is prompted to retry or discard. **This is a narrower form of the trace-first pattern — localized to crash recovery, not maintained as a permanent ledger.**
 
 ### 3.5 Validation
 
 `aiwf verify` is a **pure function** from the working tree to a list of findings. It reads the markdown files, parses frontmatter, walks references, checks invariants. It compares to nothing because there is nothing to compare to — the tree is the truth.
 
-This eliminates the entire category of "drift between projection and event log" findings. Drift was a property of having two stores; with one store, there is nothing to drift from.
+This eliminates the category of "drift between projection and event log" findings. Drift was a property of having two stores; with one store, there is nothing to drift from.
 
 What `verify` checks:
 - Frontmatter conforms to the kind's contract YAML.
@@ -164,9 +164,9 @@ Under the git-native model:
 - **Rewrite** = edit the file. Body changes freely (engine doesn't care). Frontmatter changes go through `aiwf` verbs that validate transitions.
 - **New epic** = new directory. `aiwf add epic`. New `epic.md` + an empty milestones directory. Commit. The discovered-from relationship is recorded as a frontmatter field (`discovered_from: G-2026-04-26-003`).
 
-All of these merge cleanly because they touch disjoint files.
+All of these tend to merge cleanly because they touch disjoint files.
 
-The interesting case is **dependency rewrites that span branches**. If branch A says M-005 depends on M-003 and branch B says M-005 depends on M-004, git's per-file merge will conflict on the `depends_on:` line. **This is exactly what should happen** — it is a real semantic conflict that requires a human to decide. The framework's job is to (a) make the conflict visible, (b) provide `aiwf verify` to confirm the post-resolution tree is consistent, (c) surface ripple effects ("M-005 depends on M-004 means this branch can't proceed until M-004 is done").
+The interesting case is **dependency rewrites that span branches**. If branch A says M-005 depends on M-003 and branch B says M-005 depends on M-004, git's per-file merge will conflict on the `depends_on:` line. **This is reasonable behavior** — it is a real semantic conflict that requires a human to decide. The framework's job is to (a) make the conflict visible, (b) provide `aiwf verify` to confirm the post-resolution tree is consistent, (c) surface ripple effects ("M-005 depends on M-004 means this branch can't proceed until M-004 is done").
 
 ### 4.2 "Backlog is not a linear list"
 
@@ -176,7 +176,7 @@ Right — and a per-file-per-entity model treats it that way. There is no `backl
 
 This is the deepest worry. Branch A pins ai-framework@v1.5; branch B pins v1.7 (which adds a new entity kind). What happens?
 
-The framework lives as a git submodule under `.ai/` (per architecture §11). The submodule's commit pin is part of the consumer's git tree. So:
+The framework lives as a git submodule under `.ai/` (per architecture Appendix A). The submodule's commit pin is part of the consumer's git tree. So:
 
 - Branch A's `.gitmodules` (or submodule pointer) → ai-framework@v1.5.
 - Branch B's submodule pointer → ai-framework@v1.7.
@@ -196,7 +196,7 @@ This is real and important. Skills, rules, and adapter surfaces in `.claude/skil
 
 **Within a single conversation, branch switches change the assistant's effective policies mid-session.** A user might ask "implement the next step" on branch A, then `git checkout B` to test something, and the assistant — if it re-reads the rules — now operates under different rules.
 
-This is *correct behavior*, but surprising. It mirrors what happens with code dependencies: switching branches can change the version of every library you're using, with corresponding behavior changes. We accept that for code; we should accept it for prompts and rules.
+This is *consistent behavior*, but surprising. It mirrors what happens with code dependencies: switching branches can change the version of every library you're using, with corresponding behavior changes. We accept that for code; the same logic applies to prompts and rules.
 
 What the framework owes:
 
@@ -231,7 +231,7 @@ The user asked specifically: is there research on AI assistants whose agents/ski
 
 A guess: the problem is one to two years old at any scale. Multi-agent repos with branch-divergent rules became common only as IDE-integrated assistants (Copilot, Cursor, Claude Code) shipped widely (2023–2025). The research community hasn't yet caught up to "prompts and rules as a versioned artifact in collaborative codebases."
 
-**The framework being built here is an opportunity to be one of the first articulations of this problem and a worked solution.** The research doc you are reading now plus a future formal write-up of how this framework handles rule divergence would be a contribution to that literature, not a derivative of it.
+**The framework being built here is an opportunity to articulate this problem — *for AI rules specifically* — and to attempt a worked solution.** Adjacent literatures (configuration management, lockfiles, semver merges, dotfiles conventions) treat related problems for non-AI artifacts; what's thin in 2026 is treatment of branch-divergent *agent rules* as a versioned-artifact problem. The research doc you are reading now plus a future formal write-up of how this framework handles rule divergence would, to the author's knowledge, be among the earlier articulations of that specific corner.
 
 ### 5.4 What we can borrow from elsewhere
 
@@ -286,7 +286,7 @@ What it stops owing:
 | Lines of Go code (rough) | Several thousand (eventlog, projection, verify, mutate, …) | Several hundred (parse, validate, edit, commit) |
 | External dependencies | None beyond stdlib | None beyond stdlib (or `git2go`/shell-out for git operations) |
 
-The git-native model is materially smaller, materially simpler, and **does not fight git** because it has nothing parallel to git to reconcile.
+The git-native model is materially smaller, materially simpler, and **avoids the merge-reconciliation work the architecture's two-store design implies** — it has nothing parallel to git to reconcile.
 
 ---
 
@@ -301,7 +301,7 @@ This is not free. Here is what the git-native model gives up vs. the architectur
 5. **A clean answer to "what is the order of these two events."** Cross-branch, this question genuinely has no answer in either model — but the git-native model is honest about it (the events are incomparable until merge), while the events.jsonl model lies (it gives them a `seq` number that merges break).
 6. **Performance under enormous histories.** If a project has 100,000 entities and 1M historical commits, `aiwf history` walking `git log` is slower than reading a precomputed events.jsonl. Mitigation: the framework targets project-management state, not log-scale data — keep an eye on performance, add caching layers (gitignored, rebuildable) if and when it matters.
 
-These costs are real but bounded. The original model's costs (everything in `fighting-git.md`) are unbounded — they grow with branching, merging, schema evolution, and team size.
+These costs are real but bounded. The original model's costs (those enumerated in `fighting-git.md`) grow with branching, merging, schema evolution, and team size — at the scales the framework targets, the git-native model trades a bounded loss for a growing one.
 
 ---
 
@@ -382,13 +382,13 @@ If a future proposal adopts the git-native model, it should:
 - Update `docs/architecture.md` §2 (the three coordinated representations becomes one) and §3 (the event-sourced kernel becomes "the validating engine over the working tree").
 - Update `CLAUDE.md` "Architectural commitments" — trace-first writes become localized to in-flight verb crash recovery, not a permanent ledger; hash-verified projections become "validated tree, computed views."
 
-It should *not* feel obligated to preserve every architectural commitment. Several of them — trace-first writes to a permanent log, hash-verified projection drift detection, monotonic ID allocation — exist to defend the events.jsonl + graph.json model. If that model goes, those commitments lose their reason and should be revised.
+A future proposal need not feel obligated to preserve every architectural commitment. Several of them — trace-first writes to a permanent log, hash-verified projection drift detection, monotonic ID allocation — exist to defend the events.jsonl + graph.json model. If that model goes, those commitments lose their original justification and become candidates for revision.
 
 ---
 
 ## 12. Summary — the move in one paragraph
 
-The original architecture invented an event log and a derived graph because it wanted total ordering, atomicity, hash-verifiable provenance, and replayable history. Git already provides all four — for files. By making the canonical state live exclusively in markdown files (which git understands), the framework gets total ordering, atomicity, provenance, and replay *for free, from git*, and pays no merge-reconciliation cost. The framework's residual job is what git cannot do: validate cross-file semantic invariants, render derived views, and provide ergonomic verbs that produce well-shaped commits. This is a smaller, simpler, and git-native framework that does not fight the substrate it lives on. The cost is giving up sub-commit-granularity provenance and accepting that some merge questions (cross-branch ordering of independent decisions) genuinely have no canonical answer — but the original model lied about both, while this model is honest.
+The original architecture invented an event log and a derived graph because it wanted total ordering, atomicity, hash-verifiable provenance, and replayable history. Git already provides serviceable answers to all four for files: per-file linearity within a branch, atomic commits, blame-attributable provenance, and per-commit checkout-as-replay. By making the canonical state live exclusively in markdown files (which git understands), the framework gets those properties *with much less mechanism* — by leaning on git's per-file merge — and pays no merge-reconciliation cost on a separate store. The framework's residual job is what git cannot do: validate cross-file semantic invariants, render derived views, and provide ergonomic verbs that produce well-shaped commits. This is a smaller, simpler, and git-native framework that does not fight the substrate it lives on. The cost is giving up sub-commit-granularity provenance and accepting that some merge questions (cross-branch ordering of independent decisions) genuinely have no canonical answer — but the original model concealed both, while this model is honest.
 
 ---
 
@@ -402,7 +402,7 @@ The author of any proposal adopting this model should cite:
 - Kleppmann, M., Beresford, A. R. (2017). *A Conflict-Free Replicated JSON Datatype.* IEEE TPDS. — For comparison: the merge-aware substrate alternative.
 - (Practical) Documentation for Cursor `.cursorrules`, Aider `CONVENTIONS.md`, GitHub Copilot custom instructions, Claude Code `CLAUDE.md` and `.claude/skills/`. — All exhibit the same branch-divergence problem; none formalize a solution.
 
-The lack of academic treatment is itself a finding. A formal write-up of how this framework handles rule divergence would, to the author's knowledge, be among the first.
+The thinness of academic treatment for *AI rule divergence specifically* is itself worth noting. A formal write-up of how this framework handles rule divergence would, to the author's knowledge, be among the earlier such articulations — narrower than a "first" claim, but still a contribution worth making.
 
 ---
 

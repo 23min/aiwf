@@ -86,7 +86,7 @@ The temptation to add a code-graph to aiwf is largely the same temptation [`02`]
 
 For graphify and GitNexus, the trade is different — they are themselves the programmatic consumer. graphify reads its graph to compute token-efficient orientation; GitNexus reads its graph to compute blast radius. They earn the structure they build because their products consume it. Aiwf would build structure for an assistant audience that doesn't need it (the assistant already has graphify or GitNexus or tree-sitter or its own context window) and a programmatic consumer that doesn't exist (the framework has no code-aware verb that would consume a code-graph beyond what we already cover at the kernel level).
 
-The single exception is the contracts work's `live_source` field. There the *programmatic consumer* — `aiwf contract verify` checking that the reference resolves — is real, narrow, and on the kernel's existing list. That is the only audience the structure is built for. This is a much smaller commitment than "build a code-graph."
+The single exception is the contracts work's `live_source` field. There the *programmatic consumer* — `aiwf contract verify` checking that the reference resolves — is real, narrow, and on the kernel's existing list. That is the audience the structure is built for. This is a much smaller commitment than "build a code-graph."
 
 ---
 
@@ -100,7 +100,7 @@ Apply this lens to a code-graph:
 - Is it a **render the framework could produce**? Renders are produced over the framework's state, not over arbitrary external content. The ROADMAP renders entity state; the dependency graph renders typed relationships between entities. A code-graph would render *code* — material the framework does not own and has no decisions about.
 - Is **symbol-existence resolution** state? No, but it's a consistency check over a reference embedded in state. The reference (`live_source: file.go#Symbol`) is state — it's a field on a contract entity. The check is mechanical resolution of that reference against the codebase. Same shape as `aiwf check refs` resolving a milestone's `parent` field against an actual epic. *Cross-artifact reference resolution is already a thing the framework does;* extending it from "milestone → epic" to "contract → code symbol" is a small generalization, not a new category.
 
-So the lens is clean: aiwf does not own *the code-graph*, it owns *the references its entities make into the code* and the verification that those references resolve. The verification machinery happens to need AST awareness, but the framework's posture is "I check the consistency of my references" — not "I model the code."
+On this lens: aiwf does not own *the code-graph*, it owns *the references its entities make into the code* and the verification that those references resolve. The verification machinery happens to need AST awareness, but the framework's posture is "I check the consistency of my references" rather than "I model the code."
 
 This mirrors the framework's posture toward git itself ([`01`](01-git-native-planning.md), [`05`](05-where-state-lives.md)): aiwf does not own commits, it relies on `git log` for provenance. It does not own ADR documents, it owns the entities that point at them. It does not own the build pipeline, it owns the contract entity that describes the surface the build pipeline must respect. The pattern throughout the arc is: *aiwf records assertions about adjacent material; aiwf does not absorb the adjacent material.* A code-graph would absorb. Symbol-existence resolution does not.
 
@@ -120,11 +120,11 @@ Two answers:
 
 **(b) The framework exposes its state for adjacent tools (or future modules) to join.** Aiwf's projections (entities, contracts, gaps, ADRs, the audit history) are exposed through stable surfaces — files, structured CLI output, eventually MCP resources. graphify and GitNexus already expose their code-graphs through analogous surfaces. The join is computed by composition, on demand, by whoever needs it. This is the compose-don't-absorb position.
 
-Position (b) preserves every kernel quality bar. The framework stays small; it does not learn languages, store graphs, or run extractors. Position (a) violates the kernel's authorization (no need calls for it), violates [`02`](02-do-we-need-this.md)'s audiences caution (building structure for an audience that doesn't need it), and violates [`07`](07-state-not-workflow.md)'s state-vs-render boundary (treating derived view as state).
+Position (b) preserves the kernel quality bars as currently written. The framework stays small; it does not learn languages, store graphs, or run extractors. Position (a) does not match the kernel's authorization (no listed need calls for it), runs against [`02`](02-do-we-need-this.md)'s audiences caution (building structure for an audience that doesn't need it), and crosses [`07`](07-state-not-workflow.md)'s state-vs-render boundary (treating derived view as state).
 
-Position (b) has a real cost worth naming: the join is not a single primitive in any tool. The assistant has to learn to compose — *first ask aiwf about the contract; then ask the code-graph tool about the symbol; then assemble the picture.* That is more steps. It is also exactly the [`02`](02-do-we-need-this.md) prescription: *give the assistant a habit, not a database.* The habit is "consult both layers." The framework's job is to make its layer queryable through skills the assistant can invoke; the adjacent tool's layer is queryable through *its* surfaces. Composition is the work; absorption is the shortcut that breaks the kernel.
+Position (b) has a real cost worth naming: the join is not a single primitive in any tool, and the arc's own thesis (per [`03`](03-discipline-where-the-llm-cant-skip-it.md)) is that skill behavior is not reliable enough to lean on for guarantees. Position (b) leans on it for composition. The assistant has to learn to compose — *first ask aiwf about the contract; then ask the code-graph tool about the symbol; then assemble the picture.* That is more steps, and there is no CI-level chokepoint behind it the way there is for `aiwf check`. It is the [`02`](02-do-we-need-this.md) prescription — *give the assistant a habit, not a database* — but it inherits the limits of habit-shaped enforcement. The framework's job is to make its layer queryable through skills the assistant can invoke; the adjacent tool's layer is queryable through *its* surfaces. Composition is the work; absorption is the shortcut, but absorption violates the kernel as currently scoped.
 
-A future module — opt-in, per [`04`](04-governance-provenance-and-the-pre-pr-tier.md) §4 — could ship the join *as a render*, computed by composing aiwf's state with whichever code-graph tool the consumer uses. That stays inside the kernel because it is a render module, not a kernel addition. It is allowed; it is not required.
+A future module — opt-in, per [`04`](04-governance-provenance-and-the-pre-pr-tier.md) §4 — could ship the join *as a render*, computed by composing aiwf's state with whichever code-graph tool the consumer uses. That stays inside the kernel because it is a render module, not a kernel addition. It is permitted; it is not required.
 
 ---
 
@@ -134,7 +134,7 @@ What does survive a serious read of the kernel: **symbol-level reference resolut
 
 The contracts work introduces a `live_source` field. At the file-path tier, `live_source: tools/internal/eventlog.go` is a reference that must resolve. That's served by `os.Stat`. No code-graph needed. But a contract whose authoritative implementation is *a particular function*, not a whole file, wants `live_source: tools/internal/eventlog.go#Append` — and that reference is interesting. Renaming the function while leaving the file intact is *exact drift the contract was designed to catch.* File-level resolution misses it; symbol-level resolution catches it.
 
-This is a kernel-(5) extension. *"Validate consistency — references resolve."* Symbol-level references are a kind of reference. Making them resolve is exactly the kind of mechanical, deterministic, LLM-skip-proof check [`03`](03-discipline-where-the-llm-cant-skip-it.md) calls for. The implementation is bounded:
+This is a kernel-(5) extension. *"Validate consistency — references resolve."* Symbol-level references are a kind of reference. Making them resolve is the kind of mechanical, deterministic, LLM-skip-proof check [`03`](03-discipline-where-the-llm-cant-skip-it.md) calls for. The implementation is bounded:
 
 - AST extraction for the languages aiwf already supports (per the PoC's chosen scope), enough only to enumerate symbols by name in a file.
 - A `aiwf check refs` extension that resolves `<path>#<symbol>` references the same way it currently resolves entity-id references.
@@ -142,7 +142,7 @@ This is a kernel-(5) extension. *"Validate consistency — references resolve."*
 
 This is a small, narrowly-scoped, kernel-justified consistency check. It is *not* a code-graph. It happens to need AST awareness, but the framework does not become code-graph software by gaining the ability to answer *"does this named symbol exist in this file?"*. The exposed surface is a single check; the internal implementation may use tree-sitter; nothing about the framework's posture toward the code changes.
 
-This is the only case the audit admits.
+On this audit, this is the case that survives.
 
 ---
 
@@ -158,7 +158,7 @@ Aiwf's stance toward graphify, GitNexus, and any future tool in this space:
 
 4. **Future render modules may compose.** A future opt-in module could compute the join (contract + symbol + ADR) by reading both layers and rendering a finding. That stays inside the kernel as a render. It is not in scope today.
 
-5. **Aiwf tells consumers honestly that this is the design.** The README and pocv3 plan should name what aiwf does *not* do, and recommend adjacent tools by name where appropriate. The framework's strategic position is the lane it commits to, not the lane it pretends to.
+5. **Aiwf tells consumers plainly that this is the design.** The README and pocv3 plan name what aiwf does *not* do, and recommend adjacent tools by name where appropriate. The framework's strategic position is the lane it commits to, not the lane it gestures at.
 
 This is the same shape as `aiwf` toward `git`: the framework exposes structured trailers and verbs over commits, but does not *own* commits — git owns commits, the framework records assertions about them. Code-graph tools own code structure; the framework records assertions about it.
 
@@ -188,15 +188,15 @@ This position has a failure mode worth naming, in keeping with [`07`](07-state-n
 - **Teams where the assistant must work without network or external tools.** If the consumer does not run graphify or GitNexus and only has aiwf, then the join cannot be computed by composition. The assistant lacks the second layer entirely.
 - **Tooling consumers (CI gates, dashboards) where the join is the product.** A CI gate that wants to fail builds when "any symbol named in a contract `live_source` is missing in the working tree" can be written, but only if it knows how to look up symbols. If aiwf does not provide the lookup, the gate has to depend on whatever code-graph the consumer chose, which fragments the gate per consumer.
 
-For these cases, the right answer is the future render module described in §6 — *opt-in*, *per-consumer*, joins against whichever code-graph tool the consumer runs. The kernel stays clean; the join becomes available where it is justified.
+For these cases, the proposed answer is the future render module described in §6 — *opt-in*, *per-consumer*, joining against whichever code-graph tool the consumer runs. The kernel stays clean; the join becomes available where it is justified.
 
-What is *wrong* in every case is to bake the code-graph into the framework. That ships every consumer the cost of every consumer's worst case, in service of a need most do not have. Aiwf's modular opt-in posture ([`04`](04-governance-provenance-and-the-pre-pr-tier.md) §4) is the right answer.
+What this document argues *against* in every case is baking the code-graph into the framework. That ships every consumer the cost of every consumer's worst case, in service of a need most do not have. Aiwf's modular opt-in posture ([`04`](04-governance-provenance-and-the-pre-pr-tier.md) §4) is the response that fits the kernel as scoped.
 
 ---
 
 ## 11. Implications for the contracts work and the pocv3 plan
 
-The contracts post-PoC plan ([`docs/pocv3/contracts.md`](../pocv3/contracts.md)) currently lists symbol-level `live_source` as increment I4, depending on "the read-side reference-resolution lens." That dependency phrasing is consistent with this document's position: I4 is a small consistency-check extension, not a code-graph. The plan should not be reframed; only the language should be tightened — *"reference resolution"* not *"code graph"*, and the I4 scope explicitly bounded to symbol-existence checking, not traversal.
+The contracts post-PoC plan ([`docs/pocv3/contracts.md`](../pocv3/contracts.md)) currently lists symbol-level `live_source` as increment I4, depending on "the read-side reference-resolution lens." That dependency phrasing is consistent with this document's position: I4 is a small consistency-check extension, not a code-graph. The plan does not need reframing; the language can be tightened — *"reference resolution"* rather than *"code graph"*, and the I4 scope explicitly bounded to symbol-existence checking, not traversal.
 
 Anything beyond I4 in the code-aware direction (impact, detect-changes, multimodal extraction) is **out of scope for the framework**. If a consumer wants those, the recommended path is graphify or GitNexus alongside aiwf, with the framework's skills knowing how to compose with them. A future opt-in module, justified by real consumer need, may add the join as a render.
 
@@ -216,7 +216,7 @@ The position does not settle several things, named so future research can addres
 
 1. **What's the smallest tree-sitter footprint that serves symbol-existence resolution?** I4 in the pocv3 plan is bounded but unwritten. A separate doc may need to specify the scope of AST-awareness aiwf accepts before it counts as code-graph creep.
 2. **Does the future render module ever earn its keep?** The §10 failure modes are real. Whether any consumer hits them in practice will be the test. If yes, the module is justified; if no, the position holds without addition.
-3. **How does aiwf's recommendation of adjacent tools stay honest as those tools evolve?** graphify and GitNexus have different licenses, different posture toward the assistant, different long-term commercial intent. The framework's skills should not silently couple consumers to either; recommendations should be neutral and per-consumer.
+3. **How does aiwf's recommendation of adjacent tools stay honest as those tools evolve?** graphify and GitNexus have different licenses, different posture toward the assistant, different long-term commercial intent. The framework's skills are best designed to avoid silently coupling consumers to either; recommendations should be neutral and per-consumer.
 4. **Are there other "adjacent tool" categories the same audit applies to?** Code-graph is one. Test runners that expose pass/fail state, deploy systems that expose release state, telemetry systems that expose runtime state are others. The compose-don't-absorb posture probably generalizes; this doc only treats the code-graph case.
 
 ---

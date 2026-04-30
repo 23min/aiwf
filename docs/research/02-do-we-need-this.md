@@ -62,7 +62,7 @@ There are several kinds of stability/determinism a system might offer:
 
 The body of an epic spec is prose. Prose drifts. The phrase "the payments rewrite" means something different in March than it meant in January, even if the title and id are unchanged. The framework's hash-verified projection is computed *over the structural fields only*. It says nothing about the prose. So the framework's "determinism" is the determinism of a small structural skeleton, not of the meaning of the work.
 
-This matters because the user's intuition that "things shouldn't lose meaning over time" is doing a lot of work in the architecture, but the architecture cannot deliver on it. The framework can deliver:
+A clarification before proceeding: the original architecture's hash-verified projection is computed *over structural fields only* and never claimed to fix prose drift. The argument here is not that the architecture took the strong "semantic determinism" stance and got it wrong; it is that the user's intuition behind asking for the framework — *"things shouldn't lose meaning over time"* — is doing a lot of work that the architecture cannot in fact deliver, and that the framing should be honest about which kinds of stability are on offer. The framework can deliver:
 
 - "If you cite `E-19`, that id will always resolve to *some* spec."
 - "If you query the dependency graph, the structure will be valid."
@@ -254,11 +254,11 @@ If I were advising the user as a friend rather than executing on a brief:
 
 **Build Shape A first. Use it for three months. See what's actually missing.**
 
-Most likely outcomes after three months:
+Plausible outcomes after three months, in rough order of likelihood:
 
-- **80% probability:** Shape A is enough. The framework as currently scoped is a pleasant intellectual exercise but not what was actually needed. Ship Shape A as the framework. Retire the rest.
-- **15% probability:** Shape A is missing one or two specific capabilities (e.g., "I genuinely need bisectable structured plans for compliance"). Build *just those* on top of Shape A. Stay small.
-- **5% probability:** the user has a use case (multi-team, regulated industry, multi-month rollouts coordinated via the repo) that genuinely needs Shape C's full ambition. Build it then, with three months of real-use evidence to ground the design decisions.
+- **Most likely:** Shape A is enough. The framework as currently scoped is a pleasant intellectual exercise but not what was actually needed. Ship Shape A as the framework. Retire the rest.
+- **Sometimes:** Shape A is missing one or two specific capabilities (e.g., "I genuinely need bisectable structured plans for compliance"). Build *just those* on top of Shape A. Stay small.
+- **Rarely:** the user has a use case (multi-team, regulated industry, multi-month rollouts coordinated via the repo) that genuinely needs Shape C's full ambition. Build it then, with three months of real-use evidence to ground the design decisions.
 
 The risk of building Shape C first and finding out you needed Shape A is enormous (months of wasted engineering, a framework that nobody uses including you). The risk of building Shape A first and finding out you needed Shape C is small (you have to add things, but the ADRs and CONTEXT files you wrote in Shape A are still valid in Shape C).
 

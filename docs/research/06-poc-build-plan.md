@@ -1,7 +1,7 @@
 # A KISS PoC build plan
 
 > **Status:** actionable-plan
-> **Hypothesis:** At single-developer or small-team scale on a few-months horizon, the framework's value collapses to six entity kinds, stable IDs with collision resolution, a pre-push validator, a structured-commit history reader, and stable skills — implementable in roughly four sessions of focused work.
+> **Hypothesis:** At single-developer or small-team scale on a few-months horizon, the framework's value collapses to six entity kinds, stable IDs with collision resolution, a pre-push validator, a structured-commit history reader, and stable skills — implementable in a focused week or two, broken into a small number of sessions.
 > **Audience:** anyone executing the PoC, or deciding whether the prior research is enough to start building.
 > **Premise:** most of the framework's apparent complexity is paying for problems that don't fire at this scale; strip those costs, ship a tiny thing in a few focused sessions, try it on real projects, let real friction surface what — if anything — needs to grow.
 > **Discipline:** any feature not on this list is out of scope until real use exposes a need for it.
@@ -11,7 +11,7 @@
 
 ## Abstract
 
-This document concludes the `00`–`05` research arc by collapsing the synthesis into a buildable plan. A single Go binary `aiwf`, installed via `go install`. The repo gets one config file (`aiwf.yaml`), one planning directory (`work/`), one decisions directory (`docs/adr/`), and one gitignored materialized-skills directory (`.claude/skills/wf-*`). Six entity kinds (epic, milestone, ADR, gap, decision, contract), each with a closed status set and one Go function for legal transitions. A handful of verbs, each producing one git commit with a structured trailer. An `aiwf check` command that validates the tree and runs as a pre-push hook. An `aiwf history <id>` that renders `git log` for an entity. **No event log, no graph projection, no CRDTs, no FSM-as-data, no module system, no registry, no multi-host adapters, no tombstones beyond `cancelled`, no cross-branch merge handling.** Roughly 2,500 lines of Go, four focused sessions, ready to use on a real project. Built on a branch (`poc/aiwf-v3`) so `main` stays open for other implementations. Future additions are deferred until real friction demonstrates need.
+This document concludes the `00`–`05` research arc by collapsing the synthesis into a buildable plan. A single Go binary `aiwf`, installed via `go install`. The repo gets one config file (`aiwf.yaml`), one planning directory (`work/`), one decisions directory (`docs/adr/`), and one gitignored materialized-skills directory (`.claude/skills/wf-*`). Six entity kinds (epic, milestone, ADR, gap, decision, contract), each with a closed status set and one Go function for legal transitions. A handful of verbs, each producing one git commit with a structured trailer. An `aiwf check` command that validates the tree and runs as a pre-push hook. An `aiwf history <id>` that renders `git log` for an entity. **No event log, no graph projection, no CRDTs, no FSM-as-data, no module system, no registry, no multi-host adapters, no tombstones beyond `cancelled`, no cross-branch merge handling.** Small enough to throw away — a focused week or two of work, broken into a small number of sessions, ready to use on a real project. Built on a branch (`poc/aiwf-v3`) so `main` stays open for other implementations. Future additions are deferred until real friction demonstrates need.
 
 ---
 
@@ -43,7 +43,7 @@ That trims the design surface dramatically.
 
 ## 2. The PoC, in one paragraph
 
-A single Go binary `aiwf`, installed via `go install`. The repo gets one config file (`aiwf.yaml`), one planning directory (`work/`), one decisions directory (`docs/adr/`), and one gitignored materialized-skills directory (`.claude/skills/wf-*`). Three entity kinds: `epic`, `milestone`, `adr`. A handful of verbs that each produce one git commit with a structured trailer. A `aiwf check` command that validates the tree and is run by a `pre-push` git hook. A `aiwf history <id>` that renders `git log` for an entity. That's it. No event log, no graph projection, no CRDTs, no FSM-as-data, no module system, no registry, no multi-host adapters, no tombstones, no cross-branch merge handling.
+A single Go binary `aiwf`, installed via `go install`. The repo gets one config file (`aiwf.yaml`), one planning directory (`work/`), one decisions directory (`docs/adr/`), and one gitignored materialized-skills directory (`.claude/skills/wf-*`). Six entity kinds: `epic`, `milestone`, `adr`, `gap`, `decision`, `contract`. A handful of verbs that each produce one git commit with a structured trailer. A `aiwf check` command that validates the tree and is run by a `pre-push` git hook. A `aiwf history <id>` that renders `git log` for an entity. That's it. No event log, no graph projection, no CRDTs, no FSM-as-data, no module system, no registry, no multi-host adapters, no tombstones, no cross-branch merge handling.
 
 ---
 
@@ -258,7 +258,7 @@ aiwf-actor: human/peter
 
 `aiwf cancel` is a thin shorthand over `aiwf promote` that picks the right terminal status for the kind: `cancelled` for epics/milestones, `wontfix` for gaps, `rejected` for decisions/ADRs (in the `proposed` state), `retired` for contracts.
 
-That's about sixteen verbs. The whole binary is probably under 2,500 lines of Go for the PoC.
+That's a small set of verbs — roughly a dozen and a half. The binary should stay small enough to read end-to-end in an afternoon; chasing a precise line count is the wrong target.
 
 ---
 
@@ -295,9 +295,9 @@ No lockfile for the PoC — there are no third-party skills.
 
 ---
 
-## 7. Build sequence — four sessions
+## 7. Build sequence — a handful of sessions
 
-Each session is one focused work block of a few hours. Stop when the session's deliverable runs end-to-end with at least one happy-path test.
+The work breaks naturally into four deliverable-shaped chunks. Each is a focused work block of a few hours; in practice a chunk may take more than one sitting, especially the first. Stop when the chunk's deliverable runs end-to-end with at least one happy-path test.
 
 ### Session 1 — Foundations and `aiwf check`
 
@@ -307,7 +307,7 @@ Tasks:
 - Go module skeleton (`tools/cmd/aiwf/main.go`, `tools/internal/`).
 - Frontmatter parser (use `gopkg.in/yaml.v3` + the existing parsing code if any is already in this repo's `tools/` that's safe to reuse; otherwise write 50 lines).
 - Tree loader: walks `work/epics/**` and `docs/adr/**`, parses every entity, returns an in-memory model.
-- `aiwf check` with the seven checks from §5. JSON output (`--format=json`) and human-readable text (default).
+- `aiwf check` with the nine checks from §5. JSON output (`--format=json`) and human-readable text (default).
 - Tests: a synthetic-tree fixture for each finding type.
 
 Deliverable: `aiwf check` runs against a hand-crafted `work/` directory and reports findings. Exit code 0 for clean, 1 for errors.
@@ -354,7 +354,7 @@ Tasks:
 
 Deliverable: usable on a real project.
 
-Total: roughly 3–4 days of focused work. After session 4 the framework is good enough to start using.
+Total: a focused week or two of work, depending on how clean the chunks land on the first try. After the polish chunk, the framework is good enough to start using.
 
 ---
 
@@ -386,11 +386,11 @@ Honest framing of the choice between continuing on top of the earlier framework 
 
 **Patch the existing framework**: known shape, known friction. Patches likely accumulate over time. Risk: the friction surfaces at the worst time (mid-project, when attention should be on the actual work).
 
-**Build this PoC fresh**: ~3–4 days of focused work up front, before serious use. Risk: those days lost if the framework turns out not to be needed at all.
+**Build this PoC fresh**: a focused week or two of work up front, before serious use. Risk: that effort lost if the framework turns out not to be needed at all.
 
-The break-even point is roughly: if patching the existing framework will cost more than 3–4 days of attention over a real project, build fresh. If the existing framework's failure modes (those described in `00`–`05`) don't fire at the target scale, patching is fine.
+The break-even point is roughly: if patching the existing framework will cost more than a similar block of attention over a real project, build fresh. If the existing framework's failure modes (those described in `00`–`05`) don't fire at the target scale, patching is fine.
 
-A reasonable approach: **timebox the PoC at four sessions.** If session 3's deliverable (init + history + hooks working) is not reached within the timebox, abandon and patch the existing framework instead. If it is reached cleanly, the project is ahead and on solid ground.
+A reasonable approach: **timebox the PoC at a focused week or two.** If the third chunk's deliverable (init + history + hooks working) is not reached within the timebox, abandon and patch the existing framework instead. If it is reached cleanly, the project is ahead and on solid ground.
 
 The PoC is small enough that the risk is bounded. The existing framework's friction is unbounded if it bites at the wrong moment. On expected-value, the PoC wins for projects in the target range unless the existing framework is already known to be working well at this scale.
 

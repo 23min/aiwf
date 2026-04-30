@@ -10,7 +10,7 @@
 
 ## Abstract
 
-The framework's original architecture persists structural state in three coordinated artifacts: markdown specs, an append-only `events.jsonl`, and a derived `graph.json` projection. The event log is specified as a totally ordered sequence with monotonic sequence numbers and a hash chain over post-state. Git, however, is a Merkle DAG of file-tree snapshots in which branches are first-class persistent divergent histories. This document shows mechanically why the event log cannot survive a 3-way text merge — sequence numbers collide, hash chains break, and the monotonic ID allocator behaves like a multi-master replication primitive without coordination. It surveys the relevant literature (CRDTs, local-first, patch theory, Bayou-style application-defined merge), then enumerates a tiered solution space (lift / lower / mediate / concede) without picking. The follow-on documents in this series do the picking; this one names the substrate problem and the admissible responses.
+The framework's original architecture persists structural state in three coordinated artifacts: markdown specs, an append-only `events.jsonl`, and a derived `graph.json` projection. The event log is specified as a totally ordered sequence with monotonic sequence numbers and a hash chain over post-state. Git, however, is a Merkle DAG of file-tree snapshots in which branches are first-class persistent divergent histories. This document shows mechanically why the architecture's chosen invariants — total order, hash-chained linearity, monotonic IDs — do not compose cleanly with git's text-merge model: sequence numbers collide, hash chains break, and the monotonic ID allocator behaves like a multi-master replication primitive without coordination. ("Fighting git" in the title is shorthand for *"the original invariants do not compose with git's merge model"* — the doc is not arguing that custom merge drivers, lock-file mergers, or other text-in-git extensions are themselves illegitimate.) It surveys the relevant literature (CRDTs, local-first, patch theory, Bayou-style application-defined merge), then enumerates a tiered solution space (lift / lower / mediate / concede) without picking. The follow-on documents in this series do the picking; this one names the substrate problem and the admissible responses.
 
 ---
 
@@ -28,7 +28,7 @@ The event log is specified as a totally ordered sequence. Each event carries a m
 
 Git, however, is not a totally ordered system. It is a Merkle DAG of file-tree snapshots. **Branches are first-class, persistent, deliberately divergent histories.** A merge is a 3-way textual operation between two such histories and their common ancestor.
 
-The framework's promises (total order, hash-chained linearity, monotonic IDs) are properties of *file content*. Git merges file content. Therefore: **the framework's promises cannot survive git merges by construction unless the framework participates in the merge.**
+The framework's promises (total order, hash-chained linearity, monotonic IDs) are properties of *file content*. Git merges file content. Therefore: **the framework's promises do not survive git merges *as currently specified*; some form of framework participation in the merge is required to preserve them.**
 
 This document examines the consequences in detail, names the relevant theoretical frameworks, surveys related systems and literature, and proposes a tiered space of solutions. It does not pick one — that is the job of the per-tier architecture proposals it seeds.
 
@@ -95,12 +95,12 @@ The architecture's hierarchy of derivability — `graph.json` from `events.jsonl
 
 ## 3. Is the framework "fighting git"?
 
-**Yes, in two specific places. No, structurally — provided one ambiguity is resolved.**
+**Yes, in two specific places. Not structurally — provided one ambiguity is resolved.**
 
 ### 3.1 The two places it fights git
 
 1. **Monotonic ID allocation across uncoordinated writers.** Functionally identical to auto-increment primary keys in a multi-master replicated database. UUIDs solved this in databases for the same reason.
-2. **The `seq` and `post_state_hash` chain inside `events.jsonl`.** These encode total order as a property of file content; file content is what git merges. The chain *cannot* be linear across a merge boundary by construction.
+2. **The `seq` and `post_state_hash` chain inside `events.jsonl`.** These encode total order as a property of file content; file content is what git merges. The chain cannot be linear across a merge boundary *under the architecture's chosen invariants* — without a custom merge driver, content-derived event IDs, or a different on-disk format, the linearity property does not hold.
 
 ### 3.2 The unresolved design ambiguity
 
@@ -115,7 +115,7 @@ Resolving this ambiguity is a **prerequisite** to picking a tier in §7. Differe
 
 ### 3.3 Where it is *not* fighting git
 
-The graceful-degradation hierarchy means the framework is **not reinventing truth**. Git is still the time machine; markdown is still git-tracked; the framework is maintaining derived stores. Indices need rebuild-on-divergence stories. Yours will too.
+The graceful-degradation hierarchy means the framework is **not reinventing the canonical store**. Git is still the time machine; markdown is still git-tracked; the framework is maintaining derived stores. Indices need rebuild-on-divergence stories. Yours will too.
 
 The architecture also explicitly disclaims being a git replacement (§13: "Branches, commits, and merges are the assistant's job using normal git tooling. The framework records *which* milestone a branch corresponds to, not the contents of the branch.") This is the right disclaimer; the gap is that §13 does not yet say what *does* happen across git operations.
 
@@ -165,7 +165,7 @@ The repair work is, essentially, **demoting the non-CRDT properties to branch-lo
 
 ### 4.6 "Branches are CRDTs for files"
 
-Git's per-file 3-way merge already behaves like a CRDT for line-structured text. This is why the markdown layer survives merges: the encoding is already merge-aware. The framework's mistake — where it makes one — is layering a non-CRDT abstraction (a totally ordered hash-chained log) on top of a mergeable substrate.
+Git's per-file 3-way merge already behaves like a CRDT for line-structured text. This is why the markdown layer survives merges: the encoding is already merge-aware. Where the framework makes a mistake at this layer, it is in layering a non-CRDT abstraction (a totally ordered hash-chained log) on top of a mergeable substrate without a corresponding merge story.
 
 The architectural choice space, then, is:
 
@@ -196,7 +196,7 @@ The framework should honor these expectations. Any solution that makes branch op
 
 A user expects that two checkouts of the same commit produce the same observable state. Today this is true for tracked artifacts; not for `graph.json` (gitignored, may be stale from a prior branch). Any tier must preserve **commit-determinism**: same commit ⇒ same engine-visible state, modulo a deterministic rebuild step.
 
-A user also expects that **merging does not silently change semantics of past entities**. If a branch's E-19 and main's E-19 collide and one is renamed to E-19a, every reference (including in prose, including in CHANGELOG.md, including in PR descriptions) must be updated or the framework must surface the inconsistency. This is the *propagation preview* concept in the existing architecture, but it currently does not contemplate merge as a propagation event.
+A reasonable expectation is that **merging does not silently change semantics of past entities**. If a branch's E-19 and main's E-19 collide and one is renamed to E-19a, every reference (including in prose, including in CHANGELOG.md, including in PR descriptions) must be updated or the framework must surface the inconsistency. This is the *propagation preview* concept in the existing architecture, but it currently does not contemplate merge as a propagation event.
 
 ### 5.3 Failure modes and their human cost
 
@@ -219,7 +219,7 @@ The framework is consumed by AI assistants. AI assistants are particularly vulne
 
 - **Stale projections cached in conversation context.** If an assistant ran `aiwf query` before a merge and reasons from that result after, it will be wrong. The framework should make freshness checks cheap and obvious.
 - **Identity ambiguity.** If `E-19` means different things on different branches and an assistant generates a PR description referencing `E-19`, ambiguity propagates into prose. References should be resolvable to commit-stable identities.
-- **Verbosity of merge reconciliation.** A long list of findings after every merge will eat context budgets. Reconciliation findings should be batched and summarizable.
+- **Verbosity of merge reconciliation.** A long list of findings after every merge will eat context budgets. Reconciliation findings benefit from being batched and summarizable.
 
 ---
 
@@ -277,7 +277,7 @@ Replace "globally linear `post_state_hash` chain" with "branch-local linear chai
 
 `aiwf init` installs `post-checkout` (rebuild `graph.json`), `post-merge` (run merge-aware verify), `post-rewrite` (rebase support). Hooks are idempotent and fast (target sub-second).
 
-**Tier 1 verdict.** This is the smallest viable fix. It keeps the architecture's bones intact, removes the git incompatibilities, and is incrementally shippable. It is also the right fallback if the team is not willing to take a dependency on a CRDT library.
+**Tier 1 verdict.** Among the tiers, this is the smallest viable fix. It keeps the architecture's bones intact, addresses the git incompatibilities named in §3, and is incrementally shippable. It is a reasonable fallback if the team is not willing to take a dependency on a CRDT library.
 
 ### Tier 2 — Lift: replace the substrate with a CRDT
 
@@ -307,7 +307,7 @@ Drop `.ai-repo/events.jsonl` entirely. Each `aiwf` write verb produces one git c
 
 **Pros:** zero merge problems by construction (git already merges its own log); zero state-of-the-world divergence; total alignment with git's model; no custom merge driver needed.
 **Cons:** every write becomes a commit, which conflicts with how humans batch their work into commits ("I want to think before I commit"); the assistant becomes a heavy git user, which requires git commit/push permissions in places that may not have them; loses sub-commit atomicity (a complex `aiwf hotfix` flow that touches multiple entities now spans multiple commits or one chunky commit); audit trail is git history, which is mutable via rebase/amend (so trace-first becomes "trace-first within a commit, mutable across history").
-**Verdict:** the most honest answer to "stop fighting git." Likely too disruptive to current UX for the framework's target users, but it forces clarity about what the event log is *for*.
+**Verdict:** the most direct answer to "stop fighting git" — the only tier that doesn't keep a separate event log at all. Likely too disruptive to current UX for the framework's target users, but it forces clarity about what the event log is *for*.
 
 ### Tier 5 — Hybrid: declare markdown canonical, treat events as advisory
 
@@ -317,7 +317,7 @@ Markdown is the source of truth for *both* structural fields and prose. `events.
 
 **Pros:** ruthless simplification; the framework stops fighting git because it stops trying to be the time machine; verify becomes "does the projection match the markdown?" — a single comparison; merge becomes a non-event for the framework (the markdown merged or it didn't; if it merged, rescan).
 **Cons:** loses fine-grained provenance (who clicked promote, with what idempotency key, at what wall-clock time); loses the ability to record "attempts" separately from "confirmations" (no trace-first-then-confirm); some auditability stories that the architecture was leaning on (forensic replay of partial failures) become weaker.
-**Verdict:** the cleanest answer if the team is willing to scope down the event log's role. Worth taking seriously before spending engineering on Tier 1.
+**Verdict:** a clean answer if the team is willing to scope down the event log's role. Worth comparing seriously against Tier 1 before committing engineering effort either way.
 
 ### Cross-tier elements
 
@@ -340,8 +340,8 @@ Listed roughly in order of relevance to this framework's specific problem.
   The Automerge paper. JSON CRDT with convergence guarantees. **Read first** — it is the closest existing solution to "what if `events.jsonl` were merge-aware out of the box?"
 - **Kleppmann, M., Wiggins, A., van Hardenberg, P., & McGranaghan, M.** (2019). *Local-First Software: You Own Your Data, in Spite of the Cloud.* Onward! 2019.
   Articulates the problem class. Argues collaborative-offline-first is the right model for software-that-edits-shared-state-without-a-central-server. The framework is local-first software whether or not it has acknowledged it.
-- **Tankink, C., & Mimram, S.** (2013, ongoing). *Pijul / patch theory.*
-  Patches as morphisms; merges as pushouts. The rigorous answer to "what does merging two logs mean." Production VCS exists; the theory is the deeper contribution.
+- **Mimram, S., & Di Giusto, C.** (2013). *A Categorical Theory of Patches.* ENTCS 298:283–307.
+  Patches as morphisms; merges as pushouts. The rigorous answer to "what does merging two logs mean." The Pijul VCS (Pierre-Étienne Meunier and Florent Becker, ongoing) is the production realization; the theory is the deeper contribution.
 
 ### Foundational
 

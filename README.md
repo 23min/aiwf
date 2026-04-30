@@ -4,9 +4,11 @@
 
 This repository is two things at once: a body of design research that worked through what an "AI workflow framework" should actually be, and a small working PoC that puts the lightest plausible answer to the test.
 
-It is not currently a usable framework. It is a *thinking-out-loud* about what such a framework should be, plus a small implementation that validates the core ideas.
+## Who this is for
 
-**Single-document entry point:** [`docs/working-paper.md`](docs/working-paper.md) is a thesis-style synthesis of the research arc. Read it instead of (or before) the numbered docs in `docs/research/` if you want one document rather than seven.
+This is a record of one developer thinking through what AI-assisted software work actually needs, and trying to build the smallest plausible answer. The writing is aimed at solo practitioners and small teams who are working through the same problems on their own projects, with adjacent readers — technical project managers, tech leads, builders of AI-coding tools, spec-driven-development practitioners — welcome to sit in. It is not a finished framework, not a recommendation for large or regulated teams, and not a sales pitch; it is a thinking-in-public exercise that will either ship something useful or pivot into a clearer understanding of why something else is the better answer.
+
+**Single-document entry point:** [`docs/working-paper.md`](docs/working-paper.md) is a thesis-style synthesis of the research arc. Read it instead of (or before) the numbered docs in `docs/research/` if you want one document rather than thirteen.
 
 ---
 
@@ -28,7 +30,7 @@ The research in this repo takes the problem seriously: what should an AI-aware p
 
 ## The research
 
-`docs/research/` contains an arc of seven documents (`KERNEL.md`, then `00`–`06`) that walk through the load-bearing problems and how they interact:
+`docs/research/` contains an arc of documents (`KERNEL.md`, `0-introduction.md`, then `00`–`11`) that walk through the load-bearing problems and how they interact:
 
 - How a totally-ordered event log fights git's branching model.
 - Whether the framework should reinvent state management or let git be the time machine.
@@ -83,7 +85,7 @@ The intent is to validate concepts quickly, iterate from there, and not paint ou
 ```text
 docs/
 ├── working-paper.md         # thesis-style synthesis of the research arc — single-document entry point
-├── research/                # the design arc — full reasoning across seven documents
+├── research/                # the design arc — full reasoning across the numbered documents
 │   ├── KERNEL.md
 │   ├── 00-fighting-git.md
 │   ├── 01-git-native-planning.md
