@@ -10,8 +10,9 @@ import (
 )
 
 // TestList_AllShippedSkillsPresent guards the contract that we ship
-// the six verb skills from session 3 plus aiwf-status (the project-
-// state read view added during dogfooding on poc/aiwf-rename-skills).
+// the six verb skills from session 3, aiwf-status (added on
+// poc/aiwf-rename-skills), and aiwf-contract (added in I1.8 of the
+// contracts plan).
 func TestList_AllShippedSkillsPresent(t *testing.T) {
 	skills, err := List()
 	if err != nil {
@@ -21,7 +22,7 @@ func TestList_AllShippedSkillsPresent(t *testing.T) {
 	for i, s := range skills {
 		got[i] = s.Name
 	}
-	want := []string{"aiwf-add", "aiwf-check", "aiwf-history", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-status"}
+	want := []string{"aiwf-add", "aiwf-check", "aiwf-contract", "aiwf-history", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-status"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d skills, want %d (%v vs %v)", len(got), len(want), got, want)
 	}
