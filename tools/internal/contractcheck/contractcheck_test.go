@@ -206,3 +206,89 @@ func contains(haystack []string, needle string) bool {
 	}
 	return false
 }
+
+// --- Edge case coverage (added during the I1 hardening pass) ---
+
+// TestRun_AllThreeProblemsAtOnce: a single binding can be wrong in
+// every dimension simultaneously — missing entity, missing schema
+// path, missing fixtures path. All three findings must surface.
+func TestRun_AllThreeProblemsAtOnce(t *testing.T) {
+	repo := t.TempDir()
+	tr := &tree.Tree{Root: repo, Entities: nil}
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "cue", Schema: "ghost.cue", Fixtures: "ghost-dir",
+		}},
+	}
+	got := Run(tr, contracts, repo)
+	codes := codesAndSubcodes(got)
+	for _, want := range []string{
+		"contract-config/missing-entity",
+		"contract-config/missing-schema",
+		"contract-config/missing-fixtures",
+	} {
+		if !contains(codes, want) {
+			t.Errorf("missing finding %q; got %v", want, codes)
+		}
+	}
+}
+
+// TestRun_TerminalEntityBoundFixtureProblems_StillReportsConfig:
+// per the no-binding skip, terminal-state contracts that have no
+// binding don't get the "no-binding" warning. But when they DO have
+// a binding, missing-schema/fixtures findings should still fire,
+// because contract-config validates the binding's structural
+// correctness regardless of entity status.
+func TestRun_TerminalEntityWithBindingStillReportsConfig(t *testing.T) {
+	repo := t.TempDir()
+	tr := &tree.Tree{
+		Root: repo,
+		Entities: []*entity.Entity{
+			{ID: "C-001", Kind: entity.KindContract, Title: "Old", Status: "retired", Path: "work/contracts/C-001-old/contract.md"},
+		},
+	}
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "cue", Schema: "ghost.cue", Fixtures: "ghost",
+		}},
+	}
+	got := Run(tr, contracts, repo)
+	codes := codesAndSubcodes(got)
+	if !contains(codes, "contract-config/missing-schema") {
+		t.Errorf("retired contract with broken binding should still report missing-schema; got %v", codes)
+	}
+}
+
+// TestRun_MultipleBindings_FindingsCarryEntityID: when several
+// bindings have different problems, each finding must name the
+// correct entity id so the user knows which row to fix.
+func TestRun_MultipleBindings_FindingsCarryEntityID(t *testing.T) {
+	repo := t.TempDir()
+	mustWriteFile(t, filepath.Join(repo, "good.cue"), "")
+	if err := os.MkdirAll(filepath.Join(repo, "good-fixtures"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: repo,
+		Entities: []*entity.Entity{
+			{ID: "C-001", Kind: entity.KindContract, Title: "Good", Status: "accepted", Path: "work/contracts/C-001-good/contract.md"},
+			{ID: "C-002", Kind: entity.KindContract, Title: "Bad", Status: "accepted", Path: "work/contracts/C-002-bad/contract.md"},
+		},
+	}
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
+		Entries: []aiwfyaml.Entry{
+			{ID: "C-001", Validator: "cue", Schema: "good.cue", Fixtures: "good-fixtures"},
+			{ID: "C-002", Validator: "cue", Schema: "ghost.cue", Fixtures: "good-fixtures"},
+		},
+	}
+	got := Run(tr, contracts, repo)
+	if len(got) != 1 {
+		t.Fatalf("expected one finding (C-002 missing-schema); got %d: %+v", len(got), got)
+	}
+	if got[0].EntityID != "C-002" {
+		t.Errorf("entity id = %q, want C-002", got[0].EntityID)
+	}
+}

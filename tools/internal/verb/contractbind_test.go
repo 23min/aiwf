@@ -326,3 +326,127 @@ func TestAdd_NonContractRejectsContractFlags(t *testing.T) {
 		t.Fatal("expected error for --linked-adr on non-contract kind")
 	}
 }
+
+// --- Edge case coverage (added during the I1 hardening pass) ---
+
+// TestAdd_ContractBindWithoutAiwfDocRejected: requesting --validator
+// /etc on a kind=contract add without supplying the editable doc is
+// a usage error. Without the doc we can't perform the atomic splice,
+// so we refuse rather than write the entity in isolation.
+func TestAdd_ContractBindWithoutAiwfDocRejected(t *testing.T) {
+	tr := &tree.Tree{}
+	_, err := Add(tr, entity.KindContract, "API", "human/test", AddOptions{
+		BindValidator: "cue",
+		BindSchema:    "schema.cue",
+		BindFixtures:  "fixtures",
+		// AiwfDoc intentionally nil
+	})
+	if err == nil {
+		t.Fatal("expected error when bind flags are set but AiwfDoc is nil")
+	}
+}
+
+// TestAdd_ContractBindWithUndeclaredValidatorRejected: the atomic
+// add+bind variant must validate the validator name *before* writing
+// any file ops. The verb is all-or-nothing across both files.
+func TestAdd_ContractBindWithUndeclaredValidatorRejected(t *testing.T) {
+	tr := &tree.Tree{}
+	d, c := mustReadDoc(t, baseAiwfYAML)
+	_, err := Add(tr, entity.KindContract, "API", "human/test", AddOptions{
+		BindValidator: "ghost",
+		BindSchema:    "schema.cue",
+		BindFixtures:  "fixtures",
+		AiwfDoc:       d,
+		AiwfContracts: c,
+	})
+	if err == nil || !strings.Contains(err.Error(), "ghost") {
+		t.Errorf("expected error naming the undeclared validator; got %v", err)
+	}
+}
+
+// TestContractBind_RejectsEmptyID: bind needs a non-empty C-id; the
+// CLI dispatcher errors at parse time on an empty positional, but
+// the verb itself should also refuse a programmatic empty id (defensive).
+func TestContractBind_RejectsEmptyID(t *testing.T) {
+	tr := &tree.Tree{}
+	d, c := mustReadDoc(t, baseAiwfYAML)
+	_, err := ContractBind(tr, d, c, "", "human/test", ContractBindOptions{
+		Validator: "cue", Schema: "s", Fixtures: "f",
+	})
+	if err == nil {
+		t.Error("expected error for empty id")
+	}
+}
+
+// TestContractBind_RejectsNonContractEntity: an id that exists but
+// resolves to (e.g.) an epic must be refused with a clear message.
+func TestContractBind_RejectsNonContractEntity(t *testing.T) {
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{{
+			ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "active",
+			Path: "work/epics/E-01-foo/epic.md",
+		}},
+	}
+	d, c := mustReadDoc(t, baseAiwfYAML)
+	_, err := ContractBind(tr, d, c, "E-01", "human/test", ContractBindOptions{
+		Validator: "cue", Schema: "s", Fixtures: "f",
+	})
+	if err == nil || !strings.Contains(err.Error(), "epic") {
+		t.Errorf("expected error mentioning the kind mismatch; got %v", err)
+	}
+}
+
+// TestContractUnbind_OnlyRemovesNamedID: unbind on one of several
+// bindings must keep the rest untouched.
+func TestContractUnbind_OnlyRemovesNamedID(t *testing.T) {
+	src := `aiwf_version: 0.1.0
+actor: human/test
+contracts:
+  validators:
+    cue:
+      command: cue
+      args: [vet]
+  entries:
+    - id: C-001
+      validator: cue
+      schema: a.cue
+      fixtures: fa
+    - id: C-002
+      validator: cue
+      schema: b.cue
+      fixtures: fb
+    - id: C-003
+      validator: cue
+      schema: c.cue
+      fixtures: fc
+`
+	d, c := mustReadDoc(t, src)
+	res, err := ContractUnbind(d, c, "C-002", "human/test")
+	if err != nil {
+		t.Fatalf("ContractUnbind: %v", err)
+	}
+	got := string(res.Plan.Ops[0].Content)
+	if strings.Contains(got, "C-002") {
+		t.Errorf("C-002 not removed:\n%s", got)
+	}
+	for _, keep := range []string{"C-001", "C-003"} {
+		if !strings.Contains(got, keep) {
+			t.Errorf("expected %s to remain:\n%s", keep, got)
+		}
+	}
+}
+
+// TestContractBind_PartialBindOptionsRejected: missing fixtures on
+// the verb level (not just CLI level) errors.
+func TestContractBind_PartialBindOptionsRejected(t *testing.T) {
+	tr := contractTree("C-001", "proposed")
+	d, c := mustReadDoc(t, baseAiwfYAML)
+	_, err := ContractBind(tr, d, c, "C-001", "human/test", ContractBindOptions{
+		Validator: "cue",
+		Schema:    "s",
+		// Fixtures missing
+	})
+	if err == nil {
+		t.Error("expected error for missing --fixtures")
+	}
+}

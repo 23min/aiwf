@@ -333,6 +333,227 @@ func TestRun_NilContractsReturnsEmpty(t *testing.T) {
 	}
 }
 
+// --- Edge case coverage (added during the I1 hardening pass) ---
+
+func TestSubstitute_TokenAlone(t *testing.T) {
+	got := substitute([]string{"{{schema}}"},
+		aiwfyaml.Entry{ID: "C-001", Schema: "s.cue"}, "v1", "fix.json")
+	if got[0] != "s.cue" {
+		t.Errorf("token-alone substitution = %q, want %q", got[0], "s.cue")
+	}
+}
+
+func TestSubstitute_ConcatenatedAndRepeated(t *testing.T) {
+	args := []string{
+		"prefix={{schema}}.suffix",
+		"--schema={{schema}} --fixture={{fixture}}",
+		"{{schema}}{{fixture}}",
+		"--id={{contract_id}}-v={{version}}",
+	}
+	got := substitute(args,
+		aiwfyaml.Entry{ID: "C-001", Schema: "s"}, "v1", "f")
+	want := []string{
+		"prefix=s.suffix",
+		"--schema=s --fixture=f",
+		"sf",
+		"--id=C-001-v=v1",
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("[%d] got %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestSubstitute_LiteralBracesAreNotPlaceholders(t *testing.T) {
+	// `{{}}` is not a documented placeholder; the replacer must leave
+	// it alone. (strings.NewReplacer matches longest-token-first, so
+	// this is essentially testing the replacer doesn't get confused
+	// by adjacent braces.)
+	got := substitute([]string{"echo {{}}"},
+		aiwfyaml.Entry{ID: "C-001", Schema: "s"}, "v1", "f")
+	if got[0] != "echo {{}}" {
+		t.Errorf("literal `{{}}` mutated to %q", got[0])
+	}
+}
+
+func TestSubstitute_EmptyArgsSlice(t *testing.T) {
+	got := substitute(nil, aiwfyaml.Entry{ID: "C-001"}, "v1", "f")
+	if got == nil || len(got) != 0 {
+		t.Errorf("substitute(nil) = %v, want empty slice", got)
+	}
+}
+
+func TestRun_NoReclassificationWhenZeroValidFixtures(t *testing.T) {
+	// Only invalid fixtures, none valid. The reclassification rule
+	// requires at least one valid fixture; with zero valids, no
+	// fixture-rejected can fire and therefore no validator-error.
+	repo := t.TempDir()
+	script := fakeValidatorScript(t, repo)
+	writeFixture(t, repo, "fixtures", "v1", "invalid", "a.json", "FAIL") // ok
+
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{
+			"fake": {Command: script, Args: []string{"{{fixture}}"}},
+		},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+		}},
+	}
+	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
+	if len(got) != 0 {
+		t.Errorf("expected no findings; got %+v", got)
+	}
+}
+
+func TestRun_NoReclassificationWhenSomeValidsPass(t *testing.T) {
+	// One valid passes, one valid fails. Reclassification requires
+	// *every* valid to fail, so this stays as one fixture-rejected.
+	repo := t.TempDir()
+	script := fakeValidatorScript(t, repo)
+	writeFixture(t, repo, "fixtures", "v1", "valid", "good.json", "PASS")
+	writeFixture(t, repo, "fixtures", "v1", "valid", "bad.json", "FAIL")
+
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{
+			"fake": {Command: script, Args: []string{"{{fixture}}"}},
+		},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+		}},
+	}
+	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
+	if len(got) != 1 {
+		t.Fatalf("got %d findings, want 1: %+v", len(got), got)
+	}
+	if got[0].Code != CodeFixtureRejected {
+		t.Errorf("code = %q, want %q (no reclassification with mixed results)", got[0].Code, CodeFixtureRejected)
+	}
+}
+
+func TestRun_MultipleVersions_VerifyAndEvolve(t *testing.T) {
+	repo := t.TempDir()
+	script := fakeValidatorScript(t, repo)
+	// v3 = current; one PASS valid, one PASS invalid... wait, invalid
+	// expects FAIL.  Make it correct:
+	writeFixture(t, repo, "fixtures", "v3", "valid", "ok.json", "PASS")
+	writeFixture(t, repo, "fixtures", "v3", "invalid", "bad.json", "FAIL")
+	// v2 historical: one valid that fails HEAD → evolution-regression.
+	writeFixture(t, repo, "fixtures", "v2", "valid", "old.json", "FAIL")
+	// v1 historical: one valid that passes HEAD → no finding.
+	writeFixture(t, repo, "fixtures", "v1", "valid", "ancient.json", "PASS")
+
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{
+			"fake": {Command: script, Args: []string{"{{fixture}}"}},
+		},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+		}},
+	}
+	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
+	if len(got) != 1 {
+		t.Fatalf("expected exactly one finding (v2 evolution regression); got %d: %+v", len(got), got)
+	}
+	if got[0].Code != CodeEvolutionRegression {
+		t.Errorf("code = %q, want %q", got[0].Code, CodeEvolutionRegression)
+	}
+	if got[0].Version != "v2" {
+		t.Errorf("version = %q, want v2", got[0].Version)
+	}
+}
+
+func TestRun_VersionSubstitutionFlowsThrough(t *testing.T) {
+	// Validator that records its argv into a sentinel file in the repo,
+	// then exits 0. Verifies that {{version}} is substituted with the
+	// directory name (not, say, an empty string).
+	repo := t.TempDir()
+	if runtime.GOOS == "windows" {
+		t.Skip("uses /bin/sh script")
+	}
+	logFile := filepath.Join(repo, "validator.log")
+	script := filepath.Join(repo, "log-validator.sh")
+	body := `#!/bin/sh
+echo "$1 $2" >> ` + logFile + `
+exit 0
+`
+	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, repo, "fixtures", "v1", "valid", "a.json", "PASS")
+	writeFixture(t, repo, "fixtures", "v2", "valid", "b.json", "PASS")
+
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{
+			"fake": {Command: script, Args: []string{"{{fixture}}", "{{version}}"}},
+		},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+		}},
+	}
+	_ = Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
+	logged, err := os.ReadFile(logFile)
+	if err != nil {
+		t.Fatalf("reading validator log: %v", err)
+	}
+	got := string(logged)
+	if !strings.Contains(got, " v1") || !strings.Contains(got, " v2") {
+		t.Errorf("validator log did not record both version substitutions:\n%s", got)
+	}
+}
+
+func TestRun_NonexistentFixturesDirSilent(t *testing.T) {
+	repo := t.TempDir()
+	script := fakeValidatorScript(t, repo)
+	// fixtures: points at a directory that doesn't exist.
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{
+			"fake": {Command: script, Args: []string{"{{fixture}}"}},
+		},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "ghost",
+		}},
+	}
+	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
+	if len(got) != 0 {
+		t.Errorf("expected silence for missing fixtures dir (contract-config covers it); got %+v", got)
+	}
+}
+
+func TestRun_ContextCancellation(t *testing.T) {
+	repo := t.TempDir()
+	if runtime.GOOS == "windows" {
+		t.Skip("uses /bin/sh script")
+	}
+	// Validator that sleeps so we have time to cancel.
+	script := filepath.Join(repo, "slow.sh")
+	body := `#!/bin/sh
+sleep 5
+`
+	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, repo, "fixtures", "v1", "valid", "a.json", "PASS")
+
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{
+			"fake": {Command: script, Args: []string{"{{fixture}}"}},
+		},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+		}},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel before Run starts
+	got := Run(ctx, Options{RepoRoot: repo, Contracts: contracts})
+	// We expect the run to complete quickly and yield a finding (the
+	// canceled exec turns into an exec error, classified as
+	// fixture-rejected per runValidator's fallback).
+	if len(got) == 0 {
+		t.Errorf("expected at least one finding from the canceled run")
+	}
+}
+
 func TestCombineStdStreams(t *testing.T) {
 	if got := combineStdStreams(nil, nil); got != "" {
 		t.Errorf("empty case = %q", got)

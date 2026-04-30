@@ -165,3 +165,113 @@ func TestRecipeRemove_RejectsMissingValidator(t *testing.T) {
 		t.Error("expected error for missing validator")
 	}
 }
+
+// --- Edge case coverage (added during the I1 hardening pass) ---
+
+func TestRecipeInstall_RejectsEmptyName(t *testing.T) {
+	d, c := mustReadDoc(t, recipeBaseYAML)
+	_, err := RecipeInstall(d, c, "", aiwfyaml.Validator{Command: "x"}, "human/test", RecipeInstallOptions{})
+	if err == nil {
+		t.Error("expected error for empty name")
+	}
+}
+
+func TestRecipeInstall_RejectsEmptyCommand(t *testing.T) {
+	d, c := mustReadDoc(t, recipeBaseYAML)
+	_, err := RecipeInstall(d, c, "x", aiwfyaml.Validator{Command: ""}, "human/test", RecipeInstallOptions{})
+	if err == nil {
+		t.Error("expected error for empty command")
+	}
+}
+
+func TestRecipeInstall_NoTrailersForUnreferencedValidator(t *testing.T) {
+	// Brand-new validator with no bindings yet — install should NOT
+	// emit any aiwf-entity trailers.
+	d, c := mustReadDoc(t, recipeBaseYAML)
+	res, err := RecipeInstall(d, c, "fresh", aiwfyaml.Validator{
+		Command: "fresh", Args: []string{"--check"},
+	}, "human/test", RecipeInstallOptions{})
+	if err != nil {
+		t.Fatalf("RecipeInstall: %v", err)
+	}
+	for _, tr := range res.Plan.Trailers {
+		if tr.Key == "aiwf-entity" {
+			t.Errorf("unexpected aiwf-entity trailer for unreferenced validator: %+v", tr)
+		}
+	}
+}
+
+func TestRecipeInstall_ForceUpdatesArgsAndKeepsValidator(t *testing.T) {
+	src := strings.Replace(recipeBaseYAML, "  validators: {}", `  validators:
+    cue:
+      command: cue
+      args:
+        - vet`, 1)
+	d, c := mustReadDoc(t, src)
+	res, err := RecipeInstall(d, c, "cue", aiwfyaml.Validator{
+		Command: "cue",
+		Args:    []string{"vet", "--all"},
+	}, "human/test", RecipeInstallOptions{Force: true})
+	if err != nil {
+		t.Fatalf("RecipeInstall force: %v", err)
+	}
+	got := string(res.Plan.Ops[0].Content)
+	if !strings.Contains(got, "--all") {
+		t.Errorf("force-replace did not update args:\n%s", got)
+	}
+}
+
+func TestRecipeRemove_NamesMultipleReferencesInError(t *testing.T) {
+	src := `aiwf_version: 0.1.0
+actor: human/test
+contracts:
+  validators:
+    cue:
+      command: cue
+      args: [vet]
+  entries:
+    - id: C-001
+      validator: cue
+      schema: a.cue
+      fixtures: fa
+    - id: C-007
+      validator: cue
+      schema: b.cue
+      fixtures: fb
+`
+	d, c := mustReadDoc(t, src)
+	_, err := RecipeRemove(d, c, "cue", "human/test")
+	if err == nil {
+		t.Fatal("expected error for referenced validator")
+	}
+	for _, want := range []string{"C-001", "C-007"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q missing reference %s", err, want)
+		}
+	}
+}
+
+func TestValidatorEqual_HandlesNilArgs(t *testing.T) {
+	a := aiwfyaml.Validator{Command: "x", Args: nil}
+	b := aiwfyaml.Validator{Command: "x", Args: []string{}}
+	if !validatorEqual(a, b) {
+		t.Error("nil args and empty args slice should compare equal")
+	}
+}
+
+func TestBindingsReferencing_IsNilSafeAndSorted(t *testing.T) {
+	if got := bindingsReferencing(nil, "x"); got != nil {
+		t.Errorf("nil contracts should yield nil; got %+v", got)
+	}
+	c := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
+		Entries: []aiwfyaml.Entry{
+			{ID: "C-002", Validator: "cue", Schema: "s", Fixtures: "f"},
+			{ID: "C-001", Validator: "cue", Schema: "s", Fixtures: "f"},
+		},
+	}
+	got := bindingsReferencing(c, "cue")
+	if len(got) != 2 || got[0] != "C-001" || got[1] != "C-002" {
+		t.Errorf("expected sorted [C-001 C-002]; got %v", got)
+	}
+}

@@ -308,19 +308,15 @@ func decodeContracts(n *yaml.Node) (*Contracts, error) {
 // occupied by the contracts: key/value pair in raw. The interval
 // covers the line containing the `contracts:` key down to (but not
 // including) the next top-level key, or to EOF when contracts: is
-// the last top-level key. A HeadComment immediately above the key —
-// i.e., a comment that yaml.v3 attaches to the key node — is folded
-// into the splice range so the writer can replace the whole stanza
-// cleanly on a fresh write.
+// the last top-level key.
+//
+// Comments above `contracts:` (yaml.v3's HeadComment) are *outside*
+// the block per the §5 contract — the splice starts at the
+// `contracts:` line itself so those comments survive untouched.
+// Likewise, a HeadComment on the next top-level key belongs to that
+// next key, so the splice stops at the comment, not at the key line.
 func blockByteRange(raw []byte, top, keyNode *yaml.Node, keyIdx int) (start, end int, err error) {
-	startLine := keyNode.Line
-	if hc := strings.TrimSpace(keyNode.HeadComment); hc != "" {
-		startLine -= countLines(keyNode.HeadComment)
-		if startLine < 1 {
-			startLine = 1
-		}
-	}
-	start, err = lineToByteOffset(raw, startLine)
+	start, err = lineToByteOffset(raw, keyNode.Line)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -380,6 +376,11 @@ func countLines(s string) int {
 // with the line `contracts:` and ending with a trailing newline. The
 // fragment is two-space-indented, sorted-key for validators, and
 // preserves entry order from the slice.
+//
+// validators: and entries: are always emitted (as `{}` / `[]` when
+// empty) so the resulting block is unambiguously a mapping with two
+// keys, not a null-valued top-level. This keeps round-trips through
+// strict KnownFields decoding stable even for empty contracts blocks.
 func marshalContractsBlock(c *Contracts) []byte {
 	var b strings.Builder
 	b.WriteString("contracts:\n")
@@ -400,6 +401,8 @@ func marshalContractsBlock(c *Contracts) []byte {
 				b.WriteString("      args: []\n")
 			}
 		}
+	} else {
+		b.WriteString("  validators: {}\n")
 	}
 
 	if len(c.Entries) > 0 {
@@ -410,6 +413,8 @@ func marshalContractsBlock(c *Contracts) []byte {
 			fmt.Fprintf(&b, "      schema: %s\n", yamlScalar(e.Schema))
 			fmt.Fprintf(&b, "      fixtures: %s\n", yamlScalar(e.Fixtures))
 		}
+	} else {
+		b.WriteString("  entries: []\n")
 	}
 
 	return []byte(b.String())

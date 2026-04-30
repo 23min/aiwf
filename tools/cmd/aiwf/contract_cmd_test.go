@@ -263,6 +263,199 @@ contracts:
 	}
 }
 
+// TestRun_ContractEndToEnd_FullChain exercises the documented
+// onboarding flow as one end-to-end test:
+//
+//  1. init the repo
+//  2. install a custom validator via `recipe install --from <path>`
+//  3. add a contract atomically with --validator/--schema/--fixtures
+//     (so the entity creation and the binding land in one commit)
+//  4. write the schema and fixture files
+//  5. verify (clean)
+//  6. corrupt a fixture so the validator rejects it
+//  7. verify (findings) and confirm `aiwf check` also reports them
+//     (pre-push integration parity)
+//  8. unbind and verify clean again
+func TestRun_ContractEndToEnd_FullChain(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+
+	// --- Step: install a custom validator from a YAML file. ---
+	script := fakeValidatorCLI(t, root)
+	customPath := filepath.Join(root, "fake.yaml")
+	if err := os.WriteFile(customPath, []byte(`name: fake
+command: `+script+`
+args:
+  - "{{fixture}}"
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("recipe install --from: %d", rc)
+	}
+
+	// --- Step: prepare schema + valid fixture on disk. ---
+	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
+	writeFixtureFile(t, root, "fixtures/v1/valid/good.json", "PASS")
+
+	// --- Step: atomic add+bind. The verb must produce a single
+	// commit that creates the contract entity AND adds the binding
+	// to aiwf.yaml. We verify both artifacts after the run.
+	if rc := run([]string{
+		"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test",
+		"--validator", "fake", "--schema", "schema.cue", "--fixtures", "fixtures",
+	}); rc != exitOK {
+		t.Fatalf("add contract atomic: %d", rc)
+	}
+	if _, err := os.Stat(filepath.Join(root, "work", "contracts", "C-001-public-api", "contract.md")); err != nil {
+		t.Errorf("contract entity file missing: %v", err)
+	}
+	yamlBytes, err := os.ReadFile(filepath.Join(root, "aiwf.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(yamlBytes), "C-001") {
+		t.Errorf("aiwf.yaml does not carry the new binding:\n%s", yamlBytes)
+	}
+
+	// --- Step: verify is clean. ---
+	if rc := run([]string{"contract", "verify", "--root", root}); rc != exitOK {
+		t.Errorf("verify (initial clean): rc=%d", rc)
+	}
+	if rc := run([]string{"check", "--root", root}); rc != exitOK {
+		t.Errorf("check (initial clean): rc=%d", rc)
+	}
+
+	// --- Step: corrupt the fixture so the validator rejects it. ---
+	writeFixtureFile(t, root, "fixtures/v1/valid/good.json", "FAIL")
+
+	if rc := run([]string{"contract", "verify", "--root", root}); rc != exitFindings {
+		t.Errorf("verify after corrupt: rc=%d, want %d", rc, exitFindings)
+	}
+	if rc := run([]string{"check", "--root", root}); rc != exitFindings {
+		t.Errorf("check after corrupt (pre-push integration): rc=%d, want %d", rc, exitFindings)
+	}
+
+	// --- Step: unbind. The contract entity stays; verification stops. ---
+	if rc := run([]string{"contract", "unbind", "--root", root, "--actor", "human/test", "C-001"}); rc != exitOK {
+		t.Fatalf("unbind: %d", rc)
+	}
+	if rc := run([]string{"contract", "verify", "--root", root}); rc != exitOK {
+		t.Errorf("verify after unbind: rc=%d (binding gone, should be silent)", rc)
+	}
+
+	// Confirm the entity still exists despite the unbind.
+	if rc := run([]string{"check", "--root", root}); rc == exitInternal {
+		t.Errorf("check after unbind returned internal error rc=%d", rc)
+	}
+}
+
+// TestRun_ContractRecipeInstallIsIdempotent: running install twice
+// with the same recipe must succeed both times, with the second run
+// printing a no-op message and not creating a second commit.
+func TestRun_ContractRecipeInstallIsIdempotent(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+
+	script := fakeValidatorCLI(t, root)
+	customPath := filepath.Join(root, "fake.yaml")
+	if err := os.WriteFile(customPath, []byte(`name: fake
+command: `+script+`
+args:
+  - "{{fixture}}"
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("recipe install (first): %d", rc)
+	}
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+			t.Errorf("recipe install (second, idempotent): %d", rc)
+		}
+	})
+	if !strings.Contains(string(captured), "unchanged") {
+		t.Errorf("idempotent install did not print no-op message:\n%s", captured)
+	}
+}
+
+// TestRun_ContractRecipeRemoveRefuses_WhenBindingExists: the verb
+// must error out (exit 2) and name the offending binding.
+func TestRun_ContractRecipeRemoveRefusesWhenBindingExists(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	script := fakeValidatorCLI(t, root)
+	customPath := filepath.Join(root, "fake.yaml")
+	if err := os.WriteFile(customPath, []byte(`name: fake
+command: `+script+`
+args: ["{{fixture}}"]
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("recipe install: %d", rc)
+	}
+	if rc := run([]string{"add", "contract", "--title", "API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("add contract: %d", rc)
+	}
+	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
+	writeFixtureFile(t, root, "fixtures/v1/valid/a.json", "PASS")
+	if rc := run([]string{
+		"contract", "bind", "--root", root, "--actor", "human/test", "C-001",
+		"--validator", "fake", "--schema", "schema.cue", "--fixtures", "fixtures",
+	}); rc != exitOK {
+		t.Fatalf("bind: %d", rc)
+	}
+
+	// Now try to remove the validator. Must refuse, naming C-001.
+	captured := captureStderr(t, func() {
+		if rc := run([]string{"contract", "recipe", "remove", "--root", root, "--actor", "human/test", "fake"}); rc != exitUsage {
+			t.Errorf("recipe remove with binding: rc=%d, want %d", rc, exitUsage)
+		}
+	})
+	if !strings.Contains(string(captured), "C-001") {
+		t.Errorf("remove error did not name the binding:\n%s", captured)
+	}
+}
+
+// TestRun_ContractAddPartialBindFlagsRejected: --validator alone (or
+// any 1-of-3 / 2-of-3 of the bind flags) must error out as a usage
+// problem and leave no entity behind.
+func TestRun_ContractAddPartialBindFlagsRejected(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	script := fakeValidatorCLI(t, root)
+	customPath := filepath.Join(root, "fake.yaml")
+	if err := os.WriteFile(customPath, []byte(`name: fake
+command: `+script+`
+args: ["{{fixture}}"]
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("recipe install: %d", rc)
+	}
+	if rc := run([]string{
+		"add", "contract", "--title", "API", "--root", root, "--actor", "human/test",
+		"--validator", "fake",
+	}); rc != exitUsage {
+		t.Errorf("partial-triplet add: rc=%d, want %d", rc, exitUsage)
+	}
+	// Confirm no entity was created.
+	if _, err := os.Stat(filepath.Join(root, "work", "contracts", "C-001-api", "contract.md")); err == nil {
+		t.Errorf("contract entity created despite usage error")
+	}
+}
+
 // captureStderr is a sibling of captureStdout used to silence noise
 // during verify-failure runs (the renderer writes findings to stdout
 // but verb-level errors go to stderr).

@@ -459,6 +459,35 @@ func TestRun_LineFallsBackToOne(t *testing.T) {
 	}
 }
 
+// TestSortFindings_Stable: when two findings tie on every sort key
+// (severity, code, path), their input order must be preserved. This
+// guarantees that callers who pre-order within a code group keep
+// that order through the merge.
+func TestSortFindings_Stable(t *testing.T) {
+	in := []Finding{
+		{Code: "x", Severity: SeverityError, Path: "a.md", EntityID: "first"},
+		{Code: "x", Severity: SeverityError, Path: "a.md", EntityID: "second"},
+		{Code: "x", Severity: SeverityError, Path: "a.md", EntityID: "third"},
+	}
+	SortFindings(in)
+	if in[0].EntityID != "first" || in[1].EntityID != "second" || in[2].EntityID != "third" {
+		t.Errorf("stable sort lost relative order: %+v", in)
+	}
+}
+
+// TestSortFindings_ErrorsBeforeWarnings: error-severity findings
+// always sort ahead of warnings, regardless of code.
+func TestSortFindings_ErrorsBeforeWarnings(t *testing.T) {
+	in := []Finding{
+		{Code: "z-warn", Severity: SeverityWarning, Path: "a.md"},
+		{Code: "a-err", Severity: SeverityError, Path: "z.md"},
+	}
+	SortFindings(in)
+	if in[0].Severity != SeverityError {
+		t.Errorf("first finding severity = %v, want error", in[0].Severity)
+	}
+}
+
 // TestHintFor_KnownAndUnknown probes the public hint table.
 func TestHintFor_KnownAndUnknown(t *testing.T) {
 	if HintFor("refs-resolve", "unresolved") == "" {
