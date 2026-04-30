@@ -1,8 +1,17 @@
 # The kernel — what the framework actually needs to do
 
-> **Status:** reference. Promoted from §1 of `01-git-native-planning.md` and refined through subsequent research. Short by design.
-> **Purpose:** when any architecture proposal, skill, verb, or research direction is on the table, walk this list. If the proposal does not serve one of these, it is not in scope. If a need on this list is not yet served, that gap should be named explicitly.
+> **Status:** reference
+> **Purpose:** the rubric against which every framework proposal is evaluated. If a proposal does not serve one of these needs, it is not in scope. If a need on this list is not yet served, that gap should be named explicitly.
+> **Audience:** anyone proposing a change to the framework — architecture, skill, verb, contract, or research direction.
+> **Premise:** promoted from §1 of [`01-git-native-planning`](https://proliminal.net/theses/git-native-planning/) and refined through subsequent research. Short by design.
 > **Discipline:** this document changes by deliberate edit, with reasoning recorded in commit messages or in a numbered research doc. It does not drift.
+> **Tags:** #aiwf #reference
+
+---
+
+## Abstract
+
+The framework exists to do **eight things** and only these — record planning state, express relationships, support evolution, keep history honest, validate consistency, generate human-readable views, coordinate AI behavior, survive parallel work — subject to **a handful of cross-cutting quality bars** including: enforcement that does not depend on the LLM choosing to enforce, referential stability across rename and removal, honesty about what the framework guarantees (referential and structural, not semantic), engine invocability without an AI assistant, soft-in-studio / strict-at-gate / sealed-at-main, modular opt-in by project shape, governance and provenance as first-class UX, and layered location-of-truth with planning state in repo. The numbered research arc justifies each item. This document is the slowest-changing artifact in the framework's design and exists to keep proposals honest about which need they serve.
 
 ---
 
@@ -75,3 +84,11 @@ When the kernel itself feels wrong:
 
 - Open a numbered research document examining the case for change. Do not edit the kernel without recorded reasoning.
 - The kernel should be the slowest-changing artifact in the framework's design.
+
+---
+
+## In this series
+
+- Index: [introduction](https://proliminal.net/theses/ai-workflow-research/)
+- Synthesis: [working paper](https://proliminal.net/theses/working-paper/)
+- This document is reference, outside the linear chain.

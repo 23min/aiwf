@@ -1,8 +1,17 @@
 # A KISS PoC build plan
 
-> **Status:** actionable plan, not research. Concludes the `00`–`05` arc by collapsing it into the smallest framework that solves 90% of the problems for the target use case: AI-assisted development at the smaller end of the spectrum — single developer or a small team, projects of either greenfield or brownfield shape, work measured in weeks and a few months rather than years.
-> **Premise:** the research found that most of the framework's complexity is paying for problems that don't fire at this scale. Strip those costs. Ship a tiny thing in a few focused sessions. Try it on real projects. Let real friction surface what (if anything) needs to grow.
+> **Status:** actionable-plan
+> **Hypothesis:** At single-developer or small-team scale on a few-months horizon, the framework's value collapses to six entity kinds, stable IDs with collision resolution, a pre-push validator, a structured-commit history reader, and stable skills — implementable in roughly four sessions of focused work.
+> **Audience:** anyone executing the PoC, or deciding whether the prior research is enough to start building.
+> **Premise:** most of the framework's apparent complexity is paying for problems that don't fire at this scale; strip those costs, ship a tiny thing in a few focused sessions, try it on real projects, let real friction surface what — if anything — needs to grow.
 > **Discipline:** any feature not on this list is out of scope until real use exposes a need for it.
+> **Tags:** #aiwf #plan
+
+---
+
+## Abstract
+
+This document concludes the `00`–`05` research arc by collapsing the synthesis into a buildable plan. A single Go binary `aiwf`, installed via `go install`. The repo gets one config file (`aiwf.yaml`), one planning directory (`work/`), one decisions directory (`docs/adr/`), and one gitignored materialized-skills directory (`.claude/skills/wf-*`). Six entity kinds (epic, milestone, ADR, gap, decision, contract), each with a closed status set and one Go function for legal transitions. A handful of verbs, each producing one git commit with a structured trailer. An `aiwf check` command that validates the tree and runs as a pre-push hook. An `aiwf history <id>` that renders `git log` for an entity. **No event log, no graph projection, no CRDTs, no FSM-as-data, no module system, no registry, no multi-host adapters, no tombstones beyond `cancelled`, no cross-branch merge handling.** Roughly 2,500 lines of Go, four focused sessions, ready to use on a real project. Built on a branch (`poc/aiwf-v3`) so `main` stays open for other implementations. Future additions are deferred until real friction demonstrates need.
 
 ---
 
@@ -441,3 +450,12 @@ The research arc landed on this: **the framework's value is the smallest set of 
 - A PoC branch (`poc/aiwf-v3`) that keeps the experiment isolated from `main` so the road stays open for other implementations.
 
 Nothing else is load-bearing. Build that. Ship in a week. Use it. Let real friction tell you what to add.
+
+---
+
+## In this series
+
+- Previous: [05 — Where state lives](https://proliminal.net/theses/where-state-lives/)
+- Next: [07 — State, not workflow](https://proliminal.net/theses/state-not-workflow/)
+- Synthesis: [working paper](https://proliminal.net/theses/working-paper/)
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

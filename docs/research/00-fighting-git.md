@@ -1,8 +1,16 @@
 # Fighting git: branching, merging, and the limits of a totally-ordered event log
 
-> **Status:** research / problem statement. Not normative. Source document for follow-on architecture proposals (one per tier in §7).
-> **Audience:** anyone proposing changes to the event log, ID allocator, projection-hash chain, or `aiwf verify`. Read before opening such a PR.
-> **Scope:** examines whether the framework as designed in `docs/architecture.md` is consistent with the realities of git branching, what fails, and what kinds of solutions are admissible.
+> **Status:** defended-position
+> **Hypothesis:** A totally-ordered hash-chained event log layered onto git fights git's branching model and cannot be made to survive merges by construction; the framework must either lift the substrate (CRDT), lower the abstraction (markdown-canonical), mediate at merge (custom merge driver), or concede to git (use `git log` as the event log).
+> **Audience:** anyone proposing changes to the event log, ID allocator, projection-hash chain, or `aiwf verify`.
+> **Premise:** the framework as designed in [`docs/architecture.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/architecture.md) is examined for consistency with git's branching model.
+> **Tags:** #thesis #git #aiwf #state-model #research
+
+---
+
+## Abstract
+
+The framework's original architecture persists structural state in three coordinated artifacts: markdown specs, an append-only `events.jsonl`, and a derived `graph.json` projection. The event log is specified as a totally ordered sequence with monotonic sequence numbers and a hash chain over post-state. Git, however, is a Merkle DAG of file-tree snapshots in which branches are first-class persistent divergent histories. This document shows mechanically why the event log cannot survive a 3-way text merge — sequence numbers collide, hash chains break, and the monotonic ID allocator behaves like a multi-master replication primitive without coordination. It surveys the relevant literature (CRDTs, local-first, patch theory, Bayou-style application-defined merge), then enumerates a tiered solution space (lift / lower / mediate / concede) without picking. The follow-on documents in this series do the picking; this one names the substrate problem and the admissible responses.
 
 ---
 
@@ -406,3 +414,11 @@ Until at least one such proposal exists and is accepted, no further work on `eve
 - Does the framework attempt to detect partial merges (e.g., conflict markers left in place by a careless user), or trust that git's exit codes were respected?
 - How are schema-version-skew events handled when main is behind a feature branch? (Per-tier.)
 - Is there a `aiwf reconcile` verb, distinct from `aiwf verify`? Does it write events, or only emit findings? (Per-tier.)
+
+---
+
+## In this series
+
+- Previous: [introduction](https://proliminal.net/theses/ai-workflow-research/)
+- Next: [01 — Git-native planning](https://proliminal.net/theses/git-native-planning/)
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

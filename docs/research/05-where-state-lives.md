@@ -1,8 +1,16 @@
 # Where state lives — in-repo, out-of-repo, or layered, and which is more successful
 
-> **Status:** research / location-of-truth analysis. Not normative. Sixth in the series; reads on top of `00`–`04` and `KERNEL.md`.
-> **Audience:** the user, after they pointed at a paper, asked whether there is empirical evidence about in-repo vs. out-of-repo planning state, and proposed `brew install aiwf` with agents/skills materialized into the repo (gitignored) and the framework being IDE- and PM-agnostic.
-> **Premise:** "in repo or out of repo" is not one question but five questions stacked. The right answer puts each layer where its constraints are best served, and most of the user's instinct is right for some layers and wrong for others.
+> **Status:** defended-position
+> **Hypothesis:** "Where does state live" is six layers, not one question; engine binary external (machine-installed), per-project policy and planning state in repo, materialized adapters gitignored and stable across branch switches by explicit-update-only — each layer placed where its constraints are best served.
+> **Audience:** the user, after pointing at the Denicek paper, asking about empirical evidence on in-repo vs. external planning state, and proposing `brew install aiwf` with agents/skills materialized into the repo (gitignored).
+> **Premise:** "in repo or out of repo" is not one question but several stacked. Most of the user's brew-install instinct is right; one piece of it is wrong; making the layers explicit resolves it.
+> **Tags:** #thesis #aiwf #state-model
+
+---
+
+## Abstract
+
+The user proposed installing the framework via `brew` with skills/agents materialized into the repo (gitignored), and asked whether there is empirical evidence on in-repo vs. external planning state. Honest answer to the second: no rigorous empirical comparison exists, but convergent practice across successful tools (Figma, Linear, Notion, Cursor, Claude Code) shows a stratified pattern — binary external, per-repo configuration in repo, materialized adapters local. This document refines "where state lives" into six layers (engine binary, per-project policy, per-project planning state, per-developer ergonomic state, skill content from multiple sources, and materialized adapters plus runtime cache) and walks each. The user's proposal is right at the binary, skills-content, and materialization layers; under-specified at policy; wrong at planning state (out-of-repo breaks on multi-machine, multi-user, CI, bisectability, and regulation). The load-bearing invariant the user named — *materialized adapters stay the same regardless of branch* — is preserved by making materialization an explicit `aiwf init` / `aiwf update` step, not an implicit consequence of `git checkout`. The framework that emerges is smaller than the original architecture, more deployable (brew install vs. submodule wrangling), and honest about which problems live at which layer.
 
 ---
 
@@ -456,3 +464,11 @@ The framework that emerges from this layering is *smaller* than the current arch
 
 - [Denicek: Computational Substrate for Document-Oriented End-User Programming](https://dl.acm.org/doi/full/10.1145/3746059.3747646?download=true) — the paper the user cited; substrate for edits-over-document programming, relevant to the representation question but not directly to the location question.
 - [Proceedings of the 38th Annual ACM Symposium on User Interface Software and Technology (UIST '25)](https://dl.acm.org/doi/proceedings/10.1145/3746059) — venue context.
+
+---
+
+## In this series
+
+- Previous: [04 — Governance, provenance, and the pre-PR tier](https://proliminal.net/theses/governance-provenance-and-the-pre-pr-tier/)
+- Next: [06 — PoC build plan](https://proliminal.net/theses/poc-build-plan/)
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

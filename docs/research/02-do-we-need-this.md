@@ -1,8 +1,16 @@
 # Do we even need this framework? — questioning the premise
 
-> **Status:** research / premise audit. Not normative. Companion to `fighting-git.md` and `git-native-planning.md`. Where those documents take "we are building a framework" as given and ask how to build it well, this one asks whether the framework should exist in its current ambition at all.
+> **Status:** defended-position
+> **Hypothesis:** A custom AI-aware planning framework is overdesigned for most teams; ADRs plus a curated context document plus a habit (Shape A) solves 80% of the forgetful-AI problem with two weeks of work, and the right discipline is to build that first and let real friction surface what — if anything — needs to grow.
 > **Audience:** the person about to commit months of engineering to this codebase. Read before that.
-> **Intent:** ruthless. The point of the question "do we need this?" is to deserve the answer, whichever way it lands.
+> **Premise:** the original architecture is taken as given and audited against whether its ambition is justified by the problem actually being solved.
+> **Tags:** #thesis #aiwf #research
+
+---
+
+## Abstract
+
+[00](https://proliminal.net/theses/fighting-git/) and [01](https://proliminal.net/theses/git-native-planning/) take "we are building a framework" as given and ask how to build it well. This document does not. It audits the premise — does the framework, in its current ambition, deserve to exist? — and finds the premise wobblier than the prior docs assumed. AI assistants do not need structured state to reason about prose-bearing planning artifacts; "semantic determinism" is not achievable for prose; the framework cannot pretend to provide it. What's actually needed is a *discipline* (ADRs for decisions, a curated context document, a habit of reading and updating both) plus a tiny linter that checks well-formedness — roughly 200 lines of code, two weeks of work. The doc proposes three alternative shapes (Shape A: convention-and-skill, Shape B: hybrid with external PM, Shape C: the full git-native framework) and recommends building Shape A first, using it for three months, and letting real use surface what's actually missing. The full architecture is deferred until the requirement is proven, not before.
 
 ---
 
@@ -328,3 +336,11 @@ If Shape A or B is the right answer, the relevant prior art is:
 - **For PM-out-of-repo conventions:** any of Linear's, GitHub's, or Shortcut's docs on linking commits/PRs to issues. Mature and sufficient for most teams.
 
 The honest summary: the wheel exists, in several mature shapes. The reason to build a custom framework is if you have a specific, demonstrated need that the existing wheels can't carry. That case has not yet been made for this project.
+
+---
+
+## In this series
+
+- Previous: [01 — Git-native planning](https://proliminal.net/theses/git-native-planning/)
+- Next: [03 — Discipline where the LLM can't skip it](https://proliminal.net/theses/discipline-where-the-llm-cant-skip-it/)
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

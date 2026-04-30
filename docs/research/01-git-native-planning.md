@@ -1,8 +1,16 @@
 # Git-native planning: throwing out the event log and the graph
 
-> **Status:** research / first-principles redesign sketch. Not normative. Companion to `fighting-git.md`. Where that document examines what breaks under git operations *given* the current architecture, this one asks: what would we design if we started over and refused to assume an event log or a derived graph at all?
-> **Audience:** anyone questioning the foundations of `docs/architecture.md` §2–§3 (the three coordinated representations and the event-sourced kernel).
-> **Premise:** the user's instinct to model planning with clay and to garden a backlog rather than execute a waterfall is *exactly* git's native model. The framework's job is to make that ergonomic, not to build a parallel reality alongside it.
+> **Status:** defended-position
+> **Hypothesis:** If markdown files are accepted as canonical state and git as the time machine, the framework's residual job is small (validator, verbs, renderers) and serves all eight kernel needs without fighting git — by deleting rather than defending the parallel state stores the original architecture proposed.
+> **Audience:** anyone questioning the foundations of [`docs/architecture.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/architecture.md) §2–§3 (the three coordinated representations and the event-sourced kernel).
+> **Premise:** modeling planning with clay (rewritable, prunable, gardenable) is *exactly* git's native model. The framework's job is to make that ergonomic, not to build a parallel reality alongside it.
+> **Tags:** #thesis #git #aiwf #state-model
+
+---
+
+## Abstract
+
+[00 established](https://proliminal.net/theses/fighting-git/) that an event log + graph projection layered onto git fights the substrate by construction. This document proposes the substrate-respecting alternative: markdown files as the sole canonical state, `git log` as the audit trail, the framework as a small validating engine plus a few verbs that produce well-shaped commits with structured trailers. Identifiers are tree-scan-allocated within a branch and resolved at merge time; "events" are reified from `git log` on demand rather than stored separately; atomicity is one-commit-per-verb with a gitignored journal for in-flight crash recovery. The doc walks the user's specific worries — plans change while implementing, backlogs aren't linear, framework version diverges across branches, AI rules diverge across branches — and shows how each is handled. The cost is sub-commit provenance and replay-as-debugging; both are bounded. The framework that emerges is materially smaller than the original architecture and does not fight git because it has nothing parallel to git to reconcile.
 
 ---
 
@@ -409,3 +417,12 @@ The lack of academic treatment is itself a finding. A formal write-up of how thi
 | Structured commit trailer | A line in a git commit message like `aiwf-verb: promote` that makes commits machine-greppable for audit and history rendering. |
 | Branch-divergent rules | The phenomenon of `.claude/skills/`, `CLAUDE.md`, contract YAMLs differing across branches, causing AI assistants to behave differently per branch. |
 | Reified event | An "event" computed on demand from `git log` + per-commit YAML diffs, rather than stored as a persistent record. |
+
+---
+
+## In this series
+
+- Previous: [00 — Fighting git](https://proliminal.net/theses/fighting-git/)
+- Next: [02 — Do we even need this?](https://proliminal.net/theses/do-we-need-this/)
+- Related: [06 — PoC build plan](https://proliminal.net/theses/poc-build-plan/) — adopts this position
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

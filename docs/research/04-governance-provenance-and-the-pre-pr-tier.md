@@ -1,8 +1,16 @@
 # Governance, provenance, the project-shape spectrum, where CRDTs actually fit, and the pre-PR tier
 
-> **Status:** research / synthesis. Not normative. Fifth in the series; reads on top of `00-fighting-git.md`, `01-git-native-planning.md`, `02-do-we-need-this.md`, `03-discipline-where-the-llm-cant-skip-it.md`, and `KERNEL.md`.
-> **Audience:** the user, after they've named several gaps in the prior synthesis: governance/provenance UX is undertreated; one-size-fits-all is wrong; CRDTs may be the right tool for *part* of the solution; the "in-between" tier between studio and museum has poor tooling; and the Human-in-the-Loop may belong pre-PR rather than at PR-time.
-> **Premise:** the framework should be opt-in along a spectrum of project shapes; CRDT primitives address a specific subset of needs precisely; governance and provenance need first-class UX, not side effects; and most reconciliation work belongs on the client side while the AI is still in conversation, not on the PR.
+> **Status:** defended-position
+> **Hypothesis:** Governance UX, provenance UX, modular opt-in by project shape, bounded CRDT primitives for a small merge-sensitive subset, and pre-PR HITL placement together resolve the gaps the prior synthesis left — the framework should treat all five as first-class concerns, not side effects.
+> **Audience:** the user, after naming several gaps in the prior synthesis.
+> **Premise:** governance and provenance need first-class UX, not side effects; one-size-fits-all is wrong; CRDTs are the right tool for *part* of the solution; most reconciliation work belongs pre-push, while the AI is still in conversation and local tools are available, not at PR-time.
+> **Tags:** #thesis #aiwf #hitl #governance
+
+---
+
+## Abstract
+
+The prior docs ([01](https://proliminal.net/theses/git-native-planning/), [02](https://proliminal.net/theses/do-we-need-this/), [03](https://proliminal.net/theses/discipline-where-the-llm-cant-skip-it/)) settled storage, scope, and the chokepoint argument but left five gaps: governance UX, provenance UX, project-shape modularity, where CRDTs actually fit, and where Human-in-the-Loop belongs in the studio-to-museum gradient. This document treats each. **Provenance** as queryable per-entity timeline (`aiwf history`, `aiwf trace`) and **governance** as declarative rules with mechanical enforcement and visible surfaces. **Modular opt-in** along four axes (team size, horizon, brownfield depth, regulation) — small kernel always on, everything else composes. **CRDTs** for the merge-sensitive bounded subset (id registry, tombstones, references, status as partial-order register), not as a substrate replacement; markdown stays markdown. The **pre-PR Workshop** as a first-class tier where the AI is still in conversation, local tools run instantly, and most reconciliation should happen — relegating the PR Workshop to confirmation-gate-plus-async-discussion. The integrated picture is a small kernel (`ids` + `verify`), composable modules, first-class governance/provenance renderers, and pre-PR tooling that does the heavy work — building toward a framework that is small at the bottom and configurable at the top.
 
 ---
 
@@ -481,3 +489,11 @@ The next step, when you're ready, is not more research — it is choosing one or
 3. The pre-PR tier verb (`aiwf prepush`).
 
 Each is a few weeks of work. Each delivers immediate value. Each can be adopted independently. Each is consistent with the kernel and with the prior research's constraints. The framework, in its real shape, is starting to look very tractable.
+
+---
+
+## In this series
+
+- Previous: [03 — Discipline where the LLM can't skip it](https://proliminal.net/theses/discipline-where-the-llm-cant-skip-it/)
+- Next: [05 — Where state lives](https://proliminal.net/theses/where-state-lives/)
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

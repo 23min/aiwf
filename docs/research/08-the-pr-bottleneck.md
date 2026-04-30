@@ -1,8 +1,16 @@
 # The PR bottleneck is a process problem
 
-> **Status:** draft / blog post. Eighth in the research series, but written as an essay rather than as a defended technical position. Reads on top of `07-state-not-workflow.md` (which is the technical version of the same argument).
-> **Tags:** #hitl #git #software-development
+> **Status:** thesis-draft
+> **Hypothesis:** The PR bottleneck is a process problem, not a tool problem; continuous ratification by humans at state transitions replaces batched post-hoc review, and HITL strengthens rather than dissolves under LLM amplification.
 > **Audience:** anyone feeling the weight of LLM-generated PRs and wondering if the answer is a better PR tool.
+> **Premise:** [07](https://proliminal.net/theses/state-not-workflow/) is the technical version of this argument; this document is the essay version, aimed at a wider reader.
+> **Tags:** #thesis #hitl #git #software-development
+
+---
+
+## Abstract
+
+LLMs broke the production-time assumption that PR-based review was sized to. Pre-LLM, production was slow and review fit in the gaps; post-LLM, production is fast and review queues grow. The PR is where the throughput limit becomes visible, but it isn't the cause. This essay argues that the answer isn't a better PR tool but a different process: **continuous ratification** by humans at state transitions, distributed across the work, replaces batched post-hoc review of large diffs. The unit of human attention shifts from issue (production unit) to milestone (ratification unit). What we lose — the social functions of PRs (teaching, knowledge sharing, psychological safety) — is real and named honestly; the post doesn't pretend continuous ratification handles them. The corollary that follows from the argument is the inversion of the standard "AI replaces humans" frame: **HITL gets stronger, not weaker, when AI joins the team** — because every LLM session needs ratification, and ratification scales better than production.
 
 ---
 
@@ -109,3 +117,12 @@ The PR bottleneck is the symptom. Continuous ratification is the process. Humans
 ---
 
 *A future post: orchestration as a distinct role from project management — what changes about the work of "deciding what gets built" when LLMs do the building. Different problem, different post.*
+
+---
+
+## In this series
+
+- Previous: [07 — State, not workflow](https://proliminal.net/theses/state-not-workflow/)
+- Next: [09 — Orchestrators and project managers](https://proliminal.net/theses/orchestrators-and-project-managers/)
+- Related: [03 — Discipline where the LLM can't skip it](https://proliminal.net/theses/discipline-where-the-llm-cant-skip-it/)
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

@@ -1,8 +1,16 @@
 # Orchestrators and project managers
 
-> **Status:** draft / blog post. Ninth in the research series, written as an essay. Reads on top of `07-state-not-workflow.md` and `08-the-pr-bottleneck.md` — the role question is the one those two posts kept gesturing at.
-> **Tags:** #hitl #software-development #roles
+> **Status:** thesis-draft
+> **Hypothesis:** Orchestration is a craft that includes the judgment subset of project-management work and adds technical fluency in LLM-produced artifacts; some PMs become orchestrators, some don't, and orchestrators come from many disciplines beyond PM.
 > **Audience:** anyone who's heard "we need an orchestrator" and isn't sure whether that's a new job, a rebranded one, or marketing.
+> **Premise:** [07](https://proliminal.net/theses/state-not-workflow/) and [08](https://proliminal.net/theses/the-pr-bottleneck/) repeatedly gestured at "the human applying judgment at the right ratification points"; this document asks who that is.
+> **Tags:** #thesis #hitl #software-development #roles
+
+---
+
+## Abstract
+
+The previous essay claimed LLM-amplified teams need humans applying judgment at the right ratification points. The obvious follow-up: who is that person? The current discourse names them an *orchestrator*, but the term is doing different work in different mouths and overlaps suspiciously with the PM role. This essay separates the concepts. An orchestrator's work is technical-flavored — deciding what to delegate to which LLM, designing the artifacts the LLMs read and write, inserting ratification chokepoints, managing context across sessions, integrating outputs, and applying real-time quality judgment. PM work splits into a judgment subset (scope, prioritization, trade-offs) that maps onto orchestration cleanly, and an administrative subset (status reports, ceremonies, schedule wrangling) that LLMs and shared state are eating. Some PMs become orchestrators; some don't. And orchestrators are not only ex-PMs — senior engineers, designers, tech leads also fill the role when they combine judgment with technical fluency. The throughline: **judgment scales; production doesn't need to**, and roles defined by judgment compound in value while roles defined by production lose differentiation. The framework's job is to give orchestrators (whatever they're called) better artifacts to ratify.
 
 ---
 
@@ -119,4 +127,12 @@ If that sounds like a senior PM you've worked with, you've worked with a good on
 
 ---
 
-*Previous in this series: [the PR bottleneck is a process problem](08-the-pr-bottleneck.md). Next, probably: what the artifacts an orchestrator needs actually look like — making the artifact-as-judgment-surface concrete.*
+*Next, probably: what the artifacts an orchestrator needs actually look like — making the artifact-as-judgment-surface concrete.*
+
+---
+
+## In this series
+
+- Previous: [08 — The PR bottleneck](https://proliminal.net/theses/the-pr-bottleneck/)
+- Related: [07 — State, not workflow](https://proliminal.net/theses/state-not-workflow/)
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

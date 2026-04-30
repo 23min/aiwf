@@ -1,8 +1,16 @@
 # State, not workflow — what software work becomes when LLMs participate in every role
 
-> **Status:** research / position. Not normative. Seventh in the series after `00`–`06` and `KERNEL.md`. Reads on top of the working paper.
-> **Audience:** the user, after they pushed back on a too-clean claim that "work doesn't flow anymore" and asked whether "work" and "flow" are themselves words that bias the design.
-> **Premise:** workflow is one render of state — useful where genuine pipelines exist, misleading where it's scaffolding around throughput limits that LLMs are dissolving. The framework's right shape is a state model with optional workflow renders, not a workflow engine with a state cache.
+> **Status:** defended-position
+> **Hypothesis:** Workflow is one render of state — useful where genuine pipelines exist, misleading where it was scaffolding around throughput limits that LLMs are dissolving; the framework's right shape is a state model with optional workflow renders, not a workflow engine with a state cache.
+> **Audience:** the user, after pushing back on a too-clean claim that "work doesn't flow anymore" and asking whether "work" and "flow" are themselves words that bias the design.
+> **Premise:** software work in 2026 is dissolving the queue-based, station-bound, throughput-limited shape that workflow described well for several decades; what's left is *state*.
+> **Tags:** #thesis #aiwf #workflow #state-model #software-development
+
+---
+
+## Abstract
+
+The earlier docs ([06](https://proliminal.net/theses/poc-build-plan/) and prior) settled the framework's structural shape. This document examines a vocabulary trap that survived the synthesis: the words "work" and "flow" both bias the design toward a factory metaphor that LLM-amplified work is eroding. The doc steel-mans where workflow remains real (CI, regulatory chains, deploy pipelines — physical or legal facts that LLMs don't dissolve), then names the erosion: stages were a function of specialist throughput, and when LLMs collapse production time, queues evaporate and re-entry becomes routine. What's left is state — *what's currently true about the work* — which has answers regardless of process shape. The framework's right framing is a **state model with workflow as an optional render**, inverting the usual tool design that models workflow as primary and state as where-it-is-in-the-workflow. The doc engages with the Matrix line "there is no spoon" as a teaching device but explicitly resists it as a slogan: most workflow shape was scaffolding that dissolves; some pipelines are real and remain. The position has a failure mode (regulated industries, large enterprises, ops, sales) that the framework names honestly. State, not workflow, is the durable shape — but only for the team shapes the framework targets.
 
 ---
 
@@ -260,15 +268,15 @@ Software work in 2026 is dissolving the queue-based, station-bound, throughput-l
 
 ## 12. References to the rest of the arc
 
-- `KERNEL.md` — the eight needs and cross-cutting properties; this document proposes adding "state primary, workflow optional" to the cross-cutting list.
-- `00-fighting-git.md` — established that the framework's job is small and substrate-respecting.
-- `01-git-native-planning.md` — established markdown-canonical, git-as-time-machine.
-- `02-do-we-need-this.md` — questioned the premise; this document answers a different version of "what is the framework actually for?"
-- `03-discipline-where-the-llm-cant-skip-it.md` — established CI as the chokepoint. State transitions via FSM are exactly the kind of mechanical guarantee that document called for.
-- `04-governance-provenance-and-the-pre-pr-tier.md` — established roles and ratification chokepoints. This document reframes those as authorities over state transitions, not positions in a workflow.
-- `05-where-state-lives.md` — established the layer model. This document refines what *state* in "where state lives" means.
-- `06-poc-build-plan.md` — the PoC. This document confirms the PoC's design is correct and proposes only framing changes.
-- `working-paper.md` — the defended position. This document feeds a framing-level revision: the framework is a state model first, with the explicit disclaimer that it's not a workflow tool.
+- [`KERNEL.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md) — the eight needs and cross-cutting properties; this document proposes adding "state primary, workflow optional" to the cross-cutting list.
+- [`00-fighting-git`](https://proliminal.net/theses/fighting-git/) — established that the framework's job is small and substrate-respecting.
+- [`01-git-native-planning`](https://proliminal.net/theses/git-native-planning/) — established markdown-canonical, git-as-time-machine.
+- [`02-do-we-need-this`](https://proliminal.net/theses/do-we-need-this/) — questioned the premise; this document answers a different version of "what is the framework actually for?"
+- [`03-discipline-where-the-llm-cant-skip-it`](https://proliminal.net/theses/discipline-where-the-llm-cant-skip-it/) — established CI as the chokepoint. State transitions via FSM are exactly the kind of mechanical guarantee that document called for.
+- [`04-governance-provenance-and-the-pre-pr-tier`](https://proliminal.net/theses/governance-provenance-and-the-pre-pr-tier/) — established roles and ratification chokepoints. This document reframes those as authorities over state transitions, not positions in a workflow.
+- [`05-where-state-lives`](https://proliminal.net/theses/where-state-lives/) — established the layer model. This document refines what *state* in "where state lives" means.
+- [`06-poc-build-plan`](https://proliminal.net/theses/poc-build-plan/) — the PoC. This document confirms the PoC's design is correct and proposes only framing changes.
+- [working paper](https://proliminal.net/theses/working-paper/) — the defended position. This document feeds a framing-level revision: the framework is a state model first, with the explicit disclaimer that it's not a workflow tool.
 
 ---
 
@@ -279,3 +287,12 @@ The compressed statement of what the framework is, drafted in the conversation t
 > `aiwf` is a state model for the durable structural decisions of software work, designed for teams where LLMs participate in every role. It is not a workflow engine, a project-management tool, or a collaboration workspace. It is the place where the answer to *"what is currently true about this work"* lives, in a form that humans, LLMs, CI, and other tools can read and write through a small typed vocabulary.
 
 This belongs in the working paper's abstract or §6 ("The position"), and at the top of the PoC's README. It is not a tagline (too long, too precise) but it is the right paragraph for any reader who needs to understand quickly what the framework is and what it isn't.
+
+---
+
+## In this series
+
+- Previous: [06 — PoC build plan](https://proliminal.net/theses/poc-build-plan/)
+- Next: [08 — The PR bottleneck](https://proliminal.net/theses/the-pr-bottleneck/)
+- Synthesis: [working paper](https://proliminal.net/theses/working-paper/)
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)

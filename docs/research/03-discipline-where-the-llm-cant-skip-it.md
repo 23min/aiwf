@@ -1,8 +1,16 @@
 # Discipline where the LLM can't skip it — chokepoints, referential stability, and the PR tier
 
-> **Status:** research / synthesis. Not normative. Fourth in the research series after `fighting-git.md`, `git-native-planning.md`, and `do-we-need-this.md`. Written in response to the user's pushback on the "boring answer" — they have real benefit from in-repo planning beyond ADRs, the "semantic stability" they care about is referential (names like `E-19` staying meaningful through rename/insert/delete/move), and their chief operational concern is that skills are advisory and the LLM may silently skip reconciliation steps.
-> **Audience:** the user, after they've named what's actually load-bearing in their experience.
-> **Premise:** the framework's real job is to provide *enforcement that does not depend on the LLM choosing to enforce*. Everything else is ergonomics around that core.
+> **Status:** defended-position
+> **Hypothesis:** Skills are advisory; the framework's correctness must rest on enforcement chokepoints (CI, pre-push hooks) the LLM cannot skip; referential stability via stable IDs and tombstones plus a PR tier of mechanical checks is what delivers the value the user actually needs from in-repo planning.
+> **Audience:** the user, after naming what's actually load-bearing in their experience.
+> **Premise:** the user has real benefit from in-repo planning beyond ADRs; the "semantic stability" they care about is referential (names like `E-19` surviving rename/insert/delete/move); their chief operational concern is that skills are advisory and the LLM may silently skip reconciliation.
+> **Tags:** #thesis #hitl #aiwf #software-development
+
+---
+
+## Abstract
+
+[02](https://proliminal.net/theses/do-we-need-this/) recommended Shape A and asked the user to live with it; they pushed back. They have specific benefit from in-repo Epics/Milestones beyond ADRs; the "semantic stability" they want is referential, not prose-meaning; and their main concern is that skills are non-deterministic — the LLM may not invoke them, and things get missed. This document takes those corrections seriously and asks: what is the smallest set of mechanical guarantees that delivers (a) usable in-repo planning, (b) referential stability for ids like `E-19`, and (c) discipline that does not depend on the LLM remembering to do its job? The answer: stable ids separated from display names, tombstones for removed entities, structured commit trailers as the audit substrate, and a small set of `aiwf check *` validators running pre-push and on the PR. The "Workshop" tier — the open PR — is the missing middle between studio-as-clay and museum-as-sealed; it is where mechanical strictness lives. Skills become ergonomic accelerators, not the discipline layer. Build `aiwf check ids`, `aiwf check refs`, `aiwf check transitions`, plus `aiwf rename` and `aiwf remove` first; everything else can wait.
 
 ---
 
@@ -362,3 +370,12 @@ Once that principle is internalized, most of the prior architecture's complexity
 - **`do-we-need-this.md`** asked whether a framework was needed at all. This doc answers: yes, but a much smaller one — basically a CI check suite + tombstones + a few verbs, plus skills that are openly advisory.
 
 The three docs together constitute a journey from "the architecture as designed" to "what the user actually needs." This doc is the synthesis: the user's confirmed values (in-repo planning, referential stability, discipline) plus the prior docs' constraints (no fighting git, enforcement at chokepoints) yields a concrete, buildable shape that is dramatically smaller than the original architecture and dramatically more reliable than skills-alone.
+
+---
+
+## In this series
+
+- Previous: [02 — Do we even need this?](https://proliminal.net/theses/do-we-need-this/)
+- Next: [04 — Governance, provenance, and the pre-PR tier](https://proliminal.net/theses/governance-provenance-and-the-pre-pr-tier/)
+- Related: [08 — The PR bottleneck](https://proliminal.net/theses/the-pr-bottleneck/) — extends the chokepoint argument
+- Reference: [KERNEL.md](https://github.com/23min/ai-workflow-v2/blob/main/docs/research/KERNEL.md)
