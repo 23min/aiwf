@@ -178,8 +178,6 @@ Verb-specific flags for `add`:
 | `--epic <id>` | milestone (required) |
 | `--discovered-in <id>` | gap (optional) |
 | `--relates-to <id,id,...>` | decision (optional) |
-| `--format <fmt>` | contract (required) |
-| `--artifact-source <path>` | contract (required; copies into `schema/`) |
 
 ---
 
@@ -201,8 +199,7 @@ Verb-specific flags for `add`:
 │   │   └── D-NNN-<slug>.md
 │   └── contracts/
 │       └── C-NNN-<slug>/
-│           ├── contract.md
-│           └── schema/                    # OpenAPI, JSON Schema, .proto, etc.
+│           └── contract.md                # registry record only; schemas + fixtures referenced from aiwf.yaml
 ├── docs/
 │   └── adr/
 │       └── ADR-NNNN-<slug>.md
@@ -236,7 +233,7 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 
 ## Validators (`aiwf check`)
 
-Nine validators run on every `aiwf check` invocation, and on every `git push` via the pre-push hook installed by `aiwf init`:
+Eight validators run on every `aiwf check` invocation, and on every `git push` via the pre-push hook installed by `aiwf init`:
 
 | Code | Severity | What it checks |
 |---|---|---|
@@ -245,7 +242,6 @@ Nine validators run on every `aiwf check` invocation, and on every `git push` vi
 | `status-valid` | error | Status is in the kind's allowed set. |
 | `refs-resolve` | error | Every reference field resolves to an existing entity *of the right kind*. |
 | `no-cycles` | error | No cycles in `depends_on` (milestones) or the `supersedes`/`superseded_by` chain (ADRs). |
-| `contract-artifact-exists` | error | Artifact path is relative, no `..` segments, file exists inside the contract dir. |
 | `titles-nonempty` | warning | Every entity has a non-empty title. |
 | `adr-supersession-mutual` | warning | If A.superseded_by = B, then B.supersedes ⊇ {A}. |
 | `gap-resolved-has-resolver` | warning | A gap with status `addressed` has a non-empty `addressed_by`. |

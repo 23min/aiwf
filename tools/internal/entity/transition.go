@@ -40,10 +40,11 @@ var transitions = map[Kind]map[string][]string{
 		"rejected":   {},
 	},
 	KindContract: {
-		"draft":      {"published", "retired"},
-		"published":  {"deprecated", "retired"},
+		"proposed":   {"accepted", "rejected"},
+		"accepted":   {"deprecated", "rejected"},
 		"deprecated": {"retired"},
 		"retired":    {},
+		"rejected":   {},
 	},
 }
 
@@ -83,18 +84,16 @@ func ValidateTransition(k Kind, from, to string) error {
 // CancelTarget returns the kind's terminal-cancel status — the one
 // `aiwf cancel` promotes any non-terminal entity to. Used by the cancel
 // verb to know which terminal status maps to "discarded": cancelled
-// for epic/milestone, rejected for adr/decision, wontfix for gap,
-// retired for contract.
+// for epic/milestone, rejected for adr/decision/contract, wontfix for
+// gap.
 func CancelTarget(k Kind) string {
 	switch k {
 	case KindEpic, KindMilestone:
 		return "cancelled"
-	case KindADR, KindDecision:
+	case KindADR, KindDecision, KindContract:
 		return "rejected"
 	case KindGap:
 		return "wontfix"
-	case KindContract:
-		return "retired"
 	}
 	return ""
 }

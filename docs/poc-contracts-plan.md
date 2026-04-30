@@ -718,3 +718,27 @@ There is no `--fix`. Every finding is a human decision; aiwf reports, the user r
 - `docs/poc-migrating-from-prior-systems.md` — to be extended with §"Migrating an existing contract-verification setup" per §12.
 - `tools/internal/entity/entity.go` — site of the entity narrowing (drop `Format`/`Artifact`, add `LinkedADRs`).
 - `tools/internal/check/check.go` — site of the `contract-artifact-exists` removal and the new `contract-config` check.
+
+---
+
+## 18. Status
+
+Updated as work lands. Granularity matches §13's increments, broken down into the discrete shippable steps inside I1.
+
+| Step | Scope | State |
+|---|---|---|
+| I1.1 — Entity narrowing | `entity.Contract`: drop `Format`/`Artifact`, add `LinkedADRs`; narrow status set to `proposed → accepted → deprecated → retired` (+ `rejected`); update transition function; drop `contract-artifact-exists` validator; update fixtures and tests | ✅ done |
+| I1.2 — `aiwfyaml` package | `tools/internal/aiwfyaml/`: yaml-Node-level reader/writer for the `contracts:` block, comment-preserving outside the block, normalizing within; anchors/aliases inside the block are a hard error | ⏳ not started |
+| I1.3 — `contractverify` package | `tools/internal/contractverify/`: substitution runner (`{{schema}}`, `{{fixture}}`, `{{contract_id}}`, `{{version}}`), fixture walker (`<fixtures>/<version>/{valid,invalid}/*`), verify pass, evolve pass | ⏳ not started |
+| I1.4 — `aiwf contract verify` verb | CLI integration of the verify+evolve runner; new finding codes (`contract-verify-fail`, `contract-evolve-fail`, `contract-config`, `contract-environment`) | ⏳ not started |
+| I1.5 — Bind/unbind verbs | `aiwf contract bind`, `aiwf contract unbind`; extend `aiwf add contract` with `--validator/--schema/--fixtures` flags; lifecycle commit trailers | ⏳ not started |
+| I1.6 — Recipe verbs + embedded recipes | `aiwf contract recipes`, `recipe show`, `recipe install [<name>\|--from <path>]`, `recipe remove`; embed CUE + JSON Schema recipes via `embed.FS` | ⏳ not started |
+| I1.7 — Pre-push integration | `aiwf check` runs verify+evolve when `aiwf.yaml.contracts.entries[]` is non-empty; terminal-status contracts (`rejected`, `retired`) skipped | ⏳ not started |
+| I1.8 — `aiwf-contract` skill | Embed and materialize the skill at `.claude/skills/aiwf-contract/SKILL.md` (source draft is §16 of this doc) | ⏳ not started |
+| I2 — Migration manifest extension | `contracts:` top-level block in import manifest parser; collision semantics; trailer; producer mapping documented | ⏳ deferred (after I1) |
+| I3 — Recipe ecosystem | Recipes for Protobuf, OpenAPI, Pydantic added when a real consumer needs each | ⏳ deferred (real-friction trigger) |
+| I4 — Milestone-wrap discipline | `## Contract matrix changes` section, plan-time validation, wrap-time registry-presence check | ⏳ deferred (real-friction trigger) |
+
+State legend: ⏳ not started · 🚧 in progress · ✅ done · ⏸ paused.
+
+Each I1 step lands as one or more commits with Conventional Commits subjects (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs(poc): ...`). Mark a step ✅ only when its scope ships tested and `go test -race ./tools/...` + `golangci-lint run` are clean.

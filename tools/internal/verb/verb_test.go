@@ -296,43 +296,22 @@ This depends on M-001 (mentioned in prose).
 	}
 }
 
-func TestVerb_FailingProjectionLeavesNoCommit(t *testing.T) {
+func TestAddContract_Minimal(t *testing.T) {
 	r := newRunner(t)
 
-	// Missing --artifact-source for contract — verb returns Go error
-	// before any file or commit lands.
-	_, err := verb.Add(r.tree(), entity.KindContract, "API", testActor, verb.AddOptions{Format: "openapi"})
-	if err == nil {
-		t.Fatal("expected error for missing --artifact-source")
-	}
-	if _, err := gitops.HeadSubject(r.ctx, r.root); err == nil {
-		t.Errorf("expected no commits in fresh repo, but got HEAD")
-	}
-}
-
-func TestAddContract_WithArtifact(t *testing.T) {
-	r := newRunner(t)
-
-	srcDir := filepath.Join(r.root, "tmp")
-	if err := os.MkdirAll(srcDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	srcPath := filepath.Join(srcDir, "openapi.yaml")
-	if err := os.WriteFile(srcPath, []byte("openapi: 3.1.0\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	r.must(verb.Add(r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{
-		Format:         "openapi",
-		ArtifactSource: srcPath,
-	}))
+	r.must(verb.Add(r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{}))
 
 	contractDir := filepath.Join(r.root, "work", "contracts", "C-001-orders-api")
 	if _, err := os.Stat(filepath.Join(contractDir, "contract.md")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(contractDir, "schema", "openapi.yaml")); err != nil {
-		t.Fatalf("artifact missing in schema/: %v", err)
+
+	c := r.tree().ByID("C-001")
+	if c == nil {
+		t.Fatal("C-001 not found after add")
+	}
+	if c.Status != "proposed" {
+		t.Errorf("status = %q, want %q (initial contract status)", c.Status, "proposed")
 	}
 
 	if findings := check.Run(r.tree(), nil); check.HasErrors(findings) {
@@ -418,36 +397,21 @@ parent: E-01
 	mustHaveTrailer(t, trailers, "aiwf-prior-entity", "M-001")
 }
 
-// TestReallocate_Contract exercises the directory-rename + nested-
-// artifact flow: reallocate a contract (which lives in a directory
-// containing schema/) and verify that the dir moved, the artifact came
-// along, and the contract.md's frontmatter id was rewritten.
+// TestReallocate_Contract exercises the directory-rename flow:
+// reallocate a contract (which lives in a directory) and verify that
+// the dir moved and the contract.md's frontmatter id was rewritten.
 func TestReallocate_Contract(t *testing.T) {
 	r := newRunner(t)
 
-	srcDir := filepath.Join(r.root, "tmp")
-	if err := os.MkdirAll(srcDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	srcPath := filepath.Join(srcDir, "openapi.yaml")
-	if err := os.WriteFile(srcPath, []byte("openapi: 3.1.0\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	r.must(verb.Add(r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{
-		Format: "openapi", ArtifactSource: srcPath,
-	}))
+	r.must(verb.Add(r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{}))
 
 	// Trigger reallocate (any reason — we're testing the directory move).
 	r.must(verb.Reallocate(r.tree(), "C-001", testActor))
 
-	// New contract dir holds both contract.md and the artifact under schema/.
+	// New contract dir holds contract.md.
 	newDir := filepath.Join(r.root, "work", "contracts", "C-002-orders-api")
 	if _, err := os.Stat(filepath.Join(newDir, "contract.md")); err != nil {
 		t.Fatalf("contract.md missing in new dir: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(newDir, "schema", "openapi.yaml")); err != nil {
-		t.Fatalf("artifact missing in new dir's schema/: %v", err)
 	}
 
 	// Old dir is gone.
@@ -461,8 +425,8 @@ func TestReallocate_Contract(t *testing.T) {
 	if c == nil {
 		t.Fatal("C-002 not found")
 	}
-	if c.Format != "openapi" || c.Artifact != "schema/openapi.yaml" {
-		t.Errorf("C-002 fields not preserved across reallocate: %+v", c)
+	if c.Title != "Orders API" {
+		t.Errorf("C-002 title = %q, want %q", c.Title, "Orders API")
 	}
 
 	// Tree validates clean.

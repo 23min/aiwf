@@ -49,8 +49,7 @@ func Rename(t *tree.Tree, id, newSlug, actor string) (*Result, error) {
 	modified.Path = newEntityPathAfterRename(e, source, dest)
 
 	// Enumerate the planned file destinations so checks that consult
-	// disk (notably contract-artifact-exists) see the moved artifact
-	// at its new location.
+	// disk see the moved files at their new locations.
 	planned, err := plannedDestinations(t.Root, source, dest, modified.Path)
 	if err != nil {
 		return nil, err

@@ -47,7 +47,7 @@ These are quality bars every part of the framework must respect:
 | ADR | `proposed`, `accepted`, `superseded`, `rejected` | `ADR-NNNN` |
 | Gap | `open`, `addressed`, `wontfix` | `G-NNN` |
 | Decision | `proposed`, `accepted`, `superseded`, `rejected` | `D-NNN` |
-| Contract | `draft`, `published`, `deprecated`, `retired` | `C-NNN` |
+| Contract | `proposed`, `accepted`, `deprecated`, `retired`, `rejected` | `C-NNN` |
 
 Hardcoded in Go for the PoC. Extensible to YAML-driven kinds later if real consumers need to customize the vocabulary.
 
@@ -74,8 +74,7 @@ Every entity is a markdown file (or, for epics and contracts, a directory contai
 | Gap | `discovered_in` | id | no | milestone or epic |
 | Gap | `addressed_by` | []id | no | any kind |
 | Decision | `relates_to` | []id | no | any kind |
-| Contract | `format` | string | yes | e.g., `openapi`, `json-schema`, `proto` |
-| Contract | `artifact` | path | yes | relative to the contract directory; existence checked by `contract-artifact-exists` |
+| Contract | `linked_adrs` | []id | no | ADRs that motivate the contract |
 
 Timestamps (`created`, `updated`) are deliberately absent from frontmatter; `git log` carries them. Putting them in YAML would be redundant state and a future drift target.
 
@@ -172,7 +171,7 @@ In rough order of "if needed, here's how to add it":
 | CRDT registry, custom merge driver | When concurrent branches produce real merge conflicts on planning state | Modeled in research; not built in PoC |
 | Pre-PR Workshop tooling | When PR review becomes a regular workflow | `aiwf prepush`, `aiwf preview-merge`, etc. |
 | Hash-verified projection | Probably never, given the target scale | Modeled in research as expensive |
-| Schema-aware contract validation | When a contract's format actually needs parsing | Per-format validators; PoC just checks file existence |
+| Schema-aware contract validation | When a contract's format actually needs parsing | Planned post-PoC: see `docs/poc-contracts-plan.md` for the verify-and-evolve model. |
 
 Each is a clean future addition. None blocks PoC value.
 

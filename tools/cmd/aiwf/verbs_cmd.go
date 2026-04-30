@@ -35,8 +35,6 @@ func runAdd(args []string) int {
 	epicID := fs.String("epic", "", "parent epic id (milestone only)")
 	discoveredIn := fs.String("discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
 	relatesTo := fs.String("relates-to", "", "comma-separated ids the decision relates to (decision only)")
-	format := fs.String("format", "", "machine-readable schema format (contract only)")
-	artifactSource := fs.String("artifact-source", "", "source path of the artifact to copy into the new contract dir's schema/ (contract only)")
 
 	fs.SetOutput(os.Stderr)
 	if err := fs.Parse(args[1:]); err != nil {
@@ -62,10 +60,8 @@ func runAdd(args []string) int {
 	}
 
 	opts := verb.AddOptions{
-		EpicID:         *epicID,
-		DiscoveredIn:   *discoveredIn,
-		Format:         *format,
-		ArtifactSource: *artifactSource,
+		EpicID:       *epicID,
+		DiscoveredIn: *discoveredIn,
 	}
 	if *relatesTo != "" {
 		for _, s := range strings.Split(*relatesTo, ",") {

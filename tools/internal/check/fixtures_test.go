@@ -60,7 +60,6 @@ func TestFixture_Messy(t *testing.T) {
 		"refs-resolve/wrong-kind",
 		"no-cycles/depends_on",
 		"no-cycles/supersedes",
-		"contract-artifact-exists",
 		"titles-nonempty",
 		"adr-supersession-mutual",
 		"gap-resolved-has-resolver",

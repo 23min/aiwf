@@ -26,7 +26,7 @@ aiwf promote <id> <new-status>
 | adr | `proposed`, `accepted`, `superseded`, `rejected` |
 | gap | `open`, `addressed`, `wontfix` |
 | decision | `proposed`, `accepted`, `superseded`, `rejected` |
-| contract | `draft`, `published`, `deprecated`, `retired` |
+| contract | `proposed`, `accepted`, `deprecated`, `retired`, `rejected` |
 
 `aiwf promote` enforces the per-kind legal-transition function. If the move is illegal it reports a finding and exits without writing. To reach a terminal-cancel status use `aiwf cancel <id>` instead — same end state, clearer intent in the log.
 

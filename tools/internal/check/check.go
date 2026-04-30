@@ -3,7 +3,7 @@
 // Each check is a small pure function from the tree (and its load errors)
 // to a slice of findings. Findings carry a code, a severity, a message,
 // and optional context (path / entity id / subcode). Run composes all
-// nine checks plus per-file load-errors-as-findings into a single slice.
+// eight checks plus per-file load-errors-as-findings into a single slice.
 //
 // "Errors are findings, not parse failures": Run never returns an error.
 // A load error becomes a load-error finding; a malformed entity becomes
@@ -13,8 +13,6 @@ package check
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -78,7 +76,6 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, statusValid(t)...)
 	findings = append(findings, refsResolve(t)...)
 	findings = append(findings, noCycles(t)...)
-	findings = append(findings, contractArtifactExists(t)...)
 	findings = append(findings, titlesNonempty(t)...)
 	findings = append(findings, adrSupersessionMutual(t)...)
 	findings = append(findings, gapResolvedHasResolver(t)...)
@@ -188,39 +185,15 @@ func frontmatterShape(t *tree.Tree) []Finding {
 
 func perKindRequiredFields(e *entity.Entity) []Finding {
 	var findings []Finding
-	switch e.Kind {
-	case entity.KindMilestone:
-		if e.Parent == "" {
-			findings = append(findings, Finding{
-				Code:     "frontmatter-shape",
-				Severity: SeverityError,
-				Message:  "milestone missing required field: parent",
-				Path:     e.Path,
-				EntityID: e.ID,
-				Field:    "parent",
-			})
-		}
-	case entity.KindContract:
-		if e.Format == "" {
-			findings = append(findings, Finding{
-				Code:     "frontmatter-shape",
-				Severity: SeverityError,
-				Message:  "contract missing required field: format",
-				Path:     e.Path,
-				EntityID: e.ID,
-				Field:    "format",
-			})
-		}
-		if e.Artifact == "" {
-			findings = append(findings, Finding{
-				Code:     "frontmatter-shape",
-				Severity: SeverityError,
-				Message:  "contract missing required field: artifact",
-				Path:     e.Path,
-				EntityID: e.ID,
-				Field:    "artifact",
-			})
-		}
+	if e.Kind == entity.KindMilestone && e.Parent == "" {
+		findings = append(findings, Finding{
+			Code:     "frontmatter-shape",
+			Severity: SeverityError,
+			Message:  "milestone missing required field: parent",
+			Path:     e.Path,
+			EntityID: e.ID,
+			Field:    "parent",
+		})
 	}
 	return findings
 }
@@ -338,6 +311,10 @@ func collectRefs(e *entity.Entity) []ref {
 	case entity.KindDecision:
 		for _, rel := range e.RelatesTo {
 			refs = append(refs, ref{field: "relates_to", target: rel})
+		}
+	case entity.KindContract:
+		for _, a := range e.LinkedADRs {
+			refs = append(refs, ref{field: "linked_adrs", target: a, allowed: []entity.Kind{entity.KindADR}})
 		}
 	}
 	return refs
@@ -462,68 +439,6 @@ func cycleNodes(edges map[string][]string) []string {
 	return out
 }
 
-// contractArtifactExists verifies for every contract that the artifact
-// path is relative, contains no ".." segments, and resolves to an
-// existing file inside the contract directory.
-func contractArtifactExists(t *tree.Tree) []Finding {
-	var findings []Finding
-	for _, e := range t.ByKind(entity.KindContract) {
-		if e.Artifact == "" {
-			continue // covered by frontmatter-shape
-		}
-		clean := filepath.ToSlash(filepath.Clean(e.Artifact))
-		if filepath.IsAbs(clean) {
-			findings = append(findings, Finding{
-				Code:     "contract-artifact-exists",
-				Severity: SeverityError,
-				Message:  fmt.Sprintf("artifact path %q must be relative, not absolute", e.Artifact),
-				Path:     e.Path,
-				EntityID: e.ID,
-				Field:    "artifact",
-			})
-			continue
-		}
-		if hasParentSegment(clean) {
-			findings = append(findings, Finding{
-				Code:     "contract-artifact-exists",
-				Severity: SeverityError,
-				Message:  fmt.Sprintf("artifact path %q must not contain '..' segments", e.Artifact),
-				Path:     e.Path,
-				EntityID: e.ID,
-				Field:    "artifact",
-			})
-			continue
-		}
-		// Resolve relative to the contract directory (the dir holding contract.md).
-		contractDir := filepath.Dir(e.Path)
-		relArtifact := filepath.ToSlash(filepath.Join(contractDir, clean))
-		if t.HasPlannedFile(relArtifact) {
-			continue
-		}
-		artifactPath := filepath.Join(t.Root, contractDir, clean)
-		if !fileExists(artifactPath) {
-			findings = append(findings, Finding{
-				Code:     "contract-artifact-exists",
-				Severity: SeverityError,
-				Message:  fmt.Sprintf("artifact %q does not exist (looked in %s)", e.Artifact, contractDir),
-				Path:     e.Path,
-				EntityID: e.ID,
-				Field:    "artifact",
-			})
-		}
-	}
-	return findings
-}
-
-func hasParentSegment(slashPath string) bool {
-	for _, seg := range strings.Split(slashPath, "/") {
-		if seg == ".." {
-			return true
-		}
-	}
-	return false
-}
-
 // titlesNonempty (warning) reports any entity whose title is empty or
 // whitespace-only.
 func titlesNonempty(t *tree.Tree) []Finding {
@@ -604,13 +519,4 @@ func gapResolvedHasResolver(t *tree.Tree) []Finding {
 		}
 	}
 	return findings
-}
-
-// fileExists reports whether path exists and is a regular file.
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return info.Mode().IsRegular()
 }

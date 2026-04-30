@@ -16,7 +16,6 @@ var hintTable = map[string]string{
 	"refs-resolve/wrong-kind":   "use a reference of the expected kind",
 	"no-cycles/depends_on":      "remove one edge in the cycle to keep the milestone DAG acyclic",
 	"no-cycles/supersedes":      "remove the loop in the supersedes/superseded_by chain",
-	"contract-artifact-exists":  "place the file at the artifact path (relative to the contract dir), or update `artifact:` to point at an existing file",
 	"titles-nonempty":           "set a non-empty `title:` in the frontmatter",
 	"adr-supersession-mutual":   "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
 	"gap-resolved-has-resolver": "list the resolving milestone(s) in `addressed_by:`, or revert the status to `open`/`wontfix`",

@@ -36,7 +36,7 @@ func initialStatus(k entity.Kind) string {
 	case entity.KindDecision:
 		return "proposed"
 	case entity.KindContract:
-		return "draft"
+		return "proposed"
 	}
 	return ""
 }
@@ -44,8 +44,8 @@ func initialStatus(k entity.Kind) string {
 // projectAdd returns a new tree value that includes e alongside all of
 // t's existing entities. plannedPaths lists repo-relative
 // (forward-slash) paths that the verb plans to write but hasn't yet,
-// so checks like contract-artifact-exists can treat them as present.
-// The original tree is not mutated.
+// so disk-consulting checks can treat them as present. The original
+// tree is not mutated.
 func projectAdd(t *tree.Tree, e *entity.Entity, plannedPaths ...string) *tree.Tree {
 	proj := *t
 	proj.Entities = make([]*entity.Entity, len(t.Entities), len(t.Entities)+1)

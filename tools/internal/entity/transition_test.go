@@ -21,10 +21,11 @@ func TestValidateTransition_Allowed(t *testing.T) {
 		{KindGap, "open", "addressed"},
 		{KindGap, "open", "wontfix"},
 		{KindDecision, "proposed", "rejected"},
-		{KindContract, "draft", "published"},
-		{KindContract, "published", "deprecated"},
+		{KindContract, "proposed", "accepted"},
+		{KindContract, "accepted", "deprecated"},
 		{KindContract, "deprecated", "retired"},
-		{KindContract, "published", "retired"},
+		{KindContract, "proposed", "rejected"},
+		{KindContract, "accepted", "rejected"},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind)+"/"+tt.from+"->"+tt.to, func(t *testing.T) {
@@ -46,7 +47,8 @@ func TestValidateTransition_Forbidden(t *testing.T) {
 		{"epic skip-ahead", KindEpic, "proposed", "done", "cannot transition"},
 		{"milestone backwards", KindMilestone, "in_progress", "draft", "cannot transition"},
 		{"adr from terminal", KindADR, "rejected", "accepted", "terminal"},
-		{"contract jump", KindContract, "draft", "deprecated", "cannot transition"},
+		{"contract jump", KindContract, "proposed", "deprecated", "cannot transition"},
+		{"contract from terminal", KindContract, "rejected", "accepted", "terminal"},
 		{"unknown source status", KindEpic, "weird", "active", "not a recognized"},
 		{"unknown kind", Kind("widget"), "proposed", "active", "unknown kind"},
 	}
@@ -73,7 +75,7 @@ func TestCancelTarget(t *testing.T) {
 		{KindADR, "rejected"},
 		{KindDecision, "rejected"},
 		{KindGap, "wontfix"},
-		{KindContract, "retired"},
+		{KindContract, "rejected"},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind), func(t *testing.T) {

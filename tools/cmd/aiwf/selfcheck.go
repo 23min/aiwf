@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
@@ -50,14 +49,6 @@ func runSelfCheck() int {
 		return exitInternal
 	}
 
-	// Synthetic artifact for the contract verb's --artifact-source.
-	artifact := filepath.Join(tmp, "schema.json")
-	if err := os.WriteFile(artifact, []byte(`{"hello":"self-check"}`), 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
-		keep = true
-		return exitInternal
-	}
-
 	steps := []struct {
 		label string
 		args  []string
@@ -69,7 +60,7 @@ func runSelfCheck() int {
 		{"add adr", []string{"add", "adr", "--title", "Use Postgres", "--actor", actor, "--root", tmp}},
 		{"add gap", []string{"add", "gap", "--title", "Auth gap", "--discovered-in", "M-001", "--actor", actor, "--root", tmp}},
 		{"add decision", []string{"add", "decision", "--title", "Sunset v1", "--actor", actor, "--root", tmp}},
-		{"add contract", []string{"add", "contract", "--title", "Public API", "--format", "json-schema", "--artifact-source", artifact, "--actor", actor, "--root", tmp}},
+		{"add contract", []string{"add", "contract", "--title", "Public API", "--actor", actor, "--root", tmp}},
 		{"promote", []string{"promote", "--actor", actor, "--root", tmp, "E-01", "active"}},
 		{"cancel", []string{"cancel", "--actor", actor, "--root", tmp, "G-001"}},
 		{"rename", []string{"rename", "--actor", actor, "--root", tmp, "E-01", "self-check-renamed"}},

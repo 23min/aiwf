@@ -31,7 +31,6 @@ aiwf check --format=json --pretty
 | `refs-resolve/unresolved` | A reference points at an id that does not exist. | Either the target was never created, or the id is mistyped. |
 | `refs-resolve/wrong-kind` | A reference points at an entity of the wrong kind. | A milestone's `parent` must be an epic; an ADR's `supersedes` must be ADRs; etc. |
 | `no-cycles` | A cycle in the milestone `depends_on` DAG or the ADR `supersedes` chain. | Remove a back-edge. |
-| `contract-artifact-exists` | The contract's `artifact:` path is missing, absolute, or escapes the contract dir. | Place the artifact under the contract dir; use a relative path with no `..`. |
 
 ## Findings (warnings)
 

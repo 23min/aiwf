@@ -72,9 +72,9 @@ func TestFrontmatterShape(t *testing.T) {
 		&entity.Entity{ID: "X-99", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: "b.md"},
 		// Milestone missing parent.
 		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Title: "Foo", Status: "draft", Path: "c.md"},
-		// Contract missing format and artifact.
-		&entity.Entity{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "draft", Path: "d.md"},
-		// Clean.
+		// Contract minimal — id, title, status only — is clean.
+		&entity.Entity{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "proposed", Path: "d.md"},
+		// Clean gap.
 		&entity.Entity{ID: "G-001", Kind: entity.KindGap, Title: "Foo", Status: "open", Path: "e.md"},
 	)
 	got := frontmatterShape(tr)
@@ -82,8 +82,6 @@ func TestFrontmatterShape(t *testing.T) {
 		"frontmatter-shape", // missing id (a.md)
 		"frontmatter-shape", // bad id format (b.md)
 		"frontmatter-shape", // milestone missing parent (c.md)
-		"frontmatter-shape", // contract missing format (d.md)
-		"frontmatter-shape", // contract missing artifact (d.md)
 	}
 	if diff := cmp.Diff(want, codes(got)); diff != "" {
 		t.Errorf("codes mismatch (-want +got):\n%s\nfindings: %+v", diff, got)
@@ -180,55 +178,6 @@ func TestNoCycles_SelfLoop(t *testing.T) {
 	got := noCycles(tr)
 	if len(got) != 1 {
 		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
-	}
-}
-
-func TestContractArtifactExists(t *testing.T) {
-	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, "work", "contracts", "C-001-orders", "schema"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "work", "contracts", "C-001-orders", "schema", "openapi.yaml"), []byte("ok"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	tr := &tree.Tree{
-		Root: root,
-		Entities: []*entity.Entity{
-			// Good.
-			{
-				ID: "C-001", Kind: entity.KindContract, Title: "OK", Status: "draft",
-				Format: "openapi", Artifact: "schema/openapi.yaml",
-				Path: "work/contracts/C-001-orders/contract.md",
-			},
-			// Path-escape via "..".
-			{
-				ID: "C-002", Kind: entity.KindContract, Title: "Bad", Status: "draft",
-				Format: "openapi", Artifact: "../escape.yaml",
-				Path: "work/contracts/C-002-bad/contract.md",
-			},
-			// Absolute path.
-			{
-				ID: "C-003", Kind: entity.KindContract, Title: "Abs", Status: "draft",
-				Format: "openapi", Artifact: "/etc/passwd",
-				Path: "work/contracts/C-003-abs/contract.md",
-			},
-			// Missing file.
-			{
-				ID: "C-004", Kind: entity.KindContract, Title: "Missing", Status: "draft",
-				Format: "openapi", Artifact: "schema/missing.yaml",
-				Path: "work/contracts/C-004-missing/contract.md",
-			},
-		},
-	}
-
-	got := contractArtifactExists(tr)
-	if len(got) != 3 {
-		t.Fatalf("findings = %d, want 3: %+v", len(got), got)
-	}
-	gotIDs := []string{got[0].EntityID, got[1].EntityID, got[2].EntityID}
-	wantIDs := []string{"C-002", "C-003", "C-004"}
-	if diff := cmp.Diff(wantIDs, gotIDs); diff != "" {
-		t.Errorf("entity ids mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -433,31 +382,6 @@ depends_on: M-002
 				t.Error("expected parse error for type mismatch")
 			}
 		})
-	}
-}
-
-// TestContractArtifactExists_DirectoryAtArtifactPath rejects a
-// directory present where a regular file is expected (the Q1 schema
-// declares `artifact` is a path to a file, not a folder).
-func TestContractArtifactExists_DirectoryAtArtifactPath(t *testing.T) {
-	root := t.TempDir()
-	// Create a directory at the artifact path instead of a file.
-	if err := os.MkdirAll(filepath.Join(root, "work", "contracts", "C-001-foo", "schema", "openapi.yaml"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	tr := &tree.Tree{
-		Root: root,
-		Entities: []*entity.Entity{
-			{
-				ID: "C-001", Kind: entity.KindContract, Title: "Dir-as-artifact", Status: "draft",
-				Format: "openapi", Artifact: "schema/openapi.yaml",
-				Path: "work/contracts/C-001-foo/contract.md",
-			},
-		},
-	}
-	got := contractArtifactExists(tr)
-	if len(got) != 1 || got[0].EntityID != "C-001" {
-		t.Errorf("got %+v, want one finding for C-001", got)
 	}
 }
 

@@ -49,7 +49,7 @@ func AllowedStatuses(k Kind) []string {
 	case KindDecision:
 		return []string{"proposed", "accepted", "superseded", "rejected"}
 	case KindContract:
-		return []string{"draft", "published", "deprecated", "retired"}
+		return []string{"proposed", "accepted", "deprecated", "retired", "rejected"}
 	}
 	return nil
 }
@@ -149,8 +149,7 @@ type Entity struct {
 	RelatesTo []string `yaml:"relates_to,omitempty"`
 
 	// Contract.
-	Format   string `yaml:"format,omitempty"`
-	Artifact string `yaml:"artifact,omitempty"`
+	LinkedADRs []string `yaml:"linked_adrs,omitempty"`
 
 	// Loader-set metadata, not part of YAML.
 	Kind Kind   `yaml:"-"`

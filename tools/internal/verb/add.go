@@ -2,7 +2,6 @@ package verb
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
@@ -21,13 +20,6 @@ type AddOptions struct {
 	DiscoveredIn string
 	// Decision: optional list of entity ids the decision relates to.
 	RelatesTo []string
-	// Contract: required machine-readable schema format
-	// (e.g., openapi, json-schema, proto).
-	Format string
-	// Contract: required source path on disk to copy into the new
-	// contract directory's schema/ subdir. Path is repo-root-relative
-	// or absolute. The destination filename is the source's basename.
-	ArtifactSource string
 }
 
 // Add creates a new entity of the given kind. Allocates the next free
@@ -62,20 +54,12 @@ func Add(t *tree.Tree, kind entity.Kind, title, actor string, opts AddOptions) (
 	}
 	applyAddOpts(e, opts)
 
-	// Compute file ops *before* projecting so contract artifact copies
-	// are visible to validateProjection (which checks artifact existence).
-	ops, err := buildAddOps(e, opts)
+	ops, err := buildAddOps(e)
 	if err != nil {
 		return nil, err
 	}
 
-	planned := make([]string, 0, len(ops))
-	for _, op := range ops {
-		if op.Type == OpWrite {
-			planned = append(planned, filepath.ToSlash(op.Path))
-		}
-	}
-	proj := projectAdd(t, e, planned...)
+	proj := projectAdd(t, e)
 	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
 		return findings(fs), nil
 	}
@@ -135,42 +119,17 @@ func applyAddOpts(e *entity.Entity, opts AddOptions) {
 		if len(opts.RelatesTo) > 0 {
 			e.RelatesTo = append([]string(nil), opts.RelatesTo...)
 		}
-	case entity.KindContract:
-		e.Format = opts.Format
-		// Artifact path inside the contract dir; the basename comes
-		// from the source's basename (per the schema/ convention).
-		if opts.ArtifactSource != "" {
-			e.Artifact = filepath.ToSlash(filepath.Join("schema", filepath.Base(opts.ArtifactSource)))
-		}
 	}
 }
 
 // buildAddOps composes the file operations needed to land the new
-// entity. For most kinds it's a single OpWrite of contract.md or epic.md
-// or the entity file. For contracts with an --artifact-source, it's
-// two OpWrites: contract.md plus the artifact copied into schema/.
-func buildAddOps(e *entity.Entity, opts AddOptions) ([]FileOp, error) {
+// entity: a single OpWrite of the entity file with serialized
+// frontmatter and the kind's body template.
+func buildAddOps(e *entity.Entity) ([]FileOp, error) {
 	body := entity.BodyTemplate(e.Kind)
-	mainContent, err := entity.Serialize(e, body)
+	content, err := entity.Serialize(e, body)
 	if err != nil {
 		return nil, fmt.Errorf("serializing %s: %w", e.ID, err)
 	}
-	ops := []FileOp{{Type: OpWrite, Path: e.Path, Content: mainContent}}
-
-	if e.Kind == entity.KindContract {
-		if opts.Format == "" {
-			return nil, fmt.Errorf("contract requires --format")
-		}
-		if opts.ArtifactSource == "" {
-			return nil, fmt.Errorf("contract requires --artifact-source <path>")
-		}
-		artifactBytes, err := os.ReadFile(opts.ArtifactSource)
-		if err != nil {
-			return nil, fmt.Errorf("reading --artifact-source %q: %w", opts.ArtifactSource, err)
-		}
-		artifactDest := filepath.Join(filepath.Dir(e.Path), filepath.FromSlash(e.Artifact))
-		ops = append(ops, FileOp{Type: OpWrite, Path: artifactDest, Content: artifactBytes})
-	}
-
-	return ops, nil
+	return []FileOp{{Type: OpWrite, Path: e.Path, Content: content}}, nil
 }

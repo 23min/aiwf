@@ -16,7 +16,7 @@ func TestAllowedStatuses(t *testing.T) {
 		{KindADR, []string{"proposed", "accepted", "superseded", "rejected"}},
 		{KindGap, []string{"open", "addressed", "wontfix"}},
 		{KindDecision, []string{"proposed", "accepted", "superseded", "rejected"}},
-		{KindContract, []string{"draft", "published", "deprecated", "retired"}},
+		{KindContract, []string{"proposed", "accepted", "deprecated", "retired", "rejected"}},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind), func(t *testing.T) {
@@ -40,7 +40,7 @@ func TestIsAllowedStatus(t *testing.T) {
 		{KindMilestone, "active", false}, // epic-only status
 		{KindGap, "open", true},
 		{KindGap, "rejected", false},
-		{KindContract, "published", true},
+		{KindContract, "accepted", true},
 		{KindContract, "done", false},
 		{KindEpic, "", false},
 	}

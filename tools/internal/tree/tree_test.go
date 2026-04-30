@@ -66,9 +66,9 @@ status: accepted
 	writeFile(t, root, "work/contracts/C-001-orders/contract.md", `---
 id: C-001
 title: Orders API
-status: published
-format: openapi
-artifact: schema/openapi.yaml
+status: accepted
+linked_adrs:
+  - ADR-0001
 ---
 `)
 	writeFile(t, root, "docs/adr/ADR-0001-format.md", `---

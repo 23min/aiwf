@@ -31,9 +31,9 @@ type Tree struct {
 	Entities []*entity.Entity
 	// PlannedFiles records repo-relative file paths (forward-slash form)
 	// that a verb plans to write but hasn't yet. Used by checks that
-	// otherwise consult disk (notably contract-artifact-exists) so that
-	// validate-then-write verbs can validate the projected world,
-	// including files about to be created. Loaded trees leave this nil.
+	// otherwise consult disk so that validate-then-write verbs can
+	// validate the projected world, including files about to be created.
+	// Loaded trees leave this nil.
 	PlannedFiles map[string]struct{}
 }
 

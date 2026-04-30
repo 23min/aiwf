@@ -26,7 +26,7 @@ The six kinds and their required flags:
 | adr | `--title` | Allocates `ADR-NNNN` under `docs/adr/`. |
 | gap | `--title` | Optional `--discovered-in <id>`. |
 | decision | `--title` | Optional `--relates-to <id,id,...>`. |
-| contract | `--title`, `--format <fmt>`, `--artifact-source <path>` | Copies the artifact into the new contract dir's `schema/`. |
+| contract | `--title` | Allocates `C-NNN` and creates `work/contracts/C-NNN-<slug>/contract.md`. Schema and validator binding land later via `aiwf contract bind`. |
 
 ## What aiwf does
 

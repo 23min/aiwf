@@ -1,9 +1,9 @@
 ---
 id: C-001
 title: Widget greeting protocol
-status: published
-format: openapi
-artifact: schema/openapi.yaml
+status: accepted
+linked_adrs:
+  - ADR-0001
 ---
 
 ## Purpose

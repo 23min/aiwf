@@ -102,14 +102,17 @@ Same shape as ADR. The split between ADR and Decision is intentional: ADRs are t
 
 ```mermaid
 stateDiagram-v2
-    [*] --> draft
-    draft --> published
-    published --> deprecated
+    [*] --> proposed
+    proposed --> accepted
+    accepted --> deprecated
     deprecated --> retired
+    proposed --> rejected
+    accepted --> rejected
     retired --> [*]
+    rejected --> [*]
 ```
 
-`retired` is the cancel target. The `artifact:` field points at the actual schema file inside `schema/`; `aiwf check` enforces that file exists.
+`rejected` is the cancel target. The contract entity is a registry record only — `id`, `title`, `status`, optional `linked_adrs`. Schemas, fixtures, and validator bindings live in `aiwf.yaml`'s `contracts:` block, not on the entity.
 
 ---
 

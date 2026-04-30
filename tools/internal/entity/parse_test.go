@@ -63,17 +63,21 @@ func TestParse_ContractFields(t *testing.T) {
 	content := []byte(`---
 id: C-003
 title: Orders API
-status: published
-format: openapi
-artifact: schema/openapi.yaml
+status: accepted
+linked_adrs:
+  - ADR-0001
+  - ADR-0002
 ---
 `)
 	got, err := Parse("work/contracts/C-003-orders/contract.md", content)
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	if got.Format != "openapi" || got.Artifact != "schema/openapi.yaml" {
-		t.Errorf("got %+v", got)
+	if got.Status != "accepted" {
+		t.Errorf("status = %q, want %q", got.Status, "accepted")
+	}
+	if diff := cmp.Diff([]string{"ADR-0001", "ADR-0002"}, got.LinkedADRs); diff != "" {
+		t.Errorf("linked_adrs mismatch (-want +got):\n%s", diff)
 	}
 }
 
