@@ -154,8 +154,11 @@ type Result struct {
 // binary's Version constant.
 //
 // DryRun computes the would-be ledger without performing any
-// filesystem mutations. SkipHook omits pre-push hook installation
-// entirely (still reported in the ledger as a skipped step).
+// filesystem mutations. SkipHook omits *both* the pre-push and the
+// pre-commit hook installations entirely (each still reported in
+// the ledger as a skipped step). The flag is for consumers who run
+// husky/lefthook (or similar) and want aiwf to leave .git/hooks/
+// alone.
 type Options struct {
 	ActorOverride string
 	AiwfVersion   string
@@ -163,10 +166,38 @@ type Options struct {
 	SkipHook      bool
 }
 
+// RefreshOptions carries the inputs that drive RefreshArtifacts —
+// the shared installer pipeline run by both `aiwf init` (after
+// scaffolding) and `aiwf update`.
+//
+// StatusMdAutoUpdate carries the consumer's opt-out state from
+// `aiwf.yaml.status_md.auto_update`. When true, the pre-commit hook
+// that regenerates `STATUS.md` is installed/refreshed; when false,
+// a previously-installed marker-managed pre-commit hook is removed
+// and a fresh refresh pass installs nothing in its place.
+//
+// SkipHooks omits both pre-push and pre-commit installation
+// entirely (init's `--skip-hook` flag forwards into this field).
+type RefreshOptions struct {
+	DryRun             bool
+	SkipHooks          bool
+	StatusMdAutoUpdate bool
+}
+
 // Init runs the documented setup steps in order. Returns a Result that
 // describes what was created vs preserved vs updated. Errors abort
 // early — a partially-applied init is rare in practice (init only
 // touches config / scaffolding / skills) and the user can re-run.
+//
+// Step order:
+//  1. aiwf.yaml (first-time-only)
+//  2. work/* and docs/adr scaffold dirs (first-time-only)
+//  3. CLAUDE.md (first-time-only)
+//  4. RefreshArtifacts: skills + .gitignore + pre-push hook +
+//     pre-commit hook (the same pipeline `aiwf update` calls).
+//
+// Steps 1–3 write only if the artifact is missing; step 4 wipes-and-
+// rewrites per the cache contract for derivable artifacts.
 func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 	if opts.AiwfVersion == "" {
 		return nil, errors.New("AiwfVersion is required")
@@ -174,61 +205,122 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 
 	res := &Result{DryRun: opts.DryRun}
 
-	// 1. aiwf.yaml — write only if missing.
 	cfgStep, err := ensureConfig(root, opts)
 	if err != nil {
 		return nil, err
 	}
 	res.Steps = append(res.Steps, cfgStep)
 
-	// 2. Scaffold entity directories.
 	scaffoldSteps, err := scaffoldDirs(root, opts.DryRun)
 	if err != nil {
 		return nil, err
 	}
 	res.Steps = append(res.Steps, scaffoldSteps...)
 
-	// 3. Materialize skills (wipe-and-rewrite per cache contract).
-	skillsStep, err := ensureSkills(root, opts.DryRun)
-	if err != nil {
-		return nil, err
-	}
-	res.Steps = append(res.Steps, skillsStep)
-
-	// 4. Append skill paths to .gitignore.
-	gitignoreStep, err := ensureGitignore(root, opts.DryRun)
-	if err != nil {
-		return nil, err
-	}
-	res.Steps = append(res.Steps, gitignoreStep)
-
-	// 5. CLAUDE.md template — write only if missing.
 	claudeStep, err := ensureClaudeMd(root, opts.DryRun)
 	if err != nil {
 		return nil, err
 	}
 	res.Steps = append(res.Steps, claudeStep)
 
-	// 6. Pre-push hook — install, overwrite-if-marker-present, or
-	// skip-with-remediation when a non-aiwf hook is already in place.
-	// SkipHook bypasses the install entirely (reported as skipped); a
-	// skipped hook is never a fatal error.
-	if opts.SkipHook {
-		res.Steps = append(res.Steps, StepResult{
-			What:   ".git/hooks/pre-push",
-			Action: ActionSkipped,
-			Detail: "--skip-hook flag set",
-		})
-	} else {
-		hookStep, conflict, hErr := ensurePreHook(ctx, root, opts.DryRun)
-		if hErr != nil {
-			return nil, hErr
-		}
-		res.Steps = append(res.Steps, hookStep)
-		res.HookConflict = conflict
+	statusMdAutoUpdate, err := loadStatusMdAutoUpdate(root)
+	if err != nil {
+		return nil, err
 	}
 
+	refreshSteps, conflict, err := RefreshArtifacts(ctx, root, RefreshOptions{
+		DryRun:             opts.DryRun,
+		SkipHooks:          opts.SkipHook,
+		StatusMdAutoUpdate: statusMdAutoUpdate,
+	})
+	if err != nil {
+		return nil, err
+	}
+	res.Steps = append(res.Steps, refreshSteps...)
+	res.HookConflict = conflict
+
 	return res, nil
+}
+
+// RefreshArtifacts runs the wipe-and-rewrite pipeline shared by
+// `aiwf init` (after first-time-only scaffolding) and `aiwf update`.
+// All four steps return a StepResult; only the hook steps can
+// produce a conflict (returned as the second value), at which point
+// the caller surfaces remediation guidance to the user.
+//
+// Step order:
+//  1. .claude/skills/aiwf-* (skills materialization)
+//  2. .gitignore (skill cache patterns)
+//  3. .git/hooks/pre-push (the validation chokepoint)
+//  4. .git/hooks/pre-commit (gated by StatusMdAutoUpdate)
+//
+// SkipHooks bypasses both hook steps; each is reported as a
+// SKipped row in the ledger so the user sees what was deliberately
+// not done. StatusMdAutoUpdate=false drives ensurePreCommitHook
+// into its uninstall path (removes a previously-installed
+// marker-managed hook, leaves user-written hooks alone).
+func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]StepResult, bool, error) {
+	var steps []StepResult
+	var conflict bool
+
+	skillsStep, err := ensureSkills(root, opts.DryRun)
+	if err != nil {
+		return nil, false, err
+	}
+	steps = append(steps, skillsStep)
+
+	gitignoreStep, err := ensureGitignore(root, opts.DryRun)
+	if err != nil {
+		return nil, false, err
+	}
+	steps = append(steps, gitignoreStep)
+
+	if opts.SkipHooks {
+		steps = append(steps,
+			StepResult{
+				What:   ".git/hooks/pre-push",
+				Action: ActionSkipped,
+				Detail: "--skip-hook flag set",
+			},
+			StepResult{
+				What:   ".git/hooks/pre-commit",
+				Action: ActionSkipped,
+				Detail: "--skip-hook flag set",
+			},
+		)
+		return steps, false, nil
+	}
+
+	preHookStep, prePushConflict, err := ensurePreHook(ctx, root, opts.DryRun)
+	if err != nil {
+		return nil, false, err
+	}
+	steps = append(steps, preHookStep)
+	conflict = conflict || prePushConflict
+
+	preCommitStep, preCommitConflict, err := ensurePreCommitHook(ctx, root, opts.StatusMdAutoUpdate, opts.DryRun)
+	if err != nil {
+		return nil, false, err
+	}
+	steps = append(steps, preCommitStep)
+	conflict = conflict || preCommitConflict
+
+	return steps, conflict, nil
+}
+
+// loadStatusMdAutoUpdate reads aiwf.yaml at root and returns the
+// effective StatusMdAutoUpdate setting. Returns true (the default)
+// when the file is absent — typical in dry-run-on-fresh-repo, where
+// `ensureConfig` reported "would create" but didn't actually write.
+func loadStatusMdAutoUpdate(root string) (bool, error) {
+	cfg, err := config.Load(root)
+	if err != nil {
+		if errors.Is(err, config.ErrNotFound) {
+			return true, nil
+		}
+		return false, fmt.Errorf("loading aiwf.yaml for refresh: %w", err)
+	}
+	return cfg.StatusMdAutoUpdate(), nil
 }
 
 func ensureConfig(root string, opts Options) (StepResult, error) {

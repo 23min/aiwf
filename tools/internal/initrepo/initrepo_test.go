@@ -197,15 +197,16 @@ func TestInit_SkipsAlienPreHook(t *testing.T) {
 		t.Errorf("alien hook clobbered: %s", got)
 	}
 	// All non-hook steps still ran. Ledger contains the expected What
-	// values, with the hook step itself marked Skipped.
+	// values, with the pre-push step itself marked Skipped.
 	wantWhats := []string{
 		"aiwf.yaml",
 		"work/epics", "work/gaps", "work/decisions", "work/contracts",
 		"docs/adr",
+		"CLAUDE.md",
 		".claude/skills/aiwf-*",
 		".gitignore",
-		"CLAUDE.md",
 		".git/hooks/pre-push",
+		".git/hooks/pre-commit",
 	}
 	gotWhats := make([]string, len(res.Steps))
 	for i, s := range res.Steps {
@@ -214,13 +215,27 @@ func TestInit_SkipsAlienPreHook(t *testing.T) {
 	if strings.Join(gotWhats, "|") != strings.Join(wantWhats, "|") {
 		t.Errorf("step ledger:\n got  %v\n want %v", gotWhats, wantWhats)
 	}
-	hookStep := res.Steps[len(res.Steps)-1]
-	if hookStep.Action != ActionSkipped {
-		t.Errorf("hook step action = %q, want %q", hookStep.Action, ActionSkipped)
+	prePushStep := findStep(t, res.Steps, ".git/hooks/pre-push")
+	if prePushStep.Action != ActionSkipped {
+		t.Errorf("pre-push step action = %q, want %q", prePushStep.Action, ActionSkipped)
 	}
-	if hookStep.Detail == "" {
-		t.Errorf("hook step Detail empty; want a remediation hint")
+	if prePushStep.Detail == "" {
+		t.Errorf("pre-push step Detail empty; want a remediation hint")
 	}
+}
+
+// findStep returns the StepResult with What == what; fails the test
+// if not found. Tests that target a specific ledger row (rather than
+// the last) use this so step-order tweaks don't ripple.
+func findStep(t *testing.T, steps []StepResult, what string) StepResult {
+	t.Helper()
+	for _, s := range steps {
+		if s.What == what {
+			return s
+		}
+	}
+	t.Fatalf("ledger has no step %q; got %v", what, steps)
+	return StepResult{}
 }
 
 // TestInit_OverwritesOwnHook: re-running init when our own hook is in
@@ -392,20 +407,21 @@ func TestInit_SkipHook(t *testing.T) {
 			t.Errorf("expected %s to exist after --skip-hook init: %v", p, sErr)
 		}
 	}
-	// Hook absent.
-	if _, sErr := os.Stat(filepath.Join(root, ".git", "hooks", "pre-push")); !os.IsNotExist(sErr) {
-		t.Errorf("pre-push hook installed despite --skip-hook (stat err=%v)", sErr)
+	// Both hooks absent.
+	for _, h := range []string{"pre-push", "pre-commit"} {
+		if _, sErr := os.Stat(filepath.Join(root, ".git", "hooks", h)); !os.IsNotExist(sErr) {
+			t.Errorf("%s hook installed despite --skip-hook (stat err=%v)", h, sErr)
+		}
 	}
-	// Final step is the hook, marked Skipped with a reason.
-	last := res.Steps[len(res.Steps)-1]
-	if last.What != ".git/hooks/pre-push" {
-		t.Errorf("last step.What = %q, want .git/hooks/pre-push", last.What)
-	}
-	if last.Action != ActionSkipped {
-		t.Errorf("last step.Action = %q, want %q", last.Action, ActionSkipped)
-	}
-	if !strings.Contains(last.Detail, "skip-hook") {
-		t.Errorf("last step.Detail = %q, want a reference to --skip-hook", last.Detail)
+	// Both hook steps marked Skipped with a --skip-hook detail.
+	for _, what := range []string{".git/hooks/pre-push", ".git/hooks/pre-commit"} {
+		step := findStep(t, res.Steps, what)
+		if step.Action != ActionSkipped {
+			t.Errorf("%s step.Action = %q, want %q", what, step.Action, ActionSkipped)
+		}
+		if !strings.Contains(step.Detail, "skip-hook") {
+			t.Errorf("%s step.Detail = %q, want a reference to --skip-hook", what, step.Detail)
+		}
 	}
 }
 
@@ -420,9 +436,13 @@ func TestInit_DryRunWithSkipHook(t *testing.T) {
 	if !res.DryRun {
 		t.Errorf("Result.DryRun = false, want true")
 	}
-	last := res.Steps[len(res.Steps)-1]
-	if last.Action != ActionSkipped {
-		t.Errorf("last step.Action = %q, want %q", last.Action, ActionSkipped)
+	prePushStep := findStep(t, res.Steps, ".git/hooks/pre-push")
+	if prePushStep.Action != ActionSkipped {
+		t.Errorf("pre-push step.Action = %q, want %q", prePushStep.Action, ActionSkipped)
+	}
+	preCommitStep := findStep(t, res.Steps, ".git/hooks/pre-commit")
+	if preCommitStep.Action != ActionSkipped {
+		t.Errorf("pre-commit step.Action = %q, want %q", preCommitStep.Action, ActionSkipped)
 	}
 	if _, sErr := os.Stat(filepath.Join(root, config.FileName)); !os.IsNotExist(sErr) {
 		t.Errorf("dry-run wrote aiwf.yaml (stat err=%v)", sErr)

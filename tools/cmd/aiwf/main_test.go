@@ -117,19 +117,29 @@ func TestWalkUpFor(t *testing.T) {
 
 // setupCLITestRepo gives the test process a git identity and an
 // initialized repo; returns the repo root.
+//
+// GIT_CONFIG_PARAMETERS is set so every git subprocess this test
+// (or its children, including selfcheck's own temp repo) spawns
+// reads `core.hooksPath` pointing at a non-existent directory.
+// Hooks installed by Init still land on disk, but git's hook
+// lookup misses them and they never fire. Without this redirect,
+// the pre-commit hook installed by Init execs os.Executable(),
+// which under `go test` is the test binary — running the test
+// binary as a hook can hang or behave unpredictably and was
+// observed to deadlock `aiwf add` integration tests.
 func setupCLITestRepo(t *testing.T) string {
 	t.Helper()
 	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
 	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
 	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
+	t.Setenv("GIT_CONFIG_PARAMETERS",
+		"'core.hooksPath="+filepath.Join(t.TempDir(), "no-hooks-here")+"'")
 	root := t.TempDir()
 	if got := run([]string{"check", "--root=" + root}); got != exitOK {
 		t.Fatalf("baseline check on tmpdir = %d", got)
 	}
 	// Initialize git repo so the verb can commit.
-	cmd := os.Getenv("PATH")
-	_ = cmd
 	if err := osExec(t, root, "git", "init", "-q"); err != nil {
 		t.Fatalf("git init: %v", err)
 	}

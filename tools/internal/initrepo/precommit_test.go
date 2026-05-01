@@ -234,6 +234,102 @@ func TestEnsurePreCommitHook_DryRunUninstall(t *testing.T) {
 	}
 }
 
+// TestInit_InstallsPreCommitByDefault: a fresh `aiwf init` against a
+// new repo lands the pre-commit hook with the marker, and the
+// ledger reports it Created. Default-on is the framework's contract
+// for STATUS.md auto-update.
+func TestInit_InstallsPreCommitByDefault(t *testing.T) {
+	root := freshGitRepo(t)
+	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	step := findStep(t, res.Steps, ".git/hooks/pre-commit")
+	if step.Action != ActionCreated {
+		t.Errorf("pre-commit step.Action = %q, want %q", step.Action, ActionCreated)
+	}
+	body, err := os.ReadFile(filepath.Join(root, ".git", "hooks", "pre-commit"))
+	if err != nil {
+		t.Fatalf("read pre-commit hook: %v", err)
+	}
+	if !strings.Contains(string(body), PreCommitHookMarker()) {
+		t.Errorf("pre-commit hook missing marker:\n%s", body)
+	}
+}
+
+// TestInit_RespectsStatusMdAutoUpdateFalse: a repo whose pre-existing
+// aiwf.yaml opts out of STATUS.md auto-update lands no pre-commit
+// hook, even on a fresh init. The ledger row reports it Preserved
+// with a "disabled by config" detail so the user understands why
+// the step did nothing.
+func TestInit_RespectsStatusMdAutoUpdateFalse(t *testing.T) {
+	root := freshGitRepo(t)
+	yaml := []byte(`aiwf_version: 0.1.0
+actor: human/peter
+status_md:
+  auto_update: false
+`)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	step := findStep(t, res.Steps, ".git/hooks/pre-commit")
+	if step.Action != ActionPreserved {
+		t.Errorf("pre-commit step.Action = %q, want %q (opt-out, no prior hook)", step.Action, ActionPreserved)
+	}
+	if !strings.Contains(step.Detail, "disabled by config") {
+		t.Errorf("pre-commit step.Detail = %q, want a 'disabled by config' note", step.Detail)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".git", "hooks", "pre-commit")); !os.IsNotExist(err) {
+		t.Errorf("pre-commit hook installed despite opt-out (stat err=%v)", err)
+	}
+}
+
+// TestRefreshArtifacts_FlipFlagUninstalls: simulate the canonical
+// opt-out flow — install on default, then flip the flag and re-run
+// the refresh. The hook is removed.
+func TestRefreshArtifacts_FlipFlagUninstalls(t *testing.T) {
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	hookPath := filepath.Join(root, ".git", "hooks", "pre-commit")
+	if _, err := os.Stat(hookPath); err != nil {
+		t.Fatalf("pre-commit hook not installed by default Init: %v", err)
+	}
+
+	// Flip the flag in the typical hand-edit shape.
+	yaml := []byte(`aiwf_version: 0.1.0
+actor: human/peter
+status_md:
+  auto_update: false
+`)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	steps, conflict, err := RefreshArtifacts(context.Background(), root, RefreshOptions{
+		StatusMdAutoUpdate: false,
+	})
+	if err != nil {
+		t.Fatalf("RefreshArtifacts: %v", err)
+	}
+	if conflict {
+		t.Errorf("conflict = true on opt-out, want false")
+	}
+	step := findStep(t, steps, ".git/hooks/pre-commit")
+	if step.Action != ActionRemoved {
+		t.Errorf("pre-commit step.Action = %q, want %q", step.Action, ActionRemoved)
+	}
+	if _, err := os.Stat(hookPath); !os.IsNotExist(err) {
+		t.Errorf("pre-commit hook still on disk after opt-out (stat err=%v)", err)
+	}
+}
+
 func bytesEqual(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
