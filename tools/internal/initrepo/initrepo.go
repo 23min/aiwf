@@ -308,10 +308,7 @@ func ensureSkills(root string, dryRun bool) (StepResult, error) {
 }
 
 func ensureGitignore(root string, dryRun bool) (StepResult, error) {
-	paths, err := skills.MaterializedPaths()
-	if err != nil {
-		return StepResult{}, err
-	}
+	paths := skills.GitignorePatterns()
 
 	path := filepath.Join(root, ".gitignore")
 	existing, readErr := os.ReadFile(path)

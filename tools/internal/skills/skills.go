@@ -187,19 +187,19 @@ func writeManifest(skillsRoot string, skills []Skill) error {
 	return nil
 }
 
-// MaterializedPaths returns the repo-relative (forward-slash) paths
-// that Materialize will produce, in name-sorted order. Used by
-// `aiwf init` to populate `.gitignore`. Includes the ownership
-// manifest so it doesn't accidentally land in commits.
-func MaterializedPaths() ([]string, error) {
-	skills, err := List()
-	if err != nil {
-		return nil, err
+// GitignorePatterns returns the .gitignore lines that mask aiwf-
+// materialized state in the consumer repo. Two entries: a directory
+// wildcard that catches every aiwf-* skill dir (present and future),
+// and the ownership manifest. The wildcard is what makes the .gitignore
+// future-proof — adding a new embedded skill no longer requires every
+// consumer to re-run `aiwf init` to refresh their .gitignore (G19).
+//
+// The trailing slash on the wildcard restricts the match to
+// directories, so a non-aiwf file accidentally named like `aiwf-x.md`
+// at that level would not be silently ignored.
+func GitignorePatterns() []string {
+	return []string{
+		SkillsDir + "/aiwf-*/",
+		SkillsDir + "/" + ManifestFile,
 	}
-	out := make([]string, 0, len(skills)+1)
-	for _, s := range skills {
-		out = append(out, SkillsDir+"/"+s.Name+"/")
-	}
-	out = append(out, SkillsDir+"/"+ManifestFile)
-	return out, nil
 }

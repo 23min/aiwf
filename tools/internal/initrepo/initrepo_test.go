@@ -80,13 +80,16 @@ func TestInit_FreshRepo(t *testing.T) {
 		}
 	}
 
-	// .gitignore contains skill paths.
+	// .gitignore contains the wildcard skill pattern + manifest (G19).
 	gi, err := os.ReadFile(filepath.Join(root, ".gitignore"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(gi), ".claude/skills/aiwf-add/") {
-		t.Errorf(".gitignore missing skill paths: %s", gi)
+	if !strings.Contains(string(gi), ".claude/skills/aiwf-*/") {
+		t.Errorf(".gitignore missing skill wildcard: %s", gi)
+	}
+	if !strings.Contains(string(gi), ".claude/skills/.aiwf-owned") {
+		t.Errorf(".gitignore missing manifest entry: %s", gi)
 	}
 
 	// CLAUDE.md created from template.
@@ -274,13 +277,13 @@ func TestInit_GitignorePreservesExisting(t *testing.T) {
 	if !strings.HasPrefix(string(got), "# user gitignore\nnode_modules/\n") {
 		t.Errorf("existing .gitignore prefix lost: %s", got)
 	}
-	if !strings.Contains(string(got), ".claude/skills/aiwf-add/") {
-		t.Errorf("skill paths not appended: %s", got)
+	if !strings.Contains(string(got), ".claude/skills/aiwf-*/") {
+		t.Errorf("skill wildcard not appended: %s", got)
 	}
 }
 
 // TestInit_GitignoreNoDoubleAppend: re-running init does not add the
-// skill paths twice.
+// skill wildcard twice (G19: with the wildcard, no per-skill drift).
 func TestInit_GitignoreNoDoubleAppend(t *testing.T) {
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
@@ -290,9 +293,32 @@ func TestInit_GitignoreNoDoubleAppend(t *testing.T) {
 		t.Fatalf("Init #2: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
-	count := strings.Count(string(got), ".claude/skills/aiwf-add/")
-	if count != 1 {
-		t.Errorf("skill path appears %d times, want 1\n%s", count, got)
+	if c := strings.Count(string(got), ".claude/skills/aiwf-*/"); c != 1 {
+		t.Errorf("skill wildcard appears %d times, want 1\n%s", c, got)
+	}
+	if c := strings.Count(string(got), ".claude/skills/.aiwf-owned"); c != 1 {
+		t.Errorf("manifest entry appears %d times, want 1\n%s", c, got)
+	}
+}
+
+// TestInit_GitignoreFutureProof: a consumer with a pre-existing
+// .gitignore that already covers the wildcard should not get the
+// wildcard appended a second time, even if their .gitignore predates
+// G19. Confirms the future-proof property: once the wildcard is in
+// place, adding a new aiwf-* skill to the embedded set does not require
+// the consumer to re-run aiwf init.
+func TestInit_GitignoreFutureProof(t *testing.T) {
+	root := freshGitRepo(t)
+	existing := []byte("# pre-existing\n.claude/skills/aiwf-*/\n.claude/skills/.aiwf-owned\n")
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), existing, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if c := strings.Count(string(got), ".claude/skills/aiwf-*/"); c != 1 {
+		t.Errorf("wildcard appended despite already being present; appears %d times\n%s", c, got)
 	}
 }
 

@@ -98,6 +98,25 @@ Resolved in commit `e2a39ee` (fix(aiwf): G14 — register stub for unparseable e
 
 ---
 
+### G19. `aiwf init` writes per-skill `.gitignore` entries; new skills aren't covered
+
+**Location:** `tools/internal/skills/skills.go` (`MaterializedPaths`), `tools/internal/initrepo/initrepo.go` (`ensureGitignore`).
+
+**Symptom:** `aiwf init` enumerates each materialized skill by name and appends one line per skill to the consumer's `.gitignore` (e.g., `.claude/skills/aiwf-add/`, `.claude/skills/aiwf-check/`, …, plus `.claude/skills/.aiwf-owned` for the manifest marker). When a new aiwf release adds an embedded skill (e.g., `aiwf-contract` was added in this version), consumers who previously ran `aiwf init` have a `.gitignore` that doesn't cover the new skill. `aiwf update` then materializes the new skill into the consumer repo, where git happily begins tracking it. Discovered by a dogfooding consumer (proliminal.net) noticing `.claude/skills/aiwf-contract/` and `.claude/skills/.aiwf-owned` showing up untracked-or-tracked depending on init timing.
+
+**Why it matters:** The materialized-skills directory is supposed to be a cache, not state (per `design/design-decisions.md`). When per-skill enumeration drifts from the embedded set, the cache leaks into commits — defeating both the cache contract and the "stable across `git checkout`" property. Re-running `aiwf init` does append the missing entries, but that's a manual remediation a consumer has no way to know they need; the right fix is to make the `.gitignore` write future-proof.
+
+**Proposed fix:** Stop enumerating skills by name in `.gitignore`. Replace the per-skill entries with a wildcard plus the manifest marker:
+
+```
+.claude/skills/aiwf-*/
+.claude/skills/.aiwf-owned
+```
+
+The trailing slash on the wildcard restricts it to directories, so a non-aiwf file accidentally named `aiwf-something.md` at that level would not be silently ignored. Concretely: rename `skills.MaterializedPaths` → `skills.GitignorePatterns` returning the two-element constant slice; update `ensureGitignore` to consume it. Existing consumer `.gitignore` files that already have the per-skill list will gain the two new lines on next `aiwf init` run; the per-skill entries become redundant but harmless (the wildcard subsumes them). Cleanup is the consumer's choice. Aligns with the design-decisions commitment that skills live under `.claude/skills/aiwf-*/` and are gitignored — the wildcard is closer to the documented contract than the enumeration was.
+
+---
+
 ### G18. Contract-config validation is hook-only on `contract bind` and `add contract --validator …` — **resolved**
 
 Resolved in commit `202a14a` (fix(aiwf): G18 — run contractcheck on contract bind / add+bind projection). Took the proposed approach: `ContractBind` and `Add`'s atomic-bind path now run `contractcheck.Run` on the projected `aiwf.yaml.contracts` config and surface any error-level findings whose `EntityID` matches the bound id, before mutating the doc. Catches missing-schema, missing-fixtures, and path-escape (G1) at verb time instead of push time. `contractverify.Run` (the actual validator execution) remains hook-only as a defensible carve-out — documented in `architecture.md` §3. Three new tests cover the verb-side enforcement; existing tests updated to pass a `bindRepo(t)` tmpdir with the referenced schema/fixtures present.
@@ -140,5 +159,6 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 | G16 | Path-encoded id and frontmatter id can disagree silently    | Medium   | [x] `9486046` |
 | G17 | No published per-kind body template for skill authors       | Medium   | [x] `f4a0fae` |
 | G18 | Contract-config validation is hook-only on `contract bind`  | Medium   | [x] `202a14a` |
+| G19 | `aiwf init` writes per-skill `.gitignore`; new skills uncovered | Medium | [ ] |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

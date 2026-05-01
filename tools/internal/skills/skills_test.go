@@ -212,28 +212,32 @@ func TestMaterialize_PreservesNonAiwfDirs(t *testing.T) {
 	}
 }
 
-func TestMaterializedPaths(t *testing.T) {
-	got, err := MaterializedPaths()
-	if err != nil {
-		t.Fatal(err)
+func TestGitignorePatterns(t *testing.T) {
+	got := GitignorePatterns()
+	if len(got) != 2 {
+		t.Fatalf("got %d patterns, want 2 (wildcard + manifest); got %v", len(got), got)
 	}
-	if len(got) == 0 {
-		t.Fatal("expected non-empty list")
-	}
-	manifestSeen := false
+	wantWildcard := SkillsDir + "/aiwf-*/"
+	wantManifest := SkillsDir + "/" + ManifestFile
+
+	var sawWildcard, sawManifest bool
 	for _, p := range got {
-		if p == SkillsDir+"/"+ManifestFile {
-			manifestSeen = true
-			continue
-		}
-		if !strings.HasPrefix(p, SkillsDir+"/aiwf-") {
-			t.Errorf("path %q lacks expected prefix", p)
-		}
-		if !strings.HasSuffix(p, "/") {
-			t.Errorf("skill dir path %q should end with / (gitignore convention)", p)
+		switch p {
+		case wantWildcard:
+			sawWildcard = true
+		case wantManifest:
+			sawManifest = true
+		default:
+			t.Errorf("unexpected pattern %q", p)
 		}
 	}
-	if !manifestSeen {
-		t.Errorf("manifest path %s/%s missing from MaterializedPaths so it'd land in git commits", SkillsDir, ManifestFile)
+	if !sawWildcard {
+		t.Errorf("missing directory wildcard %q (G19: makes .gitignore future-proof against new aiwf-* skills)", wantWildcard)
+	}
+	if !sawManifest {
+		t.Errorf("missing manifest entry %q (otherwise .aiwf-owned would land in git commits)", wantManifest)
+	}
+	if !strings.HasSuffix(wantWildcard, "/") {
+		t.Errorf("wildcard %q should end with / so it only matches directories", wantWildcard)
 	}
 }
