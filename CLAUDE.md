@@ -42,6 +42,7 @@ These are the load-bearing properties any change must preserve. They are distill
 5. **Marker-managed framework artifacts in the consumer repo, regenerated only on explicit `aiwf init` / `aiwf update`.** Skills under `.claude/skills/aiwf-*` (gitignored) and git hooks under `.git/hooks/<hook>` (untracked, identified by an `# aiwf:<hook>` marker so user-written hooks are left alone). `aiwf update` is the upgrade verb — it refreshes every artifact the consumer is opted into. Stable across `git checkout` by design.
 6. **Layered location-of-truth.** Engine binary lives external (machine-installed via `go install`). Per-project policy and planning state live in the consumer repo. Materialized skill adapters live in the consumer repo but are gitignored.
 7. **Every mutating verb produces exactly one git commit.** That gives per-mutation atomicity for free. A failed mutation aborts before the commit.
+8. **Acceptance criteria as namespaced sub-elements of milestones; TDD opt-in per milestone.** ACs are not a seventh kind — they're structured sub-elements addressed by composite id `M-NNN/AC-N`, validated by `aiwf check`, with the audit rule "AC `met` requires `tdd_phase: done`" when the milestone is `tdd: required`.
 
 If a proposed change does not preserve one of these, treat it as a kernel-level decision and surface it explicitly — not a quiet refactor.
 
