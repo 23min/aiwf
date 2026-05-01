@@ -3,6 +3,7 @@ package check
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -44,6 +45,60 @@ func TestIDsUnique(t *testing.T) {
 	}
 	if got[0].EntityID != "M-001" || got[0].Path != "b.md" {
 		t.Errorf("got %+v", got[0])
+	}
+}
+
+// TestCasePaths_ReportsCaseEquivalentEntities is the load-bearing
+// test for G10: two entities whose paths differ only in case (e.g.
+// E-01-foo vs E-01-Foo committed from a case-sensitive Linux dev
+// box) collapse to a single path on a case-insensitive macOS
+// reviewer's machine. casePaths catches this footgun before it
+// silently surfaces as data loss on checkout.
+func TestCasePaths_ReportsCaseEquivalentEntities(t *testing.T) {
+	tr := makeTree(
+		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
+		&entity.Entity{ID: "E-02", Kind: entity.KindEpic, Path: "work/epics/E-01-Foo/epic.md"},
+		&entity.Entity{ID: "E-03", Kind: entity.KindEpic, Path: "work/epics/E-03-bar/epic.md"},
+	)
+	got := casePaths(tr)
+	if len(got) != 1 {
+		t.Fatalf("casePaths findings = %d, want 1: %+v", len(got), got)
+	}
+	if got[0].Code != "case-paths" {
+		t.Errorf("code = %q, want case-paths", got[0].Code)
+	}
+	// Message must name the colliding pair so the user can locate them.
+	msg := got[0].Message
+	if !strings.Contains(msg, "E-01-foo") || !strings.Contains(msg, "E-01-Foo") {
+		t.Errorf("message should name both colliding paths; got %q", msg)
+	}
+}
+
+// TestCasePaths_CleanTreeNoFindings: a tree with all-distinct paths
+// produces no case-paths findings.
+func TestCasePaths_CleanTreeNoFindings(t *testing.T) {
+	tr := makeTree(
+		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
+		&entity.Entity{ID: "E-02", Kind: entity.KindEpic, Path: "work/epics/E-02-bar/epic.md"},
+	)
+	got := casePaths(tr)
+	if len(got) != 0 {
+		t.Errorf("clean tree should produce no case-paths findings; got %+v", got)
+	}
+}
+
+// TestCasePaths_ThreeWayCollision: three entities all collapsing to
+// the same case-insensitive path each generate a finding so the
+// user sees every offender, not just one.
+func TestCasePaths_ThreeWayCollision(t *testing.T) {
+	tr := makeTree(
+		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
+		&entity.Entity{ID: "E-02", Kind: entity.KindEpic, Path: "work/epics/E-01-FOO/epic.md"},
+		&entity.Entity{ID: "E-03", Kind: entity.KindEpic, Path: "work/epics/E-01-Foo/epic.md"},
+	)
+	got := casePaths(tr)
+	if len(got) < 2 {
+		t.Errorf("3-way collision should produce at least 2 findings; got %d", len(got))
 	}
 }
 

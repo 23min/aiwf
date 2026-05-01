@@ -252,6 +252,15 @@ Exit codes: `0` no errors (warnings allowed), `1` errors found, `2` usage error,
 
 ---
 
+## Known limitations
+
+- **Filesystem case-sensitivity.** On case-insensitive volumes (default macOS APFS, Windows NTFS), two paths that differ only in case (`E-01-foo` vs `E-01-Foo`) refer to the same on-disk directory. `aiwf check` reports this as a `case-paths` finding so the issue surfaces at validation time rather than as silent data loss when a Linux-checked-in repo is reviewed on macOS. `aiwf doctor` prints whether the current volume is case-sensitive or case-insensitive.
+- **Concurrent invocations.** Two `aiwf` mutations on the same repo serialise via an exclusive POSIX flock on `<root>/.git/aiwf.lock`. The second invocation waits up to 2s, then returns a usage-error finding. Read-only verbs (`check`, `history`, `status`, `render` without `--write`, `doctor`) do not lock and remain free to run concurrently.
+- **Validator availability.** A configured contract validator binary missing from `PATH` is a warning by default, not a hard error — your teammate without `cue` installed shouldn't be blocked from a docs-only push. Set `aiwf.yaml`'s `contracts.strict_validators: true` to upgrade to error.
+- **Unix only.** The pre-push hook is a `#!/bin/sh` script and contract validators are invoked as POSIX subprocess commands. Windows is not in scope for the PoC.
+
+---
+
 ## Beyond the PoC
 
 The PoC is deliberately self-contained: markdown files in the consumer repo, no server, no external sync. That is the right shape for proving the kernel works.

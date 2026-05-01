@@ -489,6 +489,25 @@ func TestDoctorReport_Contents(t *testing.T) {
 	}
 }
 
+// TestDoctorReport_ReportsFilesystemCaseSensitivity: doctor names
+// the filesystem's case-sensitivity so users on macOS APFS know
+// they're on a case-insensitive volume (where E-01-foo and
+// E-01-Foo collapse to one path) before they hit the footgun.
+func TestDoctorReport_ReportsFilesystemCaseSensitivity(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	lines, _ := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "filesystem:") {
+		t.Errorf("doctor should report filesystem case-sensitivity:\n%s", joined)
+	}
+}
+
 // TestDoctorReport_ValidatorAvailability_Warning: a configured
 // validator binary missing from PATH appears as a warning line in
 // the report and does NOT increment problems (default lenient).

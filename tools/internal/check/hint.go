@@ -10,6 +10,7 @@ package check
 var hintTable = map[string]string{
 	"load-error":                "fix the file's structure (YAML frontmatter delimited by `---`), or remove the file if it's not an aiwf entity",
 	"ids-unique":                "run `aiwf reallocate <path>` on one of the duplicates to renumber it",
+	"case-paths":                "rename one of the colliding paths via `aiwf rename` so they differ in more than just case (case-insensitive filesystems treat them as the same dir)",
 	"frontmatter-shape":         "set the missing field, or correct the id format to match the kind's pattern",
 	"status-valid":              "use one of the allowed statuses listed above",
 	"refs-resolve/unresolved":   "check the spelling, or remove the reference if the target was deleted",

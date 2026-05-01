@@ -464,6 +464,14 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 	//    is set — matches the contract verify rendering.
 	lines, problems = appendValidatorReport(lines, problems, rootDir)
 
+	// 5. Filesystem case-sensitivity. Informational; case-insensitive
+	//    is the default on macOS APFS and Windows NTFS, and on those
+	//    volumes E-01-foo and E-01-Foo collapse to the same dir.
+	//    Users should know which they're on before they hit the
+	//    footgun. The check.casePaths validator catches actual
+	//    collisions; this line just surfaces the platform fact.
+	lines = append(lines, fmt.Sprintf("filesystem: %s (%s)", filesystemCaseLabel(rootDir), rootDir))
+
 	// 5. Rituals-plugin presence (soft note — does not increment
 	// problems). Best-effort heuristic: greps project/local settings
 	// for `aiwf-extensions`. User-scope installs are invisible here,
@@ -482,6 +490,26 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 	}
 
 	return lines, problems
+}
+
+// filesystemCaseLabel returns "case-sensitive" or "case-insensitive"
+// based on a probe inside dir: write a temp file, stat its name in
+// uppercase, and check whether the filesystem returned the same
+// inode. If the probe fails (permissions, no temp space), returns
+// "unknown" so the report stays informational rather than blocking.
+func filesystemCaseLabel(dir string) string {
+	probe, err := os.CreateTemp(dir, ".aiwf-case-probe-")
+	if err != nil {
+		return "unknown"
+	}
+	name := probe.Name()
+	_ = probe.Close()
+	defer func() { _ = os.Remove(name) }()
+	upper := filepath.Join(filepath.Dir(name), strings.ToUpper(filepath.Base(name)))
+	if _, err := os.Stat(upper); err == nil {
+		return "case-insensitive"
+	}
+	return "case-sensitive"
 }
 
 // appendValidatorReport reads aiwf.yaml's contracts block and

@@ -72,6 +72,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	var findings []Finding
 	findings = append(findings, loadErrorsToFindings(loadErrs)...)
 	findings = append(findings, idsUnique(t)...)
+	findings = append(findings, casePaths(t)...)
 	findings = append(findings, frontmatterShape(t)...)
 	findings = append(findings, statusValid(t)...)
 	findings = append(findings, refsResolve(t)...)
@@ -128,6 +129,46 @@ func loadErrorsToFindings(loadErrs []tree.LoadError) []Finding {
 		})
 	}
 	return out
+}
+
+// casePaths reports any pair of entity paths that differ only in
+// case. On a case-insensitive filesystem (default macOS APFS,
+// Windows NTFS) two such paths refer to the same on-disk location;
+// committing them from a case-sensitive Linux dev box and checking
+// out on macOS would silently collapse to one entity. Catching this
+// at validation time keeps the issue on a list of findings instead
+// of in the user's data.
+//
+// Case-folding is naive ASCII (strings.ToLower on the path) — same
+// behavior as macOS HFS+'s default and good enough for the entity
+// path conventions, which use only ASCII letters/digits/hyphens by
+// the slug grammar.
+func casePaths(t *tree.Tree) []Finding {
+	groups := make(map[string][]*entity.Entity)
+	for _, e := range t.Entities {
+		key := strings.ToLower(e.Path)
+		groups[key] = append(groups[key], e)
+	}
+	var findings []Finding
+	for _, group := range groups {
+		if len(group) < 2 {
+			continue
+		}
+		// Report every pair beyond the first so multi-way collisions
+		// surface each offender. Match idsUnique's "report duplicates,
+		// not the canonical first" pattern.
+		first := group[0]
+		for _, e := range group[1:] {
+			findings = append(findings, Finding{
+				Code:     "case-paths",
+				Severity: SeverityError,
+				Message:  fmt.Sprintf("path %q differs only in case from %q; on case-insensitive filesystems they collapse to one entity", e.Path, first.Path),
+				Path:     e.Path,
+				EntityID: e.ID,
+			})
+		}
+	}
+	return findings
 }
 
 // idsUnique reports any id that occurs on more than one entity.
