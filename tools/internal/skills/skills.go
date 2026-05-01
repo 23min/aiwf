@@ -4,9 +4,18 @@
 //
 // The skill markdown lives under embedded/ and is compiled into the
 // binary via go:embed. The on-disk skill files are a cache, not state:
-// `aiwf init` and `aiwf update` wipe every `aiwf-*/` dir and rewrite from
-// the embed. Non-`aiwf-*` directories under `.claude/skills/` are
-// untouched — the `aiwf-` prefix is the namespace boundary.
+// `aiwf init` and `aiwf update` rewrite every owned skill directory
+// from the embed.
+//
+// Ownership is tracked by an on-disk manifest at
+// `.claude/skills/.aiwf-owned`, written after every successful
+// Materialize. Materialize wipes only directories named in the
+// previous manifest that are no longer in the current embed (the
+// "skill removed in this release" cleanup case). Foreign directories
+// — third-party plugins under the `aiwf-*` prefix, or anything
+// without the prefix — are never touched. This keeps the namespace
+// safe to share with companion plugins (e.g., `aiwf-rituals-*`)
+// without aiwf clobbering their content.
 //
 // `aiwf doctor` consumes List() to byte-compare the on-disk files
 // against the embedded content and report drift.
@@ -41,6 +50,12 @@ type Skill struct {
 // into and `aiwf update` rewrites from. Claude Code's convention.
 const SkillsDir = ".claude/skills"
 
+// ManifestFile is the on-disk record of which skill directories aiwf
+// claims ownership of. One name per line, no trailing whitespace.
+// Lives next to the skill dirs so a single stat tells aiwf whether
+// any prior materialization happened.
+const ManifestFile = ".aiwf-owned"
+
 // List returns every embedded skill in name-sorted order. The byte
 // content is freshly read from the embed each call (cheap, since the
 // embed is in-memory) so callers may mutate the returned slice without
@@ -69,9 +84,12 @@ func List() ([]Skill, error) {
 	return out, nil
 }
 
-// Materialize wipes every `.claude/skills/aiwf-*/` directory under root
-// and writes the embedded skills back. Non-`aiwf-*` directories are
-// untouched. Creates `.claude/skills/` if missing.
+// Materialize writes the embedded skills into `.claude/skills/<name>/`
+// under root. Wipes any directory listed in the prior ownership
+// manifest that is no longer in the current embed (clean up after a
+// release that removed a skill). Foreign directories — anything not
+// in the prior manifest — are left alone, even if they share the
+// `aiwf-` prefix.
 //
 // This is the operation behind both `aiwf init` (first-time setup) and
 // `aiwf update` (refresh after a binary upgrade).
@@ -81,27 +99,36 @@ func Materialize(root string) error {
 		return fmt.Errorf("creating %s: %w", SkillsDir, err)
 	}
 
-	// Wipe existing aiwf-* dirs so we never leave stale skills behind.
-	entries, readErr := os.ReadDir(skillsRoot)
-	if readErr != nil && !errors.Is(readErr, fs.ErrNotExist) {
-		return fmt.Errorf("reading %s: %w", SkillsDir, readErr)
-	}
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-		if !strings.HasPrefix(e.Name(), "aiwf-") {
-			continue
-		}
-		if rmErr := os.RemoveAll(filepath.Join(skillsRoot, e.Name())); rmErr != nil {
-			return fmt.Errorf("removing stale skill %s: %w", e.Name(), rmErr)
-		}
+	prior, err := readManifest(skillsRoot)
+	if err != nil {
+		return err
 	}
 
 	skills, err := List()
 	if err != nil {
 		return err
 	}
+
+	currentSet := make(map[string]bool, len(skills))
+	for _, s := range skills {
+		currentSet[s.Name] = true
+	}
+
+	// Wipe directories the prior manifest claimed we owned but the
+	// current embed no longer ships. Anything else (foreign dirs,
+	// third-party plugins) is left alone.
+	for _, name := range prior {
+		if currentSet[name] {
+			continue
+		}
+		if rmErr := os.RemoveAll(filepath.Join(skillsRoot, name)); rmErr != nil {
+			return fmt.Errorf("removing previously-owned skill %s: %w", name, rmErr)
+		}
+	}
+
+	// Write each currently-embedded skill. Existing dirs with the
+	// same name (whether previously owned or pre-existing on first
+	// run against an old aiwf install) get their SKILL.md overwritten.
 	for _, s := range skills {
 		dir := filepath.Join(skillsRoot, s.Name)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -111,20 +138,68 @@ func Materialize(root string) error {
 			return fmt.Errorf("writing %s/SKILL.md: %w", s.Name, err)
 		}
 	}
+
+	if err := writeManifest(skillsRoot, skills); err != nil {
+		return err
+	}
+	return nil
+}
+
+// readManifest returns the list of skill names the prior Materialize
+// claimed ownership of. A missing manifest returns an empty slice and
+// no error — first-run case.
+func readManifest(skillsRoot string) ([]string, error) {
+	raw, err := os.ReadFile(filepath.Join(skillsRoot, ManifestFile))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("reading manifest: %w", err)
+	}
+	var out []string
+	for _, line := range strings.Split(string(raw), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		out = append(out, line)
+	}
+	return out, nil
+}
+
+// writeManifest records the names of the currently-embedded skills as
+// the new ownership set. Atomic via temp-file + rename.
+func writeManifest(skillsRoot string, skills []Skill) error {
+	var b strings.Builder
+	for _, s := range skills {
+		b.WriteString(s.Name)
+		b.WriteByte('\n')
+	}
+	path := filepath.Join(skillsRoot, ManifestFile)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, []byte(b.String()), 0o644); err != nil {
+		return fmt.Errorf("writing manifest: %w", err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("renaming manifest: %w", err)
+	}
 	return nil
 }
 
 // MaterializedPaths returns the repo-relative (forward-slash) paths
 // that Materialize will produce, in name-sorted order. Used by
-// `aiwf init` to populate `.gitignore`.
+// `aiwf init` to populate `.gitignore`. Includes the ownership
+// manifest so it doesn't accidentally land in commits.
 func MaterializedPaths() ([]string, error) {
 	skills, err := List()
 	if err != nil {
 		return nil, err
 	}
-	out := make([]string, 0, len(skills))
+	out := make([]string, 0, len(skills)+1)
 	for _, s := range skills {
 		out = append(out, SkillsDir+"/"+s.Name+"/")
 	}
+	out = append(out, SkillsDir+"/"+ManifestFile)
 	return out, nil
 }
