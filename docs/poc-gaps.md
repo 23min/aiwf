@@ -98,15 +98,9 @@ Resolved in commit `e2a39ee` (fix(aiwf): G14 — register stub for unparseable e
 
 ---
 
-### G16. Path-encoded id and frontmatter id can disagree silently
+### G16. Path-encoded id and frontmatter id can disagree silently — **resolved**
 
-**Location:** `tools/internal/check/check.go` (`frontmatterShape` validates id format against kind, but no check verifies that the id in frontmatter matches the id encoded in the file path).
-
-**Symptom:** A file at `work/epics/E-01-platform/epic.md` whose frontmatter says `id: E-99` parses cleanly. aiwf operates on `E-99` (looking it up via `ByID`), and references to `E-01` come back unresolved. The two encodings are silently inconsistent — the user has to read the file and the path side-by-side to notice.
-
-**Why it matters:** Natural follow-up to G14. The stub mechanism added in G14 derives the entity id from the path when frontmatter is unreadable, on the assumption that path and frontmatter agree on identity. Without an enforcement check, the assumption is unverified. As skills increasingly hand-edit aiwf-managed files (`add` verb keeps them in sync; manual edits don't), the chance of an accidental id/path drift grows. Also: `aiwf reallocate` is the verb that should be used to renumber an entity (it does the path-and-frontmatter rewrite atomically). A silent disagreement means someone bypassed the verb and edited only one side.
-
-**Proposed fix:** Add a new check `id-path-consistent`. For every entity in `tree.Entities`, derive the expected id from its path via `entity.IDFromPath` (already exists, introduced in G14) and compare to the entity's `id:` frontmatter. On disagreement, emit a single error finding naming both ids. Hint: "rename the file/dir slug to match the frontmatter id (`aiwf rename`), renumber the entity (`aiwf reallocate`), or correct one side by hand if you're sure which is right." Stubs are skipped (they're built from the path-derived id by construction; comparison would always pass). Severity: error. Defensive: if `IDFromPath` returns false for an entity whose path was accepted by `PathKind`, skip rather than crash. Pin coverage with the messy fixture (add a path/id mismatch case to `tools/internal/check/testdata/messy/`) and assert the new code appears in `TestFixture_Messy`.
+Resolved in commit `9486046` (fix(aiwf): G16 — add id-path-consistent check to catch silent path/id drift). Took the proposed approach: a new `idPathConsistent` check iterates `tree.Entities`, derives the expected id from each path via `entity.IDFromPath`, and emits an error finding on disagreement. Stubs are skipped (constructed from path-derived id by construction). Defensive: if `IDFromPath` returns false for an entity PathKind accepted (impossible by construction), the entity is skipped rather than panicked on. Hint table entry points the user at `aiwf reallocate` for renumbering (rewrites both sides + updates references atomically), `aiwf rename` for slug-only drift, or hand-correction when the user knows which side is right. Pinned by a new fixture file at `tools/internal/check/testdata/messy/work/epics/E-01-orig/M-099-path-id-mismatch.md` (path encodes M-099, frontmatter says M-100) — `TestFixture_Messy` now asserts the new code appears alongside the existing ten. Coverage: 100% on `idPathConsistent`. Completes the path-vs-frontmatter story G14's stub mechanism implicitly relied on.
 
 ---
 
@@ -135,6 +129,6 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 | G13 | No Windows guard                                            | Low      | [x] `dda370d` |
 | G14 | Parse failure cascades into refs-resolve findings           | Medium   | [x] `e2a39ee` |
 | G15 | No published per-kind schema for skill authors              | Medium   | [x] `0ba0e61` |
-| G16 | Path-encoded id and frontmatter id can disagree silently    | Medium   | [ ] |
+| G16 | Path-encoded id and frontmatter id can disagree silently    | Medium   | [x] `9486046` |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
