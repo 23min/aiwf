@@ -98,15 +98,9 @@ Resolved in commit `e2a39ee` (fix(aiwf): G14 — register stub for unparseable e
 
 ---
 
-### G18. Contract-config validation is hook-only on `contract bind` and `add contract --validator …`
+### G18. Contract-config validation is hook-only on `contract bind` and `add contract --validator …` — **resolved**
 
-**Location:** `tools/internal/verb/contractbind.go` (`ContractBind`), `tools/internal/verb/add.go` (`atomicContractBind`).
-
-**Symptom:** `aiwf contract bind` and `aiwf add contract --validator … --schema … --fixtures …` write the binding to `aiwf.yaml.contracts.entries[]` without verifying that the bound schema and fixtures paths exist. The verb succeeds; the pre-push hook's `aiwf check` then catches the missing-schema or missing-fixtures finding via `contractcheck.Run`. Discovered by the hook-vs-engine audit (item 6 of the post-PoC follow-on plan).
-
-**Why it matters:** Direct watch-point violation per [`design/design-lessons.md`](design/design-lessons.md) §2 — "the engine's invariants must be enforced inside the verb, not at the hook boundary. A hook is a fast-fail courtesy for the user; the verb must remain correct without it." Concretely: a typo in `--schema` or `--fixtures` lands a broken commit; the user only finds out at `git push` time, after the verb has already produced a commit they then have to amend or revert. This is exactly the friction the projection-check pattern was designed to prevent.
-
-**Proposed fix:** Thread `repoRoot` into `ContractBind` and into `Add`'s atomic-bind path (via `AddOptions.RepoRoot`). After building the projected `aiwf.yaml.contracts` config, run `contractcheck.Run(t, &next, repoRoot)`, filter to findings whose `EntityID == <bound id>`, and return any error-level findings via `findings(...)` before mutating the doc. This catches missing-schema, missing-fixtures, and path-escape (G1) at verb time. Defer `contractverify.Run` (the actual schema-validates-fixtures execution) to the hook — that one is a defensible carve-out (validator availability is per-machine; expensive; `validator-unavailable` is warning-by-default), to be documented separately in `architecture.md`.
+Resolved in commit `202a14a` (fix(aiwf): G18 — run contractcheck on contract bind / add+bind projection). Took the proposed approach: `ContractBind` and `Add`'s atomic-bind path now run `contractcheck.Run` on the projected `aiwf.yaml.contracts` config and surface any error-level findings whose `EntityID` matches the bound id, before mutating the doc. Catches missing-schema, missing-fixtures, and path-escape (G1) at verb time instead of push time. `contractverify.Run` (the actual validator execution) remains hook-only as a defensible carve-out — documented in `architecture.md` §3. Three new tests cover the verb-side enforcement; existing tests updated to pass a `bindRepo(t)` tmpdir with the referenced schema/fixtures present.
 
 ---
 
@@ -145,6 +139,6 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 | G15 | No published per-kind schema for skill authors              | Medium   | [x] `0ba0e61` |
 | G16 | Path-encoded id and frontmatter id can disagree silently    | Medium   | [x] `9486046` |
 | G17 | No published per-kind body template for skill authors       | Medium   | [x] `f4a0fae` |
-| G18 | Contract-config validation is hook-only on `contract bind`  | Medium   | [ ] |
+| G18 | Contract-config validation is hook-only on `contract bind`  | Medium   | [x] `202a14a` |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

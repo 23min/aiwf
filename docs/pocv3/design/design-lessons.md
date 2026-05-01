@@ -41,13 +41,13 @@ The simplest mental check: if you removed the identity from the query and only k
 
 **The design question for new verbs** is not "how do I sequence these writes?" — it is "what's the single atomic operation this verb performs?" If you can't name that, the verb isn't ready to be implemented.
 
-**Status in v3.** Mostly followed. G2 (atomic rollback on Apply failure) hardened the boundary recently. The discipline is in place; the rule is to keep it that way.
+**Status in v3.** Followed. G2 (atomic rollback on Apply failure) hardened the boundary; the hook-vs-engine audit (commit `0aefc26`'s notes and G18) confirmed every entity-level invariant is verb-side. One deliberate carve-out — `contractverify` (the schema-validates-fixtures execution) is hook-only — is documented in [`../architecture.md`](../architecture.md) §2 with the rationale (validator availability is per-machine; runtime semantic check, not structural).
 
 **Watch-points.**
 
 - Any new verb that writes more than one file: review whether it's going through `Apply` or open-coding its own sequence.
 - Any rollback logic that lives outside `Apply` is a smell. Either fix the abstraction or pull the logic inside the boundary.
-- Hooks (pre-commit, pre-push) are advisory, not load-bearing. The engine's invariants must be enforced inside the verb, not at the hook boundary. A hook is a fast-fail courtesy for the user; the verb must remain correct without it.
+- Hooks (pre-commit, pre-push) are advisory, not load-bearing. The engine's invariants must be enforced inside the verb, not at the hook boundary. A hook is a fast-fail courtesy for the user; the verb must remain correct without it. **Audit history:** G18 (the only finding from the audit so far) added `contractcheck` to the projection check of contract-mutating verbs after discovering the verbs were relying on the hook to catch broken bindings.
 
 ---
 
