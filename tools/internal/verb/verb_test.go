@@ -255,7 +255,11 @@ func TestReallocate_RewritesReferences(t *testing.T) {
 	mustHaveTrailer(t, trailers, "aiwf-prior-entity", "M-001")
 }
 
-func TestReallocate_BodyProseSurfacesAsWarning(t *testing.T) {
+// TestReallocate_RewritesProseReferences is the load-bearing test
+// for G5: when reallocate renumbers an entity, prose mentions of
+// the old id in other entities' bodies are rewritten to the new id
+// in the same commit. No "fix it yourself" warnings.
+func TestReallocate_RewritesProseReferences(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.tree(), entity.KindMilestone, "Mention test", testActor, verb.AddOptions{EpicID: "E-01"}))
@@ -270,6 +274,7 @@ parent: E-01
 ---
 
 This depends on M-001 (mentioned in prose).
+M-001 again, and a longer id M-0010 that must NOT match.
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -279,20 +284,116 @@ This depends on M-001 (mentioned in prose).
 		t.Fatal(err)
 	}
 	if res.Plan == nil {
-		t.Fatal("expected plan; reallocate should succeed alongside warnings")
+		t.Fatal("expected plan")
 	}
-	if check.HasErrors(res.Findings) {
-		t.Errorf("expected only warnings, got errors: %+v", res.Findings)
-	}
-	hasBodyWarning := false
 	for _, f := range res.Findings {
 		if f.Code == "reallocate-body-reference" {
-			hasBodyWarning = true
-			break
+			t.Errorf("body-reference warning should be gone now (we rewrite); got %+v", f)
 		}
 	}
-	if !hasBodyWarning {
-		t.Errorf("expected reallocate-body-reference warning, got %+v", res.Findings)
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+
+	// Read M-002's body after reallocate; old id should be gone, new id present.
+	got, err := os.ReadFile(m2Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(got)
+	if strings.Contains(body, "depends on M-001 (mentioned in prose).") {
+		t.Errorf("body still mentions old id M-001:\n%s", body)
+	}
+	if !strings.Contains(body, "depends on M-003 (mentioned in prose).") {
+		t.Errorf("body should mention new id M-003:\n%s", body)
+	}
+	// The longer id M-0010 must remain untouched (word boundary).
+	if !strings.Contains(body, "M-0010 that must NOT match") {
+		t.Errorf("M-0010 should be left alone; word-boundary regex required:\n%s", body)
+	}
+}
+
+// TestReallocate_RewritesProseAcrossMultipleEntities: multiple
+// other entities each mentioning the old id all get rewritten in
+// one commit.
+func TestReallocate_RewritesProseAcrossMultipleEntities(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.tree(), entity.KindMilestone, "Target", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.tree(), entity.KindMilestone, "Other A", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.tree(), entity.KindMilestone, "Other B", testActor, verb.AddOptions{EpicID: "E-01"}))
+
+	for _, name := range []string{"M-002-other-a.md", "M-003-other-b.md"} {
+		p := filepath.Join(r.root, "work", "epics", "E-01-platform", name)
+		raw, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		updated := string(raw) + "\nReferences M-001 in prose.\n"
+		if err := os.WriteFile(p, []byte(updated), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	res, err := verb.Reallocate(r.tree(), "M-001", testActor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+
+	for _, name := range []string{"M-002-other-a.md", "M-003-other-b.md"} {
+		body, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-01-platform", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(body), "References M-001 in prose.") {
+			t.Errorf("%s still mentions M-001:\n%s", name, body)
+		}
+		if !strings.Contains(string(body), "References M-004 in prose.") {
+			t.Errorf("%s should reference M-004:\n%s", name, body)
+		}
+	}
+}
+
+// TestReallocate_RewritesSelfReferenceInTargetBody: the entity
+// being reallocated may mention itself in its own body. That
+// self-reference must update too.
+func TestReallocate_RewritesSelfReferenceInTargetBody(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.tree(), entity.KindMilestone, "Target", testActor, verb.AddOptions{EpicID: "E-01"}))
+
+	targetPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-target.md")
+	raw, err := os.ReadFile(targetPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated := string(raw) + "\nThis is M-001 (self-reference in body).\n"
+	if werr := os.WriteFile(targetPath, []byte(updated), 0o644); werr != nil {
+		t.Fatal(werr)
+	}
+
+	res, err := verb.Reallocate(r.tree(), "M-001", testActor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+
+	// M-001 was renumbered to M-002 (next free).
+	newPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-002-target.md")
+	body, err := os.ReadFile(newPath)
+	if err != nil {
+		t.Fatalf("post-reallocate read: %v", err)
+	}
+	if strings.Contains(string(body), "This is M-001") {
+		t.Errorf("self-reference to M-001 should have been rewritten:\n%s", body)
+	}
+	if !strings.Contains(string(body), "This is M-002") {
+		t.Errorf("self-reference should now read M-002:\n%s", body)
 	}
 }
 

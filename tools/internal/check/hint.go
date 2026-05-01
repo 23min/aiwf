@@ -19,7 +19,6 @@ var hintTable = map[string]string{
 	"titles-nonempty":           "set a non-empty `title:` in the frontmatter",
 	"adr-supersession-mutual":   "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
 	"gap-resolved-has-resolver": "list the resolving milestone(s) in `addressed_by:`, or revert the status to `open`/`wontfix`",
-	"reallocate-body-reference": "update the prose to use the new id; aiwf rewrites only frontmatter, not body text",
 
 	"contract-config/missing-entity":        "create a contract entity for this id (`aiwf add contract`), or remove the entry from aiwf.yaml.contracts.entries[]",
 	"contract-config/missing-schema":        "fix the `schema:` path in aiwf.yaml.contracts.entries[], or create the file at that location",

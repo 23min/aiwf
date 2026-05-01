@@ -14,9 +14,14 @@ import (
 )
 
 // Reallocate gives an entity a new id of the same kind, renames its
-// file/dir to reflect the new id, and rewrites every reference field
-// in every other entity that pointed to the old id. Body-prose
-// references to the old id are surfaced as warnings (not rewritten).
+// file/dir to reflect the new id, and rewrites every reference to
+// the old id — both in frontmatter and in body prose — across the
+// whole tree, including the entity's own body.
+//
+// The reference grammar (E-NN, M-NNN, ADR-NNNN, G-NNN, D-NNN, C-NNN)
+// is regular and unambiguous, so prose rewriting is mechanical and
+// safe. Word boundaries prevent false matches against longer ids
+// (e.g., reallocating M-001 leaves M-0010 untouched).
 //
 // The argument may be an id (e.g., "M-007") when unambiguous, or a
 // repo-relative path (e.g., "work/epics/E-01-platform/M-007-cache.md")
@@ -46,7 +51,8 @@ func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
 	modified.ID = newID
 	modified.Path = newEntityPath
 
-	// Rewrite references in every entity that points at the old id.
+	// Rewrite frontmatter references in every entity that points at
+	// the old id.
 	rewrites := rewriteReferences(t.Entities, target, oldID, newID)
 
 	// For entities that live inside the moved directory (e.g., a
@@ -60,13 +66,20 @@ func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
 		}
 	}
 
-	// Body-prose mentions of the old id become warnings (not auto-rewrite).
-	bodyFindings := scanBodyProse(t, target, oldID)
+	// Discover every entity whose body prose mentions the old id.
+	// These bodies will be rewritten in this same commit. The set
+	// may include entities not in `rewrites` (which only covers
+	// frontmatter changes), and may include the target itself.
+	proseTouched, err := findProseMentions(t, oldID)
+	if err != nil {
+		return nil, err
+	}
 
 	// Plan paths (every file the verb intends to land):
 	//   - the moved entity's new path
 	//   - the contents of any directory it dragged along
 	//   - the rewritten reference files (at their post-move paths)
+	//   - any prose-only files (no frontmatter rewrite, body changes only)
 	planned, err := plannedDestinations(t.Root, source, dest, newEntityPath)
 	if err != nil {
 		return nil, err
@@ -74,26 +87,41 @@ func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
 	for _, rw := range rewrites {
 		planned = append(planned, filepath.ToSlash(rw.entity.Path))
 	}
+	for _, e := range proseTouched {
+		// pre-move path is enough for projection — pathInside checks
+		// use the original path; final write uses the post-move path
+		// computed below.
+		planned = append(planned, filepath.ToSlash(e.Path))
+	}
 
 	proj := projectReallocate(t, target, &modified, rewrites, planned)
 	projFindings := projectionFindings(t, proj)
 	if check.HasErrors(projFindings) {
-		// Body-prose warnings are also worth surfacing alongside the projection errors.
-		all := append([]check.Finding{}, projFindings...)
-		all = append(all, bodyFindings...)
-		return findings(all), nil
+		return findings(projFindings), nil
 	}
+
+	// Track which entities will already be written for frontmatter
+	// reasons, so the prose-only pass doesn't double-write.
+	frontmatterRewrites := make(map[string]*rewriteRecord, len(rewrites))
+	for i := range rewrites {
+		frontmatterRewrites[rewrites[i].original.ID] = &rewrites[i]
+	}
+
+	idPattern := proseRewritePattern(oldID)
 
 	// Build the file ops:
 	//   1. move the entity's file/dir (git mv preserves rename history)
 	//   2. write the moved entity's file with the new id in frontmatter
-	//   3. write each rewritten reference file
+	//      and prose
+	//   3. write each frontmatter-rewrite file (with prose rewritten too)
+	//   4. write each prose-only file
 	ops := []FileOp{{Type: OpMove, Path: source, NewPath: dest}}
 
 	movedBody, err := readBody(t.Root, target.Path)
 	if err != nil {
 		return nil, err
 	}
+	movedBody = idPattern.ReplaceAll(movedBody, []byte(newID))
 	movedContent, err := entity.Serialize(&modified, movedBody)
 	if err != nil {
 		return nil, fmt.Errorf("serializing reallocated %s: %w", newID, err)
@@ -108,6 +136,7 @@ func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
 		if err != nil {
 			return nil, err
 		}
+		body = idPattern.ReplaceAll(body, []byte(newID))
 		content, err := entity.Serialize(rw.entity, body)
 		if err != nil {
 			return nil, fmt.Errorf("serializing %s after reference rewrite: %w", rw.entity.ID, err)
@@ -115,9 +144,33 @@ func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
 		ops = append(ops, FileOp{Type: OpWrite, Path: rw.entity.Path, Content: content})
 	}
 
+	// Prose-only pass: entities with no frontmatter ref to oldID but
+	// with body mentions. Read existing entity, rewrite body, serialize.
+	for _, e := range proseTouched {
+		if e == target {
+			continue // target already handled above
+		}
+		if _, alreadyHandled := frontmatterRewrites[e.ID]; alreadyHandled {
+			continue
+		}
+		body, err := readBody(t.Root, e.Path)
+		if err != nil {
+			return nil, err
+		}
+		body = idPattern.ReplaceAll(body, []byte(newID))
+		writePath := e.Path
+		if pathInside(e.Path, source) {
+			writePath = newEntityPathAfterRename(e, source, dest)
+		}
+		content, err := entity.Serialize(e, body)
+		if err != nil {
+			return nil, fmt.Errorf("serializing %s after prose rewrite: %w", e.ID, err)
+		}
+		ops = append(ops, FileOp{Type: OpWrite, Path: writePath, Content: content})
+	}
+
 	subject := fmt.Sprintf("aiwf reallocate %s -> %s", oldID, newID)
 	return &Result{
-		Findings: bodyFindings, // warnings travel with a successful plan
 		Plan: &Plan{
 			Subject: subject,
 			Trailers: []gitops.Trailer{
@@ -129,6 +182,13 @@ func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
 			Ops: ops,
 		},
 	}, nil
+}
+
+// proseRewritePattern returns a regex that matches the literal
+// id at word boundaries. Word boundaries prevent false matches
+// against longer ids (M-001 must not match M-0010 or M-0011).
+func proseRewritePattern(id string) *regexp.Regexp {
+	return regexp.MustCompile(`\b` + regexp.QuoteMeta(id) + `\b`)
 }
 
 // resolveTarget interprets an argument as either an id or a
@@ -304,17 +364,17 @@ func projectReallocate(t *tree.Tree, original, modified *entity.Entity, rewrites
 	return &proj
 }
 
-// scanBodyProse walks every entity (except target) looking for the
-// old id mentioned in body prose. Reports each as a warning so the
-// human can decide whether to update the prose; the verb does not
-// auto-rewrite text outside frontmatter.
-func scanBodyProse(t *tree.Tree, target *entity.Entity, oldID string) []check.Finding {
-	pattern := regexp.MustCompile(`\b` + regexp.QuoteMeta(oldID) + `\b`)
-	var out []check.Finding
+// findProseMentions returns every entity (including the target
+// itself) whose body mentions oldID at a word boundary. The caller
+// rewrites these bodies as part of the same commit.
+//
+// Read errors and frontmatter-split failures are silently skipped:
+// the projection-level findings cover those cases, and a malformed
+// file shouldn't stop the rewrite of the well-formed ones.
+func findProseMentions(t *tree.Tree, oldID string) ([]*entity.Entity, error) {
+	pattern := proseRewritePattern(oldID)
+	var out []*entity.Entity
 	for _, e := range t.Entities {
-		if e == target {
-			continue
-		}
 		full := filepath.Join(t.Root, e.Path)
 		content, err := os.ReadFile(full)
 		if err != nil {
@@ -325,15 +385,8 @@ func scanBodyProse(t *tree.Tree, target *entity.Entity, oldID string) []check.Fi
 			continue
 		}
 		if pattern.Find(body) != nil {
-			out = append(out, check.Finding{
-				Code:     "reallocate-body-reference",
-				Severity: check.SeverityWarning,
-				Message:  fmt.Sprintf("body still mentions %s; consider updating prose for clarity", oldID),
-				Path:     e.Path,
-				EntityID: e.ID,
-				Hint:     check.HintFor("reallocate-body-reference", ""),
-			})
+			out = append(out, e)
 		}
 	}
-	return out
+	return out, nil
 }
