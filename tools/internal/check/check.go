@@ -81,6 +81,11 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, titlesNonempty(t)...)
 	findings = append(findings, adrSupersessionMutual(t)...)
 	findings = append(findings, gapResolvedHasResolver(t)...)
+	// I2: AC and TDD checks.
+	findings = append(findings, acsShape(t)...)
+	findings = append(findings, acsBodyCoherence(t)...)
+	findings = append(findings, acsTDDAudit(t)...)
+	findings = append(findings, milestoneDoneIncompleteACs(t)...)
 	resolveLines(t.Root, findings)
 	applyHints(findings)
 	sortFindings(findings)
@@ -331,6 +336,15 @@ func statusValid(t *tree.Tree) []Finding {
 // findings on every entity that links to it. The parse failure is
 // already reported as a load-error finding; the cascade would just be
 // noise on top.
+//
+// Composite ids (M-NNN/AC-N, added in I2) are recognized only on open-
+// target fields (gap.addressed_by, decision.relates_to). The check
+// resolves them by looking up the parent milestone in the index and
+// then walking its acs[] for the sub-id; missing parent surfaces as
+// `unresolved-milestone`, missing sub as `unresolved-ac`. On closed-
+// target fields a composite id falls through to the regular `unresolved`
+// path because composites aren't in the index — that's the intended
+// signal that composites aren't allowed there.
 func refsResolve(t *tree.Tree) []Finding {
 	idx := make(map[string]*entity.Entity, len(t.Entities)+len(t.Stubs))
 	for _, e := range t.Entities {
@@ -349,6 +363,13 @@ func refsResolve(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
 		for _, ref := range collectRefs(e) {
+			// Composite-id resolution on open-target fields.
+			if entity.IsCompositeID(ref.target) && len(ref.allowed) == 0 {
+				if f, ok := resolveCompositeRef(e, ref, idx); ok {
+					findings = append(findings, f)
+				}
+				continue
+			}
 			target, ok := idx[ref.target]
 			if !ok {
 				findings = append(findings, Finding{
@@ -388,6 +409,42 @@ func refsResolve(t *tree.Tree) []Finding {
 		}
 	}
 	return findings
+}
+
+// resolveCompositeRef returns a finding (and ok=true) when a composite
+// id on an open-target field fails to resolve. ok=false means the
+// composite resolved cleanly (no finding needed). Caller has already
+// confirmed entity.IsCompositeID(ref.target) and len(ref.allowed) == 0.
+func resolveCompositeRef(e *entity.Entity, ref ref, idx map[string]*entity.Entity) (Finding, bool) {
+	parent, sub, _ := entity.ParseCompositeID(ref.target)
+	parentEntity, parentOK := idx[parent]
+	if !parentOK {
+		return Finding{
+			Code:     "refs-resolve",
+			Severity: SeverityError,
+			Subcode:  "unresolved-milestone",
+			Message: fmt.Sprintf("%s field %q references composite id %q but parent %q does not exist",
+				e.Kind, ref.field, ref.target, parent),
+			Path:     e.Path,
+			EntityID: e.ID,
+			Field:    ref.field,
+		}, true
+	}
+	for _, ac := range parentEntity.ACs {
+		if ac.ID == sub {
+			return Finding{}, false
+		}
+	}
+	return Finding{
+		Code:     "refs-resolve",
+		Severity: SeverityError,
+		Subcode:  "unresolved-ac",
+		Message: fmt.Sprintf("%s field %q references %q but %s has no %s in acs[]",
+			e.Kind, ref.field, ref.target, parent, sub),
+		Path:     e.Path,
+		EntityID: e.ID,
+		Field:    ref.field,
+	}, true
 }
 
 type ref struct {
