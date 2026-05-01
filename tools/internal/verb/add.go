@@ -38,6 +38,10 @@ type AddOptions struct {
 	// these only when the bind flags are present.
 	AiwfDoc       *aiwfyaml.Doc
 	AiwfContracts *aiwfyaml.Contracts
+	// Contract: repo root, needed to verify that the bound schema and
+	// fixtures paths exist on disk (G18). Required when the bind
+	// triplet is provided; ignored otherwise.
+	RepoRoot string
 }
 
 // Add creates a new entity of the given kind. Allocates the next free
@@ -97,9 +101,12 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 	}
 
 	if kind == entity.KindContract && opts.BindValidator != "" {
-		bindOps, err := atomicContractBind(id, opts)
+		bindOps, bindFindings, err := atomicContractBind(proj, id, opts)
 		if err != nil {
 			return nil, err
+		}
+		if check.HasErrors(bindFindings) {
+			return findings(bindFindings), nil
 		}
 		ops = append(ops, bindOps...)
 	}
@@ -188,16 +195,21 @@ func validateAddOptsForKind(kind entity.Kind, opts AddOptions) error {
 // atomicContractBind splices the new binding into aiwf.yaml's
 // contracts: block and returns the OpWrite that lands the spliced
 // bytes. The verb has already validated that the entity will be
-// created with id; here we only check that the validator is declared
-// (the standard ContractBind pre-write rule).
-func atomicContractBind(id string, opts AddOptions) ([]FileOp, error) {
+// created with id; here we additionally check that the validator is
+// declared (the standard ContractBind pre-write rule) and that the
+// bound schema and fixtures paths exist (G18 — verb-side enforcement
+// matches what `aiwf contract bind` does for non-atomic binds).
+//
+// Returns (ops, findings, err). When findings has errors, ops is nil
+// and the doc is not mutated; the caller surfaces the findings.
+func atomicContractBind(projectedTree *tree.Tree, id string, opts AddOptions) ([]FileOp, []check.Finding, error) {
 	next := cloneContracts(opts.AiwfContracts)
 	if _, ok := next.Validators[opts.BindValidator]; !ok {
-		return nil, fmt.Errorf("validator %q not declared; install via 'aiwf contract recipe install %s' or 'aiwf contract recipe install --from <path>'", opts.BindValidator, opts.BindValidator)
+		return nil, nil, fmt.Errorf("validator %q not declared; install via 'aiwf contract recipe install %s' or 'aiwf contract recipe install --from <path>'", opts.BindValidator, opts.BindValidator)
 	}
 	for _, en := range next.Entries {
 		if en.ID == id {
-			return nil, fmt.Errorf("binding for %s already exists; this is a freshly-allocated id, indicating a programming error in Add", id)
+			return nil, nil, fmt.Errorf("binding for %s already exists; this is a freshly-allocated id, indicating a programming error in Add", id)
 		}
 	}
 	next.Entries = append(next.Entries, aiwfyaml.Entry{
@@ -206,10 +218,16 @@ func atomicContractBind(id string, opts AddOptions) ([]FileOp, error) {
 		Schema:    opts.BindSchema,
 		Fixtures:  opts.BindFixtures,
 	})
-	if err := opts.AiwfDoc.SetContracts(next); err != nil {
-		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
+
+	// G18: validate the projected config before mutating the doc.
+	if introduced := contractCheckForBinding(projectedTree, next, opts.RepoRoot, id); check.HasErrors(introduced) {
+		return nil, introduced, nil
 	}
-	return []FileOp{{Type: OpWrite, Path: config.FileName, Content: opts.AiwfDoc.Bytes()}}, nil
+
+	if err := opts.AiwfDoc.SetContracts(next); err != nil {
+		return nil, nil, fmt.Errorf("updating aiwf.yaml: %w", err)
+	}
+	return []FileOp{{Type: OpWrite, Path: config.FileName, Content: opts.AiwfDoc.Bytes()}}, nil, nil
 }
 
 // newEntityPath computes the relative path the new entity will live at.

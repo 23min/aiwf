@@ -87,6 +87,7 @@ func runAdd(args []string) int {
 		}
 		opts.AiwfDoc = doc
 		opts.AiwfContracts = contracts
+		opts.RepoRoot = rootDir
 	}
 
 	result, err := verb.Add(ctx, tr, k, *title, actorStr, opts)

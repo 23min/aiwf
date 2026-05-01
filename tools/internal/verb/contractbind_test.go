@@ -2,6 +2,8 @@ package verb
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,6 +13,29 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 )
+
+// bindRepo returns a tmpdir containing the schema/fixtures pairs
+// every test in this file references (schema.cue + fixtures/, plus
+// new.cue + new/ for the force-replace test). Tests that exercise
+// the happy path use this so G18's verb-side contractcheck-on-
+// projection finds real files. Tests that fail before reaching the
+// projection check could pass "" instead; using bindRepo
+// unconditionally keeps the diff simple and the helper one-liner.
+func bindRepo(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	for _, file := range []string{"schema.cue", "new.cue"} {
+		if err := os.WriteFile(filepath.Join(root, file), []byte(""), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, dir := range []string{"fixtures", "new"} {
+		if err := os.Mkdir(filepath.Join(root, dir), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return root
+}
 
 const baseAiwfYAML = `aiwf_version: 0.1.0
 actor: human/test
@@ -52,7 +77,7 @@ func TestContractBind_NewBinding(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
-	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
+	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 	})
 	if err != nil {
@@ -80,7 +105,7 @@ func TestContractBind_IdempotentExactMatch(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, src)
 
-	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
+	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 	})
 	if err != nil {
@@ -103,7 +128,7 @@ func TestContractBind_DifferentValuesRequiresForce(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, src)
 
-	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "cue", Schema: "new.cue", Fixtures: "new",
 	})
 	if err == nil {
@@ -123,7 +148,7 @@ func TestContractBind_ForceReplaces(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, src)
 
-	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
+	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "cue", Schema: "new.cue", Fixtures: "new", Force: true,
 	})
 	if err != nil {
@@ -142,7 +167,7 @@ func TestContractBind_RejectsMissingEntity(t *testing.T) {
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
-	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 	})
 	if err == nil || !strings.Contains(err.Error(), "no contract entity") {
@@ -154,7 +179,7 @@ func TestContractBind_RejectsUndeclaredValidator(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
-	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "ghost", Schema: "schema.cue", Fixtures: "fixtures",
 	})
 	if err == nil || !strings.Contains(err.Error(), "ghost") {
@@ -166,7 +191,7 @@ func TestContractBind_RejectsMissingFlags(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
-	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "cue", // schema and fixtures missing
 	})
 	if err == nil {
@@ -276,6 +301,7 @@ func TestAdd_ContractWithBindingProducesTwoOps(t *testing.T) {
 		BindFixtures:  "fixtures",
 		AiwfDoc:       d,
 		AiwfContracts: c,
+		RepoRoot:      bindRepo(t),
 	})
 	if err != nil {
 		t.Fatalf("Add: %v", err)
@@ -371,7 +397,7 @@ func TestAdd_ContractBindWithUndeclaredValidatorRejected(t *testing.T) {
 func TestContractBind_RejectsEmptyID(t *testing.T) {
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := ContractBind(context.Background(), tr, d, c, "", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "cue", Schema: "s", Fixtures: "f",
 	})
 	if err == nil {
@@ -389,7 +415,7 @@ func TestContractBind_RejectsNonContractEntity(t *testing.T) {
 		}},
 	}
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := ContractBind(context.Background(), tr, d, c, "E-01", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "E-01", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "cue", Schema: "s", Fixtures: "f",
 	})
 	if err == nil || !strings.Contains(err.Error(), "epic") {
@@ -437,12 +463,120 @@ contracts:
 	}
 }
 
+// TestContractBind_G18_MissingSchemaCaughtAtVerb: G18 — when
+// the bound schema path doesn't exist on disk, the verb returns the
+// contractcheck/missing-schema finding instead of writing the bad
+// binding and deferring detection to the pre-push hook.
+func TestContractBind_G18_MissingSchemaCaughtAtVerb(t *testing.T) {
+	tr := contractTree("C-001", "proposed")
+	d, c := mustReadDoc(t, baseAiwfYAML)
+	root := t.TempDir() // no schema.cue, no fixtures/
+
+	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", root, ContractBindOptions{
+		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
+	})
+	if err != nil {
+		t.Fatalf("unexpected Go error: %v", err)
+	}
+	if res.Plan != nil {
+		t.Fatal("expected Findings, got Plan — G18 check did not block the bind")
+	}
+	if len(res.Findings) == 0 {
+		t.Fatal("expected at least one finding")
+	}
+	var sawMissingSchema, sawMissingFixtures bool
+	for _, f := range res.Findings {
+		if f.Code == "contract-config" && f.Subcode == "missing-schema" {
+			sawMissingSchema = true
+		}
+		if f.Code == "contract-config" && f.Subcode == "missing-fixtures" {
+			sawMissingFixtures = true
+		}
+		if f.EntityID != "C-001" {
+			t.Errorf("finding for unrelated entity %q surfaced from this verb: %+v", f.EntityID, f)
+		}
+	}
+	if !sawMissingSchema {
+		t.Error("expected contract-config/missing-schema finding")
+	}
+	if !sawMissingFixtures {
+		t.Error("expected contract-config/missing-fixtures finding")
+	}
+}
+
+// TestContractBind_G18_OnlyTouchesBoundEntity: the verb's verification
+// must filter to findings on its own bound id; pre-existing findings
+// on other entries (a stale binding pointing at a deleted schema) are
+// not the verb's responsibility and should not block it.
+func TestContractBind_G18_OnlyTouchesBoundEntity(t *testing.T) {
+	// aiwf.yaml has a pre-existing binding for C-002 pointing at
+	// missing files, plus a contract entity for C-002 so the only
+	// per-entry finding is missing-schema/missing-fixtures.
+	src := strings.Replace(baseAiwfYAML, "  entries: []", `  entries:
+    - id: C-002
+      validator: cue
+      schema: gone.cue
+      fixtures: gone`, 1)
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "C-001", Kind: entity.KindContract, Title: "new", Status: "proposed", Path: "work/contracts/C-001-new/contract.md"},
+			{ID: "C-002", Kind: entity.KindContract, Title: "stale", Status: "proposed", Path: "work/contracts/C-002-stale/contract.md"},
+		},
+	}
+	d, c := mustReadDoc(t, src)
+
+	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", bindRepo(t), ContractBindOptions{
+		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
+	})
+	if err != nil {
+		t.Fatalf("ContractBind: %v", err)
+	}
+	if res.Plan == nil {
+		t.Fatalf("expected Plan; got Findings (the verb should ignore pre-existing C-002 errors): %+v", res.Findings)
+	}
+}
+
+// TestAdd_ContractWithBindBadPathsCaughtAtVerb: G18 — same
+// enforcement on the atomic add+bind path through verb.Add.
+func TestAdd_ContractWithBindBadPathsCaughtAtVerb(t *testing.T) {
+	tr := &tree.Tree{}
+	d, c := mustReadDoc(t, baseAiwfYAML)
+
+	res, err := Add(context.Background(), tr, entity.KindContract, "API", "human/test", AddOptions{
+		BindValidator: "cue",
+		BindSchema:    "schema.cue", // doesn't exist under root
+		BindFixtures:  "fixtures",
+		AiwfDoc:       d,
+		AiwfContracts: c,
+		RepoRoot:      t.TempDir(), // empty tmpdir; nothing on disk
+	})
+	if err != nil {
+		t.Fatalf("unexpected Go error: %v", err)
+	}
+	if res.Plan != nil {
+		t.Fatal("expected Findings, got Plan — G18 check did not block atomic add+bind")
+	}
+	if len(res.Findings) == 0 {
+		t.Fatal("expected at least one finding")
+	}
+	var sawIt bool
+	for _, f := range res.Findings {
+		if f.Code == "contract-config" && (f.Subcode == "missing-schema" || f.Subcode == "missing-fixtures") {
+			sawIt = true
+			break
+		}
+	}
+	if !sawIt {
+		t.Errorf("expected contract-config/missing-{schema,fixtures} finding; got %+v", res.Findings)
+	}
+}
+
 // TestContractBind_PartialBindOptionsRejected: missing fixtures on
 // the verb level (not just CLI level) errors.
 func TestContractBind_PartialBindOptionsRejected(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", bindRepo(t), ContractBindOptions{
 		Validator: "cue",
 		Schema:    "s",
 		// Fixtures missing

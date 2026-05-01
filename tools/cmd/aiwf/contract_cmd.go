@@ -249,7 +249,7 @@ func runContractBind(args []string) int {
 		return exitUsage
 	}
 
-	result, err := verb.ContractBind(ctx, tr, doc, contracts, id, actorStr, verb.ContractBindOptions{
+	result, err := verb.ContractBind(ctx, tr, doc, contracts, id, actorStr, rootDir, verb.ContractBindOptions{
 		Validator: *validator,
 		Schema:    *schema,
 		Fixtures:  *fixtures,

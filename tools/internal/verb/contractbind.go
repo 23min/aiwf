@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/aiwfyaml"
+	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/config"
+	"github.com/23min/ai-workflow-v2/tools/internal/contractcheck"
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
 	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
@@ -31,12 +33,22 @@ type ContractBindOptions struct {
 //   - the contract entity exists in the tree;
 //   - the validator name is declared in aiwf.yaml.contracts.validators
 //     (unless current is nil — then the verb refuses, since there is
-//     no validator universe to choose from yet).
+//     no validator universe to choose from yet);
+//   - the bound schema and fixtures paths exist on disk (G18) — verified
+//     by running contractcheck.Run on the projected config and
+//     surfacing any introduced contract-config findings as a Result
+//     with Findings populated. Without this projection check, the only
+//     enforcement was the pre-push hook (a watch-point violation per
+//     design-lessons §2).
 //
 // On success, the returned Plan carries one OpWrite for aiwf.yaml
 // with the spliced contracts: block; the orchestrator commits it
 // with the bind trailers.
-func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, id, actor string, opts ContractBindOptions) (*Result, error) {
+//
+// repoRoot is the consumer repo root, needed to resolve schema and
+// fixtures paths for the existence check. The CLI dispatcher passes
+// the same value it uses to load the tree.
+func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, id, actor, repoRoot string, opts ContractBindOptions) (*Result, error) {
 	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
@@ -83,6 +95,13 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 		next.Entries = append(next.Entries, desired)
 	}
 
+	// G18: validate the projected config before mutating the doc.
+	// Filter to findings about *this* binding's id; pre-existing
+	// findings on other entries are not introduced by this verb.
+	if introduced := contractCheckForBinding(t, next, repoRoot, id); check.HasErrors(introduced) {
+		return findings(introduced), nil
+	}
+
 	if err := doc.SetContracts(next); err != nil {
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
@@ -96,6 +115,22 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 		},
 		Ops: []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
 	}), nil
+}
+
+// contractCheckForBinding runs contractcheck on the projected contracts
+// config and returns only the findings whose EntityID matches id —
+// i.e. the ones the bind/add verb just introduced. Pre-existing
+// findings on other bindings are not the verb's responsibility and
+// shouldn't block it.
+func contractCheckForBinding(t *tree.Tree, next *aiwfyaml.Contracts, repoRoot, id string) []check.Finding {
+	all := contractcheck.Run(t, next, repoRoot)
+	var introduced []check.Finding
+	for _, f := range all {
+		if f.EntityID == id {
+			introduced = append(introduced, f)
+		}
+	}
+	return introduced
 }
 
 // ContractUnbind removes the binding for a contract from

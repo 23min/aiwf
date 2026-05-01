@@ -98,6 +98,18 @@ Resolved in commit `e2a39ee` (fix(aiwf): G14 — register stub for unparseable e
 
 ---
 
+### G18. Contract-config validation is hook-only on `contract bind` and `add contract --validator …`
+
+**Location:** `tools/internal/verb/contractbind.go` (`ContractBind`), `tools/internal/verb/add.go` (`atomicContractBind`).
+
+**Symptom:** `aiwf contract bind` and `aiwf add contract --validator … --schema … --fixtures …` write the binding to `aiwf.yaml.contracts.entries[]` without verifying that the bound schema and fixtures paths exist. The verb succeeds; the pre-push hook's `aiwf check` then catches the missing-schema or missing-fixtures finding via `contractcheck.Run`. Discovered by the hook-vs-engine audit (item 6 of the post-PoC follow-on plan).
+
+**Why it matters:** Direct watch-point violation per [`design/design-lessons.md`](design/design-lessons.md) §2 — "the engine's invariants must be enforced inside the verb, not at the hook boundary. A hook is a fast-fail courtesy for the user; the verb must remain correct without it." Concretely: a typo in `--schema` or `--fixtures` lands a broken commit; the user only finds out at `git push` time, after the verb has already produced a commit they then have to amend or revert. This is exactly the friction the projection-check pattern was designed to prevent.
+
+**Proposed fix:** Thread `repoRoot` into `ContractBind` and into `Add`'s atomic-bind path (via `AddOptions.RepoRoot`). After building the projected `aiwf.yaml.contracts` config, run `contractcheck.Run(t, &next, repoRoot)`, filter to findings whose `EntityID == <bound id>`, and return any error-level findings via `findings(...)` before mutating the doc. This catches missing-schema, missing-fixtures, and path-escape (G1) at verb time. Defer `contractverify.Run` (the actual schema-validates-fixtures execution) to the hook — that one is a defensible carve-out (validator availability is per-machine; expensive; `validator-unavailable` is warning-by-default), to be documented separately in `architecture.md`.
+
+---
+
 ### G17. No published per-kind body template for skill authors — **resolved**
 
 Resolved in commit `f4a0fae` (fix(aiwf): G17 — add 'aiwf template' verb, completes the per-kind contract surface). Took the proposed approach: a read-only `aiwf template [kind]` verb mirrors `aiwf schema`. With no kind, emits every kind separated by `KIND: <kind>` headers. With a kind, emits just that template raw and unprefixed, so `aiwf template epic > new_epic_body.md` works as a one-liner. Standard `--format=text|json [--pretty]` envelope. JSON shape: `{result: {templates: [{kind, body}]}}`. Reads from `entity.BodyTemplate` (already exported); no internal data move required. Together with `aiwf schema`, this completes the published per-kind contract that AI scaffolders need to author files outside the `aiwf add` path. Coverage: 85.3% on `runTemplate`, 80% on `writeTemplateText`.
@@ -133,5 +145,6 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 | G15 | No published per-kind schema for skill authors              | Medium   | [x] `0ba0e61` |
 | G16 | Path-encoded id and frontmatter id can disagree silently    | Medium   | [x] `9486046` |
 | G17 | No published per-kind body template for skill authors       | Medium   | [x] `f4a0fae` |
+| G18 | Contract-config validation is hook-only on `contract bind`  | Medium   | [ ] |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
