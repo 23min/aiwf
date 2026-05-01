@@ -98,22 +98,9 @@ Resolved in commit `e2a39ee` (fix(aiwf): G14 — register stub for unparseable e
 
 ---
 
-### G19. `aiwf init` writes per-skill `.gitignore` entries; new skills aren't covered
+### G19. `aiwf init` writes per-skill `.gitignore` entries; new skills aren't covered — **resolved**
 
-**Location:** `tools/internal/skills/skills.go` (`MaterializedPaths`), `tools/internal/initrepo/initrepo.go` (`ensureGitignore`).
-
-**Symptom:** `aiwf init` enumerates each materialized skill by name and appends one line per skill to the consumer's `.gitignore` (e.g., `.claude/skills/aiwf-add/`, `.claude/skills/aiwf-check/`, …, plus `.claude/skills/.aiwf-owned` for the manifest marker). When a new aiwf release adds an embedded skill (e.g., `aiwf-contract` was added in this version), consumers who previously ran `aiwf init` have a `.gitignore` that doesn't cover the new skill. `aiwf update` then materializes the new skill into the consumer repo, where git happily begins tracking it. Discovered by a dogfooding consumer (proliminal.net) noticing `.claude/skills/aiwf-contract/` and `.claude/skills/.aiwf-owned` showing up untracked-or-tracked depending on init timing.
-
-**Why it matters:** The materialized-skills directory is supposed to be a cache, not state (per `design/design-decisions.md`). When per-skill enumeration drifts from the embedded set, the cache leaks into commits — defeating both the cache contract and the "stable across `git checkout`" property. Re-running `aiwf init` does append the missing entries, but that's a manual remediation a consumer has no way to know they need; the right fix is to make the `.gitignore` write future-proof.
-
-**Proposed fix:** Stop enumerating skills by name in `.gitignore`. Replace the per-skill entries with a wildcard plus the manifest marker:
-
-```
-.claude/skills/aiwf-*/
-.claude/skills/.aiwf-owned
-```
-
-The trailing slash on the wildcard restricts it to directories, so a non-aiwf file accidentally named `aiwf-something.md` at that level would not be silently ignored. Concretely: rename `skills.MaterializedPaths` → `skills.GitignorePatterns` returning the two-element constant slice; update `ensureGitignore` to consume it. Existing consumer `.gitignore` files that already have the per-skill list will gain the two new lines on next `aiwf init` run; the per-skill entries become redundant but harmless (the wildcard subsumes them). Cleanup is the consumer's choice. Aligns with the design-decisions commitment that skills live under `.claude/skills/aiwf-*/` and are gitignored — the wildcard is closer to the documented contract than the enumeration was.
+Resolved in commit `92f5d51` (fix(aiwf): G19 — emit wildcard skill .gitignore entry, future-proof against new skills). Took the proposed approach: `skills.MaterializedPaths` renamed to `skills.GitignorePatterns`, returning a two-element constant slice (`.claude/skills/aiwf-*/` plus `.claude/skills/.aiwf-owned`). The trailing slash restricts the wildcard to directories. Adding a new aiwf-* skill to the embedded set no longer requires consumers to re-run `aiwf init` to refresh their `.gitignore`. Existing consumers with the per-skill list pick up the two new lines on next `aiwf init`; old entries are harmless (the wildcard subsumes them) and cleanup is the consumer's choice. New `TestInit_GitignoreFutureProof` asserts the property the rename was made for: re-init with the wildcard already present does not duplicate it. Smoke-tested end-to-end against the actual binary.
 
 ---
 
@@ -159,6 +146,6 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 | G16 | Path-encoded id and frontmatter id can disagree silently    | Medium   | [x] `9486046` |
 | G17 | No published per-kind body template for skill authors       | Medium   | [x] `f4a0fae` |
 | G18 | Contract-config validation is hook-only on `contract bind`  | Medium   | [x] `202a14a` |
-| G19 | `aiwf init` writes per-skill `.gitignore`; new skills uncovered | Medium | [ ] |
+| G19 | `aiwf init` writes per-skill `.gitignore`; new skills uncovered | Medium | [x] `92f5d51` |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
