@@ -1,8 +1,9 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
 // Verbs: check, add, promote, cancel, rename, reallocate, init, update,
-// history, doctor, render, import, schema, plus help/version. See
-// docs/poc-plan.md for the session breakdown that produced this surface.
+// history, doctor, render, import, schema, template, plus help/version.
+// See docs/poc-plan.md for the session breakdown that produced this
+// surface.
 package main
 
 import (
@@ -84,6 +85,8 @@ func run(args []string) int {
 		return runStatus(args[1:])
 	case "schema":
 		return runSchema(args[1:])
+	case "template":
+		return runTemplate(args[1:])
 	case "contract":
 		return runContract(args[1:])
 	default:
@@ -114,6 +117,7 @@ Verbs:
   whoami                         print the resolved actor and the source it came from
   status                         project snapshot: in-flight work, open decisions, gaps, recent activity
   schema [kind]                  print the frontmatter contract for one kind (or all six); read-only
+  template [kind]                print the body-section template 'aiwf add' would scaffold for the kind; read-only
   contract verify                run the verify and evolve passes for every contract binding in aiwf.yaml
   contract bind <C-id>           add or replace a binding in aiwf.yaml (--validator, --schema, --fixtures; --force to replace)
   contract unbind <C-id>         remove a binding from aiwf.yaml (entity status untouched)

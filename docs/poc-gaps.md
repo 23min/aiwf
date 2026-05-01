@@ -98,7 +98,15 @@ Resolved in commit `e2a39ee` (fix(aiwf): G14 — register stub for unparseable e
 
 ---
 
-### G16. Path-encoded id and frontmatter id can disagree silently — **resolved**
+### G17. No published per-kind body template for skill authors
+
+**Location:** `tools/internal/entity/serialize.go` (`BodyTemplate(Kind)` is exported but has no CLI surface), `tools/cmd/aiwf/` (no template verb).
+
+**Symptom:** G15 published the *frontmatter* contract via `aiwf schema`. The other half of "what an aiwf entity of kind X looks like" — the body section headers (`## Goal`, `## Scope`, `## Acceptance criteria`, …) — is internal to `entity.BodyTemplate`. `aiwf add` calls it to scaffold the body when creating an entity, but a skill that creates auxiliary files for an entity (e.g. `aiwfx-wrap-epic` writes `wrap.md`; `aiwfx-record-decision` writes a decision file by some means) has no programmatic way to see what shape aiwf expects for the body of a given kind.
+
+**Why it matters:** Symmetric to G15. AI scaffolders writing skills will invent body shapes that don't match `aiwf add`'s output, leading to per-kind body drift across the repo. Schema + body template together are the full per-kind contract; without both, "the schema is published" is half-true.
+
+**Proposed fix:** Add a read-only `aiwf template [kind]` verb mirroring `aiwf schema`. With no kind, prints all six (with `KIND:` headers between). With a kind, prints just that template — raw, no header — so `aiwf template epic > new_epic_body.md` works as a one-liner. Standard `--format=text|json [--pretty]` envelope. JSON shape: `{result: {templates: [{kind, body}]}}`. Reads from `entity.BodyTemplate` (already exported); no internal data move required. KISS — separate verb rather than extending `aiwf schema`, because the two outputs serve different consumers (schema = a structured frontmatter contract; template = a body fragment to splice into a new file). Tests: text and JSON outputs, single and all-kinds, unknown kind, --pretty without --format=json.
 
 Resolved in commit `9486046` (fix(aiwf): G16 — add id-path-consistent check to catch silent path/id drift). Took the proposed approach: a new `idPathConsistent` check iterates `tree.Entities`, derives the expected id from each path via `entity.IDFromPath`, and emits an error finding on disagreement. Stubs are skipped (constructed from path-derived id by construction). Defensive: if `IDFromPath` returns false for an entity PathKind accepted (impossible by construction), the entity is skipped rather than panicked on. Hint table entry points the user at `aiwf reallocate` for renumbering (rewrites both sides + updates references atomically), `aiwf rename` for slug-only drift, or hand-correction when the user knows which side is right. Pinned by a new fixture file at `tools/internal/check/testdata/messy/work/epics/E-01-orig/M-099-path-id-mismatch.md` (path encodes M-099, frontmatter says M-100) — `TestFixture_Messy` now asserts the new code appears alongside the existing ten. Coverage: 100% on `idPathConsistent`. Completes the path-vs-frontmatter story G14's stub mechanism implicitly relied on.
 
@@ -130,5 +138,6 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 | G14 | Parse failure cascades into refs-resolve findings           | Medium   | [x] `e2a39ee` |
 | G15 | No published per-kind schema for skill authors              | Medium   | [x] `0ba0e61` |
 | G16 | Path-encoded id and frontmatter id can disagree silently    | Medium   | [x] `9486046` |
+| G17 | No published per-kind body template for skill authors       | Medium   | [ ] |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
