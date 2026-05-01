@@ -80,6 +80,17 @@ Commit subject lines follow Conventional Commits (`feat(plan): ...`, `chore(plan
 - **Closed-set enums ship only used values.** When defining a closed set of constants or enum values (status, kind, action), ship only the values that have a current call site. Speculative future values violate YAGNI even when they're "just constants."
 - **The PoC's six kinds** (epic, milestone, ADR, gap, decision, contract) and their **status sets** are hardcoded in Go for the PoC. They are intentionally not driven by external YAML — that move is deferred until a real consumer needs to customize the vocabulary.
 
+## Designing a new verb
+
+Before adding a verb to `cmd/aiwf/`, the design isn't done until you can answer **"what verb undoes this?"** Acceptable answers:
+
+- *Another invocation of the same verb with different inputs.* Most state-transition verbs reverse this way (e.g. `aiwf promote E-01 active` undoes `aiwf promote E-01 done` if the kind allows it).
+- *An explicit terminal-state transition.* `aiwf cancel`, `aiwf reallocate` (renumbers; the old id's history terminates with the rename event).
+- *"You can't, and that's deliberate — here's why."* `aiwf init` is one-shot; `aiwf import` for already-present ids needs `--on-collision`. The reason gets written down.
+- *"You'd open a new entity for the inverse."* Bug-fix-style reversals (e.g., add a hotfix milestone) belong here.
+
+Not acceptable: *"we'll figure that out later"* — the verb isn't ready. See [docs/pocv3/design/design-lessons.md](../docs/pocv3/design/design-lessons.md) §"On reversal" for the principle this comes from.
+
 ## Pre-commit checklist
 
 Before committing on the PoC branch:

@@ -111,6 +111,6 @@ Three follow-on artifacts, in priority order:
 
 1. ~~**Vocabulary sweep** (principle 6).~~ **Done.** See "Sweep findings" under §6 above; two findings, both addressed.
 2. ~~**Architecture-doc tightening** (all three principles).~~ **Done.** [`../architecture.md`](../architecture.md) §5 carries the three principles as one-line rules with citation back to this document. The architecture doc itself is the synthesis reference distilling §1–§4 of design-decisions.md plus the load-bearing properties of the engine.
-3. **Verb-design checklist update**. Add the "what reverses this verb?" question to whatever checklist gates new-verb design. One sentence in the right place.
+3. ~~**Verb-design checklist update**.~~ **Done.** [`tools/CLAUDE.md`](../../../tools/CLAUDE.md) now has a "Designing a new verb" subsection between Type design and the Pre-commit checklist; it asks "what verb undoes this?" with four acceptable answers and one unacceptable one (we'll figure that out later → not ready). Cites back to this document for the principle.
 
 None of this requires engine changes. The principles describe what the engine already does, plus a sweep to confirm one surface is consistent. The work is in writing down rules so future contributors don't have to rediscover them by accident.
