@@ -58,12 +58,21 @@ type Result struct {
 
 // Finding code constants. The set is closed and matches §10 of
 // docs/poc-contracts-plan.md.
+//
+// CodeValidatorUnavailable is distinct from CodeEnvironment: the
+// former means "binary is not on PATH" (a per-machine env issue
+// that should not block teammates from pushing); the latter is
+// for genuine env errors during a *successful* exec lookup
+// (binary disappeared between LookPath and exec, etc.). The
+// downstream wiring renders validator-unavailable as a warning
+// by default and as an error only when strict_validators is set.
 const (
-	CodeFixtureRejected     = "fixture-rejected"
-	CodeFixtureAccepted     = "fixture-accepted"
-	CodeEvolutionRegression = "evolution-regression"
-	CodeValidatorError      = "validator-error"
-	CodeEnvironment         = "environment"
+	CodeFixtureRejected      = "fixture-rejected"
+	CodeFixtureAccepted      = "fixture-accepted"
+	CodeEvolutionRegression  = "evolution-regression"
+	CodeValidatorError       = "validator-error"
+	CodeEnvironment          = "environment"
+	CodeValidatorUnavailable = "validator-unavailable"
 )
 
 // Options configures one verify-and-evolve pass over the consumer
@@ -138,7 +147,7 @@ func Run(ctx context.Context, opts Options) []Result {
 func runOne(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.Validator, fixturesPath string) []Result {
 	if _, err := exec.LookPath(v.Command); err != nil {
 		return []Result{{
-			Code:     CodeEnvironment,
+			Code:     CodeValidatorUnavailable,
 			EntityID: e.ID,
 			Message:  fmt.Sprintf("validator %q (command %q) not found on PATH", e.Validator, v.Command),
 			Detail:   err.Error(),

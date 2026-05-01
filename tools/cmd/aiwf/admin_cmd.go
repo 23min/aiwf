@@ -9,8 +9,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
+	"github.com/23min/ai-workflow-v2/tools/internal/aiwfyaml"
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/config"
 	"github.com/23min/ai-workflow-v2/tools/internal/initrepo"
@@ -442,7 +444,13 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 		}
 	}
 
-	// 4. Rituals-plugin presence (soft note — does not increment
+	// 4. Configured contract validators: list each one and whether
+	//    the binary is on PATH. A missing validator is reported but
+	//    does not increment problems unless `strict_validators: true`
+	//    is set — matches the contract verify rendering.
+	lines, problems = appendValidatorReport(lines, problems, rootDir)
+
+	// 5. Rituals-plugin presence (soft note — does not increment
 	// problems). Best-effort heuristic: greps project/local settings
 	// for `aiwf-extensions`. User-scope installs are invisible here,
 	// so a "not detected" result is a hint, not a finding.
@@ -459,6 +467,48 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 		)
 	}
 
+	return lines, problems
+}
+
+// appendValidatorReport reads aiwf.yaml's contracts block and
+// reports each configured validator's binary availability. A
+// missing binary is a problem only when strict_validators is set;
+// otherwise it's a soft note matching the runtime warning.
+func appendValidatorReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+	lines = in
+	problems = problemsIn
+	yamlPath := filepath.Join(rootDir, "aiwf.yaml")
+	_, contracts, err := aiwfyaml.Read(yamlPath)
+	if err != nil || contracts == nil || len(contracts.Validators) == 0 {
+		// No contracts block (or unreadable yaml — already reported
+		// by step 1 above). Skip the section silently.
+		return lines, problems
+	}
+	names := make([]string, 0, len(contracts.Validators))
+	for n := range contracts.Validators {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+
+	missing := 0
+	for _, n := range names {
+		v := contracts.Validators[n]
+		if _, lpErr := exec.LookPath(v.Command); lpErr == nil {
+			lines = append(lines, fmt.Sprintf("validator: %s ok (command=%s)", n, v.Command))
+		} else {
+			lines = append(lines, fmt.Sprintf("validator: %s missing (command=%s)", n, v.Command))
+			missing++
+		}
+	}
+	if missing > 0 && contracts.StrictValidators {
+		lines = append(lines, fmt.Sprintf("             %d missing validator(s) and strict_validators=true; pre-push will fail", missing))
+		problems += missing
+	} else if missing > 0 {
+		lines = append(lines,
+			"             missing binaries are warnings (strict_validators=false); pushes are not blocked",
+			"             install the binary or set strict_validators=true to enforce on every machine",
+		)
+	}
 	return lines, problems
 }
 

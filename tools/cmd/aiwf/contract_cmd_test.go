@@ -263,6 +263,101 @@ contracts:
 	}
 }
 
+// TestRun_ContractVerify_ValidatorUnavailableIsWarning is the
+// load-bearing test for G3: a binding whose validator binary is
+// missing must NOT block `aiwf contract verify` (and therefore
+// must not block the pre-push hook). The output must contain a
+// validator-unavailable warning, and the exit code must be exitOK.
+func TestRun_ContractVerify_ValidatorUnavailableIsWarning(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("add contract: %d", rc)
+	}
+	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
+	if err := os.MkdirAll(filepath.Join(root, "fixtures"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Bind to a deliberately-missing validator binary.
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: 0.1.0
+actor: human/test
+contracts:
+  validators:
+    cue-missing:
+      command: /nonexistent/cue-12345
+      args: []
+  entries:
+    - id: C-001
+      validator: cue-missing
+      schema: schema.cue
+      fixtures: fixtures
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"contract", "verify", "--root", root}); rc != exitOK {
+			t.Errorf("got rc=%d, want %d (warning should NOT block)", rc, exitOK)
+		}
+	})
+	out := string(captured)
+	if !strings.Contains(out, "validator-unavailable") {
+		t.Errorf("expected validator-unavailable in output:\n%s", out)
+	}
+	if !strings.Contains(out, "cue-missing") {
+		t.Errorf("expected validator name in message:\n%s", out)
+	}
+}
+
+// TestRun_ContractVerify_StrictValidators_IsError: opt-in strict
+// mode upgrades validator-unavailable from warning to error, so
+// teams that DO want to enforce validator presence on every
+// machine can keep that behavior.
+func TestRun_ContractVerify_StrictValidators_IsError(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("add contract: %d", rc)
+	}
+	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
+	if err := os.MkdirAll(filepath.Join(root, "fixtures"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: 0.1.0
+actor: human/test
+contracts:
+  strict_validators: true
+  validators:
+    cue-missing:
+      command: /nonexistent/cue-12345
+      args: []
+  entries:
+    - id: C-001
+      validator: cue-missing
+      schema: schema.cue
+      fixtures: fixtures
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"contract", "verify", "--root", root}); rc != exitFindings {
+			t.Errorf("got rc=%d, want %d (strict mode must block)", rc, exitFindings)
+		}
+	})
+	out := string(captured)
+	if !strings.Contains(out, "validator-unavailable") {
+		t.Errorf("expected validator-unavailable in output:\n%s", out)
+	}
+	if !strings.Contains(out, "error") {
+		t.Errorf("expected error severity in output:\n%s", out)
+	}
+}
+
 // TestRun_ContractEndToEnd_FullChain exercises the documented
 // onboarding flow as one end-to-end test:
 //

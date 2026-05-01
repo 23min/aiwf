@@ -93,7 +93,7 @@ func runContractValidation(ctx context.Context, tr *tree.Tree, rootDir string, c
 
 	out := append([]check.Finding(nil), configFindings...)
 	for _, r := range verifyResults {
-		out = append(out, resultToFinding(r))
+		out = append(out, resultToFinding(r, contracts.StrictValidators))
 	}
 	return out
 }
@@ -465,13 +465,29 @@ func runContractUnbind(args []string) int {
 }
 
 // resultToFinding converts a contractverify.Result into the Finding
-// shape the render layer expects. All contract-verify codes are
-// errors; the path is the fixture path when present, otherwise empty
-// (the user locates the issue by entity id).
-func resultToFinding(r contractverify.Result) check.Finding {
+// shape the render layer expects. Most codes are errors; the
+// per-machine `validator-unavailable` code is a warning by default,
+// upgraded to an error by strictValidators. The path is the fixture
+// path when present, otherwise empty (the user locates the issue by
+// entity id).
+func resultToFinding(r contractverify.Result, strictValidators bool) check.Finding {
+	severity := check.SeverityError
+	code := r.Code
+	subcode := ""
+	if r.Code == contractverify.CodeValidatorUnavailable {
+		// Render as a contract-config finding with subcode so the
+		// hint table and the rest of the user-facing surface treat
+		// it consistently with other contract-config findings.
+		code = "contract-config"
+		subcode = "validator-unavailable"
+		if !strictValidators {
+			severity = check.SeverityWarning
+		}
+	}
 	return check.Finding{
-		Code:     r.Code,
-		Severity: check.SeverityError,
+		Code:     code,
+		Severity: severity,
+		Subcode:  subcode,
 		Message:  r.Message,
 		Path:     r.FixturePath,
 		EntityID: r.EntityID,

@@ -258,7 +258,12 @@ func TestRun_EvolutionRegression(t *testing.T) {
 	}
 }
 
-func TestRun_EnvironmentMissingBinary(t *testing.T) {
+// TestRun_ValidatorUnavailable: the load-bearing test for G3. A
+// configured validator whose binary is not on PATH must produce a
+// `validator-unavailable` Result, not a hard `environment` error.
+// The downstream wiring then renders this as a warning (not an
+// error) unless strict_validators is set.
+func TestRun_ValidatorUnavailable(t *testing.T) {
 	repo := t.TempDir()
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{
@@ -272,8 +277,14 @@ func TestRun_EnvironmentMissingBinary(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("got %d findings, want 1: %+v", len(got), got)
 	}
-	if got[0].Code != CodeEnvironment {
-		t.Errorf("code = %q, want %q", got[0].Code, CodeEnvironment)
+	if got[0].Code != CodeValidatorUnavailable {
+		t.Errorf("code = %q, want %q", got[0].Code, CodeValidatorUnavailable)
+	}
+	if got[0].EntityID != "C-001" {
+		t.Errorf("entity id = %q, want C-001", got[0].EntityID)
+	}
+	if !strings.Contains(got[0].Message, "fake") {
+		t.Errorf("message should name the validator; got %q", got[0].Message)
 	}
 }
 

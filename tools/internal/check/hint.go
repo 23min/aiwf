@@ -21,15 +21,17 @@ var hintTable = map[string]string{
 	"gap-resolved-has-resolver": "list the resolving milestone(s) in `addressed_by:`, or revert the status to `open`/`wontfix`",
 	"reallocate-body-reference": "update the prose to use the new id; aiwf rewrites only frontmatter, not body text",
 
-	"contract-config/missing-entity":   "create a contract entity for this id (`aiwf add contract`), or remove the entry from aiwf.yaml.contracts.entries[]",
-	"contract-config/missing-schema":   "fix the `schema:` path in aiwf.yaml.contracts.entries[], or create the file at that location",
-	"contract-config/missing-fixtures": "fix the `fixtures:` path in aiwf.yaml.contracts.entries[], or create the directory",
-	"contract-config/no-binding":       "bind the contract via `aiwf contract bind`, or accept it as a registry-only record",
-	"fixture-rejected":                 "make the schema accept this fixture, or remove the fixture from valid/",
-	"fixture-accepted":                 "tighten the schema to reject this fixture, or move it to valid/",
-	"evolution-regression":             "revert the schema change or migrate the historical fixture",
-	"validator-error":                  "every valid fixture failed; the schema or validator invocation is likely broken",
-	"environment":                      "install the validator binary or fix `command:` in aiwf.yaml.contracts.validators",
+	"contract-config/missing-entity":        "create a contract entity for this id (`aiwf add contract`), or remove the entry from aiwf.yaml.contracts.entries[]",
+	"contract-config/missing-schema":        "fix the `schema:` path in aiwf.yaml.contracts.entries[], or create the file at that location",
+	"contract-config/missing-fixtures":      "fix the `fixtures:` path in aiwf.yaml.contracts.entries[], or create the directory",
+	"contract-config/no-binding":            "bind the contract via `aiwf contract bind`, or accept it as a registry-only record",
+	"contract-config/path-escape":           "ensure schema and fixtures paths in aiwf.yaml resolve inside the repo; check for `..` segments or out-of-repo symlinks",
+	"contract-config/validator-unavailable": "install the validator binary on this machine, or set `contracts.strict_validators: false` in aiwf.yaml to demote this to a warning team-wide",
+	"fixture-rejected":                      "make the schema accept this fixture, or remove the fixture from valid/",
+	"fixture-accepted":                      "tighten the schema to reject this fixture, or move it to valid/",
+	"evolution-regression":                  "revert the schema change or migrate the historical fixture",
+	"validator-error":                       "every valid fixture failed; the schema or validator invocation is likely broken",
+	"environment":                           "install the validator binary or fix `command:` in aiwf.yaml.contracts.validators",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.

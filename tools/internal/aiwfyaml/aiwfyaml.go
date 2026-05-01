@@ -44,9 +44,16 @@ import (
 // invocation shape (binary plus argv template). Entries declare
 // per-contract bindings: id, the validator name to invoke, the
 // schema path, and the fixtures-tree root path.
+//
+// StrictValidators is the opt-in to "fail the push if any configured
+// validator binary is not on PATH." Default false (warn only) so a
+// teammate without `cue` can still push when their changes don't
+// touch contracts. Teams that want to enforce validator presence on
+// every machine set `strict_validators: true` in aiwf.yaml.
 type Contracts struct {
-	Validators map[string]Validator
-	Entries    []Entry
+	Validators       map[string]Validator
+	Entries          []Entry
+	StrictValidators bool
 }
 
 // Validator declares how to invoke a schema validator. Command is
@@ -276,8 +283,9 @@ func decodeContracts(n *yaml.Node) (*Contracts, error) {
 		Fixtures  string `yaml:"fixtures"`
 	}
 	type rawContracts struct {
-		Validators map[string]rawValidator `yaml:"validators"`
-		Entries    []rawEntry              `yaml:"entries"`
+		Validators       map[string]rawValidator `yaml:"validators"`
+		Entries          []rawEntry              `yaml:"entries"`
+		StrictValidators bool                    `yaml:"strict_validators"`
 	}
 
 	buf, err := yaml.Marshal(n)
@@ -291,7 +299,10 @@ func decodeContracts(n *yaml.Node) (*Contracts, error) {
 		return nil, fmt.Errorf("decoding: %w", err)
 	}
 
-	out := &Contracts{Validators: make(map[string]Validator, len(rc.Validators))}
+	out := &Contracts{
+		Validators:       make(map[string]Validator, len(rc.Validators)),
+		StrictValidators: rc.StrictValidators,
+	}
 	for name, v := range rc.Validators {
 		out.Validators[name] = Validator{
 			Command: v.Command,
@@ -384,6 +395,10 @@ func countLines(s string) int {
 func marshalContractsBlock(c *Contracts) []byte {
 	var b strings.Builder
 	b.WriteString("contracts:\n")
+
+	if c.StrictValidators {
+		b.WriteString("  strict_validators: true\n")
+	}
 
 	if len(c.Validators) > 0 {
 		b.WriteString("  validators:\n")

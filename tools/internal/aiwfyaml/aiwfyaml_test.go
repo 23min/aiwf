@@ -59,6 +59,72 @@ contracts:
 	}
 }
 
+func TestRead_StrictValidatorsTrue(t *testing.T) {
+	src := baseConfig + `
+contracts:
+  strict_validators: true
+  validators:
+    cue:
+      command: cue
+      args: []
+  entries: []
+`
+	_, c, err := ReadBytes([]byte(src))
+	if err != nil {
+		t.Fatalf("ReadBytes: %v", err)
+	}
+	if !c.StrictValidators {
+		t.Error("StrictValidators = false, want true")
+	}
+}
+
+func TestRead_StrictValidatorsDefaultFalse(t *testing.T) {
+	src := baseConfig + `
+contracts:
+  validators: {}
+  entries: []
+`
+	_, c, err := ReadBytes([]byte(src))
+	if err != nil {
+		t.Fatalf("ReadBytes: %v", err)
+	}
+	if c.StrictValidators {
+		t.Error("StrictValidators must default false when key absent")
+	}
+}
+
+func TestSetContracts_RoundTripsStrictValidators(t *testing.T) {
+	src := baseConfig + "\n"
+	doc, _, err := ReadBytes([]byte(src))
+	if err != nil {
+		t.Fatalf("ReadBytes: %v", err)
+	}
+	c := &Contracts{
+		StrictValidators: true,
+		Validators: map[string]Validator{
+			"cue": {Command: "cue", Args: []string{"vet"}},
+		},
+		Entries: []Entry{{
+			ID: "C-001", Validator: "cue", Schema: "s.cue", Fixtures: "fix",
+		}},
+	}
+	if setErr := doc.SetContracts(c); setErr != nil {
+		t.Fatalf("SetContracts: %v", setErr)
+	}
+	out := string(doc.Bytes())
+	if !strings.Contains(out, "strict_validators: true") {
+		t.Errorf("written block missing strict_validators:\n%s", out)
+	}
+	// Re-read to confirm round-trip.
+	_, c2, err := ReadBytes(doc.Bytes())
+	if err != nil {
+		t.Fatalf("re-read: %v", err)
+	}
+	if !c2.StrictValidators {
+		t.Error("round-trip lost StrictValidators=true")
+	}
+}
+
 func TestRead_RejectsAnchor(t *testing.T) {
 	src := baseConfig + `
 contracts:

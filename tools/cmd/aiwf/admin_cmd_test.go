@@ -488,3 +488,70 @@ func TestDoctorReport_Contents(t *testing.T) {
 		}
 	}
 }
+
+// TestDoctorReport_ValidatorAvailability_Warning: a configured
+// validator binary missing from PATH appears as a warning line in
+// the report and does NOT increment problems (default lenient).
+func TestDoctorReport_ValidatorAvailability_Warning(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: `+Version+`
+actor: human/test
+contracts:
+  validators:
+    cue-missing:
+      command: /nonexistent/cue-12345
+      args: []
+    echo-ok:
+      command: echo
+      args: []
+  entries: []
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "validator: cue-missing missing") {
+		t.Errorf("missing validator should be reported:\n%s", joined)
+	}
+	if !strings.Contains(joined, "validator: echo-ok ok") {
+		t.Errorf("present validator should be reported:\n%s", joined)
+	}
+	if problems != 0 {
+		t.Errorf("missing validator should NOT increment problems in default mode; got %d\n%s", problems, joined)
+	}
+}
+
+// TestDoctorReport_ValidatorAvailability_StrictIncrementsProblems:
+// strict_validators=true makes a missing validator a hard problem
+// in the doctor report (matching the verify-time error).
+func TestDoctorReport_ValidatorAvailability_StrictIncrementsProblems(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: `+Version+`
+actor: human/test
+contracts:
+  strict_validators: true
+  validators:
+    cue-missing:
+      command: /nonexistent/cue-12345
+      args: []
+  entries: []
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, problems := doctorReport(root)
+	if problems == 0 {
+		t.Error("strict_validators=true must make missing validator a problem")
+	}
+}
