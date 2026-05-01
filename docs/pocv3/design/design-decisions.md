@@ -83,7 +83,7 @@ Timestamps (`created`, `updated`) are deliberately absent from frontmatter; `git
 | Kind | Body sections |
 |---|---|
 | Epic | `## Goal` / `## Scope` / `## Out of scope` |
-| Milestone | `## Goal` / `## Acceptance criteria` |
+| Milestone | `## Goal` / `## Acceptance criteria` (per-AC `### AC-N — <title>`) / `## Work Log` / `## Decisions made during implementation` / `## Validation` / `## Deferrals` / `## Reviewer notes` (expanded in I2) |
 | ADR | `## Context` / `## Decision` / `## Consequences` |
 | Gap | `## What's missing` / `## Why it matters` |
 | Decision | `## Question` / `## Decision` / `## Reasoning` |
@@ -124,6 +124,39 @@ Contracts ship as part of the PoC's mechanical-validation surface. The full desi
 - **Verify and evolve.** Each binding's fixtures live under `<fixtures>/<version>/{valid,invalid}/`. The verify pass runs every `valid/` fixture (must pass) and every `invalid/` fixture (must fail) at the current version. The evolve pass runs every historical `valid/` fixture against the *current* schema, catching silent breakage from schema changes.
 - **Validator availability is a per-machine concern.** A contributor without `cue` installed gets a `validator-unavailable` *warning*, not a hard error — the framework's enforcement should not depend on every developer's local toolchain. Teams that want stricter behavior set `aiwf.yaml.contracts.strict_validators: true`. See G3 in [`gaps.md`](../gaps.md) for the rationale.
 - **Verb surface for contract bindings.** No hand-editing of `aiwf.yaml` is required. `aiwf contract bind/unbind` mutate entries; `aiwf contract recipe install/show/remove` mutate validators; `aiwf contract verify` runs the passes; `aiwf add contract --validator … --schema … --fixtures …` does atomic add+bind in one commit. Every mutation produces exactly one git commit with the standard trailers.
+
+### Acceptance criteria and TDD (added in I2)
+
+ACs are first-class but namespaced inside their milestone, addressable as `M-NNN/AC-N`. They are not a seventh entity kind; they are structured sub-elements of the milestone with composite ids, validated by `aiwf check` and reachable from `aiwf history`. The full design lives in [`acs-and-tdd-plan.md`](../plans/acs-and-tdd-plan.md); the load-bearing decisions, in summary:
+
+- **Why namespaced, not a seventh kind.** ACs are composed by exactly one milestone — they cannot be moved between milestones without losing meaning, they are numbered relative to the milestone (not globally allocated), and their lifecycle is bounded by it. That's composition, not reference. A seventh peer-level kind with global ids (`AC-1234`) would invert the relationship; sub-scoping under the milestone preserves it.
+- **Composite id grammar:** `M-NNN/AC-N`. AC ids are allocated per-milestone starting at 1; no global allocator. The slash extends the existing prefix-letter id grammar by one alternation; YAML-safe unquoted; CLI-clean.
+- **AC ids are position-stable.** `acs[i].id == "AC-{i+1}"` for every index. Cancelled ACs stay in `acs[]` at their original position (status flip, not deletion); the allocator picks `max+1` over the full list including cancelled entries. Mirrors the milestone/epic id-stability model: composite-id references always resolve.
+- **Frontmatter additions on milestone:**
+  - `tdd: required | advisory | none` (default `none` when absent) — opt-in policy.
+  - `acs: [{id, title, status, tdd_phase}]` — structured list. Ids are `AC-1`, `AC-2`, …, sequential per milestone (cancelled entries count toward position). The body carries a matching `### AC-N — <title>` heading per AC for prose.
+  - On the Go side, every field is a plain `string` with `omitempty`; empty == absent. Closed-set membership rules out `""` as a legal value, so the sentinel is unambiguous.
+- **Closed status sets:**
+  - AC status: `open | met | deferred | cancelled`. `deferred` and `cancelled` are terminal; `met` may move to `deferred`/`cancelled` if scope changes after the fact.
+  - TDD phase: `red | green | refactor | done`. Linear; required only when milestone `tdd: required`; tolerated as absent or any value when `tdd: none`.
+- **`aiwf add ac` seeds the initial phase.** When the parent milestone is `tdd: required`, the verb writes `tdd_phase: red` as part of the same commit that creates the AC; otherwise it leaves `tdd_phase` absent. The kernel never makes an implicit TDD-policy decision — it just writes the only legal starting state under the FSM.
+- **One audit rule across the two.** When milestone `tdd: required`, AC `status: met` requires `tdd_phase: done`. The kernel guards the *outcome*; the rituals plugin's `wf-tdd-cycle` skill drives the *flow*. A human or any AI can satisfy the kernel without that skill installed.
+- **`--force --reason "<text>"` allows any-to-any transition.** Reason required, not optional. Lands as a `aiwf-force: <reason>` trailer alongside the standard trailers. Force relaxes only the *transition* rule; coherence checks (id format, closed-set membership, ref resolution) still run.
+- **Trailer schema extension.** All `promote` events (milestone *and* AC) now carry `aiwf-to: <state>` so the target state is in the structured trailer rather than buried in the commit subject. AC events reuse the existing verb: `aiwf-verb: promote / aiwf-entity: M-007/AC-1 / aiwf-to: met / aiwf-actor: …`. Rollout is forward-only: pre-I2 commits stay as they are, the reader does not parse subjects to infer a target, and `aiwf history` renders the target-state column as a dash for trailer-less rows. No backfill, no history rewrite.
+- **Composite ids as reference targets.** Open-target fields (`gap.addressed_by`, `decision.relates_to`) accept `M-NNN/AC-N`. Closed-target fields (`milestone.parent → epic`, `adr.supersedes → adr`, etc.) are unchanged. The bare milestone id (`aiwf history M-007`) shows milestone events plus all AC events via prefix match anchored on the literal `/` boundary.
+- **Milestone-done implies AC progress.** A milestone may not transition to `done` while any AC has `status: open`; `deferred` and `cancelled` are acceptable terminal AC states for a done milestone, with the body explanation as the documentation. Surfaces as the `milestone-done-incomplete-acs` finding (error), which runs on every `aiwf check` pass — not just on verb projection — so a milestone that became `done` via `--force --reason` while ACs were still open keeps surfacing the inconsistency until the ACs reach a terminal state. `--force --reason` overrides the verb-time refusal; the standing check still reports.
+- **`aiwf rename` accepts composite ids.** `aiwf rename M-NNN/AC-N "<new-title>"` updates `acs[].title` in the parent milestone's frontmatter and rewrites the matching `### AC-N — <title>` body heading in one commit. The bare-id form keeps the existing path-rename behavior; the verb dispatches on composite-vs-bare.
+- **What `aiwf check` enforces (new findings):**
+  - `acs-shape` (error) — frontmatter `acs[]` items have valid `id` (`AC-N`, position-equal including cancelled entries), `status` in the closed set, `tdd_phase` in the closed set when present.
+  - `acs-body-coherence` (warning) — every frontmatter AC has a matching `### AC-<N>` heading in body, and vice versa. Pairs by id only, not by title text — body title is prose and remains kernel-blind. The body heading regex is permissive: em-dash, hyphen, colon, or id-only forms all parse.
+  - `acs-tdd-audit` (error when `tdd: required`; warning when `advisory`) — every AC with `status: met` has `tdd_phase: done`.
+  - `acs-transition` (error, on verb projection) — refuses illegal AC-status or `tdd_phase` transitions unless `--force --reason` is supplied.
+  - `milestone-done-incomplete-acs` (error) — fires on every `aiwf check` pass when a milestone has `status: done` and at least one AC has `status: open`.
+- **What's not a kernel rule.** No "milestone must have ≥1 AC" — ACs remain optional. No "milestone can't enter `in_progress` without all ACs in `red`" — the kernel guards the outcome (`met` requires `done`), not the entry. No global AC allocator. No AC tombstone beyond status-cancel. No `aiwf doctor` warnings about deleted skill names from the rituals shrink — the kernel stays uncoupled from rituals plugin internals.
+
+`STATUS.md` and `aiwf show <id>` render AC progress per milestone; `aiwf history M-NNN/AC-N` filters trailers by composite id and shows the AC's red-green-refactor sequence and status changes.
+
+The rituals plugin (`ai-workflow-rituals`) shrinks to match: `wf-tdd-cycle` stays (process prose for red-green-refactor; now drives `aiwf promote --phase` so its work shows up in `aiwf history`); `aiwfx-track` is removed (its job is now a kernel-validated section of the milestone doc); `aiwfx-start-milestone` and `aiwfx-wrap-milestone` absorb its workflow guidance; the separate `tracking-doc.md` template merges into `milestone-spec.md`.
 
 ### Layered location-of-truth
 
