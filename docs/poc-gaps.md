@@ -28,15 +28,9 @@ Resolved in commit `23f4231` (fix(aiwf): G3 — validator-unavailable is a warni
 
 ---
 
-### G4. No concurrent-invocation guard
+### G4. No concurrent-invocation guard — **resolved**
 
-**Location:** `tools/internal/entity/allocate.go`, all mutation verbs.
-
-**Symptom:** Two `aiwf add` invocations running in parallel on the same branch (two terminals, a cron, an editor integration plus a human) will both call `entity.Allocate`, both observe the same max id, both pick the next number, and both create files. The eventual `aiwf check` flags `ids-unique`, but only after both commits land.
-
-**Why it matters:** The "stable, unique ids" promise in `docs/poc-design-decisions.md` is implicitly conditioned on serialized invocation, but that condition is undocumented. Editor integrations, MCP servers, and skill auto-runs all trend toward parallel invocation.
-
-**Proposed fix:** Lightweight lockfile under `.git/aiwf.lock`, acquired exclusively for the duration of any mutating verb. Failure to acquire after a short timeout (~2s) returns a usage-error finding ("another aiwf process is running"). Document the limitation explicitly under "Known limitations" in the README either way — the lock is per-worktree, not per-team.
+Resolved in commit `620ecca` (fix(aiwf): G4 — exclusive repo lock for mutating verbs). New `tools/internal/repolock` package wraps POSIX `flock(2)` on `<root>/.git/aiwf.lock` (with a `<root>/.aiwf.lock` fallback for non-git dirs). Every mutating verb acquires the lock before reading the tree; read-only verbs (check, history, status, render without --write, doctor) stay lock-free. Lock acquisition has a 2s timeout; on timeout the second invocation returns `exitUsage` with a clear "another aiwf process is running" message. Stale lockfiles from crashed processes are released by the kernel automatically. Tests cover the load-bearing concurrent-add scenario (one wins / one busy), check-doesn't-lock parity, and the repolock package itself at 90.6% (two defensive branches marked `//coverage:ignore`).
 
 ---
 
@@ -163,7 +157,7 @@ Resolved in commit `23f4231` (fix(aiwf): G3 — validator-unavailable is a warni
 | G1  | Contract paths can escape the repo (via `..` or symlinks)   | High     | [x] `4ec5d84` |
 | G2  | `Apply` is not atomic on partial failure                    | High     | [x] `f77740c` |
 | G3  | Pre-push hook fails opaquely when validators are missing    | High     | [x] `23f4231` |
-| G4  | No concurrent-invocation guard                              | High     | [ ]    |
+| G4  | No concurrent-invocation guard                              | High     | [x] `620ecca` |
 | G5  | Reallocate's prose references are warnings, not errors      | Medium   | [ ]    |
 | G6  | Design docs are stale relative to I1 (contracts)            | Medium   | [ ]    |
 | G7  | Skill namespace is a convention, not a guard                | Medium   | [ ]    |
