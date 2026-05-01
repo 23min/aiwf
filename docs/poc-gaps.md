@@ -1,0 +1,196 @@
+# PoC gaps and rough edges
+
+A running list of known gaps, defects, and rough edges in the `aiwf` PoC. Each item has a severity, a concrete location in the source, why it matters, and a proposed fix. The matrix at the end tracks status.
+
+This document is the canonical place to record "we know this is wrong / weak / under-documented" so it doesn't get lost between sessions. When you fix an item, tick it in the matrix and either delete the entry or replace the body with a one-line note pointing at the commit/PR.
+
+The list was produced from a deliberate critique pass on `poc/aiwf-v3` after I1 closed. It is not exhaustive — additions welcome.
+
+---
+
+## Critical / High
+
+### G1. Contract paths can escape the repo (via `..` or symlinks) — **resolved**
+
+Resolved in commit `4ec5d84` (fix(aiwf): G1 — reject contract paths that escape the repo root). New packages `tools/internal/pathutil` and `tools/internal/contractconfig` are the single point of truth for path containment; both `contractcheck` and `contractverify` route through them. `..` traversal, absolute paths outside the repo, out-of-repo symlinks, and symlink loops all produce a `contract-config` / `path-escape` finding, and `contractverify` refuses to invoke a validator on any escaped entry. 100% line coverage on the new code, including a load-bearing test that asserts the validator marker file is never written for an escaped entry.
+
+---
+
+### G2. `Apply` is not atomic on partial failure
+
+**Location:** `tools/internal/verb/apply.go`.
+
+**Symptom:** The verb sequence is `git mv` → `os.WriteFile` → `git add` → `git commit`. If any step after `git mv` fails (disk full, permissions, panic, signal), the rename is staged in the index but no commit is made. The working tree is left in a partial state, and a naive retry will see the move already staged and behave inconsistently.
+
+**Why it matters:** `CLAUDE.md` and `docs/poc-design-decisions.md` both commit to "every mutating verb produces exactly one git commit" as a load-bearing property — that's how the framework gets per-mutation atomicity for free. The current implementation only meets that promise on the happy path. A user who hits ENOSPC mid-`reallocate` is left with broken state and no clear recovery path.
+
+**Proposed fix:** Two reasonable options:
+1. **Stage to temp, then rename.** Write all new content to temp paths first, validate every write, then perform the renames and `git add` in one batch. Failure before the batch has zero side effects.
+2. **Rollback on failure.** Wrap the mutation in a `defer`'d cleanup that, on error, runs `git restore --staged --worktree -- <touched paths>` to reset the index and worktree to HEAD.
+
+(1) is cleaner; (2) is fewer lines. Either is acceptable. Add a regression test that injects a write failure mid-sequence and asserts `git status` is clean.
+
+---
+
+### G3. Pre-push hook fails opaquely when validators are missing
+
+**Location:** `tools/cmd/aiwf/main.go` (`runCheck`), `tools/internal/contractverify/contractverify.go`, hook installer in `tools/internal/initrepo/initrepo.go`.
+
+**Symptom:** Once any contract is bound in `aiwf.yaml`, `aiwf check` (and therefore the pre-push hook) runs contract verification unconditionally. If a contributor doesn't have the configured validator (`cue`, `jsonschema`, etc.) installed, every push fails with an exec-not-found error, even if their changes don't touch contracts.
+
+**Why it matters:** `docs/poc-design-decisions.md` explicitly states the framework's enforcement must not depend on the developer's local toolchain — otherwise the guarantee evaporates the moment one machine is misconfigured. This is a slow violation of that principle, introduced incidentally by I1.
+
+**Proposed fix:** Distinguish "validator unavailable" from "contract invalid":
+- If the validator binary is missing on PATH, emit a `contract-config` warning (subcode `validator-unavailable`) with a clear remediation message ("install cue: …") and skip that contract's verification.
+- Do not fail the hook on `validator-unavailable` unless an opt-in flag (`--strict-validators` or `aiwf.yaml: contracts.strict_validators: true`) is set.
+- Add a `aiwf doctor` line that lists configured validators and whether each is on PATH.
+
+---
+
+### G4. No concurrent-invocation guard
+
+**Location:** `tools/internal/entity/allocate.go`, all mutation verbs.
+
+**Symptom:** Two `aiwf add` invocations running in parallel on the same branch (two terminals, a cron, an editor integration plus a human) will both call `entity.Allocate`, both observe the same max id, both pick the next number, and both create files. The eventual `aiwf check` flags `ids-unique`, but only after both commits land.
+
+**Why it matters:** The "stable, unique ids" promise in `docs/poc-design-decisions.md` is implicitly conditioned on serialized invocation, but that condition is undocumented. Editor integrations, MCP servers, and skill auto-runs all trend toward parallel invocation.
+
+**Proposed fix:** Lightweight lockfile under `.git/aiwf.lock`, acquired exclusively for the duration of any mutating verb. Failure to acquire after a short timeout (~2s) returns a usage-error finding ("another aiwf process is running"). Document the limitation explicitly under "Known limitations" in the README either way — the lock is per-worktree, not per-team.
+
+---
+
+## Medium
+
+### G5. Reallocate's prose references are warnings, not errors
+
+**Location:** `tools/internal/verb/reallocate.go` (`scanBodyProse`).
+
+**Symptom:** When `aiwf reallocate` renumbers an entity, references to the old id in entity *frontmatter* are rewritten mechanically. References in *prose* (body text) are reported as findings with `Severity: warning` and left alone. A user who skims the output ships dead internal links.
+
+**Why it matters:** The framework's contract is "if `aiwf check` is green, the tree is consistent." Warnings that survive a reallocate quietly weaken that. Either the warning should block, or the rewrite should be mechanical.
+
+**Proposed fix:** Two acceptable options:
+1. Upgrade prose-reference warnings to errors. Force the user to fix prose before retrying.
+2. Rewrite prose mechanically. The reference grammar (`E-NN`, `M-NNN`, etc.) is regular and unambiguous.
+
+(2) is less annoying for users and matches "atomic mutation". Either way, decide and remove the half-step.
+
+---
+
+### G6. Design docs are stale relative to I1 (contracts)
+
+**Location:** `docs/poc-design-decisions.md`, `docs/poc-plan.md`.
+
+**Symptom:** Both documents predate the detailed contract design. They describe the six entity kinds and the verb surface but don't mention the contract status set, validator config, recipes, or bind/unbind. A reader following the docs will believe contracts are simpler than they are.
+
+**Why it matters:** New contributors and future-you read these docs to orient. Drift between the design intent and the shipped code is exactly the kind of decay the framework is supposed to prevent.
+
+**Proposed fix:** Short integration pass — add a `### Contracts (added in I1)` section to `poc-design-decisions.md` cross-referencing `poc-contracts-plan.md`, and update the plan checklist in `poc-plan.md` to mark the actual I1 deliverables. ~30 minutes of work.
+
+---
+
+### G7. Skill namespace is a convention, not a guard
+
+**Location:** `tools/internal/initrepo/initrepo.go`, `tools/internal/skills/`.
+
+**Symptom:** The materialization rule is `.claude/skills/aiwf-*`. Anything not matching that prefix is treated as user-authored and left alone. There is no defensive check that a third-party plugin (or a future aiwf companion) using the same prefix won't silently clobber materialized skills.
+
+**Why it matters:** Low risk today, but `aiwf init` / `aiwf update` is supposed to be safe to re-run. A future name collision would silently overwrite or leave stale files.
+
+**Proposed fix:** Maintain a manifest of files aiwf owns (e.g. `.claude/skills/aiwf-*/MANIFEST` or a top-level `.claude/skills/.aiwf-owned`). On update, refuse to overwrite any file not listed in the manifest, and only delete files listed there. Same shape as how npm-style tooling tracks owned files.
+
+---
+
+### G8. Slugify silently drops non-ASCII
+
+**Location:** `tools/internal/entity/serialize.go:80` (`Slugify`).
+
+**Symptom:** `Slugify("Café")` returns `"caf"`. The behavior is documented in the doc comment, but a user who tries to rename `"Café"` → `"cafe"` to "fix" the slug will get a confusing "new slug matches current slug" error with no hint that the dropped `é` is the cause.
+
+**Why it matters:** Papercut, but a sharp one for any non-English title.
+
+**Proposed fix:** Either (a) emit a one-line user-facing notice when input contains non-ASCII characters that were dropped, or (b) tighten Slugify to use Unicode-aware lowercasing and a basic transliteration (`é → e`). (a) is the YAGNI move; (b) is the right move if any real consumer hits this.
+
+---
+
+### G9. `aiwf doctor --self-check` is not run in CI
+
+**Location:** `tools/cmd/aiwf/selfcheck.go`, `.github/workflows/`.
+
+**Symptom:** The self-check exercises every verb end-to-end against a temp repo and is the closest thing to an integration test the project has. CI runs `go test` and `golangci-lint` but never invokes the binary.
+
+**Why it matters:** Regressions in the commit-trailer format, the hook installer, or skill materialization wouldn't be caught until a user upgrades and tries `aiwf init` on a real repo. Unit tests don't cover binary-as-a-whole behavior.
+
+**Proposed fix:** Add a `make selfcheck` target that builds the binary and runs `aiwf doctor --self-check`. Wire it into `.github/workflows/ci.yml` after the test job. Cheap, fast, high-leverage.
+
+---
+
+### G10. macOS case-insensitive filesystem assumption
+
+**Location:** `tools/internal/verb/reallocate.go` (id-collision detection), `tools/internal/verb/common.go` (`pathInside`).
+
+**Symptom:** Path comparisons use exact string matching on forward-slash-normalized paths. On the default macOS APFS volume (case-insensitive), `E-01-foo` and `E-01-Foo` are the same directory to git and the filesystem but distinct strings to aiwf. The id-collision check would not catch a rename collision that the FS already collapsed.
+
+**Why it matters:** macOS is the primary development platform for the PoC. A rename via `git mv` to a case-only variant could produce an inconsistency that the framework doesn't detect.
+
+**Proposed fix:** Detect filesystem case-sensitivity at startup (write a temp file, attempt to stat its uppercased name) and apply case-insensitive comparison on case-insensitive filesystems. Alternatively, refuse case-only renames in the rename verb. Document explicitly in either case.
+
+---
+
+## Low / nits
+
+### G11. `context.Context` not threaded through mutation verbs
+
+**Location:** `tools/cmd/aiwf/main.go` and the verb-level functions in `tools/internal/verb/`.
+
+**Symptom:** `context.Background()` is created in CLI entry points but most mutation verbs (`Add`, `Promote`, `Reallocate`) don't accept a context. Ctrl-C mid-operation can leave partial state and isn't propagated cleanly.
+
+**Why it matters:** Violates the `tools/CLAUDE.md` rule that `context.Context` is the first arg of every IO-touching function. Also blocks future cancellation features (timeouts, graceful shutdown in editor integrations).
+
+**Proposed fix:** Mechanical — add `ctx context.Context` as the first argument to every verb function and thread it through. Combined with G2's atomicity work, gives clean Ctrl-C behavior.
+
+---
+
+### G12. Pre-push hook hard-codes binary path at install time
+
+**Location:** `tools/internal/initrepo/initrepo.go`.
+
+**Symptom:** The hook script written by `aiwf init` embeds the absolute path to the `aiwf` binary at the moment of install. If the user later moves or upgrades the binary to a different location, the hook silently breaks (or runs the wrong version).
+
+**Why it matters:** A stale hook violates the framework's authoritative-enforcement promise. A user could believe pre-push is gating and not notice it isn't.
+
+**Proposed fix:** Either (a) write the hook to look up `aiwf` on PATH at run time (simpler, but loses determinism), or (b) keep the absolute path but have `aiwf doctor` verify the hook target still exists and matches the current binary's path. (b) is the better fit for the framework's "verifier, not validator" stance.
+
+---
+
+### G13. No Windows guard
+
+**Location:** `tools/internal/initrepo/initrepo.go` (writes `#!/bin/sh` hook), `tools/internal/contractverify/` (shells out to validators).
+
+**Symptom:** The code is Unix-only in practice but has no `//go:build !windows` guards or a runtime check. A Windows user can `go install` the binary; first failure surfaces deep in the call stack.
+
+**Why it matters:** Friendlier failure mode and clearer scope.
+
+**Proposed fix:** Either guard the Unix-specific bits with build tags and provide a stub that errors with a clear message, or check `runtime.GOOS == "windows"` at startup and refuse with a one-line "Windows is not supported in the PoC; see docs/poc-design-decisions.md". Either way, document in README.
+
+---
+
+## Status matrix
+
+| ID  | Title                                                       | Severity | Status |
+|-----|-------------------------------------------------------------|----------|--------|
+| G1  | Contract paths can escape the repo (via `..` or symlinks)   | High     | [x] `4ec5d84` |
+| G2  | `Apply` is not atomic on partial failure                    | High     | [ ]    |
+| G3  | Pre-push hook fails opaquely when validators are missing    | High     | [ ]    |
+| G4  | No concurrent-invocation guard                              | High     | [ ]    |
+| G5  | Reallocate's prose references are warnings, not errors      | Medium   | [ ]    |
+| G6  | Design docs are stale relative to I1 (contracts)            | Medium   | [ ]    |
+| G7  | Skill namespace is a convention, not a guard                | Medium   | [ ]    |
+| G8  | Slugify silently drops non-ASCII                            | Medium   | [ ]    |
+| G9  | `aiwf doctor --self-check` is not run in CI                 | Medium   | [ ]    |
+| G10 | macOS case-insensitive filesystem assumption                | Medium   | [ ]    |
+| G11 | `context.Context` not threaded through mutation verbs       | Low      | [ ]    |
+| G12 | Pre-push hook hard-codes binary path at install time        | Low      | [ ]    |
+| G13 | No Windows guard                                            | Low      | [ ]    |
+
+When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

@@ -1,6 +1,6 @@
 # CLAUDE.md — aiwf PoC branch
 
-This branch (`poc/aiwf-v3`) builds a small experimental framework called `aiwf`. The framework helps humans and AI assistants keep track of what's planned, decided, and done, by validating a small set of mechanical guarantees about a markdown-and-frontmatter project tree. Read [`docs/poc-design-decisions.md`](docs/poc-design-decisions.md) for what the PoC commits to. Read [`docs/poc-plan.md`](docs/poc-plan.md) for the four sessions of work that produce it.
+This branch (`poc/aiwf-v3`) builds a small experimental framework called `aiwf`. The framework helps humans and AI assistants keep track of what's planned, decided, and done, by validating a small set of mechanical guarantees about a markdown-and-frontmatter project tree. Read [`docs/poc-design-decisions.md`](docs/poc-design-decisions.md) for what the PoC commits to. Read [`docs/poc-plan.md`](docs/poc-plan.md) for the four sessions of work that produce it. Read [`docs/poc-gaps.md`](docs/poc-gaps.md) for known defects, rough edges, and their status — check the matrix there before starting work to see what's open or already in flight.
 
 The branch is intentionally isolated from `main`: research documents and the earlier architecture design have been removed here so they do not pollute Claude's working context. They remain on `main` for visitors who want to follow the design trajectory.
 
