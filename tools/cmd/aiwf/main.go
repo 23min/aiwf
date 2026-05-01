@@ -42,7 +42,7 @@ func main() {
 
 func run(args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "aiwf: missing subcommand. Try 'aiwf help'.")
+		fmt.Fprintln(os.Stderr, "aiwf: missing verb. Try 'aiwf help'.")
 		return exitUsage
 	}
 	switch args[0] {
@@ -87,7 +87,7 @@ func run(args []string) int {
 	case "contract":
 		return runContract(args[1:])
 	default:
-		fmt.Fprintf(os.Stderr, "aiwf: unknown subcommand %q. Try 'aiwf help'.\n", args[0])
+		fmt.Fprintf(os.Stderr, "aiwf: unknown verb %q. Try 'aiwf help'.\n", args[0])
 		return exitUsage
 	}
 }

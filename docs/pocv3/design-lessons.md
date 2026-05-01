@@ -62,18 +62,19 @@ The simplest mental check: if you removed the identity from the query and only k
 
 **The failure mode this prevents.** A framework that owns its substrate's vocabulary in private. When the framework says "checkpoint" but means "commit," every conversation between agent and human, every doc, every error message, has to do a translation. The framework becomes the gatekeeper of meaning. Users feel it as "I have to think in framework terms now," and they're right.
 
-**Status in v3.** Unverified. Probably mostly aligned, but no one has done the sweep.
+**Status in v3.** Verified — sweep performed (see "Sweep findings" below). Two findings, both small; one fixed in code, one recorded as a deliberate aiwf-private aggregate.
 
-**Required actions.**
+**Sweep findings.**
 
-1. **Sweep.** Walk aiwf's surface for places where it has its own name for something the substrate already names. The sweep needs to cover every surface where vocabulary leaks:
-   - command-line help text and flag descriptions
-   - error messages
-   - skill prose and templates (skills are the loudest source — they are written for an AI audience and tend to over-explain)
-   - generated commit messages and trailer keys
-   - doc prose (`architecture.md`, `build-plan.md`, README, this directory)
+The sweep walked CLI help and error messages, the eight embedded skills under `tools/internal/skills/embedded/`, commit-message generators (`internal/verb/*.go`, `cmd/aiwf/render_cmd.go`), trailer keys, and `docs/`. Two findings:
 
-2. **Sanitize on import.** When importing skills, templates, or recipes from elsewhere (which the build-plan anticipates), foreign vocabulary travels with them. The import path is where to catch private dialects before they spread.
+1. **Top-level "verb" vs "subcommand" inconsistency** — `cmd/aiwf/main.go`'s help text uses "verb" (entrenched via the `aiwf-verb:` trailer key, `tools/CLAUDE.md`, and `poc-design-decisions.md`); the dispatcher's "missing"/"unknown" error messages had drifted to substrate "subcommand." Fixed: error messages aligned to "verb" at the top level. Second-level error messages under multi-word verbs (`aiwf render`, `aiwf contract`) keep "subcommand" — accurate within a composite verb.
+
+2. **"event" as a deliberate aiwf-private aggregate** — `aiwf history` and `aiwf status` skills speak of "events" (e.g. *"one line per event"*, *"the last 5 events from git history"*). The substrate term is *commit*. This is the exact dual-vocabulary §6 warns against — but it is **deliberate and load-bearing**: §1 above and kernel commitment 4 explicitly choose "git log IS the event log," and `aiwf-mutating commit` (a commit carrying `aiwf-verb:` / `aiwf-entity:` / `aiwf-actor:` trailers) is a strict subset of "commit." Calling that subset an *event* names the meaningful unit; calling it a *commit* loses the trailer-bearing distinction. **Convention recorded:** in aiwf prose, *event* means *trailer-bearing commit*, never any other commit. New skills and docs may use *event* freely; if they switch to *commit* mid-paragraph they should mean it (i.e. talking about the substrate, not the aiwf-mutation).
+
+**Things that look like substrate clashes but aren't:** `snapshot` (defined as aiwf vocabulary in §1; not a git term), `track` (in `aiwf-contract`, used in *"aiwf doesn't track it"* sense, distinct from git tracking branches), `register` (aiwf-internal validator registration), `land` (idiomatic English in one doc string), `stage`/`staging` (only in test assertions). `checkpoint` and `publish` are absent from user-facing surfaces — clean.
+
+**Sanitize on import.** When importing skills, templates, or recipes from elsewhere (which the build-plan anticipates), foreign vocabulary travels with them. The import path is where to catch private dialects before they spread. The two findings above also serve as the import filter: any new surface using *event* must mean trailer-bearing-commit; any new surface inventing a synonym for an existing substrate concept (commit, branch, merge, push, file, directory, repo) gets renamed at the import boundary.
 
 **Watch-points.**
 
@@ -108,7 +109,7 @@ Together they describe a system that is predictable to reason about, in either d
 
 Three follow-on artifacts, in priority order:
 
-1. **Vocabulary sweep** (principle 6). Walk the surfaces listed above; record findings and renames in a focused PR. This is the largest unknown — the other two principles are already followed; this one is unverified.
+1. ~~**Vocabulary sweep** (principle 6).~~ **Done.** See "Sweep findings" under §6 above; two findings, both addressed.
 2. **Architecture-doc tightening** (all three principles). Add the three rules to `docs/architecture.md` (or its v3 equivalent) so they are part of the load-bearing engineering surface, not just a research note. Cite back to this document for the full discussion.
 3. **Verb-design checklist update**. Add the "what reverses this verb?" question to whatever checklist gates new-verb design. One sentence in the right place.
 
