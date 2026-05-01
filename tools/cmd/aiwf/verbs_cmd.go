@@ -56,6 +56,12 @@ func runAdd(args []string) int {
 		return exitUsage
 	}
 
+	release, rc := acquireRepoLock(rootDir, "aiwf add")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
@@ -131,6 +137,12 @@ func runPromote(args []string) int {
 		return exitUsage
 	}
 
+	release, rc := acquireRepoLock(rootDir, "aiwf promote")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
@@ -170,6 +182,12 @@ func runCancel(args []string) int {
 		return exitUsage
 	}
 
+	release, rc := acquireRepoLock(rootDir, "aiwf cancel")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
@@ -206,6 +224,12 @@ func runRename(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
 		return exitUsage
 	}
+
+	release, rc := acquireRepoLock(rootDir, "aiwf rename")
+	if release == nil {
+		return rc
+	}
+	defer release()
 
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
@@ -250,6 +274,12 @@ func runMove(args []string) int {
 		return exitUsage
 	}
 
+	release, rc := acquireRepoLock(rootDir, "aiwf move")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
@@ -286,6 +316,12 @@ func runReallocate(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
 		return exitUsage
 	}
+
+	release, rc := acquireRepoLock(rootDir, "aiwf reallocate")
+	if release == nil {
+		return rc
+	}
+	defer release()
 
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)

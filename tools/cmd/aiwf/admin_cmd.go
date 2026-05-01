@@ -44,6 +44,14 @@ func runInit(args []string) int {
 		return exitUsage
 	}
 
+	if !*dryRun {
+		release, rc := acquireRepoLock(rootDir, "aiwf init")
+		if release == nil {
+			return rc
+		}
+		defer release()
+	}
+
 	res, err := initrepo.Init(context.Background(), rootDir, initrepo.Options{
 		ActorOverride: *actor,
 		AiwfVersion:   Version,
@@ -113,6 +121,12 @@ func runUpdate(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
 		return exitUsage
 	}
+
+	release, rc := acquireRepoLock(rootDir, "aiwf update")
+	if release == nil {
+		return rc
+	}
+	defer release()
 
 	if err := skills.Materialize(rootDir); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)

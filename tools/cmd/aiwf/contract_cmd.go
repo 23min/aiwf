@@ -231,6 +231,12 @@ func runContractBind(args []string) int {
 		return exitUsage
 	}
 
+	release, rc := acquireRepoLock(rootDir, "aiwf contract bind")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
@@ -368,6 +374,13 @@ func runContractRecipeInstall(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
 		return exitUsage
 	}
+
+	release, rc := acquireRepoLock(rootDir, "aiwf contract recipe install")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
 	doc, contracts, err := loadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
@@ -405,6 +418,13 @@ func runContractRecipeRemove(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
 		return exitUsage
 	}
+
+	release, rc := acquireRepoLock(rootDir, "aiwf contract recipe remove")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
 	doc, contracts, err := loadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
@@ -452,6 +472,12 @@ func runContractUnbind(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
 		return exitUsage
 	}
+
+	release, rc := acquireRepoLock(rootDir, "aiwf contract unbind")
+	if release == nil {
+		return rc
+	}
+	defer release()
 
 	ctx := context.Background()
 	doc, contracts, err := loadContractsDoc(rootDir)

@@ -67,6 +67,15 @@ func runImport(args []string) int {
 		actorStr = resolved
 	}
 
+	// dry-run is read-only; lock only when we'd write.
+	if !*dryRun {
+		release, rc := acquireRepoLock(rootDir, "aiwf import")
+		if release == nil {
+			return rc
+		}
+		defer release()
+	}
+
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {

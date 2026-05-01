@@ -92,6 +92,12 @@ func runRenderRoadmap(args []string) int {
 		return exitUsage
 	}
 
+	release, rc := acquireRepoLock(rootDir, "aiwf render roadmap")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
 	if err := os.WriteFile(dest, content, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return exitInternal
