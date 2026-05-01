@@ -103,7 +103,7 @@ Usage: aiwf <verb> [args]
 Verbs:
   check                          validate the consumer repo's planning state
   add <kind> --title "..."       create a new entity of the given kind
-  promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM)
+  promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status)
   cancel <id>                    promote to the kind's terminal-cancel status (optional --reason "..."; --force --reason "..." records the cancellation as an audit event)
   rename <id> <new-slug>         rename the file/dir slug; id preserved
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved

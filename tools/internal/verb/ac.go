@@ -110,6 +110,37 @@ func promoteAC(t *tree.Tree, compositeID, newStatus, actor, reason string, force
 		fmt.Sprintf("aiwf promote %s %s -> %s", compositeID, ac.Status, newStatus))
 }
 
+// PromoteACPhase handles `aiwf promote M-NNN/AC-N --phase <p>`.
+// Advances the AC's tdd_phase along the linear FSM (red → green →
+// (refactor →) done). Mutex with status changes — the dispatcher
+// rejects passing both a positional state and --phase. force=true
+// skips the FSM transition rule but coherence (closed-set membership
+// of newPhase) still runs via projection findings.
+//
+// Trailers: aiwf-to: carries the new phase value (same trailer as
+// for status changes; the verb name + composite id make it
+// unambiguous which dimension moved). aiwf-force: when forced.
+func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, actor, reason string, force bool) (*Result, error) {
+	_ = ctx
+	parent, ac, err := lookupAC(t, compositeID)
+	if err != nil {
+		return nil, err
+	}
+	if !force {
+		if !entity.IsLegalTDDPhaseTransition(ac.TDDPhase, newPhase) {
+			return nil, fmt.Errorf("AC tdd_phase %q cannot transition to %q (allowed under FSM: see tddPhaseTransitions)", ac.TDDPhase, newPhase)
+		}
+	}
+	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {
+		updated.TDDPhase = newPhase
+	})
+	if err != nil {
+		return nil, err
+	}
+	return finalizeACPlan(t, parent, modified, "promote", compositeID, newPhase, actor, reason, force,
+		fmt.Sprintf("aiwf promote %s --phase %s -> %s", compositeID, ac.TDDPhase, newPhase))
+}
+
 // cancelAC handles `aiwf cancel M-NNN/AC-N`. The AC's status flips to
 // `cancelled`; the entry stays in acs[] at its original position. The
 // "already cancelled" guard fires when the AC is already terminal —

@@ -150,12 +150,20 @@ func TestIsLegalACTransition_AllPairs(t *testing.T) {
 // TestIsLegalTDDPhaseTransition_AllPairs enumerates every (from, to)
 // pair across the linear TDD phase set. The linearity rules out skip-
 // ahead (red → done) and backwards moves (green → red). `refactor` is
-// optional — `green → done` is legal.
+// optional — `green → done` is legal. Empty string ("pre-cycle") may
+// only enter at red — entering at green or later from absent would
+// bypass the red-discipline that the audit relies on.
 func TestIsLegalTDDPhaseTransition_AllPairs(t *testing.T) {
 	tests := []struct {
 		from, to string
 		want     bool
 	}{
+		// "" → ... (pre-cycle entry).
+		{"", "red", true},
+		{"", "green", false},
+		{"", "refactor", false},
+		{"", "done", false},
+		{"", "", false},
 		// red → ...
 		{"red", "red", false},
 		{"red", "green", true},
@@ -177,7 +185,6 @@ func TestIsLegalTDDPhaseTransition_AllPairs(t *testing.T) {
 		{"done", "refactor", false},
 		{"done", "done", false},
 		// Negative cases.
-		{"", "green", false},
 		{"red", "", false},
 		{"open", "green", false}, // AC status, not a phase
 		{"red", "in_progress", false},

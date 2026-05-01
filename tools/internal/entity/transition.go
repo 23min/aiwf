@@ -129,7 +129,14 @@ func IsLegalACTransition(from, to string) bool {
 // may go directly to `done`. The linearity prevents a "green without
 // red" claim that the audit hook (`acs-tdd-audit`, Step 6) would
 // otherwise have to reconcile after the fact.
+//
+// The empty string is a "pre-cycle" entry state: an AC with no
+// tdd_phase yet (added before I2, or under a non-required milestone)
+// may start a TDD cycle by advancing to red. Entering at green or
+// later from absent is intentionally not allowed — that would
+// bypass red and undermine the audit's "met requires done" rule.
 var tddPhaseTransitions = map[string][]string{
+	"":         {"red"},
 	"red":      {"green"},
 	"green":    {"refactor", "done"},
 	"refactor": {"done"},

@@ -243,6 +243,85 @@ func TestRename_CompositeNoOp(t *testing.T) {
 	}
 }
 
+// TestPromoteACPhase_RoundTrip walks the full TDD cycle on a freshly-
+// created AC: "" → red → green → done. The "" → red transition is
+// the load-bearing pre-cycle entry case for ACs that didn't get an
+// auto-seed.
+func TestPromoteACPhase_RoundTrip(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor))
+
+	// "" → red
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "", false))
+	if got := r.tree().ByID("M-001").ACs[0].TDDPhase; got != "red" {
+		t.Fatalf("after first phase change: phase = %q, want red", got)
+	}
+	// red → green
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "green", testActor, "", false))
+	// green → done (refactor optional)
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "done", testActor, "", false))
+
+	if got := r.tree().ByID("M-001").ACs[0].TDDPhase; got != "done" {
+		t.Errorf("final phase = %q, want done", got)
+	}
+}
+
+// TestPromoteACPhase_RejectsIllegalSkipAhead: the FSM rules out
+// red → done. "" → green is also rejected — only "" → red is the
+// pre-cycle entry transition.
+func TestPromoteACPhase_RejectsIllegalSkipAhead(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor))
+
+	// "" → green is illegal (must enter at red).
+	if _, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "green", testActor, "", false); err == nil {
+		t.Error("expected error for empty → green phase")
+	}
+	// red → done is illegal (must go through green).
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "", false))
+	if _, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "done", testActor, "", false); err == nil {
+		t.Error("expected error for red → done phase")
+	}
+}
+
+// TestPromoteACPhase_ForceRelaxesFSM: --force lets red → done land,
+// and the trailers carry both aiwf-to: <newPhase> and aiwf-force:
+// <reason> as expected.
+func TestPromoteACPhase_ForceRelaxesFSM(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor))
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "", false))
+
+	// red → done forced.
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "done", testActor, "skipped green for the demo", true))
+
+	if got := r.tree().ByID("M-001").ACs[0].TDDPhase; got != "done" {
+		t.Errorf("phase = %q, want done", got)
+	}
+	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadTrailers: %v", err)
+	}
+	var sawTo, sawForce bool
+	for _, tr := range trailers {
+		switch tr.Key {
+		case "aiwf-to":
+			sawTo = tr.Value == "done"
+		case "aiwf-force":
+			sawForce = tr.Value == "skipped green for the demo"
+		}
+	}
+	if !sawTo || !sawForce {
+		t.Errorf("expected aiwf-to: done and aiwf-force: <reason>; got %+v", trailers)
+	}
+}
+
 // readMilestoneBody is a small helper local to this test file.
 func readMilestoneBody(root, relPath string) (string, error) {
 	body, err := os.ReadFile(filepath.Join(root, relPath))

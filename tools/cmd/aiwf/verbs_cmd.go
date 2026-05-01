@@ -167,23 +167,48 @@ func splitCommaList(s string) []string {
 	return out
 }
 
-// runPromote handles `aiwf promote <id> <new-status>`.
+// runPromote handles `aiwf promote <id> <new-status>` and the I2
+// composite/--phase variants:
+//
+//	aiwf promote E-01 active                       (top-level entity)
+//	aiwf promote M-007/AC-1 met                    (composite, status mode)
+//	aiwf promote M-007/AC-1 --phase green          (composite, phase mode)
+//
+// --phase is mutex with the positional new-status: pass one or the
+// other, never both. --phase is only valid for composite ids; using
+// it on a top-level entity is a usage error.
 func runPromote(args []string) int {
 	fs := flag.NewFlagSet("promote", flag.ContinueOnError)
 	actor := fs.String("actor", "", "actor for the commit trailer")
 	root := fs.String("root", "", "consumer repo root")
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
+	phase := fs.String("phase", "", "advance an AC's tdd_phase (composite ids only; mutex with positional new-status)")
 	force := fs.Bool("force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"}, []string{"force"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason", "phase"}, []string{"force"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
-	if len(rest) != 2 {
-		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status> [--reason \"...\"] [--force --reason \"...\"]")
+	if len(rest) < 1 || len(rest) > 2 {
+		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status>  |  aiwf promote <composite-id> --phase <p>  [--reason \"...\"] [--force --reason \"...\"]")
 		return exitUsage
 	}
-	id, newStatus := rest[0], rest[1]
+	id := rest[0]
+
+	// Mode resolution: phase mode (composite + --phase, no positional state)
+	// vs. status mode (positional new-status).
+	phaseMode := *phase != ""
+	switch {
+	case phaseMode && len(rest) == 2:
+		fmt.Fprintln(os.Stderr, "aiwf promote: --phase is mutex with the positional new-status; pass one or the other")
+		return exitUsage
+	case phaseMode && !entity.IsCompositeID(id):
+		fmt.Fprintf(os.Stderr, "aiwf promote: --phase is only valid for composite ids (M-NNN/AC-N); got %q\n", id)
+		return exitUsage
+	case !phaseMode && len(rest) != 2:
+		fmt.Fprintln(os.Stderr, "aiwf promote: missing new-status. Usage: aiwf promote <id> <new-status>")
+		return exitUsage
+	}
 
 	if *force && strings.TrimSpace(*reason) == "" {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --reason \"...\" is required when --force is set (non-empty after trim)")
@@ -214,8 +239,13 @@ func runPromote(args []string) int {
 		return exitInternal
 	}
 
-	result, err := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason, *force)
-	return finishVerb(ctx, rootDir, "aiwf promote", result, err)
+	if phaseMode {
+		result, vErr := verb.PromoteACPhase(ctx, tr, id, *phase, actorStr, *reason, *force)
+		return finishVerb(ctx, rootDir, "aiwf promote", result, vErr)
+	}
+	newStatus := rest[1]
+	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason, *force)
+	return finishVerb(ctx, rootDir, "aiwf promote", result, vErr)
 }
 
 // runCancel handles `aiwf cancel <id> [--reason "..."]`.
