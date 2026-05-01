@@ -220,7 +220,7 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 
 - `.claude/skills/aiwf-*/SKILL.md` — six skill files materialized from the binary. Wiped and rewritten by `aiwf init` / `aiwf update`.
 - `.gitignore` — appends *only* the six `aiwf-*` skill paths. Your other `.claude/` content is yours to commit or gitignore as you choose; `aiwf` does not gitignore the directory wholesale.
-- `aiwf.yaml`, `CLAUDE.md`, `.git/hooks/pre-push` — written only if absent. The pre-push hook carries an `# aiwf:pre-push` marker; if a hook without the marker already exists, `aiwf init` skips the hook step (leaving the existing one untouched), prints the per-step ledger so you can see exactly what landed, and finishes with a remediation block — either add `aiwf check || exit 1` inside your existing hook, or compose hooks with husky/lefthook. The exit code in that case is 1 so CI notices.
+- `aiwf.yaml`, `CLAUDE.md`, `.git/hooks/pre-push` — written only if absent. The pre-push hook carries an `# aiwf:pre-push` marker; if a hook without the marker already exists, `aiwf init` skips the hook step (leaving the existing one untouched), prints the per-step ledger so you can see exactly what landed, and finishes with a remediation block — either add `aiwf check || exit 1` inside your existing hook, or compose hooks with husky/lefthook. The exit code in that case is 1 so CI notices. The hook silently no-ops on branches or clones with no `aiwf.yaml` at the repo root, so brownfield migrations and pre-init checkouts aren't blocked from pushing.
 
 **What aiwf does *not* touch:**
 

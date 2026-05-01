@@ -71,11 +71,20 @@ Skills under ` + "`.claude/skills/aiwf-*/`" + ` are gitignored and regenerated o
 // user's interactive PATH may not match. Re-running `aiwf init`
 // after a binary upgrade refreshes the path (idempotent because the
 // marker tells us we own the hook).
+//
+// Brownfield guard on the first content line: if no `aiwf.yaml` is
+// present at the repo root, exit 0 silently rather than run `aiwf
+// check`. A clone with no aiwf.yaml has no aiwf state to validate
+// (brownfield migration, branch pre-dating init, fresh checkout
+// from an old reflog state), so the hook is a no-op for it. This
+// matches the design-lessons.md framing: hooks are a fast-fail
+// courtesy; the verb is the load-bearing enforcement.
 func preHookScript(execPath string) string {
 	return `#!/bin/sh
 ` + preHookMarker + `
 # Installed by aiwf init. To customize, replace this hook with one
 # managed by husky/lefthook (etc.) and call ` + "`aiwf check`" + ` from there.
+[ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
 exec ` + shellQuoteSingle(execPath) + ` check
 `
 }
@@ -89,6 +98,13 @@ exec ` + shellQuoteSingle(execPath) + ` check
 // a tree the engine refuses to read does not block commits. Drift
 // between the installed body and this template is detected by
 // `aiwf doctor` and remediated by `aiwf update`.
+//
+// Brownfield guard mirrors preHookScript's: if no `aiwf.yaml` is
+// present at the repo root the hook exits 0 immediately, before
+// invoking `aiwf status`. Without this guard the hook would write
+// a "0 entities" STATUS.md and `git add` it on every commit in a
+// brownfield repo — an invasive surprise for users who have not
+// yet adopted aiwf on this branch.
 func preCommitHookScript(execPath string) string {
 	return `#!/bin/sh
 ` + preCommitHookMarker + `
@@ -99,6 +115,7 @@ func preCommitHookScript(execPath string) string {
 # 'aiwf update' to remove this hook.
 set -e
 repo_root="$(git rev-parse --show-toplevel)"
+[ -f "$repo_root/aiwf.yaml" ] || exit 0
 tmp="$repo_root/STATUS.md.tmp"
 if ` + shellQuoteSingle(execPath) + ` status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
     mv "$tmp" "$repo_root/STATUS.md"

@@ -47,7 +47,7 @@ The simplest mental check: if you removed the identity from the query and only k
 
 - Any new verb that writes more than one file: review whether it's going through `Apply` or open-coding its own sequence.
 - Any rollback logic that lives outside `Apply` is a smell. Either fix the abstraction or pull the logic inside the boundary.
-- Hooks (pre-commit, pre-push) are advisory, not load-bearing. The engine's invariants must be enforced inside the verb, not at the hook boundary. A hook is a fast-fail courtesy for the user; the verb must remain correct without it. **Audit history:** G18 (the only finding from the audit so far) added `contractcheck` to the projection check of contract-mutating verbs after discovering the verbs were relying on the hook to catch broken bindings.
+- Hooks (pre-commit, pre-push) are advisory, not load-bearing. The engine's invariants must be enforced inside the verb, not at the hook boundary. A hook is a fast-fail courtesy for the user; the verb must remain correct without it. **Audit history:** G18 added `contractcheck` to the projection check of contract-mutating verbs after discovering the verbs were relying on the hook to catch broken bindings. A subsequent revisit added a brownfield guard to both embedded hook templates (`preHookScript`, `preCommitHookScript` in `tools/internal/initrepo/`): if no `aiwf.yaml` is present at the repo root, the hook exits 0 silently rather than blocking the push or writing a `STATUS.md` into a tree with no aiwf state. That behaviour matches "fast-fail courtesy" — when there is nothing for the courtesy to fail-fast on, the hook stays out of the way.
 
 ---
 
