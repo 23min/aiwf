@@ -1,0 +1,30 @@
+#!/bin/sh
+# pre-commit — regenerate STATUS.md so the committed snapshot stays in
+# sync with the entity tree.
+#
+# Tolerant by design: if `aiwf` is not on PATH, or `aiwf status` fails,
+# the hook silently exits 0 — a contributor without aiwf installed can
+# still commit. The "Recent activity" section reflects HEAD, not the
+# in-progress commit (off-by-one), because the new commit hasn't been
+# made yet at hook-fire time. That's acceptable for a status snapshot
+# and avoids the recursion gymnastics of a post-commit amend.
+#
+# Install with: make hooks
+
+set -e
+
+if ! command -v aiwf >/dev/null 2>&1; then
+    exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel)"
+tmp="$repo_root/STATUS.md.tmp"
+
+if aiwf status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
+    mv "$tmp" "$repo_root/STATUS.md"
+    git add "$repo_root/STATUS.md"
+else
+    rm -f "$tmp"
+fi
+
+exit 0

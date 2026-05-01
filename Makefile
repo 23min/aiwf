@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install test test-race lint fmt vet coverage selfcheck ci clean
+.PHONY: help build install test test-race lint fmt vet coverage selfcheck ci clean hooks
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
@@ -20,6 +20,7 @@ help:
 	@echo "  coverage  - run tests with coverage; print summary"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the full CI suite (vet + lint + test-race + coverage + selfcheck)"
+	@echo "  hooks     - install repo git hooks (pre-commit refreshes STATUS.md)"
 	@echo "  clean     - remove build artifacts"
 
 build:
@@ -59,3 +60,10 @@ ci: vet lint test-race coverage selfcheck
 
 clean:
 	rm -rf bin coverage.out
+
+# hooks installs the tracked git hooks under scripts/git-hooks/ into
+# .git/hooks/. Idempotent. Run once after a fresh clone (or whenever
+# the tracked hook scripts change).
+hooks:
+	install -m 0755 scripts/git-hooks/pre-commit .git/hooks/pre-commit
+	@echo "Installed: .git/hooks/pre-commit"
