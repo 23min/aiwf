@@ -32,10 +32,22 @@ const recentActivityLimit = 5
 type statusReport struct {
 	Date           string             `json:"date"`
 	InFlightEpics  []statusEpic       `json:"in_flight_epics"`
+	PlannedEpics   []statusEpic       `json:"planned_epics"`
 	OpenDecisions  []statusEntity     `json:"open_decisions"`
 	OpenGaps       []statusGap        `json:"open_gaps"`
+	Warnings       []statusFinding    `json:"warnings"`
 	RecentActivity []HistoryEvent     `json:"recent_activity"`
 	Health         statusHealthCounts `json:"health"`
+}
+
+// statusFinding is one warning surfaced inline in the status report.
+// Mirrors the load-bearing fields of check.Finding without coupling the
+// JSON shape to the validator package's internal schema.
+type statusFinding struct {
+	Code     string `json:"code"`
+	EntityID string `json:"entity_id,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Message  string `json:"message"`
 }
 
 // statusEpic is one in-flight epic plus every milestone under it.
@@ -86,14 +98,14 @@ type statusHealthCounts struct {
 func runStatus(args []string) int {
 	fs := flag.NewFlagSet("status", flag.ContinueOnError)
 	root := fs.String("root", "", "consumer repo root (default: discover via aiwf.yaml)")
-	format := fs.String("format", "text", "output format: text or json")
+	format := fs.String("format", "text", "output format: text, json, or md")
 	pretty := fs.Bool("pretty", false, "indent JSON output (only with --format=json)")
 	fs.SetOutput(os.Stderr)
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
 	}
-	if *format != "text" && *format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text' or 'json', got %q\n", *format)
+	if *format != "text" && *format != "json" && *format != "md" {
+		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", *format)
 		return exitUsage
 	}
 
@@ -140,6 +152,11 @@ func runStatus(args []string) int {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
 			return exitInternal
 		}
+	case "md":
+		if err := renderStatusMarkdown(os.Stdout, &report); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
+			return exitInternal
+		}
 	}
 	return exitOK
 }
@@ -166,7 +183,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	}
 
 	for _, e := range epics {
-		if e.Status != "active" {
+		if e.Status != "active" && e.Status != "proposed" {
 			continue
 		}
 		se := statusEpic{
@@ -181,7 +198,12 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 				Status: m.Status,
 			})
 		}
-		r.InFlightEpics = append(r.InFlightEpics, se)
+		switch e.Status {
+		case "active":
+			r.InFlightEpics = append(r.InFlightEpics, se)
+		case "proposed":
+			r.PlannedEpics = append(r.PlannedEpics, se)
+		}
 	}
 
 	// Open decisions: ADRs and Decision entities with status == "proposed".
@@ -222,7 +244,9 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	}
 	sort.SliceStable(r.OpenGaps, func(i, j int) bool { return r.OpenGaps[i].ID < r.OpenGaps[j].ID })
 
-	// Health: errors and warnings from a single check.Run.
+	// Health: errors and warnings from a single check.Run. Warning
+	// detail is surfaced inline; errors stay summarised — if there are
+	// any, the user should run `aiwf check` for the full report.
 	findings := check.Run(tr, loadErrs)
 	for i := range findings {
 		switch findings[i].Severity {
@@ -230,6 +254,12 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 			r.Health.Errors++
 		case check.SeverityWarning:
 			r.Health.Warnings++
+			r.Warnings = append(r.Warnings, statusFinding{
+				Code:     findings[i].Code,
+				EntityID: findings[i].EntityID,
+				Path:     findings[i].Path,
+				Message:  findings[i].Message,
+			})
 		}
 	}
 	r.Health.Entities = len(tr.Entities)
@@ -284,6 +314,25 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryE
 	return events, nil
 }
 
+// writeStatusEpicText writes one epic plus its milestones in the
+// terminal-friendly shape shared by the In flight and Roadmap sections.
+func writeStatusEpicText(b *strings.Builder, e statusEpic) {
+	fmt.Fprintf(b, "  %s — %s    [%s]\n", e.ID, e.Title, e.Status)
+	if len(e.Milestones) == 0 {
+		b.WriteString("       (no milestones)\n")
+	}
+	for _, m := range e.Milestones {
+		marker := "   "
+		switch m.Status {
+		case "in_progress":
+			marker = " → "
+		case "done":
+			marker = " ✓ "
+		}
+		fmt.Fprintf(b, "    %s%s — %s    [%s]\n", marker, m.ID, m.Title, m.Status)
+	}
+}
+
 // renderStatusText writes the human-readable status report to w. The
 // in-progress milestone gets a `→` prefix; done a `✓`; everything else
 // blank-prefix so the row aligns. Empty sections render with a
@@ -300,20 +349,16 @@ func renderStatusText(w io.Writer, r *statusReport) error {
 		b.WriteString("  (no active epics)\n")
 	}
 	for _, e := range r.InFlightEpics {
-		fmt.Fprintf(&b, "  %s — %s    [%s]\n", e.ID, e.Title, e.Status)
-		if len(e.Milestones) == 0 {
-			b.WriteString("       (no milestones)\n")
-		}
-		for _, m := range e.Milestones {
-			marker := "   "
-			switch m.Status {
-			case "in_progress":
-				marker = " → "
-			case "done":
-				marker = " ✓ "
-			}
-			fmt.Fprintf(&b, "    %s%s — %s    [%s]\n", marker, m.ID, m.Title, m.Status)
-		}
+		writeStatusEpicText(&b, e)
+	}
+	b.WriteByte('\n')
+
+	b.WriteString("Roadmap\n")
+	if len(r.PlannedEpics) == 0 {
+		b.WriteString("  (nothing planned)\n")
+	}
+	for _, e := range r.PlannedEpics {
+		writeStatusEpicText(&b, e)
 	}
 	b.WriteByte('\n')
 
@@ -335,6 +380,22 @@ func renderStatusText(w io.Writer, r *statusReport) error {
 			fmt.Fprintf(&b, "  %s — %s    (discovered in %s)\n", g.ID, g.Title, g.DiscoveredIn)
 		} else {
 			fmt.Fprintf(&b, "  %s — %s\n", g.ID, g.Title)
+		}
+	}
+	b.WriteByte('\n')
+
+	b.WriteString("Warnings\n")
+	if len(r.Warnings) == 0 {
+		b.WriteString("  (none)\n")
+	}
+	for _, w := range r.Warnings {
+		switch {
+		case w.EntityID != "":
+			fmt.Fprintf(&b, "  %s  [%s]  %s\n", w.Code, w.EntityID, w.Message)
+		case w.Path != "":
+			fmt.Fprintf(&b, "  %s  (%s)  %s\n", w.Code, w.Path, w.Message)
+		default:
+			fmt.Fprintf(&b, "  %s  %s\n", w.Code, w.Message)
 		}
 	}
 	b.WriteByte('\n')
@@ -362,4 +423,160 @@ func renderStatusText(w io.Writer, r *statusReport) error {
 
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// renderStatusMarkdown writes the status report as a self-contained
+// markdown document, with mermaid `flowchart` blocks for in-flight and
+// roadmap epics. The output renders unchanged in any markdown viewer
+// that supports mermaid (GitHub web, VSCode, Obsidian, glow + mermaid
+// extension, etc.). Plain markdown — no HTML, no JS.
+func renderStatusMarkdown(w io.Writer, r *statusReport) error {
+	var b strings.Builder
+	fmt.Fprintf(&b, "# aiwf status — %s\n\n", r.Date)
+
+	suffix := ""
+	if r.Health.Errors > 0 || r.Health.Warnings > 0 {
+		suffix = " · run `aiwf check` for details"
+	}
+	fmt.Fprintf(&b, "_%d entities · %d errors · %d warnings%s_\n\n",
+		r.Health.Entities, r.Health.Errors, r.Health.Warnings, suffix)
+
+	b.WriteString("## In flight\n\n")
+	if len(r.InFlightEpics) == 0 {
+		b.WriteString("_(no active epics)_\n\n")
+	}
+	for _, e := range r.InFlightEpics {
+		writeStatusEpicMarkdown(&b, e)
+	}
+
+	b.WriteString("## Roadmap\n\n")
+	if len(r.PlannedEpics) == 0 {
+		b.WriteString("_(nothing planned)_\n\n")
+	}
+	for _, e := range r.PlannedEpics {
+		writeStatusEpicMarkdown(&b, e)
+	}
+
+	b.WriteString("## Open decisions\n\n")
+	if len(r.OpenDecisions) == 0 {
+		b.WriteString("_(none)_\n\n")
+	} else {
+		b.WriteString("| ID | Kind | Title | Status |\n")
+		b.WriteString("|----|------|-------|--------|\n")
+		for _, d := range r.OpenDecisions {
+			fmt.Fprintf(&b, "| %s | %s | %s | %s |\n",
+				d.ID, d.Kind, mdEscape(d.Title), d.Status)
+		}
+		b.WriteByte('\n')
+	}
+
+	b.WriteString("## Open gaps\n\n")
+	if len(r.OpenGaps) == 0 {
+		b.WriteString("_(none)_\n\n")
+	} else {
+		b.WriteString("| ID | Title | Discovered in |\n")
+		b.WriteString("|----|-------|---------------|\n")
+		for _, g := range r.OpenGaps {
+			fmt.Fprintf(&b, "| %s | %s | %s |\n",
+				g.ID, mdEscape(g.Title), g.DiscoveredIn)
+		}
+		b.WriteByte('\n')
+	}
+
+	b.WriteString("## Warnings\n\n")
+	if len(r.Warnings) == 0 {
+		b.WriteString("_(none)_\n\n")
+	} else {
+		b.WriteString("| Code | Entity | Path | Message |\n")
+		b.WriteString("|------|--------|------|---------|\n")
+		for _, ww := range r.Warnings {
+			fmt.Fprintf(&b, "| %s | %s | %s | %s |\n",
+				ww.Code, ww.EntityID, ww.Path, mdEscape(ww.Message))
+		}
+		b.WriteByte('\n')
+	}
+
+	b.WriteString("## Recent activity\n\n")
+	if len(r.RecentActivity) == 0 {
+		b.WriteString("_(none)_\n\n")
+	} else {
+		b.WriteString("| Date | Actor | Verb | Detail |\n")
+		b.WriteString("|------|-------|------|--------|\n")
+		for _, ev := range r.RecentActivity {
+			date := ev.Date
+			if len(date) >= 10 {
+				date = date[:10]
+			}
+			fmt.Fprintf(&b, "| %s | %s | %s | %s |\n",
+				date, ev.Actor, ev.Verb, mdEscape(ev.Detail))
+		}
+		b.WriteByte('\n')
+	}
+
+	_, err := io.WriteString(w, b.String())
+	return err
+}
+
+// writeStatusEpicMarkdown writes one epic — header, milestone list, and
+// a mermaid `flowchart LR` keyed by milestone status — into b. Empty
+// milestone lists render an explicit "(no milestones)" line so the
+// section stays visually balanced and the diagram is omitted (mermaid
+// barfs on a flowchart with one node and no edges).
+func writeStatusEpicMarkdown(b *strings.Builder, e statusEpic) {
+	fmt.Fprintf(b, "### %s — %s _(%s)_\n\n", e.ID, mdEscape(e.Title), e.Status)
+	if len(e.Milestones) == 0 {
+		b.WriteString("_(no milestones)_\n\n")
+		return
+	}
+	for _, m := range e.Milestones {
+		marker := ""
+		switch m.Status {
+		case "in_progress":
+			marker = "→ "
+		case "done":
+			marker = "✓ "
+		}
+		fmt.Fprintf(b, "- %s**%s** — %s _(%s)_\n", marker, m.ID, mdEscape(m.Title), m.Status)
+	}
+	b.WriteByte('\n')
+
+	b.WriteString("```mermaid\nflowchart LR\n")
+	fmt.Fprintf(b, "  %s[\"%s<br/>%s\"]:::epic_%s\n",
+		mermaidID(e.ID), e.ID, mdEscape(e.Title), e.Status)
+	for _, m := range e.Milestones {
+		fmt.Fprintf(b, "  %s[\"%s<br/>%s\"]:::ms_%s\n",
+			mermaidID(m.ID), m.ID, mdEscape(m.Title), m.Status)
+		fmt.Fprintf(b, "  %s --> %s\n", mermaidID(e.ID), mermaidID(m.ID))
+	}
+	b.WriteString("  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000\n")
+	b.WriteString("  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000\n")
+	b.WriteString("  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000\n")
+	b.WriteString("  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000\n")
+	b.WriteString("  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000\n")
+	b.WriteString("  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000\n")
+	b.WriteString("```\n\n")
+}
+
+// mermaidID converts an entity id to a mermaid-safe node id by
+// replacing the "-" with "_" (mermaid treats "-" as a metacharacter in
+// some contexts). The id stays unique because the inverse mapping is
+// trivial and the original id is shown in the node label.
+func mermaidID(id string) string {
+	return strings.ReplaceAll(id, "-", "_")
+}
+
+// mdEscape escapes the four characters that break a markdown table row
+// or a mermaid label: pipe, backtick, the bracket pair (mermaid uses
+// them for node syntax), and the double-quote (mermaid uses it to
+// delimit labels). Newlines are stripped so a single field stays on
+// one row. Conservative; not a full markdown sanitizer.
+func mdEscape(s string) string {
+	r := strings.NewReplacer(
+		"|", "\\|",
+		"`", "\\`",
+		"\"", "'",
+		"\n", " ",
+		"\r", " ",
+	)
+	return r.Replace(s)
 }
