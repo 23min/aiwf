@@ -1,10 +1,11 @@
+//go:build !windows
+
 package repolock
 
 import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -211,9 +212,6 @@ func TestAcquire_OpenFailure_PropagatesError(t *testing.T) {
 // TestParallelAcquireRace: 20 goroutines race to acquire the same
 // lock; exactly one should succeed at a time.
 func TestParallelAcquireRace(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("flock is unix-only")
-	}
 	root := initRepo(t)
 
 	var (

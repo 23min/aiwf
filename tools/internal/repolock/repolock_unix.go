@@ -1,3 +1,5 @@
+//go:build !windows
+
 // Package repolock serializes mutating aiwf invocations on the same
 // repository. The lock is held for the duration of a single verb
 // (read tree → validate → write → commit) so concurrent allocators
@@ -14,6 +16,12 @@
 // acquire the lock — they can safely run concurrently with each
 // other and with mutations (the worst they see is a snapshot
 // from before the mutation lands).
+//
+// Windows: a separate stub in repolock_windows.go satisfies the
+// type contract so the rest of the binary cross-compiles, but
+// every Acquire returns an error. The cmd/aiwf entry point's
+// assertSupportedOS check refuses to run on Windows up front, so
+// users see one clear message instead of a deep stack failure.
 package repolock
 
 import (

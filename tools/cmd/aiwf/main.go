@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
@@ -32,6 +33,10 @@ const (
 )
 
 func main() {
+	if err := assertSupportedOS(runtime.GOOS); err != nil {
+		fmt.Fprintln(os.Stderr, "aiwf:", err)
+		os.Exit(exitUsage)
+	}
 	os.Exit(run(os.Args[1:]))
 }
 
