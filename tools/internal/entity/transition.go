@@ -97,3 +97,79 @@ func CancelTarget(k Kind) string {
 	}
 	return ""
 }
+
+// acTransitions encodes the per-status FSM for an acceptance criterion.
+// `open → met` is the normal completion path; `open → deferred` and
+// `open → cancelled` are the two terminal removals. `met → deferred`
+// and `met → cancelled` cover scope changes after the AC was already
+// done. `deferred` and `cancelled` are terminal.
+var acTransitions = map[string][]string{
+	"open":      {"met", "deferred", "cancelled"},
+	"met":       {"deferred", "cancelled"},
+	"deferred":  {},
+	"cancelled": {},
+}
+
+// IsLegalACTransition reports whether (from, to) is a legal AC status
+// transition under the FSM. Self-transitions, unknown `from`, and
+// unknown `to` all return false. The verb-projection finding
+// `acs-transition` (Step 6) consults this; `--force --reason` (Step 4)
+// is what relaxes it.
+func IsLegalACTransition(from, to string) bool {
+	for _, allowed := range acTransitions[from] {
+		if allowed == to {
+			return true
+		}
+	}
+	return false
+}
+
+// tddPhaseTransitions encodes the linear FSM for an AC's `tdd_phase`.
+// `red → green → (refactor →) done`. `refactor` is optional — `green`
+// may go directly to `done`. The linearity prevents a "green without
+// red" claim that the audit hook (`acs-tdd-audit`, Step 6) would
+// otherwise have to reconcile after the fact.
+var tddPhaseTransitions = map[string][]string{
+	"red":      {"green"},
+	"green":    {"refactor", "done"},
+	"refactor": {"done"},
+	"done":     {},
+}
+
+// IsLegalTDDPhaseTransition reports whether (from, to) is a legal
+// transition along an AC's TDD phase FSM. Self-transitions, unknown
+// `from`, and unknown `to` all return false.
+func IsLegalTDDPhaseTransition(from, to string) bool {
+	for _, allowed := range tddPhaseTransitions[from] {
+		if allowed == to {
+			return true
+		}
+	}
+	return false
+}
+
+// MilestoneCanGoDone reports whether the milestone's ACs are in a
+// state that permits the milestone itself to transition to `done`.
+// Returns (true, nil) when no AC has `status: open`; returns (false,
+// openACs) listing the bare AC ids (`AC-N`) that are still open.
+//
+// This is the AC-level precondition; the per-status milestone FSM
+// (`in_progress → done`) is a separate check that ValidateTransition
+// already covers. Step 6's `milestone-done-incomplete-acs` finding
+// surfaces this on every `aiwf check` pass; Step 7's promote verb
+// wires it into the projection.
+//
+// The function is milestone-specific by intent. Calling it on other
+// kinds returns (true, nil) trivially — non-milestone Entities never
+// carry ACs in the schema.
+func MilestoneCanGoDone(m *Entity) (canGoDone bool, openACs []string) {
+	if m == nil {
+		return true, nil
+	}
+	for _, ac := range m.ACs {
+		if ac.Status == "open" {
+			openACs = append(openACs, ac.ID)
+		}
+	}
+	return len(openACs) == 0, openACs
+}
