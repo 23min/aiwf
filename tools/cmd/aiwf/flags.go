@@ -14,22 +14,34 @@ import "strings"
 //
 // which is technically correct but goes against everyone's habits.
 //
+// knownFlags lists value-taking flags (`--name value`); knownBoolFlags
+// lists boolean flags that do NOT consume a following token. A bool
+// flag wrapped in `--name=value` form is recognized either way. When
+// the same name appears in both lists, the value-taking interpretation
+// wins (defensive — callers should not duplicate).
+//
 // The function is conservative: a token is treated as a flag only when
-// it starts with `--` or `-` AND its name is in knownFlags. The
-// `--name=value` form is hoisted as one token; the `--name value` form
-// is hoisted as two. Unknown flags fall through to the original
-// position so flag.Parse can produce its usual error.
-func reorderFlagsFirst(args, knownFlags []string) []string {
+// it starts with `--` or `-` AND its name is in one of the known sets.
+// Unknown flags fall through to the original position so flag.Parse
+// can produce its usual error.
+func reorderFlagsFirst(args, knownFlags, knownBoolFlags []string) []string {
 	known := make(map[string]bool, len(knownFlags))
 	for _, k := range knownFlags {
 		known[k] = true
+	}
+	knownBool := make(map[string]bool, len(knownBoolFlags))
+	for _, k := range knownBoolFlags {
+		if !known[k] {
+			knownBool[k] = true
+		}
 	}
 	var hoisted, rest []string
 	i := 0
 	for i < len(args) {
 		a := args[i]
 		name, hasValue := flagName(a)
-		if name != "" && known[name] {
+		switch {
+		case name != "" && known[name]:
 			if hasValue {
 				hoisted = append(hoisted, a)
 				i++
@@ -44,10 +56,14 @@ func reorderFlagsFirst(args, knownFlags []string) []string {
 			// Trailing flag without a value — let flag.Parse complain.
 			hoisted = append(hoisted, a)
 			i++
-			continue
+		case name != "" && knownBool[name]:
+			// Bool flags never consume a following token.
+			hoisted = append(hoisted, a)
+			i++
+		default:
+			rest = append(rest, a)
+			i++
 		}
-		rest = append(rest, a)
-		i++
 	}
 	return append(hoisted, rest...)
 }

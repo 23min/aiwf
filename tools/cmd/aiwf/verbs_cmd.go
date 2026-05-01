@@ -116,16 +116,22 @@ func runPromote(args []string) int {
 	actor := fs.String("actor", "", "actor for the commit trailer")
 	root := fs.String("root", "", "consumer repo root")
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
+	force := fs.Bool("force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"}, []string{"force"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
 	if len(rest) != 2 {
-		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status> [--reason \"...\"]")
+		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status> [--reason \"...\"] [--force --reason \"...\"]")
 		return exitUsage
 	}
 	id, newStatus := rest[0], rest[1]
+
+	if *force && strings.TrimSpace(*reason) == "" {
+		fmt.Fprintln(os.Stderr, "aiwf promote: --reason \"...\" is required when --force is set (non-empty after trim)")
+		return exitUsage
+	}
 
 	rootDir, err := resolveRoot(*root)
 	if err != nil {
@@ -151,7 +157,7 @@ func runPromote(args []string) int {
 		return exitInternal
 	}
 
-	result, err := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason)
+	result, err := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason, *force)
 	return finishVerb(ctx, rootDir, "aiwf promote", result, err)
 }
 
@@ -161,16 +167,22 @@ func runCancel(args []string) int {
 	actor := fs.String("actor", "", "actor for the commit trailer")
 	root := fs.String("root", "", "consumer repo root")
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
+	force := fs.Bool("force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"}, []string{"force"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
 	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf cancel: usage: aiwf cancel <id> [--reason \"...\"]")
+		fmt.Fprintln(os.Stderr, "aiwf cancel: usage: aiwf cancel <id> [--reason \"...\"] [--force --reason \"...\"]")
 		return exitUsage
 	}
 	id := rest[0]
+
+	if *force && strings.TrimSpace(*reason) == "" {
+		fmt.Fprintln(os.Stderr, "aiwf cancel: --reason \"...\" is required when --force is set (non-empty after trim)")
+		return exitUsage
+	}
 
 	rootDir, err := resolveRoot(*root)
 	if err != nil {
@@ -195,7 +207,7 @@ func runCancel(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.Cancel(ctx, tr, id, actorStr, *reason)
+	result, err := verb.Cancel(ctx, tr, id, actorStr, *reason, *force)
 	return finishVerb(ctx, rootDir, "aiwf cancel", result, err)
 }
 

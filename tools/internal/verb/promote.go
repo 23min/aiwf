@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
@@ -20,19 +21,29 @@ import (
 // reason is optional free-form prose explaining *why* the transition
 // happens. When non-empty, it lands in the commit body (between
 // subject and trailers) so future readers can see the why, not just
-// the what. Empty reason produces a body-less commit (today's shape).
+// the what. Empty reason produces a body-less commit.
+//
+// force=true relaxes the FSM transition rule so any-to-any moves are
+// permitted; coherence (closed-set membership of the target status,
+// id format, ref resolution) still runs via projection findings, so
+// promoting to an unknown status is still rejected. Force requires a
+// non-empty reason; the caller (cmd dispatcher) is responsible for
+// enforcing that. When force is set, the standard trailers gain
+// `aiwf-force: <reason>` so the audit trail is queryable.
 //
 // Returns a Go error for "couldn't even start": id not found, illegal
-// transition. Tree-level findings caused by the change are returned as
-// a Result with non-empty Findings.
-func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason string) (*Result, error) {
+// transition (when not forced). Tree-level findings caused by the
+// change are returned as a Result with non-empty Findings.
+func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason string, force bool) (*Result, error) {
 	_ = ctx
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	if err := entity.ValidateTransition(e.Kind, e.Status, newStatus); err != nil {
-		return nil, err
+	if !force {
+		if err := entity.ValidateTransition(e.Kind, e.Status, newStatus); err != nil {
+			return nil, err
+		}
 	}
 
 	modified := *e
@@ -54,14 +65,10 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 
 	subject := fmt.Sprintf("aiwf promote %s %s -> %s", id, e.Status, newStatus)
 	return plan(&Plan{
-		Subject: subject,
-		Body:    reason,
-		Trailers: []gitops.Trailer{
-			{Key: "aiwf-verb", Value: "promote"},
-			{Key: "aiwf-entity", Value: id},
-			{Key: "aiwf-actor", Value: actor},
-		},
-		Ops: []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+		Subject:  subject,
+		Body:     reason,
+		Trailers: transitionTrailers("promote", id, actor, reason, force),
+		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
 	}), nil
 }
 
@@ -73,7 +80,15 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 // reason is optional free-form prose; when non-empty, it lands in the
 // commit body so the cancellation's "why" is preserved for future
 // readers. Empty reason matches today's body-less behaviour.
-func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string) (*Result, error) {
+//
+// force=true emits an `aiwf-force: <reason>` trailer alongside the
+// standard ones so the cancellation is auditable as a forced action.
+// Cancel has no FSM transition rule to relax (it always sets status to
+// the kind's terminal-cancel target), so force is purely an audit
+// signal here. The "already at target" guard remains in place even
+// under force — there is no diff to write. Force requires a non-empty
+// reason; the caller is responsible for enforcing that.
+func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force bool) (*Result, error) {
 	_ = ctx
 	e := t.ByID(id)
 	if e == nil {
@@ -106,15 +121,28 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string) (*Resul
 
 	subject := fmt.Sprintf("aiwf cancel %s -> %s", id, target)
 	return plan(&Plan{
-		Subject: subject,
-		Body:    reason,
-		Trailers: []gitops.Trailer{
-			{Key: "aiwf-verb", Value: "cancel"},
-			{Key: "aiwf-entity", Value: id},
-			{Key: "aiwf-actor", Value: actor},
-		},
-		Ops: []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+		Subject:  subject,
+		Body:     reason,
+		Trailers: transitionTrailers("cancel", id, actor, reason, force),
+		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
 	}), nil
+}
+
+// transitionTrailers builds the standard trailer block for a status-
+// changing verb. The `aiwf-force` trailer is appended only when force
+// is true; its value is the trimmed reason (which the dispatcher has
+// already verified is non-empty). The standard trailers come first so
+// downstream readers (`aiwf history`) find them in a stable order.
+func transitionTrailers(verbName, id, actor, reason string, force bool) []gitops.Trailer {
+	trailers := []gitops.Trailer{
+		{Key: "aiwf-verb", Value: verbName},
+		{Key: "aiwf-entity", Value: id},
+		{Key: "aiwf-actor", Value: actor},
+	}
+	if force {
+		trailers = append(trailers, gitops.Trailer{Key: "aiwf-force", Value: strings.TrimSpace(reason)})
+	}
+	return trailers
 }
 
 // readBody reads the body bytes from an existing entity file. Returns

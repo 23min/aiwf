@@ -7,6 +7,7 @@ import (
 
 func TestReorderFlagsFirst(t *testing.T) {
 	known := []string{"actor", "root", "reason"}
+	bools := []string{"force"}
 	tests := []struct {
 		name string
 		in   []string
@@ -52,11 +53,34 @@ func TestReorderFlagsFirst(t *testing.T) {
 			in:   nil,
 			want: nil,
 		},
+		// Bool flags do not consume a following token. The cases
+		// below are the load-bearing fix that allowed --force to be
+		// safely interleaved with --reason on transition verbs.
+		{
+			name: "bool flag alone after positional",
+			in:   []string{"E-01", "done", "--force"},
+			want: []string{"--force", "E-01", "done"},
+		},
+		{
+			name: "bool flag preceding value flag — must not eat --reason",
+			in:   []string{"E-01", "done", "--force", "--reason", "got urgent"},
+			want: []string{"--force", "--reason", "got urgent", "E-01", "done"},
+		},
+		{
+			name: "value flag preceding bool flag",
+			in:   []string{"M-001", "--reason", "now", "--force"},
+			want: []string{"--reason", "now", "--force", "M-001"},
+		},
+		{
+			name: "bool flag with =true form",
+			in:   []string{"M-001", "--force=true"},
+			want: []string{"--force=true", "M-001"},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := reorderFlagsFirst(tt.in, known)
+			got := reorderFlagsFirst(tt.in, known, bools)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got %v, want %v", got, tt.want)
 			}

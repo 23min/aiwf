@@ -210,7 +210,7 @@ func runContractBind(args []string) int {
 	fixtures := fs.String("fixtures", "", "repo-relative path to the fixtures-tree root")
 	force := fs.Bool("force", false, "replace an existing binding even when values differ")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor", "validator", "schema", "fixtures", "force"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor", "validator", "schema", "fixtures"}, []string{"force"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -338,7 +338,7 @@ func runContractRecipeInstall(args []string) int {
 	from := fs.String("from", "", "path to a custom-validator YAML file")
 	force := fs.Bool("force", false, "replace an existing validator with a different definition")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor", "from", "force"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor", "from"}, []string{"force"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -398,7 +398,7 @@ func runContractRecipeRemove(args []string) int {
 	root := fs.String("root", "", "consumer repo root")
 	actor := fs.String("actor", "", "actor for the commit trailer")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor"}, nil)); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -452,7 +452,7 @@ func runContractUnbind(args []string) int {
 	root := fs.String("root", "", "consumer repo root")
 	actor := fs.String("actor", "", "actor for the commit trailer")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "actor"}, nil)); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()

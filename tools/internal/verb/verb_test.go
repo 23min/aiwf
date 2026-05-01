@@ -191,7 +191,7 @@ func TestAdd_AllocatesSequentially(t *testing.T) {
 func TestPromote_RoundTrip(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, ""))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "", false))
 
 	if e := r.tree().ByID("E-01"); e == nil || e.Status != "active" {
 		t.Errorf("E-01 = %+v", e)
@@ -201,7 +201,7 @@ func TestPromote_RoundTrip(t *testing.T) {
 func TestPromote_RejectsBadTransition(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	_, err := verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "")
+	_, err := verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "", false)
 	if err == nil || !strings.Contains(err.Error(), "cannot transition") {
 		t.Errorf("expected illegal-transition error, got %v", err)
 	}
@@ -210,7 +210,7 @@ func TestPromote_RejectsBadTransition(t *testing.T) {
 func TestCancel_RoundTrip(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
-	r.must(verb.Cancel(r.ctx, r.tree(), "E-01", testActor, ""))
+	r.must(verb.Cancel(r.ctx, r.tree(), "E-01", testActor, "", false))
 
 	if e := r.tree().ByID("E-01"); e == nil || e.Status != "cancelled" {
 		t.Errorf("E-01 = %+v", e)
@@ -222,7 +222,7 @@ func TestCancel_RoundTrip(t *testing.T) {
 func TestCancel_WithReason(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
-	r.must(verb.Cancel(r.ctx, r.tree(), "E-01", testActor, "scope folded into E-02"))
+	r.must(verb.Cancel(r.ctx, r.tree(), "E-01", testActor, "scope folded into E-02", false))
 
 	body, err := gitops.HeadBody(r.ctx, r.root)
 	if err != nil {
@@ -237,7 +237,7 @@ func TestCancel_WithReason(t *testing.T) {
 func TestPromote_WithReason(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "kicking off after the planning review"))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "kicking off after the planning review", false))
 
 	body, err := gitops.HeadBody(r.ctx, r.root)
 	if err != nil {
@@ -713,10 +713,156 @@ func TestReallocate_EpicWithMilestoneInside(t *testing.T) {
 	}
 }
 
+// TestPromote_ForceSkipsFSM lets a normally-illegal transition through
+// when force=true is set. Without force, proposed → done would be
+// rejected by the FSM (proposed only goes to active or cancelled). With
+// force, the verb writes the new status and produces a clean plan.
+func TestPromote_ForceSkipsFSM(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+
+	// Sanity: without force, proposed → done is illegal.
+	if _, err := verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "", false); err == nil {
+		t.Fatal("expected illegal-transition error without force")
+	}
+	// With force, the same transition lands.
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "the rare emergency", true))
+	if e := r.tree().ByID("E-01"); e == nil || e.Status != "done" {
+		t.Errorf("E-01 = %+v after forced promote", e)
+	}
+}
+
+// TestPromote_ForceStillFailsCoherence: --force relaxes only the
+// transition-legality rule. A move to a status outside the kind's
+// closed set is still caught — by the projection's status-valid
+// finding, not by ValidateTransition.
+func TestPromote_ForceStillFailsCoherence(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+
+	// Force does not allow promoting to a non-kind status.
+	result, err := verb.Promote(r.ctx, r.tree(), "E-01", "in_progress", testActor, "tried to skip the FSM", true)
+	if err != nil {
+		t.Fatalf("unexpected Go error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected a result with findings")
+	}
+	if !check.HasErrors(result.Findings) {
+		t.Errorf("expected status-valid finding, got %+v", result.Findings)
+	}
+	foundStatusValid := false
+	for _, f := range result.Findings {
+		if f.Code == "status-valid" {
+			foundStatusValid = true
+			break
+		}
+	}
+	if !foundStatusValid {
+		t.Errorf("expected a status-valid finding among %+v", result.Findings)
+	}
+}
+
+// TestPromote_ForceEmitsTrailer: a forced promote produces an
+// `aiwf-force: <reason>` trailer alongside the standard ones, so
+// `aiwf history` can render forced events distinctly.
+func TestPromote_ForceEmitsTrailer(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "the rare emergency", true))
+
+	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadTrailers: %v", err)
+	}
+	var found gitops.Trailer
+	for _, tr := range trailers {
+		if tr.Key == "aiwf-force" {
+			found = tr
+			break
+		}
+	}
+	if found.Key == "" {
+		t.Fatalf("aiwf-force trailer missing; got %+v", trailers)
+	}
+	if found.Value != "the rare emergency" {
+		t.Errorf("aiwf-force value = %q, want %q", found.Value, "the rare emergency")
+	}
+}
+
+// TestPromote_NoForceNoTrailer: a normal (non-forced) promote must NOT
+// emit `aiwf-force`. Backwards-compat guard for the `aiwf history`
+// renderer which distinguishes forced events.
+func TestPromote_NoForceNoTrailer(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "kicking off", false))
+
+	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadTrailers: %v", err)
+	}
+	for _, tr := range trailers {
+		if tr.Key == "aiwf-force" {
+			t.Errorf("non-forced promote emitted aiwf-force trailer: %+v", tr)
+		}
+	}
+}
+
+// TestCancel_ForceEmitsTrailer covers the cancel path. Cancel has no
+// FSM rule to relax (any non-target status → target is permitted), so
+// force here is purely an audit signal — but the trailer still lands.
+func TestCancel_ForceEmitsTrailer(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
+	r.must(verb.Cancel(r.ctx, r.tree(), "E-01", testActor, "policy violation", true))
+
+	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadTrailers: %v", err)
+	}
+	var force gitops.Trailer
+	for _, tr := range trailers {
+		if tr.Key == "aiwf-force" {
+			force = tr
+		}
+	}
+	if force.Key == "" {
+		t.Fatalf("aiwf-force trailer missing on forced cancel; got %+v", trailers)
+	}
+	if force.Value != "policy violation" {
+		t.Errorf("aiwf-force value = %q, want %q", force.Value, "policy violation")
+	}
+}
+
+// TestPromote_ForceTrailerTrimsReason confirms the trailer value is
+// the trimmed form of the reason (leading/trailing whitespace removed).
+// The body itself is rendered verbatim by gitops.CommitMessage which
+// also trims; this test pins the trailer side specifically.
+func TestPromote_ForceTrailerTrimsReason(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "  whitespace around it  ", true))
+
+	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadTrailers: %v", err)
+	}
+	for _, tr := range trailers {
+		if tr.Key == "aiwf-force" {
+			if tr.Value != "whitespace around it" {
+				t.Errorf("aiwf-force value = %q, want trimmed %q", tr.Value, "whitespace around it")
+			}
+			return
+		}
+	}
+	t.Fatal("aiwf-force trailer missing")
+}
+
 // TestPromote_NonExistentID returns a Go error before any disk work.
 func TestPromote_NonExistentID(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.Promote(r.ctx, r.tree(), "E-99", "active", testActor, "")
+	_, err := verb.Promote(r.ctx, r.tree(), "E-99", "active", testActor, "", false)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected not-found error, got %v", err)
 	}
@@ -725,7 +871,7 @@ func TestPromote_NonExistentID(t *testing.T) {
 // TestCancel_NonExistentID covers the same path for cancel.
 func TestCancel_NonExistentID(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.Cancel(r.ctx, r.tree(), "M-99", testActor, "")
+	_, err := verb.Cancel(r.ctx, r.tree(), "M-99", testActor, "", false)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected not-found error, got %v", err)
 	}
@@ -754,9 +900,9 @@ func TestReallocate_NonExistentTarget(t *testing.T) {
 func TestCancel_AlreadyTerminal(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed twice", testActor, verb.AddOptions{}))
-	r.must(verb.Cancel(r.ctx, r.tree(), "E-01", testActor, ""))
+	r.must(verb.Cancel(r.ctx, r.tree(), "E-01", testActor, "", false))
 
-	_, err := verb.Cancel(r.ctx, r.tree(), "E-01", testActor, "")
+	_, err := verb.Cancel(r.ctx, r.tree(), "E-01", testActor, "", false)
 	if err == nil || !strings.Contains(err.Error(), "already") {
 		t.Errorf("expected 'already cancelled' error, got %v", err)
 	}
