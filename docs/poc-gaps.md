@@ -66,15 +66,9 @@ Resolved in commit `07f8a84` (ci(aiwf): G9 — run aiwf doctor --self-check in C
 
 ---
 
-### G10. macOS case-insensitive filesystem assumption
+### G10. macOS case-insensitive filesystem assumption — **resolved**
 
-**Location:** `tools/internal/verb/reallocate.go` (id-collision detection), `tools/internal/verb/common.go` (`pathInside`).
-
-**Symptom:** Path comparisons use exact string matching on forward-slash-normalized paths. On the default macOS APFS volume (case-insensitive), `E-01-foo` and `E-01-Foo` are the same directory to git and the filesystem but distinct strings to aiwf. The id-collision check would not catch a rename collision that the FS already collapsed.
-
-**Why it matters:** macOS is the primary development platform for the PoC. A rename via `git mv` to a case-only variant could produce an inconsistency that the framework doesn't detect.
-
-**Proposed fix:** Detect filesystem case-sensitivity at startup (write a temp file, attempt to stat its uppercased name) and apply case-insensitive comparison on case-insensitive filesystems. Alternatively, refuse case-only renames in the rename verb. Document explicitly in either case.
+Resolved in commit `8950874` (fix(aiwf): G10 — surface case-equivalent paths and FS case-sensitivity). New `check.casePaths` validator flags any pair of entity paths that differ only in case (severity error), so a Linux-committed `E-01-foo` + `E-01-Foo` collision is caught at validation time before silently collapsing on macOS reviewer machines. `aiwf doctor` gains a "filesystem: case-sensitive | case-insensitive" line probed via temp-file + uppercased-stat. README's new "Known limitations" section documents the case-sensitivity contract alongside concurrent-invocation, validator-availability, and Unix-only scope.
 
 ---
 
@@ -129,7 +123,7 @@ Resolved in commit `07f8a84` (ci(aiwf): G9 — run aiwf doctor --self-check in C
 | G7  | Skill namespace is a convention, not a guard                | Medium   | [x] `971fa88` |
 | G8  | Slugify silently drops non-ASCII                            | Medium   | [x] `668031c` |
 | G9  | `aiwf doctor --self-check` is not run in CI                 | Medium   | [x] `07f8a84` |
-| G10 | macOS case-insensitive filesystem assumption                | Medium   | [ ]    |
+| G10 | macOS case-insensitive filesystem assumption                | Medium   | [x] `8950874` |
 | G11 | `context.Context` not threaded through mutation verbs       | Low      | [ ]    |
 | G12 | Pre-push hook hard-codes binary path at install time        | Low      | [ ]    |
 | G13 | No Windows guard                                            | Low      | [ ]    |
