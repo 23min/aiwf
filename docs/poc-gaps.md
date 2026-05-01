@@ -54,15 +54,9 @@ Resolved in commit `971fa88` (fix(aiwf): G7 — track skill ownership via on-dis
 
 ---
 
-### G8. Slugify silently drops non-ASCII
+### G8. Slugify silently drops non-ASCII — **resolved**
 
-**Location:** `tools/internal/entity/serialize.go:80` (`Slugify`).
-
-**Symptom:** `Slugify("Café")` returns `"caf"`. The behavior is documented in the doc comment, but a user who tries to rename `"Café"` → `"cafe"` to "fix" the slug will get a confusing "new slug matches current slug" error with no hint that the dropped `é` is the cause.
-
-**Why it matters:** Papercut, but a sharp one for any non-English title.
-
-**Proposed fix:** Either (a) emit a one-line user-facing notice when input contains non-ASCII characters that were dropped, or (b) tighten Slugify to use Unicode-aware lowercasing and a basic transliteration (`é → e`). (a) is the YAGNI move; (b) is the right move if any real consumer hits this.
+Resolved in commit `668031c` (fix(aiwf): G8 — surface a warning when a non-ASCII title's slug drops chars). New `entity.SlugifyDetailed` returns both the slug and the list of dropped runes; `Slugify` is now a thin wrapper. `verb.Add` and `verb.Rename` surface a `slug-dropped-chars` warning naming the dropped characters and the resulting slug — the verb still succeeds (the YAGNI option per the proposed fix). A user who titled an entity `"Café au Lait"` gets `caf-au-lait` plus a clear one-line notice instead of a silent-then-confusing follow-up rename.
 
 ---
 
@@ -139,7 +133,7 @@ Resolved in commit `971fa88` (fix(aiwf): G7 — track skill ownership via on-dis
 | G5  | Reallocate's prose references are warnings, not errors      | Medium   | [x] `0e247fe` |
 | G6  | Design docs are stale relative to I1 (contracts)            | Medium   | [x] `221b9ff` |
 | G7  | Skill namespace is a convention, not a guard                | Medium   | [x] `971fa88` |
-| G8  | Slugify silently drops non-ASCII                            | Medium   | [ ]    |
+| G8  | Slugify silently drops non-ASCII                            | Medium   | [x] `668031c` |
 | G9  | `aiwf doctor --self-check` is not run in CI                 | Medium   | [ ]    |
 | G10 | macOS case-insensitive filesystem assumption                | Medium   | [ ]    |
 | G11 | `context.Context` not threaded through mutation verbs       | Low      | [ ]    |
