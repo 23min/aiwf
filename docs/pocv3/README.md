@@ -6,7 +6,7 @@ Co-locating PoC docs under `pocv3/` (rather than at `docs/` directly) keeps `doc
 
 ## Sitemap — what to read first
 
-**For visitors:** start at [`overview.md`](overview.md) (what aiwf is, what it isn't), then [`workflows.md`](workflows.md) (worked walk-throughs). A foundational reference (`architecture.md`) is in flight as a follow-up to this reorg.
+**For visitors:** start at [`overview.md`](overview.md) (what aiwf is, what it isn't), then [`architecture.md`](architecture.md) (the foundational reference: layers, data flow, boundaries, load-bearing principles), then [`workflows.md`](workflows.md) (worked walk-throughs).
 
 **For engine contributors:** [`gaps.md`](gaps.md) (open + resolved defects, check the matrix before starting work), then [`design/design-decisions.md`](design/design-decisions.md) (kernel commitments any change must preserve), then [`design/design-lessons.md`](design/design-lessons.md) (the three architectural principles distilled from the design arc).
 
@@ -21,7 +21,7 @@ Co-locating PoC docs under `pocv3/` (rather than at `docs/` directly) keeps `doc
 ```
 docs/pocv3/
   README.md                           this file (sitemap)
-  architecture.md                     foundational reference (in flight; system shape, data flow, boundaries)
+  architecture.md                     foundational reference (system shape, data flow, boundaries)
   overview.md                         1-2 page intro: what aiwf is, what it isn't
   workflows.md                        end-user workflow cookbook
   skill-author-guide.md               contract for skill scaffolders

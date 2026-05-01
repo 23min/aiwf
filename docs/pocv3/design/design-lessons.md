@@ -110,7 +110,7 @@ Together they describe a system that is predictable to reason about, in either d
 Three follow-on artifacts, in priority order:
 
 1. ~~**Vocabulary sweep** (principle 6).~~ **Done.** See "Sweep findings" under §6 above; two findings, both addressed.
-2. **Architecture-doc tightening** (all three principles). Add the three rules to `docs/architecture.md` (or its v3 equivalent) so they are part of the load-bearing engineering surface, not just a research note. Cite back to this document for the full discussion.
+2. ~~**Architecture-doc tightening** (all three principles).~~ **Done.** [`../architecture.md`](../architecture.md) §5 carries the three principles as one-line rules with citation back to this document. The architecture doc itself is the synthesis reference distilling §1–§4 of design-decisions.md plus the load-bearing properties of the engine.
 3. **Verb-design checklist update**. Add the "what reverses this verb?" question to whatever checklist gates new-verb design. One sentence in the right place.
 
 None of this requires engine changes. The principles describe what the engine already does, plus a sweep to confirm one surface is consistent. The work is in writing down rules so future contributors don't have to rediscover them by accident.
