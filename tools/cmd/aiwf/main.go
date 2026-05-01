@@ -85,6 +85,8 @@ func run(args []string) int {
 		return runStatus(args[1:])
 	case "schema":
 		return runSchema(args[1:])
+	case "show":
+		return runShow(args[1:])
 	case "template":
 		return runTemplate(args[1:])
 	case "contract":
@@ -116,6 +118,7 @@ Verbs:
   import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
   whoami                         print the resolved actor and the source it came from
   status                         project snapshot: in-flight work, open decisions, gaps, recent activity
+  show <id>                      aggregate view: frontmatter + recent history + active findings (composite ids accepted)
   schema [kind]                  print the frontmatter contract for one kind (or all six); read-only
   template [kind]                print the body-section template 'aiwf add' would scaffold for the kind; read-only
   contract verify                run the verify and evolve passes for every contract binding in aiwf.yaml
