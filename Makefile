@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install test test-race lint fmt vet coverage ci clean
+.PHONY: help build install test test-race lint fmt vet coverage selfcheck ci clean
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
@@ -18,7 +18,8 @@ help:
 	@echo "  fmt       - apply gofumpt formatting"
 	@echo "  vet       - run go vet"
 	@echo "  coverage  - run tests with coverage; print summary"
-	@echo "  ci        - the full CI suite (vet + lint + test-race + coverage)"
+	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
+	@echo "  ci        - the full CI suite (vet + lint + test-race + coverage + selfcheck)"
 	@echo "  clean     - remove build artifacts"
 
 build:
@@ -47,7 +48,14 @@ coverage:
 	go test -coverprofile=coverage.out -coverpkg=./tools/internal/... ./tools/...
 	go tool cover -func=coverage.out | tail -n 1
 
-ci: vet lint test-race coverage
+# selfcheck builds the binary and drives every verb against a temp
+# repo via `aiwf doctor --self-check`. Catches end-to-end regressions
+# (broken commit trailers, hook installer drift, missing skills,
+# `aiwf init` against a fresh git repo failing) that unit tests miss.
+selfcheck: build
+	./bin/aiwf doctor --self-check
+
+ci: vet lint test-race coverage selfcheck
 
 clean:
 	rm -rf bin coverage.out
