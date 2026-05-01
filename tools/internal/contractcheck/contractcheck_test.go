@@ -3,6 +3,8 @@ package contractcheck
 import (
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/aiwfyaml"
@@ -258,6 +260,123 @@ func TestRun_TerminalEntityWithBindingStillReportsConfig(t *testing.T) {
 	codes := codesAndSubcodes(got)
 	if !contains(codes, "contract-config/missing-schema") {
 		t.Errorf("retired contract with broken binding should still report missing-schema; got %v", codes)
+	}
+}
+
+// TestRun_DotDotEscape_Schema: a `..` in the schema path that
+// resolves outside the repo root must produce one path-escape
+// finding and suppress the missing-schema finding (we don't
+// double-report on entries we won't trust anyway).
+func TestRun_DotDotEscape_Schema(t *testing.T) {
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(repo, "fixtures"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: repo,
+		Entities: []*entity.Entity{
+			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+		},
+	}
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "cue", Schema: "../../etc/passwd", Fixtures: "fixtures",
+		}},
+	}
+	got := Run(tr, contracts, repo)
+	codes := codesAndSubcodes(got)
+	if !contains(codes, "contract-config/path-escape") {
+		t.Errorf("want path-escape; got %v", codes)
+	}
+	if contains(codes, "contract-config/missing-schema") {
+		t.Errorf("must not double-report missing-schema for an escaped path; got %v", codes)
+	}
+	for _, f := range got {
+		if f.Subcode == "path-escape" && !strings.Contains(f.Message, `"../../etc/passwd"`) {
+			t.Errorf("message must quote configured path verbatim; got %q", f.Message)
+		}
+	}
+}
+
+// TestRun_AbsoluteEscape_Fixtures: an absolute path in the fixtures
+// field that points outside the repo must escape (filepath.Join
+// silently rebases absolute arguments, so this is the
+// regression-prone path).
+func TestRun_AbsoluteEscape_Fixtures(t *testing.T) {
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustWriteFile(t, filepath.Join(repo, "schema.cue"), "")
+	outside, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: repo,
+		Entities: []*entity.Entity{
+			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+		},
+	}
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "cue", Schema: "schema.cue", Fixtures: outside,
+		}},
+	}
+	got := Run(tr, contracts, repo)
+	codes := codesAndSubcodes(got)
+	if !contains(codes, "contract-config/path-escape") {
+		t.Errorf("want path-escape; got %v", codes)
+	}
+	if contains(codes, "contract-config/missing-fixtures") {
+		t.Errorf("must not double-report missing-fixtures for escaped path; got %v", codes)
+	}
+}
+
+// TestRun_SymlinkOutside_Fixtures: a symlink inside the fixtures
+// path that resolves outside the repo must produce path-escape and
+// must suppress missing-fixtures (the escaped path is untrustworthy).
+func TestRun_SymlinkOutside_Fixtures(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("posix symlinks")
+	}
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	outside, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(outside, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(repo, "fixtures")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Fatal(err)
+	}
+	mustWriteFile(t, filepath.Join(repo, "schema.cue"), "")
+	tr := &tree.Tree{
+		Root: repo,
+		Entities: []*entity.Entity{
+			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+		},
+	}
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
+		}},
+	}
+	got := Run(tr, contracts, repo)
+	codes := codesAndSubcodes(got)
+	if !contains(codes, "contract-config/path-escape") {
+		t.Errorf("want path-escape for out-of-repo symlink; got %v", codes)
 	}
 }
 

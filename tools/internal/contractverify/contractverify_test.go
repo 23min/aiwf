@@ -554,6 +554,130 @@ sleep 5
 	}
 }
 
+// markerValidatorScript writes a script that creates a marker file
+// every time it is invoked. Tests use this to assert the validator
+// is NOT invoked for entries with escaping paths — the marker file
+// must not exist after Run returns.
+func markerValidatorScript(t *testing.T, dir, markerPath string) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("posix script")
+	}
+	path := filepath.Join(dir, "marker-validator.sh")
+	body := "#!/bin/sh\n" +
+		"echo invoked >> " + markerPath + "\n" +
+		"exit 0\n"
+	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// TestRun_DoesNotInvokeValidator_ForEscapedSchema is the load-bearing
+// test for G1: when an entry's schema path escapes the repo root, the
+// validator binary must never be executed against that entry.
+func TestRun_DoesNotInvokeValidator_ForEscapedSchema(t *testing.T) {
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(repo, "marker.txt")
+	script := markerValidatorScript(t, repo, marker)
+	writeFixture(t, repo, "fixtures", "v1", "valid", "a.json", "PASS")
+
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{
+			"fake": {Command: script, Args: []string{"{{fixture}}"}},
+		},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "fake", Schema: "../../etc/passwd", Fixtures: "fixtures",
+		}},
+	}
+	_ = Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
+	if _, err := os.Stat(marker); err == nil {
+		t.Fatal("validator was invoked for an entry with an escaping schema; marker.txt exists")
+	}
+}
+
+// TestRun_DoesNotInvokeValidator_ForEscapedFixtures: same load-bearing
+// guarantee, but for the fixtures path (which is what flows through to
+// fixture enumeration and would invoke the validator on each file).
+func TestRun_DoesNotInvokeValidator_ForEscapedFixtures(t *testing.T) {
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	outside, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Populate the outside directory with fixtures that look real, so
+	// without the guard, runOne would happily enumerate and invoke
+	// the validator on them.
+	if err := os.MkdirAll(filepath.Join(outside, "v1", "valid"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(outside, "v1", "valid", "leak.json"), []byte("PASS"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	marker := filepath.Join(repo, "marker.txt")
+	script := markerValidatorScript(t, repo, marker)
+
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{
+			"fake": {Command: script, Args: []string{"{{fixture}}"}},
+		},
+		Entries: []aiwfyaml.Entry{{
+			ID: "C-001", Validator: "fake", Schema: "schema.cue", Fixtures: outside,
+		}},
+	}
+	_ = Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
+	if _, err := os.Stat(marker); err == nil {
+		t.Fatal("validator was invoked for an entry with escaping fixtures; marker.txt exists")
+	}
+}
+
+// TestRun_MixedEntries_OnlyCleanOneVerifies: with three entries where
+// the middle one has clean paths, only the middle one should produce
+// validator activity. Confirms the guard skips at the per-entry level.
+func TestRun_MixedEntries_OnlyCleanOneVerifies(t *testing.T) {
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := fakeValidatorScript(t, repo)
+	writeFixture(t, repo, "fixtures", "v1", "valid", "a.json", "PASS")
+	writeFixture(t, repo, "fixtures", "v1", "valid", "b.json", "FAIL")
+
+	contracts := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{
+			"fake": {Command: script, Args: []string{"{{fixture}}"}},
+		},
+		Entries: []aiwfyaml.Entry{
+			{ID: "C-001", Validator: "fake", Schema: "../escape.cue", Fixtures: "fixtures"},
+			{ID: "C-002", Validator: "fake", Schema: "schema.cue", Fixtures: "fixtures"},
+			{ID: "C-003", Validator: "fake", Schema: "schema.cue", Fixtures: "../escape-fix"},
+		},
+	}
+	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
+	for _, r := range got {
+		if r.EntityID != "C-002" {
+			t.Errorf("only C-002 should produce findings; got %+v", r)
+		}
+	}
+	// And C-002 should produce its expected fixture-rejected for b.json.
+	found := false
+	for _, r := range got {
+		if r.EntityID == "C-002" && r.Code == CodeFixtureRejected {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("C-002's fixture-rejected finding missing; got %+v", got)
+	}
+}
+
 func TestCombineStdStreams(t *testing.T) {
 	if got := combineStdStreams(nil, nil); got != "" {
 		t.Errorf("empty case = %q", got)

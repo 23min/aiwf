@@ -21,10 +21,10 @@ package contractcheck
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/aiwfyaml"
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
+	"github.com/23min/ai-workflow-v2/tools/internal/contractconfig"
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 )
@@ -48,6 +48,9 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 	}
 	boundIDs := make(map[string]bool, len(contracts.Entries))
 
+	resolved, escapeFindings := contractconfig.Resolve(repoRoot, contracts.Entries)
+	findings = append(findings, escapeFindings...)
+
 	for i, e := range contracts.Entries {
 		boundIDs[e.ID] = true
 
@@ -63,28 +66,30 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 			})
 		}
 
-		schemaPath := filepath.Join(repoRoot, filepath.FromSlash(e.Schema))
-		if !isRegularFile(schemaPath) {
-			findings = append(findings, check.Finding{
-				Code:     "contract-config",
-				Severity: check.SeverityError,
-				Subcode:  "missing-schema",
-				EntityID: e.ID,
-				Path:     "aiwf.yaml",
-				Message:  fmt.Sprintf("contracts.entries[%d] (id=%s): schema path %q does not exist or is not a regular file", i, e.ID, e.Schema),
-			})
-		}
-
-		fixturesPath := filepath.Join(repoRoot, filepath.FromSlash(e.Fixtures))
-		if !isDirectory(fixturesPath) {
-			findings = append(findings, check.Finding{
-				Code:     "contract-config",
-				Severity: check.SeverityError,
-				Subcode:  "missing-fixtures",
-				EntityID: e.ID,
-				Path:     "aiwf.yaml",
-				Message:  fmt.Sprintf("contracts.entries[%d] (id=%s): fixtures path %q does not exist or is not a directory", i, e.ID, e.Fixtures),
-			})
+		// Skip existence checks for entries whose paths escaped the
+		// repo root; the path-escape finding is the more informative
+		// one and double-reporting just adds noise.
+		if !resolved[i].Skip {
+			if !isRegularFile(resolved[i].SchemaPath) {
+				findings = append(findings, check.Finding{
+					Code:     "contract-config",
+					Severity: check.SeverityError,
+					Subcode:  "missing-schema",
+					EntityID: e.ID,
+					Path:     "aiwf.yaml",
+					Message:  fmt.Sprintf("contracts.entries[%d] (id=%s): schema path %q does not exist or is not a regular file", i, e.ID, e.Schema),
+				})
+			}
+			if !isDirectory(resolved[i].FixturesPath) {
+				findings = append(findings, check.Finding{
+					Code:     "contract-config",
+					Severity: check.SeverityError,
+					Subcode:  "missing-fixtures",
+					EntityID: e.ID,
+					Path:     "aiwf.yaml",
+					Message:  fmt.Sprintf("contracts.entries[%d] (id=%s): fixtures path %q does not exist or is not a directory", i, e.ID, e.Fixtures),
+				})
+			}
 		}
 
 		// Skip entity-status checks for terminal-state contracts;

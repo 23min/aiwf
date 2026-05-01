@@ -37,6 +37,7 @@ import (
 	"strings"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/aiwfyaml"
+	"github.com/23min/ai-workflow-v2/tools/internal/contractconfig"
 )
 
 // Result is one verdict produced by the verify or evolve pass.
@@ -95,8 +96,18 @@ func Run(ctx context.Context, opts Options) []Result {
 	if opts.Contracts == nil {
 		return out
 	}
-	for _, e := range opts.Contracts.Entries {
+	// Refuse to invoke a validator on any entry whose configured paths
+	// escape the repo root (contractconfig has already raised the
+	// path-escape finding via aiwf check; here we silently skip the
+	// validator invocation). This is the load-bearing guarantee for
+	// G1: a corrupted aiwf.yaml can never cause a validator to run on
+	// out-of-repo content.
+	resolved, _ := contractconfig.Resolve(opts.RepoRoot, opts.Contracts.Entries)
+	for i, e := range opts.Contracts.Entries {
 		if opts.SkipIDs[e.ID] {
+			continue
+		}
+		if resolved[i].Skip {
 			continue
 		}
 		v, ok := opts.Contracts.Validators[e.Validator]
@@ -107,7 +118,7 @@ func Run(ctx context.Context, opts Options) []Result {
 			// rather than a user-facing finding.
 			continue
 		}
-		out = append(out, runOne(ctx, opts.RepoRoot, e, v)...)
+		out = append(out, runOne(ctx, opts.RepoRoot, e, v, resolved[i].FixturesPath)...)
 	}
 	sortResults(out)
 	return out
@@ -124,7 +135,7 @@ func Run(ctx context.Context, opts Options) []Result {
 //  4. Run evolve pass on every non-current version.
 //  5. Reclassify per-fixture findings into a single `validator-error`
 //     when *every* valid fixture in the verify pass was rejected.
-func runOne(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.Validator) []Result {
+func runOne(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.Validator, fixturesPath string) []Result {
 	if _, err := exec.LookPath(v.Command); err != nil {
 		return []Result{{
 			Code:     CodeEnvironment,
@@ -134,7 +145,7 @@ func runOne(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.V
 		}}
 	}
 
-	versions, err := enumerateVersions(filepath.Join(repoRoot, e.Fixtures))
+	versions, err := enumerateVersions(fixturesPath)
 	if err != nil {
 		// Fixtures directory is missing or unreadable — surface as a
 		// per-contract config-style result so the user sees something.
@@ -151,14 +162,14 @@ func runOne(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.V
 	current := versions[len(versions)-1]
 
 	var out []Result
-	verifyResults, validValidatorFailed, validValidatorTotal := verifyPass(ctx, repoRoot, e, v, current)
+	verifyResults, validValidatorFailed, validValidatorTotal := verifyPass(ctx, repoRoot, e, v, fixturesPath, current)
 	out = append(out, verifyResults...)
 
 	for _, ver := range versions {
 		if ver == current {
 			continue
 		}
-		out = append(out, evolvePass(ctx, repoRoot, e, v, ver)...)
+		out = append(out, evolvePass(ctx, repoRoot, e, v, fixturesPath, ver)...)
 	}
 
 	// Reclassification: if every valid fixture in the verify pass was
@@ -173,9 +184,9 @@ func runOne(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.V
 // and invalid fixture sets. It returns the resulting findings plus
 // the (failed, total) tally of valid-fixture rejections so the
 // caller can decide whether to reclassify them as validator-error.
-func verifyPass(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.Validator, version string) (results []Result, validFailed, validTotal int) {
-	validDir := filepath.Join(repoRoot, e.Fixtures, version, "valid")
-	invalidDir := filepath.Join(repoRoot, e.Fixtures, version, "invalid")
+func verifyPass(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.Validator, fixturesPath, version string) (results []Result, validFailed, validTotal int) {
+	validDir := filepath.Join(fixturesPath, version, "valid")
+	invalidDir := filepath.Join(fixturesPath, version, "invalid")
 
 	validFixtures := walkFixtures(validDir)
 	invalidFixtures := walkFixtures(invalidDir)
@@ -217,8 +228,8 @@ func verifyPass(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfya
 // evolvePass runs the validator over a single non-current version's
 // valid fixtures, expecting all of them to still pass against the
 // HEAD schema. Failures emit `evolution-regression`.
-func evolvePass(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.Validator, version string) []Result {
-	validDir := filepath.Join(repoRoot, e.Fixtures, version, "valid")
+func evolvePass(ctx context.Context, repoRoot string, e aiwfyaml.Entry, v aiwfyaml.Validator, fixturesPath, version string) []Result {
+	validDir := filepath.Join(fixturesPath, version, "valid")
 	fixtures := walkFixtures(validDir)
 	var out []Result
 	for _, f := range fixtures {
