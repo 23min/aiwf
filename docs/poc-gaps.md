@@ -80,15 +80,9 @@ Resolved in commit `97283c0` (refactor(aiwf): G11 — thread context.Context thr
 
 ---
 
-### G12. Pre-push hook hard-codes binary path at install time
+### G12. Pre-push hook hard-codes binary path at install time — **resolved**
 
-**Location:** `tools/internal/initrepo/initrepo.go`.
-
-**Symptom:** The hook script written by `aiwf init` embeds the absolute path to the `aiwf` binary at the moment of install. If the user later moves or upgrades the binary to a different location, the hook silently breaks (or runs the wrong version).
-
-**Why it matters:** A stale hook violates the framework's authoritative-enforcement promise. A user could believe pre-push is gating and not notice it isn't.
-
-**Proposed fix:** Either (a) write the hook to look up `aiwf` on PATH at run time (simpler, but loses determinism), or (b) keep the absolute path but have `aiwf doctor` verify the hook target still exists and matches the current binary's path. (b) is the better fit for the framework's "verifier, not validator" stance.
+Resolved in commit `8ed5051` (fix(aiwf): G12 — aiwf doctor detects pre-push hook drift). Took option (b) from the proposed fix: hook content stays absolute-path (preserves the existing rationale that hooks shouldn't depend on the user's interactive PATH at push time), and `aiwf doctor` now reads `.git/hooks/pre-push` and reports drift. Five distinct states surface in the output (`ok`, `missing`, `stale path`, `not aiwf-managed`, `malformed`) and stale/missing/malformed increment the problem count so doctor exits non-zero. Re-running `aiwf init` is the documented remediation. Tests cover ok / stale / missing.
 
 ---
 
@@ -119,7 +113,7 @@ Resolved in commit `97283c0` (refactor(aiwf): G11 — thread context.Context thr
 | G9  | `aiwf doctor --self-check` is not run in CI                 | Medium   | [x] `07f8a84` |
 | G10 | macOS case-insensitive filesystem assumption                | Medium   | [x] `8950874` |
 | G11 | `context.Context` not threaded through mutation verbs       | Low      | [x] `97283c0` |
-| G12 | Pre-push hook hard-codes binary path at install time        | Low      | [ ]    |
+| G12 | Pre-push hook hard-codes binary path at install time        | Low      | [x] `8ed5051` |
 | G13 | No Windows guard                                            | Low      | [ ]    |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
