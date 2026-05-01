@@ -524,6 +524,11 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 	//    `aiwf init` baked in an absolute path that's since moved.
 	lines, problems = appendHookReport(lines, problems, rootDir)
 
+	// 6b. Pre-commit hook: same drift detection, plus the config-
+	//     driven opt-out — when status_md.auto_update is false, the
+	//     desired state is "no marker-managed hook on disk".
+	lines, problems = appendPreCommitHookReport(lines, problems, rootDir)
+
 	// 5. Rituals-plugin presence (soft note — does not increment
 	// problems). Best-effort heuristic: greps project/local settings
 	// for `aiwf-extensions`. User-scope installs are invisible here,
@@ -583,6 +588,88 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 	}
 	lines = append(lines, fmt.Sprintf("hook:      ok (%s)", embedded))
 	return lines, problems
+}
+
+// appendPreCommitHookReport inspects .git/hooks/pre-commit and
+// reports its state, with one extra wrinkle vs. pre-push: the
+// config flag `status_md.auto_update` controls whether the hook is
+// supposed to be installed at all. A "no marker hook on disk and
+// flag is false" state is the desired-and-actual-agree case and
+// reports as `disabled by config` (no problem). A "flag is true and
+// hook missing" state is drift (a problem; remediated by `aiwf
+// update`).
+func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+	lines = in
+	problems = problemsIn
+
+	autoUpdate := true
+	if cfg, err := config.Load(rootDir); err == nil {
+		autoUpdate = cfg.StatusMdAutoUpdate()
+	}
+
+	hookPath := filepath.Join(rootDir, ".git", "hooks", "pre-commit")
+	raw, err := os.ReadFile(hookPath)
+	if errors.Is(err, os.ErrNotExist) {
+		if !autoUpdate {
+			lines = append(lines, "pre-commit: disabled by config (status_md.auto_update: false)")
+			return lines, problems
+		}
+		lines = append(lines, "pre-commit: missing — STATUS.md auto-update not installed; run `aiwf update`")
+		problems++
+		return lines, problems
+	}
+	if err != nil {
+		lines = append(lines, "pre-commit: "+err.Error())
+		problems++
+		return lines, problems
+	}
+	if !strings.Contains(string(raw), "# aiwf:pre-commit") {
+		lines = append(lines, "pre-commit: present but not aiwf-managed (no `# aiwf:pre-commit` marker); STATUS.md is not being auto-updated")
+		return lines, problems
+	}
+	embedded := extractPreCommitExecPath(string(raw))
+	if embedded == "" {
+		lines = append(lines, "pre-commit: aiwf-managed but malformed (no aiwf invocation found); run `aiwf update` to refresh")
+		problems++
+		return lines, problems
+	}
+	if _, statErr := os.Stat(embedded); statErr != nil {
+		lines = append(lines, fmt.Sprintf("pre-commit: stale path %s — binary moved or removed; run `aiwf update` to refresh", embedded))
+		problems++
+		return lines, problems
+	}
+	if !autoUpdate {
+		// Hook on disk but config says off — drift in the other
+		// direction. Remediation is the same: `aiwf update` removes it.
+		lines = append(lines, "pre-commit: present but config says off (status_md.auto_update: false); run `aiwf update` to remove")
+		problems++
+		return lines, problems
+	}
+	lines = append(lines, fmt.Sprintf("pre-commit: ok (%s)", embedded))
+	return lines, problems
+}
+
+// extractPreCommitExecPath pulls the binary path out of the
+// pre-commit hook's `if 'path' status …` line. Returns empty when
+// the line cannot be located (malformed hook).
+func extractPreCommitExecPath(script string) string {
+	for _, line := range strings.Split(script, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "if ") {
+			continue
+		}
+		rest := strings.TrimPrefix(line, "if ")
+		if !strings.HasPrefix(rest, "'") {
+			continue
+		}
+		rest = rest[1:]
+		end := strings.IndexByte(rest, '\'')
+		if end < 0 {
+			return ""
+		}
+		return rest[:end]
+	}
+	return ""
 }
 
 // extractHookExecPath pulls the binary path out of the hook script's

@@ -664,6 +664,176 @@ func TestDoctorReport_HookMissing(t *testing.T) {
 	}
 }
 
+// TestDoctorReport_PreCommitHookOK: fresh init lands the pre-commit
+// hook with the marker; doctor reports it ok and increments no
+// problems.
+func TestDoctorReport_PreCommitHookOK(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "pre-commit: ok") {
+		t.Errorf("pre-commit line should report ok on a fresh init:\n%s", joined)
+	}
+	if problems != 0 {
+		t.Errorf("fresh init should produce no problems; got %d:\n%s", problems, joined)
+	}
+}
+
+// TestDoctorReport_PreCommitHookDisabledByConfig: status_md.auto_update
+// false plus no hook on disk is the desired-and-actual-agree state.
+// Doctor reports "disabled by config" and increments no pre-commit
+// problems.
+func TestDoctorReport_PreCommitHookDisabledByConfig(t *testing.T) {
+	root := setupCLITestRepo(t)
+	// Pre-write aiwf.yaml with the same Version the binary will
+	// stamp on init, so the version-skew check doesn't add a
+	// confounding problem to the count.
+	yaml := []byte("aiwf_version: " + Version + "\nactor: human/test\nstatus_md:\n  auto_update: false\n")
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "pre-commit: disabled by config") {
+		t.Errorf("expected 'disabled by config' line:\n%s", joined)
+	}
+	if problems != 0 {
+		t.Errorf("opt-out should produce no problems; got %d:\n%s", problems, joined)
+	}
+}
+
+// TestDoctorReport_PreCommitHookMissingButFlagOn: hook removed but
+// config still says install — drift, doctor flags as a problem and
+// hints `aiwf update`.
+func TestDoctorReport_PreCommitHookMissingButFlagOn(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(root, ".git", "hooks", "pre-commit")); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "pre-commit: missing") {
+		t.Errorf("expected 'pre-commit: missing' line:\n%s", joined)
+	}
+	if problems == 0 {
+		t.Errorf("missing pre-commit hook with flag on should be a problem")
+	}
+	if !strings.Contains(joined, "aiwf update") {
+		t.Errorf("remediation should reference `aiwf update`:\n%s", joined)
+	}
+}
+
+// TestDoctorReport_PreCommitHookPresentButFlagOff: hook on disk but
+// the user just flipped the flag — drift in the other direction.
+// `aiwf update` removes it.
+func TestDoctorReport_PreCommitHookPresentButFlagOff(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	yaml := []byte(`aiwf_version: 0.1.0
+actor: human/test
+status_md:
+  auto_update: false
+`)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "config says off") {
+		t.Errorf("expected 'config says off' diagnostic:\n%s", joined)
+	}
+	if problems == 0 {
+		t.Errorf("hook-present-but-config-off should be a problem")
+	}
+}
+
+// TestDoctorReport_PreCommitHookAlien: a non-marker hook in place.
+// Doctor reports it but does not increment problems (the user owns
+// the hook; aiwf can't and won't touch it).
+func TestDoctorReport_PreCommitHookAlien(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	hookPath := filepath.Join(root, ".git", "hooks", "pre-commit")
+	alien := []byte("#!/bin/sh\n# user's own hook, no marker\nexit 0\n")
+	if err := os.WriteFile(hookPath, alien, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "pre-commit: present but not aiwf-managed") {
+		t.Errorf("expected 'not aiwf-managed' diagnostic:\n%s", joined)
+	}
+	if problems != 0 {
+		t.Errorf("alien pre-commit hook should be informational, got %d problems", problems)
+	}
+}
+
+// TestDoctorReport_PreCommitHookStalePath: marker present but the
+// exec path no longer exists. Same drift class as G12 for pre-push.
+func TestDoctorReport_PreCommitHookStalePath(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	hookPath := filepath.Join(root, ".git", "hooks", "pre-commit")
+	stale := []byte(`#!/bin/sh
+# aiwf:pre-commit
+set -e
+repo_root="$(git rev-parse --show-toplevel)"
+[ -f "$repo_root/aiwf.yaml" ] || exit 0
+tmp="$repo_root/STATUS.md.tmp"
+if '/nonexistent/path/to/old-aiwf' status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
+    mv "$tmp" "$repo_root/STATUS.md"
+    git add "$repo_root/STATUS.md"
+else
+    rm -f "$tmp"
+fi
+exit 0
+`)
+	if err := os.WriteFile(hookPath, stale, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "pre-commit: stale path") {
+		t.Errorf("expected 'pre-commit: stale path' line:\n%s", joined)
+	}
+	if problems == 0 {
+		t.Errorf("stale path should be a problem")
+	}
+}
+
 // TestDoctorReport_ReportsFilesystemCaseSensitivity: doctor names
 // the filesystem's case-sensitivity so users on macOS APFS know
 // they're on a case-insensitive volume (where E-01-foo and
