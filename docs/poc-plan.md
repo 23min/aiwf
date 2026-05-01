@@ -1,6 +1,8 @@
-# PoC plan — five sessions
+# PoC plan — five sessions + I1 (contracts)
 
 This is the working document for the `poc/aiwf-v3` branch. Each session has a deliverable that runs end-to-end before moving on. Mark items as you go; commit per logical step.
+
+The five sessions below are the original PoC build. **Iteration I1 — Contracts** (covered in [`poc-contracts-plan.md`](poc-contracts-plan.md)) shipped on top once those five sessions landed; its sub-iterations and shipped commits are summarized at the end of this document.
 
 For the design context that justifies this shape, see [`poc-design-decisions.md`](poc-design-decisions.md). For the engineering principles, see the root [`CLAUDE.md`](../CLAUDE.md) and [`tools/CLAUDE.md`](../tools/CLAUDE.md).
 
@@ -20,7 +22,7 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
   - [x] `status-valid` — every status is in the allowed set for the kind (severity: error).
   - [x] `frontmatter-shape` — required fields present, types correct (severity: error).
   - [x] `no-cycles` — no cycle in `depends_on` (milestone DAG) or in the `supersedes`/`superseded_by` chain (ADR DAG) (severity: error).
-  - [x] `contract-artifact-exists` — for every contract, `artifact:` is a relative path with no `..` segments that resolves to an existing file *inside* the contract directory (severity: error).
+  - [x] ~~`contract-artifact-exists` — for every contract, `artifact:` is a relative path with no `..` segments that resolves to an existing file *inside* the contract directory (severity: error).~~ **Superseded in I1:** replaced by `contract-config` (with subcodes `missing-entity`, `missing-schema`, `missing-fixtures`, `no-binding`, `path-escape`, `validator-unavailable`) that validates the binding-side correspondence between `aiwf.yaml.contracts.entries[]` and on-disk paths.
   - [x] `titles-nonempty` — title is set and non-empty (severity: warning).
   - [x] `adr-supersession-mutual` — if `A.superseded_by = B`, then `B.supersedes ⊇ {A}` (severity: warning).
   - [x] `gap-resolved-has-resolver` — addressed gap has non-empty `addressed_by` (severity: warning).
@@ -43,7 +45,7 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 - [x] `aiwf add adr --title "..."` — allocate `ADR-NNNN`, write file, commit.
 - [x] `aiwf add gap --title "..." [--discovered-in M-NNN]` — allocate `G-NNN`, commit.
 - [x] `aiwf add decision --title "..." [--relates-to E-NN,M-NNN]` — allocate `D-NNN`, commit.
-- [x] `aiwf add contract --title "..." --format <fmt> --artifact-source <path>` — allocate `C-NNN`, create directory + `contract.md`, copy artifact into `schema/`, commit.
+- [x] `aiwf add contract --title "..."` — allocate `C-NNN`, create directory + `contract.md`, commit. **Note:** the original plan had `--format` and `--artifact-source` flags backed by a `contract-artifact-exists` validator that copied a schema into the contract dir. That model was replaced in I1 by *contract bindings* in `aiwf.yaml.contracts.entries[]`. The shipped `add contract` accepts `--linked-adr <ids>` and the optional atomic-bind triplet (`--validator`, `--schema`, `--fixtures`) for one-commit add+bind. See [`poc-contracts-plan.md`](poc-contracts-plan.md).
 - [x] `aiwf promote <id> <status>` — read entity, validate transition (one Go function per kind), edit frontmatter, commit.
 - [x] `aiwf cancel <id>` — promote to the kind's terminal-cancel status (`cancelled`/`wontfix`/`rejected`/`retired`).
 - [x] `aiwf rename <id> <new-slug>` — `git mv` + commit. The id is preserved; title is unchanged (edit frontmatter manually if you want it tracked).
@@ -127,9 +129,32 @@ The shape of this session is set by the design constraint that aiwf must be a cl
 
 ---
 
+## Iteration I1 — Contracts
+
+**Goal:** mechanical contract verification (schema + fixtures) as a first-class part of the pre-push chokepoint, without aiwf shipping any validator binary or branching on language. Full design in [`poc-contracts-plan.md`](poc-contracts-plan.md).
+
+The eight sub-iterations:
+
+- [x] **I1.1** — `aiwfyaml` package: parse, structurally validate, and round-trip-write the `contracts:` block.
+- [x] **I1.2** — narrow the contract entity (drop `format`/`artifact`); status set `proposed → accepted → deprecated → retired`, plus `rejected`.
+- [x] **I1.3** — `contractverify` package: verify and evolve passes; substitution runner; result reclassification ("all valid rejected" → `validator-error`).
+- [x] **I1.4** — `contractcheck` package: structural correspondence between bindings and tree (missing-entity, missing-schema, missing-fixtures, no-binding); composes with the rest of `aiwf check`.
+- [x] **I1.5** — `aiwf contract bind/unbind` verbs; `aiwf add contract --validator/--schema/--fixtures` for atomic add+bind in one commit.
+- [x] **I1.6** — `aiwf contract recipe` verbs (list/show/install/remove); embedded markdown recipes for CUE and JSON Schema; custom validator install via `--from <path>`.
+- [x] **I1.7** — pre-push integration: `aiwf check` runs verify+evolve when bindings are present; terminal-state contracts skipped.
+- [x] **I1.8** — `aiwf-contract` skill: embedded SKILL.md materialized into `.claude/skills/aiwf-contract/`.
+
+**I1 hardening (commit `06b33bc`):** edge-case coverage across the contract surface — anchors/aliases rejection, validator-name reference checks, recipe round-trip, atomic add+bind rollback, terminal-state suppression in verify, multi-version evolve.
+
+**Post-I1 gap fixes** (see [`poc-gaps.md`](poc-gaps.md)) further hardened the contract surface: G1 added path-escape detection in `contractcheck`/`contractverify`; G3 demoted `validator-unavailable` to a warning by default with opt-in `strict_validators` and added a doctor section listing each validator's availability.
+
+**Deliverable:** a consumer repo can declare a CUE or JSON Schema contract via `aiwf contract recipe install <name>` + `aiwf add contract --validator … --schema … --fixtures …` (one commit), populate `<fixtures>/v1/{valid,invalid}/`, and have `aiwf check` (and the pre-push hook) verify the bundle on every push.
+
+---
+
 ## Total
 
-Roughly 4–5 days of focused work across five sessions. After session 5 the framework is small, self-contained, self-validating, and adoptable against existing planning data via a clean public contract. Real use surfaces the next priority; nothing else is committed to in advance.
+Roughly 4–5 days of focused work across the five original sessions, plus I1 layered on top. The framework is small, self-contained, self-validating, adoptable against existing planning data, and contract-aware. Real use surfaces the next priority; nothing else is committed to in advance.
 
 ---
 
