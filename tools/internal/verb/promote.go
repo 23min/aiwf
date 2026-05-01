@@ -67,7 +67,7 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 	return plan(&Plan{
 		Subject:  subject,
 		Body:     reason,
-		Trailers: transitionTrailers("promote", id, actor, reason, force),
+		Trailers: transitionTrailers("promote", id, actor, reason, newStatus, force),
 		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
 	}), nil
 }
@@ -121,23 +121,34 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 
 	subject := fmt.Sprintf("aiwf cancel %s -> %s", id, target)
 	return plan(&Plan{
-		Subject:  subject,
-		Body:     reason,
-		Trailers: transitionTrailers("cancel", id, actor, reason, force),
+		Subject: subject,
+		Body:    reason,
+		// Cancel does not emit aiwf-to:. The cancel target is implicit
+		// per kind (entity.CancelTarget) and the verb name itself
+		// communicates the destination — no need for a structured
+		// trailer to disambiguate. Only `promote` events carry aiwf-to:.
+		Trailers: transitionTrailers("cancel", id, actor, reason, "", force),
 		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
 	}), nil
 }
 
 // transitionTrailers builds the standard trailer block for a status-
-// changing verb. The `aiwf-force` trailer is appended only when force
-// is true; its value is the trimmed reason (which the dispatcher has
-// already verified is non-empty). The standard trailers come first so
-// downstream readers (`aiwf history`) find them in a stable order.
-func transitionTrailers(verbName, id, actor, reason string, force bool) []gitops.Trailer {
+// changing verb. `to` is the target status when relevant (`promote`
+// events; emitted as `aiwf-to: <to>`); pass an empty string for verbs
+// whose target is implicit in the verb name (cancel). The `aiwf-force`
+// trailer is appended only when force is true; its value is the
+// trimmed reason (which the dispatcher has already verified is non-
+// empty). The standard trailers come first so downstream readers
+// (`aiwf history`) find them in a stable order: verb, entity, actor,
+// to (when present), force (when present).
+func transitionTrailers(verbName, id, actor, reason, to string, force bool) []gitops.Trailer {
 	trailers := []gitops.Trailer{
 		{Key: "aiwf-verb", Value: verbName},
 		{Key: "aiwf-entity", Value: id},
 		{Key: "aiwf-actor", Value: actor},
+	}
+	if to != "" {
+		trailers = append(trailers, gitops.Trailer{Key: "aiwf-to", Value: to})
 	}
 	if force {
 		trailers = append(trailers, gitops.Trailer{Key: "aiwf-force", Value: strings.TrimSpace(reason)})

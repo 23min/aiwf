@@ -859,6 +859,83 @@ func TestPromote_ForceTrailerTrimsReason(t *testing.T) {
 	t.Fatal("aiwf-force trailer missing")
 }
 
+// TestPromote_EmitsAiwfTo: every promote commit (forced or not)
+// carries an `aiwf-to: <newStatus>` trailer so the target state is
+// queryable structurally rather than parsed from the commit subject.
+// Backwards compat is on the read side (renderer dashes for absent);
+// the writer always emits forward.
+func TestPromote_EmitsAiwfTo(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "", false))
+
+	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadTrailers: %v", err)
+	}
+	var to gitops.Trailer
+	for _, tr := range trailers {
+		if tr.Key == "aiwf-to" {
+			to = tr
+		}
+	}
+	if to.Key == "" {
+		t.Fatalf("aiwf-to trailer missing on promote; got %+v", trailers)
+	}
+	if to.Value != "active" {
+		t.Errorf("aiwf-to value = %q, want %q", to.Value, "active")
+	}
+}
+
+// TestCancel_DoesNotEmitAiwfTo: cancel's target is implicit per kind
+// (the kind's terminal-cancel status, well-known); the verb name is
+// enough. Only `promote` events carry aiwf-to:.
+func TestCancel_DoesNotEmitAiwfTo(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
+	r.must(verb.Cancel(r.ctx, r.tree(), "E-01", testActor, "", false))
+
+	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadTrailers: %v", err)
+	}
+	for _, tr := range trailers {
+		if tr.Key == "aiwf-to" {
+			t.Errorf("cancel emitted aiwf-to trailer: %+v", tr)
+		}
+	}
+}
+
+// TestPromote_AiwfToCarriesForcedTarget: a forced promote still
+// carries aiwf-to: with the (forced) target status. Force does not
+// suppress the trailer; aiwf-force and aiwf-to coexist on a forced
+// commit.
+func TestPromote_AiwfToCarriesForcedTarget(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "the rare emergency", true))
+
+	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("HeadTrailers: %v", err)
+	}
+	var sawTo, sawForce bool
+	for _, tr := range trailers {
+		switch tr.Key {
+		case "aiwf-to":
+			sawTo = true
+			if tr.Value != "done" {
+				t.Errorf("aiwf-to value = %q, want done", tr.Value)
+			}
+		case "aiwf-force":
+			sawForce = true
+		}
+	}
+	if !sawTo || !sawForce {
+		t.Errorf("forced promote should carry both aiwf-to and aiwf-force; sawTo=%v sawForce=%v trailers=%+v", sawTo, sawForce, trailers)
+	}
+}
+
 // TestPromote_NonExistentID returns a Go error before any disk work.
 func TestPromote_NonExistentID(t *testing.T) {
 	r := newRunner(t)

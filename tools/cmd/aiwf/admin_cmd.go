@@ -224,7 +224,11 @@ func runHistory(args []string) int {
 			return exitOK
 		}
 		for _, e := range events {
-			fmt.Printf("%s  %-16s  %-10s  %s  %s\n", e.Date, e.Actor, e.Verb, e.Detail, e.Commit)
+			fmt.Printf("%s  %-16s  %-10s  %-12s  %s  %s\n",
+				e.Date, e.Actor, e.Verb, renderTo(e.To), e.Detail, e.Commit)
+			if e.Force != "" {
+				fmt.Printf("    [forced: %s]\n", e.Force)
+			}
 			if e.Body != "" {
 				for _, line := range strings.Split(e.Body, "\n") {
 					fmt.Printf("    %s\n", line)
@@ -257,6 +261,15 @@ func runHistory(args []string) int {
 // `--reason` for a status transition, or empty when the verb wasn't
 // invoked with one. Trailers are stripped before storage so Body is
 // pure prose.
+//
+// To is the target status of a `promote` event, extracted from the
+// `aiwf-to:` trailer (added in I2). Empty for non-promote events and
+// for pre-I2 promote commits that were written before the trailer
+// schema landed; the renderer shows a dash for those rows.
+//
+// Force is the reason value of an `aiwf-force:` trailer. Empty for
+// non-forced transitions; non-empty marks the event as having
+// bypassed the FSM's transition-legality rule.
 type HistoryEvent struct {
 	Date   string `json:"date"`
 	Actor  string `json:"actor"`
@@ -264,16 +277,21 @@ type HistoryEvent struct {
 	Detail string `json:"detail"`
 	Commit string `json:"commit"`
 	Body   string `json:"body,omitempty"`
+	To     string `json:"to,omitempty"`
+	Force  string `json:"force,omitempty"`
 }
 
 // readHistory shells out to `git log` and returns one HistoryEvent per
 // commit whose `aiwf-entity:` or `aiwf-prior-entity:` trailer matches
 // id. Events are returned oldest-first.
 //
-// The git format string carries five fields per record separated by
+// The git format string carries seven fields per record separated by
 // the ASCII unit separator (\x1f), with the ASCII record separator
 // (\x1e) between commits — none of these appear in subjects or
-// trailers, so a single split suffices.
+// trailers, so a single split suffices. Pre-I2 commits without
+// `aiwf-to:` or `aiwf-force:` trailers produce empty strings for
+// those fields; the renderer treats empty as "absent" and emits a
+// dash, which is the load-bearing backwards-compat behavior.
 func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 	if !hasCommits(ctx, root) {
 		return nil, nil
@@ -285,7 +303,12 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 		"-E",
 		"--grep", "^aiwf-entity: "+id+"$",
 		"--grep", "^aiwf-prior-entity: "+id+"$",
-		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"+sep+"%b\x1e",
+		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+
+			sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-to,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-force,valueonly=true,unfold=true)"+
+			sep+"%b\x1e",
 	)
 	cmd.Dir = root
 	out, err := cmd.Output()
@@ -303,8 +326,8 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 		if rec == "" {
 			continue
 		}
-		parts := strings.SplitN(rec, sep, 6)
-		if len(parts) < 6 {
+		parts := strings.SplitN(rec, sep, 8)
+		if len(parts) < 8 {
 			continue
 		}
 		events = append(events, HistoryEvent{
@@ -313,7 +336,9 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 			Detail: strings.TrimSpace(parts[2]),
 			Verb:   strings.TrimSpace(parts[3]),
 			Actor:  strings.TrimSpace(parts[4]),
-			Body:   stripTrailers(strings.TrimSpace(parts[5])),
+			To:     strings.TrimSpace(parts[5]),
+			Force:  strings.TrimSpace(parts[6]),
+			Body:   stripTrailers(strings.TrimSpace(parts[7])),
 		})
 	}
 	return events, nil
@@ -394,6 +419,17 @@ func shortHash(sha string) string {
 		return sha
 	}
 	return sha[:7]
+}
+
+// renderTo formats the target-status column in `aiwf history` text
+// output. Empty (the absent-trailer case for non-promote events and
+// pre-I2 promote commits) renders as "-"; a populated value is shown
+// with a leading arrow so the column reads as a transition target.
+func renderTo(to string) string {
+	if to == "" {
+		return "-"
+	}
+	return "→ " + to
 }
 
 // hasCommits reports whether root's HEAD points at a real commit.
