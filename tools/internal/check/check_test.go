@@ -314,6 +314,95 @@ func TestIdsUnique_StubVsStubCollision(t *testing.T) {
 	}
 }
 
+// TestSchemaMatchesCollectRefs pins the per-kind reference-field
+// metadata in entity.SchemaForKind to what check.collectRefs actually
+// reads. If a future change adds, removes, or retypes a reference
+// field in collectRefs without updating the schema (or vice versa),
+// this test fails — preventing the published `aiwf schema` surface
+// from drifting away from runtime enforcement.
+func TestSchemaMatchesCollectRefs(t *testing.T) {
+	for _, k := range entity.AllKinds() {
+		t.Run(string(k), func(t *testing.T) {
+			s, _ := entity.SchemaForKind(k)
+
+			// Build a synthetic entity carrying a sentinel value in
+			// every reference field declared in the schema. collectRefs
+			// must surface every field with a value, with matching
+			// allowed-kinds.
+			e := &entity.Entity{Kind: k}
+			expect := make(map[string]entity.RefField, len(s.References))
+			for _, r := range s.References {
+				expect[r.Name] = r
+				switch r.Name {
+				case "parent":
+					e.Parent = "X-1"
+				case "depends_on":
+					e.DependsOn = []string{"X-1"}
+				case "supersedes":
+					e.Supersedes = []string{"X-1"}
+				case "superseded_by":
+					e.SupersededBy = "X-1"
+				case "discovered_in":
+					e.DiscoveredIn = "X-1"
+				case "addressed_by":
+					e.AddressedBy = []string{"X-1"}
+				case "relates_to":
+					e.RelatesTo = []string{"X-1"}
+				case "linked_adrs":
+					e.LinkedADRs = []string{"X-1"}
+				default:
+					t.Fatalf("schema declares unknown ref field %q on %s — TestSchemaMatchesCollectRefs needs an arm for it", r.Name, k)
+				}
+			}
+
+			got := collectRefs(e)
+			gotByName := make(map[string][]entity.Kind, len(got))
+			for _, r := range got {
+				gotByName[r.field] = r.allowed
+			}
+
+			// Every schema-declared field must show up.
+			for name, want := range expect {
+				gotAllowed, ok := gotByName[name]
+				if !ok {
+					t.Errorf("schema declares ref field %q on %s, but collectRefs didn't surface it", name, k)
+					continue
+				}
+				if !sameKinds(gotAllowed, want.AllowedKinds) {
+					t.Errorf("ref %q on %s: collectRefs allowed=%v, schema allowed=%v", name, k, gotAllowed, want.AllowedKinds)
+				}
+			}
+			// And no surplus fields in collectRefs.
+			for name := range gotByName {
+				if _, ok := expect[name]; !ok {
+					t.Errorf("collectRefs surfaces ref field %q on %s, but schema does not declare it", name, k)
+				}
+			}
+		})
+	}
+}
+
+// sameKinds compares two []entity.Kind slices ignoring order. nil and
+// empty are equivalent (both mean "any kind allowed").
+func sameKinds(a, b []entity.Kind) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	seen := make(map[entity.Kind]int, len(a))
+	for _, k := range a {
+		seen[k]++
+	}
+	for _, k := range b {
+		seen[k]--
+	}
+	for _, n := range seen {
+		if n != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func TestRefsResolve_AnyKindFields(t *testing.T) {
 	// addressed_by and relates_to permit any kind, so a gap addressed_by
 	// a milestone or a decision relates_to a contract should resolve fine.

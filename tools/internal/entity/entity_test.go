@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -152,6 +153,82 @@ func TestIDFromPath(t *testing.T) {
 				t.Errorf("IDFromPath(%q, %v) = %q, %v; want %q, %v", tt.path, tt.kind, got, ok, tt.want, tt.wantOk)
 			}
 		})
+	}
+}
+
+func TestSchemaForKind(t *testing.T) {
+	for _, k := range AllKinds() {
+		t.Run(string(k), func(t *testing.T) {
+			s, ok := SchemaForKind(k)
+			if !ok {
+				t.Fatalf("SchemaForKind(%v): not found", k)
+			}
+			if s.Kind != k {
+				t.Errorf("Kind = %q, want %q", s.Kind, k)
+			}
+			if s.IDFormat == "" {
+				t.Error("IDFormat empty")
+			}
+			if len(s.AllowedStatuses) == 0 {
+				t.Error("AllowedStatuses empty")
+			}
+			// Every kind has at least id, title, status as required.
+			for _, want := range []string{"id", "title", "status"} {
+				found := false
+				for _, got := range s.RequiredFields {
+					if got == want {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("RequiredFields missing %q: got %v", want, s.RequiredFields)
+				}
+			}
+			// Every reference field must declare a non-empty cardinality.
+			for _, r := range s.References {
+				if r.Cardinality != Single && r.Cardinality != Multi {
+					t.Errorf("ref %q has invalid cardinality %q", r.Name, r.Cardinality)
+				}
+			}
+		})
+	}
+}
+
+func TestSchemaForKind_Unknown(t *testing.T) {
+	if _, ok := SchemaForKind("nonsense"); ok {
+		t.Error("expected SchemaForKind to return ok=false for unknown kind")
+	}
+}
+
+func TestAllSchemas_OneEntryPerKind(t *testing.T) {
+	got := AllSchemas()
+	if len(got) != len(AllKinds()) {
+		t.Fatalf("AllSchemas length = %d, want %d", len(got), len(AllKinds()))
+	}
+	for i, k := range AllKinds() {
+		if got[i].Kind != k {
+			t.Errorf("AllSchemas[%d].Kind = %q, want %q", i, got[i].Kind, k)
+		}
+	}
+}
+
+func TestAllowedStatuses_DelegatesToSchemas(t *testing.T) {
+	for _, k := range AllKinds() {
+		s, _ := SchemaForKind(k)
+		got := AllowedStatuses(k)
+		if diff := strings.Join(got, ","); diff != strings.Join(s.AllowedStatuses, ",") {
+			t.Errorf("kind %v: AllowedStatuses=%v, schema.AllowedStatuses=%v", k, got, s.AllowedStatuses)
+		}
+	}
+}
+
+func TestIDFormat_DelegatesToSchemas(t *testing.T) {
+	for _, k := range AllKinds() {
+		s, _ := SchemaForKind(k)
+		if got, want := IDFormat(k), s.IDFormat; got != want {
+			t.Errorf("kind %v: IDFormat=%q, schema.IDFormat=%q", k, got, want)
+		}
 	}
 }
 

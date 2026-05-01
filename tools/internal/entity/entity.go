@@ -35,23 +35,14 @@ func AllKinds() []Kind {
 }
 
 // AllowedStatuses returns the closed status set for the kind. Statuses
-// outside this set are reported by the status-valid check.
+// outside this set are reported by the status-valid check. Delegates
+// to the schemas table so there is a single source of truth.
 func AllowedStatuses(k Kind) []string {
-	switch k {
-	case KindEpic:
-		return []string{"proposed", "active", "done", "cancelled"}
-	case KindMilestone:
-		return []string{"draft", "in_progress", "done", "cancelled"}
-	case KindADR:
-		return []string{"proposed", "accepted", "superseded", "rejected"}
-	case KindGap:
-		return []string{"open", "addressed", "wontfix"}
-	case KindDecision:
-		return []string{"proposed", "accepted", "superseded", "rejected"}
-	case KindContract:
-		return []string{"proposed", "accepted", "deprecated", "retired", "rejected"}
+	s, ok := schemas[k]
+	if !ok {
+		return nil
 	}
-	return nil
+	return s.AllowedStatuses
 }
 
 // IsAllowedStatus reports whether status is in the kind's allowed set.
@@ -66,22 +57,13 @@ func IsAllowedStatus(k Kind, status string) bool {
 
 // IDFormat returns a human-readable description of the kind's id shape.
 // Used in error messages produced by the frontmatter-shape check.
+// Delegates to the schemas table so there is a single source of truth.
 func IDFormat(k Kind) string {
-	switch k {
-	case KindEpic:
-		return "E-NN"
-	case KindMilestone:
-		return "M-NNN"
-	case KindADR:
-		return "ADR-NNNN"
-	case KindGap:
-		return "G-NNN"
-	case KindDecision:
-		return "D-NNN"
-	case KindContract:
-		return "C-NNN"
+	s, ok := schemas[k]
+	if !ok {
+		return string(k)
 	}
-	return string(k)
+	return s.IDFormat
 }
 
 // idPatterns maps each kind to the regex that matches its id format.
@@ -164,6 +146,136 @@ var (
 	decisionFile  = regexp.MustCompile(`^D-\d+(-.*)?\.md$`)
 	adrFile       = regexp.MustCompile(`^ADR-\d+(-.*)?\.md$`)
 )
+
+// Cardinality describes whether a reference field carries a single id
+// or a list of ids.
+type Cardinality string
+
+// Cardinality values used by RefField.
+const (
+	Single Cardinality = "single"
+	Multi  Cardinality = "multi"
+)
+
+// RefField describes one reference field on an entity. AllowedKinds
+// is the set of kinds the target id may resolve to; an empty slice
+// means any kind is allowed (e.g. gap.addressed_by, decision.relates_to).
+// Optional reports whether the field is allowed to be empty/absent.
+type RefField struct {
+	Name         string      `json:"name"`
+	Cardinality  Cardinality `json:"cardinality"`
+	AllowedKinds []Kind      `json:"allowed_kinds,omitempty"`
+	Optional     bool        `json:"optional"`
+}
+
+// Schema describes the frontmatter contract for one kind. It is the
+// single source of truth consulted by `aiwf schema` (the published
+// surface for skill authors) and by check.refsResolve (the runtime
+// enforcement). Drift between the two is pinned by a regression test
+// in the check package.
+type Schema struct {
+	Kind            Kind       `json:"kind"`
+	IDFormat        string     `json:"id_format"`
+	AllowedStatuses []string   `json:"allowed_statuses"`
+	RequiredFields  []string   `json:"required_fields"`
+	OptionalFields  []string   `json:"optional_fields,omitempty"`
+	References      []RefField `json:"references,omitempty"`
+}
+
+// commonRequired is the field set required on every kind: id and status
+// hard-required (frontmatter-shape errors), title soft-required (a
+// titles-nonempty warning if missing). All three are listed because the
+// schema verb describes "what a coherent entity carries," not the per-
+// finding severity of omission.
+var commonRequired = []string{"id", "title", "status"}
+
+// schemas is the per-kind schema table. The same data drives the
+// `aiwf schema` verb output and check.refsResolve's allowed-kinds set.
+// To add or change a field for a kind: edit this table, the Entity
+// struct's yaml-tagged field, and (if the field is a reference) the
+// matching arm in check.collectRefs. The TestSchemaMatchesCollectRefs
+// regression test will catch drift between the schema table and what
+// check.collectRefs actually reads.
+var schemas = map[Kind]Schema{
+	KindEpic: {
+		Kind:            KindEpic,
+		IDFormat:        "E-NN",
+		AllowedStatuses: []string{"proposed", "active", "done", "cancelled"},
+		RequiredFields:  commonRequired,
+	},
+	KindMilestone: {
+		Kind:            KindMilestone,
+		IDFormat:        "M-NNN",
+		AllowedStatuses: []string{"draft", "in_progress", "done", "cancelled"},
+		RequiredFields:  append(append([]string(nil), commonRequired...), "parent"),
+		OptionalFields:  []string{"depends_on"},
+		References: []RefField{
+			{Name: "parent", Cardinality: Single, AllowedKinds: []Kind{KindEpic}, Optional: false},
+			{Name: "depends_on", Cardinality: Multi, AllowedKinds: []Kind{KindMilestone}, Optional: true},
+		},
+	},
+	KindADR: {
+		Kind:            KindADR,
+		IDFormat:        "ADR-NNNN",
+		AllowedStatuses: []string{"proposed", "accepted", "superseded", "rejected"},
+		RequiredFields:  commonRequired,
+		OptionalFields:  []string{"supersedes", "superseded_by"},
+		References: []RefField{
+			{Name: "supersedes", Cardinality: Multi, AllowedKinds: []Kind{KindADR}, Optional: true},
+			{Name: "superseded_by", Cardinality: Single, AllowedKinds: []Kind{KindADR}, Optional: true},
+		},
+	},
+	KindGap: {
+		Kind:            KindGap,
+		IDFormat:        "G-NNN",
+		AllowedStatuses: []string{"open", "addressed", "wontfix"},
+		RequiredFields:  commonRequired,
+		OptionalFields:  []string{"discovered_in", "addressed_by"},
+		References: []RefField{
+			{Name: "discovered_in", Cardinality: Single, AllowedKinds: []Kind{KindMilestone, KindEpic}, Optional: true},
+			// addressed_by accepts any kind — empty AllowedKinds.
+			{Name: "addressed_by", Cardinality: Multi, Optional: true},
+		},
+	},
+	KindDecision: {
+		Kind:            KindDecision,
+		IDFormat:        "D-NNN",
+		AllowedStatuses: []string{"proposed", "accepted", "superseded", "rejected"},
+		RequiredFields:  commonRequired,
+		OptionalFields:  []string{"relates_to"},
+		References: []RefField{
+			// relates_to accepts any kind — empty AllowedKinds.
+			{Name: "relates_to", Cardinality: Multi, Optional: true},
+		},
+	},
+	KindContract: {
+		Kind:            KindContract,
+		IDFormat:        "C-NNN",
+		AllowedStatuses: []string{"proposed", "accepted", "deprecated", "retired", "rejected"},
+		RequiredFields:  commonRequired,
+		OptionalFields:  []string{"linked_adrs"},
+		References: []RefField{
+			{Name: "linked_adrs", Cardinality: Multi, AllowedKinds: []Kind{KindADR}, Optional: true},
+		},
+	},
+}
+
+// SchemaForKind returns the Schema for k. The second return is false
+// if k is not one of the six aiwf kinds. The returned Schema shares
+// slice memory with the package-level table; callers must not mutate it.
+func SchemaForKind(k Kind) (Schema, bool) {
+	s, ok := schemas[k]
+	return s, ok
+}
+
+// AllSchemas returns one Schema per kind, in AllKinds() order.
+func AllSchemas() []Schema {
+	out := make([]Schema, 0, len(schemas))
+	for _, k := range AllKinds() {
+		out = append(out, schemas[k])
+	}
+	return out
+}
 
 // idLeadingPattern matches the "<kind>-<digits>" prefix at the start of
 // a directory or file basename. ADR is listed first so RE2's leftmost

@@ -1,8 +1,8 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
 // Verbs: check, add, promote, cancel, rename, reallocate, init, update,
-// history, doctor, render, import, plus help/version. See docs/poc-plan.md
-// for the session breakdown that produced this surface.
+// history, doctor, render, import, schema, plus help/version. See
+// docs/poc-plan.md for the session breakdown that produced this surface.
 package main
 
 import (
@@ -82,6 +82,8 @@ func run(args []string) int {
 		return runWhoami(args[1:])
 	case "status":
 		return runStatus(args[1:])
+	case "schema":
+		return runSchema(args[1:])
 	case "contract":
 		return runContract(args[1:])
 	default:
@@ -111,6 +113,7 @@ Verbs:
   import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
   whoami                         print the resolved actor and the source it came from
   status                         project snapshot: in-flight work, open decisions, gaps, recent activity
+  schema [kind]                  print the frontmatter contract for one kind (or all six); read-only
   contract verify                run the verify and evolve passes for every contract binding in aiwf.yaml
   contract bind <C-id>           add or replace a binding in aiwf.yaml (--validator, --schema, --fixtures; --force to replace)
   contract unbind <C-id>         remove a binding from aiwf.yaml (entity status untouched)

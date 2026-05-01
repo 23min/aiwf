@@ -98,6 +98,18 @@ Resolved in commit `e2a39ee` (fix(aiwf): G14 — register stub for unparseable e
 
 ---
 
+### G15. No published per-kind schema for skill authors
+
+**Location:** `tools/internal/entity/entity.go` (the canonical schema is the `Entity` struct, but it's an internal type), `tools/internal/check/check.go` (per-kind required-fields and ref-field allowed-kinds tables live here, separately from the entity package).
+
+**Symptom:** Skill authors writing recipes that hand-edit aiwf-managed files have no place to look up "what fields aiwf understands per kind." The wrap-epic skill author guessed `completed:` was a valid epic field; aiwf's strict schema rejected it; the parse failure cascaded (G14). The decision-recording skill made the same class of mistake earlier with `date:` and `decided_by:` (rituals commit `b4b28b7`). Every new skill author repeats the discovery: read the Go source or trip an `aiwf check` finding to learn the schema.
+
+**Why it matters:** G14 reduces the *consequence* of these mistakes (1 finding instead of 13), but does not prevent them. As the skill ecosystem grows, mistakes that are cheap to make and silent to discover compound. Skill scaffolding tooling (e.g. an AI-driven skill author that wants to validate frontmatter before writing) needs a programmatic surface, not a docs page.
+
+**Proposed fix:** Add a read-only `aiwf schema [kind]` verb. With no kind, lists the schema for every kind; with a kind, prints just that one. Output covers: id format, allowed statuses, required fields, optional fields, and reference fields with their cardinality (single / multi) and allowed target kinds. Standard `--format=text|json` envelope per `tools/CLAUDE.md`. The verb reads from a single `entity.SchemaForKind` source-of-truth that also drives `check.refsResolve`'s allowed-kinds table — pinned by a regression test so the schema verb cannot drift from what the engine actually enforces. KISS: no plugin layer, no per-project customization (kinds are hardcoded per the PoC); the schema verb is just a printer over the existing entity-package metadata, plus a small data move so `check` no longer has its own private copy of the ref-field rules.
+
+---
+
 ## Status matrix
 
 | ID  | Title                                                       | Severity | Status |
@@ -116,5 +128,6 @@ Resolved in commit `e2a39ee` (fix(aiwf): G14 — register stub for unparseable e
 | G12 | Pre-push hook hard-codes binary path at install time        | Low      | [x] `8ed5051` |
 | G13 | No Windows guard                                            | Low      | [x] `dda370d` |
 | G14 | Parse failure cascades into refs-resolve findings           | Medium   | [x] `e2a39ee` |
+| G15 | No published per-kind schema for skill authors              | Medium   | [ ] |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
