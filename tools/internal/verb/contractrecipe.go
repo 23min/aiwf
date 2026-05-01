@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -24,7 +25,8 @@ type RecipeInstallOptions struct {
 // The returned Plan trailers carry one `aiwf-entity:` per binding
 // currently referencing `name` in aiwf.yaml.contracts.entries[] so
 // `aiwf history` for those contracts surfaces the recipe change.
-func RecipeInstall(doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name string, validator aiwfyaml.Validator, actor string, opts RecipeInstallOptions) (*Result, error) {
+func RecipeInstall(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name string, validator aiwfyaml.Validator, actor string, opts RecipeInstallOptions) (*Result, error) {
+	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
 	}
@@ -71,7 +73,8 @@ func RecipeInstall(doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name string, 
 // aiwf.yaml.contracts.validators. Errors when one or more bindings
 // in entries[] still reference the validator — the user must
 // `unbind` or rebind those contracts first.
-func RecipeRemove(doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name, actor string) (*Result, error) {
+func RecipeRemove(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name, actor string) (*Result, error) {
+	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
 	}

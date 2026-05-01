@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -31,7 +32,8 @@ import (
 // The commit gets an aiwf-prior-entity: <old-id> trailer in addition
 // to the standard three, so `aiwf history <old-id>` continues to find
 // the entity's lifecycle even after the renumber.
-func Reallocate(t *tree.Tree, idOrPath, actor string) (*Result, error) {
+func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Result, error) {
+	_ = ctx
 	target := resolveTarget(t, idOrPath)
 	if target == nil {
 		return nil, fmt.Errorf("entity %q not found by id or path", idOrPath)

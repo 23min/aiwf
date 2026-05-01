@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,7 +25,8 @@ import (
 // Returns a Go error for "couldn't even start": id not found, illegal
 // transition. Tree-level findings caused by the change are returned as
 // a Result with non-empty Findings.
-func Promote(t *tree.Tree, id, newStatus, actor, reason string) (*Result, error) {
+func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason string) (*Result, error) {
+	_ = ctx
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
@@ -71,7 +73,8 @@ func Promote(t *tree.Tree, id, newStatus, actor, reason string) (*Result, error)
 // reason is optional free-form prose; when non-empty, it lands in the
 // commit body so the cancellation's "why" is preserved for future
 // readers. Empty reason matches today's body-less behaviour.
-func Cancel(t *tree.Tree, id, actor, reason string) (*Result, error) {
+func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string) (*Result, error) {
+	_ = ctx
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)

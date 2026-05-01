@@ -83,7 +83,7 @@ func runImport(args []string) int {
 		return exitInternal
 	}
 
-	res, err := verb.Import(tr, m, actorStr, verb.ImportOptions{OnCollision: *onCollision})
+	res, err := verb.Import(ctx, tr, m, actorStr, verb.ImportOptions{OnCollision: *onCollision})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
 		return exitUsage

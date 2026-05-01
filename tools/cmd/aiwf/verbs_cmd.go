@@ -89,7 +89,7 @@ func runAdd(args []string) int {
 		opts.AiwfContracts = contracts
 	}
 
-	result, err := verb.Add(tr, k, *title, actorStr, opts)
+	result, err := verb.Add(ctx, tr, k, *title, actorStr, opts)
 	return finishVerb(ctx, rootDir, "aiwf add", result, err)
 }
 
@@ -150,7 +150,7 @@ func runPromote(args []string) int {
 		return exitInternal
 	}
 
-	result, err := verb.Promote(tr, id, newStatus, actorStr, *reason)
+	result, err := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason)
 	return finishVerb(ctx, rootDir, "aiwf promote", result, err)
 }
 
@@ -194,7 +194,7 @@ func runCancel(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.Cancel(tr, id, actorStr, *reason)
+	result, err := verb.Cancel(ctx, tr, id, actorStr, *reason)
 	return finishVerb(ctx, rootDir, "aiwf cancel", result, err)
 }
 
@@ -237,7 +237,7 @@ func runRename(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf rename: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.Rename(tr, id, newSlug, actorStr)
+	result, err := verb.Rename(ctx, tr, id, newSlug, actorStr)
 	return finishVerb(ctx, rootDir, "aiwf rename", result, err)
 }
 
@@ -286,7 +286,7 @@ func runMove(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf move: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.Move(tr, id, *epic, actorStr)
+	result, err := verb.Move(ctx, tr, id, *epic, actorStr)
 	return finishVerb(ctx, rootDir, "aiwf move", result, err)
 }
 
@@ -329,7 +329,7 @@ func runReallocate(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.Reallocate(tr, target, actorStr)
+	result, err := verb.Reallocate(ctx, tr, target, actorStr)
 	return finishVerb(ctx, rootDir, "aiwf reallocate", result, err)
 }
 

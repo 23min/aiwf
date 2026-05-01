@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -26,7 +27,8 @@ import (
 // Returns a Go error for "couldn't even start": id not found, slug
 // produces an invalid path, source path missing on disk. Tree-level
 // findings caused by the move are returned in Result.Findings.
-func Rename(t *tree.Tree, id, newSlug, actor string) (*Result, error) {
+func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string) (*Result, error) {
+	_ = ctx
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)

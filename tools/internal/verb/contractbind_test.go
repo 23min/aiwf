@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -51,7 +52,7 @@ func TestContractBind_NewBinding(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
-	res, err := ContractBind(tr, d, c, "C-001", "human/test", ContractBindOptions{
+	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
 		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 	})
 	if err != nil {
@@ -79,7 +80,7 @@ func TestContractBind_IdempotentExactMatch(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, src)
 
-	res, err := ContractBind(tr, d, c, "C-001", "human/test", ContractBindOptions{
+	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
 		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 	})
 	if err != nil {
@@ -102,7 +103,7 @@ func TestContractBind_DifferentValuesRequiresForce(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, src)
 
-	_, err := ContractBind(tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
 		Validator: "cue", Schema: "new.cue", Fixtures: "new",
 	})
 	if err == nil {
@@ -122,7 +123,7 @@ func TestContractBind_ForceReplaces(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, src)
 
-	res, err := ContractBind(tr, d, c, "C-001", "human/test", ContractBindOptions{
+	res, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
 		Validator: "cue", Schema: "new.cue", Fixtures: "new", Force: true,
 	})
 	if err != nil {
@@ -141,7 +142,7 @@ func TestContractBind_RejectsMissingEntity(t *testing.T) {
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
-	_, err := ContractBind(tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
 		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 	})
 	if err == nil || !strings.Contains(err.Error(), "no contract entity") {
@@ -153,7 +154,7 @@ func TestContractBind_RejectsUndeclaredValidator(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
-	_, err := ContractBind(tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
 		Validator: "ghost", Schema: "schema.cue", Fixtures: "fixtures",
 	})
 	if err == nil || !strings.Contains(err.Error(), "ghost") {
@@ -165,7 +166,7 @@ func TestContractBind_RejectsMissingFlags(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
-	_, err := ContractBind(tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
 		Validator: "cue", // schema and fixtures missing
 	})
 	if err == nil {
@@ -181,7 +182,7 @@ func TestContractUnbind_Removes(t *testing.T) {
       fixtures: f`, 1)
 	d, c := mustReadDoc(t, src)
 
-	res, err := ContractUnbind(d, c, "C-001", "human/test")
+	res, err := ContractUnbind(context.Background(), d, c, "C-001", "human/test")
 	if err != nil {
 		t.Fatalf("ContractUnbind: %v", err)
 	}
@@ -198,7 +199,7 @@ func TestContractUnbind_Removes(t *testing.T) {
 
 func TestContractUnbind_RejectsMissingEntry(t *testing.T) {
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := ContractUnbind(d, c, "C-001", "human/test")
+	_, err := ContractUnbind(context.Background(), d, c, "C-001", "human/test")
 	if err == nil {
 		t.Fatal("expected error for missing entry")
 	}
@@ -209,7 +210,7 @@ func TestContractUnbind_RejectsNoContractsBlock(t *testing.T) {
 actor: human/test
 `
 	d, c := mustReadDoc(t, src)
-	_, err := ContractUnbind(d, c, "C-001", "human/test")
+	_, err := ContractUnbind(context.Background(), d, c, "C-001", "human/test")
 	if err == nil {
 		t.Fatal("expected error when no contracts: block exists")
 	}
@@ -268,7 +269,7 @@ func TestAdd_ContractWithBindingProducesTwoOps(t *testing.T) {
 	}
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
-	res, err := Add(tr, entity.KindContract, "Public API", "human/test", AddOptions{
+	res, err := Add(context.Background(), tr, entity.KindContract, "Public API", "human/test", AddOptions{
 		LinkedADRs:    []string{"ADR-0001"},
 		BindValidator: "cue",
 		BindSchema:    "schema.cue",
@@ -306,7 +307,7 @@ func TestAdd_ContractWithBindingProducesTwoOps(t *testing.T) {
 func TestAdd_ContractRejectsPartialBindTriplet(t *testing.T) {
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := Add(tr, entity.KindContract, "Public API", "human/test", AddOptions{
+	_, err := Add(context.Background(), tr, entity.KindContract, "Public API", "human/test", AddOptions{
 		BindValidator: "cue",
 		// schema and fixtures missing
 		AiwfDoc:       d,
@@ -319,7 +320,7 @@ func TestAdd_ContractRejectsPartialBindTriplet(t *testing.T) {
 
 func TestAdd_NonContractRejectsContractFlags(t *testing.T) {
 	tr := &tree.Tree{}
-	_, err := Add(tr, entity.KindEpic, "Epic", "human/test", AddOptions{
+	_, err := Add(context.Background(), tr, entity.KindEpic, "Epic", "human/test", AddOptions{
 		LinkedADRs: []string{"ADR-0001"},
 	})
 	if err == nil {
@@ -335,7 +336,7 @@ func TestAdd_NonContractRejectsContractFlags(t *testing.T) {
 // so we refuse rather than write the entity in isolation.
 func TestAdd_ContractBindWithoutAiwfDocRejected(t *testing.T) {
 	tr := &tree.Tree{}
-	_, err := Add(tr, entity.KindContract, "API", "human/test", AddOptions{
+	_, err := Add(context.Background(), tr, entity.KindContract, "API", "human/test", AddOptions{
 		BindValidator: "cue",
 		BindSchema:    "schema.cue",
 		BindFixtures:  "fixtures",
@@ -352,7 +353,7 @@ func TestAdd_ContractBindWithoutAiwfDocRejected(t *testing.T) {
 func TestAdd_ContractBindWithUndeclaredValidatorRejected(t *testing.T) {
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := Add(tr, entity.KindContract, "API", "human/test", AddOptions{
+	_, err := Add(context.Background(), tr, entity.KindContract, "API", "human/test", AddOptions{
 		BindValidator: "ghost",
 		BindSchema:    "schema.cue",
 		BindFixtures:  "fixtures",
@@ -370,7 +371,7 @@ func TestAdd_ContractBindWithUndeclaredValidatorRejected(t *testing.T) {
 func TestContractBind_RejectsEmptyID(t *testing.T) {
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := ContractBind(tr, d, c, "", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "", "human/test", ContractBindOptions{
 		Validator: "cue", Schema: "s", Fixtures: "f",
 	})
 	if err == nil {
@@ -388,7 +389,7 @@ func TestContractBind_RejectsNonContractEntity(t *testing.T) {
 		}},
 	}
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := ContractBind(tr, d, c, "E-01", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "E-01", "human/test", ContractBindOptions{
 		Validator: "cue", Schema: "s", Fixtures: "f",
 	})
 	if err == nil || !strings.Contains(err.Error(), "epic") {
@@ -421,7 +422,7 @@ contracts:
       fixtures: fc
 `
 	d, c := mustReadDoc(t, src)
-	res, err := ContractUnbind(d, c, "C-002", "human/test")
+	res, err := ContractUnbind(context.Background(), d, c, "C-002", "human/test")
 	if err != nil {
 		t.Fatalf("ContractUnbind: %v", err)
 	}
@@ -441,7 +442,7 @@ contracts:
 func TestContractBind_PartialBindOptionsRejected(t *testing.T) {
 	tr := contractTree("C-001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := ContractBind(tr, d, c, "C-001", "human/test", ContractBindOptions{
+	_, err := ContractBind(context.Background(), tr, d, c, "C-001", "human/test", ContractBindOptions{
 		Validator: "cue",
 		Schema:    "s",
 		// Fixtures missing

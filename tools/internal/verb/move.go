@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -23,7 +24,8 @@ import (
 // the target epic. Tree-level findings caused by the move (e.g. a
 // depends_on cycle introduced by the new neighborhood) are returned in
 // Result.Findings.
-func Move(t *tree.Tree, id, newEpicID, actor string) (*Result, error) {
+func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Result, error) {
+	_ = ctx
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)

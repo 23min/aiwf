@@ -2,6 +2,7 @@ package verb
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -68,7 +69,8 @@ type plannedEntry struct {
 //  6. run projectionFindings; abort with findings if any error level
 //     issues are introduced.
 //  7. assemble plans according to the manifest's commit mode.
-func Import(t *tree.Tree, m *manifest.Manifest, actor string, opts ImportOptions) (*ImportResult, error) {
+func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor string, opts ImportOptions) (*ImportResult, error) {
+	_ = ctx
 	if opts.OnCollision == "" {
 		opts.OnCollision = OnCollisionFail
 	}

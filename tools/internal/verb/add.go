@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -53,7 +54,8 @@ type AddOptions struct {
 // required option, parent epic not found, contract-only flag on
 // non-contract kind, partial bind triplet). Tree-integrity issues
 // arising from the addition are returned as findings, not errors.
-func Add(t *tree.Tree, kind entity.Kind, title, actor string, opts AddOptions) (*Result, error) {
+func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor string, opts AddOptions) (*Result, error) {
+	_ = ctx // reserved for future IO; verbs are currently pure-projection and IO happens in Apply
 	if title == "" {
 		return nil, fmt.Errorf("--title is required")
 	}

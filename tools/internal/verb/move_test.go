@@ -17,11 +17,11 @@ import (
 // rewritten, and the commit carries the expected trailers.
 func TestMove_RoundTrip(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "First half", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Second half", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.tree(), entity.KindMilestone, "Travelling", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First half", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second half", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Travelling", testActor, verb.AddOptions{EpicID: "E-01"}))
 
-	r.must(verb.Move(r.tree(), "M-001", "E-02", testActor))
+	r.must(verb.Move(r.ctx, r.tree(), "M-001", "E-02", testActor))
 
 	oldPath := filepath.Join(r.root, "work", "epics", "E-01-first-half", "M-001-travelling.md")
 	if _, err := os.Stat(oldPath); !os.IsNotExist(err) {
@@ -60,12 +60,12 @@ func TestMove_RoundTrip(t *testing.T) {
 // the load-bearing property of stable ids.
 func TestMove_PreservesReferencingGap(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Second", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.tree(), entity.KindMilestone, "Travelling", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.Add(r.tree(), entity.KindGap, "Found something", testActor, verb.AddOptions{DiscoveredIn: "M-001"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Travelling", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Found something", testActor, verb.AddOptions{DiscoveredIn: "M-001"}))
 
-	r.must(verb.Move(r.tree(), "M-001", "E-02", testActor))
+	r.must(verb.Move(r.ctx, r.tree(), "M-001", "E-02", testActor))
 
 	if findings := check.Run(r.tree(), nil); check.HasErrors(findings) {
 		t.Errorf("references broke: %+v", findings)
@@ -78,10 +78,10 @@ func TestMove_PreservesReferencingGap(t *testing.T) {
 
 func TestMove_RejectsNonMilestone(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Bar", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Bar", testActor, verb.AddOptions{}))
 
-	_, err := verb.Move(r.tree(), "E-01", "E-02", testActor)
+	_, err := verb.Move(r.ctx, r.tree(), "E-01", "E-02", testActor)
 	if err == nil || !strings.Contains(err.Error(), "only milestones") {
 		t.Errorf("expected non-milestone error, got %v", err)
 	}
@@ -89,9 +89,9 @@ func TestMove_RejectsNonMilestone(t *testing.T) {
 
 func TestMove_RejectsUnknownID(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 
-	_, err := verb.Move(r.tree(), "M-999", "E-01", testActor)
+	_, err := verb.Move(r.ctx, r.tree(), "M-999", "E-01", testActor)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected not-found error, got %v", err)
 	}
@@ -99,10 +99,10 @@ func TestMove_RejectsUnknownID(t *testing.T) {
 
 func TestMove_RejectsUnknownEpic(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
 
-	_, err := verb.Move(r.tree(), "M-001", "E-99", testActor)
+	_, err := verb.Move(r.ctx, r.tree(), "M-001", "E-99", testActor)
 	if err == nil || !strings.Contains(err.Error(), "does not exist") {
 		t.Errorf("expected target-not-found error, got %v", err)
 	}
@@ -110,11 +110,11 @@ func TestMove_RejectsUnknownEpic(t *testing.T) {
 
 func TestMove_RejectsTargetWrongKind(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.Add(r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
 
-	_, err := verb.Move(r.tree(), "M-001", "G-001", testActor)
+	_, err := verb.Move(r.ctx, r.tree(), "M-001", "G-001", testActor)
 	if err == nil || !strings.Contains(err.Error(), "is not an epic") {
 		t.Errorf("expected wrong-kind error, got %v", err)
 	}
@@ -122,10 +122,10 @@ func TestMove_RejectsTargetWrongKind(t *testing.T) {
 
 func TestMove_RejectsSameEpic(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
 
-	_, err := verb.Move(r.tree(), "M-001", "E-01", testActor)
+	_, err := verb.Move(r.ctx, r.tree(), "M-001", "E-01", testActor)
 	if err == nil || !strings.Contains(err.Error(), "already under") {
 		t.Errorf("expected same-epic error, got %v", err)
 	}
@@ -133,10 +133,10 @@ func TestMove_RejectsSameEpic(t *testing.T) {
 
 func TestMove_RequiresEpicFlag(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
 
-	_, err := verb.Move(r.tree(), "M-001", "", testActor)
+	_, err := verb.Move(r.ctx, r.tree(), "M-001", "", testActor)
 	if err == nil || !strings.Contains(err.Error(), "--epic") {
 		t.Errorf("expected --epic-required error, got %v", err)
 	}

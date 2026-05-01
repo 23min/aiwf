@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -16,7 +17,7 @@ contracts:
 
 func TestRecipeInstall_NewValidator(t *testing.T) {
 	d, c := mustReadDoc(t, recipeBaseYAML)
-	res, err := RecipeInstall(d, c, "cue", aiwfyaml.Validator{
+	res, err := RecipeInstall(context.Background(), d, c, "cue", aiwfyaml.Validator{
 		Command: "cue", Args: []string{"vet", "{{schema}}", "{{fixture}}"},
 	}, "human/test", RecipeInstallOptions{})
 	if err != nil {
@@ -41,7 +42,7 @@ func TestRecipeInstall_IdempotentExactMatch(t *testing.T) {
         - "{{schema}}"
         - "{{fixture}}"`, 1)
 	d, c := mustReadDoc(t, src)
-	res, err := RecipeInstall(d, c, "cue", aiwfyaml.Validator{
+	res, err := RecipeInstall(context.Background(), d, c, "cue", aiwfyaml.Validator{
 		Command: "cue", Args: []string{"vet", "{{schema}}", "{{fixture}}"},
 	}, "human/test", RecipeInstallOptions{})
 	if err != nil {
@@ -59,7 +60,7 @@ func TestRecipeInstall_DifferentRequiresForce(t *testing.T) {
       args:
         - eval`, 1)
 	d, c := mustReadDoc(t, src)
-	_, err := RecipeInstall(d, c, "cue", aiwfyaml.Validator{
+	_, err := RecipeInstall(context.Background(), d, c, "cue", aiwfyaml.Validator{
 		Command: "cue", Args: []string{"vet"},
 	}, "human/test", RecipeInstallOptions{})
 	if err == nil || !strings.Contains(err.Error(), "force") {
@@ -95,7 +96,7 @@ contracts:
       fixtures: fc
 `
 	d, c := mustReadDoc(t, src)
-	res, err := RecipeInstall(d, c, "cue", aiwfyaml.Validator{
+	res, err := RecipeInstall(context.Background(), d, c, "cue", aiwfyaml.Validator{
 		Command: "cue", Args: []string{"vet", "--all"},
 	}, "human/test", RecipeInstallOptions{Force: true})
 	if err != nil {
@@ -128,7 +129,7 @@ func TestRecipeRemove_Success(t *testing.T) {
       args:
         - vet`, 1)
 	d, c := mustReadDoc(t, src)
-	res, err := RecipeRemove(d, c, "cue", "human/test")
+	res, err := RecipeRemove(context.Background(), d, c, "cue", "human/test")
 	if err != nil {
 		t.Fatalf("RecipeRemove: %v", err)
 	}
@@ -153,7 +154,7 @@ contracts:
       fixtures: f
 `
 	d, c := mustReadDoc(t, src)
-	_, err := RecipeRemove(d, c, "cue", "human/test")
+	_, err := RecipeRemove(context.Background(), d, c, "cue", "human/test")
 	if err == nil || !strings.Contains(err.Error(), "C-001") {
 		t.Errorf("expected error naming C-001; got %v", err)
 	}
@@ -161,7 +162,7 @@ contracts:
 
 func TestRecipeRemove_RejectsMissingValidator(t *testing.T) {
 	d, c := mustReadDoc(t, recipeBaseYAML)
-	if _, err := RecipeRemove(d, c, "ghost", "human/test"); err == nil {
+	if _, err := RecipeRemove(context.Background(), d, c, "ghost", "human/test"); err == nil {
 		t.Error("expected error for missing validator")
 	}
 }
@@ -170,7 +171,7 @@ func TestRecipeRemove_RejectsMissingValidator(t *testing.T) {
 
 func TestRecipeInstall_RejectsEmptyName(t *testing.T) {
 	d, c := mustReadDoc(t, recipeBaseYAML)
-	_, err := RecipeInstall(d, c, "", aiwfyaml.Validator{Command: "x"}, "human/test", RecipeInstallOptions{})
+	_, err := RecipeInstall(context.Background(), d, c, "", aiwfyaml.Validator{Command: "x"}, "human/test", RecipeInstallOptions{})
 	if err == nil {
 		t.Error("expected error for empty name")
 	}
@@ -178,7 +179,7 @@ func TestRecipeInstall_RejectsEmptyName(t *testing.T) {
 
 func TestRecipeInstall_RejectsEmptyCommand(t *testing.T) {
 	d, c := mustReadDoc(t, recipeBaseYAML)
-	_, err := RecipeInstall(d, c, "x", aiwfyaml.Validator{Command: ""}, "human/test", RecipeInstallOptions{})
+	_, err := RecipeInstall(context.Background(), d, c, "x", aiwfyaml.Validator{Command: ""}, "human/test", RecipeInstallOptions{})
 	if err == nil {
 		t.Error("expected error for empty command")
 	}
@@ -188,7 +189,7 @@ func TestRecipeInstall_NoTrailersForUnreferencedValidator(t *testing.T) {
 	// Brand-new validator with no bindings yet — install should NOT
 	// emit any aiwf-entity trailers.
 	d, c := mustReadDoc(t, recipeBaseYAML)
-	res, err := RecipeInstall(d, c, "fresh", aiwfyaml.Validator{
+	res, err := RecipeInstall(context.Background(), d, c, "fresh", aiwfyaml.Validator{
 		Command: "fresh", Args: []string{"--check"},
 	}, "human/test", RecipeInstallOptions{})
 	if err != nil {
@@ -208,7 +209,7 @@ func TestRecipeInstall_ForceUpdatesArgsAndKeepsValidator(t *testing.T) {
       args:
         - vet`, 1)
 	d, c := mustReadDoc(t, src)
-	res, err := RecipeInstall(d, c, "cue", aiwfyaml.Validator{
+	res, err := RecipeInstall(context.Background(), d, c, "cue", aiwfyaml.Validator{
 		Command: "cue",
 		Args:    []string{"vet", "--all"},
 	}, "human/test", RecipeInstallOptions{Force: true})
@@ -240,7 +241,7 @@ contracts:
       fixtures: fb
 `
 	d, c := mustReadDoc(t, src)
-	_, err := RecipeRemove(d, c, "cue", "human/test")
+	_, err := RecipeRemove(context.Background(), d, c, "cue", "human/test")
 	if err == nil {
 		t.Fatal("expected error for referenced validator")
 	}

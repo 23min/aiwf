@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/aiwfyaml"
@@ -35,7 +36,8 @@ type ContractBindOptions struct {
 // On success, the returned Plan carries one OpWrite for aiwf.yaml
 // with the spliced contracts: block; the orchestrator commits it
 // with the bind trailers.
-func ContractBind(t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, id, actor string, opts ContractBindOptions) (*Result, error) {
+func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, id, actor string, opts ContractBindOptions) (*Result, error) {
+	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
 	}
@@ -100,7 +102,8 @@ func ContractBind(t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, 
 // aiwf.yaml.contracts.entries[]. The contract entity is left
 // untouched; its status governs whether pre-push verification still
 // runs (it doesn't, once unbound). Errors when no binding exists.
-func ContractUnbind(doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, id, actor string) (*Result, error) {
+func ContractUnbind(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, id, actor string) (*Result, error) {
+	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
 	}

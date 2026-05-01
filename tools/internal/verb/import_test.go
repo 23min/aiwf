@@ -64,7 +64,7 @@ entities:
     body: "## Goal\nStart things.\n"
 `
 	m := loadManifest(t, src)
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -121,7 +121,7 @@ entities:
     frontmatter: {title: "Third", status: proposed}
 `
 	m := loadManifest(t, src)
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -143,7 +143,7 @@ entities:
 func TestImport_AutoAllocatesAboveExistingTree(t *testing.T) {
 	r := newRunner(t)
 	// Pre-populate via Add so the tree has E-01 (Foundations).
-	r.must(verb.Add(r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 
 	src := `version: 1
 entities:
@@ -152,7 +152,7 @@ entities:
     frontmatter: {title: "Next", status: proposed}
 `
 	m := loadManifest(t, src)
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -178,14 +178,14 @@ entities:
     frontmatter: {title: "X", status: active}
 `
 	m := loadManifest(t, src)
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
 	if err != nil {
 		t.Fatalf("Import #1: %v", err)
 	}
 	applyImport(t, r, res.Plans)
 
 	// Second pass: same manifest, same explicit id.
-	res2, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{})
+	res2, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
 	if err != nil {
 		t.Fatalf("Import #2: %v", err)
 	}
@@ -202,7 +202,7 @@ entities:
 // entry is dropped and other entries still import.
 func TestImport_CollisionSkip(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
 
 	src := `version: 1
 entities:
@@ -214,7 +214,7 @@ entities:
     frontmatter: {title: "Lands", status: active}
 `
 	m := loadManifest(t, src)
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{OnCollision: verb.OnCollisionSkip})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{OnCollision: verb.OnCollisionSkip})
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -238,7 +238,7 @@ entities:
 // frontmatter and body.
 func TestImport_CollisionUpdate(t *testing.T) {
 	r := newRunner(t)
-	r.must(verb.Add(r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
 
 	src := `version: 1
 entities:
@@ -250,7 +250,7 @@ entities:
       Now updated.
 `
 	m := loadManifest(t, src)
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{OnCollision: verb.OnCollisionUpdate})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{OnCollision: verb.OnCollisionUpdate})
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -282,7 +282,7 @@ entities:
     frontmatter: {title: "B", status: active}
 `
 	m := loadManifest(t, src)
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -310,7 +310,7 @@ entities:
     frontmatter: {title: "B", status: active}
 `
 	m := loadManifest(t, src)
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -347,7 +347,7 @@ entities:
 	// resolution errors are programmer-facing; tree-validity errors
 	// are findings. Either is acceptable here as long as no plans
 	// come back.
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
 	if err == nil && len(res.Plans) > 0 {
 		t.Fatalf("expected error or findings; got plans=%v", res.Plans)
 	}
@@ -357,7 +357,7 @@ entities:
 func TestImport_UnknownOnCollision(t *testing.T) {
 	r := newRunner(t)
 	m := loadManifest(t, "version: 1\nentities: []\n")
-	_, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{OnCollision: "explode"})
+	_, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{OnCollision: "explode"})
 	if err == nil {
 		t.Fatal("expected error for unknown --on-collision")
 	}
@@ -378,7 +378,7 @@ entities:
     frontmatter: {title: "Frost it", status: draft, parent: E-01}
 `
 	m := loadManifest(t, src)
-	res, err := verb.Import(r.tree(), m, testActor, verb.ImportOptions{})
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}

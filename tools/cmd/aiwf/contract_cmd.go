@@ -249,7 +249,7 @@ func runContractBind(args []string) int {
 		return exitUsage
 	}
 
-	result, err := verb.ContractBind(tr, doc, contracts, id, actorStr, verb.ContractBindOptions{
+	result, err := verb.ContractBind(ctx, tr, doc, contracts, id, actorStr, verb.ContractBindOptions{
 		Validator: *validator,
 		Schema:    *schema,
 		Fixtures:  *fixtures,
@@ -388,7 +388,7 @@ func runContractRecipeInstall(args []string) int {
 	}
 
 	ctx := context.Background()
-	result, err := verb.RecipeInstall(doc, contracts, r.Name, r.Validator, actorStr, verb.RecipeInstallOptions{Force: *force})
+	result, err := verb.RecipeInstall(ctx, doc, contracts, r.Name, r.Validator, actorStr, verb.RecipeInstallOptions{Force: *force})
 	return finishVerb(ctx, rootDir, "aiwf contract recipe install", result, err)
 }
 
@@ -432,7 +432,7 @@ func runContractRecipeRemove(args []string) int {
 	}
 
 	ctx := context.Background()
-	result, err := verb.RecipeRemove(doc, contracts, name, actorStr)
+	result, err := verb.RecipeRemove(ctx, doc, contracts, name, actorStr)
 	return finishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err)
 }
 
@@ -486,7 +486,7 @@ func runContractUnbind(args []string) int {
 		return exitUsage
 	}
 
-	result, err := verb.ContractUnbind(doc, contracts, id, actorStr)
+	result, err := verb.ContractUnbind(ctx, doc, contracts, id, actorStr)
 	return finishVerb(ctx, rootDir, "aiwf contract unbind", result, err)
 }
 
