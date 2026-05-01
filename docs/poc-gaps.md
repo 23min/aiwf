@@ -22,18 +22,9 @@ Resolved in commit `f77740c` (fix(aiwf): G2 — atomic rollback on Apply failure
 
 ---
 
-### G3. Pre-push hook fails opaquely when validators are missing
+### G3. Pre-push hook fails opaquely when validators are missing — **resolved**
 
-**Location:** `tools/cmd/aiwf/main.go` (`runCheck`), `tools/internal/contractverify/contractverify.go`, hook installer in `tools/internal/initrepo/initrepo.go`.
-
-**Symptom:** Once any contract is bound in `aiwf.yaml`, `aiwf check` (and therefore the pre-push hook) runs contract verification unconditionally. If a contributor doesn't have the configured validator (`cue`, `jsonschema`, etc.) installed, every push fails with an exec-not-found error, even if their changes don't touch contracts.
-
-**Why it matters:** `docs/poc-design-decisions.md` explicitly states the framework's enforcement must not depend on the developer's local toolchain — otherwise the guarantee evaporates the moment one machine is misconfigured. This is a slow violation of that principle, introduced incidentally by I1.
-
-**Proposed fix:** Distinguish "validator unavailable" from "contract invalid":
-- If the validator binary is missing on PATH, emit a `contract-config` warning (subcode `validator-unavailable`) with a clear remediation message ("install cue: …") and skip that contract's verification.
-- Do not fail the hook on `validator-unavailable` unless an opt-in flag (`--strict-validators` or `aiwf.yaml: contracts.strict_validators: true`) is set.
-- Add a `aiwf doctor` line that lists configured validators and whether each is on PATH.
+Resolved in commit `23f4231` (fix(aiwf): G3 — validator-unavailable is a warning, opt-in to strict). New `contractverify.CodeValidatorUnavailable` separate from `CodeEnvironment`. Default rendering: `contract-config` finding with subcode `validator-unavailable`, severity `warning`, exit 0. Opt in to strict mode via `aiwf.yaml: contracts.strict_validators: true` to upgrade to error. `aiwf doctor` now lists each configured validator with available/missing markers and explains the consequence (warning vs. blocking depending on strict_validators). aiwfyaml round-trips the new field. Tests cover the warning path, strict path, the YAML round-trip, and the doctor reporting in both modes.
 
 ---
 
@@ -171,7 +162,7 @@ Resolved in commit `f77740c` (fix(aiwf): G2 — atomic rollback on Apply failure
 |-----|-------------------------------------------------------------|----------|--------|
 | G1  | Contract paths can escape the repo (via `..` or symlinks)   | High     | [x] `4ec5d84` |
 | G2  | `Apply` is not atomic on partial failure                    | High     | [x] `f77740c` |
-| G3  | Pre-push hook fails opaquely when validators are missing    | High     | [ ]    |
+| G3  | Pre-push hook fails opaquely when validators are missing    | High     | [x] `23f4231` |
 | G4  | No concurrent-invocation guard                              | High     | [ ]    |
 | G5  | Reallocate's prose references are warnings, not errors      | Medium   | [ ]    |
 | G6  | Design docs are stale relative to I1 (contracts)            | Medium   | [ ]    |
