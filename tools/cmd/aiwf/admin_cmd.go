@@ -472,6 +472,11 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 	//    collisions; this line just surfaces the platform fact.
 	lines = append(lines, fmt.Sprintf("filesystem: %s (%s)", filesystemCaseLabel(rootDir), rootDir))
 
+	// 6. Pre-push hook: present, marker-tagged, and pointing at a
+	//    binary that still exists. Catches the G12 drift case where
+	//    `aiwf init` baked in an absolute path that's since moved.
+	lines, problems = appendHookReport(lines, problems, rootDir)
+
 	// 5. Rituals-plugin presence (soft note — does not increment
 	// problems). Best-effort heuristic: greps project/local settings
 	// for `aiwf-extensions`. User-scope installs are invisible here,
@@ -490,6 +495,76 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 	}
 
 	return lines, problems
+}
+
+// appendHookReport inspects .git/hooks/pre-push and reports its
+// state: missing, present-but-not-aiwf-managed, stale (the embedded
+// absolute binary path no longer exists), or ok. A stale or
+// missing-from-tracked-managed hook is a problem; a non-aiwf hook
+// is a warning surfaced as informational text.
+func appendHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+	lines = in
+	problems = problemsIn
+
+	hookPath := filepath.Join(rootDir, ".git", "hooks", "pre-push")
+	raw, err := os.ReadFile(hookPath)
+	if errors.Is(err, os.ErrNotExist) {
+		lines = append(lines, "hook:      missing — pre-push validation not installed; run `aiwf init` to install")
+		problems++
+		return lines, problems
+	}
+	if err != nil {
+		lines = append(lines, "hook:      "+err.Error())
+		problems++
+		return lines, problems
+	}
+	if !strings.Contains(string(raw), "# aiwf:pre-push") {
+		lines = append(lines, "hook:      present but not aiwf-managed (no `# aiwf:pre-push` marker); aiwf check is not running pre-push")
+		return lines, problems
+	}
+	// Extract the absolute path from `exec '<path>' check`.
+	embedded := extractHookExecPath(string(raw))
+	if embedded == "" {
+		lines = append(lines, "hook:      aiwf-managed but malformed (no exec line found); run `aiwf init` to refresh")
+		problems++
+		return lines, problems
+	}
+	if _, statErr := os.Stat(embedded); statErr != nil {
+		lines = append(lines, fmt.Sprintf("hook:      stale path %s — binary moved or removed; run `aiwf init` to refresh", embedded))
+		problems++
+		return lines, problems
+	}
+	lines = append(lines, fmt.Sprintf("hook:      ok (%s)", embedded))
+	return lines, problems
+}
+
+// extractHookExecPath pulls the binary path out of the hook script's
+// `exec '<path>' check` line. Returns empty when no such line is
+// found (malformed hook).
+func extractHookExecPath(script string) string {
+	for _, line := range strings.Split(script, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "exec ") {
+			continue
+		}
+		// `exec '/path/to/aiwf' check` — pull the single-quoted segment.
+		rest := strings.TrimPrefix(line, "exec ")
+		if !strings.HasPrefix(rest, "'") {
+			// Bare exec word; take the first token before space.
+			if idx := strings.IndexByte(rest, ' '); idx > 0 {
+				return rest[:idx]
+			}
+			return rest
+		}
+		// Find the closing quote.
+		rest = rest[1:]
+		end := strings.IndexByte(rest, '\'')
+		if end < 0 {
+			return ""
+		}
+		return rest[:end]
+	}
+	return ""
 }
 
 // filesystemCaseLabel returns "case-sensitive" or "case-insensitive"

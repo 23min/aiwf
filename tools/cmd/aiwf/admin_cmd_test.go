@@ -489,6 +489,87 @@ func TestDoctorReport_Contents(t *testing.T) {
 	}
 }
 
+// TestDoctorReport_HookOK: a freshly-initialised repo has the hook
+// installed at .git/hooks/pre-push pointing at an existing binary;
+// doctor reports it as ok.
+func TestDoctorReport_HookOK(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "hook:") {
+		t.Errorf("doctor should include a hook: line:\n%s", joined)
+	}
+	if !strings.Contains(joined, "hook:      ok") {
+		t.Errorf("hook line should report ok on a fresh init:\n%s", joined)
+	}
+	if problems != 0 {
+		t.Errorf("fresh init should produce no problems; got %d:\n%s", problems, joined)
+	}
+}
+
+// TestDoctorReport_HookStalePath_DetectsDrift is the load-bearing
+// test for G12: when the binary that init recorded in
+// .git/hooks/pre-push no longer exists at that path (binary moved /
+// upgraded to a different location / removed), doctor reports the
+// drift and increments problems so users see the issue without
+// having to discover it on a failed push.
+func TestDoctorReport_HookStalePath_DetectsDrift(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// Hand-edit the hook to point at a non-existent path, simulating
+	// a binary that's been moved away.
+	hookPath := filepath.Join(root, ".git", "hooks", "pre-push")
+	stale := `#!/bin/sh
+# aiwf:pre-push
+exec /nonexistent/path/to/old-aiwf check
+`
+	if err := os.WriteFile(hookPath, []byte(stale), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lines, problems := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if problems == 0 {
+		t.Errorf("stale hook path should be a problem; got 0:\n%s", joined)
+	}
+	if !strings.Contains(joined, "stale") && !strings.Contains(joined, "missing") {
+		t.Errorf("hook line should describe the staleness:\n%s", joined)
+	}
+}
+
+// TestDoctorReport_HookMissing: when no .git/hooks/pre-push exists
+// at all, doctor reports it as missing (so the user knows pre-push
+// validation isn't gating their push, even if everything else is
+// clean).
+func TestDoctorReport_HookMissing(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+		SkipHook:      true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	lines, _ := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "hook:") {
+		t.Errorf("doctor should include hook: line:\n%s", joined)
+	}
+	if !strings.Contains(joined, "missing") && !strings.Contains(joined, "not installed") {
+		t.Errorf("hook line should describe absence:\n%s", joined)
+	}
+}
+
 // TestDoctorReport_ReportsFilesystemCaseSensitivity: doctor names
 // the filesystem's case-sensitivity so users on macOS APFS know
 // they're on a case-insensitive volume (where E-01-foo and
