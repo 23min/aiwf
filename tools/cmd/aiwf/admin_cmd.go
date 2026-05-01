@@ -107,7 +107,22 @@ func runInit(args []string) int {
 	return exitOK
 }
 
-// runUpdate handles `aiwf update`: re-materializes skills only.
+// runUpdate handles `aiwf update`: refreshes every marker-managed
+// framework artifact the consumer is opted into. The pipeline is the
+// same one `aiwf init` runs after first-time scaffolding —
+// `initrepo.RefreshArtifacts` — so init and update converge to the
+// same state for a given binary version + aiwf.yaml.
+//
+// Concretely the verb refreshes:
+//   - the embedded skills under .claude/skills/aiwf-*
+//   - the .gitignore patterns covering them
+//   - the marker-managed pre-push hook
+//   - the marker-managed pre-commit hook (gated by
+//     aiwf.yaml's status_md.auto_update; default-on)
+//
+// Hook conflicts (a non-marker hook already in place) are reported
+// in the per-step ledger and surface a remediation block, mirroring
+// `aiwf init`'s conflict path.
 func runUpdate(args []string) int {
 	fs := flag.NewFlagSet("update", flag.ContinueOnError)
 	root := fs.String("root", "", "consumer repo root")
@@ -128,11 +143,43 @@ func runUpdate(args []string) int {
 	}
 	defer release()
 
-	if err := skills.Materialize(rootDir); err != nil {
+	cfg, err := config.Load(rootDir)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
 		return exitInternal
 	}
-	fmt.Println("aiwf update: skills re-materialized.")
+
+	steps, conflict, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
+		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
+		return exitInternal
+	}
+
+	for _, s := range steps {
+		if s.Detail != "" {
+			fmt.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
+		} else {
+			fmt.Printf("  %-9s  %s\n", s.Action, s.What)
+		}
+	}
+
+	if conflict {
+		fmt.Println()
+		fmt.Println("aiwf update: artifacts refreshed except a hook with no aiwf marker.")
+		fmt.Println("A non-aiwf hook is at one of .git/hooks/pre-push or .git/hooks/pre-commit and was left untouched.")
+		fmt.Println("To finish wiring, either:")
+		fmt.Println("  1. Add the relevant aiwf invocation inside your existing hook")
+		fmt.Println("       pre-push:    aiwf check || exit 1")
+		fmt.Println("       pre-commit:  aiwf status --root \"$(git rev-parse --show-toplevel)\" --format=md > STATUS.md && git add STATUS.md")
+		fmt.Println("  2. Use a hook manager (husky/lefthook/etc.) to compose hooks.")
+		fmt.Println("Then drop the marker comment somewhere in the hook (`# aiwf:pre-push` or `# aiwf:pre-commit`)")
+		fmt.Println("so future `aiwf init`/`aiwf update` runs recognise it as managed.")
+		return exitFindings
+	}
+
+	fmt.Println("\naiwf update: done.")
 	return exitOK
 }
 

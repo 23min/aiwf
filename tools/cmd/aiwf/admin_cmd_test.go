@@ -177,6 +177,100 @@ func TestRun_UpdateMaterializes(t *testing.T) {
 	}
 }
 
+// TestRun_UpdateRefreshesPrePushHook removes a previously-installed
+// pre-push hook and confirms `aiwf update` reinstalls it. Without
+// the broadened update verb (step 5), this would fail because
+// update only re-materialised skills.
+func TestRun_UpdateRefreshesPrePushHook(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	hookPath := filepath.Join(root, ".git", "hooks", "pre-push")
+	if err := os.Remove(hookPath); err != nil {
+		t.Fatalf("removing pre-push hook: %v", err)
+	}
+	if rc := run([]string{"update", "--root", root}); rc != exitOK {
+		t.Fatalf("update: %d", rc)
+	}
+	body, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatalf("pre-push hook missing after update: %v", err)
+	}
+	if !strings.Contains(string(body), initrepo.HookMarker()) {
+		t.Errorf("pre-push hook missing marker after update:\n%s", body)
+	}
+}
+
+// TestRun_UpdateRefreshesPreCommitHook is the same property for the
+// new pre-commit hook (default-on per status_md.auto_update).
+func TestRun_UpdateRefreshesPreCommitHook(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	hookPath := filepath.Join(root, ".git", "hooks", "pre-commit")
+	if err := os.Remove(hookPath); err != nil {
+		t.Fatalf("removing pre-commit hook: %v", err)
+	}
+	if rc := run([]string{"update", "--root", root}); rc != exitOK {
+		t.Fatalf("update: %d", rc)
+	}
+	body, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatalf("pre-commit hook missing after update: %v", err)
+	}
+	if !strings.Contains(string(body), initrepo.PreCommitHookMarker()) {
+		t.Errorf("pre-commit hook missing marker after update:\n%s", body)
+	}
+}
+
+// TestRun_UpdateUninstallsPreCommitOnOptOut: the canonical flow —
+// run init (hook installed by default), flip status_md.auto_update
+// to false in aiwf.yaml, run update → marker-managed pre-commit
+// hook is removed.
+func TestRun_UpdateUninstallsPreCommitOnOptOut(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	hookPath := filepath.Join(root, ".git", "hooks", "pre-commit")
+	if _, err := os.Stat(hookPath); err != nil {
+		t.Fatalf("pre-commit hook not installed by default Init: %v", err)
+	}
+
+	// Flip the opt-out flag.
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	updated := []byte(`aiwf_version: 0.1.0
+actor: human/test
+status_md:
+  auto_update: false
+`)
+	if err := os.WriteFile(yamlPath, updated, 0o644); err != nil {
+		t.Fatalf("rewriting aiwf.yaml: %v", err)
+	}
+
+	if rc := run([]string{"update", "--root", root}); rc != exitOK {
+		t.Fatalf("update: %d", rc)
+	}
+	if _, err := os.Stat(hookPath); !os.IsNotExist(err) {
+		t.Errorf("pre-commit hook still on disk after opt-out (stat err=%v)", err)
+	}
+}
+
+// TestRun_UpdateMissingConfig: update against a directory with no
+// aiwf.yaml is an internal error (config.Load returns ErrNotFound,
+// which `aiwf update` cannot continue past — the StatusMdAutoUpdate
+// flag has nowhere to come from). The user is expected to run
+// `aiwf init` first.
+func TestRun_UpdateMissingConfig(t *testing.T) {
+	root := setupCLITestRepo(t)
+	// No init: aiwf.yaml is absent.
+	if rc := run([]string{"update", "--root", root}); rc != exitInternal {
+		t.Errorf("rc = %d, want exitInternal (%d)", rc, exitInternal)
+	}
+}
+
 // TestRun_HistoryShowsAddPromoteCancel exercises the full chain: init,
 // add, promote, cancel, then history. The output should list three
 // events for the entity, oldest-first.
