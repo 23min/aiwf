@@ -101,12 +101,99 @@ func TestKindFromID(t *testing.T) {
 		{"", "", false},
 		{"E-1", "", false},    // below pad width
 		{"M-007a", "", false}, // suffix-form rejected
+		// Composites resolve to the parent's kind.
+		{"M-007/AC-1", KindMilestone, true},
+		{"M-100/AC-99", KindMilestone, true},
+		{"M-7/AC-1", "", false},  // parent below pad width — invalid composite
+		{"E-01/AC-1", "", false}, // only milestones host ACs in PoC
+		{"M-007/AC-", "", false}, // missing sub digits
+		{"M-007/", "", false},    // missing sub entirely
+		{"/AC-1", "", false},     // missing parent
 	}
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
 			got, ok := KindFromID(tt.id)
 			if got != tt.want || ok != tt.wantOk {
 				t.Errorf("KindFromID(%q) = %v, %v; want %v, %v", tt.id, got, ok, tt.want, tt.wantOk)
+			}
+		})
+	}
+}
+
+func TestIsCompositeID(t *testing.T) {
+	tests := []struct {
+		id   string
+		want bool
+	}{
+		{"M-007/AC-1", true},
+		{"M-007/AC-99", true},
+		{"M-100/AC-1", true},
+		{"M-007/AC-0", true}, // grammar permissive; position check handles AC-0 elsewhere
+		{"M-007", false},     // bare milestone, not a composite
+		{"AC-1", false},      // sub-id alone is not a composite
+		{"", false},
+		{"M-007/AC-", false},        // sub-id needs digits
+		{"M-007/AC", false},         // missing dash in sub
+		{"M-7/AC-1", false},         // parent below pad width
+		{"E-01/AC-1", false},        // E parent disallowed
+		{"M-007/AC-1/extra", false}, // trailing garbage
+		{"M-007/AC-1 ", false},      // trailing space
+		{" M-007/AC-1", false},      // leading space
+		{"M-007AC-1", false},        // missing slash
+	}
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			if got := IsCompositeID(tt.id); got != tt.want {
+				t.Errorf("IsCompositeID(%q) = %v, want %v", tt.id, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseCompositeID(t *testing.T) {
+	tests := []struct {
+		id         string
+		wantParent string
+		wantSub    string
+		wantOk     bool
+	}{
+		{"M-007/AC-1", "M-007", "AC-1", true},
+		{"M-100/AC-99", "M-100", "AC-99", true},
+		{"M-007", "", "", false},
+		{"", "", "", false},
+		{"M-7/AC-1", "", "", false},
+		{"E-01/AC-1", "", "", false},
+		{"M-007/AC-1/extra", "", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			parent, sub, ok := ParseCompositeID(tt.id)
+			if parent != tt.wantParent || sub != tt.wantSub || ok != tt.wantOk {
+				t.Errorf("ParseCompositeID(%q) = (%q, %q, %v); want (%q, %q, %v)",
+					tt.id, parent, sub, ok, tt.wantParent, tt.wantSub, tt.wantOk)
+			}
+		})
+	}
+}
+
+func TestSubKindFromID(t *testing.T) {
+	tests := []struct {
+		id     string
+		want   string
+		wantOk bool
+	}{
+		{"M-007/AC-1", "ac", true},
+		{"M-100/AC-42", "ac", true},
+		{"M-007", "", false},
+		{"E-01", "", false},
+		{"", "", false},
+		{"M-7/AC-1", "", false}, // invalid composite
+	}
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			got, ok := SubKindFromID(tt.id)
+			if got != tt.want || ok != tt.wantOk {
+				t.Errorf("SubKindFromID(%q) = (%q, %v); want (%q, %v)", tt.id, got, ok, tt.want, tt.wantOk)
 			}
 		})
 	}

@@ -166,16 +166,63 @@ func ValidateID(k Kind, id string) error {
 	return nil
 }
 
+// compositeIDPattern matches the "<entity-id>/AC-<digits>" composite-id
+// form used for namespaced sub-elements (added in I2). Only milestones
+// currently have ACs, so the parent portion is restricted to a milestone
+// id (`M-\d{3,}`). The regex is anchored end-to-end; partial matches
+// like `M-007/AC-1-extra` are rejected.
+//
+// AC ids inside a composite are `AC-\d+` with no minimum-digit
+// requirement at the grammar layer; the position-equality rule
+// (`acs-shape`, added in Step 6) is what enforces "AC-N equals
+// position+1 within the parent's `acs[]`".
+var compositeIDPattern = regexp.MustCompile(`^(M-\d{3,})/(AC-\d+)$`)
+
+// IsCompositeID reports whether s matches the composite-id grammar
+// `<entity-id>/AC-<digits>`. Bare ids and malformed inputs return false.
+func IsCompositeID(s string) bool {
+	return compositeIDPattern.MatchString(s)
+}
+
+// ParseCompositeID splits a composite id into its parent and sub
+// portions. Returns ok=false (with both strings empty) when s does not
+// match the composite grammar — including bare ids, malformed parents,
+// missing sub-ids, and trailing garbage.
+func ParseCompositeID(s string) (parent, sub string, ok bool) {
+	m := compositeIDPattern.FindStringSubmatch(s)
+	if m == nil {
+		return "", "", false
+	}
+	return m[1], m[2], true
+}
+
 // KindFromID returns the kind matching the id's format. The second
 // return is false if the id matches no kind's format. Useful for
 // reverse-lookup when validating cross-kind references.
+//
+// Composite ids (e.g. `M-007/AC-1`) resolve to their parent's kind
+// (here, milestone). The sub-kind is reported separately by
+// SubKindFromID.
 func KindFromID(id string) (Kind, bool) {
+	if parent, _, ok := ParseCompositeID(id); ok {
+		return KindFromID(parent)
+	}
 	for _, k := range AllKinds() {
 		if idPatterns[k].MatchString(id) {
 			return k, true
 		}
 	}
 	return "", false
+}
+
+// SubKindFromID returns the sub-kind label encoded in a composite id.
+// Currently only `"ac"` is defined (acceptance criterion). Bare ids and
+// malformed composites return ("", false).
+func SubKindFromID(id string) (string, bool) {
+	if !IsCompositeID(id) {
+		return "", false
+	}
+	return "ac", true
 }
 
 // AcceptanceCriterion is a milestone sub-element addressed by composite id
