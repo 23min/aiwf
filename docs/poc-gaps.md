@@ -36,19 +36,9 @@ Resolved in commit `620ecca` (fix(aiwf): G4 — exclusive repo lock for mutating
 
 ## Medium
 
-### G5. Reallocate's prose references are warnings, not errors
+### G5. Reallocate's prose references are warnings, not errors — **resolved**
 
-**Location:** `tools/internal/verb/reallocate.go` (`scanBodyProse`).
-
-**Symptom:** When `aiwf reallocate` renumbers an entity, references to the old id in entity *frontmatter* are rewritten mechanically. References in *prose* (body text) are reported as findings with `Severity: warning` and left alone. A user who skims the output ships dead internal links.
-
-**Why it matters:** The framework's contract is "if `aiwf check` is green, the tree is consistent." Warnings that survive a reallocate quietly weaken that. Either the warning should block, or the rewrite should be mechanical.
-
-**Proposed fix:** Two acceptable options:
-1. Upgrade prose-reference warnings to errors. Force the user to fix prose before retrying.
-2. Rewrite prose mechanically. The reference grammar (`E-NN`, `M-NNN`, etc.) is regular and unambiguous.
-
-(2) is less annoying for users and matches "atomic mutation". Either way, decide and remove the half-step.
+Resolved in commit `0e247fe` (fix(aiwf): G5 — reallocate rewrites prose references mechanically). Prose mentions of the old id in any entity body — including the target's own body — are now rewritten in the same commit as the frontmatter rewrite. Word-boundary regex prevents false matches against longer ids (M-001 → M-003 leaves M-0010 untouched). The `reallocate-body-reference` warning code is removed; no half-step "fix it yourself" findings remain. Tests cover the load-bearing rewrite-across-entities scenario, the M-0010-must-not-match edge case, multiple-entities-rewritten-in-one-commit, and the target's own self-reference.
 
 ---
 
@@ -158,7 +148,7 @@ Resolved in commit `620ecca` (fix(aiwf): G4 — exclusive repo lock for mutating
 | G2  | `Apply` is not atomic on partial failure                    | High     | [x] `f77740c` |
 | G3  | Pre-push hook fails opaquely when validators are missing    | High     | [x] `23f4231` |
 | G4  | No concurrent-invocation guard                              | High     | [x] `620ecca` |
-| G5  | Reallocate's prose references are warnings, not errors      | Medium   | [ ]    |
+| G5  | Reallocate's prose references are warnings, not errors      | Medium   | [x] `0e247fe` |
 | G6  | Design docs are stale relative to I1 (contracts)            | Medium   | [ ]    |
 | G7  | Skill namespace is a convention, not a guard                | Medium   | [ ]    |
 | G8  | Slugify silently drops non-ASCII                            | Medium   | [ ]    |
