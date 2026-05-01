@@ -314,6 +314,70 @@ func TestIdsUnique_StubVsStubCollision(t *testing.T) {
 	}
 }
 
+func TestIdPathConsistent_Mismatch(t *testing.T) {
+	tr := makeTree(&entity.Entity{
+		ID:   "M-100",
+		Kind: entity.KindMilestone,
+		Path: "work/epics/E-01-foo/M-099-thing.md",
+	})
+	got := idPathConsistent(tr)
+	if len(got) != 1 {
+		t.Fatalf("want 1 finding, got %+v", got)
+	}
+	if got[0].Code != "id-path-consistent" {
+		t.Errorf("Code = %q, want id-path-consistent", got[0].Code)
+	}
+	if got[0].EntityID != "M-100" {
+		t.Errorf("EntityID = %q, want M-100", got[0].EntityID)
+	}
+	if !strings.Contains(got[0].Message, "M-099") || !strings.Contains(got[0].Message, "M-100") {
+		t.Errorf("Message should mention both ids; got %q", got[0].Message)
+	}
+}
+
+func TestIdPathConsistent_Agrees(t *testing.T) {
+	tr := makeTree(&entity.Entity{
+		ID:   "E-01",
+		Kind: entity.KindEpic,
+		Path: "work/epics/E-01-platform/epic.md",
+	})
+	got := idPathConsistent(tr)
+	if len(got) != 0 {
+		t.Errorf("want 0 findings, got %+v", got)
+	}
+}
+
+func TestIdPathConsistent_SkipsEntitiesWithoutPathID(t *testing.T) {
+	// Path is something IDFromPath can't extract an id from.
+	// Defensive: shouldn't happen post-loader, but the check
+	// must not crash if it does.
+	tr := makeTree(&entity.Entity{
+		ID:   "E-01",
+		Kind: entity.KindEpic,
+		Path: "work/epics/no-id-here/epic.md",
+	})
+	got := idPathConsistent(tr)
+	if len(got) != 0 {
+		t.Errorf("want 0 findings (skip when path has no id), got %+v", got)
+	}
+}
+
+func TestIdPathConsistent_StubsTriviallyMatch(t *testing.T) {
+	// Stubs are constructed from the path-derived id, so they always
+	// pass id-path-consistent. The check iterates only Entities,
+	// not Stubs, so this confirms the stubs slice doesn't get a
+	// spurious pass through some other code path.
+	tr := &tree.Tree{
+		Stubs: []*entity.Entity{
+			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-stubbed/epic.md"},
+		},
+	}
+	got := idPathConsistent(tr)
+	if len(got) != 0 {
+		t.Errorf("want 0 findings on stubs-only tree, got %+v", got)
+	}
+}
+
 // TestSchemaMatchesCollectRefs pins the per-kind reference-field
 // metadata in entity.SchemaForKind to what check.collectRefs actually
 // reads. If a future change adds, removes, or retypes a reference

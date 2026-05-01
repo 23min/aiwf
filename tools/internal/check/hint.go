@@ -12,6 +12,7 @@ var hintTable = map[string]string{
 	"ids-unique":                "run `aiwf reallocate <path>` on one of the duplicates to renumber it",
 	"case-paths":                "rename one of the colliding paths via `aiwf rename` so they differ in more than just case (case-insensitive filesystems treat them as the same dir)",
 	"frontmatter-shape":         "set the missing field, or correct the id format to match the kind's pattern",
+	"id-path-consistent":        "renumber via `aiwf reallocate <path>` (rewrites both sides + updates references), rename the slug via `aiwf rename` if only the slug drifted, or correct the side that's wrong by hand if you're certain which",
 	"status-valid":              "use one of the allowed statuses listed above",
 	"refs-resolve/unresolved":   "check the spelling, or remove the reference if the target was deleted",
 	"refs-resolve/wrong-kind":   "use a reference of the expected kind",

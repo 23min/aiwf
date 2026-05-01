@@ -98,6 +98,18 @@ Resolved in commit `e2a39ee` (fix(aiwf): G14 — register stub for unparseable e
 
 ---
 
+### G16. Path-encoded id and frontmatter id can disagree silently
+
+**Location:** `tools/internal/check/check.go` (`frontmatterShape` validates id format against kind, but no check verifies that the id in frontmatter matches the id encoded in the file path).
+
+**Symptom:** A file at `work/epics/E-01-platform/epic.md` whose frontmatter says `id: E-99` parses cleanly. aiwf operates on `E-99` (looking it up via `ByID`), and references to `E-01` come back unresolved. The two encodings are silently inconsistent — the user has to read the file and the path side-by-side to notice.
+
+**Why it matters:** Natural follow-up to G14. The stub mechanism added in G14 derives the entity id from the path when frontmatter is unreadable, on the assumption that path and frontmatter agree on identity. Without an enforcement check, the assumption is unverified. As skills increasingly hand-edit aiwf-managed files (`add` verb keeps them in sync; manual edits don't), the chance of an accidental id/path drift grows. Also: `aiwf reallocate` is the verb that should be used to renumber an entity (it does the path-and-frontmatter rewrite atomically). A silent disagreement means someone bypassed the verb and edited only one side.
+
+**Proposed fix:** Add a new check `id-path-consistent`. For every entity in `tree.Entities`, derive the expected id from its path via `entity.IDFromPath` (already exists, introduced in G14) and compare to the entity's `id:` frontmatter. On disagreement, emit a single error finding naming both ids. Hint: "rename the file/dir slug to match the frontmatter id (`aiwf rename`), renumber the entity (`aiwf reallocate`), or correct one side by hand if you're sure which is right." Stubs are skipped (they're built from the path-derived id by construction; comparison would always pass). Severity: error. Defensive: if `IDFromPath` returns false for an entity whose path was accepted by `PathKind`, skip rather than crash. Pin coverage with the messy fixture (add a path/id mismatch case to `tools/internal/check/testdata/messy/`) and assert the new code appears in `TestFixture_Messy`.
+
+---
+
 ### G15. No published per-kind schema for skill authors — **resolved**
 
 Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single source of truth for entity schemas). Took the proposed approach: a new read-only `aiwf schema [kind]` verb prints the per-kind frontmatter contract — id format, allowed statuses, required and optional fields, and reference fields with cardinality and allowed target kinds — in text or JSON envelope. The verb reads from `entity.SchemaForKind`, which is now the single source of truth that also drives `entity.AllowedStatuses`, `entity.IDFormat`, and (pinned by `TestSchemaMatchesCollectRefs`) the allowed-kinds table consulted by `check.refsResolve`. Skill authors and AI-driven scaffolding tooling can now consume the schema programmatically (`aiwf schema --format=json --pretty`) instead of guessing at field names. Coverage: 100% on `SchemaForKind` / `AllSchemas`; 84.8% on the verb's main and 71.9% on its text renderer (the missing branches are defensive io.Writer error returns).
@@ -123,5 +135,6 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 | G13 | No Windows guard                                            | Low      | [x] `dda370d` |
 | G14 | Parse failure cascades into refs-resolve findings           | Medium   | [x] `e2a39ee` |
 | G15 | No published per-kind schema for skill authors              | Medium   | [x] `0ba0e61` |
+| G16 | Path-encoded id and frontmatter id can disagree silently    | Medium   | [ ] |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

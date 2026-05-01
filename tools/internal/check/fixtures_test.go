@@ -58,6 +58,7 @@ func TestFixture_Messy(t *testing.T) {
 	expected := []string{
 		"ids-unique",
 		"frontmatter-shape",
+		"id-path-consistent",
 		"status-valid",
 		"refs-resolve/unresolved",
 		"refs-resolve/wrong-kind",

@@ -74,6 +74,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, idsUnique(t)...)
 	findings = append(findings, casePaths(t)...)
 	findings = append(findings, frontmatterShape(t)...)
+	findings = append(findings, idPathConsistent(t)...)
 	findings = append(findings, statusValid(t)...)
 	findings = append(findings, refsResolve(t)...)
 	findings = append(findings, noCycles(t)...)
@@ -256,6 +257,42 @@ func perKindRequiredFields(e *entity.Entity) []Finding {
 			Path:     e.Path,
 			EntityID: e.ID,
 			Field:    "parent",
+		})
+	}
+	return findings
+}
+
+// idPathConsistent reports any entity whose id in frontmatter does not
+// match the id encoded in its file path. The two encodings should
+// always agree — `aiwf add` and `aiwf reallocate` keep them in sync,
+// and the path's id-prefix is what the G14 stub mechanism falls back
+// to when frontmatter is unreadable. A silent disagreement means
+// someone bypassed the verbs and edited only one side, leaving every
+// reference to the entity ambiguous about which id is canonical.
+//
+// Stubs are skipped: they are constructed *from* the path-derived id,
+// so the comparison would always pass. Entities whose path was
+// accepted by PathKind but for which IDFromPath returns false are
+// also skipped (defensive — by construction this shouldn't happen,
+// since both consult the same patterns).
+func idPathConsistent(t *tree.Tree) []Finding {
+	var findings []Finding
+	for _, e := range t.Entities {
+		pathID, ok := entity.IDFromPath(e.Path, e.Kind)
+		if !ok {
+			continue
+		}
+		if pathID == e.ID {
+			continue
+		}
+		findings = append(findings, Finding{
+			Code:     "id-path-consistent",
+			Severity: SeverityError,
+			Message: fmt.Sprintf("frontmatter id %q does not match path-encoded id %q",
+				e.ID, pathID),
+			Path:     e.Path,
+			EntityID: e.ID,
+			Field:    "id",
 		})
 	}
 	return findings
