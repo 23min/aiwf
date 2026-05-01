@@ -1,6 +1,6 @@
 ## Broaden `aiwf update` plan
 
-**Status:** proposal · **Audience:** PoC continuation. Touches `tools/internal/initrepo/`, `tools/internal/aiwfyaml/`, `cmd/aiwf/admin_cmd.go`, `cmd/aiwf/whoami_cmd.go` (doctor), and `docs/pocv3/design/design-decisions.md`.
+**Status:** implemented across commits `88727c6` (kernel-shift docs) → `855996a` (self-check covers the round-trip). `aiwf update` is now the upgrade verb; the pre-commit hook for STATUS.md regeneration is default-on with `status_md.auto_update: false` as the clean opt-out. · **Audience:** PoC continuation. Touched `tools/internal/initrepo/`, `tools/internal/config/`, `cmd/aiwf/admin_cmd.go`, `cmd/aiwf/selfcheck.go`, `docs/pocv3/design/design-decisions.md`, `docs/pocv3/design/design-lessons.md`, `CLAUDE.md`, `README.md`.
 
 A kernel-level shift in what `aiwf update` does, plus the first new artifact it carries: a marker-managed pre-commit hook that regenerates a committed `STATUS.md` on every commit, default-on with a clean opt-out.
 
