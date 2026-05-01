@@ -6,6 +6,8 @@
 //	aiwf_version: 0.1.0       # required; engine version the repo expects
 //	actor: human/peter        # required; default for the aiwf-actor: trailer
 //	hosts: [claude-code]      # optional; PoC default and only supported value
+//	status_md:                # optional; opt-out for the STATUS.md auto-update
+//	  auto_update: false      # default true — see StatusMdAutoUpdate
 //
 // Validation rules:
 //   - actor must match `^[^\s/]+/[^\s/]+$` (single '/', no whitespace,
@@ -40,10 +42,39 @@ var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 
 // Config is the in-memory shape of aiwf.yaml. Hosts is omitted when
 // the on-disk file leaves it absent (which is the typical case).
+//
+// StatusMd is the opt-out surface for the pre-commit hook that keeps
+// `STATUS.md` in sync with the entity tree. Default behavior (block
+// absent, or block present with `auto_update` absent) is on; an
+// explicit `auto_update: false` opts out. See StatusMdAutoUpdate.
 type Config struct {
 	AiwfVersion string   `yaml:"aiwf_version"`
 	Actor       string   `yaml:"actor"`
 	Hosts       []string `yaml:"hosts,omitempty"`
+	StatusMd    StatusMd `yaml:"status_md,omitempty"`
+}
+
+// StatusMd carries the opt-out for the pre-commit hook that
+// regenerates `STATUS.md`. AutoUpdate is a tristate via *bool:
+// nil means "not specified, take the default (true)", &false is an
+// explicit opt-out, &true is an explicit opt-in. Use the getter
+// Config.StatusMdAutoUpdate rather than reading the pointer directly
+// so callers don't have to repeat the default.
+type StatusMd struct {
+	AutoUpdate *bool `yaml:"auto_update,omitempty"`
+}
+
+// StatusMdAutoUpdate returns whether the consumer wants the
+// pre-commit hook installed and `STATUS.md` regenerated on every
+// commit. Default true: the framework's opt-out, not opt-in. The
+// committed `STATUS.md` is the user's content once tracked; flipping
+// the flag controls whether the *hook* is installed, not whether
+// the file is deleted.
+func (c *Config) StatusMdAutoUpdate() bool {
+	if c.StatusMd.AutoUpdate == nil {
+		return true
+	}
+	return *c.StatusMd.AutoUpdate
 }
 
 // Load reads aiwf.yaml from root. Returns ErrNotFound when the file is

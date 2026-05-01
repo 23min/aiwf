@@ -130,6 +130,104 @@ func TestWrite_RejectsInvalidConfig(t *testing.T) {
 	}
 }
 
+// TestStatusMdAutoUpdate_Default: no `status_md:` block in the file.
+// Getter returns true (the framework's default-on opt-out semantics).
+func TestStatusMdAutoUpdate_Default(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("aiwf_version: 0.1.0\nactor: human/peter\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.StatusMdAutoUpdate() {
+		t.Errorf("default: StatusMdAutoUpdate() = false, want true")
+	}
+	if cfg.StatusMd.AutoUpdate != nil {
+		t.Errorf("StatusMd.AutoUpdate = %v, want nil (absent)", *cfg.StatusMd.AutoUpdate)
+	}
+}
+
+// TestStatusMdAutoUpdate_BlockEmpty: `status_md:` is present but
+// carries no fields. The getter still falls back to the default.
+func TestStatusMdAutoUpdate_BlockEmpty(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("aiwf_version: 0.1.0\nactor: human/peter\nstatus_md: {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.StatusMdAutoUpdate() {
+		t.Errorf("block-empty: StatusMdAutoUpdate() = false, want true")
+	}
+}
+
+// TestStatusMdAutoUpdate_ExplicitFalse: the load-bearing opt-out
+// case. The getter returns false; the round-trip preserves the
+// explicit setting.
+func TestStatusMdAutoUpdate_ExplicitFalse(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("aiwf_version: 0.1.0\nactor: human/peter\nstatus_md:\n  auto_update: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.StatusMdAutoUpdate() {
+		t.Errorf("explicit-false: StatusMdAutoUpdate() = true, want false")
+	}
+	if cfg.StatusMd.AutoUpdate == nil || *cfg.StatusMd.AutoUpdate {
+		t.Errorf("StatusMd.AutoUpdate = %v, want &false", cfg.StatusMd.AutoUpdate)
+	}
+}
+
+// TestStatusMdAutoUpdate_ExplicitTrue: an explicit `auto_update: true`
+// opts in (matches the default but is preserved on round-trip so the
+// user's intent isn't dropped).
+func TestStatusMdAutoUpdate_ExplicitTrue(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("aiwf_version: 0.1.0\nactor: human/peter\nstatus_md:\n  auto_update: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.StatusMdAutoUpdate() {
+		t.Errorf("explicit-true: StatusMdAutoUpdate() = false, want true")
+	}
+	if cfg.StatusMd.AutoUpdate == nil || !*cfg.StatusMd.AutoUpdate {
+		t.Errorf("StatusMd.AutoUpdate = %v, want &true", cfg.StatusMd.AutoUpdate)
+	}
+}
+
+// TestWrite_OmitsStatusMdByDefault: a Config with no explicit
+// status_md setting must not emit a `status_md:` block — preserving
+// the file-shape guarantee that "default behavior" is also "default
+// file shape" (no surprise YAML on `aiwf init`).
+func TestWrite_OmitsStatusMdByDefault(t *testing.T) {
+	root := t.TempDir()
+	cfg := &Config{AiwfVersion: "0.1.0", Actor: "human/peter"}
+	if err := Write(root, cfg); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(got), "status_md") {
+		t.Errorf("status_md present in default-Write output: %q", got)
+	}
+}
+
 func TestActorPattern(t *testing.T) {
 	tests := []struct {
 		s    string
