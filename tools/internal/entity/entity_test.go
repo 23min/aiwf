@@ -138,12 +138,12 @@ func TestIDFromPath(t *testing.T) {
 		{"docs/adr/ADR-12345-future.md", KindADR, "ADR-12345", true},
 
 		// Mismatched kind / shape.
-		{"work/epics/E-01-platform/epic.md", KindMilestone, "", false}, // wrong kind for path
-		{"work/epics/E-01-platform/notes.md", KindEpic, "", false},     // not epic.md
-		{"work/contracts/C-001/contract.md", KindEpic, "", false},      // wrong shape for epic
-		{"work/epics/no-id/epic.md", KindEpic, "", false},              // dir not id-prefixed
-		{"work/gaps/random.md", KindGap, "", false},                    // filename not id-prefixed
-		{"work/epics/E-1/epic.md", KindEpic, "", false},                // pad below canonical (E needs ≥2)
+		{"work/epics/E-01-platform/epic.md", KindMilestone, "", false},   // wrong kind for path
+		{"work/epics/E-01-platform/notes.md", KindEpic, "", false},       // not epic.md
+		{"work/contracts/C-001/contract.md", KindEpic, "", false},        // wrong shape for epic
+		{"work/epics/no-id/epic.md", KindEpic, "", false},                // dir not id-prefixed
+		{"work/gaps/random.md", KindGap, "", false},                      // filename not id-prefixed
+		{"work/epics/E-1/epic.md", KindEpic, "", false},                  // pad below canonical (E needs ≥2)
 		{"work/epics/E-01-platform/epic.md", Kind("unknown"), "", false}, // default branch — unknown kind
 	}
 	for _, tt := range tests {
@@ -228,6 +228,111 @@ func TestIDFormat_DelegatesToSchemas(t *testing.T) {
 		s, _ := SchemaForKind(k)
 		if got, want := IDFormat(k), s.IDFormat; got != want {
 			t.Errorf("kind %v: IDFormat=%q, schema.IDFormat=%q", k, got, want)
+		}
+	}
+}
+
+func TestIsAllowedACStatus(t *testing.T) {
+	tests := []struct {
+		status string
+		want   bool
+	}{
+		{"open", true},
+		{"met", true},
+		{"deferred", true},
+		{"cancelled", true},
+		{"", false},     // empty-string sentinel is not itself legal
+		{"done", false}, // milestone-only status, not an AC status
+		{"in_progress", false},
+		{"OPEN", false}, // case-sensitive
+	}
+	for _, tt := range tests {
+		t.Run(tt.status, func(t *testing.T) {
+			if got := IsAllowedACStatus(tt.status); got != tt.want {
+				t.Errorf("IsAllowedACStatus(%q) = %v, want %v", tt.status, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsAllowedTDDPhase(t *testing.T) {
+	tests := []struct {
+		phase string
+		want  bool
+	}{
+		{"red", true},
+		{"green", true},
+		{"refactor", true},
+		{"done", true},
+		{"", false},
+		{"open", false}, // AC status, not a phase
+		{"RED", false},  // case-sensitive
+	}
+	for _, tt := range tests {
+		t.Run(tt.phase, func(t *testing.T) {
+			if got := IsAllowedTDDPhase(tt.phase); got != tt.want {
+				t.Errorf("IsAllowedTDDPhase(%q) = %v, want %v", tt.phase, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsAllowedTDDPolicy(t *testing.T) {
+	tests := []struct {
+		policy string
+		want   bool
+	}{
+		{"required", true},
+		{"advisory", true},
+		{"none", true},
+		{"", false}, // absent-field default is `none`, but the empty string itself is not a legal value
+		{"strict", false},
+		{"None", false}, // case-sensitive
+	}
+	for _, tt := range tests {
+		t.Run(tt.policy, func(t *testing.T) {
+			if got := IsAllowedTDDPolicy(tt.policy); got != tt.want {
+				t.Errorf("IsAllowedTDDPolicy(%q) = %v, want %v", tt.policy, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestACClosedSets_NoEmptyMember(t *testing.T) {
+	// Belt-and-braces: confirm none of the AC closed sets accidentally
+	// include the empty string as a legal value. Empty is the absent
+	// sentinel and must not collide with a real value.
+	for _, s := range AllowedACStatuses() {
+		if s == "" {
+			t.Error("AC status set contains empty string")
+		}
+	}
+	for _, p := range AllowedTDDPhases() {
+		if p == "" {
+			t.Error("TDD phase set contains empty string")
+		}
+	}
+	for _, p := range AllowedTDDPolicies() {
+		if p == "" {
+			t.Error("TDD policy set contains empty string")
+		}
+	}
+}
+
+func TestMilestoneSchema_OptionalFieldsIncludeACs(t *testing.T) {
+	s, ok := SchemaForKind(KindMilestone)
+	if !ok {
+		t.Fatal("SchemaForKind(milestone) not found")
+	}
+	want := map[string]bool{"depends_on": false, "tdd": false, "acs": false}
+	for _, f := range s.OptionalFields {
+		if _, ok := want[f]; ok {
+			want[f] = true
+		}
+	}
+	for f, found := range want {
+		if !found {
+			t.Errorf("milestone OptionalFields missing %q: got %v", f, s.OptionalFields)
 		}
 	}
 }

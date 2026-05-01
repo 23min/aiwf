@@ -202,6 +202,77 @@ body unchanged
 	}
 }
 
+// TestSerialize_RoundTripACsAndTDD confirms a milestone carrying I2's
+// new fields (`tdd:` policy and `acs[]` with per-AC `tdd_phase`)
+// survives marshal+unmarshal without losing or reordering data. The
+// inner `tdd_phase` field is `omitempty`; an AC without a phase round-
+// trips with an empty string, not a nil-vs-empty distinction.
+func TestSerialize_RoundTripACsAndTDD(t *testing.T) {
+	original := []byte(`---
+id: M-007
+title: Engine warning surface
+status: in_progress
+parent: E-03
+tdd: required
+acs:
+    - id: AC-1
+      title: Engine emits warning
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Pack receives result
+      status: met
+      tdd_phase: done
+---
+
+## Goal
+`)
+	e, err := Parse("test.md", original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, body, _ := Split(original)
+
+	out, err := Serialize(e, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e2, err := Parse("test.md", out)
+	if err != nil {
+		t.Fatalf("re-parse: %v", err)
+	}
+	if diff := cmp.Diff(e, e2); diff != "" {
+		t.Errorf("entity round-trip mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestSerialize_OmitsAbsentTDDPhase covers the empty-string sentinel:
+// when an AC has no phase, `tdd_phase` must not appear in the serialized
+// YAML (otherwise we'd write `tdd_phase: ""` which conflicts with the
+// closed-set membership rule).
+func TestSerialize_OmitsAbsentTDDPhase(t *testing.T) {
+	e := &Entity{
+		ID:     "M-008",
+		Title:  "No-TDD",
+		Status: "draft",
+		Parent: "E-03",
+		ACs: []AcceptanceCriterion{
+			{ID: "AC-1", Title: "Something", Status: "open"},
+		},
+	}
+	out, err := Serialize(e, []byte("\nbody\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(out, []byte("tdd_phase")) {
+		t.Errorf("serialized output should omit tdd_phase when empty:\n%s", out)
+	}
+	if bytes.Contains(out, []byte("\ntdd:")) {
+		t.Errorf("serialized output should omit tdd: when empty:\n%s", out)
+	}
+}
+
 func TestSerialize_EmptyBodyForNewEntity(t *testing.T) {
 	e := &Entity{
 		ID:     "E-01",

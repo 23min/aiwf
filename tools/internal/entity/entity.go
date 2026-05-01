@@ -55,6 +55,81 @@ func IsAllowedStatus(k Kind, status string) bool {
 	return false
 }
 
+// acAllowedStatuses is the closed status set for an acceptance criterion,
+// ordered as the FSM reads: open → met (or deferred/cancelled), met can
+// move to deferred or cancelled if scope changes after the fact. Both
+// deferred and cancelled are terminal.
+var acAllowedStatuses = []string{"open", "met", "deferred", "cancelled"}
+
+// AllowedACStatuses returns the closed status set for an acceptance
+// criterion. The returned slice shares memory with the package-level
+// constant; callers must not mutate it.
+func AllowedACStatuses() []string {
+	return acAllowedStatuses
+}
+
+// IsAllowedACStatus reports whether s is a recognized AC status. Empty
+// string returns false; the empty-string sentinel for "absent" is not
+// itself a legal status value.
+func IsAllowedACStatus(s string) bool {
+	for _, want := range acAllowedStatuses {
+		if want == s {
+			return true
+		}
+	}
+	return false
+}
+
+// tddPhases is the closed phase set for the TDD audit trail on an
+// acceptance criterion. Linear: red → green → (refactor) → done.
+// `refactor` is optional — green may go directly to done.
+var tddPhases = []string{"red", "green", "refactor", "done"}
+
+// AllowedTDDPhases returns the closed phase set for an acceptance
+// criterion's `tdd_phase` field. Shares memory with the package-level
+// constant; callers must not mutate it.
+func AllowedTDDPhases() []string {
+	return tddPhases
+}
+
+// IsAllowedTDDPhase reports whether p is a recognized TDD phase. Empty
+// string returns false; phase absence (when the parent milestone is
+// `tdd: none` or `tdd: advisory`) is checked separately by the caller.
+func IsAllowedTDDPhase(p string) bool {
+	for _, want := range tddPhases {
+		if want == p {
+			return true
+		}
+	}
+	return false
+}
+
+// tddPolicies is the closed policy set for a milestone's `tdd:` field.
+// `none` is the default when the field is absent on the milestone;
+// `advisory` softens the audit to a warning; `required` makes it an
+// error on push.
+var tddPolicies = []string{"required", "advisory", "none"}
+
+// AllowedTDDPolicies returns the closed policy set for a milestone's
+// `tdd:` field. Shares memory with the package-level constant; callers
+// must not mutate it.
+func AllowedTDDPolicies() []string {
+	return tddPolicies
+}
+
+// IsAllowedTDDPolicy reports whether p is a recognized policy value.
+// Empty string returns false; the absent-field default is `none`, but
+// the caller is responsible for substituting that before consulting
+// this predicate (the empty string is not itself a legal policy value).
+func IsAllowedTDDPolicy(p string) bool {
+	for _, want := range tddPolicies {
+		if want == p {
+			return true
+		}
+	}
+	return false
+}
+
 // IDFormat returns a human-readable description of the kind's id shape.
 // Used in error messages produced by the frontmatter-shape check.
 // Delegates to the schemas table so there is a single source of truth.
@@ -103,6 +178,25 @@ func KindFromID(id string) (Kind, bool) {
 	return "", false
 }
 
+// AcceptanceCriterion is a milestone sub-element addressed by composite id
+// `M-NNN/AC-N`. ACs are namespaced inside their parent milestone — they
+// have no global allocator and cannot move between milestones (see
+// docs/pocv3/design/design-decisions.md §"Acceptance criteria and TDD").
+//
+// Every field is a plain string with `omitempty`; empty == absent.
+// Closed-set membership (IsAllowedACStatus, IsAllowedTDDPhase) rules out
+// "" as a legal value, so the empty-string sentinel is unambiguous.
+//
+// AC ids are position-stable: `acs[i].ID == fmt.Sprintf("AC-%d", i+1)` for
+// every index. Cancelled ACs stay in the slice at their original position;
+// the allocator picks `max+1` over the full list including cancelled.
+type AcceptanceCriterion struct {
+	ID       string `yaml:"id,omitempty"`
+	Title    string `yaml:"title,omitempty"`
+	Status   string `yaml:"status,omitempty"`
+	TDDPhase string `yaml:"tdd_phase,omitempty"`
+}
+
 // Entity is the in-memory representation of a single aiwf entity, loaded
 // from a markdown file's YAML frontmatter. The body prose is not parsed.
 //
@@ -118,6 +212,10 @@ type Entity struct {
 	// Milestone references.
 	Parent    string   `yaml:"parent,omitempty"`
 	DependsOn []string `yaml:"depends_on,omitempty"`
+
+	// Milestone — acceptance criteria and TDD policy (added in I2).
+	TDD string                `yaml:"tdd,omitempty"`
+	ACs []AcceptanceCriterion `yaml:"acs,omitempty"`
 
 	// ADR chain.
 	Supersedes   []string `yaml:"supersedes,omitempty"`
@@ -208,7 +306,7 @@ var schemas = map[Kind]Schema{
 		IDFormat:        "M-NNN",
 		AllowedStatuses: []string{"draft", "in_progress", "done", "cancelled"},
 		RequiredFields:  append(append([]string(nil), commonRequired...), "parent"),
-		OptionalFields:  []string{"depends_on"},
+		OptionalFields:  []string{"depends_on", "tdd", "acs"},
 		References: []RefField{
 			{Name: "parent", Cardinality: Single, AllowedKinds: []Kind{KindEpic}, Optional: false},
 			{Name: "depends_on", Cardinality: Multi, AllowedKinds: []Kind{KindMilestone}, Optional: true},
