@@ -4,7 +4,7 @@ aiwf is designed to be adoptable in repos that already have planning data captur
 
 This document describes the public side of the contract — the manifest format and the import verb — and the recommended shape of the producer-side work. The producer side is yours to design.
 
-For the manifest format itself, see [`poc-import-format.md`](poc-import-format.md). For the kernel commitments that motivate this split, see [`poc-design-decisions.md`](poc-design-decisions.md).
+For the manifest format itself, see [`import-format.md`](import-format.md). For the kernel commitments that motivate this split, see [`design-decisions.md`](../design/design-decisions.md).
 
 ---
 

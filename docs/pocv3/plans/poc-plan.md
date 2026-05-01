@@ -2,9 +2,9 @@
 
 This is the working document for the `poc/aiwf-v3` branch. Each session has a deliverable that runs end-to-end before moving on. Mark items as you go; commit per logical step.
 
-The five sessions below are the original PoC build. **Iteration I1 — Contracts** (covered in [`poc-contracts-plan.md`](poc-contracts-plan.md)) shipped on top once those five sessions landed; its sub-iterations and shipped commits are summarized at the end of this document.
+The five sessions below are the original PoC build. **Iteration I1 — Contracts** (covered in [`contracts-plan.md`](contracts-plan.md)) shipped on top once those five sessions landed; its sub-iterations and shipped commits are summarized at the end of this document.
 
-For the design context that justifies this shape, see [`poc-design-decisions.md`](poc-design-decisions.md). For the engineering principles, see the root [`CLAUDE.md`](../CLAUDE.md) and [`tools/CLAUDE.md`](../tools/CLAUDE.md).
+For the design context that justifies this shape, see [`design-decisions.md`](../design/design-decisions.md). For the engineering principles, see the root [`CLAUDE.md`](../../../CLAUDE.md) and [`tools/CLAUDE.md`](../../../tools/CLAUDE.md).
 
 ---
 
@@ -45,7 +45,7 @@ For the design context that justifies this shape, see [`poc-design-decisions.md`
 - [x] `aiwf add adr --title "..."` — allocate `ADR-NNNN`, write file, commit.
 - [x] `aiwf add gap --title "..." [--discovered-in M-NNN]` — allocate `G-NNN`, commit.
 - [x] `aiwf add decision --title "..." [--relates-to E-NN,M-NNN]` — allocate `D-NNN`, commit.
-- [x] `aiwf add contract --title "..."` — allocate `C-NNN`, create directory + `contract.md`, commit. **Note:** the original plan had `--format` and `--artifact-source` flags backed by a `contract-artifact-exists` validator that copied a schema into the contract dir. That model was replaced in I1 by *contract bindings* in `aiwf.yaml.contracts.entries[]`. The shipped `add contract` accepts `--linked-adr <ids>` and the optional atomic-bind triplet (`--validator`, `--schema`, `--fixtures`) for one-commit add+bind. See [`poc-contracts-plan.md`](poc-contracts-plan.md).
+- [x] `aiwf add contract --title "..."` — allocate `C-NNN`, create directory + `contract.md`, commit. **Note:** the original plan had `--format` and `--artifact-source` flags backed by a `contract-artifact-exists` validator that copied a schema into the contract dir. That model was replaced in I1 by *contract bindings* in `aiwf.yaml.contracts.entries[]`. The shipped `add contract` accepts `--linked-adr <ids>` and the optional atomic-bind triplet (`--validator`, `--schema`, `--fixtures`) for one-commit add+bind. See [`contracts-plan.md`](contracts-plan.md).
 - [x] `aiwf promote <id> <status>` — read entity, validate transition (one Go function per kind), edit frontmatter, commit.
 - [x] `aiwf cancel <id>` — promote to the kind's terminal-cancel status (`cancelled`/`wontfix`/`rejected`/`retired`).
 - [x] `aiwf rename <id> <new-slug>` — `git mv` + commit. The id is preserved; title is unchanged (edit frontmatter manually if you want it tracked).
@@ -112,7 +112,7 @@ The shape of this session is set by the design constraint that aiwf must be a cl
 
 - [x] `aiwf init --dry-run` — print the actions `init` would take without writing anything. Same exit codes as `init`.
 - [x] `aiwf init --skip-hook` — perform `init` without installing the pre-push hook. For repos that want the framework but aren't ready to gate pushes on `aiwf check`.
-- [x] `aiwf import <manifest.yaml>` — generic batch entity creator. Reads a declarative manifest (see [`poc-import-format.md`](poc-import-format.md)), validates the projected tree, and writes one atomic commit (default) or one commit per entity (`commit.mode: per-entity`).
+- [x] `aiwf import <manifest.yaml>` — generic batch entity creator. Reads a declarative manifest (see [`import-format.md`](../migration/import-format.md)), validates the projected tree, and writes one atomic commit (default) or one commit per entity (`commit.mode: per-entity`).
   - [x] YAML and JSON manifest parsers (same schema, two lexers).
   - [x] Two-pass id resolution: explicit ids reserved first, `auto` ids allocated next.
   - [x] Reference resolution against the union of existing-tree ids and manifest-declared ids.
@@ -121,7 +121,7 @@ The shape of this session is set by the design constraint that aiwf must be a cl
   - [x] Synthetic-tree fixtures inline in tests covering: clean import, id collision (all three modes), ref-resolution across manifest entries, mixed explicit + `auto`, dry-run.
 - [x] ~~`wf-track` skill — describes the convention of maintaining a tracking document alongside an in-progress milestone.~~ **Removed during the prefix rename (poc/aiwf-rename-skills) — the tracking-doc convention moves to `aiwfx-track` in the companion rituals plugin (see [`rituals-plugin-plan.md`](rituals-plugin-plan.md)).** aiwf core stays narrow: tracking docs are not entities, not validated, and not aiwf's concern.
 - [x] Roadmap `## Candidates` rendering — `aiwf render roadmap` includes the verbatim contents of any `## Candidates` (or `## Backlog`) section it finds in `ROADMAP.md`. The section is human-curated, free-form, and not parsed as entities. Promoting a candidate is an explicit `aiwf add epic` step.
-- [x] `docs/poc-migrating-from-prior-systems.md` — a generic migration guide. Frames migration as a two-stage producer-side job (tidy source data; project to manifest), then `aiwf import`. References no specific prior system.
+- [x] `docs/pocv3/migration/from-prior-systems.md` — a generic migration guide. Frames migration as a two-stage producer-side job (tidy source data; project to manifest), then `aiwf import`. References no specific prior system.
 
 **Deliverable:** a consumer repo with existing planning data can be adopted by writing a private producer that emits an import manifest, iterating against `aiwf import --dry-run`, and committing the result. aiwf has no awareness of how the manifest was produced.
 
@@ -131,7 +131,7 @@ The shape of this session is set by the design constraint that aiwf must be a cl
 
 ## Iteration I1 — Contracts
 
-**Goal:** mechanical contract verification (schema + fixtures) as a first-class part of the pre-push chokepoint, without aiwf shipping any validator binary or branching on language. Full design in [`poc-contracts-plan.md`](poc-contracts-plan.md).
+**Goal:** mechanical contract verification (schema + fixtures) as a first-class part of the pre-push chokepoint, without aiwf shipping any validator binary or branching on language. Full design in [`contracts-plan.md`](contracts-plan.md).
 
 The eight sub-iterations:
 
@@ -146,7 +146,7 @@ The eight sub-iterations:
 
 **I1 hardening (commit `06b33bc`):** edge-case coverage across the contract surface — anchors/aliases rejection, validator-name reference checks, recipe round-trip, atomic add+bind rollback, terminal-state suppression in verify, multi-version evolve.
 
-**Post-I1 gap fixes** (see [`poc-gaps.md`](poc-gaps.md)) further hardened the contract surface: G1 added path-escape detection in `contractcheck`/`contractverify`; G3 demoted `validator-unavailable` to a warning by default with opt-in `strict_validators` and added a doctor section listing each validator's availability.
+**Post-I1 gap fixes** (see [`gaps.md`](../gaps.md)) further hardened the contract surface: G1 added path-escape detection in `contractcheck`/`contractverify`; G3 demoted `validator-unavailable` to a warning by default with opt-in `strict_validators` and added a doctor section listing each validator's availability.
 
 **Deliverable:** a consumer repo can declare a CUE or JSON Schema contract via `aiwf contract recipe install <name>` + `aiwf add contract --validator … --schema … --fixtures …` (one commit), populate `<fixtures>/v1/{valid,invalid}/`, and have `aiwf check` (and the pre-push hook) verify the bundle on every push.
 
@@ -163,4 +163,4 @@ Roughly 4–5 days of focused work across the five original sessions, plus I1 la
 - The PoC branch is not planned to merge back to `main`. Commit directly on the branch; no PR ceremony.
 - Conventional Commits subject lines (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs(poc): ...`) keep the log readable.
 - If session 3's deliverable is not reached within a reasonable timebox, abandon and patch the existing framework instead. The PoC's value is bounded; do not over-invest.
-- When in doubt, the smaller change is the right change. KISS and YAGNI from the root [`CLAUDE.md`](../CLAUDE.md) are load-bearing here.
+- When in doubt, the smaller change is the right change. KISS and YAGNI from the root [`CLAUDE.md`](../../../CLAUDE.md) are load-bearing here.

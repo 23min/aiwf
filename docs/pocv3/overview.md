@@ -1,6 +1,6 @@
 # aiwf — overview
 
-This document is the longer-form companion to the [README](../README.md). It walks through the entity model, the state machines for each kind, and how the verbs map onto a typical session.
+This document is the longer-form companion to the [README](../../README.md). It walks through the entity model, the state machines for each kind, and how the verbs map onto a typical session.
 
 If you only want to install and try the binary, the README is enough. Read this when you want a mental model of *why* the framework looks the way it does.
 
@@ -153,20 +153,20 @@ After a merge collision where two branches both allocate `M-007`, `aiwf realloca
 
 ## What's deliberately not here
 
-These are non-goals for the PoC. Each one was considered and deferred; see [`poc-design-decisions.md`](poc-design-decisions.md) for the full reasoning.
+These are non-goals for the PoC. Each one was considered and deferred; see [`design-decisions.md`](design/design-decisions.md) for the full reasoning.
 
 - **No separate event-log file.** `git log` is the event log; structured commit trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) make it queryable.
 - **No graph projection or hash chain.** `aiwf check` reconstructs the graph in memory from the markdown files; there is no separate cache to invalidate.
 - **No multi-host adapter generation.** Skills are materialized for Claude Code only. A second AI host can be added when there is one to integrate.
 - **No `task` or `story` entity.** Issue trackers do that better. The framework's smallest unit is the milestone.
 - **No FSM-as-YAML.** The six kinds and their statuses are hardcoded in Go. External configuration is the move when there's a second consumer who needs to customize — not before.
-- **No GitHub Issues / Linear / Jira / Azure DevOps sync.** Out of scope for the PoC. A modular backend adapter is an explicit longer-term aspiration — see [README — Beyond the PoC](../README.md#beyond-the-poc) — but no adapter is implemented today and the adapter interface is not yet designed.
+- **No GitHub Issues / Linear / Jira / Azure DevOps sync.** Out of scope for the PoC. A modular backend adapter is an explicit longer-term aspiration — see [README — Beyond the PoC](../../README.md#beyond-the-poc) — but no adapter is implemented today and the adapter interface is not yet designed.
 
 ---
 
 ## Where to go next
 
-- [`README.md`](../README.md) — install, quick start, full verb list.
+- [`README.md`](../../README.md) — install, quick start, full verb list.
 - [`workflows.md`](workflows.md) — narrative walk-throughs (standard flow, realistic flow with ADRs/gaps/decisions, AI prompts).
-- [`poc-plan.md`](poc-plan.md) — the four working sessions that produced this code.
-- [`poc-design-decisions.md`](poc-design-decisions.md) — the load-bearing decisions any change must preserve.
+- [`poc-plan.md`](plans/poc-plan.md) — the four working sessions that produced this code.
+- [`design-decisions.md`](design/design-decisions.md) — the load-bearing decisions any change must preserve.

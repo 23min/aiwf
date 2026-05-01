@@ -1,6 +1,6 @@
 // Package manifest defines the import manifest format consumed by
 // `aiwf import`. The manifest is a declarative list of entities to
-// materialize into a consumer tree; see docs/poc-import-format.md
+// materialize into a consumer tree; see docs/pocv3/migration/import-format.md
 // for the public contract.
 //
 // This package owns the manifest's data model, parser (YAML and JSON),

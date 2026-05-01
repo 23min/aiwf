@@ -12,7 +12,7 @@
 //  1. Parse aiwf.yaml, yield the typed Contracts block (or nil if
 //     the block is absent), and the source bytes plus the byte range
 //     occupied by `contracts:`. The structural validation rules
-//     documented in docs/poc-contracts-plan.md §5 are applied here:
+//     documented in docs/pocv3/plans/contracts-plan.md §5 are applied here:
 //     - every entries[].validator must reference a key in validators;
 //     - every entries[].id must match `C-NNN`;
 //     - anchors and aliases anywhere inside the contracts: subtree

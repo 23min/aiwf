@@ -1,5 +1,5 @@
 // Package initrepo implements `aiwf init`: idempotent first-time
-// setup for a consumer repo. See docs/poc-plan.md Session 3 for the
+// setup for a consumer repo. See docs/pocv3/plans/poc-plan.md Session 3 for the
 // full contract.
 //
 // The package never produces a git commit — it writes/scaffolds and

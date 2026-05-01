@@ -4,7 +4,7 @@
 
 This document defines the format and the semantics. It does not define how a manifest is produced; that is the producer's concern.
 
-For the engineering rationale that motivates this shape (declarative-only, no transformations, single atomic write), see [`poc-design-decisions.md`](poc-design-decisions.md).
+For the engineering rationale that motivates this shape (declarative-only, no transformations, single atomic write), see [`design-decisions.md`](../design/design-decisions.md).
 
 ---
 

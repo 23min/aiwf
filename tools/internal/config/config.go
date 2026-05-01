@@ -1,7 +1,7 @@
 // Package config loads and writes the consumer repo's `aiwf.yaml`.
 //
 // The file is small and deliberately so — see
-// docs/poc-design-decisions.md §"aiwf.yaml config". The fields are:
+// docs/pocv3/design/design-decisions.md §"aiwf.yaml config". The fields are:
 //
 //	aiwf_version: 0.1.0       # required; engine version the repo expects
 //	actor: human/peter        # required; default for the aiwf-actor: trailer
@@ -34,7 +34,7 @@ const FileName = "aiwf.yaml"
 var ErrNotFound = errors.New("aiwf.yaml not found")
 
 // ActorPattern enforces the actor format documented in
-// poc-design-decisions.md: `<role>/<identifier>`, exactly one '/',
+// docs/pocv3/design/design-decisions.md: `<role>/<identifier>`, exactly one '/',
 // no whitespace, neither side empty.
 var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 

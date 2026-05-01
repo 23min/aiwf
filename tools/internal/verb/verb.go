@@ -1,7 +1,7 @@
 // Package verb implements aiwf's mutating verbs: add, promote, cancel,
 // rename, reallocate.
 //
-// Every verb is *validate-then-write* per docs/poc-design-decisions.md:
+// Every verb is *validate-then-write* per docs/pocv3/design/design-decisions.md:
 // the verb computes the projected new tree in memory, runs the
 // check.Run validators against the projection, and returns either
 // findings (no disk writes occurred) or a Plan (file ops + commit

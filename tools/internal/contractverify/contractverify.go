@@ -57,7 +57,7 @@ type Result struct {
 }
 
 // Finding code constants. The set is closed and matches §10 of
-// docs/poc-contracts-plan.md.
+// docs/pocv3/plans/contracts-plan.md.
 //
 // CodeValidatorUnavailable is distinct from CodeEnvironment: the
 // former means "binary is not on PATH" (a per-machine env issue

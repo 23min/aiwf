@@ -105,7 +105,7 @@ Mechanical changes inside this repo before any rituals work begins. Estimate: 30
 - README `§"Coexistence with your .claude/"` rewording.
 - Pre-push hook marker `# aiwf:pre-push` stays unchanged (orthogonal).
 
-1.2. Drop `wf-track` from `docs/poc-plan.md` session 5. The tracking-doc convention moves to `aiwfx-track` in the rituals plugin.
+1.2. Drop `wf-track` from `docs/pocv3/plans/poc-plan.md` session 5. The tracking-doc convention moves to `aiwfx-track` in the rituals plugin.
 
 1.3. Update `README.md` `§"Coexistence"`:
 - aiwf core only touches `aiwf-*` (the new prefix).

@@ -339,7 +339,7 @@ The skill carries one cardinal rule — **never hand-edit `aiwf.yaml`** — and 
 
 ## 12. Migration manifest extension
 
-The current import manifest (`docs/poc-import-format.md`) carries entities only. Adopting aiwf in a repo that already has a contract-verification setup needs entities **and** the `aiwf.yaml.contracts:` config to land in one atomic operation. Extend the manifest:
+The current import manifest (`docs/pocv3/migration/import-format.md`) carries entities only. Adopting aiwf in a repo that already has a contract-verification setup needs entities **and** the `aiwf.yaml.contracts:` config to land in one atomic operation. Extend the manifest:
 
 ```yaml
 version: 1                              # unchanged; the new block is additive
@@ -379,7 +379,7 @@ Per-entity-mode imports apply the `contracts:` block as one extra commit at the 
 
 ### Producer mapping for adopting repos
 
-The migration follows aiwf's standard adoption shape (see `docs/poc-migrating-from-prior-systems.md`): the consumer repo writes a private projector that reads its existing contract setup and emits a manifest. aiwf consumes the manifest; it never reads the source.
+The migration follows aiwf's standard adoption shape (see `docs/pocv3/migration/from-prior-systems.md`): the consumer repo writes a private projector that reads its existing contract setup and emits a manifest. aiwf consumes the manifest; it never reads the source.
 
 A typical prior setup has, for each contract surface, four pieces of information: an identifier, the schema-language name, the schema's path, and the fixtures directory. The projector maps each row of that source data into the manifest:
 
@@ -397,9 +397,9 @@ Schemas and fixtures stay where they are; the manifest references their existing
 
 ### Migration guide updates
 
-Append a §"Migrating an existing contract-verification setup" section to `docs/poc-migrating-from-prior-systems.md` covering: recipe install precedes import; schemas and fixtures must already be on disk; the schema-evolution loop runs after the first import; iterate via `aiwf import --dry-run` until clean.
+Append a §"Migrating an existing contract-verification setup" section to `docs/pocv3/migration/from-prior-systems.md` covering: recipe install precedes import; schemas and fixtures must already be on disk; the schema-evolution loop runs after the first import; iterate via `aiwf import --dry-run` until clean.
 
-Full migration-manifest spec lands in `docs/poc-import-format.md` under a new §"Optional: contracts config" subsection.
+Full migration-manifest spec lands in `docs/pocv3/migration/import-format.md` under a new §"Optional: contracts config" subsection.
 
 ---
 
@@ -665,7 +665,7 @@ Recipes ship embedded in the binary. To upstream one, contribute a markdown file
 
 ### "I already have a contract-verification setup — adopt me into aiwf"
 
-Use `aiwf import <manifest>`. The migration manifest carries entities **and** the `aiwf.yaml.contracts:` config in one atomic operation. See `docs/poc-migrating-from-prior-systems.md` §"Migrating an existing contract-verification setup."
+Use `aiwf import <manifest>`. The migration manifest carries entities **and** the `aiwf.yaml.contracts:` config in one atomic operation. See `docs/pocv3/migration/from-prior-systems.md` §"Migrating an existing contract-verification setup."
 
 Producer mapping: for each existing contract surface, the projector emits one contract entity (with `linked_adrs` from the contract's ADR) + one entry in `contracts.entries[]` + a `contracts.validators.<lang>` block if not already declared. Schemas and fixtures stay where they are; the manifest references existing paths.
 
@@ -713,9 +713,9 @@ There is no `--fix`. Every finding is a human decision; aiwf reports, the user r
 
 ## 17. References
 
-- `docs/poc-design-decisions.md` — kernel commitments the contract surface must respect.
-- `docs/poc-import-format.md` — to be extended with the `contracts:` block per §12.
-- `docs/poc-migrating-from-prior-systems.md` — to be extended with §"Migrating an existing contract-verification setup" per §12.
+- `docs/pocv3/design/design-decisions.md` — kernel commitments the contract surface must respect.
+- `docs/pocv3/migration/import-format.md` — to be extended with the `contracts:` block per §12.
+- `docs/pocv3/migration/from-prior-systems.md` — to be extended with §"Migrating an existing contract-verification setup" per §12.
 - `tools/internal/entity/entity.go` — site of the entity narrowing (drop `Format`/`Artifact`, add `LinkedADRs`).
 - `tools/internal/check/check.go` — site of the `contract-artifact-exists` removal and the new `contract-config` check.
 

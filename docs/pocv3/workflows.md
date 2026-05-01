@@ -231,6 +231,6 @@ If you want the AI to behave differently from this default — for example, "alw
 
 ## Where to go next
 
-- [`README.md`](../README.md) — install, full verb list, validators.
+- [`README.md`](../../README.md) — install, full verb list, validators.
 - [`overview.md`](overview.md) — entity kinds, state-machine diagrams, what's deliberately out of scope.
-- [`poc-design-decisions.md`](poc-design-decisions.md) — the load-bearing decisions any change must preserve.
+- [`design-decisions.md`](design/design-decisions.md) — the load-bearing decisions any change must preserve.

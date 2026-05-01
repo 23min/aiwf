@@ -32,7 +32,7 @@ func TestFixture_Clean(t *testing.T) {
 }
 
 // TestFixture_Messy asserts that every finding code documented in
-// poc-plan.md Session 1 is exercised by the messy tree. The test does
+// docs/pocv3/plans/poc-plan.md Session 1 is exercised by the messy tree. The test does
 // not assert exact counts — multiple checks fire across many entities,
 // and counts shift when the fixture is extended — only that each
 // expected code appears at least once.

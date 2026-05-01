@@ -2,7 +2,7 @@
 // between the consumer repo's aiwf.yaml `contracts:` block, the
 // contract entities in the tree, and the on-disk schema/fixtures
 // paths. It produces `contract-config` findings for the cases listed
-// in §10 of docs/poc-contracts-plan.md:
+// in §10 of docs/pocv3/plans/contracts-plan.md:
 //
 //   - entries[].id has no matching contract entity in the tree;
 //   - entries[].schema does not exist as a regular file;

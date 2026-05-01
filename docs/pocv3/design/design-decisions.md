@@ -1,6 +1,6 @@
 # PoC design decisions
 
-This is a self-contained summary of what the PoC commits to and why. It is the design context that motivates the build plan in [`poc-plan.md`](poc-plan.md). The full research arc that produced these decisions lives on `main`; this branch deliberately does not include those documents to keep the working context focused.
+This is a self-contained summary of what the PoC commits to and why. It is the design context that motivates the build plan in [`poc-plan.md`](../plans/poc-plan.md). The full research arc that produced these decisions lives on `main`; this branch deliberately does not include those documents to keep the working context focused.
 
 If a proposed change conflicts with anything below, treat it as a kernel-level decision and surface it explicitly.
 
@@ -117,12 +117,12 @@ When the consumer repo's `aiwf.yaml` declares contract bindings, `aiwf check` al
 
 ### Contracts (added in I1)
 
-Contracts ship as part of the PoC's mechanical-validation surface. The full design lives in [`poc-contracts-plan.md`](poc-contracts-plan.md); the load-bearing decisions, in summary:
+Contracts ship as part of the PoC's mechanical-validation surface. The full design lives in [`contracts-plan.md`](../plans/contracts-plan.md); the load-bearing decisions, in summary:
 
 - **Two things that share the word "contract."** The *contract entity* (`C-NNN`) is a registry record in `work/contracts/` — pure planning state, six kinds row 6. The *contract binding* lives in `aiwf.yaml.contracts.entries[]` — operational state pointing at a schema path, a fixtures-tree root, and a named validator.
 - **The engine owns orchestration; the user owns validators.** aiwf never ships a `cue` or `ajv` binary. Validators are *declared* in `aiwf.yaml.contracts.validators` (a name → command + argv-template mapping); the user installs the binary via their normal toolchain. **Recipes** are embedded markdown content for common languages (CUE, JSON Schema, …) opt-in via `aiwf contract recipe install`, never selected as defaults.
 - **Verify and evolve.** Each binding's fixtures live under `<fixtures>/<version>/{valid,invalid}/`. The verify pass runs every `valid/` fixture (must pass) and every `invalid/` fixture (must fail) at the current version. The evolve pass runs every historical `valid/` fixture against the *current* schema, catching silent breakage from schema changes.
-- **Validator availability is a per-machine concern.** A contributor without `cue` installed gets a `validator-unavailable` *warning*, not a hard error — the framework's enforcement should not depend on every developer's local toolchain. Teams that want stricter behavior set `aiwf.yaml.contracts.strict_validators: true`. See G3 in [`poc-gaps.md`](poc-gaps.md) for the rationale.
+- **Validator availability is a per-machine concern.** A contributor without `cue` installed gets a `validator-unavailable` *warning*, not a hard error — the framework's enforcement should not depend on every developer's local toolchain. Teams that want stricter behavior set `aiwf.yaml.contracts.strict_validators: true`. See G3 in [`gaps.md`](../gaps.md) for the rationale.
 - **Verb surface for contract bindings.** No hand-editing of `aiwf.yaml` is required. `aiwf contract bind/unbind` mutate entries; `aiwf contract recipe install/show/remove` mutate validators; `aiwf contract verify` runs the passes; `aiwf add contract --validator … --schema … --fixtures …` does atomic add+bind in one commit. Every mutation produces exactly one git commit with the standard trailers.
 
 ### Layered location-of-truth
@@ -148,7 +148,7 @@ A short YAML file at the consumer repo root. Read by `aiwf` on every invocation;
 | `aiwf_version` | string | yes | Engine version the repo expects (e.g., `0.1.0`). `aiwf doctor` warns on mismatch. |
 | `actor` | string | yes | Default value of the `aiwf-actor:` commit trailer (e.g., `human/peter`). Format: `<role>/<identifier>` — must match `^[^\s/]+/[^\s/]+$` (exactly one `/`, no whitespace, neither side empty; otherwise freeform). Override on a single invocation via `--actor`. `aiwf init` derives a default of `human/<local-part-of-git-config-user.email>` when not explicitly provided. |
 | `hosts` | []string | no | Hosts to materialize skills for. PoC default and only supported value: `[claude-code]`. |
-| `contracts` | mapping | no | Contract bindings: a `validators` mapping (name → command + args), an `entries` list (each with `id`, `validator`, `schema`, `fixtures`), and `strict_validators` (bool, default false). Owned and round-tripped programmatically by `aiwf contract bind/unbind/recipe …`. See [`poc-contracts-plan.md`](poc-contracts-plan.md) §5. |
+| `contracts` | mapping | no | Contract bindings: a `validators` mapping (name → command + args), an `entries` list (each with `id`, `validator`, `schema`, `fixtures`), and `strict_validators` (bool, default false). Owned and round-tripped programmatically by `aiwf contract bind/unbind/recipe …`. See [`contracts-plan.md`](../plans/contracts-plan.md) §5. |
 
 Example (the typical file with no contracts):
 
@@ -165,7 +165,7 @@ Every mutating verb produces exactly one git commit, or no change at all. The cu
 
 This gives per-mutation atomicity for free in the happy path, and the `Apply` orchestrator wraps the file-touch + commit sequence in a deferred rollback so a partial failure (write error, commit refused) leaves the working tree exactly as it was. There is no separate journal file, no two-phase commit ceremony, no event-log-then-confirm protocol. The git commit *is* the atomic boundary.
 
-To prevent two `aiwf` mutations on the same repo from racing on id allocation, every mutating verb acquires an exclusive lock on `<root>/.git/aiwf.lock` (POSIX `flock`) before reading the tree. Read-only verbs (`check`, `history`, `status`, `render` without `--write`, `doctor`, `whoami`) do not lock — they remain free to run concurrently with mutations. See G4 in [`poc-gaps.md`](poc-gaps.md) for the rationale.
+To prevent two `aiwf` mutations on the same repo from racing on id allocation, every mutating verb acquires an exclusive lock on `<root>/.git/aiwf.lock` (POSIX `flock`) before reading the tree. Read-only verbs (`check`, `history`, `status`, `render` without `--write`, `doctor`, `whoami`) do not lock — they remain free to run concurrently with mutations. See G4 in [`gaps.md`](../gaps.md) for the rationale.
 
 Verbs only block on findings *introduced* by the projection — pre-existing tree errors (e.g., a broken reference left over from a prior hand-edit) do not refuse an unrelated `aiwf add`. The diff is by `code + subcode + path + entity + message`. This lets users incrementally fix a partially broken tree with `aiwf` itself rather than first having to clean up by hand. To see the full set of current problems regardless of any verb, run `aiwf check` directly.
 
