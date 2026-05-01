@@ -42,15 +42,9 @@ Resolved in commit `0e247fe` (fix(aiwf): G5 — reallocate rewrites prose refere
 
 ---
 
-### G6. Design docs are stale relative to I1 (contracts)
+### G6. Design docs are stale relative to I1 (contracts) — **resolved**
 
-**Location:** `docs/poc-design-decisions.md`, `docs/poc-plan.md`.
-
-**Symptom:** Both documents predate the detailed contract design. They describe the six entity kinds and the verb surface but don't mention the contract status set, validator config, recipes, or bind/unbind. A reader following the docs will believe contracts are simpler than they are.
-
-**Why it matters:** New contributors and future-you read these docs to orient. Drift between the design intent and the shipped code is exactly the kind of decay the framework is supposed to prevent.
-
-**Proposed fix:** Short integration pass — add a `### Contracts (added in I1)` section to `poc-design-decisions.md` cross-referencing `poc-contracts-plan.md`, and update the plan checklist in `poc-plan.md` to mark the actual I1 deliverables. ~30 minutes of work.
+Resolved in commit `221b9ff` (docs(poc): G6 — sync design decisions and plan with the I1 contract surface). `poc-design-decisions.md` gains a "Contracts (added in I1)" subsection cross-referencing `poc-contracts-plan.md`, the chokepoint section now mentions contract verification joining the same envelope, the `aiwf.yaml` table includes the `contracts:` row, the verb list reflects the current 14-verb surface (with G2's rollback and G4's lock noted), and the "deliberately not in the PoC" table drops the now-false "schema-aware contract validation" row. `poc-plan.md` gains an "Iteration I1 — Contracts" section listing all eight sub-iterations as done, the obsolete `contract-artifact-exists` and `add contract --format/--artifact-source` lines are annotated as superseded.
 
 ---
 
@@ -149,7 +143,7 @@ Resolved in commit `0e247fe` (fix(aiwf): G5 — reallocate rewrites prose refere
 | G3  | Pre-push hook fails opaquely when validators are missing    | High     | [x] `23f4231` |
 | G4  | No concurrent-invocation guard                              | High     | [x] `620ecca` |
 | G5  | Reallocate's prose references are warnings, not errors      | Medium   | [x] `0e247fe` |
-| G6  | Design docs are stale relative to I1 (contracts)            | Medium   | [ ]    |
+| G6  | Design docs are stale relative to I1 (contracts)            | Medium   | [x] `221b9ff` |
 | G7  | Skill namespace is a convention, not a guard                | Medium   | [ ]    |
 | G8  | Slugify silently drops non-ASCII                            | Medium   | [ ]    |
 | G9  | `aiwf doctor --self-check` is not run in CI                 | Medium   | [ ]    |
