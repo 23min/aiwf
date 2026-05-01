@@ -212,6 +212,46 @@ func TestAcsShape_PositionStableAcrossCancellation(t *testing.T) {
 	}
 }
 
+// TestAcsTitleProse_FlagsLongTitle covers the standing-check half of
+// G20: an AC that landed via hand-edit (or pre-G20 tooling) with a
+// prose-y title surfaces as a warning so the human knows to refactor.
+func TestAcsTitleProse_FlagsLongTitle(t *testing.T) {
+	tr := makeTree(&entity.Entity{
+		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-01",
+		ACs: []entity.AcceptanceCriterion{
+			{ID: "AC-1", Title: "**Full embedment inventory.** A machine-reviewable table enumerates every rule.", Status: "open"},
+		},
+	})
+	got := acsTitleProse(tr)
+	f := findingByCode(got, "acs-title-prose", "")
+	if f == nil {
+		t.Fatalf("expected acs-title-prose; got: %+v", got)
+	}
+	if f.Severity != SeverityWarning {
+		t.Errorf("severity = %q, want warning", f.Severity)
+	}
+	if f.EntityID != "M-007/AC-1" {
+		t.Errorf("entityID = %q, want M-007/AC-1", f.EntityID)
+	}
+}
+
+// TestAcsTitleProse_ShortTitleClean: a short label produces no
+// finding, so the existing clean-fixture round-trip continues to
+// pass.
+func TestAcsTitleProse_ShortTitleClean(t *testing.T) {
+	tr := makeTree(&entity.Entity{
+		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-01",
+		ACs: []entity.AcceptanceCriterion{
+			{ID: "AC-1", Title: "Engine emits warning on bad input", Status: "open"},
+		},
+	})
+	if got := acsTitleProse(tr); len(got) != 0 {
+		t.Errorf("short labels should produce no findings, got: %+v", got)
+	}
+}
+
 func TestAcsTDDAudit_RequiredFiresAsError(t *testing.T) {
 	tr := makeTree(&entity.Entity{
 		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",

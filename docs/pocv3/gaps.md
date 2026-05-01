@@ -104,6 +104,24 @@ Resolved in commit `92f5d51` (fix(aiwf): G19 — emit wildcard skill .gitignore 
 
 ---
 
+### G20. `aiwf add ac` accepts prose titles, renders one giant `### AC-N — <title>` heading — **resolved**
+
+`aiwf add ac M-NNN --title "..."` writes the title both into the YAML frontmatter `acs[].title` field AND into a body heading `### AC-N — <title>`. When the title is a short label that's fine, but real-world ACs that the user passes verbatim from a planning conversation often arrive with markdown bold, multiple sentences, or paragraph-length prose — the result is one h3 heading containing 200+ characters of bold-rendered text in the milestone view, not a heading + prose body. Reproducer:
+
+```
+aiwf add ac M-NNN --title "**Full embedment inventory.** A machine-reviewable table in the milestone tracking doc enumerates every rule encoded in: (a) ModelValidator.cs, (b) ModelParser.cs, …"
+```
+
+Resolved in commit `<TBD>` (feat(aiwf): G20 — refuse prose-y AC titles, add acs-title-prose warning). Took the strict refusal + standing-check pair:
+
+- `entity.IsProseyTitle(s string) bool` — pure detector. Triggers: length > 80 chars, newlines, markdown formatting (`**`, `__`, backticks), link brackets (`](`), or multiple sentences (sentence-ending punctuation followed by space + capital).
+- `verb.AddAC` refuses prose-y titles up front with a usage-shaped error pointing the user at the workflow: pass a short label for `--title`, hand-edit the body section under the scaffolded heading to add detail prose, examples, references.
+- New `acs-title-prose` (warning) finding in `check/acs.go`; runs on every `aiwf check` pass to catch titles that landed via hand-edits or pre-G20 tooling. Severity is warning, not error — the title is still usable as a label, the user just gets nudged to refactor.
+
+Tests pin the load-bearing cases: the actual G20 reproducer string, single-sentence labels (no false positive), exact 80-char boundary (false), 81-char (true), markdown forms, multi-sentence detection. Verb-level tests confirm the refusal happens before any disk change (zero ACs added) and that the happy short-label path still works.
+
+---
+
 ### G18. Contract-config validation is hook-only on `contract bind` and `add contract --validator …` — **resolved**
 
 Resolved in commit `202a14a` (fix(aiwf): G18 — run contractcheck on contract bind / add+bind projection). Took the proposed approach: `ContractBind` and `Add`'s atomic-bind path now run `contractcheck.Run` on the projected `aiwf.yaml.contracts` config and surface any error-level findings whose `EntityID` matches the bound id, before mutating the doc. Catches missing-schema, missing-fixtures, and path-escape (G1) at verb time instead of push time. `contractverify.Run` (the actual validator execution) remains hook-only as a defensible carve-out — documented in `architecture.md` §3. Three new tests cover the verb-side enforcement; existing tests updated to pass a `bindRepo(t)` tmpdir with the referenced schema/fixtures present.
@@ -147,5 +165,6 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 | G17 | No published per-kind body template for skill authors       | Medium   | [x] `f4a0fae` |
 | G18 | Contract-config validation is hook-only on `contract bind`  | Medium   | [x] `202a14a` |
 | G19 | `aiwf init` writes per-skill `.gitignore`; new skills uncovered | Medium | [x] `92f5d51` |
+| G20 | `aiwf add ac` accepts prose titles, renders one giant heading | Medium   | [x] `e6de134` |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

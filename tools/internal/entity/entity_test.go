@@ -424,6 +424,42 @@ func TestMilestoneSchema_OptionalFieldsIncludeACs(t *testing.T) {
 	}
 }
 
+// TestIsProseyTitle covers the prose-detection heuristic that
+// `aiwf add ac` and the `acs-title-prose` check share. Triggers:
+// long, multi-sentence, markdown-formatted, or newline-bearing.
+func TestIsProseyTitle(t *testing.T) {
+	tests := []struct {
+		name  string
+		title string
+		want  bool
+	}{
+		{"empty", "", false},
+		{"short label", "Engine emits warning on bad input", false},
+		{"single sentence ending in period", "Engine emits warning.", false},
+		{"exact 80 chars label", strings.Repeat("a", 80), false},
+		{"81 chars triggers length", strings.Repeat("a", 81), true},
+		{"markdown bold", "**Full embedment inventory**", true},
+		{"markdown underscore-bold", "__Full embedment inventory__", true},
+		{"markdown code", "Use `cue eval` to validate", true},
+		{"markdown link", "See [the docs](https://example)", true},
+		{"newline", "First line\nSecond line", true},
+		{"carriage return", "First\rSecond", true},
+		{"multi-sentence", "Full embedment inventory. A machine-reviewable table enumerates rules.", true},
+		{
+			"the actual G20 example",
+			"**Full embedment inventory.** A machine-reviewable table in the milestone tracking doc enumerates every rule",
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsProseyTitle(tt.title); got != tt.want {
+				t.Errorf("IsProseyTitle(%q) = %v, want %v", tt.title, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPathKind(t *testing.T) {
 	tests := []struct {
 		path   string

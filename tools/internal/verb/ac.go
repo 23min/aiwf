@@ -38,6 +38,9 @@ func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string) (*R
 	if strings.TrimSpace(title) == "" {
 		return nil, fmt.Errorf("--title is required")
 	}
+	if entity.IsProseyTitle(title) {
+		return nil, fmt.Errorf("title %q looks like prose, not a short label\n\nKeep the AC title short (≤80 chars, single sentence, no markdown formatting). It becomes the YAML `title:` field AND the `### AC-N — <title>` body heading; markdown or multi-sentence prose renders as one giant heading.\n\nUse a short label for --title, then hand-edit the body section under the heading to add detail prose, examples, references", title)
+	}
 	parent := t.ByID(parentID)
 	if parent == nil {
 		return nil, fmt.Errorf("milestone %q not found", parentID)

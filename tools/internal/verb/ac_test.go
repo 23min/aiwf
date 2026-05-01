@@ -122,6 +122,45 @@ func TestAddAC_PositionMaxPlus1AcrossCancellation(t *testing.T) {
 	}
 }
 
+// TestAddAC_RefusesProseyTitle is the verb-time half of G20: a long,
+// markdown-formatted, or multi-sentence title is refused with a
+// usage-shaped error message before any disk change. The user is
+// pointed at the workflow: short label for --title, hand-edit body
+// prose under the heading after creation.
+func TestAddAC_RefusesProseyTitle(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
+
+	prosey := "**Full embedment inventory.** A machine-reviewable table enumerates every rule."
+	_, err := verb.AddAC(r.ctx, r.tree(), "M-001", prosey, testActor)
+	if err == nil {
+		t.Fatal("expected refusal for prose-y title; got no error")
+	}
+	if !strings.Contains(err.Error(), "looks like prose") {
+		t.Errorf("error message should mention 'looks like prose'; got: %v", err)
+	}
+
+	// Sanity: the milestone still has zero ACs (verb refused before any write).
+	if m := r.tree().ByID("M-001"); m == nil || len(m.ACs) != 0 {
+		t.Errorf("M-001 should have 0 ACs after refused add, got %+v", m.ACs)
+	}
+}
+
+// TestAddAC_AcceptsShortLabel confirms the refusal doesn't accidentally
+// reject reasonable short labels — the happy path the verb is built
+// around still works.
+func TestAddAC_AcceptsShortLabel(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "Engine emits warning on bad input", testActor))
+
+	if m := r.tree().ByID("M-001"); m == nil || len(m.ACs) != 1 {
+		t.Fatalf("M-001 should have 1 AC after happy add, got %+v", m)
+	}
+}
+
 // TestAddAC_NotAMilestoneRefuses: only milestones host ACs.
 func TestAddAC_NotAMilestoneRefuses(t *testing.T) {
 	r := newRunner(t)

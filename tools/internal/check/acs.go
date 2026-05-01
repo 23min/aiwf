@@ -185,6 +185,39 @@ func composeIfValid(milestoneID, acID string) string {
 	return milestoneID
 }
 
+// acsTitleProse (warning) fires when an AC's title looks like prose
+// rather than a short label. Long, markdown-formatted, or multi-
+// sentence titles render as one giant `### AC-N — <title>` heading
+// in the milestone body, which is the bug G20 was filed against.
+//
+// The verb path (`aiwf add ac`) refuses prose-y titles up front; this
+// check is the standing-tree counterpart, catching titles that landed
+// via hand-edits or pre-G20 tooling.
+func acsTitleProse(t *tree.Tree) []Finding {
+	var findings []Finding
+	for _, e := range t.Entities {
+		if e.Kind != entity.KindMilestone {
+			continue
+		}
+		for _, ac := range e.ACs {
+			if !entity.IsProseyTitle(ac.Title) {
+				continue
+			}
+			compositeID := e.ID + "/" + ac.ID
+			findings = append(findings, Finding{
+				Code:     "acs-title-prose",
+				Severity: SeverityWarning,
+				Message: fmt.Sprintf("%s title looks like prose (long / multi-sentence / contains markdown); shorten the title and move detail prose into the body section under `### %s`",
+					compositeID, ac.ID),
+				Path:     e.Path,
+				EntityID: compositeID,
+				Field:    "acs",
+			})
+		}
+	}
+	return findings
+}
+
 // acsTDDAudit fires when a milestone has tdd: required (error) or
 // tdd: advisory (warning) and any AC has status: met without
 // tdd_phase: done. The kernel guards the *outcome* (met implies done);

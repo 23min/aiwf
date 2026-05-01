@@ -244,6 +244,60 @@ type AcceptanceCriterion struct {
 	TDDPhase string `yaml:"tdd_phase,omitempty"`
 }
 
+// proseTitleMaxLen is the soft cap above which a title is flagged as
+// prose-shaped. Picked to match a typical h3-line in editor view: a
+// short label fits comfortably; anything past this is almost always
+// a paragraph that should live in the body, not the heading.
+const proseTitleMaxLen = 80
+
+// IsProseyTitle reports whether a title looks like prose rather than
+// a short label. Used by `aiwf add ac` to refuse multi-sentence /
+// markdown-formatted titles at verb time, and by `acs-title-prose`
+// (a warning finding) to surface the same on standing trees.
+//
+// Triggers: markdown formatting (`**`, `__`, backticks); link
+// brackets (`[...](`); explicit newlines; >1 sentence (`.`/`?`/`!`
+// followed by a space and a capital letter); length > 80 chars.
+//
+// Pure function. No allocations beyond a single rune walk; safe to
+// call in both verb projection and check.Run.
+func IsProseyTitle(title string) bool {
+	if title == "" {
+		return false
+	}
+	if len(title) > proseTitleMaxLen {
+		return true
+	}
+	if strings.ContainsAny(title, "\n\r") {
+		return true
+	}
+	if strings.Contains(title, "**") || strings.Contains(title, "__") || strings.Contains(title, "`") {
+		return true
+	}
+	if strings.Contains(title, "](") {
+		return true
+	}
+	// Multi-sentence detection: a sentence-ending mark followed by a
+	// space and a capital letter, occurring more than once. Single
+	// occurrence is fine — a title can end with a period.
+	sentenceEndings := 0
+	runes := []rune(title)
+	for i := 0; i < len(runes)-2; i++ {
+		r := runes[i]
+		if r != '.' && r != '?' && r != '!' {
+			continue
+		}
+		if runes[i+1] != ' ' {
+			continue
+		}
+		next := runes[i+2]
+		if next >= 'A' && next <= 'Z' {
+			sentenceEndings++
+		}
+	}
+	return sentenceEndings >= 1
+}
+
 // Entity is the in-memory representation of a single aiwf entity, loaded
 // from a markdown file's YAML frontmatter. The body prose is not parsed.
 //
