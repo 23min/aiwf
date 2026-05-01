@@ -48,15 +48,9 @@ Resolved in commit `221b9ff` (docs(poc): G6 — sync design decisions and plan w
 
 ---
 
-### G7. Skill namespace is a convention, not a guard
+### G7. Skill namespace is a convention, not a guard — **resolved**
 
-**Location:** `tools/internal/initrepo/initrepo.go`, `tools/internal/skills/`.
-
-**Symptom:** The materialization rule is `.claude/skills/aiwf-*`. Anything not matching that prefix is treated as user-authored and left alone. There is no defensive check that a third-party plugin (or a future aiwf companion) using the same prefix won't silently clobber materialized skills.
-
-**Why it matters:** Low risk today, but `aiwf init` / `aiwf update` is supposed to be safe to re-run. A future name collision would silently overwrite or leave stale files.
-
-**Proposed fix:** Maintain a manifest of files aiwf owns (e.g. `.claude/skills/aiwf-*/MANIFEST` or a top-level `.claude/skills/.aiwf-owned`). On update, refuse to overwrite any file not listed in the manifest, and only delete files listed there. Same shape as how npm-style tooling tracks owned files.
+Resolved in commit `971fa88` (fix(aiwf): G7 — track skill ownership via on-disk manifest). Materialize now reads `.claude/skills/.aiwf-owned`, wipes only directories listed in the prior manifest that are no longer in the current embed, writes the embedded skills, and updates the manifest. Foreign directories — including any future `aiwf-rituals-*` plugin — are left alone, even when they share the prefix. The manifest path is added to `MaterializedPaths` so the existing `aiwf init` gitignore step covers it. Tests cover the load-bearing "third-party prefix-sharing dir survives update" scenario plus the regression that real cleanup still works when the prior manifest claims ownership. Manual smoke verified: `aiwf-rituals-tdd/` content survives `aiwf update` byte-for-byte.
 
 ---
 
@@ -144,7 +138,7 @@ Resolved in commit `221b9ff` (docs(poc): G6 — sync design decisions and plan w
 | G4  | No concurrent-invocation guard                              | High     | [x] `620ecca` |
 | G5  | Reallocate's prose references are warnings, not errors      | Medium   | [x] `0e247fe` |
 | G6  | Design docs are stale relative to I1 (contracts)            | Medium   | [x] `221b9ff` |
-| G7  | Skill namespace is a convention, not a guard                | Medium   | [ ]    |
+| G7  | Skill namespace is a convention, not a guard                | Medium   | [x] `971fa88` |
 | G8  | Slugify silently drops non-ASCII                            | Medium   | [ ]    |
 | G9  | `aiwf doctor --self-check` is not run in CI                 | Medium   | [ ]    |
 | G10 | macOS case-insensitive filesystem assumption                | Medium   | [ ]    |
