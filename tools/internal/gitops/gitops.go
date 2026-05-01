@@ -73,6 +73,34 @@ func Add(ctx context.Context, workdir string, paths ...string) error {
 	return run(ctx, workdir, args...)
 }
 
+// Restore resets the index and worktree to HEAD for the given paths.
+// Used by Apply to roll back partial verb mutations after a failure.
+// Paths that don't exist at HEAD (brand-new files staged but never
+// committed) produce a "pathspec did not match" warning that this
+// function suppresses — the caller separately removes such files.
+func Restore(ctx context.Context, workdir string, paths ...string) error {
+	if len(paths) == 0 {
+		return nil
+	}
+	args := append([]string{"restore", "--staged", "--worktree", "--"}, paths...)
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = workdir
+	cmd.Env = gitEnv()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		// `git restore` exits non-zero when ALL pathspecs miss; a
+		// mixed run (some hit, some miss) exits zero with a warning.
+		// We accept the all-miss case silently — it means the
+		// rollback had nothing tracked to restore, which is correct
+		// for a verb whose only ops were OpWrite of brand-new files.
+		if strings.Contains(string(out), "did not match any file") {
+			return nil
+		}
+		return fmt.Errorf("git restore: %w\n%s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
 // Commit creates a commit with the given subject line, optional body,
 // and trailers. The commit's index is whatever has been staged with
 // Add prior to this call; this is intentionally low-level — verbs
