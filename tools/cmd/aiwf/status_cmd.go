@@ -59,11 +59,73 @@ type statusEpic struct {
 }
 
 // statusMilestone is one milestone under an in-flight epic, with the
-// in-progress one identifiable by Status.
+// in-progress one identifiable by Status. The TDD and ACs fields
+// carry the I2 acceptance-criteria surface; ACs is omitted from JSON
+// when the milestone carries none (zero progress).
 type statusMilestone struct {
-	ID     string `json:"id"`
-	Title  string `json:"title"`
-	Status string `json:"status"`
+	ID     string            `json:"id"`
+	Title  string            `json:"title"`
+	Status string            `json:"status"`
+	TDD    string            `json:"tdd,omitempty"`
+	ACs    *statusACProgress `json:"acs,omitempty"`
+}
+
+// statusACProgress is the per-status count of a milestone's ACs.
+// `Total` includes cancelled entries (they remain in the list per
+// the position-stability rule); `InScope` excludes them, so that's
+// the denominator the renderers use for "M/T met" progress.
+type statusACProgress struct {
+	Total     int `json:"total"`
+	InScope   int `json:"in_scope"`
+	Open      int `json:"open"`
+	Met       int `json:"met"`
+	Deferred  int `json:"deferred"`
+	Cancelled int `json:"cancelled"`
+}
+
+// summarizeACs returns the per-status counts for a milestone's acs[].
+// Returns nil when the slice is empty so the renderer can skip the
+// "ACs: …" suffix entirely on milestones that don't carry any.
+func summarizeACs(acs []entity.AcceptanceCriterion) *statusACProgress {
+	if len(acs) == 0 {
+		return nil
+	}
+	p := &statusACProgress{Total: len(acs)}
+	for i := range acs {
+		switch acs[i].Status {
+		case "open":
+			p.Open++
+		case "met":
+			p.Met++
+		case "deferred":
+			p.Deferred++
+		case "cancelled":
+			p.Cancelled++
+		}
+	}
+	p.InScope = p.Total - p.Cancelled
+	return p
+}
+
+// renderACProgress formats the AC progress badge appended to a
+// milestone row. Returns "" when there are no ACs (so the renderer
+// can skip the separator). Format:
+//
+//	"ACs 2/3 met"           — typical case, in-scope total ≥ 1
+//	"ACs 1/2 met (1 open)"  — when there are still open ACs
+//	"ACs all cancelled"     — every AC was cancelled (in-scope = 0)
+func renderACProgress(p *statusACProgress) string {
+	if p == nil {
+		return ""
+	}
+	if p.InScope == 0 {
+		return "ACs all cancelled"
+	}
+	out := fmt.Sprintf("ACs %d/%d met", p.Met, p.InScope)
+	if p.Open > 0 {
+		out += fmt.Sprintf(" (%d open)", p.Open)
+	}
+	return out
 }
 
 // statusEntity is the shared shape for ADRs and decisions in the
@@ -196,6 +258,8 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 				ID:     m.ID,
 				Title:  m.Title,
 				Status: m.Status,
+				TDD:    m.TDD,
+				ACs:    summarizeACs(m.ACs),
 			})
 		}
 		switch e.Status {
@@ -329,7 +393,14 @@ func writeStatusEpicText(b *strings.Builder, e statusEpic) {
 		case "done":
 			marker = " ✓ "
 		}
-		fmt.Fprintf(b, "    %s%s — %s    [%s]\n", marker, m.ID, m.Title, m.Status)
+		suffix := ""
+		if progress := renderACProgress(m.ACs); progress != "" {
+			suffix = "    · " + progress
+		}
+		if m.TDD != "" {
+			suffix += "    · tdd: " + m.TDD
+		}
+		fmt.Fprintf(b, "    %s%s — %s    [%s]%s\n", marker, m.ID, m.Title, m.Status, suffix)
 	}
 }
 
@@ -536,7 +607,14 @@ func writeStatusEpicMarkdown(b *strings.Builder, e statusEpic) {
 		case "done":
 			marker = "✓ "
 		}
-		fmt.Fprintf(b, "- %s**%s** — %s _(%s)_\n", marker, m.ID, mdEscape(m.Title), m.Status)
+		suffix := ""
+		if progress := renderACProgress(m.ACs); progress != "" {
+			suffix = " — " + progress
+		}
+		if m.TDD != "" {
+			suffix += " — tdd: " + m.TDD
+		}
+		fmt.Fprintf(b, "- %s**%s** — %s _(%s)_%s\n", marker, m.ID, mdEscape(m.Title), m.Status, suffix)
 	}
 	b.WriteByte('\n')
 
@@ -544,8 +622,15 @@ func writeStatusEpicMarkdown(b *strings.Builder, e statusEpic) {
 	fmt.Fprintf(b, "  %s[\"%s<br/>%s\"]:::epic_%s\n",
 		mermaidID(e.ID), e.ID, mdEscape(e.Title), e.Status)
 	for _, m := range e.Milestones {
-		fmt.Fprintf(b, "  %s[\"%s<br/>%s\"]:::ms_%s\n",
-			mermaidID(m.ID), m.ID, mdEscape(m.Title), m.Status)
+		// Append "(M/T)" badge to the mermaid label when the milestone
+		// has any in-scope ACs. Cancelled-only milestones get no badge
+		// (the design's "all cancelled" case isn't useful at a glance).
+		acBadge := ""
+		if m.ACs != nil && m.ACs.InScope > 0 {
+			acBadge = fmt.Sprintf(" (%d/%d)", m.ACs.Met, m.ACs.InScope)
+		}
+		fmt.Fprintf(b, "  %s[\"%s%s<br/>%s\"]:::ms_%s\n",
+			mermaidID(m.ID), m.ID, acBadge, mdEscape(m.Title), m.Status)
 		fmt.Fprintf(b, "  %s --> %s\n", mermaidID(e.ID), mermaidID(m.ID))
 	}
 	b.WriteString("  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000\n")

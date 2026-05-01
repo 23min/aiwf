@@ -309,6 +309,142 @@ func TestRenderStatusMarkdown_EmptyReport(t *testing.T) {
 // TestMdEscape: pipes/backticks are escaped, double-quotes downgraded
 // to single, newlines flattened to a space. Pipes break table rows;
 // double-quotes break mermaid labels.
+// TestSummarizeACs covers the per-status counter and the InScope
+// derivation (Total minus Cancelled).
+func TestSummarizeACs(t *testing.T) {
+	tests := []struct {
+		name string
+		acs  []entity.AcceptanceCriterion
+		want *statusACProgress
+	}{
+		{
+			name: "nil/empty returns nil",
+			acs:  nil,
+			want: nil,
+		},
+		{
+			name: "single open",
+			acs:  []entity.AcceptanceCriterion{{Status: "open"}},
+			want: &statusACProgress{Total: 1, InScope: 1, Open: 1},
+		},
+		{
+			name: "mixed with cancelled",
+			acs: []entity.AcceptanceCriterion{
+				{Status: "open"},
+				{Status: "met"},
+				{Status: "deferred"},
+				{Status: "cancelled"},
+			},
+			want: &statusACProgress{Total: 4, InScope: 3, Open: 1, Met: 1, Deferred: 1, Cancelled: 1},
+		},
+		{
+			name: "all cancelled",
+			acs: []entity.AcceptanceCriterion{
+				{Status: "cancelled"},
+				{Status: "cancelled"},
+			},
+			want: &statusACProgress{Total: 2, InScope: 0, Cancelled: 2},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := summarizeACs(tt.acs)
+			switch {
+			case got == nil && tt.want == nil:
+				return
+			case got == nil || tt.want == nil:
+				t.Fatalf("got %+v, want %+v", got, tt.want)
+			case *got != *tt.want:
+				t.Errorf("got %+v, want %+v", *got, *tt.want)
+			}
+		})
+	}
+}
+
+// TestRenderACProgress covers the badge text rendered next to each
+// milestone in the status output.
+func TestRenderACProgress(t *testing.T) {
+	tests := []struct {
+		name string
+		p    *statusACProgress
+		want string
+	}{
+		{"nil", nil, ""},
+		{"all met", &statusACProgress{Total: 2, InScope: 2, Met: 2}, "ACs 2/2 met"},
+		{"in progress", &statusACProgress{Total: 3, InScope: 3, Open: 1, Met: 2}, "ACs 2/3 met (1 open)"},
+		{"all cancelled", &statusACProgress{Total: 2, InScope: 0, Cancelled: 2}, "ACs all cancelled"},
+		{"with deferred", &statusACProgress{Total: 3, InScope: 3, Met: 2, Deferred: 1}, "ACs 2/3 met"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := renderACProgress(tt.p); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestRenderStatusText_ACProgressInline confirms the AC progress
+// badge appears on the milestone row in the text renderer.
+func TestRenderStatusText_ACProgressInline(t *testing.T) {
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active"},
+			{
+				Kind: entity.KindMilestone, ID: "M-001", Title: "First", Status: "in_progress", Parent: "E-01",
+				TDD: "required",
+				ACs: []entity.AcceptanceCriterion{
+					{ID: "AC-1", Title: "x", Status: "met", TDDPhase: "done"},
+					{ID: "AC-2", Title: "y", Status: "open", TDDPhase: "red"},
+				},
+			},
+		},
+	}
+	r := buildStatus(tr, nil)
+	var b strings.Builder
+	if err := renderStatusText(&b, &r); err != nil {
+		t.Fatalf("renderStatusText: %v", err)
+	}
+	out := b.String()
+	if !strings.Contains(out, "ACs 1/2 met (1 open)") {
+		t.Errorf("text output missing AC progress badge:\n%s", out)
+	}
+	if !strings.Contains(out, "tdd: required") {
+		t.Errorf("text output missing tdd: badge:\n%s", out)
+	}
+}
+
+// TestRenderStatusMarkdown_MermaidACBadge confirms the (M/T) badge
+// appears in the mermaid milestone label, and the bullet row carries
+// the inline progress text.
+func TestRenderStatusMarkdown_MermaidACBadge(t *testing.T) {
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active"},
+			{
+				Kind: entity.KindMilestone, ID: "M-007", Title: "Engine", Status: "in_progress", Parent: "E-01",
+				ACs: []entity.AcceptanceCriterion{
+					{ID: "AC-1", Status: "met"},
+					{ID: "AC-2", Status: "met"},
+					{ID: "AC-3", Status: "open"},
+				},
+			},
+		},
+	}
+	r := buildStatus(tr, nil)
+	var b strings.Builder
+	if err := renderStatusMarkdown(&b, &r); err != nil {
+		t.Fatalf("renderStatusMarkdown: %v", err)
+	}
+	out := b.String()
+	if !strings.Contains(out, "ACs 2/3 met (1 open)") {
+		t.Errorf("markdown bullet missing AC progress:\n%s", out)
+	}
+	if !strings.Contains(out, "M-007 (2/3)") {
+		t.Errorf("mermaid label missing (2/3) badge:\n%s", out)
+	}
+}
+
 func TestMdEscape(t *testing.T) {
 	cases := []struct{ in, want string }{
 		{"plain", "plain"},
