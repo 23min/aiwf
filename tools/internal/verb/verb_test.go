@@ -255,6 +255,87 @@ func TestReallocate_RewritesReferences(t *testing.T) {
 	mustHaveTrailer(t, trailers, "aiwf-prior-entity", "M-001")
 }
 
+// TestAdd_NonASCIITitle_SurfacesSlugWarning is the load-bearing test
+// for G8: an `aiwf add` with a non-ASCII title (`Café`) succeeds,
+// produces the expected ASCII slug, AND surfaces a warning naming
+// the dropped characters and the resulting slug. The user is no
+// longer surprised when they later try to rename to a related slug.
+func TestAdd_NonASCIITitle_SurfacesSlugWarning(t *testing.T) {
+	r := newRunner(t)
+	res, err := verb.Add(r.tree(), entity.KindEpic, "Café au Lait", testActor, verb.AddOptions{})
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+	if res.Plan == nil {
+		t.Fatal("expected plan; warning should not block")
+	}
+	if check.HasErrors(res.Findings) {
+		t.Errorf("expected only warning, got errors: %+v", res.Findings)
+	}
+	hasWarning := false
+	for _, f := range res.Findings {
+		if f.Code == "slug-dropped-chars" {
+			hasWarning = true
+			if !strings.Contains(f.Message, `"é"`) {
+				t.Errorf("warning should name the dropped char 'é'; got %q", f.Message)
+			}
+			if !strings.Contains(f.Message, `"caf-au-lait"`) {
+				t.Errorf("warning should name the resulting slug; got %q", f.Message)
+			}
+			if f.EntityID != "E-01" {
+				t.Errorf("warning entity id = %q, want E-01", f.EntityID)
+			}
+		}
+	}
+	if !hasWarning {
+		t.Errorf("expected slug-dropped-chars warning, got %+v", res.Findings)
+	}
+	// Apply the plan and confirm the entity actually lands.
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatal(applyErr)
+	}
+	if _, err := os.Stat(filepath.Join(r.root, "work", "epics", "E-01-caf-au-lait", "epic.md")); err != nil {
+		t.Errorf("entity not created at expected path: %v", err)
+	}
+}
+
+// TestAdd_PureASCIITitle_NoWarning: a normal English title gets no
+// slug warning (regression check that we don't flag everything).
+func TestAdd_PureASCIITitle_NoWarning(t *testing.T) {
+	r := newRunner(t)
+	res, err := verb.Add(r.tree(), entity.KindEpic, "Cache Warmup", testActor, verb.AddOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range res.Findings {
+		if f.Code == "slug-dropped-chars" {
+			t.Errorf("ASCII-only title should not produce slug warning; got %+v", f)
+		}
+	}
+}
+
+// TestRename_NonASCIINewSlug_SurfacesSlugWarning: same shape for
+// rename — when the user passes a slug containing non-ASCII chars,
+// they see what was dropped.
+func TestRename_NonASCIINewSlug_SurfacesSlugWarning(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+
+	res, err := verb.Rename(r.tree(), "E-01", "Café-Bar", testActor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasWarning := false
+	for _, f := range res.Findings {
+		if f.Code == "slug-dropped-chars" {
+			hasWarning = true
+		}
+	}
+	if !hasWarning {
+		t.Errorf("expected slug-dropped-chars warning on rename; got %+v", res.Findings)
+	}
+}
+
 // TestReallocate_RewritesProseReferences is the load-bearing test
 // for G5: when reallocate renumbers an entity, prose mentions of
 // the old id in other entities' bodies are rewritten to the new id

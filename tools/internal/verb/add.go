@@ -61,9 +61,13 @@ func Add(t *tree.Tree, kind entity.Kind, title, actor string, opts AddOptions) (
 		return nil, err
 	}
 	id := entity.AllocateID(kind, t.Entities)
-	slug := entity.Slugify(title)
+	slug, dropped := entity.SlugifyDetailed(title)
 	if slug == "" {
 		return nil, fmt.Errorf("title %q produces an empty slug; try a different title", title)
+	}
+	var slugNotices []check.Finding
+	if len(dropped) > 0 {
+		slugNotices = append(slugNotices, slugDroppedFinding(id, title, slug, dropped))
 	}
 
 	path, err := newEntityPath(t, kind, id, slug, opts)
@@ -99,15 +103,56 @@ func Add(t *tree.Tree, kind entity.Kind, title, actor string, opts AddOptions) (
 	}
 
 	subject := fmt.Sprintf("aiwf add %s %s %q", kind, id, title)
-	return plan(&Plan{
-		Subject: subject,
-		Trailers: []gitops.Trailer{
-			{Key: "aiwf-verb", Value: "add"},
-			{Key: "aiwf-entity", Value: id},
-			{Key: "aiwf-actor", Value: actor},
+	return &Result{
+		Findings: slugNotices,
+		Plan: &Plan{
+			Subject: subject,
+			Trailers: []gitops.Trailer{
+				{Key: "aiwf-verb", Value: "add"},
+				{Key: "aiwf-entity", Value: id},
+				{Key: "aiwf-actor", Value: actor},
+			},
+			Ops: ops,
 		},
-		Ops: ops,
-	}), nil
+	}, nil
+}
+
+// slugDroppedFinding builds the warning surfaced when SlugifyDetailed
+// drops non-ASCII runes from the title. It travels with the
+// successful plan so the user sees the slug they actually got and
+// can rename later if needed.
+func slugDroppedFinding(id, title, slug string, dropped []rune) check.Finding {
+	return check.Finding{
+		Code:     "slug-dropped-chars",
+		Severity: check.SeverityWarning,
+		EntityID: id,
+		Message: fmt.Sprintf(
+			"title %q contains non-ASCII characters that the slug omits (%s); slug is %q",
+			title, runeListString(dropped), slug,
+		),
+	}
+}
+
+// runeListString renders a list of runes as a comma-separated,
+// quoted, deduplicated list for inclusion in a finding message.
+func runeListString(rs []rune) string {
+	seen := make(map[rune]bool, len(rs))
+	var out []string
+	for _, r := range rs {
+		if seen[r] {
+			continue
+		}
+		seen[r] = true
+		out = append(out, fmt.Sprintf("%q", string(r)))
+	}
+	result := ""
+	for i, s := range out {
+		if i > 0 {
+			result += ", "
+		}
+		result += s
+	}
+	return result
 }
 
 // validateAddOptsForKind enforces that contract-only flags

@@ -31,9 +31,13 @@ func Rename(t *tree.Tree, id, newSlug, actor string) (*Result, error) {
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	cleanSlug := entity.Slugify(newSlug)
+	cleanSlug, dropped := entity.SlugifyDetailed(newSlug)
 	if cleanSlug == "" {
 		return nil, fmt.Errorf("new slug %q is empty after normalization", newSlug)
+	}
+	var slugNotices []check.Finding
+	if len(dropped) > 0 {
+		slugNotices = append(slugNotices, slugDroppedFinding(id, newSlug, cleanSlug, dropped))
 	}
 
 	source, dest, err := renamePaths(e, cleanSlug)
@@ -61,15 +65,18 @@ func Rename(t *tree.Tree, id, newSlug, actor string) (*Result, error) {
 	}
 
 	subject := fmt.Sprintf("aiwf rename %s slug -> %s", id, cleanSlug)
-	return plan(&Plan{
-		Subject: subject,
-		Trailers: []gitops.Trailer{
-			{Key: "aiwf-verb", Value: "rename"},
-			{Key: "aiwf-entity", Value: id},
-			{Key: "aiwf-actor", Value: actor},
+	return &Result{
+		Findings: slugNotices,
+		Plan: &Plan{
+			Subject: subject,
+			Trailers: []gitops.Trailer{
+				{Key: "aiwf-verb", Value: "rename"},
+				{Key: "aiwf-entity", Value: id},
+				{Key: "aiwf-actor", Value: actor},
+			},
+			Ops: []FileOp{{Type: OpMove, Path: source, NewPath: dest}},
 		},
-		Ops: []FileOp{{Type: OpMove, Path: source, NewPath: dest}},
-	}), nil
+	}, nil
 }
 
 // renamePaths returns the (source, dest) paths to pass to git mv. For

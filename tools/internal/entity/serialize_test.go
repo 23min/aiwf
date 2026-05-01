@@ -33,6 +33,49 @@ func TestSlugify(t *testing.T) {
 	}
 }
 
+// TestSlugifyDetailed reports both the slug and the runes that
+// were dropped. The dropped list lets verbs surface a notice when
+// a non-ASCII title silently loses characters in the slug.
+func TestSlugifyDetailed(t *testing.T) {
+	tests := []struct {
+		name        string
+		title       string
+		wantSlug    string
+		wantDropped []rune
+	}{
+		{"pure ascii", "Hello World", "hello-world", nil},
+		{"non-ascii single", "Café", "caf", []rune{'é'}},
+		{"non-ascii multiple", "München-Frühling", "m-nchen-fr-hling", []rune{'ü', 'ü'}},
+		{"all non-ascii drops to empty", "日本語", "", []rune{'日', '本', '語'}},
+		{"empty input", "", "", nil},
+		{"punctuation only is not dropped", "!!!", "", nil},
+		{"mixed letters digits ascii", "Pi 3.14", "pi-3-14", nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotSlug, gotDropped := SlugifyDetailed(tt.title)
+			if gotSlug != tt.wantSlug {
+				t.Errorf("slug = %q, want %q", gotSlug, tt.wantSlug)
+			}
+			if diff := cmp.Diff(tt.wantDropped, gotDropped); diff != "" {
+				t.Errorf("dropped mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestSlugify_StaysCompatibleWithSlugifyDetailed: the simple
+// Slugify wrapper must agree with SlugifyDetailed's slug return.
+func TestSlugify_StaysCompatibleWithSlugifyDetailed(t *testing.T) {
+	for _, title := range []string{"Hello World", "Café", "München-Frühling", "", "日本語"} {
+		want, _ := SlugifyDetailed(title)
+		got := Slugify(title)
+		if got != want {
+			t.Errorf("Slugify(%q) = %q, SlugifyDetailed slug = %q", title, got, want)
+		}
+	}
+}
+
 func TestBodyTemplate_Sections(t *testing.T) {
 	expectedSections := map[Kind][]string{
 		KindEpic:      {"## Goal", "## Scope", "## Out of scope"},

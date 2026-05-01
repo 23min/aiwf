@@ -74,10 +74,21 @@ func Serialize(e *Entity, body []byte) ([]byte, error) {
 // collapses runs of non-alphanumerics into single hyphens, and trims
 // leading and trailing hyphens.
 //
-// Non-ASCII characters are dropped (e.g., "Café" becomes "caf"). Tighten
-// to a Unicode-aware mapping later if real consumers ask for it; the
-// PoC's audience is ASCII titles.
+// Non-ASCII characters are dropped (e.g., "Café" becomes "caf"). Use
+// SlugifyDetailed if you need to know which characters were dropped
+// so the user can be warned.
 func Slugify(title string) string {
+	slug, _ := SlugifyDetailed(title)
+	return slug
+}
+
+// SlugifyDetailed is Slugify plus the list of input runes that were
+// silently dropped because they were non-ASCII letters/digits. The
+// dropped list is empty when the title is purely ASCII (or contained
+// only ASCII alphanumerics + punctuation that legitimately collapses
+// to hyphens). Callers in the verb dispatcher use the dropped list to
+// surface a one-line notice to the user.
+func SlugifyDetailed(title string) (slug string, dropped []rune) {
 	var b strings.Builder
 	lastWasHyphen := true
 	for _, r := range strings.ToLower(title) {
@@ -86,13 +97,24 @@ func Slugify(title string) string {
 			b.WriteRune(r)
 			lastWasHyphen = false
 		default:
+			if isMeaningfulNonASCII(r) {
+				dropped = append(dropped, r)
+			}
 			if !lastWasHyphen {
 				b.WriteByte('-')
 				lastWasHyphen = true
 			}
 		}
 	}
-	return strings.TrimRight(b.String(), "-")
+	return strings.TrimRight(b.String(), "-"), dropped
+}
+
+// isMeaningfulNonASCII flags runes whose loss would surprise the
+// user — non-ASCII letters and digits. Pure punctuation runs that
+// collapse to hyphens (e.g., "!!!", "---") are intentional and not
+// reported as dropped.
+func isMeaningfulNonASCII(r rune) bool {
+	return r > 127
 }
 
 // BodyTemplate returns the per-kind starter body that `aiwf add`
