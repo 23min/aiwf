@@ -74,15 +74,9 @@ Resolved in commit `8950874` (fix(aiwf): G10 — surface case-equivalent paths a
 
 ## Low / nits
 
-### G11. `context.Context` not threaded through mutation verbs
+### G11. `context.Context` not threaded through mutation verbs — **resolved**
 
-**Location:** `tools/cmd/aiwf/main.go` and the verb-level functions in `tools/internal/verb/`.
-
-**Symptom:** `context.Background()` is created in CLI entry points but most mutation verbs (`Add`, `Promote`, `Reallocate`) don't accept a context. Ctrl-C mid-operation can leave partial state and isn't propagated cleanly.
-
-**Why it matters:** Violates the `tools/CLAUDE.md` rule that `context.Context` is the first arg of every IO-touching function. Also blocks future cancellation features (timeouts, graceful shutdown in editor integrations).
-
-**Proposed fix:** Mechanical — add `ctx context.Context` as the first argument to every verb function and thread it through. Combined with G2's atomicity work, gives clean Ctrl-C behavior.
+Resolved in commit `97283c0` (refactor(aiwf): G11 — thread context.Context through every mutating verb). Every mutating verb (Add, Promote, Cancel, Rename, Move, Reallocate, Import, ContractBind, ContractUnbind, RecipeInstall, RecipeRemove) now takes ctx as its first argument. CLI dispatchers in `tools/cmd/aiwf` already had ctx in scope; tests use `context.Background()` or the runner's `r.ctx`. Today the verb bodies are pure-projection (the IO is in Apply, gitops, tree.Load) so this is a discipline/future-proofing fix, but it aligns with `tools/CLAUDE.md` and gives a clean cancellation handle when verbs grow IO-touching helpers.
 
 ---
 
@@ -124,7 +118,7 @@ Resolved in commit `8950874` (fix(aiwf): G10 — surface case-equivalent paths a
 | G8  | Slugify silently drops non-ASCII                            | Medium   | [x] `668031c` |
 | G9  | `aiwf doctor --self-check` is not run in CI                 | Medium   | [x] `07f8a84` |
 | G10 | macOS case-insensitive filesystem assumption                | Medium   | [x] `8950874` |
-| G11 | `context.Context` not threaded through mutation verbs       | Low      | [ ]    |
+| G11 | `context.Context` not threaded through mutation verbs       | Low      | [x] `97283c0` |
 | G12 | Pre-push hook hard-codes binary path at install time        | Low      | [ ]    |
 | G13 | No Windows guard                                            | Low      | [ ]    |
 
