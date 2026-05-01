@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -162,6 +163,154 @@ func TestRefsResolve_WrongKind(t *testing.T) {
 	got := refsResolve(tr)
 	if len(got) != 1 || got[0].Subcode != "wrong-kind" {
 		t.Errorf("got %+v", got)
+	}
+}
+
+func TestRefsResolve_StubResolvesReferences(t *testing.T) {
+	// Regression for the wrap-epic cascade bug: when E-01's epic.md
+	// fails to parse (e.g. an unknown frontmatter field rejected by
+	// KnownFields(true)), every entity that references E-01 used to
+	// surface a refs-resolve/unresolved finding on top of the load
+	// error. The tree loader now registers a stub for E-01; refsResolve
+	// must consult Stubs so the cascade is suppressed. The original
+	// parse failure still appears as a load-error finding via Run().
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "M-001", Kind: entity.KindMilestone, Parent: "E-01", Path: "m1.md"},
+			{ID: "M-002", Kind: entity.KindMilestone, Parent: "E-01", Path: "m2.md"},
+			{ID: "G-001", Kind: entity.KindGap, DiscoveredIn: "E-01", Path: "g1.md"},
+			{ID: "D-001", Kind: entity.KindDecision, RelatesTo: []string{"E-01"}, Path: "d1.md"},
+		},
+		Stubs: []*entity.Entity{
+			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-bad/epic.md"},
+		},
+	}
+	got := refsResolve(tr)
+	if len(got) != 0 {
+		t.Errorf("expected no refs-resolve findings (stub should resolve), got: %+v", got)
+	}
+}
+
+func TestRefsResolve_StubPreservesWrongKindCheck(t *testing.T) {
+	// A stub still carries its kind (derived from path), so wrong-kind
+	// findings on referrers must still fire when the link is to the
+	// wrong kind. Here a milestone's parent points at a stubbed gap;
+	// the wrong-kind finding must still be raised.
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "M-001", Kind: entity.KindMilestone, Parent: "G-001", Path: "m.md"},
+		},
+		Stubs: []*entity.Entity{
+			{ID: "G-001", Kind: entity.KindGap, Path: "work/gaps/G-001.md"},
+		},
+	}
+	got := refsResolve(tr)
+	if len(got) != 1 || got[0].Subcode != "wrong-kind" {
+		t.Errorf("expected one wrong-kind finding, got: %+v", got)
+	}
+}
+
+func TestRefsResolve_RealEntityWinsOverStub(t *testing.T) {
+	// If both a real entity and a stub claim the same id (shouldn't
+	// happen in practice, but defensive), the real one is indexed
+	// first and wins.
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "E-01", Kind: entity.KindEpic, Path: "good.md"},
+			{ID: "M-001", Kind: entity.KindMilestone, Parent: "E-01", Path: "m.md"},
+		},
+		Stubs: []*entity.Entity{
+			{ID: "E-01", Kind: entity.KindGap, Path: "stub.md"}, // wrong kind
+		},
+	}
+	got := refsResolve(tr)
+	if len(got) != 0 {
+		t.Errorf("expected no findings (real entity wins), got: %+v", got)
+	}
+}
+
+// TestRefsResolve_ProliminalCascadeRepro is the wild repro from the
+// proliminal.net dogfooding repo, distilled to its essentials. E-01's
+// epic.md had a `completed:` field added by the wrap-epic skill;
+// KnownFields(true) rejected it; the entity dropped out of Entities;
+// every entity that referenced E-01 (5 milestones via parent, 5 gaps
+// via discovered_in, 2 decisions via relates_to) surfaced an
+// unresolved-reference finding. Net: 13 push-blocking errors from one
+// bad field. This test fails on the pre-fix code (12 cascade findings
+// would appear) and passes once stubs short-circuit refs-resolve.
+func TestRefsResolve_ProliminalCascadeRepro(t *testing.T) {
+	entities := []*entity.Entity{}
+	// 5 milestones, all parented to E-01.
+	for i := 1; i <= 5; i++ {
+		entities = append(entities, &entity.Entity{
+			ID:     fmt.Sprintf("M-%03d", i),
+			Kind:   entity.KindMilestone,
+			Parent: "E-01",
+			Path:   fmt.Sprintf("work/epics/E-01-foo/M-%03d.md", i),
+		})
+	}
+	// 5 gaps, all discovered in E-01.
+	for i := 1; i <= 5; i++ {
+		entities = append(entities, &entity.Entity{
+			ID:           fmt.Sprintf("G-%03d", i),
+			Kind:         entity.KindGap,
+			DiscoveredIn: "E-01",
+			Path:         fmt.Sprintf("work/gaps/G-%03d.md", i),
+		})
+	}
+	// 2 decisions, both related to E-01.
+	for i := 1; i <= 2; i++ {
+		entities = append(entities, &entity.Entity{
+			ID:        fmt.Sprintf("D-%03d", i),
+			Kind:      entity.KindDecision,
+			RelatesTo: []string{"E-01"},
+			Path:      fmt.Sprintf("work/decisions/D-%03d.md", i),
+		})
+	}
+	tr := &tree.Tree{
+		Entities: entities,
+		Stubs: []*entity.Entity{
+			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
+		},
+	}
+	got := refsResolve(tr)
+	if len(got) != 0 {
+		t.Errorf("expected no refs-resolve findings (cascade should be suppressed by stub); got %d:\n%+v", len(got), got)
+	}
+}
+
+func TestIdsUnique_StubVsRealCollision(t *testing.T) {
+	// User has two epic dirs both claiming id E-01; one parses, one
+	// doesn't. ids-unique must still flag the duplicate; otherwise
+	// the cascade-suppression fix would silently swallow a real
+	// id-collision.
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-good/epic.md"},
+		},
+		Stubs: []*entity.Entity{
+			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-bad/epic.md"},
+		},
+	}
+	got := idsUnique(tr)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 ids-unique finding for stub-vs-real collision; got %+v", got)
+	}
+	if got[0].Path != "work/epics/E-01-bad/epic.md" {
+		t.Errorf("finding should point at the colliding (stub) path; got %q", got[0].Path)
+	}
+}
+
+func TestIdsUnique_StubVsStubCollision(t *testing.T) {
+	tr := &tree.Tree{
+		Stubs: []*entity.Entity{
+			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-a/epic.md"},
+			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-b/epic.md"},
+		},
+	}
+	got := idsUnique(tr)
+	if len(got) != 1 {
+		t.Errorf("expected 1 ids-unique finding for stub-vs-stub collision; got %+v", got)
 	}
 }
 

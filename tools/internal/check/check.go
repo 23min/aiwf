@@ -177,7 +177,7 @@ func casePaths(t *tree.Tree) []Finding {
 func idsUnique(t *tree.Tree) []Finding {
 	seen := make(map[string]*entity.Entity)
 	var findings []Finding
-	for _, e := range t.Entities {
+	check := func(e *entity.Entity) {
 		if existing, ok := seen[e.ID]; ok {
 			findings = append(findings, Finding{
 				Code:     "ids-unique",
@@ -187,9 +187,21 @@ func idsUnique(t *tree.Tree) []Finding {
 				EntityID: e.ID,
 				Field:    "id",
 			})
-			continue
+			return
 		}
 		seen[e.ID] = e
+	}
+	for _, e := range t.Entities {
+		check(e)
+	}
+	// Stubs (failed-parse files with path-derived ids) participate in
+	// uniqueness too — a real entity colliding with a stub, or two stubs
+	// claiming the same id, is still an id collision the user wants to
+	// know about. Without this, the cascade-suppression fix would trade
+	// a noisy false-positive (refs-resolve cascade) for a silent
+	// false-negative (missed duplicate id).
+	for _, e := range t.Stubs {
+		check(e)
 	}
 	return findings
 }
@@ -276,9 +288,21 @@ func statusValid(t *tree.Tree) []Finding {
 // refsResolve checks every reference field. A reference fails resolution
 // if (a) no entity with that id exists ("unresolved"), or (b) the entity
 // exists but is not in the allowed-kinds set for the field ("wrong-kind").
+//
+// Stubs (entities whose file failed to parse) are included in the lookup
+// index so that one bad file does not cascade into unresolved-reference
+// findings on every entity that links to it. The parse failure is
+// already reported as a load-error finding; the cascade would just be
+// noise on top.
 func refsResolve(t *tree.Tree) []Finding {
-	idx := make(map[string]*entity.Entity, len(t.Entities))
+	idx := make(map[string]*entity.Entity, len(t.Entities)+len(t.Stubs))
 	for _, e := range t.Entities {
+		if _, exists := idx[e.ID]; exists {
+			continue
+		}
+		idx[e.ID] = e
+	}
+	for _, e := range t.Stubs {
 		if _, exists := idx[e.ID]; exists {
 			continue
 		}

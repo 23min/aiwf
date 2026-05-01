@@ -165,6 +165,52 @@ var (
 	adrFile       = regexp.MustCompile(`^ADR-\d+(-.*)?\.md$`)
 )
 
+// idLeadingPattern matches the "<kind>-<digits>" prefix at the start of
+// a directory or file basename. ADR is listed first so RE2's leftmost
+// alternation does not match D against the leading A of ADR.
+var idLeadingPattern = regexp.MustCompile(`^(?:ADR|[EMGDC])-\d+`)
+
+// IDFromPath extracts the entity id encoded in an entity-bearing path,
+// for the given kind. The id is the leading "<kind>-<digits>" portion
+// of the relevant path component (the parent directory for epic and
+// contract; the filename for milestone, gap, decision, and adr); any
+// trailing slug is ignored.
+//
+// Returns false if the path does not match the kind's expected shape
+// or the extracted id does not validate. Used by the tree loader to
+// register stub entities for files that fail to parse.
+func IDFromPath(relPath string, k Kind) (string, bool) {
+	parts := strings.Split(filepath.ToSlash(relPath), "/")
+	var basename string
+	switch k {
+	case KindEpic:
+		if len(parts) != 4 || parts[3] != "epic.md" {
+			return "", false
+		}
+		basename = parts[2]
+	case KindContract:
+		if len(parts) != 4 || parts[3] != "contract.md" {
+			return "", false
+		}
+		basename = parts[2]
+	case KindMilestone, KindGap, KindDecision, KindADR:
+		if len(parts) == 0 {
+			return "", false
+		}
+		basename = strings.TrimSuffix(parts[len(parts)-1], ".md")
+	default:
+		return "", false
+	}
+	id := idLeadingPattern.FindString(basename)
+	if id == "" {
+		return "", false
+	}
+	if err := ValidateID(k, id); err != nil {
+		return "", false
+	}
+	return id, true
+}
+
 // PathKind returns the kind implied by a file's path, relative to the
 // consumer repo root. The second return is false if the path doesn't
 // match any entity-bearing pattern; such files are skipped by the loader.

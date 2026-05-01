@@ -140,6 +140,97 @@ status: active
 	}
 }
 
+func TestLoad_ParseErrorRegistersStub(t *testing.T) {
+	root := t.TempDir()
+	// Unknown frontmatter field — KnownFields(true) rejects it,
+	// matching the real-world wrap-epic skill bug that motivated
+	// the stub mechanism.
+	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
+id: E-01
+title: Platform
+status: done
+completed: 2026-04-30
+---
+`)
+
+	tr, loadErrs, err := Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(loadErrs) != 1 {
+		t.Fatalf("loadErrs count = %d, want 1: %+v", len(loadErrs), loadErrs)
+	}
+	if len(tr.Entities) != 0 {
+		t.Errorf("Entities count = %d, want 0 (parse failed)", len(tr.Entities))
+	}
+	if len(tr.Stubs) != 1 {
+		t.Fatalf("Stubs count = %d, want 1 (stub from path-derived id)", len(tr.Stubs))
+	}
+	stub := tr.Stubs[0]
+	if stub.ID != "E-01" || stub.Kind != entity.KindEpic {
+		t.Errorf("stub = {ID=%q, Kind=%v}, want {E-01, epic}", stub.ID, stub.Kind)
+	}
+	if stub.Path != filepath.FromSlash("work/epics/E-01-platform/epic.md") {
+		t.Errorf("stub.Path = %q", stub.Path)
+	}
+}
+
+func TestLoad_ReadFailureRegistersStub(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("running as root; cannot create unreadable file")
+	}
+	root := t.TempDir()
+	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
+id: E-01
+title: Platform
+status: active
+---
+`)
+	// Make it unreadable so os.ReadFile fails.
+	abs := filepath.Join(root, "work/epics/E-01-platform/epic.md")
+	if err := os.Chmod(abs, 0o000); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(abs, 0o644) })
+
+	tr, loadErrs, err := Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(loadErrs) != 1 {
+		t.Fatalf("loadErrs count = %d, want 1: %+v", len(loadErrs), loadErrs)
+	}
+	if len(tr.Stubs) != 1 || tr.Stubs[0].ID != "E-01" {
+		t.Errorf("expected one stub for E-01 (read failure should still register stub); got %+v", tr.Stubs)
+	}
+}
+
+func TestLoad_ParseErrorWithUnreadablePathSkipsStub(t *testing.T) {
+	// If the path itself doesn't yield a recognizable id (shouldn't
+	// happen in practice — PathKind already filtered — but defensive),
+	// no stub is registered. The load-error finding still fires.
+	root := t.TempDir()
+	// Construct a path that PathKind accepts (E-NN dir + epic.md) but
+	// whose dir name doesn't carry a valid id prefix. Make the file
+	// fail to parse.
+	writeFile(t, root, "work/epics/no-id-here/epic.md", `---
+not: yaml
+  bad: indent
+---
+`)
+
+	tr, loadErrs, err := Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(loadErrs) != 1 {
+		t.Errorf("loadErrs count = %d, want 1", len(loadErrs))
+	}
+	if len(tr.Stubs) != 0 {
+		t.Errorf("Stubs = %+v, want empty (path lacks id)", tr.Stubs)
+	}
+}
+
 func TestLoad_StraysSkipped(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---

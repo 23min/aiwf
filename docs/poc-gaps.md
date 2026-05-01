@@ -92,6 +92,18 @@ Resolved in commit `dda370d` (fix(aiwf): G13 — refuse Windows up front with on
 
 ---
 
+### G14. Parse failure on one entity cascades into refs-resolve findings on every referrer
+
+**Location:** `tools/internal/tree/tree.go` (loader drops failed-parse entities), `tools/internal/check/check.go` (`refsResolve` indexes only `tree.Entities`).
+
+**Symptom:** A single unknown frontmatter key on one entity file (e.g. `completed: 2026-04-30` on an epic, when the schema has no `completed` field) causes `KnownFields(true)` to reject the file. The loader drops the entity from `tree.Entities`. Every referrer (milestones via `parent:`, gaps via `discovered_in:`, decisions via `relates_to:`) then surfaces a `refs-resolve/unresolved` finding. In the wild repro that triggered this gap (proliminal.net, E-01 wrap, commit `013fb58`), one parse error produced 13 findings — 12 of them noise that obscured the real cause.
+
+**Why it matters:** The pre-push hook refuses `git push` with 13 errors when the actual problem is a single bad field, making the failure mode disproportionately confusing. Skill authors writing recipes against aiwf can trip this with one well-meaning hand-edit (the upstream fix in `ai-workflow-rituals` commit `d9a726c` removed exactly such an instruction from `aiwfx-wrap-epic`).
+
+**Proposed fix:** On parse (or read) failure, derive the entity's id from its path and register a stub in a new `tree.Tree.Stubs` slice carrying only id, kind, and path. `refsResolve` consults Stubs alongside Entities so referrers resolve cleanly; `idsUnique` consults Stubs too so stub-vs-real and stub-vs-stub id collisions are still flagged (otherwise the cascade-suppression would trade noise for a silent false-negative). Stubs are deliberately *not* in `Entities` so frontmatter-shape / status-valid / titles-nonempty don't fire spurious findings on body-less entities. The original parse failure remains the canonical report via the existing load-error finding. Consistent with `docs/pocv3/design-lessons.md` §1 (the stub's identity is still the abstract id, not the path — path is one of two redundant encodings aiwf already maintains by convention) and §2 (the invariant is enforced in the loader/check, not at the hook boundary).
+
+---
+
 ## Status matrix
 
 | ID  | Title                                                       | Severity | Status |
@@ -109,5 +121,6 @@ Resolved in commit `dda370d` (fix(aiwf): G13 — refuse Windows up front with on
 | G11 | `context.Context` not threaded through mutation verbs       | Low      | [x] `97283c0` |
 | G12 | Pre-push hook hard-codes binary path at install time        | Low      | [x] `8ed5051` |
 | G13 | No Windows guard                                            | Low      | [x] `dda370d` |
+| G14 | Parse failure cascades into refs-resolve findings           | Medium   | [ ] |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

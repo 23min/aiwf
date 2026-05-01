@@ -111,6 +111,50 @@ func TestKindFromID(t *testing.T) {
 	}
 }
 
+func TestIDFromPath(t *testing.T) {
+	tests := []struct {
+		path   string
+		kind   Kind
+		want   string
+		wantOk bool
+	}{
+		// With slug.
+		{"work/epics/E-01-platform/epic.md", KindEpic, "E-01", true},
+		{"work/epics/E-01-platform/M-001-cache.md", KindMilestone, "M-001", true},
+		{"work/gaps/G-001-noise.md", KindGap, "G-001", true},
+		{"work/decisions/D-001-format.md", KindDecision, "D-001", true},
+		{"work/contracts/C-001-orders/contract.md", KindContract, "C-001", true},
+		{"docs/adr/ADR-0001-format.md", KindADR, "ADR-0001", true},
+
+		// Slug-less.
+		{"work/epics/E-01/epic.md", KindEpic, "E-01", true},
+		{"work/epics/E-01-platform/M-001.md", KindMilestone, "M-001", true},
+		{"work/gaps/G-001.md", KindGap, "G-001", true},
+		{"docs/adr/ADR-0001.md", KindADR, "ADR-0001", true},
+
+		// Wider id (id-pattern allows ≥canonical pad width).
+		{"work/epics/E-100-big/epic.md", KindEpic, "E-100", true},
+		{"docs/adr/ADR-12345-future.md", KindADR, "ADR-12345", true},
+
+		// Mismatched kind / shape.
+		{"work/epics/E-01-platform/epic.md", KindMilestone, "", false}, // wrong kind for path
+		{"work/epics/E-01-platform/notes.md", KindEpic, "", false},     // not epic.md
+		{"work/contracts/C-001/contract.md", KindEpic, "", false},      // wrong shape for epic
+		{"work/epics/no-id/epic.md", KindEpic, "", false},              // dir not id-prefixed
+		{"work/gaps/random.md", KindGap, "", false},                    // filename not id-prefixed
+		{"work/epics/E-1/epic.md", KindEpic, "", false},                // pad below canonical (E needs ≥2)
+		{"work/epics/E-01-platform/epic.md", Kind("unknown"), "", false}, // default branch — unknown kind
+	}
+	for _, tt := range tests {
+		t.Run(tt.path+":"+string(tt.kind), func(t *testing.T) {
+			got, ok := IDFromPath(tt.path, tt.kind)
+			if got != tt.want || ok != tt.wantOk {
+				t.Errorf("IDFromPath(%q, %v) = %q, %v; want %q, %v", tt.path, tt.kind, got, ok, tt.want, tt.wantOk)
+			}
+		})
+	}
+}
+
 func TestPathKind(t *testing.T) {
 	tests := []struct {
 		path   string

@@ -29,6 +29,16 @@ type Tree struct {
 	// order encountered during the directory walk, which is stable
 	// across runs but not otherwise specified.
 	Entities []*entity.Entity
+	// Stubs holds entities whose source file failed to parse. Each
+	// carries only id (derived from the path), kind, and path; body
+	// fields are zero. Stubs are deliberately not in Entities so that
+	// frontmatter-shape, status-valid, and similar body-level checks
+	// don't emit spurious findings. They exist so reference resolution
+	// can still locate a target by id, preventing one file's parse
+	// failure from cascading into "unresolved reference" findings on
+	// every entity that links to it. The original parse failure is
+	// reported as a load-error finding.
+	Stubs []*entity.Entity
 	// PlannedFiles records repo-relative file paths (forward-slash form)
 	// that a verb plans to write but hasn't yet. Used by checks that
 	// otherwise consult disk so that validate-then-write verbs can
@@ -122,12 +132,14 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 			content, readErr := os.ReadFile(path)
 			if readErr != nil {
 				loadErrs = append(loadErrs, LoadError{Path: relPath, Err: fmt.Errorf("reading file: %w", readErr)})
+				registerStub(tree, relPath, kind)
 				return nil
 			}
 
 			e, parseErr := entity.Parse(relPath, content)
 			if parseErr != nil {
 				loadErrs = append(loadErrs, LoadError{Path: relPath, Err: parseErr})
+				registerStub(tree, relPath, kind)
 				return nil
 			}
 			e.Kind = kind
@@ -140,6 +152,22 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 	}
 
 	return tree, loadErrs, nil
+}
+
+// registerStub appends a path-derived stub entity to tree.Stubs so that
+// reference resolution can still find a target by id when the source
+// file failed to load (read or parse failure). No stub is registered if
+// the path does not yield a valid id for the kind.
+func registerStub(t *Tree, relPath string, kind entity.Kind) {
+	id, ok := entity.IDFromPath(relPath, kind)
+	if !ok {
+		return
+	}
+	t.Stubs = append(t.Stubs, &entity.Entity{
+		ID:   id,
+		Kind: kind,
+		Path: relPath,
+	})
 }
 
 // ByID returns the first entity matching the id, or nil if absent.

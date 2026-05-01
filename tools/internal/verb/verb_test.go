@@ -113,6 +113,60 @@ func TestAdd_MilestoneUnderEpic(t *testing.T) {
 	}
 }
 
+// TestAdd_GapDiscoveredInStubbedEntity is the verb-projection
+// belt-and-braces for G14: when a referrer is added that points at an
+// entity whose source file failed to parse, the stub mechanism must
+// keep the verb from being blocked by a "newly introduced" unresolved
+// reference. Pre-fix this test would fail with a refs-resolve finding
+// on the new gap; post-fix the stub resolves the reference and the
+// verb succeeds. Confirms that Stubs propagate from loaded tree
+// through projectAdd's shallow copy into the projection check.
+func TestAdd_GapDiscoveredInStubbedEntity(t *testing.T) {
+	r := newRunner(t)
+
+	// Drop a corrupt epic.md directly — the wrap-epic skill bug
+	// shape: an unknown frontmatter field rejected by KnownFields.
+	corrupt := []byte(`---
+id: E-01
+title: Platform
+status: active
+completed: 2026-04-30
+---
+`)
+	if err := os.MkdirAll(filepath.Join(r.root, "work/epics/E-01-platform"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(r.root, "work/epics/E-01-platform/epic.md"), corrupt, 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	// Load the tree directly — r.tree() would fail-fast on loadErrs.
+	tr, loadErrs, err := tree.Load(r.ctx, r.root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+	if len(loadErrs) != 1 {
+		t.Fatalf("expected 1 loadErr; got %+v", loadErrs)
+	}
+	if len(tr.Stubs) != 1 || tr.Stubs[0].ID != "E-01" {
+		t.Fatalf("expected stub for E-01; got %+v", tr.Stubs)
+	}
+
+	// Add a gap that references the stubbed E-01. Pre-fix, the
+	// projection check would surface a refs-resolve/unresolved on the
+	// new gap and the verb would fail. Post-fix the stub resolves it.
+	res, err := verb.Add(r.ctx, tr, entity.KindGap, "Flaky", testActor, verb.AddOptions{DiscoveredIn: "E-01"})
+	if err != nil {
+		t.Fatalf("verb.Add: %v", err)
+	}
+	if check.HasErrors(res.Findings) {
+		t.Fatalf("expected no error findings (stub should resolve discovered_in); got: %+v", res.Findings)
+	}
+	if res.Plan == nil {
+		t.Fatal("no plan produced")
+	}
+}
+
 func TestAdd_MilestoneRequiresEpic(t *testing.T) {
 	r := newRunner(t)
 	_, err := verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Orphan", testActor, verb.AddOptions{})
