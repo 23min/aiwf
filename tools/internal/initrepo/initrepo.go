@@ -31,6 +31,13 @@ import (
 // pre-existing user hook has its own logic).
 const preHookMarker = "# aiwf:pre-push"
 
+// preCommitHookMarker is the sibling marker for the pre-commit hook
+// that regenerates `STATUS.md`. Same protective contract as
+// preHookMarker: re-running init/update overwrites only when the
+// existing hook carries this marker; an alien pre-commit hook is
+// left untouched.
+const preCommitHookMarker = "# aiwf:pre-commit"
+
 // shellQuoteSingle wraps s in single quotes for safe /bin/sh
 // interpolation. Single quotes prevent every shell expansion; to
 // embed a literal single quote we close the quote, write a
@@ -73,6 +80,36 @@ exec ` + shellQuoteSingle(execPath) + ` check
 `
 }
 
+// preCommitHookScript renders the body of the pre-commit hook that
+// regenerates `STATUS.md` on every commit. The aiwf binary's absolute
+// path is baked in (same rationale as preHookScript: hooks should
+// not depend on the user's interactive `$PATH`). The script is
+// tolerant by design — any failure path silently exits 0, so a
+// missing/moved/broken binary, a transient `aiwf status` error, or
+// a tree the engine refuses to read does not block commits. Drift
+// between the installed body and this template is detected by
+// `aiwf doctor` and remediated by `aiwf update`.
+func preCommitHookScript(execPath string) string {
+	return `#!/bin/sh
+` + preCommitHookMarker + `
+# Installed by aiwf init/update. Regenerates STATUS.md so the
+# committed snapshot stays in sync with the entity tree. Tolerant —
+# any failure silently no-ops so contributors are never blocked.
+# Opt out: set status_md.auto_update: false in aiwf.yaml and run
+# 'aiwf update' to remove this hook.
+set -e
+repo_root="$(git rev-parse --show-toplevel)"
+tmp="$repo_root/STATUS.md.tmp"
+if ` + shellQuoteSingle(execPath) + ` status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
+    mv "$tmp" "$repo_root/STATUS.md"
+    git add "$repo_root/STATUS.md"
+else
+    rm -f "$tmp"
+fi
+exit 0
+`
+}
+
 // Action classifies what init did for a single step. The CLI uses this
 // to render a friendly summary.
 type Action string
@@ -86,6 +123,10 @@ const (
 	// doing so would clobber user-managed state. The Detail field on
 	// the StepResult explains why and what the user should do next.
 	ActionSkipped Action = "skipped"
+	// ActionRemoved marks a step that uninstalled a previously-managed
+	// artifact because the consumer opted out. Currently used only by
+	// the pre-commit hook step when status_md.auto_update flips false.
+	ActionRemoved Action = "removed"
 )
 
 // StepResult is one line of init's per-step ledger.
@@ -456,3 +497,102 @@ func resolveExecutable() (string, error) {
 // HookMarker exposes the marker line for tests that assert the hook
 // was installed by aiwf vs. someone else.
 func HookMarker() string { return preHookMarker }
+
+// PreCommitHookMarker exposes the pre-commit hook's marker line for
+// tests and for `aiwf doctor` to identify a marker-managed hook
+// versus a user-written one.
+func PreCommitHookMarker() string { return preCommitHookMarker }
+
+// ensurePreCommitHook installs (or refreshes, or removes) the
+// marker-protected pre-commit hook that regenerates `STATUS.md`. The
+// install argument carries the consumer's opt-in state from
+// `aiwf.yaml.status_md.auto_update`:
+//
+//   - install=true: write or refresh the hook (Created or Updated).
+//     If a non-marker hook is already in place, return ActionSkipped
+//     and conflict=true so the caller can surface remediation, same
+//     contract as ensurePreHook.
+//
+//   - install=false: remove a previously-installed marker-managed
+//     hook (ActionRemoved). A non-marker hook is left alone (the
+//     consumer's content is theirs to manage). Absence reports
+//     ActionPreserved with a "disabled by config" detail so the
+//     ledger explains why the step did nothing.
+//
+// In dry-run mode no filesystem mutation occurs; the StepResult still
+// reflects what would have happened so the user can preview.
+func ensurePreCommitHook(ctx context.Context, root string, install, dryRun bool) (StepResult, bool, error) {
+	gitDir, err := gitops.GitDir(ctx, root)
+	if err != nil {
+		return StepResult{}, false, fmt.Errorf("locating git dir: %w", err)
+	}
+	hooksDir := filepath.Join(gitDir, "hooks")
+	hookPath := filepath.Join(hooksDir, "pre-commit")
+	what := ".git/hooks/pre-commit"
+
+	existing, readErr := os.ReadFile(hookPath)
+	hasOurMarker := readErr == nil && strings.Contains(string(existing), preCommitHookMarker)
+	hasAlienHook := readErr == nil && !hasOurMarker
+
+	if !install {
+		switch {
+		case hasAlienHook:
+			return StepResult{
+				What:   what,
+				Action: ActionSkipped,
+				Detail: "existing hook has no aiwf marker — left untouched",
+			}, true, nil
+		case hasOurMarker:
+			if !dryRun {
+				if rmErr := os.Remove(hookPath); rmErr != nil {
+					return StepResult{}, false, fmt.Errorf("removing pre-commit hook: %w", rmErr)
+				}
+			}
+			return StepResult{
+				What:   what,
+				Action: ActionRemoved,
+				Detail: "status_md.auto_update: false",
+			}, false, nil
+		default:
+			return StepResult{
+				What:   what,
+				Action: ActionPreserved,
+				Detail: "disabled by config (status_md.auto_update: false)",
+			}, false, nil
+		}
+	}
+
+	if hasAlienHook {
+		return StepResult{
+			What:   what,
+			Action: ActionSkipped,
+			Detail: "existing hook has no aiwf marker — left untouched (see remediation below)",
+		}, true, nil
+	}
+
+	if !dryRun {
+		if mkErr := os.MkdirAll(hooksDir, 0o755); mkErr != nil {
+			return StepResult{}, false, fmt.Errorf("creating hooks dir: %w", mkErr)
+		}
+	}
+
+	exePath, err := resolveExecutable()
+	if err != nil {
+		return StepResult{}, false, fmt.Errorf("resolving aiwf binary path: %w", err)
+	}
+
+	action := ActionCreated
+	if hasOurMarker {
+		action = ActionUpdated
+	}
+	if !dryRun {
+		if err := os.WriteFile(hookPath, []byte(preCommitHookScript(exePath)), 0o755); err != nil {
+			return StepResult{}, false, fmt.Errorf("writing pre-commit hook: %w", err)
+		}
+	}
+	return StepResult{
+		What:   what,
+		Action: action,
+		Detail: "exec " + exePath + " status --format=md",
+	}, false, nil
+}
