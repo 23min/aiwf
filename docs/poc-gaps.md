@@ -60,15 +60,9 @@ Resolved in commit `668031c` (fix(aiwf): G8 — surface a warning when a non-ASC
 
 ---
 
-### G9. `aiwf doctor --self-check` is not run in CI
+### G9. `aiwf doctor --self-check` is not run in CI — **resolved**
 
-**Location:** `tools/cmd/aiwf/selfcheck.go`, `.github/workflows/`.
-
-**Symptom:** The self-check exercises every verb end-to-end against a temp repo and is the closest thing to an integration test the project has. CI runs `go test` and `golangci-lint` but never invokes the binary.
-
-**Why it matters:** Regressions in the commit-trailer format, the hook installer, or skill materialization wouldn't be caught until a user upgrades and tries `aiwf init` on a real repo. Unit tests don't cover binary-as-a-whole behavior.
-
-**Proposed fix:** Add a `make selfcheck` target that builds the binary and runs `aiwf doctor --self-check`. Wire it into `.github/workflows/ci.yml` after the test job. Cheap, fast, high-leverage.
+Resolved in commit `07f8a84` (ci(aiwf): G9 — run aiwf doctor --self-check in CI). New `selfcheck` job in `.github/workflows/go.yml` builds the binary and runs `aiwf doctor --self-check` end-to-end. New `make selfcheck` target for local parity, folded into `make ci`. The push trigger paths gain `Makefile` so a Makefile-only change still runs CI. End-to-end regressions (broken trailers, hook installer drift, missing skills, init-against-fresh-repo failures) are now caught at the CI layer rather than waiting for a user to discover them on upgrade.
 
 ---
 
@@ -134,7 +128,7 @@ Resolved in commit `668031c` (fix(aiwf): G8 — surface a warning when a non-ASC
 | G6  | Design docs are stale relative to I1 (contracts)            | Medium   | [x] `221b9ff` |
 | G7  | Skill namespace is a convention, not a guard                | Medium   | [x] `971fa88` |
 | G8  | Slugify silently drops non-ASCII                            | Medium   | [x] `668031c` |
-| G9  | `aiwf doctor --self-check` is not run in CI                 | Medium   | [ ]    |
+| G9  | `aiwf doctor --self-check` is not run in CI                 | Medium   | [x] `07f8a84` |
 | G10 | macOS case-insensitive filesystem assumption                | Medium   | [ ]    |
 | G11 | `context.Context` not threaded through mutation verbs       | Low      | [ ]    |
 | G12 | Pre-push hook hard-codes binary path at install time        | Low      | [ ]    |
