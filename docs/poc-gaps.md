@@ -16,19 +16,9 @@ Resolved in commit `4ec5d84` (fix(aiwf): G1 — reject contract paths that escap
 
 ---
 
-### G2. `Apply` is not atomic on partial failure
+### G2. `Apply` is not atomic on partial failure — **resolved**
 
-**Location:** `tools/internal/verb/apply.go`.
-
-**Symptom:** The verb sequence is `git mv` → `os.WriteFile` → `git add` → `git commit`. If any step after `git mv` fails (disk full, permissions, panic, signal), the rename is staged in the index but no commit is made. The working tree is left in a partial state, and a naive retry will see the move already staged and behave inconsistently.
-
-**Why it matters:** `CLAUDE.md` and `docs/poc-design-decisions.md` both commit to "every mutating verb produces exactly one git commit" as a load-bearing property — that's how the framework gets per-mutation atomicity for free. The current implementation only meets that promise on the happy path. A user who hits ENOSPC mid-`reallocate` is left with broken state and no clear recovery path.
-
-**Proposed fix:** Two reasonable options:
-1. **Stage to temp, then rename.** Write all new content to temp paths first, validate every write, then perform the renames and `git add` in one batch. Failure before the batch has zero side effects.
-2. **Rollback on failure.** Wrap the mutation in a `defer`'d cleanup that, on error, runs `git restore --staged --worktree -- <touched paths>` to reset the index and worktree to HEAD.
-
-(1) is cleaner; (2) is fewer lines. Either is acceptable. Add a regression test that injects a write failure mid-sequence and asserts `git status` is clean.
+Resolved in commit `f77740c` (fix(aiwf): G2 — atomic rollback on Apply failure). Apply wraps its mutations in a deferred rollback that restores the worktree and index to HEAD when any step fails (write error, commit failure, panic). Brand-new files are removed entirely so the next invocation sees a clean tree. New `gitops.Restore` helper. Tests cover write-after-mv failure, git mv failure, brand-new file cleanup, commit failure (no identity), panic recovery, and dedupe of touched paths. apply.go coverage at 94.3% — two defensive branches (compound rollback-also-failed wrap and post-write `git add` failure) marked `//coverage:ignore` per `tools/CLAUDE.md`'s allowance, with the load-bearing rollback path itself at 100%.
 
 ---
 
@@ -180,7 +170,7 @@ Resolved in commit `4ec5d84` (fix(aiwf): G1 — reject contract paths that escap
 | ID  | Title                                                       | Severity | Status |
 |-----|-------------------------------------------------------------|----------|--------|
 | G1  | Contract paths can escape the repo (via `..` or symlinks)   | High     | [x] `4ec5d84` |
-| G2  | `Apply` is not atomic on partial failure                    | High     | [ ]    |
+| G2  | `Apply` is not atomic on partial failure                    | High     | [x] `f77740c` |
 | G3  | Pre-push hook fails opaquely when validators are missing    | High     | [ ]    |
 | G4  | No concurrent-invocation guard                              | High     | [ ]    |
 | G5  | Reallocate's prose references are warnings, not errors      | Medium   | [ ]    |
