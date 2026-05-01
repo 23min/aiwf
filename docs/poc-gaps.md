@@ -86,15 +86,9 @@ Resolved in commit `8ed5051` (fix(aiwf): G12 — aiwf doctor detects pre-push ho
 
 ---
 
-### G13. No Windows guard
+### G13. No Windows guard — **resolved**
 
-**Location:** `tools/internal/initrepo/initrepo.go` (writes `#!/bin/sh` hook), `tools/internal/contractverify/` (shells out to validators).
-
-**Symptom:** The code is Unix-only in practice but has no `//go:build !windows` guards or a runtime check. A Windows user can `go install` the binary; first failure surfaces deep in the call stack.
-
-**Why it matters:** Friendlier failure mode and clearer scope.
-
-**Proposed fix:** Either guard the Unix-specific bits with build tags and provide a stub that errors with a clear message, or check `runtime.GOOS == "windows"` at startup and refuse with a one-line "Windows is not supported in the PoC; see docs/poc-design-decisions.md". Either way, document in README.
+Resolved in commit `dda370d` (fix(aiwf): G13 — refuse Windows up front with one clear message). Took both halves of the proposed fix: (a) `cmd/aiwf` gained `assertSupportedOS` called at the top of `main`, exiting 2 with a clear message on `runtime.GOOS == "windows"`; (b) `repolock` got a Windows stub (`repolock_windows.go`) so the package cross-compiles on Windows — without it, `syscall.Flock undefined` was exactly the deep-stack confusion the gap was filed against. Verified `GOOS=windows go build` produces a clean PE32+ binary that fires the assertSupportedOS message on first run. README's Known Limitations section (added in G10) already documents the Unix-only stance.
 
 ---
 
@@ -114,6 +108,6 @@ Resolved in commit `8ed5051` (fix(aiwf): G12 — aiwf doctor detects pre-push ho
 | G10 | macOS case-insensitive filesystem assumption                | Medium   | [x] `8950874` |
 | G11 | `context.Context` not threaded through mutation verbs       | Low      | [x] `97283c0` |
 | G12 | Pre-push hook hard-codes binary path at install time        | Low      | [x] `8ed5051` |
-| G13 | No Windows guard                                            | Low      | [ ]    |
+| G13 | No Windows guard                                            | Low      | [x] `dda370d` |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
