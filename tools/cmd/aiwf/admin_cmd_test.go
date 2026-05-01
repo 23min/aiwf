@@ -387,6 +387,48 @@ func captureStdout(t *testing.T, fn func()) []byte {
 	return <-done
 }
 
+// TestRun_HistoryMilestonePrefixMatchesACs: querying the bare
+// milestone id matches every commit whose aiwf-entity is the bare id
+// OR M-NNN/AC-N (path-prefix anchored on `/`). The composite-id query
+// matches only that AC.
+func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add milestone: %d", rc)
+	}
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC one"}); rc != exitOK {
+		t.Fatalf("add ac: %d", rc)
+	}
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "met"}); rc != exitOK {
+		t.Fatalf("promote AC: %d", rc)
+	}
+
+	// Bare milestone query matches both milestone and AC events.
+	events, err := readHistory(context.Background(), root, "M-001")
+	if err != nil {
+		t.Fatalf("readHistory M-001: %v", err)
+	}
+	// Expected: add (M-001), add (M-001/AC-1), promote (M-001/AC-1) = 3.
+	if len(events) != 3 {
+		t.Errorf("M-001 history len = %d, want 3:\n%+v", len(events), events)
+	}
+
+	// Composite query matches only the AC events.
+	events, err = readHistory(context.Background(), root, "M-001/AC-1")
+	if err != nil {
+		t.Fatalf("readHistory M-001/AC-1: %v", err)
+	}
+	if len(events) != 2 {
+		t.Errorf("M-001/AC-1 history len = %d, want 2 (add + promote):\n%+v", len(events), events)
+	}
+}
+
 // TestRun_HistoryReadsAiwfToAndForce confirms readHistory pulls the
 // I2 trailers (`aiwf-to:` and `aiwf-force:`) into HistoryEvent.To and
 // .Force, and renders dashes / blanks for events that don't carry

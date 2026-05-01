@@ -36,6 +36,9 @@ import (
 // change are returned as a Result with non-empty Findings.
 func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason string, force bool) (*Result, error) {
 	_ = ctx
+	if entity.IsCompositeID(id) {
+		return promoteAC(t, id, newStatus, actor, reason, force)
+	}
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
@@ -90,6 +93,9 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 // reason; the caller is responsible for enforcing that.
 func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force bool) (*Result, error) {
 	_ = ctx
+	if entity.IsCompositeID(id) {
+		return cancelAC(t, id, actor, reason, force)
+	}
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)

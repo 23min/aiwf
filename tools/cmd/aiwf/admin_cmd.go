@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -292,17 +293,35 @@ type HistoryEvent struct {
 // `aiwf-to:` or `aiwf-force:` trailers produce empty strings for
 // those fields; the renderer treats empty as "absent" and emits a
 // dash, which is the load-bearing backwards-compat behavior.
+//
+// For a bare milestone id (e.g. `M-007`), the query also matches
+// composite-id trailers under that milestone (`M-007/AC-N`) so the
+// milestone view shows its AC events alongside its own. The match is
+// anchored on the literal `/` boundary so `M-007/` cannot prefix-
+// match `M-070/`. A composite id queried directly (`M-007/AC-1`)
+// matches only that AC's events.
 func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 	if !hasCommits(ctx, root) {
 		return nil, nil
 	}
 	const sep = "\x1f"
 	const recSep = "\x1e\n"
-	cmd := exec.CommandContext(ctx, "git", "log",
+	args := []string{
+		"log",
 		"--reverse",
 		"-E",
-		"--grep", "^aiwf-entity: "+id+"$",
-		"--grep", "^aiwf-prior-entity: "+id+"$",
+		"--grep", "^aiwf-entity: " + regexp.QuoteMeta(id) + "$",
+		"--grep", "^aiwf-prior-entity: " + regexp.QuoteMeta(id) + "$",
+	}
+	if isBareMilestoneID(id) {
+		// Path-prefix match anchored on the literal `/` boundary so
+		// M-007/ cannot match M-070/. Includes M-NNN/AC-N events.
+		args = append(args,
+			"--grep", "^aiwf-entity: "+regexp.QuoteMeta(id)+"/AC-[0-9]+$",
+			"--grep", "^aiwf-prior-entity: "+regexp.QuoteMeta(id)+"/AC-[0-9]+$",
+		)
+	}
+	args = append(args,
 		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+
 			sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+
 			sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"+
@@ -310,6 +329,7 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 			sep+"%(trailers:key=aiwf-force,valueonly=true,unfold=true)"+
 			sep+"%b\x1e",
 	)
+	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = root
 	out, err := cmd.Output()
 	if err != nil {
@@ -430,6 +450,18 @@ func renderTo(to string) string {
 		return "-"
 	}
 	return "→ " + to
+}
+
+// bareMilestoneIDPattern recognizes a top-level milestone id (`M-NNN`).
+// Used by readHistory to decide whether to also match composite-id
+// trailers under the milestone (the path-prefix shape promised by the
+// design).
+var bareMilestoneIDPattern = regexp.MustCompile(`^M-\d{3,}$`)
+
+// isBareMilestoneID reports whether id is a bare milestone id that
+// should match its AC events too (path-prefix match).
+func isBareMilestoneID(id string) bool {
+	return bareMilestoneIDPattern.MatchString(id)
 }
 
 // hasCommits reports whether root's HEAD points at a real commit.

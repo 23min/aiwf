@@ -15,12 +15,18 @@ import (
 )
 
 // runAdd handles `aiwf add <kind> --title "..." [kind-specific flags]`.
+// The "ac" sub-target dispatches to runAddAC: ACs are sub-elements of
+// a milestone, not a kind, and the verb shape (parent id positional,
+// then --title) differs.
 func runAdd(args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "aiwf add: missing kind. Usage: aiwf add <epic|milestone|adr|gap|decision|contract> --title \"...\"")
+		fmt.Fprintln(os.Stderr, "aiwf add: missing kind. Usage: aiwf add <epic|milestone|adr|gap|decision|contract|ac> [...]")
 		return exitUsage
 	}
 	kindArg := args[0]
+	if kindArg == "ac" {
+		return runAddAC(args[1:])
+	}
 	k, ok := parseKind(kindArg)
 	if !ok {
 		fmt.Fprintf(os.Stderr, "aiwf add: unknown kind %q\n", kindArg)
@@ -92,6 +98,57 @@ func runAdd(args []string) int {
 
 	result, err := verb.Add(ctx, tr, k, *title, actorStr, opts)
 	return finishVerb(ctx, rootDir, "aiwf add", result, err)
+}
+
+// runAddAC handles `aiwf add ac <milestone-id> --title "..."`. ACs
+// are sub-elements of a milestone (composite id M-NNN/AC-N), not a
+// kind in the schema sense, so they have their own verb shape.
+func runAddAC(args []string) int {
+	fs := flag.NewFlagSet("add ac", flag.ContinueOnError)
+	title := fs.String("title", "", "AC title (required)")
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	root := fs.String("root", "", "consumer repo root")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "title"}, nil)); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		fmt.Fprintln(os.Stderr, "aiwf add ac: usage: aiwf add ac <milestone-id> --title \"...\"")
+		return exitUsage
+	}
+	parentID := rest[0]
+
+	if strings.TrimSpace(*title) == "" {
+		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required")
+		return exitUsage
+	}
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf add ac: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf add ac: %v\n", err)
+		return exitUsage
+	}
+
+	release, rc := acquireRepoLock(rootDir, "aiwf add ac")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf add ac: loading tree: %v\n", err)
+		return exitInternal
+	}
+	result, err := verb.AddAC(ctx, tr, parentID, *title, actorStr)
+	return finishVerb(ctx, rootDir, "aiwf add ac", result, err)
 }
 
 // splitCommaList parses comma-separated CLI values into a clean slice

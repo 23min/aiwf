@@ -24,11 +24,19 @@ import (
 // subdir under a contract) move with it. For file-based kinds, the
 // single file moves.
 //
+// For composite ids (M-NNN/AC-N), Rename dispatches to renameAC: the
+// second argument is interpreted as a new title (not a slug), the
+// AC's frontmatter title is updated, and the matching `### AC-<N>`
+// body heading is rewritten in place. No path change.
+//
 // Returns a Go error for "couldn't even start": id not found, slug
 // produces an invalid path, source path missing on disk. Tree-level
 // findings caused by the move are returned in Result.Findings.
 func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string) (*Result, error) {
 	_ = ctx
+	if entity.IsCompositeID(id) {
+		return renameAC(t, id, newSlug, actor)
+	}
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
