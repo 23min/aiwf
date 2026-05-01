@@ -519,7 +519,10 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 	if !strings.Contains(out, "self-check passed") {
 		t.Errorf("output missing pass marker:\n%s", out)
 	}
-	// Each verb appears in the step list.
+	// Each verb appears in the step list. The three update entries
+	// pin the install / opt-out / re-install transition added in
+	// step 7 of update-broaden-plan.md so a regression that breaks
+	// the round-trip surfaces here, not in the field.
 	for _, label := range []string{
 		"ok    init",
 		"ok    add epic",
@@ -534,7 +537,9 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 		"ok    reallocate",
 		"ok    history",
 		"ok    render roadmap",
-		"ok    update",
+		"ok    update (default install)",
+		"ok    update (status_md.auto_update: false → uninstalls hook)",
+		"ok    update (status_md.auto_update: true → reinstalls hook)",
 		"ok    check",
 		"ok    doctor",
 	} {

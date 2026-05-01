@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
@@ -49,52 +50,147 @@ func runSelfCheck() int {
 		return exitInternal
 	}
 
+	preCommitHook := filepath.Join(tmp, ".git", "hooks", "pre-commit")
+
+	// Each step optionally carries a `setup` hook that runs before the
+	// CLI invocation (used by the pre-commit-hook transition steps to
+	// mutate aiwf.yaml between updates) and a `verify` hook that runs
+	// after (used to assert filesystem state the verb's exit code
+	// alone doesn't capture).
 	steps := []struct {
-		label string
-		args  []string
+		label  string
+		args   []string
+		setup  func() error
+		verify func() error
 	}{
-		{"init", []string{"init", "--root", tmp, "--actor", actor}},
-		{"whoami", []string{"whoami", "--root", tmp}},
-		{"add epic", []string{"add", "epic", "--title", "Self-check epic", "--actor", actor, "--root", tmp}},
-		{"add milestone", []string{"add", "milestone", "--epic", "E-01", "--title", "Schema", "--actor", actor, "--root", tmp}},
-		{"add adr", []string{"add", "adr", "--title", "Use Postgres", "--actor", actor, "--root", tmp}},
-		{"add gap", []string{"add", "gap", "--title", "Auth gap", "--discovered-in", "M-001", "--actor", actor, "--root", tmp}},
-		{"add decision", []string{"add", "decision", "--title", "Sunset v1", "--actor", actor, "--root", tmp}},
-		{"add contract", []string{"add", "contract", "--title", "Public API", "--actor", actor, "--root", tmp}},
-		{"promote", []string{"promote", "--actor", actor, "--root", tmp, "E-01", "active"}},
-		{"cancel", []string{"cancel", "--actor", actor, "--root", tmp, "G-001"}},
-		{"rename", []string{"rename", "--actor", actor, "--root", tmp, "E-01", "self-check-renamed"}},
-		{"reallocate", []string{"reallocate", "--actor", actor, "--root", tmp, "E-01"}},
-		{"add move-target epic", []string{"add", "epic", "--title", "Move target", "--actor", actor, "--root", tmp}},
-		{"move", []string{"move", "--actor", actor, "--root", tmp, "--epic", "E-03", "M-001"}},
-		{"history", []string{"history", "--root", tmp, "E-02"}},
-		{"status", []string{"status", "--root", tmp}},
-		{"render roadmap", []string{"render", "roadmap", "--root", tmp}},
-		{"update", []string{"update", "--root", tmp}},
-		{"check", []string{"check", "--root", tmp}},
-		{"doctor", []string{"doctor", "--root", tmp}},
+		{label: "init", args: []string{"init", "--root", tmp, "--actor", actor}},
+		{label: "whoami", args: []string{"whoami", "--root", tmp}},
+		{label: "add epic", args: []string{"add", "epic", "--title", "Self-check epic", "--actor", actor, "--root", tmp}},
+		{label: "add milestone", args: []string{"add", "milestone", "--epic", "E-01", "--title", "Schema", "--actor", actor, "--root", tmp}},
+		{label: "add adr", args: []string{"add", "adr", "--title", "Use Postgres", "--actor", actor, "--root", tmp}},
+		{label: "add gap", args: []string{"add", "gap", "--title", "Auth gap", "--discovered-in", "M-001", "--actor", actor, "--root", tmp}},
+		{label: "add decision", args: []string{"add", "decision", "--title", "Sunset v1", "--actor", actor, "--root", tmp}},
+		{label: "add contract", args: []string{"add", "contract", "--title", "Public API", "--actor", actor, "--root", tmp}},
+		{label: "promote", args: []string{"promote", "--actor", actor, "--root", tmp, "E-01", "active"}},
+		{label: "cancel", args: []string{"cancel", "--actor", actor, "--root", tmp, "G-001"}},
+		{label: "rename", args: []string{"rename", "--actor", actor, "--root", tmp, "E-01", "self-check-renamed"}},
+		{label: "reallocate", args: []string{"reallocate", "--actor", actor, "--root", tmp, "E-01"}},
+		{label: "add move-target epic", args: []string{"add", "epic", "--title", "Move target", "--actor", actor, "--root", tmp}},
+		{label: "move", args: []string{"move", "--actor", actor, "--root", tmp, "--epic", "E-03", "M-001"}},
+		{label: "history", args: []string{"history", "--root", tmp, "E-02"}},
+		{label: "status", args: []string{"status", "--root", tmp}},
+		{label: "render roadmap", args: []string{"render", "roadmap", "--root", tmp}},
+		{
+			label: "update (default install)",
+			args:  []string{"update", "--root", tmp},
+			verify: func() error {
+				if _, err := os.Stat(preCommitHook); err != nil {
+					return fmt.Errorf("pre-commit hook should exist after default update: %w", err)
+				}
+				return nil
+			},
+		},
+		{
+			label: "update (status_md.auto_update: false → uninstalls hook)",
+			args:  []string{"update", "--root", tmp},
+			setup: func() error {
+				return rewriteAiwfYAMLAutoUpdate(tmp, false)
+			},
+			verify: func() error {
+				if _, err := os.Stat(preCommitHook); !os.IsNotExist(err) {
+					return fmt.Errorf("pre-commit hook should be removed when opt-out flag is set (stat err=%v)", err)
+				}
+				return nil
+			},
+		},
+		{
+			label: "update (status_md.auto_update: true → reinstalls hook)",
+			args:  []string{"update", "--root", tmp},
+			setup: func() error {
+				return rewriteAiwfYAMLAutoUpdate(tmp, true)
+			},
+			verify: func() error {
+				if _, err := os.Stat(preCommitHook); err != nil {
+					return fmt.Errorf("pre-commit hook should be reinstalled after re-opt-in: %w", err)
+				}
+				return nil
+			},
+		},
+		{label: "check", args: []string{"check", "--root", tmp}},
+		{label: "doctor", args: []string{"doctor", "--root", tmp}},
 	}
 
 	fmt.Printf("self-check repo: %s\n\n", tmp)
 
 	for i, s := range steps {
+		if s.setup != nil {
+			if err := s.setup(); err != nil {
+				fmt.Printf("  FAIL  %s (setup: %v)\n", s.label, err)
+				fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
+				keep = true
+				return exitFindings
+			}
+		}
 		rc, captured := runCaptured(s.args)
-		if rc == exitOK {
-			fmt.Printf("  ok    %s\n", s.label)
-			continue
+		if rc != exitOK {
+			fmt.Printf("  FAIL  %s (rc=%d)\n", s.label, rc)
+			if captured != "" {
+				fmt.Println(indent(captured, "        "))
+			}
+			// Stop at the first failure: later verbs build on earlier
+			// state, so cascading failures aren't useful.
+			fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
+			keep = true
+			return exitFindings
 		}
-		fmt.Printf("  FAIL  %s (rc=%d)\n", s.label, rc)
-		if captured != "" {
-			fmt.Println(indent(captured, "        "))
+		if s.verify != nil {
+			if err := s.verify(); err != nil {
+				fmt.Printf("  FAIL  %s (verify: %v)\n", s.label, err)
+				fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
+				keep = true
+				return exitFindings
+			}
 		}
-		// Stop at the first failure: later verbs build on earlier state,
-		// so cascading failures aren't useful.
-		fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
-		keep = true
-		return exitFindings
+		fmt.Printf("  ok    %s\n", s.label)
 	}
 	fmt.Printf("\nself-check passed (%d steps).\n", len(steps))
 	return exitOK
+}
+
+// rewriteAiwfYAMLAutoUpdate rewrites <repo>/aiwf.yaml so that
+// status_md.auto_update == auto. Used by the self-check to drive
+// the install / uninstall transition through the verb surface
+// rather than a synthetic in-memory call.
+func rewriteAiwfYAMLAutoUpdate(repo string, auto bool) error {
+	path := filepath.Join(repo, "aiwf.yaml")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", path, err)
+	}
+	// The selfcheck repo is initialised by Init in the same run, so
+	// aiwf.yaml has the canonical two-line shape (aiwf_version,
+	// actor) plus whatever any prior step appended. Any prior
+	// status_md block is dropped before the new one is appended.
+	lines := strings.Split(strings.TrimRight(string(raw), "\n"), "\n")
+	out := make([]string, 0, len(lines)+3)
+	skipBlock := false
+	for _, line := range lines {
+		switch {
+		case strings.HasPrefix(line, "status_md:"):
+			skipBlock = true
+			continue
+		case skipBlock && (strings.HasPrefix(line, "  ") || strings.HasPrefix(line, "\t")):
+			continue
+		default:
+			skipBlock = false
+			out = append(out, line)
+		}
+	}
+	out = append(out, "status_md:", fmt.Sprintf("  auto_update: %t", auto), "")
+	if err := os.WriteFile(path, []byte(strings.Join(out, "\n")), 0o644); err != nil {
+		return fmt.Errorf("writing %s: %w", path, err)
+	}
+	return nil
 }
 
 // runCaptured invokes run(args) with os.Stdout and os.Stderr swapped
