@@ -1,0 +1,68 @@
+package policies
+
+import (
+	"path/filepath"
+	"runtime"
+	"testing"
+)
+
+// repoRoot resolves the absolute path to the repo root from this
+// test file's location. Avoids relying on the test runner's cwd
+// (which is the package dir) and keeps the policies invokable
+// from anywhere via `go test ./tools/internal/policies/...`.
+func repoRoot(t *testing.T) string {
+	t.Helper()
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller returned ok=false")
+	}
+	// thisFile = .../tools/internal/policies/policies_test.go
+	// repo root = ../../../..
+	return filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", ".."))
+}
+
+// runPolicy is the shared scaffolding: invoke the policy, surface
+// each violation as a single t.Errorf so a CI run reads as a punch
+// list, not a single line dump.
+func runPolicy(t *testing.T, fn func(string) ([]Violation, error)) {
+	t.Helper()
+	root := repoRoot(t)
+	vs, err := fn(root)
+	if err != nil {
+		t.Fatalf("policy returned error: %v", err)
+	}
+	for _, v := range vs {
+		switch {
+		case v.File != "" && v.Line > 0:
+			t.Errorf("[%s] %s:%d: %s", v.Policy, v.File, v.Line, v.Detail)
+		case v.File != "":
+			t.Errorf("[%s] %s: %s", v.Policy, v.File, v.Detail)
+		default:
+			t.Errorf("[%s] %s", v.Policy, v.Detail)
+		}
+	}
+}
+
+func TestPolicy_TrailerKeysViaConstants(t *testing.T) {
+	runPolicy(t, PolicyTrailerKeysViaConstants)
+}
+
+func TestPolicy_SovereignDispatchersGuardHumanActor(t *testing.T) {
+	runPolicy(t, PolicySovereignDispatchersGuardHumanActor)
+}
+
+func TestPolicy_EmptyDiffCommitsCarryMarker(t *testing.T) {
+	runPolicy(t, PolicyEmptyDiffCommitsCarryMarker)
+}
+
+func TestPolicy_FindingCodesHaveHints(t *testing.T) {
+	runPolicy(t, PolicyFindingCodesHaveHints)
+}
+
+func TestPolicy_ReadOnlyVerbsDoNotMutate(t *testing.T) {
+	runPolicy(t, PolicyReadOnlyVerbsDoNotMutate)
+}
+
+func TestPolicy_FindingCodesAreDiscoverable(t *testing.T) {
+	runPolicy(t, PolicyFindingCodesAreDiscoverable)
+}

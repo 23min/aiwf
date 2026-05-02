@@ -117,9 +117,9 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 		Plan: &Plan{
 			Subject: subject,
 			Trailers: []gitops.Trailer{
-				{Key: "aiwf-verb", Value: "add"},
-				{Key: "aiwf-entity", Value: id},
-				{Key: "aiwf-actor", Value: actor},
+				{Key: gitops.TrailerVerb, Value: "add"},
+				{Key: gitops.TrailerEntity, Value: id},
+				{Key: gitops.TrailerActor, Value: actor},
 			},
 			Ops: ops,
 		},

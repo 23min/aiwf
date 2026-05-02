@@ -176,10 +176,10 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		Plan: &Plan{
 			Subject: subject,
 			Trailers: []gitops.Trailer{
-				{Key: "aiwf-verb", Value: "reallocate"},
-				{Key: "aiwf-entity", Value: newID},
-				{Key: "aiwf-prior-entity", Value: oldID},
-				{Key: "aiwf-actor", Value: actor},
+				{Key: gitops.TrailerVerb, Value: "reallocate"},
+				{Key: gitops.TrailerEntity, Value: newID},
+				{Key: gitops.TrailerPriorEntity, Value: oldID},
+				{Key: gitops.TrailerActor, Value: actor},
 			},
 			Ops: ops,
 		},

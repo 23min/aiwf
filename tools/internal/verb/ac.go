@@ -279,9 +279,9 @@ func finalizeACPlan(t *tree.Tree, parent, modified *entity.Entity, verbName, com
 // participate in the aiwf-to: / aiwf-force: schema.
 func standardTrailers(verbName, id, actor string) []gitops.Trailer {
 	return []gitops.Trailer{
-		{Key: "aiwf-verb", Value: verbName},
-		{Key: "aiwf-entity", Value: id},
-		{Key: "aiwf-actor", Value: actor},
+		{Key: gitops.TrailerVerb, Value: verbName},
+		{Key: gitops.TrailerEntity, Value: id},
+		{Key: gitops.TrailerActor, Value: actor},
 	}
 }
 

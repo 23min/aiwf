@@ -427,9 +427,9 @@ func buildImportPlans(m *manifest.Manifest, plans []plannedEntry, ents []*entity
 			out[i] = &Plan{
 				Subject: subject,
 				Trailers: []gitops.Trailer{
-					{Key: "aiwf-verb", Value: "add"},
-					{Key: "aiwf-entity", Value: pe.id},
-					{Key: "aiwf-actor", Value: actor},
+					{Key: gitops.TrailerVerb, Value: "add"},
+					{Key: gitops.TrailerEntity, Value: pe.id},
+					{Key: gitops.TrailerActor, Value: actor},
 				},
 				Ops: []FileOp{ops[i]},
 			}
@@ -444,8 +444,8 @@ func buildImportPlans(m *manifest.Manifest, plans []plannedEntry, ents []*entity
 	return []*Plan{{
 		Subject: subject,
 		Trailers: []gitops.Trailer{
-			{Key: "aiwf-verb", Value: "import"},
-			{Key: "aiwf-actor", Value: actor},
+			{Key: gitops.TrailerVerb, Value: "import"},
+			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: ops,
 	}}

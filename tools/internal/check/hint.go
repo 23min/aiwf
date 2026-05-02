@@ -62,6 +62,11 @@ var hintTable = map[string]string{
 	"provenance-no-active-scope":            "an `ai/...` actor needs an active authorization; run `aiwf authorize <id> --to <agent>` before retrying the verb",
 	"provenance-audit-only-non-human":       "`--audit-only` is a sovereign act; only humans may backfill audit trails (have a human invoke `aiwf <verb> --audit-only --reason ...`)",
 	"provenance-untrailered-entity-commit":  "the commit modified entity files via plain `git commit`; backfill the audit trail with `aiwf cancel <id> --audit-only --reason \"...\"` or `aiwf promote <id> <state> --audit-only --reason \"...\"`",
+
+	// Verb-emitted findings (from tools/internal/verb/).
+	"slug-dropped-chars":  "the title contained non-ASCII runes that the slug omits; rename via `aiwf rename` if the resulting slug isn't what you want",
+	"import-duplicate-id": "the manifest declares the same id more than once; deduplicate the entries before re-running `aiwf import`",
+	"import-collision":    "the manifest's explicit id is already taken by an existing entity; re-run with `--on-collision skip|update`, or change the manifest's id",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.

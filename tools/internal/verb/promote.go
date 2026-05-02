@@ -149,15 +149,15 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 // to (when present), force (when present).
 func transitionTrailers(verbName, id, actor, reason, to string, force bool) []gitops.Trailer {
 	trailers := []gitops.Trailer{
-		{Key: "aiwf-verb", Value: verbName},
-		{Key: "aiwf-entity", Value: id},
-		{Key: "aiwf-actor", Value: actor},
+		{Key: gitops.TrailerVerb, Value: verbName},
+		{Key: gitops.TrailerEntity, Value: id},
+		{Key: gitops.TrailerActor, Value: actor},
 	}
 	if to != "" {
-		trailers = append(trailers, gitops.Trailer{Key: "aiwf-to", Value: to})
+		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerTo, Value: to})
 	}
 	if force {
-		trailers = append(trailers, gitops.Trailer{Key: "aiwf-force", Value: strings.TrimSpace(reason)})
+		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerForce, Value: strings.TrimSpace(reason)})
 	}
 	return trailers
 }

@@ -80,9 +80,9 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string) (*Resu
 		Plan: &Plan{
 			Subject: subject,
 			Trailers: []gitops.Trailer{
-				{Key: "aiwf-verb", Value: "rename"},
-				{Key: "aiwf-entity", Value: id},
-				{Key: "aiwf-actor", Value: actor},
+				{Key: gitops.TrailerVerb, Value: "rename"},
+				{Key: gitops.TrailerEntity, Value: id},
+				{Key: gitops.TrailerActor, Value: actor},
 			},
 			Ops: []FileOp{{Type: OpMove, Path: source, NewPath: dest}},
 		},

@@ -73,10 +73,10 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	return plan(&Plan{
 		Subject: subject,
 		Trailers: []gitops.Trailer{
-			{Key: "aiwf-verb", Value: "move"},
-			{Key: "aiwf-entity", Value: id},
-			{Key: "aiwf-prior-parent", Value: priorParent},
-			{Key: "aiwf-actor", Value: actor},
+			{Key: gitops.TrailerVerb, Value: "move"},
+			{Key: gitops.TrailerEntity, Value: id},
+			{Key: gitops.TrailerPriorParent, Value: priorParent},
+			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: []FileOp{
 			{Type: OpMove, Path: source, NewPath: dest},

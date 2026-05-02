@@ -19,6 +19,7 @@ const (
 	TrailerTo          = "aiwf-to"
 	TrailerForce       = "aiwf-force"
 	TrailerPriorEntity = "aiwf-prior-entity"
+	TrailerPriorParent = "aiwf-prior-parent"
 	TrailerTests       = "aiwf-tests"
 
 	// I2.5 provenance trailers.
@@ -45,6 +46,7 @@ var trailerOrder = []string{
 	TrailerTo,
 	TrailerForce,
 	TrailerPriorEntity,
+	TrailerPriorParent,
 	TrailerTests,
 	TrailerPrincipal,
 	TrailerOnBehalfOf,
