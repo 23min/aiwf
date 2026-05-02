@@ -405,6 +405,142 @@ func TestRunUntrailedAudit(t *testing.T) {
 	}
 }
 
+// TestShaOK covers the boundary cases of the SHA-shape predicate.
+// 7..40 hex passes; everything else fails. Lowercase only.
+func TestShaOK(t *testing.T) {
+	tests := []struct {
+		s    string
+		want bool
+	}{
+		{"", false},
+		{"abcdef", false}, // 6, too short
+		{"abcdef0", true}, // 7, the floor
+		{"4b13a0fdeadbeefcafebabefeedface000000000", true},   // 40, the ceiling
+		{"4b13a0fdeadbeefcafebabefeedface0000000001", false}, // 41, too long
+		{"ABCDEF7", false},  // uppercase rejected
+		{"4b13a0g", false},  // non-hex char
+		{"4b13 a0f", false}, // whitespace
+	}
+	for _, tt := range tests {
+		t.Run(tt.s, func(t *testing.T) {
+			if got := shaOK(tt.s); got != tt.want {
+				t.Errorf("shaOK(%q) = %v, want %v", tt.s, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestRoleIDOK covers the role/id shape predicate (mirrors the
+// ValidateTrailer regex, exposed here for the in-package shape
+// checks).
+func TestRoleIDOK(t *testing.T) {
+	tests := []struct {
+		s    string
+		want bool
+	}{
+		{"", false},
+		{"human/peter", true},
+		{"ai/claude", true},
+		{"bot/ci", true},
+		{"human", false},        // no slash
+		{"/peter", false},       // empty role
+		{"human/", false},       // empty id
+		{"a/b/c", false},        // two slashes
+		{"human peter", false},  // no slash
+		{"human /peter", false}, // whitespace
+		{"human\tpeter", false}, // tab
+	}
+	for _, tt := range tests {
+		t.Run(tt.s, func(t *testing.T) {
+			if got := roleIDOK(tt.s); got != tt.want {
+				t.Errorf("roleIDOK(%q) = %v, want %v", tt.s, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestWalkRenameChain covers three branches:
+//   - empty input passes through;
+//   - a healthy chain walks forward to the terminal id;
+//   - a cycle (defensive — corrupted history) is broken by the
+//     visit-once guard, returning the current position rather than
+//     looping.
+func TestWalkRenameChain(t *testing.T) {
+	t.Run("empty id", func(t *testing.T) {
+		if got := walkRenameChain("", map[string]string{"E-01": "E-02"}); got != "" {
+			t.Errorf("got %q, want empty", got)
+		}
+	})
+	t.Run("healthy chain", func(t *testing.T) {
+		chain := map[string]string{
+			"E-01": "E-02",
+			"E-02": "E-03",
+		}
+		if got := walkRenameChain("E-01", chain); got != "E-03" {
+			t.Errorf("got %q, want E-03", got)
+		}
+	})
+	t.Run("not in chain", func(t *testing.T) {
+		if got := walkRenameChain("E-99", map[string]string{"E-01": "E-02"}); got != "E-99" {
+			t.Errorf("got %q, want E-99 (unchanged)", got)
+		}
+	})
+	t.Run("cycle broken", func(t *testing.T) {
+		// E-01 → E-02 → E-01 (corrupted; should not loop forever).
+		chain := map[string]string{
+			"E-01": "E-02",
+			"E-02": "E-01",
+		}
+		got := walkRenameChain("E-01", chain)
+		// The cycle guard returns the latest unvisited position
+		// before the cycle closes. Either E-01 or E-02 is acceptable
+		// (the implementation visits E-01 first, walks to E-02, then
+		// E-02→E-01 hits the visited set and returns E-02).
+		if got != "E-02" && got != "E-01" {
+			t.Errorf("got %q, want E-01 or E-02 (cycle broken without looping)", got)
+		}
+	})
+}
+
+// TestResolveAuthSHA_AmbiguousPrefix: when a (rare) short SHA
+// prefix matches more than one opener, the resolver returns
+// (nil, false) so the standing rule fires authorization-missing
+// rather than picking one silently. The full SHA path is unaffected.
+func TestResolveAuthSHA_AmbiguousPrefix(t *testing.T) {
+	full1 := strings.Repeat("a", 40)
+	full2 := "a" + strings.Repeat("b", 39)
+	authIndex := map[string]*scope.Commit{
+		full1: {SHA: full1},
+		full2: {SHA: full2},
+	}
+	t.Run("exact full SHA wins", func(t *testing.T) {
+		got, ok := resolveAuthSHA(full1, authIndex)
+		if !ok || got == nil || got.SHA != full1 {
+			t.Errorf("exact lookup failed: ok=%v sha=%v", ok, got)
+		}
+	})
+	t.Run("ambiguous prefix returns missing", func(t *testing.T) {
+		// "a" alone matches both keys.
+		got, ok := resolveAuthSHA("a", authIndex)
+		if ok || got != nil {
+			t.Errorf("ambiguous prefix resolved silently: ok=%v sha=%v", ok, got)
+		}
+	})
+	t.Run("unique prefix resolves", func(t *testing.T) {
+		// "ab" matches only full2.
+		got, ok := resolveAuthSHA("ab", authIndex)
+		if !ok || got == nil || got.SHA != full2 {
+			t.Errorf("unique prefix lookup failed: ok=%v sha=%v", ok, got)
+		}
+	})
+	t.Run("no match", func(t *testing.T) {
+		got, ok := resolveAuthSHA("c", authIndex)
+		if ok || got != nil {
+			t.Errorf("no-match returned: ok=%v sha=%v", ok, got)
+		}
+	})
+}
+
 // hasFinding reports whether any finding has the given code.
 func hasFinding(fs []Finding, code string) bool {
 	for i := range fs {
