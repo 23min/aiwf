@@ -84,17 +84,26 @@ func runShow(args []string) int {
 // ShowView is the aggregated per-entity state. Exported for the JSON
 // envelope. Field-set varies by what kind of id was queried; absent
 // fields render as empty / omitted in JSON via omitempty.
+//
+// ReferencedBy is the inversion of the reference graph — every entity
+// id that names this one as a target. Always emitted in JSON (zero-
+// value `[]`) so downstream consumers never have to check for field
+// presence; populated from tree.Tree.ReverseRefs at view-build time.
+// For composite ids (M-NNN/AC-N), this lists referrers of the AC
+// specifically; the parent milestone's referrers are not rolled in
+// (use `aiwf show M-NNN` for that).
 type ShowView struct {
-	ID       string          `json:"id"`
-	Kind     string          `json:"kind"`
-	Title    string          `json:"title"`
-	Status   string          `json:"status"`
-	Path     string          `json:"path,omitempty"`
-	Parent   string          `json:"parent,omitempty"`
-	TDD      string          `json:"tdd,omitempty"`
-	ACs      []ShowAC        `json:"acs,omitempty"`
-	History  []HistoryEvent  `json:"history,omitempty"`
-	Findings []check.Finding `json:"findings,omitempty"`
+	ID           string          `json:"id"`
+	Kind         string          `json:"kind"`
+	Title        string          `json:"title"`
+	Status       string          `json:"status"`
+	Path         string          `json:"path,omitempty"`
+	Parent       string          `json:"parent,omitempty"`
+	TDD          string          `json:"tdd,omitempty"`
+	ACs          []ShowAC        `json:"acs,omitempty"`
+	History      []HistoryEvent  `json:"history,omitempty"`
+	Findings     []check.Finding `json:"findings,omitempty"`
+	ReferencedBy []string        `json:"referenced_by"`
 
 	// Composite-id-only fields (when querying M-NNN/AC-N): the AC's
 	// own state, populated instead of (not in addition to) the
@@ -123,13 +132,14 @@ func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		return ShowView{}, false
 	}
 	view := ShowView{
-		ID:     e.ID,
-		Kind:   string(e.Kind),
-		Title:  e.Title,
-		Status: e.Status,
-		Path:   e.Path,
-		Parent: e.Parent,
-		TDD:    e.TDD,
+		ID:           e.ID,
+		Kind:         string(e.Kind),
+		Title:        e.Title,
+		Status:       e.Status,
+		Path:         e.Path,
+		Parent:       e.Parent,
+		TDD:          e.TDD,
+		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
 	}
 	for _, ac := range e.ACs {
 		view.ACs = append(view.ACs, ShowAC{ID: ac.ID, Title: ac.Title, Status: ac.Status, TDDPhase: ac.TDDPhase})
@@ -144,6 +154,17 @@ func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 	view.Findings = filterFindingsByID(allFindings, id, e)
 
 	return view, true
+}
+
+// nonNilStrings returns the slice unchanged when non-nil, or an empty
+// (non-nil) slice when nil. Used to keep ReferencedBy as `[]` in JSON
+// output instead of `null`, so downstream consumers never have to
+// check for field absence vs. empty list.
+func nonNilStrings(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }
 
 // buildCompositeShowView handles `aiwf show M-NNN/AC-N`. Returns
@@ -165,13 +186,14 @@ func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 		return ShowView{}, false
 	}
 	view := ShowView{
-		ID:       id,
-		Kind:     "ac",
-		Title:    found.Title,
-		Status:   found.Status,
-		Path:     parent.Path,
-		ParentID: parentID,
-		AC:       &ShowAC{ID: found.ID, Title: found.Title, Status: found.Status, TDDPhase: found.TDDPhase},
+		ID:           id,
+		Kind:         "ac",
+		Title:        found.Title,
+		Status:       found.Status,
+		Path:         parent.Path,
+		ParentID:     parentID,
+		AC:           &ShowAC{ID: found.ID, Title: found.Title, Status: found.Status, TDDPhase: found.TDDPhase},
+		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
 	}
 
 	events, err := readHistory(ctx, root, id)
@@ -250,6 +272,13 @@ func renderShowText(v ShowView) {
 				fmt.Printf("    %s [%s]   · phase: %-9s · %q\n",
 					ac.ID, ac.Status, displayPhase(ac.TDDPhase), ac.Title)
 			}
+		}
+	}
+	if len(v.ReferencedBy) > 0 {
+		fmt.Println()
+		fmt.Printf("  Referenced by (%d):\n", len(v.ReferencedBy))
+		for _, ref := range v.ReferencedBy {
+			fmt.Printf("    %s\n", ref)
 		}
 	}
 	if len(v.History) > 0 {

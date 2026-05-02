@@ -363,33 +363,33 @@ func refsResolve(t *tree.Tree) []Finding {
 
 	var findings []Finding
 	for _, e := range t.Entities {
-		for _, ref := range collectRefs(e) {
+		for _, ref := range entity.ForwardRefs(e) {
 			// Composite-id resolution on open-target fields.
-			if entity.IsCompositeID(ref.target) && len(ref.allowed) == 0 {
+			if entity.IsCompositeID(ref.Target) && len(ref.AllowedKinds) == 0 {
 				if f, ok := resolveCompositeRef(e, ref, idx); ok {
 					findings = append(findings, f)
 				}
 				continue
 			}
-			target, ok := idx[ref.target]
+			target, ok := idx[ref.Target]
 			if !ok {
 				findings = append(findings, Finding{
 					Code:     "refs-resolve",
 					Severity: SeverityError,
 					Subcode:  "unresolved",
 					Message: fmt.Sprintf("%s field %q references unknown id %q",
-						e.Kind, ref.field, ref.target),
+						e.Kind, ref.Field, ref.Target),
 					Path:     e.Path,
 					EntityID: e.ID,
-					Field:    ref.field,
+					Field:    ref.Field,
 				})
 				continue
 			}
-			if len(ref.allowed) == 0 {
+			if len(ref.AllowedKinds) == 0 {
 				continue
 			}
 			matched := false
-			for _, ak := range ref.allowed {
+			for _, ak := range ref.AllowedKinds {
 				if target.Kind == ak {
 					matched = true
 					break
@@ -401,10 +401,10 @@ func refsResolve(t *tree.Tree) []Finding {
 					Severity: SeverityError,
 					Subcode:  "wrong-kind",
 					Message: fmt.Sprintf("%s field %q expects kind in [%s], but %q is %s",
-						e.Kind, ref.field, joinKinds(ref.allowed), ref.target, target.Kind),
+						e.Kind, ref.Field, joinKinds(ref.AllowedKinds), ref.Target, target.Kind),
 					Path:     e.Path,
 					EntityID: e.ID,
-					Field:    ref.field,
+					Field:    ref.Field,
 				})
 			}
 		}
@@ -415,9 +415,9 @@ func refsResolve(t *tree.Tree) []Finding {
 // resolveCompositeRef returns a finding (and ok=true) when a composite
 // id on an open-target field fails to resolve. ok=false means the
 // composite resolved cleanly (no finding needed). Caller has already
-// confirmed entity.IsCompositeID(ref.target) and len(ref.allowed) == 0.
-func resolveCompositeRef(e *entity.Entity, ref ref, idx map[string]*entity.Entity) (Finding, bool) {
-	parent, sub, _ := entity.ParseCompositeID(ref.target)
+// confirmed entity.IsCompositeID(ref.Target) and len(ref.AllowedKinds) == 0.
+func resolveCompositeRef(e *entity.Entity, ref entity.ForwardRef, idx map[string]*entity.Entity) (Finding, bool) {
+	parent, sub, _ := entity.ParseCompositeID(ref.Target)
 	parentEntity, parentOK := idx[parent]
 	if !parentOK {
 		return Finding{
@@ -425,10 +425,10 @@ func resolveCompositeRef(e *entity.Entity, ref ref, idx map[string]*entity.Entit
 			Severity: SeverityError,
 			Subcode:  "unresolved-milestone",
 			Message: fmt.Sprintf("%s field %q references composite id %q but parent %q does not exist",
-				e.Kind, ref.field, ref.target, parent),
+				e.Kind, ref.Field, ref.Target, parent),
 			Path:     e.Path,
 			EntityID: e.ID,
-			Field:    ref.field,
+			Field:    ref.Field,
 		}, true
 	}
 	for _, ac := range parentEntity.ACs {
@@ -441,53 +441,11 @@ func resolveCompositeRef(e *entity.Entity, ref ref, idx map[string]*entity.Entit
 		Severity: SeverityError,
 		Subcode:  "unresolved-ac",
 		Message: fmt.Sprintf("%s field %q references %q but %s has no %s in acs[]",
-			e.Kind, ref.field, ref.target, parent, sub),
+			e.Kind, ref.Field, ref.Target, parent, sub),
 		Path:     e.Path,
 		EntityID: e.ID,
-		Field:    ref.field,
+		Field:    ref.Field,
 	}, true
-}
-
-type ref struct {
-	field   string
-	target  string
-	allowed []entity.Kind // empty == any kind
-}
-
-func collectRefs(e *entity.Entity) []ref {
-	var refs []ref
-	switch e.Kind {
-	case entity.KindMilestone:
-		if e.Parent != "" {
-			refs = append(refs, ref{field: "parent", target: e.Parent, allowed: []entity.Kind{entity.KindEpic}})
-		}
-		for _, dep := range e.DependsOn {
-			refs = append(refs, ref{field: "depends_on", target: dep, allowed: []entity.Kind{entity.KindMilestone}})
-		}
-	case entity.KindADR:
-		for _, sup := range e.Supersedes {
-			refs = append(refs, ref{field: "supersedes", target: sup, allowed: []entity.Kind{entity.KindADR}})
-		}
-		if e.SupersededBy != "" {
-			refs = append(refs, ref{field: "superseded_by", target: e.SupersededBy, allowed: []entity.Kind{entity.KindADR}})
-		}
-	case entity.KindGap:
-		if e.DiscoveredIn != "" {
-			refs = append(refs, ref{field: "discovered_in", target: e.DiscoveredIn, allowed: []entity.Kind{entity.KindMilestone, entity.KindEpic}})
-		}
-		for _, addr := range e.AddressedBy {
-			refs = append(refs, ref{field: "addressed_by", target: addr})
-		}
-	case entity.KindDecision:
-		for _, rel := range e.RelatesTo {
-			refs = append(refs, ref{field: "relates_to", target: rel})
-		}
-	case entity.KindContract:
-		for _, a := range e.LinkedADRs {
-			refs = append(refs, ref{field: "linked_adrs", target: a, allowed: []entity.Kind{entity.KindADR}})
-		}
-	}
-	return refs
 }
 
 func joinKinds(ks []entity.Kind) string {

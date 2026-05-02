@@ -291,6 +291,148 @@ func TestTree_ByID(t *testing.T) {
 	}
 }
 
+func TestLoad_ReverseRefs(t *testing.T) {
+	root := t.TempDir()
+	// Epic with two milestones; the second depends on the first.
+	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
+id: E-01
+title: Platform
+status: active
+---
+`)
+	writeFile(t, root, "work/epics/E-01-platform/M-001-cache.md", `---
+id: M-001
+title: Cache warmup
+status: in_progress
+parent: E-01
+acs:
+  - id: AC-1
+    title: warm before requests
+    status: open
+---
+`)
+	writeFile(t, root, "work/epics/E-01-platform/M-002-evict.md", `---
+id: M-002
+title: Eviction policy
+status: draft
+parent: E-01
+depends_on:
+  - M-001
+---
+`)
+	// Gap addresses M-001/AC-1 (composite) — should appear in both
+	// the AC's referrers AND the milestone's referrers.
+	writeFile(t, root, "work/gaps/G-001-thrash.md", `---
+id: G-001
+title: Cache thrash
+status: open
+discovered_in: M-001
+addressed_by:
+  - M-001/AC-1
+---
+`)
+	// Decision relates to E-01.
+	writeFile(t, root, "work/decisions/D-001-strategy.md", `---
+id: D-001
+title: Cache strategy
+status: accepted
+relates_to:
+  - E-01
+---
+`)
+	// ADR superseded by another ADR.
+	writeFile(t, root, "docs/adr/ADR-0001-old.md", `---
+id: ADR-0001
+title: Old policy
+status: superseded
+superseded_by: ADR-0002
+---
+`)
+	writeFile(t, root, "docs/adr/ADR-0002-new.md", `---
+id: ADR-0002
+title: New policy
+status: accepted
+supersedes:
+  - ADR-0001
+---
+`)
+	// Contract linked to ADR-0002.
+	writeFile(t, root, "work/contracts/C-001-cache/contract.md", `---
+id: C-001
+title: Cache contract
+status: accepted
+linked_adrs:
+  - ADR-0002
+---
+`)
+
+	tr, loadErrs, err := Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(loadErrs) != 0 {
+		t.Fatalf("loadErrs = %v, want empty", loadErrs)
+	}
+	if tr.ReverseRefs == nil {
+		t.Fatal("ReverseRefs is nil; want non-nil map")
+	}
+
+	cases := []struct {
+		target string
+		want   []string
+	}{
+		// E-01 is referenced by both milestones (parent) AND by D-001 (relates_to).
+		{"E-01", []string{"D-001", "M-001", "M-002"}},
+		// M-001 is referenced by M-002 (depends_on), G-001 (discovered_in),
+		// AND G-001 again via the composite-id rollup from G-001.addressed_by:M-001/AC-1.
+		// Dedup must collapse the two G-001 mentions into one entry.
+		{"M-001", []string{"G-001", "M-002"}},
+		// Composite key resolves to just G-001 (the addressed_by referrer).
+		{"M-001/AC-1", []string{"G-001"}},
+		// M-002 is unreferenced.
+		{"M-002", nil},
+		// ADR-0001 is referenced by ADR-0002.supersedes.
+		{"ADR-0001", []string{"ADR-0002"}},
+		// ADR-0002 is referenced by ADR-0001.superseded_by AND C-001.linked_adrs.
+		{"ADR-0002", []string{"ADR-0001", "C-001"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.target, func(t *testing.T) {
+			got := tr.ReferencedBy(tc.target)
+			if !equalStrings(got, tc.want) {
+				t.Errorf("ReferencedBy(%q) = %v, want %v", tc.target, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestLoad_ReverseRefsEmptyTree verifies that an empty tree yields a
+// non-nil empty map — callers can range or index without a nil check.
+func TestLoad_ReverseRefsEmptyTree(t *testing.T) {
+	tr, _, err := Load(context.Background(), t.TempDir())
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if tr.ReverseRefs == nil {
+		t.Error("ReverseRefs is nil; want non-nil empty map")
+	}
+	if got := tr.ReferencedBy("E-99"); got != nil {
+		t.Errorf("ReferencedBy on empty tree = %v, want nil", got)
+	}
+}
+
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestTree_ByKind(t *testing.T) {
 	tr := &Tree{Entities: []*entity.Entity{
 		{ID: "E-01", Kind: entity.KindEpic},

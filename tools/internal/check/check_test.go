@@ -378,19 +378,19 @@ func TestIdPathConsistent_StubsTriviallyMatch(t *testing.T) {
 	}
 }
 
-// TestSchemaMatchesCollectRefs pins the per-kind reference-field
-// metadata in entity.SchemaForKind to what check.collectRefs actually
+// TestSchemaMatchesForwardRefs pins the per-kind reference-field
+// metadata in entity.SchemaForKind to what entity.ForwardRefs actually
 // reads. If a future change adds, removes, or retypes a reference
-// field in collectRefs without updating the schema (or vice versa),
+// field in ForwardRefs without updating the schema (or vice versa),
 // this test fails — preventing the published `aiwf schema` surface
 // from drifting away from runtime enforcement.
-func TestSchemaMatchesCollectRefs(t *testing.T) {
+func TestSchemaMatchesForwardRefs(t *testing.T) {
 	for _, k := range entity.AllKinds() {
 		t.Run(string(k), func(t *testing.T) {
 			s, _ := entity.SchemaForKind(k)
 
 			// Build a synthetic entity carrying a sentinel value in
-			// every reference field declared in the schema. collectRefs
+			// every reference field declared in the schema. ForwardRefs
 			// must surface every field with a value, with matching
 			// allowed-kinds.
 			e := &entity.Entity{Kind: k}
@@ -415,31 +415,31 @@ func TestSchemaMatchesCollectRefs(t *testing.T) {
 				case "linked_adrs":
 					e.LinkedADRs = []string{"X-1"}
 				default:
-					t.Fatalf("schema declares unknown ref field %q on %s — TestSchemaMatchesCollectRefs needs an arm for it", r.Name, k)
+					t.Fatalf("schema declares unknown ref field %q on %s — TestSchemaMatchesForwardRefs needs an arm for it", r.Name, k)
 				}
 			}
 
-			got := collectRefs(e)
+			got := entity.ForwardRefs(e)
 			gotByName := make(map[string][]entity.Kind, len(got))
 			for _, r := range got {
-				gotByName[r.field] = r.allowed
+				gotByName[r.Field] = r.AllowedKinds
 			}
 
 			// Every schema-declared field must show up.
 			for name, want := range expect {
 				gotAllowed, ok := gotByName[name]
 				if !ok {
-					t.Errorf("schema declares ref field %q on %s, but collectRefs didn't surface it", name, k)
+					t.Errorf("schema declares ref field %q on %s, but ForwardRefs didn't surface it", name, k)
 					continue
 				}
 				if !sameKinds(gotAllowed, want.AllowedKinds) {
-					t.Errorf("ref %q on %s: collectRefs allowed=%v, schema allowed=%v", name, k, gotAllowed, want.AllowedKinds)
+					t.Errorf("ref %q on %s: ForwardRefs allowed=%v, schema allowed=%v", name, k, gotAllowed, want.AllowedKinds)
 				}
 			}
-			// And no surplus fields in collectRefs.
+			// And no surplus fields in ForwardRefs.
 			for name := range gotByName {
 				if _, ok := expect[name]; !ok {
-					t.Errorf("collectRefs surfaces ref field %q on %s, but schema does not declare it", name, k)
+					t.Errorf("ForwardRefs surfaces ref field %q on %s, but schema does not declare it", name, k)
 				}
 			}
 		})

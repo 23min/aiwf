@@ -392,9 +392,9 @@ var commonRequired = []string{"id", "title", "status"}
 // `aiwf schema` verb output and check.refsResolve's allowed-kinds set.
 // To add or change a field for a kind: edit this table, the Entity
 // struct's yaml-tagged field, and (if the field is a reference) the
-// matching arm in check.collectRefs. The TestSchemaMatchesCollectRefs
+// matching arm in entity.ForwardRefs. The TestSchemaMatchesForwardRefs
 // regression test will catch drift between the schema table and what
-// check.collectRefs actually reads.
+// ForwardRefs actually reads.
 var schemas = map[Kind]Schema{
 	KindEpic: {
 		Kind:            KindEpic,

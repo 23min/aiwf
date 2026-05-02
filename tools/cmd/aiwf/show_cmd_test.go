@@ -146,6 +146,90 @@ func TestRun_ShowUnknownIDIsUsageError(t *testing.T) {
 	}
 }
 
+// TestRun_ShowReferencedByPopulated: an entity referenced by others
+// surfaces them in ShowView.ReferencedBy and in the text "Referenced by"
+// block. Inversion follows entity.ForwardRefs; composite-id rollup is
+// covered by tree.TestLoad_ReverseRefs.
+func TestRun_ShowReferencedByPopulated(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add milestone: %d", rc)
+	}
+	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Second", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add milestone 2: %d", rc)
+	}
+
+	// Text path: showing E-01 must surface both milestones in the
+	// "Referenced by" block.
+	out := captureStdout(t, func() {
+		if rc := run([]string{"show", "--root", root, "E-01"}); rc != exitOK {
+			t.Fatalf("show: %d", rc)
+		}
+	})
+	s := string(out)
+	for _, want := range []string{
+		"Referenced by (2):",
+		"M-001",
+		"M-002",
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("show output missing %q in:\n%s", want, s)
+		}
+	}
+
+	// JSON path: result.referenced_by is the sorted referrer list.
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-01"}); rc != exitOK {
+			t.Fatalf("show json: %d", rc)
+		}
+	})
+	var env struct {
+		Result struct {
+			ReferencedBy []string `json:"referenced_by"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("parse JSON: %v\n%s", err, captured)
+	}
+	want := []string{"M-001", "M-002"}
+	if len(env.Result.ReferencedBy) != len(want) {
+		t.Fatalf("referenced_by = %v, want %v", env.Result.ReferencedBy, want)
+	}
+	for i := range want {
+		if env.Result.ReferencedBy[i] != want[i] {
+			t.Errorf("referenced_by[%d] = %q, want %q", i, env.Result.ReferencedBy[i], want[i])
+		}
+	}
+}
+
+// TestRun_ShowReferencedByEmptyIsPresent: an unreferenced entity must
+// still emit `referenced_by: []` in JSON (not absent, not null) so
+// downstream consumers don't have to check for field presence.
+func TestRun_ShowReferencedByEmptyIsPresent(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "epic", "--title", "Lonely", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-01"}); rc != exitOK {
+			t.Fatalf("show json: %d", rc)
+		}
+	})
+	if !strings.Contains(string(captured), `"referenced_by":[]`) {
+		t.Errorf("expected referenced_by:[] in JSON; got:\n%s", captured)
+	}
+}
+
 // TestRun_ShowFindingsScopedToEntity: when the entity has a real
 // finding, show surfaces it. The standing check
 // `milestone-done-incomplete-acs` catches the inconsistent state on

@@ -15,6 +15,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
 )
@@ -45,6 +46,17 @@ type Tree struct {
 	// validate the projected world, including files about to be created.
 	// Loaded trees leave this nil.
 	PlannedFiles map[string]struct{}
+	// ReverseRefs maps each entity id (and each composite id mentioned
+	// as a reference target) to the ids of entities that reference it.
+	// Built from entity.ForwardRefs at Load time; consumed by aiwf show's
+	// referenced_by field, by aiwf check audits ("ADR is unreferenced"),
+	// and by the I2.5 provenance scope-reachability check.
+	//
+	// Composite-id targets roll up to their parent: a gap with
+	// `addressed_by: M-007/AC-1` appears in the AC's referrer list AND
+	// in M-007's referrer list. Each value-slice is sorted ascending
+	// and de-duplicated for stable output.
+	ReverseRefs map[string][]string
 }
 
 // HasPlannedFile reports whether path (forward-slash, repo-relative)
@@ -151,7 +163,51 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 		}
 	}
 
+	tree.ReverseRefs = buildReverseRefs(tree.Entities)
 	return tree, loadErrs, nil
+}
+
+// buildReverseRefs inverts each entity's outbound references into a
+// map keyed by referenced id. Composite-id targets (M-NNN/AC-N) appear
+// under both the composite key AND the parent's bare key — a gap with
+// `addressed_by: M-007/AC-1` shows up in the AC's referrers and in
+// M-007's referrers. Each value-slice is sorted ascending and de-
+// duplicated for stable output across runs.
+//
+// An empty entity slice yields a non-nil empty map; callers can always
+// range or index without a nil check.
+func buildReverseRefs(entities []*entity.Entity) map[string][]string {
+	rev := make(map[string]map[string]struct{})
+	add := func(target, referrer string) {
+		if rev[target] == nil {
+			rev[target] = make(map[string]struct{})
+		}
+		rev[target][referrer] = struct{}{}
+	}
+	for _, e := range entities {
+		for _, ref := range entity.ForwardRefs(e) {
+			add(ref.Target, e.ID)
+			if parent, _, ok := entity.ParseCompositeID(ref.Target); ok {
+				add(parent, e.ID)
+			}
+		}
+	}
+	out := make(map[string][]string, len(rev))
+	for target, referrers := range rev {
+		ids := make([]string, 0, len(referrers))
+		for id := range referrers {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		out[target] = ids
+	}
+	return out
+}
+
+// ReferencedBy returns the ids of entities that reference id, in
+// sorted order. Returns nil when no entity references id.
+func (t *Tree) ReferencedBy(id string) []string {
+	return t.ReverseRefs[id]
 }
 
 // registerStub appends a path-derived stub entity to tree.Stubs so that
