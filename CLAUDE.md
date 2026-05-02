@@ -13,6 +13,8 @@ The branch is intentionally isolated from `main`: research documents and the ear
 - **No half-finished implementations.** If a feature lands, it lands tested. Stubs and TODOs in shipped code are a smell, not a milestone.
 - **Errors are findings, not parse failures.** `aiwf check` loads inconsistent state and reports it; it does not refuse to start. Validation is a separate axis from loading.
 - **The framework's correctness must not depend on the LLM's behavior.** Skills are advisory; the pre-push git hook and `aiwf check` are authoritative. If a guarantee depends on the LLM remembering to invoke a skill, it is not a guarantee.
+- **Kernel functionality must be AI-discoverable.** Every verb, flag, JSON envelope field, body-section name, finding code, trailer key, and YAML field is reachable through channels an AI assistant routinely consults: `aiwf <verb> --help`, embedded skills under `.claude/skills/aiwf-*`, this `CLAUDE.md`, or the design docs cross-referenced from it. If an AI assistant has to grep source to learn a kernel capability, the capability is undocumented. New capabilities ship with their `--help` text and skill-level documentation alongside the implementation, not after.
+- **Provenance is principal × agent × scope, not just operator.** When the human directs the LLM in conversation ("add a gap that says X"), the LLM is a *tool* — the human is the principal, the LLM is the agent, no co-actor inflation. When the human authorizes autonomous work (`aiwf authorize E-03 --to ai/claude`), the agent operates within that scope until the scope-entity reaches a terminal status or the human pauses. `--force` is sovereign: only humans wield it. See [`docs/pocv3/design/provenance-model.md`](docs/pocv3/design/provenance-model.md) for the full model.
 
 For Go-specific rules (formatting, linting, testing, coverage, error handling, CLI conventions, commit-trailer convention), see `tools/CLAUDE.md`.
 
@@ -43,6 +45,7 @@ These are the load-bearing properties any change must preserve. They are distill
 6. **Layered location-of-truth.** Engine binary lives external (machine-installed via `go install`). Per-project policy and planning state live in the consumer repo. Materialized skill adapters live in the consumer repo but are gitignored.
 7. **Every mutating verb produces exactly one git commit.** That gives per-mutation atomicity for free. A failed mutation aborts before the commit.
 8. **Acceptance criteria as namespaced sub-elements of milestones; TDD opt-in per milestone.** ACs are not a seventh kind — they're structured sub-elements addressed by composite id `M-NNN/AC-N`, validated by `aiwf check`, with the audit rule "AC `met` requires `tdd_phase: done`" when the milestone is `tdd: required`.
+9. **Principal × agent × scope provenance.** The kernel separates *who is accountable* (principal, always human) from *who ran the verb* (operator/actor, may be LLM or bot). Authorized agent work is gated by a typed scope FSM (`active | paused | ended`) opened with `aiwf authorize`. `--force` requires a human actor — sovereign acts always trace to a named human. Identity is runtime-derived from `git config user.email`, not stored in `aiwf.yaml`.
 
 If a proposed change does not preserve one of these, treat it as a kernel-level decision and surface it explicitly — not a quiet refactor.
 

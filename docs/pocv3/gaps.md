@@ -142,6 +142,78 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 
 ---
 
+### G22. Provenance model extension surface — **open**
+
+The I2.5 provenance model ([`design/provenance-model.md`](design/provenance-model.md)) deliberately keeps the verb surface narrow. Six known extensions are filed here for future evaluation, all YAGNI for the PoC:
+
+1. **Explicit revoke verb (`aiwf revoke <auth-sha> --reason "..."`).** End an active scope before its scope-entity reaches a terminal status. The trailer slot is reserved (`aiwf-revoked-by:`) but the verb is not implemented in I2.5. Scopes today auto-end only on terminal scope-entity status; a human cannot un-authorize an in-flight scope without forcing the entity to a terminal status.
+2. **Time-bound scopes (`--until <date>` or `--for <duration>`).** Auto-end on a wall-clock deadline. Adds a clock dependency to the kernel; not present today.
+3. **Verb-set restrictions (`--verbs add,promote`).** Constrain which verbs an agent can invoke under a scope. Real safety win in adversarial settings; significant added complexity.
+4. **Pattern scopes (`--pattern "M-007/*"`).** Scope by id pattern instead of (or in addition to) reference-graph reachability. More flexible; harder to verify; the "did the agent act outside scope?" question gets fuzzier.
+5. **Sub-agent delegation.** Whether an `aiwf-verb: authorize` commit may itself be inside a scope (an agent authorizing another agent). The mutually-exclusive pair `(aiwf-verb: authorize, aiwf-on-behalf-of:)` is *not* enforced in I2.5; G22 owns the policy decision when real friction shows up.
+6. **Bulk-import per-entity actor attribution.** `aiwf import` today writes one collapsed `aiwf-actor:` trailer for the whole import. When the source data carries per-row author info, the importer should write per-entity `aiwf-actor:` pairs instead. Solves the migration case where authorship is recoverable only via `git blame` on the v1 source.
+
+Severity: Low. Each item is a clear extension path; the I2.5 model leaves room for all of them without architectural retrofits.
+
+---
+
+### G23. Delegated `--force` via `aiwf authorize --allow-force` — **open**
+
+Per the I2.5 provenance model: `--force` is human-only. An LLM operating in a scope cannot `--force` even when the human has authorized that scope. The path is for the LLM to prompt the human, who then invokes `aiwf <verb> --force --reason "..."` directly.
+
+This is the right default. But occasional friction is plausible: a long-running autonomous scope where every kernel-refusal-that-needs-overriding becomes a synchronous prompt to the human. The escape hatch would be a flag on `aiwf authorize` — `--allow-force` — which extends the agent's authorization to include forced acts within the scope. Even then, the trailer would still write `aiwf-principal: human/...` (the human authorized force-permitted scope), preserving the "sovereign acts trace to a named human" rule.
+
+YAGNI for the PoC. The honest minimum-viable path forward is to ship I2.5 without it, watch where the friction lands, and revisit. If `--allow-force` ships, it's a flag-and-finding addition (`provenance-force-disallowed-in-scope` for misuse), not an architectural change.
+
+Severity: Low. Specific named extension worth its own audit row so it doesn't get folded into G22 and lost.
+
+---
+
+### G21. Kernel surface is partially undocumented for AI assistants — **open**
+
+The new "kernel functionality must be AI-discoverable" engineering principle (CLAUDE.md, design-decisions.md cross-cutting properties) requires every verb, flag, JSON envelope field, body-section name, finding code, trailer key, and YAML field to be reachable through `aiwf <verb> --help`, the embedded skills under `.claude/skills/aiwf-*`, the kernel's CLAUDE.md, or the design docs cross-referenced from it. The principle was added during I3 planning. Existing surface predates it and may have undocumented corners.
+
+Why it matters. AI assistants are first-class consumers of the framework. A capability that exists in code but isn't named in `--help` or a skill is invisible — the assistant either ignores it (functionality is wasted) or invents a similar-but-wrong call (correctness regression). The new opt-in fields (`aiwf.yaml.tdd.require_test_metrics`, `aiwf.yaml.html.commit_output`) and the kernel `--tests` flag arrive into a surface that hasn't been audited end-to-end against this rule.
+
+Proposed fix. A documentation-discoverability sweep:
+
+1. Enumerate the current verb, flag, finding-code, trailer-key, body-section, and YAML-field surface (one source per axis: verb registry, flag definitions, `findings/` codes, `gitops/` trailer set, `entity.BodyTemplate`, `aiwfyaml/` struct).
+2. For each item, confirm it appears in *at least* one of: `aiwf <verb> --help`, an embedded skill, CLAUDE.md, or the relevant design doc cross-referenced from CLAUDE.md.
+3. Add a `aiwf doctor --self-check` (or extend the existing one) that reports any item present in code but absent from all four documentation channels. Severity: warning.
+4. Patch the gaps the audit reveals.
+
+Severity: Medium. Doesn't break correctness, but degrades the framework's value to AI consumers proportional to its growth.
+
+---
+
+### G24. Manual commits bypass `aiwf-verb:` trailers; no first-class repair path — **in flight (I2.5)**
+
+When a mutating verb (`aiwf cancel`, `aiwf promote`, …) fails partway through and the operator finishes the work with a plain `git commit`, the resulting commit lands without the structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`). The entity reaches its correct state — `aiwf check` is clean — but `aiwf history <id>` and `aiwf status` (both filter `git log --grep "^aiwf-verb: "`) report no event for the change. The audit trail goes silent for events that did happen.
+
+Observed concretely: in a working session, three gap closures (G-021, G-030, G-031 in a separate consumer tree) were committed manually after `aiwf cancel` failed on `.git/index.lock` contention each time. The frontmatter reflects `wontfix`, but `aiwf history` returns "no history" for all three.
+
+There is no clean recovery verb. `aiwf cancel <id> --force --reason "..."` looks like the natural backfill, but `Cancel` at `tools/internal/verb/promote.go:107-109` still errors `"already at target"` even under `--force` (the function-doc comment at lines 91-92 makes this explicit: the guard is intentional because there is no diff to write). The only currently-available repair is an empty hand-crafted commit with the right trailers — i.e., the same kind of manual commit that produced the problem.
+
+**Probable cause of the lock contention.** `aiwf cancel` takes its own lock at `.git/aiwf.lock` (separate from git's `.git/index.lock`), so the two don't collide directly. Inside the verb, `verb.Apply` runs `git mv` → `git add` → `git commit` as subprocesses; the pre-commit hook then runs `aiwf status --format=md` (read-only `git log`) plus `git add STATUS.md`. None of that should contend with itself. The likely culprit is an external process — VS Code's git extension, a file-watcher, or a stale `.git/index.lock` from a prior crash — holding `index.lock` just long enough for the in-flight `git commit` to fail. Capturing the actual `index.lock` error (stderr from a failed `aiwf cancel`) and `lsof .git/index.lock` is the diagnostic next step; the lock-contention root-cause is its own thread, not in scope here.
+
+**Failure modes and consequences.**
+
+1. *Audit-trail gap.* `aiwf history` / `aiwf status` cannot see the change. Downstream readers conclude "no recent activity" when there was; decisions made on those outputs are reading from incomplete data.
+2. *Provenance gap.* "Who, when, why" is recoverable only by re-reading the manual commit's prose, which doesn't follow the trailer schema and isn't queryable.
+3. *No first-class repair.* The framework provides no verb to backfill an audit-only event. The recovery path that exists is to make the same kind of manual commit that created the problem.
+4. *Silent invariant violation.* `aiwf check` passes because frontmatter is consistent. The framework's core promise — "git log is the audit log" (kernel decisions §3 / §4) — is broken without raising any alarm.
+5. *Recurrence risk.* If the contention is environmental (concurrent IDE, watcher), it will recur; the framework treats every commit failure as fatal and does not retry, log, or surface the offending process.
+
+**Resolution path.** Folded into I2.5 (`provenance-model-plan.md` steps 5b, 5c, 7b). Three-part fix:
+
+1. *Audit-only recovery mode* — `aiwf cancel <id> --audit-only --reason "..."` and `aiwf promote <id> <status> --audit-only --reason "..."`. Records a properly-trailered, empty-diff commit on an entity already at its target state. Plan step 5b.
+2. *Diagnostic instrumentation in `Apply`* — classify lock-contention failures, surface the holder PID via `lsof`, point the operator at the audit-only recovery path. No silent retries. Plan step 5c.
+3. *Pre-push trailer audit* — new `provenance-untrailered-entity-commit` warning in `aiwf check` for commits ahead of `@{u}` that touch entity files without `aiwf-verb:`. Plan step 7b.
+
+Severity: **High**. The framework's central correctness story (git log is the audit log) had an unsignalled hole; the I2.5 fix surfaces the gap (warning) and provides the recovery verb (`--audit-only`).
+
+---
+
 ## Status matrix
 
 | ID  | Title                                                       | Severity | Status |
@@ -166,5 +238,9 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 | G18 | Contract-config validation is hook-only on `contract bind`  | Medium   | [x] `202a14a` |
 | G19 | `aiwf init` writes per-skill `.gitignore`; new skills uncovered | Medium | [x] `92f5d51` |
 | G20 | `aiwf add ac` accepts prose titles, renders one giant heading | Medium   | [x] `e6de134` |
+| G21 | Kernel surface is partially undocumented for AI assistants  | Medium   | [ ] open |
+| G22 | Provenance model extension surface (revoke, time, verb-set, pattern, sub-agent, bulk-import attribution) | Low | [ ] open |
+| G23 | Delegated `--force` via `aiwf authorize --allow-force`     | Low      | [ ] open |
+| G24 | Manual commits bypass `aiwf-verb:` trailers; no repair path | High     | [ ] in flight (I2.5 steps 5b/5c/7b) |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

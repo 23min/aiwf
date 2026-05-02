@@ -362,6 +362,16 @@ The `rituals-plugin-plan.md` status table gets an "I2 alignment" row noting the 
 - [ ] aiwf core's embedded skills (`tools/internal/skills/embedded/`) updated where any of them mention milestones (`aiwf-add`, `aiwf-status`, `aiwf-promote`, `aiwf-history`).
 - [ ] Root `CLAUDE.md` "What the PoC commits to" section gets a one-line mention of "ACs as namespaced sub-elements of milestones; TDD opt-in per milestone."
 
+### Step 11 — reverse-reference index on `aiwf show` (precondition for I2.5 + I3)
+
+The HTML render planned in [`governance-html-plan.md`](governance-html-plan.md) needs to know, for each entity, *which other entities reference it* (the inversion of the existing forward-ref graph). The same index is consumed by the I2.5 provenance model ([`provenance-model-plan.md`](provenance-model-plan.md)) for the scope reachability check (whether a verb's target entity reaches the scope-entity via the reference graph). And it benefits `aiwf check` audits ("ADR is unreferenced", "this gap claims `addressed_by: M-007` but M-007 doesn't link back") that aren't render-specific. This is why it lands in I2 rather than I3 or I2.5 — it's a shared dependency.
+
+- [ ] In `tools/internal/check/check.go`: extract the forward-ref collection in `collectRefs()` so it can be inverted without re-walking. (Today it produces findings; the data is already collected.)
+- [ ] In `tools/internal/tree/`: build a reverse-ref index at tree-load time — an in-memory map `id → []referrer` covering frontmatter ref fields (per the schema table in `design-decisions.md`) plus composite-id mentions in open-target fields. Costs one O(N) walk; no new on-disk state.
+- [ ] In `tools/cmd/aiwf/show_cmd.go`: extend `ShowView` with a `referenced_by []string` field; populate from the reverse-ref index. JSON envelope includes the field even when empty (zero-value `[]`).
+- [ ] `aiwf show --help` lists `referenced_by` alongside the existing fields. Embedded `aiwf-show` skill (or equivalent) updated to mention it. The AI-discoverability rule from `CLAUDE.md` requires this — a future AI assistant must be able to learn the field exists without grepping source.
+- [ ] Tests: golden JSON files per kind covering the inversion (every entity that names a target appears in the target's `referenced_by`); composite-id targets resolve correctly (a gap with `addressed_by: M-007/AC-1` shows up in the AC's `referenced_by` *and* in the milestone's `referenced_by` via prefix); cycles don't loop (forward-ref already filters; the inversion follows).
+
 ---
 
 ## 12. What is NOT in scope
@@ -394,4 +404,5 @@ If real friction shows up later, revisit. YAGNI.
 | 7 — verbs | proposed | core |
 | 8 — STATUS.md views | proposed | core |
 | 9 — rituals plugin shrink | proposed | rituals repo |
-| 10 — design doc + embedded skills | proposed | core |
+| 10 — design doc and embedded skill update | proposed | core |
+| 11 — reverse-ref index on `aiwf show` (I3 render precondition) | proposed | core |
