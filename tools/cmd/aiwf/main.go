@@ -151,6 +151,9 @@ Flags for 'check', 'history', and 'contract verify':
   --format <fmt>                 output format: text (default) or json
   --pretty                       indent JSON output (only with --format=json)
 
+Flags for 'history':
+  --show-authorization           include the full aiwf-authorized-by SHA on scope-authorized rows (text format)
+
 Flags for 'import':
   --on-collision <mode>          fail (default) | skip | update — behavior when an explicit id already exists
   --dry-run                      validate the projection and print the would-be plans without writing
