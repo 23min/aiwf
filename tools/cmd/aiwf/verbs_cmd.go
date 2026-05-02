@@ -180,13 +180,14 @@ func splitCommaList(s string) []string {
 func runPromote(args []string) int {
 	fs := flag.NewFlagSet("promote", flag.ContinueOnError)
 	actor := fs.String("actor", "", "actor for the commit trailer")
+	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	phase := fs.String("phase", "", "advance an AC's tdd_phase (composite ids only; mutex with positional new-status)")
 	force := fs.Bool("force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	auditOnly := fs.Bool("audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason", "phase"}, []string{"force", "audit-only"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason", "phase"}, []string{"force", "audit-only"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -248,6 +249,13 @@ func runPromote(args []string) int {
 		return exitInternal
 	}
 
+	pctx := provenanceContext{
+		Actor:     actorStr,
+		Principal: strings.TrimSpace(*principal),
+		VerbKind:  verb.VerbAct,
+		TargetID:  id,
+	}
+
 	if phaseMode {
 		var result *verb.Result
 		var vErr error
@@ -256,27 +264,33 @@ func runPromote(args []string) int {
 		} else {
 			result, vErr = verb.PromoteACPhase(ctx, tr, id, *phase, actorStr, *reason, *force)
 		}
-		return finishVerb(ctx, rootDir, "aiwf promote", result, vErr)
+		return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 	}
 	newStatus := rest[1]
+	if !entity.IsCompositeID(id) {
+		if e := tr.ByID(id); e != nil {
+			pctx.IsTerminalPromote = isTerminalPromote(e.Kind, newStatus)
+		}
+	}
 	if *auditOnly {
 		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, *reason)
-		return finishVerb(ctx, rootDir, "aiwf promote", result, vErr)
+		return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 	}
 	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason, *force)
-	return finishVerb(ctx, rootDir, "aiwf promote", result, vErr)
+	return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 }
 
 // runCancel handles `aiwf cancel <id> [--reason "..."]`.
 func runCancel(args []string) int {
 	fs := flag.NewFlagSet("cancel", flag.ContinueOnError)
 	actor := fs.String("actor", "", "actor for the commit trailer")
+	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	force := fs.Bool("force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
 	auditOnly := fs.Bool("audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"}, []string{"force", "audit-only"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason"}, []string{"force", "audit-only"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -322,12 +336,19 @@ func runCancel(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: loading tree: %v\n", err)
 		return exitInternal
 	}
+	pctx := provenanceContext{
+		Actor:             actorStr,
+		Principal:         strings.TrimSpace(*principal),
+		VerbKind:          verb.VerbAct,
+		TargetID:          id,
+		IsTerminalPromote: !entity.IsCompositeID(id), // cancel always lands on a kind's terminal-cancel target
+	}
 	if *auditOnly {
 		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, *reason)
-		return finishVerb(ctx, rootDir, "aiwf cancel", result, vErr)
+		return decorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
 	}
-	result, err := verb.Cancel(ctx, tr, id, actorStr, *reason, *force)
-	return finishVerb(ctx, rootDir, "aiwf cancel", result, err)
+	result, vErr := verb.Cancel(ctx, tr, id, actorStr, *reason, *force)
+	return decorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
 }
 
 // runRename handles `aiwf rename <id> <new-slug>`.

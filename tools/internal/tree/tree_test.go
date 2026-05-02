@@ -406,6 +406,115 @@ linked_adrs:
 	}
 }
 
+// TestReaches: the forward-reachability primitive used by the I2.5
+// allow-rule. Walks parent / depends_on / addressed_by / etc. edges
+// from `from` toward `to`, with composite ids rolling up to their
+// parent for traversal. Same fixture shape as TestLoad_ReverseRefs.
+func TestReaches(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
+id: E-01
+title: Platform
+status: active
+---
+`)
+	writeFile(t, root, "work/epics/E-01-platform/M-001-cache.md", `---
+id: M-001
+title: Cache warmup
+status: in_progress
+parent: E-01
+acs:
+  - id: AC-1
+    title: warm before requests
+    status: open
+---
+`)
+	writeFile(t, root, "work/epics/E-01-platform/M-002-evict.md", `---
+id: M-002
+title: Eviction policy
+status: draft
+parent: E-01
+depends_on:
+  - M-001
+---
+`)
+	writeFile(t, root, "work/gaps/G-001-thrash.md", `---
+id: G-001
+title: Cache thrash
+status: open
+discovered_in: M-001
+addressed_by:
+  - M-001/AC-1
+---
+`)
+
+	tr, _, err := Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	cases := []struct {
+		name string
+		from string
+		to   string
+		want bool
+	}{
+		{"self-loop bare", "E-01", "E-01", true},
+		{"self-loop composite", "M-001/AC-1", "M-001/AC-1", true},
+		{"composite to its parent", "M-001/AC-1", "M-001", true},
+		{"milestone to epic via parent", "M-001", "E-01", true},
+		{"milestone via depends_on then parent", "M-002", "M-001", true},
+		{"milestone via depends_on chain to epic", "M-002", "E-01", true},
+		{"AC under M-001 reaches E-01 by parent rollup", "M-001/AC-1", "E-01", true},
+		{"gap reaches AC's parent via addressed_by composite rollup", "G-001", "M-001", true},
+		{"gap reaches AC composite directly", "G-001", "M-001/AC-1", true},
+		{"gap reaches epic via discovered_in chain", "G-001", "E-01", true},
+		{"unreferenced milestone has no path to gap", "M-002", "G-001", false},
+		{"backwards: epic does not reach milestone", "E-01", "M-001", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tr.Reaches(tc.from, tc.to); got != tc.want {
+				t.Errorf("Reaches(%q, %q) = %v, want %v", tc.from, tc.to, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestReachesAny: the multi-source variant for creation acts. New
+// entities don't yet exist in the tree; the caller passes the new
+// entity's outbound references (read from the proposed frontmatter)
+// and asks "does any of them reach the scope-entity."
+func TestReachesAny(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
+id: E-01
+title: Platform
+status: active
+---
+`)
+	writeFile(t, root, "work/epics/E-01-platform/M-001-cache.md", `---
+id: M-001
+title: Cache warmup
+status: in_progress
+parent: E-01
+---
+`)
+	tr, _, err := Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !tr.ReachesAny([]string{"M-001", "X-99"}, "E-01") {
+		t.Error("ReachesAny([M-001 X-99], E-01) = false; want true (M-001 reaches E-01)")
+	}
+	if tr.ReachesAny([]string{"X-99"}, "E-01") {
+		t.Error("ReachesAny([X-99], E-01) = true; want false (X-99 not in tree)")
+	}
+	if tr.ReachesAny(nil, "E-01") {
+		t.Error("ReachesAny(nil, E-01) = true; want false (no froms)")
+	}
+}
+
 // TestLoad_ReverseRefsEmptyTree verifies that an empty tree yields a
 // non-nil empty map — callers can range or index without a nil check.
 func TestLoad_ReverseRefsEmptyTree(t *testing.T) {

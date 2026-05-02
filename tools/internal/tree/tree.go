@@ -210,6 +210,73 @@ func (t *Tree) ReferencedBy(id string) []string {
 	return t.ReverseRefs[id]
 }
 
+// Reaches reports whether `from` can reach `to` by walking forward
+// references (parent, depends_on, addressed_by, relates_to,
+// supersedes, discovered_in, linked_adrs, etc.) through the tree.
+// Self-loop returns true (an entity reaches itself trivially).
+//
+// Composite ids are resolved to their parent before traversal: an
+// AC walks under the milestone's reference graph, and reaching the
+// milestone counts as reaching one of its ACs. This matches the
+// scope-reachability rule in docs/pocv3/design/provenance-model.md
+// §"Scope check": "addressed_by: M-007/AC-1" makes the gap reach
+// M-007 (and therefore anything M-007 reaches via parent etc.).
+//
+// The walk is bounded by the existing entity set; an unresolved id
+// (referenced but not in the tree) is a dead end. Used by the I2.5
+// allow-rule (verb.Allow) to gate non-human-actor verbs against an
+// active scope's scope-entity.
+func (t *Tree) Reaches(from, to string) bool {
+	from = compositeParentOrSame(from)
+	to = compositeParentOrSame(to)
+	if from == to {
+		return true
+	}
+	visited := map[string]bool{from: true}
+	queue := []string{from}
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		e := t.ByID(cur)
+		if e == nil {
+			continue
+		}
+		for _, ref := range entity.ForwardRefs(e) {
+			target := compositeParentOrSame(ref.Target)
+			if target == to {
+				return true
+			}
+			if !visited[target] {
+				visited[target] = true
+				queue = append(queue, target)
+			}
+		}
+	}
+	return false
+}
+
+// ReachesAny reports whether any of `froms` reaches `to`. Used by
+// the allow-rule's creation-act branch: a new entity's outbound
+// references are evaluated as a set against the scope-entity.
+func (t *Tree) ReachesAny(froms []string, to string) bool {
+	for _, from := range froms {
+		if t.Reaches(from, to) {
+			return true
+		}
+	}
+	return false
+}
+
+// compositeParentOrSame returns the parent id of a composite (e.g.
+// "M-007/AC-1" → "M-007"); returns the input unchanged when it isn't
+// a composite. The shared trim used by Reaches / ReachesAny.
+func compositeParentOrSame(id string) string {
+	if parent, _, ok := entity.ParseCompositeID(id); ok {
+		return parent
+	}
+	return id
+}
+
 // registerStub appends a path-derived stub entity to tree.Stubs so that
 // reference resolution can still find a target by id when the source
 // file failed to load (read or parse failure). No stub is registered if
