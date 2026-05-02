@@ -46,6 +46,21 @@ var hintTable = map[string]string{
 	"evolution-regression":                  "revert the schema change or migrate the historical fixture",
 	"validator-error":                       "every valid fixture failed; the schema or validator invocation is likely broken",
 	"environment":                           "install the validator binary or fix `command:` in aiwf.yaml.contracts.validators",
+
+	// I2.5 provenance standing rules. These fire on commit history,
+	// not on tree state — hints point to the verb / repair path that
+	// would have produced a coherent commit.
+	"provenance-trailer-incoherent":         "rewrite or amend the offending commit so the trailer set obeys the required-together / mutually-exclusive rules in `docs/pocv3/design/provenance-model.md`",
+	"provenance-force-non-human":            "`--force` requires `aiwf-actor: human/...`; have a human invoke the verb directly, or drop the force",
+	"provenance-actor-malformed":            "set `git config user.email` to a valid address and re-run via `aiwf doctor`; the actor trailer is derived from `<localpart>` of the email",
+	"provenance-principal-non-human":        "`aiwf-principal:` must be `human/<id>`; agents and bots cannot be principals",
+	"provenance-on-behalf-of-non-human":     "`aiwf-on-behalf-of:` must name a human principal; rebuild the trailer from the originating authorize commit's `aiwf-actor:` value",
+	"provenance-authorized-by-malformed":    "`aiwf-authorized-by:` must be 7–40 hex (the SHA of the authorize commit); copy it from `aiwf history <scope-entity>`",
+	"provenance-authorization-missing":      "the SHA does not name an `aiwf-verb: authorize / aiwf-scope: opened` commit; check for typos or use the full SHA",
+	"provenance-authorization-out-of-scope": "the scope-entity does not reach the target via the reference graph; either authorize the right entity or run the verb on something the existing scope already reaches",
+	"provenance-authorization-ended":        "the scope was already ended (terminal-promote or revoke); open a fresh scope with `aiwf authorize <id> --to <agent>`",
+	"provenance-no-active-scope":            "an `ai/...` actor needs an active authorization; run `aiwf authorize <id> --to <agent>` before retrying the verb",
+	"provenance-audit-only-non-human":       "`--audit-only` is a sovereign act; only humans may backfill audit trails (have a human invoke `aiwf <verb> --audit-only --reason ...`)",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.

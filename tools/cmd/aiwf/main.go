@@ -200,6 +200,14 @@ func runCheck(args []string) int {
 	}
 	contractFindings := runContractValidation(ctx, tr, resolved, contracts)
 	findings = append(findings, contractFindings...)
+
+	provenanceFindings, pErr := runProvenanceCheck(ctx, resolved, tr)
+	if pErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
+		return exitInternal
+	}
+	findings = append(findings, provenanceFindings...)
+
 	applyHintsLikeRun(findings)
 	check.SortFindings(findings)
 
