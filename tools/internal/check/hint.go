@@ -61,6 +61,7 @@ var hintTable = map[string]string{
 	"provenance-authorization-ended":        "the scope was already ended (terminal-promote or revoke); open a fresh scope with `aiwf authorize <id> --to <agent>`",
 	"provenance-no-active-scope":            "an `ai/...` actor needs an active authorization; run `aiwf authorize <id> --to <agent>` before retrying the verb",
 	"provenance-audit-only-non-human":       "`--audit-only` is a sovereign act; only humans may backfill audit trails (have a human invoke `aiwf <verb> --audit-only --reason ...`)",
+	"provenance-untrailered-entity-commit":  "the commit modified entity files via plain `git commit`; backfill the audit trail with `aiwf cancel <id> --audit-only --reason \"...\"` or `aiwf promote <id> <state> --audit-only --reason \"...\"`",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.

@@ -86,6 +86,53 @@ func TestProvenanceCheck_HandEditedAgentCommit(t *testing.T) {
 	}
 }
 
+// TestProvenanceCheck_UntrailedEntityCommit covers step 7b: a manual
+// `git commit` lands on an entity file without an aiwf-verb: trailer.
+// `aiwf check` fires the warning and points at `--audit-only`.
+func TestProvenanceCheck_UntrailedEntityCommit(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "gap", "--title", "Validators leak temp files"); err != nil {
+		t.Fatalf("aiwf add gap: %v\n%s", err, out)
+	}
+
+	// Manually edit the gap file and commit without aiwf trailers —
+	// the audit-trail hole G24 cares about.
+	gapRel := mustFindFile(t, root, "G-001-")
+	manualFlipStatus(t, filepath.Join(root, gapRel), "open", "wontfix")
+	if out, err := runGit(root, "add", gapRel); err != nil {
+		t.Fatalf("git add: %v\n%s", err, out)
+	}
+	if out, err := runGit(root, "commit", "-m", "manually mark G-001 wontfix"); err != nil {
+		t.Fatalf("manual commit: %v\n%s", err, out)
+	}
+
+	out, _ := runBin(t, root, binDir, nil, "check")
+	if !strings.Contains(out, "provenance-untrailered-entity-commit") {
+		t.Fatalf("expected provenance-untrailered-entity-commit; got:\n%s", out)
+	}
+	// Severity is warning, not error — the exit code stays 0 unless
+	// other rules fired errors. The render line includes "warning".
+	if !strings.Contains(out, "warning provenance-untrailered-entity-commit") {
+		t.Errorf("expected warning severity; got:\n%s", out)
+	}
+}
+
 // TestProvenanceCheck_AuthorizationMissing: a hand-crafted commit
 // references an authorize SHA that doesn't exist.
 func TestProvenanceCheck_AuthorizationMissing(t *testing.T) {

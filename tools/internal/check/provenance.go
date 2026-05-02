@@ -25,6 +25,13 @@ const (
 	CodeProvenanceAuthorizationEnded      = "provenance-authorization-ended"
 	CodeProvenanceNoActiveScope           = "provenance-no-active-scope"
 	CodeProvenanceAuditOnlyNonHuman       = "provenance-audit-only-non-human"
+
+	// I2.5 step 7b: pre-push trailer audit (G24). Surfaces the
+	// audit-trail hole when a manual `git commit` lands on entity
+	// files without an aiwf-verb: trailer. Warning, not error: the
+	// user's intended response is `aiwf <verb> --audit-only --reason
+	// "..."` which fills the hole without rewriting history.
+	CodeProvenanceUntrailedEntityCommit = "provenance-untrailered-entity-commit"
 )
 
 // RunProvenance returns provenance findings for the given commit
@@ -273,6 +280,54 @@ func provenanceAuthorizationFindings(
 				EntityID: target,
 			})
 		}
+	}
+	return findings
+}
+
+// UntrailedCommit is the input shape for RunUntrailedAudit: the
+// commit's SHA, its trailer set, and the relative paths it touched
+// (as reported by `git diff-tree`).
+type UntrailedCommit struct {
+	SHA      string
+	Trailers []gitops.Trailer
+	Paths    []string
+}
+
+// RunUntrailedAudit returns one
+// `provenance-untrailered-entity-commit` finding per commit in the
+// supplied slice that has no aiwf-verb: trailer but touched at least
+// one entity-bearing path. The caller is expected to scope `commits`
+// to the unpushed range (typically `@{u}..HEAD`, falling back to all
+// of HEAD when no upstream exists) so already-pushed pre-aiwf
+// history is silently ignored.
+//
+// The finding is a WARNING. The intended user response is `aiwf
+// <verb> --audit-only --reason "..."` (step 5b), which records the
+// transition without rewriting history; an error severity here would
+// block pushes for state that is already correct.
+func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
+	var findings []Finding
+	for i := range commits {
+		c := &commits[i]
+		idx := indexCommitTrailersForProvenance(c.Trailers)
+		if idx[gitops.TrailerVerb] != "" {
+			continue
+		}
+		var entityPaths []string
+		for _, p := range c.Paths {
+			if _, ok := entity.PathKind(p); ok {
+				entityPaths = append(entityPaths, p)
+			}
+		}
+		if len(entityPaths) == 0 {
+			continue
+		}
+		findings = append(findings, Finding{
+			Code:     CodeProvenanceUntrailedEntityCommit,
+			Severity: SeverityWarning,
+			Message: fmt.Sprintf("commit %s touched entity files without an aiwf-verb: trailer (%s)",
+				short(c.SHA), strings.Join(entityPaths, ", ")),
+		})
 	}
 	return findings
 }

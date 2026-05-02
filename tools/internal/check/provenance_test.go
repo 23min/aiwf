@@ -334,6 +334,77 @@ func TestRunProvenance_AuthorizeCommitNoActiveScopeSkipped(t *testing.T) {
 	}
 }
 
+// TestRunUntrailedAudit covers step 7b: a commit touching entity
+// files without an aiwf-verb: trailer should fire one warning. A
+// commit with the trailer is silent; a commit touching only
+// non-entity files is silent.
+func TestRunUntrailedAudit(t *testing.T) {
+	tests := []struct {
+		name      string
+		commits   []UntrailedCommit
+		wantCount int
+	}{
+		{
+			name: "manual commit touching milestone fires",
+			commits: []UntrailedCommit{
+				{
+					SHA:   "abc1234",
+					Paths: []string{"work/epics/E-01-foo/M-001-bar.md"},
+				},
+			},
+			wantCount: 1,
+		},
+		{
+			name: "trailered verb commit is silent",
+			commits: []UntrailedCommit{
+				{
+					SHA: "def5678",
+					Trailers: []gitops.Trailer{
+						{Key: gitops.TrailerVerb, Value: "promote"},
+						{Key: gitops.TrailerEntity, Value: "M-001"},
+					},
+					Paths: []string{"work/epics/E-01-foo/M-001-bar.md"},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "non-entity-only commit is silent",
+			commits: []UntrailedCommit{
+				{
+					SHA:   "999aaaa",
+					Paths: []string{"STATUS.md", "aiwf.yaml", ".claude/skills/x.md"},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "mixed commit fires once for the entity path",
+			commits: []UntrailedCommit{
+				{
+					SHA:   "555ccc1",
+					Paths: []string{"STATUS.md", "work/gaps/G-001-leak.md"},
+				},
+			},
+			wantCount: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := RunUntrailedAudit(tt.commits)
+			if len(got) != tt.wantCount {
+				t.Fatalf("findings = %d (%v), want %d", len(got), findingCodes(got), tt.wantCount)
+			}
+			if tt.wantCount == 1 && got[0].Code != CodeProvenanceUntrailedEntityCommit {
+				t.Errorf("finding code = %q, want %q", got[0].Code, CodeProvenanceUntrailedEntityCommit)
+			}
+			if tt.wantCount == 1 && got[0].Severity != SeverityWarning {
+				t.Errorf("severity = %q, want %q", got[0].Severity, SeverityWarning)
+			}
+		})
+	}
+}
+
 // hasFinding reports whether any finding has the given code.
 func hasFinding(fs []Finding, code string) bool {
 	for i := range fs {
