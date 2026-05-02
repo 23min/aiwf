@@ -184,13 +184,14 @@ func runPromote(args []string) int {
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	phase := fs.String("phase", "", "advance an AC's tdd_phase (composite ids only; mutex with positional new-status)")
 	force := fs.Bool("force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
+	auditOnly := fs.Bool("audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason", "phase"}, []string{"force"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason", "phase"}, []string{"force", "audit-only"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
 	if len(rest) < 1 || len(rest) > 2 {
-		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status>  |  aiwf promote <composite-id> --phase <p>  [--reason \"...\"] [--force --reason \"...\"]")
+		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status>  |  aiwf promote <composite-id> --phase <p>  [--reason \"...\"] [--force --reason \"...\"] [--audit-only --reason \"...\"]")
 		return exitUsage
 	}
 	id := rest[0]
@@ -210,8 +211,16 @@ func runPromote(args []string) int {
 		return exitUsage
 	}
 
-	if *force && strings.TrimSpace(*reason) == "" {
-		fmt.Fprintln(os.Stderr, "aiwf promote: --reason \"...\" is required when --force is set (non-empty after trim)")
+	if *force && *auditOnly {
+		fmt.Fprintln(os.Stderr, "aiwf promote: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
+		return exitUsage
+	}
+	if (*force || *auditOnly) && strings.TrimSpace(*reason) == "" {
+		gateFlag := "--force"
+		if *auditOnly {
+			gateFlag = "--audit-only"
+		}
+		fmt.Fprintf(os.Stderr, "aiwf promote: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
 		return exitUsage
 	}
 
@@ -240,10 +249,20 @@ func runPromote(args []string) int {
 	}
 
 	if phaseMode {
-		result, vErr := verb.PromoteACPhase(ctx, tr, id, *phase, actorStr, *reason, *force)
+		var result *verb.Result
+		var vErr error
+		if *auditOnly {
+			result, vErr = verb.PromoteACPhaseAuditOnly(ctx, tr, id, *phase, actorStr, *reason)
+		} else {
+			result, vErr = verb.PromoteACPhase(ctx, tr, id, *phase, actorStr, *reason, *force)
+		}
 		return finishVerb(ctx, rootDir, "aiwf promote", result, vErr)
 	}
 	newStatus := rest[1]
+	if *auditOnly {
+		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, *reason)
+		return finishVerb(ctx, rootDir, "aiwf promote", result, vErr)
+	}
 	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason, *force)
 	return finishVerb(ctx, rootDir, "aiwf promote", result, vErr)
 }
@@ -255,19 +274,28 @@ func runCancel(args []string) int {
 	root := fs.String("root", "", "consumer repo root")
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	force := fs.Bool("force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
+	auditOnly := fs.Bool("audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"}, []string{"force"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "reason"}, []string{"force", "audit-only"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
 	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf cancel: usage: aiwf cancel <id> [--reason \"...\"] [--force --reason \"...\"]")
+		fmt.Fprintln(os.Stderr, "aiwf cancel: usage: aiwf cancel <id> [--reason \"...\"] [--force --reason \"...\"] [--audit-only --reason \"...\"]")
 		return exitUsage
 	}
 	id := rest[0]
 
-	if *force && strings.TrimSpace(*reason) == "" {
-		fmt.Fprintln(os.Stderr, "aiwf cancel: --reason \"...\" is required when --force is set (non-empty after trim)")
+	if *force && *auditOnly {
+		fmt.Fprintln(os.Stderr, "aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
+		return exitUsage
+	}
+	if (*force || *auditOnly) && strings.TrimSpace(*reason) == "" {
+		gateFlag := "--force"
+		if *auditOnly {
+			gateFlag = "--audit-only"
+		}
+		fmt.Fprintf(os.Stderr, "aiwf cancel: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
 		return exitUsage
 	}
 
@@ -293,6 +321,10 @@ func runCancel(args []string) int {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: loading tree: %v\n", err)
 		return exitInternal
+	}
+	if *auditOnly {
+		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, *reason)
+		return finishVerb(ctx, rootDir, "aiwf cancel", result, vErr)
 	}
 	result, err := verb.Cancel(ctx, tr, id, actorStr, *reason, *force)
 	return finishVerb(ctx, rootDir, "aiwf cancel", result, err)

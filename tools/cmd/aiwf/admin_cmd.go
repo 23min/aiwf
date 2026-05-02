@@ -230,6 +230,9 @@ func runHistory(args []string) int {
 			if e.Force != "" {
 				fmt.Printf("    [forced: %s]\n", e.Force)
 			}
+			if e.AuditOnly != "" {
+				fmt.Printf("    [audit-only: %s]\n", e.AuditOnly)
+			}
 			if e.Body != "" {
 				for _, line := range strings.Split(e.Body, "\n") {
 					fmt.Printf("    %s\n", line)
@@ -271,15 +274,22 @@ func runHistory(args []string) int {
 // Force is the reason value of an `aiwf-force:` trailer. Empty for
 // non-forced transitions; non-empty marks the event as having
 // bypassed the FSM's transition-legality rule.
+//
+// AuditOnly is the reason value of an `aiwf-audit-only:` trailer
+// (I2.5 G24 recovery mode). Empty for normal verb commits; non-empty
+// marks the event as a backfilled audit trail for state that was
+// reached via a manual commit. Renders as a `[audit-only: <reason>]`
+// chip in text output, mirroring the `[forced: ...]` rendering.
 type HistoryEvent struct {
-	Date   string `json:"date"`
-	Actor  string `json:"actor"`
-	Verb   string `json:"verb"`
-	Detail string `json:"detail"`
-	Commit string `json:"commit"`
-	Body   string `json:"body,omitempty"`
-	To     string `json:"to,omitempty"`
-	Force  string `json:"force,omitempty"`
+	Date      string `json:"date"`
+	Actor     string `json:"actor"`
+	Verb      string `json:"verb"`
+	Detail    string `json:"detail"`
+	Commit    string `json:"commit"`
+	Body      string `json:"body,omitempty"`
+	To        string `json:"to,omitempty"`
+	Force     string `json:"force,omitempty"`
+	AuditOnly string `json:"audit_only,omitempty"`
 }
 
 // readHistory shells out to `git log` and returns one HistoryEvent per
@@ -327,6 +337,7 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 			sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"+
 			sep+"%(trailers:key=aiwf-to,valueonly=true,unfold=true)"+
 			sep+"%(trailers:key=aiwf-force,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-audit-only,valueonly=true,unfold=true)"+
 			sep+"%b\x1e",
 	)
 	cmd := exec.CommandContext(ctx, "git", args...)
@@ -346,19 +357,20 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 		if rec == "" {
 			continue
 		}
-		parts := strings.SplitN(rec, sep, 8)
-		if len(parts) < 8 {
+		parts := strings.SplitN(rec, sep, 9)
+		if len(parts) < 9 {
 			continue
 		}
 		events = append(events, HistoryEvent{
-			Commit: shortHash(parts[0]),
-			Date:   parts[1],
-			Detail: strings.TrimSpace(parts[2]),
-			Verb:   strings.TrimSpace(parts[3]),
-			Actor:  strings.TrimSpace(parts[4]),
-			To:     strings.TrimSpace(parts[5]),
-			Force:  strings.TrimSpace(parts[6]),
-			Body:   stripTrailers(strings.TrimSpace(parts[7])),
+			Commit:    shortHash(parts[0]),
+			Date:      parts[1],
+			Detail:    strings.TrimSpace(parts[2]),
+			Verb:      strings.TrimSpace(parts[3]),
+			Actor:     strings.TrimSpace(parts[4]),
+			To:        strings.TrimSpace(parts[5]),
+			Force:     strings.TrimSpace(parts[6]),
+			AuditOnly: strings.TrimSpace(parts[7]),
+			Body:      stripTrailers(strings.TrimSpace(parts[8])),
 		})
 	}
 	return events, nil
