@@ -186,6 +186,7 @@ Severity: Medium. Doesn't break correctness, but degrades the framework's value 
 
 ---
 
+<a id="g24"></a>
 ### G24. Manual commits bypass `aiwf-verb:` trailers; no first-class repair path — **in flight (I2.5)**
 
 When a mutating verb (`aiwf cancel`, `aiwf promote`, …) fails partway through and the operator finishes the work with a plain `git commit`, the resulting commit lands without the structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`). The entity reaches its correct state — `aiwf check` is clean — but `aiwf history <id>` and `aiwf status` (both filter `git log --grep "^aiwf-verb: "`) report no event for the change. The audit trail goes silent for events that did happen.

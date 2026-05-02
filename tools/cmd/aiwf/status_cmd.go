@@ -93,13 +93,13 @@ func summarizeACs(acs []entity.AcceptanceCriterion) *statusACProgress {
 	p := &statusACProgress{Total: len(acs)}
 	for i := range acs {
 		switch acs[i].Status {
-		case "open":
+		case entity.StatusOpen:
 			p.Open++
-		case "met":
+		case entity.StatusMet:
 			p.Met++
-		case "deferred":
+		case entity.StatusDeferred:
 			p.Deferred++
-		case "cancelled":
+		case entity.StatusCancelled:
 			p.Cancelled++
 		}
 	}
@@ -388,9 +388,9 @@ func writeStatusEpicText(b *strings.Builder, e statusEpic) {
 	for _, m := range e.Milestones {
 		marker := "   "
 		switch m.Status {
-		case "in_progress":
+		case entity.StatusInProgress:
 			marker = " → "
-		case "done":
+		case entity.StatusDone:
 			marker = " ✓ "
 		}
 		suffix := ""
@@ -602,9 +602,9 @@ func writeStatusEpicMarkdown(b *strings.Builder, e statusEpic) {
 	for _, m := range e.Milestones {
 		marker := ""
 		switch m.Status {
-		case "in_progress":
+		case entity.StatusInProgress:
 			marker = "→ "
-		case "done":
+		case entity.StatusDone:
 			marker = "✓ "
 		}
 		suffix := ""

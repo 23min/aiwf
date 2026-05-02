@@ -114,3 +114,19 @@ func TestPolicy_ClosedSetStatusViaConstants(t *testing.T) {
 func TestPolicy_NoSilentFallbacks(t *testing.T) {
 	runPolicy(t, PolicyNoSilentFallbacks)
 }
+
+func TestPolicy_NoRetryLoopsOnGitErrors(t *testing.T) {
+	runPolicy(t, PolicyNoRetryLoopsOnGitErrors)
+}
+
+func TestPolicy_FindingCodesHaveTests(t *testing.T) {
+	runPolicy(t, PolicyFindingCodesHaveTests)
+}
+
+func TestPolicy_IntegrationTestsAssertTrailers(t *testing.T) {
+	runPolicy(t, PolicyIntegrationTestsAssertTrailers)
+}
+
+func TestPolicy_DesignDocAnchors(t *testing.T) {
+	runPolicy(t, PolicyDesignDocAnchors)
+}

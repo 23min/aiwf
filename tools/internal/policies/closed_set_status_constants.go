@@ -49,21 +49,29 @@ var statusLiteralValues = map[string]bool{
 
 // statusContextPattern detects places where a status literal is
 // used in a "compare-to-status" context — e.g. assigned to a
-// `status: ...` frontmatter, compared to `e.Status`, or set as the
-// value of a Trailer{Key: TrailerTo, ...}. Outside these contexts,
-// the same literal might be unrelated prose.
+// `status: ...` frontmatter, compared to `e.Status`, set as the
+// value of a Trailer{Key: TrailerTo, ...}, or used as a `case`
+// label in a switch over a status field.
 //
 // Heuristic: look for tokens like `Status:`, `e.Status ==`, or
-// `Value:` near the literal. Unfortunately many false positives
-// arise from log strings, body templates, and documentation
-// snippets. So this policy is intentionally narrow — we flag only
-// where literally `Status: "value"` or `Status == "value"` appears.
+// `Value:` near the literal. The case-clause pattern covers
+// `switch e.Status { case "active": ... }` — the regex anchors on
+// `case "..."` followed by a colon and matches a literal whose
+// surrounding context is a status switch. Naive enough to false-
+// positive on unrelated `case "x":` clauses; the policy accepts
+// that and the operator can refactor or whitelist.
 var statusContextPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`Status:\s*"([a-z_]+)"`),
 	regexp.MustCompile(`\.Status\s*==\s*"([a-z_]+)"`),
 	regexp.MustCompile(`\.Status\s*!=\s*"([a-z_]+)"`),
 	regexp.MustCompile(`TDDPhase:\s*"([a-z_]+)"`),
 	regexp.MustCompile(`\.TDDPhase\s*==\s*"([a-z_]+)"`),
+	// case labels in switches; we don't know the switch tag from
+	// the regex, so we only match labels whose value is in the
+	// known closed-set values map. False-positive risk: a case
+	// label coincidentally matching "active" / "open" in an
+	// unrelated switch. Whitelisting via rename is acceptable.
+	regexp.MustCompile(`(?m)^\s*case\s+"([a-z_]+)"\s*:`),
 }
 
 // PolicyClosedSetStatusViaConstants flags context-relevant string
