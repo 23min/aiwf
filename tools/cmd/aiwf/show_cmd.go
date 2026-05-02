@@ -104,6 +104,7 @@ type ShowView struct {
 	History      []HistoryEvent  `json:"history,omitempty"`
 	Findings     []check.Finding `json:"findings,omitempty"`
 	ReferencedBy []string        `json:"referenced_by"`
+	Scopes       []ScopeView     `json:"scopes,omitempty"`
 
 	// Composite-id-only fields (when querying M-NNN/AC-N): the AC's
 	// own state, populated instead of (not in addition to) the
@@ -148,6 +149,9 @@ func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 	events, err := readHistory(ctx, root, id)
 	if err == nil {
 		view.History = limitEvents(events, historyLimit)
+	}
+	if scopes, err := loadEntityScopeViews(ctx, root, id); err == nil {
+		view.Scopes = scopes
 	}
 
 	allFindings := check.Run(t, loadErrs)
@@ -199,6 +203,9 @@ func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 	events, err := readHistory(ctx, root, id)
 	if err == nil {
 		view.History = limitEvents(events, historyLimit)
+	}
+	if scopes, err := loadEntityScopeViews(ctx, root, id); err == nil {
+		view.Scopes = scopes
 	}
 
 	allFindings := check.Run(t, loadErrs)
@@ -281,6 +288,20 @@ func renderShowText(v ShowView) {
 			fmt.Printf("    %s\n", ref)
 		}
 	}
+	if len(v.Scopes) > 0 {
+		fmt.Println()
+		fmt.Printf("  Scopes (%d):\n", len(v.Scopes))
+		for i := range v.Scopes {
+			s := v.Scopes[i]
+			ended := ""
+			if s.EndedAt != "" {
+				ended = "  ended " + s.EndedAt[:10]
+			}
+			fmt.Printf("    %s  %s → %s  state: %-7s  opened %s%s  events: %d\n",
+				shortHash(s.AuthSHA), s.Principal, s.Agent, s.State,
+				dateOnly(s.Opened), ended, s.EventCount)
+		}
+	}
 	if len(v.History) > 0 {
 		fmt.Println()
 		fmt.Printf("  Recent history (%d):\n", len(v.History))
@@ -317,4 +338,14 @@ func displayPhase(phase string) string {
 		return "-"
 	}
 	return phase
+}
+
+// dateOnly returns the calendar-day prefix of an ISO-8601 timestamp,
+// or the input unchanged when shorter than 10 chars. Used by the
+// scopes block where the time-of-day is noise.
+func dateOnly(s string) string {
+	if len(s) < 10 {
+		return s
+	}
+	return s[:10]
 }
