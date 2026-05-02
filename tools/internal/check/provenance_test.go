@@ -541,6 +541,80 @@ func TestResolveAuthSHA_AmbiguousPrefix(t *testing.T) {
 	})
 }
 
+// TestRunProvenance_CompositeTargetRollsUp covers the
+// out-of-scope rule's composite-id rollup: a target like
+// `M-001/AC-1` rolls up to `M-001` for reachability. When the
+// scope is on the parent epic and the target is a composite under a
+// child milestone, the rule must NOT fire (M-001 reaches E-01
+// via parent).
+func TestRunProvenance_CompositeTargetRollsUp(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	authSHA := strings.Repeat("c", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "E-01", "human/peter", "ai/claude"),
+		// Agent acts on M-001/AC-1 (composite). Rolls up to M-001;
+		// M-001 reaches E-01 (parent). No out-of-scope finding.
+		agentCommit("bbbb222", "promote", "M-001/AC-1",
+			"ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+		t.Fatalf("out-of-scope fired on composite target that rolls up correctly: %v", findingCodes(got))
+	}
+}
+
+// TestRunProvenance_SelfReferentialOutOfScope covers the
+// short-circuit branch where target == scope-entity (after composite
+// rollup). The reachability check is skipped via `from == to`.
+func TestRunProvenance_SelfReferentialOutOfScope(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	authSHA := strings.Repeat("d", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "E-01", "human/peter", "ai/claude"),
+		// Agent acts on E-01 itself. target == scope-entity.
+		agentCommit("bbbb222", "promote", "E-01",
+			"ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+		t.Fatalf("out-of-scope fired on self-referential target: %v", findingCodes(got))
+	}
+}
+
+// TestRunProvenance_MultipleAuthorizedByLastWins documents the
+// behavior when a commit (defensively / pathologically) carries two
+// `aiwf-authorized-by:` trailers: the indexCommitTrailers helper is
+// last-wins, so only the LAST trailer drives the rules. This test
+// pins that behavior so a future change to the indexer surfaces
+// here.
+func TestRunProvenance_MultipleAuthorizedByLastWins(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	goodSHA := strings.Repeat("a", 40)
+	missingSHA := strings.Repeat("0", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(goodSHA, "E-01", "human/peter", "ai/claude"),
+		// Two authorized-by trailers: first valid, second missing.
+		// Last-wins → -authorization-missing fires.
+		{
+			SHA: "bbbb222",
+			Trailers: []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "promote"},
+				{Key: gitops.TrailerEntity, Value: "M-001"},
+				{Key: gitops.TrailerActor, Value: "ai/claude"},
+				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
+				{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
+				{Key: gitops.TrailerAuthorizedBy, Value: goodSHA},
+				{Key: gitops.TrailerAuthorizedBy, Value: missingSHA},
+			},
+		},
+	}
+	got := RunProvenance(commits, tr)
+	if !hasFinding(got, CodeProvenanceAuthorizationMissing) {
+		t.Fatalf("expected last-wins to drive -authorization-missing on the second SHA; got %v",
+			findingCodes(got))
+	}
+}
+
 // hasFinding reports whether any finding has the given code.
 func hasFinding(fs []Finding, code string) bool {
 	for i := range fs {

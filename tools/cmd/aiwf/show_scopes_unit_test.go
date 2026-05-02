@@ -222,6 +222,43 @@ func TestUnpushedRange_WithUpstream(t *testing.T) {
 	}
 }
 
+// TestReadUntrailedCommits_EmptyRange: when HEAD == @{u} (already
+// pushed), the unpushed range produces no commits. The helper
+// should return nil without error so step 7b stays silent.
+func TestReadUntrailedCommits_EmptyRange(t *testing.T) {
+	upstream := t.TempDir()
+	if out, err := runGit(upstream, "init", "--bare", "-q"); err != nil {
+		t.Fatalf("git init bare: %v\n%s", err, out)
+	}
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+		{"remote", "add", "origin", upstream},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runGit(root, "commit", "--allow-empty", "-m", "seed"); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+	// Push and set upstream tracking — now HEAD == @{u}.
+	if out, err := runGit(root, "push", "-u", "origin", "HEAD:main"); err != nil {
+		t.Fatalf("git push: %v\n%s", err, out)
+	}
+	got, err := readUntrailedCommits(context.Background(), root)
+	if err != nil {
+		t.Fatalf("readUntrailedCommits: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("got %d commits, want 0 (HEAD == @{u})", len(got))
+	}
+}
+
 // TestParseUntrailedCommits_Malformed: records that don't have the
 // expected three-field shape are silently skipped. Drives the
 // defensive parsing branch.

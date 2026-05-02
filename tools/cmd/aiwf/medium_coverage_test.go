@@ -104,6 +104,85 @@ func TestShow_CompositeIdWithScopes(t *testing.T) {
 	}
 }
 
+// TestShow_AncestorScopeNotInheritedWithoutAct documents the
+// current loadEntityScopeViews scoping rule: a scope opened on a
+// parent entity does NOT surface in a child's `aiwf show` until at
+// least one commit on the child references the auth-SHA via
+// aiwf-authorized-by. The function returns scopes that were either
+// (a) opened on this entity directly, or (b) referenced by this
+// entity's history.
+//
+// This is the conservative reading of "every scope that ever
+// applied to this entity": "applied" = "was used in a commit that
+// touched this entity." A scope opened on E-01 that has authorized
+// no work yet is not yet "applied" to its child M-001.
+//
+// If we want descendants to surface ancestor scopes proactively
+// (even before any agent commit references them), this test must
+// flip — it pins the behavior so a design change is explicit, not
+// silent.
+func TestShow_AncestorScopeNotInheritedWithoutAct(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := strings.TrimSuffix(bin, "/aiwf")
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add epic: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--epic", "E-01", "--title", "Cache"); err != nil {
+		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
+	}
+	// Open scope on E-01 but NEVER act on M-001 under it.
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+		t.Fatalf("authorize: %v\n%s", err, out)
+	}
+
+	// E-01 surfaces the scope — opened on it directly.
+	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-01")
+	if err != nil {
+		t.Fatalf("show E-01: %v\n%s", err, out)
+	}
+	var envE struct {
+		Result ShowView `json:"result"`
+	}
+	if jErr := json.Unmarshal([]byte(out), &envE); jErr != nil {
+		t.Fatalf("parse E-01 JSON: %v\n%s", jErr, out)
+	}
+	if len(envE.Result.Scopes) != 1 {
+		t.Fatalf("E-01 scopes len = %d, want 1; raw:\n%s", len(envE.Result.Scopes), out)
+	}
+
+	// M-001 does NOT surface the ancestor scope — no commit on
+	// M-001 references it yet.
+	mout, mErr := runBin(t, root, binDir, nil, "show", "--format=json", "M-001")
+	if mErr != nil {
+		t.Fatalf("show M-001: %v\n%s", mErr, mout)
+	}
+	var envM struct {
+		Result ShowView `json:"result"`
+	}
+	if jErr := json.Unmarshal([]byte(mout), &envM); jErr != nil {
+		t.Fatalf("parse M-001 JSON: %v\n%s", jErr, mout)
+	}
+	if len(envM.Result.Scopes) != 0 {
+		t.Errorf("M-001 scopes len = %d, want 0 (ancestor scope not yet applied); raw:\n%s",
+			len(envM.Result.Scopes), mout)
+	}
+}
+
 // TestShow_MultipleScopesSorted: two scopes opened in sequence on
 // the same entity, the second after the first is paused. Both
 // surface in `scopes`, ordered by Opened ascending (oldest first).

@@ -56,6 +56,103 @@ func TestList_ContentNonEmptyAndYAMLFrontmatter(t *testing.T) {
 	}
 }
 
+// TestList_I2_5ContentMarkers guards against content drift on the
+// I2.5 documentation surface. Each skill that received a step-10
+// update must still mention the load-bearing concept the update
+// added; if a future edit drops a marker, this test surfaces it
+// before a release.
+//
+// Markers are deliberately small substrings — section anchors and
+// flag/code names — chosen so an editor can rephrase prose freely.
+// Add a marker only when its absence would represent a regression
+// in AI-discoverability.
+func TestList_I2_5ContentMarkers(t *testing.T) {
+	skills, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	contentByName := make(map[string]string, len(skills))
+	for _, s := range skills {
+		contentByName[s.Name] = string(s.Content)
+	}
+
+	cases := []struct {
+		skill   string
+		markers []string
+	}{
+		{
+			skill: "aiwf-authorize",
+			markers: []string{
+				"--to <agent>",
+				"--pause",
+				"--resume",
+				"Tool vs. agent",
+				"`provenance-no-active-scope`",
+				"`provenance-authorization-out-of-scope`",
+				"`provenance-authorization-ended`",
+				"`provenance-authorization-missing`",
+				"`provenance-trailer-incoherent`",
+			},
+		},
+		{
+			skill: "aiwf-add",
+			markers: []string{
+				"--principal human/<id>",
+				"`provenance-trailer-incoherent`",
+			},
+		},
+		{
+			skill: "aiwf-promote",
+			markers: []string{
+				"--audit-only",
+				"--principal human/<id>",
+				"`provenance-no-active-scope`",
+				"aiwf-scope-ends",
+			},
+		},
+		{
+			skill: "aiwf-history",
+			markers: []string{
+				"--show-authorization",
+				"principal via agent",
+				"[scope: opened]",
+				"[audit-only:",
+				"provenance-untrailered-entity-commit",
+			},
+		},
+		{
+			skill: "aiwf-check",
+			markers: []string{
+				"`provenance-trailer-incoherent`",
+				"`provenance-force-non-human`",
+				"`provenance-actor-malformed`",
+				"`provenance-principal-non-human`",
+				"`provenance-on-behalf-of-non-human`",
+				"`provenance-authorized-by-malformed`",
+				"`provenance-authorization-missing`",
+				"`provenance-authorization-out-of-scope`",
+				"`provenance-authorization-ended`",
+				"`provenance-no-active-scope`",
+				"`provenance-audit-only-non-human`",
+				"`provenance-untrailered-entity-commit`",
+			},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.skill, func(t *testing.T) {
+			content, ok := contentByName[c.skill]
+			if !ok {
+				t.Fatalf("skill %s not found in embedded set", c.skill)
+			}
+			for _, m := range c.markers {
+				if !strings.Contains(content, m) {
+					t.Errorf("%s: missing marker %q (I2.5 content drift)", c.skill, m)
+				}
+			}
+		})
+	}
+}
+
 // TestMaterialize_FreshDir writes every embedded skill into a clean
 // directory and verifies the on-disk content matches the embed
 // byte-for-byte.
