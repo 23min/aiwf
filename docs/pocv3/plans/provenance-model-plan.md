@@ -273,17 +273,17 @@ The test surface for I2.5 is large. The load-bearing scenarios — each must pas
 
 | Step | State | Owner |
 |---|---|---|
-| 1 — Identity migration (drop `aiwf.yaml.actor`) | proposed | core |
-| 2 — Trailer writer extensions | proposed | core |
-| 3 — Required-together / mutually-exclusive rules | proposed | core |
-| 4 — Scope FSM package | proposed | core |
-| 5 — `aiwf authorize` verb | proposed | core |
-| 5b — `--audit-only --reason` recovery mode (G24) | proposed | core |
-| 5c — Diagnostic instrumentation in `Apply` (G24) | proposed | core |
-| 6 — Allow-rule composition + scope-aware dispatch | proposed | core |
-| 7 — `aiwf check` standing rules | proposed | core |
-| 7b — Pre-push trailer audit (G24) | proposed | core |
-| 8 — `aiwf history` rendering | proposed | core |
-| 9 — `aiwf show` envelope additions | proposed | core |
-| 10 — Documentation and embedded skills | proposed | core |
+| 1 — Identity migration (drop `aiwf.yaml.actor`) | done | core |
+| 2 — Trailer writer extensions | done | core |
+| 3 — Required-together / mutually-exclusive rules | done | core |
+| 4 — Scope FSM package | done | core |
+| 5 — `aiwf authorize` verb | done | core |
+| 5b — `--audit-only --reason` recovery mode (G24) | done | core |
+| 5c — Diagnostic instrumentation in `Apply` (G24) | done | core |
+| 6 — Allow-rule composition + scope-aware dispatch | done | core |
+| 7 — `aiwf check` standing rules | done | core |
+| 7b — Pre-push trailer audit (G24) | done | core |
+| 8 — `aiwf history` rendering | done | core |
+| 9 — `aiwf show` envelope additions | done | core |
+| 10 — Documentation and embedded skills | done | core |
 | 11 — Render integration handoff | proposed | core (executed in I3) |

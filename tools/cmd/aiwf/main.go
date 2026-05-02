@@ -137,6 +137,10 @@ Verbs:
 Common flags:
   --root <path>                  consumer repo root (default: walk up looking for aiwf.yaml, else cwd)
   --actor <role>/<identifier>    actor for the commit trailer (default: derived from git config user.email)
+  --principal human/<id>         the human accountable for the act; required when --actor is non-human (ai/..., bot/...), forbidden when --actor is human/...
+
+Provenance:
+  When the operator is non-human, --principal must be supplied; the kernel stamps aiwf-principal: on the commit. To delegate autonomous work, run 'aiwf authorize <id> --to <agent>' first; subsequent agent verbs match the active scope and the kernel adds aiwf-on-behalf-of: + aiwf-authorized-by: trailers automatically. See the aiwf-authorize skill or docs/pocv3/design/provenance-model.md.
 
 Flags for 'add':
   --epic <id>                    parent epic id (milestone)
@@ -153,6 +157,14 @@ Flags for 'check', 'history', and 'contract verify':
 
 Flags for 'history':
   --show-authorization           include the full aiwf-authorized-by SHA on scope-authorized rows (text format)
+
+Flags for 'promote' and 'cancel':
+  --audit-only --reason "..."    backfill an audit trail when state was reached via a manual commit; verb writes an empty-diff commit carrying aiwf-audit-only:; entity must already be at the target state (no FSM transition); mutually exclusive with --force; human-only
+
+Flags for 'authorize':
+  --to <agent>                   open scope (e.g. ai/claude); refused on terminal scope-entity unless --force --reason
+  --pause "<reason>"             pause the most-recently-opened active scope on <id>
+  --resume "<reason>"            resume the most-recently-paused scope on <id>
 
 Flags for 'import':
   --on-collision <mode>          fail (default) | skip | update — behavior when an explicit id already exists

@@ -5,36 +5,51 @@ description: Use when the user asks "what happened to <entity>" or wants the tim
 
 # aiwf-history
 
-The `aiwf history` verb answers "what happened to this entity?" by filtering `git log` for the entity's commit trailers. There is no separate event log; the git log is the time machine, made queryable by `aiwf-verb` / `aiwf-entity` / `aiwf-prior-entity` / `aiwf-to` / `aiwf-force` trailers.
+The `aiwf history` verb answers "what happened to this entity?" by filtering `git log` for the entity's commit trailers. There is no separate event log; the git log is the time machine, made queryable by `aiwf-verb` / `aiwf-entity` / `aiwf-prior-entity` / `aiwf-to` / `aiwf-force` / `aiwf-audit-only` and the I2.5 provenance trailers (`aiwf-principal`, `aiwf-on-behalf-of`, `aiwf-authorized-by`, `aiwf-scope`, `aiwf-scope-ends`, `aiwf-reason`).
 
 ## When to use
 
-The user wants the lifecycle of one entity. Example phrasings: "when was M-007 created?", "show me what happened to E-19", "why is this gap closed?", "show the TDD cycle for M-007/AC-1".
+The user wants the lifecycle of one entity. Example phrasings: "when was M-007 created?", "show me what happened to E-19", "why is this gap closed?", "show the TDD cycle for M-007/AC-1", "who authorized this work?".
 
 ## What to run
 
 ```bash
-aiwf history <id>                    # one line per event
-aiwf history <M-id>/AC-N             # composite id — just that AC's events
-aiwf history <id> --format=json
+aiwf history <id>                            # one line per event
+aiwf history <M-id>/AC-N                     # composite id — just that AC's events
+aiwf history <id> --show-authorization       # expand the auth-SHA column inline
+aiwf history <id> --format=json              # full trailer set in JSON
 ```
 
-The output is one event per line: `DATE  ACTOR  VERB  TO  DETAIL  COMMIT`. The TO column shows the target status/phase from the `aiwf-to:` trailer (`→ active`, `→ green`, etc.) or a dash for events with no target (add, rename, cancel — and pre-I2 promote commits whose schema didn't include `aiwf-to:`). Forced transitions are flagged with a `[forced: <reason>]` line beneath the main row.
+The output is one event per line:
+
+```
+DATE  ACTOR  VERB  TO  DETAIL  COMMIT  [chips...]
+```
+
+- **ACTOR**: when a `principal` is present and differs from the actor (the agent-acts-for-human pattern), the column renders `principal via agent`. Direct human acts show the actor verbatim.
+- **TO**: target status/phase from `aiwf-to:` (`→ active`, `→ green`); dash when absent.
+- **chips**: compact lifecycle markers appended after the SHA — `[scope: opened]` on `aiwf authorize` rows, `[<scope-entity> <auth-short>]` on scope-authorized agent verbs, `[<scope-entity> ended]` per scope ended by a terminal-promote.
+- Sub-lines (indented): `[forced: <reason>]`, `[audit-only: <reason>]`, `[reason: <text>]` for the corresponding trailers, then any commit body prose.
 
 ## Composite ids and prefix matching
 
 - `aiwf history M-007` shows the milestone's own events PLUS every AC's events (`M-007/AC-N`). The match is anchored on the literal `/` boundary so `M-007/` cannot prefix-match `M-070/`.
 - `aiwf history M-007/AC-1` shows only that AC's events.
 
+## --show-authorization
+
+By default scope chips abbreviate the auth-SHA to 7 characters: `[E-03 4b13a0f]`. With `--show-authorization`, the full SHA is inlined: `[E-03 4b13a0fdeadbeef...]`. Useful when copy-pasting into another `aiwf` invocation that needs the full SHA. JSON output always carries the full SHA in `authorized_by`.
+
 ## What aiwf does
 
 1. Runs `git log` with greps for `aiwf-entity: <id>` OR `aiwf-prior-entity: <id>` trailers (so reallocate events surface from both ids). For bare milestone ids, additionally greps for `<id>/AC-\d+` so the milestone view includes its ACs.
-2. Parses each matching commit's subject, structured trailers (`aiwf-verb`, `aiwf-actor`, `aiwf-to`, `aiwf-force`), and author date.
-3. Renders one event per line; forced events get an indented `[forced: <reason>]` line.
+2. Parses each matching commit's subject, structured trailers, and author date.
+3. Builds a one-time `authSHA → scope-entity` map for chip rendering.
+4. Renders one event per line; forced/audit-only/reason events get indented sub-lines.
 
 ## Limitations
 
-- `aiwf history` shows only verb-driven events. Hand-edits to the markdown file won't have trailers and will not appear. To see byte-level history of a file, use `git log -- <path>`.
+- `aiwf history` shows only verb-driven events. Hand-edits to the markdown file won't have trailers and won't appear here. `aiwf check` flags such commits as `provenance-untrailered-entity-commit` (warning) at push time so the audit gap is visible; `aiwf <verb> --audit-only --reason "..."` is the repair path.
 - After a reallocate, query both ids if you want the full picture; the new id's history starts from the reallocate event.
 - Pre-I2 promote commits don't carry `aiwf-to:`; the column renders as a dash. No retroactive fill.
 
@@ -42,3 +57,4 @@ The output is one event per line: `DATE  ACTOR  VERB  TO  DETAIL  COMMIT`. The T
 
 - Don't try to reconstruct history from filesystem timestamps — `git log` is authoritative.
 - Don't expect prose-body changes to show up. Only frontmatter mutations through aiwf verbs are queryable here.
+- Don't ignore a `[forced: ...]` or `[audit-only: ...]` chip — they signal a sovereign override and rarely come without context worth surfacing to the user.

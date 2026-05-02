@@ -45,8 +45,28 @@ aiwf check --format=json --pretty
 | `titles-nonempty` | Title is missing or whitespace-only. |
 | `adr-supersession-mutual` | ADR A says it's superseded by B, but B does not list A in its `supersedes`. |
 | `gap-resolved-has-resolver` | Gap is `addressed` but `addressed_by` is empty. |
+| `provenance-untrailered-entity-commit` | A commit between `@{u}` and `HEAD` touched an entity file with no `aiwf-verb:` trailer (manual `git commit`). Repair with `aiwf <verb> --audit-only --reason "..."`. |
+
+## Provenance findings (errors)
+
+These fire on commit history, not tree state. Each names the offending commit's short SHA in its message.
+
+| Code | Meaning | Typical fix |
+|---|---|---|
+| `provenance-trailer-incoherent` | A required-together pair is partial, or a mutually-exclusive pair are both present (e.g., `aiwf-on-behalf-of:` without `aiwf-authorized-by:`, `aiwf-actor: ai/...` without `aiwf-principal:`, `aiwf-actor: human/...` *with* `aiwf-principal:`). | Re-create the commit using the correct verb invocation; `--principal human/<id>` is required when the actor is non-human. |
+| `provenance-force-non-human` | `aiwf-force:` present on a commit whose `aiwf-actor:` is not `human/...`. | `--force` is sovereign — only humans wield it. Have a human invoke the verb directly. |
+| `provenance-actor-malformed` | `aiwf-actor:` does not match `<role>/<id>`. | `git config user.email` is malformed; fix it (see `aiwf doctor`). |
+| `provenance-principal-non-human` | `aiwf-principal:` role is not `human/`. | Principal must be human/<id>; agents and bots cannot be principals. |
+| `provenance-on-behalf-of-non-human` | `aiwf-on-behalf-of:` role is not `human/`. | Same as principal — rebuild from the originating authorize commit. |
+| `provenance-authorized-by-malformed` | `aiwf-authorized-by:` is not 7–40 hex. | Copy the correct SHA from `aiwf history <scope-entity>`. |
+| `provenance-authorization-missing` | The authorize SHA does not name an `aiwf-verb: authorize / aiwf-scope: opened` commit. | Typo or stale SHA after force-push; use the full SHA. |
+| `provenance-authorization-out-of-scope` | The verb's target entity has no reference path to the scope-entity. | Either authorize the right entity or work on something the existing scope already reaches. |
+| `provenance-authorization-ended` | The scope was already ended (terminal-promote / revoke). | Open a fresh scope with `aiwf authorize <id> --to <agent>`. |
+| `provenance-no-active-scope` | An `ai/...` actor produced a commit with no `aiwf-on-behalf-of:`. | Open an authorization scope, or run the verb as the human directly. |
+| `provenance-audit-only-non-human` | `aiwf-audit-only:` present on a non-human actor's commit. | Only humans may backfill audit trails. |
 
 ## Don't
 
 - Don't bypass the pre-push hook with `--no-verify` to "fix it later" — broken state on `main` is the thing this hook exists to prevent.
 - Don't try to make findings disappear by deleting files; `aiwf cancel <id>` is the right way to retire an entity.
+- Don't try to "amend away" a `provenance-untrailered-entity-commit` warning — `aiwf <verb> --audit-only --reason "..."` is the first-class repair path and keeps history append-only.
