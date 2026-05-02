@@ -135,6 +135,64 @@ func TestEndToEnd_InitAddMvCommit(t *testing.T) {
 	}
 }
 
+// TestCommitAllowEmpty: a commit with no staged changes lands when
+// allow-empty is in effect, with the trailer set intact. Used by
+// `aiwf authorize` and the `--audit-only` recovery mode (plan step 5b).
+func TestCommitAllowEmpty(t *testing.T) {
+	gitTestEnv(t)
+	ctx := context.Background()
+	root := t.TempDir()
+
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	// Seed the repo with one tracked commit so HEAD exists and the
+	// allow-empty commit is the second one (matching real-world use).
+	if err := os.WriteFile(filepath.Join(root, "seed.md"), []byte("seed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "seed.md"); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	if err := Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatalf("seed commit: %v", err)
+	}
+
+	// Plain Commit with nothing staged would fail; CommitAllowEmpty
+	// must succeed.
+	if err := CommitAllowEmpty(ctx, root, "aiwf authorize E-01 --to ai/claude", "implement E-01", []Trailer{
+		{Key: "aiwf-verb", Value: "authorize"},
+		{Key: "aiwf-entity", Value: "E-01"},
+		{Key: "aiwf-actor", Value: "human/peter"},
+		{Key: "aiwf-to", Value: "ai/claude"},
+		{Key: "aiwf-scope", Value: "opened"},
+	}); err != nil {
+		t.Fatalf("CommitAllowEmpty: %v", err)
+	}
+
+	subj, err := HeadSubject(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if subj != "aiwf authorize E-01 --to ai/claude" {
+		t.Errorf("HEAD subject = %q", subj)
+	}
+	tr, err := HeadTrailers(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Trailer{
+		{Key: "aiwf-verb", Value: "authorize"},
+		{Key: "aiwf-entity", Value: "E-01"},
+		{Key: "aiwf-actor", Value: "human/peter"},
+		{Key: "aiwf-to", Value: "ai/claude"},
+		{Key: "aiwf-scope", Value: "opened"},
+	}
+	if diff := cmp.Diff(want, tr); diff != "" {
+		t.Errorf("trailers mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestIsRepo_FalseInPlainDir(t *testing.T) {
 	if IsRepo(context.Background(), t.TempDir()) {
 		t.Error("IsRepo true in non-repo tmpdir")

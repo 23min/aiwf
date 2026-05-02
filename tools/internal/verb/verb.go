@@ -42,11 +42,19 @@ type Result struct {
 // status transition. Empty when the verb has no narrative to record.
 // Stored in the commit body (between subject and trailers), surfaced
 // by `aiwf history` for events that carry one.
+//
+// AllowEmpty signals that the plan's commit has no file-level diff and
+// must be created via `git commit --allow-empty`. Used by `aiwf
+// authorize` (which records a scope event in trailers without touching
+// any entity file) and the `--audit-only` recovery mode added in plan
+// step 5b. The default (false) is the normal verb behaviour: a commit
+// without staged changes errors.
 type Plan struct {
-	Subject  string
-	Body     string
-	Trailers []gitops.Trailer
-	Ops      []FileOp
+	Subject    string
+	Body       string
+	Trailers   []gitops.Trailer
+	Ops        []FileOp
+	AllowEmpty bool
 }
 
 // OpType discriminates between file operations.

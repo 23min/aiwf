@@ -110,6 +110,17 @@ func Commit(ctx context.Context, workdir, subject, body string, trailers []Trail
 	return run(ctx, workdir, "commit", "-m", msg)
 }
 
+// CommitAllowEmpty creates a commit even when the index has no staged
+// changes. Used by verbs that record an event without touching files —
+// `aiwf authorize` opens / pauses / resumes a scope by writing only
+// trailers, and `aiwf <verb> --audit-only` (G24, plan step 5b) backfills
+// an audit trail for state that was reached via a manual commit. Both
+// are byte-identical to a normal commit except for the empty diff.
+func CommitAllowEmpty(ctx context.Context, workdir, subject, body string, trailers []Trailer) error {
+	msg := CommitMessage(subject, body, trailers)
+	return run(ctx, workdir, "commit", "--allow-empty", "-m", msg)
+}
+
 // IsRepo reports whether workdir is inside a git working tree.
 func IsRepo(ctx context.Context, workdir string) bool {
 	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--is-inside-work-tree")

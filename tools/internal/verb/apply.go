@@ -78,7 +78,11 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		}
 	}
 
-	if commitErr := gitops.Commit(ctx, root, p.Subject, p.Body, p.Trailers); commitErr != nil {
+	commit := gitops.Commit
+	if p.AllowEmpty {
+		commit = gitops.CommitAllowEmpty
+	}
+	if commitErr := commit(ctx, root, p.Subject, p.Body, p.Trailers); commitErr != nil {
 		return fmt.Errorf("git commit: %w", commitErr)
 	}
 	tx.committed = true

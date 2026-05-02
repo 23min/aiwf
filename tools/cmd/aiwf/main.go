@@ -91,6 +91,8 @@ func run(args []string) int {
 		return runTemplate(args[1:])
 	case "contract":
 		return runContract(args[1:])
+	case "authorize":
+		return runAuthorize(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "aiwf: unknown verb %q. Try 'aiwf help'.\n", args[0])
 		return exitUsage
@@ -110,6 +112,7 @@ Verbs:
   rename <id> <new-slug>         rename the file/dir slug; id preserved
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
+  authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope; human-only verb
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
   update                         re-materialize embedded skills into .claude/skills/aiwf-*/
   history <id>                   show the entity's lifecycle from git log trailers
