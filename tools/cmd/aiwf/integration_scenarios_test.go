@@ -60,14 +60,33 @@ func TestScenario_TerminalPromoteEndsMultipleParallelScopes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	endsCount := 0
-	for _, t := range tr {
-		if t.Key == gitops.TrailerScopeEnds {
-			endsCount++
+	// Resolve the two opener SHAs by walking git log.
+	openersOut, err := runGit(root, "log", "--reverse", "-E",
+		"--grep", "^aiwf-verb: authorize$",
+		"--grep", "^aiwf-scope: opened$",
+		"--grep", "^aiwf-entity: E-01$",
+		"--all-match",
+		"--pretty=tformat:%H")
+	if err != nil {
+		t.Fatalf("git log openers: %v\n%s", err, openersOut)
+	}
+	openers := strings.Fields(strings.TrimSpace(openersOut))
+	if len(openers) != 2 {
+		t.Fatalf("expected 2 openers; got %d (%v)", len(openers), openers)
+	}
+	endsSeen := map[string]bool{}
+	for _, tr := range tr {
+		if tr.Key == gitops.TrailerScopeEnds {
+			endsSeen[tr.Value] = true
 		}
 	}
-	if endsCount != 2 {
-		t.Errorf("got %d aiwf-scope-ends trailers, want 2 (one per active scope on E-01); trailers=%+v", endsCount, tr)
+	if len(endsSeen) != 2 {
+		t.Errorf("got %d distinct aiwf-scope-ends values, want 2; saw %v", len(endsSeen), endsSeen)
+	}
+	for _, sha := range openers {
+		if !endsSeen[sha] {
+			t.Errorf("scope-ends does not name opener %s; saw %v", sha, endsSeen)
+		}
 	}
 
 	// `aiwf show E-01` reflects both scopes ended.
@@ -109,73 +128,78 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 			t.Fatalf("setup %v: %v\n%s", args, err, out)
 		}
 	}
-	// Open scope on E-01.
+	// Open scope on E-01 and capture its SHA before any pivot.
 	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize E-01: %v\n%s", err, out)
 	}
+	e01AuthSHA := mustHeadSHA(t, root)
 	// Agent acts under E-01 scope.
 	if out, err := runBin(t, root, binDir, nil,
 		"promote", "M-001", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("agent on M-001 (under E-01): %v\n%s", err, out)
 	}
-	// Pause E-01, open E-02.
+	if got := authorizedByOf(t, root, "HEAD"); got != e01AuthSHA {
+		t.Errorf("M-001 promote (under E-01) aiwf-authorized-by = %s, want %s", got, e01AuthSHA)
+	}
+	// Pause E-01, open E-02 (capture E-02's auth SHA before agent acts).
 	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--pause", "switching focus"); err != nil {
 		t.Fatalf("pause E-01: %v\n%s", err, out)
 	}
 	if out, err := runBin(t, root, binDir, nil, "authorize", "E-02", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize E-02: %v\n%s", err, out)
 	}
-	// Agent acts under E-02 scope.
+	e02AuthSHA := mustHeadSHA(t, root)
+	// Agent acts under E-02 scope; the commit must reference E-02's SHA.
 	if out, err := runBin(t, root, binDir, nil,
 		"promote", "M-002", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("agent on M-002 (under E-02): %v\n%s", err, out)
 	}
-	// Pause E-02, resume E-01. Agent acts under E-01 again.
+	if got := authorizedByOf(t, root, "HEAD"); got != e02AuthSHA {
+		t.Errorf("M-002 promote (under E-02) aiwf-authorized-by = %s, want %s", got, e02AuthSHA)
+	}
+	// Pause E-02, resume E-01.
 	if out, err := runBin(t, root, binDir, nil, "authorize", "E-02", "--pause", "back to E-01"); err != nil {
 		t.Fatalf("pause E-02: %v\n%s", err, out)
 	}
 	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--resume", "continuing E-01 work"); err != nil {
 		t.Fatalf("resume E-01: %v\n%s", err, out)
 	}
-	// Cancel M-001 under the resumed E-01 scope (any verb that touches a child works).
+	// Cancel M-001 under the resumed E-01 scope; commit must reference E-01's SHA again.
 	if out, err := runBin(t, root, binDir, nil,
 		"cancel", "M-001",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("cancel M-001 under resumed E-01: %v\n%s", err, out)
 	}
+	if got := authorizedByOf(t, root, "HEAD"); got != e01AuthSHA {
+		t.Errorf("cancel M-001 (resumed E-01) aiwf-authorized-by = %s, want %s", got, e01AuthSHA)
+	}
+}
 
-	// Inspect the M-001 cancel commit's authorized-by trailer; it must
-	// be the E-01 scope's auth SHA.
-	cancelTrailers, err := gitops.HeadTrailers(context.Background(), root)
+// mustHeadSHA returns the full SHA of HEAD in root, t.Fatal'ing on
+// failure. Helper for tests that need to capture an authorize
+// commit's SHA right after `aiwf authorize`.
+func mustHeadSHA(t *testing.T, root string) string {
+	t.Helper()
+	out, err := runGit(root, "rev-parse", "HEAD")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("rev-parse HEAD: %v\n%s", err, out)
 	}
-	authBy := ""
-	for _, tr := range cancelTrailers {
-		if tr.Key == gitops.TrailerAuthorizedBy {
-			authBy = tr.Value
-		}
-	}
-	if authBy == "" {
-		t.Fatalf("cancel M-001 commit carries no aiwf-authorized-by; trailers=%+v", cancelTrailers)
-	}
-	// Resolve the E-01 scope's auth SHA (the first authorize-opened
-	// commit on E-01) and verify it matches.
-	logOut, err := runGit(root, "log", "--reverse", "-E",
-		"--grep", "^aiwf-verb: authorize$",
-		"--grep", "^aiwf-scope: opened$",
-		"--grep", "^aiwf-entity: E-01$",
-		"--all-match",
-		"--pretty=tformat:%H")
+	return strings.TrimSpace(out)
+}
+
+// authorizedByOf returns the value of the aiwf-authorized-by:
+// trailer on the commit named by `rev`, or "" when absent. Used to
+// verify scoped commits reference the right authorize SHA.
+func authorizedByOf(t *testing.T, root, rev string) string {
+	t.Helper()
+	out, err := runGit(root, "log", rev, "-1",
+		"--pretty=tformat:%(trailers:key=aiwf-authorized-by,valueonly=true,unfold=true)")
 	if err != nil {
-		t.Fatalf("git log: %v\n%s", err, logOut)
+		t.Fatalf("git log %s: %v\n%s", rev, err, out)
 	}
-	expectedAuthSHA := strings.Fields(strings.TrimSpace(logOut))[0]
-	if authBy != expectedAuthSHA {
-		t.Errorf("cancel M-001 aiwf-authorized-by = %s, want E-01 opener SHA %s", authBy, expectedAuthSHA)
-	}
+	return strings.TrimSpace(out)
 }
 
 // TestScenario_ReallocatePreservesAuthorization covers plan §4 #8:
@@ -193,12 +217,13 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 			t.Fatalf("setup %v: %v\n%s", args, err, out)
 		}
 	}
-	// Open scope on E-02 (the soon-to-be-reallocated epic).
+	// Open scope on E-02 (the soon-to-be-reallocated epic) and capture
+	// the auth SHA so we can later verify the post-reallocate commit
+	// continues to reference it.
 	if out, err := runBin(t, root, binDir, nil, "authorize", "E-02", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
-	// Cancel E-01 (the decoy) so reallocate lands E-02 → some lower id.
-	// Actually reallocate just bumps to next free; we don't need to do that.
+	authSHA := mustHeadSHA(t, root)
 	// Reallocate E-02 — the kernel picks the next free id.
 	if out, err := runBin(t, root, binDir, nil, "reallocate", "E-02"); err != nil {
 		t.Fatalf("reallocate: %v\n%s", err, out)
@@ -230,6 +255,13 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 		"promote", "M-001", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("agent verb after reallocate failed: %v\n%s", err, out)
+	}
+	// The post-reallocate agent commit's aiwf-authorized-by: must
+	// still be the original scope's SHA — a successful verb here
+	// could otherwise be a false pass (e.g., scope failed to load
+	// and the commit landed without provenance trailers).
+	if got := authorizedByOf(t, root, "HEAD"); got != authSHA {
+		t.Errorf("post-reallocate agent commit aiwf-authorized-by = %s, want original scope SHA %s", got, authSHA)
 	}
 
 	// `aiwf check` must NOT fire out-of-scope.
@@ -318,6 +350,13 @@ func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
 	if out, err := runGit(root, "commit", "-m", "manually mark G-001 wontfix"); err != nil {
 		t.Fatalf("manual commit: %v\n%s", err, out)
 	}
+	// `aiwf check` should now fire the
+	// provenance-untrailered-entity-commit warning on the manual
+	// commit — the audit-trail hole G24 surfaces.
+	preCheck, _ := runBin(t, root, binDir, nil, "check")
+	if !strings.Contains(preCheck, "provenance-untrailered-entity-commit") {
+		t.Errorf("expected provenance-untrailered-entity-commit warning before audit-only; got:\n%s", preCheck)
+	}
 	// Audit-only recovery records the audit trail.
 	if out, err := runBin(t, root, binDir, nil,
 		"cancel", "G-001", "--audit-only", "--reason", "lock contention recovery"); err != nil {
@@ -329,6 +368,13 @@ func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
 	}
 	if !strings.Contains(historyOut, "[audit-only: lock contention recovery]") {
 		t.Errorf("expected [audit-only: ...] chip; got:\n%s", historyOut)
+	}
+	// After audit-only, the warning must clear — the plan's promise
+	// for step 7b. RunUntrailedAudit suppresses manual commits whose
+	// touched entities have a later audit-only commit covering them.
+	postCheck, _ := runBin(t, root, binDir, nil, "check")
+	if strings.Contains(postCheck, "provenance-untrailered-entity-commit") {
+		t.Errorf("warning should clear after audit-only backfill; got:\n%s", postCheck)
 	}
 }
 
@@ -370,8 +416,8 @@ func TestScenario_RepeatedPauseResumeCycle(t *testing.T) {
 	if env.Result.Scopes[0].State != "active" {
 		t.Errorf("scope.state = %q, want active (after final --resume)", env.Result.Scopes[0].State)
 	}
-	if env.Result.Scopes[0].EventCount < 5 {
-		t.Errorf("event_count = %d, want >= 5 (open + 4 transitions)", env.Result.Scopes[0].EventCount)
+	if env.Result.Scopes[0].EventCount != 5 {
+		t.Errorf("event_count = %d, want exactly 5 (open + 4 transitions)", env.Result.Scopes[0].EventCount)
 	}
 	// `aiwf check` must not fire any provenance findings on this
 	// well-formed history.
@@ -417,20 +463,20 @@ func TestScenario_AuthorizeWithOnBehalfOfNeutralAtCheck(t *testing.T) {
 	if out, err := runGit(root, "commit", "--allow-empty", "-m", msg); err != nil {
 		t.Fatalf("hand-crafted authorize commit: %v\n%s", err, out)
 	}
-	// `aiwf check` must NOT fire `provenance-trailer-incoherent` for
-	// this combination (G22 deferred). Other rules may still fire on
-	// this commit's other trailers, so we look specifically for the
-	// authorize+on-behalf-of-incoherent rule absence.
+	subAuthSHA := mustHeadSHA(t, root)
+	// The hand-crafted commit's trailers all sit on the legal side
+	// of the I2.5 standing rules: ai/ actor with human/ principal
+	// (required-together OK), human/ on-behalf-of, valid SHA,
+	// authorized-by points at a real opener, scope=opened. Per the
+	// design (G22 deferred), the kernel does not enforce a rule on
+	// (authorize-verb, on-behalf-of); so NO provenance finding may
+	// reference this commit. A future rule that fires on this
+	// combination would surface here.
 	out, _ := runBin(t, root, binDir, nil, "check")
-	// Check that no message mentions our hand-crafted sub-authorize SHA
-	// in a trailer-incoherent finding. The find we want absent is
-	// "authorize + on-behalf-of refused" — i.e., a rule we did NOT
-	// implement, which proves the policy is deferred.
+	short := subAuthSHA[:7]
 	for _, line := range strings.Split(out, "\n") {
-		if strings.Contains(line, "provenance-trailer-incoherent") &&
-			strings.Contains(line, "authorize") &&
-			strings.Contains(line, "on-behalf-of") {
-			t.Errorf("kernel fired a trailer-incoherent rule for the G22-deferred authorize+on-behalf-of combo:\n%s", line)
+		if strings.Contains(line, short) && strings.Contains(line, "provenance-") {
+			t.Errorf("kernel fired a standing rule against the G22-deferred sub-authorize commit %s:\n%s", short, line)
 		}
 	}
 }

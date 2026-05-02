@@ -152,13 +152,33 @@ func TestRenderHistory_AuthorizationFlow(t *testing.T) {
 		t.Errorf("expected `human/peter via ai/claude` actor rendering:\n%s", mout)
 	}
 
-	// --show-authorization expands the SHA inline.
+	// --show-authorization expands the SHA inline. The default chip
+	// abbreviates to 7 chars; with the flag, the chip carries the
+	// full 40-char SHA.
 	mout2, err := runBin(t, root, binDir, nil, "history", "--show-authorization", "M-001")
 	if err != nil {
 		t.Fatalf("history --show-authorization: %v\n%s", err, mout2)
 	}
-	// Look for a chip whose SHA portion is longer than 7 chars.
-	if !strings.Contains(mout2, "[E-01 ") {
-		t.Errorf("expected [E-01 ...] chip:\n%s", mout2)
+	// Resolve the actual full SHA via git log so we can assert it
+	// appears verbatim in the rendered output (proves the flag
+	// switched on the long form rather than re-running the default).
+	logSHA, gErr := runGit(root, "log", "--reverse", "-E",
+		"--grep", "^aiwf-verb: authorize$",
+		"--grep", "^aiwf-scope: opened$",
+		"--grep", "^aiwf-entity: E-01$",
+		"--all-match",
+		"--pretty=tformat:%H")
+	if gErr != nil {
+		t.Fatalf("git log opener: %v\n%s", gErr, logSHA)
+	}
+	fullSHA := strings.Fields(strings.TrimSpace(logSHA))[0]
+	if !strings.Contains(mout2, "[E-01 "+fullSHA+"]") {
+		t.Errorf("expected [E-01 %s] chip with full SHA under --show-authorization; got:\n%s", fullSHA, mout2)
+	}
+	// And the abbreviated form should NOT appear as a standalone chip
+	// (it's a substring of the full SHA, so we check the closing
+	// bracket: with the flag, "[E-01 <7chars>]" must not appear).
+	if strings.Contains(mout2, "[E-01 "+fullSHA[:7]+"]") {
+		t.Errorf("--show-authorization still renders the abbreviated chip; got:\n%s", mout2)
 	}
 }

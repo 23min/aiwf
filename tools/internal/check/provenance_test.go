@@ -334,6 +334,104 @@ func TestRunProvenance_AuthorizeCommitNoActiveScopeSkipped(t *testing.T) {
 	}
 }
 
+// TestRunUntrailedAudit_AuditOnlyClearsWarning covers the
+// "warning clears on the next push" promise: a manual commit
+// touching an entity file is followed in the same range by an
+// audit-only commit on that entity. The warning is suppressed.
+func TestRunUntrailedAudit_AuditOnlyClearsWarning(t *testing.T) {
+	commits := []UntrailedCommit{
+		{
+			SHA:   "manual1",
+			Paths: []string{"work/gaps/G-001-leak.md"},
+		},
+		{
+			SHA: "audit01",
+			Trailers: []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "cancel"},
+				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerAuditOnly, Value: "manual flip recovery"},
+			},
+		},
+	}
+	got := RunUntrailedAudit(commits)
+	if len(got) != 0 {
+		t.Errorf("warning should clear after audit-only on G-001; got %v", findingCodes(got))
+	}
+}
+
+// TestRunUntrailedAudit_AuditOnlyDoesNotCoverPriorManual covers the
+// ordering rule: an audit-only commit BEFORE a manual commit does
+// not retroactively cover later manual commits. The warning fires.
+func TestRunUntrailedAudit_AuditOnlyBeforeManualStillFires(t *testing.T) {
+	commits := []UntrailedCommit{
+		{
+			SHA: "audit01",
+			Trailers: []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "cancel"},
+				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerAuditOnly, Value: "earlier recovery"},
+			},
+		},
+		{
+			SHA:   "manual1",
+			Paths: []string{"work/gaps/G-001-leak.md"},
+		},
+	}
+	got := RunUntrailedAudit(commits)
+	if !hasFinding(got, CodeProvenanceUntrailedEntityCommit) {
+		t.Errorf("manual commit AFTER audit-only must still fire; got %v", findingCodes(got))
+	}
+}
+
+// TestRunUntrailedAudit_AuditOnlyOnDifferentEntityDoesNotCover
+// covers the per-entity matching: an audit-only on G-001 does not
+// suppress a manual commit on G-002.
+func TestRunUntrailedAudit_AuditOnlyOnDifferentEntityDoesNotCover(t *testing.T) {
+	commits := []UntrailedCommit{
+		{
+			SHA:   "manual1",
+			Paths: []string{"work/gaps/G-002-other.md"},
+		},
+		{
+			SHA: "audit01",
+			Trailers: []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "cancel"},
+				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerAuditOnly, Value: "different entity"},
+			},
+		},
+	}
+	got := RunUntrailedAudit(commits)
+	if !hasFinding(got, CodeProvenanceUntrailedEntityCommit) {
+		t.Errorf("audit-only on G-001 must not cover G-002; got %v", findingCodes(got))
+	}
+}
+
+// TestRunUntrailedAudit_CompositeAuditCoversParentManual: an
+// `aiwf <verb> --audit-only` on `M-001/AC-1` rolls up to M-001 for
+// matching, so a manual mutation of the M-001 file before it is
+// covered.
+func TestRunUntrailedAudit_CompositeAuditCoversParentManual(t *testing.T) {
+	commits := []UntrailedCommit{
+		{
+			SHA:   "manual1",
+			Paths: []string{"work/epics/E-01-foo/M-001-cache.md"},
+		},
+		{
+			SHA: "audit01",
+			Trailers: []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "promote"},
+				{Key: gitops.TrailerEntity, Value: "M-001/AC-1"},
+				{Key: gitops.TrailerAuditOnly, Value: "AC backfill"},
+			},
+		},
+	}
+	got := RunUntrailedAudit(commits)
+	if len(got) != 0 {
+		t.Errorf("composite-id audit-only on M-001/AC-1 should cover manual on M-001; got %v", findingCodes(got))
+	}
+}
+
 // TestRunUntrailedAudit covers step 7b: a commit touching entity
 // files without an aiwf-verb: trailer should fire one warning. A
 // commit with the trailer is silent; a commit touching only

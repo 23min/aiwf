@@ -305,7 +305,34 @@ type UntrailedCommit struct {
 // <verb> --audit-only --reason "..."` (step 5b), which records the
 // transition without rewriting history; an error severity here would
 // block pushes for state that is already correct.
+//
+// Coverage by audit-only: when a later commit in the same range
+// carries `aiwf-audit-only:` and its `aiwf-entity:` matches an id
+// resolved from the manual commit's touched paths, the manual
+// commit is considered backfilled and the warning is suppressed.
+// This is the "warning clears on the next push" behavior the I2.5
+// plan promises after the operator runs `aiwf <verb> --audit-only`.
+// Composite ids on audit-only commits roll up to the parent
+// milestone for matching (the manual commit's path resolves to the
+// parent file).
 func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
+	// Build entityID → latest chrono index of an audit-only commit
+	// that backfills it. Composite ids roll up to the parent so the
+	// match works against manual commits that touch the parent file.
+	auditAt := map[string]int{}
+	for i := range commits {
+		idx := indexCommitTrailersForProvenance(commits[i].Trailers)
+		if strings.TrimSpace(idx[gitops.TrailerAuditOnly]) == "" {
+			continue
+		}
+		entID := strings.TrimSpace(idx[gitops.TrailerEntity])
+		if entID == "" {
+			continue
+		}
+		entID = compositeRoot(entID)
+		auditAt[entID] = i
+	}
+
 	var findings []Finding
 	for i := range commits {
 		c := &commits[i]
@@ -314,12 +341,25 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 			continue
 		}
 		var entityPaths []string
+		var touchedIDs []string
 		for _, p := range c.Paths {
-			if _, ok := entity.PathKind(p); ok {
-				entityPaths = append(entityPaths, p)
+			kind, ok := entity.PathKind(p)
+			if !ok {
+				continue
+			}
+			entityPaths = append(entityPaths, p)
+			if id, idOK := entity.IDFromPath(p, kind); idOK {
+				touchedIDs = append(touchedIDs, id)
 			}
 		}
 		if len(entityPaths) == 0 {
+			continue
+		}
+		// Suppress when every touched entity has a later audit-only
+		// commit covering it. We require at least one resolvable id
+		// (touchedIDs non-empty); a manual commit whose touched paths
+		// resolve to no ids stays flagged.
+		if len(touchedIDs) > 0 && allEntitiesCoveredByLaterAudit(touchedIDs, i, auditAt) {
 			continue
 		}
 		findings = append(findings, Finding{
@@ -330,6 +370,20 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 		})
 	}
 	return findings
+}
+
+// allEntitiesCoveredByLaterAudit reports whether every id in ids has
+// a strictly-later audit-only commit recorded in auditAt. Used by
+// RunUntrailedAudit to suppress the warning once the operator has
+// backfilled the audit trail with `aiwf <verb> --audit-only`.
+func allEntitiesCoveredByLaterAudit(ids []string, manualIdx int, auditAt map[string]int) bool {
+	for _, id := range ids {
+		laterIdx, ok := auditAt[id]
+		if !ok || laterIdx <= manualIdx {
+			return false
+		}
+	}
+	return true
 }
 
 // buildAuthOpenerIndex maps every authorize-opener commit's SHA to a
