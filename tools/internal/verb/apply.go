@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
 )
@@ -46,7 +48,7 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 			continue
 		}
 		if mvErr := gitops.Mv(ctx, root, op.Path, op.NewPath); mvErr != nil {
-			return fmt.Errorf("git mv %s -> %s: %w", op.Path, op.NewPath, mvErr)
+			return classifyGitError(ctx, root, fmt.Sprintf("git mv %s -> %s", op.Path, op.NewPath), mvErr)
 		}
 		tx.touchedPaths = append(tx.touchedPaths, op.Path, op.NewPath)
 	}
@@ -73,8 +75,8 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 	}
 
 	if len(writtenPaths) > 0 {
-		if addErr := gitops.Add(ctx, root, writtenPaths...); addErr != nil { //coverage:ignore defensive against git CLI failure; not reachable from a clean repo + valid op set
-			return fmt.Errorf("git add: %w", addErr)
+		if addErr := gitops.Add(ctx, root, writtenPaths...); addErr != nil {
+			return classifyGitError(ctx, root, "git add", addErr)
 		}
 	}
 
@@ -83,10 +85,122 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		commit = gitops.CommitAllowEmpty
 	}
 	if commitErr := commit(ctx, root, p.Subject, p.Body, p.Trailers); commitErr != nil {
-		return fmt.Errorf("git commit: %w", commitErr)
+		return classifyGitError(ctx, root, "git commit", commitErr)
 	}
 	tx.committed = true
 	return nil
+}
+
+// classifyGitError inspects a git CLI failure (mv, add, or commit)
+// and, when the underlying cause is `.git/index.lock` contention
+// from another process (a file watcher, an editor's git extension,
+// or a stale lock from a prior crash), wraps the error with
+// diagnostic detail and a hint pointing at the G24 audit-only
+// recovery path. The classification fires on every git step Apply
+// runs, since any of them can hit the lock first.
+//
+// Lock-holder lookup is best-effort: if `lsof` is missing, exits
+// non-zero, or returns no lines, the function falls back to the
+// bare error. The kernel never blocks the user on diagnostic
+// gathering, and never silently retries — silent retries hide real
+// environmental problems and can race against the holder.
+//
+// Reference: docs/pocv3/plans/provenance-model-plan.md §"Step 5c"
+// and docs/pocv3/gaps.md G24.
+func classifyGitError(ctx context.Context, root, step string, gitErr error) error {
+	if !isIndexLockError(gitErr.Error()) {
+		return fmt.Errorf("%s: %w", step, gitErr)
+	}
+	hint := lockContentionHint(ctx, root)
+	if hint == "" {
+		return fmt.Errorf(
+			"%s failed due to .git/index.lock contention\n"+
+				"  another process holds the index lock; wait for it to finish, kill the holder,\n"+
+				"  or — if you completed the work manually — re-run with `--audit-only --reason \"...\"`\n"+
+				"  underlying error: %w",
+			step, gitErr,
+		)
+	}
+	return fmt.Errorf(
+		"%s failed due to .git/index.lock contention\n"+
+			"  %s\n"+
+			"  wait for the holder to finish, kill it, or — if you completed the work manually —\n"+
+			"  re-run with `--audit-only --reason \"...\"`\n"+
+			"  underlying error: %w",
+		step, hint, gitErr,
+	)
+}
+
+// isIndexLockError reports whether the error string from a failed
+// `git commit` indicates `.git/index.lock` contention. Git's exact
+// wording varies across versions; we match on the load-bearing
+// substrings without anchoring on a full message template.
+func isIndexLockError(msg string) bool {
+	if strings.Contains(msg, ".git/index.lock") || strings.Contains(msg, "index.lock") {
+		return true
+	}
+	// Older git renders "Unable to create '<path>': File exists."
+	if strings.Contains(msg, "Unable to create") && strings.Contains(msg, "lock") {
+		return true
+	}
+	return false
+}
+
+// lockContentionHint returns a one-line diagnostic naming the
+// process holding `.git/index.lock`, when discoverable. Returns the
+// empty string when `lsof` is missing or yields no parseable output —
+// the caller falls back to a bare hint in that case.
+//
+// Resolves the actual git-dir via `git rev-parse --absolute-git-dir`
+// so worktrees and submodules point at the right lock file (their
+// `.git` is a regular file, not a directory).
+func lockContentionHint(ctx context.Context, root string) string {
+	gitDir, err := gitops.GitDir(ctx, root)
+	if err != nil {
+		gitDir = filepath.Join(root, ".git")
+	}
+	lockPath := filepath.Join(gitDir, "index.lock")
+	if _, statErr := os.Stat(lockPath); statErr != nil {
+		// The lock cleared between commit failure and our diagnostic
+		// — race, but harmless; nothing to report.
+		return ""
+	}
+	if _, lookErr := exec.LookPath("lsof"); lookErr != nil {
+		return ""
+	}
+	cmd := exec.CommandContext(ctx, "lsof", lockPath)
+	out, runErr := cmd.Output()
+	if runErr != nil {
+		return ""
+	}
+	pid, name := parseLsof(string(out))
+	if pid == "" {
+		return ""
+	}
+	if name == "" {
+		return fmt.Sprintf("lock holder: PID %s", pid)
+	}
+	return fmt.Sprintf("lock holder: PID %s (%s)", pid, name)
+}
+
+// parseLsof extracts the PID and process name from `lsof <path>`
+// output. Format (per lsof(8)):
+//
+//	COMMAND   PID  USER ...
+//	git      4811 peter ...
+//
+// Returns ("", "") when output has fewer than two lines or the
+// second line lacks a PID-shaped column.
+func parseLsof(out string) (pid, name string) {
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	if len(lines) < 2 {
+		return "", ""
+	}
+	fields := strings.Fields(lines[1])
+	if len(fields) < 2 {
+		return "", ""
+	}
+	return fields[1], fields[0]
 }
 
 // applyTx tracks the paths a partial Apply has touched so the
