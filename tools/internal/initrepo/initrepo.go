@@ -348,6 +348,11 @@ func ensureConfig(root string, opts Options) (StepResult, error) {
 		return StepResult{}, fmt.Errorf("statting %s: %w", config.FileName, err)
 	}
 
+	// Identity is no longer stored in aiwf.yaml (per provenance-model.md
+	// — runtime-derived from git config user.email or the --actor flag).
+	// Init still validates that an identity is resolvable so the first
+	// mutating verb after init doesn't surprise-fail; we just don't
+	// persist the result.
 	actor, err := deriveActor(opts.ActorOverride, root)
 	if err != nil {
 		return StepResult{}, err
@@ -357,13 +362,12 @@ func ensureConfig(root string, opts Options) (StepResult, error) {
 		return StepResult{
 			What:   config.FileName,
 			Action: ActionCreated,
-			Detail: "actor=" + actor,
+			Detail: "actor=" + actor + " (runtime-derived; not stored)",
 		}, nil
 	}
 
 	cfg := &config.Config{
 		AiwfVersion: opts.AiwfVersion,
-		Actor:       actor,
 	}
 	if err := config.Write(root, cfg); err != nil {
 		return StepResult{}, err
@@ -371,15 +375,18 @@ func ensureConfig(root string, opts Options) (StepResult, error) {
 	return StepResult{
 		What:   config.FileName,
 		Action: ActionCreated,
-		Detail: "actor=" + actor,
+		Detail: "actor=" + actor + " (runtime-derived; not stored)",
 	}, nil
 }
 
 // deriveActor follows the documented precedence: explicit > git
 // config user.email derivation. The git lookup runs inside root so
 // the consumer repo's local config wins over the host's global.
-// Errors if neither yields a valid actor (so init fails loudly
-// rather than writing aiwf.yaml without an actor field).
+// Errors if neither yields a valid actor — init refuses to scaffold a
+// repo whose first verb would fail to resolve identity.
+//
+// The result is no longer persisted to aiwf.yaml (identity is runtime-
+// derived); deriveActor exists only as init's pre-flight refusal gate.
 func deriveActor(override, root string) (string, error) {
 	if override != "" {
 		if !config.ActorPattern.MatchString(override) {

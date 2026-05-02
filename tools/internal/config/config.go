@@ -4,16 +4,24 @@
 // docs/pocv3/design/design-decisions.md §"aiwf.yaml config". The fields are:
 //
 //	aiwf_version: 0.1.0       # required; engine version the repo expects
-//	actor: human/peter        # required; default for the aiwf-actor: trailer
 //	hosts: [claude-code]      # optional; PoC default and only supported value
 //	status_md:                # optional; opt-out for the STATUS.md auto-update
 //	  auto_update: false      # default true — see StatusMdAutoUpdate
 //
+// Identity is runtime-derived (per `provenance-model.md`):
+//   - `--actor <role>/<id>` flag on the verb wins.
+//   - else `git config user.email` → `human/<localpart>`.
+//   - else verb refuses with a usage error.
+//
+// The legacy `actor:` key (pre-I2.5) is tolerated on read for one
+// transition period so existing repos load without parse errors;
+// `aiwf doctor` surfaces a deprecation note when it sees one.
+//
 // Validation rules:
-//   - actor must match `^[^\s/]+/[^\s/]+$` (single '/', no whitespace,
-//     neither side empty).
 //   - aiwf_version must be a non-empty string (no semver enforcement
 //     at this stage; doctor warns on mismatch with binary version).
+//   - ActorPattern is the published regex for `<role>/<id>`; callers
+//     that resolve identity at runtime (cmd/aiwf, initrepo) consult it.
 package config
 
 import (
@@ -47,9 +55,14 @@ var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 // `STATUS.md` in sync with the entity tree. Default behavior (block
 // absent, or block present with `auto_update` absent) is on; an
 // explicit `auto_update: false` opts out. See StatusMdAutoUpdate.
+//
+// LegacyActor captures any pre-I2.5 `actor:` key still present in the
+// on-disk file. The value is ignored for identity resolution (which is
+// runtime-derived); the field exists so `aiwf doctor` can surface a
+// deprecation note pointing the user at `git config user.email`.
 type Config struct {
 	AiwfVersion string   `yaml:"aiwf_version"`
-	Actor       string   `yaml:"actor"`
+	LegacyActor string   `yaml:"actor,omitempty"`
 	Hosts       []string `yaml:"hosts,omitempty"`
 	StatusMd    StatusMd `yaml:"status_md,omitempty"`
 }
@@ -101,15 +114,15 @@ func Load(root string) (*Config, error) {
 
 // Validate enforces the documented constraints. Called by Load and
 // expected to be called by Write before serialization.
+//
+// Identity (the actor field) is no longer stored — it's runtime-
+// derived per `provenance-model.md`. Any incoming `actor:` key is
+// captured by LegacyActor for the deprecation note in `aiwf doctor`,
+// but is not validated here (a malformed legacy value is harmless
+// since runtime resolution doesn't consult it).
 func (c *Config) Validate() error {
 	if c.AiwfVersion == "" {
 		return errors.New("aiwf_version is required")
-	}
-	if c.Actor == "" {
-		return errors.New("actor is required")
-	}
-	if !ActorPattern.MatchString(c.Actor) {
-		return fmt.Errorf("actor %q must match <role>/<identifier> (single '/', no whitespace)", c.Actor)
 	}
 	return nil
 }

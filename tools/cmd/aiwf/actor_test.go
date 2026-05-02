@@ -57,34 +57,33 @@ func TestResolveActor_ExplicitInvalid(t *testing.T) {
 	}
 }
 
-// TestResolveActor_FromConfig verifies that an aiwf.yaml's actor wins
-// over git-config derivation when no --actor flag is passed.
-func TestResolveActor_FromConfig(t *testing.T) {
+// TestResolveActor_LegacyConfigActorIgnored: pre-I2.5 repos with an
+// `actor:` key in aiwf.yaml must NOT be consulted for runtime
+// resolution. Identity is now flag-or-git-config only. The legacy
+// field surfaces only via aiwf doctor's deprecation note.
+func TestResolveActor_LegacyConfigActorIgnored(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
 		[]byte("aiwf_version: 0.1.0\nactor: human/from-config\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	// Isolate git env so the host's identity doesn't bleed in.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", home)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig"),
+		[]byte("[user]\n\temail = git-user@example.com\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	got, err := resolveActor("", root)
 	if err != nil {
 		t.Fatalf("resolveActor: %v", err)
 	}
-	if got != "human/from-config" {
-		t.Errorf("got %q, want human/from-config", got)
-	}
-}
-
-// TestResolveActor_ConfigMalformed_Errors propagates a parse error so
-// the user is not silently dropped to a git-config-derived fallback
-// after writing a broken aiwf.yaml.
-func TestResolveActor_ConfigMalformed_Errors(t *testing.T) {
-	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(":::not yaml"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	_, err := resolveActor("", root)
-	if err == nil {
-		t.Fatal("expected error from malformed aiwf.yaml")
+	// Must come from git, not from the legacy aiwf.yaml.actor.
+	if got != "human/git-user" {
+		t.Errorf("got %q, want human/git-user (legacy aiwf.yaml.actor must be ignored)", got)
 	}
 }
 
@@ -107,6 +106,49 @@ func TestResolveActor_DerivedFromGitConfig(t *testing.T) {
 	}
 	if got != "human/peter" {
 		t.Errorf("got %q, want human/peter", got)
+	}
+}
+
+// TestResolveActor_FlagOverridesGitConfig: --actor wins over git
+// config user.email. This is the load-bearing precedence rule;
+// without it, an LLM harness can never act as `ai/claude` from a
+// developer machine where git is configured for the human.
+func TestResolveActor_FlagOverridesGitConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", home)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig"),
+		[]byte("[user]\n\temail = peter@example.com\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := resolveActor("ai/claude", "")
+	if err != nil {
+		t.Fatalf("resolveActor: %v", err)
+	}
+	if got != "ai/claude" {
+		t.Errorf("got %q, want ai/claude (--actor must override git config)", got)
+	}
+}
+
+// TestResolveActor_MalformedGitEmail: git config user.email is set
+// but has no @ separator (a degenerate but technically allowed git
+// state). Falls through to the no-actor error rather than producing
+// a malformed `human/<entire-string>` identity.
+func TestResolveActor_MalformedGitEmail(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", home)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig"),
+		[]byte("[user]\n\temail = no-at-sign\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := resolveActor("", "")
+	if err == nil {
+		t.Fatal("expected error from malformed git config user.email, got nil")
 	}
 }
 

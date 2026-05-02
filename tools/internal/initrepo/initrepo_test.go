@@ -58,8 +58,18 @@ func TestInit_FreshRepo(t *testing.T) {
 	if cfg.AiwfVersion != "0.1.0" {
 		t.Errorf("aiwf_version = %q, want 0.1.0", cfg.AiwfVersion)
 	}
-	if cfg.Actor != "human/peter" {
-		t.Errorf("actor = %q, want human/peter", cfg.Actor)
+	// Identity is no longer stored — aiwf init must omit `actor:`
+	// from the fresh aiwf.yaml. The git-config-derived actor still
+	// gates init's success (deriveActor refuses if absent).
+	if cfg.LegacyActor != "" {
+		t.Errorf("LegacyActor = %q, want empty (init must not write actor: to fresh aiwf.yaml)", cfg.LegacyActor)
+	}
+	yamlBytes, readErr := os.ReadFile(filepath.Join(root, config.FileName))
+	if readErr != nil {
+		t.Fatalf("read aiwf.yaml: %v", readErr)
+	}
+	if strings.Contains(string(yamlBytes), "actor:") {
+		t.Errorf("aiwf.yaml contains actor: key (post-I2.5 init must omit it):\n%s", yamlBytes)
 	}
 
 	// All scaffolded dirs exist.

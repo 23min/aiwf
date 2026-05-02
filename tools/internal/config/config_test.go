@@ -18,6 +18,33 @@ func TestLoad_Missing_ReturnsErrNotFound(t *testing.T) {
 
 func TestLoad_TypicalFile(t *testing.T) {
 	root := t.TempDir()
+	// Post-I2.5 typical file: no `actor:` key. Identity is runtime-
+	// derived; aiwf.yaml carries only policy.
+	contents := []byte("aiwf_version: 0.1.0\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.AiwfVersion != "0.1.0" {
+		t.Errorf("aiwf_version = %q, want 0.1.0", cfg.AiwfVersion)
+	}
+	if cfg.LegacyActor != "" {
+		t.Errorf("LegacyActor = %q, want empty (no actor: key in source)", cfg.LegacyActor)
+	}
+	if len(cfg.Hosts) != 0 {
+		t.Errorf("hosts should be empty, got %v", cfg.Hosts)
+	}
+}
+
+func TestLoad_LegacyActorIsTolerated(t *testing.T) {
+	// Backwards compat: pre-I2.5 repos still carry `actor:` in their
+	// aiwf.yaml. Load must succeed (the field is ignored for runtime
+	// identity resolution) and the value must surface on Config.LegacyActor
+	// so `aiwf doctor` can render its deprecation note.
+	root := t.TempDir()
 	contents := []byte("aiwf_version: 0.1.0\nactor: human/peter\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
 		t.Fatal(err)
@@ -26,17 +53,32 @@ func TestLoad_TypicalFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if cfg.AiwfVersion != "0.1.0" || cfg.Actor != "human/peter" {
-		t.Errorf("got %+v", cfg)
+	if cfg.LegacyActor != "human/peter" {
+		t.Errorf("LegacyActor = %q, want human/peter", cfg.LegacyActor)
 	}
-	if len(cfg.Hosts) != 0 {
-		t.Errorf("hosts should be empty, got %v", cfg.Hosts)
+}
+
+func TestLoad_LegacyMalformedActorIsHarmless(t *testing.T) {
+	// A malformed legacy `actor:` is no longer a parse error — the
+	// field is ignored for runtime resolution. This keeps repos that
+	// were previously misconfigured loadable so the user can run
+	// `aiwf doctor` and remove the field.
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName), []byte("aiwf_version: 0.1.0\nactor: human peter\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v (legacy actor should be tolerated)", err)
+	}
+	if cfg.LegacyActor != "human peter" {
+		t.Errorf("LegacyActor = %q, want raw legacy value", cfg.LegacyActor)
 	}
 }
 
 func TestLoad_WithHosts(t *testing.T) {
 	root := t.TempDir()
-	contents := []byte("aiwf_version: 0.1.0\nactor: human/peter\nhosts: [claude-code]\n")
+	contents := []byte("aiwf_version: 0.1.0\nhosts: [claude-code]\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -49,31 +91,9 @@ func TestLoad_WithHosts(t *testing.T) {
 	}
 }
 
-func TestLoad_InvalidActor(t *testing.T) {
-	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, FileName), []byte("aiwf_version: 0.1.0\nactor: human peter\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	_, err := Load(root)
-	if err == nil || !strings.Contains(err.Error(), "actor") {
-		t.Errorf("expected actor format error, got %v", err)
-	}
-}
-
-func TestLoad_MissingActor(t *testing.T) {
-	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, FileName), []byte("aiwf_version: 0.1.0\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	_, err := Load(root)
-	if err == nil || !strings.Contains(err.Error(), "actor") {
-		t.Errorf("expected actor-required error, got %v", err)
-	}
-}
-
 func TestLoad_MissingVersion(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, FileName), []byte("actor: human/peter\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, FileName), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, err := Load(root)
@@ -95,7 +115,7 @@ func TestLoad_MalformedYAML(t *testing.T) {
 
 func TestWrite_FreshDir(t *testing.T) {
 	root := t.TempDir()
-	cfg := &Config{AiwfVersion: "0.1.0", Actor: "human/peter"}
+	cfg := &Config{AiwfVersion: "0.1.0"}
 	if err := Write(root, cfg); err != nil {
 		t.Fatalf("Write: %v", err)
 	}
@@ -106,8 +126,10 @@ func TestWrite_FreshDir(t *testing.T) {
 	if !strings.Contains(string(got), "aiwf_version: 0.1.0") {
 		t.Errorf("aiwf_version missing in output: %q", got)
 	}
-	if !strings.Contains(string(got), "actor: human/peter") {
-		t.Errorf("actor missing in output: %q", got)
+	// Identity is no longer stored — `aiwf init` must never emit an
+	// `actor:` line on a fresh write.
+	if strings.Contains(string(got), "actor:") {
+		t.Errorf("actor: present in default-Write output (post-I2.5 must omit it): %q", got)
 	}
 }
 
@@ -116,7 +138,7 @@ func TestWrite_RefusesOverwrite(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, FileName), []byte("# pre-existing"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg := &Config{AiwfVersion: "0.1.0", Actor: "human/peter"}
+	cfg := &Config{AiwfVersion: "0.1.0"}
 	err := Write(root, cfg)
 	if err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Errorf("expected refuse-overwrite, got %v", err)
@@ -124,9 +146,11 @@ func TestWrite_RefusesOverwrite(t *testing.T) {
 }
 
 func TestWrite_RejectsInvalidConfig(t *testing.T) {
+	// Post-I2.5 the only required field is aiwf_version. Empty-version
+	// must reject; empty-everything-else must succeed.
 	root := t.TempDir()
-	if err := Write(root, &Config{AiwfVersion: "0.1.0", Actor: "broken format"}); err == nil {
-		t.Error("expected validation error, got nil")
+	if err := Write(root, &Config{AiwfVersion: ""}); err == nil {
+		t.Error("expected validation error on empty aiwf_version, got nil")
 	}
 }
 
@@ -135,7 +159,7 @@ func TestWrite_RejectsInvalidConfig(t *testing.T) {
 func TestStatusMdAutoUpdate_Default(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
-		[]byte("aiwf_version: 0.1.0\nactor: human/peter\n"), 0o644); err != nil {
+		[]byte("aiwf_version: 0.1.0\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -155,7 +179,7 @@ func TestStatusMdAutoUpdate_Default(t *testing.T) {
 func TestStatusMdAutoUpdate_BlockEmpty(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
-		[]byte("aiwf_version: 0.1.0\nactor: human/peter\nstatus_md: {}\n"), 0o644); err != nil {
+		[]byte("aiwf_version: 0.1.0\nstatus_md: {}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -173,7 +197,7 @@ func TestStatusMdAutoUpdate_BlockEmpty(t *testing.T) {
 func TestStatusMdAutoUpdate_ExplicitFalse(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
-		[]byte("aiwf_version: 0.1.0\nactor: human/peter\nstatus_md:\n  auto_update: false\n"), 0o644); err != nil {
+		[]byte("aiwf_version: 0.1.0\nstatus_md:\n  auto_update: false\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -194,7 +218,7 @@ func TestStatusMdAutoUpdate_ExplicitFalse(t *testing.T) {
 func TestStatusMdAutoUpdate_ExplicitTrue(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
-		[]byte("aiwf_version: 0.1.0\nactor: human/peter\nstatus_md:\n  auto_update: true\n"), 0o644); err != nil {
+		[]byte("aiwf_version: 0.1.0\nstatus_md:\n  auto_update: true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -215,7 +239,7 @@ func TestStatusMdAutoUpdate_ExplicitTrue(t *testing.T) {
 // file shape" (no surprise YAML on `aiwf init`).
 func TestWrite_OmitsStatusMdByDefault(t *testing.T) {
 	root := t.TempDir()
-	cfg := &Config{AiwfVersion: "0.1.0", Actor: "human/peter"}
+	cfg := &Config{AiwfVersion: "0.1.0"}
 	if err := Write(root, cfg); err != nil {
 		t.Fatalf("Write: %v", err)
 	}

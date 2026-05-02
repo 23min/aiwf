@@ -632,6 +632,47 @@ func TestRun_DoctorReportsMissingConfig(t *testing.T) {
 	}
 }
 
+// TestRun_DoctorReportsLegacyActor: a pre-I2.5 aiwf.yaml that still
+// carries `actor:` must surface a deprecation note in doctor's
+// output. The note is informational — it does NOT increment problems
+// (the field is harmless, just unnecessary).
+func TestRun_DoctorReportsLegacyActor(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	// Append the legacy `actor:` line to simulate a pre-I2.5 repo.
+	contents := []byte("aiwf_version: " + Version + "\nactor: human/legacy\n")
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lines, _ := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "deprecated") || !strings.Contains(joined, "human/legacy") {
+		t.Errorf("doctor should surface the legacy actor as deprecated; got:\n%s", joined)
+	}
+}
+
+// TestRun_DoctorReportsRuntimeIdentity: doctor should echo the
+// runtime-derived actor + its source so the user can confirm what
+// the next mutating verb's aiwf-actor: trailer would say.
+func TestRun_DoctorReportsRuntimeIdentity(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	lines, _ := doctorReport(root)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "actor:") {
+		t.Errorf("doctor should include an `actor:` line surfacing runtime identity:\n%s", joined)
+	}
+	// The setupCLITestRepo helper configures a deterministic git
+	// identity; the source label must be "git config user.email".
+	if !strings.Contains(joined, "git config user.email") {
+		t.Errorf("doctor's actor line should name git config user.email as the source:\n%s", joined)
+	}
+}
+
 // TestRun_DoctorVersionSkew exercises the path where aiwf.yaml's
 // aiwf_version differs from the binary's Version constant. The CLI
 // should exit with `findings` and the report should mention both
@@ -642,7 +683,7 @@ func TestRun_DoctorVersionSkew(t *testing.T) {
 		t.Fatalf("init: %d", rc)
 	}
 	// Replace aiwf.yaml with a version that does not match Version.
-	contents := []byte("aiwf_version: 9.9.9-skew\nactor: human/test\n")
+	contents := []byte("aiwf_version: 9.9.9-skew\n")
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}

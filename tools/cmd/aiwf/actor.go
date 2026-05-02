@@ -1,13 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os/exec"
 	"regexp"
 	"strings"
-
-	"github.com/23min/ai-workflow-v2/tools/internal/config"
 )
 
 // actorPattern enforces the Q10 format: <role>/<identifier> with
@@ -18,16 +15,23 @@ var actorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 // Actor source labels surfaced by `aiwf whoami` and used as the second
 // return value of resolveActorWithSource. Stable strings; do not change
 // without updating tests and documentation.
+//
+// The pre-I2.5 `aiwf.yaml` source is gone — identity is now runtime-
+// derived per `provenance-model.md`, with `--actor` overriding the
+// git-config default. The aiwf.yaml `actor:` key (if still present)
+// is ignored for resolution; `aiwf doctor` surfaces a deprecation note.
 const (
 	actorSourceFlag      = "--actor flag"
-	actorSourceConfig    = "aiwf.yaml"
 	actorSourceGitConfig = "git config user.email"
 )
 
 // resolveActor picks the actor string for a verb's commit trailer.
-// Precedence: explicit > aiwf.yaml > git config user.email derivation.
-// Returns an error when none yields a valid value or when the explicit
-// value is malformed.
+// Precedence: explicit `--actor` > git config user.email derivation.
+// Returns an error when neither yields a valid value or when the
+// explicit value is malformed.
+//
+// The root parameter is unused but kept for call-site compatibility;
+// future per-repo identity policy (if it ever lands) would consult it.
 func resolveActor(explicit, root string) (string, error) {
 	actor, _, err := resolveActorWithSource(explicit, root)
 	return actor, err
@@ -37,24 +41,12 @@ func resolveActor(explicit, root string) (string, error) {
 // of which source produced the value. Used by `aiwf whoami` to explain
 // the precedence outcome to the user.
 func resolveActorWithSource(explicit, root string) (actor, source string, err error) {
+	_ = root // reserved for future per-repo identity policy
 	if explicit != "" {
 		if !actorPattern.MatchString(explicit) {
 			return "", "", fmt.Errorf("--actor %q must match <role>/<identifier> (single '/', no whitespace)", explicit)
 		}
 		return explicit, actorSourceFlag, nil
-	}
-	if root != "" {
-		cfg, cfgErr := config.Load(root)
-		switch {
-		case cfgErr == nil:
-			if cfg.Actor != "" {
-				return cfg.Actor, actorSourceConfig, nil
-			}
-		case errors.Is(cfgErr, config.ErrNotFound):
-			// fall through to git config derivation
-		default:
-			return "", "", cfgErr
-		}
 	}
 	out, gitErr := exec.Command("git", "config", "user.email").Output()
 	if gitErr == nil {
@@ -66,5 +58,5 @@ func resolveActorWithSource(explicit, root string) (actor, source string, err er
 			}
 		}
 	}
-	return "", "", fmt.Errorf("no actor: pass --actor <role>/<identifier>, run `aiwf init`, or set git config user.email")
+	return "", "", fmt.Errorf("no actor: pass --actor <role>/<identifier> or set git config user.email")
 }

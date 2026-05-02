@@ -522,7 +522,26 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 		lines = append(lines, fmt.Sprintf("config:    aiwf.yaml requests aiwf_version=%s, binary is %s", cfg.AiwfVersion, Version))
 		problems++
 	default:
-		lines = append(lines, fmt.Sprintf("config:    ok (aiwf_version=%s, actor=%s)", cfg.AiwfVersion, cfg.Actor))
+		lines = append(lines, fmt.Sprintf("config:    ok (aiwf_version=%s)", cfg.AiwfVersion))
+		if cfg.LegacyActor != "" {
+			// Pre-I2.5 `actor:` field. Identity is now runtime-derived
+			// (per provenance-model.md); the file's value is ignored.
+			// Surface as a one-line deprecation hint so the user knows
+			// the field no longer does anything and can remove it.
+			lines = append(lines,
+				fmt.Sprintf("           note: aiwf.yaml carries a deprecated `actor: %s` key — identity is now runtime-derived from git config user.email; the field is ignored and can be removed", cfg.LegacyActor))
+		}
+	}
+
+	// 1b. Runtime-identity resolution. Echoes what the next mutating
+	//     verb's aiwf-actor: trailer would say, plus the source the
+	//     value came from (--actor flag is absent here, so the source
+	//     is git config user.email).
+	if actor, source, actorErr := resolveActorWithSource("", rootDir); actorErr != nil {
+		lines = append(lines, "actor:     "+actorErr.Error())
+		problems++
+	} else {
+		lines = append(lines, fmt.Sprintf("actor:     %s (from %s)", actor, source))
 	}
 
 	// 2. Materialized-skill drift.

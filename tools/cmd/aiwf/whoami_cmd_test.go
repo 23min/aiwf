@@ -19,19 +19,39 @@ func TestRunWhoami_FromFlag(t *testing.T) {
 	}
 }
 
-func TestRunWhoami_FromConfig(t *testing.T) {
+// TestRunWhoami_LegacyConfigActorIgnored: pre-I2.5 repos still carry
+// `actor:` in aiwf.yaml. The field is no longer a resolution source —
+// runtime identity comes from --actor or git config user.email only.
+// whoami must NOT report `aiwf.yaml` as the source even when the
+// legacy field is present and matches; the git-config fallback wins.
+func TestRunWhoami_LegacyConfigActorIgnored(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
 		[]byte("aiwf_version: 0.1.0\nactor: human/from-config\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	// Configure git in an isolated HOME so the test doesn't depend on
+	// the host's identity.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", home)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig"),
+		[]byte("[user]\n\temail = git-user@example.com\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	out := string(captureStdout(t, func() {
 		if rc := runWhoami([]string{"--root", root}); rc != exitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
-	if !strings.Contains(out, "human/from-config") || !strings.Contains(out, "aiwf.yaml") {
-		t.Errorf("stdout = %q, want actor + aiwf.yaml source", out)
+	// Must resolve from git, not from the legacy aiwf.yaml field.
+	if !strings.Contains(out, "human/git-user") {
+		t.Errorf("stdout = %q, want git-derived actor (legacy aiwf.yaml.actor must be ignored)", out)
+	}
+	if strings.Contains(out, "from-config") || strings.Contains(out, "aiwf.yaml") {
+		t.Errorf("stdout = %q, must not surface the legacy aiwf.yaml.actor or its source", out)
 	}
 }
 
