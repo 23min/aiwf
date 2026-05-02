@@ -163,7 +163,7 @@ func provenanceCoherenceFindings(c *scope.Commit, idx map[string]string) []Findi
 	// Required-together: (principal, non-human actor). Symmetric: a
 	// non-human actor without principal is unaccountable.
 	if !actorIsHuman && !hasPrincipal {
-		emit(fmt.Sprintf("aiwf-actor: %q is non-human but aiwf-principal: is missing", actor))
+		emit(fmt.Sprintf("actor %q is non-human but aiwf-principal: is missing", actor))
 	}
 
 	// Mutually exclusive: (force, on-behalf-of); (principal, human

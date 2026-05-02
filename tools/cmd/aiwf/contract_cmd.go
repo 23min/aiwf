@@ -81,7 +81,7 @@ func runContractValidation(ctx context.Context, tr *tree.Tree, rootDir string, c
 
 	skip := make(map[string]bool)
 	for _, e := range tr.ByKind(entity.KindContract) {
-		if e.Status == "rejected" || e.Status == "retired" {
+		if e.Status == entity.StatusRejected || e.Status == entity.StatusRetired {
 			skip[e.ID] = true
 		}
 	}

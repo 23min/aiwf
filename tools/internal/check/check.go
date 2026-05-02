@@ -635,7 +635,7 @@ func adrSupersessionMutual(t *tree.Tree) []Finding {
 func gapResolvedHasResolver(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, g := range t.ByKind(entity.KindGap) {
-		if g.Status == "addressed" && len(g.AddressedBy) == 0 {
+		if g.Status == entity.StatusAddressed && len(g.AddressedBy) == 0 {
 			findings = append(findings, Finding{
 				Code:     "gap-resolved-has-resolver",
 				Severity: SeverityWarning,

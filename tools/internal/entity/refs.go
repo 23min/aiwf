@@ -60,6 +60,10 @@ func ForwardRefs(e *Entity) []ForwardRef {
 		for _, a := range e.LinkedADRs {
 			refs = append(refs, ForwardRef{Field: "linked_adrs", Target: a, AllowedKinds: []Kind{KindADR}})
 		}
+	default:
+		// KindEpic and any future kind without outbound refs falls
+		// through to an empty list. Explicit default makes the
+		// intent visible — see policies.no-silent-fallback.
 	}
 	return refs
 }

@@ -66,3 +66,51 @@ func TestPolicy_ReadOnlyVerbsDoNotMutate(t *testing.T) {
 func TestPolicy_FindingCodesAreDiscoverable(t *testing.T) {
 	runPolicy(t, PolicyFindingCodesAreDiscoverable)
 }
+
+func TestPolicy_NoHistoryRewrites(t *testing.T) {
+	runPolicy(t, PolicyNoHistoryRewrites)
+}
+
+func TestPolicy_NoTimestampManipulation(t *testing.T) {
+	runPolicy(t, PolicyNoTimestampManipulation)
+}
+
+func TestPolicy_NoSignatureBypass(t *testing.T) {
+	runPolicy(t, PolicyNoSignatureBypass)
+}
+
+func TestPolicy_NoTrailerStringComposition(t *testing.T) {
+	runPolicy(t, PolicyNoTrailerStringComposition)
+}
+
+func TestPolicy_RoleIDRegexCentralized(t *testing.T) {
+	runPolicy(t, PolicyRoleIDRegexCentralized)
+}
+
+func TestPolicy_PrincipalWriteSitesGuardHuman(t *testing.T) {
+	runPolicy(t, PolicyPrincipalWriteSitesGuardHuman)
+}
+
+func TestPolicy_AuthorizedByWriteSitesUseAllow(t *testing.T) {
+	runPolicy(t, PolicyAuthorizedByWriteSitesUseAllow)
+}
+
+func TestPolicy_ApplyCallersAcquireLock(t *testing.T) {
+	runPolicy(t, PolicyApplyCallersAcquireLock)
+}
+
+func TestPolicy_VerbsValidateThenWrite(t *testing.T) {
+	runPolicy(t, PolicyVerbsValidateThenWrite)
+}
+
+func TestPolicy_NoActorFieldsInAiwfYAML(t *testing.T) {
+	runPolicy(t, PolicyNoActorFieldsInAiwfYAML)
+}
+
+func TestPolicy_ClosedSetStatusViaConstants(t *testing.T) {
+	runPolicy(t, PolicyClosedSetStatusViaConstants)
+}
+
+func TestPolicy_NoSilentFallbacks(t *testing.T) {
+	runPolicy(t, PolicyNoSilentFallbacks)
+}

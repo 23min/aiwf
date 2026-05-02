@@ -94,7 +94,7 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 
 		// Skip entity-status checks for terminal-state contracts;
 		// callers exclude them from verification anyway.
-		if ent != nil && (ent.Status == "rejected" || ent.Status == "retired") {
+		if ent != nil && (ent.Status == entity.StatusRejected || ent.Status == entity.StatusRetired) {
 			continue
 		}
 	}
@@ -106,7 +106,7 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 		if boundIDs[id] {
 			continue
 		}
-		if ent.Status == "rejected" || ent.Status == "retired" {
+		if ent.Status == entity.StatusRejected || ent.Status == entity.StatusRetired {
 			continue
 		}
 		findings = append(findings, check.Finding{

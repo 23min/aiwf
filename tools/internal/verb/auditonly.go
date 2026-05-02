@@ -169,8 +169,8 @@ func cancelACAuditOnly(t *tree.Tree, compositeID, actor, reason string) (*Result
 	if err != nil {
 		return nil, err
 	}
-	if ac.Status != "cancelled" {
-		return nil, fmt.Errorf("aiwf cancel --audit-only: %s is at %q, not %q (audit-only records what's already true)", compositeID, ac.Status, "cancelled")
+	if ac.Status != entity.StatusCancelled {
+		return nil, fmt.Errorf("aiwf cancel --audit-only: %s is at %q, not %q (audit-only records what's already true)", compositeID, ac.Status, entity.StatusCancelled)
 	}
 	trailers := auditOnlyTrailers("cancel", compositeID, actor, reason, "")
 	if err := finalizeAuditOnlyPlanCheck(trailers); err != nil {

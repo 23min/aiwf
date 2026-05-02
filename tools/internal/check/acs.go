@@ -243,10 +243,10 @@ func acsTDDAudit(t *tree.Tree) []Finding {
 			continue
 		}
 		for _, ac := range e.ACs {
-			if ac.Status != "met" {
+			if ac.Status != entity.StatusMet {
 				continue
 			}
-			if ac.TDDPhase == "done" {
+			if ac.TDDPhase == entity.TDDPhaseDone {
 				continue
 			}
 			compositeID := e.ID + "/" + ac.ID
@@ -284,12 +284,12 @@ func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
 		if e.Kind != entity.KindMilestone {
 			continue
 		}
-		if e.Status != "done" {
+		if e.Status != entity.StatusDone {
 			continue
 		}
 		var openIDs []string
 		for _, ac := range e.ACs {
-			if ac.Status == "open" {
+			if ac.Status == entity.StatusOpen {
 				openIDs = append(openIDs, ac.ID)
 			}
 		}

@@ -53,10 +53,10 @@ func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string) (*R
 	newAC := entity.AcceptanceCriterion{
 		ID:     nextID,
 		Title:  title,
-		Status: "open",
+		Status: entity.StatusOpen,
 	}
 	if parent.TDD == "required" {
-		newAC.TDDPhase = "red"
+		newAC.TDDPhase = entity.TDDPhaseRed
 	}
 
 	modified := *parent
@@ -153,7 +153,7 @@ func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Res
 	if err != nil {
 		return nil, err
 	}
-	if ac.Status == "cancelled" {
+	if ac.Status == entity.StatusCancelled {
 		return nil, fmt.Errorf("%s is already cancelled", compositeID)
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {

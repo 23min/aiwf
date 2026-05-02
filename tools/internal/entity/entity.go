@@ -34,6 +34,44 @@ func AllKinds() []Kind {
 	return []Kind{KindEpic, KindMilestone, KindADR, KindGap, KindDecision, KindContract}
 }
 
+// Status constants for the closed sets. Hardcoded; see
+// docs/pocv3/design/design-decisions.md and the schemas table for
+// per-kind allowance. Use these constants instead of bare string
+// literals so a future renumber / spelling shift lands in one
+// place.
+const (
+	// Epic / shared.
+	StatusProposed  = "proposed"
+	StatusActive    = "active"
+	StatusDone      = "done"
+	StatusCancelled = "cancelled"
+	// Milestone-only.
+	StatusDraft      = "draft"
+	StatusInProgress = "in_progress"
+	// ADR / Decision.
+	StatusAccepted   = "accepted"
+	StatusSuperseded = "superseded"
+	StatusRejected   = "rejected"
+	// Gap.
+	StatusOpen      = "open"
+	StatusAddressed = "addressed"
+	StatusWontfix   = "wontfix"
+	// Contract.
+	StatusDeprecated = "deprecated"
+	StatusRetired    = "retired"
+	// Acceptance criterion (composite).
+	StatusMet      = "met"
+	StatusDeferred = "deferred"
+)
+
+// TDD-phase constants for the AC FSM.
+const (
+	TDDPhaseRed      = "red"
+	TDDPhaseGreen    = "green"
+	TDDPhaseRefactor = "refactor"
+	TDDPhaseDone     = "done"
+)
+
 // AllowedStatuses returns the closed status set for the kind. Statuses
 // outside this set are reported by the status-valid check. Delegates
 // to the schemas table so there is a single source of truth.

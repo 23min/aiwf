@@ -245,7 +245,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	}
 
 	for _, e := range epics {
-		if e.Status != "active" && e.Status != "proposed" {
+		if e.Status != entity.StatusActive && e.Status != entity.StatusProposed {
 			continue
 		}
 		se := statusEpic{
@@ -263,16 +263,16 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 			})
 		}
 		switch e.Status {
-		case "active":
+		case entity.StatusActive:
 			r.InFlightEpics = append(r.InFlightEpics, se)
-		case "proposed":
+		case entity.StatusProposed:
 			r.PlannedEpics = append(r.PlannedEpics, se)
 		}
 	}
 
 	// Open decisions: ADRs and Decision entities with status == "proposed".
 	for _, e := range tr.ByKind(entity.KindADR) {
-		if e.Status != "proposed" {
+		if e.Status != entity.StatusProposed {
 			continue
 		}
 		r.OpenDecisions = append(r.OpenDecisions, statusEntity{
@@ -283,7 +283,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 		})
 	}
 	for _, e := range tr.ByKind(entity.KindDecision) {
-		if e.Status != "proposed" {
+		if e.Status != entity.StatusProposed {
 			continue
 		}
 		r.OpenDecisions = append(r.OpenDecisions, statusEntity{
@@ -297,7 +297,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 
 	// Open gaps: status == "open".
 	for _, e := range tr.ByKind(entity.KindGap) {
-		if e.Status != "open" {
+		if e.Status != entity.StatusOpen {
 			continue
 		}
 		r.OpenGaps = append(r.OpenGaps, statusGap{

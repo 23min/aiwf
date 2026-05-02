@@ -277,6 +277,9 @@ func applyAddOpts(e *entity.Entity, opts AddOptions) {
 		if len(opts.LinkedADRs) > 0 {
 			e.LinkedADRs = append([]string(nil), opts.LinkedADRs...)
 		}
+	default:
+		// KindEpic, KindADR have no add-time options; the default
+		// is silence by design (see policies.no-silent-fallback).
 	}
 }
 
