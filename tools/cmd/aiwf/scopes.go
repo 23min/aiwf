@@ -167,6 +167,85 @@ func readEntityScopeCommits(ctx context.Context, root, id string) ([]commitTrail
 	return commits, nil
 }
 
+// resolveCurrentEntityID walks the aiwf-prior-entity chain forward
+// from id to its current id. When id has never been reallocated,
+// returns id unchanged. When the entity was renumbered, follows the
+// rename chain — each `aiwf reallocate` commit carries
+// aiwf-prior-entity: <old> and aiwf-entity: <new> — until no further
+// commit names the current id as `prior-entity`.
+//
+// Used by the I2.5 allow-rule's scope-entity resolution: an
+// authorize commit's aiwf-entity trailer is the id at the time of
+// authorization. After a reallocate, the historical commit stays
+// byte-identical (its SHA remains valid as aiwf-authorized-by:),
+// but the live entity now lives under a new id. Forward-walking the
+// prior-entity chain produces the current id so tree.Reaches can
+// run against the live tree.
+//
+// Cycle guard: each id may appear at most once. A cycle (which
+// would indicate corrupted history) returns the chain's current
+// position rather than looping.
+func resolveCurrentEntityID(ctx context.Context, root, id string) (string, error) {
+	if !hasCommits(ctx, root) {
+		return id, nil
+	}
+	visited := map[string]bool{id: true}
+	current := id
+	for {
+		next, err := readPriorEntityNewID(ctx, root, current)
+		if err != nil {
+			return current, err
+		}
+		if next == "" || visited[next] {
+			return current, nil
+		}
+		visited[next] = true
+		current = next
+	}
+}
+
+// readPriorEntityNewID returns the aiwf-entity value of the most
+// recent commit whose aiwf-prior-entity trailer matches priorID.
+// Returns the empty string when no commit names priorID as prior.
+//
+// `git log` is queried newest-first so the latest reallocate wins
+// when (defensively) multiple commits name the same prior id.
+func readPriorEntityNewID(ctx context.Context, root, priorID string) (string, error) {
+	const sep = "\x1f"
+	const recSep = "\x1e\n"
+	args := []string{
+		"log",
+		"-E",
+		"--grep", "^aiwf-prior-entity: " + regexp.QuoteMeta(priorID) + "$",
+		"--pretty=tformat:%(trailers:key=aiwf-entity,valueonly=true,unfold=true)" + sep + "\x1e",
+	}
+	// priorID is regexp-quoted into the --grep argument; exec.Command
+	// uses execve (no shell), so there is no injection vector beyond
+	// what QuoteMeta neutralizes. Same pattern as readEntityScopeCommits.
+	cmd := exec.CommandContext(ctx, "git", args...) //nolint:gosec // regexp.QuoteMeta + execve (no shell) — no injection vector
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return "", fmt.Errorf("git log: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
+		}
+		return "", fmt.Errorf("git log: %w", err)
+	}
+	for _, rec := range strings.Split(string(out), recSep) {
+		rec = strings.TrimSpace(rec)
+		if rec == "" {
+			continue
+		}
+		parts := strings.SplitN(rec, sep, 2)
+		entityID := strings.TrimSpace(parts[0])
+		if entityID != "" && entityID != priorID {
+			return entityID, nil
+		}
+	}
+	return "", nil
+}
+
 // parseTrailerLines parses a `git log %(trailers:only=true,unfold=true)`
 // block into structured Trailer values. The format is one trailer per
 // line, `Key: value`, possibly followed by a trailing newline; empty

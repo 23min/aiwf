@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
+	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
 	"github.com/23min/ai-workflow-v2/tools/internal/manifest"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
@@ -27,6 +29,7 @@ func runImport(args []string) int {
 	fs := flag.NewFlagSet("import", flag.ContinueOnError)
 	root := fs.String("root", "", "consumer repo root")
 	actor := fs.String("actor", "", "actor for the commit trailer (overrides manifest and aiwf.yaml)")
+	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; per-entity scope gating is deferred to G22 — bulk import currently only enforces principal coherence)")
 	onCollision := fs.String("on-collision", verb.OnCollisionFail, "behavior when an explicit id already exists: fail|skip|update")
 	dryRun := fs.Bool("dry-run", false, "validate the projection and print the would-be plan without writing")
 	fs.SetOutput(os.Stderr)
@@ -83,6 +86,21 @@ func runImport(args []string) int {
 		return exitInternal
 	}
 
+	// Provenance coherence: when the operator is non-human, a principal
+	// is required (the I2.5 trailer-coherence rule). Per-entity scope
+	// gating (running Allow against each plan's CreationRefs) is
+	// deferred to G22; bulk-import attribution lives there.
+	principalStr := strings.TrimSpace(*principal)
+	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
+	if actorIsNonHuman && principalStr == "" {
+		fmt.Fprintf(os.Stderr, "aiwf import: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
+		return exitUsage
+	}
+	if !actorIsNonHuman && principalStr != "" {
+		fmt.Fprintln(os.Stderr, "aiwf import: --principal is forbidden when --actor is human/ (humans act directly)")
+		return exitUsage
+	}
+
 	res, err := verb.Import(ctx, tr, m, actorStr, verb.ImportOptions{OnCollision: *onCollision})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
@@ -111,6 +129,17 @@ func runImport(args []string) int {
 	}
 
 	for i, p := range res.Plans {
+		if actorIsNonHuman {
+			// Stamp the principal trailer on every per-entity plan
+			// so the resulting commits satisfy CheckTrailerCoherence
+			// (non-human actor requires a principal). Per-entity
+			// scope authorization (aiwf-on-behalf-of /
+			// aiwf-authorized-by) is G22.
+			p.Trailers = append(p.Trailers, gitops.Trailer{
+				Key:   gitops.TrailerPrincipal,
+				Value: principalStr,
+			})
+		}
 		if applyErr := verb.Apply(ctx, rootDir, p); applyErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf import: applying plan %d: %v\n", i, applyErr)
 			return exitInternal

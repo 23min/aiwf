@@ -158,6 +158,17 @@ func loadActiveScopesForActor(ctx context.Context, root, actor string) ([]*scope
 		}
 		for _, s := range scopes {
 			if s.State == scope.StateActive && s.Agent == actor {
+				// Resolve the scope-entity id forward through the
+				// aiwf-prior-entity rename chain so reachability runs
+				// against whatever the entity is called now. The
+				// authorize commit's SHA stays valid (byte-identical
+				// historical commit); only the entity field is
+				// rebased onto the current id.
+				current, resolveErr := resolveCurrentEntityID(ctx, root, s.Entity)
+				if resolveErr != nil {
+					return nil, fmt.Errorf("resolving scope-entity %s: %w", s.Entity, resolveErr)
+				}
+				s.Entity = current
 				result = append(result, s)
 			}
 		}

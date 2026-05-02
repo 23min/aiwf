@@ -36,6 +36,7 @@ func runAdd(args []string) int {
 	fs := flag.NewFlagSet("add "+kindArg, flag.ContinueOnError)
 	title := fs.String("title", "", "entity title (required)")
 	actor := fs.String("actor", "", "actor for the commit trailer")
+	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
 
 	epicID := fs.String("epic", "", "parent epic id (milestone only)")
@@ -97,7 +98,37 @@ func runAdd(args []string) int {
 	}
 
 	result, err := verb.Add(ctx, tr, k, *title, actorStr, opts)
-	return finishVerb(ctx, rootDir, "aiwf add", result, err)
+	pctx := provenanceContext{
+		Actor:        actorStr,
+		Principal:    strings.TrimSpace(*principal),
+		VerbKind:     verb.VerbCreate,
+		CreationRefs: addCreationRefs(k, opts),
+	}
+	return decorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx)
+}
+
+// addCreationRefs returns the new entity's outbound references for
+// the I2.5 allow-rule's VerbCreate reachability check. Each kind
+// names a different set of ref-bearing fields; the helper centralizes
+// the mapping so the cmd dispatcher doesn't duplicate the schema.
+//
+// An epic has no outbound references (root of the tree); an agent
+// authorizing the addition of a fresh epic must be scoped to that
+// epic's id, which doesn't yet exist — meaning agents cannot create
+// top-level epics under any active scope (intentional; new top-level
+// work is a human decision per the design).
+func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
+	var refs []string
+	if opts.EpicID != "" {
+		refs = append(refs, opts.EpicID)
+	}
+	if opts.DiscoveredIn != "" {
+		refs = append(refs, opts.DiscoveredIn)
+	}
+	refs = append(refs, opts.RelatesTo...)
+	refs = append(refs, opts.LinkedADRs...)
+	_ = k // reserved for future kind-specific ref derivation
+	return refs
 }
 
 // runAddAC handles `aiwf add ac <milestone-id> --title "..."`. ACs
@@ -107,9 +138,10 @@ func runAddAC(args []string) int {
 	fs := flag.NewFlagSet("add ac", flag.ContinueOnError)
 	title := fs.String("title", "", "AC title (required)")
 	actor := fs.String("actor", "", "actor for the commit trailer")
+	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "title"}, nil)); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "title"}, nil)); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -148,7 +180,15 @@ func runAddAC(args []string) int {
 		return exitInternal
 	}
 	result, err := verb.AddAC(ctx, tr, parentID, *title, actorStr)
-	return finishVerb(ctx, rootDir, "aiwf add ac", result, err)
+	// An AC is a sub-element of its parent milestone — its sole
+	// "outbound reference" for scope reachability is the parent id.
+	pctx := provenanceContext{
+		Actor:        actorStr,
+		Principal:    strings.TrimSpace(*principal),
+		VerbKind:     verb.VerbCreate,
+		CreationRefs: []string{parentID},
+	}
+	return decorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx)
 }
 
 // splitCommaList parses comma-separated CLI values into a clean slice
@@ -355,9 +395,10 @@ func runCancel(args []string) int {
 func runRename(args []string) int {
 	fs := flag.NewFlagSet("rename", flag.ContinueOnError)
 	actor := fs.String("actor", "", "actor for the commit trailer")
+	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root"}, nil)); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -391,7 +432,13 @@ func runRename(args []string) int {
 		return exitInternal
 	}
 	result, err := verb.Rename(ctx, tr, id, newSlug, actorStr)
-	return finishVerb(ctx, rootDir, "aiwf rename", result, err)
+	pctx := provenanceContext{
+		Actor:     actorStr,
+		Principal: strings.TrimSpace(*principal),
+		VerbKind:  verb.VerbAct,
+		TargetID:  id,
+	}
+	return decorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx)
 }
 
 // runMove handles `aiwf move <M-id> --epic <E-id>`: relocates a
@@ -399,10 +446,11 @@ func runRename(args []string) int {
 func runMove(args []string) int {
 	fs := flag.NewFlagSet("move", flag.ContinueOnError)
 	actor := fs.String("actor", "", "actor for the commit trailer")
+	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
 	epic := fs.String("epic", "", "target epic id (e.g., E-04)")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "epic"}, nil)); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -439,17 +487,32 @@ func runMove(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf move: loading tree: %v\n", err)
 		return exitInternal
 	}
+	// Move endpoints for the allow-rule are the source epic (the
+	// milestone's current parent) and the destination epic (--epic).
+	// Both must reach the scope-entity per the strict-move rule.
+	var moveSource string
+	if e := tr.ByID(id); e != nil {
+		moveSource = e.Parent
+	}
 	result, err := verb.Move(ctx, tr, id, *epic, actorStr)
-	return finishVerb(ctx, rootDir, "aiwf move", result, err)
+	pctx := provenanceContext{
+		Actor:      actorStr,
+		Principal:  strings.TrimSpace(*principal),
+		VerbKind:   verb.VerbMove,
+		TargetID:   *epic,
+		MoveSource: moveSource,
+	}
+	return decorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx)
 }
 
 // runReallocate handles `aiwf reallocate <id-or-path>`.
 func runReallocate(args []string) int {
 	fs := flag.NewFlagSet("reallocate", flag.ContinueOnError)
 	actor := fs.String("actor", "", "actor for the commit trailer")
+	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root"}, nil)); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -483,7 +546,13 @@ func runReallocate(args []string) int {
 		return exitInternal
 	}
 	result, err := verb.Reallocate(ctx, tr, target, actorStr)
-	return finishVerb(ctx, rootDir, "aiwf reallocate", result, err)
+	pctx := provenanceContext{
+		Actor:     actorStr,
+		Principal: strings.TrimSpace(*principal),
+		VerbKind:  verb.VerbAct,
+		TargetID:  target,
+	}
+	return decorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx)
 }
 
 // finishVerb is the post-verb handler shared by every mutating
