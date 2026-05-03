@@ -107,15 +107,27 @@ func resolveUntrailedRange(ctx context.Context, root, since string) (string, *ch
 // readUntrailedCommits is purely the git-log invocation +
 // parsing. An empty range (HEAD == @{u}) returns no commits,
 // no findings.
+//
+// `-m --first-parent` walks the integration-branch view (G32):
+// merge commits surface their introduced changes (against their
+// first parent) so the audit pass sees entity-file paths brought
+// in by `git merge`, while feature-branch commits not on
+// first-parent ancestry are correctly excluded (those are the
+// feature branch's own warning scope, not the integration
+// branch's). Without `-m` the default is "show no diff for merge
+// commits," which silently bypassed the audit for merges that
+// absorbed entity-file changes from a feature branch.
 func readUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.UntrailedCommit, error) {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e"
 	args := []string{
 		"log",
 		"--reverse",
+		"-m",
+		"--first-parent",
 		rangeArg,
 		"--name-only",
-		"--pretty=tformat:" + recSep + "%H" + fieldSep + "%(trailers:only=true,unfold=true)" + fieldSep,
+		"--pretty=tformat:" + recSep + "%H" + fieldSep + "%s" + fieldSep + "%(trailers:only=true,unfold=true)" + fieldSep,
 	}
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = root
@@ -133,14 +145,15 @@ func readUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.U
 // parseUntrailedCommits unpacks the multi-record stream produced by
 // readUntrailedCommits. The format is:
 //
-//	<RS>{SHA}<US>{trailers}<US>
+//	<RS>{SHA}<US>{subject}<US>{trailers}<US>
 //	{file1}
 //	{file2}
 //	...
 //	<RS>{SHA}<US>...
 //
-// Trailers and file lists are both newline-delimited. Empty input
-// (no unpushed commits) returns nil.
+// Trailers and file lists are both newline-delimited. Subject is
+// the commit's first line, used for the squash-merge specialization
+// (G31). Empty input (no unpushed commits) returns nil.
 func parseUntrailedCommits(s string) []check.UntrailedCommit {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e"
@@ -150,12 +163,12 @@ func parseUntrailedCommits(s string) []check.UntrailedCommit {
 		if rec == "" {
 			continue
 		}
-		parts := strings.SplitN(rec, fieldSep, 3)
-		if len(parts) < 3 {
+		parts := strings.SplitN(rec, fieldSep, 4)
+		if len(parts) < 4 {
 			continue
 		}
 		var paths []string
-		for _, line := range strings.Split(parts[2], "\n") {
+		for _, line := range strings.Split(parts[3], "\n") {
 			line = strings.TrimSpace(line)
 			if line == "" {
 				continue
@@ -164,7 +177,8 @@ func parseUntrailedCommits(s string) []check.UntrailedCommit {
 		}
 		out = append(out, check.UntrailedCommit{
 			SHA:      strings.TrimSpace(parts[0]),
-			Trailers: parseTrailerLines(parts[1]),
+			Subject:  strings.TrimSpace(parts[1]),
+			Trailers: parseTrailerLines(parts[2]),
 			Paths:    paths,
 		})
 	}

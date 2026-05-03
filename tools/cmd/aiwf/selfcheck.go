@@ -66,16 +66,17 @@ func runSelfCheck() int {
 
 	preCommitHook := filepath.Join(tmp, ".git", "hooks", "pre-commit")
 
-	// Each step optionally carries a `setup` hook that runs before the
-	// CLI invocation (used by the pre-commit-hook transition steps to
-	// mutate aiwf.yaml between updates) and a `verify` hook that runs
-	// after (used to assert filesystem state the verb's exit code
-	// alone doesn't capture).
+	// Each step optionally carries a `setup` hook that runs before
+	// the CLI invocation, a `verify` hook that runs after (used to
+	// assert filesystem state the verb's exit code alone doesn't
+	// capture), and a `verifyOutput` hook that receives the verb's
+	// captured stdout/stderr so an output substring can be asserted.
 	steps := []struct {
-		label  string
-		args   []string
-		setup  func() error
-		verify func() error
+		label        string
+		args         []string
+		setup        func() error
+		verify       func() error
+		verifyOutput func(string) error
 	}{
 		{label: "init", args: []string{"init", "--root", tmp, "--actor", actor}},
 		{label: "whoami", args: []string{"whoami", "--root", tmp}},
@@ -131,6 +132,52 @@ func runSelfCheck() int {
 			},
 		},
 		{label: "check", args: []string{"check", "--root", tmp}},
+		// G33: end-to-end coverage of the audit-only recovery loop.
+		// Adds a fresh gap, then synthesizes a manual untrailered
+		// commit that flips its status, then asserts `aiwf check`
+		// surfaces the warning, then runs `aiwf cancel --audit-only`
+		// to backfill, then asserts the warning has cleared. The
+		// `--since` flag scopes the audit deterministically without
+		// requiring a bare-repo upstream in the self-check fixture.
+		{
+			label: "add gap (audit-only fixture)",
+			args:  []string{"add", "gap", "--title", "audit-only fixture", "--actor", actor, "--root", tmp},
+		},
+		{
+			label: "audit-only fixture: synthetic untrailered flip + check fires",
+			setup: func() error {
+				return synthesizeUntrailedFlip(ctx, tmp, "G-002", "wontfix")
+			},
+			args: []string{"check", "--root", tmp, "--since", "HEAD~2"},
+			verifyOutput: func(out string) error {
+				if !strings.Contains(out, "provenance-untrailered-entity-commit") {
+					return fmt.Errorf("expected provenance-untrailered-entity-commit to fire after manual flip; got:\n%s", out)
+				}
+				if !strings.Contains(out, "G-002") {
+					return fmt.Errorf("warning should name G-002 as the affected entity; got:\n%s", out)
+				}
+				return nil
+			},
+		},
+		{
+			label: "audit-only fixture: cancel --audit-only repairs",
+			args:  []string{"cancel", "G-002", "--audit-only", "--reason", "self-check audit-only loop", "--actor", actor, "--root", tmp},
+		},
+		{
+			label: "audit-only fixture: check no longer fires for G-002",
+			args:  []string{"check", "--root", tmp, "--since", "HEAD~3"},
+			verifyOutput: func(out string) error {
+				// Other untrailered findings (G-001 was cancelled
+				// via the verb, so no warning for it; the only
+				// candidate is G-002). The repair must have cleared
+				// it; the substring "G-002 with no aiwf-verb" must
+				// be absent.
+				if strings.Contains(out, "G-002 with no aiwf-verb") {
+					return fmt.Errorf("audit-only failed to clear G-002 warning; got:\n%s", out)
+				}
+				return nil
+			},
+		},
 		{label: "doctor", args: []string{"doctor", "--root", tmp}},
 		{
 			// upgrade --check exercises version.Current() and the
@@ -181,6 +228,15 @@ func runSelfCheck() int {
 				return exitFindings
 			}
 		}
+		if s.verifyOutput != nil {
+			if err := s.verifyOutput(captured); err != nil {
+				fmt.Printf("  FAIL  %s (verifyOutput: %v)\n", s.label, err)
+				fmt.Println(indent(captured, "        "))
+				fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
+				keep = true
+				return exitFindings
+			}
+		}
 		fmt.Printf("  ok    %s\n", s.label)
 	}
 	fmt.Printf("\nself-check passed (%d steps).\n", len(steps))
@@ -219,6 +275,63 @@ func rewriteAiwfYAMLAutoUpdate(repo string, auto bool) error {
 	out = append(out, "status_md:", fmt.Sprintf("  auto_update: %t", auto), "")
 	if err := os.WriteFile(path, []byte(strings.Join(out, "\n")), 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", path, err)
+	}
+	return nil
+}
+
+// synthesizeUntrailedFlip simulates the G24 hand-edit case: the
+// gap with id `gapID` has its frontmatter status flipped to the
+// named target via direct file edit and a plain `git commit` —
+// no aiwf trailers — so the next `aiwf check` surfaces the
+// untrailered-entity warning. Used by the G33 self-check step
+// that drives the audit-only recovery loop end to end.
+//
+// The gap file lives at `work/gaps/<gapID>-<slug>.md`; we glob
+// the directory to find the slug rather than reproducing the
+// kernel's slug-derivation rules here.
+func synthesizeUntrailedFlip(ctx context.Context, repo, gapID, target string) error {
+	gapDir := filepath.Join(repo, "work", "gaps")
+	entries, err := os.ReadDir(gapDir)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", gapDir, err)
+	}
+	var path string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if strings.HasPrefix(e.Name(), gapID+"-") && strings.HasSuffix(e.Name(), ".md") {
+			path = filepath.Join(gapDir, e.Name())
+			break
+		}
+	}
+	if path == "" {
+		return fmt.Errorf("no gap file matching %s-* under %s", gapID, gapDir)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", path, err)
+	}
+	flipped := strings.Replace(string(raw), "status: open", "status: "+target, 1)
+	if flipped == string(raw) {
+		return fmt.Errorf("expected to flip status: open in %s; file unchanged", path)
+	}
+	if wErr := os.WriteFile(path, []byte(flipped), 0o644); wErr != nil {
+		return fmt.Errorf("writing %s: %w", path, wErr)
+	}
+	relPath, err := filepath.Rel(repo, path)
+	if err != nil {
+		return fmt.Errorf("rel path: %w", err)
+	}
+	for _, args := range [][]string{
+		{"add", relPath},
+		{"commit", "-m", "manual: flip " + gapID + " " + target},
+	} {
+		cmd := exec.CommandContext(ctx, "git", args...)
+		cmd.Dir = repo
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("git %s: %w\n%s", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
+		}
 	}
 	return nil
 }

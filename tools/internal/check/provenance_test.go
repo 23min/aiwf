@@ -407,6 +407,44 @@ func TestRunUntrailedAudit_AuditOnlyOnDifferentEntityDoesNotCover(t *testing.T) 
 	}
 }
 
+// TestRunUntrailedAudit_SquashMergeSubcode covers G31: when the
+// offending untrailered commit's subject matches GitHub's default
+// squash-merge pattern (ends in ` (#NNN)`), the finding fires
+// with subcode `squash-merge`. A subject without that suffix
+// produces the bare code only.
+func TestRunUntrailedAudit_SquashMergeSubcode(t *testing.T) {
+	tests := []struct {
+		name        string
+		subject     string
+		wantSubcode string
+	}{
+		{"github default", "feat(api): add caching (#42)", "squash-merge"},
+		{"plain hand-edit", "manual: flip G-001 wontfix", ""},
+		{"prose with parens", "fix bug (the second one)", ""},
+		{"single-digit PR", "chore: minor tweak (#1)", "squash-merge"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := RunUntrailedAudit([]UntrailedCommit{
+				{
+					SHA:     "abc1234",
+					Subject: tt.subject,
+					Paths:   []string{"work/gaps/G-001-leak.md"},
+				},
+			})
+			if len(got) != 1 {
+				t.Fatalf("findings = %d, want 1; got %v", len(got), got)
+			}
+			if got[0].Code != CodeProvenanceUntrailedEntityCommit {
+				t.Errorf("code = %q, want %q", got[0].Code, CodeProvenanceUntrailedEntityCommit)
+			}
+			if got[0].Subcode != tt.wantSubcode {
+				t.Errorf("subcode = %q, want %q", got[0].Subcode, tt.wantSubcode)
+			}
+		})
+	}
+}
+
 // TestRunUntrailedAudit_PerEntityFindings: a single manual commit
 // touching three entity files emits three findings, one per
 // entity. Each finding carries the entity id; messages are short

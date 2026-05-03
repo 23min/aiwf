@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
@@ -9,6 +10,16 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/scope"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 )
+
+// squashMergeSubjectRE matches GitHub's default squash-merge
+// commit subject pattern: any prose followed by ` (#NNN)` at end.
+// Used to specialize the untrailered-entity-commit warning so the
+// hint can point at the merge-strategy gotcha and the audit-only
+// repair path (G31). False positives are commits whose subject
+// genuinely ends with a parenthesised issue number; the bare
+// warning would fire on them anyway, so the worst case is a
+// slightly-too-specific hint, not a missed finding.
+var squashMergeSubjectRE = regexp.MustCompile(`\s\(#\d+\)$`)
 
 // Provenance finding codes — the I2.5 standing rules from
 // docs/pocv3/design/provenance-model.md §"`aiwf check` rules". Each
@@ -295,10 +306,17 @@ func provenanceAuthorizationFindings(
 }
 
 // UntrailedCommit is the input shape for RunUntrailedAudit: the
-// commit's SHA, its trailer set, and the relative paths it touched
-// (as reported by `git diff-tree`).
+// commit's SHA, its subject (first line of the message), its
+// trailer set, and the relative paths it touched (as reported by
+// `git diff-tree`).
+//
+// The Subject is consulted to specialize the warning when the
+// commit looks like a GitHub squash-merge ("…(#NNN)" suffix) —
+// see G31. It can be left empty by callers that don't need that
+// specialization; the bare warning still fires.
 type UntrailedCommit struct {
 	SHA      string
+	Subject  string
 	Trailers []gitops.Trailer
 	Paths    []string
 }
@@ -381,12 +399,22 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 			idSeen[id] = true
 			touchedIDs = append(touchedIDs, id)
 		}
+		// Specialize when the commit looks like a GitHub squash-
+		// merge — its subject ends with " (#NNN)". Source-commit
+		// trailers were dropped by the GitHub UI; the hint should
+		// name that explicitly so operators don't think it's a
+		// hand-edit they can fix with the same recipe (G31).
+		subcode := ""
+		if squashMergeSubjectRE.MatchString(c.Subject) {
+			subcode = "squash-merge"
+		}
 		for _, id := range touchedIDs {
 			if isEntityCoveredByLaterAudit(id, i, auditAt) {
 				continue
 			}
 			findings = append(findings, Finding{
 				Code:     CodeProvenanceUntrailedEntityCommit,
+				Subcode:  subcode,
 				Severity: SeverityWarning,
 				EntityID: id,
 				Message: fmt.Sprintf("commit %s touched %s with no aiwf-verb: trailer",

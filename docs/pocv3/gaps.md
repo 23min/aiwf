@@ -354,6 +354,82 @@ Severity: **Medium**. Doesn't affect correctness in any of the standing rules (p
 
 ---
 
+<a id="g31"></a>
+### G31. Squash-merge from the GitHub UI defeats the trailer-survival contract — **resolved**
+
+When a PR is squash-merged via GitHub's UI (the default merge strategy for many repos), the resulting commit on the integration branch carries a synthesized message — typically the PR title plus the body, sometimes a list of squashed commit subjects. **Trailers from individual commits are not preserved**. A feature branch with five well-formed `aiwf <verb>` commits squash-merged via the UI lands one trailer-less commit on `main`; every entity transition from those five commits is invisible to `aiwf history <id>` against the merged tree (the only commits that carried `aiwf-verb:` trailers no longer reach HEAD via first-parent).
+
+This breaks the framework's central correctness story ("git log is the audit log") on the most common GitHub merge strategy. Surfaced during the G24 follow-up audit (after issue #5 + G30 closed): merge surfaces had not been re-walked end-to-end since I2.5, and squash-merge had no detection.
+
+**Resolution path:**
+
+A subcode under the existing `provenance-untrailered-entity-commit` finding flags the case explicitly so the operator gets a more specific hint:
+
+- *Detection.* `RunUntrailedAudit` matches the commit's subject against the GitHub squash-merge regex `\s\(#\d+\)$` (PR title followed by ` (#NNN)`). When a flagged untrailered commit fits the pattern, the finding is emitted with subcode `squash-merge`. The default `(provenance-untrailered-entity-commit)` finding still applies; the subcode just specializes the hint.
+- *Hint.* The hint table entry for the subcode names the merge-strategy gotcha and the recovery path: switch the repo to rebase-merge or `--no-ff` merge for branches that touch entity files, or run `aiwf <verb> <id> --audit-only --reason "..."` per entity touched.
+- *Skill text.* `aiwf-check` SKILL.md gains a row for the subcode pointing at the same recovery path.
+- *Pinned by* `TestRunUntrailedAudit_SquashMergeSubcode`: a fixture commit with subject `… (#42)` touching an entity file emits the finding with subcode `squash-merge`; subjects without that suffix produce the bare code.
+
+What this fix does NOT do: recover trailers from a squash-merged commit's source SHAs (would require walking GitHub's `refs/pull/<N>/head` references — out of scope for the kernel). The detection surfaces the gap; the audit-only recovery path is the operator's lever to backfill what the squash-merge dropped.
+
+**Limitations:**
+
+- Detection is opportunistic: it fires only while the squash commit is in the audit's `@{u}..HEAD` (or `--since`) range. After the operator pushes/pulls, the squash commit becomes `@{u}` and is no longer scanned. The companion README entry under "Known limitations" frames squash-merge as something the operator should re-audit on the integration-branch *before* pushing further.
+- The regex matches the GitHub default. Custom squash-commit-message templates that drop the `(#NNN)` suffix won't trigger the subcode (the bare warning still fires; only the hint specializes).
+
+Severity: **High**. Real audit-trail hole on the dominant merge strategy; the framework's central promise depended on a pattern most consumers don't follow by default. Fixed by detection + hint + skill update, plus a known-limitation note in the README.
+
+---
+
+<a id="g32"></a>
+### G32. Merge commits silently bypass the untrailered-entity audit — **resolved**
+
+`readUntrailedCommits` ran `git log --name-only`, which by default shows **no file list for merge commits** (true merge commits show diff content only with `-m` or `--cc`). A merge commit that absorbs entity-file changes from a feature branch produces an empty `Paths` slice, and `RunUntrailedAudit` skips it.
+
+Concrete: trunk has G-001 at `open`. A feature branch makes a manual commit changing G-001 to `wontfix`. Operator merges feature → trunk via `git merge --no-ff feature`. The merge commit's message lacks aiwf trailers; its `--name-only` is empty. The audit pass on trunk says nothing — even though the audit-trail hole is real (no `aiwf-verb:` trailer ever recorded G-001's transition).
+
+This was salvageable on the *feature* branch (the original untrailered commit was flagged before merge), but only if the operator ran `aiwf check` between the manual commit and the merge. Feature → merge → push without an interim check left the warning silent on the merge commit itself. A merge commit that itself made changes (conflict resolution touching entity files) was also silent.
+
+**Resolution path:**
+
+`readUntrailedCommits` now invokes `git log -m --first-parent`. Combined effects:
+
+- *`--first-parent`*: walks first-parent ancestry of the integration branch only. Feature-branch commits are NOT shown (correctly — they're the feature branch's own warning scope). Merge commits ARE shown.
+- *`-m`*: causes merge commits to show diffs against their first parent — i.e., the changes the merge introduced into the integration branch. Entity-file paths flow into the audit pass.
+
+Together: a merge that brings in feature-branch entity-file changes surfaces those file paths. Per-(commit, entity) findings (post-G30) fire on each touched entity. Audit-only on the integration branch clears them via the same per-entity suppression path.
+
+**Limitations:**
+
+- Octopus merges (3+ parents) are rare and produce one record per non-first-parent diff under `-m`; the existing per-entity dedupe inside the loop handles the common case (an octopus that brings the same entity from multiple branches collapses to one finding per entity at the loop level).
+- A merge commit that introduces NO new entity-file changes (the integration branch already had everything) produces an empty path list and stays silent — correct behavior.
+
+Pinned by `TestRunUntrailedAudit_MergeCommitSurface` (in `tools/cmd/aiwf/show_scopes_unit_test.go` next to the existing `--since` tests): a fixture with a merge commit whose second parent introduced an entity-file change is flagged.
+
+Severity: **Medium**. Doesn't compromise correctness — `aiwf check` still fires on the original commit on the feature branch — but loses signal at the integration-branch boundary, which is exactly when the operator's last chance to repair lives.
+
+---
+
+<a id="g33"></a>
+### G33. `aiwf doctor --self-check` doesn't exercise the audit-only recovery path — **resolved**
+
+The G24 recovery story has three load-bearing pieces (manual commit detection, `--audit-only` empty-diff repair, lock-contention diagnostics in `Apply`). Self-check covered init / add / promote / cancel / render / etc., but did not drive the recovery loop end-to-end. A regression in the suppression rule (issue #5's all-or-nothing was such a regression) wouldn't be caught by CI's self-check stage; it'd ship until a user noticed.
+
+**Resolution path:**
+
+New self-check step (after the existing `cancel` step) that:
+
+1. Synthesizes a manual untrailered commit that touches an entity file.
+2. Runs `aiwf check`; asserts a `provenance-untrailered-entity-commit` finding with the expected entity-id is present.
+3. Runs `aiwf cancel <id> --audit-only --reason "self-check"`.
+4. Runs `aiwf check`; asserts the previously-emitted finding for that entity is gone.
+
+The step also exercises the per-entity suppression that issue #5 fixed — a regression in that path would fail the assertion at step 4.
+
+Severity: **Medium**. CI safety-net pattern, same shape as G9's "self-check covers every verb" rule. Small fix; pinned the recovery path that until now was only covered by unit tests in `tools/internal/check/provenance_test.go`.
+
+---
+
 ## Status matrix
 
 | ID  | Title                                                       | Severity | Status |
@@ -387,6 +463,9 @@ Severity: **Medium**. Doesn't affect correctness in any of the standing rules (p
 | G27 | Test-the-seam policy missing — verb-level integration tests skipped the cmd → helper integration | Medium | [x] `f810a86` |
 | G28 | `version.Latest()` test was implementation-driven, not contract-driven — stale `/@latest` cache went unnoticed | Medium | [x] `f810a86` |
 | G29 | Pseudo-version regex was example-driven, not spec-driven — initial test set missed two of three forms plus `+dirty` | Low | [x] `f810a86` |
-| G30 | `git log --grep` false-positives leak prose-mention commits into Recent activity / `aiwf history` | Medium | [x] (this commit) |
+| G30 | `git log --grep` false-positives leak prose-mention commits into Recent activity / `aiwf history` | Medium | [x] `7141f2a` |
+| G31 | Squash-merge from the GitHub UI defeats the trailer-survival contract | High | [x] (this commit) |
+| G32 | Merge commits silently bypass the untrailered-entity audit | Medium | [x] (this commit) |
+| G33 | `aiwf doctor --self-check` doesn't exercise the audit-only recovery path | Medium | [x] (this commit) |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

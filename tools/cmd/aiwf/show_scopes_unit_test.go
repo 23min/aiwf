@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -310,9 +312,92 @@ func TestReadUntrailedCommits_EmptyRange(t *testing.T) {
 	}
 }
 
+// TestReadUntrailedCommits_MergeCommitSurface covers G32: a merge
+// commit on the integration branch that brings in entity-file
+// changes from a feature branch must surface those paths to the
+// audit pass. Pre-fix the default `git log --name-only` showed no
+// file list for merge commits and the audit silently skipped them.
+// Post-fix `-m --first-parent` makes the merge commit's introduced
+// changes (against its first parent) visible, so per-(commit,
+// entity) findings fire on the integration branch boundary.
+func TestReadUntrailedCommits_MergeCommitSurface(t *testing.T) {
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q", "-b", "main"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+		{"config", "commit.gpgsign", "false"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	// Initial empty commit on main so we have a base.
+	if out, err := runGit(root, "commit", "--allow-empty", "-m", "seed"); err != nil {
+		t.Fatalf("seed: %v\n%s", err, out)
+	}
+	baseSHA, gErr := runGit(root, "rev-parse", "HEAD")
+	if gErr != nil {
+		t.Fatalf("rev-parse HEAD: %v", gErr)
+	}
+	base := strings.TrimSpace(baseSHA)
+
+	// Feature branch with one untrailered commit touching G-001.
+	if out, gErr := runGit(root, "checkout", "-q", "-b", "feature"); gErr != nil {
+		t.Fatalf("checkout: %v\n%s", gErr, out)
+	}
+	gapDir := filepath.Join(root, "work", "gaps")
+	if mkErr := os.MkdirAll(gapDir, 0o755); mkErr != nil {
+		t.Fatal(mkErr)
+	}
+	gapPath := filepath.Join(gapDir, "G-001-leak.md")
+	if wErr := os.WriteFile(gapPath, []byte("---\nid: G-001\nstatus: wontfix\n---\n"), 0o644); wErr != nil {
+		t.Fatal(wErr)
+	}
+	if out, gErr := runGit(root, "add", "work/gaps/G-001-leak.md"); gErr != nil {
+		t.Fatalf("git add: %v\n%s", gErr, out)
+	}
+	if out, gErr := runGit(root, "commit", "-m", "manual: flip G-001 wontfix"); gErr != nil {
+		t.Fatalf("manual commit: %v\n%s", gErr, out)
+	}
+	// Back to main; merge feature with --no-ff so a merge commit lands.
+	if out, gErr := runGit(root, "checkout", "-q", "main"); gErr != nil {
+		t.Fatalf("checkout main: %v\n%s", gErr, out)
+	}
+	if out, gErr := runGit(root, "merge", "--no-ff", "-m", "merge feature into main", "feature"); gErr != nil {
+		t.Fatalf("merge: %v\n%s", gErr, out)
+	}
+
+	// Range scoped to base..HEAD. Pre-fix: zero records (merge has
+	// no name-only output by default; the upstream feature commit
+	// is excluded by --first-parent which means the only candidate
+	// is the merge itself, and without -m it has no paths). Post-
+	// fix: the merge commit appears with G-001's path attached.
+	commits, err := readUntrailedCommits(context.Background(), root, base+"..HEAD")
+	if err != nil {
+		t.Fatalf("readUntrailedCommits: %v", err)
+	}
+	var sawMerge bool
+	for _, c := range commits {
+		if len(c.Paths) == 0 {
+			continue
+		}
+		for _, p := range c.Paths {
+			if strings.HasSuffix(p, "G-001-leak.md") {
+				sawMerge = true
+			}
+		}
+	}
+	if !sawMerge {
+		t.Errorf("expected merge commit to surface G-001's path; got commits=%+v", commits)
+	}
+}
+
 // TestParseUntrailedCommits_Malformed: records that don't have the
-// expected three-field shape are silently skipped. Drives the
-// defensive parsing branch.
+// expected four-field shape (SHA, subject, trailers, paths) are
+// silently skipped. Drives the defensive parsing branch.
 func TestParseUntrailedCommits_Malformed(t *testing.T) {
 	const sep = "\x1f"
 	const rec = "\x1e"
@@ -325,17 +410,17 @@ func TestParseUntrailedCommits_Malformed(t *testing.T) {
 		{"only whitespace", "   \n\n  ", 0},
 		{
 			"one well-formed",
-			rec + "abc1234" + sep + "" + sep + "work/gaps/G-001-x.md",
+			rec + "abc1234" + sep + "feat: thing" + sep + "" + sep + "work/gaps/G-001-x.md",
 			1,
 		},
 		{
 			"one record missing field separator (truncated)",
-			rec + "abc1234" + sep + "only-two-fields",
+			rec + "abc1234" + sep + "only-three-fields" + sep + "trailers",
 			0,
 		},
 		{
 			"two records, second malformed",
-			rec + "aaa1111" + sep + "" + sep + "work/gaps/G-001.md" +
+			rec + "aaa1111" + sep + "feat: a" + sep + "" + sep + "work/gaps/G-001.md" +
 				rec + "bbb2222-no-seps",
 			1,
 		},
