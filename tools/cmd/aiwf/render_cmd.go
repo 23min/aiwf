@@ -152,6 +152,44 @@ func runRenderRoadmap(args []string) int {
 	}
 	defer release()
 
+	// G34: isolate the user's pre-existing staged changes from the
+	// render-roadmap commit. If the user has staged ROADMAP.md
+	// themselves (manual edit), refuse — we can't pick between their
+	// content and the regenerated content. Other staged paths are
+	// pushed onto the stash for the duration of the commit and
+	// popped after.
+	staged, err := gitops.StagedPaths(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf render roadmap: checking pre-staged changes: %v\n", err)
+		return exitInternal
+	}
+	for _, p := range staged {
+		if p == "ROADMAP.md" {
+			fmt.Fprintf(os.Stderr,
+				"aiwf render roadmap: ROADMAP.md is already staged with your own edits.\n"+
+					"  run `git restore --staged ROADMAP.md` (or `git stash`) and re-run.\n")
+			return exitUsage
+		}
+	}
+	stashed := false
+	if len(staged) > 0 {
+		if err := gitops.StashStaged(ctx, rootDir, "aiwf pre-verb stash: render roadmap"); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf render roadmap: stashing pre-staged changes: %v\n", err)
+			return exitInternal
+		}
+		stashed = true
+	}
+	defer func() {
+		if stashed {
+			if popErr := gitops.StashPop(ctx, rootDir); popErr != nil {
+				fmt.Fprintf(os.Stderr,
+					"aiwf render roadmap: restoring your pre-staged changes failed: %v\n"+
+						"  your work is safe in `git stash list`; run `git stash pop` to restore it\n",
+					popErr)
+			}
+		}
+	}()
+
 	if err := os.WriteFile(dest, content, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return exitInternal

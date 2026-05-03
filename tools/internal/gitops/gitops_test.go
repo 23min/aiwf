@@ -1,6 +1,7 @@
 package gitops
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -211,5 +212,150 @@ func TestRun_ErrorIncludesStderr(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "git commit") {
 		t.Errorf("error %q should mention git commit", err.Error())
+	}
+}
+
+// TestStashStaged_PushPopRoundTrip is the gitops-level pin for the
+// G34 stash-isolation primitive: StashStaged pushes only the staged
+// part of the index, leaving the worktree alone; StashPop restores
+// the staging exactly. This is the contract verb.Apply relies on to
+// isolate the user's pre-staged work from a verb's commit while
+// letting the verb's normal `git commit` flow (and any pre-commit
+// hooks that auto-add files) run unchanged.
+func TestStashStaged_PushPopRoundTrip(t *testing.T) {
+	gitTestEnv(t)
+	ctx := context.Background()
+	root := t.TempDir()
+
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "seed.md"), []byte("seed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "seed.md"); err != nil {
+		t.Fatalf("add seed: %v", err)
+	}
+	if err := Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatalf("seed commit: %v", err)
+	}
+
+	// Stage a new file as if the user had work in flight.
+	userPath := filepath.Join(root, "user.md")
+	userContent := []byte("user wip\n")
+	if err := os.WriteFile(userPath, userContent, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "user.md"); err != nil {
+		t.Fatalf("add user: %v", err)
+	}
+
+	// Push the stage onto the stash.
+	if err := StashStaged(ctx, root, "test push"); err != nil {
+		t.Fatalf("StashStaged: %v", err)
+	}
+
+	// After push, the index must be clean of the user's stage.
+	postPush, postPushErr := StagedPaths(ctx, root)
+	if postPushErr != nil {
+		t.Fatalf("StagedPaths after push: %v", postPushErr)
+	}
+	if len(postPush) != 0 {
+		t.Errorf("StashStaged left paths staged: %v", postPush)
+	}
+
+	// Simulate the verb's commit landing — write and commit an
+	// unrelated file. This is the production scenario the stash is
+	// meant to support.
+	if err := os.WriteFile(filepath.Join(root, "verb.md"), []byte("verb\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "verb.md"); err != nil {
+		t.Fatalf("add verb: %v", err)
+	}
+	if err := Commit(ctx, root, "verb commit", "", nil); err != nil {
+		t.Fatalf("verb commit: %v", err)
+	}
+
+	// HEAD captured only verb.md — user's stash content is not in HEAD.
+	headFiles, headErr := output(ctx, root, "show", "--name-only", "--format=", "HEAD")
+	if headErr != nil {
+		t.Fatal(headErr)
+	}
+	files := strings.Fields(strings.TrimSpace(headFiles))
+	if len(files) != 1 || files[0] != "verb.md" {
+		t.Errorf("HEAD captured wrong paths: %v, want only [verb.md]", files)
+	}
+
+	// Pop the stash; user's stage must be back.
+	if err := StashPop(ctx, root); err != nil {
+		t.Fatalf("StashPop: %v", err)
+	}
+	postPop, postPopErr := StagedPaths(ctx, root)
+	if postPopErr != nil {
+		t.Fatalf("StagedPaths after pop: %v", postPopErr)
+	}
+	want := []string{"user.md"}
+	if diff := cmp.Diff(want, postPop); diff != "" {
+		t.Errorf("StashPop did not restore user's stage (-want +got):\n%s", diff)
+	}
+
+	// Worktree content of the popped file matches what was staged.
+	gotContent, readErr := os.ReadFile(userPath)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if !bytes.Equal(gotContent, userContent) {
+		t.Errorf("worktree content after pop: %q, want %q", gotContent, userContent)
+	}
+}
+
+// TestStagedPaths reports paths in the index that differ from HEAD.
+// Used by Apply's conflict guard; the load-bearing assertions are
+// "clean index → nil/empty" and "staged file → file's path returned."
+func TestStagedPaths(t *testing.T) {
+	gitTestEnv(t)
+	ctx := context.Background()
+	root := t.TempDir()
+
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "seed.md"), []byte("seed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "seed.md"); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	if err := Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	// Clean index → nil.
+	clean, cleanErr := StagedPaths(ctx, root)
+	if cleanErr != nil {
+		t.Fatalf("StagedPaths clean: %v", cleanErr)
+	}
+	if len(clean) != 0 {
+		t.Errorf("clean index returned %v, want empty", clean)
+	}
+
+	// Stage two files; both must appear.
+	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("a\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "b.md"), []byte("b\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "a.md", "b.md"); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	staged, stagedErr := StagedPaths(ctx, root)
+	if stagedErr != nil {
+		t.Fatalf("StagedPaths after stage: %v", stagedErr)
+	}
+	want := []string{"a.md", "b.md"}
+	if diff := cmp.Diff(want, staged); diff != "" {
+		t.Errorf("StagedPaths mismatch (-want +got):\n%s", diff)
 	}
 }

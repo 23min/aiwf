@@ -121,6 +121,65 @@ func CommitAllowEmpty(ctx context.Context, workdir, subject, body string, traile
 	return run(ctx, workdir, "commit", "--allow-empty", "-m", msg)
 }
 
+// StagedPaths returns every path currently staged in the index whose
+// content differs from HEAD. Order is git's order; duplicates are not
+// produced by `git diff --cached --name-only`. Used by verb.Apply to
+// detect overlap between the user's pre-existing staged changes and a
+// verb's about-to-write paths (G34 conflict guard / stash isolation).
+//
+// `-z` null-delimits the output so paths containing spaces, newlines,
+// or other shell-hostile bytes round-trip safely. Empty output (clean
+// index) returns a nil slice.
+func StagedPaths(ctx context.Context, workdir string) ([]string, error) {
+	out, err := output(ctx, workdir, "diff", "--cached", "--name-only", "-z")
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+	parts := strings.Split(strings.TrimRight(out, "\x00"), "\x00")
+	paths := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p == "" {
+			continue
+		}
+		paths = append(paths, p)
+	}
+	return paths, nil
+}
+
+// StashStaged sets aside the user's currently-staged changes so the
+// verb's commit boundary is exactly the verb's mutation plus any
+// hook-added files (notably the pre-commit STATUS.md regeneration).
+// Pair with StashPop after the commit lands.
+//
+// `git stash push --staged` (git ≥ 2.35) stashes only what's in the
+// index; the worktree side of those paths is left alone. Untracked
+// files and unstaged worktree edits are not affected. The message is
+// stamped into the stash entry so a subsequent `git stash list`
+// makes the source obvious if recovery becomes manual.
+//
+// G34 background: switched from `git commit -- <paths>` (--only) to
+// stash because pre-commit hooks that `git add` extra files (like
+// the aiwf STATUS.md hook) interact poorly with --only — git records
+// the hook's addition in HEAD but resets the post-commit index to
+// only the explicitly-named paths, leaving a phantom staged-deletion
+// behind. Stash gives the verb a clean index to commit against
+// without disturbing hook semantics.
+func StashStaged(ctx context.Context, workdir, message string) error {
+	return run(ctx, workdir, "stash", "push", "--staged", "--quiet", "-m", message)
+}
+
+// StashPop restores the most recently stashed entry into the index,
+// reversing StashStaged. Errors propagate verbatim — a pop failure
+// after the verb's commit landed is recoverable by hand
+// (`git stash list` / `git stash pop`); the kernel does not silently
+// drop the stash.
+func StashPop(ctx context.Context, workdir string) error {
+	return run(ctx, workdir, "stash", "pop", "--quiet")
+}
+
 // IsRepo reports whether workdir is inside a git working tree.
 func IsRepo(ctx context.Context, workdir string) bool {
 	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--is-inside-work-tree")

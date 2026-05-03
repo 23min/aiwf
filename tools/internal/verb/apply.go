@@ -28,8 +28,41 @@ import (
 // rollback. The repo ends up exactly as if Apply had never been
 // called. This preserves the framework's "every mutating verb
 // produces exactly one git commit" guarantee under partial failure.
+//
+// G34 isolation: the verb's commit must capture exactly the verb's
+// mutation (plus whatever pre-commit hooks add — notably the aiwf
+// STATUS.md regenerator), and nothing of the user's pre-existing
+// staged work. Apply enforces this in two halves:
+//
+//  1. Conflict guard. If the user has staged a path the verb is
+//     about to write, refuse before any disk mutation — the two
+//     intents disagree on what to commit, and the kernel will not
+//     silently pick one. Error names the conflicting path and
+//     points at `git restore --staged` / `git stash`.
+//
+//  2. Stash isolation. If the user has staged anything else, those
+//     entries are pushed onto the stash for the duration of the
+//     commit and popped after. The verb runs against a clean index,
+//     hooks fire normally (their `git add` lands in the verb's
+//     commit), and the user's staged work is restored after.
 func Apply(ctx context.Context, root string, p *Plan) (err error) {
+	verbPaths := planPaths(p)
+	staged, stagedErr := gitops.StagedPaths(ctx, root)
+	if stagedErr != nil {
+		return fmt.Errorf("checking pre-staged changes: %w", stagedErr)
+	}
+	if conflictErr := checkStagedConflict(staged, verbPaths); conflictErr != nil {
+		return conflictErr
+	}
+
 	tx := &applyTx{root: root, ctx: ctx}
+	if len(staged) > 0 {
+		stashMsg := fmt.Sprintf("aiwf pre-verb stash: %s", p.Subject)
+		if stashErr := gitops.StashStaged(ctx, root, stashMsg); stashErr != nil {
+			return fmt.Errorf("stashing pre-staged changes for verb isolation: %w", stashErr)
+		}
+		tx.stashed = true
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			_ = tx.rollback()
@@ -38,6 +71,22 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		if err != nil {
 			if rbErr := tx.rollback(); rbErr != nil { //coverage:ignore defensive: requires both primary error and rollback failure simultaneously
 				err = fmt.Errorf("%w (rollback also failed: %v — manual cleanup may be needed)", err, rbErr)
+			}
+			return
+		}
+		// Success path: pop the stash so the user's staged work is
+		// back in the index for their next commit. A pop failure
+		// here is reported but does not retroactively fail the
+		// verb's commit (which already landed); the user can
+		// recover with `git stash pop` and `git stash list`.
+		if tx.stashed {
+			tx.stashed = false
+			if popErr := gitops.StashPop(ctx, root); popErr != nil {
+				err = fmt.Errorf(
+					"verb commit landed but restoring your pre-staged changes failed: %w\n"+
+						"  your work is safe in `git stash list`; run `git stash pop` to restore it",
+					popErr,
+				)
 			}
 		}
 	}()
@@ -89,6 +138,71 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 	}
 	tx.committed = true
 	return nil
+}
+
+// planPaths returns the union of every path a Plan touches: every
+// OpMove's source and destination, plus every OpWrite's path. The
+// commit step uses this set to scope `git commit -- <paths>` so the
+// commit boundary is the verb's mutation rather than the entire
+// index. Order matches git's typical iteration (moves first, then
+// writes); duplicates are removed.
+//
+// A plan with only AllowEmpty (authorize, audit-only) and no Ops
+// returns nil — there's no diff to scope, and the commit becomes a
+// trailers-only `git commit --allow-empty` with no pathspec.
+func planPaths(p *Plan) []string {
+	if p == nil || len(p.Ops) == 0 {
+		return nil
+	}
+	paths := make([]string, 0, len(p.Ops)*2)
+	for _, op := range p.Ops {
+		switch op.Type {
+		case OpMove:
+			paths = append(paths, op.Path, op.NewPath)
+		case OpWrite:
+			paths = append(paths, op.Path)
+		}
+	}
+	return dedupePaths(paths)
+}
+
+// checkStagedConflict refuses Apply when the user has already staged
+// content for a path the verb is about to write or rename. The two
+// intents (the user's staged content for that path, the verb's
+// computed content) cannot both land in the verb's commit. Stashing
+// would lose the user's staged version (the verb's worktree write
+// already overwrote it on disk), so we refuse before any mutation.
+//
+// Pre-staged paths *outside* the verb's path set are isolated by the
+// stash dance in Apply, not by this guard — they survive the verb's
+// commit and are restored to the index after. The error message names
+// every conflicting path and points the user at `git restore --staged`
+// / `git stash` so recovery is mechanical.
+func checkStagedConflict(staged, verbPaths []string) error {
+	if len(staged) == 0 || len(verbPaths) == 0 {
+		return nil
+	}
+	verbSet := make(map[string]bool, len(verbPaths))
+	for _, p := range verbPaths {
+		verbSet[p] = true
+	}
+	var conflicts []string
+	for _, p := range staged {
+		if verbSet[p] {
+			conflicts = append(conflicts, p)
+		}
+	}
+	if len(conflicts) == 0 {
+		return nil
+	}
+	return fmt.Errorf(
+		"pre-staged changes overlap with this verb's writes: %s\n"+
+			"  the verb cannot decide between your staged content and the content it computed\n"+
+			"  run `git restore --staged %s` to unstage your changes, or `git stash` to set them aside,\n"+
+			"  then re-run the verb — unrelated staged paths survive the verb's commit",
+		strings.Join(conflicts, ", "),
+		strings.Join(conflicts, " "),
+	)
 }
 
 // classifyGitError inspects a git CLI failure (mv, add, or commit)
@@ -218,35 +332,50 @@ type applyTx struct {
 	ctx          context.Context
 	touchedPaths []string // every path that may need restoring (sources + dests)
 	createdFiles []string // brand-new files that didn't exist at HEAD; remove on rollback
-	committed    bool     // when true, rollback is a no-op
+	committed    bool     // when true, rollback is a no-op for the verb's mutations
+	stashed      bool     // when true, the user's pre-existing stage was pushed; rollback pops it
 }
 
 // rollback restores the worktree and index to HEAD for every touched
-// path, then removes any brand-new files. Safe to call multiple
-// times. Returns the first non-nil error encountered.
+// path, removes any brand-new files, and (if the user's stage was
+// pushed for verb isolation) pops it back into the index. Safe to
+// call multiple times. Returns the first non-nil error encountered.
+//
+// Stash pop runs even when committed=true is false, because a partial
+// failure between stash-push and commit-success leaves the stash on
+// the stack — we must restore the user's index regardless of whether
+// the verb's mutations rolled back.
 func (t *applyTx) rollback() error {
-	if t == nil || t.committed {
+	if t == nil {
 		return nil
 	}
-	if len(t.touchedPaths) == 0 && len(t.createdFiles) == 0 {
-		return nil
-	}
-	dedup := dedupePaths(t.touchedPaths)
-	// `git restore --staged --worktree -- <paths>` undoes index +
-	// worktree changes for tracked paths. For paths that didn't
-	// exist at HEAD (newly created files) git restore yields a
-	// "pathspec did not match" warning but still resets staged
-	// state for the existing paths. We then explicitly remove the
-	// new files from the worktree and from the index.
 	var firstErr error
-	if rErr := restorePaths(t.ctx, t.root, dedup); rErr != nil {
-		firstErr = rErr
-	}
-	for _, p := range t.createdFiles {
-		full := filepath.Join(t.root, p)
-		if rmErr := os.Remove(full); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) && firstErr == nil {
-			firstErr = fmt.Errorf("removing %s: %w", p, rmErr)
+	if !t.committed && (len(t.touchedPaths) > 0 || len(t.createdFiles) > 0) {
+		dedup := dedupePaths(t.touchedPaths)
+		// `git restore --staged --worktree -- <paths>` undoes index +
+		// worktree changes for tracked paths. For paths that didn't
+		// exist at HEAD (newly created files) git restore yields a
+		// "pathspec did not match" warning but still resets staged
+		// state for the existing paths. We then explicitly remove the
+		// new files from the worktree and from the index.
+		if rErr := restorePaths(t.ctx, t.root, dedup); rErr != nil {
+			firstErr = rErr
 		}
+		for _, p := range t.createdFiles {
+			full := filepath.Join(t.root, p)
+			if rmErr := os.Remove(full); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) && firstErr == nil {
+				firstErr = fmt.Errorf("removing %s: %w", p, rmErr)
+			}
+		}
+	}
+	if t.stashed {
+		// Restore the user's pre-existing stage. If pop fails (e.g.,
+		// a worktree change conflicts), the entry is preserved in
+		// `git stash list`; the user can recover manually.
+		if popErr := gitops.StashPop(t.ctx, t.root); popErr != nil && firstErr == nil {
+			firstErr = fmt.Errorf("popping pre-verb stash on rollback: %w (run `git stash pop` to restore your work)", popErr)
+		}
+		t.stashed = false
 	}
 	return firstErr
 }
