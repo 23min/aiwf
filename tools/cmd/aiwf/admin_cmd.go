@@ -20,6 +20,7 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
 	"github.com/23min/ai-workflow-v2/tools/internal/skills"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
+	"github.com/23min/ai-workflow-v2/tools/internal/version"
 )
 
 // runInit handles `aiwf init`: writes aiwf.yaml, scaffolds entity
@@ -681,7 +682,17 @@ func runDoctor(args []string) int {
 // doctorReport collects every doctor finding into a slice of human
 // strings and returns the count of problems. Pure for testability.
 func doctorReport(rootDir string) (lines []string, problems int) {
-	// 1. Version check.
+	// 1. Binary version (advisory). Always shown; reads from
+	//    runtime/debug.ReadBuildInfo via version.Current().
+	current := version.Current()
+	lines = append(lines, fmt.Sprintf("binary:    %s", renderBinaryVersion(current)))
+
+	// 2. aiwf.yaml presence + pin coherence (advisory). Pin coherence
+	//    compares the aiwf_version: field against the running binary
+	//    via version.Compare; mismatches surface as advisory rows
+	//    rather than incrementing the problem count (the pin records
+	//    intent, not enforcement). Load-error states still increment
+	//    problems — those are real config faults.
 	cfg, err := config.Load(rootDir)
 	switch {
 	case errors.Is(err, config.ErrNotFound):
@@ -690,11 +701,11 @@ func doctorReport(rootDir string) (lines []string, problems int) {
 	case err != nil:
 		lines = append(lines, "config:    "+err.Error())
 		problems++
-	case cfg.AiwfVersion != Version:
-		lines = append(lines, fmt.Sprintf("config:    aiwf.yaml requests aiwf_version=%s, binary is %s", cfg.AiwfVersion, Version))
-		problems++
 	default:
 		lines = append(lines, fmt.Sprintf("config:    ok (aiwf_version=%s)", cfg.AiwfVersion))
+		if cfg.AiwfVersion != "" {
+			lines = append(lines, "pin:       "+renderPinCoherence(current, cfg.AiwfVersion))
+		}
 		if cfg.LegacyActor != "" {
 			// Pre-I2.5 `actor:` field. Identity is now runtime-derived
 			// (per provenance-model.md); the file's value is ignored.
@@ -1039,6 +1050,64 @@ func skillDrift(rootDir string, embedded []skills.Skill) (drifted, missing []str
 		}
 	}
 	return drifted, missing
+}
+
+// renderBinaryVersion formats a version.Info for the doctor binary
+// row: the version string plus a parenthetical state ("tagged",
+// "working-tree build", "pseudo-version"). Mirrors the upgrade
+// verb's renderVersionLabel; kept separate to avoid an admin →
+// upgrade dependency.
+func renderBinaryVersion(info version.Info) string {
+	switch {
+	case info.Version == version.DevelVersion:
+		return info.Version + " (working-tree build)"
+	case strings.HasSuffix(info.Version, "+dirty"):
+		return info.Version + " (working-tree build)"
+	case info.Tagged:
+		return info.Version + " (tagged)"
+	default:
+		return info.Version + " (pseudo-version)"
+	}
+}
+
+// renderPinCoherence formats the doctor pin: row. Compares the
+// aiwf.yaml `aiwf_version:` value against the running binary and
+// returns one of:
+//
+//	matches binary
+//	pinned X, binary newer (Y) — update pin or roll back binary
+//	pinned X, binary older (Y) — run aiwf upgrade
+//	pinned X, binary at Y — skew unknown (devel or pre-release)
+//
+// Advisory only: the verb does not increment the doctor problem
+// count regardless of skew. Hardening the pin into a refusal is a
+// deliberate decision filed for later.
+func renderPinCoherence(current version.Info, pinRaw string) string {
+	pin := version.Parse(pinValueWithVPrefix(pinRaw))
+	switch version.Compare(current, pin) {
+	case version.SkewEqual:
+		return "matches binary (" + pinRaw + ")"
+	case version.SkewAhead:
+		return fmt.Sprintf("pinned %s, binary newer (%s) — update pin or roll back binary", pinRaw, current.Version)
+	case version.SkewBehind:
+		return fmt.Sprintf("pinned %s, binary older (%s) — run `aiwf upgrade`", pinRaw, current.Version)
+	default:
+		return fmt.Sprintf("pinned %s, binary at %s — skew unknown (devel or pre-release on either side)", pinRaw, current.Version)
+	}
+}
+
+// pinValueWithVPrefix normalizes the aiwf.yaml pin value for
+// version.Parse: aiwf.yaml has historically shipped pins as bare
+// "0.1.0" (no leading 'v'), while semver tooling (and the proxy)
+// expects "v0.1.0". Add the prefix when missing.
+func pinValueWithVPrefix(raw string) string {
+	if raw == "" {
+		return raw
+	}
+	if strings.HasPrefix(raw, "v") {
+		return raw
+	}
+	return "v" + raw
 }
 
 // resolveInitRoot picks the root directory for `aiwf init`. Unlike

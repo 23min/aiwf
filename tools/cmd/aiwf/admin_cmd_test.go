@@ -11,7 +11,15 @@ import (
 	"testing"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/initrepo"
+	"github.com/23min/ai-workflow-v2/tools/internal/version"
 )
+
+// parseVersionForTest is a tiny adapter so tests can keep producing
+// version.Info values from raw strings without importing the
+// version package at every call site.
+func parseVersionForTest(raw string) version.Info {
+	return version.Parse(raw)
+}
 
 // TestRun_InitThroughDispatcher confirms `aiwf init` wires through the
 // dispatcher: scaffolds dirs, writes aiwf.yaml, materializes skills,
@@ -675,29 +683,37 @@ func TestRun_DoctorReportsRuntimeIdentity(t *testing.T) {
 }
 
 // TestRun_DoctorVersionSkew exercises the path where aiwf.yaml's
-// aiwf_version differs from the binary's Version constant. The CLI
-// should exit with `findings` and the report should mention both
-// values so the user knows what changed.
+// aiwf_version differs from the running binary. Per
+// upgrade-flow-plan.md, pin coherence is *advisory* — the doctor
+// surfaces the mismatch on a `pin:` row but does not increment the
+// problem count. Hardening the pin into a refusal is a deliberate
+// later decision.
 func TestRun_DoctorVersionSkew(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	// Replace aiwf.yaml with a version that does not match Version.
+	// Replace aiwf.yaml with a version that does not match the binary.
 	contents := []byte("aiwf_version: 9.9.9-skew\n")
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	lines, problems := doctorReport(root)
-	if problems == 0 {
-		t.Errorf("expected version-skew problem, got clean report:\n%s", strings.Join(lines, "\n"))
-	}
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "9.9.9-skew") || !strings.Contains(joined, Version) {
-		t.Errorf("report should mention both versions; got:\n%s", joined)
+	if !strings.Contains(joined, "9.9.9-skew") {
+		t.Errorf("report should name the pin value; got:\n%s", joined)
 	}
-	if rc := run([]string{"doctor", "--root", root}); rc != exitFindings {
-		t.Errorf("CLI exit on version skew = %d, want %d", rc, exitFindings)
+	if !strings.Contains(joined, "pin:") {
+		t.Errorf("report should carry a `pin:` advisory row; got:\n%s", joined)
+	}
+	// Skew is advisory; the only problems should come from unrelated
+	// rows (none in a fresh init repo). Running doctor exits exitOK
+	// when the only difference vs. green is the pin.
+	if problems != 0 {
+		t.Errorf("pin skew should be advisory (problems=0); got problems=%d:\n%s", problems, joined)
+	}
+	if rc := run([]string{"doctor", "--root", root}); rc != exitOK {
+		t.Errorf("CLI exit on advisory pin skew = %d, want %d", rc, exitOK)
 	}
 }
 
@@ -783,10 +799,38 @@ func TestDoctorReport_Contents(t *testing.T) {
 		t.Errorf("problems = %d on a fresh init, want 0\n%s", problems, strings.Join(lines, "\n"))
 	}
 	joined := strings.Join(lines, "\n")
-	for _, want := range []string{"config:", "skills:", "ids:"} {
+	for _, want := range []string{"binary:", "config:", "skills:", "ids:"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("report missing %q:\n%s", want, joined)
 		}
+	}
+}
+
+// TestRenderPinCoherence covers the four cases the pin: row can
+// produce. Cases use Parse-able inputs directly so the test does
+// not depend on runtime/debug.ReadBuildInfo state.
+func TestRenderPinCoherence(t *testing.T) {
+	cases := []struct {
+		name    string
+		current string
+		pinRaw  string
+		wantSub string
+	}{
+		{"matches", "v0.1.0", "v0.1.0", "matches binary"},
+		{"matches no v prefix", "v0.1.0", "0.1.0", "matches binary"},
+		{"binary newer", "v0.2.0", "v0.1.0", "binary newer"},
+		{"binary older", "v0.1.0", "v0.2.0", "binary older"},
+		{"unknown — devel binary", "(devel)", "v0.1.0", "skew unknown"},
+		{"unknown — pre-release pin", "v0.1.0", "v0.1.0-rc1", "skew unknown"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := renderPinCoherence(parseVersionForTest(tc.current), tc.pinRaw)
+			if !strings.Contains(got, tc.wantSub) {
+				t.Errorf("renderPinCoherence(%q, %q) = %q, want substring %q",
+					tc.current, tc.pinRaw, got, tc.wantSub)
+			}
+		})
 	}
 }
 
