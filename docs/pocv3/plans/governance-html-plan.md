@@ -462,6 +462,15 @@ If real friction shows up later, revisit. YAGNI.
 | 6 — cross-cutting render details | shipped within step 5 (status pills, force/audit chips, policy badge, `:target` show/hide, determinism) | core |
 | 7 — documentation | shipped (this commit; README HTML render section + `aiwf doctor` render report) | core |
 
+**Post-step-7 polish landed for the v0.2.0 cut:**
+
+- Linear-leaning palette with `color-mix()` pills, accent stripe, kicker, tabular nums, `prefers-color-scheme` dark mode (`cce0c21`, `119879c`).
+- Stylesheet cache-busting via content-hash query string for `file://` reloads (`302de69`).
+- Two-column layout with a left navigation panel (`<details>`/`<summary>` per epic, current-page ancestors pre-expanded, `aria-current="page"` on the active link, mobile stacks below 768px) (`9b88108`).
+- Three-bar SVG brand mark + `aiwf` wordmark in the sidebar; standalone export at `docs/logo.svg` (`fefb354`).
+- `status.html` integrated as a rendered page reusing `buildStatus` + `readRecentActivity` (`44ea40b`).
+- v0.2.0 release-prep cleanup — sidebar reordered (`Project status` precedes `Overview`), legacy `actor:` field stripped on `aiwf update`, `aiwf-render` skill, `aiwf render --help` (`406ac48`).
+
 **Out of scope for this iteration (deferred to real-use friction):**
 
 - The `--scope <id>` and `--no-history` flags on `aiwf render --format=html` are accepted but not yet implemented — both are reserved seams that surface in the help text. Step 4's `runRenderSite` walks the full tree on every invocation; partial-tree rendering is a follow-on if iteration speed becomes painful.
