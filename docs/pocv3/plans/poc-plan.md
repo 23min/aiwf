@@ -224,7 +224,7 @@ Plans that exist as proposals but have no implementation commits yet. Sub-iterat
 |---|---|---|---|
 | **I3** | [`governance-html-plan.md`](governance-html-plan.md) | shipped (steps 1–7 + v0.2.0 polish: palette, sidebar, status page, brand mark, cache-busting; see plan status table §11) | Static-site HTML render of canonical planning state (per-repo governance page). |
 | (untiered) | [`status-report-plan.md`](status-report-plan.md) | shipped (`renderStatusMarkdown` + `PlannedEpics` + mermaid flowcharts in `tools/cmd/aiwf/status_cmd.go`; auto-regenerated `STATUS.md` via the pre-commit hook) | Markdown status renderer with embedded mermaid diagrams; extends `aiwf status` with a third format. Renderer change, not new state. |
-| (untiered) | [`upgrade-flow-plan.md`](upgrade-flow-plan.md) | proposal · 0/9 steps | `aiwf upgrade` verb + git-tag releases + skew detection in `aiwf doctor`. Prereq for using aiwf on real consumer repos without remembering the `go install` ritual. |
+| (untiered) | [`upgrade-flow-plan.md`](upgrade-flow-plan.md) | shipped (all 9 steps; `tools/internal/version`, `aiwf upgrade` verb, `aiwf doctor` `binary:` / `pin:` / `latest:` rows, `--check-latest`, `--self-check` coverage; tags `v0.1.0` → `v0.2.1` live on the proxy) | `aiwf upgrade` verb + git-tag releases + skew detection in `aiwf doctor`. |
 
 Pick-up order is not committed in advance; real-use friction surfaces the next priority.
 

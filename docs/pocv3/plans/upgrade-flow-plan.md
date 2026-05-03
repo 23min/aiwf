@@ -1,6 +1,6 @@
 ## `aiwf upgrade` plan — release tagging, upgrade verb, skew detection
 
-**Status:** proposal · 0/N items. · **Audience:** PoC continuation. Will touch `tools/cmd/aiwf/` (new `upgrade` subcommand, extend `doctor`), `tools/internal/version/` (new package), `docs/pocv3/design/design-decisions.md` (release-and-upgrade row), `README.md` (install/upgrade quick-start).
+**Status:** shipped · all 9 sequencing steps landed. Implementation: `tools/internal/version/` (the `Current` / `Latest` / `Compare` package), `tools/cmd/aiwf/upgrade_cmd.go` (the `aiwf upgrade` verb), `tools/cmd/aiwf/admin_cmd.go` (the `binary:` / `pin:` / `latest:` rows on `aiwf doctor` and the `--check-latest` opt-in), `tools/cmd/aiwf/selfcheck.go` (the `--self-check` coverage), and the README's "Install" + "Upgrade" sections. Tags `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.2.1` are live on the kernel repo and resolve through the Go module proxy. The original audience note (PoC continuation, files-touched preview) is preserved below for reference.
 
 A small kernel-mechanics iteration that turns "upgrade aiwf in a consumer repo" from a two-step ritual the user has to remember (`go install …@latest` → `aiwf update`) into a one-command flow with offline-by-default skew detection. Prerequisite: tag a release on the kernel repo so `go install …@v0.x.y` and the Go module proxy can both resolve.
 
