@@ -187,7 +187,7 @@ status: active
 ---
 `)
 	// Make it unreadable so os.ReadFile fails.
-	abs := filepath.Join(root, "work/epics/E-01-platform/epic.md")
+	abs := filepath.Join(root, "work", "epics", "E-01-platform", "epic.md")
 	if err := os.Chmod(abs, 0o000); err != nil {
 		t.Fatalf("chmod: %v", err)
 	}

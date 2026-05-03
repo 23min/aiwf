@@ -130,3 +130,7 @@ func TestPolicy_IntegrationTestsAssertTrailers(t *testing.T) {
 func TestPolicy_DesignDocAnchors(t *testing.T) {
 	runPolicy(t, PolicyDesignDocAnchors)
 }
+
+func TestPolicy_FilepathJoinSegmentBySegment(t *testing.T) {
+	runPolicy(t, PolicyFilepathJoinSegmentBySegment)
+}

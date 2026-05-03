@@ -135,8 +135,16 @@ func classifyGitError(ctx context.Context, root, step string, gitErr error) erro
 // `git commit` indicates `.git/index.lock` contention. Git's exact
 // wording varies across versions; we match on the load-bearing
 // substrings without anchoring on a full message template.
+//
+// Path separator: git on every platform (including Windows) emits
+// forward-slash paths in its diagnostic messages — that's part of
+// git's porcelain stability promise. We still accept backslash
+// defensively so a future deviation doesn't silently mis-route
+// the lock-contention path back to the generic-error branch.
 func isIndexLockError(msg string) bool {
-	if strings.Contains(msg, ".git/index.lock") || strings.Contains(msg, "index.lock") {
+	if strings.Contains(msg, ".git/index.lock") ||
+		strings.Contains(msg, `.git\index.lock`) ||
+		strings.Contains(msg, "index.lock") {
 		return true
 	}
 	// Older git renders "Unable to create '<path>': File exists."

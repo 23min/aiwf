@@ -133,10 +133,10 @@ status: active
 completed: 2026-04-30
 ---
 `)
-	if err := os.MkdirAll(filepath.Join(r.root, "work/epics/E-01-platform"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(r.root, "work", "epics", "E-01-platform"), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(r.root, "work/epics/E-01-platform/epic.md"), corrupt, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(r.root, "work", "epics", "E-01-platform", "epic.md"), corrupt, 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
