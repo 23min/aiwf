@@ -1,7 +1,7 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
 // Verbs: check, add, promote, cancel, rename, reallocate, init, update,
-// history, doctor, render, import, schema, template, plus help/version.
+// upgrade, history, doctor, render, import, schema, template, plus help/version.
 // See docs/pocv3/plans/poc-plan.md for the session breakdown that produced this
 // surface.
 package main
@@ -71,6 +71,8 @@ func run(args []string) int {
 		return runInit(args[1:])
 	case "update":
 		return runUpdate(args[1:])
+	case "upgrade":
+		return runUpgrade(args[1:])
 	case "history":
 		return runHistory(args[1:])
 	case "doctor":
@@ -115,6 +117,7 @@ Verbs:
   authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope; human-only verb
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
   update                         re-materialize embedded skills into .claude/skills/aiwf-*/
+  upgrade [--version vX.Y.Z]     fetch a newer (or specified) aiwf binary via 'go install' and re-exec into 'aiwf update' (default: latest)
   history <id>                   show the entity's lifecycle from git log trailers
   doctor [--self-check]          drift / version / id-collision health check; --self-check drives every verb against a temp repo
   render roadmap [--write]       print ROADMAP.md (markdown of epics + milestones); --write commits it
@@ -169,6 +172,11 @@ Flags for 'authorize':
 Flags for 'import':
   --on-collision <mode>          fail (default) | skip | update — behavior when an explicit id already exists
   --dry-run                      validate the projection and print the would-be plans without writing
+
+Flags for 'upgrade':
+  --version <semver|latest>      version to install (default: latest); a 'v'-prefixed semver tag pins to a specific release
+  --check                        print the current/target comparison and exit; does not invoke 'go install'
+  --root <path>                  consumer repo root for the post-install 'aiwf update' step (default: cwd)
 
 Exit codes: 0 = no errors, 1 = errors found, 2 = usage error, 3 = internal error.
 

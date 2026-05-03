@@ -28,6 +28,11 @@ func TestParse(t *testing.T) {
 		{"v0.0.0-20260503120000-abcdef123456", "v0.0.0-20260503120000-abcdef123456", false},
 		{"v0.1.0-pre.0.20060102150405-abcdef123456", "v0.1.0-pre.0.20060102150405-abcdef123456", false},
 
+		// +dirty suffix (Go VCS-stamping for uncommitted working
+		// trees): never tagged, regardless of the base shape.
+		{"v0.1.0+dirty", "v0.1.0+dirty", false},
+		{"v0.0.0-20260503120000-abcdef123456+dirty", "v0.0.0-20260503120000-abcdef123456+dirty", false},
+
 		// devel and empty normalize to DevelVersion.
 		{"(devel)", DevelVersion, false},
 		{"", DevelVersion, false},

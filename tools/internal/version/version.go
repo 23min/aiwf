@@ -119,9 +119,29 @@ func Current() Info {
 // ModulePath returns the module path of the running aiwf binary,
 // read from runtime/debug.ReadBuildInfo. Returns "" when build info
 // is unavailable. Used by Latest to construct the proxy lookup URL.
+//
+// The module path is the value declared in go.mod
+// (e.g., "github.com/23min/ai-workflow-v2"). For the go-install
+// invocation that wants the cmd's package path (one level deeper),
+// use PackagePath instead.
 func ModulePath() string {
 	if bi, ok := debug.ReadBuildInfo(); ok {
 		return bi.Main.Path
+	}
+	//coverage:ignore Same degenerate-build path as Current.
+	return ""
+}
+
+// PackagePath returns the package path of the running aiwf binary's
+// main package, read from runtime/debug.ReadBuildInfo. Returns ""
+// when build info is unavailable.
+//
+// The package path is what `go install` accepts as its module-aware
+// argument: e.g., "github.com/23min/ai-workflow-v2/tools/cmd/aiwf".
+// Always equal to or below ModulePath in the import-path tree.
+func PackagePath() string {
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		return bi.Path
 	}
 	//coverage:ignore Same degenerate-build path as Current.
 	return ""
@@ -167,7 +187,15 @@ func Compare(a, b Info) Skew {
 // isTagged reports whether v is a clean tagged semver value rather
 // than a pseudo-version. Pseudo-versions match the timestamp+sha
 // suffix regardless of the base version they're attached to.
+//
+// The `+dirty` suffix appended by Go's VCS-stamped builds (when
+// uncommitted changes are present in the working tree) flips Tagged
+// false: the binary doesn't correspond to any committed state, so
+// it is not safely comparable as a release.
 func isTagged(v string) bool {
+	if strings.HasSuffix(v, "+dirty") {
+		return false
+	}
 	if !taggedSemverRE.MatchString(v) {
 		return false
 	}
