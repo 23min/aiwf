@@ -85,7 +85,8 @@ func (s Skew) String() string {
 }
 
 // pseudoVersionRE matches Go module proxy pseudo-versions, all three
-// canonical forms (per `golang.org/x/mod/module`):
+// canonical forms per https://go.dev/ref/mod#pseudo-versions
+// (mirrored in golang.org/x/mod/module):
 //
 //	v0.0.0-yyyymmddhhmmss-abcdefabcdef          (no parent tag)
 //	vX.Y.(Z+1)-0.yyyymmddhhmmss-abcdefabcdef    (commits after vX.Y.Z)

@@ -32,15 +32,17 @@ var Version = "dev"
 
 // resolvedVersion returns the version to display in user output.
 // Prefers the ldflags-stamped Version global when set to anything
-// other than the default sentinel, otherwise reads from buildinfo.
+// other than the default sentinel, otherwise defers to buildinfo via
+// version.Current. The two paths surface different conventions for
+// "no version known" (Version="dev" vs DevelVersion="(devel)"); we
+// normalize by always returning the buildinfo-style value when no
+// ldflags stamp is present, so `aiwf version` and `aiwf doctor`'s
+// binary: row stay byte-coherent for the same binary.
 func resolvedVersion() string {
 	if Version != "dev" && Version != "" {
 		return Version
 	}
-	if v := version.Current().Version; v != "" && v != version.DevelVersion {
-		return v
-	}
-	return Version
+	return version.Current().Version
 }
 
 // Exit codes per docs/pocv3/plans/poc-plan.md and tools/CLAUDE.md.

@@ -12,35 +12,52 @@ import (
 )
 
 func TestParse(t *testing.T) {
+	// Inputs sourced from the Go module spec — see
+	// https://go.dev/ref/mod#pseudo-versions for the three
+	// pseudo-version forms, https://semver.org for the base grammar,
+	// and https://go.dev/ref/mod#vcs-stamps for the +dirty VCS-
+	// stamping suffix. Per tools/CLAUDE.md "Spec-sourced inputs":
+	// the table covers the full enumerated space, not just examples.
 	cases := []struct {
 		in       string
 		wantVer  string
 		wantTags bool
 	}{
+		// Clean semver tags — the happy path.
 		{"v0.1.0", "v0.1.0", true},
 		{"v0.2.3", "v0.2.3", true},
 		{"v1.0.0", "v1.0.0", true},
-		{"v0.1.0-rc1", "v0.1.0-rc1", true},
-		{"v0.1.0+build.5", "v0.1.0+build.5", true},
+		{"v0.1.0-rc1", "v0.1.0-rc1", true},         // pre-release suffix per semver §9
+		{"v0.1.0+build.5", "v0.1.0+build.5", true}, // build suffix per semver §10
 
-		// pseudo-versions: tagged regex matches the v0.x.y prefix
-		// but the timestamp+sha suffix disqualifies them.
+		// Pseudo-version form 1 (no prior tag), per
+		// go.dev/ref/mod#pseudo-versions:
+		//   v0.0.0-yyyymmddhhmmss-abcdefabcdef
 		{"v0.0.0-20260503120000-abcdef123456", "v0.0.0-20260503120000-abcdef123456", false},
+
+		// Pseudo-version form 2 (commits after vX.Y.Z), same source:
+		//   vX.Y.(Z+1)-0.yyyymmddhhmmss-abcdefabcdef
+		{"v0.1.1-0.20260503120000-abcdef123456", "v0.1.1-0.20260503120000-abcdef123456", false},
+
+		// Pseudo-version form 3 (commits between vX.Y.Z-pre and
+		// vX.Y.Z), same source:
+		//   vX.Y.Z-pre.0.yyyymmddhhmmss-abcdefabcdef
 		{"v0.1.0-pre.0.20060102150405-abcdef123456", "v0.1.0-pre.0.20060102150405-abcdef123456", false},
 
-		// +dirty suffix (Go VCS-stamping for uncommitted working
-		// trees): never tagged, regardless of the base shape.
+		// +dirty VCS-stamping suffix (Go's `cmd/go` stamps it on
+		// builds with uncommitted changes); never tagged regardless
+		// of the base shape.
 		{"v0.1.0+dirty", "v0.1.0+dirty", false},
 		{"v0.0.0-20260503120000-abcdef123456+dirty", "v0.0.0-20260503120000-abcdef123456+dirty", false},
 
-		// devel and empty normalize to DevelVersion.
+		// debug.ReadBuildInfo's "no module info" sentinel.
 		{"(devel)", DevelVersion, false},
 		{"", DevelVersion, false},
 
-		// not semver-shaped at all.
-		{"0.1.0", "0.1.0", false},
-		{"v0.1", "v0.1", false},
-		{"main", "main", false},
+		// Not semver-shaped at all (negative cases).
+		{"0.1.0", "0.1.0", false}, // missing v prefix
+		{"v0.1", "v0.1", false},   // missing patch segment
+		{"main", "main", false},   // not a version string
 	}
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
@@ -169,6 +186,13 @@ func TestModulePath_TestBinary(t *testing.T) {
 	}
 }
 
+// TestProxyBase enumerates the GOPROXY chain grammar per
+// https://go.dev/ref/mod#environment-variables (the canonical spec
+// for module-mode environment variables): comma-or-pipe-separated
+// list of entries, each being a URL, the literal `direct`, or the
+// literal `off`. Per tools/CLAUDE.md "Spec-sourced inputs": the
+// cases cover every entry shape and chain-position the spec
+// distinguishes, not just examples we've personally hit.
 func TestProxyBase(t *testing.T) {
 	cases := []struct {
 		name      string
@@ -441,20 +465,140 @@ func TestLatest_Wrapper(t *testing.T) {
 	}
 }
 
-func TestLatest_RealProxy(t *testing.T) {
+// TestLatest_RealProxy_ContractTest is G28's durable defense. The
+// previous shape of this test asserted only "Version is non-empty,"
+// which would have passed even with the v0.1.0 bug (where Latest hit
+// the proxy's /@latest endpoint and returned a stale pseudo-version
+// instead of the highest tag). The contract being tested here is:
+// Latest must return the highest published tagged version of the
+// module, derived from the proxy's /@v/list endpoint — independently
+// of the implementation's choice of resolution endpoint.
+//
+// The test fetches /@v/list directly via http.Get (not through
+// version.Latest), parses the line-separated tag list, picks the
+// highest semver triple it can compute, and asserts Latest returns
+// that exact value. If a future refactor switches Latest's endpoint
+// or sort order, this test catches it before the next user does.
+//
+// Skipped under -short and on env errors so offline CI is not
+// blocked. The module under test is gopkg.in/yaml.v3 because aiwf
+// already depends on it and it has a stable, well-tagged history.
+func TestLatest_RealProxy_ContractTest(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test (uses network)")
 	}
-	// Hit the real Go module proxy against a stable, well-known
-	// module to verify the URL shape and JSON parsing match
-	// production. Uses gopkg.in/yaml.v3 because aiwf already depends
-	// on it and it has stable releases.
+	const module = "gopkg.in/yaml.v3"
+
+	// Independent fetch of /@v/list — the test's "ground truth"
+	// path. Deliberately uses net/http directly instead of any
+	// helper from the version package so the assertion is not
+	// circular.
 	t.Setenv("GOPROXY", "")
-	got, err := latestFor(context.Background(), http.DefaultClient, "gopkg.in/yaml.v3")
+	listURL := DefaultProxyURL + "/" + module + "/@v/list"
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, listURL, http.NoBody)
 	if err != nil {
-		t.Skipf("real-proxy lookup unavailable in this env: %v", err)
+		t.Skipf("building /@v/list request: %v", err)
 	}
-	if got.Version == "" {
-		t.Errorf("got empty Version from real proxy")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Skipf("real-proxy /@v/list unavailable in this env: %v", err)
 	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		t.Skipf("real-proxy /@v/list returned %d", resp.StatusCode)
+	}
+	body := make([]byte, 1<<20)
+	n, _ := resp.Body.Read(body)
+	body = body[:n]
+
+	expected := computeHighestSemver(string(body))
+	if expected == "" {
+		t.Skipf("real proxy returned no tagged versions for %s", module)
+	}
+
+	// Now ask Latest, the code under test.
+	got, err := latestFor(context.Background(), http.DefaultClient, module)
+	if err != nil {
+		t.Skipf("real-proxy Latest lookup unavailable in this env: %v", err)
+	}
+	if got.Version != expected {
+		t.Errorf("Latest(%s) = %q, want %q (G28 contract violation: implementation diverged from highest-tag-from-/@v/list)",
+			module, got.Version, expected)
+	}
+	if !got.Tagged {
+		t.Errorf("Latest(%s).Tagged = false, want true (got version %q)", module, got.Version)
+	}
+}
+
+// TestLatest_PrereleaseExcludedFromHighestSelection pins another
+// G28-class invariant offline: pre-release versions in the /@v/list
+// response (e.g., v3.0.0-rc1) must not beat clean releases. The
+// underlying parseTriple already filters them, but the contract is
+// load-bearing enough that an explicit fixture test catches a future
+// refactor that loosens the filter.
+func TestLatest_PrereleaseExcludedFromHighestSelection(t *testing.T) {
+	const modulePath = "example.com/test/module"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/@v/list") {
+			http.NotFound(w, r)
+			return
+		}
+		// Mix: a pre-release that's lexically "greater" than the
+		// highest non-pre-release should still lose, because
+		// parseTriple rejects it.
+		fmt.Fprint(w, "v0.1.0\nv0.2.0\nv0.3.0-rc1\nv0.1.5\n")
+	}))
+	t.Cleanup(srv.Close)
+	t.Setenv("GOPROXY", srv.URL)
+
+	got, err := latestFor(context.Background(), srv.Client(), modulePath)
+	if err != nil {
+		t.Fatalf("latestFor: %v", err)
+	}
+	if got.Version != "v0.2.0" {
+		t.Errorf("Version = %q, want v0.2.0 (pre-release v0.3.0-rc1 must not win)", got.Version)
+	}
+}
+
+// computeHighestSemver is the test-side reference implementation of
+// "highest tag from a /@v/list body." Deliberately written here, not
+// imported from the version package, so the contract test is not
+// circular: a regression in the production implementation cannot be
+// hidden by a matching regression in the helper.
+func computeHighestSemver(listBody string) string {
+	var best string
+	var bestTriple [3]int
+	found := false
+	for _, line := range strings.Split(listBody, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		// Skip pre-release / build suffixes.
+		if strings.ContainsAny(strings.TrimPrefix(line, "v"), "-+") {
+			continue
+		}
+		var major, minor, patch int
+		if _, err := fmt.Sscanf(line, "v%d.%d.%d", &major, &minor, &patch); err != nil {
+			continue
+		}
+		triple := [3]int{major, minor, patch}
+		better := !found
+		if found {
+			for i := 0; i < 3; i++ {
+				if triple[i] != bestTriple[i] {
+					better = triple[i] > bestTriple[i]
+					break
+				}
+			}
+		}
+		if better {
+			best = line
+			bestTriple = triple
+			found = true
+		}
+	}
+	return best
 }
