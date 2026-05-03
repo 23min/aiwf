@@ -16,6 +16,34 @@ These rules apply to all code under `tools/` (the Go monorepo). The repo-wide en
 - **Golden files** under `testdata/` for snapshot assertions. Synthetic content only — fixtures must read as obviously fictional, not as anonymized copies of real projects.
 - **Race detector on every CI run:** `go test -race ./tools/...`.
 
+### Test the seam, not just the layer
+
+When a new helper, package, or shared function is wired into an existing caller (verb, dispatcher, hook), the test set must cover **both** the helper's behavior *and* the seam where it integrates. A unit test of the helper alone is necessary but not sufficient — it doesn't catch the case where the caller has a parallel source of truth and never adopts the helper.
+
+Concrete shape: for a new verb-level helper, write at least one test that drives the verb's dispatcher (`run([]string{"<verb>", ...})`) and asserts the output reflects the helper's contract. For a check-rule helper, write a fixture-tree test that exercises the rule through `check.Run`. Test names should make the seam explicit (`TestRunVersion_UsesBuildInfoFallback`, not just `TestResolvedVersion`).
+
+When a verb's output depends on values that only exist in a real binary — `runtime/debug.ReadBuildInfo`, `-ldflags`-stamped globals, `os.Args[0]`, `os.Executable()` — a unit test running under `go test` cannot exercise the production path. Add a binary-level integration test that builds the cmd to a tempfile and runs it as a subprocess: `go build -o $TMP/aiwf ./tools/cmd/aiwf && exec.Command($TMP/aiwf, "version")`. The cost is a few seconds per CI run; the alternative is the bug shipping.
+
+Why this rule exists: v0.1.0 shipped with `aiwf version` returning `"dev"` even though the new `version.Current()` helper returned the correct buildinfo value. The unit test of `version.Current()` was clean. The verb still printed an unrelated package-global. Two parallel sources of truth coexisted; tests covered only the new one.
+
+### Contract tests for upstream-cached systems
+
+For any external system with caching semantics — HTTP proxies (the Go module proxy is the canonical example), DNS, CDN-fronted APIs — tests must pin "did we ask the right question," not just "did we parse the answer correctly."
+
+Concrete shape: a real-system integration test (gated under `-short` so CI without network can skip) that derives the expected value through an **independent** code path, not from the same endpoint the implementation uses. For the module proxy this means: if the implementation resolves "latest" via `/@v/list`, the test independently fetches `/@v/list`, computes the expected highest semver, and asserts the implementation returns the same value. A test that just asserts "the implementation returned a non-empty version" is parsing-coverage, not resolution-correctness.
+
+When you discover the right endpoint by reading the upstream tool's source (e.g., the Go toolchain's resolver), document that decision in a comment at the call site so future readers don't re-litigate the choice.
+
+Why this rule exists: v0.1.0's `version.Latest()` queried the proxy's `/@latest` endpoint, which is cached separately from `/@v/list` and can serve stale pre-tag pseudo-versions for hours after a tag lands. The unit tests served whatever JSON the implementation expected and never asked whether the chosen endpoint was the right one. The Go toolchain uses `/@v/list`-first for exactly this reason — documented behavior we re-learned by failing in production.
+
+### Spec-sourced inputs for upstream-defined input spaces
+
+When test cases enumerate an upstream-defined input grammar — semver shapes, RFC fields, error-code families, on-disk format variants — the test must cite the spec and cover the full enumerated space, not "the example I had in mind."
+
+Concrete shape: prefix the test data with a comment pointing at the canonical spec (e.g., `// per https://go.dev/ref/mod#pseudo-versions`), then list every case the spec defines. If you cannot cite a single source for the input space, the space isn't pinned and the tests are example-driven; either find the spec or document the omission explicitly as a known limitation.
+
+Why this rule exists: v0.1.0's pseudo-version regex initially only matched the basic `v0.0.0-DATE-SHA` form. The Go module spec defines three shapes (basic, post-tag, pre-release-base); VCS stamping adds the `+dirty` suffix. Smoke tests caught the gaps mid-implementation. A spec-sourced test pass at design time would have exercised all four cases on the first commit.
+
 ## Coverage
 
 - **High coverage on `tools/internal/...` packages.** PoC target is 90%; failing checks for low coverage are advisory at this stage.
