@@ -33,7 +33,7 @@ import (
 // Returns a Go error for "couldn't even start": milestone not found,
 // not a milestone, empty title. Tree-level findings caused by the
 // addition are returned in Result.Findings.
-func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string) (*Result, error) {
+func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tests *gitops.TestMetrics) (*Result, error) {
 	_ = ctx
 	if strings.TrimSpace(title) == "" {
 		return nil, fmt.Errorf("--title is required")
@@ -81,9 +81,19 @@ func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string) (*R
 
 	compositeID := parent.ID + "/" + nextID
 	subject := fmt.Sprintf("aiwf add ac %s %q", compositeID, title)
+	trailers := standardTrailers("add", compositeID, actor)
+	if newAC.TDDPhase == entity.TDDPhaseRed && tests != nil {
+		trailers = appendTestsTrailer(trailers, tests)
+	} else if tests != nil && newAC.TDDPhase != entity.TDDPhaseRed {
+		// --tests is meaningful only when the AC enters a TDD phase. A
+		// non-tdd-required milestone seeds the AC at no-phase, so test
+		// metrics aren't applicable; surface the inconsistency rather
+		// than silently dropping the trailer.
+		return nil, fmt.Errorf("--tests is only valid when seeding red (parent milestone %s is not tdd: required)", parent.ID)
+	}
 	return plan(&Plan{
 		Subject:  subject,
-		Trailers: standardTrailers("add", compositeID, actor),
+		Trailers: trailers,
 		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
 	}), nil
 }
@@ -109,7 +119,7 @@ func promoteAC(t *tree.Tree, compositeID, newStatus, actor, reason string, force
 	if err != nil {
 		return nil, err
 	}
-	return finalizeACPlan(t, parent, modified, "promote", compositeID, newStatus, actor, reason, force,
+	return finalizeACPlan(t, parent, modified, "promote", compositeID, newStatus, actor, reason, force, nil,
 		fmt.Sprintf("aiwf promote %s %s -> %s", compositeID, ac.Status, newStatus))
 }
 
@@ -123,7 +133,7 @@ func promoteAC(t *tree.Tree, compositeID, newStatus, actor, reason string, force
 // Trailers: aiwf-to: carries the new phase value (same trailer as
 // for status changes; the verb name + composite id make it
 // unambiguous which dimension moved). aiwf-force: when forced.
-func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, actor, reason string, force bool) (*Result, error) {
+func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, actor, reason string, force bool, tests *gitops.TestMetrics) (*Result, error) {
 	_ = ctx
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
@@ -140,7 +150,7 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 	if err != nil {
 		return nil, err
 	}
-	return finalizeACPlan(t, parent, modified, "promote", compositeID, newPhase, actor, reason, force,
+	return finalizeACPlan(t, parent, modified, "promote", compositeID, newPhase, actor, reason, force, tests,
 		fmt.Sprintf("aiwf promote %s --phase %s -> %s", compositeID, ac.TDDPhase, newPhase))
 }
 
@@ -164,7 +174,7 @@ func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Res
 	}
 	// Cancel does not emit aiwf-to: per Step 5's design (target is
 	// implicit). Pass empty `to` to suppress the trailer.
-	return finalizeACPlan(t, parent, modified, "cancel", compositeID, "", actor, reason, force,
+	return finalizeACPlan(t, parent, modified, "cancel", compositeID, "", actor, reason, force, nil,
 		fmt.Sprintf("aiwf cancel %s -> cancelled", compositeID))
 }
 
@@ -252,8 +262,9 @@ func withACMutation(parent *entity.Entity, acID string, mutate func(*entity.Acce
 // finalizeACPlan handles the post-mutation tail shared by promoteAC
 // and cancelAC: serialize, run projection findings, build the plan
 // with the right trailers. `to` is the aiwf-to value (empty for
-// cancel); `force` toggles aiwf-force emission.
-func finalizeACPlan(t *tree.Tree, parent, modified *entity.Entity, verbName, compositeID, to, actor, reason string, force bool, subject string) (*Result, error) {
+// cancel); `force` toggles aiwf-force emission; `tests` (non-nil and
+// non-zero) appends an aiwf-tests trailer.
+func finalizeACPlan(t *tree.Tree, parent, modified *entity.Entity, verbName, compositeID, to, actor, reason string, force bool, tests *gitops.TestMetrics, subject string) (*Result, error) {
 	body, err := readBody(t.Root, parent.Path)
 	if err != nil {
 		return nil, err
@@ -266,12 +277,29 @@ func finalizeACPlan(t *tree.Tree, parent, modified *entity.Entity, verbName, com
 	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
 		return findings(fs), nil
 	}
+	trailers := transitionTrailers(verbName, compositeID, actor, reason, to, force)
+	trailers = appendTestsTrailer(trailers, tests)
 	return plan(&Plan{
 		Subject:  subject,
 		Body:     reason,
-		Trailers: transitionTrailers(verbName, compositeID, actor, reason, to, force),
+		Trailers: trailers,
 		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
 	}), nil
+}
+
+// appendTestsTrailer appends an aiwf-tests trailer to trailers when
+// tests is non-nil and non-zero. A zero-value TestMetrics is treated
+// the same as nil — the verb path doesn't write meaningless
+// `pass=0 fail=0 skip=0`.
+func appendTestsTrailer(trailers []gitops.Trailer, tests *gitops.TestMetrics) []gitops.Trailer {
+	if tests == nil {
+		return trailers
+	}
+	formatted := gitops.FormatTestMetrics(*tests)
+	if formatted == "" {
+		return trailers
+	}
+	return append(trailers, gitops.Trailer{Key: gitops.TrailerTests, Value: formatted})
 }
 
 // standardTrailers builds the verb/entity/actor trailer triple for

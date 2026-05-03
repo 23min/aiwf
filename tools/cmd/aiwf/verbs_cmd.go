@@ -9,6 +9,7 @@ import (
 
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
+	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 	"github.com/23min/ai-workflow-v2/tools/internal/verb"
@@ -140,8 +141,9 @@ func runAddAC(args []string) int {
 	actor := fs.String("actor", "", "actor for the commit trailer")
 	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
+	tests := fs.String("tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "title"}, nil)); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "title", "tests"}, nil)); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -153,6 +155,11 @@ func runAddAC(args []string) int {
 
 	if strings.TrimSpace(*title) == "" {
 		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required")
+		return exitUsage
+	}
+
+	metrics, err := parseTestsFlag(*tests, "aiwf add ac")
+	if err != nil {
 		return exitUsage
 	}
 
@@ -179,7 +186,7 @@ func runAddAC(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf add ac: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.AddAC(ctx, tr, parentID, *title, actorStr)
+	result, err := verb.AddAC(ctx, tr, parentID, *title, actorStr, metrics)
 	// An AC is a sub-element of its parent milestone — its sole
 	// "outbound reference" for scope reachability is the parent id.
 	pctx := provenanceContext{
@@ -189,6 +196,32 @@ func runAddAC(args []string) int {
 		CreationRefs: []string{parentID},
 	}
 	return decorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx)
+}
+
+// parseTestsFlag parses a `--tests` value at the verb dispatcher
+// boundary. Empty input returns (nil, nil) — the flag wasn't set.
+// Otherwise applies the strict on-wire grammar (pass/fail/skip/total
+// keys, non-negative integers) and returns a *gitops.TestMetrics; on
+// any malformed input writes a one-line error to stderr (prefixed
+// with verbLabel) and returns the parse error so the dispatcher exits
+// with exitUsage.
+func parseTestsFlag(raw, verbLabel string) (*gitops.TestMetrics, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, nil
+	}
+	m, err := gitops.ParseStrictTestMetrics(raw)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", verbLabel, err)
+		return nil, err
+	}
+	if m == (gitops.TestMetrics{}) {
+		// Empty after parse — defensive; ParseStrict returns zero
+		// metrics for empty input but here the trimmed input was
+		// non-empty so this shouldn't fire. If it does, treat the
+		// flag as not set to avoid emitting a meaningless trailer.
+		return nil, nil
+	}
+	return &m, nil
 }
 
 // splitCommaList parses comma-separated CLI values into a clean slice
@@ -224,10 +257,11 @@ func runPromote(args []string) int {
 	root := fs.String("root", "", "consumer repo root")
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	phase := fs.String("phase", "", "advance an AC's tdd_phase (composite ids only; mutex with positional new-status)")
+	tests := fs.String("tests", "", `optional test metrics for a phase promotion (composite + --phase only); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
 	force := fs.Bool("force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	auditOnly := fs.Bool("audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason", "phase"}, []string{"force", "audit-only"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason", "phase", "tests"}, []string{"force", "audit-only"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -297,14 +331,26 @@ func runPromote(args []string) int {
 	}
 
 	if phaseMode {
+		metrics, mErr := parseTestsFlag(*tests, "aiwf promote")
+		if mErr != nil {
+			return exitUsage
+		}
 		var result *verb.Result
 		var vErr error
 		if *auditOnly {
+			if metrics != nil {
+				fmt.Fprintln(os.Stderr, "aiwf promote: --tests is not allowed with --audit-only (audit-only records an existing transition; no test cycle ran)")
+				return exitUsage
+			}
 			result, vErr = verb.PromoteACPhaseAuditOnly(ctx, tr, id, *phase, actorStr, *reason)
 		} else {
-			result, vErr = verb.PromoteACPhase(ctx, tr, id, *phase, actorStr, *reason, *force)
+			result, vErr = verb.PromoteACPhase(ctx, tr, id, *phase, actorStr, *reason, *force, metrics)
 		}
 		return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
+	}
+	if strings.TrimSpace(*tests) != "" {
+		fmt.Fprintln(os.Stderr, "aiwf promote: --tests is only valid in phase mode (composite id with --phase <p>)")
+		return exitUsage
 	}
 	newStatus := rest[1]
 	if !entity.IsCompositeID(id) {

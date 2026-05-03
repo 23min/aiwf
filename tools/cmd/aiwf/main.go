@@ -129,7 +129,7 @@ Usage: aiwf <verb> [args]
 Verbs:
   check                          validate the consumer repo's planning state
   add <kind> --title "..."       create a new entity of the given kind
-  promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status)
+  promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status); --tests "pass=N fail=N skip=N [total=N]" attaches an aiwf-tests trailer in phase mode (recognized keys only; non-negative integers)
   cancel <id>                    promote to the kind's terminal-cancel status (optional --reason "..."; --force --reason "..." records the cancellation as an audit event)
   rename <id> <new-slug>         rename the file/dir slug; id preserved
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
@@ -173,6 +173,7 @@ Flags for 'add':
   --validator <name>             validator name to bind (contract; with --schema, --fixtures: atomic add+bind)
   --schema <path>                schema path (contract; pairs with --validator and --fixtures)
   --fixtures <path>              fixtures-tree root (contract; pairs with --validator and --schema)
+  --tests "pass=N fail=N ..."    test metrics for the seeded red phase (ac; only when parent milestone is tdd: required); recognized keys: pass, fail, skip, total; non-negative integers
 
 Flags for 'check', 'history', and 'contract verify':
   --format <fmt>                 output format: text (default) or json

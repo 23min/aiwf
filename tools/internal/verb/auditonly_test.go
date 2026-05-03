@@ -163,7 +163,7 @@ func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
 	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "actually done", false))
 
 	res, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "backfill")
@@ -188,11 +188,11 @@ func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
 	// AC starts with tdd_phase="" (the milestone is not tdd: required).
 	// Phase audit-only against "" isn't allowed (entry state); flip
 	// to red via normal promote first, then audit-only against red.
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "begin", false))
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "begin", false, nil))
 
 	res, err := verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "backfill")
 	if err != nil {
@@ -209,7 +209,7 @@ func TestPromoteACPhaseAuditOnly_RefusesUnknownPhase(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
 
 	_, err := verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-001/AC-1", "Refactoring", testActor, "wrong case")
 	if err == nil || !strings.Contains(err.Error(), "not a recognized tdd_phase") {

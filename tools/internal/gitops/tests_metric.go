@@ -1,6 +1,8 @@
 package gitops
 
 import (
+	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -73,4 +75,96 @@ func ParseTestMetrics(value string) (TestMetrics, bool) {
 		}
 	}
 	return m, seen
+}
+
+// recognizedTestKeys is the closed set of keys the kernel accepts on
+// the write boundary. ParseStrictTestMetrics rejects anything else.
+// Keep in sync with the table in I3 plan §4.
+var recognizedTestKeys = map[string]struct{}{
+	"pass":  {},
+	"fail":  {},
+	"skip":  {},
+	"total": {},
+}
+
+// ParseStrictTestMetrics parses an aiwf-tests trailer value with
+// write-strict semantics. Unknown keys, malformed `key=value` shapes,
+// non-integer values, and negative values all return errors with a
+// usage-shaped message.
+//
+// This is the validator the CLI uses on the `--tests` flag boundary.
+// Read-side parsing is separately tolerant (see ParseTestMetrics) so
+// future format extensions don't break old binaries reading new
+// commits.
+//
+// Empty input returns a zero TestMetrics with no error — callers that
+// require at least one recognized key should check the result for
+// emptiness.
+func ParseStrictTestMetrics(value string) (TestMetrics, error) {
+	v := strings.TrimSpace(value)
+	if v == "" {
+		return TestMetrics{}, nil
+	}
+	var m TestMetrics
+	for _, tok := range strings.Fields(v) {
+		eq := strings.IndexByte(tok, '=')
+		if eq <= 0 || eq == len(tok)-1 {
+			return TestMetrics{}, fmt.Errorf("--tests: token %q is not key=value", tok)
+		}
+		key, raw := tok[:eq], tok[eq+1:]
+		if _, ok := recognizedTestKeys[key]; !ok {
+			sorted := sortedKeys(recognizedTestKeys)
+			return TestMetrics{}, fmt.Errorf("--tests: unknown key %q (allowed: %s)", key, strings.Join(sorted, ", "))
+		}
+		n, err := strconv.Atoi(raw)
+		if err != nil {
+			return TestMetrics{}, fmt.Errorf("--tests: %s=%q must be a non-negative integer", key, raw)
+		}
+		if n < 0 {
+			return TestMetrics{}, fmt.Errorf("--tests: %s=%d must be non-negative", key, n)
+		}
+		switch key {
+		case "pass":
+			m.Pass = n
+		case "fail":
+			m.Fail = n
+		case "skip":
+			m.Skip = n
+		case "total":
+			m.Total = n
+		}
+	}
+	return m, nil
+}
+
+// FormatTestMetrics writes the canonical on-wire form of m. Order is
+// pass / fail / skip / total; total is omitted when zero. Always emits
+// `key=value` pairs separated by single spaces, matching the recipe in
+// the I3 plan §4. Returns the empty string for a zero-value
+// TestMetrics — callers should not write the trailer at all in that
+// case.
+func FormatTestMetrics(m TestMetrics) string {
+	if m == (TestMetrics{}) {
+		return ""
+	}
+	parts := []string{
+		fmt.Sprintf("pass=%d", m.Pass),
+		fmt.Sprintf("fail=%d", m.Fail),
+		fmt.Sprintf("skip=%d", m.Skip),
+	}
+	if m.Total > 0 {
+		parts = append(parts, fmt.Sprintf("total=%d", m.Total))
+	}
+	return strings.Join(parts, " ")
+}
+
+// sortedKeys returns the keys of a string-keyed set sorted
+// alphabetically. Used to format deterministic error messages.
+func sortedKeys(m map[string]struct{}) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
