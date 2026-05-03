@@ -44,6 +44,52 @@ Concrete shape: prefix the test data with a comment pointing at the canonical sp
 
 Why this rule exists: v0.1.0's pseudo-version regex initially only matched the basic `v0.0.0-DATE-SHA` form. The Go module spec defines three shapes (basic, post-tag, pre-release-base); VCS stamping adds the `+dirty` suffix. Smoke tests caught the gaps mid-implementation. A spec-sourced test pass at design time would have exercised all four cases on the first commit.
 
+### Substring assertions are not structural assertions
+
+A test that greps for a literal in rendered output (HTML, Markdown, JSON) proves the literal exists *somewhere*. It does not prove the literal is in the right *place*. The right place is what the user (or the next renderer) actually consumes; the literal floating in the wrong section is still a bug that ships.
+
+Concrete shape:
+- For HTML output, parse the document with `golang.org/x/net/html` (or an equivalent) and assert presence inside the named `<section>`, attribute, or descendant chain. A standalone substring match is acceptable only when the value is unique and the location is irrelevant (e.g., a stable token in a JSON envelope).
+- For markdown output, walk the heading hierarchy and assert the prose appears under the expected section, not just on the page.
+- For multi-tab / multi-section pages, every substring assertion must name *which* section it expects the value in. "AC anchor exists" is not enough; "AC anchor exists inside `data-tab=manifest`" is.
+
+If the literal under test is short or generic enough to plausibly appear in unrelated places (e.g. an id="ac-1" attribute, the word "strict", a status name like "active"), assume it does and use a structural assertion.
+
+Why this rule exists: I3 step 5 shipped milestone-page tests that asserted `id="tab-overview"`, `href="#ac-1"`, `policy-strict">strict` etc. as plain substring matches. Two of those would have passed even with the AC rendered in the wrong tab, the policy badge swapped, or the anchor wired backwards. The user caught this in audit; the tests were structurally weak from the start.
+
+### Render output must be human-verified before the iteration closes
+
+Test suites pin code correctness — they do not pin *feature* correctness. For UI / rendered output (HTML pages, generated docs, status outputs that the user reads), running the binary against a real fixture and visually inspecting the result is part of "done," not an optional follow-up. A green test suite says "no regressions in what we asserted"; only a manual look says "the page actually communicates what it should."
+
+Concrete shape:
+- Before claiming a render-iteration step closed, render against a non-trivial real fixture (the kernel repo's own planning tree is the canonical one), open the result, exercise the interactive surface (every tab, every link, every conditional content path), and only then mark the step done.
+- If you cannot run the binary in your environment (sandbox, CI-only), say so explicitly to the user instead of declaring success — the tests do not stand in for that pass.
+- An end-to-end golden snapshot of one full page (HTML byte-equal to a known-good fixture) is a good auxiliary safety net, but it doesn't replace the human look-through. Snapshots only catch *changes*; they don't catch "this was wrong on day one."
+
+Why this rule exists: I3 step 5 shipped six milestone tabs with placeholder Build/Tests/Provenance content paths that no test exercised. The rendered output was never opened in a browser. A green `go test ./...` was treated as completion; the user's audit caught the gap.
+
+### Test untested code paths before declaring code paths "done"
+
+When a function has a branch (a `switch`, an `if`, a filter), every reachable branch must have a test that traverses it — or the branch must be marked `//coverage:ignore` with a one-line rationale. "Tests pass" with code paths not exercised is "tests pass for the paths I happened to think about."
+
+Concrete shape:
+- Before committing a feature, run `go test -coverprofile=cov.out ./<pkg>/...` and skim the uncovered lines. Each uncovered line is either: (a) a missing test (write it), (b) defensive code that can't fire (delete it), or (c) genuinely unreachable in production (mark it `//coverage:ignore <reason>`).
+- For typed view-builders that filter or branch on input (e.g. "is this a phase event?", "does this commit have an authorize trailer?"), the test set must include at least one input that takes each branch. A fixture with no scopes, no phase events, no force trailers exercises only the empty-state branch — that's not coverage of the populated path.
+- When the package gains a new typed input (a new trailer, a new field on a struct), audit the consumers' branches the same way: which call sites now have an unexercised arm? Write the missing test before the next commit.
+
+Why this rule exists: I3 step 5's `phaseEventsFromHistory`, `firstTestsTrailer`, `provenanceFor`, and `linkedEntitiesFor` were all wired in but never exercised by any test fixture that produced phase history, test trailers, scopes, or cross-kind references. The functions could have returned wrong shapes silently and nothing would have failed.
+
+### Don't paper over a test failure — root-cause it
+
+When a test fails in a way that doesn't match its premise, the failure is information about the system, not about the test. Working around it (changing the test setup until it passes, adding manual git commits the production path doesn't make, sleeping until a race resolves) leaves the original signal unread. The test now passes for a reason other than what it was supposed to verify.
+
+Concrete shape:
+- If a test fails with a state error (lock contention, projection mismatch, "not found"), the first action is to dump the state at the point of failure (`t.Logf` the on-disk content, the trailer set, the lock holder) and read the actual cause. Only after you understand it should you decide whether the test or the production code needs to change.
+- A "manual git commit to keep things clean" inside a test is a yellow flag — the production verb is not making that commit and the user won't either. Either the verb should make it (production bug) or the test fixture should be set up so it isn't needed (test bug); not both.
+- "Workaround applied; investigation deferred" comments are owed an issue / gap entry; otherwise they accumulate as silent debt.
+
+Why this rule exists: I3 step 2A's `TestRun_AddACWithTestsFlag` originally hit a verb error after a hand-edit; I added a manual `git add -A && git commit` to make the test pass without diagnosing why the verb's projection ran in the wrong direction. The test now passes for a different reason than its assertion claims.
+
 ## Coverage
 
 - **High coverage on `tools/internal/...` packages.** PoC target is 90%; failing checks for low coverage are advisory at this stage.
