@@ -124,6 +124,25 @@ main {
   font-size: 0.92rem;
 }
 
+/* Brand mark + wordmark above the section label. The SVG inherits
+ * `color` from the parent so dark mode flips automatically (the
+ * SVG itself uses fill="currentColor"). */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+  margin: 0 0 0.9rem;
+  color: var(--accent);
+}
+.sidebar-logo { flex: 0 0 auto; }
+.sidebar-wordmark {
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+
 .sidebar-title {
   font-size: 0.72rem;
   letter-spacing: 0.08em;

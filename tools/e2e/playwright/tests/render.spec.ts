@@ -262,6 +262,35 @@ test.describe("sidebar — left-nav tree", () => {
     }
   });
 
+  test("brand mark + wordmark render on every page", async ({ page }) => {
+    for (const path of ["index.html", "E-01.html", "M-001.html"]) {
+      await page.goto(fileURL(path));
+      const brand = page.locator(".sidebar-brand");
+      await expect(brand).toBeVisible();
+      // Inline SVG carries the three-bar logo.
+      await expect(brand.locator("svg.sidebar-logo")).toBeVisible();
+      await expect(brand.locator("svg rect")).toHaveCount(3);
+      // Wordmark reads "aiwf".
+      await expect(brand.locator(".sidebar-wordmark")).toHaveText("aiwf");
+    }
+  });
+
+  test("logo color follows the accent token (currentColor)", async ({ page }) => {
+    await page.goto(fileURL("index.html"));
+    const fill = await page.locator(".sidebar-logo rect").first().evaluate(
+      (el) => getComputedStyle(el).fill,
+    );
+    // currentColor resolves through `color: var(--accent)` on the
+    // brand wrapper. Iris in light mode → the green channel is the
+    // smallest. We just confirm it's not black/grey/transparent.
+    expect(fill).not.toBe("rgb(0, 0, 0)");
+    expect(fill).not.toBe("rgba(0, 0, 0, 0)");
+    const [r, g, b] = parseRgb(fill);
+    // Iris #5e6ad2 → rgb(94, 106, 210). Blue dominates.
+    expect(b).toBeGreaterThan(r);
+    expect(b).toBeGreaterThan(g);
+  });
+
   test("milestone page pre-expands its parent epic; others closed", async ({ page }) => {
     await page.goto(fileURL("M-001.html"));
     const e01 = page.locator(`aside.sidebar details:has(a[href="E-01.html"])`);
