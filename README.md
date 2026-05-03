@@ -45,18 +45,22 @@ A live snapshot of the entity tree (in flight, roadmap, open decisions, open gap
 The fastest path is to let the Go toolchain fetch and build directly from the repo — no clone, no rebuild of any container, just one command:
 
 ```bash
-go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@poc/aiwf-v3
-```
-
-Re-run the same command anytime to refresh to the latest commit on the branch. Pin a commit SHA instead of `poc/aiwf-v3` for a reproducible install (e.g. in CI):
-
-```bash
-go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@<sha>
+go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@latest
 ```
 
 The binary lands in `$GOBIN` (defaults to `$GOPATH/bin`, typically `~/go/bin`). Make sure that directory is on `$PATH`.
 
-After re-installing, run `aiwf update` in each consumer repo to refresh the marker-managed artifacts (skills, `.gitignore` entries, pre-push hook, pre-commit hook) — they bake the binary's absolute path in at install time, so a binary upgrade or move requires a refresh. `aiwf doctor` reports drift.
+`@latest` resolves to the highest published semver tag via the Go module proxy. Pin to a specific release for reproducible installs (e.g. in CI):
+
+```bash
+go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@v0.1.0
+```
+
+Or to a specific commit SHA when running from an unreleased branch:
+
+```bash
+go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@<sha>
+```
 
 ### Prerequisites
 
@@ -77,6 +81,26 @@ make install                                                # embeds branch + sh
 `make install` is preferred over `go install ./tools/cmd/aiwf` because it embeds the current branch and short SHA into the binary via `-ldflags`, so `aiwf --version` later tells you exactly what's running. Plain `go install` works but leaves `--version` reporting `dev`.
 
 Distribution via brew/apt/scoop/winget will come if and when the PoC graduates.
+
+---
+
+## Upgrade
+
+After the first install, the canonical upgrade path is one command:
+
+```bash
+aiwf upgrade
+```
+
+This runs `go install <pkg>@latest` and re-execs the new binary into `aiwf update` against the current consumer repo, refreshing every marker-managed artifact (skills, `.gitignore` entries, pre-push hook, pre-commit hook) in one shot. Add `--version vX.Y.Z` to pin a specific release; `--check` reports the current/target comparison without installing.
+
+Skew detection lives in `aiwf doctor`:
+
+- `binary:` — the running version (always shown).
+- `pin:` — comparison against `aiwf.yaml`'s `aiwf_version:` field, when present (advisory).
+- `latest:` — comparison against the latest published version (opt-in via `aiwf doctor --check-latest`; one HTTP call to the Go module proxy; honors `GOPROXY=off`).
+
+All three rows are advisory — doctor never refuses to run on a version mismatch. The pin records intent; `aiwf upgrade` is the action.
 
 ---
 
@@ -148,7 +172,8 @@ Pipe through `--format=json` (with optional `--pretty`) when feeding CI. Exit co
 | Verb | Purpose |
 |---|---|
 | `aiwf init` | First-time setup: write `aiwf.yaml`, scaffold planning dirs, then run the same refresh pipeline `aiwf update` calls. Idempotent. |
-| `aiwf update` | The upgrade verb. Refreshes every marker-managed framework artifact the consumer is opted into: `.claude/skills/aiwf-*`, `.gitignore` patterns, `.git/hooks/pre-push`, and `.git/hooks/pre-commit` (gated on `status_md.auto_update`). |
+| `aiwf update` | Refresh every marker-managed framework artifact the consumer is opted into: `.claude/skills/aiwf-*`, `.gitignore` patterns, `.git/hooks/pre-push`, and `.git/hooks/pre-commit` (gated on `status_md.auto_update`). The artifact-refresh verb. |
+| `aiwf upgrade` | Fetch a newer aiwf binary via `go install` and re-exec into `aiwf update`. Default target is `@latest` from the Go module proxy; `--version vX.Y.Z` pins. `--check` reports the current/target comparison without installing. |
 | `aiwf add <kind>` | Allocate id and create the entity. Kinds: `epic`, `milestone`, `adr`, `gap`, `decision`, `contract`. |
 | `aiwf promote <id> <status>` | Transition status; rejected if the transition is illegal for the kind's FSM. |
 | `aiwf cancel <id>` | Set status to the kind's terminal-cancel value (`cancelled`/`wontfix`/`rejected`/`retired`). |
@@ -156,7 +181,7 @@ Pipe through `--format=json` (with optional `--pretty`) when feeding CI. Exit co
 | `aiwf reallocate <id\|path>` | Renumber an entity (recovery from a merge collision); rewrites references in other entities. |
 | `aiwf check` | Validate the tree and report findings. |
 | `aiwf history <id>` | Render `git log` filtered for the entity's structured trailers; dual-matches reallocate's old/new id. |
-| `aiwf doctor` | Self-diagnostics: binary version, skill drift, id-collision health. `--self-check` drives every verb against a throwaway repo. |
+| `aiwf doctor` | Self-diagnostics: binary version, skill drift, id-collision health, version-skew advisories (binary, pin, latest). `--self-check` drives every verb against a throwaway repo; `--check-latest` adds the opt-in module-proxy lookup. |
 | `aiwf render roadmap` | Markdown table of epics + milestones. `--write` updates `ROADMAP.md` and commits. |
 
 ---
