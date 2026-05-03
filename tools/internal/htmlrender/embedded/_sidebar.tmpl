@@ -18,6 +18,15 @@
 <nav>
 <ul class="sidebar-top">
 <li><a href="index.html">Overview</a></li>
+{{- if .HasStatus}}
+<li>
+{{- if .IsCurrentStatus}}
+<a href="status.html" aria-current="page">Project status</a>
+{{- else}}
+<a href="status.html">Project status</a>
+{{- end}}
+</li>
+{{- end}}
 </ul>
 {{- range .Epics}}
 <details class="sidebar-epic"{{if .IsActive}} open{{end}}>

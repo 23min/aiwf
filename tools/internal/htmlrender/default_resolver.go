@@ -39,6 +39,15 @@ func (r defaultResolver) IndexData() (*IndexData, error) {
 	return out, nil
 }
 
+// StatusData implements PageDataResolver. The default resolver
+// (used by the htmlrender package's own tests) returns nil so the
+// status page is skipped — production callers (cmd/aiwf) override
+// this with a resolver that walks git for the recent activity and
+// reuses the existing buildStatus() helper.
+func (r defaultResolver) StatusData() (*StatusData, error) {
+	return nil, nil
+}
+
 // sidebar builds the SidebarData payload for the page being
 // rendered. activeEpicID names the epic to mark active (the page's
 // own id when rendering an epic, the parent for a milestone page,

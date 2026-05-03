@@ -165,15 +165,27 @@ func (r *renderResolver) MilestoneData(id string) (*htmlrender.MilestoneData, er
 // sidebar builds the SidebarData for the page being rendered.
 // activeEpicID names the epic ancestor to mark active (the page
 // itself for an epic page, the parent for a milestone page, "" for
-// the index). activeMilestoneID, when set, marks one milestone link
-// as the current page so the template can apply aria-current="page".
+// the index / status). activeMilestoneID, when set, marks one
+// milestone link as the current page. currentStatus marks the
+// "Project status" sidebar link as the current page.
+//
+// HasStatus is always true on the cmd-side resolver — the status
+// page is part of the standard render. The default resolver
+// (htmlrender package tests) leaves it false to skip the page.
 //
 // The walk uses the same sortedByID helper as the index/epic page
 // rollups, so sidebar order is the canonical id order across every
 // page. No git access — the sidebar is a pure projection of the
 // frontmatter tree.
 func (r *renderResolver) sidebar(activeEpicID, activeMilestoneID string) htmlrender.SidebarData {
-	var s htmlrender.SidebarData
+	return r.sidebarWithStatus(activeEpicID, activeMilestoneID, false)
+}
+
+func (r *renderResolver) sidebarWithStatus(activeEpicID, activeMilestoneID string, currentStatus bool) htmlrender.SidebarData {
+	s := htmlrender.SidebarData{
+		HasStatus:       true,
+		IsCurrentStatus: currentStatus,
+	}
 	for _, e := range sortedEntitiesByID(r.tree.ByKind(entity.KindEpic)) {
 		entry := htmlrender.SidebarEpic{
 			ID:        e.ID,
@@ -193,6 +205,82 @@ func (r *renderResolver) sidebar(activeEpicID, activeMilestoneID string) htmlren
 		s.Epics = append(s.Epics, entry)
 	}
 	return s
+}
+
+// StatusData implements htmlrender.PageDataResolver. Reuses the
+// existing buildStatus() + readRecentActivity() helpers (which
+// power the `aiwf status` verb) and projects the result into the
+// renderer-facing types.
+func (r *renderResolver) StatusData() (*htmlrender.StatusData, error) {
+	report := buildStatus(r.tree, nil)
+	if recent, err := readRecentActivity(r.ctx, r.root, recentActivityLimit); err == nil {
+		report.RecentActivity = recent
+	}
+	out := &htmlrender.StatusData{
+		Sidebar:     r.sidebarWithStatus("", "", true),
+		GeneratedAt: report.Date,
+		Health: htmlrender.StatusHealth{
+			Entities: report.Health.Entities,
+			Errors:   report.Health.Errors,
+			Warnings: report.Health.Warnings,
+		},
+	}
+	for _, e := range report.InFlightEpics {
+		ev := htmlrender.StatusEpicView{
+			ID:       e.ID,
+			Title:    e.Title,
+			Status:   e.Status,
+			FileName: idToHTMLFile(e.ID),
+		}
+		for _, m := range e.Milestones {
+			mv := htmlrender.StatusMilestoneView{
+				ID:       m.ID,
+				Title:    m.Title,
+				Status:   m.Status,
+				FileName: idToHTMLFile(m.ID),
+				TDD:      m.TDD,
+			}
+			if m.ACs != nil {
+				mv.ACMet = m.ACs.Met
+				mv.ACTotal = m.ACs.InScope
+				mv.OpenACs = m.ACs.Open
+			}
+			ev.Milestones = append(ev.Milestones, mv)
+		}
+		out.InFlightEpics = append(out.InFlightEpics, ev)
+	}
+	for _, d := range report.OpenDecisions {
+		out.OpenDecisions = append(out.OpenDecisions, htmlrender.StatusEntityLink{
+			ID:       d.ID,
+			Title:    d.Title,
+			Status:   d.Status,
+			FileName: idToHTMLFile(d.ID),
+		})
+	}
+	for _, g := range report.OpenGaps {
+		// The aiwf status report's gap struct doesn't carry a
+		// Status field (gaps are listed only when open); leave
+		// the renderer-facing Status empty so the template can
+		// suppress the pill.
+		out.OpenGaps = append(out.OpenGaps, htmlrender.StatusGapView{
+			ID:           g.ID,
+			Title:        g.Title,
+			FileName:     idToHTMLFile(g.ID),
+			DiscoveredIn: g.DiscoveredIn,
+		})
+	}
+	for _, w := range report.Warnings {
+		out.Warnings = append(out.Warnings, htmlrender.StatusFinding{
+			Code:     w.Code,
+			EntityID: w.EntityID,
+			Path:     w.Path,
+			Message:  w.Message,
+		})
+	}
+	for i := range report.RecentActivity {
+		out.RecentActivity = append(out.RecentActivity, historyEventToRow(&report.RecentActivity[i]))
+	}
+	return out, nil
 }
 
 // entityRef builds the minimal renderer-facing struct from an

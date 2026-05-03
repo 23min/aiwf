@@ -253,9 +253,10 @@ func TestBinary_RenderHTML_EndToEnd(t *testing.T) {
 		t.Fatalf("aiwf render: %v\n%s", err, out)
 	}
 	// Envelope reports out_dir + files_written + elapsed_ms.
-	// Fixture: 1 index + 1 epic (E-01) + 1 milestone (M-001) = 3.
-	if !strings.Contains(out, `"files_written":3`) {
-		t.Errorf("envelope did not report files_written=3 (1 index + 1 epic + 1 milestone): %s", out)
+	// Fixture via cmd-side resolver:
+	//   1 index + 1 status + 1 epic (E-01) + 1 milestone (M-001) = 4
+	if !strings.Contains(out, `"files_written":4`) {
+		t.Errorf("envelope did not report files_written=4 (index + status + epic + milestone): %s", out)
 	}
 
 	// Page-level assertions through the binary — the templates

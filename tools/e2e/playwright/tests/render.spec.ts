@@ -352,6 +352,44 @@ test.describe("sidebar — left-nav tree", () => {
   });
 });
 
+test.describe("status page", () => {
+  test("status.html renders with health summary + sidebar link", async ({ page }) => {
+    await page.goto(fileURL("status.html"));
+    await expect(page.locator("h1")).toHaveText("Project status");
+    // Sidebar's "Project status" link is marked current on this page.
+    const current = page.locator('aside.sidebar a[aria-current="page"]');
+    await expect(current).toHaveAttribute("href", "status.html");
+    // Health line carries the entity count.
+    await expect(page.locator(".kicker")).toContainText("status");
+  });
+
+  test("non-status pages link to status.html in the sidebar top section", async ({ page }) => {
+    for (const path of ["index.html", "E-01.html", "M-001.html"]) {
+      await page.goto(fileURL(path));
+      const link = page.locator('aside.sidebar .sidebar-top a[href="status.html"]');
+      await expect(link).toBeVisible();
+      // Not marked current on these pages.
+      await expect(link).not.toHaveAttribute("aria-current", "page");
+    }
+  });
+
+  test("in-flight epics block lists the in-progress milestone", async ({ page }) => {
+    await page.goto(fileURL("status.html"));
+    // M-001 is in_progress in the fixture; it should appear in the
+    // in-flight block under E-01.
+    const inflight = page.locator('section.status-epic', { has: page.getByRole("link", { name: "E-01" }) });
+    await expect(inflight).toBeVisible();
+    await expect(inflight).toContainText("M-001");
+    await expect(inflight).toContainText("in_progress");
+  });
+
+  test("recent activity table populated", async ({ page }) => {
+    await page.goto(fileURL("status.html"));
+    const rows = page.locator("table.history tbody tr");
+    expect(await rows.count()).toBeGreaterThan(0);
+  });
+});
+
 test.describe("polish — kicker + dark mode + accent bar", () => {
   test("every page emits a kicker line above its H1", async ({ page }) => {
     for (const path of ["index.html", "E-01.html", "M-001.html"]) {

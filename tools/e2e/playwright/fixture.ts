@@ -106,6 +106,9 @@ export function renderRichFixture(): string {
     ["promote", "M-001/AC-2", "--phase", "green", "--tests", "pass=12 fail=0 skip=1", "--actor", "human/peter"],
     ["promote", "M-001/AC-2", "--phase", "done", "--actor", "human/peter"],
     ["promote", "M-001", "in_progress", "--actor", "human/peter"],
+    // Promote E-01 to active so the status page's in-flight block
+    // has something to render. buildStatus only lists active epics.
+    ["promote", "E-01", "active", "--actor", "human/peter"],
     ["authorize", "M-002", "--to", "ai/claude", "--actor", "human/peter"],
   ];
   for (const args of verbs) {

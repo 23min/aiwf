@@ -18,8 +18,14 @@ type IndexData struct {
 // inside. The current page's ancestors carry IsActive=true so the
 // template emits <details open> on the right epic and aria-
 // current="page" on the right link.
+//
+// HasStatus controls whether the "Project status" link appears in
+// the top section. IsCurrentStatus marks that link active when the
+// status page is the one being rendered.
 type SidebarData struct {
-	Epics []SidebarEpic
+	Epics           []SidebarEpic
+	HasStatus       bool
+	IsCurrentStatus bool
 }
 
 // SidebarEpic is one epic row in the sidebar. IsActive is true when
@@ -237,4 +243,85 @@ type ScopeRow struct {
 // require_test_metrics is true.
 type TestsPolicy struct {
 	Strict bool
+}
+
+// StatusData is the input to the status-page template. Mirrors the
+// shape of `aiwf status` (the cmd-side statusReport struct) but
+// projects to renderer-facing types so the template stays free of
+// internal cmd packages. GeneratedAt is the UTC date the report
+// was built; Health rolls up the project-wide entity / error /
+// warning counts.
+type StatusData struct {
+	Sidebar        SidebarData
+	GeneratedAt    string
+	Health         StatusHealth
+	InFlightEpics  []StatusEpicView
+	OpenDecisions  []StatusEntityLink
+	OpenGaps       []StatusGapView
+	Warnings       []StatusFinding
+	RecentActivity []HistoryRow
+}
+
+// StatusHealth rolls up counts surfaced in the report header.
+type StatusHealth struct {
+	Entities int
+	Errors   int
+	Warnings int
+}
+
+// StatusEpicView is one in-flight epic block on the status page,
+// with its in-progress milestones nested. Same shape as the
+// SidebarEpic but carries milestone status / TDD / AC counts so
+// the page can render a richer block.
+type StatusEpicView struct {
+	ID         string
+	Title      string
+	Status     string
+	FileName   string
+	Milestones []StatusMilestoneView
+}
+
+// StatusMilestoneView is one milestone row on the status page.
+// ACMet / ACTotal are the same met/(total - cancelled) shape used
+// throughout; OpenACs is the count of ACs still in `open` status,
+// surfaced so the page can show "M/T met (N open)".
+type StatusMilestoneView struct {
+	ID       string
+	Title    string
+	Status   string
+	FileName string
+	TDD      string
+	ACMet    int
+	ACTotal  int
+	OpenACs  int
+}
+
+// StatusEntityLink is a minimal link to another entity (decision /
+// gap / contract) listed on the status page. No more fields than
+// the page actually displays.
+type StatusEntityLink struct {
+	ID       string
+	Title    string
+	Status   string
+	FileName string
+}
+
+// StatusGapView is one open gap in the status report. Severity is
+// optional (gaps have no required severity field today; we surface
+// the title alone if severity is empty).
+type StatusGapView struct {
+	ID           string
+	Title        string
+	Status       string
+	FileName     string
+	DiscoveredIn string // optional milestone id
+}
+
+// StatusFinding is a warning surfaced inline on the status page.
+// Mirrors check.Finding's load-bearing fields.
+type StatusFinding struct {
+	Code     string
+	EntityID string
+	Path     string
+	Message  string
 }

@@ -42,12 +42,12 @@ func TestRun_RenderHTML_DispatchesToSite(t *testing.T) {
 	if env.Result.OutDir != out {
 		t.Errorf("result.out_dir = %q, want %q", env.Result.OutDir, out)
 	}
-	// 1 index + 1 epic + 1 milestone.
-	if env.Result.FilesWritten != 3 {
-		t.Errorf("result.files_written = %d, want 3", env.Result.FilesWritten)
+	// 1 index + 1 status + 1 epic + 1 milestone.
+	if env.Result.FilesWritten != 4 {
+		t.Errorf("result.files_written = %d, want 4", env.Result.FilesWritten)
 	}
 
-	for _, name := range []string{"index.html", "E-01.html", "M-001.html", "assets/style.css"} {
+	for _, name := range []string{"index.html", "status.html", "E-01.html", "M-001.html", "assets/style.css"} {
 		if _, err := os.Stat(filepath.Join(out, name)); err != nil {
 			t.Errorf("expected %s in out dir; %v", name, err)
 		}

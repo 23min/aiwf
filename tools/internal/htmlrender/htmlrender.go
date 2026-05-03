@@ -71,6 +71,12 @@ type PageDataResolver interface {
 	IndexData() (*IndexData, error)
 	EpicData(id string) (*EpicData, error)
 	MilestoneData(id string) (*MilestoneData, error)
+	// StatusData returns the project-status page payload. A nil
+	// return (with no error) means "skip the status page" — the
+	// renderer will not emit status.html and the sidebar will
+	// suppress the link. The default resolver returns nil so the
+	// htmlrender package's own tests don't need git access.
+	StatusData() (*StatusData, error)
 }
 
 // Result reports what the render produced. FilesWritten is the count
@@ -123,6 +129,15 @@ func Render(opts Options) (Result, error) {
 	}
 	count++
 
+	if status, err := resolver.StatusData(); err != nil {
+		return Result{}, fmt.Errorf("StatusData: %w", err)
+	} else if status != nil {
+		if err := renderStatus(opts, tmpls, status); err != nil {
+			return Result{}, err
+		}
+		count++
+	}
+
 	for _, e := range sortedByID(opts.Tree.ByKind(entity.KindEpic)) {
 		if err := renderEpic(opts, tmpls, resolver, e.ID); err != nil {
 			return Result{}, err
@@ -170,6 +185,13 @@ func renderEpic(opts Options, tmpls *template.Template, resolver PageDataResolve
 		return fmt.Errorf("EpicData(%s) returned no Epic ref", id)
 	}
 	return executeToFile(tmpls, "epic.tmpl", filepath.Join(opts.OutDir, data.Epic.FileName), data)
+}
+
+// renderStatus writes the status.html page. Called only when the
+// resolver returned a non-nil StatusData; the page summarises in-
+// flight epics, open decisions, gaps, warnings, and recent activity.
+func renderStatus(opts Options, tmpls *template.Template, data *StatusData) error {
+	return executeToFile(tmpls, "status.tmpl", filepath.Join(opts.OutDir, "status.html"), data)
 }
 
 // renderMilestone writes one milestone page. The Manifest tab's
