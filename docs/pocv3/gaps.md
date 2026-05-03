@@ -193,7 +193,7 @@ The audit's other-axes verification was a one-shot pass; if a future iteration a
 <a id="g24"></a>
 ### G26. `findings_have_tests` policy mirrors G21's old shape — only sees named-constant codes — **resolved**
 
-Resolved in commit `<TBD>` (feat(aiwf): G26 — extend findings_have_tests to inline-literal codes). After G21 broadened `PolicyFindingCodesAreDiscoverable` to enumerate every kebab-case finding code (named constants + inline `Code: "..."` literals across `check/` and `contractcheck/`), `PolicyFindingCodesHaveTests` was left on the old narrow enumeration: it only verified test references for named-constant codes (i.e., the `provenance-*` family). Inline-literal codes — most of the pre-I2.5 surface, including `acs-tdd-audit`, `acs-shape`, `case-paths`, `load-error`, etc. — could be production-emitted without any test asserting the exact code string. A typo in the emission site would slip through every existing test.
+Resolved in commit `f37dc07` (feat(aiwf): G26 — extend findings_have_tests to inline-literal codes). After G21 broadened `PolicyFindingCodesAreDiscoverable` to enumerate every kebab-case finding code (named constants + inline `Code: "..."` literals across `check/` and `contractcheck/`), `PolicyFindingCodesHaveTests` was left on the old narrow enumeration: it only verified test references for named-constant codes (i.e., the `provenance-*` family). Inline-literal codes — most of the pre-I2.5 surface, including `acs-tdd-audit`, `acs-shape`, `case-paths`, `load-error`, etc. — could be production-emitted without any test asserting the exact code string. A typo in the emission site would slip through every existing test.
 
 The fix shares `loadCheckCodeLiterals` with the discoverability policy so the two now operate on the same code population. For inline-literal codes the only acceptable test reference is the quoted string value (no constant name to fall back on). Codes also declared as constants are deduped against the named pass.
 
@@ -279,6 +279,6 @@ Severity: **High**. The framework's central correctness story (git log is the au
 | G23 | Delegated `--force` via `aiwf authorize --allow-force`     | Low      | [ ] open |
 | G24 | Manual commits bypass `aiwf-verb:` trailers; no repair path | High     | [x] I2.5 steps 5b/5c/7b (`bc4183e`, `6cc0648`, `0e44ad6`, `be2ea27`) |
 | G25 | Pre-commit policy hook is per-clone, install-by-copy — drifts silently | Medium | [x] `40c3d2d` |
-| G26 | `findings_have_tests` policy only sees named-constant codes (G21 mirror) | Low | [x] `<TBD>` |
+| G26 | `findings_have_tests` policy only sees named-constant codes (G21 mirror) | Low | [x] `f37dc07` |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
