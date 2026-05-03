@@ -268,6 +268,14 @@ func Latest(ctx context.Context) (Info, error) {
 // latestFor is the testable seam: callers in tests pass an httptest
 // server's client and a fixed module path; Latest passes the package
 // defaults.
+//
+// The function tries `/<module>/@v/list` first to get all published
+// tagged versions and picks the highest semver. This avoids a known
+// proxy quirk where `/<module>/@latest` can be cached with a pre-tag
+// pseudo-version answer and not refresh after the first tag lands.
+// Only when the list endpoint returns no tagged versions does the
+// function fall back to `/<module>/@latest`, which serves the
+// pseudo-version of the latest commit on the default branch.
 func latestFor(ctx context.Context, client *http.Client, modulePath string) (Info, error) {
 	if modulePath == "" {
 		return Info{}, errors.New("module path unavailable from build info")
@@ -276,6 +284,18 @@ func latestFor(ctx context.Context, client *http.Client, modulePath string) (Inf
 	if err != nil {
 		return Info{}, err
 	}
+
+	// Step 1: list tagged versions; pick the highest.
+	listURL := strings.TrimRight(base, "/") + "/" + modulePath + "/@v/list"
+	highest, found, listErr := highestTaggedFromList(ctx, client, listURL)
+	if listErr != nil {
+		return Info{}, listErr
+	}
+	if found {
+		return highest, nil
+	}
+
+	// Step 2: fall back to @latest for the no-tags-yet case.
 	u := strings.TrimRight(base, "/") + "/" + modulePath + "/@latest"
 
 	httpCtx, cancel := context.WithTimeout(ctx, LatestTimeout)
@@ -306,6 +326,75 @@ func latestFor(ctx context.Context, client *http.Client, modulePath string) (Inf
 	}
 
 	return Parse(payload.Version), nil
+}
+
+// highestTaggedFromList queries the proxy's `/@v/list` endpoint for
+// the published tagged versions of a module and returns the highest
+// one as a tagged Info. ok=false means the endpoint returned no
+// tagged versions (the module has never been tagged); err means a
+// transport or status-code failure that the caller should propagate.
+//
+// The list endpoint returns one version per line. Pre-release and
+// build-suffixed values are skipped since Compare returns Unknown
+// against them (they can't anchor a "latest" comparison).
+func highestTaggedFromList(ctx context.Context, client *http.Client, listURL string) (Info, bool, error) {
+	httpCtx, cancel := context.WithTimeout(ctx, LatestTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, listURL, http.NoBody)
+	if err != nil {
+		return Info{}, false, fmt.Errorf("building proxy list request: %w", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return Info{}, false, fmt.Errorf("querying %s: %w", listURL, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return Info{}, false, fmt.Errorf("proxy %s returned %d: %s",
+			listURL, resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return Info{}, false, fmt.Errorf("reading proxy list: %w", err)
+	}
+
+	var best Info
+	var bestTriple [3]int
+	found := false
+	for _, line := range strings.Split(string(body), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		info := Parse(line)
+		if !info.Tagged {
+			continue
+		}
+		triple, ok := parseTriple(info.Version)
+		if !ok {
+			continue
+		}
+		if !found || tripleGreater(triple, bestTriple) {
+			best = info
+			bestTriple = triple
+			found = true
+		}
+	}
+	return best, found, nil
+}
+
+// tripleGreater reports whether a > b in lexicographic (major,
+// minor, patch) order.
+func tripleGreater(a, b [3]int) bool {
+	for i := 0; i < 3; i++ {
+		if a[i] != b[i] {
+			return a[i] > b[i]
+		}
+	}
+	return false
 }
 
 // proxyBase resolves the module proxy URL from GOPROXY. Walks the

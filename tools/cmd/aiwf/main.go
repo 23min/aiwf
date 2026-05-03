@@ -19,11 +19,29 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
+	"github.com/23min/ai-workflow-v2/tools/internal/version"
 )
 
-// Version is the binary's reported version. Set via -ldflags at build
-// time once releases start shipping; defaults to "dev" otherwise.
+// Version is the binary's reported version. The ldflags-stamped value
+// takes precedence (used by `make install` for branch+SHA stamping
+// during local development); when left at the default `"dev"`, the
+// `aiwf version` verb falls back to runtime/debug.ReadBuildInfo via
+// version.Current() so a `go install …@v0.1.0` binary correctly
+// reports its tag.
 var Version = "dev"
+
+// resolvedVersion returns the version to display in user output.
+// Prefers the ldflags-stamped Version global when set to anything
+// other than the default sentinel, otherwise reads from buildinfo.
+func resolvedVersion() string {
+	if Version != "dev" && Version != "" {
+		return Version
+	}
+	if v := version.Current().Version; v != "" && v != version.DevelVersion {
+		return v
+	}
+	return Version
+}
 
 // Exit codes per docs/pocv3/plans/poc-plan.md and tools/CLAUDE.md.
 const (
@@ -51,7 +69,7 @@ func run(args []string) int {
 		printHelp()
 		return exitOK
 	case "--version", "-v", "version":
-		fmt.Println(Version)
+		fmt.Println(resolvedVersion())
 		return exitOK
 	case "check":
 		return runCheck(args[1:])

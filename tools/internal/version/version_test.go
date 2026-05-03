@@ -258,12 +258,12 @@ func TestProxyBase(t *testing.T) {
 func TestLatest_Happy(t *testing.T) {
 	const modulePath = "example.com/test/module"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		wantPath := "/" + modulePath + "/@latest"
-		if r.URL.Path != wantPath {
-			t.Errorf("proxy got path %q, want %q", r.URL.Path, wantPath)
+		switch r.URL.Path {
+		case "/" + modulePath + "/@v/list":
+			fmt.Fprint(w, "v0.2.0\nv0.1.0\nv0.1.1\n")
+		default:
+			t.Errorf("unexpected path %q (Latest should resolve from @v/list)", r.URL.Path)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `{"Version":"v0.2.0","Time":"2026-05-03T12:00:00Z"}`)
 	}))
 	t.Cleanup(srv.Close)
 
@@ -274,52 +274,105 @@ func TestLatest_Happy(t *testing.T) {
 		t.Fatalf("latestFor: %v", err)
 	}
 	if got.Version != "v0.2.0" {
-		t.Errorf("Version = %q, want v0.2.0", got.Version)
+		t.Errorf("Version = %q, want v0.2.0 (highest tagged in list)", got.Version)
 	}
 	if !got.Tagged {
 		t.Errorf("Tagged = false, want true")
 	}
 }
 
+// TestLatest_FallsBackToAtLatest covers the no-tags-yet case: the
+// /@v/list endpoint returns an empty body (or only non-tagged values
+// like a pre-release-only history), and Latest falls through to the
+// /@latest endpoint to surface the latest commit's pseudo-version.
+func TestLatest_FallsBackToAtLatest(t *testing.T) {
+	const modulePath = "example.com/test/module"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/" + modulePath + "/@v/list":
+			fmt.Fprint(w, "") // no tags
+		case "/" + modulePath + "/@latest":
+			fmt.Fprintln(w, `{"Version":"v0.0.0-20060102150405-abcdef123456"}`)
+		default:
+			t.Errorf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	t.Setenv("GOPROXY", srv.URL)
+
+	got, err := latestFor(context.Background(), srv.Client(), modulePath)
+	if err != nil {
+		t.Fatalf("latestFor: %v", err)
+	}
+	if got.Version != "v0.0.0-20060102150405-abcdef123456" {
+		t.Errorf("Version = %q, want pseudo-version fallback", got.Version)
+	}
+	if got.Tagged {
+		t.Errorf("Tagged = true, want false (pseudo-version)")
+	}
+}
+
 func TestLatest_ProxyError(t *testing.T) {
 	cases := []struct {
-		name    string
-		handler http.HandlerFunc
-		wantErr string
+		name      string
+		listBody  string // empty → 404 on /@v/list, forces fallback to /@latest
+		latestFn  http.HandlerFunc
+		listFn    http.HandlerFunc // when set, overrides default 200/empty
+		wantErrIn string
 	}{
 		{
-			name: "404 from proxy",
-			handler: func(w http.ResponseWriter, _ *http.Request) {
-				http.Error(w, "not found", http.StatusNotFound)
-			},
-			wantErr: "returned 404",
-		},
-		{
-			name: "500 from proxy",
-			handler: func(w http.ResponseWriter, _ *http.Request) {
+			name: "@v/list 500",
+			listFn: func(w http.ResponseWriter, _ *http.Request) {
 				http.Error(w, "boom", http.StatusInternalServerError)
 			},
-			wantErr: "returned 500",
+			wantErrIn: "returned 500",
 		},
 		{
-			name: "malformed JSON body",
-			handler: func(w http.ResponseWriter, _ *http.Request) {
+			name:     "fallback @latest 404",
+			listBody: "",
+			latestFn: func(w http.ResponseWriter, _ *http.Request) {
+				http.Error(w, "not found", http.StatusNotFound)
+			},
+			wantErrIn: "returned 404",
+		},
+		{
+			name:     "fallback @latest malformed JSON",
+			listBody: "",
+			latestFn: func(w http.ResponseWriter, _ *http.Request) {
 				fmt.Fprint(w, "not-json")
 			},
-			wantErr: "decoding proxy response",
+			wantErrIn: "decoding proxy response",
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			srv := httptest.NewServer(tc.handler)
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/@v/list") {
+					if tc.listFn != nil {
+						tc.listFn(w, r)
+						return
+					}
+					fmt.Fprint(w, tc.listBody)
+					return
+				}
+				if strings.HasSuffix(r.URL.Path, "/@latest") {
+					if tc.latestFn != nil {
+						tc.latestFn(w, r)
+						return
+					}
+					http.NotFound(w, r)
+					return
+				}
+				http.NotFound(w, r)
+			}))
 			t.Cleanup(srv.Close)
 			t.Setenv("GOPROXY", srv.URL)
 			_, err := latestFor(context.Background(), srv.Client(), "example.com/test/module")
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
-			if !strings.Contains(err.Error(), tc.wantErr) {
-				t.Errorf("err = %q, want substring %q", err.Error(), tc.wantErr)
+			if !strings.Contains(err.Error(), tc.wantErrIn) {
+				t.Errorf("err = %q, want substring %q", err.Error(), tc.wantErrIn)
 			}
 		})
 	}
@@ -369,11 +422,12 @@ func TestLatest_Wrapper(t *testing.T) {
 		t.Skip("ModulePath unavailable in this build")
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/"+modulePath+"/@latest" {
+		switch r.URL.Path {
+		case "/" + modulePath + "/@v/list":
+			fmt.Fprintln(w, "v0.9.9")
+		default:
 			http.NotFound(w, r)
-			return
 		}
-		fmt.Fprintln(w, `{"Version":"v0.9.9"}`)
 	}))
 	t.Cleanup(srv.Close)
 	t.Setenv("GOPROXY", srv.URL)
