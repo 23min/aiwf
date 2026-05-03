@@ -11,54 +11,65 @@
  * Tab show/hide is the only stateful piece — driven by :target +
  * :has(). No JS. */
 
+/* Palette: Linear-leaning. Lower saturation than Vercel; iris/violet
+ * accent (Linear's signature `#5e6ad2`); status pills sit at 8% mix
+ * over the card background with a 20% mix border — quieter than the
+ * default Vercel-y 12/30. Borders are hairline; shadow is gone in
+ * light mode (Linear uses borders for separation, not elevation). */
 :root {
-  --fg: #1a1d21;
-  --fg-muted: #5a6470;
-  --bg: #f7f8fa;
-  --bg-card: #fff;
-  --bg-tint: #eef0f4;
-  --border: #e1e5eb;
-  --border-soft: #eef0f4;
-  --shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
-  --link: #3b6dd6;
-  --accent: #3b6dd6;
+  --fg: #1c1d22;
+  --fg-muted: #6c707a;
+  --bg: #fbfbfc;
+  --bg-card: #ffffff;
+  --bg-tint: #f4f5f8;
+  --border: #e4e6ea;
+  --border-soft: #eef0f3;
+  --shadow: 0 0 0 transparent;
+  --link: #5e6ad2;
+  --accent: #5e6ad2;
 
   /* One token per status; the pill rules derive the tinted bg +
    * faint border via color-mix(). Keep in sync with the closed
    * status sets in tools/internal/entity/. */
-  --status-active: #15803d;
-  --status-done: #15803d;
-  --status-met: #15803d;
-  --status-accepted: #15803d;
-  --status-in_progress: #3b6dd6;
-  --status-open: #c2410c;
-  --status-deferred: #c2410c;
-  --status-proposed: #5a6470;
-  --status-draft: #5a6470;
-  --status-cancelled: #94a3b8;
-  --status-wontfix: #94a3b8;
-  --status-rejected: #94a3b8;
-  --status-retired: #94a3b8;
-  --status-deprecated: #94a3b8;
+  --status-active: #3d8b6e;
+  --status-done: #3d8b6e;
+  --status-met: #3d8b6e;
+  --status-accepted: #3d8b6e;
+  --status-in_progress: #5e6ad2;
+  --status-open: #bf8233;
+  --status-deferred: #bf8233;
+  --status-proposed: #6c707a;
+  --status-draft: #6c707a;
+  --status-cancelled: #94989f;
+  --status-wontfix: #94989f;
+  --status-rejected: #94989f;
+  --status-retired: #94989f;
+  --status-deprecated: #94989f;
 
-  --phase-red: #b91c1c;
-  --phase-green: #15803d;
-  --phase-refactor: #6b21a8;
-  --phase-done: #15803d;
+  --phase-red: #c4554a;
+  --phase-green: #3d8b6e;
+  --phase-refactor: #7c5fc7;
+  --phase-done: #3d8b6e;
 
-  --tdd-required: #b91c1c;
-  --tdd-advisory: #c2410c;
-  --tdd-none: #5a6470;
+  --tdd-required: #c4554a;
+  --tdd-advisory: #bf8233;
+  --tdd-none: #6c707a;
 
-  --policy-strict: #b91c1c;
-  --policy-advisory: #c2410c;
+  --policy-strict: #c4554a;
+  --policy-advisory: #bf8233;
 
-  --scope-active: #15803d;
-  --scope-paused: #c2410c;
-  --scope-ended: #94a3b8;
+  --scope-active: #3d8b6e;
+  --scope-paused: #bf8233;
+  --scope-ended: #94989f;
 
-  --force-fg: #c2410c;
-  --audit-fg: #1d4ed8;
+  --force-fg: #bf8233;
+  --audit-fg: #5e6ad2;
+
+  /* Pill mix percentages — exposed as variables so dark mode and
+   * future themes don't have to copy-paste the magic numbers.
+   * Linear uses very quiet pill tints; we follow at 8%/20%. */
+  --pill-bg-mix: 8%;
+  --pill-border-mix: 20%;
 }
 
 /* ---------- Reset + base ---------- */
@@ -79,7 +90,7 @@ main {
   background: var(--bg-card);
   padding: 2rem 2.25rem;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
@@ -88,14 +99,15 @@ main {
 /* The signature visual gesture: a thin accent stripe along the top
  * of the content card. Single colored line is enough — no logo
  * needed. Uses an absolutely-positioned pseudo-element so the
- * card padding is unchanged and content lays out the same way. */
+ * card padding is unchanged and content lays out the same way.
+ * 2 px is calmer than 3 — Linear-leaning. */
 main::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2px;
   background: var(--accent);
 }
 
@@ -174,9 +186,9 @@ li { margin: 0.2rem 0; }
   border-radius: 999px;
   font-size: 0.8em;
   font-weight: 500;
-  background: color-mix(in srgb, var(--pill-color, var(--fg-muted)) 12%, var(--bg-card));
+  background: color-mix(in srgb, var(--pill-color, var(--fg-muted)) var(--pill-bg-mix), var(--bg-card));
   color: var(--pill-color, var(--fg-muted));
-  border: 1px solid color-mix(in srgb, var(--pill-color, var(--fg-muted)) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pill-color, var(--fg-muted)) var(--pill-border-mix), transparent);
   line-height: 1.5;
 }
 
@@ -310,14 +322,14 @@ main:has(section[data-tab="provenance"]:target) .tabs .tab-provenance {
 }
 .scope-chip { background: var(--bg-tint); color: var(--fg-muted); border-color: var(--border-soft); }
 .force {
-  background: color-mix(in srgb, var(--force-fg) 12%, var(--bg-card));
+  background: color-mix(in srgb, var(--force-fg) var(--pill-bg-mix), var(--bg-card));
   color: var(--force-fg);
-  border-color: color-mix(in srgb, var(--force-fg) 30%, transparent);
+  border-color: color-mix(in srgb, var(--force-fg) var(--pill-border-mix), transparent);
 }
 .audit {
-  background: color-mix(in srgb, var(--audit-fg) 12%, var(--bg-card));
+  background: color-mix(in srgb, var(--audit-fg) var(--pill-bg-mix), var(--bg-card));
   color: var(--audit-fg);
-  border-color: color-mix(in srgb, var(--audit-fg) 30%, transparent);
+  border-color: color-mix(in srgb, var(--audit-fg) var(--pill-border-mix), transparent);
 }
 .scope-end { background: var(--bg-tint); color: var(--fg-muted); border-color: var(--border-soft); }
 
@@ -331,49 +343,56 @@ main:has(section[data-tab="provenance"]:target) .tabs .tab-provenance {
  * automatically so pill backgrounds re-tint to dark. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --fg: #e6e8ec;
-    --fg-muted: #8a93a0;
-    --bg: #0f1115;
-    --bg-card: #161a21;
-    --bg-tint: #1d2129;
-    --border: #2a2f39;
-    --border-soft: #20242c;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --link: #6b9eff;
-    --accent: #6b9eff;
+    /* Linear-style dark: near-black bg with subtle blue undertone,
+     * card barely elevated, hairline borders, no shadow. */
+    --fg: #e1e2e6;
+    --fg-muted: #84878f;
+    --bg: #08090a;
+    --bg-card: #101113;
+    --bg-tint: #17181b;
+    --border: #23252a;
+    --border-soft: #1a1c20;
+    --shadow: 0 0 0 transparent;
+    --link: #7d8ddf;
+    --accent: #7d8ddf;
 
-    --status-active: #4ade80;
-    --status-done: #4ade80;
-    --status-met: #4ade80;
-    --status-accepted: #4ade80;
-    --status-in_progress: #6b9eff;
-    --status-open: #fb923c;
-    --status-deferred: #fb923c;
-    --status-proposed: #94a3b8;
-    --status-draft: #94a3b8;
-    --status-cancelled: #64748b;
-    --status-wontfix: #64748b;
-    --status-rejected: #64748b;
-    --status-retired: #64748b;
-    --status-deprecated: #64748b;
+    --status-active: #5ea487;
+    --status-done: #5ea487;
+    --status-met: #5ea487;
+    --status-accepted: #5ea487;
+    --status-in_progress: #7d8ddf;
+    --status-open: #d49b54;
+    --status-deferred: #d49b54;
+    --status-proposed: #84878f;
+    --status-draft: #84878f;
+    --status-cancelled: #5a5e66;
+    --status-wontfix: #5a5e66;
+    --status-rejected: #5a5e66;
+    --status-retired: #5a5e66;
+    --status-deprecated: #5a5e66;
 
-    --phase-red: #f87171;
-    --phase-green: #4ade80;
-    --phase-refactor: #c084fc;
-    --phase-done: #4ade80;
+    --phase-red: #d97268;
+    --phase-green: #5ea487;
+    --phase-refactor: #9d83d8;
+    --phase-done: #5ea487;
 
-    --tdd-required: #f87171;
-    --tdd-advisory: #fb923c;
-    --tdd-none: #94a3b8;
+    --tdd-required: #d97268;
+    --tdd-advisory: #d49b54;
+    --tdd-none: #84878f;
 
-    --policy-strict: #f87171;
-    --policy-advisory: #fb923c;
+    --policy-strict: #d97268;
+    --policy-advisory: #d49b54;
 
-    --scope-active: #4ade80;
-    --scope-paused: #fb923c;
-    --scope-ended: #64748b;
+    --scope-active: #5ea487;
+    --scope-paused: #d49b54;
+    --scope-ended: #5a5e66;
 
-    --force-fg: #fb923c;
-    --audit-fg: #6b9eff;
+    --force-fg: #d49b54;
+    --audit-fg: #7d8ddf;
+
+    /* Slightly higher mix in dark mode so pills stay legible
+     * against the near-black card. */
+    --pill-bg-mix: 14%;
+    --pill-border-mix: 28%;
   }
 }
