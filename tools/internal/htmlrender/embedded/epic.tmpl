@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Epic.ID}} — {{.Epic.Title}}</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main>
+<nav><a href="index.html">← index</a></nav>
+<h1>{{.Epic.ID}} — {{.Epic.Title}}</h1>
+<p class="status">status: {{.Epic.Status}}</p>
+<h2>Milestones</h2>
+{{- if .Milestones}}
+<ul>
+{{- range .Milestones}}
+<li><a href="{{.FileName}}">{{.ID}} — {{.Title}}</a> <span class="status">{{.Status}}</span></li>
+{{- end}}
+</ul>
+{{- else}}
+<p>No milestones yet.</p>
+{{- end}}
+</main>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main>
+<h1>{{.Title}}</h1>
+<h2>Epics</h2>
+{{- if .Epics}}
+<ul>
+{{- range .Epics}}
+<li><a href="{{.FileName}}">{{.ID}} — {{.Title}}</a> <span class="status">{{.Status}}</span></li>
+{{- end}}
+</ul>
+{{- else}}
+<p>No epics yet.</p>
+{{- end}}
+</main>
+</body>
+</html>

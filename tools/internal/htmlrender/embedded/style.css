@@ -1,0 +1,5 @@
+/* aiwf governance render — placeholder stylesheet (I3 step 3).
+ * Real styling lands in step 5; this file is present so the
+ * <link rel="stylesheet"> resolves and the file shows up in the
+ * link-integrity test. */
+body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 60rem; }

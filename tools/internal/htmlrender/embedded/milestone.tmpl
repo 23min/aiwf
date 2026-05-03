@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Milestone.ID}} — {{.Milestone.Title}}</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main>
+<nav>
+<a href="index.html">← index</a>
+{{- if .ParentFile}} · <a href="{{.ParentFile}}">parent {{.Milestone.Parent}}</a>{{end}}
+</nav>
+<h1>{{.Milestone.ID}} — {{.Milestone.Title}}</h1>
+<p class="status">status: {{.Milestone.Status}}{{if .Milestone.TDD}} · tdd: {{.Milestone.TDD}}{{end}}</p>
+<h2>Acceptance criteria</h2>
+{{- if .ACs}}
+<ul>
+{{- range .ACs}}
+<li id="{{acAnchor .ID}}">
+<strong>{{.ID}}</strong> — {{.Title}}
+<span class="status">{{.Status}}</span>
+{{- if .TDDPhase}} <span class="phase">phase: {{.TDDPhase}}</span>{{end}}
+</li>
+{{- end}}
+</ul>
+{{- else}}
+<p>No ACs yet.</p>
+{{- end}}
+</main>
+</body>
+</html>
