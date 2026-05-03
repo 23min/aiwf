@@ -1,0 +1,38 @@
+{{- /* Reusable sidebar partial. Callers invoke as
+       `{{template "sidebar" .Sidebar}}`. Each epic renders as a
+       <details>; the current page's epic carries `open` so the
+       user lands with the right branch expanded. The current
+       page link carries aria-current="page" so CSS can highlight
+       it. */ -}}
+{{define "sidebar"}}
+<aside class="sidebar">
+<p class="sidebar-title">Governance</p>
+<nav>
+<ul class="sidebar-top">
+<li><a href="index.html">Overview</a></li>
+</ul>
+{{- range .Epics}}
+<details class="sidebar-epic"{{if .IsActive}} open{{end}}>
+<summary>
+{{- if .IsCurrent}}
+<a href="{{.FileName}}" aria-current="page">{{.ID}} · {{.Title}}</a>
+{{- else}}
+<a href="{{.FileName}}">{{.ID}} · {{.Title}}</a>
+{{- end}}
+</summary>
+{{- if .Milestones}}
+<ul class="sidebar-milestones">
+{{- range .Milestones}}
+{{- if .IsCurrent}}
+<li><a href="{{.FileName}}" aria-current="page">{{.ID}} · {{.Title}}</a></li>
+{{- else}}
+<li><a href="{{.FileName}}">{{.ID}} · {{.Title}}</a></li>
+{{- end}}
+{{- end}}
+</ul>
+{{- end}}
+</details>
+{{- end}}
+</nav>
+</aside>
+{{end}}

@@ -57,7 +57,9 @@ test.describe("index.html", () => {
 
   test("epic links navigate to per-epic page", async ({ page }) => {
     await page.goto(fileURL("index.html"));
-    await page.getByRole("link", { name: "E-01" }).click();
+    // Sidebar repeats the epic links; scope the click to the
+    // main epics table to keep the assertion unambiguous.
+    await page.locator("table.epics").getByRole("link", { name: "E-01" }).click();
     await expect(page).toHaveURL(fileURL("E-01.html"));
     await expect(page.locator("h1")).toContainText("Foundations");
   });
@@ -245,6 +247,79 @@ test.describe("milestone page — Provenance tab", () => {
   test("M-001 (no scopes) shows the empty-state line", async ({ page }) => {
     await page.goto(fileURL("M-001.html") + "#tab-provenance");
     await expect(page.locator('section[data-tab="provenance"]')).toContainText("No authorized scopes");
+  });
+});
+
+test.describe("sidebar — left-nav tree", () => {
+  test("renders on every page", async ({ page }) => {
+    for (const path of ["index.html", "E-01.html", "E-02.html", "M-001.html", "M-002.html"]) {
+      await page.goto(fileURL(path));
+      await expect(page.locator("aside.sidebar")).toBeVisible();
+      await expect(page.locator("aside.sidebar nav")).toBeVisible();
+      // Every sidebar lists every epic.
+      await expect(page.locator("aside.sidebar a", { hasText: "E-01" })).toBeVisible();
+      await expect(page.locator("aside.sidebar a", { hasText: "E-02" })).toBeVisible();
+    }
+  });
+
+  test("milestone page pre-expands its parent epic; others closed", async ({ page }) => {
+    await page.goto(fileURL("M-001.html"));
+    const e01 = page.locator(`aside.sidebar details:has(a[href="E-01.html"])`);
+    const e02 = page.locator(`aside.sidebar details:has(a[href="E-02.html"])`);
+    await expect(e01).toHaveAttribute("open", "");
+    // E-02 has no `open` attribute on a clean fixture render.
+    expect(await e02.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+    // The milestone link is visible inside the open E-01 details.
+    await expect(e01.locator(`a[href="M-001.html"]`)).toBeVisible();
+  });
+
+  test("epic page pre-expands itself", async ({ page }) => {
+    await page.goto(fileURL("E-01.html"));
+    const e01 = page.locator(`aside.sidebar details:has(a[href="E-01.html"])`);
+    await expect(e01).toHaveAttribute("open", "");
+  });
+
+  test("index page leaves all epics collapsed", async ({ page }) => {
+    await page.goto(fileURL("index.html"));
+    const opens = await page.locator("aside.sidebar details").evaluateAll(
+      (els) => els.map((e) => (e as HTMLDetailsElement).open),
+    );
+    expect(opens.every((o) => !o)).toBe(true);
+  });
+
+  test("current page link carries aria-current=page", async ({ page }) => {
+    await page.goto(fileURL("M-001.html"));
+    const current = page.locator(`aside.sidebar a[aria-current="page"]`);
+    await expect(current).toHaveCount(1);
+    await expect(current).toHaveAttribute("href", "M-001.html");
+
+    await page.goto(fileURL("E-01.html"));
+    const epicCurrent = page.locator(`aside.sidebar a[aria-current="page"]`);
+    await expect(epicCurrent).toHaveCount(1);
+    await expect(epicCurrent).toHaveAttribute("href", "E-01.html");
+
+    await page.goto(fileURL("index.html"));
+    // Index page has no entity-link aria-current — the "Overview"
+    // top link is currently not marked. (If we want to mark it as
+    // current on index, that's a one-line template change; for
+    // now we just assert the entity-side rule.)
+    await expect(page.locator(`aside.sidebar a[aria-current="page"]`)).toHaveCount(0);
+  });
+
+  test("clicking an epic summary expands its milestone list", async ({ page }) => {
+    await page.goto(fileURL("index.html"));
+    const e01Details = page.locator(`aside.sidebar details:has(a[href="E-01.html"])`);
+    expect(await e01Details.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+    await e01Details.locator("summary").click();
+    expect(await e01Details.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+    await expect(e01Details.locator(`a[href="M-001.html"]`)).toBeVisible();
+  });
+
+  test("sidebar link navigates to the target page", async ({ page }) => {
+    await page.goto(fileURL("M-001.html"));
+    const sidebarLink = page.locator(`aside.sidebar a[href="M-002.html"]`);
+    await sidebarLink.click();
+    await expect(page).toHaveURL(fileURL("M-002.html"));
   });
 });
 

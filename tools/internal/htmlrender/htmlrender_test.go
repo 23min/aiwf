@@ -180,7 +180,15 @@ func verifyLinkIntegrity(t *testing.T, outDir string) {
 			if strings.HasPrefix(href, "#") {
 				continue
 			}
-			target := filepath.Join(outDir, href)
+			// Strip query string + fragment before checking file
+			// existence. The cache-busting `?v=<hash>` on the
+			// stylesheet href is a browser-cache hint, not a path
+			// component.
+			fileOnly := href
+			if i := strings.IndexAny(fileOnly, "?#"); i >= 0 {
+				fileOnly = fileOnly[:i]
+			}
+			target := filepath.Join(outDir, fileOnly)
 			if _, err := os.Stat(target); err != nil {
 				t.Errorf("%s: broken link to %q (%v)", filepath.Base(path), href, err)
 			}

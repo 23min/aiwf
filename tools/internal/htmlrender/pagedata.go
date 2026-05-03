@@ -9,6 +9,38 @@ type IndexData struct {
 	Epics         []EpicSummary
 	FindingCounts FindingCounts
 	LastActivity  string // ISO date of most recent commit on aiwf-* trailer set; empty in pre-aiwf repos
+	Sidebar       SidebarData
+}
+
+// SidebarData is the left-nav payload every page receives. Epics is
+// sorted by id; each carries its child milestones (also sorted) so
+// the renderer can emit a <details> per epic with milestones nested
+// inside. The current page's ancestors carry IsActive=true so the
+// template emits <details open> on the right epic and aria-
+// current="page" on the right link.
+type SidebarData struct {
+	Epics []SidebarEpic
+}
+
+// SidebarEpic is one epic row in the sidebar. IsActive is true when
+// this epic is the page's own (epic page) or its parent (milestone
+// page).
+type SidebarEpic struct {
+	ID         string
+	Title      string
+	FileName   string
+	IsActive   bool
+	IsCurrent  bool // true on the epic page itself (drives aria-current)
+	Milestones []SidebarMilestone
+}
+
+// SidebarMilestone is one milestone row inside a SidebarEpic.
+// IsCurrent is true when this milestone is the page being rendered.
+type SidebarMilestone struct {
+	ID        string
+	Title     string
+	FileName  string
+	IsCurrent bool
 }
 
 // EpicSummary is one row on the index page. ACMet is rolled up across
@@ -46,6 +78,7 @@ type EpicData struct {
 	History        []HistoryRow
 	ACMet          int
 	ACTotal        int
+	Sidebar        SidebarData
 }
 
 // EntityRef is the minimal data the templates need about the page's
@@ -113,6 +146,7 @@ type MilestoneData struct {
 	TestsPolicy     TestsPolicy
 	ACMet           int
 	ACTotal         int
+	Sidebar         SidebarData
 }
 
 // ACDetail is one AC's view inside the milestone Manifest tab.

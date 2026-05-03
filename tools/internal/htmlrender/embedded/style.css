@@ -79,11 +79,28 @@
 body {
   font: 15px/1.45 -apple-system, system-ui, "Segoe UI", sans-serif;
   margin: 2rem auto;
-  max-width: 64rem;
+  max-width: 78rem;
   padding: 0 1rem;
   color: var(--fg);
   background: var(--bg);
   font-feature-settings: "ss01", "cv11";
+}
+
+/* Two-column layout: sidebar (left) + main content (right). The
+ * layout grid is the body's only child wrapper; main keeps its
+ * card styling, sidebar gets its own. On narrow viewports the
+ * grid collapses to one column with the sidebar pushed below
+ * main (no JS hamburger needed). */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { order: 2; position: static !important; }
 }
 
 main {
@@ -94,7 +111,75 @@ main {
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
+  min-width: 0; /* prevent grid blow-out on long lines/code */
 }
+
+/* Sidebar — sticky on tall pages so the nav follows the user as
+ * they scroll milestone Commits / Provenance tabs. Subtle styling;
+ * the page content is the focus, the nav is the wayfinder. */
+.sidebar {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+  font-size: 0.92rem;
+}
+
+.sidebar-title {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+  padding: 0 0.5rem;
+}
+
+.sidebar nav { display: flex; flex-direction: column; gap: 0.15rem; }
+.sidebar ul { list-style: none; margin: 0; padding: 0; }
+.sidebar a {
+  display: block;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  color: var(--fg-muted);
+  text-decoration: none;
+  line-height: 1.35;
+}
+.sidebar a:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--fg);
+}
+.sidebar a[aria-current="page"] {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.sidebar-top { margin-bottom: 0.4rem; }
+
+/* Each epic is a <details>; the summary carries the epic link.
+ * Hide the default disclosure triangle and use a custom rotating
+ * caret so the visual matches the rest of the design. */
+.sidebar-epic { margin: 0.05rem 0; }
+.sidebar-epic > summary {
+  list-style: none;
+  cursor: pointer;
+  position: relative;
+  padding-left: 1.1rem;
+}
+.sidebar-epic > summary::-webkit-details-marker { display: none; }
+.sidebar-epic > summary::before {
+  content: "›";
+  position: absolute;
+  left: 0.45rem;
+  top: 0.3rem;
+  font-size: 0.85em;
+  color: var(--fg-muted);
+  transition: transform 120ms ease;
+  display: inline-block;
+}
+.sidebar-epic[open] > summary::before { transform: rotate(90deg); }
+.sidebar-epic > summary > a { display: inline-block; padding: 0.3rem 0.5rem 0.3rem 0; }
+.sidebar-milestones { padding-left: 1.5rem !important; border-left: 1px solid var(--border-soft); margin-left: 0.95rem !important; }
+.sidebar-milestones a { font-size: 0.88rem; }
 
 /* The signature visual gesture: a thin accent stripe along the top
  * of the content card. Single colored line is enough — no logo

@@ -17,7 +17,7 @@ type defaultResolver struct {
 // IndexData implements PageDataResolver. Walks every epic and counts
 // AC met / total per milestone, rolling them up to the epic line.
 func (r defaultResolver) IndexData() (*IndexData, error) {
-	out := &IndexData{Title: "Governance"}
+	out := &IndexData{Title: "Governance", Sidebar: r.sidebar("", "")}
 	for _, e := range sortedByID(r.tree.ByKind(entity.KindEpic)) {
 		summary := EpicSummary{
 			ID:       e.ID,
@@ -39,6 +39,37 @@ func (r defaultResolver) IndexData() (*IndexData, error) {
 	return out, nil
 }
 
+// sidebar builds the SidebarData payload for the page being
+// rendered. activeEpicID names the epic to mark active (the page's
+// own id when rendering an epic, the parent for a milestone page,
+// "" for the index). activeMilestoneID names the current milestone
+// (when rendering one) so the link can carry aria-current="page".
+func (r defaultResolver) sidebar(activeEpicID, activeMilestoneID string) SidebarData {
+	var s SidebarData
+	for _, e := range sortedByID(r.tree.ByKind(entity.KindEpic)) {
+		entry := SidebarEpic{
+			ID:        e.ID,
+			Title:     e.Title,
+			FileName:  idToFileName(e.ID),
+			IsActive:  e.ID == activeEpicID,
+			IsCurrent: e.ID == activeEpicID && activeMilestoneID == "",
+		}
+		for _, m := range sortedByID(r.tree.ByKind(entity.KindMilestone)) {
+			if m.Parent != e.ID {
+				continue
+			}
+			entry.Milestones = append(entry.Milestones, SidebarMilestone{
+				ID:        m.ID,
+				Title:     m.Title,
+				FileName:  idToFileName(m.ID),
+				IsCurrent: m.ID == activeMilestoneID,
+			})
+		}
+		s.Epics = append(s.Epics, entry)
+	}
+	return s
+}
+
 // EpicData implements PageDataResolver. No history / linked-entities
 // resolution — the cmd-side resolver handles those; this default is
 // the minimum shape templates can render.
@@ -56,6 +87,7 @@ func (r defaultResolver) EpicData(id string) (*EpicData, error) {
 			Path:     e.Path,
 			FileName: idToFileName(e.ID),
 		},
+		Sidebar: r.sidebar(e.ID, ""),
 	}
 	for _, m := range sortedByID(r.tree.ByKind(entity.KindMilestone)) {
 		if m.Parent != e.ID {
@@ -102,6 +134,7 @@ func (r defaultResolver) MilestoneData(id string) (*MilestoneData, error) {
 		},
 		ACMet:   met,
 		ACTotal: total,
+		Sidebar: r.sidebar(m.Parent, m.ID),
 	}
 	if m.Parent != "" {
 		if parent := r.tree.ByID(m.Parent); parent != nil {

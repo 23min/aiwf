@@ -49,7 +49,7 @@ func newRenderResolver(ctx context.Context, root string, tr *tree.Tree, cfg *con
 
 // IndexData implements htmlrender.PageDataResolver.
 func (r *renderResolver) IndexData() (*htmlrender.IndexData, error) {
-	out := &htmlrender.IndexData{Title: "Governance"}
+	out := &htmlrender.IndexData{Title: "Governance", Sidebar: r.sidebar("", "")}
 	for _, e := range sortedEntitiesByID(r.tree.ByKind(entity.KindEpic)) {
 		summary := htmlrender.EpicSummary{
 			ID:       e.ID,
@@ -85,8 +85,9 @@ func (r *renderResolver) EpicData(id string) (*htmlrender.EpicData, error) {
 	}
 	body := r.bodyForEntity(e.Path)
 	data := &htmlrender.EpicData{
-		Epic: r.entityRef(e),
-		Body: entity.ParseBodySections(body),
+		Epic:    r.entityRef(e),
+		Body:    entity.ParseBodySections(body),
+		Sidebar: r.sidebar(e.ID, ""),
 	}
 	for _, m := range r.milestonesUnder(e.ID) {
 		met, total := acRollup(m.ACs)
@@ -124,6 +125,7 @@ func (r *renderResolver) MilestoneData(id string) (*htmlrender.MilestoneData, er
 		Body:      entity.ParseBodySections(body),
 		ACMet:     met,
 		ACTotal:   total,
+		Sidebar:   r.sidebar(m.Parent, m.ID),
 	}
 	if m.Parent != "" {
 		if parent := r.tree.ByID(m.Parent); parent != nil {
@@ -158,6 +160,39 @@ func (r *renderResolver) MilestoneData(id string) (*htmlrender.MilestoneData, er
 		data.TestsPolicy.Strict = r.cfg.TDD.RequireTestMetrics
 	}
 	return data, nil
+}
+
+// sidebar builds the SidebarData for the page being rendered.
+// activeEpicID names the epic ancestor to mark active (the page
+// itself for an epic page, the parent for a milestone page, "" for
+// the index). activeMilestoneID, when set, marks one milestone link
+// as the current page so the template can apply aria-current="page".
+//
+// The walk uses the same sortedByID helper as the index/epic page
+// rollups, so sidebar order is the canonical id order across every
+// page. No git access — the sidebar is a pure projection of the
+// frontmatter tree.
+func (r *renderResolver) sidebar(activeEpicID, activeMilestoneID string) htmlrender.SidebarData {
+	var s htmlrender.SidebarData
+	for _, e := range sortedEntitiesByID(r.tree.ByKind(entity.KindEpic)) {
+		entry := htmlrender.SidebarEpic{
+			ID:        e.ID,
+			Title:     e.Title,
+			FileName:  idToHTMLFile(e.ID),
+			IsActive:  e.ID == activeEpicID,
+			IsCurrent: e.ID == activeEpicID && activeMilestoneID == "",
+		}
+		for _, m := range r.milestonesUnder(e.ID) {
+			entry.Milestones = append(entry.Milestones, htmlrender.SidebarMilestone{
+				ID:        m.ID,
+				Title:     m.Title,
+				FileName:  idToHTMLFile(m.ID),
+				IsCurrent: m.ID == activeMilestoneID,
+			})
+		}
+		s.Epics = append(s.Epics, entry)
+	}
+	return s
 }
 
 // entityRef builds the minimal renderer-facing struct from an
