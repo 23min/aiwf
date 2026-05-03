@@ -187,7 +187,9 @@ Severity: Medium. Doesn't break correctness, but degrades the framework's value 
 ---
 
 <a id="g24"></a>
-### G24. Manual commits bypass `aiwf-verb:` trailers; no first-class repair path — **in flight (I2.5)**
+### G24. Manual commits bypass `aiwf-verb:` trailers; no first-class repair path — **resolved**
+
+Resolved across I2.5 steps 5b, 5c, and 7b: `aiwf cancel <id> --audit-only --reason "..."` and `aiwf promote <id> <status> --audit-only --reason "..."` (commit `bc4183e`) record properly-trailered empty-diff commits on entities already at the named state; `Apply` classifies `index.lock` failures and surfaces the holder PID via `lsof` with no silent retries (commit `6cc0648`); a `provenance-untrailered-entity-commit` warning fires on every push for commits ahead of `@{u}` that touch entity files without `aiwf-verb:` (commit `0e44ad6`); the warning clears once the audit-only commit lands (commit `be2ea27`). Cross-cutting integration test in `9c1b010`. The "git log is the audit log" promise now has both a surface-the-gap signal and a first-class recovery verb.
 
 When a mutating verb (`aiwf cancel`, `aiwf promote`, …) fails partway through and the operator finishes the work with a plain `git commit`, the resulting commit lands without the structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`). The entity reaches its correct state — `aiwf check` is clean — but `aiwf history <id>` and `aiwf status` (both filter `git log --grep "^aiwf-verb: "`) report no event for the change. The audit trail goes silent for events that did happen.
 
@@ -242,6 +244,6 @@ Severity: **High**. The framework's central correctness story (git log is the au
 | G21 | Kernel surface is partially undocumented for AI assistants  | Medium   | [ ] open |
 | G22 | Provenance model extension surface (revoke, time, verb-set, pattern, sub-agent, bulk-import attribution) | Low | [ ] open |
 | G23 | Delegated `--force` via `aiwf authorize --allow-force`     | Low      | [ ] open |
-| G24 | Manual commits bypass `aiwf-verb:` trailers; no repair path | High     | [ ] in flight (I2.5 steps 5b/5c/7b) |
+| G24 | Manual commits bypass `aiwf-verb:` trailers; no repair path | High     | [x] I2.5 steps 5b/5c/7b (`bc4183e`, `6cc0648`, `0e44ad6`, `be2ea27`) |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
