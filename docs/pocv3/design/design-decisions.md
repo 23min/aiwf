@@ -205,6 +205,22 @@ The materialization invariant is load-bearing: artifacts are regenerated only on
 
 Skills are embedded in the `aiwf` binary via Go's `embed.FS` and copied out on `init` / `update`. This deliberately couples skill content to the binary version: skills are adapters that call binary-provided commands, so version-skew between them would silently break things. Distributing skills via a separate channel — e.g., as a Claude Code plugin — is a viable future *packaging* path for easier installation, but as an architecture choice it would re-introduce the version-skew problem that embedding avoids.
 
+### Release and upgrade
+
+Releases are git tags on the kernel repo. The Go module proxy (`proxy.golang.org`) reads tags directly: `go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@v0.1.0` resolves the tag, `@latest` resolves to the highest semver tag, and `GET https://proxy.golang.org/<module>/@latest` returns the latest version as JSON without cloning. The running binary's own version comes from `runtime/debug.ReadBuildInfo()` — `v0.x.y` for tagged installs, `(devel)` for working-tree builds, a pseudo-version for `@main` installs. No release infrastructure beyond `git tag && git push --tags`.
+
+`aiwf upgrade` is the one-command upgrade flow: it shells out to `go install <module>@<version>` (default `@latest`, override with `--version`), then re-execs the freshly-installed binary to run `aiwf update` in the consumer repo. The upgrade verb composes the two pieces (`go install` + the existing `aiwf update`) so a consumer never needs to remember the two-step ritual. `--check` reports the comparison without installing; `--yes` skips the confirmation prompt. The verb is the only place in the kernel that hardcodes the module path.
+
+Version skew shows up in three rows of `aiwf doctor`, all advisory:
+
+1. **Binary version** — always shown, from `ReadBuildInfo()`. Distinguishes tagged / devel / pseudo.
+2. **`aiwf.yaml` pin coherence** — when `aiwf_version:` is set, compares to the running binary. Mismatch is a notice, not a hard fail; the pin records intent, not enforcement. Hardening it (refuse to run when binary < pin) is a separate, deliberate decision filed for later.
+3. **Latest published** — opt-in via `aiwf doctor --check-latest`. Hits the module proxy with a 3s timeout; honors `GOPROXY=off`; network errors print "unavailable" without failing doctor. Off by default so `aiwf doctor` stays fast and offline.
+
+The split between (2) and (3) is load-bearing: (2) is local-only and always available; (3) requires the network and is opt-in. Together they answer the two questions a user actually has — *am I matched to what this repo expects?* and *am I matched to the world?* — without making either a hard gate.
+
+The full plan lives in [`upgrade-flow-plan.md`](../plans/upgrade-flow-plan.md).
+
 ### `aiwf.yaml` config
 
 A short YAML file at the consumer repo root. Read by `aiwf` on every invocation; written by `aiwf init`. The file's presence is also how `aiwf` discovers the repo root: it walks up from the current working directory until it finds one.
