@@ -211,6 +211,7 @@ func runCheck(args []string) int {
 	root := flags.String("root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	format := flags.String("format", "text", "output format: text or json")
 	pretty := flags.Bool("pretty", false, "indent JSON output (only with --format=json)")
+	since := flags.String("since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
 	flags.SetOutput(os.Stderr)
 	if err := flags.Parse(args); err != nil {
 		return exitUsage
@@ -247,7 +248,7 @@ func runCheck(args []string) int {
 	contractFindings := runContractValidation(ctx, tr, resolved, contracts)
 	findings = append(findings, contractFindings...)
 
-	provenanceFindings, pErr := runProvenanceCheck(ctx, resolved, tr)
+	provenanceFindings, pErr := runProvenanceCheck(ctx, resolved, tr, *since)
 	if pErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
 		return exitInternal

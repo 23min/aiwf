@@ -11,28 +11,61 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
 )
 
-// initRepoFor sets up a temp git repo with the given email and runs
-// `aiwf init` so verbs can run. Returns (root, binDir).
+// initRepoFor sets up a temp git repo with the given email, wires
+// it to a bare-repo upstream (so `git rev-parse @{u}` resolves
+// during scenario tests), and runs `aiwf init`. Returns (root,
+// binDir).
+//
+// The upstream is needed because `aiwf check`'s untrailered-audit
+// pass now skips the scan with a `provenance-untrailered-scope-
+// undefined` advisory when no upstream is configured (issue #5
+// sub-item 2). Real consumer repos have upstreams; the test setup
+// mirrors that.
 func initRepoFor(t *testing.T, email string) (root, binDir string) {
 	t.Helper()
 	bin := aiwfBinary(t)
 	binDir = strings.TrimSuffix(bin, "/aiwf")
-	root = t.TempDir()
+	root = setupGitRepoWithUpstream(t, email)
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	return root, binDir
+}
+
+// setupGitRepoWithUpstream creates a temp git repo with an initial
+// empty commit, a bare-repo remote at `origin`, and an upstream-
+// tracked branch so @{u} resolves to a real ref. The empty commit
+// is pushed so HEAD..@{u} starts as an empty range; subsequent
+// commits are unpushed and visible to the audit pass.
+//
+// Returns the working repo's root path. The bare upstream lives in
+// a sibling tempdir owned by the same test.
+func setupGitRepoWithUpstream(t *testing.T, email string) string {
+	t.Helper()
+	upstream := t.TempDir()
+	if out, err := runGit(upstream, "init", "--bare", "-q"); err != nil {
+		t.Fatalf("git init bare: %v\n%s", err, out)
+	}
+	root := t.TempDir()
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
 		{"config", "user.email", email},
 		{"config", "user.name", "Test User"},
+		{"remote", "add", "origin", upstream},
 	} {
 		if out, err := runGit(root, args...); err != nil {
 			t.Fatalf("git %v: %v\n%s", args, err, out)
 		}
 	}
-	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
-		t.Fatalf("aiwf init: %v\n%s", err, out)
+	if out, err := runGit(root, "commit", "--allow-empty", "-m", "seed"); err != nil {
+		t.Fatalf("git commit seed: %v\n%s", err, out)
 	}
-	return root, binDir
+	if out, err := runGit(root, "push", "-u", "origin", "HEAD:main"); err != nil {
+		t.Fatalf("git push -u: %v\n%s", err, out)
+	}
+	return root
 }
 
 // TestScenario_TerminalPromoteEndsMultipleParallelScopes covers

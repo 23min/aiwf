@@ -9,22 +9,13 @@ import (
 // TestProvenanceCheck_CleanRepoSilent: after `aiwf init` + a couple
 // of normal verb invocations, `aiwf check` produces no provenance
 // findings. The trailer set is well-formed at every step, so all
-// eleven standing rules stay quiet.
+// eleven standing rules stay quiet, and the upstream-aware audit
+// pass scans an empty unpushed range without firing the
+// scope-undefined advisory.
 func TestProvenanceCheck_CleanRepoSilent(t *testing.T) {
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
-	root := t.TempDir()
-	if out, err := runGit(root, "init", "-q"); err != nil {
-		t.Fatalf("git init: %v\n%s", err, out)
-	}
-	for _, args := range [][]string{
-		{"config", "user.email", "peter@example.com"},
-		{"config", "user.name", "Peter Test"},
-	} {
-		if out, err := runGit(root, args...); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-	}
+	root := setupGitRepoWithUpstream(t, "peter@example.com")
 	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
@@ -47,18 +38,7 @@ func TestProvenanceCheck_CleanRepoSilent(t *testing.T) {
 func TestProvenanceCheck_HandEditedAgentCommit(t *testing.T) {
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
-	root := t.TempDir()
-	if out, err := runGit(root, "init", "-q"); err != nil {
-		t.Fatalf("git init: %v\n%s", err, out)
-	}
-	for _, args := range [][]string{
-		{"config", "user.email", "peter@example.com"},
-		{"config", "user.name", "Peter Test"},
-	} {
-		if out, err := runGit(root, args...); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-	}
+	root := setupGitRepoWithUpstream(t, "peter@example.com")
 	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
@@ -92,18 +72,7 @@ func TestProvenanceCheck_HandEditedAgentCommit(t *testing.T) {
 func TestProvenanceCheck_UntrailedEntityCommit(t *testing.T) {
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
-	root := t.TempDir()
-	if out, err := runGit(root, "init", "-q"); err != nil {
-		t.Fatalf("git init: %v\n%s", err, out)
-	}
-	for _, args := range [][]string{
-		{"config", "user.email", "peter@example.com"},
-		{"config", "user.name", "Peter Test"},
-	} {
-		if out, err := runGit(root, args...); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-	}
+	root := setupGitRepoWithUpstream(t, "peter@example.com")
 	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
@@ -138,18 +107,7 @@ func TestProvenanceCheck_UntrailedEntityCommit(t *testing.T) {
 func TestProvenanceCheck_AuthorizationMissing(t *testing.T) {
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
-	root := t.TempDir()
-	if out, err := runGit(root, "init", "-q"); err != nil {
-		t.Fatalf("git init: %v\n%s", err, out)
-	}
-	for _, args := range [][]string{
-		{"config", "user.email", "peter@example.com"},
-		{"config", "user.name", "Peter Test"},
-	} {
-		if out, err := runGit(root, args...); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-	}
+	root := setupGitRepoWithUpstream(t, "peter@example.com")
 	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}

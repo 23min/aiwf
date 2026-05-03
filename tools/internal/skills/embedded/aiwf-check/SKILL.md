@@ -16,9 +16,21 @@ The `aiwf check` verb is a pure function from the working tree to a list of find
 ## What to run
 
 ```bash
-aiwf check                # human-readable text
-aiwf check --format=json  # JSON envelope for tooling
+aiwf check                  # human-readable text
+aiwf check --format=json    # JSON envelope for tooling
 aiwf check --format=json --pretty
+aiwf check --since <ref>    # explicit base for the provenance untrailered-entity audit
+```
+
+### `--since <ref>` — provenance audit scope
+
+The untrailered-entity audit (`provenance-untrailered-entity-commit`) walks a single revision range. The default is `@{u}..HEAD`, so commits already pushed to the upstream are someone else's responsibility to repair.
+
+When the branch has **no upstream** (a fresh feature branch, or a branch whose remote was deleted), the default range is undefined and the audit is **skipped** with one `provenance-untrailered-scope-undefined` warning, rather than scanning all of `HEAD` and flooding the operator with commits already merged in from trunk. To opt back in, either configure an upstream (`git push -u origin <branch>`) or pass `--since <ref>`:
+
+```bash
+aiwf check --since main      # walk main..HEAD on the local branch
+aiwf check --since HEAD~50   # walk the last 50 commits
 ```
 
 ## Findings (errors)
@@ -47,7 +59,8 @@ aiwf check --format=json --pretty
 | `titles-nonempty` | Title is missing or whitespace-only. |
 | `adr-supersession-mutual` | ADR A says it's superseded by B, but B does not list A in its `supersedes`. |
 | `gap-resolved-has-resolver` | Gap is `addressed` but `addressed_by` is empty. |
-| `provenance-untrailered-entity-commit` | A commit between `@{u}` and `HEAD` touched an entity file with no `aiwf-verb:` trailer (manual `git commit`). Repair with `aiwf <verb> --audit-only --reason "..."`. |
+| `provenance-untrailered-entity-commit` | A commit in the audit range (`@{u}..HEAD` by default; see `--since`) touched an entity file with no `aiwf-verb:` trailer (manual `git commit`). One finding **per (commit, entity)** — a commit touching three entities emits three findings, each tagged with its entity id. Repair with `aiwf <verb> <id> --audit-only --reason "..."` per entity; the matching finding clears on the next push. Audit-only on `M-NNN/AC-N` rolls up to `M-NNN` for matching. |
+| `provenance-untrailered-scope-undefined` | The audit range is undefined: the branch has no upstream and `--since <ref>` was not passed. The audit is **skipped**. Configure an upstream (`git push -u origin <branch>`) or pass `--since <ref>` to opt back in. |
 | `acs-tdd-tests-missing` | An AC at `tdd_phase: done` under a `tdd: required` milestone has no `aiwf-tests:` trailer on any commit in its history. Gated by `aiwf.yaml.tdd.require_test_metrics: true`; default off. Fix: re-run the cycle through `aiwf promote --phase ... --tests "pass=N fail=N skip=N"`, or set the YAML field to `false` to silence. |
 
 ## Provenance findings (errors)
@@ -72,4 +85,4 @@ These fire on commit history, not tree state. Each names the offending commit's 
 
 - Don't bypass the pre-push hook with `--no-verify` to "fix it later" — broken state on `main` is the thing this hook exists to prevent.
 - Don't try to make findings disappear by deleting files; `aiwf cancel <id>` is the right way to retire an entity.
-- Don't try to "amend away" a `provenance-untrailered-entity-commit` warning — `aiwf <verb> --audit-only --reason "..."` is the first-class repair path and keeps history append-only.
+- Don't try to "amend away" a `provenance-untrailered-entity-commit` warning — `aiwf <verb> <id> --audit-only --reason "..."` is the first-class per-entity repair path and keeps history append-only. One audit-only commit clears one entity's finding; commits that touched multiple entities need one audit-only per entity (or a single audit-only on a parent that all touched ids reach via composite-id rollup).

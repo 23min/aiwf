@@ -32,6 +32,16 @@ const (
 	// user's intended response is `aiwf <verb> --audit-only --reason
 	// "..."` which fills the hole without rewriting history.
 	CodeProvenanceUntrailedEntityCommit = "provenance-untrailered-entity-commit"
+
+	// Companion to the above: emitted once when the untrailered-
+	// audit scope cannot be determined (the branch has no upstream
+	// and the operator passed no `--since <ref>`). The audit is
+	// skipped — scanning all of HEAD on a long-lived branch with
+	// many merges from trunk produces a flood of warnings against
+	// commits that are someone else's responsibility. The hint
+	// names the two opt-in paths (configure upstream, or pass
+	// --since) so the operator can re-enable a deliberate scan.
+	CodeProvenanceUntrailedScopeUndefined = "provenance-untrailered-scope-undefined"
 )
 
 // RunProvenance returns provenance findings for the given commit
@@ -293,13 +303,22 @@ type UntrailedCommit struct {
 	Paths    []string
 }
 
-// RunUntrailedAudit returns one
-// `provenance-untrailered-entity-commit` finding per commit in the
-// supplied slice that has no aiwf-verb: trailer but touched at least
-// one entity-bearing path. The caller is expected to scope `commits`
-// to the unpushed range (typically `@{u}..HEAD`, falling back to all
-// of HEAD when no upstream exists) so already-pushed pre-aiwf
-// history is silently ignored.
+// RunUntrailedAudit returns
+// `provenance-untrailered-entity-commit` findings — one per
+// (commit, entity) pair — for every untrailered commit in the
+// supplied slice that touched an entity file. The caller is
+// expected to scope `commits` to the unpushed range (typically
+// `@{u}..HEAD`) so already-pushed pre-aiwf history is silently
+// ignored.
+//
+// One finding per entity, not per commit: a manual commit that
+// touches three entity files emits three findings, each tagged
+// with the entity id. This is what makes per-entity audit-only
+// suppression work — `aiwf <verb> M-001 --audit-only` clears the
+// M-001 finding without affecting the others on the same commit.
+// Each finding's message names exactly one entity, which keeps
+// individual lines short even when commits touch many entity
+// files (matters for squash, merge, and bulk-import commits).
 //
 // The finding is a WARNING. The intended user response is `aiwf
 // <verb> --audit-only --reason "..."` (step 5b), which records the
@@ -307,14 +326,17 @@ type UntrailedCommit struct {
 // block pushes for state that is already correct.
 //
 // Coverage by audit-only: when a later commit in the same range
-// carries `aiwf-audit-only:` and its `aiwf-entity:` matches an id
-// resolved from the manual commit's touched paths, the manual
-// commit is considered backfilled and the warning is suppressed.
-// This is the "warning clears on the next push" behavior the I2.5
-// plan promises after the operator runs `aiwf <verb> --audit-only`.
-// Composite ids on audit-only commits roll up to the parent
-// milestone for matching (the manual commit's path resolves to the
-// parent file).
+// carries `aiwf-audit-only:` and its `aiwf-entity:` matches the
+// entity id, the warning for that (commit, entity) pair is
+// suppressed. Composite ids on audit-only commits roll up to the
+// parent milestone for matching, mirroring how composite ids on
+// manual commits resolve to the parent file.
+//
+// Defensive fallback: if a commit touched paths that PathKind
+// recognizes but IDFromPath cannot parse to an id (a bug in the
+// path scheme would be the only realistic cause), one
+// path-tagged finding fires per such path. EntityID is empty in
+// that branch.
 func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 	// Build entityID → latest chrono index of an audit-only commit
 	// that backfills it. Composite ids roll up to the parent so the
@@ -340,50 +362,60 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 		if idx[gitops.TrailerVerb] != "" {
 			continue
 		}
-		var entityPaths []string
+		var unresolvedPaths []string
+		idSeen := map[string]bool{}
 		var touchedIDs []string
 		for _, p := range c.Paths {
 			kind, ok := entity.PathKind(p)
 			if !ok {
 				continue
 			}
-			entityPaths = append(entityPaths, p)
-			if id, idOK := entity.IDFromPath(p, kind); idOK {
-				touchedIDs = append(touchedIDs, id)
+			id, idOK := entity.IDFromPath(p, kind)
+			if !idOK {
+				unresolvedPaths = append(unresolvedPaths, p)
+				continue
 			}
+			if idSeen[id] {
+				continue
+			}
+			idSeen[id] = true
+			touchedIDs = append(touchedIDs, id)
 		}
-		if len(entityPaths) == 0 {
-			continue
+		for _, id := range touchedIDs {
+			if isEntityCoveredByLaterAudit(id, i, auditAt) {
+				continue
+			}
+			findings = append(findings, Finding{
+				Code:     CodeProvenanceUntrailedEntityCommit,
+				Severity: SeverityWarning,
+				EntityID: id,
+				Message: fmt.Sprintf("commit %s touched %s with no aiwf-verb: trailer",
+					short(c.SHA), id),
+			})
 		}
-		// Suppress when every touched entity has a later audit-only
-		// commit covering it. We require at least one resolvable id
-		// (touchedIDs non-empty); a manual commit whose touched paths
-		// resolve to no ids stays flagged.
-		if len(touchedIDs) > 0 && allEntitiesCoveredByLaterAudit(touchedIDs, i, auditAt) {
-			continue
+		// Defensive: PathKind matched but IDFromPath did not.
+		// Flag each such path once so the gap is visible without
+		// flooding the operator's screen.
+		for _, p := range unresolvedPaths {
+			findings = append(findings, Finding{
+				Code:     CodeProvenanceUntrailedEntityCommit,
+				Severity: SeverityWarning,
+				Message: fmt.Sprintf("commit %s touched entity-shaped path %q with no resolvable id and no aiwf-verb: trailer",
+					short(c.SHA), p),
+			})
 		}
-		findings = append(findings, Finding{
-			Code:     CodeProvenanceUntrailedEntityCommit,
-			Severity: SeverityWarning,
-			Message: fmt.Sprintf("commit %s touched entity files without an aiwf-verb: trailer (%s)",
-				short(c.SHA), strings.Join(entityPaths, ", ")),
-		})
 	}
 	return findings
 }
 
-// allEntitiesCoveredByLaterAudit reports whether every id in ids has
-// a strictly-later audit-only commit recorded in auditAt. Used by
-// RunUntrailedAudit to suppress the warning once the operator has
-// backfilled the audit trail with `aiwf <verb> --audit-only`.
-func allEntitiesCoveredByLaterAudit(ids []string, manualIdx int, auditAt map[string]int) bool {
-	for _, id := range ids {
-		laterIdx, ok := auditAt[id]
-		if !ok || laterIdx <= manualIdx {
-			return false
-		}
-	}
-	return true
+// isEntityCoveredByLaterAudit reports whether id has a strictly-
+// later audit-only commit recorded in auditAt. Used by
+// RunUntrailedAudit to suppress the warning per (commit, entity)
+// pair once the operator has backfilled that entity's audit trail
+// with `aiwf <verb> --audit-only`.
+func isEntityCoveredByLaterAudit(id string, manualIdx int, auditAt map[string]int) bool {
+	laterIdx, ok := auditAt[compositeRoot(id)]
+	return ok && laterIdx > manualIdx
 }
 
 // buildAuthOpenerIndex maps every authorize-opener commit's SHA to a

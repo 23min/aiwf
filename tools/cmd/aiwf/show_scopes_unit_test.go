@@ -168,27 +168,34 @@ func TestSplitMultiValueTrailer(t *testing.T) {
 	}
 }
 
-// TestUnpushedRange_NoUpstream: a fresh repo with no upstream
-// configured falls back to "HEAD" so step-7b's audit pass scans
-// every local commit until the first push.
-func TestUnpushedRange_NoUpstream(t *testing.T) {
+// TestResolveUntrailedRange_NoUpstream: a fresh repo with no
+// upstream configured returns no range and an advisory finding
+// so step-7b's audit pass is skipped (the previous "all of HEAD"
+// fallback flooded long-lived branches with commits already
+// merged in from trunk — see issue #5 sub-item 2).
+func TestResolveUntrailedRange_NoUpstream(t *testing.T) {
 	root := t.TempDir()
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
-	got, err := unpushedRange(context.Background(), root)
+	rangeArg, advisory, err := resolveUntrailedRange(context.Background(), root, "")
 	if err != nil {
-		t.Fatalf("unpushedRange: %v", err)
+		t.Fatalf("resolveUntrailedRange: %v", err)
 	}
-	if got != "HEAD" {
-		t.Errorf("unpushedRange = %q, want HEAD (no upstream)", got)
+	if rangeArg != "" {
+		t.Errorf("rangeArg = %q, want empty (skipped)", rangeArg)
+	}
+	if advisory == nil {
+		t.Fatal("advisory is nil; want a scope-undefined warning")
+	}
+	if advisory.Code != "provenance-untrailered-scope-undefined" {
+		t.Errorf("advisory.Code = %q, want provenance-untrailered-scope-undefined", advisory.Code)
 	}
 }
 
-// TestUnpushedRange_WithUpstream: when @{u} resolves, the helper
-// returns "@{u}..HEAD" so the audit pass scans only unpushed
-// commits.
-func TestUnpushedRange_WithUpstream(t *testing.T) {
+// TestResolveUntrailedRange_WithUpstream: when @{u} resolves, the
+// helper returns "@{u}..HEAD" and no advisory.
+func TestResolveUntrailedRange_WithUpstream(t *testing.T) {
 	upstream := t.TempDir()
 	if out, err := runGit(upstream, "init", "--bare", "-q"); err != nil {
 		t.Fatalf("git init bare: %v\n%s", err, out)
@@ -213,12 +220,56 @@ func TestUnpushedRange_WithUpstream(t *testing.T) {
 	if out, err := runGit(root, "push", "-u", "origin", "HEAD:main"); err != nil {
 		t.Fatalf("git push: %v\n%s", err, out)
 	}
-	got, err := unpushedRange(context.Background(), root)
+	rangeArg, advisory, err := resolveUntrailedRange(context.Background(), root, "")
 	if err != nil {
-		t.Fatalf("unpushedRange: %v", err)
+		t.Fatalf("resolveUntrailedRange: %v", err)
 	}
-	if got != "@{u}..HEAD" {
-		t.Errorf("unpushedRange = %q, want @{u}..HEAD", got)
+	if rangeArg != "@{u}..HEAD" {
+		t.Errorf("rangeArg = %q, want @{u}..HEAD", rangeArg)
+	}
+	if advisory != nil {
+		t.Errorf("advisory = %+v, want nil", advisory)
+	}
+}
+
+// TestResolveUntrailedRange_SinceWins: an explicit --since <ref>
+// overrides upstream detection. The ref is verified via
+// `git rev-parse`; an unknown ref returns an advisory finding
+// (audit skipped) rather than failing the whole check.
+func TestResolveUntrailedRange_SinceWins(t *testing.T) {
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runGit(root, "commit", "--allow-empty", "-m", "seed"); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+	// Valid ref → "<ref>..HEAD" range, no advisory.
+	rangeArg, advisory, err := resolveUntrailedRange(context.Background(), root, "HEAD")
+	if err != nil {
+		t.Fatalf("resolveUntrailedRange (valid since): %v", err)
+	}
+	if rangeArg != "HEAD..HEAD" || advisory != nil {
+		t.Errorf("valid since: rangeArg=%q advisory=%+v; want HEAD..HEAD, nil", rangeArg, advisory)
+	}
+	// Unknown ref → empty range + advisory.
+	rangeArg, advisory, err = resolveUntrailedRange(context.Background(), root, "no-such-ref")
+	if err != nil {
+		t.Fatalf("resolveUntrailedRange (bad since): %v", err)
+	}
+	if rangeArg != "" {
+		t.Errorf("bad since: rangeArg = %q, want empty", rangeArg)
+	}
+	if advisory == nil || advisory.Code != "provenance-untrailered-scope-undefined" {
+		t.Errorf("bad since: advisory = %+v, want scope-undefined", advisory)
 	}
 }
 
@@ -250,7 +301,7 @@ func TestReadUntrailedCommits_EmptyRange(t *testing.T) {
 	if out, err := runGit(root, "push", "-u", "origin", "HEAD:main"); err != nil {
 		t.Fatalf("git push: %v\n%s", err, out)
 	}
-	got, err := readUntrailedCommits(context.Background(), root)
+	got, err := readUntrailedCommits(context.Background(), root, "@{u}..HEAD")
 	if err != nil {
 		t.Fatalf("readUntrailedCommits: %v", err)
 	}

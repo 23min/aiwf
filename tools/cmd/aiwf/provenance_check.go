@@ -15,16 +15,24 @@ import (
 // runProvenanceCheck walks every commit reachable from HEAD that
 // carries any `aiwf-*` trailer and runs the I2.5 standing rules
 // against the result. It also runs the step-7b untrailered-entity-
-// commit warning over the unpushed range (`@{u}..HEAD` when an
-// upstream is set, else all of HEAD). Returns a single concatenated
-// finding slice; transport errors propagate.
+// commit warning, scoped per the rules in resolveUntrailedRange:
+//   - --since <ref> on the verb wins.
+//   - Otherwise `@{u}..HEAD` when an upstream is configured.
+//   - Otherwise the audit is SKIPPED with a single
+//     `provenance-untrailered-scope-undefined` advisory; the
+//     fallback used to be "all of HEAD," which on long-lived
+//     branches floods with warnings against commits already
+//     merged in from trunk. See issue #5 sub-item 2.
+//
+// Returns a single concatenated finding slice; transport errors
+// propagate.
 //
 // Why grep on `^aiwf-` for the standing rules: every rule is keyed
 // on at least one aiwf trailer (actor, principal, scope-ends, etc.).
 // Untrailered commits are handled by the separate step-7b audit pass,
-// which uses a different filter (range scoped to the unpushed
-// commits, no trailer grep).
-func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree) ([]check.Finding, error) {
+// which uses a different filter (range scoped per resolveUntrailedRange,
+// no trailer grep).
+func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string) ([]check.Finding, error) {
 	if !hasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -34,7 +42,15 @@ func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree) ([]check
 	}
 	findings := check.RunProvenance(commits, t)
 
-	untrailed, uErr := readUntrailedCommits(ctx, root)
+	rangeArg, advisory, rErr := resolveUntrailedRange(ctx, root, since)
+	if rErr != nil {
+		return nil, rErr
+	}
+	if advisory != nil {
+		findings = append(findings, *advisory)
+		return findings, nil
+	}
+	untrailed, uErr := readUntrailedCommits(ctx, root, rangeArg)
 	if uErr != nil {
 		return nil, uErr
 	}
@@ -42,23 +58,56 @@ func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree) ([]check
 	return findings, nil
 }
 
-// readUntrailedCommits returns the commits in the unpushed range
-// (`@{u}..HEAD`, or all of HEAD when no upstream exists) along with
-// their trailer set and the relative paths each commit touched.
+// resolveUntrailedRange picks the `git log` range for the step-7b
+// untrailered-entity audit. Three branches:
 //
-// The range is what step 7b cares about: already-pushed commits are
-// either pre-aiwf (correctly silent) or are someone else's
-// responsibility to repair. Once an untrailered commit has been
-// pushed, surfacing it locally is noise.
-//
-// Implementation: a single `git log <range> --name-only --pretty=...`
-// invocation with custom record/field separators. The empty unpushed
-// range (HEAD == @{u}) returns no commits, no findings.
-func readUntrailedCommits(ctx context.Context, root string) ([]check.UntrailedCommit, error) {
-	rangeArg, err := unpushedRange(ctx, root)
-	if err != nil {
-		return nil, err
+//  1. since != "" — the operator's explicit choice wins. Validates
+//     the ref shape via `git rev-parse --verify`; an unrecognized
+//     ref returns a usage-error advisory finding so the audit is
+//     still skipped (rather than failing the whole check verb).
+//  2. else, an upstream is configured — return `@{u}..HEAD`.
+//  3. else — return ("", advisory) so the caller skips the scan
+//     and surfaces the undefined-scope warning.
+func resolveUntrailedRange(ctx context.Context, root, since string) (string, *check.Finding, error) {
+	if since != "" {
+		// Verify the ref before trusting it: a typo in `--since`
+		// would otherwise cause a `git log` failure that aborts
+		// the whole `aiwf check` run.
+		verify := exec.CommandContext(ctx, "git", "rev-parse", "--verify", since+"^{commit}")
+		verify.Dir = root
+		if err := verify.Run(); err != nil {
+			advisory := &check.Finding{
+				Code:     check.CodeProvenanceUntrailedScopeUndefined,
+				Severity: check.SeverityWarning,
+				Message: fmt.Sprintf("--since %q does not resolve to a commit; provenance audit skipped",
+					since),
+			}
+			return "", advisory, nil
+		}
+		return since + "..HEAD", nil, nil
 	}
+	upstream := exec.CommandContext(ctx, "git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+	upstream.Dir = root
+	if err := upstream.Run(); err == nil {
+		return "@{u}..HEAD", nil, nil
+	}
+	advisory := &check.Finding{
+		Code:     check.CodeProvenanceUntrailedScopeUndefined,
+		Severity: check.SeverityWarning,
+		Message:  "no upstream configured and no --since <ref>; provenance audit skipped",
+	}
+	return "", advisory, nil
+}
+
+// readUntrailedCommits returns the commits in rangeArg (e.g.
+// `@{u}..HEAD`, or `<sha>..HEAD` from --since) along with their
+// trailer set and the relative paths each commit touched.
+//
+// The range is supplied by the caller (resolveUntrailedRange);
+// readUntrailedCommits is purely the git-log invocation +
+// parsing. An empty range (HEAD == @{u}) returns no commits,
+// no findings.
+func readUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.UntrailedCommit, error) {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e"
 	args := []string{
@@ -79,19 +128,6 @@ func readUntrailedCommits(ctx context.Context, root string) ([]check.UntrailedCo
 		return nil, fmt.Errorf("git log: %w", err)
 	}
 	return parseUntrailedCommits(string(out)), nil
-}
-
-// unpushedRange picks the rev-range step 7b walks. Falls back to all
-// of HEAD (`HEAD`) when no upstream is configured, so a brand-new
-// branch surfaces every untrailered entity commit until the first
-// push.
-func unpushedRange(ctx context.Context, root string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
-	cmd.Dir = root
-	if err := cmd.Run(); err == nil {
-		return "@{u}..HEAD", nil
-	}
-	return "HEAD", nil
 }
 
 // parseUntrailedCommits unpacks the multi-record stream produced by

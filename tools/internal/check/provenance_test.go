@@ -407,6 +407,72 @@ func TestRunUntrailedAudit_AuditOnlyOnDifferentEntityDoesNotCover(t *testing.T) 
 	}
 }
 
+// TestRunUntrailedAudit_PerEntityFindings: a single manual commit
+// touching three entity files emits three findings, one per
+// entity. Each finding carries the entity id; messages are short
+// (no embedded path list).
+func TestRunUntrailedAudit_PerEntityFindings(t *testing.T) {
+	commits := []UntrailedCommit{
+		{
+			SHA: "manual1",
+			Paths: []string{
+				"work/gaps/G-001-leak.md",
+				"work/gaps/G-002-other.md",
+				"work/decisions/D-005-yaml.md",
+			},
+		},
+	}
+	got := RunUntrailedAudit(commits)
+	if len(got) != 3 {
+		t.Fatalf("findings = %d, want 3 (one per entity); got %v", len(got), got)
+	}
+	wantIDs := map[string]bool{"G-001": true, "G-002": true, "D-005": true}
+	for _, f := range got {
+		if f.Code != CodeProvenanceUntrailedEntityCommit {
+			t.Errorf("code = %q, want %q", f.Code, CodeProvenanceUntrailedEntityCommit)
+		}
+		if !wantIDs[f.EntityID] {
+			t.Errorf("EntityID = %q, want one of G-001/G-002/D-005", f.EntityID)
+		}
+		if strings.Contains(f.Message, ",") || strings.Contains(f.Message, "entity files") {
+			t.Errorf("per-entity message should be short, no path list; got %q", f.Message)
+		}
+	}
+}
+
+// TestRunUntrailedAudit_AuditOnlyClearsPerEntity: a manual commit
+// touches G-001 and G-002; a later audit-only commit covers only
+// G-001. Result: one finding remaining (G-002), not zero, not two.
+// This is the load-bearing fix from issue #5 sub-item 1 — the
+// previous all-or-nothing suppression left BOTH warnings flagged
+// in this scenario.
+func TestRunUntrailedAudit_AuditOnlyClearsPerEntity(t *testing.T) {
+	commits := []UntrailedCommit{
+		{
+			SHA: "manual1",
+			Paths: []string{
+				"work/gaps/G-001-leak.md",
+				"work/gaps/G-002-other.md",
+			},
+		},
+		{
+			SHA: "audit01",
+			Trailers: []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "cancel"},
+				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerAuditOnly, Value: "manual flip recovery"},
+			},
+		},
+	}
+	got := RunUntrailedAudit(commits)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1 (only uncovered entity); got %v", len(got), got)
+	}
+	if got[0].EntityID != "G-002" {
+		t.Errorf("remaining finding EntityID = %q, want G-002", got[0].EntityID)
+	}
+}
+
 // TestRunUntrailedAudit_CompositeAuditCoversParentManual: an
 // `aiwf <verb> --audit-only` on `M-001/AC-1` rolls up to M-001 for
 // matching, so a manual mutation of the M-001 file before it is
