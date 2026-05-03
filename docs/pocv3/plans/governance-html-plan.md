@@ -454,10 +454,16 @@ If real friction shows up later, revisit. YAGNI.
 
 | Step | State | Owner |
 |---|---|---|
-| 1 — JSON completeness on `aiwf show` (body parser; trailer parser ext.; depends on I2 reverse-ref index) | proposed | core |
-| 2 — `aiwf-tests:` trailer (kernel write path + opt-in warning) | proposed | core (+ rituals repo for `wf-tdd-cycle` rewire) |
-| 3 — render package skeleton | proposed | core |
-| 4 — `aiwf render --format=html` verb | proposed | core |
-| 5 — templates and CSS | proposed | core |
-| 6 — cross-cutting render details | proposed | core |
-| 7 — documentation | proposed | core |
+| 1 — JSON completeness on `aiwf show` (body parser; trailer parser ext.; depends on I2 reverse-ref index) | shipped (`7fd6524`) | core |
+| 2 — `aiwf-tests:` trailer (kernel write path + opt-in warning) | shipped (`d7fd072` + `77ccfb1`) | core (+ rituals repo for `wf-tdd-cycle` rewire — pending) |
+| 3 — render package skeleton (`tools/internal/htmlrender/`) | shipped (`aeda5b5`) | core |
+| 4 — `aiwf render --format=html` verb + gitignore reconciliation | shipped (`6730c1a` + `056139d`) | core |
+| 5 — templates and CSS | shipped (`e3977ad`) | core |
+| 6 — cross-cutting render details | shipped within step 5 (status pills, force/audit chips, policy badge, `:target` show/hide, determinism) | core |
+| 7 — documentation | shipped (this commit; README HTML render section + `aiwf doctor` render report) | core |
+
+**Out of scope for this iteration (deferred to real-use friction):**
+
+- The `--scope <id>` and `--no-history` flags on `aiwf render --format=html` are accepted but not yet implemented — both are reserved seams that surface in the help text. Step 4's `runRenderSite` walks the full tree on every invocation; partial-tree rendering is a follow-on if iteration speed becomes painful.
+- Per-AC tests aggregation helpers (`LatestTestsForAC`, `RollupTestsForMilestone`, `RollupTestsForEpic`) listed in step 2 — the milestone Tests tab consumes the same first-with-trailer scan inline (`firstTestsTrailer` in `render_resolver.go`); the named helpers can be extracted when a second consumer needs them.
+- Rituals plugin rewire of `wf-tdd-cycle` to `aiwf promote --tests …` — landing in `ai-workflow-rituals` (separate repo). Kernel work is complete and the verb works without the plugin update.

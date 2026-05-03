@@ -142,6 +142,7 @@ aiwf check                                                # validates the tree
 aiwf show M-001                                           # frontmatter + ACs + recent history + active findings
 aiwf history E-01                                         # show this entity's lifecycle from git log
 aiwf render roadmap                                       # markdown table of epics + milestones
+aiwf render --format=html                                 # static-site render: site/index.html + one page per epic/milestone (gitignored by default)
 aiwf status                                               # project snapshot (the same view STATUS.md carries)
 ```
 
@@ -184,6 +185,22 @@ work/epics/E-01-foo/epic.md:3: warning titles-nonempty: title is empty or whites
 
 Pipe through `--format=json` (with optional `--pretty`) when feeding CI. Exit codes: `0` clean, `1` errors found, `2` usage error, `3` internal error.
 
+### HTML render
+
+`aiwf render --format=html` produces a self-contained directory of HTML files: `index.html` (epics table with the `met / (total - cancelled)` AC rollup), one page per epic, and one page per milestone with six tabs (Overview, Manifest, Build, Tests, Commits, Provenance). A single embedded stylesheet ships alongside; no JS, no runtime, no external assets. Tab show/hide is `:target`-driven so per-tab URLs (`M-007.html#tab-build`) are bookmarkable.
+
+Configuration lives in `aiwf.yaml`:
+
+```yaml
+html:
+  out_dir: site            # default; relative to the repo root
+  commit_output: false     # default; framework-managed gitignore covers out_dir/
+```
+
+Set `commit_output: true` if you want to commit the rendered HTML (e.g., serving via `raw.githubusercontent.com`); the next `aiwf init` or `aiwf update` removes the gitignore line. Most projects publish via CI instead — see [`docs/pocv3/plans/governance-html-plan.md`](docs/pocv3/plans/governance-html-plan.md) §2 for the four deployment patterns (local, GitHub Pages artifact, `gh-pages` branch, committed-to-source).
+
+The output is a pure function of the planning tree: render twice into separate directories and the files compare byte-equal.
+
 ---
 
 ## Verbs
@@ -222,6 +239,7 @@ Pipe through `--format=json` (with optional `--pretty`) when feeding CI. Exit co
 | `aiwf show <id>` | Aggregate view: frontmatter + ACs + recent history + active findings + `referenced_by`. Composite ids accepted. |
 | `aiwf status` | Project snapshot: in-flight work, open decisions, gaps, recent activity. Same data the auto-updated `STATUS.md` shows. |
 | `aiwf render roadmap` | Markdown table of epics + milestones. `--write` updates `ROADMAP.md` and commits. |
+| `aiwf render --format=html` | Static-site governance render: `index.html` + one HTML per epic and milestone, plus an embedded stylesheet. Output dir defaults to `site/` (configurable via `aiwf.yaml.html.out_dir` or `--out`). Read-only — no commit. JSON envelope on stdout reports `out_dir / files_written / elapsed_ms`. |
 | `aiwf schema [kind]` | Print the frontmatter contract for one kind (or all six); machine-readable via `--format=json --pretty`. |
 | `aiwf template [kind]` | Print the body-section template `aiwf add` would scaffold. |
 

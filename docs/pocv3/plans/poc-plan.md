@@ -222,7 +222,7 @@ Plans that exist as proposals but have no implementation commits yet. Sub-iterat
 
 | Iteration | Plan | Status | One-liner |
 |---|---|---|---|
-| **I3** | [`governance-html-plan.md`](governance-html-plan.md) | proposal · 0/43 items | Static-site HTML render of canonical planning state (per-repo governance page). Depends on I2 step 11 + I2.5. |
+| **I3** | [`governance-html-plan.md`](governance-html-plan.md) | shipped (steps 1–7 done; see plan status table) | Static-site HTML render of canonical planning state (per-repo governance page). |
 | (untiered) | [`status-report-plan.md`](status-report-plan.md) | proposal | Markdown status renderer with embedded mermaid diagrams; extends `aiwf status` with a third format. Renderer change, not new state. |
 | (untiered) | [`upgrade-flow-plan.md`](upgrade-flow-plan.md) | proposal · 0/9 steps | `aiwf upgrade` verb + git-tag releases + skew detection in `aiwf doctor`. Prereq for using aiwf on real consumer repos without remembering the `go install` ritual. |
 

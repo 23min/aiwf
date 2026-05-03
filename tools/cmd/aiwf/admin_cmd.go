@@ -826,6 +826,12 @@ func doctorReport(rootDir string, opts doctorOptions) (lines []string, problems 
 	//     desired state is "no marker-managed hook on disk".
 	lines, problems = appendPreCommitHookReport(lines, problems, rootDir)
 
+	// 4b. Render config: surface the configured out_dir and
+	//     commit_output flag, plus the misconfiguration where
+	//     commit_output: true but the gitignore still holds the
+	//     out_dir line (recoverable by `aiwf update`).
+	lines, problems = appendRenderReport(lines, problems, rootDir)
+
 	// 5. Rituals-plugin presence (soft note — does not increment
 	// problems). Best-effort heuristic: greps project/local settings
 	// for `aiwf-extensions`. User-scope installs are invisible here,
@@ -843,6 +849,48 @@ func doctorReport(rootDir string, opts doctorOptions) (lines []string, problems 
 		)
 	}
 
+	return lines, problems
+}
+
+// appendRenderReport surfaces the consumer's HTML render
+// configuration plus a check for the false→true commit_output
+// misconfiguration: when the consumer flips commit_output to true
+// without re-running `aiwf update`, the gitignore still carries the
+// stale `<out_dir>/` line and the rendered files are invisible to
+// git. This block names the path, the flag, and the fix.
+func appendRenderReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+	lines = in
+	problems = problemsIn
+
+	cfg, err := config.Load(rootDir)
+	outDir := config.DefaultHTMLOutDir
+	commitOutput := false
+	if err == nil && cfg != nil {
+		outDir = cfg.HTMLOutDir()
+		commitOutput = cfg.HTML.CommitOutput
+	}
+	commitLabel := "false (output gitignored)"
+	if commitOutput {
+		commitLabel = "true (output committed)"
+	}
+	lines = append(lines, fmt.Sprintf("render:    out_dir=%s commit_output=%s", outDir, commitLabel))
+
+	// Misconfiguration check: commit_output: true but a gitignore
+	// line for the out_dir still exists.
+	if commitOutput {
+		gitignorePath := filepath.Join(rootDir, ".gitignore")
+		if raw, readErr := os.ReadFile(gitignorePath); readErr == nil {
+			needle := strings.TrimRight(outDir, "/") + "/"
+			for _, line := range strings.Split(string(raw), "\n") {
+				if strings.TrimSpace(line) == needle {
+					lines = append(lines,
+						fmt.Sprintf("           drift: commit_output is true but .gitignore still holds %q; run `aiwf update` to reconcile", needle))
+					problems++
+					break
+				}
+			}
+		}
+	}
 	return lines, problems
 }
 
