@@ -17,7 +17,9 @@ type defaultResolver struct {
 // IndexData implements PageDataResolver. Walks every epic and counts
 // AC met / total per milestone, rolling them up to the epic line.
 func (r defaultResolver) IndexData() (*IndexData, error) {
-	out := &IndexData{Title: "Governance", Sidebar: r.sidebar("", "")}
+	sidebar := r.sidebar("", "")
+	sidebar.IsCurrentIndex = true
+	out := &IndexData{Title: "Overview", Sidebar: sidebar}
 	for _, e := range sortedByID(r.tree.ByKind(entity.KindEpic)) {
 		summary := EpicSummary{
 			ID:       e.ID,

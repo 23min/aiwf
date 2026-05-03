@@ -49,7 +49,9 @@ func newRenderResolver(ctx context.Context, root string, tr *tree.Tree, cfg *con
 
 // IndexData implements htmlrender.PageDataResolver.
 func (r *renderResolver) IndexData() (*htmlrender.IndexData, error) {
-	out := &htmlrender.IndexData{Title: "Governance", Sidebar: r.sidebar("", "")}
+	sidebar := r.sidebar("", "")
+	sidebar.IsCurrentIndex = true
+	out := &htmlrender.IndexData{Title: "Overview", Sidebar: sidebar}
 	for _, e := range sortedEntitiesByID(r.tree.ByKind(entity.KindEpic)) {
 		summary := htmlrender.EpicSummary{
 			ID:       e.ID,

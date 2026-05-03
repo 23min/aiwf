@@ -30,6 +30,10 @@ func runRender(args []string) int {
 		fmt.Fprintln(os.Stderr, "aiwf render: missing subcommand or --format. Try 'aiwf render roadmap' or 'aiwf render --format=html'.")
 		return exitUsage
 	}
+	if args[0] == "--help" || args[0] == "-h" || args[0] == "help" {
+		printRenderHelp()
+		return exitOK
+	}
 	if args[0] == "roadmap" {
 		return runRenderRoadmap(args[1:])
 	}
@@ -39,6 +43,30 @@ func runRender(args []string) int {
 	}
 	fmt.Fprintf(os.Stderr, "aiwf render: unknown subcommand %q (try 'roadmap' or '--format=html')\n", args[0])
 	return exitUsage
+}
+
+// printRenderHelp emits the verb's catalog of surfaces. Two
+// surfaces today (roadmap + html); the catalog is colocated with
+// the dispatcher so adding a third later only requires one edit.
+// The master verb catalog lives in `aiwf help`.
+func printRenderHelp() {
+	fmt.Println(`aiwf render — produce derived views of the planning tree.
+
+Surfaces:
+  aiwf render roadmap [--write]
+      Markdown roadmap (epics + milestones). Prints to stdout by
+      default; with --write replaces ROADMAP.md and creates a
+      single commit.
+
+  aiwf render --format=html [--out <dir>] [--scope <id>] [--no-history] [--pretty]
+      Static-site governance render: index.html + one page per
+      epic / milestone, plus a status.html page. Default output
+      directory is 'site/' (override via --out or the
+      aiwf.yaml.html.out_dir field). Read-only; no commit. The
+      JSON envelope on stdout reports out_dir, files_written,
+      and elapsed_ms.
+
+See 'aiwf help' for the master verb catalog.`)
 }
 
 // hasFormatFlag reports whether any token in args looks like a

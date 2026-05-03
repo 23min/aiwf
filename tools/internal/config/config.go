@@ -31,6 +31,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -169,6 +170,85 @@ func (c *Config) Validate() error {
 		return errors.New("aiwf_version is required")
 	}
 	return nil
+}
+
+// StripLegacyActor removes any top-level `actor:` line from
+// root/aiwf.yaml and rewrites the file in place. The strip is
+// textual (line-based) rather than a YAML round-trip so user
+// comments and key ordering survive — the legacy `actor:` key is
+// the only field we know to be dead, and a re-marshal would
+// regenerate the file in the marshaler's preferred shape.
+//
+// Returns (false, nil) when no `actor:` line is present (file
+// stays byte-identical), (true, nil) when one was removed, or an
+// error when the file is unreadable / unwritable. Idempotent:
+// callers may invoke on every `aiwf update` without churn.
+//
+// `actor:` only matches at column 0 (i.e. a top-level YAML key).
+// A nested key with an actor field name in some hypothetical
+// future block would not be touched.
+func StripLegacyActor(root string) (changed bool, err error) {
+	path := filepath.Join(root, FileName)
+	bytes, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return false, nil
+		}
+		return false, fmt.Errorf("reading %s: %w", FileName, err)
+	}
+	content := string(bytes)
+	lines := splitKeepEOL(content)
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if isTopLevelActorLine(line) {
+			changed = true
+			continue
+		}
+		out = append(out, line)
+	}
+	if !changed {
+		return false, nil
+	}
+	if writeErr := os.WriteFile(path, []byte(strings.Join(out, "")), 0o644); writeErr != nil {
+		return false, fmt.Errorf("writing %s: %w", FileName, writeErr)
+	}
+	return true, nil
+}
+
+// isTopLevelActorLine reports whether a single line (with or
+// without trailing newline) is a top-level `actor:` key. Indented
+// lines and lines where `actor` is a key inside another mapping
+// are left alone — the strip targets only the legacy top-level
+// field documented in pre-I2.5 aiwf.yaml.
+func isTopLevelActorLine(line string) bool {
+	trimmed := strings.TrimRight(line, "\r\n")
+	if !strings.HasPrefix(trimmed, "actor:") {
+		return false
+	}
+	// Reject "actorxxx:" — only a colon-or-whitespace boundary counts.
+	rest := trimmed[len("actor"):]
+	return strings.HasPrefix(rest, ":")
+}
+
+// splitKeepEOL splits content into lines while preserving each
+// line's trailing newline, so re-joining produces byte-identical
+// output for unchanged content.
+func splitKeepEOL(s string) []string {
+	if s == "" {
+		return nil
+	}
+	var out []string
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\n' {
+			out = append(out, s[start:i+1])
+			start = i + 1
+		}
+	}
+	if start < len(s) {
+		out = append(out, s[start:])
+	}
+	return out
 }
 
 // Write marshals cfg to root/aiwf.yaml. Refuses to overwrite an

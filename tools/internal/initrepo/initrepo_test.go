@@ -145,8 +145,12 @@ func TestInit_Idempotent(t *testing.T) {
 	}
 }
 
-// TestInit_PreservesExistingConfig checks Init does not overwrite a
-// manually-edited aiwf.yaml that already has its own actor.
+// TestInit_PreservesExistingConfig checks Init does not overwrite
+// the user-managed bits of a manually-edited aiwf.yaml. The
+// load-bearing fields (aiwf_version, anything else outside the
+// retired `actor:` key) survive byte-for-byte; the legacy
+// `actor:` line is the one exception — it's the deprecated I2.5
+// field the upgrade-flow strip targets, and is removed in place.
 func TestInit_PreservesExistingConfig(t *testing.T) {
 	root := freshGitRepo(t)
 	custom := []byte("aiwf_version: 9.9.9\nactor: human/somebody-else\n")
@@ -157,8 +161,9 @@ func TestInit_PreservesExistingConfig(t *testing.T) {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, config.FileName))
-	if !bytes.Equal(got, custom) {
-		t.Errorf("aiwf.yaml overwritten despite being preserved")
+	want := []byte("aiwf_version: 9.9.9\n")
+	if !bytes.Equal(got, want) {
+		t.Errorf("aiwf.yaml after init:\n got  %q\n want %q (version preserved, actor: stripped)", got, want)
 	}
 }
 
@@ -214,6 +219,7 @@ func TestInit_SkipsAlienPreHook(t *testing.T) {
 		"docs/adr",
 		"CLAUDE.md",
 		".claude/skills/aiwf-*",
+		"aiwf.yaml (legacy actor strip)",
 		".gitignore",
 		".git/hooks/pre-push",
 		".git/hooks/pre-commit",
@@ -464,6 +470,64 @@ func TestInit_GitignoreHTMLOutDir_PreservesUserDir(t *testing.T) {
 		if !strings.Contains(string(got), want) {
 			t.Errorf("user-authored entry %q lost from .gitignore:\n%s", want, got)
 		}
+	}
+}
+
+// TestInit_StripsLegacyActor: re-running init/update on a repo
+// whose aiwf.yaml was authored under pre-I2.5 (carrying a top-
+// level `actor:` field) drops the field on disk. This is the load-
+// bearing piece of the v0.2.0 upgrade flow — `aiwf doctor` used
+// to flag the field as deprecated but never removed it.
+func TestInit_StripsLegacyActor(t *testing.T) {
+	root := freshGitRepo(t)
+	// Hand-author the aiwf.yaml so the actor: field is present.
+	yamlPath := filepath.Join(root, config.FileName)
+	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nactor: human/peter\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, err := os.ReadFile(yamlPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(got), "actor:") {
+		t.Errorf("aiwf.yaml still carries actor: line after Init:\n%s", got)
+	}
+	if !strings.Contains(string(got), "aiwf_version: 0.1.0") {
+		t.Errorf("aiwf_version stripped or mutated:\n%s", got)
+	}
+	step := findStep(t, res.Steps, config.FileName+" (legacy actor strip)")
+	if step.Action != ActionUpdated {
+		t.Errorf("legacy strip step.Action = %q, want %q", step.Action, ActionUpdated)
+	}
+	if !strings.Contains(step.Detail, "actor") {
+		t.Errorf("legacy strip step.Detail = %q, want a mention of actor", step.Detail)
+	}
+}
+
+// TestInit_LegacyActorAbsentIsNoOp: an aiwf.yaml without an
+// `actor:` line stays byte-identical across the legacy-strip step.
+// The step still runs (ledger row preserved) but is silent.
+func TestInit_LegacyActorAbsentIsNoOp(t *testing.T) {
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init #1: %v", err)
+	}
+	yamlBefore, _ := os.ReadFile(filepath.Join(root, config.FileName))
+	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	if err != nil {
+		t.Fatalf("Init #2: %v", err)
+	}
+	yamlAfter, _ := os.ReadFile(filepath.Join(root, config.FileName))
+	if !bytes.Equal(yamlBefore, yamlAfter) {
+		t.Errorf("aiwf.yaml mutated despite no actor: line:\nbefore=%q\nafter=%q", yamlBefore, yamlAfter)
+	}
+	step := findStep(t, res.Steps, config.FileName+" (legacy actor strip)")
+	if step.Action != ActionPreserved {
+		t.Errorf("legacy strip on clean file: step.Action = %q, want %q", step.Action, ActionPreserved)
 	}
 }
 

@@ -166,10 +166,10 @@ func renderIndex(opts Options, tmpls *template.Template, resolver PageDataResolv
 		return fmt.Errorf("IndexData: %w", err)
 	}
 	if data == nil {
-		data = &IndexData{Title: "Governance"}
+		data = &IndexData{Title: "Overview"}
 	}
 	if data.Title == "" {
-		data.Title = "Governance"
+		data.Title = "Overview"
 	}
 	return executeToFile(tmpls, "index.tmpl", filepath.Join(opts.OutDir, "index.html"), data)
 }

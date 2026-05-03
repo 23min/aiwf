@@ -189,6 +189,8 @@ Pipe through `--format=json` (with optional `--pretty`) when feeding CI. Exit co
 
 `aiwf render --format=html` produces a self-contained directory of HTML files: `index.html` (epics table with the `met / (total - cancelled)` AC rollup), one page per epic, and one page per milestone with six tabs (Overview, Manifest, Build, Tests, Commits, Provenance). A single embedded stylesheet ships alongside; no JS, no runtime, no external assets. Tab show/hide is `:target`-driven (with `:has()` to handle the default-tab fallback) so per-tab URLs (`M-007.html#tab-build`) are bookmarkable.
 
+The render covers two surfaces: the **governance** view (epics + milestones + ACs + provenance, one page per entity) and the **project status** view (in-flight work, open decisions, open gaps, recent activity). The status view replaces the markdown output of `aiwf status` for browser consumption — same data, same `buildStatus` helper.
+
 Configuration lives in `aiwf.yaml`:
 
 ```yaml
@@ -325,7 +327,7 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 
 **What aiwf writes:**
 
-- `.claude/skills/aiwf-*/SKILL.md` — nine skill files (`aiwf-add`, `aiwf-authorize`, `aiwf-check`, `aiwf-contract`, `aiwf-history`, `aiwf-promote`, `aiwf-reallocate`, `aiwf-rename`, `aiwf-status`) materialized from the binary. Wiped and rewritten by `aiwf init` / `aiwf update`. New skills added in future binary versions land automatically on the next `aiwf update`.
+- `.claude/skills/aiwf-*/SKILL.md` — ten skill files (`aiwf-add`, `aiwf-authorize`, `aiwf-check`, `aiwf-contract`, `aiwf-history`, `aiwf-promote`, `aiwf-reallocate`, `aiwf-render`, `aiwf-rename`, `aiwf-status`) materialized from the binary. Wiped and rewritten by `aiwf init` / `aiwf update`. New skills added in future binary versions land automatically on the next `aiwf update`.
 - `.gitignore` — appends a wildcard for the `aiwf-*` skill namespace plus the `.aiwf-owned` ownership manifest. Your other `.claude/` content is yours to commit or gitignore as you choose; `aiwf` does not gitignore the directory wholesale.
 - `aiwf.yaml`, `CLAUDE.md` — written only if absent. Existing files are preserved verbatim.
 - `.git/hooks/pre-push` — installed (or refreshed) by `aiwf init` and `aiwf update`. The hook carries an `# aiwf:pre-push` marker; if a hook without the marker already exists, init/update skips the hook step (leaving the existing one untouched), prints the per-step ledger so you can see exactly what landed, and finishes with a remediation block — either add `aiwf check || exit 1` inside your existing hook, or compose hooks with husky/lefthook. The exit code in that case is 1 so CI notices. The hook silently no-ops on branches or clones with no `aiwf.yaml` at the repo root, so brownfield migrations and pre-init checkouts aren't blocked from pushing.

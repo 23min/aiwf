@@ -149,6 +149,39 @@ func TestRun_Render_DispatcherDistinguishesSubcommandFromFormat(t *testing.T) {
 	}
 }
 
+// TestRun_Render_HelpFlag: `aiwf render --help` prints the verb's
+// usage and exits cleanly. Pre-fix the dispatcher fell into the
+// subcommand switch and reported "unknown subcommand --help" with
+// exitUsage. Both surfaces (roadmap + --format=html) must appear
+// so the help text is a true catalog.
+func TestRun_Render_HelpFlag(t *testing.T) {
+	cases := []struct {
+		name string
+		arg  string
+	}{
+		{"--help", "--help"},
+		{"-h", "-h"},
+		{"help", "help"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var rc int
+			captured := captureStdout(t, func() {
+				rc = run([]string{"render", tc.arg})
+			})
+			if rc != exitOK {
+				t.Errorf("rc = %d, want exitOK", rc)
+			}
+			out := string(captured)
+			for _, want := range []string{"roadmap", "--format=html"} {
+				if !strings.Contains(out, want) {
+					t.Errorf("help output missing %q:\n%s", want, out)
+				}
+			}
+		})
+	}
+}
+
 // readFileT mirrors readFile from htmlrender_test but is package-
 // local for cmd/aiwf tests.
 func readFileT(t *testing.T, path string) string {

@@ -43,7 +43,7 @@ test.describe("index.html", () => {
   test("lists every epic with AC met-rollup", async ({ page }) => {
     await page.goto(fileURL("index.html"));
 
-    await expect(page.locator("h1")).toHaveText("Governance");
+    await expect(page.locator("h1")).toHaveText("Overview");
 
     const e01Row = page.locator("table.epics tr", { has: page.getByRole("link", { name: "E-01" }) });
     await expect(e01Row).toBeVisible();
@@ -262,6 +262,26 @@ test.describe("sidebar — left-nav tree", () => {
     }
   });
 
+  test("sidebar top order: Project status precedes Overview", async ({ page }) => {
+    for (const path of ["index.html", "E-01.html", "M-001.html", "status.html"]) {
+      await page.goto(fileURL(path));
+      const labels = await page
+        .locator("aside.sidebar ul.sidebar-top > li a")
+        .allTextContents();
+      expect(labels, `top-link order on ${path}`).toEqual(["Project status", "Overview"]);
+    }
+  });
+
+  test("no GOVERNANCE label above the sidebar nav", async ({ page }) => {
+    for (const path of ["index.html", "E-01.html", "M-001.html"]) {
+      await page.goto(fileURL(path));
+      // The legacy <p class="sidebar-title">Governance</p> was
+      // removed in v0.2.0. Brand mark + wordmark are the only
+      // pre-nav content now.
+      await expect(page.locator("aside.sidebar p.sidebar-title")).toHaveCount(0);
+    }
+  });
+
   test("brand mark + wordmark render on every page", async ({ page }) => {
     for (const path of ["index.html", "E-01.html", "M-001.html"]) {
       await page.goto(fileURL(path));
@@ -328,11 +348,11 @@ test.describe("sidebar — left-nav tree", () => {
     await expect(epicCurrent).toHaveAttribute("href", "E-01.html");
 
     await page.goto(fileURL("index.html"));
-    // Index page has no entity-link aria-current — the "Overview"
-    // top link is currently not marked. (If we want to mark it as
-    // current on index, that's a one-line template change; for
-    // now we just assert the entity-side rule.)
-    await expect(page.locator(`aside.sidebar a[aria-current="page"]`)).toHaveCount(0);
+    // Index page is the Overview page; the top "Overview" link is
+    // marked aria-current="page", and is the only such link.
+    const indexCurrent = page.locator(`aside.sidebar a[aria-current="page"]`);
+    await expect(indexCurrent).toHaveCount(1);
+    await expect(indexCurrent).toHaveAttribute("href", "index.html");
   });
 
   test("clicking an epic summary expands its milestone list", async ({ page }) => {

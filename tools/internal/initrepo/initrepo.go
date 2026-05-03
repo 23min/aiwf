@@ -267,9 +267,10 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 //
 // Step order:
 //  1. .claude/skills/aiwf-* (skills materialization)
-//  2. .gitignore (skill cache patterns)
-//  3. .git/hooks/pre-push (the validation chokepoint)
-//  4. .git/hooks/pre-commit (gated by StatusMdAutoUpdate)
+//  2. aiwf.yaml legacy `actor:` strip (idempotent)
+//  3. .gitignore (skill cache patterns)
+//  4. .git/hooks/pre-push (the validation chokepoint)
+//  5. .git/hooks/pre-commit (gated by StatusMdAutoUpdate)
 //
 // SkipHooks bypasses both hook steps; each is reported as a
 // SKipped row in the ledger so the user sees what was deliberately
@@ -285,6 +286,12 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 		return nil, false, err
 	}
 	steps = append(steps, skillsStep)
+
+	legacyStep, err := ensureLegacyActorClean(root, opts.DryRun)
+	if err != nil {
+		return nil, false, err
+	}
+	steps = append(steps, legacyStep)
 
 	gitignoreStep, err := ensureGitignore(root, opts.DryRun)
 	if err != nil {
@@ -461,6 +468,56 @@ func ensureSkills(root string, dryRun bool) (StepResult, error) {
 		What:   ".claude/skills/aiwf-*",
 		Action: ActionUpdated,
 		Detail: "materialized from embedded skills",
+	}, nil
+}
+
+// ensureLegacyActorClean strips the deprecated top-level `actor:`
+// field from aiwf.yaml when present. The field was retired in
+// I2.5 (identity is runtime-derived); old repos that ran `aiwf
+// update` before this step landed still carry it, and `aiwf
+// doctor` was the only surface that mentioned it. The strip is
+// textual and idempotent — see config.StripLegacyActor.
+//
+// Reports:
+//   - ActionUpdated when a line was removed.
+//   - ActionPreserved when the file is absent or the field isn't
+//     there. Detail is empty so the row stays unobtrusive in the
+//     ledger.
+//   - In dry-run, reports the would-be action without writing.
+func ensureLegacyActorClean(root string, dryRun bool) (StepResult, error) {
+	what := config.FileName + " (legacy actor strip)"
+	path := filepath.Join(root, config.FileName)
+	bytes, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return StepResult{What: what, Action: ActionPreserved}, nil
+		}
+		return StepResult{}, fmt.Errorf("reading %s for legacy actor strip: %w", config.FileName, err)
+	}
+	hasLegacy := false
+	for _, line := range strings.Split(string(bytes), "\n") {
+		if strings.HasPrefix(line, "actor:") {
+			hasLegacy = true
+			break
+		}
+	}
+	if !hasLegacy {
+		return StepResult{What: what, Action: ActionPreserved}, nil
+	}
+	if dryRun {
+		return StepResult{
+			What:   what,
+			Action: ActionUpdated,
+			Detail: "would remove deprecated 'actor:' field",
+		}, nil
+	}
+	if _, stripErr := config.StripLegacyActor(root); stripErr != nil {
+		return StepResult{}, stripErr
+	}
+	return StepResult{
+		What:   what,
+		Action: ActionUpdated,
+		Detail: "removed deprecated 'actor:' field",
 	}, nil
 }
 

@@ -21,11 +21,15 @@ type IndexData struct {
 //
 // HasStatus controls whether the "Project status" link appears in
 // the top section. IsCurrentStatus marks that link active when the
-// status page is the one being rendered.
+// status page is the one being rendered. IsCurrentIndex marks the
+// "Overview" link active when the index page is the one being
+// rendered (the sidebar template otherwise has no way to know
+// which page hosts it, since the index has no entity id).
 type SidebarData struct {
 	Epics           []SidebarEpic
 	HasStatus       bool
 	IsCurrentStatus bool
+	IsCurrentIndex  bool
 }
 
 // SidebarEpic is one epic row in the sidebar. IsActive is true when

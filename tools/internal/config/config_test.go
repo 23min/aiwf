@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -249,6 +250,123 @@ func TestWrite_OmitsStatusMdByDefault(t *testing.T) {
 	}
 	if strings.Contains(string(got), "status_md") {
 		t.Errorf("status_md present in default-Write output: %q", got)
+	}
+}
+
+// TestStripLegacyActor_RemovesField: a pre-I2.5 aiwf.yaml carrying
+// a top-level `actor:` key gets the line removed; aiwf_version and
+// surrounding content stay byte-identical (only that line drops).
+func TestStripLegacyActor_RemovesField(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("aiwf_version: 0.1.0\nactor: human/peter\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := StripLegacyActor(root)
+	if err != nil {
+		t.Fatalf("StripLegacyActor: %v", err)
+	}
+	if !changed {
+		t.Errorf("changed = false, want true")
+	}
+	got, err := os.ReadFile(filepath.Join(root, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "aiwf_version: 0.1.0\n"
+	if string(got) != want {
+		t.Errorf("file after strip:\n got  %q\n want %q", got, want)
+	}
+}
+
+// TestStripLegacyActor_NoFieldIsNoOp: a typical post-I2.5 file
+// with no actor line stays byte-for-byte unchanged. Comments
+// survive — that's the whole reason we line-strip rather than
+// YAML round-trip.
+func TestStripLegacyActor_NoFieldIsNoOp(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("# project config\naiwf_version: 0.1.0\nhosts: [claude-code]\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := StripLegacyActor(root)
+	if err != nil {
+		t.Fatalf("StripLegacyActor: %v", err)
+	}
+	if changed {
+		t.Errorf("changed = true, want false (no actor: present)")
+	}
+	got, err := os.ReadFile(filepath.Join(root, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, contents) {
+		t.Errorf("file mutated despite no actor: line:\n got  %q\n want %q", got, contents)
+	}
+}
+
+// TestStripLegacyActor_PreservesComments: a comment block above
+// the actor line is retained; the strip only drops the actor
+// line itself.
+func TestStripLegacyActor_PreservesComments(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("# the project's config\naiwf_version: 0.1.0\n# legacy identity\nactor: human/peter\nhosts: [claude-code]\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := StripLegacyActor(root)
+	if err != nil {
+		t.Fatalf("StripLegacyActor: %v", err)
+	}
+	if !changed {
+		t.Errorf("changed = false, want true")
+	}
+	got, err := os.ReadFile(filepath.Join(root, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "# the project's config\naiwf_version: 0.1.0\n# legacy identity\nhosts: [claude-code]\n"
+	if string(got) != want {
+		t.Errorf("file after strip:\n got  %q\n want %q", got, want)
+	}
+}
+
+// TestStripLegacyActor_MissingFile: when aiwf.yaml is absent the
+// strip is a no-op (changed=false, no error). Lets `aiwf update`
+// run on a brownfield branch with no aiwf.yaml at the root.
+func TestStripLegacyActor_MissingFile(t *testing.T) {
+	root := t.TempDir()
+	changed, err := StripLegacyActor(root)
+	if err != nil {
+		t.Errorf("StripLegacyActor on missing file: %v", err)
+	}
+	if changed {
+		t.Errorf("changed = true on missing file, want false")
+	}
+}
+
+// TestStripLegacyActor_IgnoresIndentedActor: an indented `actor:`
+// line (i.e., a key inside some other mapping) is left alone. The
+// strip targets only the documented top-level legacy field.
+func TestStripLegacyActor_IgnoresIndentedActor(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("aiwf_version: 0.1.0\nfuture_block:\n  actor: human/peter\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := StripLegacyActor(root)
+	if err != nil {
+		t.Fatalf("StripLegacyActor: %v", err)
+	}
+	if changed {
+		t.Errorf("changed = true, want false (only top-level actor: should match)")
+	}
+	got, err := os.ReadFile(filepath.Join(root, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, contents) {
+		t.Errorf("indented actor: line was clobbered:\n got  %q\n want %q", got, contents)
 	}
 }
 

@@ -14,10 +14,8 @@
 </svg>
 <span class="sidebar-wordmark">aiwf</span>
 </div>
-<p class="sidebar-title">Governance</p>
 <nav>
 <ul class="sidebar-top">
-<li><a href="index.html">Overview</a></li>
 {{- if .HasStatus}}
 <li>
 {{- if .IsCurrentStatus}}
@@ -27,6 +25,13 @@
 {{- end}}
 </li>
 {{- end}}
+<li>
+{{- if .IsCurrentIndex}}
+<a href="index.html" aria-current="page">Overview</a>
+{{- else}}
+<a href="index.html">Overview</a>
+{{- end}}
+</li>
 </ul>
 {{- range .Epics}}
 <details class="sidebar-epic"{{if .IsActive}} open{{end}}>
