@@ -10,13 +10,25 @@
 <h1>{{.Title}}</h1>
 <h2>Epics</h2>
 {{- if .Epics}}
-<ul>
+<table class="epics">
+<thead><tr><th>Id</th><th>Title</th><th>Status</th><th>Milestones</th><th>ACs met</th></tr></thead>
+<tbody>
 {{- range .Epics}}
-<li><a href="{{.FileName}}">{{.ID}} — {{.Title}}</a> <span class="status">{{.Status}}</span></li>
+<tr>
+<td><a href="{{.FileName}}">{{.ID}}</a></td>
+<td>{{.Title}}</td>
+<td><span class="status status-{{.Status}}">{{.Status}}</span></td>
+<td>{{.MilestoneCount}}</td>
+<td>{{.ACMet}}/{{.ACTotal}}</td>
+</tr>
 {{- end}}
-</ul>
+</tbody>
+</table>
 {{- else}}
 <p>No epics yet.</p>
+{{- end}}
+{{- if or .FindingCounts.Errors .FindingCounts.Warnings}}
+<p class="findings">Findings: {{.FindingCounts.Errors}} error(s), {{.FindingCounts.Warnings}} warning(s).</p>
 {{- end}}
 </main>
 </body>

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/config"
 	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
 	"github.com/23min/ai-workflow-v2/tools/internal/htmlrender"
@@ -178,17 +179,21 @@ func runRenderSite(args []string) int {
 	}
 
 	ctx := context.Background()
-	tr, _, err := tree.Load(ctx, rootDir)
+	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: loading tree: %v\n", err)
 		return exitInternal
 	}
+	cfg, _ := config.Load(rootDir)
+	findings := check.Run(tr, loadErrs)
+	resolver := newRenderResolver(ctx, rootDir, tr, cfg, findings)
 
 	outDir := resolveHTMLOutDir(rootDir, *out)
 	res, err := htmlrender.Render(htmlrender.Options{
 		OutDir: outDir,
 		Tree:   tr,
 		Root:   rootDir,
+		Data:   resolver,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)

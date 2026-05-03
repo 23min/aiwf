@@ -40,11 +40,37 @@ import (
 // limits the render to one entity id and its referenced children
 // (step-4 plumbing — step 3 ignores it but the field is reserved so
 // the seam is in place).
+//
+// Data is a per-page resolver supplied by the caller. The renderer
+// calls Data.IndexData() once, Data.EpicData(id) for each epic, and
+// Data.MilestoneData(id) for each milestone. Returning nil for any
+// of these triggers the empty-state path in the template — the
+// page still renders, with a "no data" line.
+//
+// Splitting the data resolution out keeps htmlrender free of git /
+// history walking. The cmd/aiwf side (which already has those
+// helpers wired for `aiwf show`) builds the page data once per id
+// and hands it in.
 type Options struct {
 	OutDir string
 	Tree   *tree.Tree
 	Root   string
 	Scope  string
+	Data   PageDataResolver
+}
+
+// PageDataResolver is the per-page data provider Render consults.
+// Implementations build the typed view models from whatever sources
+// they need (frontmatter, git log, scope FSM); the renderer walks
+// the tree, calls the resolver per entity, and applies templates.
+//
+// A nil Resolver triggers a minimal default that returns just the
+// frontmatter shape — useful for the htmlrender package's own tests
+// and for any caller who only wants id/title/status without history.
+type PageDataResolver interface {
+	IndexData() (*IndexData, error)
+	EpicData(id string) (*EpicData, error)
+	MilestoneData(id string) (*MilestoneData, error)
 }
 
 // Result reports what the render produced. FilesWritten is the count
@@ -86,21 +112,25 @@ func Render(opts Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	resolver := opts.Data
+	if resolver == nil {
+		resolver = defaultResolver{tree: opts.Tree}
+	}
 
 	count := 0
-	if err := renderIndex(opts, tmpls); err != nil {
+	if err := renderIndex(opts, tmpls, resolver); err != nil {
 		return Result{}, err
 	}
 	count++
 
 	for _, e := range sortedByID(opts.Tree.ByKind(entity.KindEpic)) {
-		if err := renderEpic(opts, tmpls, e); err != nil {
+		if err := renderEpic(opts, tmpls, resolver, e.ID); err != nil {
 			return Result{}, err
 		}
 		count++
 	}
 	for _, m := range sortedByID(opts.Tree.ByKind(entity.KindMilestone)) {
-		if err := renderMilestone(opts, tmpls, m); err != nil {
+		if err := renderMilestone(opts, tmpls, resolver, m.ID); err != nil {
 			return Result{}, err
 		}
 		count++
@@ -112,83 +142,48 @@ func Render(opts Options) (Result, error) {
 	}, nil
 }
 
-// renderIndex writes the top-level index.html. Step-3 placeholder
-// content: the list of epics with their ids and titles. Step 5
-// replaces with the full epics + AC met-rollup table.
-func renderIndex(opts Options, tmpls *template.Template) error {
-	type epicRow struct {
-		ID, Title, Status, FileName string
+// renderIndex writes the top-level index.html. Pulls IndexData from
+// the resolver; nil indicates "no data" — the template renders an
+// empty-state line.
+func renderIndex(opts Options, tmpls *template.Template, resolver PageDataResolver) error {
+	data, err := resolver.IndexData()
+	if err != nil {
+		return fmt.Errorf("IndexData: %w", err)
 	}
-	data := struct {
-		Title string
-		Epics []epicRow
-	}{
-		Title: "Governance",
+	if data == nil {
+		data = &IndexData{Title: "Governance"}
 	}
-	for _, e := range sortedByID(opts.Tree.ByKind(entity.KindEpic)) {
-		data.Epics = append(data.Epics, epicRow{
-			ID:       e.ID,
-			Title:    e.Title,
-			Status:   e.Status,
-			FileName: idToFileName(e.ID),
-		})
+	if data.Title == "" {
+		data.Title = "Governance"
 	}
 	return executeToFile(tmpls, "index.tmpl", filepath.Join(opts.OutDir, "index.html"), data)
 }
 
-// renderEpic writes one epic page. Step-3 placeholder content: the
-// epic's id/title/status plus its child milestones (id + title only).
-// Step 5 fills in the dependency DAG, linked entities, history.
-func renderEpic(opts Options, tmpls *template.Template, e *entity.Entity) error {
-	type milestoneRow struct {
-		ID, Title, Status, FileName string
+// renderEpic writes one epic page. Resolver builds the typed
+// EpicData from the tree + git history.
+func renderEpic(opts Options, tmpls *template.Template, resolver PageDataResolver, id string) error {
+	data, err := resolver.EpicData(id)
+	if err != nil {
+		return fmt.Errorf("EpicData(%s): %w", id, err)
 	}
-	var milestones []milestoneRow
-	for _, m := range sortedByID(opts.Tree.ByKind(entity.KindMilestone)) {
-		if m.Parent != e.ID {
-			continue
-		}
-		milestones = append(milestones, milestoneRow{
-			ID:       m.ID,
-			Title:    m.Title,
-			Status:   m.Status,
-			FileName: idToFileName(m.ID),
-		})
+	if data == nil || data.Epic == nil {
+		return fmt.Errorf("EpicData(%s) returned no Epic ref", id)
 	}
-	data := struct {
-		Epic       *entity.Entity
-		Milestones []milestoneRow
-	}{Epic: e, Milestones: milestones}
-	return executeToFile(tmpls, "epic.tmpl", filepath.Join(opts.OutDir, idToFileName(e.ID)), data)
+	return executeToFile(tmpls, "epic.tmpl", filepath.Join(opts.OutDir, data.Epic.FileName), data)
 }
 
-// renderMilestone writes one milestone page. Step-3 placeholder
-// content: the milestone's id/title/status plus its ACs (id + title).
-// Step 5 fills in the six tabs (Overview, Manifest, Build, Tests,
-// Commits, Provenance).
-func renderMilestone(opts Options, tmpls *template.Template, m *entity.Entity) error {
-	type acRow struct {
-		ID, Title, Status, TDDPhase string
+// renderMilestone writes one milestone page. The Manifest tab's
+// AC list, Build tab's phase timelines, Tests tab's metrics, and
+// Provenance tab's scopes/timeline all come from the resolver.
+func renderMilestone(opts Options, tmpls *template.Template, resolver PageDataResolver, id string) error {
+	data, err := resolver.MilestoneData(id)
+	if err != nil {
+		return fmt.Errorf("MilestoneData(%s): %w", id, err)
 	}
-	acs := make([]acRow, 0, len(m.ACs))
-	for _, ac := range m.ACs {
-		acs = append(acs, acRow{
-			ID:       ac.ID,
-			Title:    ac.Title,
-			Status:   ac.Status,
-			TDDPhase: ac.TDDPhase,
-		})
+	if data == nil || data.Milestone == nil {
+		return fmt.Errorf("MilestoneData(%s) returned no Milestone ref", id)
 	}
-	parentFile := ""
-	if m.Parent != "" {
-		parentFile = idToFileName(m.Parent)
-	}
-	data := struct {
-		Milestone  *entity.Entity
-		ACs        []acRow
-		ParentFile string
-	}{Milestone: m, ACs: acs, ParentFile: parentFile}
-	return executeToFile(tmpls, "milestone.tmpl", filepath.Join(opts.OutDir, idToFileName(m.ID)), data)
+	return executeToFile(tmpls, "milestone.tmpl", filepath.Join(opts.OutDir, data.Milestone.FileName), data)
 }
 
 // sortedByID returns a copy of entities sorted by id. Used so every
