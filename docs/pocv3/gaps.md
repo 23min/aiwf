@@ -251,7 +251,15 @@ Severity: **High**. The framework's central correctness story (git log is the au
 ---
 
 <a id="g27"></a>
-### G27. Test-the-seam policy missing — verb-level integration tests skipped the cmd → helper integration — **open**
+### G27. Test-the-seam policy missing — verb-level integration tests skipped the cmd → helper integration — **resolved**
+
+Resolved in commit `f810a86` (test(aiwf): close G27/G28/G29 — seam, contract, spec-sourced tests). New `tools/cmd/aiwf/binary_integration_test.go` builds the cmd binary to a tempfile and subprocesses it; two test cases pin (a) ldflags-stamped Version reaches the verb output (`make install` path) and (b) without ldflags, `aiwf version` and `aiwf doctor`'s `binary:` row report the same value (the seam G27 was filed against). Companion fix in `cmd/aiwf/main.go`: `resolvedVersion`'s no-ldflags fallback now returns `version.Current().Version` directly, byte-coherent with the doctor row. Reverse-validated: restoring the v0.1.0 bug shape (`fmt.Println(Version)` printing the unstamped global) fails the fallback test with the exact "literal sentinel" + "seam mismatch" messages.
+
+The policy text in `tools/CLAUDE.md`'s Testing section ("Test the seam, not just the layer") is the durable rule that should prevent the next instance.
+
+---
+
+<details><summary>Original entry (open)</summary>
 
 The v0.1.0 shipped with `aiwf version` returning `"dev"` despite a working `version.Current()` helper. Root cause: tests covered the new helper in isolation but no test exercised the verb that was supposed to use it. The verb's body kept printing an unrelated package-global (`Version`, the ldflags-stamped value defaulting to `"dev"`); the helper was wired into `aiwf doctor`'s `binary:` row but not into the `version` verb. Two parallel sources of truth for "what version am I" coexisted; the test surface covered only the new one.
 
@@ -266,10 +274,20 @@ A future `aiwf check`-style policy could detect "exported helper imported by `cm
 
 Severity: Medium. The class of bug is high-impact (shipped correctness regression), and the policy is the durable defense; the implementation work is small.
 
+</details>
+
 ---
 
 <a id="g28"></a>
-### G28. `version.Latest()` test was implementation-driven, not contract-driven — stale `/@latest` cache went unnoticed — **open**
+### G28. `version.Latest()` test was implementation-driven, not contract-driven — stale `/@latest` cache went unnoticed — **resolved**
+
+Resolved in commit `f810a86` (test(aiwf): close G27/G28/G29 — seam, contract, spec-sourced tests). `TestLatest_RealProxy` ("version is non-empty") replaced by `TestLatest_RealProxy_ContractTest` which fetches `/@v/list` directly via raw `net/http` (not through `version.Latest`), computes the expected highest semver via a test-side reference implementation, then asserts `version.Latest()` returns that exact value. The reference implementation is deliberately not imported from the version package so a future regression can't be hidden by a matching regression in the helper. New `TestLatest_PrereleaseExcludedFromHighestSelection` pins the pre-release-skipping invariant offline via httptest.
+
+The policy text in `tools/CLAUDE.md`'s Testing section ("Contract tests for upstream-cached systems") is the durable rule.
+
+---
+
+<details><summary>Original entry (open)</summary>
 
 The v0.1.0 shipped with `aiwf doctor --check-latest` displaying a stale pseudo-version instead of `v0.1.0`. Root cause: `version.Latest()` queried the proxy's `/@latest` endpoint and unit tests served whatever JSON the implementation expected. The real proxy behavior — that `/@latest` and `/@v/list` are cached independently, and `/@latest` can serve a pre-tag pseudo-version answer for hours after the first tag lands — was not modeled. The Go toolchain's own resolver uses `/@v/list` first for exactly this reason; we re-discovered the lesson by shipping the wrong endpoint and noticing in v0.1.0 verification.
 
@@ -282,10 +300,20 @@ The existing real-proxy integration test (`TestLatest_RealProxy`) queries `gopkg
 
 Severity: Medium. Same class as G27 — the implementation has been fixed; the policy + the contract test are what stop the next instance.
 
+</details>
+
 ---
 
 <a id="g29"></a>
-### G29. Pseudo-version regex was example-driven, not spec-driven — initial test set missed two of three forms plus `+dirty` — **open**
+### G29. Pseudo-version regex was example-driven, not spec-driven — initial test set missed two of three forms plus `+dirty` — **resolved**
+
+Resolved in commit `f810a86` (test(aiwf): close G27/G28/G29 — seam, contract, spec-sourced tests). `TestParse`, `TestProxyBase`, and `pseudoVersionRE`'s doc comment now cite the upstream specs (`go.dev/ref/mod#pseudo-versions`, `semver.org`, `go.dev/ref/mod#environment-variables`); `TestParse` cases now cover all three pseudo-version forms explicitly (was: form 1 + form 3 only) plus the `+dirty` stamping case for both base shapes. The citations make spec-drift detectable: a future Go-toolchain change to pseudo-version grammar will be flagged by anyone reading the spec, rather than missed because tests were example-driven.
+
+The policy text in `tools/CLAUDE.md`'s Testing section ("Spec-sourced inputs for upstream-defined input spaces") is the durable rule.
+
+---
+
+<details><summary>Original entry (open)</summary>
 
 The first pass of `version.isTagged` had a `pseudoVersionRE` that only matched the basic `v0.0.0-DATE-SHA` shape. The Go module spec defines three pseudo-version forms (basic, post-tag `vX.Y.(Z+1)-0.DATE-SHA`, pre-release-base `vX.Y.Z-pre.0.DATE-SHA`) and Go's VCS stamping adds the `+dirty` suffix on working-tree builds with uncommitted changes. The regex caught only the first form; the other three were missed.
 
@@ -297,6 +325,8 @@ The bug was caught mid-implementation by a smoke test (the working-tree build of
 2. Audit other test sets that enumerate upstream-defined input spaces (frontmatter shapes against YAML 1.2; commit-trailer shapes against `git interpret-trailers`; semver against the semver.org grammar) for analogous unsourced enumerations, and either add the citation or document the omission.
 
 Severity: Low. Bug already resolved; the policy + the citation are the durable defense. The audit pass is one read-through, not a refactor.
+
+</details>
 
 ---
 
@@ -330,8 +360,8 @@ Severity: Low. Bug already resolved; the policy + the citation are the durable d
 | G24 | Manual commits bypass `aiwf-verb:` trailers; no repair path | High     | [x] I2.5 steps 5b/5c/7b (`bc4183e`, `6cc0648`, `0e44ad6`, `be2ea27`) |
 | G25 | Pre-commit policy hook is per-clone, install-by-copy — drifts silently | Medium | [x] `40c3d2d` |
 | G26 | `findings_have_tests` policy only sees named-constant codes (G21 mirror) | Low | [x] `f37dc07` |
-| G27 | Test-the-seam policy missing — verb-level integration tests skipped the cmd → helper integration | Medium | [ ] open |
-| G28 | `version.Latest()` test was implementation-driven, not contract-driven — stale `/@latest` cache went unnoticed | Medium | [ ] open |
-| G29 | Pseudo-version regex was example-driven, not spec-driven — initial test set missed two of three forms plus `+dirty` | Low | [ ] open |
+| G27 | Test-the-seam policy missing — verb-level integration tests skipped the cmd → helper integration | Medium | [x] `f810a86` |
+| G28 | `version.Latest()` test was implementation-driven, not contract-driven — stale `/@latest` cache went unnoticed | Medium | [x] `f810a86` |
+| G29 | Pseudo-version regex was example-driven, not spec-driven — initial test set missed two of three forms plus `+dirty` | Low | [x] `f810a86` |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
