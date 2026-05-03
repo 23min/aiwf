@@ -248,6 +248,53 @@ test.describe("milestone page — Provenance tab", () => {
   });
 });
 
+test.describe("polish — kicker + dark mode + accent bar", () => {
+  test("every page emits a kicker line above its H1", async ({ page }) => {
+    for (const path of ["index.html", "E-01.html", "M-001.html"]) {
+      await page.goto(fileURL(path));
+      const kicker = page.locator("p.kicker").first();
+      await expect(kicker).toBeVisible();
+      // Computed style should be uppercase + muted.
+      const transform = await kicker.evaluate((el) => getComputedStyle(el).textTransform);
+      expect(transform).toBe("uppercase");
+    }
+  });
+
+  test("milestone kicker carries kind + id + parent epic", async ({ page }) => {
+    await page.goto(fileURL("M-001.html"));
+    const kicker = page.locator("p.kicker").first();
+    await expect(kicker).toContainText("milestone");
+    await expect(kicker).toContainText("M-001");
+    await expect(kicker).toContainText("E-01");
+  });
+
+  test("accent bar pseudo-element renders on main", async ({ page }) => {
+    await page.goto(fileURL("index.html"));
+    const beforeBg = await page.locator("main").evaluate(
+      (el) => getComputedStyle(el, "::before").backgroundColor,
+    );
+    // The ::before pseudo carries the accent color; should not be
+    // transparent / unset.
+    expect(beforeBg).not.toBe("rgba(0, 0, 0, 0)");
+    expect(beforeBg).not.toBe("");
+  });
+
+  test("dark mode re-maps tokens via prefers-color-scheme", async ({ browser }) => {
+    const ctx = await browser.newContext({ colorScheme: "dark" });
+    const darkPage = await ctx.newPage();
+    await darkPage.goto(fileURL("index.html"));
+    const bg = await darkPage.locator("body").evaluate(
+      (el) => getComputedStyle(el).backgroundColor,
+    );
+    // In dark mode --bg becomes #0f1115 → rgb(15, 17, 21). The
+    // important property: it's a dark color (low channel sum), not
+    // the light-mode --bg #f7f8fa.
+    const [r, g, b] = parseRgb(bg);
+    expect(r + g + b).toBeLessThan(150);
+    await ctx.close();
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-01.html", "E-02.html", "M-001.html", "M-002.html"]) {

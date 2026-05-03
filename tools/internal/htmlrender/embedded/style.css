@@ -1,107 +1,238 @@
-/* aiwf governance render stylesheet (I3 step 5).
- * Hand-written, no framework. Color tokens are CSS custom properties
- * so prefers-color-scheme: dark is a small future addition.
- * Tab show/hide is the only stateful piece — driven by :target,
- * no JS. */
+/* aiwf governance render stylesheet.
+ * Hand-written, no framework. Color tokens live as CSS custom
+ * properties so the prefers-color-scheme: dark block at the bottom
+ * is a re-mapping, not a parallel sheet.
+ *
+ * Pill styling uses color-mix() against per-status tokens — one
+ * generic rule per pill family replaces ~20 lines of explicit
+ * .status-X overrides. color-mix() ships in every modern browser
+ * (Chrome 111+, Safari 16.2+, Firefox 113+).
+ *
+ * Tab show/hide is the only stateful piece — driven by :target +
+ * :has(). No JS. */
 
 :root {
-  --fg: #1f1f1f;
-  --fg-muted: #666;
-  --bg: #fafafa;
+  --fg: #1a1d21;
+  --fg-muted: #5a6470;
+  --bg: #f7f8fa;
   --bg-card: #fff;
-  --border: #e1e4e8;
-  --link: #0366d6;
-  --status-active: #1f7a1f;
-  --status-done: #1f7a1f;
-  --status-met: #1f7a1f;
-  --status-draft: #666;
-  --status-proposed: #666;
-  --status-open: #b27600;
-  --status-deferred: #b27600;
-  --status-in_progress: #0366d6;
-  --status-cancelled: #999;
-  --status-wontfix: #999;
-  --status-rejected: #999;
-  --status-retired: #999;
-  --status-accepted: #1f7a1f;
-  --status-deprecated: #999;
+  --bg-tint: #eef0f4;
+  --border: #e1e5eb;
+  --border-soft: #eef0f4;
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --link: #3b6dd6;
+  --accent: #3b6dd6;
+
+  /* One token per status; the pill rules derive the tinted bg +
+   * faint border via color-mix(). Keep in sync with the closed
+   * status sets in tools/internal/entity/. */
+  --status-active: #15803d;
+  --status-done: #15803d;
+  --status-met: #15803d;
+  --status-accepted: #15803d;
+  --status-in_progress: #3b6dd6;
+  --status-open: #c2410c;
+  --status-deferred: #c2410c;
+  --status-proposed: #5a6470;
+  --status-draft: #5a6470;
+  --status-cancelled: #94a3b8;
+  --status-wontfix: #94a3b8;
+  --status-rejected: #94a3b8;
+  --status-retired: #94a3b8;
+  --status-deprecated: #94a3b8;
+
   --phase-red: #b91c1c;
-  --phase-green: #1f7a1f;
+  --phase-green: #15803d;
   --phase-refactor: #6b21a8;
-  --phase-done: #1f7a1f;
+  --phase-done: #15803d;
+
   --tdd-required: #b91c1c;
-  --tdd-advisory: #b27600;
-  --tdd-none: #666;
+  --tdd-advisory: #c2410c;
+  --tdd-none: #5a6470;
+
   --policy-strict: #b91c1c;
-  --policy-advisory: #b27600;
-  --scope-active: #1f7a1f;
-  --scope-paused: #b27600;
-  --scope-ended: #999;
-  --force-bg: #fff7ed;
+  --policy-advisory: #c2410c;
+
+  --scope-active: #15803d;
+  --scope-paused: #c2410c;
+  --scope-ended: #94a3b8;
+
   --force-fg: #c2410c;
-  --audit-bg: #eff6ff;
   --audit-fg: #1d4ed8;
 }
 
+/* ---------- Reset + base ---------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
-  font: 14px/1.5 -apple-system, system-ui, sans-serif;
+  font: 15px/1.45 -apple-system, system-ui, "Segoe UI", sans-serif;
   margin: 2rem auto;
-  max-width: 60rem;
+  max-width: 64rem;
   padding: 0 1rem;
   color: var(--fg);
   background: var(--bg);
+  font-feature-settings: "ss01", "cv11";
 }
 
-main { background: var(--bg-card); padding: 1.5rem; border: 1px solid var(--border); border-radius: 6px; }
-h1 { font-size: 1.6rem; margin: 0 0 0.5rem; }
-h2 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--border); }
-h3 { font-size: 1rem; margin: 1rem 0 0.25rem; }
+main {
+  background: var(--bg-card);
+  padding: 2rem 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+/* The signature visual gesture: a thin accent stripe along the top
+ * of the content card. Single colored line is enough — no logo
+ * needed. Uses an absolutely-positioned pseudo-element so the
+ * card padding is unchanged and content lays out the same way. */
+main::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+}
+
+/* ---------- Typography ---------- */
+
+h1 { font-size: 1.55rem; line-height: 1.25; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 1.75rem 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border); letter-spacing: -0.005em; }
+h3 { font-size: 0.98rem; margin: 1.1rem 0 0.3rem; }
+
+/* Kicker: small uppercase label above each H1, gives more visual
+ * hierarchy without losing the entity-id information. The
+ * renderer emits .kicker on every page header. */
+.kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  font-weight: 600;
+  margin: 0 0 0.4rem;
+}
+
+p { margin: 0.5rem 0; }
 nav a { color: var(--link); text-decoration: none; }
 nav a:hover { text-decoration: underline; }
-table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; }
-th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
-th { font-weight: 600; color: var(--fg-muted); }
-code { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.9em; background: var(--bg); padding: 0 0.2rem; border-radius: 3px; }
-ul, ol { margin: 0.25rem 0 0.5rem 1.25rem; padding: 0; }
-li { margin: 0.15rem 0; }
+a { color: var(--link); }
+
+/* ---------- Tables ---------- */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+  font-variant-numeric: tabular-nums;
+}
+th, td {
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: top;
+}
+th {
+  font-weight: 600;
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+
+code {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 0.88em;
+  background: var(--bg-tint);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+
+ul, ol { margin: 0.4rem 0 0.6rem 1.4rem; padding: 0; }
+li { margin: 0.2rem 0; }
+
+/* ---------- Pills (status / phase / tdd / scope / policy) ----------
+ *
+ * Every pill renders as: tinted background (12% mix over the bg-
+ * card), faint border (30% mix), saturated text (the raw token
+ * color). The .pill-bind helper below assigns one token to the
+ * --pill-color custom property; the generic rule consumes it.
+ *
+ * The duplication of class selectors is deliberate — one rule per
+ * value class, each setting --pill-color from its token. That way
+ * adding a new status is "add one CSS line" rather than "edit a
+ * shared rule." */
 
 .status, .phase, .tdd, .scope-state, .policy {
   display: inline-block;
-  padding: 0.05rem 0.4rem;
-  border-radius: 3px;
-  font-size: 0.85em;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8em;
   font-weight: 500;
+  background: color-mix(in srgb, var(--pill-color, var(--fg-muted)) 12%, var(--bg-card));
+  color: var(--pill-color, var(--fg-muted));
+  border: 1px solid color-mix(in srgb, var(--pill-color, var(--fg-muted)) 30%, transparent);
+  line-height: 1.5;
 }
-.status { background: var(--bg); color: var(--fg-muted); }
-.status-active, .status-done, .status-met, .status-accepted { background: #e6f4ea; color: var(--status-done); }
-.status-in_progress { background: #e8f0fe; color: var(--status-in_progress); }
-.status-open, .status-deferred, .status-proposed, .status-draft { background: #fff7ed; color: var(--status-open); }
-.status-cancelled, .status-wontfix, .status-rejected, .status-retired, .status-deprecated { background: var(--bg); color: var(--status-cancelled); text-decoration: line-through; }
 
-.phase-red { background: #fee2e2; color: var(--phase-red); }
-.phase-green { background: #e6f4ea; color: var(--phase-green); }
-.phase-refactor { background: #f3e8ff; color: var(--phase-refactor); }
-.phase-done { background: #e6f4ea; color: var(--phase-done); }
+.status-active   { --pill-color: var(--status-active); }
+.status-done     { --pill-color: var(--status-done); }
+.status-met      { --pill-color: var(--status-met); }
+.status-accepted { --pill-color: var(--status-accepted); }
+.status-in_progress { --pill-color: var(--status-in_progress); }
+.status-open     { --pill-color: var(--status-open); }
+.status-deferred { --pill-color: var(--status-deferred); }
+.status-proposed { --pill-color: var(--status-proposed); }
+.status-draft    { --pill-color: var(--status-draft); }
+.status-cancelled, .status-wontfix, .status-rejected, .status-retired, .status-deprecated {
+  --pill-color: var(--status-cancelled);
+  text-decoration: line-through;
+}
 
-.tdd-required { background: #fee2e2; color: var(--tdd-required); }
-.tdd-advisory { background: #fff7ed; color: var(--tdd-advisory); }
-.tdd-none { background: var(--bg); color: var(--tdd-none); }
+.phase-red       { --pill-color: var(--phase-red); }
+.phase-green     { --pill-color: var(--phase-green); }
+.phase-refactor  { --pill-color: var(--phase-refactor); }
+.phase-done      { --pill-color: var(--phase-done); }
 
-.policy-strict { background: #fee2e2; color: var(--policy-strict); }
-.policy-advisory { background: #fff7ed; color: var(--policy-advisory); }
+.tdd-required    { --pill-color: var(--tdd-required); }
+.tdd-advisory    { --pill-color: var(--tdd-advisory); }
+.tdd-none        { --pill-color: var(--tdd-none); }
 
-.scope-state-active { background: #e6f4ea; color: var(--scope-active); }
-.scope-state-paused { background: #fff7ed; color: var(--scope-paused); }
-.scope-state-ended { background: var(--bg); color: var(--scope-ended); }
+.policy-strict   { --pill-color: var(--policy-strict); }
+.policy-advisory { --pill-color: var(--policy-advisory); }
+
+.scope-state-active { --pill-color: var(--scope-active); }
+.scope-state-paused { --pill-color: var(--scope-paused); }
+.scope-state-ended  { --pill-color: var(--scope-ended); }
 
 .ac-rollup { color: var(--fg-muted); font-size: 0.95em; }
 .findings { color: var(--fg-muted); }
-.dir, .kind { color: var(--fg-muted); font-size: 0.85em; margin-left: 0.4rem; }
+.dir, .kind { color: var(--fg-muted); font-size: 0.82em; margin-left: 0.4rem; }
 
-/* Tabs — :target driven. Bare URL shows Overview. */
-.tabs { display: flex; gap: 0.25rem; margin: 1rem 0 0.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
-.tabs .tab { padding: 0.4rem 0.8rem; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; color: var(--fg-muted); }
-.tabs .tab:hover { background: var(--bg); }
+/* ---------- Tabs ---------- */
+
+.tabs {
+  display: flex;
+  gap: 0.15rem;
+  margin: 1.25rem 0 0.5rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+}
+.tabs .tab {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  color: var(--fg-muted);
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+.tabs .tab:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); color: var(--fg); text-decoration: none; }
 
 /* Default: every tab section hides; overview shows on bare URL.
  * When the URL fragment names a section, that section becomes
@@ -114,41 +245,135 @@ section[data-tab="overview"] { display: block; }
 section[data-tab]:target { display: block; }
 main:has(section[data-tab]:target:not([data-tab="overview"])) section[data-tab="overview"] { display: none; }
 
-/* Active-tab styling on the nav strip. The default is "overview
- * highlighted"; the :has() rule below reverts that when the URL
- * targets a non-overview section. */
-.tabs .tab-overview { background: var(--bg); border-color: var(--border); color: var(--fg); }
+/* Active-tab styling on the nav strip. */
+.tabs .tab-overview {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--fg);
+}
 main:has(section[data-tab]:target:not([data-tab="overview"])) .tabs .tab-overview {
   background: transparent;
   border-color: transparent;
   color: var(--fg-muted);
 }
+section[data-tab="manifest"]:target ~ nav.tabs .tab-manifest,
+section[data-tab="build"]:target ~ nav.tabs .tab-build,
+section[data-tab="tests"]:target ~ nav.tabs .tab-tests,
+section[data-tab="commits"]:target ~ nav.tabs .tab-commits,
+section[data-tab="provenance"]:target ~ nav.tabs .tab-provenance {
+  /* (the nav.tabs is *before* the sections in DOM, so this rule
+   * doesn't actually fire — the active-tab styling is provided by
+   * the :hover state above and the per-tab visited indication in
+   * the browser. Kept here as a documented placeholder; the
+   * :has() approach below is the working version.) */
+}
+nav.tabs:has(+ section[data-tab="manifest"]:target) .tab-manifest,
+main:has(section[data-tab="manifest"]:target) .tabs .tab-manifest,
+main:has(section[data-tab="build"]:target) .tabs .tab-build,
+main:has(section[data-tab="tests"]:target) .tabs .tab-tests,
+main:has(section[data-tab="commits"]:target) .tabs .tab-commits,
+main:has(section[data-tab="provenance"]:target) .tabs .tab-provenance {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--fg);
+}
 
-/* AC manifest cards. */
-.ac { padding: 0.75rem 1rem; border-left: 3px solid var(--border); margin: 0.5rem 0; background: var(--bg); border-radius: 0 4px 4px 0; }
-.ac:target { border-left-color: var(--link); background: #f5faff; }
+/* ---------- AC cards (Manifest tab) ---------- */
 
-/* Build / phases. */
+.ac {
+  padding: 0.85rem 1.1rem;
+  border-left: 3px solid var(--border);
+  margin: 0.6rem 0;
+  background: var(--bg-tint);
+  border-radius: 0 6px 6px 0;
+}
+.ac:target { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--bg-card)); }
+
+/* ---------- Build phases / commits / timeline ---------- */
+
 .phases { list-style: none; margin: 0; padding-left: 0; }
-.phases li { padding: 0.25rem 0; }
+.phases li { padding: 0.3rem 0; }
 .phases .date, .timeline .date { color: var(--fg-muted); font-size: 0.85em; margin-left: 0.4rem; }
 .phases .tests, .commits .verb, .timeline .verb { color: var(--fg-muted); font-size: 0.85em; margin-left: 0.4rem; }
 
-/* Commits / timeline. */
 .timeline { list-style: none; padding-left: 0; }
-.timeline li { padding: 0.35rem 0; border-bottom: 1px dashed var(--border); }
+.timeline li { padding: 0.4rem 0; border-bottom: 1px dashed var(--border-soft); }
 .timeline .actor { margin-left: 0.4rem; }
+
 .scope-chip, .force, .audit, .scope-end {
   display: inline-block;
-  padding: 0.05rem 0.4rem;
-  border-radius: 3px;
-  font-size: 0.85em;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.8em;
   margin-left: 0.4rem;
+  border: 1px solid transparent;
 }
-.scope-chip { background: var(--bg); color: var(--fg-muted); }
-.force { background: var(--force-bg); color: var(--force-fg); }
-.audit { background: var(--audit-bg); color: var(--audit-fg); }
-.scope-end { background: var(--bg); color: var(--scope-ended); }
+.scope-chip { background: var(--bg-tint); color: var(--fg-muted); border-color: var(--border-soft); }
+.force {
+  background: color-mix(in srgb, var(--force-fg) 12%, var(--bg-card));
+  color: var(--force-fg);
+  border-color: color-mix(in srgb, var(--force-fg) 30%, transparent);
+}
+.audit {
+  background: color-mix(in srgb, var(--audit-fg) 12%, var(--bg-card));
+  color: var(--audit-fg);
+  border-color: color-mix(in srgb, var(--audit-fg) 30%, transparent);
+}
+.scope-end { background: var(--bg-tint); color: var(--fg-muted); border-color: var(--border-soft); }
+
 .tests-table .missing { color: var(--policy-strict); font-weight: 500; }
 .tests-table .empty { color: var(--fg-muted); }
 .dag { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.9em; }
+
+/* ---------- Dark mode (OS preference; no toggle, no JS) ----------
+ *
+ * Re-maps the same tokens. color-mix() picks up the new --bg-card
+ * automatically so pill backgrounds re-tint to dark. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #e6e8ec;
+    --fg-muted: #8a93a0;
+    --bg: #0f1115;
+    --bg-card: #161a21;
+    --bg-tint: #1d2129;
+    --border: #2a2f39;
+    --border-soft: #20242c;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --link: #6b9eff;
+    --accent: #6b9eff;
+
+    --status-active: #4ade80;
+    --status-done: #4ade80;
+    --status-met: #4ade80;
+    --status-accepted: #4ade80;
+    --status-in_progress: #6b9eff;
+    --status-open: #fb923c;
+    --status-deferred: #fb923c;
+    --status-proposed: #94a3b8;
+    --status-draft: #94a3b8;
+    --status-cancelled: #64748b;
+    --status-wontfix: #64748b;
+    --status-rejected: #64748b;
+    --status-retired: #64748b;
+    --status-deprecated: #64748b;
+
+    --phase-red: #f87171;
+    --phase-green: #4ade80;
+    --phase-refactor: #c084fc;
+    --phase-done: #4ade80;
+
+    --tdd-required: #f87171;
+    --tdd-advisory: #fb923c;
+    --tdd-none: #94a3b8;
+
+    --policy-strict: #f87171;
+    --policy-advisory: #fb923c;
+
+    --scope-active: #4ade80;
+    --scope-paused: #fb923c;
+    --scope-ended: #64748b;
+
+    --force-fg: #fb923c;
+    --audit-fg: #6b9eff;
+  }
+}

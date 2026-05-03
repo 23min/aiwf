@@ -11,9 +11,10 @@
 <a href="index.html">← index</a>
 {{- if .ParentEpic}} · <a href="{{.ParentEpic.FileName}}">{{.ParentEpic.ID}}</a>{{end}}
 </nav>
-<h1>{{.Milestone.ID}} — {{.Milestone.Title}}</h1>
+<p class="kicker">milestone · {{.Milestone.ID}}{{if .ParentEpic}} · {{.ParentEpic.ID}}{{end}}</p>
+<h1>{{.Milestone.Title}}</h1>
 <p>
-<span class="status status-{{.Milestone.Status}}">status: {{.Milestone.Status}}</span>
+<span class="status status-{{.Milestone.Status}}">{{.Milestone.Status}}</span>
 {{- if .Milestone.TDD}} · <span class="tdd tdd-{{.Milestone.TDD}}">tdd: {{.Milestone.TDD}}</span>{{end}}
  · <span class="ac-rollup">ACs: {{.ACMet}}/{{.ACTotal}}</span>
 </p>

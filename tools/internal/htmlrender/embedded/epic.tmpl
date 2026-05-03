@@ -8,9 +8,12 @@
 <body>
 <main>
 <nav><a href="index.html">← index</a></nav>
-<h1>{{.Epic.ID}} — {{.Epic.Title}}</h1>
-<p class="status status-{{.Epic.Status}}">status: {{.Epic.Status}}</p>
-<p class="ac-rollup">ACs: {{.ACMet}}/{{.ACTotal}}</p>
+<p class="kicker">epic · {{.Epic.ID}}</p>
+<h1>{{.Epic.Title}}</h1>
+<p>
+<span class="status status-{{.Epic.Status}}">{{.Epic.Status}}</span>
+ · <span class="ac-rollup">ACs: {{.ACMet}}/{{.ACTotal}}</span>
+</p>
 
 {{- with index .Body "goal"}}
 <section class="goal">
