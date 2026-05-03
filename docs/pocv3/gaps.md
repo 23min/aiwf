@@ -193,7 +193,7 @@ The audit's other-axes verification was a one-shot pass; if a future iteration a
 <a id="g24"></a>
 ### G25. Pre-commit policy hook is per-clone, install-by-copy — drifts silently — **resolved**
 
-Resolved in commit `<TBD>` (build(repo): G25 — adopt core.hooksPath for the tracked pre-commit hook). The policy gate that enforces G21's discoverability rule (and every other policy under `tools/internal/policies/`) lived in `.git/hooks/pre-commit` — installed per clone via `make hooks` (install-by-copy of `scripts/git-hooks/pre-commit`). The model has two failure modes:
+Resolved in commit `40c3d2d` (build(repo): G25 — adopt core.hooksPath for the tracked pre-commit hook). The policy gate that enforces G21's discoverability rule (and every other policy under `tools/internal/policies/`) lived in `.git/hooks/pre-commit` — installed per clone via `make hooks` (install-by-copy of `scripts/git-hooks/pre-commit`). The model has two failure modes:
 
 1. **Drift.** The installed copy can fall behind the tracked source between `make hooks` runs. Concrete reproducer at gap-filing time: this very repo's tracked `scripts/git-hooks/pre-commit` (May 1) only regenerated `STATUS.md`; the installed `.git/hooks/pre-commit` had drifted ahead with the policies test gate. Nothing detected this — the only signal would have been a contributor running `make hooks` and noticing the file change in the diff.
 2. **First-clone footgun.** A new contributor who clones and starts committing without running `make hooks` skips the policy gate entirely. CI catches it eventually, but every PR that lands in that window is one the contributor could have caught locally.
@@ -265,6 +265,6 @@ Severity: **High**. The framework's central correctness story (git log is the au
 | G22 | Provenance model extension surface (revoke, time, verb-set, pattern, sub-agent, bulk-import attribution) | Low | [ ] open |
 | G23 | Delegated `--force` via `aiwf authorize --allow-force`     | Low      | [ ] open |
 | G24 | Manual commits bypass `aiwf-verb:` trailers; no repair path | High     | [x] I2.5 steps 5b/5c/7b (`bc4183e`, `6cc0648`, `0e44ad6`, `be2ea27`) |
-| G25 | Pre-commit policy hook is per-clone, install-by-copy — drifts silently | Medium | [x] `<TBD>` |
+| G25 | Pre-commit policy hook is per-clone, install-by-copy — drifts silently | Medium | [x] `40c3d2d` |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
