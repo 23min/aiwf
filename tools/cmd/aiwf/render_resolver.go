@@ -149,6 +149,11 @@ func (r *renderResolver) MilestoneData(id string) (*htmlrender.MilestoneData, er
 	data.Commits = r.historyRows(m.ID, 50)
 	data.Provenance = r.provenanceFor(m)
 	data.LinkedEntities = r.linkedEntitiesFor(m)
+	for i := range data.LinkedEntities {
+		if data.LinkedEntities[i].Kind == string(entity.KindDecision) {
+			data.LinkedDecisions = append(data.LinkedDecisions, data.LinkedEntities[i])
+		}
+	}
 	if r.cfg != nil {
 		data.TestsPolicy.Strict = r.cfg.TDD.RequireTestMetrics
 	}
@@ -322,7 +327,7 @@ func (r *renderResolver) bodyForEntity(relPath string) []byte {
 // enough that gocritic flags it).
 func historyEventToRow(e *HistoryEvent) htmlrender.HistoryRow {
 	row := htmlrender.HistoryRow{
-		Date:         e.Date,
+		Date:         dateOnlyOrEmpty(e.Date),
 		Commit:       e.Commit,
 		Actor:        e.Actor,
 		Principal:    e.Principal,
@@ -352,13 +357,20 @@ func historyEventToRow(e *HistoryEvent) htmlrender.HistoryRow {
 
 // phaseEventsFromHistory walks an AC's history and projects each
 // `aiwf-to: <phase>` event into a PhaseEvent for the Build tab.
-// Events without a To value are skipped — they don't represent a
-// phase transition.
+// Both status promotions and phase promotions write aiwf-to:; the
+// kernel doesn't distinguish them at the trailer level. We filter
+// to the closed set of recognized TDD phases (red / green /
+// refactor / done) — anything else (open, met, deferred,
+// cancelled) is a status event and goes to the Commits tab, not
+// the Build tab.
 func phaseEventsFromHistory(events []HistoryEvent) []htmlrender.PhaseEvent {
 	var out []htmlrender.PhaseEvent
 	for i := range events {
 		e := &events[i]
 		if e.To == "" || e.Verb != "promote" {
+			continue
+		}
+		if !entity.IsAllowedTDDPhase(e.To) {
 			continue
 		}
 		row := htmlrender.PhaseEvent{

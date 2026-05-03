@@ -98,16 +98,16 @@ func TestRun_AddACWithTestsFlag(t *testing.T) {
 	if writeErr := os.WriteFile(mPath, []byte(patched), 0o644); writeErr != nil {
 		t.Fatalf("write M-001: %v", writeErr)
 	}
-	// Commit the hand-edit so subsequent verb's repo lock + projection
-	// see clean state. (aiwf check accepts the patched file.)
-	if addErr := osExec(t, root, "git", "add", "-A"); addErr != nil {
-		t.Fatalf("git add: %v", addErr)
-	}
-	if commitErr := osExec(t, root, "git", "commit", "-m", "tdd: required edit",
-		"-m", "aiwf-verb: edit\naiwf-entity: M-001\naiwf-actor: human/test\n"); commitErr != nil {
-		t.Fatalf("git commit: %v", commitErr)
-	}
 
+	// The hand-edit is the test's premise: the user puts the
+	// milestone into tdd: required state, then runs `aiwf add ac
+	// --tests`. The verb must succeed on this — including the
+	// case where the hand-edit is uncommitted. Earlier iterations
+	// of this test wrapped the edit in a manual `git commit`
+	// trailer block to dodge a perceived projection issue; the
+	// I3 audit found that to be papering over rather than testing.
+	// The verb's own commit is what carries the aiwf-tests
+	// trailer; what we read at HEAD afterwards is that commit.
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine",
 		"--tests", "pass=0 fail=1 skip=0")
 

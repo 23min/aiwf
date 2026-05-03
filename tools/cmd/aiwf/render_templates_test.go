@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -133,10 +134,12 @@ func TestRender_EpicBodyGoalRendered(t *testing.T) {
 	}
 }
 
-// TestRender_ACAnchorWiredManifestToBuild: every AC inside the
-// Manifest tab carries an id="ac-N"; the Build tab links to it.
-// Pins the cross-tab anchor convention (I3 plan §3.3) — without
-// it, "click on AC in build tab to see manifest" doesn't work.
+// TestRender_ACAnchorWiredManifestToBuild: AC anchors land in the
+// Manifest tab (id="ac-N"), and the Build tab cross-links to them
+// via href="#ac-N". Pins the cross-tab anchor convention (I3 plan
+// §3.3). Asserts via htmlSection — the loose substring version
+// of this test (which would pass even with the anchor in the
+// wrong tab) is what the testing-rules audit caught.
 func TestRender_ACAnchorWiredManifestToBuild(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test")
@@ -148,10 +151,151 @@ func TestRender_ACAnchorWiredManifestToBuild(t *testing.T) {
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
 
 	mHTML := readFileT(t, filepath.Join(out, "M-001.html"))
-	if !strings.Contains(mHTML, `id="ac-1"`) {
-		t.Errorf("Manifest tab missing AC anchor id=\"ac-1\":\n%s", mHTML)
+	assertContainsIn(t, mHTML, "manifest", `id="ac-1"`, "AC anchor in Manifest tab")
+	assertContainsIn(t, mHTML, "build", `href="#ac-1"`, "Build tab cross-link to AC")
+	// Inverse: the AC anchor must NOT appear in the Build tab
+	// (Build links TO it, doesn't host it).
+	assertNotContainsIn(t, mHTML, "build", `id="ac-1"`, "AC anchor must live in Manifest, not Build")
+}
+
+// TestRender_TestsTabBadgeIsInsideTestsTab: the strict|advisory
+// badge must appear inside the Tests <section>, not in the
+// Build tab or anywhere else. The plain substring version of
+// this assertion (`policy-strict">strict`) was the first example
+// the testing-rules audit flagged as "passes for wrong reasons."
+func TestRender_TestsTabBadgeIsInsideTestsTab(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+
+	out := filepath.Join(t.TempDir(), "site")
+	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
+
+	mHTML := readFileT(t, filepath.Join(out, "M-001.html"))
+	assertContainsIn(t, mHTML, "tests", `policy-advisory">advisory`, "advisory badge inside Tests tab")
+	assertNotContainsIn(t, mHTML, "build", `policy-advisory`, "policy badge must not leak into Build tab")
+	assertNotContainsIn(t, mHTML, "manifest", `policy-advisory`, "policy badge must not leak into Manifest tab")
+}
+
+// TestRender_BuildTabExcludesStatusEvents: only TDD-phase
+// transitions (red/green/refactor/done) belong in the Build tab.
+// A status promotion (`open → met`) writes the same `aiwf-to:`
+// trailer as a phase promotion, so an unfiltered render shows
+// status events as phase rows. Was a real bug surfaced by the
+// I3 step-5 smoke render; this test is the regression pin.
+func TestRender_BuildTabExcludesStatusEvents(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Engine")
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-1", "met") // status, not phase
+
+	out := filepath.Join(t.TempDir(), "site")
+	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
+	mHTML := readFileT(t, filepath.Join(out, "M-001.html"))
+
+	// `met` is a status, not a phase. It must NOT appear as a
+	// phase event in the Build tab.
+	assertNotContainsIn(t, mHTML, "build", `phase phase-met`, "status promotion leaked into Build tab as phase row")
+	// Build tab should show "no phase events" instead.
+	assertContainsIn(t, mHTML, "build", "No phase events recorded", "Build tab should report empty state for status-only AC")
+}
+
+// TestRender_BuildTabIncludesPhaseHistory: walking an AC through
+// red→green→done writes three phase events, all of which must
+// appear in the Build tab's timeline. Pins the populated-Build
+// branch the previous test set didn't exercise (the smoke fixture
+// had only status promotions; no phase history was rendered into
+// any test).
+func TestRender_BuildTabIncludesPhaseHistory(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Engine")
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-1", "--phase", "red")
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-1", "--phase", "green",
+		"--tests", "pass=12 fail=0 skip=0")
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-1", "--phase", "done")
+
+	out := filepath.Join(t.TempDir(), "site")
+	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
+	mHTML := readFileT(t, filepath.Join(out, "M-001.html"))
+
+	for _, phase := range []string{"phase-red", "phase-green", "phase-done"} {
+		assertContainsIn(t, mHTML, "build", phase, "Build tab missing phase row")
 	}
-	if !strings.Contains(mHTML, `href="#ac-1"`) {
-		t.Errorf("Build tab missing cross-link href=\"#ac-1\":\n%s", mHTML)
+	// The aiwf-tests trailer on green should surface inline.
+	assertContainsIn(t, mHTML, "build", "pass=12", "Build tab missing aiwf-tests metrics")
+	// And the strict-policy Tests-tab table should pick the green
+	// commit's metrics for AC-1 (advisory mode here, but data is
+	// still surfaced).
+	assertContainsIn(t, mHTML, "tests", "<td>12</td>", "Tests tab missing Pass=12 cell for AC-1")
+}
+
+// TestRender_ProvenanceTabShowsAuthorizeScope: opening an
+// authorize scope on a milestone surfaces the scope row in the
+// Provenance tab's scopes table. Pins the provenanceFor branch
+// the previous test set never exercised (no fixture had any
+// authorize commits).
+func TestRender_ProvenanceTabShowsAuthorizeScope(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "authorize", "--root", root, "--actor", "human/test", "M-001", "--to", "ai/claude")
+
+	out := filepath.Join(t.TempDir(), "site")
+	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
+	mHTML := readFileT(t, filepath.Join(out, "M-001.html"))
+
+	assertContainsIn(t, mHTML, "provenance", `scope-state-active`, "Provenance tab missing active scope state")
+	assertContainsIn(t, mHTML, "provenance", `ai/claude`, "Provenance tab missing agent")
+	assertContainsIn(t, mHTML, "provenance", `human/test`, "Provenance tab missing principal")
+	assertContainsIn(t, mHTML, "provenance", `<table class="scopes">`, "Provenance scopes table missing")
+	// The scope is reported via a <table>, not the empty-state
+	// fallback line.
+	assertNotContainsIn(t, mHTML, "provenance", "No authorized scopes", "active scope must override empty-state")
+}
+
+// TestRender_OverviewSuppressesEmptyLinkedDecisions: when the
+// milestone has no linked decisions, the Overview tab must not
+// render a stub "Linked decisions" heading + empty <ul>. Bug
+// surfaced by the smoke render.
+func TestRender_OverviewSuppressesEmptyLinkedDecisions(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+
+	out := filepath.Join(t.TempDir(), "site")
+	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
+	mHTML := readFileT(t, filepath.Join(out, "M-001.html"))
+
+	assertNotContainsIn(t, mHTML, "overview", "Linked decisions", "empty Linked decisions heading must not render")
+}
+
+// TestRender_CommitDatesAreDateOnly: the Commits tab and the
+// Provenance Timeline must render dates as YYYY-MM-DD, not as
+// full ISO timestamps. Bug surfaced by the smoke render —
+// historyEventToRow originally passed the raw Date through.
+func TestRender_CommitDatesAreDateOnly(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+
+	out := filepath.Join(t.TempDir(), "site")
+	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
+	mHTML := readFileT(t, filepath.Join(out, "M-001.html"))
+
+	// No section should carry a `T...:` ISO time component in a
+	// date cell. The pattern T<digits>:<digits> uniquely identifies
+	// the time portion of an ISO 8601 timestamp.
+	timePattern := regexp.MustCompile(`>20\d\d-\d\d-\d\dT\d\d:\d\d`)
+	if loc := timePattern.FindStringIndex(mHTML); loc != nil {
+		t.Errorf("found ISO time component in rendered output (should be date-only):\n%s", mHTML[loc[0]:loc[1]+20])
 	}
 }

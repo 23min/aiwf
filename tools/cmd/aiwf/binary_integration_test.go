@@ -197,3 +197,83 @@ func versionTokenFromBinaryRow(row string) string {
 	}
 	return rest
 }
+
+// TestBinary_RenderHTML_EndToEnd builds the cmd binary, runs it
+// against a freshly-init'd repo, exercises every interactive
+// surface the renderer has (epic + milestones + ACs + phase
+// history + scope), and asserts the resulting site is well-formed
+// and contains the expected per-tab content. This is the
+// I3-step-7 binary-level safety net — `go test` in-process tests
+// can't catch a regression that only appears once the cmd is
+// shelled out (e.g., embed.FS resolution from a packed binary,
+// flag-parsing differences when args land via os.Args vs. run()).
+func TestBinary_RenderHTML_EndToEnd(t *testing.T) {
+	skipIfShortOrUnsupported(t)
+	tmp := t.TempDir()
+	bin := buildBinary(t, tmp /* no ldflags */)
+
+	// Build the consumer repo via the binary, just like a user
+	// would. Each verb is its own subprocess; failure on any of
+	// them is a real bug.
+	repo := filepath.Join(tmp, "consumer")
+	if err := exec.Command("mkdir", "-p", repo).Run(); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	for _, kv := range []struct{ k, v string }{
+		{"user.email", "test@example.com"},
+		{"user.name", "test"},
+	} {
+		if err := exec.Command("git", "-C", repo, "config", kv.k, kv.v).Run(); err != nil {
+			t.Fatalf("git config %s: %v", kv.k, err)
+		}
+	}
+	for _, args := range [][]string{
+		{"init", "--root", repo, "--actor", "human/test"},
+		{"add", "epic", "--root", repo, "--actor", "human/test", "--title", "Foundations"},
+		{"add", "milestone", "--root", repo, "--actor", "human/test", "--epic", "E-01", "--title", "Schema parser"},
+		{"add", "ac", "--root", repo, "--actor", "human/test", "M-001", "--title", "Engine starts"},
+		{"promote", "--root", repo, "--actor", "human/test", "M-001/AC-1", "--phase", "red"},
+		{
+			"promote", "--root", repo, "--actor", "human/test", "M-001/AC-1", "--phase", "green",
+			"--tests", "pass=12 fail=0 skip=1",
+		},
+		{"authorize", "--root", repo, "--actor", "human/test", "M-001", "--to", "ai/claude"},
+	} {
+		if out, err := runBinary(bin, args...); err != nil {
+			t.Fatalf("aiwf %s: %v\n%s", strings.Join(args, " "), err, out)
+		}
+	}
+
+	siteDir := filepath.Join(tmp, "site")
+	out, err := runBinary(bin, "render", "--root", repo, "--format", "html", "--out", siteDir)
+	if err != nil {
+		t.Fatalf("aiwf render: %v\n%s", err, out)
+	}
+	// Envelope reports out_dir + files_written + elapsed_ms.
+	// Fixture: 1 index + 1 epic (E-01) + 1 milestone (M-001) = 3.
+	if !strings.Contains(out, `"files_written":3`) {
+		t.Errorf("envelope did not report files_written=3 (1 index + 1 epic + 1 milestone): %s", out)
+	}
+
+	// Page-level assertions through the binary — the templates
+	// must produce the same content via the cmd binary as via
+	// in-process run(), pinning the embed.FS resolution path.
+	for _, name := range []string{"index.html", "E-01.html", "M-001.html", "assets/style.css"} {
+		path := filepath.Join(siteDir, name)
+		if _, statErr := exec.Command("test", "-f", path).Output(); statErr != nil {
+			t.Errorf("expected %s in site dir; %v", name, statErr)
+		}
+	}
+
+	mHTML := readFileT(t, filepath.Join(siteDir, "M-001.html"))
+	if err := assertWellFormed(mHTML); err != nil {
+		t.Errorf("M-001.html (binary render) is not well-formed: %v", err)
+	}
+	assertContainsIn(t, mHTML, "build", "phase-red", "binary render: Build tab missing red phase")
+	assertContainsIn(t, mHTML, "build", "phase-green", "binary render: Build tab missing green phase")
+	assertContainsIn(t, mHTML, "build", "pass=12", "binary render: aiwf-tests trailer not surfaced")
+	assertContainsIn(t, mHTML, "provenance", "scope-state-active", "binary render: scope row missing")
+}

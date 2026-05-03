@@ -94,17 +94,25 @@ type LinkedEntity struct {
 // tabs (overview, manifest, build, tests, commits, provenance) read
 // from this single struct; the templates branch internally on what
 // to show in each tab.
+//
+// LinkedDecisions / LinkedEntities are split so the Overview tab
+// can render the decisions block conditionally (an empty list
+// suppresses the heading entirely). LinkedEntities is the union
+// shown on a separate "Linked entities" block when populated;
+// LinkedDecisions is the kind-filtered subset surfaced in the
+// Overview tab per I3 plan §3.3.
 type MilestoneData struct {
-	Milestone      *EntityRef
-	ParentEpic     *EntityRef
-	Body           map[string]string
-	ACs            []ACDetail
-	Commits        []HistoryRow
-	Provenance     ProvenanceData
-	LinkedEntities []LinkedEntity
-	TestsPolicy    TestsPolicy
-	ACMet          int
-	ACTotal        int
+	Milestone       *EntityRef
+	ParentEpic      *EntityRef
+	Body            map[string]string
+	ACs             []ACDetail
+	Commits         []HistoryRow
+	Provenance      ProvenanceData
+	LinkedEntities  []LinkedEntity
+	LinkedDecisions []LinkedEntity
+	TestsPolicy     TestsPolicy
+	ACMet           int
+	ACTotal         int
 }
 
 // ACDetail is one AC's view inside the milestone Manifest tab.
