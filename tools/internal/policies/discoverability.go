@@ -1,68 +1,158 @@
 package policies
 
 import (
+	"bytes"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
-// PolicyFindingCodesAreDiscoverable asserts that every provenance
-// finding code defined in tools/internal/check/provenance.go
-// appears in either the aiwf-check embedded skill OR the binary's
-// printHelp output. The CLAUDE.md "kernel functionality must be
-// AI-discoverable" principle: a finding code that only exists in
-// source is, by definition, undocumented.
+// PolicyFindingCodesAreDiscoverable asserts that every finding code
+// emitted by the kernel — both named constants in
+// tools/internal/check/ and inline `Code: "..."` literals in
+// Finding{} composite literals across check/ and contractcheck/ —
+// appears verbatim in at least one channel an AI assistant routinely
+// consults: any embedded skill SKILL.md, the binary's printHelp
+// output (cmd/aiwf/main.go), CLAUDE.md / tools/CLAUDE.md, or any
+// markdown file under docs/pocv3/. The CLAUDE.md "kernel
+// functionality must be AI-discoverable" principle: a code that
+// only exists in source is, by definition, undocumented.
 //
-// We scope the check to provenance-* codes because those are the
-// I2.5 surface; pre-existing finding codes are already covered by
-// the legacy aiwf-check skill content. Extending the policy to
-// "every finding code anywhere" is a fine future tightening.
+// Closes G21. The policy used to scope to provenance-* codes only;
+// extending to all codes (and to the full four-channel set) is the
+// substantive G21 fix.
 func PolicyFindingCodesAreDiscoverable(root string) ([]Violation, error) {
-	provenanceCodes, err := readProvenanceCodes(root)
+	prodFiles, err := WalkGoFiles(root, true)
 	if err != nil {
 		return nil, err
 	}
-	skillPath := filepath.Join(root, "tools", "internal", "skills", "embedded", "aiwf-check", "SKILL.md")
-	skillBytes, err := os.ReadFile(skillPath)
+	codes := allCheckCodes(prodFiles)
+
+	haystack, err := readDiscoverabilityChannels(root)
 	if err != nil {
 		return nil, err
 	}
-	helpPath := filepath.Join(root, "tools", "cmd", "aiwf", "main.go")
-	helpBytes, err := os.ReadFile(helpPath)
-	if err != nil {
-		return nil, err
-	}
+
 	var out []Violation
-	for _, code := range provenanceCodes {
-		if strings.Contains(string(skillBytes), code) {
-			continue
-		}
-		if strings.Contains(string(helpBytes), code) {
+	for code := range codes {
+		if bytes.Contains(haystack, []byte(code)) {
 			continue
 		}
 		out = append(out, Violation{
 			Policy: "finding-codes-are-discoverable",
 			File:   "tools/internal/skills/embedded/aiwf-check/SKILL.md",
-			Detail: code + " appears in tools/internal/check/provenance.go but is not mentioned in the aiwf-check skill or printHelp",
+			Detail: code + " is a finding code in the kernel but is not mentioned in any AI-discoverable channel (embedded skills, aiwf <verb> --help, CLAUDE.md, or docs/pocv3/**/*.md)",
 		})
 	}
 	return out, nil
 }
 
-// readProvenanceCodes reads tools/internal/check/provenance.go and
-// returns every string-valued constant whose value starts with
-// "provenance-". Defensive: returns an empty slice if the file is
-// not where we expect.
-func readProvenanceCodes(root string) ([]string, error) {
-	files, err := WalkGoFiles(root, true)
-	if err != nil {
-		return nil, err
+// allCheckCodes returns the union of finding codes from named
+// constants in tools/internal/check/ and inline `Code: "..."`
+// literals in Finding{} composite literals across check/ and
+// contractcheck/. Filtered to kebab-case finding-code shape so
+// non-code constants (severities, etc.) are excluded.
+func allCheckCodes(files []FileEntry) map[string]struct{} {
+	out := map[string]struct{}{}
+	for _, v := range loadCheckCodeConstants(files) {
+		if looksLikeFindingCode(v) {
+			out[v] = struct{}{}
+		}
 	}
-	consts := loadCheckCodeConstants(files)
-	var out []string
-	for _, v := range consts {
-		if strings.HasPrefix(v, "provenance-") {
-			out = append(out, v)
+	for v := range loadCheckCodeLiterals(files) {
+		out[v] = struct{}{}
+	}
+	return out
+}
+
+// loadCheckCodeLiterals AST-parses production check/ and
+// contractcheck/ files and returns the set of inline string literals
+// assigned to a `Code` field in any composite literal. Captures the
+// codes that aren't declared as named constants (most of the
+// pre-I2.5 surface).
+func loadCheckCodeLiterals(files []FileEntry) map[string]struct{} {
+	out := map[string]struct{}{}
+	fset := token.NewFileSet()
+	for _, f := range files {
+		if !strings.HasPrefix(f.Path, "tools/internal/check/") &&
+			!strings.HasPrefix(f.Path, "tools/internal/contractcheck/") {
+			continue
+		}
+		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
+		if perr != nil {
+			continue
+		}
+		ast.Inspect(astFile, func(n ast.Node) bool {
+			kv, ok := n.(*ast.KeyValueExpr)
+			if !ok {
+				return true
+			}
+			key, ok := kv.Key.(*ast.Ident)
+			if !ok || key.Name != "Code" {
+				return true
+			}
+			lit, ok := kv.Value.(*ast.BasicLit)
+			if !ok || lit.Kind != token.STRING {
+				return true
+			}
+			value, uerr := strconv.Unquote(lit.Value)
+			if uerr != nil {
+				return true
+			}
+			if !looksLikeFindingCode(value) {
+				return true
+			}
+			out[value] = struct{}{}
+			return true
+		})
+	}
+	return out
+}
+
+// readDiscoverabilityChannels concatenates the contents of every
+// documentation channel an AI assistant routinely consults. The
+// concatenation is matched as one big haystack — substring presence
+// in any channel passes the policy.
+func readDiscoverabilityChannels(root string) ([]byte, error) {
+	var out []byte
+	singletons := []string{
+		filepath.Join(root, "tools", "cmd", "aiwf", "main.go"),
+		filepath.Join(root, "CLAUDE.md"),
+		filepath.Join(root, "tools", "CLAUDE.md"),
+	}
+	for _, p := range singletons {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, data...)
+		out = append(out, '\n')
+	}
+	for _, dir := range []string{
+		filepath.Join(root, "tools", "internal", "skills", "embedded"),
+		filepath.Join(root, "docs", "pocv3"),
+	} {
+		walkErr := filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() || !strings.HasSuffix(p, ".md") {
+				return nil
+			}
+			data, rerr := os.ReadFile(p)
+			if rerr != nil {
+				return rerr
+			}
+			out = append(out, data...)
+			out = append(out, '\n')
+			return nil
+		})
+		if walkErr != nil {
+			return nil, walkErr
 		}
 	}
 	return out, nil
