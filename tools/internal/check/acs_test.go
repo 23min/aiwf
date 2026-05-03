@@ -264,6 +264,9 @@ func TestAcsTDDAudit_RequiredFiresAsError(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("got %d findings, want 1: %+v", len(got), got)
 	}
+	if got[0].Code != "acs-tdd-audit" {
+		t.Errorf("code = %q, want \"acs-tdd-audit\"", got[0].Code)
+	}
 	if got[0].Severity != SeverityError {
 		t.Errorf("severity = %q, want error", got[0].Severity)
 	}
@@ -281,8 +284,8 @@ func TestAcsTDDAudit_AdvisoryFiresAsWarning(t *testing.T) {
 		},
 	})
 	got := acsTDDAudit(tr)
-	if len(got) != 1 || got[0].Severity != SeverityWarning {
-		t.Errorf("expected one warning finding, got: %+v", got)
+	if len(got) != 1 || got[0].Severity != SeverityWarning || got[0].Code != "acs-tdd-audit" {
+		t.Errorf("expected one warning finding with code \"acs-tdd-audit\", got: %+v", got)
 	}
 }
 

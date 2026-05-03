@@ -191,6 +191,19 @@ The audit's other-axes verification was a one-shot pass; if a future iteration a
 ---
 
 <a id="g24"></a>
+### G26. `findings_have_tests` policy mirrors G21's old shape — only sees named-constant codes — **resolved**
+
+Resolved in commit `<TBD>` (feat(aiwf): G26 — extend findings_have_tests to inline-literal codes). After G21 broadened `PolicyFindingCodesAreDiscoverable` to enumerate every kebab-case finding code (named constants + inline `Code: "..."` literals across `check/` and `contractcheck/`), `PolicyFindingCodesHaveTests` was left on the old narrow enumeration: it only verified test references for named-constant codes (i.e., the `provenance-*` family). Inline-literal codes — most of the pre-I2.5 surface, including `acs-tdd-audit`, `acs-shape`, `case-paths`, `load-error`, etc. — could be production-emitted without any test asserting the exact code string. A typo in the emission site would slip through every existing test.
+
+The fix shares `loadCheckCodeLiterals` with the discoverability policy so the two now operate on the same code population. For inline-literal codes the only acceptable test reference is the quoted string value (no constant name to fall back on). Codes also declared as constants are deduped against the named pass.
+
+The broadened policy immediately surfaced one real violation: `acs-tdd-audit` was emitted in `check/acs.go` and exercised by three tests in `acs_test.go` that asserted severity and entity-id but never the code string. Two of those tests were tightened to also assert `Code == "acs-tdd-audit"` — a typo at the emission site would now fail them.
+
+Severity: Low. The policy gap was structural (test-coverage rule didn't match the docs-coverage rule's scope); the one real violation it found was a single under-tested code, not a correctness regression. But the symmetry is the point: G21 and G26 together now mean every kernel finding code is *both* documented in at least one channel *and* asserted by string in at least one test — the kind of pair where letting one half drift while the other tightens is exactly how subtle holes open up.
+
+---
+
+<a id="g24"></a>
 ### G25. Pre-commit policy hook is per-clone, install-by-copy — drifts silently — **resolved**
 
 Resolved in commit `40c3d2d` (build(repo): G25 — adopt core.hooksPath for the tracked pre-commit hook). The policy gate that enforces G21's discoverability rule (and every other policy under `tools/internal/policies/`) lived in `.git/hooks/pre-commit` — installed per clone via `make hooks` (install-by-copy of `scripts/git-hooks/pre-commit`). The model has two failure modes:
@@ -266,5 +279,6 @@ Severity: **High**. The framework's central correctness story (git log is the au
 | G23 | Delegated `--force` via `aiwf authorize --allow-force`     | Low      | [ ] open |
 | G24 | Manual commits bypass `aiwf-verb:` trailers; no repair path | High     | [x] I2.5 steps 5b/5c/7b (`bc4183e`, `6cc0648`, `0e44ad6`, `be2ea27`) |
 | G25 | Pre-commit policy hook is per-clone, install-by-copy — drifts silently | Medium | [x] `40c3d2d` |
+| G26 | `findings_have_tests` policy only sees named-constant codes (G21 mirror) | Low | [x] `<TBD>` |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

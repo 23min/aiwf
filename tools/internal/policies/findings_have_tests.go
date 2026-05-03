@@ -4,30 +4,35 @@ import (
 	"strings"
 )
 
-// PolicyFindingCodesHaveTests asserts that every finding code
-// declared as a `Code...` constant in the check package is
-// referenced from at least one *_test.go file. The test reference
+// PolicyFindingCodesHaveTests asserts that every finding code emitted
+// by the kernel — both named `Code...` constants in
+// tools/internal/check/ and inline `Code: "..."` literals in
+// Finding{} composite literals across check/ and contractcheck/ —
+// is referenced from at least one *_test.go file. The test reference
 // is what proves the code's emission and shape are exercised; an
 // orphan code is by definition untested.
 //
-// Scope: every constant in tools/internal/check/ whose value is a
-// kebab-case finding-code string. The policy reads the same
-// constant table the discoverability policy uses, then greps the
-// test-file population for each code.
+// The policy stops at presence (does not require BOTH a positive
+// and a negative fixture; that would need test-body parsing). For
+// inline-literal codes there is no constant name to grep for, so
+// the only acceptable test reference is the quoted string value.
 //
-// We do NOT require BOTH a positive and a negative fixture (that
-// would need test-body parsing); the policy stops at presence,
-// which is enough to flag a wholly orphaned code.
+// Closes G26: extends the prior named-constant-only enumeration to
+// cover the same code population that PolicyFindingCodesAreDiscoverable
+// covers (see G21). The two policies now share `allCheckCodes` so
+// drift between "what the docs cover" and "what the tests cover"
+// is structurally impossible.
 func PolicyFindingCodesHaveTests(root string) ([]Violation, error) {
 	allFiles, err := WalkGoFiles(root, false) // include tests
 	if err != nil {
 		return nil, err
 	}
-	prodFiles, err := WalkGoFiles(root, true) // production-only for constants
+	prodFiles, err := WalkGoFiles(root, true) // production-only for code enumeration
 	if err != nil {
 		return nil, err
 	}
 	consts := loadCheckCodeConstants(prodFiles)
+	literals := loadCheckCodeLiterals(prodFiles)
 
 	// Collect every test-file body as one big haystack.
 	var testHaystack strings.Builder
@@ -41,18 +46,16 @@ func PolicyFindingCodesHaveTests(root string) ([]Violation, error) {
 	haystack := testHaystack.String()
 
 	var out []Violation
+	// Named-constant codes: tests can reference by constant name OR
+	// by the literal value.
 	for name, value := range consts {
-		// Only consider finding-code-shaped values: lowercase, dashes,
-		// at least one dash. Excludes things like Severity values.
 		if !looksLikeFindingCode(value) {
 			continue
 		}
-		// Test reference can be by constant name OR by the literal value.
 		if strings.Contains(haystack, name) {
 			continue
 		}
-		quoted := `"` + value + `"`
-		if strings.Contains(haystack, quoted) {
+		if strings.Contains(haystack, `"`+value+`"`) {
 			continue
 		}
 		out = append(out, Violation{
@@ -62,7 +65,37 @@ func PolicyFindingCodesHaveTests(root string) ([]Violation, error) {
 				" (constant " + name + ") is not referenced by any *_test.go file",
 		})
 	}
+	// Inline-literal codes: only the quoted value is an acceptable
+	// reference (there is no constant name to fall back on).
+	for value := range literals {
+		// Skip anything also declared as a named constant — already
+		// handled above.
+		if hasConstantValue(consts, value) {
+			continue
+		}
+		if strings.Contains(haystack, `"`+value+`"`) {
+			continue
+		}
+		out = append(out, Violation{
+			Policy: "finding-codes-have-tests",
+			File:   "tools/internal/check/",
+			Detail: "finding code " + value +
+				" (inline literal) is not referenced by any *_test.go file",
+		})
+	}
 	return out, nil
+}
+
+// hasConstantValue reports whether any named constant in consts has
+// the given string value. Used to dedupe the inline-literal pass
+// against the named-constant pass.
+func hasConstantValue(consts map[string]string, value string) bool {
+	for _, v := range consts {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }
 
 // looksLikeFindingCode returns true when s looks like a kebab-case
