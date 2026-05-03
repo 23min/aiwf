@@ -31,6 +31,8 @@ aiwf check --format=json --pretty
 | `refs-resolve/unresolved` | A reference points at an id that does not exist. | Either the target was never created, or the id is mistyped. |
 | `refs-resolve/wrong-kind` | A reference points at an entity of the wrong kind. | A milestone's `parent` must be an epic; an ADR's `supersedes` must be ADRs; etc. |
 | `no-cycles` | A cycle in the milestone `depends_on` DAG or the ADR `supersedes` chain. | Remove a back-edge. |
+| `case-paths` | Two entity paths differ only in case. Linux commits both; macOS / Windows case-insensitive filesystems collapse them to one entity. | `git mv` one of the directories so the names differ in more than case. |
+| `load-error` | A file under `work/` failed to parse — malformed YAML frontmatter, unreadable file, or a structural issue the loader couldn't recover from. | Open the named file and fix the parse issue; subsequent checks run once load succeeds. |
 | `contract-config` | A contract binding in `aiwf.yaml` references an id with no entity, a missing schema/fixtures path, or a contract entity has no binding. | Run `aiwf contract bind` / `aiwf add contract`, fix the path, or `aiwf contract unbind`. |
 | `fixture-rejected` | A `valid/` fixture failed the schema. | Make the schema accept it, or move it to `invalid/`. |
 | `fixture-accepted` | An `invalid/` fixture passed the schema. | Tighten the schema, or move to `valid/`. |
