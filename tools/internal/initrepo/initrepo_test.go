@@ -347,6 +347,126 @@ func TestInit_GitignoreFutureProof(t *testing.T) {
 	}
 }
 
+// TestInit_GitignoreHTMLOutDir_DefaultIsIgnored: a fresh init lands
+// `site/` in the gitignore so the renderer's default output is
+// invisible to git unless the consumer flips html.commit_output: true.
+func TestInit_GitignoreHTMLOutDir_DefaultIsIgnored(t *testing.T) {
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if !strings.Contains(string(got), "\nsite/\n") && !strings.HasSuffix(string(got), "site/\n") {
+		t.Errorf("default render out_dir 'site/' missing from .gitignore:\n%s", got)
+	}
+}
+
+// TestInit_GitignoreHTMLOutDir_CommitOutputTrue: with
+// html.commit_output: true in aiwf.yaml, init does not add the
+// out_dir line — the consumer wants to commit the rendered files.
+func TestInit_GitignoreHTMLOutDir_CommitOutputTrue(t *testing.T) {
+	root := freshGitRepo(t)
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhtml:\n  out_dir: docs/site\n  commit_output: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if strings.Contains(string(got), "docs/site/") || strings.Contains(string(got), "site/") {
+		t.Errorf("expected no html out_dir gitignore entry under commit_output: true:\n%s", got)
+	}
+}
+
+// TestInit_GitignoreHTMLOutDir_FlipFalseToTrue: a previous run that
+// landed `site/` in .gitignore must be reconciled when the consumer
+// flips html.commit_output to true on the next init/update — the
+// stale line is removed.
+func TestInit_GitignoreHTMLOutDir_FlipFalseToTrue(t *testing.T) {
+	root := freshGitRepo(t)
+	// First pass: default config → site/ ends up in .gitignore.
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	gi, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if !strings.Contains(string(gi), "site/") {
+		t.Fatalf("expected site/ after fresh init; got:\n%s", gi)
+	}
+
+	// Flip aiwf.yaml to commit_output: true and re-init.
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	raw, err := os.ReadFile(yamlPath)
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+	patched := string(raw) + "html:\n  commit_output: true\n"
+	if err := os.WriteFile(yamlPath, []byte(patched), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init (flip): %v", err)
+	}
+	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if strings.Contains(string(got), "\nsite/\n") || strings.HasSuffix(string(got), "site/\n") {
+		t.Errorf("site/ still present after commit_output: true flip:\n%s", got)
+	}
+}
+
+// TestInit_GitignoreHTMLOutDir_FlipTrueToFalse: a consumer who had
+// commit_output: true and decides to ungitignore the output gets
+// `site/` re-added on next init.
+func TestInit_GitignoreHTMLOutDir_FlipTrueToFalse(t *testing.T) {
+	root := freshGitRepo(t)
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhtml:\n  commit_output: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	gi, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if strings.Contains(string(gi), "site/") {
+		t.Fatalf("unexpected site/ under commit_output: true:\n%s", gi)
+	}
+
+	// Flip back to false (default).
+	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init (flip back): %v", err)
+	}
+	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if !strings.Contains(string(got), "site/") {
+		t.Errorf("expected site/ after commit_output: false flip back:\n%s", got)
+	}
+}
+
+// TestInit_GitignoreHTMLOutDir_PreservesUserDir: a user-authored
+// directory entry in .gitignore must survive every reconciliation
+// path. The reconciler only matches the configured out_dir or the
+// default; arbitrary user content is untouched.
+func TestInit_GitignoreHTMLOutDir_PreservesUserDir(t *testing.T) {
+	root := freshGitRepo(t)
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte("node_modules/\nbuild/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhtml:\n  commit_output: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
+	for _, want := range []string{"node_modules/", "build/"} {
+		if !strings.Contains(string(got), want) {
+			t.Errorf("user-authored entry %q lost from .gitignore:\n%s", want, got)
+		}
+	}
+}
+
 // TestInit_DryRun reports the would-be ledger but writes nothing.
 // A second non-dry-run pass on the same repo must still treat it as
 // fresh (i.e. dry-run leaves no side effects).
