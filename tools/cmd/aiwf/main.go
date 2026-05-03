@@ -142,6 +142,7 @@ Verbs:
   history <id>                   show the entity's lifecycle from git log trailers
   doctor [--self-check] [--check-latest]  drift / version / id-collision health check; --self-check drives every verb against a temp repo; --check-latest hits the Go module proxy for the latest published aiwf version (advisory)
   render roadmap [--write]       print ROADMAP.md (markdown of epics + milestones); --write commits it
+  render --format=html [--out <dir>] [--pretty]  render the static-site governance page (index + per-epic + per-milestone HTML) under aiwf.yaml.html.out_dir (default 'site') or --out; emits a JSON envelope on stdout with out_dir/files_written/elapsed_ms
   import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
   whoami                         print the resolved actor and the source it came from
   status                         project snapshot: in-flight work, open decisions, gaps, recent activity

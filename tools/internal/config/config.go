@@ -66,6 +66,38 @@ type Config struct {
 	Hosts       []string `yaml:"hosts,omitempty"`
 	StatusMd    StatusMd `yaml:"status_md,omitempty"`
 	TDD         TDD      `yaml:"tdd,omitempty"`
+	HTML        HTML     `yaml:"html,omitempty"`
+}
+
+// HTML holds the consumer's settings for the static-site render
+// produced by `aiwf render --format=html`. OutDir is the directory
+// the renderer writes into (relative to the repo root unless given
+// as an absolute path); CommitOutput records the consumer's intent
+// to commit the rendered files. The gitignore block managed by
+// `aiwf init` / `aiwf update` is *derived* from CommitOutput — the
+// consumer expresses intent here, and the framework reconciles the
+// gitignore on the next admin verb run.
+//
+// Default OutDir: "site" — the standard SSG convention.
+// Default CommitOutput: false — gitignore the output and publish
+// via CI.
+type HTML struct {
+	OutDir       string `yaml:"out_dir,omitempty"`
+	CommitOutput bool   `yaml:"commit_output,omitempty"`
+}
+
+// DefaultHTMLOutDir is the path the renderer falls back to when
+// aiwf.yaml.html.out_dir is unset.
+const DefaultHTMLOutDir = "site"
+
+// HTMLOutDir returns the configured output directory or the default
+// when unset. Callers should resolve to an absolute path against the
+// repo root before passing to the renderer.
+func (c *Config) HTMLOutDir() string {
+	if c == nil || c.HTML.OutDir == "" {
+		return DefaultHTMLOutDir
+	}
+	return c.HTML.OutDir
 }
 
 // TDD carries opt-in governance for the TDD model. RequireTestMetrics

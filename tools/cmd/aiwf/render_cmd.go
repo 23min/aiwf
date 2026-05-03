@@ -8,27 +8,52 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/23min/ai-workflow-v2/tools/internal/config"
 	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
+	"github.com/23min/ai-workflow-v2/tools/internal/htmlrender"
+	"github.com/23min/ai-workflow-v2/tools/internal/render"
 	"github.com/23min/ai-workflow-v2/tools/internal/roadmap"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 )
 
-// runRender is the dispatcher for `aiwf render <subcommand>`. The
-// only subcommand today is `roadmap`; new derived views can be added
-// alongside it without disturbing the rest of the CLI.
+// runRender is the dispatcher for `aiwf render`. Two surfaces:
+//   - `aiwf render roadmap [--write]` → markdown roadmap (legacy).
+//   - `aiwf render --format=html [...]` → static-site HTML render.
+//
+// The format flag is recognized when no subcommand is given; the
+// roadmap subcommand has its own flag set.
 func runRender(args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "aiwf render: missing subcommand. Try 'aiwf render roadmap'.")
+		fmt.Fprintln(os.Stderr, "aiwf render: missing subcommand or --format. Try 'aiwf render roadmap' or 'aiwf render --format=html'.")
 		return exitUsage
 	}
-	switch args[0] {
-	case "roadmap":
+	if args[0] == "roadmap" {
 		return runRenderRoadmap(args[1:])
-	default:
-		fmt.Fprintf(os.Stderr, "aiwf render: unknown subcommand %q\n", args[0])
-		return exitUsage
 	}
+	// --format=<x> mode: peek for the flag before delegating.
+	if hasFormatFlag(args) {
+		return runRenderSite(args)
+	}
+	fmt.Fprintf(os.Stderr, "aiwf render: unknown subcommand %q (try 'roadmap' or '--format=html')\n", args[0])
+	return exitUsage
+}
+
+// hasFormatFlag reports whether any token in args looks like a
+// `--format` declaration (split or `=`-joined). Used by runRender
+// to disambiguate between subcommand and flag-only invocations
+// without parsing twice.
+func hasFormatFlag(args []string) bool {
+	for _, a := range args {
+		switch {
+		case a == "--format", a == "-format":
+			return true
+		case strings.HasPrefix(a, "--format="), strings.HasPrefix(a, "-format="):
+			return true
+		}
+	}
+	return false
 }
 
 // runRenderRoadmap prints the markdown roadmap to stdout, or with
@@ -117,4 +142,95 @@ func runRenderRoadmap(args []string) int {
 	}
 	fmt.Println(subject)
 	return exitOK
+}
+
+// runRenderSite handles `aiwf render --format=html [--out <dir>]
+// [--scope <id>] [--no-history] [--pretty]`. Read-only — produces a
+// directory of HTML files. No commit. Always emits the standard JSON
+// envelope on stdout per I3 plan §5; --pretty toggles indent.
+//
+// Result payload:
+//
+//	{ "result": { "out_dir": "<abs>", "files_written": N, "elapsed_ms": M } }
+func runRenderSite(args []string) int {
+	fs := flag.NewFlagSet("render", flag.ContinueOnError)
+	root := fs.String("root", "", "consumer repo root")
+	format := fs.String("format", "", "output format (required: html)")
+	out := fs.String("out", "", "output directory (overrides aiwf.yaml.html.out_dir; default 'site')")
+	scope := fs.String("scope", "", "render only this entity and its referenced children (reserved; not yet implemented)")
+	noHistory := fs.Bool("no-history", false, "skip git-log walks per page (reserved; not yet implemented)")
+	pretty := fs.Bool("pretty", false, "indent the JSON envelope on stdout")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+	if *format != "html" {
+		fmt.Fprintf(os.Stderr, "aiwf render: --format must be 'html'; got %q\n", *format)
+		return exitUsage
+	}
+	_ = scope     // step-4 placeholder: reserved for §3 incremental render
+	_ = noHistory // step-4 placeholder: reserved for the no-history flag
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)
+		return exitUsage
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf render: loading tree: %v\n", err)
+		return exitInternal
+	}
+
+	outDir := resolveHTMLOutDir(rootDir, *out)
+	res, err := htmlrender.Render(htmlrender.Options{
+		OutDir: outDir,
+		Tree:   tr,
+		Root:   rootDir,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)
+		return exitInternal
+	}
+
+	env := render.Envelope{
+		Tool:    "aiwf",
+		Version: Version,
+		Status:  "ok",
+		Result: map[string]any{
+			"out_dir":       outDir,
+			"files_written": res.FilesWritten,
+			"elapsed_ms":    res.ElapsedMs,
+		},
+		Metadata: map[string]any{"root": rootDir},
+	}
+	if werr := render.JSON(os.Stdout, env, *pretty); werr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", werr)
+		return exitInternal
+	}
+	return exitOK
+}
+
+// resolveHTMLOutDir picks the absolute output path. Precedence:
+//  1. --out flag (if non-empty).
+//  2. aiwf.yaml.html.out_dir (if non-empty).
+//  3. config.DefaultHTMLOutDir.
+//
+// Relative paths resolve against the consumer repo root so the
+// behavior is identical regardless of cwd.
+func resolveHTMLOutDir(root, flagOut string) string {
+	out := flagOut
+	if out == "" {
+		if cfg, err := config.Load(root); err == nil && cfg != nil {
+			out = cfg.HTMLOutDir()
+		} else {
+			out = config.DefaultHTMLOutDir
+		}
+	}
+	if !filepath.IsAbs(out) {
+		out = filepath.Join(root, out)
+	}
+	return out
 }
