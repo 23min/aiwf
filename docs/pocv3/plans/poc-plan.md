@@ -1,8 +1,8 @@
-# PoC plan — five sessions + I1 (contracts)
+# PoC plan — sessions and iterations
 
 This is the working document for the `poc/aiwf-v3` branch. Each session has a deliverable that runs end-to-end before moving on. Mark items as you go; commit per logical step.
 
-The five sessions below are the original PoC build. **Iteration I1 — Contracts** (covered in [`contracts-plan.md`](contracts-plan.md)) shipped on top once those five sessions landed; its sub-iterations and shipped commits are summarized at the end of this document.
+The five sessions below are the original PoC build. Subsequent iterations layered on top — each with its own detailed plan in this directory — are summarized after the sessions, in the order they shipped (or, for queued work, in the order proposed). Each iteration's sub-iterations and shipped commits live in its own plan file; this document is the index.
 
 For the design context that justifies this shape, see [`design-decisions.md`](../design/design-decisions.md). For the engineering principles, see the root [`CLAUDE.md`](../../../CLAUDE.md) and [`tools/CLAUDE.md`](../../../tools/CLAUDE.md).
 
@@ -152,9 +152,98 @@ The eight sub-iterations:
 
 ---
 
+## Iteration I2 — Acceptance criteria + TDD
+
+**Goal:** first-class acceptance criteria as namespaced sub-elements of milestones, and opt-in TDD enforcement per milestone. Full design and step-by-step build sequence in [`acs-and-tdd-plan.md`](acs-and-tdd-plan.md).
+
+ACs are not a seventh kind — they're structured sub-elements addressed by composite id `M-NNN/AC-N`, validated by `aiwf check`, with the audit rule "AC `met` requires `tdd_phase: done`" when the milestone is `tdd: required`. The legacy v1 tracking-doc convention dies; AC list moves into the milestone doc itself (frontmatter + matching body sections).
+
+The eleven sub-iterations:
+
+- [x] **I2.1** — milestone schema additions for ACs and TDD (commit `35b766e`).
+- [x] **I2.2** — composite id grammar `M-NNN/AC-N` (commit `07a0a43`).
+- [x] **I2.3** — AC and TDD-phase FSMs, milestone-done precondition (commit `d759f17`).
+- [x] **I2.4** — `--force --reason` on promote and cancel (commit `414df2f`).
+- [x] **I2.5** — `aiwf-to:` trailer + history renders to/forced columns (commit `6cc3f8b`).
+- [x] **I2.6** — check rules for ACs, TDD audit, milestone-done (commit `c857588`).
+- [x] **I2.7a** — `aiwf add ac`, composite-id verbs, history prefix-match (commit `7fe22c3`).
+- [x] **I2.7b** — `--phase` flag for promote, TDD pre-cycle entry (commit `253d7f4`).
+- [x] **I2.7c** — `aiwf show`, per-entity aggregator (commit `3f743a8`).
+- [x] **I2.8** — STATUS.md renders AC progress per milestone (commit `db69611`).
+- [x] **I2.10** — embedded skills + CLAUDE.md cover ACs and TDD (commit `1f2cd91`).
+- [x] **I2.11** — reverse-ref index, `aiwf show referenced_by` (commit `0352f0d`). Load-bearing prerequisite for I2.5 step 6 and I3.
+
+**Deliverable:** milestones declare their ACs in frontmatter + matching body sections; `aiwf check` enforces "AC met requires TDD phase done" when `tdd: required`; `aiwf show M-NNN` aggregates the milestone's AC + phase view; STATUS.md renders progress per milestone.
+
+---
+
+## Iteration I2.5 — Provenance model
+
+**Goal:** separate *who is accountable* (principal, always human) from *who ran the verb* (operator/actor, may be LLM or bot); gate authorized agent work via a typed scope FSM (`active | paused | ended`) opened with `aiwf authorize`; keep `--force` as a sovereign human-only override. Full design in [`../design/provenance-model.md`](../design/provenance-model.md); build sequence in [`provenance-model-plan.md`](provenance-model-plan.md).
+
+The eleven build steps (steps 1–10 shipped; step 11 is an I3 handoff placeholder):
+
+- [x] **Step 1** — drop `aiwf.yaml.actor`, runtime-derive identity from `git config user.email` (commit `3932819`).
+- [x] **Step 2** — trailer writer extensions for provenance (`aiwf-principal`, `aiwf-on-behalf-of`, `aiwf-authorized-by`, `aiwf-scope`, `aiwf-scope-ends`, `aiwf-reason`) (commit `f56d707`).
+- [x] **Step 3** — required-together / mutually-exclusive trailer coherence rules (commit `0f5dcae`).
+- [x] **Step 4** — scope FSM package (commit `f8315c0`).
+- [x] **Step 5** — `aiwf authorize` verb (open / pause / resume) (commit `3b573c7`).
+- [x] **Step 5b** — `--audit-only --reason` recovery mode for G24 (commit `bc4183e`).
+- [x] **Step 5c** — `Apply` lock-contention diagnostic for G24 (commit `6cc0648`).
+- [x] **Step 6** — allow-rule + scope-aware verb dispatch; prior-entity chain resolution (commits `2e09f4d`, `22d7c63`).
+- [x] **Step 7** — `aiwf check` provenance standing rules (commit `9e7d2fc`).
+- [x] **Step 7b** — pre-push trailer audit (G24 surface-the-gap half) (commit `0e44ad6`); audit-only clears the warning (commit `be2ea27`).
+- [x] **Step 8** — `aiwf history` rendering for provenance (commit `428014e`).
+- [x] **Step 9** — `aiwf show` scopes block (commit `126ac42`).
+- [x] **Step 10** — provenance docs and embedded skills (commit `a4cd468`).
+- [ ] **Step 11** — render integration handoff to I3 (placeholder; actual work in `governance-html-plan.md`).
+
+**Follow-up coverage** (commits `cd1e165`, `044f5e6`, `9c1b010`): coverage-gap tests, composite/self/multi-auth/empty-range/ancestor/skill-drift fixtures, and the cross-cutting integration scenarios from §4 of the plan.
+
+**Policies sweep** (commits `0b5354e`, `bd9fce7`, `79ccc42`): new `policies` package encodes 23 repo-wide audit-trail invariants on top of the I2.5 trailer surface.
+
+**Deliverable:** every commit carries unambiguous principal × agent × scope provenance; `aiwf authorize` opens scoped agent work that auto-ends on terminal scope-entity status; `--force` and `--audit-only` are sovereign human-only acts; `aiwf check` catches incoherent or out-of-scope commits at push time; `aiwf history` and `aiwf show` render the full picture.
+
+---
+
+## Companion repo — Rituals plugin
+
+**Goal:** opinionated engineering rituals (TDD cycles, code review, doc lint, patch workflows) that layer on top of `aiwf`, distributed as a separate Claude Code plugin marketplace. Full architecture in [`rituals-plugin-plan.md`](rituals-plugin-plan.md). Lives in the companion repo `../ai-workflow-rituals` — *not* in the aiwf kernel tree.
+
+**Status:** shipped. The marketplace + two plugins (`wf-rituals`, `aiwf-extensions`) are pushed and `/plugin marketplace add` validated. The aiwf kernel surfaces the plugin as the recommended next step (commit `92326aa`); install / verify via `aiwf rituals` (`tools/cmd/aiwf/rituals.go`).
+
+**Coupling boundary:** the rituals plugin is `aiwf`-aware (skills name aiwf verbs); the aiwf kernel is *not* rituals-aware beyond the surfacing step. Tracking-doc conventions, TDD cycle micro-rituals, and review patterns live in the rituals repo and stay out of the kernel's contract.
+
+---
+
+## Queued / not started
+
+Plans that exist as proposals but have no implementation commits yet. Sub-iterations and design rationale live in each plan's own document; this section is the index.
+
+| Iteration | Plan | Status | One-liner |
+|---|---|---|---|
+| **I3** | [`governance-html-plan.md`](governance-html-plan.md) | proposal · 0/43 items | Static-site HTML render of canonical planning state (per-repo governance page). Depends on I2 step 11 + I2.5. |
+| (untiered) | [`status-report-plan.md`](status-report-plan.md) | proposal | Markdown status renderer with embedded mermaid diagrams; extends `aiwf status` with a third format. Renderer change, not new state. |
+
+Pick-up order is not committed in advance; real-use friction surfaces the next priority.
+
+---
+
+## Cross-cutting kernel work
+
+Kernel-mechanics changes that don't fit a feature-iteration shape but landed as their own coherent passes.
+
+### Broaden `aiwf update`
+
+**Goal:** make `aiwf update` the upgrade verb that refreshes every artifact the consumer is opted into (skills, hooks, the new pre-commit STATUS.md regenerator). Full plan in [`update-broaden-plan.md`](update-broaden-plan.md).
+
+**Status:** implemented across commits `88727c6` (kernel-shift docs) → `855996a` (self-check covers the round-trip). The pre-commit hook for STATUS.md regeneration is default-on with `status_md.auto_update: false` as the clean opt-out. Touched `tools/internal/initrepo/`, `tools/internal/config/`, `cmd/aiwf/admin_cmd.go`, `cmd/aiwf/selfcheck.go`, plus the design and README docs.
+
+---
+
 ## Total
 
-Roughly 4–5 days of focused work across the five original sessions, plus I1 layered on top. The framework is small, self-contained, self-validating, adoptable against existing planning data, and contract-aware. Real use surfaces the next priority; nothing else is committed to in advance.
+The framework is small, self-contained, self-validating, adoptable against existing planning data, contract-aware, AC + TDD-aware, and provenance-aware — with a companion rituals plugin layered on top. Real use surfaces the next priority; nothing else is committed to in advance.
 
 ---
 

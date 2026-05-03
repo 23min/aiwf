@@ -81,97 +81,97 @@ Reference-graph reachability uses the index built in `acs-and-tdd-plan.md` step 
 
 ### Step 1 — Identity migration (drop `aiwf.yaml.actor`)
 
-- [ ] In `tools/internal/aiwfyaml/`: remove the `actor` field from the struct and the YAML tag. Round-trip tests updated to confirm an `actor:` key in incoming YAML is ignored (with a deprecation warning during a transition period).
-- [ ] In `tools/internal/config/` (or wherever runtime identity is resolved): new `ResolveActor(args []string, gitConfig GitConfig) (Actor, error)` function with precedence `--actor` flag > `git config user.email` > error.
-- [ ] `git config user.email` parsing produces `human/<localpart>` by stripping the domain and slugifying the local part using the existing `entity.Slugify` (drops chars per G8 if needed).
-- [ ] `aiwf init` no longer writes `actor:` to `aiwf.yaml`. It validates that `git config user.email` is set; refuses to init if not.
-- [ ] `aiwf doctor` validates `git config user.email` is set and the derived `<role>/<id>` matches the regex.
-- [ ] Tests: precedence order (flag overrides config); missing-email error; malformed-email error; backwards-compat behavior (existing `aiwf.yaml.actor` is ignored with a one-time deprecation note in `aiwf doctor`).
+- [x] In `tools/internal/aiwfyaml/`: remove the `actor` field from the struct and the YAML tag. Round-trip tests updated to confirm an `actor:` key in incoming YAML is ignored (with a deprecation warning during a transition period).
+- [x] In `tools/internal/config/` (or wherever runtime identity is resolved): new `ResolveActor(args []string, gitConfig GitConfig) (Actor, error)` function with precedence `--actor` flag > `git config user.email` > error.
+- [x] `git config user.email` parsing produces `human/<localpart>` by stripping the domain and slugifying the local part using the existing `entity.Slugify` (drops chars per G8 if needed).
+- [x] `aiwf init` no longer writes `actor:` to `aiwf.yaml`. It validates that `git config user.email` is set; refuses to init if not.
+- [x] `aiwf doctor` validates `git config user.email` is set and the derived `<role>/<id>` matches the regex.
+- [x] Tests: precedence order (flag overrides config); missing-email error; malformed-email error; backwards-compat behavior (existing `aiwf.yaml.actor` is ignored with a one-time deprecation note in `aiwf doctor`).
 
 ### Step 2 — Trailer writer extensions
 
-- [ ] In `tools/internal/gitops/`: register the new trailer keys: `aiwf-principal`, `aiwf-on-behalf-of`, `aiwf-authorized-by`, `aiwf-scope`, `aiwf-scope-ends`, `aiwf-reason`.
-- [ ] Trailer writer accepts the new fields on the existing trailer-set struct; emits in deterministic order (existing trailers first, then I2.5 trailers in the order above).
-- [ ] Write-time shape validators per trailer:
+- [x] In `tools/internal/gitops/`: register the new trailer keys: `aiwf-principal`, `aiwf-on-behalf-of`, `aiwf-authorized-by`, `aiwf-scope`, `aiwf-scope-ends`, `aiwf-reason`.
+- [x] Trailer writer accepts the new fields on the existing trailer-set struct; emits in deterministic order (existing trailers first, then I2.5 trailers in the order above).
+- [x] Write-time shape validators per trailer:
   - `aiwf-principal:` and `aiwf-on-behalf-of:` — `<role>/<id>` regex AND role must start with `human/`.
   - `aiwf-authorized-by:` and `aiwf-scope-ends:` — 7–40 hex.
   - `aiwf-scope:` — closed set `{opened, paused, resumed}`.
   - `aiwf-reason:` — non-empty after trim. Carries the free-text rationale for verbs that require one (pause/resume today; future non-force, non-audit-only verbs that grow a reason field). Distinct from `aiwf-force:` (sovereign override) and `aiwf-audit-only:` (backfill rationale, step 5b) — each reason-bearing trailer carries its own semantic.
-- [ ] Trailer reader (extending the existing one) tolerates absent fields (for pre-I2.5 commits) and unknown fields (forward compatibility).
-- [ ] Tests: round-trip of every new trailer key; shape validation rejects malformed values at write time; reader tolerance on pre-I2.5 fixtures; ordering deterministic.
+- [x] Trailer reader (extending the existing one) tolerates absent fields (for pre-I2.5 commits) and unknown fields (forward compatibility).
+- [x] Tests: round-trip of every new trailer key; shape validation rejects malformed values at write time; reader tolerance on pre-I2.5 fixtures; ordering deterministic.
 
 ### Step 3 — Required-together / mutually-exclusive verb-side rules
 
-- [ ] In `tools/internal/verb/` (or a new `verb/coherence.go`): `CheckTrailerCoherence(set TrailerSet) error` returns a typed error citing the specific rule violated.
-- [ ] Rules implemented:
+- [x] In `tools/internal/verb/` (or a new `verb/coherence.go`): `CheckTrailerCoherence(set TrailerSet) error` returns a typed error citing the specific rule violated.
+- [x] Rules implemented:
   - Required-together: `(on-behalf-of, authorized-by)`; `(principal, non-human actor)`.
   - Mutually exclusive: `(force, on-behalf-of)`; `(principal, human actor)`; `(on-behalf-of, human actor)`.
   - Force human-only: `(force, non-human actor)` is forbidden.
-- [ ] Every mutating verb's `Apply` path calls `CheckTrailerCoherence` after assembling the trailer set and before committing.
-- [ ] Tests: each rule fires its own typed error; happy-path trailer sets pass; combinations from §2 of the design doc all assert the right rule.
+- [x] Every mutating verb's `Apply` path calls `CheckTrailerCoherence` after assembling the trailer set and before committing.
+- [x] Tests: each rule fires its own typed error; happy-path trailer sets pass; combinations from §2 of the design doc all assert the right rule.
 
 ### Step 4 — Scope FSM package
 
-- [ ] New package `tools/internal/scope/` with:
+- [x] New package `tools/internal/scope/` with:
   - `State` enum: `active`, `paused`, `ended`.
   - `Scope` struct: `AuthSHA string`, `Entity string`, `Agent Actor`, `Principal Actor`, `OpenedAt time.Time`, `Events []ScopeEvent`, `State State`.
   - `LoadScope(authSHA string, history []Commit) (Scope, error)` — walks history forward from the authorize commit, applying transitions in commit order, returns the scope's current state and event list.
   - `IsLegalScopeTransition(from, to State) bool` — closed-set FSM.
-- [ ] Auto-end derivation: a commit carrying `aiwf-scope-ends: <auth-sha>` ends the named scope. The terminal-promote verb writes this trailer (see step 6).
-- [ ] Tests: FSM transitions (legal/illegal pairs); event-replay correctness across multiple pause/resume cycles; auto-end on terminal-promote; un-cancel-after-end does NOT resurrect the scope.
+- [x] Auto-end derivation: a commit carrying `aiwf-scope-ends: <auth-sha>` ends the named scope. The terminal-promote verb writes this trailer (see step 6).
+- [x] Tests: FSM transitions (legal/illegal pairs); event-replay correctness across multiple pause/resume cycles; auto-end on terminal-promote; un-cancel-after-end does NOT resurrect the scope.
 
 ### Step 5 — `aiwf authorize` verb
 
-- [ ] New file `tools/internal/verb/authorize.go`. The verb has three modes:
+- [x] New file `tools/internal/verb/authorize.go`. The verb has three modes:
   - `aiwf authorize <id> --to <agent> [--reason "<text>"]` — open scope.
   - `aiwf authorize <id> --pause "<reason>"` — pause the most-recently-opened active scope for `<id>`.
   - `aiwf authorize <id> --resume "<reason>"` — resume the most-recently-paused scope for `<id>`.
-- [ ] Refusal rules: actor must be `human/...`; for `--to`, the scope-entity must not be in a terminal status (overridable with `--force --reason`); for `--pause` / `--resume`, the scope state must be the corresponding source state.
-- [ ] Each invocation produces exactly one commit with the trailer set:
+- [x] Refusal rules: actor must be `human/...`; for `--to`, the scope-entity must not be in a terminal status (overridable with `--force --reason`); for `--pause` / `--resume`, the scope state must be the corresponding source state.
+- [x] Each invocation produces exactly one commit with the trailer set:
   - `--to`: `aiwf-verb: authorize / aiwf-entity: <id> / aiwf-actor: human/... / aiwf-to: <agent> / aiwf-scope: opened`. When `--reason` is supplied (optional for `--to`), append `aiwf-reason: <text>`.
   - `--pause`: `aiwf-verb: authorize / aiwf-entity: <id> / aiwf-actor: human/... / aiwf-scope: paused / aiwf-reason: <text>` (reason required, non-empty after trim).
   - `--resume`: `aiwf-verb: authorize / aiwf-entity: <id> / aiwf-actor: human/... / aiwf-scope: resumed / aiwf-reason: <text>` (reason required, non-empty after trim).
-- [ ] Verb-side `CheckTrailerCoherence` validates the assembled set before commit.
-- [ ] Tests: open / pause / resume / re-pause / re-resume cycles; refusal on terminal scope-entity without `--force`; refusal on non-human actor; refusal on missing scope state for pause/resume; one-commit-per-invocation; the authorize commit is reachable by SHA in subsequent verb invocations.
+- [x] Verb-side `CheckTrailerCoherence` validates the assembled set before commit.
+- [x] Tests: open / pause / resume / re-pause / re-resume cycles; refusal on terminal scope-entity without `--force`; refusal on non-human actor; refusal on missing scope state for pause/resume; one-commit-per-invocation; the authorize commit is reachable by SHA in subsequent verb invocations.
 
 ### Step 5b — `--audit-only --reason` recovery mode (G24)
 
 Closes the recovery half of [G24](../gaps.md#g24). When a mutating verb fails partway through and the operator finishes the work with a plain `git commit`, there is currently no first-class way to backfill the missing audit trail. This step adds that path.
 
-- [ ] New flag pair on `aiwf cancel` and `aiwf promote`: `--audit-only --reason "<text>"`. Mutex with `--force` (force is for *making* a transition; audit-only is for *recording* one that already happened).
-- [ ] Behavior: when `--audit-only` is set, the verb skips the FSM legality check, skips the file-mutation step (writes nothing to disk), and produces an empty-diff commit carrying the standard trailer block (`aiwf-verb`, `aiwf-entity`, `aiwf-actor`, `aiwf-to`, plus the new I2.5 trailers as applicable). The trailer additionally carries `aiwf-audit-only: <reason>` so the commit is distinguishable from a normal verb commit at read time.
-- [ ] New trailer key `aiwf-audit-only:` registered in `tools/internal/gitops/` (write + read path; reuses the `aiwf-force:` shape — non-empty after trim).
-- [ ] Refusal rules: `--reason` required; `--audit-only` requires the entity to *already* be at the named target state (verb refuses if not — the rationale is "this verb only records what's already true"). For composite ids (`M-NNN/AC-N`), the same rule applies to AC status / phase.
-- [ ] Verb-side `CheckTrailerCoherence` (step 3) accepts `aiwf-audit-only:` alongside the existing trailers; the mutex `(audit-only, force)` joins the rule set.
-- [ ] Provenance: `--audit-only` is itself a sovereign act in the same way `--force` is — kernel refuses non-human actors. `provenance-audit-only-non-human` (error) added to the standing-rule set in step 7.
-- [ ] `aiwf history` renders audit-only events with a distinct chip (`[audit-only]`) and the reason inline, mirroring the `--force` rendering convention.
-- [ ] Tests: load-bearing scenario from G24 (entity already at `wontfix` after a manual commit; `aiwf cancel <id> --audit-only --reason "..."` produces a properly-trailered empty-diff commit; `aiwf history <id>` now shows the event); refusal when entity is not at the target state; refusal on non-human actor; mutex with `--force`; one-commit-per-invocation.
+- [x] New flag pair on `aiwf cancel` and `aiwf promote`: `--audit-only --reason "<text>"`. Mutex with `--force` (force is for *making* a transition; audit-only is for *recording* one that already happened).
+- [x] Behavior: when `--audit-only` is set, the verb skips the FSM legality check, skips the file-mutation step (writes nothing to disk), and produces an empty-diff commit carrying the standard trailer block (`aiwf-verb`, `aiwf-entity`, `aiwf-actor`, `aiwf-to`, plus the new I2.5 trailers as applicable). The trailer additionally carries `aiwf-audit-only: <reason>` so the commit is distinguishable from a normal verb commit at read time.
+- [x] New trailer key `aiwf-audit-only:` registered in `tools/internal/gitops/` (write + read path; reuses the `aiwf-force:` shape — non-empty after trim).
+- [x] Refusal rules: `--reason` required; `--audit-only` requires the entity to *already* be at the named target state (verb refuses if not — the rationale is "this verb only records what's already true"). For composite ids (`M-NNN/AC-N`), the same rule applies to AC status / phase.
+- [x] Verb-side `CheckTrailerCoherence` (step 3) accepts `aiwf-audit-only:` alongside the existing trailers; the mutex `(audit-only, force)` joins the rule set.
+- [x] Provenance: `--audit-only` is itself a sovereign act in the same way `--force` is — kernel refuses non-human actors. `provenance-audit-only-non-human` (error) added to the standing-rule set in step 7.
+- [x] `aiwf history` renders audit-only events with a distinct chip (`[audit-only]`) and the reason inline, mirroring the `--force` rendering convention.
+- [x] Tests: load-bearing scenario from G24 (entity already at `wontfix` after a manual commit; `aiwf cancel <id> --audit-only --reason "..."` produces a properly-trailered empty-diff commit; `aiwf history <id>` now shows the event); refusal when entity is not at the target state; refusal on non-human actor; mutex with `--force`; one-commit-per-invocation.
 
 ### Step 5c — Diagnostic instrumentation in `Apply` (G24)
 
 Closes the root-cause-diagnosis half of G24. Today `Apply` treats every commit failure as fatal and surfaces the underlying error verbatim. When the failure is `.git/index.lock` contention from an external process (VS Code's git extension, a file-watcher, a stale lock from a prior crash), the operator gets a generic message and no signal about who's holding the lock.
 
-- [ ] In `tools/internal/verb/apply.go`: when the `git commit` subprocess fails, classify the stderr. Specifically detect `index.lock` (or `.git/index.lock`) substrings and route to a new `applyError` subtype `lockContention`.
-- [ ] On `lockContention`, attempt a best-effort lock-holder lookup: `lsof <repo>/.git/index.lock` (Unix only; macOS + Linux). If `lsof` is missing or the lookup fails, fall back to the bare error message — never block the user on diagnostic gathering.
-- [ ] Surface a multi-line error: original stderr, the holder PID + process name (when discoverable), and a one-line hint pointing at G24's `--audit-only` recovery path if the user already finished the work manually.
-- [ ] **No retry policy.** The kernel does not silently retry on lock contention — silent retries hide real environmental problems and can race against the holder. The operator decides: wait, kill the holder, or use `--audit-only` after a manual commit.
-- [ ] Tests: stderr classification (lock vs. other failures); `lsof` success path with a fixture file held by a sleeping subprocess; `lsof` missing / failing gracefully degrades.
+- [x] In `tools/internal/verb/apply.go`: when the `git commit` subprocess fails, classify the stderr. Specifically detect `index.lock` (or `.git/index.lock`) substrings and route to a new `applyError` subtype `lockContention`.
+- [x] On `lockContention`, attempt a best-effort lock-holder lookup: `lsof <repo>/.git/index.lock` (Unix only; macOS + Linux). If `lsof` is missing or the lookup fails, fall back to the bare error message — never block the user on diagnostic gathering.
+- [x] Surface a multi-line error: original stderr, the holder PID + process name (when discoverable), and a one-line hint pointing at G24's `--audit-only` recovery path if the user already finished the work manually.
+- [x] **No retry policy.** The kernel does not silently retry on lock contention — silent retries hide real environmental problems and can race against the holder. The operator decides: wait, kill the holder, or use `--audit-only` after a manual commit.
+- [x] Tests: stderr classification (lock vs. other failures); `lsof` success path with a fixture file held by a sleeping subprocess; `lsof` missing / failing gracefully degrades.
 
 ### Step 6 — Allow-rule composition + scope-aware verb dispatch
 
-- [ ] New `tools/internal/verb/allow.go`: `Allow(verb Verb, target Entity, actor Actor, scopes []Scope, refIndex ReferenceIndex) AllowResult`. Returns: allowed/denied; the matching scope (if any); and the diagnostic for refusals.
-- [ ] For human actors with no `--principal`: scope check is skipped (returns allowed iff entity-FSM allows the verb).
-- [ ] For non-human actors: at least one active scope's `scopeAllows` must return true. If multiple match, pick the most-recently-opened deterministically.
-- [ ] On allow: `Apply` writes `aiwf-on-behalf-of:` (= scope.Principal) and `aiwf-authorized-by:` (= scope.AuthSHA) into the trailer set.
-- [ ] On deny: verb refuses with `provenance-no-active-scope` (typed error → `aiwf check`-shaped finding).
-- [ ] Reference-graph reachability uses the I2-step-11 index; new functions in `tools/internal/tree/` if needed: `Reaches(from string, to string) bool`, `ReachesAny(froms []string, to string) bool` (for creation acts).
-- [ ] **Scope-entity resolution walks the `aiwf-prior-entity:` chain.** When the scope-entity id from an authorize commit's `aiwf-entity:` trailer no longer matches a current entity (because `aiwf reallocate` renumbered it after the scope was opened), the resolver follows the existing rename-chain forward to the current id before running the reachability check. Reuses the prior-entity chain primitive that `aiwf history` already consults; no new trailer key. Historical authorize commits stay byte-identical, so their SHAs remain valid as `aiwf-authorized-by:` targets.
-- [ ] **Scope-end side effect on terminal promote:** when `Apply` is processing a `promote` verb whose target state is terminal for the entity's kind, it queries all active scopes whose scope-entity is the verb's target, and writes one `aiwf-scope-ends: <auth-sha>` trailer per matched scope into the same commit.
-- [ ] Tests: every scenario from `provenance-model.md` "Worked examples" (six examples, each with the exact expected trailer set); pivot-to-other-epic + return; scope-end on epic-done; refusal when agent acts outside any active scope.
+- [x] New `tools/internal/verb/allow.go`: `Allow(verb Verb, target Entity, actor Actor, scopes []Scope, refIndex ReferenceIndex) AllowResult`. Returns: allowed/denied; the matching scope (if any); and the diagnostic for refusals.
+- [x] For human actors with no `--principal`: scope check is skipped (returns allowed iff entity-FSM allows the verb).
+- [x] For non-human actors: at least one active scope's `scopeAllows` must return true. If multiple match, pick the most-recently-opened deterministically.
+- [x] On allow: `Apply` writes `aiwf-on-behalf-of:` (= scope.Principal) and `aiwf-authorized-by:` (= scope.AuthSHA) into the trailer set.
+- [x] On deny: verb refuses with `provenance-no-active-scope` (typed error → `aiwf check`-shaped finding).
+- [x] Reference-graph reachability uses the I2-step-11 index; new functions in `tools/internal/tree/` if needed: `Reaches(from string, to string) bool`, `ReachesAny(froms []string, to string) bool` (for creation acts).
+- [x] **Scope-entity resolution walks the `aiwf-prior-entity:` chain.** When the scope-entity id from an authorize commit's `aiwf-entity:` trailer no longer matches a current entity (because `aiwf reallocate` renumbered it after the scope was opened), the resolver follows the existing rename-chain forward to the current id before running the reachability check. Reuses the prior-entity chain primitive that `aiwf history` already consults; no new trailer key. Historical authorize commits stay byte-identical, so their SHAs remain valid as `aiwf-authorized-by:` targets.
+- [x] **Scope-end side effect on terminal promote:** when `Apply` is processing a `promote` verb whose target state is terminal for the entity's kind, it queries all active scopes whose scope-entity is the verb's target, and writes one `aiwf-scope-ends: <auth-sha>` trailer per matched scope into the same commit.
+- [x] Tests: every scenario from `provenance-model.md` "Worked examples" (six examples, each with the exact expected trailer set); pivot-to-other-epic + return; scope-end on epic-done; refusal when agent acts outside any active scope.
 
 ### Step 7 — `aiwf check` standing rules
 
-- [ ] New file `tools/internal/check/provenance.go` registering the finding codes from `provenance-model.md` §"`aiwf check` rules":
+- [x] New file `tools/internal/check/provenance.go` registering the finding codes from `provenance-model.md` §"`aiwf check` rules":
   - `provenance-trailer-incoherent`
   - `provenance-force-non-human`
   - `provenance-actor-malformed`
@@ -183,44 +183,44 @@ Closes the root-cause-diagnosis half of G24. Today `Apply` treats every commit f
   - `provenance-authorization-ended`
   - `provenance-no-active-scope`
   - `provenance-audit-only-non-human` (added by step 5b)
-- [ ] Each rule walks `git log` once per check pass and indexes by trailer key for O(1) lookup. The authorization-resolution rules (`-missing` / `-out-of-scope` / `-ended`) build a single `authSHA → Scope` map at the start of the pass.
-- [ ] Hint table extended with one entry per finding code: link to `aiwf authorize --help` for `-no-active-scope`, link to `aiwf doctor` for `-actor-malformed`, link to `aiwf cancel --audit-only` for `-untrailered-entity-commit` (see step 7b), etc.
-- [ ] Tests: per-finding fixture commits (intentionally malformed) under `tools/internal/check/testdata/messy/`; clean fixtures continue to produce zero findings; backwards-compat assertion (pre-I2.5 commits with single `aiwf-actor:` produce no provenance findings).
+- [x] Each rule walks `git log` once per check pass and indexes by trailer key for O(1) lookup. The authorization-resolution rules (`-missing` / `-out-of-scope` / `-ended`) build a single `authSHA → Scope` map at the start of the pass.
+- [x] Hint table extended with one entry per finding code: link to `aiwf authorize --help` for `-no-active-scope`, link to `aiwf doctor` for `-actor-malformed`, link to `aiwf cancel --audit-only` for `-untrailered-entity-commit` (see step 7b), etc.
+- [x] Tests: per-finding fixture commits (intentionally malformed) under `tools/internal/check/testdata/messy/`; clean fixtures continue to produce zero findings; backwards-compat assertion (pre-I2.5 commits with single `aiwf-actor:` produce no provenance findings).
 
 ### Step 7b — Pre-push trailer audit (G24)
 
 Closes the surface-the-gap half of [G24](../gaps.md#g24). When a manual commit lands on an entity file without `aiwf-verb:`, the framework currently goes silent — `aiwf history` and `aiwf status` filter it out and the audit trail has an unsignalled hole. This step makes the hole visible at push time.
 
-- [ ] New finding `provenance-untrailered-entity-commit` (warning) in `tools/internal/check/provenance.go`. Trigger: a commit between `@{u}` and `HEAD` (or all of `HEAD` when no upstream exists) touches at least one file under `work/` and carries no `aiwf-verb:` trailer.
-- [ ] Detection walks the same `git log` pass step 7 already uses. For each candidate commit, classify the touched paths via the existing `tree.PathKind` helper; ignore commits that only touch non-entity files (`STATUS.md`, `aiwf.yaml`, `.claude/`, etc.).
-- [ ] Severity is **warning**, not error: G24's recovery path (`--audit-only`, step 5b) is the user's intended response. Errors would block the push when the entity state is correct; the warning surfaces the audit-trail hole without forcing a synchronous fix.
-- [ ] Hint message names the offending commit SHA + file paths and points at `aiwf cancel --audit-only` / `aiwf promote --audit-only` as the repair path.
-- [ ] Tests: a fixture branch with one trailered commit + one manual entity commit produces exactly one `provenance-untrailered-entity-commit` finding; a manual commit touching only non-entity files produces zero findings; pre-I2.5 commits already on `main` (i.e., already in `@{u}`) are ignored.
+- [x] New finding `provenance-untrailered-entity-commit` (warning) in `tools/internal/check/provenance.go`. Trigger: a commit between `@{u}` and `HEAD` (or all of `HEAD` when no upstream exists) touches at least one file under `work/` and carries no `aiwf-verb:` trailer.
+- [x] Detection walks the same `git log` pass step 7 already uses. For each candidate commit, classify the touched paths via the existing `tree.PathKind` helper; ignore commits that only touch non-entity files (`STATUS.md`, `aiwf.yaml`, `.claude/`, etc.).
+- [x] Severity is **warning**, not error: G24's recovery path (`--audit-only`, step 5b) is the user's intended response. Errors would block the push when the entity state is correct; the warning surfaces the audit-trail hole without forcing a synchronous fix.
+- [x] Hint message names the offending commit SHA + file paths and points at `aiwf cancel --audit-only` / `aiwf promote --audit-only` as the repair path.
+- [x] Tests: a fixture branch with one trailered commit + one manual entity commit produces exactly one `provenance-untrailered-entity-commit` finding; a manual commit touching only non-entity files produces zero findings; pre-I2.5 commits already on `main` (i.e., already in `@{u}`) are ignored.
 
 ### Step 8 — `aiwf history` rendering
 
-- [ ] In `tools/cmd/aiwf/history_cmd.go`: text formatter renders the actor column with `principal via agent` syntax when `aiwf-principal:` is present; trailing `[scope-id]` chip when `aiwf-authorized-by:` is present (scope-id = first 7 chars of the auth SHA, plus the scope-entity id from a one-time index lookup, e.g., `[E-03 4b13a0f]` or just `[E-03]` when unambiguous in the visible window).
-- [ ] Pause/resume events render with `[E-03 paused]` / `[E-03 resumed]` chips; auto-end events (rows carrying `aiwf-scope-ends:`) render `[E-03 ended]`.
-- [ ] New flag `--show-authorization` adds an authorization-SHA column.
-- [ ] `--format=json` emits the full trailer set; the JSON envelope has explicit fields for each new trailer.
-- [ ] Tests: golden text output across the worked-example scenarios; JSON shape covers every trailer; legacy (pre-I2.5) rows render unchanged.
+- [x] In `tools/cmd/aiwf/history_cmd.go`: text formatter renders the actor column with `principal via agent` syntax when `aiwf-principal:` is present; trailing `[scope-id]` chip when `aiwf-authorized-by:` is present (scope-id = first 7 chars of the auth SHA, plus the scope-entity id from a one-time index lookup, e.g., `[E-03 4b13a0f]` or just `[E-03]` when unambiguous in the visible window).
+- [x] Pause/resume events render with `[E-03 paused]` / `[E-03 resumed]` chips; auto-end events (rows carrying `aiwf-scope-ends:`) render `[E-03 ended]`.
+- [x] New flag `--show-authorization` adds an authorization-SHA column.
+- [x] `--format=json` emits the full trailer set; the JSON envelope has explicit fields for each new trailer.
+- [x] Tests: golden text output across the worked-example scenarios; JSON shape covers every trailer; legacy (pre-I2.5) rows render unchanged.
 
 ### Step 9 — `aiwf show` envelope additions
 
-- [ ] In `tools/cmd/aiwf/show_cmd.go`: extend `ShowView` with a `scopes []ScopeView` field listing every scope that ever applied to this entity. `ScopeView`: `{auth_sha, agent, principal, opened, state, ended_at, event_count}`.
-- [ ] Populated by walking the entity's history once and extracting `aiwf-authorized-by:` SHAs; for each, load the scope via the package from step 4.
-- [ ] `aiwf show --help` enumerates the new field. Embedded skill `aiwf-show` (or equivalent) updated.
-- [ ] Tests: golden JSON files per kind covering scopes presence/absence; entity that lived through multiple scopes serially renders all of them in chronological order.
+- [x] In `tools/cmd/aiwf/show_cmd.go`: extend `ShowView` with a `scopes []ScopeView` field listing every scope that ever applied to this entity. `ScopeView`: `{auth_sha, agent, principal, opened, state, ended_at, event_count}`.
+- [x] Populated by walking the entity's history once and extracting `aiwf-authorized-by:` SHAs; for each, load the scope via the package from step 4.
+- [x] `aiwf show --help` enumerates the new field. Embedded skill `aiwf-show` (or equivalent) updated.
+- [x] Tests: golden JSON files per kind covering scopes presence/absence; entity that lived through multiple scopes serially renders all of them in chronological order.
 
 ### Step 10 — Documentation and embedded skills
 
-- [ ] `aiwf authorize --help` documents the three modes, the `--to` / `--pause` / `--resume` flags, the human-only rule.
-- [ ] `aiwf <verb> --help` documents the `--actor` and `--principal` flags wherever they apply.
-- [ ] `aiwf check --help` lists the new finding codes.
-- [ ] `aiwf doctor` reports `git config user.email` status.
-- [ ] New embedded skill: `aiwf-authorize` under `tools/internal/skills/embedded/`. Mentions: when the LLM is a tool vs. an agent (per CLAUDE.md), how to set `--principal` from session context, when to expect `provenance-no-active-scope` vs. `provenance-authorization-out-of-scope`.
-- [ ] Existing skills updated where relevant: `aiwf-add`, `aiwf-promote`, `aiwf-history`, `aiwf-show`.
-- [ ] Per the AI-discoverability rule (CLAUDE.md): every new flag, trailer key, finding code, and YAML field is reachable through `aiwf <verb> --help` or an embedded skill.
+- [x] `aiwf authorize --help` documents the three modes, the `--to` / `--pause` / `--resume` flags, the human-only rule.
+- [x] `aiwf <verb> --help` documents the `--actor` and `--principal` flags wherever they apply.
+- [x] `aiwf check --help` lists the new finding codes.
+- [x] `aiwf doctor` reports `git config user.email` status.
+- [x] New embedded skill: `aiwf-authorize` under `tools/internal/skills/embedded/`. Mentions: when the LLM is a tool vs. an agent (per CLAUDE.md), how to set `--principal` from session context, when to expect `provenance-no-active-scope` vs. `provenance-authorization-out-of-scope`.
+- [x] Existing skills updated where relevant: `aiwf-add`, `aiwf-promote`, `aiwf-history`, `aiwf-show`.
+- [x] Per the AI-discoverability rule (CLAUDE.md): every new flag, trailer key, finding code, and YAML field is reachable through `aiwf <verb> --help` or an embedded skill.
 
 ### Step 11 — Render integration (governance HTML)
 
