@@ -169,20 +169,24 @@ Severity: Low. Specific named extension worth its own audit row so it doesn't ge
 
 ---
 
-### G21. Kernel surface is partially undocumented for AI assistants — **open**
+### G21. Kernel surface is partially undocumented for AI assistants — **resolved (finding-code axis); other axes verified clean**
 
-The new "kernel functionality must be AI-discoverable" engineering principle (CLAUDE.md, design-decisions.md cross-cutting properties) requires every verb, flag, JSON envelope field, body-section name, finding code, trailer key, and YAML field to be reachable through `aiwf <verb> --help`, the embedded skills under `.claude/skills/aiwf-*`, the kernel's CLAUDE.md, or the design docs cross-referenced from it. The principle was added during I3 planning. Existing surface predates it and may have undocumented corners.
+Resolved across commits `5a7df46` (docs(aiwf): document case-paths and load-error in aiwf-check skill) and `351e694` (feat(aiwf): extend discoverability policy from provenance-* to all codes).
 
-Why it matters. AI assistants are first-class consumers of the framework. A capability that exists in code but isn't named in `--help` or a skill is invisible — the assistant either ignores it (functionality is wasted) or invents a similar-but-wrong call (correctness regression). The new opt-in fields (`aiwf.yaml.tdd.require_test_metrics`, `aiwf.yaml.html.commit_output`) and the kernel `--tests` flag arrive into a surface that hasn't been audited end-to-end against this rule.
+A six-axis audit (verbs, flags, finding codes, trailer keys, body-section names, YAML fields) against the four CLAUDE.md-named documentation channels (`aiwf <verb> --help`, embedded skills under `.claude/skills/aiwf-*`, CLAUDE.md / tools/CLAUDE.md, and any markdown under `docs/pocv3/`) found:
 
-Proposed fix. A documentation-discoverability sweep:
+- **Verbs (22), flags (40+), body sections (18), YAML fields (20+):** every item documented in at least one channel; zero gaps.
+- **Trailer keys (15):** zero gaps. `aiwf-prior-parent` is mentioned in `design-lessons.md` (reachable via `tools/CLAUDE.md`); the rest are in printHelp or `provenance-model.md`.
+- **Finding codes (18 active across `check/` and `contractcheck/`):** two genuinely undocumented — `case-paths` and `load-error`. Both inline string literals (not named constants), invisible to the prior `provenance-*`-scoped policy. Added to the `aiwf-check` skill's errors table.
 
-1. Enumerate the current verb, flag, finding-code, trailer-key, body-section, and YAML-field surface (one source per axis: verb registry, flag definitions, `findings/` codes, `gitops/` trailer set, `entity.BodyTemplate`, `aiwfyaml/` struct).
-2. For each item, confirm it appears in *at least* one of: `aiwf <verb> --help`, an embedded skill, CLAUDE.md, or the relevant design doc cross-referenced from CLAUDE.md.
-3. Add a `aiwf doctor --self-check` (or extend the existing one) that reports any item present in code but absent from all four documentation channels. Severity: warning.
-4. Patch the gaps the audit reveals.
+The `PolicyFindingCodesAreDiscoverable` policy in `tools/internal/policies/discoverability.go` was extended in two ways so this gap can't reopen unnoticed:
 
-Severity: Medium. Doesn't break correctness, but degrades the framework's value to AI consumers proportional to its growth.
+1. *Code enumeration* expanded from "named `provenance-*` constants" to "every kebab-case finding code anywhere," via a new `loadCheckCodeLiterals` AST walk over `Finding{Code: "..."}` literals across `check/` and `contractcheck/`.
+2. *Channel set* expanded from "`aiwf-check` skill + `main.go`" to the full CLAUDE.md set: every embedded skill, `main.go`, both `CLAUDE.md` files, and every markdown under `docs/pocv3/`.
+
+`go test ./tools/internal/policies/...` is the CI-enforced safety net: any new finding code added without a documentation mention fails `TestPolicy_FindingCodesAreDiscoverable` before merge.
+
+The audit's other-axes verification was a one-shot pass; if a future iteration adds a new axis (e.g., a JSON envelope field schema), the audit-and-policy pattern from this gap is the template.
 
 ---
 
@@ -241,7 +245,7 @@ Severity: **High**. The framework's central correctness story (git log is the au
 | G18 | Contract-config validation is hook-only on `contract bind`  | Medium   | [x] `202a14a` |
 | G19 | `aiwf init` writes per-skill `.gitignore`; new skills uncovered | Medium | [x] `92f5d51` |
 | G20 | `aiwf add ac` accepts prose titles, renders one giant heading | Medium   | [x] `e6de134` |
-| G21 | Kernel surface is partially undocumented for AI assistants  | Medium   | [ ] open |
+| G21 | Kernel surface is partially undocumented for AI assistants  | Medium   | [x] `5a7df46` + `351e694` |
 | G22 | Provenance model extension surface (revoke, time, verb-set, pattern, sub-agent, bulk-import attribution) | Low | [ ] open |
 | G23 | Delegated `--force` via `aiwf authorize --allow-force`     | Low      | [ ] open |
 | G24 | Manual commits bypass `aiwf-verb:` trailers; no repair path | High     | [x] I2.5 steps 5b/5c/7b (`bc4183e`, `6cc0648`, `0e44ad6`, `be2ea27`) |
