@@ -12,7 +12,7 @@ Co-locating PoC docs under `pocv3/` (rather than at `docs/` directly) keeps `doc
 
 **For skill authors / AI scaffolders writing skills that touch aiwf state:** [`skill-author-guide.md`](skill-author-guide.md). Pair with `aiwf schema [kind]` and `aiwf template [kind]` at the CLI.
 
-**For people picking up where the build left off:** [`plans/poc-plan.md`](plans/poc-plan.md) (the four sessions of work that produced the current code), then [`plans/contracts-plan.md`](plans/contracts-plan.md) and [`plans/rituals-plugin-plan.md`](plans/rituals-plugin-plan.md) for the iterations that built on top.
+**For people picking up where the build left off:** [`plans/poc-plan.md`](plans/poc-plan.md) is the index — it links Sessions 1–5 and the iteration plans on top: [`contracts-plan.md`](plans/contracts-plan.md) (I1), [`acs-and-tdd-plan.md`](plans/acs-and-tdd-plan.md) (I2), [`provenance-model-plan.md`](plans/provenance-model-plan.md) (I2.5), [`upgrade-flow-plan.md`](plans/upgrade-flow-plan.md) (release/upgrade), [`update-broaden-plan.md`](plans/update-broaden-plan.md) and [`rituals-plugin-plan.md`](plans/rituals-plugin-plan.md) for cross-cutting work, plus the queued [`governance-html-plan.md`](plans/governance-html-plan.md) (I3) and [`status-report-plan.md`](plans/status-report-plan.md).
 
 **For consumers migrating from a prior planning system:** [`migration/from-prior-systems.md`](migration/from-prior-systems.md) and [`migration/import-format.md`](migration/import-format.md).
 
@@ -28,13 +28,20 @@ docs/pocv3/
   gaps.md                             open + resolved gaps; high-touch
 
   design/
-    design-decisions.md               the seven kernel commitments + non-goals
+    design-decisions.md               the kernel commitments + non-goals (load-bearing reference)
     design-lessons.md                 the three principles + sweep findings
+    provenance-model.md               I2.5 principal × agent × scope model (full spec)
 
   plans/
-    poc-plan.md                       the four sessions of work
-    contracts-plan.md                 contracts iteration plan
+    poc-plan.md                       Sessions 1-5 index + iteration cross-links
+    contracts-plan.md                 I1 — contracts
+    acs-and-tdd-plan.md               I2 — acceptance criteria + TDD
+    provenance-model-plan.md          I2.5 — provenance model (principal × agent × scope)
+    upgrade-flow-plan.md              release tagging, aiwf upgrade verb, doctor skew rows
+    update-broaden-plan.md            broaden aiwf update to the upgrade-pipeline shape
     rituals-plugin-plan.md            rituals plugin extraction plan
+    governance-html-plan.md           I3 — governance HTML render (queued)
+    status-report-plan.md             markdown status renderer with mermaid (queued)
 
   migration/
     from-prior-systems.md             generic migration guide (two-stage producer-side)
