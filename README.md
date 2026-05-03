@@ -187,7 +187,7 @@ Pipe through `--format=json` (with optional `--pretty`) when feeding CI. Exit co
 
 ### HTML render
 
-`aiwf render --format=html` produces a self-contained directory of HTML files: `index.html` (epics table with the `met / (total - cancelled)` AC rollup), one page per epic, and one page per milestone with six tabs (Overview, Manifest, Build, Tests, Commits, Provenance). A single embedded stylesheet ships alongside; no JS, no runtime, no external assets. Tab show/hide is `:target`-driven so per-tab URLs (`M-007.html#tab-build`) are bookmarkable.
+`aiwf render --format=html` produces a self-contained directory of HTML files: `index.html` (epics table with the `met / (total - cancelled)` AC rollup), one page per epic, and one page per milestone with six tabs (Overview, Manifest, Build, Tests, Commits, Provenance). A single embedded stylesheet ships alongside; no JS, no runtime, no external assets. Tab show/hide is `:target`-driven (with `:has()` to handle the default-tab fallback) so per-tab URLs (`M-007.html#tab-build`) are bookmarkable.
 
 Configuration lives in `aiwf.yaml`:
 
@@ -410,6 +410,17 @@ make install-hooks
 This points `core.hooksPath` at the tracked `scripts/git-hooks/` directory. The pre-commit hook there runs `go test ./tools/internal/policies/...` and aborts the commit on any policy violation — the same gate CI enforces, just earlier. Subsequent updates to the tracked hooks propagate on the next `git pull`; no second install step.
 
 The hook is tolerant of a missing Go toolchain (silently skipped) so doc-only commits from a non-Go machine aren't blocked.
+
+### Browser tests for the HTML render (opt-in)
+
+The HTML render (`aiwf render --format=html`) has a Playwright suite under [`tools/e2e/playwright/`](tools/e2e/playwright/) that covers the CSS-driven behavior the Go test suite can't reach: `:target`-tab show/hide, computed status-pill colors, anchor scrolling, console-error checks, and dead-link detection across every emitted page. The suite is opt-in — it requires Node and a one-time ~100 MB Chromium install — so it's not part of `make ci`.
+
+```bash
+make e2e-install   # one-shot per machine: npm install + npx playwright install chromium
+make e2e           # run the suite (~10 s end-to-end)
+```
+
+The fixture script (`fixture.ts`) builds the aiwf binary with `go build` on each test process and renders a populated planning tree (epics, milestones, ACs, phase history with `aiwf-tests` trailers, an open authorize scope) into a tmp directory; the spec then drives a headless Chromium against `file://` URLs. Add new specs whenever you change `tools/internal/htmlrender/` templates or CSS — the suite caught the original `~`-vs-`:has()` bug in the tab show/hide rules on its first run.
 
 ---
 

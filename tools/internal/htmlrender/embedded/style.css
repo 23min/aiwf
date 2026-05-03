@@ -103,18 +103,26 @@ li { margin: 0.15rem 0; }
 .tabs .tab { padding: 0.4rem 0.8rem; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; color: var(--fg-muted); }
 .tabs .tab:hover { background: var(--bg); }
 
+/* Default: every tab section hides; overview shows on bare URL.
+ * When the URL fragment names a section, that section becomes
+ * :target (display: block), and the :has() rule on main hides
+ * overview. The `~` general-sibling combinator only matches
+ * following siblings, which is why we need :has() here — overview
+ * is first in DOM order so a sibling-only rule can't reach it. */
 section[data-tab] { display: none; padding: 0.5rem 0; }
 section[data-tab="overview"] { display: block; }
 section[data-tab]:target { display: block; }
-section[data-tab]:target ~ section[data-tab="overview"] { display: none; }
+main:has(section[data-tab]:target:not([data-tab="overview"])) section[data-tab="overview"] { display: none; }
 
+/* Active-tab styling on the nav strip. The default is "overview
+ * highlighted"; the :has() rule below reverts that when the URL
+ * targets a non-overview section. */
 .tabs .tab-overview { background: var(--bg); border-color: var(--border); color: var(--fg); }
-section[data-tab]:target ~ .tabs .tab-overview,
-section[data-tab="manifest"]:target ~ .tabs .tab-overview,
-section[data-tab="build"]:target ~ .tabs .tab-overview,
-section[data-tab="tests"]:target ~ .tabs .tab-overview,
-section[data-tab="commits"]:target ~ .tabs .tab-overview,
-section[data-tab="provenance"]:target ~ .tabs .tab-overview { background: transparent; border-color: transparent; color: var(--fg-muted); }
+main:has(section[data-tab]:target:not([data-tab="overview"])) .tabs .tab-overview {
+  background: transparent;
+  border-color: transparent;
+  color: var(--fg-muted);
+}
 
 /* AC manifest cards. */
 .ac { padding: 0.75rem 1rem; border-left: 3px solid var(--border); margin: 0.5rem 0; background: var(--bg); border-radius: 0 4px 4px 0; }

@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install test test-race lint fmt vet coverage selfcheck ci clean install-hooks
+.PHONY: help build install test test-race lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
@@ -21,6 +21,8 @@ help:
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the full CI suite (vet + lint + test-race + coverage + selfcheck)"
 	@echo "  install-hooks - point git at scripts/git-hooks/ via core.hooksPath (one-shot, idempotent)"
+	@echo "  e2e-install - one-shot: install Playwright npm deps + Chromium browser"
+	@echo "  e2e       - run the Playwright HTML-render browser tests (opt-in, requires e2e-install)"
 	@echo "  clean     - remove build artifacts"
 
 build:
@@ -73,3 +75,17 @@ install-hooks:
 	git config core.hooksPath scripts/git-hooks
 	@echo "core.hooksPath = scripts/git-hooks"
 	@echo "Tracked hooks in scripts/git-hooks/ are now active."
+
+# Playwright browser-level tests for the HTML render. Opt-in: not
+# run by `make ci` because they require Node + a 100MB Chromium
+# install, and most contributors won't be touching the renderer's
+# CSS. Run after `make e2e-install` (one-shot per machine).
+#
+# The fixture script (tools/e2e/playwright/fixture.ts) builds the
+# aiwf binary on each test process via `go build`, so there's no
+# manual build step here.
+e2e-install:
+	cd tools/e2e/playwright && npm install && npx playwright install chromium
+
+e2e:
+	cd tools/e2e/playwright && npx playwright test
