@@ -655,7 +655,7 @@ func TestRun_DoctorReportsLegacyActor(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	lines, _ := doctorReport(root)
+	lines, _ := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "deprecated") || !strings.Contains(joined, "human/legacy") {
 		t.Errorf("doctor should surface the legacy actor as deprecated; got:\n%s", joined)
@@ -670,7 +670,7 @@ func TestRun_DoctorReportsRuntimeIdentity(t *testing.T) {
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	lines, _ := doctorReport(root)
+	lines, _ := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "actor:") {
 		t.Errorf("doctor should include an `actor:` line surfacing runtime identity:\n%s", joined)
@@ -698,7 +698,7 @@ func TestRun_DoctorVersionSkew(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "9.9.9-skew") {
 		t.Errorf("report should name the pin value; got:\n%s", joined)
@@ -794,7 +794,7 @@ func TestDoctorReport_Contents(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	if problems != 0 {
 		t.Errorf("problems = %d on a fresh init, want 0\n%s", problems, strings.Join(lines, "\n"))
 	}
@@ -803,6 +803,49 @@ func TestDoctorReport_Contents(t *testing.T) {
 		if !strings.Contains(joined, want) {
 			t.Errorf("report missing %q:\n%s", want, joined)
 		}
+	}
+}
+
+// TestDoctor_CheckLatest_ProxyDisabled verifies the opt-in latest
+// row is shown when --check-latest is set, and that GOPROXY=off
+// produces a benign "unavailable" advisory rather than a failure.
+func TestDoctor_CheckLatest_ProxyDisabled(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	t.Setenv("GOPROXY", "off")
+
+	lines, problems := doctorReport(root, doctorOptions{CheckLatest: true})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "latest:") {
+		t.Errorf("expected `latest:` row when --check-latest is set:\n%s", joined)
+	}
+	if !strings.Contains(joined, "proxy disabled") {
+		t.Errorf("expected proxy-disabled advisory:\n%s", joined)
+	}
+	if problems != 0 {
+		t.Errorf("proxy-disabled should not increment problems; got %d:\n%s", problems, joined)
+	}
+}
+
+// TestDoctor_CheckLatest_DefaultOff confirms the latest row does not
+// appear in the default (no --check-latest) report path. Doctor must
+// stay offline by default.
+func TestDoctor_CheckLatest_DefaultOff(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	lines, _ := doctorReport(root, doctorOptions{}) // CheckLatest false
+	if strings.Contains(strings.Join(lines, "\n"), "latest:") {
+		t.Errorf("latest: row should not appear without --check-latest:\n%s", strings.Join(lines, "\n"))
 	}
 }
 
@@ -845,7 +888,7 @@ func TestDoctorReport_HookOK(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "hook:") {
 		t.Errorf("doctor should include a hook: line:\n%s", joined)
@@ -882,7 +925,7 @@ exec /nonexistent/path/to/old-aiwf check
 	if err := os.WriteFile(hookPath, []byte(stale), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if problems == 0 {
 		t.Errorf("stale hook path should be a problem; got 0:\n%s", joined)
@@ -905,7 +948,7 @@ func TestDoctorReport_HookMissing(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	lines, _ := doctorReport(root)
+	lines, _ := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "hook:") {
 		t.Errorf("doctor should include hook: line:\n%s", joined)
@@ -926,7 +969,7 @@ func TestDoctorReport_PreCommitHookOK(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "pre-commit: ok") {
 		t.Errorf("pre-commit line should report ok on a fresh init:\n%s", joined)
@@ -955,7 +998,7 @@ func TestDoctorReport_PreCommitHookDisabledByConfig(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "pre-commit: disabled by config") {
 		t.Errorf("expected 'disabled by config' line:\n%s", joined)
@@ -979,7 +1022,7 @@ func TestDoctorReport_PreCommitHookMissingButFlagOn(t *testing.T) {
 	if err := os.Remove(filepath.Join(root, ".git", "hooks", "pre-commit")); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "pre-commit: missing") {
 		t.Errorf("expected 'pre-commit: missing' line:\n%s", joined)
@@ -1011,7 +1054,7 @@ status_md:
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "config says off") {
 		t.Errorf("expected 'config says off' diagnostic:\n%s", joined)
@@ -1037,7 +1080,7 @@ func TestDoctorReport_PreCommitHookAlien(t *testing.T) {
 	if err := os.WriteFile(hookPath, alien, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "pre-commit: present but not aiwf-managed") {
 		t.Errorf("expected 'not aiwf-managed' diagnostic:\n%s", joined)
@@ -1075,7 +1118,7 @@ exit 0
 	if err := os.WriteFile(hookPath, stale, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "pre-commit: stale path") {
 		t.Errorf("expected 'pre-commit: stale path' line:\n%s", joined)
@@ -1097,7 +1140,7 @@ func TestDoctorReport_ReportsFilesystemCaseSensitivity(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	lines, _ := doctorReport(root)
+	lines, _ := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "filesystem:") {
 		t.Errorf("doctor should report filesystem case-sensitivity:\n%s", joined)
@@ -1129,7 +1172,7 @@ contracts:
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := doctorReport(root)
+	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "validator: cue-missing missing") {
 		t.Errorf("missing validator should be reported:\n%s", joined)
@@ -1165,7 +1208,7 @@ contracts:
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, problems := doctorReport(root)
+	_, problems := doctorReport(root, doctorOptions{})
 	if problems == 0 {
 		t.Error("strict_validators=true must make missing validator a problem")
 	}

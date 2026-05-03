@@ -654,6 +654,7 @@ func runDoctor(args []string) int {
 	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
 	root := fs.String("root", "", "consumer repo root")
 	selfCheck := fs.Bool("self-check", false, "run every verb against a temp repo and report pass/fail")
+	checkLatest := fs.Bool("check-latest", false, "look up the latest published aiwf version on the Go module proxy (one HTTP call; honors GOPROXY=off)")
 	fs.SetOutput(os.Stderr)
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
@@ -669,7 +670,7 @@ func runDoctor(args []string) int {
 		return exitUsage
 	}
 
-	report, problems := doctorReport(rootDir)
+	report, problems := doctorReport(rootDir, doctorOptions{CheckLatest: *checkLatest})
 	for _, line := range report {
 		fmt.Println(line)
 	}
@@ -679,13 +680,31 @@ func runDoctor(args []string) int {
 	return exitOK
 }
 
+// doctorOptions carries flag-derived knobs into doctorReport. Kept
+// separate from runDoctor's flag.FlagSet so doctorReport stays
+// flag-package-free and unit-testable. Add fields here when new
+// doctor flags arrive.
+type doctorOptions struct {
+	// CheckLatest, when true, performs a Go module proxy lookup for
+	// the latest published aiwf version and adds a `latest:` row to
+	// the report. Default false (offline).
+	CheckLatest bool
+}
+
 // doctorReport collects every doctor finding into a slice of human
 // strings and returns the count of problems. Pure for testability.
-func doctorReport(rootDir string) (lines []string, problems int) {
+func doctorReport(rootDir string, opts doctorOptions) (lines []string, problems int) {
 	// 1. Binary version (advisory). Always shown; reads from
 	//    runtime/debug.ReadBuildInfo via version.Current().
 	current := version.Current()
 	lines = append(lines, fmt.Sprintf("binary:    %s", renderBinaryVersion(current)))
+
+	// 1b. Latest published (advisory, opt-in). One HTTP call to the
+	//     Go module proxy. Skipped unless --check-latest is set so
+	//     `aiwf doctor` stays fast and offline by default.
+	if opts.CheckLatest {
+		lines = append(lines, "latest:    "+renderLatestPublished(current))
+	}
 
 	// 2. aiwf.yaml presence + pin coherence (advisory). Pin coherence
 	//    compares the aiwf_version: field against the running binary
@@ -1050,6 +1069,43 @@ func skillDrift(rootDir string, embedded []skills.Skill) (drifted, missing []str
 		}
 	}
 	return drifted, missing
+}
+
+// renderLatestPublished formats the doctor latest: row. Calls
+// version.Latest with a fresh context, classifying the result:
+//
+//	v0.2.0 (up to date)
+//	v0.2.1 (binary at v0.2.0; run `aiwf upgrade`)
+//	v0.1.0 (binary newer at v0.2.0; rolled back?)
+//	unavailable (proxy disabled — set GOPROXY to https://proxy.golang.org or override)
+//	unavailable (timeout / network error)
+//	skew unknown (latest is a pseudo-version; module has no tags yet)
+//
+// Network errors and proxy-disabled never increment the doctor
+// problem count: the row is informational, and absent connectivity
+// is not a fault of the running aiwf install.
+func renderLatestPublished(current version.Info) string {
+	latest, err := version.Latest(context.Background())
+	switch {
+	case errors.Is(err, version.ErrProxyDisabled):
+		return "unavailable (proxy disabled — set GOPROXY to https://proxy.golang.org or remove `off` from the chain)"
+	case err != nil:
+		return fmt.Sprintf("unavailable (%v)", err)
+	}
+	switch version.Compare(current, latest) {
+	case version.SkewEqual:
+		return latest.Version + " (up to date)"
+	case version.SkewBehind:
+		return fmt.Sprintf("%s (binary at %s; run `aiwf upgrade`)", latest.Version, current.Version)
+	case version.SkewAhead:
+		return fmt.Sprintf("%s (binary newer at %s; rolled back?)", latest.Version, current.Version)
+	default:
+		// Either side non-tagged. Most common case in the early-PoC
+		// world: the module has no semver tags yet, so the proxy
+		// returns a pseudo-version. Surface it honestly.
+		return fmt.Sprintf("%s (binary at %s; skew unknown — devel or pseudo-version on either side)",
+			latest.Version, current.Version)
+	}
 }
 
 // renderBinaryVersion formats a version.Info for the doctor binary

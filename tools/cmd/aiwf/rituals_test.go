@@ -102,7 +102,7 @@ func TestDoctorReport_NotesMissingPlugin(t *testing.T) {
 	}
 	// No .claude/settings — plugin "not detected."
 
-	lines, _ := doctorReport(root)
+	lines, _ := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "rituals plugin not detected") {
 		t.Errorf("expected 'rituals plugin not detected' note:\n%s", joined)
@@ -129,7 +129,7 @@ func TestDoctorReport_NotesPresentPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lines, _ := doctorReport(root)
+	lines, _ := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "rituals plugin detected") {
 		t.Errorf("expected 'rituals plugin detected' line:\n%s", joined)

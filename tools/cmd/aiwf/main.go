@@ -119,7 +119,7 @@ Verbs:
   update                         re-materialize embedded skills into .claude/skills/aiwf-*/
   upgrade [--version vX.Y.Z]     fetch a newer (or specified) aiwf binary via 'go install' and re-exec into 'aiwf update' (default: latest)
   history <id>                   show the entity's lifecycle from git log trailers
-  doctor [--self-check]          drift / version / id-collision health check; --self-check drives every verb against a temp repo
+  doctor [--self-check] [--check-latest]  drift / version / id-collision health check; --self-check drives every verb against a temp repo; --check-latest hits the Go module proxy for the latest published aiwf version (advisory)
   render roadmap [--write]       print ROADMAP.md (markdown of epics + milestones); --write commits it
   import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
   whoami                         print the resolved actor and the source it came from
