@@ -335,14 +335,32 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 // carries any `aiwf-verb:` trailer. Cross-entity, no filter — used by
 // `aiwf status` to answer "what changed lately?" across the whole
 // project. Events come back newest-first.
+//
+// The `--grep` is an I/O-narrowing pre-filter; correctness is gated
+// on Git's structured trailer parser (`%(trailers:key=…,valueonly=…)`).
+// Hand-authored prose that wraps such that a line happens to start
+// with `aiwf-verb:` would match the grep but produce an empty parsed
+// Verb column — those records are skipped (G30). The grep over a
+// long history is also asked for more rows than `limit` so the
+// post-filter doesn't silently shrink the result; we then truncate.
 func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryEvent, error) {
 	if !hasCommits(ctx, root) {
 		return nil, nil
 	}
 	const sep = "\x1f"
 	const recSep = "\x1e\n"
+	// Over-fetch so post-filtering can't drop us below `limit`. Four
+	// times the requested count handles repos with a heavy ratio of
+	// prose-mention false-positives without unbounded scanning; if a
+	// repo has more than `3*limit` consecutive false-positives in its
+	// most recent history, the user will see a shorter table — that's
+	// surface noise, not correctness loss.
+	fetchN := limit * 4
+	if fetchN < limit {
+		fetchN = limit
+	}
 	cmd := exec.CommandContext(ctx, "git", "log",
-		"-n", fmt.Sprintf("%d", limit),
+		"-n", fmt.Sprintf("%d", fetchN),
 		"--grep", "^aiwf-verb: ",
 		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"+sep+"%b\x1e",
 	)
@@ -366,14 +384,24 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryE
 		if len(parts) < 6 {
 			continue
 		}
+		verb := strings.TrimSpace(parts[3])
+		if verb == "" {
+			// Prose-mention false-positive: --grep matched a wrapped
+			// line that starts with "aiwf-verb:" but Git's trailer
+			// parser found no real trailer. Skip.
+			continue
+		}
 		events = append(events, HistoryEvent{
 			Commit: shortHash(parts[0]),
 			Date:   parts[1],
 			Detail: strings.TrimSpace(parts[2]),
-			Verb:   strings.TrimSpace(parts[3]),
+			Verb:   verb,
 			Actor:  strings.TrimSpace(parts[4]),
 			Body:   stripTrailers(strings.TrimSpace(parts[5])),
 		})
+		if len(events) >= limit {
+			break
+		}
 	}
 	return events, nil
 }

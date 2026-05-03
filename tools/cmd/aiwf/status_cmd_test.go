@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -468,5 +469,75 @@ func TestRunStatus_BadFormat(t *testing.T) {
 	rc := runStatus([]string{"--format=xml"})
 	if rc != exitUsage {
 		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
+	}
+}
+
+// TestReadRecentActivity_SkipsProseMentions covers G30: a hand-
+// authored commit whose body wraps such that a line starts with
+// `aiwf-verb:` (a prose mention of the trailer name) must NOT
+// appear in `aiwf status` Recent activity. Pre-fix the `--grep`
+// matched the wrapped line and the row landed with empty Verb /
+// Actor columns; the fix post-filters on the parsed-trailer column
+// (Git's structured trailer parser correctly finds no trailer).
+func TestReadRecentActivity_SkipsProseMentions(t *testing.T) {
+	root := setupGitRepoWithUpstream(t, "peter@example.com")
+	// Real trailered commit — must show up.
+	realMsg := "feat(aiwf): add a thing\n\n" +
+		"aiwf-verb: add\n" +
+		"aiwf-entity: G-001\n" +
+		"aiwf-actor: human/peter\n"
+	if out, err := runGit(root, "commit", "--allow-empty", "-m", realMsg); err != nil {
+		t.Fatalf("git commit (real): %v\n%s", err, out)
+	}
+	// Prose mention — wrap puts `aiwf-verb:` at the start of a body
+	// line, but it's mid-sentence prose. The naïve --grep matched;
+	// Git's trailer parser correctly does not.
+	proseMsg := "docs(aiwf): note about trailers\n\n" +
+		"This commit folds the audit-trail manual-commit gap (no\n" +
+		"aiwf-verb: trailers) into the followup discussion.\n"
+	if out, err := runGit(root, "commit", "--allow-empty", "-m", proseMsg); err != nil {
+		t.Fatalf("git commit (prose): %v\n%s", err, out)
+	}
+
+	events, err := readRecentActivity(context.Background(), root, 10)
+	if err != nil {
+		t.Fatalf("readRecentActivity: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("got %d events, want 1 (prose-mention should be filtered); got %+v", len(events), events)
+	}
+	if events[0].Verb != "add" || events[0].Actor != "human/peter" {
+		t.Errorf("kept event: verb=%q actor=%q (want add/human/peter)", events[0].Verb, events[0].Actor)
+	}
+}
+
+// TestReadHistory_SkipsProseMentions: same prose-mention class
+// applied to `aiwf history <id>`. A wrapped body line starting
+// with `aiwf-entity: G-001` must not render as an event for G-001.
+func TestReadHistory_SkipsProseMentions(t *testing.T) {
+	root := setupGitRepoWithUpstream(t, "peter@example.com")
+	realMsg := "feat(aiwf): real add\n\n" +
+		"aiwf-verb: add\n" +
+		"aiwf-entity: G-001\n" +
+		"aiwf-actor: human/peter\n"
+	if out, err := runGit(root, "commit", "--allow-empty", "-m", realMsg); err != nil {
+		t.Fatalf("git commit (real): %v\n%s", err, out)
+	}
+	proseMsg := "docs: prose mention\n\n" +
+		"refer to the previous note about\n" +
+		"aiwf-entity: G-001 in the dispatcher.\n"
+	if out, err := runGit(root, "commit", "--allow-empty", "-m", proseMsg); err != nil {
+		t.Fatalf("git commit (prose): %v\n%s", err, out)
+	}
+
+	events, err := readHistory(context.Background(), root, "G-001")
+	if err != nil {
+		t.Fatalf("readHistory: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("got %d events, want 1 (prose-mention should be filtered); got %+v", len(events), events)
+	}
+	if events[0].Verb != "add" || events[0].Actor != "human/peter" {
+		t.Errorf("kept event: verb=%q actor=%q", events[0].Verb, events[0].Actor)
 	}
 }

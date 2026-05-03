@@ -400,12 +400,21 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 		if len(parts) < fieldCount {
 			continue
 		}
+		verb := strings.TrimSpace(parts[3])
+		actor := strings.TrimSpace(parts[4])
+		// Skip prose-mention false-positives (G30): `--grep` matched a
+		// wrapped line that starts with `aiwf-entity: <id>` but Git's
+		// trailer parser found no real aiwf-verb / aiwf-actor pair.
+		// A genuine entity event always carries both.
+		if verb == "" && actor == "" {
+			continue
+		}
 		ev := HistoryEvent{
 			Commit:       shortHash(parts[0]),
 			Date:         parts[1],
 			Detail:       strings.TrimSpace(parts[2]),
-			Verb:         strings.TrimSpace(parts[3]),
-			Actor:        strings.TrimSpace(parts[4]),
+			Verb:         verb,
+			Actor:        actor,
 			To:           strings.TrimSpace(parts[5]),
 			Force:        strings.TrimSpace(parts[6]),
 			AuditOnly:    strings.TrimSpace(parts[7]),
