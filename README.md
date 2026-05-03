@@ -282,6 +282,20 @@ If you would find a particular backend valuable, opening an issue with the use c
 
 ---
 
+## Contributing to aiwf
+
+If you're working on the aiwf kernel itself (not just consuming it), run this once after cloning:
+
+```bash
+make install-hooks
+```
+
+This points `core.hooksPath` at the tracked `scripts/git-hooks/` directory. The pre-commit hook there runs `go test ./tools/internal/policies/...` and aborts the commit on any policy violation — the same gate CI enforces, just earlier. Subsequent updates to the tracked hooks propagate on the next `git pull`; no second install step.
+
+The hook is tolerant of a missing Go toolchain (silently skipped) so doc-only commits from a non-Go machine aren't blocked.
+
+---
+
 ## License
 
 Apache-2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).

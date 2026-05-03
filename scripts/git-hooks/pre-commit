@@ -1,30 +1,45 @@
 #!/bin/sh
-# pre-commit — regenerate STATUS.md so the committed snapshot stays in
-# sync with the entity tree.
+# pre-commit — runs the repo's own policy lint pass and regenerates
+# STATUS.md so the committed snapshot stays in sync with the entity
+# tree.
 #
-# Tolerant by design: if `aiwf` is not on PATH, or `aiwf status` fails,
-# the hook silently exits 0 — a contributor without aiwf installed can
-# still commit. The "Recent activity" section reflects HEAD, not the
-# in-progress commit (off-by-one), because the new commit hasn't been
-# made yet at hook-fire time. That's acceptable for a status snapshot
-# and avoids the recursion gymnastics of a post-commit amend.
+# The policy pass is `go test ./tools/internal/policies/...` from the
+# repo root. Each policy is a pure function that returns
+# Violations; the test scaffolding surfaces every violation as a
+# t.Errorf and fails the commit if anything fires. To bypass, fix
+# the violation OR adjust the policy (which lives in this repo —
+# the lint pass is auditable).
 #
-# Install with: make hooks
+# Tolerant by design: missing `go` or `aiwf` on PATH is silently
+# ignored. A contributor without a Go toolchain shouldn't be blocked
+# from a doc-only commit; CI runs the full pass independently.
+#
+# Install with: make install-hooks (sets core.hooksPath to scripts/git-hooks).
 
 set -e
 
-if ! command -v aiwf >/dev/null 2>&1; then
-    exit 0
+repo_root="$(git rev-parse --show-toplevel)"
+
+# 1. Repo-policy lint.
+if command -v go >/dev/null 2>&1; then
+    if ! (cd "$repo_root" && go test -count=1 ./tools/internal/policies/... >&2); then
+        echo "" >&2
+        echo "pre-commit: policies failed — see violations above." >&2
+        echo "             Either fix the offender or adjust the policy" >&2
+        echo "             in tools/internal/policies/." >&2
+        exit 1
+    fi
 fi
 
-repo_root="$(git rev-parse --show-toplevel)"
-tmp="$repo_root/STATUS.md.tmp"
-
-if aiwf status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
-    mv "$tmp" "$repo_root/STATUS.md"
-    git add "$repo_root/STATUS.md"
-else
-    rm -f "$tmp"
+# 2. STATUS.md regeneration.
+if command -v aiwf >/dev/null 2>&1; then
+    tmp="$repo_root/STATUS.md.tmp"
+    if aiwf status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
+        mv "$tmp" "$repo_root/STATUS.md"
+        git add "$repo_root/STATUS.md"
+    else
+        rm -f "$tmp"
+    fi
 fi
 
 exit 0
