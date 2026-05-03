@@ -75,7 +75,8 @@ func runSchema(args []string) int {
 // writeSchemaText renders schemas one block per kind, in a fixed-column
 // layout that aligns the field-description rows under each header.
 func writeSchemaText(w io.Writer, schemas []entity.Schema) error {
-	for i, s := range schemas {
+	for i := range schemas {
+		s := &schemas[i]
 		if i > 0 {
 			if _, err := fmt.Fprintln(w); err != nil {
 				return err
@@ -106,7 +107,8 @@ func writeSchemaText(w io.Writer, schemas []entity.Schema) error {
 			if _, err := fmt.Fprintln(w, "  reference fields:"); err != nil {
 				return err
 			}
-			for _, r := range s.References {
+			for j := range s.References {
+				r := &s.References[j]
 				kinds := "(any)"
 				if len(r.AllowedKinds) > 0 {
 					kinds = joinKinds(r.AllowedKinds)

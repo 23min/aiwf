@@ -229,10 +229,11 @@ func runHistory(args []string) int {
 		// reads from the map. Pre-I2.5 commits and pure entity-only
 		// histories produce an empty map (no chips).
 		scopeEntities := buildScopeEntityMap(context.Background(), rootDir, events)
-		for _, e := range events {
+		for i := range events {
+			e := &events[i]
 			fmt.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
-				e.Date, renderActor(e), e.Verb, renderTo(e.To), e.Detail, e.Commit,
-				renderScopeChips(e, scopeEntities, *showAuth))
+				e.Date, renderActor(*e), e.Verb, renderTo(e.To), e.Detail, e.Commit,
+				renderScopeChips(*e, scopeEntities, *showAuth))
 			if e.Force != "" {
 				fmt.Printf("    [forced: %s]\n", e.Force)
 			}

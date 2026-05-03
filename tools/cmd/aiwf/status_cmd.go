@@ -475,7 +475,8 @@ func renderStatusText(w io.Writer, r *statusReport) error {
 	if len(r.RecentActivity) == 0 {
 		b.WriteString("  (none)\n")
 	}
-	for _, ev := range r.RecentActivity {
+	for i := range r.RecentActivity {
+		ev := &r.RecentActivity[i]
 		date := ev.Date
 		if len(date) >= 10 {
 			date = date[:10]
@@ -573,7 +574,8 @@ func renderStatusMarkdown(w io.Writer, r *statusReport) error {
 	} else {
 		b.WriteString("| Date | Actor | Verb | Detail |\n")
 		b.WriteString("|------|-------|------|--------|\n")
-		for _, ev := range r.RecentActivity {
+		for i := range r.RecentActivity {
+			ev := &r.RecentActivity[i]
 			date := ev.Date
 			if len(date) >= 10 {
 				date = date[:10]

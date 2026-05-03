@@ -414,7 +414,8 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("readHistory M-001: %v", err)
 	}
-	// Expected: add (M-001), add (M-001/AC-1), promote (M-001/AC-1) = 3.
+	// Expected events for the bare milestone query: 3 total — add of
+	// M-001, add of M-001/AC-1, promote of M-001/AC-1.
 	if len(events) != 3 {
 		t.Errorf("M-001 history len = %d, want 3:\n%+v", len(events), events)
 	}

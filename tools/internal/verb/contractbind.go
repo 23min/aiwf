@@ -125,9 +125,9 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 func contractCheckForBinding(t *tree.Tree, next *aiwfyaml.Contracts, repoRoot, id string) []check.Finding {
 	all := contractcheck.Run(t, next, repoRoot)
 	var introduced []check.Finding
-	for _, f := range all {
-		if f.EntityID == id {
-			introduced = append(introduced, f)
+	for i := range all {
+		if all[i].EntityID == id {
+			introduced = append(introduced, all[i])
 		}
 	}
 	return introduced
