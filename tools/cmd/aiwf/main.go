@@ -17,6 +17,7 @@ import (
 	"runtime"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
+	"github.com/23min/ai-workflow-v2/tools/internal/config"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 	"github.com/23min/ai-workflow-v2/tools/internal/version"
@@ -127,7 +128,7 @@ func printHelp() {
 Usage: aiwf <verb> [args]
 
 Verbs:
-  check                          validate the consumer repo's planning state
+  check                          validate the consumer repo's planning state; with aiwf.yaml tdd.require_test_metrics=true (default false), warns on ACs at tdd_phase=done whose history carries no aiwf-tests trailer
   add <kind> --title "..."       create a new entity of the given kind
   promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status); --tests "pass=N fail=N skip=N [total=N]" attaches an aiwf-tests trailer in phase mode (recognized keys only; non-negative integers)
   cancel <id>                    promote to the kind's terminal-cancel status (optional --reason "..."; --force --reason "..." records the cancellation as an audit event)
@@ -251,6 +252,17 @@ func runCheck(args []string) int {
 		return exitInternal
 	}
 	findings = append(findings, provenanceFindings...)
+
+	requireMetrics := false
+	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
+		requireMetrics = cfg.TDD.RequireTestMetrics
+	}
+	metricsFindings, mErr := runTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
+	if mErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", mErr)
+		return exitInternal
+	}
+	findings = append(findings, metricsFindings...)
 
 	applyHintsLikeRun(findings)
 	check.SortFindings(findings)

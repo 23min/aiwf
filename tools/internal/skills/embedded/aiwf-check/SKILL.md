@@ -48,6 +48,7 @@ aiwf check --format=json --pretty
 | `adr-supersession-mutual` | ADR A says it's superseded by B, but B does not list A in its `supersedes`. |
 | `gap-resolved-has-resolver` | Gap is `addressed` but `addressed_by` is empty. |
 | `provenance-untrailered-entity-commit` | A commit between `@{u}` and `HEAD` touched an entity file with no `aiwf-verb:` trailer (manual `git commit`). Repair with `aiwf <verb> --audit-only --reason "..."`. |
+| `acs-tdd-tests-missing` | An AC at `tdd_phase: done` under a `tdd: required` milestone has no `aiwf-tests:` trailer on any commit in its history. Gated by `aiwf.yaml.tdd.require_test_metrics: true`; default off. Fix: re-run the cycle through `aiwf promote --phase ... --tests "pass=N fail=N skip=N"`, or set the YAML field to `false` to silence. |
 
 ## Provenance findings (errors)
 

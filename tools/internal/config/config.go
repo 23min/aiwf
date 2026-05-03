@@ -65,6 +65,18 @@ type Config struct {
 	LegacyActor string   `yaml:"actor,omitempty"`
 	Hosts       []string `yaml:"hosts,omitempty"`
 	StatusMd    StatusMd `yaml:"status_md,omitempty"`
+	TDD         TDD      `yaml:"tdd,omitempty"`
+}
+
+// TDD carries opt-in governance for the TDD model. RequireTestMetrics
+// gates the `acs-tdd-tests-missing` warning emitted by `aiwf check`:
+// when true, every AC at `tdd_phase: done` under a `tdd: required`
+// milestone must have at least one commit in its history carrying an
+// `aiwf-tests:` trailer or the check warns. Default false — the
+// trailer is informational metadata; consumers who want stricter
+// governance opt in at the project level.
+type TDD struct {
+	RequireTestMetrics bool `yaml:"require_test_metrics,omitempty"`
 }
 
 // StatusMd carries the opt-out for the pre-commit hook that
