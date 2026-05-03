@@ -1,6 +1,6 @@
 ## Status report plan
 
-**Status:** proposal · **Audience:** PoC continuation, builds on the existing `aiwf status` verb (`tools/cmd/aiwf/status_cmd.go`).
+**Status:** shipped · the plan is implemented in `tools/cmd/aiwf/status_cmd.go` (`renderStatusMarkdown`, `statusReport.PlannedEpics`, `writeStatusEpicMarkdown` for the mermaid flowcharts, populated `Warnings []statusFinding`). The pre-commit hook regenerates `STATUS.md` at the repo root via `aiwf status --format=md` on every commit. The original audience note (PoC continuation, building on `aiwf status`) is preserved below for reference.
 
 A nicely rendered, host-agnostic status view of the project so users without VSCode and without GitHub Issues still get a one-glance picture: what's in flight, what's ahead, what's open, what's broken. Extends `aiwf status` with a markdown output format that embeds mermaid diagrams. No server, no HTML, no GitHub Pages — markdown renders in every target the framework already cares about (GitHub web, VSCode, Obsidian, `glow`, `mdcat`).
 
