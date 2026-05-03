@@ -38,6 +38,20 @@ func runSelfCheck() int {
 		_ = os.RemoveAll(tmp)
 	}()
 
+	// Force GOPROXY=off for the duration of self-check so the
+	// upgrade-check and check-latest steps are deterministic offline
+	// (CI environments often have no network). Saved and restored so
+	// the unit-test process that wraps run() is not polluted.
+	prevGOPROXY, hadGOPROXY := os.LookupEnv("GOPROXY")
+	_ = os.Setenv("GOPROXY", "off")
+	defer func() {
+		if hadGOPROXY {
+			_ = os.Setenv("GOPROXY", prevGOPROXY)
+		} else {
+			_ = os.Unsetenv("GOPROXY")
+		}
+	}()
+
 	ctx := context.Background()
 	if err := gitops.Init(ctx, tmp); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: git init: %v\n", err)
@@ -118,6 +132,22 @@ func runSelfCheck() int {
 		},
 		{label: "check", args: []string{"check", "--root", tmp}},
 		{label: "doctor", args: []string{"doctor", "--root", tmp}},
+		{
+			// upgrade --check exercises version.Current() and the
+			// proxy-disabled fallback path. The function-level
+			// GOPROXY=off makes the "proxy disabled" advisory
+			// deterministic offline; an error here means version
+			// resolution itself broke, not network.
+			label: "upgrade --check",
+			args:  []string{"upgrade", "--check", "--root", tmp},
+		},
+		{
+			// doctor --check-latest exercises the opt-in network row;
+			// with GOPROXY=off the row renders as "unavailable" and
+			// increments no problem counter.
+			label: "doctor --check-latest",
+			args:  []string{"doctor", "--check-latest", "--root", tmp},
+		},
 	}
 
 	fmt.Printf("self-check repo: %s\n\n", tmp)
