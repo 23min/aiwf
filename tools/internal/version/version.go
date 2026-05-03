@@ -1,8 +1,6 @@
 // Package version is the single point of truth for the running aiwf
-// binary's version and the skew classification between any two
-// versions. A future step in upgrade-flow-plan.md adds a Latest(ctx)
-// function that fetches the latest published version from the Go
-// module proxy; this file ships only Current and Compare.
+// binary's version, the latest published version on the Go module
+// proxy, and the skew classification between any two versions.
 //
 // Three version shapes show up in practice:
 //
@@ -29,10 +27,18 @@
 package version
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"regexp"
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // DevelVersion is the value reported by runtime/debug.ReadBuildInfo
@@ -110,6 +116,17 @@ func Current() Info {
 	return Parse("")
 }
 
+// ModulePath returns the module path of the running aiwf binary,
+// read from runtime/debug.ReadBuildInfo. Returns "" when build info
+// is unavailable. Used by Latest to construct the proxy lookup URL.
+func ModulePath() string {
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		return bi.Main.Path
+	}
+	//coverage:ignore Same degenerate-build path as Current.
+	return ""
+}
+
 // Parse classifies an arbitrary version string into Info. Useful for
 // values read from sources other than the running binary (the
 // aiwf.yaml pin, the proxy response).
@@ -181,4 +198,130 @@ func parseTriple(v string) ([3]int, bool) {
 		out[i] = n
 	}
 	return out, true
+}
+
+// DefaultProxyURL is the public Go module proxy operated by Google.
+// Used when GOPROXY is unset.
+const DefaultProxyURL = "https://proxy.golang.org"
+
+// LatestTimeout caps the HTTP round-trip for proxy lookups. Three
+// seconds is enough for proxy.golang.org from anywhere with working
+// connectivity; a slow link returns an error rather than blocking
+// `aiwf doctor` indefinitely.
+const LatestTimeout = 3 * time.Second
+
+// ErrProxyDisabled is returned by Latest when GOPROXY=off (or when
+// the GOPROXY chain contains no http(s) entry). Callers that want
+// optional skew detection should treat this as a non-fatal "skip
+// the latest-version check" signal.
+var ErrProxyDisabled = errors.New("module proxy disabled")
+
+// proxyResponse is the JSON shape returned by the Go module proxy at
+// /<module>/@latest. Only Version is load-bearing for skew detection.
+type proxyResponse struct {
+	Version string `json:"Version"`
+	Time    string `json:"Time"`
+}
+
+// Latest fetches the latest published version of the aiwf module
+// from the Go module proxy. Honors GOPROXY (returns ErrProxyDisabled
+// when set to `off` or to a chain with no http(s) entry). The HTTP
+// round-trip is capped at LatestTimeout independently of ctx; ctx's
+// cancellation also aborts the request.
+//
+// Returns the parsed Info from the proxy response. The Info is
+// Tagged=true for clean semver tags and Tagged=false for pseudo-
+// versions (the proxy may serve either depending on the module's
+// tag history).
+func Latest(ctx context.Context) (Info, error) {
+	return latestFor(ctx, http.DefaultClient, ModulePath())
+}
+
+// latestFor is the testable seam: callers in tests pass an httptest
+// server's client and a fixed module path; Latest passes the package
+// defaults.
+func latestFor(ctx context.Context, client *http.Client, modulePath string) (Info, error) {
+	if modulePath == "" {
+		return Info{}, errors.New("module path unavailable from build info")
+	}
+	base, err := proxyBase()
+	if err != nil {
+		return Info{}, err
+	}
+	u := strings.TrimRight(base, "/") + "/" + modulePath + "/@latest"
+
+	httpCtx, cancel := context.WithTimeout(ctx, LatestTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, u, http.NoBody)
+	if err != nil {
+		return Info{}, fmt.Errorf("building proxy request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return Info{}, fmt.Errorf("querying %s: %w", u, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		// Drain a bounded amount of the body for the error message;
+		// proxy error responses are short.
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return Info{}, fmt.Errorf("proxy %s returned %d: %s",
+			u, resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	var payload proxyResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return Info{}, fmt.Errorf("decoding proxy response: %w", err)
+	}
+
+	return Parse(payload.Version), nil
+}
+
+// proxyBase resolves the module proxy URL from GOPROXY. Walks the
+// comma-separated chain left-to-right and returns the first http(s)
+// entry. `off` terminates the walk with ErrProxyDisabled; `direct`
+// is skipped (the toolchain's "fetch from VCS" mode has no HTTP
+// surface for our @latest lookup). When GOPROXY is unset, returns
+// DefaultProxyURL.
+//
+// Per the Go toolchain spec, GOPROXY may also be separated by `|`
+// (fall-through-on-any-error semantics) instead of `,`. Both
+// separators get the same first-http(s) treatment here.
+func proxyBase() (string, error) {
+	raw := os.Getenv("GOPROXY")
+	if raw == "" {
+		return DefaultProxyURL, nil
+	}
+	for _, p := range splitProxyChain(raw) {
+		switch p {
+		case "":
+			continue
+		case "off":
+			return "", ErrProxyDisabled
+		case "direct":
+			continue
+		default:
+			if strings.HasPrefix(p, "http://") || strings.HasPrefix(p, "https://") {
+				return p, nil
+			}
+			// Anything else is malformed for our purposes; fall through.
+		}
+	}
+	return "", ErrProxyDisabled
+}
+
+// splitProxyChain splits a GOPROXY value on `,` or `|` and trims
+// whitespace from each entry. Empty entries are preserved so callers
+// can recognize them; proxyBase skips them.
+func splitProxyChain(raw string) []string {
+	parts := strings.FieldsFunc(raw, func(r rune) bool {
+		return r == ',' || r == '|'
+	})
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+	return parts
 }

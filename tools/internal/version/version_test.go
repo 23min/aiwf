@@ -1,6 +1,15 @@
 package version
 
-import "testing"
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+)
 
 func TestParse(t *testing.T) {
 	cases := []struct {
@@ -142,5 +151,251 @@ func TestCurrent_DevelInTestBinary(t *testing.T) {
 	}
 	if got.Tagged {
 		t.Errorf("Current().Tagged = true, want false (running under go test)")
+	}
+}
+
+func TestModulePath_TestBinary(t *testing.T) {
+	// Under `go test`, ModulePath returns the module of the test
+	// binary, which is this repo's go.mod path.
+	got := ModulePath()
+	const want = "github.com/23min/ai-workflow-v2"
+	if got != want {
+		t.Errorf("ModulePath() = %q, want %q", got, want)
+	}
+}
+
+func TestProxyBase(t *testing.T) {
+	cases := []struct {
+		name      string
+		goproxy   string
+		setEnv    bool
+		wantBase  string
+		wantErrIs error
+	}{
+		{
+			name:     "unset uses default",
+			setEnv:   false,
+			wantBase: DefaultProxyURL,
+		},
+		{
+			name:     "explicit https proxy",
+			setEnv:   true,
+			goproxy:  "https://proxy.example.com",
+			wantBase: "https://proxy.example.com",
+		},
+		{
+			name:     "https proxy with trailing direct",
+			setEnv:   true,
+			goproxy:  "https://proxy.example.com,direct",
+			wantBase: "https://proxy.example.com",
+		},
+		{
+			name:     "direct skipped, https second",
+			setEnv:   true,
+			goproxy:  "direct,https://proxy.example.com",
+			wantBase: "https://proxy.example.com",
+		},
+		{
+			name:     "pipe-separated chain",
+			setEnv:   true,
+			goproxy:  "https://proxy.example.com|https://backup.example.com",
+			wantBase: "https://proxy.example.com",
+		},
+		{
+			name:      "off terminates with error",
+			setEnv:    true,
+			goproxy:   "off",
+			wantErrIs: ErrProxyDisabled,
+		},
+		{
+			name:      "direct only — no http entry",
+			setEnv:    true,
+			goproxy:   "direct",
+			wantErrIs: ErrProxyDisabled,
+		},
+		{
+			name:      "off in chain after direct",
+			setEnv:    true,
+			goproxy:   "direct,off,https://too-late.example.com",
+			wantErrIs: ErrProxyDisabled,
+		},
+		{
+			name:      "malformed entry falls through to disabled",
+			setEnv:    true,
+			goproxy:   "not-a-url",
+			wantErrIs: ErrProxyDisabled,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.setEnv {
+				t.Setenv("GOPROXY", tc.goproxy)
+			} else {
+				t.Setenv("GOPROXY", "")
+			}
+			got, err := proxyBase()
+			if tc.wantErrIs != nil {
+				if !errors.Is(err, tc.wantErrIs) {
+					t.Fatalf("err = %v, want errors.Is %v", err, tc.wantErrIs)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected err: %v", err)
+			}
+			if got != tc.wantBase {
+				t.Errorf("base = %q, want %q", got, tc.wantBase)
+			}
+		})
+	}
+}
+
+func TestLatest_Happy(t *testing.T) {
+	const modulePath = "example.com/test/module"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wantPath := "/" + modulePath + "/@latest"
+		if r.URL.Path != wantPath {
+			t.Errorf("proxy got path %q, want %q", r.URL.Path, wantPath)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintln(w, `{"Version":"v0.2.0","Time":"2026-05-03T12:00:00Z"}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	t.Setenv("GOPROXY", srv.URL)
+
+	got, err := latestFor(context.Background(), srv.Client(), modulePath)
+	if err != nil {
+		t.Fatalf("latestFor: %v", err)
+	}
+	if got.Version != "v0.2.0" {
+		t.Errorf("Version = %q, want v0.2.0", got.Version)
+	}
+	if !got.Tagged {
+		t.Errorf("Tagged = false, want true")
+	}
+}
+
+func TestLatest_ProxyError(t *testing.T) {
+	cases := []struct {
+		name    string
+		handler http.HandlerFunc
+		wantErr string
+	}{
+		{
+			name: "404 from proxy",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				http.Error(w, "not found", http.StatusNotFound)
+			},
+			wantErr: "returned 404",
+		},
+		{
+			name: "500 from proxy",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				http.Error(w, "boom", http.StatusInternalServerError)
+			},
+			wantErr: "returned 500",
+		},
+		{
+			name: "malformed JSON body",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				fmt.Fprint(w, "not-json")
+			},
+			wantErr: "decoding proxy response",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(tc.handler)
+			t.Cleanup(srv.Close)
+			t.Setenv("GOPROXY", srv.URL)
+			_, err := latestFor(context.Background(), srv.Client(), "example.com/test/module")
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("err = %q, want substring %q", err.Error(), tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestLatest_GoproxyOff(t *testing.T) {
+	t.Setenv("GOPROXY", "off")
+	_, err := latestFor(context.Background(), http.DefaultClient, "example.com/test/module")
+	if !errors.Is(err, ErrProxyDisabled) {
+		t.Errorf("err = %v, want errors.Is ErrProxyDisabled", err)
+	}
+}
+
+func TestLatest_EmptyModulePath(t *testing.T) {
+	_, err := latestFor(context.Background(), http.DefaultClient, "")
+	if err == nil {
+		t.Fatal("expected error on empty module path")
+	}
+	if !strings.Contains(err.Error(), "module path unavailable") {
+		t.Errorf("err = %q, want substring 'module path unavailable'", err.Error())
+	}
+}
+
+func TestLatest_ContextTimeout(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Block until the request context is cancelled.
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+	t.Setenv("GOPROXY", srv.URL)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	_, err := latestFor(ctx, srv.Client(), "example.com/test/module")
+	if err == nil {
+		t.Fatal("expected timeout error, got nil")
+	}
+}
+
+func TestLatest_Wrapper(t *testing.T) {
+	// Exercises the public Latest(ctx) wrapper end-to-end against a
+	// fake proxy. Latest reads ModulePath() from the test binary's
+	// build info; we pre-position the server to respond on that path.
+	modulePath := ModulePath()
+	if modulePath == "" {
+		t.Skip("ModulePath unavailable in this build")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+modulePath+"/@latest" {
+			http.NotFound(w, r)
+			return
+		}
+		fmt.Fprintln(w, `{"Version":"v0.9.9"}`)
+	}))
+	t.Cleanup(srv.Close)
+	t.Setenv("GOPROXY", srv.URL)
+
+	got, err := Latest(context.Background())
+	if err != nil {
+		t.Fatalf("Latest: %v", err)
+	}
+	if got.Version != "v0.9.9" {
+		t.Errorf("Version = %q, want v0.9.9", got.Version)
+	}
+}
+
+func TestLatest_RealProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test (uses network)")
+	}
+	// Hit the real Go module proxy against a stable, well-known
+	// module to verify the URL shape and JSON parsing match
+	// production. Uses gopkg.in/yaml.v3 because aiwf already depends
+	// on it and it has stable releases.
+	t.Setenv("GOPROXY", "")
+	got, err := latestFor(context.Background(), http.DefaultClient, "gopkg.in/yaml.v3")
+	if err != nil {
+		t.Skipf("real-proxy lookup unavailable in this env: %v", err)
+	}
+	if got.Version == "" {
+		t.Errorf("got empty Version from real proxy")
 	}
 }
