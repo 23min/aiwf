@@ -5,12 +5,42 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 )
+
+// readEntityBody reads the entity file at root/relPath and returns the
+// body bytes (the prose after the closing `---`). Errors are
+// swallowed — `aiwf show` already emits findings for unreadable /
+// malformed entities via the load-error finding; surfacing the same
+// problem on the body field would double-count. Empty body or missing
+// file produces nil.
+//
+// Entity.Path is repo-relative (the loader normalizes it that way) so
+// callers must join with root before hitting the filesystem; doing
+// the join in this helper keeps each caller from re-deriving it.
+func readEntityBody(root, relPath string) []byte {
+	if relPath == "" {
+		return nil
+	}
+	abs := relPath
+	if !filepath.IsAbs(abs) {
+		abs = filepath.Join(root, relPath)
+	}
+	content, err := os.ReadFile(abs)
+	if err != nil {
+		return nil
+	}
+	_, body, ok := entity.Split(content)
+	if !ok {
+		return nil
+	}
+	return body
+}
 
 // runShow handles `aiwf show <id>`. Aggregates per-entity state from
 // the existing data sources — frontmatter (entity), git log (history),
@@ -93,18 +123,19 @@ func runShow(args []string) int {
 // specifically; the parent milestone's referrers are not rolled in
 // (use `aiwf show M-NNN` for that).
 type ShowView struct {
-	ID           string          `json:"id"`
-	Kind         string          `json:"kind"`
-	Title        string          `json:"title"`
-	Status       string          `json:"status"`
-	Path         string          `json:"path,omitempty"`
-	Parent       string          `json:"parent,omitempty"`
-	TDD          string          `json:"tdd,omitempty"`
-	ACs          []ShowAC        `json:"acs,omitempty"`
-	History      []HistoryEvent  `json:"history,omitempty"`
-	Findings     []check.Finding `json:"findings,omitempty"`
-	ReferencedBy []string        `json:"referenced_by"`
-	Scopes       []ScopeView     `json:"scopes,omitempty"`
+	ID           string            `json:"id"`
+	Kind         string            `json:"kind"`
+	Title        string            `json:"title"`
+	Status       string            `json:"status"`
+	Path         string            `json:"path,omitempty"`
+	Parent       string            `json:"parent,omitempty"`
+	TDD          string            `json:"tdd,omitempty"`
+	ACs          []ShowAC          `json:"acs,omitempty"`
+	Body         map[string]string `json:"body,omitempty"`
+	History      []HistoryEvent    `json:"history,omitempty"`
+	Findings     []check.Finding   `json:"findings,omitempty"`
+	ReferencedBy []string          `json:"referenced_by"`
+	Scopes       []ScopeView       `json:"scopes,omitempty"`
 
 	// Composite-id-only fields (when querying M-NNN/AC-N): the AC's
 	// own state, populated instead of (not in addition to) the
@@ -113,12 +144,17 @@ type ShowView struct {
 	ParentID string  `json:"parent_id,omitempty"`
 }
 
-// ShowAC is one AC's view inside a milestone show.
+// ShowAC is one AC's view inside a milestone show. Description carries
+// the prose under the matching `### AC-N — <title>` heading in the
+// milestone body, trimmed of surrounding whitespace; empty when the
+// milestone body has no body section for this AC (e.g. seeded purely
+// via frontmatter).
 type ShowAC struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Status   string `json:"status"`
-	TDDPhase string `json:"tdd_phase,omitempty"`
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Status      string `json:"status"`
+	TDDPhase    string `json:"tdd_phase,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 // buildShowView assembles the view for id; ok=false when no entity
@@ -132,6 +168,7 @@ func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 	if e == nil {
 		return ShowView{}, false
 	}
+	body := readEntityBody(root, e.Path)
 	view := ShowView{
 		ID:           e.ID,
 		Kind:         string(e.Kind),
@@ -140,10 +177,21 @@ func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		Path:         e.Path,
 		Parent:       e.Parent,
 		TDD:          e.TDD,
+		Body:         entity.ParseBodySections(body),
 		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
 	}
+	var acDesc map[string]string
+	if e.Kind == entity.KindMilestone && len(e.ACs) > 0 {
+		acDesc = entity.ParseACSections(body)
+	}
 	for _, ac := range e.ACs {
-		view.ACs = append(view.ACs, ShowAC{ID: ac.ID, Title: ac.Title, Status: ac.Status, TDDPhase: ac.TDDPhase})
+		view.ACs = append(view.ACs, ShowAC{
+			ID:          ac.ID,
+			Title:       ac.Title,
+			Status:      ac.Status,
+			TDDPhase:    ac.TDDPhase,
+			Description: acDesc[ac.ID],
+		})
 	}
 
 	events, err := readHistory(ctx, root, id)
@@ -189,14 +237,21 @@ func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 	if found == nil {
 		return ShowView{}, false
 	}
+	desc := entity.ParseACSections(readEntityBody(root, parent.Path))[found.ID]
 	view := ShowView{
-		ID:           id,
-		Kind:         "ac",
-		Title:        found.Title,
-		Status:       found.Status,
-		Path:         parent.Path,
-		ParentID:     parentID,
-		AC:           &ShowAC{ID: found.ID, Title: found.Title, Status: found.Status, TDDPhase: found.TDDPhase},
+		ID:       id,
+		Kind:     "ac",
+		Title:    found.Title,
+		Status:   found.Status,
+		Path:     parent.Path,
+		ParentID: parentID,
+		AC: &ShowAC{
+			ID:          found.ID,
+			Title:       found.Title,
+			Status:      found.Status,
+			TDDPhase:    found.TDDPhase,
+			Description: desc,
+		},
 		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
 	}
 

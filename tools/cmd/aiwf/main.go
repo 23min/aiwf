@@ -144,7 +144,7 @@ Verbs:
   import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
   whoami                         print the resolved actor and the source it came from
   status                         project snapshot: in-flight work, open decisions, gaps, recent activity
-  show <id>                      aggregate view: frontmatter + acs + recent history + active findings + referenced_by (the ids of entities that name this one as a reference target); composite ids (M-NNN/AC-N) accepted
+  show <id>                      aggregate view: frontmatter + acs + recent history + active findings + referenced_by (the ids of entities that name this one as a reference target); JSON also carries body (map of section-heading slug to prose: epic goal/scope/out_of_scope; milestone goal/acceptance_criteria; adr context/decision/consequences; gap what_s_missing/why_it_matters; decision question/decision/reasoning; contract purpose/stability) and per-AC description (the AC-N body section) on milestones; history events carry tests {pass,fail,skip,total} when the commit had an aiwf-tests trailer; composite ids (M-NNN/AC-N) accepted
   schema [kind]                  print the frontmatter contract for one kind (or all six); read-only
   template [kind]                print the body-section template 'aiwf add' would scaffold for the kind; read-only
   contract verify                run the verify and evolve passes for every contract binding in aiwf.yaml

@@ -16,6 +16,7 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/aiwfyaml"
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/config"
+	"github.com/23min/ai-workflow-v2/tools/internal/gitops"
 	"github.com/23min/ai-workflow-v2/tools/internal/initrepo"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
 	"github.com/23min/ai-workflow-v2/tools/internal/skills"
@@ -304,21 +305,22 @@ func runHistory(args []string) int {
 // rationale from `aiwf-reason:`. All fields are empty for pre-I2.5
 // commits — the renderer treats absence as "no chip".
 type HistoryEvent struct {
-	Date         string   `json:"date"`
-	Actor        string   `json:"actor"`
-	Verb         string   `json:"verb"`
-	Detail       string   `json:"detail"`
-	Commit       string   `json:"commit"`
-	Body         string   `json:"body,omitempty"`
-	To           string   `json:"to,omitempty"`
-	Force        string   `json:"force,omitempty"`
-	AuditOnly    string   `json:"audit_only,omitempty"`
-	Principal    string   `json:"principal,omitempty"`
-	OnBehalfOf   string   `json:"on_behalf_of,omitempty"`
-	AuthorizedBy string   `json:"authorized_by,omitempty"`
-	Scope        string   `json:"scope,omitempty"`
-	ScopeEnds    []string `json:"scope_ends,omitempty"`
-	Reason       string   `json:"reason,omitempty"`
+	Date         string              `json:"date"`
+	Actor        string              `json:"actor"`
+	Verb         string              `json:"verb"`
+	Detail       string              `json:"detail"`
+	Commit       string              `json:"commit"`
+	Body         string              `json:"body,omitempty"`
+	To           string              `json:"to,omitempty"`
+	Force        string              `json:"force,omitempty"`
+	AuditOnly    string              `json:"audit_only,omitempty"`
+	Principal    string              `json:"principal,omitempty"`
+	OnBehalfOf   string              `json:"on_behalf_of,omitempty"`
+	AuthorizedBy string              `json:"authorized_by,omitempty"`
+	Scope        string              `json:"scope,omitempty"`
+	ScopeEnds    []string            `json:"scope_ends,omitempty"`
+	Reason       string              `json:"reason,omitempty"`
+	Tests        *gitops.TestMetrics `json:"tests,omitempty"`
 }
 
 // readHistory shells out to `git log` and returns one HistoryEvent per
@@ -373,6 +375,7 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 			sep+"%(trailers:key=aiwf-scope,valueonly=true,unfold=true)"+
 			sep+"%(trailers:key=aiwf-scope-ends,valueonly=true,unfold=true)"+
 			sep+"%(trailers:key=aiwf-reason,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-tests,valueonly=true,unfold=true)"+
 			sep+"%b\x1e",
 	)
 	cmd := exec.CommandContext(ctx, "git", args...)
@@ -387,7 +390,7 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 	}
 
 	var events []HistoryEvent
-	const fieldCount = 15
+	const fieldCount = 16
 	for _, rec := range strings.Split(string(out), recSep) {
 		rec = strings.TrimSpace(rec)
 		if rec == "" {
@@ -397,7 +400,7 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 		if len(parts) < fieldCount {
 			continue
 		}
-		events = append(events, HistoryEvent{
+		ev := HistoryEvent{
 			Commit:       shortHash(parts[0]),
 			Date:         parts[1],
 			Detail:       strings.TrimSpace(parts[2]),
@@ -412,8 +415,13 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 			Scope:        strings.TrimSpace(parts[11]),
 			ScopeEnds:    splitMultiValueTrailer(parts[12]),
 			Reason:       strings.TrimSpace(parts[13]),
-			Body:         stripTrailers(strings.TrimSpace(parts[14])),
-		})
+			Body:         stripTrailers(strings.TrimSpace(parts[15])),
+		}
+		if metrics, ok := gitops.ParseTestMetrics(parts[14]); ok {
+			m := metrics
+			ev.Tests = &m
+		}
+		events = append(events, ev)
 	}
 	return events, nil
 }

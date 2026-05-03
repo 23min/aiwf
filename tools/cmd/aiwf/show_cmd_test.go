@@ -291,3 +291,207 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 		t.Errorf("expected milestone-done-incomplete-acs in findings; got %+v", view.Findings)
 	}
 }
+
+// TestRun_ShowEpicBodySectionsParsed: hand-editing the epic file with
+// populated body sections must surface them on ShowView.Body keyed by
+// the slugified `## ` heading. Load-bearing for the HTML render in I3
+// step 5, which reads these slugs to populate the per-tab content.
+func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+
+	// Hand-populate the body — the scaffolded body has empty sections.
+	ePath := filepath.Join(root, "work", "epics", "E-01-foundations", "epic.md")
+	raw, err := os.ReadFile(ePath)
+	if err != nil {
+		t.Fatalf("read epic: %v", err)
+	}
+	populated := strings.Replace(string(raw),
+		"\n## Goal\n\n## Scope\n\n## Out of scope\n",
+		"\n## Goal\n\nbuild the kernel\n\n## Scope\n\nplanning verbs\n\n## Out of scope\n\nthe UI\n",
+		1)
+	if writeErr := os.WriteFile(ePath, []byte(populated), 0o644); writeErr != nil {
+		t.Fatalf("write epic: %v", writeErr)
+	}
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-01"}); rc != exitOK {
+			t.Fatalf("show json: %d", rc)
+		}
+	})
+	var env struct {
+		Result struct {
+			Body map[string]string `json:"body"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("parse JSON: %v\n%s", err, captured)
+	}
+	want := map[string]string{
+		"goal":         "build the kernel",
+		"scope":        "planning verbs",
+		"out_of_scope": "the UI",
+	}
+	for k, v := range want {
+		if env.Result.Body[k] != v {
+			t.Errorf("body[%q] = %q, want %q (full: %v)", k, env.Result.Body[k], v, env.Result.Body)
+		}
+	}
+}
+
+// TestRun_ShowMilestoneACDescriptionsParsed: the per-AC body section
+// (`### AC-N — <title>`) populates ShowAC.Description when the
+// milestone body carries it. Load-bearing for the milestone Manifest
+// tab in I3 step 5, which renders each AC's body inline.
+func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add milestone: %d", rc)
+	}
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine starts"}); rc != exitOK {
+		t.Fatalf("add ac: %d", rc)
+	}
+
+	// `aiwf add ac` scaffolds a `### AC-1 — <title>` heading with no
+	// body underneath; populate it with prose by hand-editing.
+	mPath := filepath.Join(root, "work", "epics", "E-01-foo", "M-001-first.md")
+	raw, err := os.ReadFile(mPath)
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	body := string(raw)
+	const heading = "### AC-1 — Engine starts"
+	idx := strings.Index(body, heading)
+	if idx < 0 {
+		t.Fatalf("missing scaffolded AC heading; body:\n%s", body)
+	}
+	insert := idx + len(heading)
+	patched := body[:insert] + "\n\nthe engine MUST start within 3 seconds.\n" + body[insert:]
+	if writeErr := os.WriteFile(mPath, []byte(patched), 0o644); writeErr != nil {
+		t.Fatalf("write milestone: %v", writeErr)
+	}
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"show", "--root", root, "--format=json", "M-001"}); rc != exitOK {
+			t.Fatalf("show: %d", rc)
+		}
+	})
+	var env struct {
+		Result struct {
+			ACs []struct {
+				ID          string `json:"id"`
+				Description string `json:"description"`
+			} `json:"acs"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("parse JSON: %v\n%s", err, captured)
+	}
+	if len(env.Result.ACs) != 1 || env.Result.ACs[0].ID != "AC-1" {
+		t.Fatalf("unexpected ACs: %+v", env.Result.ACs)
+	}
+	if want := "the engine MUST start within 3 seconds."; env.Result.ACs[0].Description != want {
+		t.Errorf("AC-1 description = %q, want %q", env.Result.ACs[0].Description, want)
+	}
+
+	// Composite-id show should also surface description on the AC
+	// payload.
+	captured = captureStdout(t, func() {
+		if rc := run([]string{"show", "--root", root, "--format=json", "M-001/AC-1"}); rc != exitOK {
+			t.Fatalf("composite show: %d", rc)
+		}
+	})
+	var env2 struct {
+		Result struct {
+			AC struct {
+				ID          string `json:"id"`
+				Description string `json:"description"`
+			} `json:"ac"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(captured, &env2); err != nil {
+		t.Fatalf("parse JSON (composite): %v\n%s", err, captured)
+	}
+	if env2.Result.AC.ID != "AC-1" {
+		t.Fatalf("composite AC id = %q, want AC-1", env2.Result.AC.ID)
+	}
+	if want := "the engine MUST start within 3 seconds."; env2.Result.AC.Description != want {
+		t.Errorf("composite AC description = %q, want %q", env2.Result.AC.Description, want)
+	}
+}
+
+// TestRun_ShowHistoryParsesAiwfTestsTrailer: a commit carrying an
+// aiwf-tests trailer must surface the parsed metrics on the
+// HistoryEvent. The trailer is written by hand here (kernel write
+// path lands in I3 step 2); read-side parsing must already work in
+// step 1 so step-5 templates have data to render.
+func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add milestone: %d", rc)
+	}
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine starts"}); rc != exitOK {
+		t.Fatalf("add ac: %d", rc)
+	}
+
+	// Hand-author an empty commit on M-001/AC-1 carrying aiwf-tests.
+	// `aiwf history` reads the trailer via git log %(trailers:...);
+	// what matters is that the trailer line is present on the commit.
+	const subject = "promote(M-001/AC-1) green with metrics"
+	const body = "aiwf-verb: promote\naiwf-entity: M-001/AC-1\naiwf-actor: human/test\naiwf-to: green\naiwf-tests: pass=12 fail=0 skip=1\n"
+	if err := osExec(t, root, "git", "commit", "--allow-empty",
+		"-m", subject, "-m", body); err != nil {
+		t.Fatalf("git commit --allow-empty: %v", err)
+	}
+
+	captured := captureStdout(t, func() {
+		if rc := run([]string{"show", "--root", root, "--format=json", "M-001/AC-1"}); rc != exitOK {
+			t.Fatalf("show: %d", rc)
+		}
+	})
+	var env struct {
+		Result struct {
+			History []struct {
+				Verb  string `json:"verb"`
+				Tests *struct {
+					Pass int `json:"pass"`
+					Fail int `json:"fail"`
+					Skip int `json:"skip"`
+				} `json:"tests"`
+			} `json:"history"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("parse JSON: %v\n%s", err, captured)
+	}
+	var withMetrics int
+	for _, e := range env.Result.History {
+		if e.Tests == nil {
+			continue
+		}
+		withMetrics++
+		if e.Tests.Pass != 12 || e.Tests.Fail != 0 || e.Tests.Skip != 1 {
+			t.Errorf("history tests = %+v, want pass=12 fail=0 skip=1", e.Tests)
+		}
+	}
+	if withMetrics != 1 {
+		t.Errorf("expected exactly one history event with tests metrics; got %d (history: %+v)", withMetrics, env.Result.History)
+	}
+}
