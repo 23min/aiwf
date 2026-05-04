@@ -444,6 +444,20 @@ New `gitops.StashStaged` / `gitops.StashPop` / `gitops.StagedPaths` primitives (
 
 ---
 
+<a id="g35"></a>
+### G35. HTML site only generates pages for epic and milestone — gap/ADR/decision/contract links 404 — **resolved**
+
+Resolved in commit `(this commit)` (fix(aiwf): G35/G36 — render gap/ADR/decision/contract pages with HTML markdown bodies). New shared `entity.tmpl` covers the four kinds without specialized rendering; `htmlrender.Render` iterates over `KindADR`/`KindGap`/`KindDecision`/`KindContract` after the existing epic/milestone loops, calling a new `renderEntity` that pulls per-page data from a new `PageDataResolver.EntityData(id)` method. Default resolver returns frontmatter + sidebar (no body — that's a cmd-side concern); cmd-side `renderResolver.EntityData` reads the body from disk, parses sections via the new `entity.ParseBodySectionsOrdered`, and surfaces forward+reverse linked entities and recent history. Tests: per-kind structural assertions on `G-001.html`, `ADR-0001.html`, `D-001.html`, `C-001.html` (kicker carries the kind label, `<h1>` carries the title, sidebar link back to index present). Smoke: rendered a synthesized kernel-style tree and walked every kind's page in a browser. Pairs with G36 — fixing both in the same commit means the new gap/ADR/decision/contract pages don't ship with the same rendered-as-raw-text defect.
+
+---
+
+<a id="g36"></a>
+### G36. Entity body markdown rendered as escaped raw text in HTML — **resolved**
+
+Resolved in commit `(this commit)` (fix(aiwf): G35/G36 — render gap/ADR/decision/contract pages with HTML markdown bodies). New `markdownToHTML` helper in `tools/internal/htmlrender/markdown.go` runs each body section through `goldmark` and returns `template.HTML` so the rendered HTML isn't double-escaped. Goldmark configured with Tables/Strikethrough/Linkify/TaskList extensions but raw-HTML pass-through OFF — bodies are committed to git but the static-site step refuses to upgrade that trust into "browser-executable" (XSS guard pinned by `TestMarkdownToHTML_RawHTMLEscaped`). `epic.tmpl`, `milestone.tmpl`, and the new `entity.tmpl` route every body section through the helper. New dep `github.com/yuin/goldmark v1.8.2` — pure-Go CommonMark renderer, no CGO, single transitive tree (justified per `tools/CLAUDE.md` Dependencies). Tests: `TestMarkdownToHTML_RenderingShapes` covers paragraphs, fenced code, inline code, ordered/unordered lists, links, subheadings, emphasis; `TestRender_BodyMarkdownRendersAsHTML` is the verb-seam test that drives a real page render and asserts `<ul>/<li>`, `<code>aiwf check</code>`, link `href`, `<pre>` all appear and that no raw-markdown source leaks through. Smoke: rendered a fixture body with lists, links, fenced code blocks — output is correct HTML.
+
+---
+
 ## Status matrix
 
 | ID  | Title                                                       | Severity | Status |
@@ -481,6 +495,8 @@ New `gitops.StashStaged` / `gitops.StashPop` / `gitops.StagedPaths` primitives (
 | G31 | Squash-merge from the GitHub UI defeats the trailer-survival contract | High | [x] (this commit) |
 | G32 | Merge commits silently bypass the untrailered-entity audit | Medium | [x] (this commit) |
 | G33 | `aiwf doctor --self-check` doesn't exercise the audit-only recovery path | Medium | [x] (this commit) |
-| G34 | Mutating verbs sweep pre-staged unrelated changes into their commit | High | [x] (this commit) |
+| G34 | Mutating verbs sweep pre-staged unrelated changes into their commit | High | [x] `890ab01` |
+| G35 | HTML site only generates epic/milestone pages — gap/ADR/decision/contract links 404 | High | [x] (this commit) |
+| G36 | Entity body markdown rendered as escaped raw text in HTML | High | [x] (this commit) |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

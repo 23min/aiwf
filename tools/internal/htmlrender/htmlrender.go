@@ -71,6 +71,14 @@ type PageDataResolver interface {
 	IndexData() (*IndexData, error)
 	EpicData(id string) (*EpicData, error)
 	MilestoneData(id string) (*MilestoneData, error)
+	// EntityData returns the page payload for the four kinds with
+	// no specialized template (gap, ADR, decision, contract). The
+	// renderer routes those kinds through a shared entity template;
+	// epic and milestone pages keep their dedicated resolvers above.
+	// A nil return (with no error) skips the entity's page —
+	// resolvers should only do this on a kind mismatch, otherwise
+	// every linked entity is expected to have a page.
+	EntityData(id string) (*EntityData, error)
 	// StatusData returns the project-status page payload. A nil
 	// return (with no error) means "skip the status page" — the
 	// renderer will not emit status.html and the sidebar will
@@ -150,6 +158,14 @@ func Render(opts Options) (Result, error) {
 		}
 		count++
 	}
+	for _, kind := range []entity.Kind{entity.KindADR, entity.KindGap, entity.KindDecision, entity.KindContract} {
+		for _, e := range sortedByID(opts.Tree.ByKind(kind)) {
+			if err := renderEntity(opts, tmpls, resolver, e.ID); err != nil {
+				return Result{}, err
+			}
+			count++
+		}
+	}
 
 	return Result{
 		FilesWritten: count,
@@ -206,6 +222,23 @@ func renderMilestone(opts Options, tmpls *template.Template, resolver PageDataRe
 		return fmt.Errorf("MilestoneData(%s) returned no Milestone ref", id)
 	}
 	return executeToFile(tmpls, "milestone.tmpl", filepath.Join(opts.OutDir, data.Milestone.FileName), data)
+}
+
+// renderEntity writes one gap / ADR / decision / contract page
+// through the shared entity template. The four kinds have less
+// structured rendering than epic/milestone — no AC tables, no
+// phase timelines, no scope FSM — so a single template walking
+// each `## ` body section in source order covers all of them.
+// G35 fix.
+func renderEntity(opts Options, tmpls *template.Template, resolver PageDataResolver, id string) error {
+	data, err := resolver.EntityData(id)
+	if err != nil {
+		return fmt.Errorf("EntityData(%s): %w", id, err)
+	}
+	if data == nil || data.Entity == nil {
+		return fmt.Errorf("EntityData(%s) returned no Entity ref", id)
+	}
+	return executeToFile(tmpls, "entity.tmpl", filepath.Join(opts.OutDir, data.Entity.FileName), data)
 }
 
 // sortedByID returns a copy of entities sorted by id. Used so every

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Entity.ID}} — {{.Entity.Title}}</title>
+<link rel="stylesheet" href="{{cssHref}}">
+</head>
+<body>
+<div class="layout">
+{{template "sidebar" .Sidebar}}
+<main>
+<nav><a href="index.html">← index</a></nav>
+<p class="kicker">{{.Entity.Kind}} · {{.Entity.ID}}</p>
+<h1>{{.Entity.Title}}</h1>
+<p>
+<span class="status status-{{.Entity.Status}}">{{.Entity.Status}}</span>
+</p>
+
+{{- range .Sections}}
+<section class="body-section section-{{.Slug}}">
+<h2>{{.Heading}}</h2>
+{{markdown .Content}}
+</section>
+{{- end}}
+
+{{- if .LinkedEntities}}
+<h2>Linked entities</h2>
+<ul class="linked">
+{{- range .LinkedEntities}}
+<li><a href="{{.FileName}}">{{.ID}}</a> — {{.Title}} <span class="kind">{{.Kind}}</span> <span class="dir">{{.Direction}}</span></li>
+{{- end}}
+</ul>
+{{- end}}
+
+{{- if .History}}
+<h2>Recent activity</h2>
+<table class="history">
+<thead><tr><th>Date</th><th>Verb</th><th>Detail</th><th>Actor</th></tr></thead>
+<tbody>
+{{- range .History}}
+<tr>
+<td>{{.Date}}</td>
+<td>{{.Verb}}</td>
+<td>{{.Detail}}</td>
+<td>{{if .Principal}}{{.Principal}} via {{end}}{{.Actor}}</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- end}}
+</main>
+</div>
+</body>
+</html>

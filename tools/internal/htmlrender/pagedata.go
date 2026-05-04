@@ -329,3 +329,32 @@ type StatusFinding struct {
 	Path     string
 	Message  string
 }
+
+// EntityData is the input to the shared entity template used for
+// gap, ADR, decision, and contract pages. These four kinds have
+// less structured rendering than epic/milestone — no AC tables, no
+// dependency DAG, no scope FSM — so a single template walking each
+// body section in source order covers them.
+//
+// Sections preserves the order of `## `-level headings in the body
+// markdown (per ParseBodySectionsOrdered) so the page reads as a
+// recognizable rendering of the source file. LinkedEntities is the
+// union of forward+reverse references, deduplicated and sorted, the
+// same shape epic / milestone pages use.
+type EntityData struct {
+	Entity         *EntityRef
+	Sections       []BodySectionView
+	LinkedEntities []LinkedEntity
+	History        []HistoryRow
+	Sidebar        SidebarData
+}
+
+// BodySectionView is the renderer-facing view of one body section.
+// Heading is the original `## ` text; Slug is the kebab-friendly key
+// (used as the section's CSS class); Content is the section prose
+// (still markdown — G36 swaps in HTML rendering).
+type BodySectionView struct {
+	Slug    string
+	Heading string
+	Content string
+}

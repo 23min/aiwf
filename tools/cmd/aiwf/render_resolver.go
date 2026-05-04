@@ -114,6 +114,41 @@ func (r *renderResolver) EpicData(id string) (*htmlrender.EpicData, error) {
 	return data, nil
 }
 
+// EntityData implements htmlrender.PageDataResolver for the four
+// kinds with no specialized template (gap, ADR, decision, contract).
+// Reads the body from disk and parses sections in document order so
+// the page reads as a recognizable rendering of the source markdown.
+// G35 fix.
+func (r *renderResolver) EntityData(id string) (*htmlrender.EntityData, error) {
+	e := r.tree.ByID(id)
+	if e == nil {
+		return nil, nil
+	}
+	switch e.Kind {
+	case entity.KindGap, entity.KindADR, entity.KindDecision, entity.KindContract:
+		// fall through
+	default:
+		return nil, nil
+	}
+	body := r.bodyForEntity(e.Path)
+	var sections []htmlrender.BodySectionView
+	for _, s := range entity.ParseBodySectionsOrdered(body) {
+		sections = append(sections, htmlrender.BodySectionView{
+			Slug:    s.Slug,
+			Heading: s.Heading,
+			Content: s.Content,
+		})
+	}
+	data := &htmlrender.EntityData{
+		Entity:         r.entityRef(e),
+		Sections:       sections,
+		LinkedEntities: r.linkedEntitiesFor(e),
+		History:        r.historyRows(e.ID, 10),
+		Sidebar:        r.sidebar("", ""),
+	}
+	return data, nil
+}
+
 // MilestoneData implements htmlrender.PageDataResolver.
 func (r *renderResolver) MilestoneData(id string) (*htmlrender.MilestoneData, error) {
 	m := r.tree.ByID(id)

@@ -64,6 +64,79 @@ func ParseBodySections(body []byte) map[string]string {
 	return out
 }
 
+// BodySection is one `## ` section with its display heading
+// preserved alongside the slugified key. Heading is what the
+// markdown source actually wrote (no slug round-trip — apostrophes,
+// spaces, and capitalization come back verbatim); Slug is the
+// ParseBodySections key; Content is the section prose, trimmed.
+//
+// Used by ParseBodySectionsOrdered when the caller cares about
+// document order (the HTML renderer per G35/G36) instead of just
+// the slug → content map.
+type BodySection struct {
+	Slug    string
+	Heading string
+	Content string
+}
+
+// ParseBodySectionsOrdered walks `## `-level headings in body and
+// returns the sections in source order, with each section's display
+// heading preserved alongside the slug. Same semantics as
+// ParseBodySections for heading boundaries (`# ` or EOF terminates
+// the current `## ` section; content before the first `## ` is
+// dropped); duplicate slugs collapse to the last occurrence so
+// callers can rely on slug uniqueness.
+//
+// Returns nil when body is empty or has no `## ` heading.
+func ParseBodySectionsOrdered(body []byte) []BodySection {
+	if len(body) == 0 {
+		return nil
+	}
+	lines := bytes.Split(body, []byte("\n"))
+	indexBySlug := map[string]int{}
+	var sections []BodySection
+	currentIdx := -1
+	var currentBuf []string
+	flush := func() {
+		if currentIdx < 0 {
+			return
+		}
+		sections[currentIdx].Content = strings.TrimSpace(strings.Join(currentBuf, "\n"))
+	}
+	for _, line := range lines {
+		switch {
+		case bytes.HasPrefix(line, []byte("## ")):
+			flush()
+			heading := strings.TrimSpace(string(line[len("## "):]))
+			slug := SectionSlug(heading)
+			if existing, ok := indexBySlug[slug]; ok {
+				// Duplicate slug: rewrite the existing entry so
+				// last-write-wins matches ParseBodySections.
+				currentIdx = existing
+				sections[currentIdx].Heading = heading
+			} else {
+				sections = append(sections, BodySection{Slug: slug, Heading: heading})
+				currentIdx = len(sections) - 1
+				indexBySlug[slug] = currentIdx
+			}
+			currentBuf = nil
+		case bytes.HasPrefix(line, []byte("# ")):
+			flush()
+			currentIdx = -1
+			currentBuf = nil
+		default:
+			if currentIdx >= 0 {
+				currentBuf = append(currentBuf, string(line))
+			}
+		}
+	}
+	flush()
+	if len(sections) == 0 {
+		return nil
+	}
+	return sections
+}
+
 // sectionSlugReplaceRE matches every run of non-alphanumeric runes; we
 // collapse each run to a single `_` to avoid double-underscore slugs
 // for headings like `What's missing` (apostrophe + space).

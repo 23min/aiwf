@@ -42,6 +42,7 @@ func loadTemplates() (*template.Template, error) {
 	root := template.New("").Funcs(template.FuncMap{
 		"acAnchor": ACAnchor,
 		"cssHref":  cssHref,
+		"markdown": markdownToHTML,
 	})
 	tmpls, err := root.ParseFS(templatesFS, "embedded/*.tmpl")
 	if err != nil {

@@ -34,7 +34,7 @@
 <h2>Overview</h2>
 {{- with index .Body "goal"}}
 <h3>Goal</h3>
-<p>{{.}}</p>
+{{markdown .}}
 {{- end}}
 {{- if .LinkedDecisions}}
 <h3>Linked decisions</h3>
@@ -57,7 +57,7 @@
 {{- if .TDDPhase}} · <span class="phase phase-{{.TDDPhase}}">phase: {{.TDDPhase}}</span>{{end}}
 </p>
 {{- if .Description}}
-<p>{{.Description}}</p>
+{{markdown .Description}}
 {{- end}}
 </section>
 {{- end}}

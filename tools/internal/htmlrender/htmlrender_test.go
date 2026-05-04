@@ -1,6 +1,7 @@
 package htmlrender
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"os/exec"
@@ -35,13 +36,18 @@ func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
-	// 1 index + 1 epic + 2 milestones = 4 HTML files.
-	if res.FilesWritten != 4 {
-		t.Errorf("FilesWritten = %d, want 4", res.FilesWritten)
+	// 1 index + 1 epic + 2 milestones + 1 gap + 1 ADR + 1 decision +
+	// 1 contract = 8 HTML files.
+	if res.FilesWritten != 8 {
+		t.Errorf("FilesWritten = %d, want 8", res.FilesWritten)
 	}
 
 	// Each expected file is on disk.
-	for _, name := range []string{"index.html", "E-01.html", "M-001.html", "M-002.html", "assets/style.css"} {
+	for _, name := range []string{
+		"index.html", "E-01.html", "M-001.html", "M-002.html",
+		"G-001.html", "ADR-0001.html", "D-001.html", "C-001.html",
+		"assets/style.css",
+	} {
 		if _, err := os.Stat(filepath.Join(out, name)); err != nil {
 			t.Errorf("missing output %s: %v", name, err)
 		}
@@ -98,12 +104,204 @@ func TestRender_DeterministicAcrossInvocations(t *testing.T) {
 		t.Fatalf("Render(out2): %v", err)
 	}
 
-	for _, rel := range []string{"index.html", "E-01.html", "M-001.html", "M-002.html", "assets/style.css"} {
+	for _, rel := range []string{
+		"index.html", "E-01.html", "M-001.html", "M-002.html",
+		"G-001.html", "ADR-0001.html", "D-001.html", "C-001.html",
+		"assets/style.css",
+	} {
 		a := readFile(t, filepath.Join(out1, rel))
 		b := readFile(t, filepath.Join(out2, rel))
 		if a != b {
 			t.Errorf("non-deterministic output for %s; len1=%d len2=%d", rel, len(a), len(b))
 		}
+	}
+}
+
+// TestRender_BodyMarkdownRendersAsHTML is the G36 seam test:
+// markdown body content (lists, links, fenced code, inline code,
+// emphasis) renders as real HTML on the gap/ADR/decision/contract
+// pages, not as escaped raw text. Pre-G36 the templates emitted
+// `<p>{{.}}</p>` which HTML-escaped the source and produced
+// pages full of literal `*foo*` / backtick noise.
+//
+// The fixture writes one entity per kind whose body exercises the
+// load-bearing markdown shapes (list, fenced code, link, inline
+// code), then asserts the rendered HTML contains the corresponding
+// HTML elements.
+func TestRender_BodyMarkdownRendersAsHTML(t *testing.T) {
+	root := t.TempDir()
+	gapsDir := filepath.Join(root, "work", "gaps")
+	mustMkdir(t, gapsDir)
+	mustWrite(t, filepath.Join(gapsDir, "G-077-mdcheck.md"),
+		"---\nid: G-077\ntitle: Markdown check\nstatus: open\n---\n\n## Symptoms\n\n- list item one\n- list item two\n\nUse `aiwf check` first.\n\nSee [the docs](https://example.com).\n\n## Repro\n\n```go\nfmt.Println(\"hi\")\n```\n")
+
+	tr, _, err := tree.Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+	// htmlrender's default resolver returns no Sections (body access
+	// is a cmd-side concern); to exercise the markdown helper through
+	// a page render we need a resolver that surfaces sections. Use
+	// bodyAwareResolver, which mirrors cmd-side wiring without the
+	// git/history dependencies.
+	out := filepath.Join(t.TempDir(), "site")
+	if _, err := Render(Options{
+		OutDir: out,
+		Tree:   tr,
+		Root:   root,
+		Data:   bodyAwareResolver{tree: tr, root: root},
+	}); err != nil {
+		t.Fatalf("Render with body-aware resolver: %v", err)
+	}
+	html := readFile(t, filepath.Join(out, "G-077.html"))
+
+	for _, want := range []string{
+		"<ul>",
+		"<li>list item one</li>",
+		"<code>aiwf check</code>",
+		`<a href="https://example.com">the docs</a>`,
+		"<pre>",
+		"fmt.Println",
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("G-077.html missing %q\n--- snippet ---\n%s", want, snippetAround(html, want))
+		}
+	}
+	// Negative: literal markdown source must NOT appear (it would
+	// mean the section was emitted via the old escaped path).
+	for _, forbidden := range []string{
+		"- list item one",
+		"```go",
+	} {
+		if strings.Contains(html, forbidden) {
+			t.Errorf("G-077.html contains raw markdown %q (escaped, not rendered)", forbidden)
+		}
+	}
+}
+
+// snippetAround returns a 200-char window around the first occurrence
+// of want in s; falls back to the first 200 chars when want is absent.
+// Used to keep error messages readable when an HTML page is several
+// KB long.
+func snippetAround(s, want string) string {
+	idx := strings.Index(s, want)
+	if idx < 0 {
+		if len(s) > 200 {
+			return s[:200] + "…"
+		}
+		return s
+	}
+	start := idx - 100
+	if start < 0 {
+		start = 0
+	}
+	end := idx + 100
+	if end > len(s) {
+		end = len(s)
+	}
+	return s[start:end]
+}
+
+// bodyAwareResolver is a test-only PageDataResolver that wraps
+// defaultResolver but overrides EntityData to read the body from
+// disk and parse sections via entity.ParseBodySectionsOrdered, the
+// same wiring cmd/aiwf's renderResolver uses. Lets the htmlrender
+// package's own tests exercise the markdown round-trip without
+// pulling in cmd-side dependencies.
+type bodyAwareResolver struct {
+	tree *tree.Tree
+	root string
+}
+
+func (r bodyAwareResolver) IndexData() (*IndexData, error) {
+	return defaultResolver{tree: r.tree}.IndexData()
+}
+
+func (r bodyAwareResolver) EpicData(id string) (*EpicData, error) {
+	return defaultResolver{tree: r.tree}.EpicData(id)
+}
+
+func (r bodyAwareResolver) MilestoneData(id string) (*MilestoneData, error) {
+	return defaultResolver{tree: r.tree}.MilestoneData(id)
+}
+
+func (r bodyAwareResolver) StatusData() (*StatusData, error) {
+	return nil, nil
+}
+
+func (r bodyAwareResolver) EntityData(id string) (*EntityData, error) {
+	data, err := defaultResolver{tree: r.tree}.EntityData(id)
+	if err != nil || data == nil {
+		return data, err
+	}
+	e := r.tree.ByID(id)
+	if e == nil {
+		return data, nil
+	}
+	abs := filepath.Join(r.root, e.Path)
+	body, err := os.ReadFile(abs)
+	if err != nil {
+		return data, nil
+	}
+	// Strip frontmatter — find the second `---` line.
+	frontDelim := []byte("---\n")
+	if idx := bytes.Index(body, frontDelim); idx >= 0 {
+		rest := body[idx+len(frontDelim):]
+		if end := bytes.Index(rest, []byte("\n---\n")); end >= 0 {
+			body = rest[end+len("\n---\n"):]
+		}
+	}
+	for _, s := range entity.ParseBodySectionsOrdered(body) {
+		data.Sections = append(data.Sections, BodySectionView{
+			Slug:    s.Slug,
+			Heading: s.Heading,
+			Content: s.Content,
+		})
+	}
+	return data, nil
+}
+
+// TestRender_NonEpicMilestoneKinds_GetPages is the G35 seam test:
+// gap, ADR, decision, and contract entities each get their own
+// HTML page rendered through the shared entity template. Pre-G35
+// these kinds were referenced from the index but had no pages, so
+// every link 404'd. The test pins one page per kind, asserting the
+// kind kicker and the entity title are present in the right place.
+func TestRender_NonEpicMilestoneKinds_GetPages(t *testing.T) {
+	root := writeFixtureTree(t)
+	tr, _, err := tree.Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+	out := filepath.Join(t.TempDir(), "site")
+	if _, err := Render(Options{OutDir: out, Tree: tr, Root: root}); err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	cases := []struct {
+		file  string
+		kind  string
+		title string
+	}{
+		{"G-001.html", "gap", "Flaky build"},
+		{"ADR-0001.html", "adr", "Tooling choice"},
+		{"D-001.html", "decision", "Release cadence"},
+		{"C-001.html", "contract", "API contract"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.kind, func(t *testing.T) {
+			html := readFile(t, filepath.Join(out, tc.file))
+			// Kicker carries the kind label; title is in the H1.
+			if !strings.Contains(html, tc.kind+" · ") {
+				t.Errorf("%s missing kind kicker %q", tc.file, tc.kind)
+			}
+			if !strings.Contains(html, "<h1>"+tc.title+"</h1>") {
+				t.Errorf("%s missing <h1>%s</h1>", tc.file, tc.title)
+			}
+			// Sidebar link back to the index.
+			if !strings.Contains(html, `href="index.html"`) {
+				t.Errorf("%s missing index link", tc.file)
+			}
+		})
 	}
 }
 
@@ -201,8 +399,9 @@ func verifyLinkIntegrity(t *testing.T, outDir string) {
 }
 
 // writeFixtureTree builds a small but complete tree: 1 epic with 2
-// milestones, the first milestone carrying 2 ACs. Returns the repo
-// root.
+// milestones, the first milestone carrying 2 ACs, plus one entity
+// of each non-epic/non-milestone kind (gap, ADR, decision, contract)
+// so the per-kind rendering is exercised. Returns the repo root.
 func writeFixtureTree(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
@@ -230,6 +429,26 @@ ship it
 `)
 	mustWrite(t, filepath.Join(epicDir, "M-002-second.md"),
 		"---\nid: M-002\ntitle: Second\nstatus: draft\nparent: E-01\n---\n\n## Goal\n\nlater\n")
+
+	gapsDir := filepath.Join(root, "work", "gaps")
+	mustMkdir(t, gapsDir)
+	mustWrite(t, filepath.Join(gapsDir, "G-001-flaky-build.md"),
+		"---\nid: G-001\ntitle: Flaky build\nstatus: open\n---\n\n## What's missing\n\nAn investigation.\n\n## Why it matters\n\nCI is unreliable.\n")
+
+	adrDir := filepath.Join(root, "docs", "adr")
+	mustMkdir(t, adrDir)
+	mustWrite(t, filepath.Join(adrDir, "ADR-0001-tooling.md"),
+		"---\nid: ADR-0001\ntitle: Tooling choice\nstatus: accepted\n---\n\n## Context\n\nNeed a tool.\n\n## Decision\n\nUse it.\n\n## Consequences\n\nLife is good.\n")
+
+	decisionDir := filepath.Join(root, "work", "decisions")
+	mustMkdir(t, decisionDir)
+	mustWrite(t, filepath.Join(decisionDir, "D-001-cadence.md"),
+		"---\nid: D-001\ntitle: Release cadence\nstatus: open\n---\n\n## Question\n\nWhen do we ship?\n\n## Decision\n\nMonthly.\n\n## Reasoning\n\nMatches QA.\n")
+
+	contractSubdir := filepath.Join(root, "work", "contracts", "C-001-api")
+	mustMkdir(t, contractSubdir)
+	mustWrite(t, filepath.Join(contractSubdir, "contract.md"),
+		"---\nid: C-001\ntitle: API contract\nstatus: accepted\n---\n\n## Purpose\n\nDescribe the API.\n\n## Stability\n\nLocked.\n")
 	return root
 }
 

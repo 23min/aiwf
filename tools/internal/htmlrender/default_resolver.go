@@ -123,6 +123,41 @@ func (r defaultResolver) EpicData(id string) (*EpicData, error) {
 	return data, nil
 }
 
+// EntityData implements PageDataResolver for gap, ADR, decision,
+// and contract pages. The default resolver returns frontmatter +
+// sidebar only — Sections (body markdown) requires reading the
+// entity file from disk, which the cmd-side resolver handles. The
+// page still renders (G35: no more 404s) showing id/title/status,
+// just without the body prose; cmd/aiwf supplies the richer view.
+//
+// Returns nil when id resolves to a kind that has its own dedicated
+// template (epic, milestone) so the renderer doesn't double-emit.
+func (r defaultResolver) EntityData(id string) (*EntityData, error) {
+	e := r.tree.ByID(id)
+	if e == nil {
+		return nil, nil
+	}
+	switch e.Kind {
+	case entity.KindEpic, entity.KindMilestone:
+		return nil, nil
+	case entity.KindGap, entity.KindADR, entity.KindDecision, entity.KindContract:
+		// fall through
+	default:
+		return nil, nil
+	}
+	return &EntityData{
+		Entity: &EntityRef{
+			ID:       e.ID,
+			Title:    e.Title,
+			Status:   e.Status,
+			Kind:     string(e.Kind),
+			Path:     e.Path,
+			FileName: idToFileName(e.ID),
+		},
+		Sidebar: r.sidebar("", ""),
+	}, nil
+}
+
 // MilestoneData implements PageDataResolver. No body / history /
 // scopes — those need git access (cmd-side resolver). The default
 // surface is enough to render the Overview and Manifest tabs from
