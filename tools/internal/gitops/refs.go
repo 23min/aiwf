@@ -25,6 +25,23 @@ func HasRemotes(ctx context.Context, workdir string) (bool, error) {
 	return strings.TrimSpace(out) != "", nil
 }
 
+// HasAnyRemoteTrackingRefs reports whether workdir has any
+// refs/remotes/* ref recorded locally. Used by the trunk-awareness
+// policy to distinguish "remote configured but never populated"
+// (e.g., a clone of an empty bare repo, before the first push) from
+// "remote configured and the trunk ref just doesn't match what's
+// fetched" (a real misconfiguration).
+//
+// Returns (false, nil) when no tracking refs exist; (true, nil) when
+// at least one does. Other git failures propagate as wrapped errors.
+func HasAnyRemoteTrackingRefs(ctx context.Context, workdir string) (bool, error) {
+	out, err := output(ctx, workdir, "for-each-ref", "--count=1", "--format=%(refname)", "refs/remotes/")
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(out) != "", nil
+}
+
 // HasRef reports whether ref resolves to an object in workdir's repo.
 // Returns (false, nil) when the ref is absent — distinguishing it
 // from any other git failure, which propagates as a wrapped error.

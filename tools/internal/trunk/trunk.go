@@ -1,15 +1,32 @@
 // Package trunk reads entity ids from the configured trunk ref's
 // tree, applying the policy from id-allocation.md:
 //
-//   - No remotes configured → skip (the repo has no cross-branch
-//     coordination surface; trunk-awareness is moot).
-//   - Remote(s) configured AND trunk ref resolves → return the
-//     (kind, id, path) triples found under work/ and docs/adr/ in
-//     that ref's tree.
-//   - Remote(s) configured AND trunk ref missing → hard error.
-//     Whether the trunk was the default or explicitly set, the
-//     consumer has remotes; an unresolvable trunk is a real
-//     misconfiguration to fix, not something to silently work around.
+//   - Not a git repository at all → skip. Tooling that legitimately
+//     runs outside a repo (test fixtures, exploratory invocations on
+//     plain directories) has no cross-branch surface to police.
+//
+//   - Configured trunk ref resolves → return the (kind, id, path)
+//     triples found under work/ and docs/adr/ in that ref's tree.
+//
+//   - Trunk ref missing AND was explicitly set in aiwf.yaml → hard
+//     error. The user named a specific ref; if it doesn't exist
+//     they should fix the typo or fetch it. Silent degradation
+//     would defeat their explicit intent.
+//
+//   - Trunk ref missing AND was the default (no allocate.trunk in
+//     aiwf.yaml) AND no refs/remotes/* tracking refs exist → skip.
+//     Covers "no remote configured" (sandbox repos), "remote
+//     configured but never fetched" (transient setup), and "freshly
+//     cloned an empty bare" (canonical first-push setup, where the
+//     bare has no branches so the clone has none either). None has
+//     anything to collide with.
+//
+//   - Trunk ref missing AND was the default AND tracking refs DO
+//     exist → hard error. The remote has been populated; an
+//     unresolvable default trunk is a real misconfiguration (the
+//     team's trunk is named something other than main, or the
+//     consumer hasn't fetched it). Setting allocate.trunk in
+//     aiwf.yaml fixes it.
 //
 // The package is read-only and has no per-process cache; callers
 // invoke once per verb run.
@@ -41,37 +58,37 @@ type Result struct {
 	Skipped bool
 }
 
-// Read returns the entity ids in cfg's configured trunk ref. It
-// applies the no-remote skip and the missing-ref-with-remote hard
-// error documented in the package comment.
+// Read returns the entity ids in cfg's configured trunk ref,
+// following the policy in this package's doc comment.
 //
 // cfg may be nil — in which case the default trunk ref is used.
 // Callers pass workdir as the consumer repo root.
-//
-// When workdir is not a git repository at all, Read returns
-// Skipped silently. Tooling that legitimately runs outside a repo
-// (test fixtures, exploratory invocations on plain directories) does
-// not have a cross-branch surface to police, so the trunk-awareness
-// layer has nothing to add.
 func Read(ctx context.Context, workdir string, cfg *config.Config) (Result, error) {
 	if !gitops.IsRepo(ctx, workdir) {
 		return Result{Skipped: true}, nil
 	}
-	hasRemotes, err := gitops.HasRemotes(ctx, workdir)
-	if err != nil {
-		return Result{}, fmt.Errorf("checking git remotes: %w", err)
-	}
-	if !hasRemotes {
-		return Result{Skipped: true}, nil
-	}
-
-	ref, _ := cfg.AllocateTrunkRef()
+	ref, explicit := cfg.AllocateTrunkRef()
 	paths, err := gitops.LsTreePaths(ctx, workdir, ref, "work/", "docs/adr/")
 	if err != nil {
-		if errors.Is(err, gitops.ErrRefNotFound) {
-			return Result{}, fmt.Errorf("trunk ref %q does not resolve in this repo; fetch it or set allocate.trunk in aiwf.yaml", ref)
+		if !errors.Is(err, gitops.ErrRefNotFound) {
+			return Result{}, fmt.Errorf("reading trunk ref %q: %w", ref, err)
 		}
-		return Result{}, fmt.Errorf("reading trunk ref %q: %w", ref, err)
+		if explicit {
+			return Result{}, fmt.Errorf("trunk ref %q does not resolve in this repo; fetch it or fix allocate.trunk in aiwf.yaml", ref)
+		}
+		// Default trunk missing. Skip when no tracking refs exist
+		// (empty remote, never-fetched, or no remote at all); error
+		// when tracking refs are present (the team's trunk is named
+		// something other than main and allocate.trunk needs to be
+		// set).
+		hasTracking, hErr := gitops.HasAnyRemoteTrackingRefs(ctx, workdir)
+		if hErr != nil {
+			return Result{}, fmt.Errorf("checking remote-tracking refs: %w", hErr)
+		}
+		if !hasTracking {
+			return Result{Skipped: true}, nil
+		}
+		return Result{}, fmt.Errorf("trunk ref %q does not resolve in this repo; fetch it or set allocate.trunk in aiwf.yaml", ref)
 	}
 
 	ids := make([]ID, 0, len(paths))

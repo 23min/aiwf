@@ -25,10 +25,31 @@ func TestRead_NoRemotes_Skips(t *testing.T) {
 		t.Fatalf("Read: %v", err)
 	}
 	if !res.Skipped {
-		t.Error("Skipped = false, want true (no remotes configured)")
+		t.Error("Skipped = false, want true (no remotes configured → no tracking refs → skip)")
 	}
 	if len(res.IDs) != 0 {
 		t.Errorf("IDs = %v, want empty when skipped", res.IDs)
+	}
+}
+
+func TestRead_RemoteAddedButNeverFetched_Skips(t *testing.T) {
+	// `git remote add` without `git fetch` leaves no refs/remotes/*
+	// tracking refs. There's nothing on this remote we know about
+	// yet, so trunk-awareness has nothing to do. This also covers
+	// the "freshly cloned an empty bare" case at the moment of
+	// first-push, where the bare has no branches and the clone has
+	// no tracking refs.
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "README.md", "readme\n")
+	mustRun(t, ctx, dir, "remote", "add", "origin", "https://example.invalid/x.git")
+
+	res, err := Read(ctx, dir, nil)
+	if err != nil {
+		t.Fatalf("Read: %v", err)
+	}
+	if !res.Skipped {
+		t.Error("Skipped = false, want true (remote configured but no tracking refs)")
 	}
 }
 
@@ -58,15 +79,24 @@ func TestRead_RemoteAndDefaultTrunk_ReturnsIDs(t *testing.T) {
 	}
 }
 
-func TestRead_RemoteButTrunkMissing_HardError(t *testing.T) {
+func TestRead_TrackingRefsExistButTrunkMissing_HardError(t *testing.T) {
+	// The repo has fetched at least one branch from origin (so
+	// refs/remotes/origin/* is populated) but the configured trunk
+	// is not one of them. That is real misconfiguration: the user
+	// either named the wrong branch in allocate.trunk or hasn't
+	// fetched the right one. We must surface the error so they fix it.
 	ctx := context.Background()
 	dir := initRepo(t)
 	commitFile(t, ctx, dir, "README.md", "readme\n")
 	mustRun(t, ctx, dir, "remote", "add", "origin", "https://example.invalid/x.git")
+	// Simulate having fetched origin/develop so a tracking ref
+	// exists. The configured trunk (default refs/remotes/origin/main)
+	// still doesn't resolve.
+	mustRun(t, ctx, dir, "update-ref", "refs/remotes/origin/develop", "HEAD")
 
 	_, err := Read(ctx, dir, nil)
 	if err == nil {
-		t.Fatal("Read: expected error for missing default trunk with remote configured, got nil")
+		t.Fatal("Read: expected error for missing default trunk with tracking refs present, got nil")
 	}
 	if !strings.Contains(err.Error(), config.DefaultAllocateTrunk) {
 		t.Errorf("error %q should mention the missing ref %q", err, config.DefaultAllocateTrunk)
