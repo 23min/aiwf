@@ -19,7 +19,6 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/config"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
-	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 	"github.com/23min/ai-workflow-v2/tools/internal/version"
 )
 
@@ -232,7 +231,7 @@ func runCheck(args []string) int {
 	}
 
 	ctx := context.Background()
-	tr, loadErrs, err := tree.Load(ctx, resolved)
+	tr, loadErrs, err := loadTreeWithTrunk(ctx, resolved)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
 		return exitInternal

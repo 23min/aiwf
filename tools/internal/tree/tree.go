@@ -18,6 +18,7 @@ import (
 	"sort"
 
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
+	"github.com/23min/ai-workflow-v2/tools/internal/trunk"
 )
 
 // Tree is the in-memory representation of every aiwf entity discovered
@@ -57,6 +58,34 @@ type Tree struct {
 	// in M-007's referrer list. Each value-slice is sorted ascending
 	// and de-duplicated for stable output.
 	ReverseRefs map[string][]string
+	// TrunkIDs is the entity-id set observed in the configured trunk
+	// ref's tree, used by AllocateID (so a new id can't collide with
+	// trunk) and by the ids-unique check (so a working-tree id that
+	// also exists at a different path on trunk surfaces as a finding
+	// before push).
+	//
+	// Tree.Load does not populate this field — the cmd dispatcher reads
+	// the trunk via the trunk package once per verb run and assigns
+	// here so the verb's projection check sees the same trunk view.
+	// Tests that build trees in-memory leave TrunkIDs nil, in which
+	// case the allocator and the check rule degrade to working-tree-
+	// only behavior (the previous default).
+	TrunkIDs []trunk.ID
+}
+
+// TrunkIDStrings returns the id strings from TrunkIDs. Convenience
+// for AllocateID, which only needs id values; the full trunk.ID is
+// kept on the tree so the ids-unique check can include the trunk-side
+// path in its finding message.
+func (t *Tree) TrunkIDStrings() []string {
+	if len(t.TrunkIDs) == 0 {
+		return nil
+	}
+	out := make([]string, len(t.TrunkIDs))
+	for i, x := range t.TrunkIDs {
+		out[i] = x.ID
+	}
+	return out
 }
 
 // HasPlannedFile reports whether path (forward-slash, repo-relative)

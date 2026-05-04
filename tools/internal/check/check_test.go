@@ -11,6 +11,7 @@ import (
 
 	"github.com/23min/ai-workflow-v2/tools/internal/entity"
 	"github.com/23min/ai-workflow-v2/tools/internal/tree"
+	"github.com/23min/ai-workflow-v2/tools/internal/trunk"
 )
 
 // makeTree constructs a non-filesystem tree from inline entities.
@@ -46,6 +47,68 @@ func TestIDsUnique(t *testing.T) {
 	}
 	if got[0].EntityID != "M-001" || got[0].Path != "b.md" {
 		t.Errorf("got %+v", got[0])
+	}
+}
+
+func TestIDsUnique_TrunkCollision(t *testing.T) {
+	// Working tree has G-035 at one path; trunk has G-035 at a different
+	// path — the G37 case. The check must surface this as a finding so
+	// the pre-push hook fails before the colliding push lands.
+	tr := makeTree(
+		&entity.Entity{ID: "G-035", Kind: entity.KindGap, Path: "work/gaps/G-035-local.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-035", Path: "work/gaps/G-035-trunk.md"},
+	}
+	got := idsUnique(tr)
+	if len(got) != 1 {
+		t.Fatalf("idsUnique findings = %d, want 1: %+v", len(got), got)
+	}
+	f := got[0]
+	if f.EntityID != "G-035" {
+		t.Errorf("EntityID = %q, want G-035", f.EntityID)
+	}
+	if f.Subcode != "trunk-collision" {
+		t.Errorf("Subcode = %q, want trunk-collision", f.Subcode)
+	}
+	if !strings.Contains(f.Message, "work/gaps/G-035-local.md") {
+		t.Errorf("message %q should name the local path", f.Message)
+	}
+	if !strings.Contains(f.Message, "work/gaps/G-035-trunk.md") {
+		t.Errorf("message %q should name the trunk-side path", f.Message)
+	}
+}
+
+func TestIDsUnique_TrunkSamePath_NoFinding(t *testing.T) {
+	// The entity is already on trunk at the same path — that's the
+	// normal post-merge state, not a collision. The check must stay
+	// silent so every aiwf check doesn't drown in noise.
+	tr := makeTree(
+		&entity.Entity{ID: "G-001", Kind: entity.KindGap, Path: "work/gaps/G-001-foo.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-001", Path: "work/gaps/G-001-foo.md"},
+	}
+	got := idsUnique(tr)
+	if len(got) != 0 {
+		t.Errorf("expected no findings (same path on trunk and locally), got %+v", got)
+	}
+}
+
+func TestIDsUnique_TrunkOnlyID_NoFinding(t *testing.T) {
+	// Trunk has G-007; the working tree doesn't. That is not a
+	// collision — the working tree just hasn't pulled, or has elected
+	// not to carry that entity yet. The allocator's job is to avoid
+	// re-using G-007; the check's job is only to catch overlaps.
+	tr := makeTree(
+		&entity.Entity{ID: "G-001", Kind: entity.KindGap, Path: "work/gaps/G-001-foo.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-007", Path: "work/gaps/G-007-trunk-only.md"},
+	}
+	got := idsUnique(tr)
+	if len(got) != 0 {
+		t.Errorf("expected no findings (trunk-only id is not a collision), got %+v", got)
 	}
 }
 

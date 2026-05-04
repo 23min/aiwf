@@ -13,6 +13,7 @@ package check
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -181,6 +182,14 @@ func casePaths(t *tree.Tree) []Finding {
 // idsUnique reports any id that occurs on more than one entity.
 // Reports once per duplicate occurrence (the second, third, ... entity
 // with the same id), so multi-way collisions surface every duplicate.
+//
+// When t.TrunkIDs is populated, idsUnique also flags any working-tree
+// entity whose id is allocated in the configured trunk ref's tree at
+// a different path — the cross-branch case G37 closes. The trunk-side
+// path is included in the finding message so the operator can see
+// what they're colliding with at a glance. Same-id-same-path on trunk
+// is silent: that's the entity already merged to trunk, not a
+// collision.
 func idsUnique(t *tree.Tree) []Finding {
 	seen := make(map[string]*entity.Entity)
 	var findings []Finding
@@ -209,6 +218,24 @@ func idsUnique(t *tree.Tree) []Finding {
 	// false-negative (missed duplicate id).
 	for _, e := range t.Stubs {
 		check(e)
+	}
+	for _, tid := range t.TrunkIDs {
+		existing, ok := seen[tid.ID]
+		if !ok {
+			continue
+		}
+		if filepath.ToSlash(existing.Path) == tid.Path {
+			continue
+		}
+		findings = append(findings, Finding{
+			Code:     "ids-unique",
+			Severity: SeverityError,
+			Message:  fmt.Sprintf("id %q is allocated on this branch (%s) and on trunk (%s) for different entities", tid.ID, existing.Path, tid.Path),
+			Path:     existing.Path,
+			EntityID: tid.ID,
+			Subcode:  "trunk-collision",
+			Field:    "id",
+		})
 	}
 	return findings
 }

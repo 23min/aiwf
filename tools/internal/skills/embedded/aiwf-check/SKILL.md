@@ -38,6 +38,7 @@ aiwf check --since HEAD~50   # walk the last 50 commits
 | Code | Meaning | Typical fix |
 |---|---|---|
 | `ids-unique` | Two entities share an id. Almost always from a parallel-branch merge. | `aiwf reallocate <path>` on the loser. |
+| `ids-unique/trunk-collision` | An id allocated on this branch is also allocated on the configured trunk ref (default `refs/remotes/origin/main`) at a different path — i.e. two different entities now share it across branches. The cross-tree variant of `ids-unique`. | `aiwf reallocate <path>` on whichever side hasn't reached trunk yet. The pre-push hook surfaces this before the colliding push lands. |
 | `frontmatter-shape` | Required field missing or malformed. | Add the field; check the kind's id format. |
 | `status-valid` | Status is not in the kind's allowed set. | Pick a status from the kind's set (see `aiwf-promote`). |
 | `refs-resolve/unresolved` | A reference points at an id that does not exist. | Either the target was never created, or the id is mistyped. |

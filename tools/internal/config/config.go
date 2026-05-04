@@ -68,6 +68,35 @@ type Config struct {
 	StatusMd    StatusMd `yaml:"status_md,omitempty"`
 	TDD         TDD      `yaml:"tdd,omitempty"`
 	HTML        HTML     `yaml:"html,omitempty"`
+	Allocate    Allocate `yaml:"allocate,omitempty"`
+}
+
+// Allocate carries the consumer's id-allocator configuration. Trunk
+// names the git ref the trunk-aware allocator unions into its view of
+// existing ids; an empty value means "use the default trunk ref" and
+// AllocateTrunkRef returns DefaultAllocateTrunk in that case.
+//
+// See docs/pocv3/design/id-allocation.md for the full model.
+type Allocate struct {
+	Trunk string `yaml:"trunk,omitempty"`
+}
+
+// DefaultAllocateTrunk is the trunk ref the allocator falls back to
+// when aiwf.yaml.allocate.trunk is unset. Mirrors what `git clone`
+// produces for a standard upstream project.
+const DefaultAllocateTrunk = "refs/remotes/origin/main"
+
+// AllocateTrunkRef returns the configured trunk ref (or the default)
+// and whether the value was explicitly set in aiwf.yaml. The
+// "explicit" bit drives the missing-ref policy: an explicitly-named
+// ref that doesn't resolve is a hard error; an unconfigured default
+// that doesn't resolve falls back to working-tree-only when the repo
+// also has no remotes.
+func (c *Config) AllocateTrunkRef() (ref string, explicit bool) {
+	if c == nil || c.Allocate.Trunk == "" {
+		return DefaultAllocateTrunk, false
+	}
+	return c.Allocate.Trunk, true
 }
 
 // HTML holds the consumer's settings for the static-site render

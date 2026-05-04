@@ -17,6 +17,58 @@ func TestLoad_Missing_ReturnsErrNotFound(t *testing.T) {
 	}
 }
 
+func TestAllocateTrunkRef_DefaultWhenUnset(t *testing.T) {
+	cases := []struct {
+		name string
+		cfg  *Config
+	}{
+		{"nil receiver", nil},
+		{"empty allocate block", &Config{}},
+		{"explicit empty trunk", &Config{Allocate: Allocate{Trunk: ""}}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ref, explicit := tc.cfg.AllocateTrunkRef()
+			if ref != DefaultAllocateTrunk {
+				t.Errorf("ref = %q, want %q", ref, DefaultAllocateTrunk)
+			}
+			if explicit {
+				t.Error("explicit = true, want false (unset)")
+			}
+		})
+	}
+}
+
+func TestAllocateTrunkRef_ExplicitlyConfigured(t *testing.T) {
+	cfg := &Config{Allocate: Allocate{Trunk: "refs/remotes/upstream/master"}}
+	ref, explicit := cfg.AllocateTrunkRef()
+	if ref != "refs/remotes/upstream/master" {
+		t.Errorf("ref = %q, want %q", ref, "refs/remotes/upstream/master")
+	}
+	if !explicit {
+		t.Error("explicit = false, want true (set in config)")
+	}
+}
+
+func TestLoad_AllocateTrunkRoundTrip(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("aiwf_version: 0.1.0\nallocate:\n  trunk: refs/remotes/origin/develop\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	ref, explicit := cfg.AllocateTrunkRef()
+	if ref != "refs/remotes/origin/develop" {
+		t.Errorf("ref = %q, want %q", ref, "refs/remotes/origin/develop")
+	}
+	if !explicit {
+		t.Error("explicit = false, want true (parsed from yaml)")
+	}
+}
+
 func TestLoad_TypicalFile(t *testing.T) {
 	root := t.TempDir()
 	// Post-I2.5 typical file: no `actor:` key. Identity is runtime-

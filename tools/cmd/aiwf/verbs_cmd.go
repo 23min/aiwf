@@ -71,7 +71,7 @@ func runAdd(args []string) int {
 	defer release()
 
 	ctx := context.Background()
-	tr, _, err := tree.Load(ctx, rootDir)
+	tr, _, err := loadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add: loading tree: %v\n", err)
 		return exitInternal
@@ -586,7 +586,7 @@ func runReallocate(args []string) int {
 	defer release()
 
 	ctx := context.Background()
-	tr, _, err := tree.Load(ctx, rootDir)
+	tr, _, err := loadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: loading tree: %v\n", err)
 		return exitInternal

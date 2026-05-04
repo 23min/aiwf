@@ -29,24 +29,38 @@ var idPrefix = map[Kind]string{
 	KindContract:  "C-",
 }
 
-// AllocateID picks the next free id for the kind, given the entities
-// currently in the tree. Computes max(existing ids of that kind) + 1
-// and formats with the canonical pad width. The allocator only sees
-// the caller's tree; cross-branch coordination is by design out of
-// scope (collisions are caught by the ids-unique check and resolved
-// with `aiwf reallocate`).
+// AllocateID picks the next free id for the kind, scanning the union
+// of (a) entities — the caller's working tree — and (b) trunkIDs —
+// id strings already present in the configured trunk ref's tree.
+// Computes max(parsed-id over both sources) + 1 and formats with the
+// canonical pad width. trunkIDs may be nil when no trunk is in scope
+// (e.g., a sandbox repo with no remotes); see package trunk for the
+// policy that produces the slice.
 //
-// Entities whose ID does not match the kind's expected pattern are
-// ignored when computing max — the bookkeeping error is surfaced by
-// the frontmatter-shape check; the allocator does not need to refuse
-// to start.
-func AllocateID(k Kind, entities []*Entity) string {
+// ids in either source whose prefix does not match k are ignored
+// (cheap-and-correct: they parse to 0); ids that match the prefix
+// but fail strconv are also ignored. The bookkeeping error is
+// surfaced by the frontmatter-shape and id-path-consistent checks;
+// the allocator does not need to refuse to start.
+//
+// Branch-to-branch collisions that survive both sources (two
+// branches from the same trunk SHA both allocating the same id
+// before either lands on trunk) are caught at merge time by the
+// ids-unique check, which also reads the trunk ref, and resolved by
+// `aiwf reallocate`.
+func AllocateID(k Kind, entities []*Entity, trunkIDs []string) string {
 	highest := 0
 	for _, e := range entities {
 		if e.Kind != k {
 			continue
 		}
 		n := parseIDNumber(k, e.ID)
+		if n > highest {
+			highest = n
+		}
+	}
+	for _, id := range trunkIDs {
+		n := parseIDNumber(k, id)
 		if n > highest {
 			highest = n
 		}

@@ -184,6 +184,147 @@ func runGit(workdir string, args ...string) (string, error) {
 	return string(out), err
 }
 
+// TestIntegration_TrunkAwareAllocator confirms G37's load-bearing
+// guarantee: the allocator skips past ids that exist on the
+// configured trunk ref but not in the working tree. Without trunk-
+// awareness, aiwf add would allocate G-001 (working-tree max + 1
+// from empty); the trunk ref carries G-001 already, so the test
+// passes only if the binary actually consults trunk.
+//
+// The setup builds a "trunk" branch carrying the entity, points
+// refs/remotes/origin/main at that branch, registers a fake remote
+// so HasRemotes returns true, and resets main so the working tree
+// is gap-free again. After that, `aiwf add gap` must allocate G-002.
+//
+// This is the verb-dispatcher seam: the unit test for AllocateID
+// pins the helper's contract; this test pins that the cmd path
+// actually wires trunk-ids into the helper.
+func TestIntegration_TrunkAwareAllocator(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q", "-b", "main"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	// aiwf init lands an initial commit on main with aiwf.yaml etc.
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+
+	// Build a trunk-side branch that carries G-001. The file content
+	// is irrelevant — the trunk read parses ids from paths via
+	// git ls-tree, not from frontmatter.
+	if out, err := runGit(root, "checkout", "-q", "-b", "fake-trunk"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
+	gapDir := filepath.Join(root, "work", "gaps")
+	if err := os.MkdirAll(gapDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(gapDir, "G-001-trunk-side.md"), []byte("---\nid: G-001\n---\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := runGit(root, "add", "work/gaps/G-001-trunk-side.md"); err != nil {
+		t.Fatalf("git add: %v\n%s", err, out)
+	}
+	if out, err := runGit(root, "commit", "-q", "-m", "trunk side adds G-001"); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+
+	// Point refs/remotes/origin/main at the trunk-side branch's HEAD,
+	// register a fake remote so HasRemotes returns true, and switch
+	// back to main with the working tree gap-free again.
+	if out, err := runGit(root, "update-ref", "refs/remotes/origin/main", "HEAD"); err != nil {
+		t.Fatalf("git update-ref: %v\n%s", err, out)
+	}
+	if out, err := runGit(root, "remote", "add", "origin", "https://example.invalid/x.git"); err != nil {
+		t.Fatalf("git remote add: %v\n%s", err, out)
+	}
+	if out, err := runGit(root, "checkout", "-q", "main"); err != nil {
+		t.Fatalf("git checkout main: %v\n%s", err, out)
+	}
+
+	// Now: working tree has no gaps. Trunk has G-001. `aiwf add gap`
+	// must allocate G-002. (Without trunk awareness, the local-only
+	// allocator would pick G-001 and the assertion would fail.)
+	out, err := runBin(t, root, binDir, nil, "add", "gap", "--title", "Local gap")
+	if err != nil {
+		t.Fatalf("aiwf add gap: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "G-002") {
+		t.Errorf("aiwf add output should reference G-002 (allocator should skip trunk's G-001); got:\n%s", out)
+	}
+	if strings.Contains(out, "G-001") && !strings.Contains(out, "G-002") {
+		t.Errorf("allocator chose G-001 — trunk awareness is not wired through to the cmd dispatcher; got:\n%s", out)
+	}
+
+	// Cross-check: the new gap landed at G-002.
+	if _, err := os.Stat(filepath.Join(root, "work", "gaps", "G-002-local-gap.md")); err != nil {
+		t.Errorf("expected work/gaps/G-002-local-gap.md to exist after add: %v", err)
+	}
+}
+
+// TestIntegration_TrunkExplicitMissingIsHardError confirms the
+// strict policy: when allocate.trunk is set explicitly in aiwf.yaml
+// but the named ref doesn't resolve, the verb fails loudly. (The
+// unit test in package trunk pins the package-level error message;
+// this test pins that the cmd surfaces it through the binary.)
+func TestIntegration_TrunkExplicitMissingIsHardError(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q", "-b", "main"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	// Configure a trunk ref that doesn't exist, plus a remote so the
+	// no-remote skip doesn't kick in.
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	existing, readErr := os.ReadFile(yamlPath)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	suffix := []byte("\nallocate:\n  trunk: refs/remotes/origin/typo\n")
+	updated := make([]byte, 0, len(existing)+len(suffix))
+	updated = append(updated, existing...)
+	updated = append(updated, suffix...)
+	if writeErr := os.WriteFile(yamlPath, updated, 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	if out, gitErr := runGit(root, "remote", "add", "origin", "https://example.invalid/x.git"); gitErr != nil {
+		t.Fatalf("git remote add: %v\n%s", gitErr, out)
+	}
+
+	out, err := runBin(t, root, binDir, nil, "add", "gap", "--title", "Should fail")
+	if err == nil {
+		t.Fatalf("expected aiwf add to fail when trunk ref is missing; output:\n%s", out)
+	}
+	if !strings.Contains(out, "refs/remotes/origin/typo") {
+		t.Errorf("error output should name the missing trunk ref; got:\n%s", out)
+	}
+}
+
 // runHook executes the installed pre-push hook script directly. We
 // invoke via /bin/sh to honor the shebang on platforms where the
 // file mode might not survive (it does on macOS/Linux test runners,
