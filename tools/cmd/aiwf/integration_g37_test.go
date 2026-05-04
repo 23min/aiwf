@@ -136,6 +136,49 @@ func aiwfAddEpic(t *testing.T, clone, binDir, title string) string {
 	return out
 }
 
+// aiwfAddDecision adds a decision with optional --relates-to refs.
+// The relatesTo slice is comma-joined and passed verbatim.
+func aiwfAddDecision(t *testing.T, clone, binDir, title string, relatesTo []string) string {
+	t.Helper()
+	args := []string{"add", "decision", "--title", title}
+	if len(relatesTo) > 0 {
+		args = append(args, "--relates-to", strings.Join(relatesTo, ","))
+	}
+	out, err := runBin(t, clone, binDir, nil, args...)
+	if err != nil {
+		t.Fatalf("aiwf add decision %q in %s: %v\n%s", title, clone, err, out)
+	}
+	return out
+}
+
+// aiwfReallocateByPath runs `aiwf reallocate <path>` in clone and
+// returns the combined output.
+func aiwfReallocateByPath(t *testing.T, clone, binDir, path string) string {
+	t.Helper()
+	out, err := runBin(t, clone, binDir, nil, "reallocate", path)
+	if err != nil {
+		t.Fatalf("aiwf reallocate %s in %s: %v\n%s", path, clone, err, out)
+	}
+	return out
+}
+
+// findEntityPath returns the repo-relative path under dir whose
+// basename starts with prefix, or "" if no entry matches.
+func findEntityPath(t *testing.T, root, dir, prefix string) string {
+	t.Helper()
+	full := filepath.Join(root, dir)
+	entries, err := os.ReadDir(full)
+	if err != nil {
+		t.Fatalf("reading %s: %v", full, err)
+	}
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), prefix) {
+			return filepath.Join(dir, e.Name())
+		}
+	}
+	return ""
+}
+
 // aiwfCheck runs `aiwf check` in clone and returns the combined
 // output plus the exec error (which is non-nil whenever findings or
 // errors are present, since the binary signals findings via exit code).
@@ -511,6 +554,173 @@ func TestIntegrationG37_CleanFetchAndMergeRoundTrip(t *testing.T) {
 	}
 	if checkOut, err := aiwfCheck(t, cloneA, binDir); err != nil {
 		t.Errorf("aiwf check on A after pulling B's gap should pass; got %v\n%s", err, checkOut)
+	}
+}
+
+// TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads is the
+// full-flow scenario: a trunk-aware reallocate must (1) pick a new
+// id that's free against trunk, (2) rewrite every other entity's
+// frontmatter references to the renumbered entity in the same
+// commit, and (3) thread `aiwf history` correctly across the rename
+// via the aiwf-prior-entity trailer.
+//
+// Setup:
+//
+//   - Clone A creates G-001 and a decision D-001 whose `relates_to`
+//     names G-001. Pushes both. Trunk now carries the cross-reference.
+//   - Clone B fetches and rebases trunk in (so B's working tree has
+//     G-001 and D-001 with the live reference).
+//   - Clone A then adds G-002 (an unrelated gap) and pushes. Trunk
+//     advances; refs/remotes/origin/main on B is stale until the next
+//     fetch.
+//   - Clone B fetches without merging. B's working tree still has
+//     G-001 and D-001 from the earlier rebase; B's trunk view now
+//     also includes G-002.
+//   - Clone B reallocates G-001.
+//
+// Asserted:
+//
+//  1. Trunk-aware allocator skips G-002 (visible only via trunk) and
+//     picks G-003 for the new id. Without trunk awareness the
+//     allocator would pick G-002 and collide with trunk.
+//  2. The decision D-001 in B's working tree has `relates_to: [G-003]`
+//     after the reallocate — the reference rewrite rode along in the
+//     same commit.
+//  3. The reallocate commit carries the standard verb/entity/actor
+//     trailers plus aiwf-prior-entity: G-001, the bridge that lets
+//     `aiwf history G-001` continue to find the entity post-rename.
+//  4. `aiwf history G-001` returns at least one event referencing
+//     the rename (via the prior-entity trailer match).
+//  5. `aiwf history G-003` returns the post-rename history (matching
+//     aiwf-entity: G-003 directly).
+//
+// This is the test that pins the kernel's "git log is the audit log"
+// guarantee for the cross-tree reallocate path: id-aware, ref-aware,
+// history-aware in one go.
+func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	bare := makeBareOrigin(t)
+	cloneA := makeClone(t, bare, "A")
+	aiwfInitClone(t, cloneA, binDir)
+
+	cloneB := makeSiblingClone(t, bare, "B")
+
+	// A creates the cross-referenced pair: a gap and a decision
+	// that names the gap in relates_to. Both push to trunk.
+	aiwfAddGap(t, cloneA, binDir, "Cache eviction breaks under churn")
+	aiwfAddDecision(t, cloneA, binDir, "Bound the cache by entry count", []string{"G-001"})
+	pushAll(t, cloneA)
+
+	// B brings trunk in via rebase so the working tree has both
+	// entities at their original ids (G-001 and D-001 with the
+	// reference live in D-001's frontmatter).
+	fetchOrigin(t, cloneB)
+	if out, err := runGit(cloneB, "rebase", "-q", "origin/main"); err != nil {
+		t.Fatalf("B rebase: %v\n%s", err, out)
+	}
+
+	// Verify the precondition: D-001 references G-001 in B's tree.
+	dPath := findEntityPath(t, cloneB, "work/decisions", "D-001-")
+	if dPath == "" {
+		t.Fatal("expected D-001-*.md in B's work/decisions/")
+	}
+	dContent, err := os.ReadFile(filepath.Join(cloneB, dPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(dContent), "G-001") {
+		t.Fatalf("decision should reference G-001 before reallocate; got:\n%s", dContent)
+	}
+
+	// A advances trunk with an unrelated G-002. B fetches but does
+	// NOT merge — B's trunk view now includes G-002 even though B's
+	// working tree doesn't.
+	aiwfAddGap(t, cloneA, binDir, "Unrelated gap")
+	pushAll(t, cloneA)
+	fetchOrigin(t, cloneB)
+
+	// Reallocate G-001 on B. Trunk-aware allocator must skip
+	// G-002 (only on trunk) and pick G-003.
+	gPath := findEntityPath(t, cloneB, "work/gaps", "G-001-")
+	if gPath == "" {
+		t.Fatal("expected G-001-*.md in B's work/gaps/ before reallocate")
+	}
+	out := aiwfReallocateByPath(t, cloneB, binDir, gPath)
+	if !strings.Contains(out, "G-003") {
+		t.Fatalf("reallocate should produce G-003 (skipping trunk's G-002); got:\n%s", out)
+	}
+
+	// Assertion 1: G-001 is gone from disk; G-003 has replaced it.
+	if got := findEntityPath(t, cloneB, "work/gaps", "G-001-"); got != "" {
+		t.Errorf("G-001-*.md should be gone after reallocate; still found %s", got)
+	}
+	g3Path := findEntityPath(t, cloneB, "work/gaps", "G-003-")
+	if g3Path == "" {
+		t.Errorf("expected G-003-*.md to exist after reallocate")
+	}
+
+	// Assertion 2: D-001's frontmatter relates_to was rewritten in
+	// the same commit. This is the core "references update" check.
+	dPathPost := findEntityPath(t, cloneB, "work/decisions", "D-001-")
+	if dPathPost == "" {
+		t.Fatal("expected D-001-*.md still present after reallocate")
+	}
+	dContentPost, err := os.ReadFile(filepath.Join(cloneB, dPathPost))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(dContentPost), "G-001") {
+		t.Errorf("D-001 should no longer reference G-001 after reallocate; got:\n%s", dContentPost)
+	}
+	if !strings.Contains(string(dContentPost), "G-003") {
+		t.Errorf("D-001 should now reference G-003; got:\n%s", dContentPost)
+	}
+
+	// Assertion 3: the reallocate commit carries the prior-entity
+	// trailer plus the standard set.
+	trailers, gitErr := runGit(cloneB, "log", "-1", "--format=%(trailers)", "HEAD")
+	if gitErr != nil {
+		t.Fatalf("reading HEAD trailers: %v\n%s", gitErr, trailers)
+	}
+	for _, want := range []string{
+		"aiwf-verb: reallocate",
+		"aiwf-entity: G-003",
+		"aiwf-prior-entity: G-001",
+		"aiwf-actor: ",
+	} {
+		if !strings.Contains(trailers, want) {
+			t.Errorf("HEAD trailers missing %q; got:\n%s", want, trailers)
+		}
+	}
+
+	// Assertion 4: aiwf history G-001 (the OLD id) still finds the
+	// entity's lifecycle via the aiwf-prior-entity backward grep.
+	// At minimum it should return the rename commit itself.
+	histOld, err := runBin(t, cloneB, binDir, nil, "history", "G-001")
+	if err != nil {
+		t.Fatalf("aiwf history G-001: %v\n%s", err, histOld)
+	}
+	if !strings.Contains(histOld, "reallocate") {
+		t.Errorf("aiwf history G-001 should surface the reallocate event; got:\n%s", histOld)
+	}
+
+	// Assertion 5: aiwf history G-003 (the NEW id) finds the post-
+	// rename history via the aiwf-entity trailer.
+	histNew, err := runBin(t, cloneB, binDir, nil, "history", "G-003")
+	if err != nil {
+		t.Fatalf("aiwf history G-003: %v\n%s", err, histNew)
+	}
+	if !strings.Contains(histNew, "reallocate") {
+		t.Errorf("aiwf history G-003 should include the reallocate commit; got:\n%s", histNew)
+	}
+
+	// Assertion 6: aiwf check on the post-reallocate working tree
+	// is clean — the cross-tree collision (G-001 vs trunk's G-001)
+	// is gone and no new findings were introduced.
+	if checkOut, err := aiwfCheck(t, cloneB, binDir); err != nil {
+		t.Errorf("aiwf check should be clean after reallocate; got %v\n%s", err, checkOut)
 	}
 }
 
