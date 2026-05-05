@@ -102,17 +102,47 @@ func TestEnsurePreCommitHook_SkipsAlien(t *testing.T) {
 	}
 }
 
-// TestEnsurePreCommitHook_UninstallOurOwn: install=false with a
-// marker-managed hook in place → ActionRemoved, hook file gone.
-func TestEnsurePreCommitHook_UninstallOurOwn(t *testing.T) {
+// TestEnsurePreCommitHook_RegenOff_FreshInstall (G42): regenStatus=false
+// on a repo with no prior hook still installs the hook (the
+// tree-discipline gate is enforcement, not opt-out-able). The script
+// body omits the STATUS.md regen block.
+func TestEnsurePreCommitHook_RegenOff_FreshInstall(t *testing.T) {
+	root := freshGitRepo(t)
+	step, conflict, err := ensurePreCommitHook(context.Background(), root, false, false)
+	if err != nil {
+		t.Fatalf("ensurePreCommitHook: %v", err)
+	}
+	if conflict {
+		t.Errorf("conflict = true, want false")
+	}
+	if step.Action != ActionCreated {
+		t.Errorf("Action = %q, want %q (G42: hook always installs)", step.Action, ActionCreated)
+	}
+	body, err := os.ReadFile(filepath.Join(root, ".git", "hooks", "pre-commit"))
+	if err != nil {
+		t.Fatalf("read hook: %v", err)
+	}
+	if !strings.Contains(string(body), "check --shape-only") {
+		t.Errorf("regenStatus=false hook still must include the tree-discipline gate:\n%s", body)
+	}
+	if strings.Contains(string(body), "status --root") {
+		t.Errorf("regenStatus=false must omit STATUS.md regen step:\n%s", body)
+	}
+}
+
+// TestEnsurePreCommitHook_RegenOff_RefreshDropsRegen (G42): when our
+// own hook is in place and the consumer flips status_md.auto_update
+// to false, a refresh rewrites the script in place to drop the regen
+// step. The gate stays. Action=Updated, conflict=false.
+func TestEnsurePreCommitHook_RegenOff_RefreshDropsRegen(t *testing.T) {
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	body := []byte("#!/bin/sh\n" + PreCommitHookMarker() + "\nexit 0\n")
 	hookPath := filepath.Join(hooksDir, "pre-commit")
-	if err := os.WriteFile(hookPath, body, 0o755); err != nil {
+	prior := []byte("#!/bin/sh\n" + PreCommitHookMarker() + "\n# stale body with status --root invocation\nexit 0\n")
+	if err := os.WriteFile(hookPath, prior, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -123,39 +153,26 @@ func TestEnsurePreCommitHook_UninstallOurOwn(t *testing.T) {
 	if conflict {
 		t.Errorf("conflict = true, want false (own hook)")
 	}
-	if step.Action != ActionRemoved {
-		t.Errorf("Action = %q, want %q", step.Action, ActionRemoved)
+	if step.Action != ActionUpdated {
+		t.Errorf("Action = %q, want %q", step.Action, ActionUpdated)
 	}
-	if _, err := os.Stat(hookPath); !os.IsNotExist(err) {
-		t.Errorf("hook still exists after uninstall (stat err=%v)", err)
-	}
-}
-
-// TestEnsurePreCommitHook_UninstallNoHook: install=false with no
-// hook present → ActionPreserved with a "disabled by config"
-// detail; nothing on disk.
-func TestEnsurePreCommitHook_UninstallNoHook(t *testing.T) {
-	root := freshGitRepo(t)
-	step, conflict, err := ensurePreCommitHook(context.Background(), root, false, false)
+	got, err := os.ReadFile(hookPath)
 	if err != nil {
-		t.Fatalf("ensurePreCommitHook: %v", err)
+		t.Fatal(err)
 	}
-	if conflict {
-		t.Errorf("conflict = true, want false")
+	if !strings.Contains(string(got), "check --shape-only") {
+		t.Errorf("refreshed hook missing tree-discipline gate:\n%s", got)
 	}
-	if step.Action != ActionPreserved {
-		t.Errorf("Action = %q, want %q", step.Action, ActionPreserved)
-	}
-	if !strings.Contains(step.Detail, "disabled by config") {
-		t.Errorf("Detail = %q, want it to mention the opt-out", step.Detail)
+	if strings.Contains(string(got), "status --root") {
+		t.Errorf("regenStatus=false refresh must drop the regen step:\n%s", got)
 	}
 }
 
-// TestEnsurePreCommitHook_UninstallSkipsAlien: install=false with a
-// non-marker hook in place → ActionSkipped, conflict=true, alien
-// hook left alone. Critical: opt-out must never delete user
-// content.
-func TestEnsurePreCommitHook_UninstallSkipsAlien(t *testing.T) {
+// TestEnsurePreCommitHook_RegenOff_AlienHookPreserved (G42): regenStatus=false
+// with a non-marker hook in place — the alien hook is left alone,
+// same conflict-skip contract as the install path. The G42 change
+// (always-install) does not weaken the alien-preservation guarantee.
+func TestEnsurePreCommitHook_RegenOff_AlienHookPreserved(t *testing.T) {
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -182,7 +199,7 @@ func TestEnsurePreCommitHook_UninstallSkipsAlien(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytesEqual(got, alien) {
-		t.Errorf("alien hook clobbered on uninstall:\nwant %q\ngot  %q", alien, got)
+		t.Errorf("alien hook clobbered:\nwant %q\ngot  %q", alien, got)
 	}
 }
 
@@ -207,18 +224,19 @@ func TestEnsurePreCommitHook_DryRunInstall(t *testing.T) {
 	}
 }
 
-// TestEnsurePreCommitHook_DryRunUninstall: dryRun=true must not
-// remove a marker-managed hook even when install=false. The
-// reported StepResult still says ActionRemoved.
-func TestEnsurePreCommitHook_DryRunUninstall(t *testing.T) {
+// TestEnsurePreCommitHook_DryRunRegenOff (G42): dryRun=true with
+// regenStatus=false must not write the hook even though it would
+// otherwise refresh in place. The StepResult reports ActionUpdated
+// since a hook was already installed.
+func TestEnsurePreCommitHook_DryRunRegenOff(t *testing.T) {
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	body := []byte("#!/bin/sh\n" + PreCommitHookMarker() + "\nexit 0\n")
+	prior := []byte("#!/bin/sh\n" + PreCommitHookMarker() + "\n# untouched\nexit 0\n")
 	hookPath := filepath.Join(hooksDir, "pre-commit")
-	if err := os.WriteFile(hookPath, body, 0o755); err != nil {
+	if err := os.WriteFile(hookPath, prior, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -226,11 +244,15 @@ func TestEnsurePreCommitHook_DryRunUninstall(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ensurePreCommitHook: %v", err)
 	}
-	if step.Action != ActionRemoved {
-		t.Errorf("Action = %q, want %q", step.Action, ActionRemoved)
+	if step.Action != ActionUpdated {
+		t.Errorf("Action = %q, want %q", step.Action, ActionUpdated)
 	}
-	if _, err := os.Stat(hookPath); err != nil {
-		t.Errorf("dry-run removed the hook: %v", err)
+	got, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytesEqual(got, prior) {
+		t.Errorf("dry-run rewrote the hook:\nwant %q\ngot  %q", prior, got)
 	}
 }
 
@@ -257,12 +279,13 @@ func TestInit_InstallsPreCommitByDefault(t *testing.T) {
 	}
 }
 
-// TestInit_RespectsStatusMdAutoUpdateFalse: a repo whose pre-existing
-// aiwf.yaml opts out of STATUS.md auto-update lands no pre-commit
-// hook, even on a fresh init. The ledger row reports it Preserved
-// with a "disabled by config" detail so the user understands why
-// the step did nothing.
-func TestInit_RespectsStatusMdAutoUpdateFalse(t *testing.T) {
+// TestInit_StatusMdAutoUpdateFalse_StillInstallsGate (G42): a repo
+// whose aiwf.yaml opts out of STATUS.md auto-update on fresh init
+// still gets the pre-commit hook installed — the tree-discipline
+// gate is enforcement and decoupled from the regen convenience.
+// The ledger row reports it Created; the script body lacks the
+// regen step.
+func TestInit_StatusMdAutoUpdateFalse_StillInstallsGate(t *testing.T) {
 	root := freshGitRepo(t)
 	yaml := []byte(`aiwf_version: 0.1.0
 actor: human/peter
@@ -278,21 +301,26 @@ status_md:
 		t.Fatalf("Init: %v", err)
 	}
 	step := findStep(t, res.Steps, ".git/hooks/pre-commit")
-	if step.Action != ActionPreserved {
-		t.Errorf("pre-commit step.Action = %q, want %q (opt-out, no prior hook)", step.Action, ActionPreserved)
+	if step.Action != ActionCreated {
+		t.Errorf("pre-commit step.Action = %q, want %q (G42: gate always installs)", step.Action, ActionCreated)
 	}
-	if !strings.Contains(step.Detail, "disabled by config") {
-		t.Errorf("pre-commit step.Detail = %q, want a 'disabled by config' note", step.Detail)
+	body, err := os.ReadFile(filepath.Join(root, ".git", "hooks", "pre-commit"))
+	if err != nil {
+		t.Fatalf("pre-commit hook not installed despite G42 contract: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".git", "hooks", "pre-commit")); !os.IsNotExist(err) {
-		t.Errorf("pre-commit hook installed despite opt-out (stat err=%v)", err)
+	if !strings.Contains(string(body), "check --shape-only") {
+		t.Errorf("hook missing tree-discipline gate:\n%s", body)
+	}
+	if strings.Contains(string(body), "status --root") {
+		t.Errorf("status_md.auto_update: false must drop the regen step:\n%s", body)
 	}
 }
 
-// TestRefreshArtifacts_FlipFlagUninstalls: simulate the canonical
-// opt-out flow — install on default, then flip the flag and re-run
-// the refresh. The hook is removed.
-func TestRefreshArtifacts_FlipFlagUninstalls(t *testing.T) {
+// TestRefreshArtifacts_FlipFlagDropsRegenKeepsGate (G42): canonical
+// opt-out flow — install on default, then flip status_md.auto_update
+// and re-refresh. The hook stays installed; only the regen block is
+// dropped from the script body. Action=Updated.
+func TestRefreshArtifacts_FlipFlagDropsRegenKeepsGate(t *testing.T) {
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -302,7 +330,6 @@ func TestRefreshArtifacts_FlipFlagUninstalls(t *testing.T) {
 		t.Fatalf("pre-commit hook not installed by default Init: %v", err)
 	}
 
-	// Flip the flag in the typical hand-edit shape.
 	yaml := []byte(`aiwf_version: 0.1.0
 actor: human/peter
 status_md:
@@ -322,11 +349,18 @@ status_md:
 		t.Errorf("conflict = true on opt-out, want false")
 	}
 	step := findStep(t, steps, ".git/hooks/pre-commit")
-	if step.Action != ActionRemoved {
-		t.Errorf("pre-commit step.Action = %q, want %q", step.Action, ActionRemoved)
+	if step.Action != ActionUpdated {
+		t.Errorf("pre-commit step.Action = %q, want %q (G42: refresh in place)", step.Action, ActionUpdated)
 	}
-	if _, err := os.Stat(hookPath); !os.IsNotExist(err) {
-		t.Errorf("pre-commit hook still on disk after opt-out (stat err=%v)", err)
+	body, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatalf("pre-commit hook missing after refresh (G42 violation): %v", err)
+	}
+	if !strings.Contains(string(body), "check --shape-only") {
+		t.Errorf("refreshed hook missing tree-discipline gate:\n%s", body)
+	}
+	if strings.Contains(string(body), "status --root") {
+		t.Errorf("flip-flag refresh must drop status regen step:\n%s", body)
 	}
 }
 

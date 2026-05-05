@@ -106,27 +106,38 @@ func runSelfCheck() int {
 			},
 		},
 		{
-			label: "update (status_md.auto_update: false → uninstalls hook)",
+			label: "update (status_md.auto_update: false → keeps gate, drops regen)",
 			args:  []string{"update", "--root", tmp},
 			setup: func() error {
 				return rewriteAiwfYAMLAutoUpdate(tmp, false)
 			},
 			verify: func() error {
-				if _, err := os.Stat(preCommitHook); !os.IsNotExist(err) {
-					return fmt.Errorf("pre-commit hook should be removed when opt-out flag is set (stat err=%v)", err)
+				body, err := os.ReadFile(preCommitHook)
+				if err != nil {
+					return fmt.Errorf("pre-commit hook should remain installed under G42 (gate is enforcement): %w", err)
+				}
+				if !strings.Contains(string(body), "check --shape-only") {
+					return fmt.Errorf("pre-commit hook lost the tree-discipline gate after opt-out:\n%s", body)
+				}
+				if strings.Contains(string(body), "status --root") {
+					return fmt.Errorf("pre-commit hook still includes STATUS.md regen after opt-out:\n%s", body)
 				}
 				return nil
 			},
 		},
 		{
-			label: "update (status_md.auto_update: true → reinstalls hook)",
+			label: "update (status_md.auto_update: true → reinstates regen)",
 			args:  []string{"update", "--root", tmp},
 			setup: func() error {
 				return rewriteAiwfYAMLAutoUpdate(tmp, true)
 			},
 			verify: func() error {
-				if _, err := os.Stat(preCommitHook); err != nil {
-					return fmt.Errorf("pre-commit hook should be reinstalled after re-opt-in: %w", err)
+				body, err := os.ReadFile(preCommitHook)
+				if err != nil {
+					return fmt.Errorf("pre-commit hook missing after re-opt-in: %w", err)
+				}
+				if !strings.Contains(string(body), "status --root") {
+					return fmt.Errorf("pre-commit hook missing STATUS.md regen after re-opt-in:\n%s", body)
 				}
 				return nil
 			},

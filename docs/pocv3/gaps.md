@@ -522,6 +522,29 @@ Severity: **Medium**. Not blocking PoC completion, but a real source of "we don'
 
 ---
 
+### G42. Pre-commit hook coupled enforcement and convenience — `status_md.auto_update: false` removed the tree-discipline gate too — **resolved**
+
+Resolved in commit `(this commit)` (feat(aiwf): G42 — decouple pre-commit hook responsibilities). G41 wired the tree-discipline gate into the pre-commit hook, but the hook installer was still gated by `aiwf.yaml: status_md.auto_update` — a flag whose original purpose was to opt out of *STATUS.md regeneration*, not enforcement. Flipping the flag removed the entire hook, which now meant losing the gate too. Pre-push still caught stray files, but the in-loop early-warning that motivated G41 disappeared.
+
+The fix decouples the two responsibilities at the script level:
+
+- The pre-commit hook now installs unconditionally when aiwf is adopted in the repo (the `SkipHooks` opt-out at init time remains the single escape hatch for "I want no aiwf hooks at all").
+- `preCommitHookScript(execPath, regenStatus)` takes a bool for the regen step. When false, the script body contains only the tree-discipline gate; when true, it includes the gate followed by the existing tolerant STATUS.md regen.
+- The `ensurePreCommitHook` action set is now {`Created`, `Updated`, `Skipped` (alien hook)}; `Removed` no longer occurs through this path. `aiwf doctor`'s pre-commit reporting is updated accordingly: missing-hook is always drift, present-with-mismatching-regen is drift, and the new "ok, gate-only" line marks the desired-and-actual-agree state under `auto_update: false`.
+- `extractPreCommitExecPath` now handles the `if ! 'path' …` negation form introduced for the gate; without this, the doctor would have reported a malformed hook for the gate-only mode.
+
+Tests cover both modes end-to-end:
+
+- `TestEnsurePreCommitHook_RegenOff_FreshInstall` and `_RefreshDropsRegen` pin the new install/refresh contracts.
+- `TestEnsurePreCommitHook_RegenOff_AlienHookPreserved` proves the always-install change does not weaken alien-hook preservation.
+- `TestRefreshArtifacts_FlipFlagDropsRegenKeepsGate` and `TestRun_UpdateDropsRegenKeepsGateOnOptOut` exercise the canonical opt-out flow at the package and verb levels.
+- `TestPreCommitHookScript_RegenStatus_Decoupling` pins the script-template invariant: gate always present, regen only when `regenStatus=true`.
+- The doctor self-check repo's update round-trip is rewritten ("keeps gate, drops regen" + "reinstates regen") so a regression that re-couples the responsibilities surfaces in the self-check, not in the field.
+
+Severity: **High**. The coupling silently negated G41's enforcement guarantee for any consumer who had touched the unrelated STATUS.md flag. Caught in review immediately after G41 shipped.
+
+---
+
 ### G41. Tree-discipline ran only at pre-push — LLM-loop signal lands too late — **resolved**
 
 Resolved in commit `(this commit)` (feat(aiwf): G41 — pre-commit gate + `aiwf check --shape-only`). G40 shipped the tree-discipline rule wired into the full `aiwf check` pipeline at pre-push only. That guarantees the bad state never *pushes*, but it does not give the LLM an in-loop signal — by the time pre-push fires, the stray commit has already landed locally, possibly been amended onto, or been bypassed via `git push --no-verify`. The user pushed back on two points:
@@ -535,9 +558,7 @@ The fix has three pieces, all in this commit:
 2. **Pre-commit hook gains the gate.** The aiwf-managed pre-commit hook now invokes `aiwf check --shape-only` *before* the existing STATUS.md regen step. The shape check is non-tolerant — non-zero exit blocks the commit (only fires when strict). The status step remains tolerant per the existing design.
 3. **Skill + design doc updates.** `aiwf-check` SKILL documents the `--shape-only` flag and the pre-commit/pre-push split as a two-row table; `tree-discipline.md` records the chokepoint design rationale and explicitly rejects the marker-CLAUDE.md alternative with the agent-agnosticism reasoning.
 
-**Known scope limitation, not closed by this commit:** the pre-commit hook is gated by `aiwf.yaml: status_md.auto_update`. A consumer who opts that flag off loses both the STATUS.md regen *and* the pre-commit tree-discipline gate; pre-push still enforces, so the kernel guarantee holds, but the early-warning signal disappears. Fully decoupling those two hook responsibilities is deferred until a real consumer needs the split.
-
-Severity: **High**. The user discovered the issue immediately on review of G40's shipped form — pre-push enforcement alone, without a pre-commit early-warning, leaves the LLM blind in-loop. The mechanical guarantee (push fails) was solid; the UX cost was unacceptable.
+Followup decoupling closed in G42 — see below. Severity: **High**.
 
 ---
 
@@ -623,6 +644,7 @@ Severity: **High**. Operator-facing regression on the most common Go install set
 | G38 | The kernel repo does not dogfood aiwf — feasibility and fit need investigation | Medium | [ ] open |
 | G39 | `aiwf upgrade` mis-parses `go env` output when GOBIN is unset | High | [x] `9a06c74` |
 | G40 | `work/` mechanically unprotected — `aiwf check` silently ignores stray files | High | [x] `bdd43c2` |
-| G41 | Tree-discipline ran only at pre-push — LLM-loop signal lands too late | High | [x] (this commit) |
+| G41 | Tree-discipline ran only at pre-push — LLM-loop signal lands too late | High | [x] `fb2e1e4` |
+| G42 | Pre-commit hook coupled enforcement and convenience — `status_md.auto_update: false` removed the gate too | High | [x] (this commit) |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

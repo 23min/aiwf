@@ -990,13 +990,23 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 }
 
 // appendPreCommitHookReport inspects .git/hooks/pre-commit and
-// reports its state, with one extra wrinkle vs. pre-push: the
-// config flag `status_md.auto_update` controls whether the hook is
-// supposed to be installed at all. A "no marker hook on disk and
-// flag is false" state is the desired-and-actual-agree case and
-// reports as `disabled by config` (no problem). A "flag is true and
-// hook missing" state is drift (a problem; remediated by `aiwf
-// update`).
+// reports its state. Per G42 the hook's primary responsibility is
+// the tree-discipline gate (always present); the secondary
+// responsibility — STATUS.md regeneration — toggles with the
+// consumer's `status_md.auto_update` flag. The hook itself is
+// expected to be installed regardless of that flag.
+//
+// States:
+//   - hook missing → drift (the gate must always be present); problem.
+//   - hook present, gate-only mode (regen step absent) and auto_update
+//     is false → desired-and-actual-agree (no problem; reported as
+//     "ok, gate-only").
+//   - hook present, regen step absent but auto_update is true → drift
+//     (regen was opted in but the script body doesn't reflect it);
+//     problem; remediated by `aiwf update`.
+//   - hook present, regen step present but auto_update is false →
+//     opposite drift; problem; remediated by `aiwf update`.
+//   - hook present, regen step matches the flag → ok.
 func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
 	lines = in
 	problems = problemsIn
@@ -1009,11 +1019,10 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 	hookPath := filepath.Join(rootDir, ".git", "hooks", "pre-commit")
 	raw, err := os.ReadFile(hookPath)
 	if errors.Is(err, os.ErrNotExist) {
-		if !autoUpdate {
-			lines = append(lines, "pre-commit: disabled by config (status_md.auto_update: false)")
-			return lines, problems
-		}
-		lines = append(lines, "pre-commit: missing — STATUS.md auto-update not installed; run `aiwf update`")
+		// Per G42 the gate must always be installed when aiwf is
+		// adopted in the repo, so a missing hook is drift regardless
+		// of status_md.auto_update.
+		lines = append(lines, "pre-commit: missing — tree-discipline gate not installed; run `aiwf update`")
 		problems++
 		return lines, problems
 	}
@@ -1023,7 +1032,7 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		return lines, problems
 	}
 	if !strings.Contains(string(raw), "# aiwf:pre-commit") {
-		lines = append(lines, "pre-commit: present but not aiwf-managed (no `# aiwf:pre-commit` marker); STATUS.md is not being auto-updated")
+		lines = append(lines, "pre-commit: present but not aiwf-managed (no `# aiwf:pre-commit` marker); tree-discipline gate is not enforced")
 		return lines, problems
 	}
 	embedded := extractPreCommitExecPath(string(raw))
@@ -1037,14 +1046,19 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		problems++
 		return lines, problems
 	}
-	if !autoUpdate {
-		// Hook on disk but config says off — drift in the other
-		// direction. Remediation is the same: `aiwf update` removes it.
-		lines = append(lines, "pre-commit: present but config says off (status_md.auto_update: false); run `aiwf update` to remove")
+	hasRegen := strings.Contains(string(raw), "status --root")
+	switch {
+	case autoUpdate && !hasRegen:
+		lines = append(lines, "pre-commit: present but missing STATUS.md regen (status_md.auto_update: true); run `aiwf update` to refresh")
 		problems++
-		return lines, problems
+	case !autoUpdate && hasRegen:
+		lines = append(lines, "pre-commit: present with STATUS.md regen but config says off (status_md.auto_update: false); run `aiwf update` to refresh")
+		problems++
+	case !autoUpdate && !hasRegen:
+		lines = append(lines, fmt.Sprintf("pre-commit: ok, gate-only (%s; status_md.auto_update: false)", embedded))
+	default:
+		lines = append(lines, fmt.Sprintf("pre-commit: ok (%s)", embedded))
 	}
-	lines = append(lines, fmt.Sprintf("pre-commit: ok (%s)", embedded))
 	return lines, problems
 }
 
@@ -1058,6 +1072,10 @@ func extractPreCommitExecPath(script string) string {
 			continue
 		}
 		rest := strings.TrimPrefix(line, "if ")
+		// G42 introduced a `! ` negation form for the tree-discipline
+		// gate (`if ! 'path' check --shape-only ...`). Strip the
+		// negation if present so the quote scan finds the binary path.
+		rest = strings.TrimPrefix(rest, "! ")
 		if !strings.HasPrefix(rest, "'") {
 			continue
 		}

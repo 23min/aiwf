@@ -233,11 +233,12 @@ func TestRun_UpdateRefreshesPreCommitHook(t *testing.T) {
 	}
 }
 
-// TestRun_UpdateUninstallsPreCommitOnOptOut: the canonical flow —
-// run init (hook installed by default), flip status_md.auto_update
-// to false in aiwf.yaml, run update → marker-managed pre-commit
-// hook is removed.
-func TestRun_UpdateUninstallsPreCommitOnOptOut(t *testing.T) {
+// TestRun_UpdateDropsRegenKeepsGateOnOptOut (G42): run init (hook
+// installed by default), flip status_md.auto_update: false, run
+// update → the marker-managed pre-commit hook stays installed
+// (tree-discipline gate is enforcement, not opt-out-able), but the
+// STATUS.md regen step is dropped from the script body.
+func TestRun_UpdateDropsRegenKeepsGateOnOptOut(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -261,8 +262,15 @@ status_md:
 	if rc := run([]string{"update", "--root", root}); rc != exitOK {
 		t.Fatalf("update: %d", rc)
 	}
-	if _, err := os.Stat(hookPath); !os.IsNotExist(err) {
-		t.Errorf("pre-commit hook still on disk after opt-out (stat err=%v)", err)
+	body, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatalf("pre-commit hook missing after opt-out (G42 violation): %v", err)
+	}
+	if !strings.Contains(string(body), "check --shape-only") {
+		t.Errorf("hook missing tree-discipline gate after opt-out:\n%s", body)
+	}
+	if strings.Contains(string(body), "status --root") {
+		t.Errorf("opt-out must drop STATUS.md regen step:\n%s", body)
 	}
 }
 
@@ -756,8 +764,8 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 		"ok    history",
 		"ok    render roadmap",
 		"ok    update (default install)",
-		"ok    update (status_md.auto_update: false → uninstalls hook)",
-		"ok    update (status_md.auto_update: true → reinstalls hook)",
+		"ok    update (status_md.auto_update: false → keeps gate, drops regen)",
+		"ok    update (status_md.auto_update: true → reinstates regen)",
 		"ok    check",
 		"ok    doctor",
 	} {
@@ -979,11 +987,11 @@ func TestDoctorReport_PreCommitHookOK(t *testing.T) {
 	}
 }
 
-// TestDoctorReport_PreCommitHookDisabledByConfig: status_md.auto_update
-// false plus no hook on disk is the desired-and-actual-agree state.
-// Doctor reports "disabled by config" and increments no pre-commit
-// problems.
-func TestDoctorReport_PreCommitHookDisabledByConfig(t *testing.T) {
+// TestDoctorReport_PreCommitHookGateOnly (G42): status_md.auto_update
+// false leaves the pre-commit hook installed in gate-only mode.
+// Doctor reports "ok, gate-only" and counts no problems — that's
+// the desired-and-actual-agree state under G42.
+func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
 	root := setupCLITestRepo(t)
 	// Pre-write aiwf.yaml with the same Version the binary will
 	// stamp on init, so the version-skew check doesn't add a
@@ -1000,11 +1008,11 @@ func TestDoctorReport_PreCommitHookDisabledByConfig(t *testing.T) {
 	}
 	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "pre-commit: disabled by config") {
-		t.Errorf("expected 'disabled by config' line:\n%s", joined)
+	if !strings.Contains(joined, "pre-commit: ok, gate-only") {
+		t.Errorf("expected 'ok, gate-only' line under G42:\n%s", joined)
 	}
 	if problems != 0 {
-		t.Errorf("opt-out should produce no problems; got %d:\n%s", problems, joined)
+		t.Errorf("gate-only mode should produce no problems; got %d:\n%s", problems, joined)
 	}
 }
 

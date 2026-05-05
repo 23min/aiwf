@@ -90,18 +90,14 @@ exec ` + shellQuoteSingle(execPath) + ` check
 }
 
 // preCommitHookScript renders the body of the pre-commit hook. The
-// hook does two things, in order:
+// hook always carries the G41 tree-discipline gate; the STATUS.md
+// regeneration step is conditional on regenStatus (mirrors the
+// consumer's `aiwf.yaml: status_md.auto_update`).
 //
-//  1. Tree-discipline gate (`aiwf check --shape-only`). When the
-//     consumer has `aiwf.yaml: tree.strict: true`, a stray file
-//     under work/ blocks the commit; in the default warn-only mode
-//     the finding prints but the commit proceeds. This is the G41
-//     surface — pre-commit catches the LLM-loop failure mode that
-//     pre-push only catches at audit time. Agent-agnostic: any
-//     client that runs `git commit` triggers the hook.
-//  2. STATUS.md regeneration (tolerant). Any failure here silently
-//     exits 0 so a transient `aiwf status` problem doesn't block
-//     contributors.
+// The two responsibilities are deliberately decoupled (G42): the
+// gate is enforcement and must not be opt-out-able through an
+// unrelated convenience flag. The regen step is convenience and
+// can be turned off without losing enforcement.
 //
 // The aiwf binary's absolute path is baked in (same rationale as
 // preHookScript: hooks should not depend on the user's interactive
@@ -112,17 +108,32 @@ exec ` + shellQuoteSingle(execPath) + ` check
 // present at the repo root the hook exits 0 immediately. Without
 // this guard the hook would fire on every commit in a brownfield
 // repo that has not yet adopted aiwf — invasive and surprising.
-func preCommitHookScript(execPath string) string {
+func preCommitHookScript(execPath string, regenStatus bool) string {
 	bin := shellQuoteSingle(execPath)
+	regenBlock := ""
+	if regenStatus {
+		regenBlock = `
+# (2) STATUS.md regen. Tolerant by design — never blocks commits.
+tmp="$repo_root/STATUS.md.tmp"
+if ` + bin + ` status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
+    mv "$tmp" "$repo_root/STATUS.md"
+    git add "$repo_root/STATUS.md"
+else
+    rm -f "$tmp"
+fi
+`
+	}
 	return `#!/bin/sh
 ` + preCommitHookMarker + `
-# Installed by aiwf init/update. Two responsibilities:
-#   1. Tree-discipline gate: stray files under work/ block the
-#      commit when aiwf.yaml has tree.strict: true; otherwise they
-#      print a warning but proceed.
-#   2. STATUS.md regeneration: tolerant — never blocks commits.
-# Opt out of STATUS.md regen: set status_md.auto_update: false in
-# aiwf.yaml and run 'aiwf update' to refresh this hook.
+# Installed by aiwf init/update.
+#   (1) Tree-discipline gate: stray files under work/ block the
+#       commit when aiwf.yaml has tree.strict: true; otherwise they
+#       print a warning but proceed. Always present.
+#   (2) STATUS.md regeneration: tolerant — never blocks commits.
+#       Present only when status_md.auto_update is not false.
+# Opt out of the entire hook: set SkipHooks at init time, or
+# remove this file (aiwf update will not re-create it without
+# re-running init).
 set -e
 repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
@@ -133,16 +144,7 @@ repo_root="$(git rev-parse --show-toplevel)"
 if ! ` + bin + ` check --shape-only --root "$repo_root" >&2; then
     exit 1
 fi
-
-# (2) STATUS.md regen. Tolerant by design.
-tmp="$repo_root/STATUS.md.tmp"
-if ` + bin + ` status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
-    mv "$tmp" "$repo_root/STATUS.md"
-    git add "$repo_root/STATUS.md"
-else
-    rm -f "$tmp"
-fi
-exit 0
+` + regenBlock + `exit 0
 `
 }
 
@@ -821,25 +823,24 @@ func HookMarker() string { return preHookMarker }
 // versus a user-written one.
 func PreCommitHookMarker() string { return preCommitHookMarker }
 
-// ensurePreCommitHook installs (or refreshes, or removes) the
-// marker-protected pre-commit hook that regenerates `STATUS.md`. The
-// install argument carries the consumer's opt-in state from
-// `aiwf.yaml.status_md.auto_update`:
+// ensurePreCommitHook installs (or refreshes) the marker-protected
+// pre-commit hook. The hook always installs when aiwf is present in
+// the repo — its primary responsibility is the G41 tree-discipline
+// gate, which is enforcement and must not be opt-out-able through
+// an unrelated config knob.
 //
-//   - install=true: write or refresh the hook (Created or Updated).
-//     If a non-marker hook is already in place, return ActionSkipped
-//     and conflict=true so the caller can surface remediation, same
-//     contract as ensurePreHook.
+// The regenStatus argument carries the consumer's opt-in state from
+// `aiwf.yaml.status_md.auto_update` and controls only whether the
+// script body includes the STATUS.md regeneration step *inside* the
+// hook. When false, the hook still installs and still gates on
+// tree-discipline; only the secondary regen behavior is suppressed.
 //
-//   - install=false: remove a previously-installed marker-managed
-//     hook (ActionRemoved). A non-marker hook is left alone (the
-//     consumer's content is theirs to manage). Absence reports
-//     ActionPreserved with a "disabled by config" detail so the
-//     ledger explains why the step did nothing.
-//
-// In dry-run mode no filesystem mutation occurs; the StepResult still
-// reflects what would have happened so the user can preview.
-func ensurePreCommitHook(ctx context.Context, root string, install, dryRun bool) (StepResult, bool, error) {
+// A non-marker hook is left alone (the consumer's content is theirs
+// to manage); the function returns ActionSkipped and conflict=true
+// so the caller can surface remediation. In dry-run mode no
+// filesystem mutation occurs; the StepResult still reflects what
+// would have happened so the user can preview.
+func ensurePreCommitHook(ctx context.Context, root string, regenStatus, dryRun bool) (StepResult, bool, error) {
 	gitDir, err := gitops.GitDir(ctx, root)
 	if err != nil {
 		return StepResult{}, false, fmt.Errorf("locating git dir: %w", err)
@@ -851,34 +852,6 @@ func ensurePreCommitHook(ctx context.Context, root string, install, dryRun bool)
 	existing, readErr := os.ReadFile(hookPath)
 	hasOurMarker := readErr == nil && strings.Contains(string(existing), preCommitHookMarker)
 	hasAlienHook := readErr == nil && !hasOurMarker
-
-	if !install {
-		switch {
-		case hasAlienHook:
-			return StepResult{
-				What:   what,
-				Action: ActionSkipped,
-				Detail: "existing hook has no aiwf marker — left untouched",
-			}, true, nil
-		case hasOurMarker:
-			if !dryRun {
-				if rmErr := os.Remove(hookPath); rmErr != nil {
-					return StepResult{}, false, fmt.Errorf("removing pre-commit hook: %w", rmErr)
-				}
-			}
-			return StepResult{
-				What:   what,
-				Action: ActionRemoved,
-				Detail: "status_md.auto_update: false",
-			}, false, nil
-		default:
-			return StepResult{
-				What:   what,
-				Action: ActionPreserved,
-				Detail: "disabled by config (status_md.auto_update: false)",
-			}, false, nil
-		}
-	}
 
 	if hasAlienHook {
 		return StepResult{
@@ -904,13 +877,19 @@ func ensurePreCommitHook(ctx context.Context, root string, install, dryRun bool)
 		action = ActionUpdated
 	}
 	if !dryRun {
-		if err := os.WriteFile(hookPath, []byte(preCommitHookScript(exePath)), 0o755); err != nil {
+		if err := os.WriteFile(hookPath, []byte(preCommitHookScript(exePath, regenStatus)), 0o755); err != nil {
 			return StepResult{}, false, fmt.Errorf("writing pre-commit hook: %w", err)
 		}
+	}
+	detail := "exec " + exePath + " check --shape-only"
+	if regenStatus {
+		detail += " + status --format=md"
+	} else {
+		detail += " (status regen disabled by status_md.auto_update: false)"
 	}
 	return StepResult{
 		What:   what,
 		Action: action,
-		Detail: "exec " + exePath + " check --shape-only + status --format=md",
+		Detail: detail,
 	}, false, nil
 }

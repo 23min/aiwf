@@ -52,7 +52,7 @@ Tree-discipline runs at **both** hooks, but for different reasons:
 
 The pre-commit gate is what makes G40's enforcement *visible to the LLM in real time*. Without it, the LLM only sees the failure when a human pushes — by which point the bad commit has already landed locally and possibly been pushed by `git push --no-verify` or similar. With it, the LLM's own `git commit` tool call returns a non-zero exit, and the LLM can fix the stray in the same conversation.
 
-**Known scope limitation.** The pre-commit hook is gated by `aiwf.yaml: status_md.auto_update`. A consumer who explicitly opts that flag off loses both the STATUS.md regen *and* the pre-commit tree-discipline gate; pre-push still enforces. Fully decoupling those two responsibilities is deferred until a real consumer needs the split — see G41 in [`gaps.md`](../gaps.md) for the open question.
+The two responsibilities of the pre-commit hook (tree-discipline gate, STATUS.md regen) are decoupled per G42: the gate is always present when aiwf is adopted in the repo, and `aiwf.yaml: status_md.auto_update` controls only whether the script body includes the regen step. Opting out of the regen does not weaken the gate.
 
 ### Why no marker-managed CLAUDE.md fragment
 
