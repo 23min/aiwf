@@ -184,12 +184,12 @@ func TestInit_PreservesExistingClaudeMd(t *testing.T) {
 	}
 }
 
-// TestInit_SkipsAlienPreHook: a pre-push hook that doesn't carry the
-// marker is treated as user-managed. Init reports the skip via
-// HookConflict + a "skipped" step in the ledger, leaves the user's
-// hook untouched, and still completes every other step so the user
-// sees the full picture of what landed.
-func TestInit_SkipsAlienPreHook(t *testing.T) {
+// TestInit_MigratesAlienPreHook (G45): a pre-push hook that doesn't
+// carry the marker is auto-migrated to pre-push.local before aiwf's
+// chain-aware hook is installed. The migrated content is preserved
+// byte-for-byte; HookConflict stays false because there's no conflict
+// to remediate.
+func TestInit_MigratesAlienPreHook(t *testing.T) {
 	root := freshGitRepo(t)
 	hookDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hookDir, 0o755); err != nil {
@@ -201,42 +201,86 @@ func TestInit_SkipsAlienPreHook(t *testing.T) {
 	}
 	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
 	if err != nil {
-		t.Fatalf("Init returned error on alien hook (should be soft skip): %v", err)
+		t.Fatalf("Init returned error on alien hook: %v", err)
+	}
+	if res.HookConflict {
+		t.Errorf("HookConflict = true, want false (G45 auto-migrates)")
+	}
+	// Alien content lives at pre-push.local now, byte-for-byte.
+	migrated, err := os.ReadFile(filepath.Join(hookDir, "pre-push.local"))
+	if err != nil {
+		t.Fatalf("reading pre-push.local: %v", err)
+	}
+	if !bytes.Equal(migrated, alien) {
+		t.Errorf("migrated hook content drifted:\n got  %s\n want %s", migrated, alien)
+	}
+	// Migrated hook is executable.
+	info, err := os.Stat(filepath.Join(hookDir, "pre-push.local"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode()&0o111 == 0 {
+		t.Errorf("pre-push.local mode = %v, want executable", info.Mode())
+	}
+	// pre-push itself is now aiwf's chain-aware hook.
+	installed, err := os.ReadFile(filepath.Join(hookDir, "pre-push"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(installed, []byte(preHookMarker)) {
+		t.Errorf("pre-push lacks aiwf marker after migration")
+	}
+	if !bytes.Contains(installed, []byte("pre-push.local")) {
+		t.Errorf("pre-push lacks chain logic referencing pre-push.local")
+	}
+	// Step ledger marks the action as Migrated.
+	prePushStep := findStep(t, res.Steps, ".git/hooks/pre-push")
+	if prePushStep.Action != ActionMigrated {
+		t.Errorf("pre-push step action = %q, want %q", prePushStep.Action, ActionMigrated)
+	}
+	if !strings.Contains(prePushStep.Detail, "pre-push.local") {
+		t.Errorf("pre-push migrated step Detail missing pre-push.local reference: %s", prePushStep.Detail)
+	}
+}
+
+// TestInit_RefusesPreHookMigrationOnCollision (G45): when the user
+// has both a non-marker hook AND an existing .local sibling, init
+// refuses to migrate (would clobber the .local) and returns
+// HookConflict=true with a clear remediation message.
+func TestInit_RefusesPreHookMigrationOnCollision(t *testing.T) {
+	root := freshGitRepo(t)
+	hookDir := filepath.Join(root, ".git", "hooks")
+	if err := os.MkdirAll(hookDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	alien := []byte("#!/bin/sh\n# alien\nexit 0\n")
+	prior := []byte("#!/bin/sh\n# prior local\nexit 0\n")
+	if err := os.WriteFile(filepath.Join(hookDir, "pre-push"), alien, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hookDir, "pre-push.local"), prior, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	if err != nil {
+		t.Fatalf("Init: %v", err)
 	}
 	if !res.HookConflict {
-		t.Errorf("HookConflict = false, want true")
+		t.Errorf("HookConflict = false, want true on .local collision")
 	}
-	// Alien hook is intact.
-	got, _ := os.ReadFile(filepath.Join(hookDir, "pre-push"))
-	if !bytes.Equal(got, alien) {
-		t.Errorf("alien hook clobbered: %s", got)
+	// Both files untouched.
+	if got, _ := os.ReadFile(filepath.Join(hookDir, "pre-push")); !bytes.Equal(got, alien) {
+		t.Errorf("pre-push clobbered on collision: %s", got)
 	}
-	// All non-hook steps still ran. Ledger contains the expected What
-	// values, with the pre-push step itself marked Skipped.
-	wantWhats := []string{
-		"aiwf.yaml",
-		"work/epics", "work/gaps", "work/decisions", "work/contracts",
-		"docs/adr",
-		"CLAUDE.md",
-		".claude/skills/aiwf-*",
-		"aiwf.yaml (legacy actor strip)",
-		".gitignore",
-		".git/hooks/pre-push",
-		".git/hooks/pre-commit",
-	}
-	gotWhats := make([]string, len(res.Steps))
-	for i, s := range res.Steps {
-		gotWhats[i] = s.What
-	}
-	if strings.Join(gotWhats, "|") != strings.Join(wantWhats, "|") {
-		t.Errorf("step ledger:\n got  %v\n want %v", gotWhats, wantWhats)
+	if got, _ := os.ReadFile(filepath.Join(hookDir, "pre-push.local")); !bytes.Equal(got, prior) {
+		t.Errorf("pre-push.local clobbered on collision: %s", got)
 	}
 	prePushStep := findStep(t, res.Steps, ".git/hooks/pre-push")
 	if prePushStep.Action != ActionSkipped {
 		t.Errorf("pre-push step action = %q, want %q", prePushStep.Action, ActionSkipped)
 	}
-	if prePushStep.Detail == "" {
-		t.Errorf("pre-push step Detail empty; want a remediation hint")
+	if !strings.Contains(prePushStep.Detail, "already exists") {
+		t.Errorf("collision Detail missing 'already exists': %s", prePushStep.Detail)
 	}
 }
 

@@ -79,16 +79,20 @@ func runInit(args []string) int {
 
 	if res.HookConflict {
 		fmt.Println()
-		fmt.Println("aiwf init: setup landed except the pre-push hook.")
-		fmt.Println("A non-aiwf hook is already at .git/hooks/pre-push and was left untouched.")
-		fmt.Println("To finish wiring validation into your push flow, do one of:")
-		fmt.Println("  1. Add this line inside the existing hook:    aiwf check || exit 1")
-		fmt.Println("  2. Use a hook manager (husky/lefthook/etc.) to compose hooks; have it run `aiwf check`.")
-		fmt.Println("Then drop the marker comment `# aiwf:pre-push` somewhere in the hook so future")
-		fmt.Println("`aiwf init` runs recognise it as managed and refresh it on binary upgrades.")
+		fmt.Println("aiwf init: hook chain collision (G45).")
+		fmt.Println("aiwf wanted to migrate a pre-existing non-aiwf hook to its `.local`")
+		fmt.Println("sibling, but a `.local` file already exists. To preserve your work,")
+		fmt.Println("aiwf left both files untouched.")
 		fmt.Println()
-		fmt.Println("Without this, `aiwf check` won't run automatically on `git push`.")
-		fmt.Println("You can still validate manually any time with `aiwf check`.")
+		fmt.Println("Resolve manually:")
+		fmt.Println("  1. Open the existing hook (.git/hooks/pre-push and/or pre-commit) and")
+		fmt.Println("     the `.local` sibling that's blocking the migration.")
+		fmt.Println("  2. Merge the content into one file at the `.local` path.")
+		fmt.Println("  3. Delete the original (non-`.local`) hook.")
+		fmt.Println("  4. Re-run `aiwf init`.")
+		fmt.Println()
+		fmt.Println("Until then, `aiwf check` does not run automatically on `git push`/`git commit`.")
+		fmt.Println("You can still validate manually with `aiwf check`.")
 		return exitFindings
 	}
 
@@ -170,15 +174,11 @@ func runUpdate(args []string) int {
 
 	if conflict {
 		fmt.Println()
-		fmt.Println("aiwf update: artifacts refreshed except a hook with no aiwf marker.")
-		fmt.Println("A non-aiwf hook is at one of .git/hooks/pre-push or .git/hooks/pre-commit and was left untouched.")
-		fmt.Println("To finish wiring, either:")
-		fmt.Println("  1. Add the relevant aiwf invocation inside your existing hook")
-		fmt.Println("       pre-push:    aiwf check || exit 1")
-		fmt.Println("       pre-commit:  aiwf status --root \"$(git rev-parse --show-toplevel)\" --format=md > STATUS.md && git add STATUS.md")
-		fmt.Println("  2. Use a hook manager (husky/lefthook/etc.) to compose hooks.")
-		fmt.Println("Then drop the marker comment somewhere in the hook (`# aiwf:pre-push` or `# aiwf:pre-commit`)")
-		fmt.Println("so future `aiwf init`/`aiwf update` runs recognise it as managed.")
+		fmt.Println("aiwf update: hook chain collision (G45).")
+		fmt.Println("A non-aiwf hook would auto-migrate to its `.local` sibling, but a `.local`")
+		fmt.Println("file already exists at .git/hooks/pre-push.local or .git/hooks/pre-commit.local.")
+		fmt.Println("Resolve manually: merge the existing hook's content into the `.local` file,")
+		fmt.Println("delete the original (non-`.local`) hook, and re-run `aiwf update`.")
 		return exitFindings
 	}
 
@@ -985,8 +985,36 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 		problems++
 		return lines, problems
 	}
-	lines = append(lines, fmt.Sprintf("hook:      ok (%s)", embedded))
+	chainSuffix, chainProblem := localChainSuffix(rootDir, "pre-push")
+	if chainProblem {
+		problems++
+	}
+	lines = append(lines, fmt.Sprintf("hook:      ok (%s)%s", embedded, chainSuffix))
 	return lines, problems
+}
+
+// localChainSuffix returns the suffix to append to the hook line
+// describing the `.local` sibling state plus a bool indicating
+// whether the state is a problem (non-executable). Mirrors the G45
+// chain semantics in the installed hook script.
+//
+// States:
+//   - sibling absent → "" (no suffix); not a problem.
+//   - sibling present and executable → "; chains to .git/hooks/<name>.local"; not a problem.
+//   - sibling present, not executable → "; .git/hooks/<name>.local exists but is not executable — chmod +x"; IS a problem.
+func localChainSuffix(rootDir, hookName string) (suffix string, problem bool) {
+	localPath := filepath.Join(rootDir, ".git", "hooks", hookName+".local")
+	info, err := os.Stat(localPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", false
+	}
+	if err != nil {
+		return "; .git/hooks/" + hookName + ".local: " + err.Error(), true
+	}
+	if info.Mode()&0o111 == 0 {
+		return "; .git/hooks/" + hookName + ".local exists but is not executable — chmod +x to enable, or remove the file", true
+	}
+	return "; chains to .git/hooks/" + hookName + ".local", false
 }
 
 // appendPreCommitHookReport inspects .git/hooks/pre-commit and
@@ -1047,6 +1075,10 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		return lines, problems
 	}
 	hasRegen := strings.Contains(string(raw), "status --root")
+	chainSuffix, chainProblem := localChainSuffix(rootDir, "pre-commit")
+	if chainProblem {
+		problems++
+	}
 	switch {
 	case autoUpdate && !hasRegen:
 		lines = append(lines, "pre-commit: present but missing STATUS.md regen (status_md.auto_update: true); run `aiwf update` to refresh")
@@ -1055,9 +1087,9 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		lines = append(lines, "pre-commit: present with STATUS.md regen but config says off (status_md.auto_update: false); run `aiwf update` to refresh")
 		problems++
 	case !autoUpdate && !hasRegen:
-		lines = append(lines, fmt.Sprintf("pre-commit: ok, gate-only (%s; status_md.auto_update: false)", embedded))
+		lines = append(lines, fmt.Sprintf("pre-commit: ok, gate-only (%s; status_md.auto_update: false)%s", embedded, chainSuffix))
 	default:
-		lines = append(lines, fmt.Sprintf("pre-commit: ok (%s)", embedded))
+		lines = append(lines, fmt.Sprintf("pre-commit: ok (%s)%s", embedded, chainSuffix))
 	}
 	return lines, problems
 }

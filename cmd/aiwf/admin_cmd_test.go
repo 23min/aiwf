@@ -112,11 +112,11 @@ func TestRun_InitSkipHook(t *testing.T) {
 	}
 }
 
-// TestRun_InitSkipsAlienHook: when a non-aiwf pre-push hook is in
-// place, init lands every other step, leaves the alien hook
-// untouched, prints both the ledger and the remediation block, and
-// exits with `exitFindings` so CI notices.
-func TestRun_InitSkipsAlienHook(t *testing.T) {
+// TestRun_InitMigratesAlienHook (G45): when a non-aiwf pre-push hook
+// is in place, init auto-migrates it to pre-push.local, installs
+// aiwf's chain-aware hook, and exits exitOK. The migrated content
+// is preserved byte-for-byte.
+func TestRun_InitMigratesAlienHook(t *testing.T) {
 	root := setupCLITestRepo(t)
 	hookDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hookDir, 0o755); err != nil {
@@ -128,37 +128,42 @@ func TestRun_InitSkipsAlienHook(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitFindings {
-			t.Errorf("got %d, want %d", rc, exitFindings)
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+			t.Errorf("got %d, want %d (G45 auto-migrates, no conflict)", rc, exitOK)
 		}
 	})
 	out := string(captured)
 
 	for _, want := range []string{
-		"created    aiwf.yaml", // earlier steps still ran
+		"created    aiwf.yaml",
 		"created    work/epics",
 		"updated    .claude/skills/aiwf-*",
-		"skipped    .git/hooks/pre-push",
-		"aiwf init: setup landed except the pre-push hook.",
-		"aiwf check || exit 1", // remediation option 1
-		"husky/lefthook",       // remediation option 2
+		"migrated   .git/hooks/pre-push",
+		"pre-push.local",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q\nfull output:\n%s", want, out)
 		}
 	}
 
-	// Other steps actually landed on disk.
-	if _, err := os.Stat(filepath.Join(root, "aiwf.yaml")); err != nil {
-		t.Errorf("aiwf.yaml missing after partial init: %v", err)
+	// Migrated content lives at .local byte-for-byte.
+	migrated, err := os.ReadFile(filepath.Join(hookDir, "pre-push.local"))
+	if err != nil {
+		t.Fatalf("reading pre-push.local: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")); err != nil {
-		t.Errorf("aiwf-add skill missing after partial init: %v", err)
+	if !bytes.Equal(migrated, alien) {
+		t.Errorf("migrated content drifted:\n got  %s\n want %s", migrated, alien)
 	}
-	// Alien hook is intact.
-	got, _ := os.ReadFile(filepath.Join(hookDir, "pre-push"))
-	if !bytes.Equal(got, alien) {
-		t.Errorf("alien hook clobbered:\n%s", got)
+	// pre-push itself is now aiwf's chain-aware hook.
+	installed, err := os.ReadFile(filepath.Join(hookDir, "pre-push"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(installed, []byte("# aiwf:pre-push")) {
+		t.Errorf("post-migration pre-push lacks aiwf marker")
+	}
+	if !bytes.Contains(installed, []byte("pre-push.local")) {
+		t.Errorf("post-migration pre-push lacks chain reference")
 	}
 }
 
@@ -790,6 +795,80 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 	if _, err := os.Stat(repoPath); !os.IsNotExist(err) {
 		t.Errorf("self-check should clean up its repo on success: stat %s err=%v", repoPath, err)
 	}
+}
+
+// TestDoctor_HookChainReporting (G45): doctor reports the .local
+// sibling state for both pre-push and pre-commit hooks. Three states
+// matter: absent (no suffix), present + executable ("chains to ..."),
+// present + non-executable (error, increments problem count).
+func TestDoctor_HookChainReporting(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		AiwfVersion:   Version,
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	// State 1: no .local sibling — doctor clean, no chain mention.
+	t.Run("absent: no chain mention", func(t *testing.T) {
+		lines, problems := doctorReport(root, doctorOptions{})
+		joined := strings.Join(lines, "\n")
+		if problems != 0 {
+			t.Errorf("problems = %d, want 0\n%s", problems, joined)
+		}
+		if strings.Contains(joined, "chains to") {
+			t.Errorf("clean repo report mentions 'chains to' (no .local should be present):\n%s", joined)
+		}
+	})
+
+	// State 2: executable .local — doctor clean, chain reported.
+	t.Run("executable: chains to noted", func(t *testing.T) {
+		hooksDir := filepath.Join(root, ".git", "hooks")
+		localPP := filepath.Join(hooksDir, "pre-push.local")
+		localPC := filepath.Join(hooksDir, "pre-commit.local")
+		if err := os.WriteFile(localPP, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(localPC, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			_ = os.Remove(localPP)
+			_ = os.Remove(localPC)
+		})
+
+		lines, problems := doctorReport(root, doctorOptions{})
+		joined := strings.Join(lines, "\n")
+		if problems != 0 {
+			t.Errorf("problems = %d on executable .local siblings, want 0\n%s", problems, joined)
+		}
+		if !strings.Contains(joined, "chains to .git/hooks/pre-push.local") {
+			t.Errorf("report missing pre-push chain notice:\n%s", joined)
+		}
+		if !strings.Contains(joined, "chains to .git/hooks/pre-commit.local") {
+			t.Errorf("report missing pre-commit chain notice:\n%s", joined)
+		}
+	})
+
+	// State 3: non-executable .local — doctor flags as error.
+	t.Run("non-executable: doctor errors", func(t *testing.T) {
+		hooksDir := filepath.Join(root, ".git", "hooks")
+		localPP := filepath.Join(hooksDir, "pre-push.local")
+		if err := os.WriteFile(localPP, []byte("#!/bin/sh\nexit 0\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Remove(localPP) })
+
+		lines, problems := doctorReport(root, doctorOptions{})
+		joined := strings.Join(lines, "\n")
+		if problems == 0 {
+			t.Errorf("problems = 0 on non-executable .local, want >0\n%s", joined)
+		}
+		if !strings.Contains(joined, "not executable") {
+			t.Errorf("report missing 'not executable':\n%s", joined)
+		}
+	})
 }
 
 // TestDoctorReport_Contents checks the pure helper produces the

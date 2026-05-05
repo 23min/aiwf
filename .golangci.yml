@@ -63,8 +63,9 @@ linters:
       #         controlled args; that's its whole purpose)
       # - G304: file inclusion via variable (the loader and verbs read
       #         user-named entity files; that's their whole purpose)
-      # - G301/G306: 0755 dirs and 0644 files are the standard for a
-      #         developer's working repo, not a multi-tenant server
+      # - G301/G302/G306: 0755 dirs, 0o755 chmod (hooks need exec bit),
+      #         and 0644 files are the standard for a developer's
+      #         working repo, not a multi-tenant server
       # - G122: WalkDir symlink TOCTOU; the consumer repo is the user's
       #         own working tree, not adversarial input
       # - G703: path traversal via taint analysis; aiwf writes to paths
@@ -72,7 +73,7 @@ linters:
       #         walk-up). Same threat model as G304: developer CLI on
       #         the developer's own repo.
       - linters: [gosec]
-        text: "G204|G304|G301|G306|G122|G703"
+        text: "G204|G304|G301|G302|G306|G122|G703"
       # forbidigo: panic/os.Exit are forbidden in library code, but two
       # paths are sanctioned (per CLAUDE.md § Go conventions and G2's design):
       #   - cmd/aiwf/main.go: the documented os.Exit chokepoint.

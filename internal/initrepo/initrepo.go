@@ -79,14 +79,49 @@ Skills under ` + "`.claude/skills/aiwf-*/`" + ` are gitignored and regenerated o
 // from an old reflog state), so the hook is a no-op for it. This
 // matches the design-lessons.md framing: hooks are a fast-fail
 // courtesy; the verb is the load-bearing enforcement.
+//
+// Per G45, the script chains to `.git/hooks/pre-push.local` (if
+// present and executable) before running aiwf's check. User-first
+// ordering means a consumer-written hook gates aiwf rather than the
+// other way around — matches the convention in other chaining tools
+// and keeps the user's iteration loop independent of aiwf's checks.
+// A `.local` that exists but is not executable fails loud rather
+// than silently skipping (the latter would let the user think they
+// have hook coverage when they don't).
 func preHookScript(execPath string) string {
 	return `#!/bin/sh
 ` + preHookMarker + `
-# Installed by aiwf init. To customize, replace this hook with one
-# managed by husky/lefthook (etc.) and call ` + "`aiwf check`" + ` from there.
+# Installed by aiwf init. Chains to .git/hooks/pre-push.local first
+# (G45) so consumer-written hooks compose rather than collide.
 [ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
+` + chainPrelude("pre-push") + `
 exec ` + shellQuoteSingle(execPath) + ` check
 `
+}
+
+// chainPrelude renders the POSIX shell snippet that runs a sibling
+// `<hookname>.local` script before aiwf's own work. Shared by
+// preHookScript and preCommitHookScript to keep the chain semantics
+// in one place.
+//
+// Behavior:
+//   - `<hookname>.local` absent → no-op, fall through to aiwf's work.
+//   - present and executable → run it with the same args; if it
+//     exits non-zero, abort with that exit code (don't run aiwf).
+//   - present but not executable → fail with a clear message.
+//
+// stdin from git is consumed by the .local hook if it reads it; aiwf
+// doesn't read stdin in either hook, so the order is safe.
+func chainPrelude(hookName string) string {
+	return `hook_dir="$(dirname "$0")"
+local_hook="$hook_dir/` + hookName + `.local"
+if [ -e "$local_hook" ]; then
+    if [ ! -x "$local_hook" ]; then
+        echo "aiwf ` + hookName + `: $local_hook exists but is not executable — chmod +x to enable, or remove the file" >&2
+        exit 1
+    fi
+    "$local_hook" "$@" || exit $?
+fi`
 }
 
 // preCommitHookScript renders the body of the pre-commit hook. The
@@ -125,7 +160,8 @@ fi
 	}
 	return `#!/bin/sh
 ` + preCommitHookMarker + `
-# Installed by aiwf init/update.
+# Installed by aiwf init/update. Chains to .git/hooks/pre-commit.local
+# first (G45) so consumer-written hooks compose rather than collide.
 #   (1) Tree-discipline gate: stray files under work/ block the
 #       commit when aiwf.yaml has tree.strict: true; otherwise they
 #       print a warning but proceed. Always present.
@@ -137,6 +173,7 @@ fi
 set -e
 repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
+` + chainPrelude("pre-commit") + `
 
 # (1) Tree-discipline. Output goes to stderr so the user sees it
 # during commit. Non-zero exit blocks (only fires under
@@ -165,6 +202,11 @@ const (
 	// artifact because the consumer opted out. Currently used only by
 	// the pre-commit hook step when status_md.auto_update flips false.
 	ActionRemoved Action = "removed"
+	// ActionMigrated marks a hook step that mv'd a pre-existing
+	// non-aiwf hook to <name>.local before installing aiwf's chain-aware
+	// hook (G45). The Detail names what moved where so the user can
+	// audit it.
+	ActionMigrated Action = "migrated"
 )
 
 // StepResult is one line of init's per-step ledger.
@@ -738,13 +780,16 @@ func ensureClaudeMd(root string, dryRun bool) (StepResult, error) {
 }
 
 // ensurePreHook installs (or refreshes) the marker-protected pre-push
-// hook. The bool return is "skipped due to conflict": when a hook
-// without aiwf's marker already exists, ensurePreHook returns a
-// skipped StepResult and `true`, leaving the user's hook untouched.
-// Skipping is not a fatal error — the caller surfaces remediation.
+// hook. Per G45 a pre-existing non-aiwf hook is auto-migrated to
+// `pre-push.local` (so aiwf's new chain-aware hook invokes it before
+// running aiwf's own check). The collision case — a `pre-push.local`
+// already exists when migration wants to write one — returns a
+// skipped StepResult and `true` so the caller can surface
+// remediation; this is the one path that still requires manual
+// resolution.
 //
-// In dry-run mode, conflict detection still runs (read-only) but no
-// directory or file is created.
+// In dry-run mode, conflict and migration detection still run
+// (read-only) but no directory or file is created.
 func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, bool, error) {
 	gitDir, err := gitops.GitDir(ctx, root)
 	if err != nil {
@@ -757,8 +802,10 @@ func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, b
 		}
 	}
 	hookPath := filepath.Join(hooksDir, "pre-push")
+	what := ".git/hooks/pre-push"
 
 	existing, readErr := os.ReadFile(hookPath)
+	migrated := false
 	switch {
 	case errors.Is(readErr, fs.ErrNotExist):
 		// no existing hook: create
@@ -767,12 +814,24 @@ func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, b
 	case strings.Contains(string(existing), preHookMarker):
 		// our own hook: overwrite is safe
 	default:
-		// non-aiwf hook in place: skip without clobbering.
-		return StepResult{
-			What:   ".git/hooks/pre-push",
-			Action: ActionSkipped,
-			Detail: "existing hook has no aiwf marker — left untouched (see remediation below)",
-		}, true, nil
+		// non-aiwf hook in place: auto-migrate to pre-push.local (G45).
+		localPath := filepath.Join(hooksDir, "pre-push.local")
+		if _, statErr := os.Stat(localPath); statErr == nil {
+			// Collision: user already has a .local hook. Refuse
+			// rather than overwrite — they've engaged with chain
+			// plumbing on purpose.
+			return StepResult{
+				What:   what,
+				Action: ActionSkipped,
+				Detail: "existing non-aiwf hook would migrate to .git/hooks/pre-push.local but that file already exists; resolve manually (merge content or rename) and re-run init",
+			}, true, nil
+		}
+		if !dryRun {
+			if migrateErr := migrateHookToLocal(hookPath, localPath); migrateErr != nil {
+				return StepResult{}, false, fmt.Errorf("migrating pre-push hook to .local: %w", migrateErr)
+			}
+		}
+		migrated = true
 	}
 
 	exePath, err := resolveExecutable()
@@ -780,7 +839,10 @@ func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, b
 		return StepResult{}, false, fmt.Errorf("resolving aiwf binary path: %w", err)
 	}
 	action := ActionCreated
-	if !errors.Is(readErr, fs.ErrNotExist) {
+	switch {
+	case migrated:
+		action = ActionMigrated
+	case !errors.Is(readErr, fs.ErrNotExist):
 		action = ActionUpdated
 	}
 	if !dryRun {
@@ -788,11 +850,31 @@ func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, b
 			return StepResult{}, false, fmt.Errorf("writing pre-push hook: %w", err)
 		}
 	}
+	detail := "exec " + exePath
+	if migrated {
+		detail = "existing hook moved to .git/hooks/pre-push.local; aiwf's chain-aware hook now runs it before " + exePath + " check"
+	}
 	return StepResult{
-		What:   ".git/hooks/pre-push",
+		What:   what,
 		Action: action,
-		Detail: "exec " + exePath,
+		Detail: detail,
 	}, false, nil
+}
+
+// migrateHookToLocal moves an existing hook file to its `.local`
+// sibling, preserving the executable bit. Used by G45 auto-migration.
+// The source file is removed by os.Rename; the chain-aware aiwf hook
+// is written at the original path by the caller.
+func migrateHookToLocal(src, dst string) error {
+	if err := os.Rename(src, dst); err != nil {
+		return err
+	}
+	// Ensure the .local hook is executable so the chain prelude can
+	// invoke it. Pre-existing hooks under .git/hooks/ are typically
+	// already +x, but a brownfield layout (e.g. core.hooksPath
+	// pointing at a tracked directory whose files are non-+x) might
+	// not be. Forcing 0o755 here is safe — hooks are user-private.
+	return os.Chmod(dst, 0o755)
 }
 
 // resolveExecutable returns the absolute, symlink-resolved path of
@@ -835,11 +917,13 @@ func PreCommitHookMarker() string { return preCommitHookMarker }
 // hook. When false, the hook still installs and still gates on
 // tree-discipline; only the secondary regen behavior is suppressed.
 //
-// A non-marker hook is left alone (the consumer's content is theirs
-// to manage); the function returns ActionSkipped and conflict=true
-// so the caller can surface remediation. In dry-run mode no
-// filesystem mutation occurs; the StepResult still reflects what
-// would have happened so the user can preview.
+// Per G45, a non-marker hook is auto-migrated to `pre-commit.local`
+// so aiwf's chain-aware hook can invoke it before running its own
+// work. Collision case (a .local hook already exists) returns a
+// skipped StepResult and conflict=true; the caller surfaces
+// remediation. In dry-run mode no filesystem mutation occurs; the
+// StepResult still reflects what would have happened so the user
+// can preview.
 func ensurePreCommitHook(ctx context.Context, root string, regenStatus, dryRun bool) (StepResult, bool, error) {
 	gitDir, err := gitops.GitDir(ctx, root)
 	if err != nil {
@@ -852,13 +936,24 @@ func ensurePreCommitHook(ctx context.Context, root string, regenStatus, dryRun b
 	existing, readErr := os.ReadFile(hookPath)
 	hasOurMarker := readErr == nil && strings.Contains(string(existing), preCommitHookMarker)
 	hasAlienHook := readErr == nil && !hasOurMarker
+	migrated := false
 
 	if hasAlienHook {
-		return StepResult{
-			What:   what,
-			Action: ActionSkipped,
-			Detail: "existing hook has no aiwf marker — left untouched (see remediation below)",
-		}, true, nil
+		// G45 auto-migrate to pre-commit.local.
+		localPath := filepath.Join(hooksDir, "pre-commit.local")
+		if _, statErr := os.Stat(localPath); statErr == nil {
+			return StepResult{
+				What:   what,
+				Action: ActionSkipped,
+				Detail: "existing non-aiwf hook would migrate to .git/hooks/pre-commit.local but that file already exists; resolve manually (merge content or rename) and re-run init",
+			}, true, nil
+		}
+		if !dryRun {
+			if migrateErr := migrateHookToLocal(hookPath, localPath); migrateErr != nil {
+				return StepResult{}, false, fmt.Errorf("migrating pre-commit hook to .local: %w", migrateErr)
+			}
+		}
+		migrated = true
 	}
 
 	if !dryRun {
@@ -873,7 +968,10 @@ func ensurePreCommitHook(ctx context.Context, root string, regenStatus, dryRun b
 	}
 
 	action := ActionCreated
-	if hasOurMarker {
+	switch {
+	case migrated:
+		action = ActionMigrated
+	case hasOurMarker:
 		action = ActionUpdated
 	}
 	if !dryRun {
@@ -886,6 +984,9 @@ func ensurePreCommitHook(ctx context.Context, root string, regenStatus, dryRun b
 		detail += " + status --format=md"
 	} else {
 		detail += " (status regen disabled by status_md.auto_update: false)"
+	}
+	if migrated {
+		detail = "existing hook moved to .git/hooks/pre-commit.local; aiwf's chain-aware hook now runs it before " + exePath + " check --shape-only"
 	}
 	return StepResult{
 		What:   what,

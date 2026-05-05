@@ -2,8 +2,11 @@ package initrepo
 
 import (
 	"context"
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -68,10 +71,11 @@ func TestEnsurePreCommitHook_RefreshOurOwn(t *testing.T) {
 	}
 }
 
-// TestEnsurePreCommitHook_SkipsAlien: install=true with a non-marker
-// hook in place → ActionSkipped, conflict=true, alien hook left
-// byte-for-byte alone.
-func TestEnsurePreCommitHook_SkipsAlien(t *testing.T) {
+// TestEnsurePreCommitHook_MigratesAlien (G45): install=true with a
+// non-marker hook in place → auto-migrates to pre-commit.local,
+// installs aiwf's chain-aware hook, returns ActionMigrated and
+// conflict=false.
+func TestEnsurePreCommitHook_MigratesAlien(t *testing.T) {
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -87,18 +91,67 @@ func TestEnsurePreCommitHook_SkipsAlien(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ensurePreCommitHook: %v", err)
 	}
+	if conflict {
+		t.Error("conflict = true, want false (G45 auto-migrates)")
+	}
+	if step.Action != ActionMigrated {
+		t.Errorf("Action = %q, want %q", step.Action, ActionMigrated)
+	}
+	migrated, err := os.ReadFile(filepath.Join(hooksDir, "pre-commit.local"))
+	if err != nil {
+		t.Fatalf("reading pre-commit.local: %v", err)
+	}
+	if !bytesEqual(migrated, alien) {
+		t.Errorf("migrated content drifted:\nwant %q\ngot  %q", alien, migrated)
+	}
+	installed, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(installed), PreCommitHookMarker()) {
+		t.Errorf("post-migration pre-commit lacks aiwf marker")
+	}
+	if !strings.Contains(string(installed), "pre-commit.local") {
+		t.Errorf("post-migration pre-commit lacks chain reference to .local sibling")
+	}
+}
+
+// TestEnsurePreCommitHook_RefusesMigrationOnLocalCollision (G45):
+// when a non-marker hook AND an existing pre-commit.local both
+// exist, ensurePreCommitHook refuses to migrate (would clobber the
+// .local) and returns ActionSkipped + conflict=true.
+func TestEnsurePreCommitHook_RefusesMigrationOnLocalCollision(t *testing.T) {
+	root := freshGitRepo(t)
+	hooksDir := filepath.Join(root, ".git", "hooks")
+	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	alien := []byte("#!/bin/sh\n# alien\nexit 0\n")
+	prior := []byte("#!/bin/sh\n# prior local\nexit 0\n")
+	hookPath := filepath.Join(hooksDir, "pre-commit")
+	localPath := filepath.Join(hooksDir, "pre-commit.local")
+	if err := os.WriteFile(hookPath, alien, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(localPath, prior, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	step, conflict, err := ensurePreCommitHook(context.Background(), root, true, false)
+	if err != nil {
+		t.Fatalf("ensurePreCommitHook: %v", err)
+	}
 	if !conflict {
-		t.Error("conflict = false, want true (alien hook should signal)")
+		t.Error("conflict = false, want true on .local collision")
 	}
 	if step.Action != ActionSkipped {
 		t.Errorf("Action = %q, want %q", step.Action, ActionSkipped)
 	}
-	got, err := os.ReadFile(hookPath)
-	if err != nil {
-		t.Fatal(err)
+	if got, _ := os.ReadFile(hookPath); !bytesEqual(got, alien) {
+		t.Errorf("alien hook clobbered:\n got  %q\n want %q", got, alien)
 	}
-	if !bytesEqual(got, alien) {
-		t.Errorf("alien hook clobbered:\nwant %q\ngot  %q", alien, got)
+	if got, _ := os.ReadFile(localPath); !bytesEqual(got, prior) {
+		t.Errorf("pre-commit.local clobbered:\n got  %q\n want %q", got, prior)
 	}
 }
 
@@ -168,11 +221,12 @@ func TestEnsurePreCommitHook_RegenOff_RefreshDropsRegen(t *testing.T) {
 	}
 }
 
-// TestEnsurePreCommitHook_RegenOff_AlienHookPreserved (G42): regenStatus=false
-// with a non-marker hook in place — the alien hook is left alone,
-// same conflict-skip contract as the install path. The G42 change
-// (always-install) does not weaken the alien-preservation guarantee.
-func TestEnsurePreCommitHook_RegenOff_AlienHookPreserved(t *testing.T) {
+// TestEnsurePreCommitHook_RegenOff_AlienMigrates (G45 + G42):
+// regenStatus=false with a non-marker hook in place — the alien
+// hook is auto-migrated to pre-commit.local (G45) and aiwf's
+// chain-aware hook installs (G42: gate is enforcement, always
+// installs). The migrated content is preserved byte-for-byte.
+func TestEnsurePreCommitHook_RegenOff_AlienMigrates(t *testing.T) {
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -188,18 +242,29 @@ func TestEnsurePreCommitHook_RegenOff_AlienHookPreserved(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ensurePreCommitHook: %v", err)
 	}
-	if !conflict {
-		t.Error("conflict = false, want true (alien hook should signal)")
+	if conflict {
+		t.Error("conflict = true, want false (G45 auto-migrates)")
 	}
-	if step.Action != ActionSkipped {
-		t.Errorf("Action = %q, want %q", step.Action, ActionSkipped)
+	if step.Action != ActionMigrated {
+		t.Errorf("Action = %q, want %q", step.Action, ActionMigrated)
 	}
-	got, err := os.ReadFile(hookPath)
+	migrated, err := os.ReadFile(filepath.Join(hooksDir, "pre-commit.local"))
+	if err != nil {
+		t.Fatalf("reading pre-commit.local: %v", err)
+	}
+	if !bytesEqual(migrated, alien) {
+		t.Errorf("migrated content drifted:\nwant %q\ngot  %q", alien, migrated)
+	}
+	// New hook has the gate but no regen step (regenStatus=false).
+	installed, err := os.ReadFile(hookPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytesEqual(got, alien) {
-		t.Errorf("alien hook clobbered:\nwant %q\ngot  %q", alien, got)
+	if !strings.Contains(string(installed), "check --shape-only") {
+		t.Errorf("post-migration hook missing tree-discipline gate:\n%s", installed)
+	}
+	if strings.Contains(string(installed), "status --root") {
+		t.Errorf("regenStatus=false hook still includes STATUS.md regen step:\n%s", installed)
 	}
 }
 
@@ -374,4 +439,121 @@ func bytesEqual(a, b []byte) bool {
 		}
 	}
 	return true
+}
+
+// TestPreCommitHook_ChainsToLocalAtRuntime (G45): the installed
+// pre-commit hook script, when actually executed, invokes
+// pre-commit.local first and only proceeds to aiwf's check if the
+// .local hook returns 0. A non-zero .local exit aborts before
+// aiwf is invoked. Drives the script as `sh <hook> ...` so the test
+// is portable; the chain prelude is plain POSIX sh.
+func TestPreCommitHook_ChainsToLocalAtRuntime(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("aiwf hooks are unix-only")
+	}
+	root := freshGitRepo(t)
+	hooksDir := filepath.Join(root, ".git", "hooks")
+
+	// Install aiwf's chain-aware hook with a stub for the aiwf binary
+	// path (the test cares only about the chain prelude, not the
+	// aiwf step that follows). Use a shell-script "binary" that
+	// records being called.
+	stubBin := filepath.Join(t.TempDir(), "aiwf-stub.sh")
+	stubMarker := filepath.Join(t.TempDir(), "aiwf-stub.called")
+	stubScript := "#!/bin/sh\ntouch '" + stubMarker + "'\nexit 0\n"
+	if err := os.WriteFile(stubBin, []byte(stubScript), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	hookBody := preCommitHookScript(stubBin, false)
+	hookPath := filepath.Join(hooksDir, "pre-commit")
+	if err := os.WriteFile(hookPath, []byte(hookBody), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Need an aiwf.yaml at the repo root or the brownfield guard
+	// short-circuits the hook before the chain prelude runs.
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("aiwf_version: test\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("no .local sibling: aiwf step runs", func(t *testing.T) {
+		_ = os.Remove(stubMarker)
+		cmd := exec.Command("sh", hookPath)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("hook exited non-zero: %v\n%s", err, out)
+		}
+		if _, err := os.Stat(stubMarker); err != nil {
+			t.Errorf("aiwf step did not run (stub marker absent): %v", err)
+		}
+	})
+
+	t.Run(".local exits 0: chain falls through, aiwf step runs", func(t *testing.T) {
+		_ = os.Remove(stubMarker)
+		localMarker := filepath.Join(t.TempDir(), "local.called")
+		localBody := "#!/bin/sh\ntouch '" + localMarker + "'\nexit 0\n"
+		localPath := filepath.Join(hooksDir, "pre-commit.local")
+		if err := os.WriteFile(localPath, []byte(localBody), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Remove(localPath) })
+
+		cmd := exec.Command("sh", hookPath)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("hook exited non-zero: %v\n%s", err, out)
+		}
+		if _, err := os.Stat(localMarker); err != nil {
+			t.Errorf("local hook did not run: %v", err)
+		}
+		if _, err := os.Stat(stubMarker); err != nil {
+			t.Errorf("aiwf step did not run after local exit 0: %v", err)
+		}
+	})
+
+	t.Run(".local exits non-zero: hook aborts before aiwf step", func(t *testing.T) {
+		_ = os.Remove(stubMarker)
+		localBody := "#!/bin/sh\nexit 7\n"
+		localPath := filepath.Join(hooksDir, "pre-commit.local")
+		if err := os.WriteFile(localPath, []byte(localBody), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Remove(localPath) })
+
+		cmd := exec.Command("sh", hookPath)
+		cmd.Dir = root
+		err := cmd.Run()
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			t.Fatalf("expected exec.ExitError, got %v", err)
+		}
+		if exitErr.ExitCode() != 7 {
+			t.Errorf("exit code = %d, want 7 (propagated from .local)", exitErr.ExitCode())
+		}
+		if _, err := os.Stat(stubMarker); err == nil {
+			t.Errorf("aiwf step ran despite .local non-zero exit")
+		}
+	})
+
+	t.Run(".local present but not executable: chain fails loud", func(t *testing.T) {
+		_ = os.Remove(stubMarker)
+		localPath := filepath.Join(hooksDir, "pre-commit.local")
+		if err := os.WriteFile(localPath, []byte("#!/bin/sh\nexit 0\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Remove(localPath) })
+
+		cmd := exec.Command("sh", hookPath)
+		cmd.Dir = root
+		out, err := cmd.CombinedOutput()
+		if err == nil {
+			t.Fatalf("expected non-zero exit; output: %s", out)
+		}
+		if !strings.Contains(string(out), "not executable") {
+			t.Errorf("error message missing 'not executable':\n%s", out)
+		}
+		if _, statErr := os.Stat(stubMarker); statErr == nil {
+			t.Errorf("aiwf step ran despite non-executable .local")
+		}
+	})
 }
