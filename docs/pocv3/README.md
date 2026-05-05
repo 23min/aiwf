@@ -8,7 +8,7 @@ Co-locating PoC docs under `pocv3/` (rather than at `docs/` directly) keeps `doc
 
 **For visitors:** start at [`overview.md`](overview.md) (what aiwf is, what it isn't), then [`architecture.md`](architecture.md) (the foundational reference: layers, data flow, boundaries, load-bearing principles), then [`workflows.md`](workflows.md) (worked walk-throughs).
 
-**For engine contributors:** [`gaps.md`](gaps.md) (open + resolved defects, check the matrix before starting work), then [`design/design-decisions.md`](design/design-decisions.md) (kernel commitments any change must preserve), then [`design/design-lessons.md`](design/design-lessons.md) (the three architectural principles distilled from the design arc).
+**For engine contributors:** check the gap entity tree first (`aiwf status --kind gap` for open gaps; `aiwf show G-NNN` for one), then [`design/design-decisions.md`](design/design-decisions.md) (kernel commitments any change must preserve), then [`design/design-lessons.md`](design/design-lessons.md) (the three architectural principles distilled from the design arc). Per G38, gaps now live as `aiwf` entities under `work/gaps/` rather than as a single markdown file; pre-migration history is archived at [`archive/gaps-pre-migration.md`](archive/gaps-pre-migration.md).
 
 **For skill authors / AI scaffolders writing skills that touch aiwf state:** [`skill-author-guide.md`](skill-author-guide.md). Pair with `aiwf schema [kind]` and `aiwf template [kind]` at the CLI.
 
@@ -25,7 +25,7 @@ docs/pocv3/
   overview.md                         1-2 page intro: what aiwf is, what it isn't
   workflows.md                        end-user workflow cookbook
   skill-author-guide.md               contract for skill scaffolders
-  gaps.md                             open + resolved gaps; high-touch
+  archive/gaps-pre-migration.md       pre-G38 gap history; current gaps live as entities under `work/gaps/`
 
   design/
     design-decisions.md               the kernel commitments + non-goals (load-bearing reference)

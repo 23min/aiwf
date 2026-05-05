@@ -146,7 +146,7 @@ The eight sub-iterations:
 
 **I1 hardening (commit `06b33bc`):** edge-case coverage across the contract surface — anchors/aliases rejection, validator-name reference checks, recipe round-trip, atomic add+bind rollback, terminal-state suppression in verify, multi-version evolve.
 
-**Post-I1 gap fixes** (see [`gaps.md`](../gaps.md)) further hardened the contract surface: G1 added path-escape detection in `contractcheck`/`contractverify`; G3 demoted `validator-unavailable` to a warning by default with opt-in `strict_validators` and added a doctor section listing each validator's availability.
+**Post-I1 gap fixes** (see [`gaps.md`](../archive/gaps-pre-migration.md)) further hardened the contract surface: G1 added path-escape detection in `contractcheck`/`contractverify`; G3 demoted `validator-unavailable` to a warning by default with opt-in `strict_validators` and added a doctor section listing each validator's availability.
 
 **Deliverable:** a consumer repo can declare a CUE or JSON Schema contract via `aiwf contract recipe install <name>` + `aiwf add contract --validator … --schema … --fixtures …` (one commit), populate `<fixtures>/v1/{valid,invalid}/`, and have `aiwf check` (and the pre-push hook) verify the bundle on every push.
 

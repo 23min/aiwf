@@ -9,7 +9,7 @@ This doc records the rule and the mechanical guarantee that backs it. See also [
 Two operations, two answers:
 
 1. **Tree-shape changes** — creating an entity, renaming, status transitions, id reallocation, adding ACs — go through `aiwf <verb>`. The verb owns id allocation, frontmatter shape, FSM correctness, atomicity, locking, trailers. Never write a *new* file under `work/` by hand; use `aiwf add <kind>`.
-2. **Body-prose edits to existing entity files** — the markdown under the frontmatter — are allowed mechanically. There is no `aiwf edit` verb (deliberate; YAGNI). The commit will be untrailered, which is the [G24](../gaps.md#g24) audit surface; reconcile with `aiwf adopt` or commit through a verb that touches the entity for an unrelated reason. Frontmatter must not change as part of a body-prose edit.
+2. **Body-prose edits to existing entity files** — the markdown under the frontmatter — are allowed mechanically. There is no `aiwf edit` verb (deliberate; YAGNI). The commit will be untrailered, which is the [G24](../archive/gaps-pre-migration.md#g24) audit surface; reconcile with `aiwf adopt` or commit through a verb that touches the entity for an unrelated reason. Frontmatter must not change as part of a body-prose edit.
 
 Anything else under `work/` that is not a recognized entity file is a stray and surfaces as an `unexpected-tree-file` finding from `aiwf check`.
 

@@ -73,5 +73,7 @@ _(none)_
 
 ## Recent activity
 
-_(none)_
+| Date | Actor | Verb | Detail |
+|------|-------|------|--------|
+| 2026-05-05 | human/peter | import | feat(aiwf): G38 — bulk-import legacy gaps from gaps.md into the entity tree |
 

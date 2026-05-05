@@ -167,4 +167,4 @@ One YAML field. One frontmatter field. No new trailers, no new flags, no new che
 ## Cross-references
 
 - [`provenance-model.md`](provenance-model.md) — the `aiwf-prior-entity:` trailer remains in the trailer set; reallocate writes it alongside the new `prior_ids` frontmatter list.
-- [`gaps.md`](../gaps.md) — G37 tracks the work.
+- [`gaps.md`](../archive/gaps-pre-migration.md) — G37 tracks the work.

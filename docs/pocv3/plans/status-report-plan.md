@@ -70,6 +70,6 @@ No new flags. `--pretty` is documented as JSON-only already, so it's a no-op for
 1. Extend `statusReport` with `PlannedEpics` + `Warnings []statusFinding`. Update `buildStatus`. Update text renderer to include them (Roadmap section + Warnings list). Update existing golden text test.
 2. Add `--format=md` plus `renderStatusMarkdown`. Add golden markdown test fixture.
 3. Update `docs/pocv3/architecture.md` verb table if it lists formats.
-4. Tick this plan in `docs/pocv3/gaps.md` if any gap turns out to be a precondition (none expected).
+4. Tick this plan in `docs/pocv3/archive/gaps-pre-migration.md` if any gap turns out to be a precondition (none expected).
 
 Each step is one commit.

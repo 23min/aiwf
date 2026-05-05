@@ -136,7 +136,7 @@ Reference-graph reachability uses the index built in `acs-and-tdd-plan.md` step 
 
 ### Step 5b — `--audit-only --reason` recovery mode (G24)
 
-Closes the recovery half of [G24](../gaps.md#g24). When a mutating verb fails partway through and the operator finishes the work with a plain `git commit`, there is currently no first-class way to backfill the missing audit trail. This step adds that path.
+Closes the recovery half of [G24](../archive/gaps-pre-migration.md#g24). When a mutating verb fails partway through and the operator finishes the work with a plain `git commit`, there is currently no first-class way to backfill the missing audit trail. This step adds that path.
 
 - [x] New flag pair on `aiwf cancel` and `aiwf promote`: `--audit-only --reason "<text>"`. Mutex with `--force` (force is for *making* a transition; audit-only is for *recording* one that already happened).
 - [x] Behavior: when `--audit-only` is set, the verb skips the FSM legality check, skips the file-mutation step (writes nothing to disk), and produces an empty-diff commit carrying the standard trailer block (`aiwf-verb`, `aiwf-entity`, `aiwf-actor`, `aiwf-to`, plus the new I2.5 trailers as applicable). The trailer additionally carries `aiwf-audit-only: <reason>` so the commit is distinguishable from a normal verb commit at read time.
@@ -189,7 +189,7 @@ Closes the root-cause-diagnosis half of G24. Today `Apply` treats every commit f
 
 ### Step 7b — Pre-push trailer audit (G24)
 
-Closes the surface-the-gap half of [G24](../gaps.md#g24). When a manual commit lands on an entity file without `aiwf-verb:`, the framework currently goes silent — `aiwf history` and `aiwf status` filter it out and the audit trail has an unsignalled hole. This step makes the hole visible at push time.
+Closes the surface-the-gap half of [G24](../archive/gaps-pre-migration.md#g24). When a manual commit lands on an entity file without `aiwf-verb:`, the framework currently goes silent — `aiwf history` and `aiwf status` filter it out and the audit trail has an unsignalled hole. This step makes the hole visible at push time.
 
 - [x] New finding `provenance-untrailered-entity-commit` (warning) in `internal/check/provenance.go`. Trigger: a commit between `@{u}` and `HEAD` (or all of `HEAD` when no upstream exists) touches at least one file under `work/` and carries no `aiwf-verb:` trailer.
 - [x] Detection walks the same `git log` pass step 7 already uses. For each candidate commit, classify the touched paths via the existing `tree.PathKind` helper; ignore commits that only touch non-entity files (`STATUS.md`, `aiwf.yaml`, `.claude/`, etc.).

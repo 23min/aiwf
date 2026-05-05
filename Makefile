@@ -63,18 +63,26 @@ ci: vet lint test-race coverage selfcheck
 clean:
 	rm -rf bin coverage.out
 
-# install-hooks points git at the tracked scripts/git-hooks/ directory
-# via core.hooksPath. Idempotent — git uses the tracked files directly,
-# so subsequent updates to scripts/git-hooks/* propagate on the next
-# `git pull` with no second install step. Run once after a fresh clone.
+# install-hooks symlinks the tracked policy-lint hook into
+# .git/hooks/pre-commit.local — the G45 chain target invoked by
+# aiwf's chain-aware pre-commit hook. Idempotent: ln -sf overwrites
+# any prior symlink and updates to scripts/git-hooks/pre-commit
+# propagate immediately (the symlink resolves at hook-fire time).
 #
-# core.hooksPath replaces the install-by-copy model (which drifted —
-# see G25): there is no .git/hooks/<name> copy that can fall behind
-# the tracked source.
+# Run once after a fresh clone. The aiwf-managed hook itself is
+# materialized by `aiwf init`/`aiwf update`, which write the
+# chain-aware pre-commit hook at .git/hooks/pre-commit.
+#
+# Pre-G38 this target set `core.hooksPath = scripts/git-hooks`. That
+# overrode git's default hooks dir, which collided with aiwf's own
+# hook installer — see G48. The kernel now treats itself like any
+# consumer: aiwf owns .git/hooks/<name>, kernel-specific logic lives
+# at .git/hooks/<name>.local, both compose via G45's chain.
 install-hooks:
-	git config core.hooksPath scripts/git-hooks
-	@echo "core.hooksPath = scripts/git-hooks"
-	@echo "Tracked hooks in scripts/git-hooks/ are now active."
+	mkdir -p .git/hooks
+	ln -sf ../../scripts/git-hooks/pre-commit .git/hooks/pre-commit.local
+	@echo "Symlinked scripts/git-hooks/pre-commit -> .git/hooks/pre-commit.local"
+	@echo "Run 'aiwf init' (if not already done) so the chain-aware aiwf hook calls it."
 
 # Playwright browser-level tests for the HTML render. Opt-in: not
 # run by `make ci` because they require Node + a 100MB Chromium

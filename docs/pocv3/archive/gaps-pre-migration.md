@@ -1,4 +1,14 @@
-# PoC gaps and rough edges
+# PoC gaps — pre-migration archive
+
+> **This file is frozen at the G38 dogfood-migration cutover (commit `4b89c36`, 2026-05-05).** All gaps it lists were imported into the `aiwf` entity tree at that point. **For current gap state, run `aiwf status --kind gap` or `aiwf show G-NNN`.** New gaps land via `aiwf add gap ...`, not by editing this file.
+>
+> The matrix at the end is preserved as the historical record of the pre-migration state. Some closed-gap entries reference "(this commit)" placeholders that were never backfilled with their actual commit SHAs — those are part of the archive's accuracy, not bugs to fix here. The kernel's `git log` carries the authoritative SHAs for each closure.
+>
+> Per the G38 partial-dogfood plan (gaps + plan migrate; design docs stay prose), `poc-plan.md` migration is a follow-up; design narratives in `docs/pocv3/design/` stay as prose and cross-link to entity ids by reference.
+
+---
+
+# PoC gaps and rough edges (historical)
 
 A running list of known gaps, defects, and rough edges in the `aiwf` PoC. Each item has a severity, a concrete location in the source, why it matters, and a proposed fix. The matrix at the end tracks status.
 
@@ -144,7 +154,7 @@ Resolved in commit `0ba0e61` (fix(aiwf): G15 — add 'aiwf schema' verb, single 
 
 ### G22. Provenance model extension surface — **open**
 
-The I2.5 provenance model ([`design/provenance-model.md`](design/provenance-model.md)) deliberately keeps the verb surface narrow. Six known extensions are filed here for future evaluation, all YAGNI for the PoC:
+The I2.5 provenance model ([`design/provenance-model.md`](../design/provenance-model.md)) deliberately keeps the verb surface narrow. Six known extensions are filed here for future evaluation, all YAGNI for the PoC:
 
 1. **Explicit revoke verb (`aiwf revoke <auth-sha> --reason "..."`).** End an active scope before its scope-entity reaches a terminal status. The trailer slot is reserved (`aiwf-revoked-by:`) but the verb is not implemented in I2.5. Scopes today auto-end only on terminal scope-entity status; a human cannot un-authorize an in-flight scope without forcing the entity to a terminal status.
 2. **Time-bound scopes (`--until <date>` or `--for <duration>`).** Auto-end on a wall-clock deadline. Adds a clock dependency to the kernel; not present today.
@@ -255,7 +265,7 @@ The discoverability lint will flag the missing `aiwf_version` reference if any e
 
 Resolved in commit `49e7764` (feat(aiwf): G45 — hook chaining via `.local` siblings + auto-migration). The marker-managed `pre-push` and `pre-commit` hooks now invoke a `<hook-name>.local` sibling (if present and executable) before running aiwf's own work. `aiwf init` / `aiwf update` auto-migrate a pre-existing non-marker hook to `<hook-name>.local`, preserving its content byte-for-byte and its executable bit, then install aiwf's chain-aware hook. New `ActionMigrated` step result. `HookConflict` now signals only the rare `.local`-already-exists collision (refuse to clobber a deliberate `.local`). `aiwf doctor` reports the chain shape per hook: absent, present + executable (`chains to ...`), or present + non-executable (error). Tests cover migration, the load-bearing collision case, the chain runtime semantics (`.local` exits 0 / non-zero / non-executable), and doctor's three states.
 
-`aiwf init` / `aiwf update` install marker-managed hooks at `.git/hooks/pre-push` and `.git/hooks/pre-commit`. When a consumer already has a non-marker hook in place, init refuses to overwrite (correct, by design — see [`internal/initrepo/initrepo.go`](../../internal/initrepo/initrepo.go) `ensurePreHook` / `ensurePreCommitHook`). The user is left with three choices: remove their hook, manually compose it with `aiwf check`, or run `aiwf init --skip-hook` and lose the chokepoint. None of these match the kernel's "framework should add to the consumer's flow, not demand the consumer dismantle their own" stance.
+`aiwf init` / `aiwf update` install marker-managed hooks at `.git/hooks/pre-push` and `.git/hooks/pre-commit`. When a consumer already has a non-marker hook in place, init refuses to overwrite (correct, by design — see [`internal/initrepo/initrepo.go`](../../../internal/initrepo/initrepo.go) `ensurePreHook` / `ensurePreCommitHook`). The user is left with three choices: remove their hook, manually compose it with `aiwf check`, or run `aiwf init --skip-hook` and lose the chokepoint. None of these match the kernel's "framework should add to the consumer's flow, not demand the consumer dismantle their own" stance.
 
 This is the load-bearing collision once the kernel itself dogfoods aiwf (G38): the kernel's existing pre-commit hook (`scripts/git-hooks/pre-commit`, run via `core.hooksPath`) collides with aiwf's marker-managed hook. The same collision happens for any consumer using husky / lefthook / pre-commit.com that has hand-written hooks under `.git/hooks/`.
 
@@ -575,7 +585,7 @@ Resolved in commit `(this commit)` (fix(aiwf): G35/G36 — render gap/ADR/decisi
 2. *Reallocate splits the audit trail.* Whichever branch loses, its pre-rename commits forever reference an id that, post-reallocate, means something else. `git log --grep "aiwf-entity: G-035"` returns commits from both branches under one id that now means two entities. The framework's "git log is the audit log" promise has an unsignalled hole in the multi-branch case.
 3. *The path-conflict surface is a symptom, not the bug.* The two G-035 files have different slugs — git doesn't conflict on the entity files themselves. Whatever did conflict (in this case STATUS.md regen) just happened to be where the deeper id-collision became visible. Without it, the merge would silently produce a tree with two G-035s.
 
-**Resolution:** Specified in [`design/id-allocation.md`](design/id-allocation.md) and shipped in two layers:
+**Resolution:** Specified in [`design/id-allocation.md`](../design/id-allocation.md) and shipped in two layers:
 
 1. **Layer (a) — trunk-aware allocator + cross-tree `ids-unique`** (commit `271f514`). The allocator reads the working tree and the configured trunk ref (default `refs/remotes/origin/main`, overridable via `aiwf.yaml: allocate.trunk`). On a missing ref with no remotes the read is silently skipped (sandbox repos); on a missing ref *with* remotes the verb fails with a clear message — no silent fallback. `ids-unique` reads the trunk ref too, so a cross-tree collision surfaces as a normal pre-push finding (subcode `trunk-collision`). No `--against` flag, no merge simulation.
 2. **Layer (b) — `prior_ids` frontmatter + reallocate trunk-ancestry tiebreaker + history chain walk** (commits `b9d73d8`, `c5a98c1`, plus integration scenario `a6e8067`). `aiwf reallocate` appends the old id to a `prior_ids: []` frontmatter list on the renumbered entity. When two entities collide on an id, the verb resolves the renumber target via `git merge-base --is-ancestor` against the trunk ref — the side already in trunk keeps the id; if ancestry can't decide, the verb refuses with a clear diagnostic and asks for a path. `aiwf history` resolves any id (current or prior) through `tree.Tree.ResolveByCurrentOrPriorID`, expands the queried id through the entity's `PriorIDs` chain, and runs one `git log` grep over `aiwf-entity:` and `aiwf-prior-entity:` for the union — pre-rename, rename, and post-rename commits arrive as one chronological timeline. The doc was reconciled to match the shipped reality (both surfaces ship; trailer is the git-log-readable source, frontmatter is the tree-readable source) in commit `685f288`.
