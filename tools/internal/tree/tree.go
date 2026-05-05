@@ -71,6 +71,15 @@ type Tree struct {
 	// case the allocator and the check rule degrade to working-tree-
 	// only behavior (the previous default).
 	TrunkIDs []trunk.ID
+	// TrunkRef is the resolved trunk ref name (e.g.
+	// "refs/remotes/origin/main") or empty when no trunk read
+	// happened. The reallocate tiebreaker uses it as the second
+	// argument to `git merge-base --is-ancestor` when two entities
+	// collide on an id and the verb has to pick which side to
+	// renumber. Populated alongside TrunkIDs by the cmd dispatcher;
+	// empty in tests that don't set it (the verb falls back to
+	// today's "ambiguous, pass a path" error in that case).
+	TrunkRef string
 }
 
 // TrunkIDStrings returns the id strings from TrunkIDs. Convenience
@@ -332,6 +341,20 @@ func (t *Tree) ByID(id string) *entity.Entity {
 		}
 	}
 	return nil
+}
+
+// ByIDAll returns every entity matching the id, in tree-walk order.
+// Used by `aiwf reallocate` to detect the duplicate-id case so the
+// trunk-ancestry tiebreaker can run; ByID alone would silently pick
+// one and obscure that there's a choice to make.
+func (t *Tree) ByIDAll(id string) []*entity.Entity {
+	var out []*entity.Entity
+	for _, e := range t.Entities {
+		if e.ID == id {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // ByPriorID returns the entity whose `prior_ids` lineage list

@@ -19,7 +19,13 @@ aiwf reallocate <id>
 aiwf reallocate <path>
 ```
 
-When passing an id, `aiwf` errors if it cannot pick exactly one entity to renumber. Pass the path of the loser to disambiguate. The id format never gets a suffix (no `M-007a`); collision recovery always picks `max + 1`.
+When passing an id and two entities share it, `aiwf` runs the trunk-ancestry tiebreaker:
+- If exactly one side's add commit is an ancestor of the configured trunk ref, that side keeps the id (the team has been calling it that name) and the OTHER side is renumbered automatically.
+- If both/neither are on trunk, `aiwf` refuses with an "ambiguous" error listing both candidate paths and the diagnostic. Pass a path to disambiguate.
+
+Sandbox repos with no trunk in scope skip the tiebreaker — operators always pass a path there.
+
+The id format never gets a suffix (no `M-007a`); collision recovery always picks `max + 1` against the working tree ∪ trunk.
 
 ## What aiwf does
 

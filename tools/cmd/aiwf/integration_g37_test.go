@@ -724,6 +724,198 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 	}
 }
 
+// TestIntegrationG37_ReallocateTiebreakerPicksLocalSide pins the
+// load-bearing tiebreaker behavior (id-allocation.md §"Reallocate
+// when both branches did real work"):
+//
+//   - Two clones independently allocate G-001 (different titles, so
+//     different paths).
+//   - A pushes first; A's G-001 is now an ancestor of trunk
+//     (refs/remotes/origin/main on B after B fetches).
+//   - B rebases. B's working tree now carries both files: A's
+//     G-001-cache-busts.md AND B's G-001-pre-aiwf-docs.md.
+//   - B runs `aiwf reallocate G-001` with the bare id.
+//   - Tiebreaker resolves: A's add-commit IS an ancestor of trunk;
+//     B's local add-commit IS NOT. B's local side is the loser.
+//   - Reallocate renumbers B's local side to G-002 (or higher,
+//     skipping any trunk gaps); A's side keeps G-001.
+//
+// This is exactly the workflow the gap entry describes for the real
+// flowtime-vnext incident, executed against real git plumbing.
+func TestIntegrationG37_ReallocateTiebreakerPicksLocalSide(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	bare := makeBareOrigin(t)
+	cloneA := makeClone(t, bare, "A")
+	aiwfInitClone(t, cloneA, binDir)
+
+	cloneB := makeSiblingClone(t, bare, "B")
+
+	// Both clones allocate G-001 independently.
+	aiwfAddGap(t, cloneA, binDir, "Cache busts under heavy load")
+	aiwfAddGap(t, cloneB, binDir, "Pre-aiwf v1 docs survived migration")
+
+	// A pushes first. Trunk now carries A's G-001.
+	pushAll(t, cloneA)
+
+	// B fetches and rebases, bringing A's G-001 into B's working
+	// tree. The two G-001 files have different slugs so git merges
+	// them in cleanly; B's tree now has duplicate ids.
+	fetchOrigin(t, cloneB)
+	if out, err := runGit(cloneB, "rebase", "-q", "origin/main"); err != nil {
+		t.Fatalf("B rebase: %v\n%s", err, out)
+	}
+
+	// Sanity: both G-001 files now exist in B's tree.
+	gapDir := filepath.Join(cloneB, "work", "gaps")
+	entries, err := os.ReadDir(gapDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g001Count := 0
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), "G-001-") {
+			g001Count++
+		}
+	}
+	if g001Count != 2 {
+		t.Fatalf("after rebase B should have 2 G-001-* files, found %d: %v", g001Count, entries)
+	}
+
+	// `aiwf reallocate G-001` with a bare id. Without the tiebreaker
+	// this would fail with "ambiguous, pass a path". With the
+	// tiebreaker, ancestry resolves: A's G-001 is on trunk, B's is
+	// not, so B's side is the loser and gets renumbered.
+	out, err := runBin(t, cloneB, binDir, nil, "reallocate", "G-001")
+	if err != nil {
+		t.Fatalf("aiwf reallocate G-001 (bare): %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "G-002") {
+		t.Errorf("reallocate output should reference G-002 (the renumbered local side); got:\n%s", out)
+	}
+
+	// After reallocate, A's G-001 (cache-busts) still exists; B's
+	// local pre-aiwf G-001 is gone, replaced by G-002.
+	entries, err = os.ReadDir(gapDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var hasG001CacheBusts, hasG002PreAiwf, lingeringG001Pre bool
+	for _, e := range entries {
+		switch {
+		case strings.HasPrefix(e.Name(), "G-001-cache-busts"):
+			hasG001CacheBusts = true
+		case strings.HasPrefix(e.Name(), "G-002-pre-aiwf"):
+			hasG002PreAiwf = true
+		case strings.HasPrefix(e.Name(), "G-001-pre-aiwf"):
+			lingeringG001Pre = true
+		}
+	}
+	if !hasG001CacheBusts {
+		t.Errorf("A's G-001-cache-busts-* should survive; entries: %v", entries)
+	}
+	if !hasG002PreAiwf {
+		t.Errorf("B's local should be renumbered to G-002-pre-aiwf-*; entries: %v", entries)
+	}
+	if lingeringG001Pre {
+		t.Errorf("B's local G-001-pre-aiwf-* should have been renamed; entries: %v", entries)
+	}
+
+	// And aiwf check on the post-reallocate tree must be clean.
+	if checkOut, err := aiwfCheck(t, cloneB, binDir); err != nil {
+		t.Errorf("aiwf check after tiebreaker reallocate should be clean; got %v\n%s", err, checkOut)
+	}
+
+	// Audit-trail check: the reallocate commit's trailers name the
+	// renumbered side. aiwf-prior-entity is G-001 (the id B's local
+	// side carried before the rename); aiwf-entity is G-002 (the new
+	// canonical id for B's local side).
+	trailers, gitErr := runGit(cloneB, "log", "-1", "--format=%(trailers)", "HEAD")
+	if gitErr != nil {
+		t.Fatalf("reading HEAD trailers: %v\n%s", gitErr, trailers)
+	}
+	for _, want := range []string{
+		"aiwf-verb: reallocate",
+		"aiwf-entity: G-002",
+		"aiwf-prior-entity: G-001",
+		"aiwf-actor: ",
+	} {
+		if !strings.Contains(trailers, want) {
+			t.Errorf("HEAD trailers missing %q; got:\n%s", want, trailers)
+		}
+	}
+}
+
+// TestIntegrationG37_ReallocateTiebreakerAmbiguousNeitherInTrunk
+// pins the negative case: when ancestry can't decide (both sides
+// merged to trunk, or neither has, or both are local-only), the
+// verb refuses with a clear error rather than silently picking one.
+//
+// Setup: two clones add G-001 independently; neither pushes. Then
+// one clone pulls the other's branch directly so its tree has
+// duplicate ids — but neither add commit is an ancestor of
+// origin/main (which still only has the aiwf-init commit).
+func TestIntegrationG37_ReallocateTiebreakerAmbiguousNeitherInTrunk(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	bare := makeBareOrigin(t)
+	cloneA := makeClone(t, bare, "A")
+	aiwfInitClone(t, cloneA, binDir)
+
+	cloneB := makeSiblingClone(t, bare, "B")
+
+	aiwfAddGap(t, cloneA, binDir, "A side")
+	aiwfAddGap(t, cloneB, binDir, "B side")
+
+	// B adds A's clone as a remote, fetches A's commit, and
+	// cherry-picks it. Now B's tree has both G-001 files but
+	// neither add-commit is on origin/main (which is still at
+	// aiwf-init).
+	if out, err := runGit(cloneB, "remote", "add", "peer", cloneA); err != nil {
+		t.Fatalf("git remote add peer: %v\n%s", err, out)
+	}
+	if out, err := runGit(cloneB, "fetch", "-q", "peer"); err != nil {
+		t.Fatalf("git fetch peer: %v\n%s", err, out)
+	}
+	// A's HEAD is the only commit on top of init we want; cherry-pick
+	// it into B's main.
+	aHead, headErr := runGit(cloneA, "rev-parse", "HEAD")
+	if headErr != nil {
+		t.Fatalf("rev-parse on A: %v", headErr)
+	}
+	if out, pickErr := runGit(cloneB, "cherry-pick", strings.TrimSpace(aHead)); pickErr != nil {
+		t.Fatalf("git cherry-pick: %v\n%s", pickErr, out)
+	}
+
+	// Sanity: B has both G-001 files, neither is on origin/main.
+	gapDir := filepath.Join(cloneB, "work", "gaps")
+	entries, _ := os.ReadDir(gapDir)
+	g001Count := 0
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), "G-001-") {
+			g001Count++
+		}
+	}
+	if g001Count != 2 {
+		t.Fatalf("expected 2 G-001-* files; found %d: %v", g001Count, entries)
+	}
+
+	// Bare-id reallocate must refuse with a clear "ambiguous" message
+	// naming both candidate paths and the diagnostic.
+	out, err := runBin(t, cloneB, binDir, nil, "reallocate", "G-001")
+	if err == nil {
+		t.Fatalf("reallocate G-001 (bare) should fail when ancestry can't decide; output:\n%s", out)
+	}
+	if !strings.Contains(out, "ambiguous") {
+		t.Errorf("error message should say ambiguous; got:\n%s", out)
+	}
+	if !strings.Contains(out, "neither") {
+		t.Errorf("diagnostic should mention 'neither' is on trunk; got:\n%s", out)
+	}
+}
+
 // TestIntegrationG37_HistoryWalksLineageChain pins layer (b)'s
 // load-bearing read-side guarantee: after two reallocations
 // (G-001 → G-002 → G-003), `aiwf history` returns the same

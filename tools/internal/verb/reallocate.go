@@ -33,8 +33,10 @@ import (
 // to the standard three, so `aiwf history <old-id>` continues to find
 // the entity's lifecycle even after the renumber.
 func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Result, error) {
-	_ = ctx
-	target := resolveTarget(t, idOrPath)
+	target, err := resolveReallocateTarget(ctx, t, idOrPath)
+	if err != nil {
+		return nil, err
+	}
 	if target == nil {
 		return nil, fmt.Errorf("entity %q not found by id or path", idOrPath)
 	}
@@ -227,6 +229,116 @@ func resolveTarget(t *tree.Tree, idOrPath string) *entity.Entity {
 		}
 	}
 	return nil
+}
+
+// resolveReallocateTarget resolves idOrPath to the entity reallocate
+// should renumber, applying the trunk-ancestry tiebreaker when the
+// argument is a bare id and two entities share it.
+//
+// The tiebreaker rule (per id-allocation.md):
+//
+//   - If exactly one of the colliding entities' add commits is an
+//     ancestor of the configured trunk ref, the side already in
+//     trunk keeps the id and the OTHER side is the renumber target.
+//     The team has been calling the trunk-side entity by that name.
+//   - If both add commits are in trunk, or neither is, ancestry can't
+//     decide. Reallocate refuses with an error explaining the
+//     diagnostic and asking the operator to pass a path.
+//
+// When the argument is a path, or when ByIDAll returns one match, or
+// when the tree carries no TrunkRef (sandbox repos with no remote),
+// the verb falls back to the existing single-target resolution and
+// the existing "ambiguous, pass a path" error if needed.
+func resolveReallocateTarget(ctx context.Context, t *tree.Tree, idOrPath string) (*entity.Entity, error) {
+	matches := t.ByIDAll(idOrPath)
+	switch len(matches) {
+	case 0:
+		// Either a path, or a non-existent id. Path matching falls
+		// through to resolveTarget (which also handles single-id case
+		// when ByIDAll happens to be empty, e.g. an exact path match
+		// that didn't pass id format).
+		return resolveTarget(t, idOrPath), nil
+	case 1:
+		return matches[0], nil
+	}
+
+	// Two or more entities share the id. Apply the trunk-ancestry
+	// tiebreaker if a trunk ref is in scope; otherwise fall back to
+	// the "ambiguous, pass a path" error.
+	if t.TrunkRef == "" {
+		return nil, ambiguousIDErr(idOrPath, matches, "no trunk ref configured for this repo")
+	}
+
+	type ranked struct {
+		e        *entity.Entity
+		addSHA   string
+		inTrunk  bool
+		hasError bool
+	}
+	rs := make([]ranked, len(matches))
+	for i, e := range matches {
+		sha, err := gitops.AddCommitSHA(ctx, t.Root, e.Path)
+		if err != nil {
+			rs[i] = ranked{e: e, hasError: true}
+			continue
+		}
+		rs[i] = ranked{e: e, addSHA: sha}
+		if sha == "" {
+			continue
+		}
+		anc, err := gitops.IsAncestor(ctx, t.Root, sha, t.TrunkRef)
+		if err != nil {
+			rs[i].hasError = true
+			continue
+		}
+		rs[i].inTrunk = anc
+	}
+
+	for _, r := range rs {
+		if r.hasError {
+			return nil, ambiguousIDErr(idOrPath, matches,
+				"could not determine trunk ancestry for at least one side")
+		}
+	}
+
+	inTrunk := 0
+	var loser *entity.Entity
+	for _, r := range rs {
+		if r.inTrunk {
+			inTrunk++
+			continue
+		}
+		loser = r.e
+	}
+	if inTrunk != len(rs)-1 {
+		// Either both/all are in trunk (inTrunk == len(rs)) or none
+		// are (inTrunk == 0). Neither lets us pick a unique loser.
+		var diag string
+		switch inTrunk {
+		case 0:
+			diag = "neither side is on " + t.TrunkRef
+		case len(rs):
+			diag = "all sides are already on " + t.TrunkRef
+		default:
+			diag = fmt.Sprintf("%d of %d sides are on %s", inTrunk, len(rs), t.TrunkRef)
+		}
+		return nil, ambiguousIDErr(idOrPath, matches, diag)
+	}
+	return loser, nil
+}
+
+// ambiguousIDErr formats the operator-facing error when reallocate
+// cannot pick a single target by id alone. The message lists every
+// colliding path so the operator knows which paths to choose
+// between, plus a one-line diagnostic explaining why ancestry didn't
+// resolve it.
+func ambiguousIDErr(id string, matches []*entity.Entity, diagnostic string) error {
+	paths := make([]string, len(matches))
+	for i, e := range matches {
+		paths[i] = filepath.ToSlash(e.Path)
+	}
+	return fmt.Errorf("id %q is ambiguous (%s); pass a path instead. Candidates: %s",
+		id, diagnostic, strings.Join(paths, ", "))
 }
 
 // reallocatePaths returns (source, dest) for the move that renames an

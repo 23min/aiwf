@@ -459,7 +459,7 @@ Resolved in commit `(this commit)` (fix(aiwf): G35/G36 — render gap/ADR/decisi
 ---
 
 <a id="g37"></a>
-### G37. Cross-branch id collisions split the audit trail; allocator is local-tree only — **open (design proposed)**
+### G37. Cross-branch id collisions split the audit trail; allocator is local-tree only — **resolved (this commit)**
 
 `entity.AllocateID` (`tools/internal/entity/allocate.go:43`) walks the caller's working tree and picks `max+1`. The doc comment at lines 34-37 names this as deliberate ("cross-branch coordination is by design out of scope; collisions are caught by the ids-unique check and resolved with `aiwf reallocate`"). The design *predicted* the collision class but the resolution path was sized for a single-entity oops, not for "two parallel sessions both did real work under the same id."
 
@@ -564,7 +564,7 @@ Severity: **Medium**. Not blocking PoC completion, but a real source of "we don'
 | G34 | Mutating verbs sweep pre-staged unrelated changes into their commit | High | [x] `890ab01` |
 | G35 | HTML site only generates epic/milestone pages — gap/ADR/decision/contract links 404 | High | [x] (this commit) |
 | G36 | Entity body markdown rendered as escaped raw text in HTML | High | [x] (this commit) |
-| G37 | Cross-branch id collisions split the audit trail; allocator is local-tree only | High | [ ] open (design proposed: [`design/id-allocation.md`](design/id-allocation.md)) |
+| G37 | Cross-branch id collisions split the audit trail; allocator is local-tree only | High | [x] (this commit) |
 | G38 | The kernel repo does not dogfood aiwf — feasibility and fit need investigation | Medium | [ ] open |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

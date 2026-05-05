@@ -138,6 +138,110 @@ func TestLsTreePaths_EmptyTree(t *testing.T) {
 	}
 }
 
+func TestAddCommitSHA_ReturnsBirthCommitForExactPath(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+
+	commitFile(t, ctx, dir, "work/gaps/G-001-foo.md", "# foo\n")
+	birthSHA := mustOutput(t, ctx, dir, "rev-parse", "HEAD")
+
+	// Unrelated commit so HEAD isn't the birth.
+	commitFile(t, ctx, dir, "README.md", "readme\n")
+
+	got, err := AddCommitSHA(ctx, dir, "work/gaps/G-001-foo.md")
+	if err != nil {
+		t.Fatalf("AddCommitSHA: %v", err)
+	}
+	if got != birthSHA {
+		t.Errorf("AddCommitSHA = %q, want birth %q", got, birthSHA)
+	}
+}
+
+func TestAddCommitSHA_DoesNotFollowAcrossRename(t *testing.T) {
+	// AddCommitSHA deliberately omits `git log --follow` because
+	// `--follow` is a content-similarity heuristic that mis-attributes
+	// one entity's add commit to a similar entity in the
+	// duplicate-id reallocate scenario. Document the trade-off here:
+	// after a path rename the function returns the rename commit,
+	// not the original birth. Callers (the reallocate tiebreaker)
+	// rely on this — they care about "when did this exact path get
+	// these bytes," not "what's the genealogy of this file."
+	ctx := context.Background()
+	dir := initTestRepo(t)
+
+	commitFile(t, ctx, dir, "work/gaps/G-001-foo.md", "# foo\n")
+	birthSHA := mustOutput(t, ctx, dir, "rev-parse", "HEAD")
+	commitFile(t, ctx, dir, "README.md", "readme\n")
+
+	mustRun(t, ctx, dir, "mv", "work/gaps/G-001-foo.md", "work/gaps/G-002-foo.md")
+	mustRun(t, ctx, dir, "add", "-A")
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "rename")
+	renameSHA := mustOutput(t, ctx, dir, "rev-parse", "HEAD")
+
+	got, err := AddCommitSHA(ctx, dir, "work/gaps/G-002-foo.md")
+	if err != nil {
+		t.Fatalf("AddCommitSHA: %v", err)
+	}
+	if got == birthSHA {
+		t.Errorf("AddCommitSHA after rename = birth %q; expected the rename commit, not the birth", birthSHA)
+	}
+	if got != renameSHA {
+		t.Errorf("AddCommitSHA after rename = %q, want rename commit %q", got, renameSHA)
+	}
+}
+
+func TestAddCommitSHA_PathWithNoHistory(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "README.md", "readme\n")
+
+	got, err := AddCommitSHA(ctx, dir, "work/gaps/G-001-never-committed.md")
+	if err != nil {
+		t.Fatalf("AddCommitSHA: %v", err)
+	}
+	if got != "" {
+		t.Errorf("AddCommitSHA on uncommitted path = %q, want \"\"", got)
+	}
+}
+
+func TestIsAncestor_TrueAndFalse(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "a.txt", "1")
+	first := mustOutput(t, ctx, dir, "rev-parse", "HEAD")
+	commitFile(t, ctx, dir, "b.txt", "2")
+
+	// first is an ancestor of HEAD.
+	got, err := IsAncestor(ctx, dir, first, "HEAD")
+	if err != nil {
+		t.Fatalf("IsAncestor: %v", err)
+	}
+	if !got {
+		t.Errorf("IsAncestor(first, HEAD) = false, want true")
+	}
+
+	// HEAD is not an ancestor of first.
+	head := mustOutput(t, ctx, dir, "rev-parse", "HEAD")
+	got, err = IsAncestor(ctx, dir, head, first)
+	if err != nil {
+		t.Fatalf("IsAncestor: %v", err)
+	}
+	if got {
+		t.Errorf("IsAncestor(HEAD, first) = true, want false")
+	}
+}
+
+func TestIsAncestor_BadRef(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "a.txt", "1")
+
+	_, err := IsAncestor(ctx, dir, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", "HEAD")
+	if err == nil {
+		t.Error("IsAncestor on a SHA that doesn't exist should error, got nil")
+	}
+}
+
 // initTestRepo creates a fresh git repo in a temp dir and returns its
 // path. It also sets a deterministic commit identity via t.Setenv so
 // tests don't depend on the host's git config.

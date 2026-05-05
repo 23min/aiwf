@@ -36,5 +36,9 @@ func loadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 		return tr, loadErrs, err
 	}
 	tr.TrunkIDs = res.IDs
+	if !res.Skipped {
+		ref, _ := cfg.AllocateTrunkRef()
+		tr.TrunkRef = ref
+	}
 	return tr, loadErrs, nil
 }
