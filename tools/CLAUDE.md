@@ -156,7 +156,8 @@ Patch releases that are pure-mechanical (e.g. a `go.sum` refresh with no behavio
 
 - Minimize external deps. Each new dep needs a one-line justification in the commit message or PR description.
 - `CGO_ENABLED=0` — binaries must be statically linked.
-- `go 1.24` minimum. Bump deliberately. Last bumped from 1.22 → 1.24 in G43; rationale on file.
+- `go 1.24` minimum (consumer floor in `go.mod`). Bump deliberately. Last bumped from 1.22 → 1.24 in G43; rationale on file.
+- **CI build toolchain is decoupled** from the `go.mod` floor: the workflow files pin `go-version: "1.25"` so `actions/setup-go` resolves to the latest patched 1.25.x, picking up stdlib backports the 1.24.x line lacks. The directive in `go.mod` is the consumer-compatibility commitment; the CI version is the build-time toolchain. Bump CI when `govulncheck` reports stdlib CVEs only fixed in a newer minor; bump `go.mod` only when the codebase needs a feature that `go.mod`'s current floor doesn't provide.
 - One `go.mod` for the entire `tools/` tree.
 
 ## Naming
