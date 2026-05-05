@@ -68,29 +68,34 @@ prior_ids: [G-035]
 
 Oldest first. After two renumberings, the third id carries `[G-035, G-037]`.
 
-The list is the source of truth. Tree-only readers — `aiwf show`, the HTML render, future projections — read lineage straight from the file, with no git log involved. A merge that brings a renamed entity into trunk carries the lineage along in the frontmatter, automatically.
+The list is the canonical source for tree-readable consumers — `aiwf show`, the HTML render, future projections — which now read lineage straight from the file with no git log involved. A merge that brings a renamed entity into trunk carries the lineage along in the frontmatter, automatically.
+
+The reallocate commit also keeps writing the existing `aiwf-prior-entity: <old-id>` trailer for git-log-readable consumers (`aiwf history`'s chain grep, scope-chain resolution in the I2.5 provenance audit). The two surfaces are not redundant: the trailer makes lineage queryable from `git log` without loading the entity tree, which the framework already relies on for scope and history; the frontmatter makes it readable from a tree value without shelling out to git, which the new tree-only consumers need. Both are written on every reallocate; neither is the "secondary copy."
 
 ---
 
 ## History walks the chain
 
-`aiwf history` accepts any id, current or prior. A reverse index built at tree load resolves it:
+`aiwf history` accepts any id, current or prior. The cmd dispatcher resolves the input through `tree.Tree.ResolveByCurrentOrPriorID`, which tries `ByID` first and falls back to a linear `ByPriorID` scan:
+
+```go
+func (t *Tree) ResolveByCurrentOrPriorID(id string) *entity.Entity {
+    if e := t.ByID(id); e != nil { return e }
+    return t.ByPriorID(id)
+}
+```
+
+The resolved entity's `prior_ids` plus its current `id` form the full chain. One `git log` invocation greps `aiwf-entity:` and `aiwf-prior-entity:` for every id in the chain:
 
 ```
-priorIDIndex map[string]*Entity
-```
-
-The lookup returns the canonical entity. The entity's `prior_ids` plus its current `id` form the full chain. One grep:
-
-```
-git log --grep "aiwf-entity: (id1|id2|id3)"
+git log --grep "aiwf-entity: (id1|id2|id3)" --grep "aiwf-prior-entity: (id1|id2|id3)"
 ```
 
 Sort by commit time. Return.
 
 `aiwf history G-035` and `aiwf history G-037` give the same timeline. The rename appears as a regular reallocate event in the chain, just like any other commit.
 
-One code path. The frontmatter is the source of truth.
+One code path. The frontmatter `prior_ids` list is what tells the dispatcher which ids belong to the chain; the trailer set is what the grep matches on.
 
 ---
 
@@ -138,15 +143,15 @@ Each one was considered, and each one is more code than the problem requires. If
 ## Implementation surface
 
 - `tools/internal/entity/allocate.go` — union the working tree and the trunk ref. Hard error on a missing ref.
-- `tools/internal/aiwfyaml/` — `allocate.trunk` field.
-- `tools/internal/check/idsunique.go` — read the trunk ref. Add a cross-tree collision message.
-- `tools/internal/entity/schema.go` — `prior_ids: []string` in the common schema.
-- `tools/internal/verb/reallocate.go` — append to `prior_ids`. Ancestor-based tiebreaker. Prompt when ancestry can't decide.
-- `tools/internal/tree/tree.go` — build `priorIDIndex` at load.
-- `tools/cmd/aiwf/admin_cmd.go` — `readHistory` resolves through the index and greps the chain in one pass.
-- `tools/cmd/aiwf/migrate_lineage_cmd.go` — one-shot verb. Backfills `prior_ids` from any `aiwf-prior-entity:` trailers in the commit history. Idempotent.
+- `tools/internal/config/config.go` — `allocate.trunk` field.
+- `tools/internal/check/check.go` — `idsUnique` reads the trunk view. Cross-tree collisions surface with subcode `trunk-collision`.
+- `tools/internal/entity/entity.go` — `PriorIDs []string` field with `yaml:"prior_ids,omitempty"`.
+- `tools/internal/verb/reallocate.go` — append to `prior_ids` on rename; resolve ambiguous ids via the trunk-ancestry tiebreaker (`merge-base --is-ancestor` against the trunk ref) and refuse with a clear diagnostic when ancestry can't decide.
+- `tools/internal/tree/tree.go` — `ByPriorID` reverse lookup; `ResolveByCurrentOrPriorID` combined resolver. (No standing index; the linear scan is fine for PoC-scale trees.)
+- `tools/cmd/aiwf/admin_cmd.go` — `runHistory` expands the queried id through the entity's `PriorIDs` chain; `readHistoryChain` greps the union in one pass.
+- A migration verb that backfills `prior_ids` from `aiwf-prior-entity:` trailers in pre-G37 reallocate history is unbuilt-by-design — no consumer currently has reallocate history that would benefit from it.
 
-One YAML field. One frontmatter field. One one-shot verb. No new trailers, no new flags, no new check rules.
+One YAML field. One frontmatter field. No new trailers, no new flags, no new check rules.
 
 ---
 
@@ -154,11 +159,12 @@ One YAML field. One frontmatter field. One one-shot verb. No new trailers, no ne
 
 - Lineage chains aren't depth-bounded. Real chains will be one or two deep. If a chain ten long shows up, a depth limit and a `lineage-too-deep` finding can be added then.
 - The trunk tree is read on every `aiwf add`. It's cheap on normal repos. A monorepo with thousands of entities might benefit from a per-`<trunk-sha>` cache; that's a measurement-driven optimization, not a requirement.
-- The `aiwf-prior-entity:` trailer is no longer written. Existing commits keep theirs. The migration verb backfills `prior_ids` for repos that already have those trailers.
+- The `aiwf-prior-entity:` trailer remains the git-log-readable surface for lineage; the `prior_ids` frontmatter list is the tree-readable surface. Both are written on every reallocate. They serve different consumers and neither is the secondary copy. (See "Lineage in the frontmatter" above.)
+- Repos that pre-date the `prior_ids` field carry lineage in trailers only. `aiwf history` still finds the rename event for those (the trailer grep matches), but tree-only readers won't see lineage until the entity is reallocated again or a future migration verb backfills `prior_ids` from trailer history. The migration verb is unbuilt-by-design until a real consumer surfaces with that need.
 
 ---
 
 ## Cross-references
 
-- [`provenance-model.md`](provenance-model.md) — `aiwf-prior-entity:` is no longer written on new commits.
+- [`provenance-model.md`](provenance-model.md) — the `aiwf-prior-entity:` trailer remains in the trailer set; reallocate writes it alongside the new `prior_ids` frontmatter list.
 - [`gaps.md`](../gaps.md) — G37 tracks the work.
