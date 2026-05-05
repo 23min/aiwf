@@ -89,35 +89,54 @@ exec ` + shellQuoteSingle(execPath) + ` check
 `
 }
 
-// preCommitHookScript renders the body of the pre-commit hook that
-// regenerates `STATUS.md` on every commit. The aiwf binary's absolute
-// path is baked in (same rationale as preHookScript: hooks should
-// not depend on the user's interactive `$PATH`). The script is
-// tolerant by design — any failure path silently exits 0, so a
-// missing/moved/broken binary, a transient `aiwf status` error, or
-// a tree the engine refuses to read does not block commits. Drift
-// between the installed body and this template is detected by
-// `aiwf doctor` and remediated by `aiwf update`.
+// preCommitHookScript renders the body of the pre-commit hook. The
+// hook does two things, in order:
+//
+//  1. Tree-discipline gate (`aiwf check --shape-only`). When the
+//     consumer has `aiwf.yaml: tree.strict: true`, a stray file
+//     under work/ blocks the commit; in the default warn-only mode
+//     the finding prints but the commit proceeds. This is the G41
+//     surface — pre-commit catches the LLM-loop failure mode that
+//     pre-push only catches at audit time. Agent-agnostic: any
+//     client that runs `git commit` triggers the hook.
+//  2. STATUS.md regeneration (tolerant). Any failure here silently
+//     exits 0 so a transient `aiwf status` problem doesn't block
+//     contributors.
+//
+// The aiwf binary's absolute path is baked in (same rationale as
+// preHookScript: hooks should not depend on the user's interactive
+// `$PATH`). Drift between the installed body and this template is
+// detected by `aiwf doctor` and remediated by `aiwf update`.
 //
 // Brownfield guard mirrors preHookScript's: if no `aiwf.yaml` is
-// present at the repo root the hook exits 0 immediately, before
-// invoking `aiwf status`. Without this guard the hook would write
-// a "0 entities" STATUS.md and `git add` it on every commit in a
-// brownfield repo — an invasive surprise for users who have not
-// yet adopted aiwf on this branch.
+// present at the repo root the hook exits 0 immediately. Without
+// this guard the hook would fire on every commit in a brownfield
+// repo that has not yet adopted aiwf — invasive and surprising.
 func preCommitHookScript(execPath string) string {
+	bin := shellQuoteSingle(execPath)
 	return `#!/bin/sh
 ` + preCommitHookMarker + `
-# Installed by aiwf init/update. Regenerates STATUS.md so the
-# committed snapshot stays in sync with the entity tree. Tolerant —
-# any failure silently no-ops so contributors are never blocked.
-# Opt out: set status_md.auto_update: false in aiwf.yaml and run
-# 'aiwf update' to remove this hook.
+# Installed by aiwf init/update. Two responsibilities:
+#   1. Tree-discipline gate: stray files under work/ block the
+#      commit when aiwf.yaml has tree.strict: true; otherwise they
+#      print a warning but proceed.
+#   2. STATUS.md regeneration: tolerant — never blocks commits.
+# Opt out of STATUS.md regen: set status_md.auto_update: false in
+# aiwf.yaml and run 'aiwf update' to refresh this hook.
 set -e
 repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
+
+# (1) Tree-discipline. Output goes to stderr so the user sees it
+# during commit. Non-zero exit blocks (only fires under
+# tree.strict: true; warnings still print but exit 0).
+if ! ` + bin + ` check --shape-only --root "$repo_root" >&2; then
+    exit 1
+fi
+
+# (2) STATUS.md regen. Tolerant by design.
 tmp="$repo_root/STATUS.md.tmp"
-if ` + shellQuoteSingle(execPath) + ` status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
+if ` + bin + ` status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
     mv "$tmp" "$repo_root/STATUS.md"
     git add "$repo_root/STATUS.md"
 else
@@ -892,6 +911,6 @@ func ensurePreCommitHook(ctx context.Context, root string, install, dryRun bool)
 	return StepResult{
 		What:   what,
 		Action: action,
-		Detail: "exec " + exePath + " status --format=md",
+		Detail: "exec " + exePath + " check --shape-only + status --format=md",
 	}, false, nil
 }

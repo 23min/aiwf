@@ -522,6 +522,25 @@ Severity: **Medium**. Not blocking PoC completion, but a real source of "we don'
 
 ---
 
+### G41. Tree-discipline ran only at pre-push — LLM-loop signal lands too late — **resolved**
+
+Resolved in commit `(this commit)` (feat(aiwf): G41 — pre-commit gate + `aiwf check --shape-only`). G40 shipped the tree-discipline rule wired into the full `aiwf check` pipeline at pre-push only. That guarantees the bad state never *pushes*, but it does not give the LLM an in-loop signal — by the time pre-push fires, the stray commit has already landed locally, possibly been amended onto, or been bypassed via `git push --no-verify`. The user pushed back on two points:
+
+1. **Agent-agnosticism.** A marker-managed CLAUDE.md fragment (the original early-warning proposal) ties aiwf to Claude Code; Cursor uses `.cursor/rules`, AGENTS.md is emerging, etc. Git hooks fire for any client that uses git — which is all of them. The hook is the agent-agnostic surface.
+2. **Pre-commit beats pre-push for this rule.** Stray-file detection is fast and exact; there is no legitimate "WIP" state where a stray exists. Moving the check earlier costs nothing in correctness and gains the in-loop feedback signal. The kernel's existing "marker-managed framework artifacts" principle already covers git hooks, so no new surface is created.
+
+The fix has three pieces, all in this commit:
+
+1. **`aiwf check --shape-only` flag.** Runs only the tree-discipline rule (no trunk read, no provenance walk, no contract validation), reads `aiwf.yaml: tree.{allow_paths,strict}` the same way the full check does. Cheap enough to fire on every commit. Exit codes match the standard contract: 0 ok, 1 findings (only when tree.strict promotes the warning to error), 3 internal.
+2. **Pre-commit hook gains the gate.** The aiwf-managed pre-commit hook now invokes `aiwf check --shape-only` *before* the existing STATUS.md regen step. The shape check is non-tolerant — non-zero exit blocks the commit (only fires when strict). The status step remains tolerant per the existing design.
+3. **Skill + design doc updates.** `aiwf-check` SKILL documents the `--shape-only` flag and the pre-commit/pre-push split as a two-row table; `tree-discipline.md` records the chokepoint design rationale and explicitly rejects the marker-CLAUDE.md alternative with the agent-agnosticism reasoning.
+
+**Known scope limitation, not closed by this commit:** the pre-commit hook is gated by `aiwf.yaml: status_md.auto_update`. A consumer who opts that flag off loses both the STATUS.md regen *and* the pre-commit tree-discipline gate; pre-push still enforces, so the kernel guarantee holds, but the early-warning signal disappears. Fully decoupling those two hook responsibilities is deferred until a real consumer needs the split.
+
+Severity: **High**. The user discovered the issue immediately on review of G40's shipped form — pre-push enforcement alone, without a pre-commit early-warning, leaves the LLM blind in-loop. The mechanical guarantee (push fails) was solid; the UX cost was unacceptable.
+
+---
+
 ### G40. `work/` is mechanically unprotected — `aiwf check` silently ignores stray files — **resolved**
 
 Resolved in commit `(this commit)` (feat(aiwf): G40 — tree-discipline check + tree.allow_paths config + skill rule). The tree loader at `tools/internal/tree/tree.go` walks `work/*` subdirectories and registers everything `entity.PathKind` recognizes; until this fix, files at *any* other path were silently skipped — no finding, no warning, no log line. An LLM-written `work/scratch.md`, an accidental `work/epics/E-01-foo/notes.md`, or a leftover `work/old-stuff/` directory was invisible to `aiwf check` and therefore invisible to the pre-push hook. The chokepoint that was supposed to make tree-shape guarantees real had a blind spot the size of the whole `work/` tree.
@@ -603,6 +622,7 @@ Severity: **High**. Operator-facing regression on the most common Go install set
 | G37 | Cross-branch id collisions split the audit trail; allocator is local-tree only | High | [x] `271f514` (a) + `b9d73d8` (b lineage) + `c5a98c1` (b tiebreaker) + `a6e8067` + `685f288` |
 | G38 | The kernel repo does not dogfood aiwf — feasibility and fit need investigation | Medium | [ ] open |
 | G39 | `aiwf upgrade` mis-parses `go env` output when GOBIN is unset | High | [x] `9a06c74` |
-| G40 | `work/` mechanically unprotected — `aiwf check` silently ignores stray files | High | [x] (this commit) |
+| G40 | `work/` mechanically unprotected — `aiwf check` silently ignores stray files | High | [x] `bdd43c2` |
+| G41 | Tree-discipline ran only at pre-push — LLM-loop signal lands too late | High | [x] (this commit) |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

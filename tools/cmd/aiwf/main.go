@@ -19,6 +19,7 @@ import (
 	"github.com/23min/ai-workflow-v2/tools/internal/check"
 	"github.com/23min/ai-workflow-v2/tools/internal/config"
 	"github.com/23min/ai-workflow-v2/tools/internal/render"
+	"github.com/23min/ai-workflow-v2/tools/internal/tree"
 	"github.com/23min/ai-workflow-v2/tools/internal/version"
 )
 
@@ -211,6 +212,7 @@ func runCheck(args []string) int {
 	format := flags.String("format", "text", "output format: text or json")
 	pretty := flags.Bool("pretty", false, "indent JSON output (only with --format=json)")
 	since := flags.String("since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
+	shapeOnly := flags.Bool("shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
 	flags.SetOutput(os.Stderr)
 	if err := flags.Parse(args); err != nil {
 		return exitUsage
@@ -231,6 +233,10 @@ func runCheck(args []string) int {
 	}
 
 	ctx := context.Background()
+	if *shapeOnly {
+		return runCheckShapeOnly(ctx, resolved, *format, *pretty)
+	}
+
 	tr, loadErrs, err := loadTreeWithTrunk(ctx, resolved)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
@@ -294,6 +300,63 @@ func runCheck(args []string) int {
 			},
 		}
 		if err := render.JSON(os.Stdout, env, *pretty); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return exitInternal
+		}
+	}
+
+	if check.HasErrors(findings) {
+		return exitFindings
+	}
+	return exitOK
+}
+
+// runCheckShapeOnly runs the tree-discipline rule and nothing else.
+// Used by the pre-commit hook to give the LLM a fast, in-loop signal
+// when a stray file lands under work/ — the full check.Run pipeline
+// (trunk read, provenance walk, contract validation) is too slow and
+// too noisy to fire on every commit, but the tree-discipline rule is
+// cheap and exact. Honors `aiwf.yaml: tree.{allow_paths,strict}` the
+// same way the full check does.
+//
+// Exit codes match `aiwf check`'s contract: 0 ok, 1 findings (errors
+// present — only fires when tree.strict: true), 3 internal.
+func runCheckShapeOnly(ctx context.Context, root, format string, pretty bool) int {
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
+		return exitInternal
+	}
+	var allow []string
+	strict := false
+	if cfg, cfgErr := config.Load(root); cfgErr == nil && cfg != nil {
+		allow = cfg.Tree.AllowPaths
+		strict = cfg.Tree.Strict
+	}
+	findings := check.TreeDiscipline(tr, allow, strict)
+	applyHintsLikeRun(findings)
+	check.SortFindings(findings)
+
+	switch format {
+	case "text":
+		if err := render.Text(os.Stdout, findings); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return exitInternal
+		}
+	case "json":
+		env := render.Envelope{
+			Tool:     "aiwf",
+			Version:  Version,
+			Status:   render.StatusFor(findings),
+			Findings: findings,
+			Metadata: map[string]any{
+				"root":       root,
+				"entities":   len(tr.Entities),
+				"shape_only": true,
+				"findings":   len(findings),
+			},
+		}
+		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
 			return exitInternal
 		}

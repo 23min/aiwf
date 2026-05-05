@@ -33,13 +33,35 @@ Two carve-outs:
 
 ## The mechanical check
 
-`aiwf check` calls `check.TreeDiscipline(tree, allow, strict)` after the standard rule chain. For each path the loader recorded under `work/*` that `entity.PathKind` did not recognize:
+`aiwf check` calls `check.TreeDiscipline(tree, allow, strict)`. For each path the loader recorded under `work/*` that `entity.PathKind` did not recognize:
 
 - if the path is inside a contract directory → exempt;
 - else if the path matches any glob in `aiwf.yaml: tree.allow_paths` → exempt;
 - else → emit one `unexpected-tree-file` finding.
 
-Severity is **warning** by default. Setting `aiwf.yaml: tree.strict: true` promotes it to **error**, which means the pre-push hook blocks the push. Strict mode is the right setting for any consumer where the LLM is doing real work; the warning default exists so adopting aiwf doesn't immediately turn an existing repo's incidental files into push blockers.
+Severity is **warning** by default. Setting `aiwf.yaml: tree.strict: true` promotes it to **error**, which means the hook blocks the action. Strict mode is the right setting for any consumer where the LLM is doing real work; the warning default exists so adopting aiwf doesn't immediately turn an existing repo's incidental files into blockers.
+
+### Two chokepoints — pre-commit + pre-push (G41)
+
+Tree-discipline runs at **both** hooks, but for different reasons:
+
+| Hook | Invocation | Why this hook |
+|---|---|---|
+| `pre-commit` | `aiwf check --shape-only` | Tight LLM-loop signal — the bad commit never lands. Agent-agnostic: any client (Claude Code, Cursor, Aider, a script, a human) that runs `git commit` triggers the hook, regardless of whether that client supports its own pre-write hooks. The check is narrow and fast (no trunk read, no provenance walk, no contract validation), so it composes with the existing STATUS.md regen step in the same hook. |
+| `pre-push` | Full `aiwf check` | Audit chokepoint where push-blocking is appropriate. Tolerant of WIP between commits (the body of `aiwf check` includes provenance audits and other checks that can legitimately churn during iteration). The tree-discipline finding at this stage is the back-stop for repos that have opted out of the pre-commit hook. |
+
+The pre-commit gate is what makes G40's enforcement *visible to the LLM in real time*. Without it, the LLM only sees the failure when a human pushes — by which point the bad commit has already landed locally and possibly been pushed by `git push --no-verify` or similar. With it, the LLM's own `git commit` tool call returns a non-zero exit, and the LLM can fix the stray in the same conversation.
+
+**Known scope limitation.** The pre-commit hook is gated by `aiwf.yaml: status_md.auto_update`. A consumer who explicitly opts that flag off loses both the STATUS.md regen *and* the pre-commit tree-discipline gate; pre-push still enforces. Fully decoupling those two responsibilities is deferred until a real consumer needs the split — see G41 in [`gaps.md`](../gaps.md) for the open question.
+
+### Why no marker-managed CLAUDE.md fragment
+
+Earlier design rounds considered shipping a marker-managed block in the consumer's `CLAUDE.md` — same discipline as the marker-managed git hooks. We rejected it for two reasons:
+
+1. **Agent-agnosticism.** `CLAUDE.md` is Claude Code's loading channel. Cursor uses `.cursor/rules`. AGENTS.md is yet another emerging convention. Writing to any of them locks aiwf to a specific agent. Git hooks don't have this problem — they fire for *any* client that uses git, which is all of them.
+2. **Complexity vs. payoff.** A marker block requires conflict handling, drift detection, removal logic, and per-agent file targets. The pre-commit hook delivers the same early-warning signal with the existing marker-hook discipline — no new surface.
+
+The kernel's principle "marker-managed framework artifacts in the consumer repo" still holds: aiwf manages `.git/hooks/<name>` and the materialized `.claude/skills/aiwf-*` tree (gitignored). Consumer-authored files (CLAUDE.md, README.md, etc.) are theirs alone.
 
 ### Configuration
 
