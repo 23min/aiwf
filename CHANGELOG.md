@@ -17,6 +17,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-05
+
 ### Added
 - **G37** — Cross-branch id collisions are detectable and resolvable. Trunk-aware allocator + `prior_ids` lineage; `aiwf history` walks renamed entities through their full chain; `aiwf check` flags cross-tree collisions; `aiwf reallocate` handles the trunk-ancestry tiebreaker. (`271f514`, `b9d73d8`, `c5a98c1`, `a6e8067`, `685f288`)
 - Three new policies + 14 backfilled subcode docs to broaden discoverability-lint coverage. (`2b094e3`)
