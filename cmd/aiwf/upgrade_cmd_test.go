@@ -255,6 +255,148 @@ func TestInstallLocationHint(t *testing.T) {
 	}
 }
 
+// TestPathChangedFromStderr (G46): the regex correctly identifies
+// the Go toolchain's "module found but does not contain package"
+// failure and captures the missing subpath. Spec source: this is
+// the exact error string emitted by `cmd/go/internal/modload/import.go`
+// when a tagged release no longer contains the requested package
+// at the requested subpath.
+func TestPathChangedFromStderr(t *testing.T) {
+	cases := []struct {
+		name   string
+		stderr string
+		want   string
+		ok     bool
+	}{
+		{
+			name:   "v0.4.0 reorg case (real reproducer)",
+			stderr: "go: github.com/23min/ai-workflow-v2/tools/cmd/aiwf@latest: module github.com/23min/ai-workflow-v2@latest found (v0.4.0), but does not contain package github.com/23min/ai-workflow-v2/tools/cmd/aiwf",
+			want:   "github.com/23min/ai-workflow-v2/tools/cmd/aiwf",
+			ok:     true,
+		},
+		{
+			name:   "explicit version (not @latest)",
+			stderr: "go: x/y/cmd/foo@v1.2.3: module x/y@v1.2.3 found (v1.2.3), but does not contain package x/y/cmd/foo",
+			want:   "x/y/cmd/foo",
+			ok:     true,
+		},
+		{
+			name:   "ambient noise around the marker line",
+			stderr: "go: downloading thing\nsome other line\ngo: pkg@latest: module mod found (v0.1.0), but does not contain package pkg/missing/sub\ntrailing\n",
+			want:   "pkg/missing/sub",
+			ok:     true,
+		},
+		{
+			name:   "unrelated install failure (network error)",
+			stderr: "go: github.com/owner/repo@latest: reading https://proxy.golang.org/...: 502 Bad Gateway",
+			ok:     false,
+		},
+		{
+			name:   "tag does not exist (different shape)",
+			stderr: "go: github.com/owner/repo@v9.9.9: invalid version: unknown revision v9.9.9",
+			ok:     false,
+		},
+		{
+			name:   "empty stderr",
+			stderr: "",
+			ok:     false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := pathChangedFromStderr(tc.stderr)
+			if ok != tc.ok {
+				t.Errorf("ok = %v, want %v", ok, tc.ok)
+			}
+			if ok && got != tc.want {
+				t.Errorf("missing pkg = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestRunUpgrade_PathChangedHint (G46): when `go install` fails with
+// the path-change signature, runUpgrade prints the structured
+// remediation pointing at CHANGELOG and the manual re-install
+// command. Drives the verb against a shim that emits the real Go
+// toolchain error.
+func TestRunUpgrade_PathChangedHint(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell shim assumes a POSIX-y env")
+	}
+	tmp := t.TempDir()
+
+	shim := filepath.Join(tmp, "go")
+	body := `#!/bin/sh
+case "$1" in
+  install)
+    echo "go: github.com/23min/ai-workflow-v2/tools/cmd/aiwf@latest: module github.com/23min/ai-workflow-v2@latest found (v0.4.0), but does not contain package github.com/23min/ai-workflow-v2/tools/cmd/aiwf" >&2
+    exit 1
+    ;;
+esac
+`
+	if err := os.WriteFile(shim, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("AIWF_GO_BIN", shim)
+	t.Setenv("GOPROXY", "off")
+
+	rc, _, stderr := captureRun(t, func() int {
+		return runUpgrade([]string{"--version", "v0.4.0", "--root", tmp})
+	})
+	if rc != exitInternal {
+		t.Errorf("rc = %d, want %d (install fails)", rc, exitInternal)
+	}
+	for _, want := range []string{
+		"hint — the install path may have changed",
+		"CHANGELOG.md",
+		"go install <new-path>@v0.4.0",
+		"aiwf update",
+	} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr missing %q\nfull stderr:\n%s", want, stderr)
+		}
+	}
+}
+
+// TestRunUpgrade_UnrelatedInstallError_NoHint (G46): a `go install`
+// failure that doesn't match the path-change signature must NOT
+// surface the G46 hint — false positives would confuse users about
+// unrelated network/permission/version errors.
+func TestRunUpgrade_UnrelatedInstallError_NoHint(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell shim assumes a POSIX-y env")
+	}
+	tmp := t.TempDir()
+
+	shim := filepath.Join(tmp, "go")
+	body := `#!/bin/sh
+case "$1" in
+  install)
+    echo "go: github.com/owner/repo@v9.9.9: invalid version: unknown revision v9.9.9" >&2
+    exit 1
+    ;;
+esac
+`
+	if err := os.WriteFile(shim, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("AIWF_GO_BIN", shim)
+	t.Setenv("GOPROXY", "off")
+
+	rc, _, stderr := captureRun(t, func() int {
+		return runUpgrade([]string{"--version", "v9.9.9", "--root", tmp})
+	})
+	if rc != exitInternal {
+		t.Errorf("rc = %d, want %d", rc, exitInternal)
+	}
+	if strings.Contains(stderr, "hint — the install path may have changed") {
+		t.Errorf("G46 hint fired on unrelated error (false positive); stderr:\n%s", stderr)
+	}
+}
+
 // writeUpgradeShim writes a shell shim that fakes `go install` and
 // `go env` for upgrade tests. Behavior is parameterized at runtime
 // via env vars set by the test:

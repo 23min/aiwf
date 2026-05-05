@@ -170,7 +170,11 @@ Severity: Low. Specific named extension worth its own audit row so it doesn't ge
 ---
 
 <a id="g46"></a>
-### G46. `aiwf upgrade` fails opaquely when the install package path changes between releases — **open**
+### G46. `aiwf upgrade` fails opaquely when the install package path changes between releases — **resolved**
+
+Resolved in commit `(this commit)` (feat(aiwf): G46 — structured remediation when go install reports the package-path-change failure). `runGoInstall` now tees stderr to a captured buffer (no UX change — the user still sees the live stream, the buffer just lets us introspect after the fact). New `pathChangedFromStderr` matches the Go toolchain's `module .* found .*, but does not contain package <subpath>` signature, captures the missing subpath, and `printPackagePathChangedHint` surfaces a kernel-friendly remediation: the install path may have changed, here's the CHANGELOG link, here's the manual `go install <new-path>@<target>` to recover, follow with `aiwf update` to refresh artifacts. False-positive guard: unrelated `go install` failures (network, invalid version, permission) do not trigger the hint. Tests pin both the table-driven detector cases and the runtime path through a stderr-emitting shim.
+
+The fix can't help v0.3.x consumers retroactively — their binary's upgrade verb is frozen. But every release from v0.5.0 forward will produce a structured remediation if a future release relocates the cmd package again.
 
 `aiwf upgrade` invokes `go install <pkg>@<target>` where `<pkg>` is the install path the running binary was built from — hard-coded in `internal/version` (the `pkg` constant in `Latest()` and consumed by the upgrade verb's shell-out). When a release relocates the cmd package within the module — exactly what `v0.4.0` did, moving `cmd/aiwf` from `tools/cmd/aiwf` to `cmd/aiwf` as part of the Go-conventional reorg — the upgrade verb on the *prior* binary (v0.3.x) tries `go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@latest`, the module proxy resolves the module fine, but the subpath no longer exists in the new tag. `go install` exits 1 with `module ... found (v0.4.0), but does not contain package .../tools/cmd/aiwf`. `aiwf upgrade` surfaces the raw exit-1 to the user with no remediation hint.
 
@@ -867,7 +871,7 @@ Discovered through a follow-up question on G43: "does the doc say anything about
 | G43 | Go toolchain and lint surface trail current best-practice — LLM-generated Go drifts toward stale idioms | Medium | [x] (this commit) |
 | G44 | Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs | Medium | [x] items 1 (`b3e1b2f`), 2 (`fb589c9` + drift policy `49e72f5`), 3 (this commit) |
 | G45 | aiwf-managed git hooks don't compose with consumer-written hooks — chokepoint for G38 dogfooding | Medium | [x] `49e7764` |
-| G46 | `aiwf upgrade` fails opaquely when the install package path changes between releases — surfaced by v0.4.0 reorg | Medium | [ ] open |
+| G46 | `aiwf upgrade` fails opaquely when the install package path changes between releases — surfaced by v0.4.0 reorg | Medium | [x] (this commit) |
 | G47 | `aiwf_version` pin is required, set-once, and never auto-maintained — chronic doctor noise | Medium | [x] (this commit) |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

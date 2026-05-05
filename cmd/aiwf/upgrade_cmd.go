@@ -1,13 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 
@@ -85,8 +88,16 @@ func runUpgrade(args []string) int {
 	installArg := pkg + "@" + *target
 	fmt.Printf("\nrunning:  go install %s\n", installArg)
 
-	if installErr := runGoInstall(context.Background(), installArg); installErr != nil {
+	if stderrBuf, installErr := runGoInstall(context.Background(), installArg); installErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf upgrade: %v\n", installErr)
+		// G46: detect "module found but does not contain package" — the
+		// signature of a release that relocated the cmd package within
+		// the module. Without remediation the user sees only the raw
+		// `go install` error and has to figure out the recovery
+		// command themselves.
+		if missingPkg, ok := pathChangedFromStderr(stderrBuf); ok {
+			printPackagePathChangedHint(pkg, *target, missingPkg)
+		}
 		return exitInternal
 	}
 
@@ -150,23 +161,77 @@ func resolveTarget(target string) (version.Info, error) {
 	return version.Latest(context.Background())
 }
 
-// runGoInstall shells out to `go install <arg>` with stdout/stderr
-// streamed through to the user. Returns a wrapped error on non-zero
-// exit. The `go` binary path is honored from AIWF_GO_BIN when set,
-// otherwise discovered via exec.LookPath.
-func runGoInstall(ctx context.Context, arg string) error {
+// runGoInstall shells out to `go install <arg>` with stdout streamed
+// through to the user and stderr tee'd to both the user *and* a
+// captured buffer. The buffer lets the caller introspect the failure
+// text — needed for G46's "module found but does not contain
+// package" detection — without depriving the user of the live
+// stderr stream. The `go` binary path is honored from AIWF_GO_BIN
+// when set, otherwise discovered via exec.LookPath.
+//
+// On non-zero exit returns the captured stderr (for caller
+// introspection) and the wrapped error. On success returns ("", nil).
+func runGoInstall(ctx context.Context, arg string) (capturedStderr string, err error) {
 	goBin, err := goBinaryPath()
 	if err != nil {
-		return err
+		return "", err
 	}
+	var stderrBuf bytes.Buffer
 	cmd := exec.CommandContext(ctx, goBin, "install", arg)
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("`go install %s`: %w", arg, err)
+	if runErr := cmd.Run(); runErr != nil {
+		return stderrBuf.String(), fmt.Errorf("`go install %s`: %w", arg, runErr)
 	}
-	return nil
+	return "", nil
+}
+
+// pathChangedRE matches the Go toolchain's "module found but does
+// not contain package" failure (cmd/go/internal/modload/import.go).
+// Captures the missing package subpath so we can echo it back to
+// the user in the remediation hint.
+//
+//	module github.com/owner/repo@v0.4.0 found (v0.4.0), but does not contain package github.com/owner/repo/old/sub/path
+//
+// The capture group is the missing package path.
+var pathChangedRE = regexp.MustCompile(`module .+ found .+, but does not contain package (\S+)`)
+
+// pathChangedFromStderr scans `go install` stderr for the package-
+// path-change signature. Returns the missing package path and true
+// when matched; ("", false) otherwise. Filed under G46.
+func pathChangedFromStderr(stderr string) (string, bool) {
+	m := pathChangedRE.FindStringSubmatch(stderr)
+	if len(m) < 2 {
+		return "", false
+	}
+	return m[1], true
+}
+
+// printPackagePathChangedHint surfaces the G46 structured
+// remediation. The user just saw `go install` fail with a path-
+// change message buried in toolchain wording; this prints a
+// kernel-friendly explanation pointing at CHANGELOG and the manual
+// re-install command they need.
+//
+// pkg is the install path the running binary's upgrade verb tried
+// (i.e., the path that no longer exists in target).
+// target is the version string passed on the command line ("latest"
+// or an explicit "vX.Y.Z").
+// missingPkg is the subpath that go install said is missing.
+func printPackagePathChangedHint(pkg, target, missingPkg string) {
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "aiwf upgrade: hint — the install path may have changed in the target release.")
+	fmt.Fprintf(os.Stderr, "  This binary's upgrade verb tried `%s@%s`, but the target tag's\n", pkg, target)
+	fmt.Fprintf(os.Stderr, "  module no longer contains that package subpath (`%s`).\n", missingPkg)
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "  Recovery:")
+	fmt.Fprintln(os.Stderr, "    1. Find the new install path in the target release's CHANGELOG.")
+	fmt.Fprintln(os.Stderr, "       https://github.com/23min/ai-workflow-v2/blob/main/CHANGELOG.md")
+	fmt.Fprintf(os.Stderr, "    2. Run `go install <new-path>@%s` manually.\n", target)
+	fmt.Fprintln(os.Stderr, "    3. Run `aiwf update` in your consumer repo to refresh artifacts.")
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "  After that, future `aiwf upgrade` runs from the new binary will work end-to-end.")
 }
 
 // goBinaryPath returns the path to the `go` toolchain binary,
