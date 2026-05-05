@@ -1,6 +1,6 @@
 # flake-hunt — manual pre-release flake detector.
 #
-# Runs `go test -race -count=10` against ./tools/... to shake out
+# Runs `go test -race -count=10` against ./... to shake out
 # ordering-dependent races and timing-flaky tests that the once-per-push
 # `test` job (in go.yml) won't reliably surface.
 #
@@ -32,4 +32,4 @@ jobs:
           git config --global user.name "aiwf-ci"
           git config --global user.email "ci@example.com"
       - name: Run race-detector test sweep
-        run: go test -race -count=10 -timeout 30m ./tools/...
+        run: go test -race -count=10 -timeout 30m ./...

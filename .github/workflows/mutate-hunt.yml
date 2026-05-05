@@ -47,9 +47,9 @@ on:
   workflow_dispatch:
     inputs:
       pkg_pattern:
-        description: "Go package pattern (e.g., ./tools/internal/version, ./tools/internal/...)"
+        description: "Go package pattern (e.g., ./internal/version, ./internal/...)"
         required: true
-        default: "./tools/internal/..."
+        default: "./internal/..."
       timeout_coefficient:
         description: "Per-mutant timeout = N × baseline test runtime"
         required: true

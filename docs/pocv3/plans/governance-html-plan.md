@@ -113,7 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-      - run: go install github.com/<org>/aiwf/tools/cmd/aiwf@latest
+      - run: go install github.com/<org>/aiwf/cmd/aiwf@latest
       - run: aiwf render --format=html --out site/
       - uses: actions/upload-pages-artifact@v3
         with: { path: site }
@@ -300,9 +300,9 @@ Standard JSON envelope on stdout:
 
 | Asset | Location |
 |---|---|
-| HTML templates | `tools/internal/render/embedded/*.tmpl` (Go `html/template`) |
-| CSS | `tools/internal/render/embedded/style.css` (single hand-written stylesheet) |
-| Optional favicon | `tools/internal/render/embedded/favicon.svg` |
+| HTML templates | `internal/render/embedded/*.tmpl` (Go `html/template`) |
+| CSS | `internal/render/embedded/style.css` (single hand-written stylesheet) |
+| Optional favicon | `internal/render/embedded/favicon.svg` |
 
 All embedded in the binary via `embed.FS`. No runtime asset paths to resolve. No external CDN dependency.
 
@@ -372,7 +372,7 @@ A "render twice, byte-compare" test in step 4 pins the property.
 
 ### Step 2 — `aiwf-tests:` trailer (kernel write path + opt-in warning)
 
-- [ ] Trailer key registration in `tools/internal/gitops/` for read and write.
+- [ ] Trailer key registration in `internal/gitops/` for read and write.
 - [ ] `--tests "key=value …"` flag on every phase-promoting verb (`aiwf promote --phase`, `aiwf add ac` when seeding `red`). Write-strict validation: keys ∈ {`pass`, `fail`, `skip`, `total`}; values are non-negative integers; unknown keys rejected at the verb boundary.
 - [ ] Verb writes the trailer in the same commit as the phase promotion (one commit, no separate write).
 - [ ] Aggregation helpers: `LatestTestsForAC(history, compositeID)` returning the first hit when walking `aiwf history`; `RollupTestsForMilestone(...)`, `RollupTestsForEpic(...)`.
@@ -384,7 +384,7 @@ A "render twice, byte-compare" test in step 4 pins the property.
 
 ### Step 3 — Render package skeleton
 
-- [ ] `tools/internal/render/` package with template loading from `embed.FS`.
+- [ ] `internal/render/` package with template loading from `embed.FS`.
 - [ ] Page generator interface: `RenderIndex`, `RenderEpic`, `RenderMilestone`. (No `RenderAC` — per-AC content is inline in the milestone Manifest tab; addressable via `#ac-N` anchor.)
 - [ ] Path resolver: id → output filename. No subdirectory scheme; no composite-id pages. Composite-id links are `M-NNN.html#ac-N`.
 - [ ] Sorted-keys helper for all map iteration in templates.
@@ -456,7 +456,7 @@ If real friction shows up later, revisit. YAGNI.
 |---|---|---|
 | 1 — JSON completeness on `aiwf show` (body parser; trailer parser ext.; depends on I2 reverse-ref index) | shipped (`7fd6524`) | core |
 | 2 — `aiwf-tests:` trailer (kernel write path + opt-in warning) | shipped (`d7fd072` + `77ccfb1`) | core (+ rituals repo for `wf-tdd-cycle` rewire — pending) |
-| 3 — render package skeleton (`tools/internal/htmlrender/`) | shipped (`aeda5b5`) | core |
+| 3 — render package skeleton (`internal/htmlrender/`) | shipped (`aeda5b5`) | core |
 | 4 — `aiwf render --format=html` verb + gitignore reconciliation | shipped (`6730c1a` + `056139d`) | core |
 | 5 — templates and CSS | shipped (`e3977ad`) | core |
 | 6 — cross-cutting render details | shipped within step 5 (status pills, force/audit chips, policy badge, `:target` show/hide, determinism) | core |

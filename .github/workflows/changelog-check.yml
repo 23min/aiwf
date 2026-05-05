@@ -5,12 +5,12 @@ on:
     tags:
       - "v*"
 
-# Enforces the release rule documented in tools/CLAUDE.md § Release
+# Enforces the release rule documented in CLAUDE.md § Go conventions § Release
 # process: every pushed vX.Y.Z tag must be reachable from a commit
 # whose CHANGELOG.md contains a matching `## [X.Y.Z]` heading.
 #
 # This is the mechanical guarantee — the human-facing rule in
-# tools/CLAUDE.md is the convenient version. Per the kernel's "must
+# CLAUDE.md § Go conventions is the convenient version. Per the kernel's "must
 # not depend on the LLM's behavior" doctrine, the check is what
 # makes changelog discipline real.
 
@@ -27,12 +27,12 @@ jobs:
           version="${tag#v}"
           if [ ! -f CHANGELOG.md ]; then
             echo "::error::CHANGELOG.md is missing — cannot verify $tag."
-            echo "See tools/CLAUDE.md § Release process."
+            echo "See CLAUDE.md § Go conventions § Release process."
             exit 1
           fi
           if ! grep -E "^## \[$version\]" CHANGELOG.md >/dev/null; then
             echo "::error::CHANGELOG.md has no '## [$version]' section for tag $tag."
-            echo "Cut the release per tools/CLAUDE.md § Release process before tagging."
+            echo "Cut the release per CLAUDE.md § Go conventions § Release process before tagging."
             echo
             echo "Expected line shape: ## [$version] — YYYY-MM-DD"
             echo

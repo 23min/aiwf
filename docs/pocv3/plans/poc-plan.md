@@ -4,7 +4,7 @@ This is the working document for the `poc/aiwf-v3` branch. Each session has a de
 
 The five sessions below are the original PoC build. Subsequent iterations layered on top — each with its own detailed plan in this directory — are summarized after the sessions, in the order they shipped (or, for queued work, in the order proposed). Each iteration's sub-iterations and shipped commits live in its own plan file; this document is the index.
 
-For the design context that justifies this shape, see [`design-decisions.md`](../design/design-decisions.md). For the engineering principles, see the root [`CLAUDE.md`](../../../CLAUDE.md) and [`tools/CLAUDE.md`](../../../tools/CLAUDE.md).
+For the design context that justifies this shape, see [`design-decisions.md`](../design/design-decisions.md). For the engineering principles, see the root [`CLAUDE.md`](../../../CLAUDE.md) and [`CLAUDE.md`](../../../CLAUDE.md).
 
 ---
 
@@ -12,7 +12,7 @@ For the design context that justifies this shape, see [`design-decisions.md`](..
 
 **Goal:** an executable that loads the tree, validates it, reports findings. No mutating verbs yet.
 
-- [x] Go module skeleton in place under `tools/cmd/aiwf/` and `tools/internal/`.
+- [x] Go module skeleton in place under `cmd/aiwf/` and `internal/`.
 - [x] Frontmatter parser (use `gopkg.in/yaml.v3`).
 - [x] Tree loader: walks `work/epics/**`, `work/gaps/**`, `work/decisions/**`, `work/contracts/**`, `docs/adr/**`. Parses every entity into a typed in-memory model.
 - [x] Six kind types defined as Go structs with their hardcoded status enums.
@@ -210,7 +210,7 @@ The eleven build steps (steps 1–10 shipped; step 11 is an I3 handoff placehold
 
 **Goal:** opinionated engineering rituals (TDD cycles, code review, doc lint, patch workflows) that layer on top of `aiwf`, distributed as a separate Claude Code plugin marketplace. Full architecture in [`rituals-plugin-plan.md`](rituals-plugin-plan.md). Lives in the companion repo `../ai-workflow-rituals` — *not* in the aiwf kernel tree.
 
-**Status:** shipped. The marketplace + two plugins (`wf-rituals`, `aiwf-extensions`) are pushed and `/plugin marketplace add` validated. The aiwf kernel surfaces the plugin as the recommended next step (commit `92326aa`); install / verify via `aiwf rituals` (`tools/cmd/aiwf/rituals.go`).
+**Status:** shipped. The marketplace + two plugins (`wf-rituals`, `aiwf-extensions`) are pushed and `/plugin marketplace add` validated. The aiwf kernel surfaces the plugin as the recommended next step (commit `92326aa`); install / verify via `aiwf rituals` (`cmd/aiwf/rituals.go`).
 
 **Coupling boundary:** the rituals plugin is `aiwf`-aware (skills name aiwf verbs); the aiwf kernel is *not* rituals-aware beyond the surfacing step. Tracking-doc conventions, TDD cycle micro-rituals, and review patterns live in the rituals repo and stay out of the kernel's contract.
 
@@ -223,8 +223,8 @@ Plans that exist as proposals but have no implementation commits yet. Sub-iterat
 | Iteration | Plan | Status | One-liner |
 |---|---|---|---|
 | **I3** | [`governance-html-plan.md`](governance-html-plan.md) | shipped (steps 1–7 + v0.2.0 polish: palette, sidebar, status page, brand mark, cache-busting; see plan status table §11) | Static-site HTML render of canonical planning state (per-repo governance page). |
-| (untiered) | [`status-report-plan.md`](status-report-plan.md) | shipped (`renderStatusMarkdown` + `PlannedEpics` + mermaid flowcharts in `tools/cmd/aiwf/status_cmd.go`; auto-regenerated `STATUS.md` via the pre-commit hook) | Markdown status renderer with embedded mermaid diagrams; extends `aiwf status` with a third format. Renderer change, not new state. |
-| (untiered) | [`upgrade-flow-plan.md`](upgrade-flow-plan.md) | shipped (all 9 steps; `tools/internal/version`, `aiwf upgrade` verb, `aiwf doctor` `binary:` / `pin:` / `latest:` rows, `--check-latest`, `--self-check` coverage; tags `v0.1.0` → `v0.2.1` live on the proxy) | `aiwf upgrade` verb + git-tag releases + skew detection in `aiwf doctor`. |
+| (untiered) | [`status-report-plan.md`](status-report-plan.md) | shipped (`renderStatusMarkdown` + `PlannedEpics` + mermaid flowcharts in `cmd/aiwf/status_cmd.go`; auto-regenerated `STATUS.md` via the pre-commit hook) | Markdown status renderer with embedded mermaid diagrams; extends `aiwf status` with a third format. Renderer change, not new state. |
+| (untiered) | [`upgrade-flow-plan.md`](upgrade-flow-plan.md) | shipped (all 9 steps; `internal/version`, `aiwf upgrade` verb, `aiwf doctor` `binary:` / `pin:` / `latest:` rows, `--check-latest`, `--self-check` coverage; tags `v0.1.0` → `v0.2.1` live on the proxy) | `aiwf upgrade` verb + git-tag releases + skew detection in `aiwf doctor`. |
 
 Pick-up order is not committed in advance; real-use friction surfaces the next priority.
 
@@ -238,7 +238,7 @@ Kernel-mechanics changes that don't fit a feature-iteration shape but landed as 
 
 **Goal:** make `aiwf update` the upgrade verb that refreshes every artifact the consumer is opted into (skills, hooks, the new pre-commit STATUS.md regenerator). Full plan in [`update-broaden-plan.md`](update-broaden-plan.md).
 
-**Status:** implemented across commits `88727c6` (kernel-shift docs) → `855996a` (self-check covers the round-trip). The pre-commit hook for STATUS.md regeneration is default-on with `status_md.auto_update: false` as the clean opt-out. Touched `tools/internal/initrepo/`, `tools/internal/config/`, `cmd/aiwf/admin_cmd.go`, `cmd/aiwf/selfcheck.go`, plus the design and README docs.
+**Status:** implemented across commits `88727c6` (kernel-shift docs) → `855996a` (self-check covers the round-trip). The pre-commit hook for STATUS.md regeneration is default-on with `status_md.auto_update: false` as the clean opt-out. Touched `internal/initrepo/`, `internal/config/`, `cmd/aiwf/admin_cmd.go`, `cmd/aiwf/selfcheck.go`, plus the design and README docs.
 
 ---
 

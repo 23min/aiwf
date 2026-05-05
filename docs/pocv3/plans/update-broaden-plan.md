@@ -1,6 +1,6 @@
 ## Broaden `aiwf update` plan
 
-**Status:** implemented across commits `88727c6` (kernel-shift docs) → `855996a` (self-check covers the round-trip). `aiwf update` is now the upgrade verb; the pre-commit hook for STATUS.md regeneration is default-on with `status_md.auto_update: false` as the clean opt-out. · **Audience:** PoC continuation. Touched `tools/internal/initrepo/`, `tools/internal/config/`, `cmd/aiwf/admin_cmd.go`, `cmd/aiwf/selfcheck.go`, `docs/pocv3/design/design-decisions.md`, `docs/pocv3/design/design-lessons.md`, `CLAUDE.md`, `README.md`.
+**Status:** implemented across commits `88727c6` (kernel-shift docs) → `855996a` (self-check covers the round-trip). `aiwf update` is now the upgrade verb; the pre-commit hook for STATUS.md regeneration is default-on with `status_md.auto_update: false` as the clean opt-out. · **Audience:** PoC continuation. Touched `internal/initrepo/`, `internal/config/`, `cmd/aiwf/admin_cmd.go`, `cmd/aiwf/selfcheck.go`, `docs/pocv3/design/design-decisions.md`, `docs/pocv3/design/design-lessons.md`, `CLAUDE.md`, `README.md`.
 
 A kernel-level shift in what `aiwf update` does, plus the first new artifact it carries: a marker-managed pre-commit hook that regenerates a committed `STATUS.md` on every commit, default-on with a clean opt-out.
 
@@ -80,7 +80,7 @@ Extend the self-check to drive the new path end-to-end:
 
 ### 7. Reversal
 
-Per `tools/CLAUDE.md` verb-design rule, every mutation needs a reversal answer:
+Per `CLAUDE.md` verb-design rule, every mutation needs a reversal answer:
 
 - `aiwf update`'s reversal is *another invocation of `aiwf update` with different `aiwf.yaml`*. Flip the flag and re-run — the hook installs or uninstalls, the skills converge to the binary's embedded set.
 - For STATUS.md as a tracked artifact: `git rm STATUS.md` plus setting the flag false is the deliberate opt-out. The framework doesn't auto-delete user content.
@@ -109,4 +109,4 @@ Each step compiles and tests on its own.
 
 ### 10. Validation
 
-Standard PoC pre-commit gate (`go test -race ./tools/...`, `golangci-lint run`, `go build`) plus the extended `aiwf doctor --self-check` per step 7.
+Standard PoC pre-commit gate (`go test -race ./...`, `golangci-lint run`, `go build`) plus the extended `aiwf doctor --self-check` per step 7.

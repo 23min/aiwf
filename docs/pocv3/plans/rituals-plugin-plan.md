@@ -97,9 +97,9 @@ The whole `aiwfx-*` namespace is the place for aiwf-specific orchestration. It c
 Mechanical changes inside this repo before any rituals work begins. Estimate: 30–60 min.
 
 1.1. Rename `wf-*` → `aiwf-*`:
-- `tools/internal/skills/wf-*/SKILL.md` directories → `aiwf-*/`.
+- `internal/skills/wf-*/SKILL.md` directories → `aiwf-*/`.
 - Embed paths and skill-name strings in the binary (skills, initrepo, doctor packages).
-- `.gitignore` append paths in `tools/internal/initrepo/`.
+- `.gitignore` append paths in `internal/initrepo/`.
 - `aiwf doctor` byte-comparison logic that points at the embedded copies.
 - Tests that assert on `wf-*` paths or directory names.
 - README `§"Coexistence with your .claude/"` rewording.
@@ -156,7 +156,7 @@ Templates first, then skills, then agents.
 - `templates/adr.md` (Nygard-shaped, prose-heavy)
 - `templates/decision.md` (new — minimal, matches aiwf's `D-NNN` body skeleton)
 
-aiwf core's `BodyTemplate` (in `tools/internal/entity/serialize.go`) stays unchanged; it provides the empty shells. These richer templates fill them in.
+aiwf core's `BodyTemplate` (in `internal/entity/serialize.go`) stays unchanged; it provides the empty shells. These richer templates fill them in.
 
 4.2. Skills:
 

@@ -3,7 +3,7 @@
 # STATUS.md so the committed snapshot stays in sync with the entity
 # tree.
 #
-# The policy pass is `go test ./tools/internal/policies/...` from the
+# The policy pass is `go test ./internal/policies/...` from the
 # repo root. Each policy is a pure function that returns
 # Violations; the test scaffolding surfaces every violation as a
 # t.Errorf and fails the commit if anything fires. To bypass, fix
@@ -22,11 +22,11 @@ repo_root="$(git rev-parse --show-toplevel)"
 
 # 1. Repo-policy lint.
 if command -v go >/dev/null 2>&1; then
-    if ! (cd "$repo_root" && go test -count=1 ./tools/internal/policies/... >&2); then
+    if ! (cd "$repo_root" && go test -count=1 ./internal/policies/... >&2); then
         echo "" >&2
         echo "pre-commit: policies failed — see violations above." >&2
         echo "             Either fix the offender or adjust the policy" >&2
-        echo "             in tools/internal/policies/." >&2
+        echo "             in internal/policies/." >&2
         exit 1
     fi
 fi

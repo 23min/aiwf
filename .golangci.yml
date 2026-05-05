@@ -1,5 +1,5 @@
-# Lint configuration for the ai-workflow Go monorepo.
-# See tools/CLAUDE.md for the full discipline.
+# Lint configuration for the aiwf Go module.
+# See CLAUDE.md § Go conventions for the full discipline.
 version: "2"
 linters:
   default: none
@@ -31,7 +31,7 @@ linters:
         - fieldalignment
       enable-all: true
     forbidigo:
-      # Two project-specific rules from tools/CLAUDE.md:
+      # Two project-specific rules from CLAUDE.md § Go conventions:
       #   - "Library code never panics or os.Exits. Only cmd/<tool>/main.go
       #      calls os.Exit." (§Error handling)
       #   - The verb/apply.go re-panic in G2's atomic-rollback path is the
@@ -74,13 +74,13 @@ linters:
       - linters: [gosec]
         text: "G204|G304|G301|G306|G122|G703"
       # forbidigo: panic/os.Exit are forbidden in library code, but two
-      # paths are sanctioned (per tools/CLAUDE.md and G2's design):
+      # paths are sanctioned (per CLAUDE.md § Go conventions and G2's design):
       #   - cmd/aiwf/main.go: the documented os.Exit chokepoint.
       #   - verb/apply.go:    the controlled re-panic after atomic rollback.
       - linters: [forbidigo]
-        path: tools/cmd/aiwf/main\.go
+        path: cmd/aiwf/main\.go
       - linters: [forbidigo]
-        path: tools/internal/verb/apply\.go
+        path: internal/verb/apply\.go
     paths:
       - third_party$
       - builtin$

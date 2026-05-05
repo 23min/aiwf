@@ -26,18 +26,18 @@ State of the world:
 This is the user's load-bearing complaint: after `go install …@latest` + `aiwf update`, the legacy `actor:` field is left in `aiwf.yaml`. `aiwf doctor` notes it but doesn't clean it, and the residual makes it hard for the user to tell at a glance whether the config is in sync with the binary.
 
 Implementation:
-- `tools/internal/config/config.go`: new `StripLegacyActor(root string) (changed bool, err error)`. Reads `aiwf.yaml`, strips any `^actor:.*$` line (textual, not a YAML round-trip — KISS for a known-dead key), writes back if changed. Returns `false, nil` when the field is absent. Pure function side-effect; idempotent.
-- `tools/internal/initrepo/initrepo.go`: new `ensureLegacyActorClean(root, dryRun)` step called from `RefreshArtifacts` between `ensureSkills` and `ensureGitignore`. Step ledger entry shape:
+- `internal/config/config.go`: new `StripLegacyActor(root string) (changed bool, err error)`. Reads `aiwf.yaml`, strips any `^actor:.*$` line (textual, not a YAML round-trip — KISS for a known-dead key), writes back if changed. Returns `false, nil` when the field is absent. Pure function side-effect; idempotent.
+- `internal/initrepo/initrepo.go`: new `ensureLegacyActorClean(root, dryRun)` step called from `RefreshArtifacts` between `ensureSkills` and `ensureGitignore`. Step ledger entry shape:
   - `removed deprecated 'actor:' field` when changed.
   - `ActionPreserved` (no message) when not present.
   - In dry-run mode, reports the would-be action without writing.
-- Test: in `tools/internal/initrepo/initrepo_test.go`, add `TestInit_StripsLegacyActor` — write `aiwf.yaml` with `aiwf_version: 0.1.0\nactor: human/peter\n`, run `Init`, assert the resulting file has no `actor:` line and `aiwf_version` is preserved. Companion negative test: `aiwf.yaml` without the field stays byte-identical (preserves comments).
+- Test: in `internal/initrepo/initrepo_test.go`, add `TestInit_StripsLegacyActor` — write `aiwf.yaml` with `aiwf_version: 0.1.0\nactor: human/peter\n`, run `Init`, assert the resulting file has no `actor:` line and `aiwf_version` is preserved. Companion negative test: `aiwf.yaml` without the field stays byte-identical (preserves comments).
 
 ### 2. `aiwf render --help` returns proper usage
 
 Currently `aiwf render --help` falls into `runRender`'s dispatcher, which prints `aiwf render: unknown subcommand "--help"`. Fix:
 
-- In `tools/cmd/aiwf/render_cmd.go` `runRender`, before the subcommand switch:
+- In `cmd/aiwf/render_cmd.go` `runRender`, before the subcommand switch:
   ```go
   if args[0] == "--help" || args[0] == "-h" || args[0] == "help" {
       printRenderHelp()
@@ -45,11 +45,11 @@ Currently `aiwf render --help` falls into `runRender`'s dispatcher, which prints
   }
   ```
 - New `printRenderHelp()` listing both surfaces: `aiwf render roadmap [--write]` and `aiwf render --format=html [--out <dir>] [--scope <id>] [--no-history] [--pretty]`. One short paragraph per, then a hint that `aiwf help` is the master surface.
-- Test: in `tools/cmd/aiwf/render_site_cmd_test.go` (or a new `render_help_test.go`), assert `run([]string{"render", "--help"})` returns `exitOK` and stdout contains both `roadmap` and `--format=html`.
+- Test: in `cmd/aiwf/render_site_cmd_test.go` (or a new `render_help_test.go`), assert `run([]string{"render", "--help"})` returns `exitOK` and stdout contains both `roadmap` and `--format=html`.
 
 ### 3. New `aiwf-render` skill
 
-Mirror the existing `tools/internal/skills/embedded/aiwf-status/` shape. New directory `tools/internal/skills/embedded/aiwf-render/SKILL.md`. Content (~40 lines):
+Mirror the existing `internal/skills/embedded/aiwf-status/` shape. New directory `internal/skills/embedded/aiwf-render/SKILL.md`. Content (~40 lines):
 - Frontmatter: `name`, `description: Use when the user asks to render the planning state as a static HTML site, publish governance views, or generate the project status page.`
 - Body: short overview of `aiwf render --format=html`, the `aiwf.yaml.html` block (`out_dir`, `commit_output`), the four deployment patterns (link to `docs/pocv3/plans/governance-html-plan.md` §2), the ergonomic note that the site is gitignored by default.
 - Don't reproduce the deployment YAML — link instead.
@@ -94,13 +94,13 @@ Specifically:
 - Kicker line stays: `aiwf · governance` → keep, since the kicker labels the *site* not the page.
 
 **c. Update Playwright + Go tests.**
-- `tools/e2e/playwright/tests/render.spec.ts`:
+- `e2e/playwright/tests/render.spec.ts`:
   - Test `lists every epic with AC met-rollup` asserts `h1` is "Governance" — change to "Overview".
   - Test `current page link carries aria-current=page` asserts the index page has zero `aria-current` links. After the change, the Overview link IS the current page on `index.html`, so it WILL have `aria-current="page"`. Update assertion: `await expect(page.locator(\`aside.sidebar a[aria-current="page"]\`)).toHaveCount(1)` and the href is `index.html`.
   - Sidebar tests asserting the order of links — search for `sidebar-top` or `Overview` and `Project status`; tighten to assert order.
-- `tools/cmd/aiwf/render_site_cmd_test.go` and `render_templates_test.go`: scan for any "Governance" assertion on the index page, retarget to "Overview".
+- `cmd/aiwf/render_site_cmd_test.go` and `render_templates_test.go`: scan for any "Governance" assertion on the index page, retarget to "Overview".
 
-**d. Sidebar template change (`tools/internal/htmlrender/embedded/_sidebar.tmpl`):**
+**d. Sidebar template change (`internal/htmlrender/embedded/_sidebar.tmpl`):**
 - Drop the `<p class="sidebar-title">Governance</p>` line.
 - Reorder the two `<li>` entries inside `<ul class="sidebar-top">` so Project status is first.
 - Mark Overview link with `aria-current="page"` on the index page. Sidebar template doesn't currently know "this is the index page" — add `IsCurrentIndex bool` to `SidebarData` and set it true in both resolvers' `IndexData()` paths. The Overview link consults this flag.
@@ -113,8 +113,8 @@ After the commit, run all of these:
 
 ```bash
 # Go suite
-go test -race ./tools/...
-golangci-lint run ./tools/...
+go test -race ./...
+golangci-lint run ./...
 
 # Playwright suite (assumes make e2e-install was done previously)
 make e2e
@@ -122,7 +122,7 @@ make e2e
 # Real upgrade simulation: build a binary, scaffold a fixture with a
 # legacy actor: field, run aiwf update, confirm the field is gone and
 # the gitignore got the site/ entry, then aiwf doctor reports clean.
-go build -o /tmp/aiwf-prerel ./tools/cmd/aiwf
+go build -o /tmp/aiwf-prerel ./cmd/aiwf
 mkdir -p /tmp/aiwf-prerel-fixture && cd /tmp/aiwf-prerel-fixture
 git init -q && git config user.email t@e.x && git config user.name t
 cat > aiwf.yaml <<EOF
@@ -157,7 +157,7 @@ fix(aiwf): release-prep cleanup — strip legacy actor on update; render --help;
 - aiwf render --help / -h / help now prints verb usage instead
   of "unknown subcommand --help".
 
-- New tools/internal/skills/embedded/aiwf-render/SKILL.md so AI
+- New internal/skills/embedded/aiwf-render/SKILL.md so AI
   assistants can discover the verb through the standard channel
   (G21 discoverability).
 
@@ -182,30 +182,30 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 
 1. Update `docs/pocv3/plans/governance-html-plan.md` §11 status table footnote to mention the post-step-7 additions (logo, sidebar, status page, palette, cache-busting). One short bullet block.
 2. Update `docs/pocv3/plans/poc-plan.md` if the I3 row needs touchup.
-3. Tag `v0.2.0` (manual: `git tag v0.2.0 && git push origin v0.2.0`). Confirm `go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@v0.2.0` resolves.
+3. Tag `v0.2.0` (manual: `git tag v0.2.0 && git push origin v0.2.0`). Confirm `go install github.com/23min/ai-workflow-v2/cmd/aiwf@v0.2.0` resolves.
 4. Verify `aiwf doctor --check-latest` reports the new tag (proxy may take a few minutes to cache).
 
 ## Things to NOT do
 
-- Don't refactor `tools/cmd/` → `cmd/` or extract test helpers — those are the deferred refactors from the earlier discussion (separate v0.3.0 candidate).
+- Don't refactor `cmd/` → `cmd/` or extract test helpers — those are the deferred refactors from the earlier discussion (separate v0.3.0 candidate).
 - Don't touch the existing `:has()` CSS rules; they're load-bearing.
 - Don't add raster image assets — SVG is the kernel's image story.
-- Don't bump go directive past 1.22 (tools/CLAUDE.md rule).
+- Don't bump go directive past 1.22 (CLAUDE.md rule).
 
 ## Files most likely to touch
 
-- `tools/internal/config/config.go` (new helper)
-- `tools/internal/config/config_test.go` (helper test)
-- `tools/internal/initrepo/initrepo.go` (new step + wire into RefreshArtifacts)
-- `tools/internal/initrepo/initrepo_test.go` (new tests)
-- `tools/cmd/aiwf/render_cmd.go` (--help handling)
-- `tools/cmd/aiwf/render_site_cmd_test.go` (count + filename assertions, "Overview" not "Governance")
-- `tools/cmd/aiwf/render_templates_test.go` (any "Governance" assertions)
-- `tools/internal/htmlrender/pagedata.go` (`SidebarData.IsCurrentIndex`)
-- `tools/internal/htmlrender/default_resolver.go` + `tools/cmd/aiwf/render_resolver.go` (set IsCurrentIndex; also change Title default to "Overview")
-- `tools/internal/htmlrender/embedded/_sidebar.tmpl` (reorder + drop label + Overview aria-current)
-- `tools/internal/skills/embedded/aiwf-render/SKILL.md` (new)
-- `tools/e2e/playwright/tests/render.spec.ts` ("Overview" assertion + aria-current expected on index)
+- `internal/config/config.go` (new helper)
+- `internal/config/config_test.go` (helper test)
+- `internal/initrepo/initrepo.go` (new step + wire into RefreshArtifacts)
+- `internal/initrepo/initrepo_test.go` (new tests)
+- `cmd/aiwf/render_cmd.go` (--help handling)
+- `cmd/aiwf/render_site_cmd_test.go` (count + filename assertions, "Overview" not "Governance")
+- `cmd/aiwf/render_templates_test.go` (any "Governance" assertions)
+- `internal/htmlrender/pagedata.go` (`SidebarData.IsCurrentIndex`)
+- `internal/htmlrender/default_resolver.go` + `cmd/aiwf/render_resolver.go` (set IsCurrentIndex; also change Title default to "Overview")
+- `internal/htmlrender/embedded/_sidebar.tmpl` (reorder + drop label + Overview aria-current)
+- `internal/skills/embedded/aiwf-render/SKILL.md` (new)
+- `e2e/playwright/tests/render.spec.ts` ("Overview" assertion + aria-current expected on index)
 - `README.md` (one paragraph)
 
 Total: small, contained, all reversible. Should land in one commit, ~15 files touched, ~150 lines net change.

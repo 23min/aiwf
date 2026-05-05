@@ -33,11 +33,11 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - { pkg: "./tools/internal/entity",   fn: "FuzzSlugify" }
-          - { pkg: "./tools/internal/entity",   fn: "FuzzSplit" }
-          - { pkg: "./tools/internal/gitops",   fn: "FuzzParseTrailers" }
-          - { pkg: "./tools/internal/version",  fn: "FuzzParse" }
-          - { pkg: "./tools/internal/pathutil", fn: "FuzzInside" }
+          - { pkg: "./internal/entity",   fn: "FuzzSlugify" }
+          - { pkg: "./internal/entity",   fn: "FuzzSplit" }
+          - { pkg: "./internal/gitops",   fn: "FuzzParseTrailers" }
+          - { pkg: "./internal/version",  fn: "FuzzParse" }
+          - { pkg: "./internal/pathutil", fn: "FuzzInside" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

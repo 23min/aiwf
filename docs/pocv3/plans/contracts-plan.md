@@ -27,7 +27,7 @@ Two things that share the word "contract"; keep them separate:
 
 The link between them is the `id` string. Same id in both, two responsibilities, two locations.
 
-A third internal term, **kind schema**, names the engine-internal frontmatter rules under `tools/internal/entity/`. It is unrelated to user-facing contracts and never appears in user docs or skill prose; the separate name keeps the vocabulary collision-free.
+A third internal term, **kind schema**, names the engine-internal frontmatter rules under `internal/entity/`. It is unrelated to user-facing contracts and never appears in user docs or skill prose; the separate name keeps the vocabulary collision-free.
 
 ---
 
@@ -59,7 +59,7 @@ The engine never ships a validator binary, never branches on language name, neve
 
 ## 3. ID convention
 
-Existing kinds keep their prefixes (locked in `tools/internal/entity/entity.go`); add the contract row formally:
+Existing kinds keep their prefixes (locked in `internal/entity/entity.go`); add the contract row formally:
 
 | Kind | Prefix | Example |
 |---|---|---|
@@ -407,7 +407,7 @@ Full migration-manifest spec lands in `docs/pocv3/migration/import-format.md` un
 
 | Increment | Scope | Depends on |
 |---|---|---|
-| **I1 — Verify + evolve, full verb surface, in-engine.** | New `entity.Contract` field set (drop `format`/`artifact`, add `linked_adrs`; status set narrowed). Drop `contract-artifact-exists` validator. New `tools/internal/aiwfyaml/` package: yaml-Node-level reader/writer for the `contracts:` block, comment-preserving outside the block, normalizing within. New `tools/internal/contractverify/` package: substitution runner, fixture walker, verify pass, evolve pass. New CLI verbs: `aiwf contract verify`, `aiwf contract bind`, `aiwf contract unbind`, `aiwf contract recipes`, `aiwf contract recipe show`, `aiwf contract recipe install [<name>\|--from <path>]`, `aiwf contract recipe remove`. Extension of `aiwf add contract` with `--validator/--schema/--fixtures` flags. Pre-push integration in `aiwf check` (with terminal-status skip). New finding codes. Embedded recipes for CUE + JSON Schema. New `aiwf-contract` skill. | PoC sessions 1–5 complete (current branch baseline). |
+| **I1 — Verify + evolve, full verb surface, in-engine.** | New `entity.Contract` field set (drop `format`/`artifact`, add `linked_adrs`; status set narrowed). Drop `contract-artifact-exists` validator. New `internal/aiwfyaml/` package: yaml-Node-level reader/writer for the `contracts:` block, comment-preserving outside the block, normalizing within. New `internal/contractverify/` package: substitution runner, fixture walker, verify pass, evolve pass. New CLI verbs: `aiwf contract verify`, `aiwf contract bind`, `aiwf contract unbind`, `aiwf contract recipes`, `aiwf contract recipe show`, `aiwf contract recipe install [<name>\|--from <path>]`, `aiwf contract recipe remove`. Extension of `aiwf add contract` with `--validator/--schema/--fixtures` flags. Pre-push integration in `aiwf check` (with terminal-status skip). New finding codes. Embedded recipes for CUE + JSON Schema. New `aiwf-contract` skill. | PoC sessions 1–5 complete (current branch baseline). |
 | **I2 — Migration manifest extension.** | `contracts:` top-level block in import manifest parser; collision semantics; trailer; producer mapping documented. | I1. |
 | **I3 — Recipe ecosystem.** | Add recipes for Protobuf, OpenAPI, Pydantic when a real consumer needs each. Pure markdown additions; no engine code. | I1. |
 | **I4 — Optional: tighter milestone-wrap discipline.** | The `## Contract matrix changes` milestone-spec section, plan-time validation, wrap-time registry-presence check. Defer until a real consumer hits friction managing the registry by hand. | I1, plus a "milestone wrap" lifecycle moment that doesn't currently exist as a distinct check phase. |
@@ -439,7 +439,7 @@ If a future change reaches for any of the above, it is a kernel-level decision a
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Engine accumulates validator-specific knowledge over time | Med | High (breaks the factoring) | Hard rule: `tools/internal/contractverify/` may not import a validator-specific package, may not branch on validator name, may not depend on a specific validator's binary being installed during tests. Tests run validators against real fixtures, but production code is validator-agnostic. |
+| Engine accumulates validator-specific knowledge over time | Med | High (breaks the factoring) | Hard rule: `internal/contractverify/` may not import a validator-specific package, may not branch on validator name, may not depend on a specific validator's binary being installed during tests. Tests run validators against real fixtures, but production code is validator-agnostic. |
 | Substitution variable set creeps | Med | Med | Lock the four variables in `architecture.md`. Adding a fifth is a kernel-level decision. |
 | Recipe markdown rots as engine evolves | Med | Low | Recipes ship embedded; CI builds the binary which embeds them; a recipe whose YAML block doesn't parse fails the build. |
 | Validator binary missing → noisy findings | Low | Low | One `environment` finding per contract, not per fixture. Already specified. |
@@ -451,7 +451,7 @@ If a future change reaches for any of the above, it is a kernel-level decision a
 
 ## 16. The `aiwf-contract` skill — full draft
 
-Materialized at `.claude/skills/aiwf-contract/SKILL.md`. Source at `tools/internal/skills/embedded/aiwf-contract/SKILL.md`.
+Materialized at `.claude/skills/aiwf-contract/SKILL.md`. Source at `internal/skills/embedded/aiwf-contract/SKILL.md`.
 
 ````markdown
 ---
@@ -661,7 +661,7 @@ This is the right answer when:
 
 ### "How do I add my own recipe to the engine?"
 
-Recipes ship embedded in the binary. To upstream one, contribute a markdown file to `tools/internal/skills/embedded/aiwf-contract/recipes/<lang>.md` (PR). Local-only recipes are not supported by design — drift between repos defeats the recipe pattern. For per-repo custom validators, use `aiwf contract recipe install --from <path>` (above).
+Recipes ship embedded in the binary. To upstream one, contribute a markdown file to `internal/skills/embedded/aiwf-contract/recipes/<lang>.md` (PR). Local-only recipes are not supported by design — drift between repos defeats the recipe pattern. For per-repo custom validators, use `aiwf contract recipe install --from <path>` (above).
 
 ### "I already have a contract-verification setup — adopt me into aiwf"
 
@@ -716,8 +716,8 @@ There is no `--fix`. Every finding is a human decision; aiwf reports, the user r
 - `docs/pocv3/design/design-decisions.md` — kernel commitments the contract surface must respect.
 - `docs/pocv3/migration/import-format.md` — to be extended with the `contracts:` block per §12.
 - `docs/pocv3/migration/from-prior-systems.md` — to be extended with §"Migrating an existing contract-verification setup" per §12.
-- `tools/internal/entity/entity.go` — site of the entity narrowing (drop `Format`/`Artifact`, add `LinkedADRs`).
-- `tools/internal/check/check.go` — site of the `contract-artifact-exists` removal and the new `contract-config` check.
+- `internal/entity/entity.go` — site of the entity narrowing (drop `Format`/`Artifact`, add `LinkedADRs`).
+- `internal/check/check.go` — site of the `contract-artifact-exists` removal and the new `contract-config` check.
 
 ---
 
@@ -728,8 +728,8 @@ Updated as work lands. Granularity matches §13's increments, broken down into t
 | Step | Scope | State |
 |---|---|---|
 | I1.1 — Entity narrowing | `entity.Contract`: drop `Format`/`Artifact`, add `LinkedADRs`; narrow status set to `proposed → accepted → deprecated → retired` (+ `rejected`); update transition function; drop `contract-artifact-exists` validator; update fixtures and tests | ✅ done |
-| I1.2 — `aiwfyaml` package | `tools/internal/aiwfyaml/`: yaml-Node-level reader/writer for the `contracts:` block, comment-preserving outside the block, normalizing within; anchors/aliases inside the block are a hard error | ✅ done |
-| I1.3 — `contractverify` package | `tools/internal/contractverify/`: substitution runner (`{{schema}}`, `{{fixture}}`, `{{contract_id}}`, `{{version}}`), fixture walker (`<fixtures>/<version>/{valid,invalid}/*`), verify pass, evolve pass | ✅ done |
+| I1.2 — `aiwfyaml` package | `internal/aiwfyaml/`: yaml-Node-level reader/writer for the `contracts:` block, comment-preserving outside the block, normalizing within; anchors/aliases inside the block are a hard error | ✅ done |
+| I1.3 — `contractverify` package | `internal/contractverify/`: substitution runner (`{{schema}}`, `{{fixture}}`, `{{contract_id}}`, `{{version}}`), fixture walker (`<fixtures>/<version>/{valid,invalid}/*`), verify pass, evolve pass | ✅ done |
 | I1.4 — `aiwf contract verify` verb | CLI integration of the verify+evolve runner; new `contract-config` finding (schema/fixtures path existence, entry id matches a contract entity); per-fixture finding codes (`fixture-rejected`, `fixture-accepted`, `evolution-regression`, `validator-error`, `environment`) shipped with the contractverify package in I1.3 | ✅ done |
 | I1.5 — Bind/unbind verbs | `aiwf contract bind`, `aiwf contract unbind`; extend `aiwf add contract` with `--validator/--schema/--fixtures` flags; lifecycle commit trailers | ✅ done |
 | I1.6 — Recipe verbs + embedded recipes | `aiwf contract recipes`, `recipe show`, `recipe install [<name>\|--from <path>]`, `recipe remove`; embed CUE + JSON Schema recipes via `embed.FS` | ✅ done |
@@ -741,4 +741,4 @@ Updated as work lands. Granularity matches §13's increments, broken down into t
 
 State legend: ⏳ not started · 🚧 in progress · ✅ done · ⏸ paused.
 
-Each I1 step lands as one or more commits with Conventional Commits subjects (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs(poc): ...`). Mark a step ✅ only when its scope ships tested and `go test -race ./tools/...` + `golangci-lint run` are clean.
+Each I1 step lands as one or more commits with Conventional Commits subjects (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs(poc): ...`). Mark a step ✅ only when its scope ships tested and `go test -race ./...` + `golangci-lint run` are clean.

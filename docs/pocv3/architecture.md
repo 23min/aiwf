@@ -13,7 +13,7 @@ aiwf has four distinct layers, each living where its constraints are best served
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Layer 1 — Engine binary (machine-installed, external to repo)      │
-│  ─ go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf        │
+│  ─ go install github.com/23min/ai-workflow-v2/cmd/aiwf        │
 │  ─ Single binary; no plugins; no per-project install                │
 │  ─ Hardcodes the six entity kinds and their statuses                │
 └─────────────────────────────────────────────────────────────────────┘
@@ -21,7 +21,7 @@ aiwf has four distinct layers, each living where its constraints are best served
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Layer 2 — Embedded skills (compiled into the binary)               │
-│  ─ tools/internal/skills/embedded/aiwf-{add,check,…}/SKILL.md       │
+│  ─ internal/skills/embedded/aiwf-{add,check,…}/SKILL.md       │
 │  ─ The aiwf-* skills the binary materializes on demand              │
 │  ─ Versioned with the binary; never edited in-repo by hand          │
 └─────────────────────────────────────────────────────────────────────┘
@@ -47,10 +47,10 @@ aiwf has four distinct layers, each living where its constraints are best served
 
 **Where to put a file:**
 
-- New verb implementation → layer 1, under `tools/internal/verb/` or `tools/cmd/aiwf/`.
-- New aiwf-* skill describing how an agent should use a verb → layer 2, under `tools/internal/skills/embedded/<skill-name>/SKILL.md`.
-- New entity kind, status, or schema field → layer 1, in `tools/internal/entity/entity.go` (the canonical schema table).
-- New per-project config knob → layer 4, in `aiwf.yaml` (and add a parser arm in `tools/internal/aiwfyaml/`).
+- New verb implementation → layer 1, under `internal/verb/` or `cmd/aiwf/`.
+- New aiwf-* skill describing how an agent should use a verb → layer 2, under `internal/skills/embedded/<skill-name>/SKILL.md`.
+- New entity kind, status, or schema field → layer 1, in `internal/entity/entity.go` (the canonical schema table).
+- New per-project config knob → layer 4, in `aiwf.yaml` (and add a parser arm in `internal/aiwfyaml/`).
 - A skill that wraps multiple aiwf verbs into a ritual (planning, wrap-epic, record-decision) → **not** part of aiwf core; lives in the rituals plugin (`ai-workflow-rituals` repo).
 
 ---
@@ -157,7 +157,7 @@ What a contributor or skill author can rely on. This is the public contract; eve
 | The JSON envelope                | `{tool, version, status, findings, result, metadata}` | shape locked; `result` payload varies per verb |
 | Exit codes                       | `0` ok / `1` findings / `2` usage / `3` internal | locked |
 
-**Not** part of the published surface: the layout of `tools/internal/`, the names of internal functions, the wire format of `aiwf.lock`, the implementation of stub registration, the body of any test fixture.
+**Not** part of the published surface: the layout of `internal/`, the names of internal functions, the wire format of `aiwf.lock`, the implementation of stub registration, the body of any test fixture.
 
 For agents and AI scaffolders, the published surface plus the [skill-author guide](skill-author-guide.md) is the contract. Skills that hand-edit `aiwf.yaml`, hand-write commit trailers, or invent fields outside the schema are violating the contract regardless of whether they happen to work today.
 
@@ -185,4 +185,4 @@ If a proposed change forces a violation of any of these, treat it as a kernel-le
 - [`plans/poc-plan.md`](plans/poc-plan.md) — the four sessions of work that produced the engine, plus the I1 contracts iteration that built on top.
 - [`skill-author-guide.md`](skill-author-guide.md) — the contract for AI skill scaffolders. The published surface from §4 above, expressed as rules and a worked example.
 - Root [`CLAUDE.md`](../../CLAUDE.md) — the engineering principles (KISS, YAGNI, no half-finished implementations).
-- [`tools/CLAUDE.md`](../../tools/CLAUDE.md) — Go-specific rules (formatting, testing, error handling, CLI conventions, commit-trailer convention).
+- [`CLAUDE.md`](../../CLAUDE.md) — Go-specific rules (formatting, testing, error handling, CLI conventions, commit-trailer convention).

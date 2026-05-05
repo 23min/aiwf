@@ -1,6 +1,6 @@
 ## Status report plan
 
-**Status:** shipped · the plan is implemented in `tools/cmd/aiwf/status_cmd.go` (`renderStatusMarkdown`, `statusReport.PlannedEpics`, `writeStatusEpicMarkdown` for the mermaid flowcharts, populated `Warnings []statusFinding`). The pre-commit hook regenerates `STATUS.md` at the repo root via `aiwf status --format=md` on every commit. The original audience note (PoC continuation, building on `aiwf status`) is preserved below for reference.
+**Status:** shipped · the plan is implemented in `cmd/aiwf/status_cmd.go` (`renderStatusMarkdown`, `statusReport.PlannedEpics`, `writeStatusEpicMarkdown` for the mermaid flowcharts, populated `Warnings []statusFinding`). The pre-commit hook regenerates `STATUS.md` at the repo root via `aiwf status --format=md` on every commit. The original audience note (PoC continuation, building on `aiwf status`) is preserved below for reference.
 
 A nicely rendered, host-agnostic status view of the project so users without VSCode and without GitHub Issues still get a one-glance picture: what's in flight, what's ahead, what's open, what's broken. Extends `aiwf status` with a markdown output format that embeds mermaid diagrams. No server, no HTML, no GitHub Pages — markdown renders in every target the framework already cares about (GitHub web, VSCode, Obsidian, `glow`, `mdcat`).
 
@@ -56,7 +56,7 @@ No new flags. `--pretty` is documented as JSON-only already, so it's a no-op for
 
 ### 6. Tests
 
-- Table-driven `renderStatusMarkdown` test with a representative tree fixture and a golden file under `tools/cmd/aiwf/testdata/status_md/golden.md`. Mermaid blocks pinned by the golden so accidental shape drift is caught.
+- Table-driven `renderStatusMarkdown` test with a representative tree fixture and a golden file under `cmd/aiwf/testdata/status_md/golden.md`. Mermaid blocks pinned by the golden so accidental shape drift is caught.
 - Empty-tree case: every section renders an empty-state line; no orphan headers without bodies.
 - `PlannedEpics` populated from a fixture with mixed `proposed` / `active` / `done` epics, asserts only the proposed ones land in the roadmap section.
 - `Warnings` populated from a fixture that intentionally trips a known warning (e.g. a slug-dropped-chars case from G8 or an open gap warning), asserts the row renders with code + message + entity id.

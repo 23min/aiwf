@@ -1,6 +1,6 @@
 ## `aiwf upgrade` plan — release tagging, upgrade verb, skew detection
 
-**Status:** shipped · all 9 sequencing steps landed. Implementation: `tools/internal/version/` (the `Current` / `Latest` / `Compare` package), `tools/cmd/aiwf/upgrade_cmd.go` (the `aiwf upgrade` verb), `tools/cmd/aiwf/admin_cmd.go` (the `binary:` / `pin:` / `latest:` rows on `aiwf doctor` and the `--check-latest` opt-in), `tools/cmd/aiwf/selfcheck.go` (the `--self-check` coverage), and the README's "Install" + "Upgrade" sections. Tags `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.2.1` are live on the kernel repo and resolve through the Go module proxy. The original audience note (PoC continuation, files-touched preview) is preserved below for reference.
+**Status:** shipped · all 9 sequencing steps landed. Implementation: `internal/version/` (the `Current` / `Latest` / `Compare` package), `cmd/aiwf/upgrade_cmd.go` (the `aiwf upgrade` verb), `cmd/aiwf/admin_cmd.go` (the `binary:` / `pin:` / `latest:` rows on `aiwf doctor` and the `--check-latest` opt-in), `cmd/aiwf/selfcheck.go` (the `--self-check` coverage), and the README's "Install" + "Upgrade" sections. Tags `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.2.1` are live on the kernel repo and resolve through the Go module proxy. The original audience note (PoC continuation, files-touched preview) is preserved below for reference.
 
 A small kernel-mechanics iteration that turns "upgrade aiwf in a consumer repo" from a two-step ritual the user has to remember (`go install …@latest` → `aiwf update`) into a one-command flow with offline-by-default skew detection. Prerequisite: tag a release on the kernel repo so `go install …@v0.x.y` and the Go module proxy can both resolve.
 
@@ -14,21 +14,21 @@ That's the entire release pipeline. No GoReleaser, no GitHub Releases page, no C
 
 Why this works:
 
-- **`go install` already speaks tags.** `go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@v0.1.0` resolves directly via the module proxy. So does `@latest`, which the proxy maps to the highest semver tag.
+- **`go install` already speaks tags.** `go install github.com/23min/ai-workflow-v2/cmd/aiwf@v0.1.0` resolves directly via the module proxy. So does `@latest`, which the proxy maps to the highest semver tag.
 - **`runtime/debug.ReadBuildInfo()` reports the tag.** A binary built via `go install …@v0.1.0` has `Main.Version == "v0.1.0"`. Built from a working tree (`go build`), it's `(devel)`. Built from `…@main`, it's a pseudo-version (`v0.0.0-<utc>-<sha>`). The running binary always knows what it is.
-- **The proxy gives a free `latest` lookup.** `GET https://proxy.golang.org/github.com/23min/ai-workflow-v2/tools/cmd/aiwf/@latest` returns JSON `{"Version":"v0.1.0", "Time":"..."}`. ~50ms typical. Cached. No auth.
+- **The proxy gives a free `latest` lookup.** `GET https://proxy.golang.org/github.com/23min/ai-workflow-v2/cmd/aiwf/@latest` returns JSON `{"Version":"v0.1.0", "Time":"..."}`. ~50ms typical. Cached. No auth.
 
 ### 2. Module path
 
-`go.mod` is at the repo root with module `github.com/23min/ai-workflow-v2`. The cmd lives at `tools/cmd/aiwf`, so the install path is:
+`go.mod` is at the repo root with module `github.com/23min/ai-workflow-v2`. The cmd lives at `cmd/aiwf`, so the install path is:
 
 ```
-go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@latest
+go install github.com/23min/ai-workflow-v2/cmd/aiwf@latest
 ```
 
 This is what `aiwf upgrade` will invoke. Hardcoded in the binary (the canonical module path doesn't change without a major-version bump).
 
-### 3. The new package: `tools/internal/version`
+### 3. The new package: `internal/version`
 
 Single point of truth for version handling. Tiny surface, three jobs:
 
@@ -63,7 +63,7 @@ Subcommand of `aiwf`. Behavior:
 
 1. **Resolve target.** Default `@latest`. Accept `aiwf upgrade --version v0.2.0` to pin.
 2. **Compare.** If running binary already at target → print `aiwf is at v0.x.y` and exit 0.
-3. **Confirm.** Print the action and prompt unless `--yes` (e.g. `will install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@v0.2.0`). KISS prompt — match the codebase's existing prompt style.
+3. **Confirm.** Print the action and prompt unless `--yes` (e.g. `will install github.com/23min/ai-workflow-v2/cmd/aiwf@v0.2.0`). KISS prompt — match the codebase's existing prompt style.
 4. **Install.** Exec `go install <module>@<version>`. Stream stderr through. Honor `GOBIN`/`GOPATH`. Fail clearly when `go` is not on PATH (point at install instructions).
 5. **Re-exec.** After successful install, re-exec the *new* binary with `aiwf update --root <cwd>`. The current process replaces itself with `syscall.Exec`. (Avoids the "running binary is the file we just overwrote" race on Linux/macOS — the kernel keeps the old inode mapped for the running process, and re-exec picks up the new one cleanly.)
 6. **`aiwf update` runs in cwd.** Materialized skills + hooks refresh against the new embedded set. Same as today's `aiwf update`.
@@ -122,14 +122,14 @@ Skip the actual `go install` invocation — that's an integration test we don't 
 ### 7. Sequencing — one commit per logical step
 
 1. **Plan + design-decisions.md update.** This doc + a short "Release & upgrade" row in `design-decisions.md` capturing: tags as the release primitive, `aiwf upgrade` as the user-facing verb, skew detection in doctor as advisory.
-2. **`tools/internal/version` package.** `Current()` + `Compare()` + tests. No HTTP yet — proves out the buildinfo path and skew classification.
-3. **`tools/internal/version`: add `Latest()` + tests.** Hit `proxy.golang.org` against a known-tagged module in a `go test -short`-skipped integration test; unit tests use a fake HTTP server.
+2. **`internal/version` package.** `Current()` + `Compare()` + tests. No HTTP yet — proves out the buildinfo path and skew classification.
+3. **`internal/version`: add `Latest()` + tests.** Hit `proxy.golang.org` against a known-tagged module in a `go test -short`-skipped integration test; unit tests use a fake HTTP server.
 4. **`aiwf upgrade` verb.** Subcommand wired in `cmd/aiwf`. Implements `--check` first (no install), then `--yes` and the install + re-exec flow. Round-trip tested against a fake `go install` shim (env `AIWF_GO_BIN=<path>` for tests; defaults to `go` in PATH for real runs).
 5. **`aiwf doctor`: extend with version rows 5a + 5b.** Always-on, no network.
 6. **`aiwf doctor --check-latest`: opt-in network row 5c.** Honors `GOPROXY=off`.
 7. **`aiwf doctor --self-check`: cover `aiwf upgrade --check` + offline `--check-latest`.**
 8. **README + docs.** Quick-start: `aiwf upgrade` is the upgrade story, period. The `go install` line stays in install instructions for first-time setup; everything after that is `aiwf upgrade`.
-9. **Cut `v0.1.0`.** Tag `poc/aiwf-v3`, push the tag. Verify `go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@v0.1.0` works from a clean shell and the resulting binary reports `version v0.1.0`.
+9. **Cut `v0.1.0`.** Tag `poc/aiwf-v3`, push the tag. Verify `go install github.com/23min/ai-workflow-v2/cmd/aiwf@v0.1.0` works from a clean shell and the resulting binary reports `version v0.1.0`.
 
 Each step compiles and tests on its own. The cut-the-tag step (9) is last because it's the moment the proxy starts serving — anything before that has to fall back to `@main` (pseudo-version), and `aiwf upgrade --check` needs to handle that gracefully (it does, via `Compare()` returning `Unknown` for pseudo-versions).
 
@@ -144,4 +144,4 @@ Each step compiles and tests on its own. The cut-the-tag step (9) is last becaus
 
 ### 9. Validation
 
-Standard PoC pre-commit gate (`go test -race ./tools/...`, `golangci-lint run`, `go build`) plus the extended `aiwf doctor --self-check` per step 7 plus a real-shell smoke after step 9: `go install …@v0.1.0` from a clean dir, run `aiwf doctor`, assert the `(tagged)` line.
+Standard PoC pre-commit gate (`go test -race ./...`, `golangci-lint run`, `go build`) plus the extended `aiwf doctor --self-check` per step 7 plus a real-shell smoke after step 9: `go install …@v0.1.0` from a clean dir, run `aiwf doctor`, assert the `(tagged)` line.

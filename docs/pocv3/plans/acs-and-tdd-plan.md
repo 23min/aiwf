@@ -68,7 +68,7 @@ Brief prose if needed.
 
 ## Validation
 
-- `go test ./tools/...` — 234 pass, 0 fail.
+- `go test ./...` — 234 pass, 0 fail.
 ```
 
 ---
@@ -85,7 +85,7 @@ The composite id is the only form used in cross-references, trailers, and `aiwf 
 
 **Sequencing under cancellation.** AC ids are position-based and stable: `acs[i].id == fmt.Sprintf("AC-%d", i+1)` for every index. Cancelled ACs stay in `acs[]` at their original position (status flip, not deletion); the allocator picks `max+1` over the full list including cancelled entries. After cancelling AC-3 and adding a new one, the list reads `[AC-1, AC-2, AC-3 (cancelled), AC-4]`. References to a cancelled AC's composite id always resolve. This mirrors the milestone/epic id-stability model.
 
-The id grammar in `tools/internal/entity/entity.go`'s `idLeadingPattern` extends from `^(?:ADR|[EMGDC])-\d+` with a sibling pattern that recognizes `<entity-id>/AC-\d+` composites. The bare-id form remains the default; the composite form is recognized only where references and verbs accept it (i.e., where the field's `AllowedKinds` is open, or where the verb explicitly takes a composite id).
+The id grammar in `internal/entity/entity.go`'s `idLeadingPattern` extends from `^(?:ADR|[EMGDC])-\d+` with a sibling pattern that recognizes `<entity-id>/AC-\d+` composites. The bare-id form remains the default; the composite form is recognized only where references and verbs accept it (i.e., where the field's `AllowedKinds` is open, or where the verb explicitly takes a composite id).
 
 ---
 
@@ -278,7 +278,7 @@ The `rituals-plugin-plan.md` status table gets an "I2 alignment" row noting the 
 
 ### Step 1 — milestone schema additions
 
-- [ ] In `tools/internal/entity/entity.go`: add `AcceptanceCriterion` struct (`ID string`, `Title string`, `Status string`, `TddPhase string` — all with `omitempty`) and `Acs []AcceptanceCriterion` + `TDD string` fields on `Entity`. YAML tags: `acs`, `tdd` and the inner `id`, `title`, `status`, `tdd_phase`. Empty string is the absent sentinel — `omitempty` drops it on round-trip; closed-set membership rules out `""` as a legal value, so the sentinel is unambiguous.
+- [ ] In `internal/entity/entity.go`: add `AcceptanceCriterion` struct (`ID string`, `Title string`, `Status string`, `TddPhase string` — all with `omitempty`) and `Acs []AcceptanceCriterion` + `TDD string` fields on `Entity`. YAML tags: `acs`, `tdd` and the inner `id`, `title`, `status`, `tdd_phase`. Empty string is the absent sentinel — `omitempty` drops it on round-trip; closed-set membership rules out `""` as a legal value, so the sentinel is unambiguous.
 - [ ] Update milestone schema row in `schemas` map: `OptionalFields` += `acs`, `tdd`. Absent `acs:` parses as `nil` slice (treated as `[]`); absent `tdd:` parses as empty string (treated as `none`).
 - [ ] Closed sets:
   - [ ] `acAllowedStatuses = []string{"open", "met", "deferred", "cancelled"}` and `IsAllowedACStatus(s string) bool`.
@@ -295,7 +295,7 @@ The `rituals-plugin-plan.md` status table gets an "I2 alignment" row noting the 
 
 ### Step 3 — transitions
 
-- [ ] AC status FSM in `tools/internal/entity/transition.go` (or sibling): `IsLegalACTransition(from, to string) bool`.
+- [ ] AC status FSM in `internal/entity/transition.go` (or sibling): `IsLegalACTransition(from, to string) bool`.
 - [ ] TDD phase FSM: `IsLegalTDDPhaseTransition(from, to string) bool`.
 - [ ] Milestone-done precondition: `MilestoneCanGoDone(m Entity) (bool, []string)` returning unmet AC ids.
 - [ ] Unit tests for every legal/illegal pair plus the milestone-done check.
@@ -309,7 +309,7 @@ The `rituals-plugin-plan.md` status table gets an "I2 alignment" row noting the 
 
 ### Step 5 — trailer extensions
 
-- [ ] Update the trailer writer in `tools/internal/gitops/` to emit `aiwf-to:` on every `promote` event (milestone and AC).
+- [ ] Update the trailer writer in `internal/gitops/` to emit `aiwf-to:` on every `promote` event (milestone and AC).
 - [ ] Update `aiwf history` to render `aiwf-to:` and `aiwf-force:` when present.
 - [ ] Backwards compat: pre-I2 commits without `aiwf-to:` continue to render (the field is just absent).
 - [ ] Unit tests for trailer parsing and rendering.
@@ -325,7 +325,7 @@ The `rituals-plugin-plan.md` status table gets an "I2 alignment" row noting the 
 - [ ] Update `status-valid` and `frontmatter-shape` to walk `acs[]`.
 - [ ] Body parsing: minimal heading walker (no full markdown parser). Regex: `^### AC-(\d+)(?:\s*[—\-:]\s*(.+))?$` — accepts em-dash, hyphen, colon, or id-only forms. The capture groups feed both the coherence pairing (group 1, the id number) and `aiwf show` (group 2, the title text when present).
 - [ ] Unit + integration tests.
-- [ ] **Backwards-compat fixture coverage:** the existing `tools/internal/check/testdata/clean/` fixtures (which carry no `acs:` or `tdd:` keys) must continue to produce zero findings under the new validators. This is the load-bearing assertion that absent fields default cleanly.
+- [ ] **Backwards-compat fixture coverage:** the existing `internal/check/testdata/clean/` fixtures (which carry no `acs:` or `tdd:` keys) must continue to produce zero findings under the new validators. This is the load-bearing assertion that absent fields default cleanly.
 - [ ] **Positive-path fixture coverage:** add one or two new milestone fixtures under `testdata/clean/` exercising `tdd: required` with a well-formed `acs[]` and matching body headings; `aiwf check` must produce zero findings on them.
 
 ### Step 7 — verbs
@@ -359,16 +359,16 @@ The `rituals-plugin-plan.md` status table gets an "I2 alignment" row noting the 
 
 ### Step 10 — design doc and embedded skill update
 
-- [ ] aiwf core's embedded skills (`tools/internal/skills/embedded/`) updated where any of them mention milestones (`aiwf-add`, `aiwf-status`, `aiwf-promote`, `aiwf-history`).
+- [ ] aiwf core's embedded skills (`internal/skills/embedded/`) updated where any of them mention milestones (`aiwf-add`, `aiwf-status`, `aiwf-promote`, `aiwf-history`).
 - [ ] Root `CLAUDE.md` "What the PoC commits to" section gets a one-line mention of "ACs as namespaced sub-elements of milestones; TDD opt-in per milestone."
 
 ### Step 11 — reverse-reference index on `aiwf show` (precondition for I2.5 + I3)
 
 The HTML render planned in [`governance-html-plan.md`](governance-html-plan.md) needs to know, for each entity, *which other entities reference it* (the inversion of the existing forward-ref graph). The same index is consumed by the I2.5 provenance model ([`provenance-model-plan.md`](provenance-model-plan.md)) for the scope reachability check (whether a verb's target entity reaches the scope-entity via the reference graph). And it benefits `aiwf check` audits ("ADR is unreferenced", "this gap claims `addressed_by: M-007` but M-007 doesn't link back") that aren't render-specific. This is why it lands in I2 rather than I3 or I2.5 — it's a shared dependency.
 
-- [ ] In `tools/internal/check/check.go`: extract the forward-ref collection in `collectRefs()` so it can be inverted without re-walking. (Today it produces findings; the data is already collected.)
-- [ ] In `tools/internal/tree/`: build a reverse-ref index at tree-load time — an in-memory map `id → []referrer` covering frontmatter ref fields (per the schema table in `design-decisions.md`) plus composite-id mentions in open-target fields. Costs one O(N) walk; no new on-disk state.
-- [ ] In `tools/cmd/aiwf/show_cmd.go`: extend `ShowView` with a `referenced_by []string` field; populate from the reverse-ref index. JSON envelope includes the field even when empty (zero-value `[]`).
+- [ ] In `internal/check/check.go`: extract the forward-ref collection in `collectRefs()` so it can be inverted without re-walking. (Today it produces findings; the data is already collected.)
+- [ ] In `internal/tree/`: build a reverse-ref index at tree-load time — an in-memory map `id → []referrer` covering frontmatter ref fields (per the schema table in `design-decisions.md`) plus composite-id mentions in open-target fields. Costs one O(N) walk; no new on-disk state.
+- [ ] In `cmd/aiwf/show_cmd.go`: extend `ShowView` with a `referenced_by []string` field; populate from the reverse-ref index. JSON envelope includes the field even when empty (zero-value `[]`).
 - [ ] `aiwf show --help` lists `referenced_by` alongside the existing fields. Embedded `aiwf-show` skill (or equivalent) updated to mention it. The AI-discoverability rule from `CLAUDE.md` requires this — a future AI assistant must be able to learn the field exists without grepping source.
 - [ ] Tests: golden JSON files per kind covering the inversion (every entity that names a target appears in the target's `referenced_by`); composite-id targets resolve correctly (a gap with `addressed_by: M-007/AC-1` shows up in the AC's `referenced_by` *and* in the milestone's `referenced_by` via prefix); cycles don't loop (forward-ref already filters; the inversion follows).
 

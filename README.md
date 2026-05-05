@@ -50,7 +50,7 @@ A live snapshot of the entity tree (in flight, roadmap, open decisions, open gap
 The fastest path is to let the Go toolchain fetch and build directly from the repo — no clone, no rebuild of any container, just one command:
 
 ```bash
-go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@latest
+go install github.com/23min/ai-workflow-v2/cmd/aiwf@latest
 ```
 
 The binary lands in `$GOBIN` (defaults to `$GOPATH/bin`, typically `~/go/bin`). Make sure that directory is on `$PATH`.
@@ -58,13 +58,13 @@ The binary lands in `$GOBIN` (defaults to `$GOPATH/bin`, typically `~/go/bin`). 
 `@latest` resolves to the highest published semver tag via the Go module proxy. Pin to a specific release for reproducible installs (e.g. in CI):
 
 ```bash
-go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@v0.1.0
+go install github.com/23min/ai-workflow-v2/cmd/aiwf@v0.1.0
 ```
 
 Or to a specific commit SHA when running from an unreleased branch:
 
 ```bash
-go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@<sha>
+go install github.com/23min/ai-workflow-v2/cmd/aiwf@<sha>
 ```
 
 ### Prerequisites
@@ -83,7 +83,7 @@ git checkout poc/aiwf-v3
 make install                                                # embeds branch + short SHA in --version
 ```
 
-`make install` is preferred over `go install ./tools/cmd/aiwf` because it embeds the current branch and short SHA into the binary via `-ldflags`, so `aiwf --version` later tells you exactly what's running. Plain `go install` works but leaves `--version` reporting `dev`.
+`make install` is preferred over `go install ./cmd/aiwf` because it embeds the current branch and short SHA into the binary via `-ldflags`, so `aiwf --version` later tells you exactly what's running. Plain `go install` works but leaves `--version` reporting `dev`.
 
 Distribution via brew/apt/scoop/winget will come if and when the PoC graduates.
 
@@ -104,7 +104,7 @@ This runs `go install <pkg>@latest` and re-execs the new binary into `aiwf updat
 The `aiwf upgrade` verb shipped in `v0.1.0`. If your installed binary predates that — installed via `go install …@poc/aiwf-v3` or pinned to a pre-release SHA — you don't have `aiwf upgrade` yet. One-time bootstrap:
 
 ```bash
-go install github.com/23min/ai-workflow-v2/tools/cmd/aiwf@latest
+go install github.com/23min/ai-workflow-v2/cmd/aiwf@latest
 aiwf update                                             # in each consumer repo
 ```
 
@@ -409,20 +409,20 @@ If you're working on the aiwf kernel itself (not just consuming it), run this on
 make install-hooks
 ```
 
-This points `core.hooksPath` at the tracked `scripts/git-hooks/` directory. The pre-commit hook there runs `go test ./tools/internal/policies/...` and aborts the commit on any policy violation — the same gate CI enforces, just earlier. Subsequent updates to the tracked hooks propagate on the next `git pull`; no second install step.
+This points `core.hooksPath` at the tracked `scripts/git-hooks/` directory. The pre-commit hook there runs `go test ./internal/policies/...` and aborts the commit on any policy violation — the same gate CI enforces, just earlier. Subsequent updates to the tracked hooks propagate on the next `git pull`; no second install step.
 
 The hook is tolerant of a missing Go toolchain (silently skipped) so doc-only commits from a non-Go machine aren't blocked.
 
 ### Browser tests for the HTML render (opt-in)
 
-The HTML render (`aiwf render --format=html`) has a Playwright suite under [`tools/e2e/playwright/`](tools/e2e/playwright/) that covers the CSS-driven behavior the Go test suite can't reach: `:target`-tab show/hide, computed status-pill colors, anchor scrolling, console-error checks, and dead-link detection across every emitted page. The suite is opt-in — it requires Node and a one-time ~100 MB Chromium install — so it's not part of `make ci`.
+The HTML render (`aiwf render --format=html`) has a Playwright suite under [`e2e/playwright/`](e2e/playwright/) that covers the CSS-driven behavior the Go test suite can't reach: `:target`-tab show/hide, computed status-pill colors, anchor scrolling, console-error checks, and dead-link detection across every emitted page. The suite is opt-in — it requires Node and a one-time ~100 MB Chromium install — so it's not part of `make ci`.
 
 ```bash
 make e2e-install   # one-shot per machine: npm install + npx playwright install chromium
 make e2e           # run the suite (~10 s end-to-end)
 ```
 
-The fixture script (`fixture.ts`) builds the aiwf binary with `go build` on each test process and renders a populated planning tree (epics, milestones, ACs, phase history with `aiwf-tests` trailers, an open authorize scope) into a tmp directory; the spec then drives a headless Chromium against `file://` URLs. Add new specs whenever you change `tools/internal/htmlrender/` templates or CSS — the suite caught the original `~`-vs-`:has()` bug in the tab show/hide rules on its first run.
+The fixture script (`fixture.ts`) builds the aiwf binary with `go build` on each test process and renders a populated planning tree (epics, milestones, ACs, phase history with `aiwf-tests` trailers, an open authorize scope) into a tmp directory; the spec then drives a headless Chromium against `file://` URLs. Add new specs whenever you change `internal/htmlrender/` templates or CSS — the suite caught the original `~`-vs-`:has()` bug in the tab show/hide rules on its first run.
 
 ---
 

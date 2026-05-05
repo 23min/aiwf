@@ -27,28 +27,28 @@ help:
 
 build:
 	mkdir -p bin
-	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/aiwf ./tools/cmd/aiwf
+	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/aiwf ./cmd/aiwf
 
 install:
-	CGO_ENABLED=0 go install -ldflags "$(LDFLAGS)" ./tools/cmd/aiwf
+	CGO_ENABLED=0 go install -ldflags "$(LDFLAGS)" ./cmd/aiwf
 
 test:
-	go test ./tools/...
+	go test ./...
 
 test-race:
-	go test -race ./tools/...
+	go test -race ./...
 
 vet:
-	go vet ./tools/...
+	go vet ./...
 
 lint:
-	golangci-lint run ./tools/...
+	golangci-lint run
 
 fmt:
-	gofumpt -l -w ./tools
+	gofumpt -l -w .
 
 coverage:
-	go test -coverprofile=coverage.out -coverpkg=./tools/internal/... ./tools/...
+	go test -coverprofile=coverage.out -coverpkg=./internal/... ./...
 	go tool cover -func=coverage.out | tail -n 1
 
 # selfcheck builds the binary and drives every verb against a temp
@@ -81,11 +81,11 @@ install-hooks:
 # install, and most contributors won't be touching the renderer's
 # CSS. Run after `make e2e-install` (one-shot per machine).
 #
-# The fixture script (tools/e2e/playwright/fixture.ts) builds the
+# The fixture script (e2e/playwright/fixture.ts) builds the
 # aiwf binary on each test process via `go build`, so there's no
 # manual build step here.
 e2e-install:
-	cd tools/e2e/playwright && npm install && npx playwright install chromium
+	cd e2e/playwright && npm install && npx playwright install chromium
 
 e2e:
-	cd tools/e2e/playwright && npx playwright test
+	cd e2e/playwright && npx playwright test

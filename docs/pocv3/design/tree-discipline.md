@@ -15,7 +15,7 @@ Anything else under `work/` that is not a recognized entity file is a stray and 
 
 ## Recognized paths
 
-The loader recognizes exactly these shapes (per [`entity.PathKind`](../../../tools/internal/entity/entity.go)):
+The loader recognizes exactly these shapes (per [`entity.PathKind`](../../../internal/entity/entity.go)):
 
 | Kind     | Path                                              |
 |----------|---------------------------------------------------|
@@ -88,7 +88,7 @@ Body-prose edits are the one legitimate reason to touch an entity file directly.
 ## Where this lives
 
 - **Doctrine** — this file. Canonical.
-- **AI-discoverable** — folded into the [`aiwf-add`](../../../tools/internal/skills/embedded/aiwf-add/SKILL.md) and [`aiwf-check`](../../../tools/internal/skills/embedded/aiwf-check/SKILL.md) skills. No new skill — see "guard against skill sprawl" in the same conversation that produced this doc.
-- **Mechanical** — `tools/internal/check/tree_discipline.go`, called from `runCheck` at [`tools/cmd/aiwf/main.go`](../../../tools/cmd/aiwf/main.go).
-- **Configuration** — `tree.allow_paths` and `tree.strict` in `aiwf.yaml`, parsed by [`tools/internal/config/config.go`](../../../tools/internal/config/config.go).
+- **AI-discoverable** — folded into the [`aiwf-add`](../../../internal/skills/embedded/aiwf-add/SKILL.md) and [`aiwf-check`](../../../internal/skills/embedded/aiwf-check/SKILL.md) skills. No new skill — see "guard against skill sprawl" in the same conversation that produced this doc.
+- **Mechanical** — `internal/check/tree_discipline.go`, called from `runCheck` at [`cmd/aiwf/main.go`](../../../cmd/aiwf/main.go).
+- **Configuration** — `tree.allow_paths` and `tree.strict` in `aiwf.yaml`, parsed by [`internal/config/config.go`](../../../internal/config/config.go).
 - **Consumer's `CLAUDE.md`** — *not* aiwf's responsibility. The kernel ships the embedded skills (gitignored, refreshed on `aiwf update`) and the check; the consumer's hand-written `CLAUDE.md` is theirs alone.

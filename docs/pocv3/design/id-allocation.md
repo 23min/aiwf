@@ -33,7 +33,7 @@ The trunk tree is read with `git ls-tree --full-tree -r <ref> -- work/`. No chec
 
 That's the entire allocator change.
 
-The doc comment at `tools/internal/entity/allocate.go:34`:
+The doc comment at `internal/entity/allocate.go:34`:
 
 > AllocateID picks the next free id for the kind. It reads the working tree and the configured trunk ref. Cross-branch collisions are caught at merge time by `ids-unique` and resolved by `aiwf reallocate`.
 
@@ -142,13 +142,13 @@ Each one was considered, and each one is more code than the problem requires. If
 
 ## Implementation surface
 
-- `tools/internal/entity/allocate.go` — union the working tree and the trunk ref. Hard error on a missing ref.
-- `tools/internal/config/config.go` — `allocate.trunk` field.
-- `tools/internal/check/check.go` — `idsUnique` reads the trunk view. Cross-tree collisions surface with subcode `trunk-collision`.
-- `tools/internal/entity/entity.go` — `PriorIDs []string` field with `yaml:"prior_ids,omitempty"`.
-- `tools/internal/verb/reallocate.go` — append to `prior_ids` on rename; resolve ambiguous ids via the trunk-ancestry tiebreaker (`merge-base --is-ancestor` against the trunk ref) and refuse with a clear diagnostic when ancestry can't decide.
-- `tools/internal/tree/tree.go` — `ByPriorID` reverse lookup; `ResolveByCurrentOrPriorID` combined resolver. (No standing index; the linear scan is fine for PoC-scale trees.)
-- `tools/cmd/aiwf/admin_cmd.go` — `runHistory` expands the queried id through the entity's `PriorIDs` chain; `readHistoryChain` greps the union in one pass.
+- `internal/entity/allocate.go` — union the working tree and the trunk ref. Hard error on a missing ref.
+- `internal/config/config.go` — `allocate.trunk` field.
+- `internal/check/check.go` — `idsUnique` reads the trunk view. Cross-tree collisions surface with subcode `trunk-collision`.
+- `internal/entity/entity.go` — `PriorIDs []string` field with `yaml:"prior_ids,omitempty"`.
+- `internal/verb/reallocate.go` — append to `prior_ids` on rename; resolve ambiguous ids via the trunk-ancestry tiebreaker (`merge-base --is-ancestor` against the trunk ref) and refuse with a clear diagnostic when ancestry can't decide.
+- `internal/tree/tree.go` — `ByPriorID` reverse lookup; `ResolveByCurrentOrPriorID` combined resolver. (No standing index; the linear scan is fine for PoC-scale trees.)
+- `cmd/aiwf/admin_cmd.go` — `runHistory` expands the queried id through the entity's `PriorIDs` chain; `readHistoryChain` greps the union in one pass.
 - A migration verb that backfills `prior_ids` from `aiwf-prior-entity:` trailers in pre-G37 reallocate history is unbuilt-by-design — no consumer currently has reallocate history that would benefit from it.
 
 One YAML field. One frontmatter field. No new trailers, no new flags, no new check rules.

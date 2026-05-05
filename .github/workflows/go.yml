@@ -28,7 +28,7 @@ jobs:
         with:
           go-version: "1.25"
           cache: true
-      - run: go vet ./tools/...
+      - run: go vet ./...
 
   lint:
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
         run: |
           git config --global user.name "aiwf-ci"
           git config --global user.email "ci@example.com"
-      - run: go test -race -coverprofile=coverage.out -coverpkg=./tools/internal/... ./tools/...
+      - run: go test -race -coverprofile=coverage.out -coverpkg=./internal/... ./...
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -n 1
       - uses: actions/upload-artifact@v4
@@ -72,7 +72,7 @@ jobs:
           cache: true
       - name: Build aiwf
         run: |
-          CGO_ENABLED=0 go build -o /tmp/aiwf ./tools/cmd/aiwf
+          CGO_ENABLED=0 go build -o /tmp/aiwf ./cmd/aiwf
           /tmp/aiwf version
           /tmp/aiwf help
 
@@ -90,7 +90,7 @@ jobs:
           go-version: "1.25"
           cache: true
       - run: go install golang.org/x/vuln/cmd/govulncheck@latest
-      - run: govulncheck ./tools/...
+      - run: govulncheck ./...
 
   # selfcheck drives every verb against a temp repo via
   # `aiwf doctor --self-check`. Catches end-to-end regressions

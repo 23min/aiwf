@@ -50,9 +50,9 @@ docs/pocv3/
 
 ## What does *not* live here
 
-- Skill source — embedded under `tools/internal/skills/embedded/<skill-name>/SKILL.md`.
-- Engineering rules — root `CLAUDE.md` and `tools/CLAUDE.md`.
-- Test fixtures — under `tools/internal/check/testdata/`.
+- Skill source — embedded under `internal/skills/embedded/<skill-name>/SKILL.md`.
+- Engineering rules — root `CLAUDE.md` and `CLAUDE.md`.
+- Test fixtures — under `internal/check/testdata/`.
 
 ## Charter notes
 
