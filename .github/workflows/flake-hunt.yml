@@ -1,0 +1,35 @@
+# flake-hunt — manual pre-release flake detector.
+#
+# Runs `go test -race -count=10` against ./tools/... to shake out
+# ordering-dependent races and timing-flaky tests that the once-per-push
+# `test` job (in go.yml) won't reliably surface.
+#
+# Triggered manually via the GitHub Actions "Run workflow" button (or
+# `gh workflow run flake-hunt.yml`). Never blocks a push or a PR. The
+# intended cadence is: run before tagging a release; if it stays green
+# across the relevant test packages (verb, cmd/aiwf, contractverify all
+# do real git/filesystem work), the tag is safe to push.
+#
+# Filed under G43 item 5.
+
+name: flake-hunt
+
+on:
+  workflow_dispatch:
+
+jobs:
+  flake-hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+      - name: Configure git identity for tests
+        run: |
+          git config --global user.name "aiwf-ci"
+          git config --global user.email "ci@example.com"
+      - name: Run race-detector test sweep
+        run: go test -race -count=10 -timeout 30m ./tools/...

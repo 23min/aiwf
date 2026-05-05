@@ -6,6 +6,8 @@ linters:
   enable:
     - bodyclose
     - errcheck
+    - errorlint
+    - forbidigo
     - gocritic
     - gosec
     - govet
@@ -13,6 +15,7 @@ linters:
     - misspell
     - revive
     - staticcheck
+    - thelper
     - unconvert
     - unused
   settings:
@@ -27,6 +30,17 @@ linters:
       disable:
         - fieldalignment
       enable-all: true
+    forbidigo:
+      # Two project-specific rules from tools/CLAUDE.md:
+      #   - "Library code never panics or os.Exits. Only cmd/<tool>/main.go
+      #      calls os.Exit." (§Error handling)
+      #   - The verb/apply.go re-panic in G2's atomic-rollback path is the
+      #      single sanctioned panic site; exempted via exclusions below.
+      forbid:
+        - pattern: '^panic\('
+          msg: "library code must not panic; the only sanctioned site is verb/apply.go's controlled re-panic after rollback (G2)"
+        - pattern: '^os\.Exit\('
+          msg: "library code must not call os.Exit; only cmd/aiwf/main.go does"
     revive:
       rules:
         - name: exported
@@ -59,6 +73,14 @@ linters:
       #         the developer's own repo.
       - linters: [gosec]
         text: "G204|G304|G301|G306|G122|G703"
+      # forbidigo: panic/os.Exit are forbidden in library code, but two
+      # paths are sanctioned (per tools/CLAUDE.md and G2's design):
+      #   - cmd/aiwf/main.go: the documented os.Exit chokepoint.
+      #   - verb/apply.go:    the controlled re-panic after atomic rollback.
+      - linters: [forbidigo]
+        path: tools/cmd/aiwf/main\.go
+      - linters: [forbidigo]
+        path: tools/internal/verb/apply\.go
     paths:
       - third_party$
       - builtin$

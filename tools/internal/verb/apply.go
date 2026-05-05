@@ -70,7 +70,7 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		}
 		if err != nil {
 			if rbErr := tx.rollback(); rbErr != nil { //coverage:ignore defensive: requires both primary error and rollback failure simultaneously
-				err = fmt.Errorf("%w (rollback also failed: %v — manual cleanup may be needed)", err, rbErr)
+				err = fmt.Errorf("%w (rollback also failed: %w — manual cleanup may be needed)", err, rbErr)
 			}
 			return
 		}

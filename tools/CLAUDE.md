@@ -156,7 +156,7 @@ Patch releases that are pure-mechanical (e.g. a `go.sum` refresh with no behavio
 
 - Minimize external deps. Each new dep needs a one-line justification in the commit message or PR description.
 - `CGO_ENABLED=0` — binaries must be statically linked.
-- `go 1.22` minimum. Bump deliberately.
+- `go 1.24` minimum. Bump deliberately. Last bumped from 1.22 → 1.24 in G43; rationale on file.
 - One `go.mod` for the entire `tools/` tree.
 
 ## Naming
@@ -182,16 +182,31 @@ Before adding a verb to `cmd/aiwf/`, the design isn't done until you can answer 
 
 Not acceptable: *"we'll figure that out later"* — the verb isn't ready. See [docs/pocv3/design/design-lessons.md](../docs/pocv3/design/design-lessons.md) §"On reversal" for the principle this comes from.
 
-## Pre-commit checklist
+## What's enforced and where
 
-Before committing on the PoC branch:
+The kernel's "framework correctness must not depend on LLM behavior" principle applies here too: the rules below are enforced by tooling at named chokepoints, not by remembering to tick a checklist. This section names the chokepoint for each rule so a contributor (human or LLM) can see what will block a bad commit and what is still advisory.
 
-- [ ] `go vet ./tools/...` clean.
-- [ ] `golangci-lint run` clean.
-- [ ] `go test -race ./tools/...` clean.
-- [ ] No new package-level mutable state.
-- [ ] `context.Context` as the first arg of every new IO function.
-- [ ] Each new dep justified.
-- [ ] If the commit is a mutating verb, structured `aiwf-verb` / `aiwf-entity` / `aiwf-actor` trailer is present.
+| Rule                                                         | Chokepoint                                                       | Status                  |
+|--------------------------------------------------------------|------------------------------------------------------------------|-------------------------|
+| `gofmt` / `goimports` / `gofumpt` clean                      | `golangci-lint run` (formatters block) — CI `lint` job           | Blocking via CI         |
+| Lint set passes (`errcheck`, `govet`, `staticcheck`, …)      | `golangci-lint run` — CI `lint` job                              | Blocking via CI         |
+| `go vet` clean                                               | `go vet ./tools/...` — CI `vet` job                              | Blocking via CI         |
+| Tests pass with race detector                                | `go test -race ./tools/...` — CI `test` job                      | Blocking via CI         |
+| Build succeeds (`CGO_ENABLED=0`)                             | `go build` — CI `build` job                                      | Blocking via CI         |
+| End-to-end verb regressions                                  | `aiwf doctor --self-check` — CI `selfcheck` job (G9)             | Blocking via CI         |
+| Vulnerable transitive deps                                   | `govulncheck ./tools/...` — CI `vuln` job (G43)                  | Blocking via CI         |
+| Library code does not `panic` or `os.Exit`                   | `forbidigo` (G43)                                                | Blocking via CI lint    |
+| Test helpers call `t.Helper()`                               | `thelper` (G43)                                                  | Blocking via CI lint    |
+| Errors compared with `errors.Is`/`As`, wraps use `%w`        | `errorlint` (G43)                                                | Blocking via CI lint    |
+| Planning-tree shape (no stray files under `work/`)           | `aiwf check --shape-only` — pre-commit hook (G41)                | Blocking pre-commit     |
+| Full planning-tree validation (refs, ids, FSM, contracts)    | `aiwf check` — pre-push hook                                     | Blocking pre-push       |
+| Repo-specific invariants (trailer keys, sovereign acts, etc.) | `tools/internal/policies/` — runs as a Go test package           | Blocking via CI test    |
+| `context.Context` as first arg of new IO function            | Code review                                                      | Advisory                |
+| No new package-level mutable state                           | Code review                                                      | Advisory                |
+| Each new dep has a one-line justification                    | Code review (commit message / PR description)                    | Advisory                |
+| Mutating-verb commits carry `aiwf-verb` / `aiwf-entity` / `aiwf-actor` trailers | `tools/internal/policies/trailer_keys.go` + the `principal_write_sites` policy + the untrailered-entity audit (G24, G31, G32) | Blocking via CI test    |
+| Bumping the Go floor in `go.mod`                             | Deliberate decision; document rationale in commit message        | Advisory                |
 
-If a rule needs to be relaxed, decide deliberately and note it in the commit message — don't silently violate.
+The four advisory lines are the items where mechanical enforcement is either too noisy (context.Context first arg — generics make a literal regex unreliable), too contextual (package-level mutable state — sometimes legitimate behind a guard), or self-policing (dep justification, deliberate floor bumps). Reviewers and `tools/CLAUDE.md` itself are the chokepoint there.
+
+If a blocking rule needs to be relaxed for a specific call site, route it through the linter's allowlist (e.g., `forbidigo` exclusion for the verb/apply.go re-panic site) with a one-line rationale, not a `//nolint:rule` directive without explanation.
