@@ -2,7 +2,7 @@
 //
 // Verbs: check, add, promote, cancel, rename, reallocate, init, update,
 // upgrade, history, doctor, render, import, schema, template, plus help/version.
-// See docs/pocv3/plans/poc-plan.md for the session breakdown that produced this
+// See docs/pocv3/archive/poc-plan-pre-migration.md for the session breakdown that produced this
 // surface.
 package main
 
@@ -46,7 +46,7 @@ func resolvedVersion() string {
 	return version.Current().Version
 }
 
-// Exit codes per docs/pocv3/plans/poc-plan.md and tools/CLAUDE.md.
+// Exit codes per CLAUDE.md § Go conventions § CLI conventions.
 const (
 	exitOK       = 0 // no error-severity findings (warnings allowed)
 	exitFindings = 1 // at least one error-severity finding
@@ -203,7 +203,7 @@ Flags for 'upgrade':
 
 Exit codes: 0 = no errors, 1 = errors found, 2 = usage error, 3 = internal error.
 
-Docs: docs/pocv3/plans/poc-plan.md and docs/pocv3/design/design-decisions.md.`)
+Docs: docs/pocv3/archive/poc-plan-pre-migration.md and docs/pocv3/design/design-decisions.md.`)
 }
 
 func runCheck(args []string) int {

@@ -12,7 +12,7 @@ Co-locating PoC docs under `pocv3/` (rather than at `docs/` directly) keeps `doc
 
 **For skill authors / AI scaffolders writing skills that touch aiwf state:** [`skill-author-guide.md`](skill-author-guide.md). Pair with `aiwf schema [kind]` and `aiwf template [kind]` at the CLI.
 
-**For people picking up where the build left off:** [`plans/poc-plan.md`](plans/poc-plan.md) is the index — it links Sessions 1–5 and the iteration plans on top: [`contracts-plan.md`](plans/contracts-plan.md) (I1), [`acs-and-tdd-plan.md`](plans/acs-and-tdd-plan.md) (I2), [`provenance-model-plan.md`](plans/provenance-model-plan.md) (I2.5), [`upgrade-flow-plan.md`](plans/upgrade-flow-plan.md) (release/upgrade), [`update-broaden-plan.md`](plans/update-broaden-plan.md) and [`rituals-plugin-plan.md`](plans/rituals-plugin-plan.md) for cross-cutting work, plus the queued [`governance-html-plan.md`](plans/governance-html-plan.md) (I3) and [`status-report-plan.md`](plans/status-report-plan.md).
+**For people picking up where the build left off:** [`plans/poc-plan.md`](archive/poc-plan-pre-migration.md) is the index — it links Sessions 1–5 and the iteration plans on top: [`contracts-plan.md`](plans/contracts-plan.md) (I1), [`acs-and-tdd-plan.md`](plans/acs-and-tdd-plan.md) (I2), [`provenance-model-plan.md`](plans/provenance-model-plan.md) (I2.5), [`upgrade-flow-plan.md`](plans/upgrade-flow-plan.md) (release/upgrade), [`update-broaden-plan.md`](plans/update-broaden-plan.md) and [`rituals-plugin-plan.md`](plans/rituals-plugin-plan.md) for cross-cutting work, plus the queued [`governance-html-plan.md`](plans/governance-html-plan.md) (I3) and [`status-report-plan.md`](plans/status-report-plan.md).
 
 **For consumers migrating from a prior planning system:** [`migration/from-prior-systems.md`](migration/from-prior-systems.md) and [`migration/import-format.md`](migration/import-format.md).
 
@@ -32,8 +32,10 @@ docs/pocv3/
     design-lessons.md                 the three principles + sweep findings
     provenance-model.md               I2.5 principal × agent × scope model (full spec)
 
+  archive/
+    poc-plan-pre-migration.md         Sessions 1-5 + iterations (frozen at G38 cutover)
+
   plans/
-    poc-plan.md                       Sessions 1-5 index + iteration cross-links
     contracts-plan.md                 I1 — contracts
     acs-and-tdd-plan.md               I2 — acceptance criteria + TDD
     provenance-model-plan.md          I2.5 — provenance model (principal × agent × scope)

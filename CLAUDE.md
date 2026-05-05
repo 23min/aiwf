@@ -84,7 +84,7 @@ All three should pass before committing. CI runs all of them on every push.
 
 ## Working on the PoC
 
-The four sessions are in [`docs/pocv3/plans/poc-plan.md`](docs/pocv3/plans/poc-plan.md). Each session has a clear deliverable and a checkbox list. Mark items as you go; commit per logical step.
+The historical sessions and iterations are archived at [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md). Forward work tracks via epic + milestone entities under `work/`; allocate via `aiwf add epic` / `aiwf add milestone` and run `aiwf status` to see in-flight state.
 
 The PoC branch is not planned to merge to `main`. Commit directly on the branch; no PR ceremony. Conventional Commits subjects are still useful (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs(poc): ...`).
 

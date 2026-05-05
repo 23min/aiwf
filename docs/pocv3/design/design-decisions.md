@@ -1,6 +1,6 @@
 # PoC design decisions
 
-This is a self-contained summary of what the PoC commits to and why. It is the design context that motivates the build plan in [`poc-plan.md`](../plans/poc-plan.md). The full research arc that produced these decisions lives on `main`; this branch deliberately does not include those documents to keep the working context focused.
+This is a self-contained summary of what the PoC commits to and why. It is the design context that motivates the build plan in [`poc-plan.md`](../archive/poc-plan-pre-migration.md). The full research arc that produced these decisions lives on `main`; this branch deliberately does not include those documents to keep the working context focused.
 
 If a proposed change conflicts with anything below, treat it as a kernel-level decision and surface it explicitly.
 

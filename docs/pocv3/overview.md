@@ -168,5 +168,5 @@ These are non-goals for the PoC. Each one was considered and deferred; see [`des
 
 - [`README.md`](../../README.md) — install, quick start, full verb list.
 - [`workflows.md`](workflows.md) — narrative walk-throughs (standard flow, realistic flow with ADRs/gaps/decisions, AI prompts).
-- [`poc-plan.md`](plans/poc-plan.md) — the four working sessions that produced this code.
+- [`poc-plan.md`](archive/poc-plan-pre-migration.md) — the four working sessions that produced this code.
 - [`design-decisions.md`](design/design-decisions.md) — the load-bearing decisions any change must preserve.

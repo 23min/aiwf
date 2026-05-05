@@ -1,6 +1,6 @@
 # Acceptance criteria and TDD plan
 
-**Status:** proposal · **Audience:** PoC iteration I2 (continuation of [`poc-plan.md`](poc-plan.md) sessions 1–5 and [`contracts-plan.md`](contracts-plan.md) I1).
+**Status:** proposal · **Audience:** PoC iteration I2 (continuation of [`poc-plan.md`](../archive/poc-plan-pre-migration.md) sessions 1–5 and [`contracts-plan.md`](contracts-plan.md) I1).
 
 This document plans first-class acceptance criteria and opt-in TDD enforcement in aiwf, from first principles.
 

@@ -1,6 +1,6 @@
 # Contracts plan
 
-**Status:** proposal · **Audience:** PoC contracts work (continuation of [`poc-plan.md`](poc-plan.md) sessions 1–5).
+**Status:** proposal · **Audience:** PoC contracts work (continuation of [`poc-plan.md`](../archive/poc-plan-pre-migration.md) sessions 1–5).
 
 This document plans contract verification in aiwf from first principles.
 

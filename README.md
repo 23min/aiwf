@@ -21,7 +21,7 @@ Most existing tools optimise for one of those concerns and ignore the others. Is
 
 Markdown files are the source of truth; `git log` is the audit trail; `aiwf check` is the validator. No server, no API key, no separate database. The framework is deliberately minimal: it does not try to be a project-management tool, and the AI host (Claude Code at the moment) sees the planning state through materialized skills, not a custom protocol.
 
-For the lifecycle diagrams and the per-kind state machines, see [`docs/pocv3/overview.md`](docs/pocv3/overview.md). For worked walk-throughs of typical sessions and example AI prompts, see [`docs/pocv3/workflows.md`](docs/pocv3/workflows.md). For the design closure that produced this shape, see [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md). For the working session plan, see [`docs/pocv3/plans/poc-plan.md`](docs/pocv3/plans/poc-plan.md).
+For the lifecycle diagrams and the per-kind state machines, see [`docs/pocv3/overview.md`](docs/pocv3/overview.md). For worked walk-throughs of typical sessions and example AI prompts, see [`docs/pocv3/workflows.md`](docs/pocv3/workflows.md). For the design closure that produced this shape, see [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md). The historical session/iteration narrative is archived at [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md); current in-flight work lives in the entity tree under `work/` (run `aiwf status`).
 
 ---
 

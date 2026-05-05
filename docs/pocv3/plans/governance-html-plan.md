@@ -1,6 +1,6 @@
 # Governance HTML render plan
 
-**Status:** proposal · **Audience:** PoC iteration I3 (continuation of [`poc-plan.md`](poc-plan.md) sessions 1–5, [`contracts-plan.md`](contracts-plan.md) I1, [`acs-and-tdd-plan.md`](acs-and-tdd-plan.md) I2, and [`provenance-model-plan.md`](provenance-model-plan.md) I2.5).
+**Status:** proposal · **Audience:** PoC iteration I3 (continuation of [`poc-plan.md`](../archive/poc-plan-pre-migration.md) sessions 1–5, [`contracts-plan.md`](contracts-plan.md) I1, [`acs-and-tdd-plan.md`](acs-and-tdd-plan.md) I2, and [`provenance-model-plan.md`](provenance-model-plan.md) I2.5).
 
 **Dependencies.** I3 depends on two I2/I2.5 deliverables: (a) the reverse-reference index (`acs-and-tdd-plan.md` step 11) — used by the render's `referenced_by` field and by the scope reachability check; (b) the full provenance model (I2.5) — the Provenance tab renders scopes-as-section and the timeline carries scope chips. Without I2.5, the Provenance tab is meaningfully degraded (single-actor history with no scope grouping). Land both before starting I3 step 5 (templates).
 

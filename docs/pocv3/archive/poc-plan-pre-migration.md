@@ -1,4 +1,14 @@
-# PoC plan — sessions and iterations
+# PoC plan — pre-migration archive
+
+> **This file is frozen at the G38 dogfood-migration cutover (2026-05-05).** The five sessions and the iterations layered on top all shipped before this point. Forward-looking work moves to epic + milestone entities allocated via `aiwf add epic` / `aiwf add milestone`.
+>
+> Per the partial-dogfood plan, the historical sessions and iterations were **not** bulk-imported as completed entities — that would have been busywork without ongoing tracking value. The kernel's `git log` carries the authoritative history of what shipped when. This archive preserves the narrative cross-references between sessions, iterations, and gaps that no entity tree would faithfully reproduce.
+>
+> For current in-flight work: `aiwf status` lists open epics/milestones, gaps, and decisions. For history: `git log` and `aiwf history <id>`.
+
+---
+
+# PoC plan — sessions and iterations (historical)
 
 This is the working document for the `poc/aiwf-v3` branch. Each session has a deliverable that runs end-to-end before moving on. Mark items as you go; commit per logical step.
 
@@ -45,7 +55,7 @@ For the design context that justifies this shape, see [`design-decisions.md`](..
 - [x] `aiwf add adr --title "..."` — allocate `ADR-NNNN`, write file, commit.
 - [x] `aiwf add gap --title "..." [--discovered-in M-NNN]` — allocate `G-NNN`, commit.
 - [x] `aiwf add decision --title "..." [--relates-to E-NN,M-NNN]` — allocate `D-NNN`, commit.
-- [x] `aiwf add contract --title "..."` — allocate `C-NNN`, create directory + `contract.md`, commit. **Note:** the original plan had `--format` and `--artifact-source` flags backed by a `contract-artifact-exists` validator that copied a schema into the contract dir. That model was replaced in I1 by *contract bindings* in `aiwf.yaml.contracts.entries[]`. The shipped `add contract` accepts `--linked-adr <ids>` and the optional atomic-bind triplet (`--validator`, `--schema`, `--fixtures`) for one-commit add+bind. See [`contracts-plan.md`](contracts-plan.md).
+- [x] `aiwf add contract --title "..."` — allocate `C-NNN`, create directory + `contract.md`, commit. **Note:** the original plan had `--format` and `--artifact-source` flags backed by a `contract-artifact-exists` validator that copied a schema into the contract dir. That model was replaced in I1 by *contract bindings* in `aiwf.yaml.contracts.entries[]`. The shipped `add contract` accepts `--linked-adr <ids>` and the optional atomic-bind triplet (`--validator`, `--schema`, `--fixtures`) for one-commit add+bind. See [`contracts-plan.md`](../plans/contracts-plan.md).
 - [x] `aiwf promote <id> <status>` — read entity, validate transition (one Go function per kind), edit frontmatter, commit.
 - [x] `aiwf cancel <id>` — promote to the kind's terminal-cancel status (`cancelled`/`wontfix`/`rejected`/`retired`).
 - [x] `aiwf rename <id> <new-slug>` — `git mv` + commit. The id is preserved; title is unchanged (edit frontmatter manually if you want it tracked).
@@ -119,7 +129,7 @@ The shape of this session is set by the design constraint that aiwf must be a cl
   - [x] `--dry-run`, `--on-collision={fail,skip,update}` flags.
   - [x] Single-mode commits use `aiwf-verb: import`; per-entity-mode commits match the per-entity `add` trailers.
   - [x] Synthetic-tree fixtures inline in tests covering: clean import, id collision (all three modes), ref-resolution across manifest entries, mixed explicit + `auto`, dry-run.
-- [x] ~~`wf-track` skill — describes the convention of maintaining a tracking document alongside an in-progress milestone.~~ **Removed during the prefix rename (poc/aiwf-rename-skills) — the tracking-doc convention moves to `aiwfx-track` in the companion rituals plugin (see [`rituals-plugin-plan.md`](rituals-plugin-plan.md)).** aiwf core stays narrow: tracking docs are not entities, not validated, and not aiwf's concern.
+- [x] ~~`wf-track` skill — describes the convention of maintaining a tracking document alongside an in-progress milestone.~~ **Removed during the prefix rename (poc/aiwf-rename-skills) — the tracking-doc convention moves to `aiwfx-track` in the companion rituals plugin (see [`rituals-plugin-plan.md`](../plans/rituals-plugin-plan.md)).** aiwf core stays narrow: tracking docs are not entities, not validated, and not aiwf's concern.
 - [x] Roadmap `## Candidates` rendering — `aiwf render roadmap` includes the verbatim contents of any `## Candidates` (or `## Backlog`) section it finds in `ROADMAP.md`. The section is human-curated, free-form, and not parsed as entities. Promoting a candidate is an explicit `aiwf add epic` step.
 - [x] `docs/pocv3/migration/from-prior-systems.md` — a generic migration guide. Frames migration as a two-stage producer-side job (tidy source data; project to manifest), then `aiwf import`. References no specific prior system.
 
@@ -131,7 +141,7 @@ The shape of this session is set by the design constraint that aiwf must be a cl
 
 ## Iteration I1 — Contracts
 
-**Goal:** mechanical contract verification (schema + fixtures) as a first-class part of the pre-push chokepoint, without aiwf shipping any validator binary or branching on language. Full design in [`contracts-plan.md`](contracts-plan.md).
+**Goal:** mechanical contract verification (schema + fixtures) as a first-class part of the pre-push chokepoint, without aiwf shipping any validator binary or branching on language. Full design in [`contracts-plan.md`](../plans/contracts-plan.md).
 
 The eight sub-iterations:
 
@@ -154,7 +164,7 @@ The eight sub-iterations:
 
 ## Iteration I2 — Acceptance criteria + TDD
 
-**Goal:** first-class acceptance criteria as namespaced sub-elements of milestones, and opt-in TDD enforcement per milestone. Full design and step-by-step build sequence in [`acs-and-tdd-plan.md`](acs-and-tdd-plan.md).
+**Goal:** first-class acceptance criteria as namespaced sub-elements of milestones, and opt-in TDD enforcement per milestone. Full design and step-by-step build sequence in [`acs-and-tdd-plan.md`](../plans/acs-and-tdd-plan.md).
 
 ACs are not a seventh kind — they're structured sub-elements addressed by composite id `M-NNN/AC-N`, validated by `aiwf check`, with the audit rule "AC `met` requires `tdd_phase: done`" when the milestone is `tdd: required`. The legacy v1 tracking-doc convention dies; AC list moves into the milestone doc itself (frontmatter + matching body sections).
 
@@ -179,7 +189,7 @@ The eleven sub-iterations:
 
 ## Iteration I2.5 — Provenance model
 
-**Goal:** separate *who is accountable* (principal, always human) from *who ran the verb* (operator/actor, may be LLM or bot); gate authorized agent work via a typed scope FSM (`active | paused | ended`) opened with `aiwf authorize`; keep `--force` as a sovereign human-only override. Full design in [`../design/provenance-model.md`](../design/provenance-model.md); build sequence in [`provenance-model-plan.md`](provenance-model-plan.md).
+**Goal:** separate *who is accountable* (principal, always human) from *who ran the verb* (operator/actor, may be LLM or bot); gate authorized agent work via a typed scope FSM (`active | paused | ended`) opened with `aiwf authorize`; keep `--force` as a sovereign human-only override. Full design in [`../design/provenance-model.md`](../design/provenance-model.md); build sequence in [`provenance-model-plan.md`](../plans/provenance-model-plan.md).
 
 The eleven build steps (steps 1–10 shipped; step 11 is an I3 handoff placeholder):
 
@@ -208,7 +218,7 @@ The eleven build steps (steps 1–10 shipped; step 11 is an I3 handoff placehold
 
 ## Companion repo — Rituals plugin
 
-**Goal:** opinionated engineering rituals (TDD cycles, code review, doc lint, patch workflows) that layer on top of `aiwf`, distributed as a separate Claude Code plugin marketplace. Full architecture in [`rituals-plugin-plan.md`](rituals-plugin-plan.md). Lives in the companion repo `../ai-workflow-rituals` — *not* in the aiwf kernel tree.
+**Goal:** opinionated engineering rituals (TDD cycles, code review, doc lint, patch workflows) that layer on top of `aiwf`, distributed as a separate Claude Code plugin marketplace. Full architecture in [`rituals-plugin-plan.md`](../plans/rituals-plugin-plan.md). Lives in the companion repo `../ai-workflow-rituals` — *not* in the aiwf kernel tree.
 
 **Status:** shipped. The marketplace + two plugins (`wf-rituals`, `aiwf-extensions`) are pushed and `/plugin marketplace add` validated. The aiwf kernel surfaces the plugin as the recommended next step (commit `92326aa`); install / verify via `aiwf rituals` (`cmd/aiwf/rituals.go`).
 
@@ -222,9 +232,9 @@ Plans that exist as proposals but have no implementation commits yet. Sub-iterat
 
 | Iteration | Plan | Status | One-liner |
 |---|---|---|---|
-| **I3** | [`governance-html-plan.md`](governance-html-plan.md) | shipped (steps 1–7 + v0.2.0 polish: palette, sidebar, status page, brand mark, cache-busting; see plan status table §11) | Static-site HTML render of canonical planning state (per-repo governance page). |
-| (untiered) | [`status-report-plan.md`](status-report-plan.md) | shipped (`renderStatusMarkdown` + `PlannedEpics` + mermaid flowcharts in `cmd/aiwf/status_cmd.go`; auto-regenerated `STATUS.md` via the pre-commit hook) | Markdown status renderer with embedded mermaid diagrams; extends `aiwf status` with a third format. Renderer change, not new state. |
-| (untiered) | [`upgrade-flow-plan.md`](upgrade-flow-plan.md) | shipped (all 9 steps; `internal/version`, `aiwf upgrade` verb, `aiwf doctor` `binary:` / `pin:` / `latest:` rows, `--check-latest`, `--self-check` coverage; tags `v0.1.0` → `v0.2.1` live on the proxy) | `aiwf upgrade` verb + git-tag releases + skew detection in `aiwf doctor`. |
+| **I3** | [`governance-html-plan.md`](../plans/governance-html-plan.md) | shipped (steps 1–7 + v0.2.0 polish: palette, sidebar, status page, brand mark, cache-busting; see plan status table §11) | Static-site HTML render of canonical planning state (per-repo governance page). |
+| (untiered) | [`status-report-plan.md`](../plans/status-report-plan.md) | shipped (`renderStatusMarkdown` + `PlannedEpics` + mermaid flowcharts in `cmd/aiwf/status_cmd.go`; auto-regenerated `STATUS.md` via the pre-commit hook) | Markdown status renderer with embedded mermaid diagrams; extends `aiwf status` with a third format. Renderer change, not new state. |
+| (untiered) | [`upgrade-flow-plan.md`](../plans/upgrade-flow-plan.md) | shipped (all 9 steps; `internal/version`, `aiwf upgrade` verb, `aiwf doctor` `binary:` / `pin:` / `latest:` rows, `--check-latest`, `--self-check` coverage; tags `v0.1.0` → `v0.2.1` live on the proxy) | `aiwf upgrade` verb + git-tag releases + skew detection in `aiwf doctor`. |
 
 Pick-up order is not committed in advance; real-use friction surfaces the next priority.
 
@@ -236,7 +246,7 @@ Kernel-mechanics changes that don't fit a feature-iteration shape but landed as 
 
 ### Broaden `aiwf update`
 
-**Goal:** make `aiwf update` the upgrade verb that refreshes every artifact the consumer is opted into (skills, hooks, the new pre-commit STATUS.md regenerator). Full plan in [`update-broaden-plan.md`](update-broaden-plan.md).
+**Goal:** make `aiwf update` the upgrade verb that refreshes every artifact the consumer is opted into (skills, hooks, the new pre-commit STATUS.md regenerator). Full plan in [`update-broaden-plan.md`](../plans/update-broaden-plan.md).
 
 **Status:** implemented across commits `88727c6` (kernel-shift docs) → `855996a` (self-check covers the round-trip). The pre-commit hook for STATUS.md regeneration is default-on with `status_md.auto_update: false` as the clean opt-out. Touched `internal/initrepo/`, `internal/config/`, `cmd/aiwf/admin_cmd.go`, `cmd/aiwf/selfcheck.go`, plus the design and README docs.
 

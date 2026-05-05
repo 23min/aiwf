@@ -181,7 +181,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 ## After the commit
 
 1. Update `docs/pocv3/plans/governance-html-plan.md` §11 status table footnote to mention the post-step-7 additions (logo, sidebar, status page, palette, cache-busting). One short bullet block.
-2. Update `docs/pocv3/plans/poc-plan.md` if the I3 row needs touchup.
+2. Update `docs/pocv3/archive/poc-plan-pre-migration.md` if the I3 row needs touchup.
 3. Tag `v0.2.0` (manual: `git tag v0.2.0 && git push origin v0.2.0`). Confirm `go install github.com/23min/ai-workflow-v2/cmd/aiwf@v0.2.0` resolves.
 4. Verify `aiwf doctor --check-latest` reports the new tag (proxy may take a few minutes to cache).
 

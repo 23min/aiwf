@@ -76,5 +76,6 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-05 | human/peter | add | aiwf add gap G-049 'gap-resolved-has-resolver fires chronically on legacy-imported gaps' |
 | 2026-05-05 | human/peter | import | feat(aiwf): G38 — bulk-import legacy gaps from gaps.md into the entity tree |
 
