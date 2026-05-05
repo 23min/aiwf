@@ -614,7 +614,17 @@ Severity: **Medium**. None of the items was a live bug at the time the gap was f
 
 ---
 
-### G44. Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs — **open**
+### G44. Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs — **partially closed (item 1 done; items 2 & 3 open)**
+
+**Item 1 — fuzz tests for high-value parsers — closed in commit `(this commit)`** (`feat(aiwf): G44 item 1 — fuzz tests for parsers + CI workflow`). Five `Fuzz*` functions across four files target the load-bearing parsers: `entity.Slugify` / `entity.Split` (`tools/internal/entity/serialize_fuzz_test.go`), `gitops.parseTrailers` (`tools/internal/gitops/trailers_fuzz_test.go`), `version.Parse` covering pseudo-version + `+dirty` per G29 (`tools/internal/version/version_fuzz_test.go`), `pathutil.Inside` covering G1 path-escape (`tools/internal/pathutil/pathutil_fuzz_test.go`). New CI workflow `.github/workflows/fuzz.yml` runs each target for 2 minutes via a 5-job matrix on `workflow_dispatch` and a weekly Sunday cron; corpus directories upload as artifacts on failure.
+
+Fuzzing surfaced one finding during local validation: `parseTrailers` accepts mid-line `\r` into the key, but only on input that real `git log` output never produces. Resolution: relaxed the fuzz invariant from `\r\n` to `\n` (the actual splitter token), kept the corpus seed (`testdata/fuzz/FuzzParseTrailers/acfcce373c0758bf`) so the boundary case stays a regression test, documented the decision in the test file. The production code is unchanged — the fuzz invariant was over-strict relative to the parser's documented input contract. This is the value of fuzz testing: it forced an explicit decision about the parser's contract that the example-driven tests had left implicit.
+
+Items 2 (state-machine property tests for the six entity-kind FSMs using `pgregory.net/rapid`) and 3 (on-demand mutation testing) remain open.
+
+---
+
+#### Original gap text (preserved for items 2 & 3 context)
 
 `tools/CLAUDE.md` and the existing test discipline cover **example-driven test correctness** thoroughly: seam tests (G27), contract tests for cached upstreams (G28), spec-sourced inputs (G29), structural-not-substring assertions, human-verified renders, branch coverage with `//coverage:ignore` rationale, and the no-papering-over-failures rule. Coverage targets are explicit (90% PoC floor, aim for 100% on `tools/internal/...`). CI uploads a `coverage.out` artifact every test run.
 
@@ -719,6 +729,6 @@ Discovered through a follow-up question on G43: "does the doc say anything about
 | G41 | Tree-discipline ran only at pre-push — LLM-loop signal lands too late | High | [x] `fb2e1e4` |
 | G42 | Pre-commit hook coupled enforcement and convenience — `status_md.auto_update: false` removed the gate too | High | [x] (this commit) |
 | G43 | Go toolchain and lint surface trail current best-practice — LLM-generated Go drifts toward stale idioms | Medium | [x] (this commit) |
-| G44 | Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs | Medium | [ ] open |
+| G44 | Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs | Medium | [~] item 1 done (this commit); items 2 & 3 open |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
