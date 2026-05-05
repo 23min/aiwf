@@ -17,6 +17,14 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-05
+
+### Added
+- **G46 — Structured remediation on `go install` package-path failures.** When a release relocates the cmd package within the module (as v0.4.0 did), `aiwf upgrade` now detects the Go toolchain's "module found but does not contain package" stderr and prints a hint pointing at the CHANGELOG plus the manual `go install <new-path>@<target>` recovery command. The v0.3.x → v0.4.0 transition pain that surfaced this gap is the canonical example; v0.5.0+ binaries handle the next path-change gracefully. (`93a3e2b`)
+
+### Changed (breaking)
+- **G47 — `aiwf_version` field retired from `aiwf.yaml`.** The field was a set-once pin that produced chronic doctor noise without serving its intended purpose. Removed via the same pattern as the I2.5 legacy-actor-strip: loader becomes tolerant (no longer required), `aiwf init` no longer writes it, `aiwf update` strips it on every refresh, doctor's `pin:` row goes away. Pre-G47 yamls load fine and surface a one-line deprecation note until `aiwf update` cleans them. The running binary's version is now the authoritative answer (`aiwf version`); newer-release detection lives at `aiwf doctor --check-latest`. (`25bf5ea`)
+
 ## [0.4.0] — 2026-05-05
 
 ### Changed (breaking)
