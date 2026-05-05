@@ -614,6 +614,64 @@ Severity: **Medium**. None of the items was a live bug at the time the gap was f
 
 ---
 
+### G44. Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs — **open**
+
+`tools/CLAUDE.md` and the existing test discipline cover **example-driven test correctness** thoroughly: seam tests (G27), contract tests for cached upstreams (G28), spec-sourced inputs (G29), structural-not-substring assertions, human-verified renders, branch coverage with `//coverage:ignore` rationale, and the no-papering-over-failures rule. Coverage targets are explicit (90% PoC floor, aim for 100% on `tools/internal/...`). CI uploads a `coverage.out` artifact every test run.
+
+What the existing surface does *not* cover is **input-space and assertion-strength coverage**:
+
+- **No fuzz tests.** Zero `func Fuzz*` / `*testing.F` in the codebase. `testing/F` is stdlib and on the new Go 1.24 floor (G43); the cost of adoption is a target list, not a dependency.
+- **No property-based tests.** No `testing/quick`, no `pgregory.net/rapid`, no state-machine property generators. The FSM transition functions for the six entity kinds (per kernel commitment 1) are exactly the shape property-based state-machine testing was built for and are currently exercised only by hand-written transition tables in unit tests.
+- **No mutation testing.** No `go-mutesting`, no `gremlins`. The existing "structural assertions, not substring matches" rule catches one slice of weak-assertion failure modes; the rest (e.g., a test that passes even after `>` → `<`, or `errors.Is(err, X)` → `err == X`) is unguarded.
+
+**Concrete bugs the kernel has already shipped that one of these techniques would have caught:**
+
+- **G29** (pseudo-version regex example-driven; missed two of three spec forms + the `+dirty` suffix). A `FuzzPseudoVersion` test seeded with one example per spec form, asserting "if the canonical Go toolchain regex matches, ours matches; if it doesn't, ours doesn't" would have surfaced the gap on first run, not mid-implementation. The existing "spec-sourced inputs" rule covers this *if a contributor remembers to enumerate*; fuzzing makes the enumeration mechanical.
+- **G8** (Slugify silently drops non-ASCII). A `FuzzSlugify` accepting arbitrary Unicode would have failed on day one against the invariant "if input contains a non-ASCII rune, the dropped-runes set is non-empty." The eventual fix added that invariant explicitly via `SlugifyDetailed`; fuzzing would have driven it before the production hit.
+- **G1** (contract path escape via `..` or symlinks). `pathutil.IsContained` is the canonical fuzz target — random path strings + an independent reference implementation (`filepath.Abs` + symlink resolution + prefix check) running side-by-side. The existing test set is example-driven; a fuzz pass would systematically explore the path-grammar surface that the original v0.1 implementation got wrong.
+- **FSM-related bugs latent in the closed status sets.** Every entity kind has a hand-coded transition function. A property-based state-machine test (rapid is the canonical Go library here) would assert: from any reachable state, only declared transitions succeed; no sequence of legal transitions reaches a non-declared state; cancellation is terminal. Today these properties are enforced by the type system + a set of unit-test cases the contributor remembered to write — strong but not exhaustive.
+
+**Why this isn't a sub-gap of something else:**
+
+- Not G43 (Go toolchain and lint surface) — that gap closed the *static-analysis* axis. This is the *runtime test-input* axis.
+- Not G27 (seam tests) — that rule fixes coverage at the integration boundary; it does not address input-space exhaustion within a unit.
+- Not G28 / G29 (contract-test / spec-sourced-input rules) — those discipline how a contributor *writes* example tests; they do not generate inputs the contributor did not think of.
+
+**Proposed fix, in order of payoff. Treat as a menu, not a sequence.**
+
+1. **Add ~5 `Fuzz*` functions against high-value parsers, plus a CI job.** Targets, all with seed corpora from existing test cases:
+   - `FuzzSlugify` — invariants: ASCII-only output; non-empty input ⇒ non-empty output OR non-empty `dropped` set; idempotent (`Slugify(Slugify(x)) == Slugify(x)`).
+   - `FuzzParseFrontmatter` — invariant: never panics; on success, round-trips back to byte-equivalent YAML; on failure, error is one of the declared finding codes.
+   - `FuzzParseTrailers` — invariants: never panics; output trailer set is a subset of declared keys; no key/value contains a newline.
+   - `FuzzPseudoVersionRegex` — invariant: agrees with the canonical Go toolchain's pseudo-version detection on a seed corpus drawn from `go list -m -versions` output of a real module.
+   - `FuzzPathContained` — invariant: agrees with an independent reference (`filepath.Abs` + `EvalSymlinks` + `HasPrefix`) on every random path; never returns "contained" for a path that escapes via `..` or symlink loop.
+   Wire as a new `fuzz` job in `.github/workflows/go.yml` triggered by `workflow_dispatch` and a weekly cron, budget 2 minutes per target. Findings get filed as gaps; fuzz seeds for any reproducer get checked into `testdata/fuzz/`.
+
+2. **Add a state-machine property test for each entity kind's status FSM using `pgregory.net/rapid`.** One generator per kind. Properties:
+   - From the initial state, every reachable state is in the declared closed set.
+   - Every legal transition produces a state in the declared closed set.
+   - Terminal states (`cancelled`, `wontfix`, `rejected`, `retired`, `done` where `done` is terminal for that kind) admit no further transitions.
+   - The transition function is total: every (state, action) pair either succeeds or fails with a typed error from the declared error set; never panics, never produces an undeclared state.
+   `rapid` is the only new dep; it is widely used and small. The state-machine API (`rapid.StateMachine`) is exactly the shape we need — one struct per kind, generators auto-derived from the closed-set constants per kernel commitment 8.
+
+3. **Defer mutation testing to on-demand.** A `mutate-hunt` workflow modeled on G43 item 5's `flake-hunt` — `workflow_dispatch`-only, run before tagging a release, results reviewed by hand. Tool choice: `github.com/zimmski/go-mutesting` or `github.com/go-gremlins/gremlins`; gremlins is the more actively maintained today (2026-05). Mutation testing has higher false-positive noise (mutants in defensive code, error-message strings, dead branches) and is best as a periodic audit, not a routine gate. Items (1) and (2) close most of what mutation testing would catch in this codebase; (3) is the long-tail backstop.
+
+**Possible outcomes the work should produce, in the matrix entry:**
+
+- *All three.* Fuzz + property + on-demand mutation. Highest coverage; fuzz and property each land as one commit, mutation as a separate workflow file.
+- *Items 1 and 2 only.* Defers mutation testing entirely until either (a) a real bug ships that mutation-only would have caught, or (b) the test surface stabilizes after the PoC closes. Probably the right call for the PoC phase.
+- *Item 1 only.* Fuzz-first; defer property-based until rapid's value vs. cost is clearer against this codebase. Lowest cost of the three. Justifiable if FSM mutation rate is low going forward (the closed-set kinds are stable per kernel commitment 1).
+
+**Why now:**
+
+The PoC's parser surface has stabilized but is not yet frozen — adding fuzz tests now seeds the corpus while the inputs are still small and the bug-density is highest. Once the framework gains real consumers, fuzz findings on shipped parsers become external-facing bugs; finding them now keeps them as internal-facing fixes. Property tests for the FSMs are even more time-sensitive: kernel commitment 1 freezes the six kinds and their status sets; if the FSM is going to be canonically pinned in this PoC, the property tests are the load-bearing assertion that "the closed set is closed under every reachable transition." That's the kind of property the kernel relies on but does not currently enforce.
+
+Severity: **Medium**. None of the items is a live bug today, and the example-driven test discipline catches most regressions. But the kernel has shipped four bugs (G1, G8, G29, plus the `apply.go` `%v`-on-`%w` caught by G43's errorlint addition) that one of these techniques would have caught earlier, and the FSM correctness is currently rests on hand-written transition tables that would not survive a kind-set extension without re-auditing every test by hand. Not blocking PoC completion; worth the work before any consumer adopts the framework.
+
+Discovered through a follow-up question on G43: "does the doc say anything about coverage vs property-based vs fuzz vs mutation testing?" The answer was: coverage yes, the other three no. This gap files the gap.
+
+---
+
 ## Status matrix
 
 | ID  | Title                                                       | Severity | Status |
@@ -661,5 +719,6 @@ Severity: **Medium**. None of the items was a live bug at the time the gap was f
 | G41 | Tree-discipline ran only at pre-push — LLM-loop signal lands too late | High | [x] `fb2e1e4` |
 | G42 | Pre-commit hook coupled enforcement and convenience — `status_md.auto_update: false` removed the gate too | High | [x] (this commit) |
 | G43 | Go toolchain and lint surface trail current best-practice — LLM-generated Go drifts toward stale idioms | Medium | [x] (this commit) |
+| G44 | Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs | Medium | [ ] open |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
