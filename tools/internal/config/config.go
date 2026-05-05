@@ -69,6 +69,23 @@ type Config struct {
 	TDD         TDD      `yaml:"tdd,omitempty"`
 	HTML        HTML     `yaml:"html,omitempty"`
 	Allocate    Allocate `yaml:"allocate,omitempty"`
+	Tree        Tree     `yaml:"tree,omitempty"`
+}
+
+// Tree is the consumer's policy for what may live under `work/`.
+// AllowPaths is a list of repo-relative glob patterns (filepath.Match
+// semantics) that exempt files from the tree-discipline check —
+// useful for project-specific scratch dirs or templates the consumer
+// genuinely wants alongside the entity tree. Strict promotes the
+// `unexpected-tree-file` finding from a warning to an error so the
+// pre-push hook blocks the push.
+//
+// Default behavior (empty Tree block): contract artifact dirs are
+// auto-exempt; everything else under work/ is reported as a warning.
+// See docs/pocv3/design/tree-discipline.md.
+type Tree struct {
+	AllowPaths []string `yaml:"allow_paths,omitempty"`
+	Strict     bool     `yaml:"strict,omitempty"`
 }
 
 // Allocate carries the consumer's id-allocator configuration. Trunk

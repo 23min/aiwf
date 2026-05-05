@@ -80,6 +80,19 @@ type Tree struct {
 	// empty in tests that don't set it (the verb falls back to
 	// today's "ambiguous, pass a path" error in that case).
 	TrunkRef string
+	// Strays holds repo-relative file paths (forward-slash form) that
+	// the loader walked under work/* but could not classify as a
+	// recognized entity file via entity.PathKind. The tree-discipline
+	// check (G40) reports each as `unexpected-tree-file`; without that
+	// field the loader's silent skip would let any LLM-written stray
+	// linger under work/ undetected.
+	//
+	// Strays are tracked only under work/*; docs/adr/ is conventionally
+	// permissive (READMEs, templates, etc.) and is left alone. Files
+	// inside a contract's directory (work/contracts/C-NNN-*/) are
+	// recorded here but filtered by the check rule, since contracts
+	// legitimately carry schema/fixture artifacts alongside contract.md.
+	Strays []string
 }
 
 // TrunkIDStrings returns the id strings from TrunkIDs. Convenience
@@ -130,15 +143,19 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 	tree := &Tree{Root: root}
 	var loadErrs []LoadError
 
-	walkRoots := []string{
-		filepath.Join("work", "epics"),
-		filepath.Join("work", "gaps"),
-		filepath.Join("work", "decisions"),
-		filepath.Join("work", "contracts"),
-		filepath.Join("docs", "adr"),
+	walkRoots := []struct {
+		sub         string
+		trackStrays bool
+	}{
+		{filepath.Join("work", "epics"), true},
+		{filepath.Join("work", "gaps"), true},
+		{filepath.Join("work", "decisions"), true},
+		{filepath.Join("work", "contracts"), true},
+		{filepath.Join("docs", "adr"), false},
 	}
 
-	for _, sub := range walkRoots {
+	for _, wr := range walkRoots {
+		sub := wr.sub
 		if err := ctx.Err(); err != nil {
 			return tree, loadErrs, err
 		}
@@ -176,6 +193,9 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 			}
 			kind, ok := entity.PathKind(relPath)
 			if !ok {
+				if wr.trackStrays {
+					tree.Strays = append(tree.Strays, filepath.ToSlash(relPath))
+				}
 				return nil
 			}
 
@@ -202,6 +222,7 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 	}
 
 	tree.ReverseRefs = buildReverseRefs(tree.Entities)
+	sort.Strings(tree.Strays)
 	return tree, loadErrs, nil
 }
 

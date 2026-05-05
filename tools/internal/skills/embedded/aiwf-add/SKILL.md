@@ -54,3 +54,19 @@ If the LLM is invoked turn-by-turn by a human (HITL / tool mode), pass `--actor 
 - Don't pass `--actor` unless the user asked for a specific actor; the default (derived from git config user.email) is correct.
 - Don't omit `--principal` when invoking as a non-human actor — the verb refuses with a `provenance-trailer-incoherent` finding.
 - Don't manually edit the milestone's `acs[]` to "fix" a gap from a cancelled AC — AC ids are position-stable. After cancelling AC-2, the next `aiwf add ac` allocates AC-3, not a recycled AC-2.
+
+## Tree discipline — `work/` is aiwf's domain
+
+`work/` is the entity tree, not a scratch space. Tree-shape changes — creating an entity, renaming, status transitions, adding ACs — go through verbs (`aiwf add`, `aiwf rename`, `aiwf promote`, `aiwf reallocate`). **Do not write a new file under `work/` directly.** The id allocator, FSM, atomic-commit, repo lock, and trailer pipeline are all bypassed by hand-writes, and the resulting state is silently inconsistent.
+
+What's allowed without a verb:
+
+- **Body-prose edits** to an existing entity file — the markdown under the frontmatter. The frontmatter itself is structured state; leave it to verbs.
+
+What `aiwf check` reports as `unexpected-tree-file`:
+
+- Any file under `work/*` whose path is not one of the six recognized shapes (epic, milestone, gap, decision, contract, ADR — see `docs/pocv3/design/tree-discipline.md`). Severity: warning by default; **error** when `aiwf.yaml: tree.strict: true`.
+- Files inside a contract's directory (`work/contracts/C-NNN-*/`) are auto-exempt — schemas and fixtures live there legitimately.
+- Globs in `aiwf.yaml: tree.allow_paths` are exempt for project-specific carve-outs.
+
+If the user asks to "add a note about X" or similar prose work, edit the relevant entity's body — don't create a stray file. If the prose doesn't fit any existing entity, the right answer is usually a new entity (`aiwf add gap "..."` for a defect, `aiwf add decision "..."` for a directional choice) — not a free-floating file under `work/`.

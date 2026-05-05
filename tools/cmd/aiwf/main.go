@@ -255,8 +255,12 @@ func runCheck(args []string) int {
 	findings = append(findings, provenanceFindings...)
 
 	requireMetrics := false
+	var treeAllow []string
+	treeStrict := false
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
+		treeAllow = cfg.Tree.AllowPaths
+		treeStrict = cfg.Tree.Strict
 	}
 	metricsFindings, mErr := runTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
@@ -264,6 +268,8 @@ func runCheck(args []string) int {
 		return exitInternal
 	}
 	findings = append(findings, metricsFindings...)
+
+	findings = append(findings, check.TreeDiscipline(tr, treeAllow, treeStrict)...)
 
 	applyHintsLikeRun(findings)
 	check.SortFindings(findings)

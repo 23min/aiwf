@@ -50,6 +50,55 @@ func TestAllocateTrunkRef_ExplicitlyConfigured(t *testing.T) {
 	}
 }
 
+func TestLoad_TreeBlockRoundTrip(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte(strings.Join([]string{
+		"aiwf_version: 0.1.0",
+		"tree:",
+		"  strict: true",
+		"  allow_paths:",
+		"    - work/templates/*.md",
+		"    - work/scratch/foo.md",
+		"",
+	}, "\n"))
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.Tree.Strict {
+		t.Error("Tree.Strict = false, want true")
+	}
+	want := []string{"work/templates/*.md", "work/scratch/foo.md"}
+	if len(cfg.Tree.AllowPaths) != len(want) {
+		t.Fatalf("AllowPaths = %v, want %v", cfg.Tree.AllowPaths, want)
+	}
+	for i, w := range want {
+		if cfg.Tree.AllowPaths[i] != w {
+			t.Errorf("AllowPaths[%d] = %q, want %q", i, cfg.Tree.AllowPaths[i], w)
+		}
+	}
+}
+
+func TestLoad_TreeBlockDefaults(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName), []byte("aiwf_version: 0.1.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Tree.Strict {
+		t.Error("Tree.Strict default should be false (warn-only)")
+	}
+	if len(cfg.Tree.AllowPaths) != 0 {
+		t.Errorf("Tree.AllowPaths default should be empty, got %v", cfg.Tree.AllowPaths)
+	}
+}
+
 func TestLoad_AllocateTrunkRoundTrip(t *testing.T) {
 	root := t.TempDir()
 	contents := []byte("aiwf_version: 0.1.0\nallocate:\n  trunk: refs/remotes/origin/develop\n")
