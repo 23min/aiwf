@@ -2,6 +2,8 @@
 id: G-039
 title: '`aiwf upgrade` mis-parses `go env` output when GOBIN is unset'
 status: addressed
+addressed_by_commit:
+  - 9a06c74
 ---
 
 Resolved in commit `(this commit)` (fix(aiwf): G39 — upgrade flow's go env parser fails when GOBIN is unset). The post-install lookup in `goBinDir` now queries `go env GOBIN` and `go env GOPATH` in two separate calls instead of one combined call. The combined call returns one line per name, and an unset GOBIN renders as a leading blank line — `strings.TrimSpace` was eating that blank, leaving a 1-element slice that tripped the `len(lines) < 2` guard. Anyone with stock Go install (no GOBIN exported, GOPATH at default) hit a non-zero exit immediately after `go install` succeeded, with the operator-facing message `"unexpected `go env` output: \"\n/home/.../go\n\""` and a generic "run aiwf update manually" hint. The fix removes the multi-line parser entirely; each call returns at most one value, so there is no shape to mis-parse.

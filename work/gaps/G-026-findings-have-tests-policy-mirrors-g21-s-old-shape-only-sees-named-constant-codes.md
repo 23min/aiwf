@@ -2,6 +2,8 @@
 id: G-026
 title: '`findings_have_tests` policy mirrors G21''s old shape — only sees named-constant codes'
 status: addressed
+addressed_by_commit:
+  - f37dc07
 ---
 
 Resolved in commit `f37dc07` (feat(aiwf): G26 — extend findings_have_tests to inline-literal codes). After G21 broadened `PolicyFindingCodesAreDiscoverable` to enumerate every kebab-case finding code (named constants + inline `Code: "..."` literals across `check/` and `contractcheck/`), `PolicyFindingCodesHaveTests` was left on the old narrow enumeration: it only verified test references for named-constant codes (i.e., the `provenance-*` family). Inline-literal codes — most of the pre-I2.5 surface, including `acs-tdd-audit`, `acs-shape`, `case-paths`, `load-error`, etc. — could be production-emitted without any test asserting the exact code string. A typo in the emission site would slip through every existing test.

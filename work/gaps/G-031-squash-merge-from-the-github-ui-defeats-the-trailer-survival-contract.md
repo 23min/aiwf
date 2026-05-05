@@ -2,6 +2,8 @@
 id: G-031
 title: Squash-merge from the GitHub UI defeats the trailer-survival contract
 status: addressed
+addressed_by_commit:
+  - ad1175c
 ---
 
 When a PR is squash-merged via GitHub's UI (the default merge strategy for many repos), the resulting commit on the integration branch carries a synthesized message — typically the PR title plus the body, sometimes a list of squashed commit subjects. **Trailers from individual commits are not preserved**. A feature branch with five well-formed `aiwf <verb>` commits squash-merged via the UI lands one trailer-less commit on `main`; every entity transition from those five commits is invisible to `aiwf history <id>` against the merged tree (the only commits that carried `aiwf-verb:` trailers no longer reach HEAD via first-parent).

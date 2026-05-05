@@ -2,6 +2,8 @@
 id: G-041
 title: Tree-discipline ran only at pre-push — LLM-loop signal lands too late
 status: addressed
+addressed_by_commit:
+  - fb2e1e4
 ---
 
 Resolved in commit `(this commit)` (feat(aiwf): G41 — pre-commit gate + `aiwf check --shape-only`). G40 shipped the tree-discipline rule wired into the full `aiwf check` pipeline at pre-push only. That guarantees the bad state never *pushes*, but it does not give the LLM an in-loop signal — by the time pre-push fires, the stray commit has already landed locally, possibly been amended onto, or been bypassed via `git push --no-verify`. The user pushed back on two points:

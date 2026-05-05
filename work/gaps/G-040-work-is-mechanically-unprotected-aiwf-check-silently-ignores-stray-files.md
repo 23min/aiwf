@@ -2,6 +2,8 @@
 id: G-040
 title: '`work/` is mechanically unprotected — `aiwf check` silently ignores stray files'
 status: addressed
+addressed_by_commit:
+  - bdd43c2
 ---
 
 Resolved in commit `(this commit)` (feat(aiwf): G40 — tree-discipline check + tree.allow_paths config + skill rule). The tree loader at `internal/tree/tree.go` walks `work/*` subdirectories and registers everything `entity.PathKind` recognizes; until this fix, files at *any* other path were silently skipped — no finding, no warning, no log line. An LLM-written `work/scratch.md`, an accidental `work/epics/E-01-foo/notes.md`, or a leftover `work/old-stuff/` directory was invisible to `aiwf check` and therefore invisible to the pre-push hook. The chokepoint that was supposed to make tree-shape guarantees real had a blind spot the size of the whole `work/` tree.

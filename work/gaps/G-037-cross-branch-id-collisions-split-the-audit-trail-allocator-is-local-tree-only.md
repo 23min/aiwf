@@ -2,6 +2,12 @@
 id: G-037
 title: Cross-branch id collisions split the audit trail; allocator is local-tree only
 status: addressed
+addressed_by_commit:
+  - 271f514
+  - b9d73d8
+  - c5a98c1
+  - a6e8067
+  - 685f288
 ---
 
 `entity.AllocateID` (`internal/entity/allocate.go:43`) walks the caller's working tree and picks `max+1`. The doc comment at lines 34-37 names this as deliberate ("cross-branch coordination is by design out of scope; collisions are caught by the ids-unique check and resolved with `aiwf reallocate`"). The design *predicted* the collision class but the resolution path was sized for a single-entity oops, not for "two parallel sessions both did real work under the same id."

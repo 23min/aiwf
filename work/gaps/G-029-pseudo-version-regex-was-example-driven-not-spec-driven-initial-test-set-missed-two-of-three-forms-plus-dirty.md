@@ -2,6 +2,8 @@
 id: G-029
 title: Pseudo-version regex was example-driven, not spec-driven — initial test set missed two of three forms plus `+dirty`
 status: addressed
+addressed_by_commit:
+  - f810a86
 ---
 
 Resolved in commit `f810a86` (test(aiwf): close G27/G28/G29 — seam, contract, spec-sourced tests). `TestParse`, `TestProxyBase`, and `pseudoVersionRE`'s doc comment now cite the upstream specs (`go.dev/ref/mod#pseudo-versions`, `semver.org`, `go.dev/ref/mod#environment-variables`); `TestParse` cases now cover all three pseudo-version forms explicitly (was: form 1 + form 3 only) plus the `+dirty` stamping case for both base shapes. The citations make spec-drift detectable: a future Go-toolchain change to pseudo-version grammar will be flagged by anyone reading the spec, rather than missed because tests were example-driven.

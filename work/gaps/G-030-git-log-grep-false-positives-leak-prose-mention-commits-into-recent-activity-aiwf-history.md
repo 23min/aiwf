@@ -2,6 +2,8 @@
 id: G-030
 title: '`git log --grep` false-positives leak prose-mention commits into Recent activity / `aiwf history`'
 status: addressed
+addressed_by_commit:
+  - 7141f2a
 ---
 
 `aiwf status` (Recent activity table) and `aiwf history <id>` both pre-filter `git log` with `--grep "^aiwf-verb: "` (or the anchored entity variant). The grep matches any line in the commit message that starts with the literal string — including **wrapped prose paragraphs** in hand-authored commit bodies that quote trailer keys. Real example from this repo: commit `18a00e6` ("docs(aiwf): I2.5 + I3 planning sweep") has the wrapped prose

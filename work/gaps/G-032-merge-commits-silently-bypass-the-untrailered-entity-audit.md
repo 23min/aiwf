@@ -2,6 +2,8 @@
 id: G-032
 title: Merge commits silently bypass the untrailered-entity audit
 status: addressed
+addressed_by_commit:
+  - ad1175c
 ---
 
 `readUntrailedCommits` ran `git log --name-only`, which by default shows **no file list for merge commits** (true merge commits show diff content only with `-m` or `--cc`). A merge commit that absorbs entity-file changes from a feature branch produces an empty `Paths` slice, and `RunUntrailedAudit` skips it.

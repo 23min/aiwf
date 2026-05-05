@@ -2,6 +2,8 @@
 id: G-045
 title: aiwf-managed git hooks don't compose with consumer-written hooks
 status: addressed
+addressed_by_commit:
+  - 49e7764
 ---
 
 Resolved in commit `49e7764` (feat(aiwf): G45 — hook chaining via `.local` siblings + auto-migration). The marker-managed `pre-push` and `pre-commit` hooks now invoke a `<hook-name>.local` sibling (if present and executable) before running aiwf's own work. `aiwf init` / `aiwf update` auto-migrate a pre-existing non-marker hook to `<hook-name>.local`, preserving its content byte-for-byte and its executable bit, then install aiwf's chain-aware hook. New `ActionMigrated` step result. `HookConflict` now signals only the rare `.local`-already-exists collision (refuse to clobber a deliberate `.local`). `aiwf doctor` reports the chain shape per hook: absent, present + executable (`chains to ...`), or present + non-executable (error). Tests cover migration, the load-bearing collision case, the chain runtime semantics (`.local` exits 0 / non-zero / non-executable), and doctor's three states.

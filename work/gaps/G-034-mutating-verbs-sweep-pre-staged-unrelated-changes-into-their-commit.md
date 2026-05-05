@@ -2,6 +2,8 @@
 id: G-034
 title: Mutating verbs sweep pre-staged unrelated changes into their commit
 status: addressed
+addressed_by_commit:
+  - 890ab01
 ---
 
 Resolved in commit `(this commit)` (fix(aiwf): G34 — isolate verb commits from user's pre-staged work via stash). `verb.Apply` (and `aiwf render roadmap`, the only other mutating call site outside Apply) now check `gitops.StagedPaths` before running. Two halves:

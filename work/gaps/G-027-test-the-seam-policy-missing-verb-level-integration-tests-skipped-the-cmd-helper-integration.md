@@ -2,6 +2,8 @@
 id: G-027
 title: Test-the-seam policy missing — verb-level integration tests skipped the cmd → helper integration
 status: addressed
+addressed_by_commit:
+  - f810a86
 ---
 
 Resolved in commit `f810a86` (test(aiwf): close G27/G28/G29 — seam, contract, spec-sourced tests). New `cmd/aiwf/binary_integration_test.go` builds the cmd binary to a tempfile and subprocesses it; two test cases pin (a) ldflags-stamped Version reaches the verb output (`make install` path) and (b) without ldflags, `aiwf version` and `aiwf doctor`'s `binary:` row report the same value (the seam G27 was filed against). Companion fix in `cmd/aiwf/main.go`: `resolvedVersion`'s no-ldflags fallback now returns `version.Current().Version` directly, byte-coherent with the doctor row. Reverse-validated: restoring the v0.1.0 bug shape (`fmt.Println(Version)` printing the unstamped global) fails the fallback test with the exact "literal sentinel" + "seam mismatch" messages.

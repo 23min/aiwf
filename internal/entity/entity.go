@@ -369,8 +369,9 @@ type Entity struct {
 	SupersededBy string   `yaml:"superseded_by,omitempty"`
 
 	// Gap.
-	DiscoveredIn string   `yaml:"discovered_in,omitempty"`
-	AddressedBy  []string `yaml:"addressed_by,omitempty"`
+	DiscoveredIn      string   `yaml:"discovered_in,omitempty"`
+	AddressedBy       []string `yaml:"addressed_by,omitempty"`
+	AddressedByCommit []string `yaml:"addressed_by_commit,omitempty"`
 
 	// Decision.
 	RelatesTo []string `yaml:"relates_to,omitempty"`
@@ -475,11 +476,14 @@ var schemas = map[Kind]Schema{
 		IDFormat:        "G-NNN",
 		AllowedStatuses: []string{"open", "addressed", "wontfix"},
 		RequiredFields:  commonRequired,
-		OptionalFields:  []string{"discovered_in", "addressed_by"},
+		OptionalFields:  []string{"discovered_in", "addressed_by", "addressed_by_commit"},
 		References: []RefField{
 			{Name: "discovered_in", Cardinality: Single, AllowedKinds: []Kind{KindMilestone, KindEpic}, Optional: true},
 			// addressed_by accepts any kind — empty AllowedKinds.
 			{Name: "addressed_by", Cardinality: Multi, Optional: true},
+			// addressed_by_commit is multi-string commit SHAs, not entity refs;
+			// listed in OptionalFields above but not as a RefField (it doesn't
+			// resolve to an entity).
 		},
 	},
 	KindDecision: {

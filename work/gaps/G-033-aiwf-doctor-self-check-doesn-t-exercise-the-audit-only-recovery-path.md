@@ -2,6 +2,8 @@
 id: G-033
 title: '`aiwf doctor --self-check` doesn''t exercise the audit-only recovery path'
 status: addressed
+addressed_by_commit:
+  - ad1175c
 ---
 
 The G24 recovery story has three load-bearing pieces (manual commit detection, `--audit-only` empty-diff repair, lock-contention diagnostics in `Apply`). Self-check covered init / add / promote / cancel / render / etc., but did not drive the recovery loop end-to-end. A regression in the suppression rule (issue #5's all-or-nothing was such a regression) wouldn't be caught by CI's self-check stage; it'd ship until a user noticed.

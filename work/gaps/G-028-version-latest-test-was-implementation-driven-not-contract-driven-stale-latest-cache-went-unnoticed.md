@@ -2,6 +2,8 @@
 id: G-028
 title: '`version.Latest()` test was implementation-driven, not contract-driven — stale `/@latest` cache went unnoticed'
 status: addressed
+addressed_by_commit:
+  - f810a86
 ---
 
 Resolved in commit `f810a86` (test(aiwf): close G27/G28/G29 — seam, contract, spec-sourced tests). `TestLatest_RealProxy` ("version is non-empty") replaced by `TestLatest_RealProxy_ContractTest` which fetches `/@v/list` directly via raw `net/http` (not through `version.Latest`), computes the expected highest semver via a test-side reference implementation, then asserts `version.Latest()` returns that exact value. The reference implementation is deliberately not imported from the version package so a future regression can't be hidden by a matching regression in the helper. New `TestLatest_PrereleaseExcludedFromHighestSelection` pins the pre-release-skipping invariant offline via httptest.

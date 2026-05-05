@@ -2,6 +2,8 @@
 id: G-020
 title: '`aiwf add ac` accepts prose titles, renders one giant `### AC-N — <title>` heading'
 status: addressed
+addressed_by_commit:
+  - e6de134
 ---
 
 `aiwf add ac M-NNN --title "..."` writes the title both into the YAML frontmatter `acs[].title` field AND into a body heading `### AC-N — <title>`. When the title is a short label that's fine, but real-world ACs that the user passes verbatim from a planning conversation often arrive with markdown bold, multiple sentences, or paragraph-length prose — the result is one h3 heading containing 200+ characters of bold-rendered text in the milestone view, not a heading + prose body. Reproducer:

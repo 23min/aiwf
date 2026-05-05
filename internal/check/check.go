@@ -657,16 +657,24 @@ func adrSupersessionMutual(t *tree.Tree) []Finding {
 }
 
 // gapResolvedHasResolver (warning) reports any gap with status
-// "addressed" but an empty addressed_by list. A wontfix gap doesn't
-// need a resolver — it's discarded by decision, not addressed by work.
+// "addressed" but no resolver — neither an entity reference in
+// addressed_by nor a commit SHA in addressed_by_commit. A wontfix
+// gap doesn't need a resolver: it's discarded by decision, not
+// addressed by work.
+//
+// addressed_by_commit accepts commit SHAs for gaps closed by a
+// specific commit rather than a milestone. The kernel's bulk-imported
+// legacy gaps (G38) use this — most were closed by a single
+// post-iteration hardening commit, not as part of a planned
+// milestone, and pointing at a milestone would be revisionist.
 func gapResolvedHasResolver(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, g := range t.ByKind(entity.KindGap) {
-		if g.Status == entity.StatusAddressed && len(g.AddressedBy) == 0 {
+		if g.Status == entity.StatusAddressed && len(g.AddressedBy) == 0 && len(g.AddressedByCommit) == 0 {
 			findings = append(findings, Finding{
 				Code:     "gap-resolved-has-resolver",
 				Severity: SeverityWarning,
-				Message:  "gap is marked addressed but addressed_by is empty",
+				Message:  "gap is marked addressed but addressed_by and addressed_by_commit are both empty",
 				Path:     g.Path,
 				EntityID: g.ID,
 				Field:    "addressed_by",

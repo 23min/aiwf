@@ -2,6 +2,8 @@
 id: G-047
 title: '`aiwf_version` pin is required, set-once, and never auto-maintained — chronic doctor noise'
 status: addressed
+addressed_by_commit:
+  - 25bf5ea
 ---
 
 Resolved in commit `25bf5ea` (feat(aiwf): G47 — retire the aiwf_version pin field). The field is no longer required by `internal/config/config.go` (validation drops the requirement); `aiwf init` no longer writes it (`Config{}` is the default and an empty marshal becomes a comment-header so later hand-edited yaml blocks parse correctly); `aiwf update` strips it via `StripLegacyAiwfVersion` (mirror of the legacy-actor-strip pattern); doctor's `pin:` row goes away and the `config:` row drops the `(aiwf_version=…)` text. Two new helpers + an opt-in deprecation note on doctor for any pre-G47 yaml the consumer hasn't yet updated. Tests: legacy yamls load fine, the strip is idempotent, fresh init writes neither `actor:` nor `aiwf_version:`, and the doctor advisory fires for legacy yamls but doesn't increment the problem count.

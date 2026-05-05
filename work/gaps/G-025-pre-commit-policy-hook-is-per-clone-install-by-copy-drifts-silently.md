@@ -2,6 +2,8 @@
 id: G-025
 title: Pre-commit policy hook is per-clone, install-by-copy — drifts silently
 status: addressed
+addressed_by_commit:
+  - 40c3d2d
 ---
 
 Resolved in commit `40c3d2d` (build(repo): G25 — adopt core.hooksPath for the tracked pre-commit hook). The policy gate that enforces G21's discoverability rule (and every other policy under `internal/policies/`) lived in `.git/hooks/pre-commit` — installed per clone via `make hooks` (install-by-copy of `scripts/git-hooks/pre-commit`). The model has two failure modes:

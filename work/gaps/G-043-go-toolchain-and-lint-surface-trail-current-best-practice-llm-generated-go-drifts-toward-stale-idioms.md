@@ -2,6 +2,8 @@
 id: G-043
 title: Go toolchain and lint surface trail current best-practice — LLM-generated Go drifts toward stale idioms
 status: addressed
+addressed_by_commit:
+  - b81e5f5
 ---
 
 Resolved in commit `(this commit)` (feat(aiwf): G43 — refresh Go floor and lint surface). All five menu items landed in one stacked commit:

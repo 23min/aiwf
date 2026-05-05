@@ -2,6 +2,8 @@
 id: G-046
 title: '`aiwf upgrade` fails opaquely when the install package path changes between releases'
 status: addressed
+addressed_by_commit:
+  - 93a3e2b
 ---
 
 Resolved in commit `93a3e2b` (feat(aiwf): G46 — structured remediation when go install reports the package-path-change failure). `runGoInstall` now tees stderr to a captured buffer (no UX change — the user still sees the live stream, the buffer just lets us introspect after the fact). New `pathChangedFromStderr` matches the Go toolchain's `module .* found .*, but does not contain package <subpath>` signature, captures the missing subpath, and `printPackagePathChangedHint` surfaces a kernel-friendly remediation: the install path may have changed, here's the CHANGELOG link, here's the manual `go install <new-path>@<target>` to recover, follow with `aiwf update` to refresh artifacts. False-positive guard: unrelated `go install` failures (network, invalid version, permission) do not trigger the hint. Tests pin both the table-driven detector cases and the runtime path through a stderr-emitting shim.

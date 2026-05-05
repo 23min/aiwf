@@ -2,6 +2,10 @@
 id: G-044
 title: Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs
 status: addressed
+addressed_by_commit:
+  - b3e1b2f
+  - fb589c9
+  - 49e72f5
 ---
 
 **Item 3 — on-demand mutation testing — closed in commit `(this commit)`** (`feat(aiwf): G44 item 3 — on-demand mutation testing via gremlins`). New `.github/workflows/mutate-hunt.yml` adds a `workflow_dispatch`-only job (no cron — mutation testing is too expensive for routine CI) that installs `github.com/go-gremlins/gremlins` and runs it against a user-chosen Go package pattern. The default scope is `./internal/...`, but contributors can target a single package via the `pkg_pattern` input.

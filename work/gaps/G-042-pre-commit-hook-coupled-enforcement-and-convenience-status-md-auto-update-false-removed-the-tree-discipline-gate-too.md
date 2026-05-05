@@ -2,6 +2,8 @@
 id: G-042
 title: 'Pre-commit hook coupled enforcement and convenience — `status_md.auto_update: false` removed the tree-discipline gate too'
 status: addressed
+addressed_by_commit:
+  - 977e1b1
 ---
 
 Resolved in commit `(this commit)` (feat(aiwf): G42 — decouple pre-commit hook responsibilities). G41 wired the tree-discipline gate into the pre-commit hook, but the hook installer was still gated by `aiwf.yaml: status_md.auto_update` — a flag whose original purpose was to opt out of *STATUS.md regeneration*, not enforcement. Flipping the flag removed the entire hook, which now meant losing the gate too. Pre-push still caught stray files, but the in-loop early-warning that motivated G41 disappeared.

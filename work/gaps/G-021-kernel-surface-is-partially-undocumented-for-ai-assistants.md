@@ -2,6 +2,9 @@
 id: G-021
 title: Kernel surface is partially undocumented for AI assistants
 status: addressed
+addressed_by_commit:
+  - 5a7df46
+  - 351e694
 ---
 
 Resolved across commits `5a7df46` (docs(aiwf): document case-paths and load-error in aiwf-check skill) and `351e694` (feat(aiwf): extend discoverability policy from provenance-* to all codes).
