@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-05
 
-_47 entities · 0 errors · 43 warnings · run `aiwf check` for details_
+_48 entities · 0 errors · 43 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -22,6 +22,7 @@ _(none)_
 | G-023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
 | G-038 | The kernel repo does not dogfood aiwf — feasibility and fit need investigation |  |
 | G-048 | \`aiwf init\` doesn't honor \`core.hooksPath\` — installs hooks into \`.git/hooks/\` regardless |  |
+| G-049 | gap-resolved-has-resolver fires chronically on legacy-imported gaps |  |
 
 ## Warnings
 
