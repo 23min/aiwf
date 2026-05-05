@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-05
 
-_109 entities · 0 errors · 0 warnings_
+_109 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -36,11 +36,12 @@ _(none)_
 | G-022 | Provenance model extension surface |  |
 | G-023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
 | G-048 | \`aiwf init\` doesn't honor \`core.hooksPath\` — installs hooks into \`.git/hooks/\` regardless |  |
-| G-049 | gap-resolved-has-resolver fires chronically on legacy-imported gaps |  |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| gap-resolved-has-resolver | G-049 | work/gaps/G-049-gap-resolved-has-resolver-fires-chronically-on-legacy-imported-gaps.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 

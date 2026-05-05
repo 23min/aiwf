@@ -1,7 +1,7 @@
 ---
 id: G-049
 title: gap-resolved-has-resolver fires chronically on legacy-imported gaps
-status: open
+status: addressed
 ---
 
 ## What's missing
