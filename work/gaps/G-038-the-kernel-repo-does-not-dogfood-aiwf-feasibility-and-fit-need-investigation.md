@@ -1,7 +1,7 @@
 ---
 id: G-038
 title: The kernel repo does not dogfood aiwf — feasibility and fit need investigation
-status: open
+status: addressed
 ---
 
 The framework targets "humans + AI assistants tracking planning state via aiwf entities under git." The kernel repo itself does not. There is no `aiwf.yaml`, no `work/` directory, no `.git/hooks/pre-push` running `aiwf check`, and no `aiwf-verb: / aiwf-entity:` trailers on any commit on this branch. The PoC's own roadmap, gaps, and design notes live as plain markdown under `docs/pocv3/` rather than as aiwf entities.

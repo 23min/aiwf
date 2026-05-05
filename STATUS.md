@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-05
 
-_48 entities · 0 errors · 43 warnings · run `aiwf check` for details_
+_48 entities · 0 errors · 44 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -20,7 +20,6 @@ _(none)_
 |----|-------|---------------|
 | G-022 | Provenance model extension surface |  |
 | G-023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
-| G-038 | The kernel repo does not dogfood aiwf — feasibility and fit need investigation |  |
 | G-048 | \`aiwf init\` doesn't honor \`core.hooksPath\` — installs hooks into \`.git/hooks/\` regardless |  |
 | G-049 | gap-resolved-has-resolver fires chronically on legacy-imported gaps |  |
 
@@ -62,6 +61,7 @@ _(none)_
 | gap-resolved-has-resolver | G-035 | work/gaps/G-035-html-site-only-generates-pages-for-epic-and-milestone-gap-adr-decision-contract-links-404.md | gap is marked addressed but addressed_by is empty |
 | gap-resolved-has-resolver | G-036 | work/gaps/G-036-entity-body-markdown-rendered-as-escaped-raw-text-in-html.md | gap is marked addressed but addressed_by is empty |
 | gap-resolved-has-resolver | G-037 | work/gaps/G-037-cross-branch-id-collisions-split-the-audit-trail-allocator-is-local-tree-only.md | gap is marked addressed but addressed_by is empty |
+| gap-resolved-has-resolver | G-038 | work/gaps/G-038-the-kernel-repo-does-not-dogfood-aiwf-feasibility-and-fit-need-investigation.md | gap is marked addressed but addressed_by is empty |
 | gap-resolved-has-resolver | G-039 | work/gaps/G-039-aiwf-upgrade-mis-parses-go-env-output-when-gobin-is-unset.md | gap is marked addressed but addressed_by is empty |
 | gap-resolved-has-resolver | G-040 | work/gaps/G-040-work-is-mechanically-unprotected-aiwf-check-silently-ignores-stray-files.md | gap is marked addressed but addressed_by is empty |
 | gap-resolved-has-resolver | G-041 | work/gaps/G-041-tree-discipline-ran-only-at-pre-push-llm-loop-signal-lands-too-late.md | gap is marked addressed but addressed_by is empty |
