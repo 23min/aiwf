@@ -54,8 +54,11 @@ func PolicyFindingCodesAreDiscoverable(root string) ([]Violation, error) {
 // allCheckCodes returns the union of finding codes from named
 // constants in tools/internal/check/ and inline `Code: "..."`
 // literals in Finding{} composite literals across check/ and
-// contractcheck/. Filtered to kebab-case finding-code shape so
-// non-code constants (severities, etc.) are excluded.
+// contractcheck/. When a Finding{} composite also carries a
+// non-empty Subcode literal, the composite "<code>/<subcode>" is
+// included alongside the bare code, matching how aiwf-check
+// SKILL.md writes them. Filtered to kebab-case finding-code shape
+// so non-code constants (severities, etc.) are excluded.
 func allCheckCodes(files []FileEntry) map[string]struct{} {
 	out := map[string]struct{}{}
 	for _, v := range loadCheckCodeConstants(files) {
@@ -74,6 +77,12 @@ func allCheckCodes(files []FileEntry) map[string]struct{} {
 // assigned to a `Code` field in any composite literal. Captures the
 // codes that aren't declared as named constants (most of the
 // pre-I2.5 surface).
+//
+// When the same composite literal also has a Subcode field with a
+// non-empty string literal, the composite "<code>/<subcode>" string
+// is added too — that's how aiwf-check SKILL.md writes them, and a
+// new subcode that's never named in the discoverability haystack is
+// just as undocumented as a new code.
 func loadCheckCodeLiterals(files []FileEntry) map[string]struct{} {
 	out := map[string]struct{}{}
 	fset := token.NewFileSet()
@@ -87,30 +96,47 @@ func loadCheckCodeLiterals(files []FileEntry) map[string]struct{} {
 			continue
 		}
 		ast.Inspect(astFile, func(n ast.Node) bool {
-			kv, ok := n.(*ast.KeyValueExpr)
+			cl, ok := n.(*ast.CompositeLit)
 			if !ok {
 				return true
 			}
-			key, ok := kv.Key.(*ast.Ident)
-			if !ok || key.Name != "Code" {
+			code := stringFieldValue(cl, "Code")
+			if code == "" || !looksLikeFindingCode(code) {
 				return true
 			}
-			lit, ok := kv.Value.(*ast.BasicLit)
-			if !ok || lit.Kind != token.STRING {
-				return true
+			out[code] = struct{}{}
+			if sub := stringFieldValue(cl, "Subcode"); sub != "" {
+				out[code+"/"+sub] = struct{}{}
 			}
-			value, uerr := strconv.Unquote(lit.Value)
-			if uerr != nil {
-				return true
-			}
-			if !looksLikeFindingCode(value) {
-				return true
-			}
-			out[value] = struct{}{}
 			return true
 		})
 	}
 	return out
+}
+
+// stringFieldValue returns the unquoted string-literal value of the
+// named field on the composite, or "" when absent / non-string.
+func stringFieldValue(cl *ast.CompositeLit, name string) string {
+	for _, elt := range cl.Elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok || key.Name != name {
+			continue
+		}
+		lit, ok := kv.Value.(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			continue
+		}
+		v, err := strconv.Unquote(lit.Value)
+		if err != nil {
+			continue
+		}
+		return v
+	}
+	return ""
 }
 
 // readDiscoverabilityChannels concatenates the contents of every

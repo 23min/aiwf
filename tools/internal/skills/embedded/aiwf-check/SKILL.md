@@ -42,16 +42,31 @@ aiwf check --since HEAD~50   # walk the last 50 commits
 | `frontmatter-shape` | Required field missing or malformed. | Add the field; check the kind's id format. |
 | `status-valid` | Status is not in the kind's allowed set. | Pick a status from the kind's set (see `aiwf-promote`). |
 | `refs-resolve/unresolved` | A reference points at an id that does not exist. | Either the target was never created, or the id is mistyped. |
+| `refs-resolve/unresolved-milestone` | The composite-id reference's milestone half (`M-NNN/AC-N`) names a milestone that does not exist. | Fix the milestone id or create the milestone. |
+| `refs-resolve/unresolved-ac` | The composite-id reference's AC half (`M-NNN/AC-N`) names an AC that does not exist on the milestone. | Fix the AC number or add the missing AC. |
 | `refs-resolve/wrong-kind` | A reference points at an entity of the wrong kind. | A milestone's `parent` must be an epic; an ADR's `supersedes` must be ADRs; etc. |
 | `no-cycles` | A cycle in the milestone `depends_on` DAG or the ADR `supersedes` chain. | Remove a back-edge. |
+| `no-cycles/depends_on` | The cycle is in milestone `depends_on` edges. | Break a back-edge in the milestone DAG. |
+| `no-cycles/supersedes` | The cycle is in ADR `supersedes` edges. | Break the chain — an ADR cannot transitively supersede itself. |
 | `case-paths` | Two entity paths differ only in case. Linux commits both; macOS / Windows case-insensitive filesystems collapse them to one entity. | `git mv` one of the directories so the names differ in more than case. |
 | `load-error` | A file under `work/` failed to parse — malformed YAML frontmatter, unreadable file, or a structural issue the loader couldn't recover from. | Open the named file and fix the parse issue; subsequent checks run once load succeeds. |
 | `contract-config` | A contract binding in `aiwf.yaml` references an id with no entity, a missing schema/fixtures path, or a contract entity has no binding. | Run `aiwf contract bind` / `aiwf add contract`, fix the path, or `aiwf contract unbind`. |
+| `contract-config/missing-entity` | The binding's `id:` points at a contract entity that doesn't exist. | Either create the contract entity or remove the stale binding. |
+| `contract-config/missing-schema` | The binding's `schema:` path doesn't exist on disk. | Fix the path or create the schema file. |
+| `contract-config/missing-fixtures` | The binding's `fixtures:` directory doesn't exist on disk. | Fix the path or create the fixtures tree. |
+| `contract-config/no-binding` | A contract entity exists but no binding in aiwf.yaml references its id. | `aiwf contract bind <id> --validator <name> --schema <path> --fixtures <path>`. |
 | `fixture-rejected` | A `valid/` fixture failed the schema. | Make the schema accept it, or move it to `invalid/`. |
 | `fixture-accepted` | An `invalid/` fixture passed the schema. | Tighten the schema, or move to `valid/`. |
 | `evolution-regression` | A historical `valid/` fixture fails the HEAD schema. | Revert the schema change, migrate the fixture, or rebind. |
 | `validator-error` | Every valid fixture for a contract was rejected — the schema or validator invocation is likely broken. | Inspect the captured stderr and fix the schema or validator command. |
 | `environment` | Validator binary not on PATH. | Install it (see the recipe's install instructions) or fix `command:` in `aiwf.yaml`. |
+| `acs-shape/id` | An AC's id doesn't match `AC-N` or doesn't follow the per-milestone `1..max` ordering. | Fix the id in the milestone's `acs[]` list. |
+| `acs-shape/title` | An AC's title is missing or whitespace-only. | Fill in the title. |
+| `acs-shape/status` | An AC's status is not in `{open, met, cancelled}`. | Use one of the three statuses. |
+| `acs-shape/tdd-phase` | An AC's `tdd_phase` is set on a milestone that is not `tdd: required`, OR it's set to a value not in `{red, green, refactor, done}`. | Either set the milestone to `tdd: required`, remove the field from the AC, or fix the phase value. |
+| `acs-shape/tdd-policy` | An AC at `tdd_phase: done` is in a milestone that is not `tdd: required`. | Either flip the milestone to `tdd: required` or remove the `tdd_phase` field. |
+| `acs-body-coherence/missing-heading` | The frontmatter `acs[]` lists an AC, but the body has no `### AC-N — <title>` heading for it. | Run `aiwf add ac` (which scaffolds the heading), or hand-edit the body to add it. |
+| `acs-body-coherence/orphan-heading` | The body has an `### AC-N — ...` heading but the frontmatter `acs[]` list does not include AC-N. | Either remove the heading or add the missing AC to `acs[]`. |
 
 ## Findings (warnings)
 

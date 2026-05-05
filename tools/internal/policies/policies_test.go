@@ -134,3 +134,11 @@ func TestPolicy_DesignDocAnchors(t *testing.T) {
 func TestPolicy_FilepathJoinSegmentBySegment(t *testing.T) {
 	runPolicy(t, PolicyFilepathJoinSegmentBySegment)
 }
+
+func TestPolicy_TestsRealCloneNotUpdateRef(t *testing.T) {
+	runPolicy(t, PolicyTestsRealCloneNotUpdateRef)
+}
+
+func TestPolicy_ConfigFieldsAreDiscoverable(t *testing.T) {
+	runPolicy(t, PolicyConfigFieldsAreDiscoverable)
+}

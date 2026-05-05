@@ -65,6 +65,9 @@ func TestIDsUnique_TrunkCollision(t *testing.T) {
 		t.Fatalf("idsUnique findings = %d, want 1: %+v", len(got), got)
 	}
 	f := got[0]
+	if f.Code != "ids-unique" {
+		t.Errorf("Code = %q, want ids-unique", f.Code)
+	}
 	if f.EntityID != "G-035" {
 		t.Errorf("EntityID = %q, want G-035", f.EntityID)
 	}

@@ -67,6 +67,14 @@ func PolicyFindingCodesHaveTests(root string) ([]Violation, error) {
 	}
 	// Inline-literal codes: only the quoted value is an acceptable
 	// reference (there is no constant name to fall back on).
+	//
+	// Composite "<code>/<subcode>" entries get a relaxation: a test
+	// that asserts both `"<code>"` and `"<subcode>"` (anywhere in the
+	// same test file body) counts. That matches how check tests
+	// natively express subcoded findings — by checking
+	// `f.Code == ... && f.Subcode == ...`. Without this relaxation
+	// the policy would force tests to fabricate the slash form purely
+	// to satisfy a grep, which is a worse signal.
 	for value := range literals {
 		// Skip anything also declared as a named constant — already
 		// handled above.
@@ -74,6 +82,9 @@ func PolicyFindingCodesHaveTests(root string) ([]Violation, error) {
 			continue
 		}
 		if strings.Contains(haystack, `"`+value+`"`) {
+			continue
+		}
+		if isSubcoded(value) && hasSubcodePair(allFiles, value) {
 			continue
 		}
 		out = append(out, Violation{
@@ -84,6 +95,40 @@ func PolicyFindingCodesHaveTests(root string) ([]Violation, error) {
 		})
 	}
 	return out, nil
+}
+
+// isSubcoded reports whether s has the "code/subcode" shape.
+func isSubcoded(s string) bool {
+	idx := strings.Index(s, "/")
+	return idx > 0 && idx < len(s)-1
+}
+
+// hasSubcodePair returns true when at least one *_test.go file under
+// tools/internal/check/ or tools/internal/contractcheck/ contains
+// quoted literals for both the code half and the subcode half of
+// "<code>/<subcode>". That's the canonical assertion shape for a
+// subcoded finding (e.g. `f.Code == "no-cycles" && f.Subcode == "depends_on"`).
+func hasSubcodePair(files []FileEntry, composite string) bool {
+	idx := strings.Index(composite, "/")
+	if idx <= 0 || idx >= len(composite)-1 {
+		return false
+	}
+	codeLit := `"` + composite[:idx] + `"`
+	subLit := `"` + composite[idx+1:] + `"`
+	for _, f := range files {
+		if !strings.HasSuffix(f.Path, "_test.go") {
+			continue
+		}
+		if !strings.HasPrefix(f.Path, "tools/internal/check/") &&
+			!strings.HasPrefix(f.Path, "tools/internal/contractcheck/") {
+			continue
+		}
+		body := string(f.Contents)
+		if strings.Contains(body, codeLit) && strings.Contains(body, subLit) {
+			return true
+		}
+	}
+	return false
 }
 
 // hasConstantValue reports whether any named constant in consts has
