@@ -17,6 +17,14 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-05-06
+
+### Added
+- **G49 — `addressed_by_commit:` field on the gap kind.** Optional multi-string list of commit SHAs that resolved a gap. The `gap-resolved-has-resolver` rule now passes when *either* `addressed_by:` (entity refs) or `addressed_by_commit:` (commit SHAs) is non-empty. Models the real semantic: a gap can be closed by a specific commit, not just a milestone. (`de39e01`)
+
+### Internal
+- **G38 — Kernel now dogfoods aiwf against itself.** The kernel repo became an aiwf consumer: 47 legacy gaps imported as `G-NNN` entities, 13 epics + 48 milestones imported from the historical PoC plan, `gaps.md` and `poc-plan.md` archived under `docs/pocv3/archive/`. The hook reshape (drop `core.hooksPath`, slim the kernel's policy-lint hook to `.git/hooks/pre-commit.local` via the G45 chain) treats the kernel like any consumer with pre-existing hooks. End-to-end exercise of `aiwf init`, `aiwf import`, `aiwf add gap`, `aiwf promote`, `aiwf promote --audit-only`, and the pre-commit/pre-push hook chains against real consumer-shaped state. New gaps surfaced and filed via the framework: G48 (`aiwf init` should honor `core.hooksPath`), G49 (above, fixed in this release).
+
 ## [0.5.0] — 2026-05-05
 
 ### Added
