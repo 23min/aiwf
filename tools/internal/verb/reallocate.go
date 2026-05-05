@@ -48,10 +48,15 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 	}
 	newEntityPath := newEntityPathAfterRename(target, source, dest)
 
-	// Modified entity: new id and new path.
+	// Modified entity: new id and new path. The lineage list grows
+	// by appending the OLD id (not the new one), oldest-first; tree-
+	// only readers (HTML render, aiwf show, future projections) can
+	// read the chain straight from frontmatter without shelling out
+	// to git log.
 	modified := *target
 	modified.ID = newID
 	modified.Path = newEntityPath
+	modified.PriorIDs = appendPriorID(target.PriorIDs, oldID)
 
 	// Rewrite frontmatter references in every entity that points at
 	// the old id.
@@ -191,6 +196,21 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 // against longer ids (M-001 must not match M-0010 or M-0011).
 func proseRewritePattern(id string) *regexp.Regexp {
 	return regexp.MustCompile(`\b` + regexp.QuoteMeta(id) + `\b`)
+}
+
+// appendPriorID returns prior with id appended, unless id is already
+// the last element (idempotent under double-reallocate edge cases or
+// repaired hand-edits). Returns a fresh slice so callers don't share
+// backing storage with the loaded entity.
+func appendPriorID(prior []string, id string) []string {
+	if len(prior) > 0 && prior[len(prior)-1] == id {
+		out := make([]string, len(prior))
+		copy(out, prior)
+		return out
+	}
+	out := make([]string, len(prior), len(prior)+1)
+	copy(out, prior)
+	return append(out, id)
 }
 
 // resolveTarget interprets an argument as either an id or a

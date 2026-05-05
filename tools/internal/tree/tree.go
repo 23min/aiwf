@@ -334,6 +334,34 @@ func (t *Tree) ByID(id string) *entity.Entity {
 	return nil
 }
 
+// ByPriorID returns the entity whose `prior_ids` lineage list
+// includes id, or nil if no entity claims that id as a prior. When
+// multiple entities claim the same prior id (a hand-edit accident or
+// the rare lineage-broken case), ByPriorID returns the first match
+// in tree-walk order; iterate Entities to enumerate all.
+func (t *Tree) ByPriorID(id string) *entity.Entity {
+	for _, e := range t.Entities {
+		for _, p := range e.PriorIDs {
+			if p == id {
+				return e
+			}
+		}
+	}
+	return nil
+}
+
+// ResolveByCurrentOrPriorID resolves id to an entity by trying
+// ByID first (current id), then ByPriorID (lineage match). Returns
+// nil when neither matches. Used by `aiwf history` so a query for
+// an old id transparently resolves to the current entity, then the
+// caller walks the chain via the entity's PriorIDs slice.
+func (t *Tree) ResolveByCurrentOrPriorID(id string) *entity.Entity {
+	if e := t.ByID(id); e != nil {
+		return e
+	}
+	return t.ByPriorID(id)
+}
+
 // ByKind returns every entity of the given kind, in tree-walk order.
 func (t *Tree) ByKind(k entity.Kind) []*entity.Entity {
 	out := make([]*entity.Entity, 0)

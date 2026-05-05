@@ -291,6 +291,41 @@ func TestTree_ByID(t *testing.T) {
 	}
 }
 
+func TestTree_ByPriorIDAndResolve(t *testing.T) {
+	// G-003 carries lineage [G-001, G-002] — two prior reallocations.
+	// Queries for any of the three should resolve to G-003 via
+	// ResolveByCurrentOrPriorID.
+	g003 := &entity.Entity{
+		ID:       "G-003",
+		Kind:     entity.KindGap,
+		PriorIDs: []string{"G-001", "G-002"},
+	}
+	other := &entity.Entity{ID: "G-004", Kind: entity.KindGap}
+	tr := &Tree{Entities: []*entity.Entity{g003, other}}
+
+	if got := tr.ByPriorID("G-001"); got != g003 {
+		t.Errorf("ByPriorID(G-001) = %v, want G-003", got)
+	}
+	if got := tr.ByPriorID("G-002"); got != g003 {
+		t.Errorf("ByPriorID(G-002) = %v, want G-003", got)
+	}
+	if got := tr.ByPriorID("G-099"); got != nil {
+		t.Errorf("ByPriorID(G-099) = %v, want nil", got)
+	}
+
+	for _, q := range []string{"G-001", "G-002", "G-003"} {
+		if got := tr.ResolveByCurrentOrPriorID(q); got != g003 {
+			t.Errorf("ResolveByCurrentOrPriorID(%s) = %v, want G-003", q, got)
+		}
+	}
+	if got := tr.ResolveByCurrentOrPriorID("G-004"); got != other {
+		t.Errorf("ResolveByCurrentOrPriorID(G-004) = %v, want G-004 itself", got)
+	}
+	if got := tr.ResolveByCurrentOrPriorID("G-099"); got != nil {
+		t.Errorf("ResolveByCurrentOrPriorID(G-099) = %v, want nil", got)
+	}
+}
+
 func TestLoad_ReverseRefs(t *testing.T) {
 	root := t.TempDir()
 	// Epic with two milestones; the second depends on the first.

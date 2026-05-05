@@ -348,6 +348,14 @@ type Entity struct {
 	Title  string `yaml:"title"`
 	Status string `yaml:"status"`
 
+	// Lineage. PriorIDs lists the ids this entity has carried before
+	// the current one, oldest first. Populated by `aiwf reallocate`
+	// on every renumber; the resulting chain lets `aiwf history` walk
+	// the entity's full timeline under its current canonical id.
+	// Tree-only readers (HTML render, `aiwf show`, future projections)
+	// can resolve lineage without re-walking git log.
+	PriorIDs []string `yaml:"prior_ids,omitempty"`
+
 	// Milestone references.
 	Parent    string   `yaml:"parent,omitempty"`
 	DependsOn []string `yaml:"depends_on,omitempty"`

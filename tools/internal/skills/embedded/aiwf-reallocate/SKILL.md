@@ -23,13 +23,14 @@ When passing an id, `aiwf` errors if it cannot pick exactly one entity to renumb
 
 ## What aiwf does
 
-1. Picks the next free id for the kind (`max + 1` at call time).
+1. Picks the next free id for the kind (`max + 1` at call time, scanning the working tree ∪ the configured trunk ref so the new id can't collide with trunk either).
 2. `git mv` the colliding file or directory to its new path.
 3. Rewrites every reference field in every other entity's frontmatter (e.g., a milestone's `parent`, a gap's `addressed_by`).
-4. Reports body-prose mentions of the old id as findings — those need a human eye, since prose is not parsed.
-5. Commits with trailers `aiwf-verb: reallocate`, `aiwf-entity: <new-id>`, `aiwf-prior-entity: <old-id>`, `aiwf-actor: <actor>`.
+4. Appends the OLD id to the renumbered entity's `prior_ids:` frontmatter list (oldest-first). The list is the tree-level source of truth for lineage; tree-only readers (`aiwf show`, the HTML render, future projections) read it directly without shelling out to git log.
+5. Reports body-prose mentions of the old id as findings — those need a human eye, since prose is not parsed.
+6. Commits with trailers `aiwf-verb: reallocate`, `aiwf-entity: <new-id>`, `aiwf-prior-entity: <old-id>`, `aiwf-actor: <actor>`.
 
-The `aiwf-prior-entity` trailer is what lets `aiwf history <old-id>` still find this event.
+`aiwf history <old-id>` still works after a renumber: the cmd dispatcher resolves the queried id through `prior_ids`, walks the full chain (every prior id plus the current id), and runs one `git log` grep against the union. Both the original id and the current id return the same chronological timeline — pre-rename commits, the rename commit, and post-rename commits, in order.
 
 ## Don't
 

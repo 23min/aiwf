@@ -309,6 +309,61 @@ func TestReallocate_RewritesReferences(t *testing.T) {
 	mustHaveTrailer(t, trailers, "aiwf-prior-entity", "M-001")
 }
 
+// TestReallocate_PopulatesPriorIDs is the G37 (b) load-bearing
+// check: every reallocate appends the old id to the renumbered
+// entity's prior_ids frontmatter list. The list is the tree-level
+// source of truth for lineage; tree-only readers (HTML render,
+// aiwf show, projections) should never have to walk git log to
+// learn an entity's prior ids.
+func TestReallocate_PopulatesPriorIDs(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "First gap", testActor, verb.AddOptions{}))
+	r.must(verb.Reallocate(r.ctx, r.tree(), "G-001", testActor))
+
+	tr := r.tree()
+	g002 := tr.ByID("G-002")
+	if g002 == nil {
+		t.Fatal("G-002 missing after reallocate")
+	}
+	if got := g002.PriorIDs; len(got) != 1 || got[0] != "G-001" {
+		t.Errorf("G-002.prior_ids = %v, want [G-001]", got)
+	}
+}
+
+// TestReallocate_PriorIDsChainAcrossMultipleRenumbers checks the
+// transitive case: a second reallocate appends to the existing list
+// rather than overwriting it. After two renumbers the youngest
+// entity's prior_ids names BOTH older ids, oldest-first — that's the
+// chain `aiwf history` walks to weave pre- and post-rename commits
+// into one timeline.
+func TestReallocate_PriorIDsChainAcrossMultipleRenumbers(t *testing.T) {
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Original gap", testActor, verb.AddOptions{}))
+
+	// First reallocate: G-001 → G-002. PriorIDs should be [G-001].
+	r.must(verb.Reallocate(r.ctx, r.tree(), "G-001", testActor))
+	tr := r.tree()
+	g002 := tr.ByID("G-002")
+	if g002 == nil {
+		t.Fatal("G-002 missing after first reallocate")
+	}
+	if got := g002.PriorIDs; len(got) != 1 || got[0] != "G-001" {
+		t.Fatalf("after first reallocate, prior_ids = %v, want [G-001]", got)
+	}
+
+	// Second reallocate: G-002 → G-003. PriorIDs should be [G-001, G-002].
+	r.must(verb.Reallocate(r.ctx, r.tree(), "G-002", testActor))
+	tr = r.tree()
+	g003 := tr.ByID("G-003")
+	if g003 == nil {
+		t.Fatal("G-003 missing after second reallocate")
+	}
+	want := []string{"G-001", "G-002"}
+	if got := g003.PriorIDs; len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		t.Errorf("after second reallocate, prior_ids = %v, want %v", got, want)
+	}
+}
+
 // TestAdd_NonASCIITitle_SurfacesSlugWarning is the load-bearing test
 // for G8: an `aiwf add` with a non-ASCII title (`Café`) succeeds,
 // produces the expected ASCII slug, AND surfaces a warning naming

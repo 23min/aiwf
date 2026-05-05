@@ -215,7 +215,33 @@ func runHistory(args []string) int {
 		return exitUsage
 	}
 
-	events, err := readHistory(context.Background(), rootDir, id)
+	// Resolve the queried id through prior_ids lineage so a query for
+	// an old id returns the same chronological chain as a query for
+	// the entity's current id. The chain is the union of (a) the
+	// queried id itself, (b) the canonical entity's current id when
+	// distinct, and (c) every id in the canonical entity's PriorIDs.
+	// readHistory greps git log once for the union — pre-rename
+	// commits (matching aiwf-entity: <old>), the rename commit
+	// itself (matching aiwf-prior-entity: <old> against the queried
+	// id), and post-rename commits (matching aiwf-entity: <new>) all
+	// arrive in one chronological pass.
+	chain := []string{id}
+	if tr, _, terr := tree.Load(context.Background(), rootDir); terr == nil && tr != nil {
+		if e := tr.ResolveByCurrentOrPriorID(id); e != nil {
+			seen := map[string]bool{id: true}
+			for _, p := range e.PriorIDs {
+				if !seen[p] {
+					chain = append(chain, p)
+					seen[p] = true
+				}
+			}
+			if !seen[e.ID] {
+				chain = append(chain, e.ID)
+			}
+		}
+	}
+
+	events, err := readHistoryChain(context.Background(), rootDir, chain)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
 		return exitInternal
@@ -342,7 +368,21 @@ type HistoryEvent struct {
 // match `M-070/`. A composite id queried directly (`M-007/AC-1`)
 // matches only that AC's events.
 func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
+	return readHistoryChain(ctx, root, []string{id})
+}
+
+// readHistoryChain is readHistory's lineage-aware variant: it greps
+// git log for any aiwf-entity / aiwf-prior-entity trailer matching
+// any id in chain, dedupes by commit SHA, and returns a single
+// oldest-first chronological slice. Used by `aiwf history <id>`
+// after the cmd dispatcher has expanded id through prior_ids
+// lineage. A single-element chain is the pre-G37 behavior; longer
+// chains weave pre-rename and post-rename history into one timeline.
+func readHistoryChain(ctx context.Context, root string, chain []string) ([]HistoryEvent, error) {
 	if !hasCommits(ctx, root) {
+		return nil, nil
+	}
+	if len(chain) == 0 {
 		return nil, nil
 	}
 	const sep = "\x1f"
@@ -351,16 +391,21 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 		"log",
 		"--reverse",
 		"-E",
-		"--grep", "^aiwf-entity: " + regexp.QuoteMeta(id) + "$",
-		"--grep", "^aiwf-prior-entity: " + regexp.QuoteMeta(id) + "$",
 	}
-	if isBareMilestoneID(id) {
-		// Path-prefix match anchored on the literal `/` boundary so
-		// M-007/ cannot match M-070/. Includes M-NNN/AC-N events.
+	for _, id := range chain {
 		args = append(args,
-			"--grep", "^aiwf-entity: "+regexp.QuoteMeta(id)+"/AC-[0-9]+$",
-			"--grep", "^aiwf-prior-entity: "+regexp.QuoteMeta(id)+"/AC-[0-9]+$",
+			"--grep", "^aiwf-entity: "+regexp.QuoteMeta(id)+"$",
+			"--grep", "^aiwf-prior-entity: "+regexp.QuoteMeta(id)+"$",
 		)
+		if isBareMilestoneID(id) {
+			// Path-prefix match anchored on the literal `/` boundary
+			// so M-007/ cannot match M-070/. Includes M-NNN/AC-N
+			// events.
+			args = append(args,
+				"--grep", "^aiwf-entity: "+regexp.QuoteMeta(id)+"/AC-[0-9]+$",
+				"--grep", "^aiwf-prior-entity: "+regexp.QuoteMeta(id)+"/AC-[0-9]+$",
+			)
+		}
 	}
 	args = append(args,
 		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+

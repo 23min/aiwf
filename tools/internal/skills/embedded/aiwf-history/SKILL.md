@@ -42,16 +42,19 @@ By default scope chips abbreviate the auth-SHA to 7 characters: `[E-03 4b13a0f]`
 
 ## What aiwf does
 
-1. Runs `git log` with greps for `aiwf-entity: <id>` OR `aiwf-prior-entity: <id>` trailers (so reallocate events surface from both ids). For bare milestone ids, additionally greps for `<id>/AC-\d+` so the milestone view includes its ACs.
-2. Parses each matching commit's subject, structured trailers, and author date.
-3. Builds a one-time `authSHA → scope-entity` map for chip rendering.
-4. Renders one event per line; forced/audit-only/reason events get indented sub-lines.
+1. Loads the entity tree once and resolves the queried id through `prior_ids` lineage to its current canonical entity. The chain is the queried id, plus every id in the canonical entity's `prior_ids`, plus the canonical entity's current id when distinct from all of those.
+2. Runs `git log` with greps for `aiwf-entity: <id>` OR `aiwf-prior-entity: <id>` trailers for every id in the chain (so a single query weaves pre-rename, rename, and post-rename commits into one timeline). For bare milestone ids, additionally greps for `<id>/AC-\d+` so the milestone view includes its ACs.
+3. Parses each matching commit's subject, structured trailers, and author date.
+4. Builds a one-time `authSHA → scope-entity` map for chip rendering.
+5. Renders one event per line; forced/audit-only/reason events get indented sub-lines.
+
+After two reallocates (G-001 → G-002 → G-003), `aiwf history G-001`, `aiwf history G-002`, and `aiwf history G-003` all return the same chronological timeline.
 
 ## Limitations
 
 - `aiwf history` shows only verb-driven events. Hand-edits to the markdown file won't have trailers and won't appear here. `aiwf check` flags such commits as `provenance-untrailered-entity-commit` (warning) at push time so the audit gap is visible; `aiwf <verb> --audit-only --reason "..."` is the repair path.
-- After a reallocate, query both ids if you want the full picture; the new id's history starts from the reallocate event.
 - Pre-I2 promote commits don't carry `aiwf-to:`; the column renders as a dash. No retroactive fill.
+- Pre-G37 reallocates (before `prior_ids` shipped) don't carry the lineage in frontmatter. Querying the old id still surfaces the rename event via the existing `aiwf-prior-entity:` trailer, but post-rename history surfaces only when querying the new id. New reallocates fill `prior_ids` automatically; legacy chains can be backfilled manually if needed.
 
 ## Don't
 

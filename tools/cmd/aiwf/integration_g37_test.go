@@ -724,6 +724,87 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 	}
 }
 
+// TestIntegrationG37_HistoryWalksLineageChain pins layer (b)'s
+// load-bearing read-side guarantee: after two reallocations
+// (G-001 → G-002 → G-003), `aiwf history` returns the same
+// chronological chain whether the operator queries by the original
+// id, the intermediate id, or the current id.
+//
+// The chain expansion lives in runHistory: it loads the tree, calls
+// ResolveByCurrentOrPriorID(queriedID) to find the canonical entity,
+// then walks the entity's PriorIDs slice plus its current ID to
+// build the union the git-log grep covers. Without that walk, a
+// query for the original id would only ever surface the rename
+// commit (matched via aiwf-prior-entity), not the entity's
+// post-rename promote/cancel/etc events under the new id.
+func TestIntegrationG37_HistoryWalksLineageChain(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	bare := makeBareOrigin(t)
+	clone := makeClone(t, bare, "A")
+	aiwfInitClone(t, clone, binDir)
+
+	// Add a gap, then reallocate twice. Because the working tree
+	// already carries a G-NNN, each reallocate picks the next free
+	// id: G-001 → G-002 → G-003.
+	aiwfAddGap(t, clone, binDir, "Original phrasing")
+
+	g1Path := findEntityPath(t, clone, "work/gaps", "G-001-")
+	if g1Path == "" {
+		t.Fatal("G-001-*.md missing after add")
+	}
+	if out := aiwfReallocateByPath(t, clone, binDir, g1Path); !strings.Contains(out, "G-002") {
+		t.Fatalf("first reallocate should produce G-002; got:\n%s", out)
+	}
+
+	g2Path := findEntityPath(t, clone, "work/gaps", "G-002-")
+	if g2Path == "" {
+		t.Fatal("G-002-*.md missing after first reallocate")
+	}
+	if out := aiwfReallocateByPath(t, clone, binDir, g2Path); !strings.Contains(out, "G-003") {
+		t.Fatalf("second reallocate should produce G-003; got:\n%s", out)
+	}
+
+	// Confirm the prior_ids chain landed on disk: the surviving
+	// entity must list both prior ids, oldest-first.
+	g3Path := findEntityPath(t, clone, "work/gaps", "G-003-")
+	if g3Path == "" {
+		t.Fatal("G-003-*.md missing after second reallocate")
+	}
+	g3Content, err := os.ReadFile(filepath.Join(clone, g3Path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(g3Content), "prior_ids:") {
+		t.Errorf("G-003 frontmatter should carry prior_ids; got:\n%s", g3Content)
+	}
+	if !strings.Contains(string(g3Content), "G-001") || !strings.Contains(string(g3Content), "G-002") {
+		t.Errorf("G-003.prior_ids should include both G-001 and G-002; got:\n%s", g3Content)
+	}
+
+	// All three queries must surface BOTH reallocate commits — the
+	// original add (under G-001), the first rename (G-001 → G-002),
+	// and the second rename (G-002 → G-003). The chain expander is
+	// what makes the by-old-id queries see the post-rename events.
+	for _, q := range []string{"G-001", "G-002", "G-003"} {
+		out, err := runBin(t, clone, binDir, nil, "history", q)
+		if err != nil {
+			t.Fatalf("aiwf history %s: %v\n%s", q, err, out)
+		}
+		// All three queries must yield three timeline rows: the
+		// original add, the first reallocate, the second reallocate.
+		// Counting "add\b" or "reallocate\b" occurrences pins
+		// ordering and presence without depending on commit SHAs.
+		if got := strings.Count(out, "reallocate"); got < 2 {
+			t.Errorf("history %s should include both reallocate events (got %d); output:\n%s", q, got, out)
+		}
+		if !strings.Contains(out, "add") {
+			t.Errorf("history %s should include the original add; output:\n%s", q, out)
+		}
+	}
+}
+
 // TestIntegrationG37_PrePushHookCatchesCollision verifies the
 // load-bearing claim that the pre-push hook (which runs `aiwf check`
 // against the about-to-push state) refuses a colliding push. Same
