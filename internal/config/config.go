@@ -3,7 +3,6 @@
 // The file is small and deliberately so — see
 // docs/pocv3/design/design-decisions.md §"aiwf.yaml config". The fields are:
 //
-//	aiwf_version: 0.1.0       # required; engine version the repo expects
 //	hosts: [claude-code]      # optional; PoC default and only supported value
 //	status_md:                # optional; opt-out for the STATUS.md auto-update
 //	  auto_update: false      # default true — see StatusMdAutoUpdate
@@ -13,13 +12,14 @@
 //   - else `git config user.email` → `human/<localpart>`.
 //   - else verb refuses with a usage error.
 //
-// The legacy `actor:` key (pre-I2.5) is tolerated on read for one
-// transition period so existing repos load without parse errors;
-// `aiwf doctor` surfaces a deprecation note when it sees one.
+// Two legacy fields are tolerated on read for the migration window:
+//   - `actor:` (pre-I2.5) — captured into LegacyActor; ignored for identity.
+//     Stripped on `aiwf update`. See StripLegacyActor.
+//   - `aiwf_version:` (pre-G47) — captured into LegacyAiwfVersion; was a
+//     set-once pin that never auto-maintained itself, producing chronic
+//     doctor noise. Stripped on `aiwf update`. See StripLegacyAiwfVersion.
 //
 // Validation rules:
-//   - aiwf_version must be a non-empty string (no semver enforcement
-//     at this stage; doctor warns on mismatch with binary version).
 //   - ActorPattern is the published regex for `<role>/<id>`; callers
 //     that resolve identity at runtime (cmd/aiwf, initrepo) consult it.
 package config
@@ -62,14 +62,14 @@ var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 // runtime-derived); the field exists so `aiwf doctor` can surface a
 // deprecation note pointing the user at `git config user.email`.
 type Config struct {
-	AiwfVersion string   `yaml:"aiwf_version"`
-	LegacyActor string   `yaml:"actor,omitempty"`
-	Hosts       []string `yaml:"hosts,omitempty"`
-	StatusMd    StatusMd `yaml:"status_md,omitempty"`
-	TDD         TDD      `yaml:"tdd,omitempty"`
-	HTML        HTML     `yaml:"html,omitempty"`
-	Allocate    Allocate `yaml:"allocate,omitempty"`
-	Tree        Tree     `yaml:"tree,omitempty"`
+	LegacyAiwfVersion string   `yaml:"aiwf_version,omitempty"`
+	LegacyActor       string   `yaml:"actor,omitempty"`
+	Hosts             []string `yaml:"hosts,omitempty"`
+	StatusMd          StatusMd `yaml:"status_md,omitempty"`
+	TDD               TDD      `yaml:"tdd,omitempty"`
+	HTML              HTML     `yaml:"html,omitempty"`
+	Allocate          Allocate `yaml:"allocate,omitempty"`
+	Tree              Tree     `yaml:"tree,omitempty"`
 }
 
 // Tree is the consumer's policy for what may live under `work/`.
@@ -211,10 +211,11 @@ func Load(root string) (*Config, error) {
 // captured by LegacyActor for the deprecation note in `aiwf doctor`,
 // but is not validated here (a malformed legacy value is harmless
 // since runtime resolution doesn't consult it).
+//
+// `aiwf_version:` is no longer required (G47). Pre-G47 yamls still
+// load fine; the legacy value is captured into LegacyAiwfVersion and
+// stripped on `aiwf update` via StripLegacyAiwfVersion.
 func (c *Config) Validate() error {
-	if c.AiwfVersion == "" {
-		return errors.New("aiwf_version is required")
-	}
 	return nil
 }
 
@@ -276,6 +277,59 @@ func isTopLevelActorLine(line string) bool {
 	return strings.HasPrefix(rest, ":")
 }
 
+// StripLegacyAiwfVersion removes any top-level `aiwf_version:` line
+// from root/aiwf.yaml and rewrites the file in place. Same shape as
+// StripLegacyActor: textual line-based strip so user comments and
+// key ordering survive.
+//
+// Returns (false, nil) when no line is present, (true, nil) when one
+// was removed. Idempotent — callers may invoke on every `aiwf update`
+// without churn.
+//
+// Filed under G47: the field was historically required and stamped
+// at init time, but never auto-maintained, producing chronic doctor
+// noise. The information is now reachable via `aiwf version` (the
+// running binary) and `aiwf doctor --check-latest` (newer release
+// available); the stored pin is dead weight.
+func StripLegacyAiwfVersion(root string) (changed bool, err error) {
+	path := filepath.Join(root, FileName)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return false, nil
+		}
+		return false, fmt.Errorf("reading %s: %w", FileName, err)
+	}
+	content := string(data)
+	lines := splitKeepEOL(content)
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if isTopLevelAiwfVersionLine(line) {
+			changed = true
+			continue
+		}
+		out = append(out, line)
+	}
+	if !changed {
+		return false, nil
+	}
+	if writeErr := os.WriteFile(path, []byte(strings.Join(out, "")), 0o644); writeErr != nil {
+		return false, fmt.Errorf("writing %s: %w", FileName, writeErr)
+	}
+	return true, nil
+}
+
+// isTopLevelAiwfVersionLine: same shape as isTopLevelActorLine, for
+// the `aiwf_version:` key.
+func isTopLevelAiwfVersionLine(line string) bool {
+	trimmed := strings.TrimRight(line, "\r\n")
+	if !strings.HasPrefix(trimmed, "aiwf_version:") {
+		return false
+	}
+	rest := trimmed[len("aiwf_version"):]
+	return strings.HasPrefix(rest, ":")
+}
+
 // splitKeepEOL splits content into lines while preserving each
 // line's trailing newline, so re-joining produces byte-identical
 // output for unchanged content.
@@ -310,11 +364,22 @@ func Write(root string, cfg *Config) error {
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("statting %s: %w", FileName, err)
 	}
-	bytes, err := yaml.Marshal(cfg)
+	out, err := yaml.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("marshaling %s: %w", FileName, err)
 	}
-	if err := os.WriteFile(path, bytes, 0o644); err != nil {
+	// Post-G47 a default Config has no required fields; yaml.Marshal
+	// renders that as the literal "{}" document. Two consequences are
+	// bad: (1) the file looks like noise to a reader, and (2) any
+	// later hand-edit that *appends* a yaml block (e.g., `html: ...`)
+	// produces a two-document stream where only the first ("{}") is
+	// loaded, silently dropping the user's edit. Write a friendly
+	// comment header instead so the file reads as intentional and
+	// appended blocks are parsed by `config.Load`.
+	if strings.TrimSpace(string(out)) == "{}" {
+		out = []byte("# aiwf consumer-repo config. Append top-level keys (e.g. html: { commit_output: true })\n# to opt into framework features. See `aiwf doctor` and the README for the full list.\n")
+	}
+	if err := os.WriteFile(path, out, 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", FileName, err)
 	}
 	return nil

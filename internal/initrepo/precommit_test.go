@@ -327,7 +327,7 @@ func TestEnsurePreCommitHook_DryRunRegenOff(t *testing.T) {
 // for STATUS.md auto-update.
 func TestInit_InstallsPreCommitByDefault(t *testing.T) {
 	root := freshGitRepo(t)
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatalf("Init: %v", err)
 	}
@@ -361,7 +361,7 @@ status_md:
 		t.Fatal(err)
 	}
 
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatalf("Init: %v", err)
 	}
@@ -387,7 +387,7 @@ status_md:
 // dropped from the script body. Action=Updated.
 func TestRefreshArtifacts_FlipFlagDropsRegenKeepsGate(t *testing.T) {
 	root := freshGitRepo(t)
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	hookPath := filepath.Join(root, ".git", "hooks", "pre-commit")

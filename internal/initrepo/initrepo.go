@@ -230,8 +230,6 @@ type Result struct {
 
 // Options carries init-time inputs that override or supplement the
 // defaults. ActorOverride bypasses git-config derivation when set.
-// AiwfVersion stamps aiwf.yaml's `aiwf_version`; the CLI passes the
-// binary's Version constant.
 //
 // DryRun computes the would-be ledger without performing any
 // filesystem mutations. SkipHook omits *both* the pre-push and the
@@ -239,9 +237,13 @@ type Result struct {
 // the ledger as a skipped step). The flag is for consumers who run
 // husky/lefthook (or similar) and want aiwf to leave .git/hooks/
 // alone.
+//
+// Per G47, `aiwf_version:` is no longer stored in aiwf.yaml — the
+// running binary's version is the authoritative answer to "what
+// version are we on" (`aiwf version`); a stored pin produced
+// chronic doctor noise without serving its intended purpose.
 type Options struct {
 	ActorOverride string
-	AiwfVersion   string
 	DryRun        bool
 	SkipHook      bool
 }
@@ -279,10 +281,6 @@ type RefreshOptions struct {
 // Steps 1–3 write only if the artifact is missing; step 4 wipes-and-
 // rewrites per the cache contract for derivable artifacts.
 func Init(ctx context.Context, root string, opts Options) (*Result, error) {
-	if opts.AiwfVersion == "" {
-		return nil, errors.New("AiwfVersion is required")
-	}
-
 	res := &Result{DryRun: opts.DryRun}
 
 	cfgStep, err := ensureConfig(root, opts)
@@ -355,6 +353,12 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 		return nil, false, err
 	}
 	steps = append(steps, legacyStep)
+
+	legacyVersionStep, err := ensureLegacyAiwfVersionClean(root, opts.DryRun)
+	if err != nil {
+		return nil, false, err
+	}
+	steps = append(steps, legacyVersionStep)
 
 	gitignoreStep, err := ensureGitignore(root, opts.DryRun)
 	if err != nil {
@@ -436,9 +440,7 @@ func ensureConfig(root string, opts Options) (StepResult, error) {
 		}, nil
 	}
 
-	cfg := &config.Config{
-		AiwfVersion: opts.AiwfVersion,
-	}
+	cfg := &config.Config{}
 	if err := config.Write(root, cfg); err != nil {
 		return StepResult{}, err
 	}
@@ -581,6 +583,49 @@ func ensureLegacyActorClean(root string, dryRun bool) (StepResult, error) {
 		What:   what,
 		Action: ActionUpdated,
 		Detail: "removed deprecated 'actor:' field",
+	}, nil
+}
+
+// ensureLegacyAiwfVersionClean strips the deprecated top-level
+// `aiwf_version:` line from aiwf.yaml on every `aiwf update`.
+// Mirrors ensureLegacyActorClean: same shape, same idempotency.
+//
+// Filed under G47: the field was a set-once pin that produced
+// chronic doctor noise without serving its intended purpose.
+func ensureLegacyAiwfVersionClean(root string, dryRun bool) (StepResult, error) {
+	what := config.FileName + " (legacy aiwf_version strip)"
+	path := filepath.Join(root, config.FileName)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return StepResult{What: what, Action: ActionPreserved}, nil
+		}
+		return StepResult{}, fmt.Errorf("reading %s for legacy aiwf_version strip: %w", config.FileName, err)
+	}
+	hasLegacy := false
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "aiwf_version:") {
+			hasLegacy = true
+			break
+		}
+	}
+	if !hasLegacy {
+		return StepResult{What: what, Action: ActionPreserved}, nil
+	}
+	if dryRun {
+		return StepResult{
+			What:   what,
+			Action: ActionUpdated,
+			Detail: "would remove deprecated 'aiwf_version:' field",
+		}, nil
+	}
+	if _, stripErr := config.StripLegacyAiwfVersion(root); stripErr != nil {
+		return StepResult{}, stripErr
+	}
+	return StepResult{
+		What:   what,
+		Action: ActionUpdated,
+		Detail: "removed deprecated 'aiwf_version:' field",
 	}, nil
 }
 

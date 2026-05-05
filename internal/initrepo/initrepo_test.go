@@ -42,7 +42,7 @@ func freshGitRepo(t *testing.T) string {
 
 func TestInit_FreshRepo(t *testing.T) {
 	root := freshGitRepo(t)
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatalf("Init: %v", err)
 	}
@@ -55,8 +55,12 @@ func TestInit_FreshRepo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if cfg.AiwfVersion != "0.1.0" {
-		t.Errorf("aiwf_version = %q, want 0.1.0", cfg.AiwfVersion)
+	// Post-G47: aiwf init must omit `aiwf_version:` from the fresh
+	// aiwf.yaml. The field was a set-once pin that produced chronic
+	// doctor noise; the running binary's version is the authoritative
+	// answer (see `aiwf version`).
+	if cfg.LegacyAiwfVersion != "" {
+		t.Errorf("LegacyAiwfVersion = %q, want empty (post-G47 init must not write aiwf_version: to fresh aiwf.yaml)", cfg.LegacyAiwfVersion)
 	}
 	// Identity is no longer stored — aiwf init must omit `actor:`
 	// from the fresh aiwf.yaml. The git-config-derived actor still
@@ -70,6 +74,9 @@ func TestInit_FreshRepo(t *testing.T) {
 	}
 	if strings.Contains(string(yamlBytes), "actor:") {
 		t.Errorf("aiwf.yaml contains actor: key (post-I2.5 init must omit it):\n%s", yamlBytes)
+	}
+	if strings.Contains(string(yamlBytes), "aiwf_version:") {
+		t.Errorf("aiwf.yaml contains aiwf_version: key (post-G47 init must omit it):\n%s", yamlBytes)
 	}
 
 	// All scaffolded dirs exist.
@@ -125,13 +132,13 @@ func TestInit_FreshRepo(t *testing.T) {
 // pre-existing aiwf.yaml and CLAUDE.md byte-for-byte.
 func TestInit_Idempotent(t *testing.T) {
 	root := freshGitRepo(t)
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #1: %v", err)
 	}
 	yamlBefore, _ := os.ReadFile(filepath.Join(root, config.FileName))
 	claudeBefore, _ := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
 
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.2.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #2: %v", err)
 	}
 	yamlAfter, _ := os.ReadFile(filepath.Join(root, config.FileName))
@@ -146,24 +153,22 @@ func TestInit_Idempotent(t *testing.T) {
 }
 
 // TestInit_PreservesExistingConfig checks Init does not overwrite
-// the user-managed bits of a manually-edited aiwf.yaml. The
-// load-bearing fields (aiwf_version, anything else outside the
-// retired `actor:` key) survive byte-for-byte; the legacy
-// `actor:` line is the one exception — it's the deprecated I2.5
-// field the upgrade-flow strip targets, and is removed in place.
+// the user-managed bits of a manually-edited aiwf.yaml. Two legacy
+// fields are stripped on init/update by design: `actor:` (I2.5) and
+// `aiwf_version:` (G47). Anything else survives byte-for-byte.
 func TestInit_PreservesExistingConfig(t *testing.T) {
 	root := freshGitRepo(t)
-	custom := []byte("aiwf_version: 9.9.9\nactor: human/somebody-else\n")
+	custom := []byte("aiwf_version: 9.9.9\nactor: human/somebody-else\nhosts: [claude-code]\n")
 	if err := os.WriteFile(filepath.Join(root, config.FileName), custom, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, config.FileName))
-	want := []byte("aiwf_version: 9.9.9\n")
+	want := []byte("hosts: [claude-code]\n")
 	if !bytes.Equal(got, want) {
-		t.Errorf("aiwf.yaml after init:\n got  %q\n want %q (version preserved, actor: stripped)", got, want)
+		t.Errorf("aiwf.yaml after init:\n got  %q\n want %q (both legacy fields stripped, hosts preserved)", got, want)
 	}
 }
 
@@ -175,7 +180,7 @@ func TestInit_PreservesExistingClaudeMd(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), custom, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
@@ -199,7 +204,7 @@ func TestInit_MigratesAlienPreHook(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(hookDir, "pre-push"), alien, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatalf("Init returned error on alien hook: %v", err)
 	}
@@ -261,7 +266,7 @@ func TestInit_RefusesPreHookMigrationOnCollision(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(hookDir, "pre-push.local"), prior, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatalf("Init: %v", err)
 	}
@@ -302,7 +307,7 @@ func findStep(t *testing.T, steps []StepResult, what string) StepResult {
 // place must succeed (idempotent).
 func TestInit_OverwritesOwnHook(t *testing.T) {
 	root := freshGitRepo(t)
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #1: %v", err)
 	}
 	// Tamper with the hook in a way that keeps the marker.
@@ -311,7 +316,7 @@ func TestInit_OverwritesOwnHook(t *testing.T) {
 	if err := os.WriteFile(hookPath, tampered, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #2: %v", err)
 	}
 	got, _ := os.ReadFile(hookPath)
@@ -328,7 +333,7 @@ func TestInit_OverwritesOwnHook(t *testing.T) {
 // would be invalid).
 func TestInit_RejectsBadActorOverride(t *testing.T) {
 	root := freshGitRepo(t)
-	_, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0", ActorOverride: "no slashes here"})
+	_, err := Init(context.Background(), root, Options{ActorOverride: "no slashes here"})
 	if err == nil {
 		t.Fatal("expected error from malformed --actor")
 	}
@@ -345,7 +350,7 @@ func TestInit_GitignorePreservesExisting(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, ".gitignore"), existing, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -361,10 +366,10 @@ func TestInit_GitignorePreservesExisting(t *testing.T) {
 // skill wildcard twice (G19: with the wildcard, no per-skill drift).
 func TestInit_GitignoreNoDoubleAppend(t *testing.T) {
 	root := freshGitRepo(t)
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #1: %v", err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #2: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -388,7 +393,7 @@ func TestInit_GitignoreFutureProof(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, ".gitignore"), existing, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -402,7 +407,7 @@ func TestInit_GitignoreFutureProof(t *testing.T) {
 // invisible to git unless the consumer flips html.commit_output: true.
 func TestInit_GitignoreHTMLOutDir_DefaultIsIgnored(t *testing.T) {
 	root := freshGitRepo(t)
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -420,7 +425,7 @@ func TestInit_GitignoreHTMLOutDir_CommitOutputTrue(t *testing.T) {
 	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhtml:\n  out_dir: docs/site\n  commit_output: true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -436,7 +441,7 @@ func TestInit_GitignoreHTMLOutDir_CommitOutputTrue(t *testing.T) {
 func TestInit_GitignoreHTMLOutDir_FlipFalseToTrue(t *testing.T) {
 	root := freshGitRepo(t)
 	// First pass: default config → site/ ends up in .gitignore.
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	gi, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -454,7 +459,7 @@ func TestInit_GitignoreHTMLOutDir_FlipFalseToTrue(t *testing.T) {
 	if err := os.WriteFile(yamlPath, []byte(patched), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init (flip): %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -472,7 +477,7 @@ func TestInit_GitignoreHTMLOutDir_FlipTrueToFalse(t *testing.T) {
 	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhtml:\n  commit_output: true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	gi, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -484,7 +489,7 @@ func TestInit_GitignoreHTMLOutDir_FlipTrueToFalse(t *testing.T) {
 	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init (flip back): %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -506,7 +511,7 @@ func TestInit_GitignoreHTMLOutDir_PreservesUserDir(t *testing.T) {
 	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhtml:\n  commit_output: true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
@@ -525,11 +530,12 @@ func TestInit_GitignoreHTMLOutDir_PreservesUserDir(t *testing.T) {
 func TestInit_StripsLegacyActor(t *testing.T) {
 	root := freshGitRepo(t)
 	// Hand-author the aiwf.yaml so the actor: field is present.
+	// hosts: stays as a stable other-field witness for byte-preservation.
 	yamlPath := filepath.Join(root, config.FileName)
-	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nactor: human/peter\n"), 0o644); err != nil {
+	if err := os.WriteFile(yamlPath, []byte("hosts: [claude-code]\nactor: human/peter\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatalf("Init: %v", err)
 	}
@@ -540,8 +546,8 @@ func TestInit_StripsLegacyActor(t *testing.T) {
 	if strings.Contains(string(got), "actor:") {
 		t.Errorf("aiwf.yaml still carries actor: line after Init:\n%s", got)
 	}
-	if !strings.Contains(string(got), "aiwf_version: 0.1.0") {
-		t.Errorf("aiwf_version stripped or mutated:\n%s", got)
+	if !strings.Contains(string(got), "hosts: [claude-code]") {
+		t.Errorf("hosts stripped or mutated:\n%s", got)
 	}
 	step := findStep(t, res.Steps, config.FileName+" (legacy actor strip)")
 	if step.Action != ActionUpdated {
@@ -552,16 +558,49 @@ func TestInit_StripsLegacyActor(t *testing.T) {
 	}
 }
 
+// TestInit_StripsLegacyAiwfVersion (G47): re-running init/update on
+// a repo whose aiwf.yaml was authored before G47 (carrying a
+// top-level `aiwf_version:` field) drops the field on disk. Mirror
+// of TestInit_StripsLegacyActor for the new strip step.
+func TestInit_StripsLegacyAiwfVersion(t *testing.T) {
+	root := freshGitRepo(t)
+	yamlPath := filepath.Join(root, config.FileName)
+	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhosts: [claude-code]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Init(context.Background(), root, Options{})
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, err := os.ReadFile(yamlPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(got), "aiwf_version:") {
+		t.Errorf("aiwf.yaml still carries aiwf_version: line after Init:\n%s", got)
+	}
+	if !strings.Contains(string(got), "hosts: [claude-code]") {
+		t.Errorf("hosts stripped or mutated:\n%s", got)
+	}
+	step := findStep(t, res.Steps, config.FileName+" (legacy aiwf_version strip)")
+	if step.Action != ActionUpdated {
+		t.Errorf("legacy aiwf_version strip step.Action = %q, want %q", step.Action, ActionUpdated)
+	}
+	if !strings.Contains(step.Detail, "aiwf_version") {
+		t.Errorf("legacy aiwf_version strip step.Detail = %q, want a mention of aiwf_version", step.Detail)
+	}
+}
+
 // TestInit_LegacyActorAbsentIsNoOp: an aiwf.yaml without an
 // `actor:` line stays byte-identical across the legacy-strip step.
 // The step still runs (ledger row preserved) but is silent.
 func TestInit_LegacyActorAbsentIsNoOp(t *testing.T) {
 	root := freshGitRepo(t)
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #1: %v", err)
 	}
 	yamlBefore, _ := os.ReadFile(filepath.Join(root, config.FileName))
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatalf("Init #2: %v", err)
 	}
@@ -580,7 +619,7 @@ func TestInit_LegacyActorAbsentIsNoOp(t *testing.T) {
 // fresh (i.e. dry-run leaves no side effects).
 func TestInit_DryRun(t *testing.T) {
 	root := freshGitRepo(t)
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0", DryRun: true})
+	res, err := Init(context.Background(), root, Options{DryRun: true})
 	if err != nil {
 		t.Fatalf("Init dry-run: %v", err)
 	}
@@ -610,7 +649,7 @@ func TestInit_DryRun(t *testing.T) {
 		}
 	}
 	// Real init still runs cleanly afterwards.
-	res2, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"})
+	res2, err := Init(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatalf("Init after dry-run: %v", err)
 	}
@@ -627,7 +666,7 @@ func TestInit_DryRun(t *testing.T) {
 // is not set (skipping is by user request, not a conflict).
 func TestInit_SkipHook(t *testing.T) {
 	root := freshGitRepo(t)
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0", SkipHook: true})
+	res, err := Init(context.Background(), root, Options{SkipHook: true})
 	if err != nil {
 		t.Fatalf("Init --skip-hook: %v", err)
 	}
@@ -667,7 +706,7 @@ func TestInit_SkipHook(t *testing.T) {
 // reported skipped (not "would-create"), and nothing is written.
 func TestInit_DryRunWithSkipHook(t *testing.T) {
 	root := freshGitRepo(t)
-	res, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0", DryRun: true, SkipHook: true})
+	res, err := Init(context.Background(), root, Options{DryRun: true, SkipHook: true})
 	if err != nil {
 		t.Fatalf("Init dry-run + skip-hook: %v", err)
 	}
@@ -700,7 +739,7 @@ func TestInit_PreservesExistingEntities(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "epic.md"), body, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Init(context.Background(), root, Options{AiwfVersion: "0.1.0"}); err != nil {
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(dir, "epic.md"))

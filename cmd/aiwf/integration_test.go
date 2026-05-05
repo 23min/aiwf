@@ -109,18 +109,18 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
 
-	// aiwf.yaml exists. Identity is no longer stored in the file
-	// (per provenance-model.md — runtime-derived); init must omit
-	// `actor:` from the fresh aiwf.yaml.
+	// aiwf.yaml exists. Two legacy fields must be absent on a fresh
+	// init: `actor:` (I2.5 — identity is runtime-derived) and
+	// `aiwf_version:` (G47 — the running binary self-reports).
 	cfg, err := os.ReadFile(filepath.Join(root, "aiwf.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(cfg), "aiwf_version:") {
-		t.Errorf("aiwf.yaml missing aiwf_version: %s", cfg)
-	}
 	if strings.Contains(string(cfg), "actor:") {
 		t.Errorf("aiwf.yaml contains actor: (post-I2.5 init must omit it): %s", cfg)
+	}
+	if strings.Contains(string(cfg), "aiwf_version:") {
+		t.Errorf("aiwf.yaml contains aiwf_version: (post-G47 init must omit it): %s", cfg)
 	}
 
 	// pre-push hook exists, is executable, and bakes in the absolute

@@ -11,15 +11,7 @@ import (
 	"testing"
 
 	"github.com/23min/ai-workflow-v2/internal/initrepo"
-	"github.com/23min/ai-workflow-v2/internal/version"
 )
-
-// parseVersionForTest is a tiny adapter so tests can keep producing
-// version.Info values from raw strings without importing the
-// version package at every call site.
-func parseVersionForTest(raw string) version.Info {
-	return version.Parse(raw)
-}
 
 // TestRun_InitThroughDispatcher confirms `aiwf init` wires through the
 // dispatcher: scaffolds dirs, writes aiwf.yaml, materializes skills,
@@ -695,38 +687,34 @@ func TestRun_DoctorReportsRuntimeIdentity(t *testing.T) {
 	}
 }
 
-// TestRun_DoctorVersionSkew exercises the path where aiwf.yaml's
-// aiwf_version differs from the running binary. Per
-// upgrade-flow-plan.md, pin coherence is *advisory* — the doctor
-// surfaces the mismatch on a `pin:` row but does not increment the
-// problem count. Hardening the pin into a refusal is a deliberate
-// later decision.
-func TestRun_DoctorVersionSkew(t *testing.T) {
+// TestRun_DoctorReportsLegacyAiwfVersion (G47): a pre-G47 aiwf.yaml
+// carrying an `aiwf_version:` key surfaces a deprecation note via
+// doctor (mirrors the legacy-actor note). The advisory does not
+// increment the doctor problem count.
+func TestRun_DoctorReportsLegacyAiwfVersion(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	// Replace aiwf.yaml with a version that does not match the binary.
-	contents := []byte("aiwf_version: 9.9.9-skew\n")
+	// Replace aiwf.yaml with one that carries the legacy field.
+	contents := []byte("aiwf_version: 9.9.9-legacy\n")
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "9.9.9-skew") {
-		t.Errorf("report should name the pin value; got:\n%s", joined)
+	if !strings.Contains(joined, "9.9.9-legacy") {
+		t.Errorf("report should name the legacy aiwf_version value; got:\n%s", joined)
 	}
-	if !strings.Contains(joined, "pin:") {
-		t.Errorf("report should carry a `pin:` advisory row; got:\n%s", joined)
+	if !strings.Contains(joined, "deprecated `aiwf_version:") {
+		t.Errorf("report should carry a deprecation note for aiwf_version; got:\n%s", joined)
 	}
-	// Skew is advisory; the only problems should come from unrelated
-	// rows (none in a fresh init repo). Running doctor exits exitOK
-	// when the only difference vs. green is the pin.
+	// Legacy field is advisory — no problem count bump.
 	if problems != 0 {
-		t.Errorf("pin skew should be advisory (problems=0); got problems=%d:\n%s", problems, joined)
+		t.Errorf("legacy aiwf_version should be advisory (problems=0); got problems=%d:\n%s", problems, joined)
 	}
 	if rc := run([]string{"doctor", "--root", root}); rc != exitOK {
-		t.Errorf("CLI exit on advisory pin skew = %d, want %d", rc, exitOK)
+		t.Errorf("CLI exit on advisory legacy aiwf_version = %d, want %d", rc, exitOK)
 	}
 }
 
@@ -804,7 +792,6 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 func TestDoctor_HookChainReporting(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -876,7 +863,6 @@ func TestDoctor_HookChainReporting(t *testing.T) {
 func TestDoctorReport_Contents(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -899,7 +885,6 @@ func TestDoctorReport_Contents(t *testing.T) {
 func TestDoctor_CheckLatest_ProxyDisabled(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -925,7 +910,6 @@ func TestDoctor_CheckLatest_ProxyDisabled(t *testing.T) {
 func TestDoctor_CheckLatest_DefaultOff(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -936,41 +920,12 @@ func TestDoctor_CheckLatest_DefaultOff(t *testing.T) {
 	}
 }
 
-// TestRenderPinCoherence covers the four cases the pin: row can
-// produce. Cases use Parse-able inputs directly so the test does
-// not depend on runtime/debug.ReadBuildInfo state.
-func TestRenderPinCoherence(t *testing.T) {
-	cases := []struct {
-		name    string
-		current string
-		pinRaw  string
-		wantSub string
-	}{
-		{"matches", "v0.1.0", "v0.1.0", "matches binary"},
-		{"matches no v prefix", "v0.1.0", "0.1.0", "matches binary"},
-		{"binary newer", "v0.2.0", "v0.1.0", "binary newer"},
-		{"binary older", "v0.1.0", "v0.2.0", "binary older"},
-		{"unknown — devel binary", "(devel)", "v0.1.0", "skew unknown"},
-		{"unknown — pre-release pin", "v0.1.0", "v0.1.0-rc1", "skew unknown"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := renderPinCoherence(parseVersionForTest(tc.current), tc.pinRaw)
-			if !strings.Contains(got, tc.wantSub) {
-				t.Errorf("renderPinCoherence(%q, %q) = %q, want substring %q",
-					tc.current, tc.pinRaw, got, tc.wantSub)
-			}
-		})
-	}
-}
-
 // TestDoctorReport_HookOK: a freshly-initialised repo has the hook
 // installed at .git/hooks/pre-push pointing at an existing binary;
 // doctor reports it as ok.
 func TestDoctorReport_HookOK(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatal(err)
@@ -997,7 +952,6 @@ func TestDoctorReport_HookOK(t *testing.T) {
 func TestDoctorReport_HookStalePath_DetectsDrift(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatal(err)
@@ -1029,7 +983,6 @@ exec /nonexistent/path/to/old-aiwf check
 func TestDoctorReport_HookMissing(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 		SkipHook:      true,
 	}); err != nil {
@@ -1051,7 +1004,6 @@ func TestDoctorReport_HookMissing(t *testing.T) {
 func TestDoctorReport_PreCommitHookOK(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatal(err)
@@ -1080,7 +1032,6 @@ func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatal(err)
@@ -1101,7 +1052,6 @@ func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
 func TestDoctorReport_PreCommitHookMissingButFlagOn(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatal(err)
@@ -1128,7 +1078,6 @@ func TestDoctorReport_PreCommitHookMissingButFlagOn(t *testing.T) {
 func TestDoctorReport_PreCommitHookPresentButFlagOff(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatal(err)
@@ -1157,7 +1106,6 @@ status_md:
 func TestDoctorReport_PreCommitHookAlien(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatal(err)
@@ -1182,7 +1130,6 @@ func TestDoctorReport_PreCommitHookAlien(t *testing.T) {
 func TestDoctorReport_PreCommitHookStalePath(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatal(err)
@@ -1222,7 +1169,6 @@ exit 0
 func TestDoctorReport_ReportsFilesystemCaseSensitivity(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatal(err)
@@ -1240,7 +1186,6 @@ func TestDoctorReport_ReportsFilesystemCaseSensitivity(t *testing.T) {
 func TestDoctorReport_ValidatorAvailability_Warning(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -1278,7 +1223,6 @@ contracts:
 func TestDoctorReport_ValidatorAvailability_StrictIncrementsProblems(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
-		AiwfVersion:   Version,
 		ActorOverride: "human/test",
 	}); err != nil {
 		t.Fatalf("Init: %v", err)

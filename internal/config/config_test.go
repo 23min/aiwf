@@ -84,7 +84,7 @@ func TestLoad_TreeBlockRoundTrip(t *testing.T) {
 
 func TestLoad_TreeBlockDefaults(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, FileName), []byte("aiwf_version: 0.1.0\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, FileName), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -120,8 +120,33 @@ func TestLoad_AllocateTrunkRoundTrip(t *testing.T) {
 
 func TestLoad_TypicalFile(t *testing.T) {
 	root := t.TempDir()
-	// Post-I2.5 typical file: no `actor:` key. Identity is runtime-
-	// derived; aiwf.yaml carries only policy.
+	// Post-G47 typical file: no `actor:` key (I2.5) and no
+	// `aiwf_version:` key (G47). aiwf.yaml carries only policy.
+	contents := []byte("hosts: [claude-code]\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.LegacyAiwfVersion != "" {
+		t.Errorf("LegacyAiwfVersion = %q, want empty (no aiwf_version: key in source)", cfg.LegacyAiwfVersion)
+	}
+	if cfg.LegacyActor != "" {
+		t.Errorf("LegacyActor = %q, want empty (no actor: key in source)", cfg.LegacyActor)
+	}
+	if len(cfg.Hosts) != 1 || cfg.Hosts[0] != "claude-code" {
+		t.Errorf("hosts = %v, want [claude-code]", cfg.Hosts)
+	}
+}
+
+// TestLoad_LegacyAiwfVersionIsTolerated (G47): pre-G47 repos still
+// carry `aiwf_version:` in their aiwf.yaml. Load must succeed and
+// the value surfaces on Config.LegacyAiwfVersion so doctor can
+// render its deprecation note and update can strip it.
+func TestLoad_LegacyAiwfVersionIsTolerated(t *testing.T) {
+	root := t.TempDir()
 	contents := []byte("aiwf_version: 0.1.0\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
 		t.Fatal(err)
@@ -130,14 +155,8 @@ func TestLoad_TypicalFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if cfg.AiwfVersion != "0.1.0" {
-		t.Errorf("aiwf_version = %q, want 0.1.0", cfg.AiwfVersion)
-	}
-	if cfg.LegacyActor != "" {
-		t.Errorf("LegacyActor = %q, want empty (no actor: key in source)", cfg.LegacyActor)
-	}
-	if len(cfg.Hosts) != 0 {
-		t.Errorf("hosts should be empty, got %v", cfg.Hosts)
+	if cfg.LegacyAiwfVersion != "0.1.0" {
+		t.Errorf("LegacyAiwfVersion = %q, want 0.1.0", cfg.LegacyAiwfVersion)
 	}
 }
 
@@ -147,7 +166,7 @@ func TestLoad_LegacyActorIsTolerated(t *testing.T) {
 	// identity resolution) and the value must surface on Config.LegacyActor
 	// so `aiwf doctor` can render its deprecation note.
 	root := t.TempDir()
-	contents := []byte("aiwf_version: 0.1.0\nactor: human/peter\n")
+	contents := []byte("hosts: [claude-code]\nactor: human/peter\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +185,7 @@ func TestLoad_LegacyMalformedActorIsHarmless(t *testing.T) {
 	// were previously misconfigured loadable so the user can run
 	// `aiwf doctor` and remove the field.
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, FileName), []byte("aiwf_version: 0.1.0\nactor: human peter\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, FileName), []byte("hosts: [claude-code]\nactor: human peter\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -180,7 +199,7 @@ func TestLoad_LegacyMalformedActorIsHarmless(t *testing.T) {
 
 func TestLoad_WithHosts(t *testing.T) {
 	root := t.TempDir()
-	contents := []byte("aiwf_version: 0.1.0\nhosts: [claude-code]\n")
+	contents := []byte("hosts: [claude-code]\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -193,14 +212,15 @@ func TestLoad_WithHosts(t *testing.T) {
 	}
 }
 
-func TestLoad_MissingVersion(t *testing.T) {
+// TestLoad_EmptyFileIsOK (G47): aiwf_version is no longer required.
+// An aiwf.yaml with nothing (or only optional fields) loads fine.
+func TestLoad_EmptyFileIsOK(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, FileName), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, FileName), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Load(root)
-	if err == nil || !strings.Contains(err.Error(), "aiwf_version") {
-		t.Errorf("expected aiwf_version-required error, got %v", err)
+	if _, err := Load(root); err != nil {
+		t.Errorf("empty aiwf.yaml should load fine post-G47, got: %v", err)
 	}
 }
 
@@ -217,7 +237,7 @@ func TestLoad_MalformedYAML(t *testing.T) {
 
 func TestWrite_FreshDir(t *testing.T) {
 	root := t.TempDir()
-	cfg := &Config{AiwfVersion: "0.1.0"}
+	cfg := &Config{}
 	if err := Write(root, cfg); err != nil {
 		t.Fatalf("Write: %v", err)
 	}
@@ -225,13 +245,13 @@ func TestWrite_FreshDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(got), "aiwf_version: 0.1.0") {
-		t.Errorf("aiwf_version missing in output: %q", got)
-	}
-	// Identity is no longer stored — `aiwf init` must never emit an
-	// `actor:` line on a fresh write.
+	// Post-G47 fresh write: no actor: (I2.5), no aiwf_version: (G47).
+	// Both fields are derivable from elsewhere; storing them was dead weight.
 	if strings.Contains(string(got), "actor:") {
 		t.Errorf("actor: present in default-Write output (post-I2.5 must omit it): %q", got)
+	}
+	if strings.Contains(string(got), "aiwf_version:") {
+		t.Errorf("aiwf_version: present in default-Write output (post-G47 must omit it): %q", got)
 	}
 }
 
@@ -240,19 +260,10 @@ func TestWrite_RefusesOverwrite(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, FileName), []byte("# pre-existing"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg := &Config{AiwfVersion: "0.1.0"}
+	cfg := &Config{}
 	err := Write(root, cfg)
 	if err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Errorf("expected refuse-overwrite, got %v", err)
-	}
-}
-
-func TestWrite_RejectsInvalidConfig(t *testing.T) {
-	// Post-I2.5 the only required field is aiwf_version. Empty-version
-	// must reject; empty-everything-else must succeed.
-	root := t.TempDir()
-	if err := Write(root, &Config{AiwfVersion: ""}); err == nil {
-		t.Error("expected validation error on empty aiwf_version, got nil")
 	}
 }
 
@@ -261,7 +272,7 @@ func TestWrite_RejectsInvalidConfig(t *testing.T) {
 func TestStatusMdAutoUpdate_Default(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
-		[]byte("aiwf_version: 0.1.0\n"), 0o644); err != nil {
+		[]byte("hosts: [claude-code]\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -281,7 +292,7 @@ func TestStatusMdAutoUpdate_Default(t *testing.T) {
 func TestStatusMdAutoUpdate_BlockEmpty(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
-		[]byte("aiwf_version: 0.1.0\nstatus_md: {}\n"), 0o644); err != nil {
+		[]byte("status_md: {}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -299,7 +310,7 @@ func TestStatusMdAutoUpdate_BlockEmpty(t *testing.T) {
 func TestStatusMdAutoUpdate_ExplicitFalse(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
-		[]byte("aiwf_version: 0.1.0\nstatus_md:\n  auto_update: false\n"), 0o644); err != nil {
+		[]byte("status_md:\n  auto_update: false\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -320,7 +331,7 @@ func TestStatusMdAutoUpdate_ExplicitFalse(t *testing.T) {
 func TestStatusMdAutoUpdate_ExplicitTrue(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
-		[]byte("aiwf_version: 0.1.0\nstatus_md:\n  auto_update: true\n"), 0o644); err != nil {
+		[]byte("status_md:\n  auto_update: true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(root)
@@ -341,7 +352,7 @@ func TestStatusMdAutoUpdate_ExplicitTrue(t *testing.T) {
 // file shape" (no surprise YAML on `aiwf init`).
 func TestWrite_OmitsStatusMdByDefault(t *testing.T) {
 	root := t.TempDir()
-	cfg := &Config{AiwfVersion: "0.1.0"}
+	cfg := &Config{}
 	if err := Write(root, cfg); err != nil {
 		t.Fatalf("Write: %v", err)
 	}
@@ -468,6 +479,88 @@ func TestStripLegacyActor_IgnoresIndentedActor(t *testing.T) {
 	}
 	if !bytes.Equal(got, contents) {
 		t.Errorf("indented actor: line was clobbered:\n got  %q\n want %q", got, contents)
+	}
+}
+
+// TestStripLegacyAiwfVersion_RemovesField (G47): a pre-G47 aiwf.yaml
+// carrying a top-level `aiwf_version:` key gets the line removed;
+// surrounding content stays byte-identical.
+func TestStripLegacyAiwfVersion_RemovesField(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("aiwf_version: 0.1.0\nhosts: [claude-code]\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := StripLegacyAiwfVersion(root)
+	if err != nil {
+		t.Fatalf("StripLegacyAiwfVersion: %v", err)
+	}
+	if !changed {
+		t.Errorf("changed = false, want true")
+	}
+	got, err := os.ReadFile(filepath.Join(root, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "hosts: [claude-code]\n"
+	if string(got) != want {
+		t.Errorf("file after strip:\n got  %q\n want %q", got, want)
+	}
+}
+
+// TestStripLegacyAiwfVersion_NoFieldIsNoOp: a post-G47 file with
+// no aiwf_version: stays byte-for-byte unchanged (idempotent on
+// every `aiwf update`).
+func TestStripLegacyAiwfVersion_NoFieldIsNoOp(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("# project config\nhosts: [claude-code]\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := StripLegacyAiwfVersion(root)
+	if err != nil {
+		t.Fatalf("StripLegacyAiwfVersion: %v", err)
+	}
+	if changed {
+		t.Errorf("changed = true, want false (no aiwf_version: present)")
+	}
+	got, err := os.ReadFile(filepath.Join(root, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, contents) {
+		t.Errorf("file mutated despite no aiwf_version: line:\n got  %q\n want %q", got, contents)
+	}
+}
+
+// TestStripLegacyAiwfVersion_MissingFile: brownfield-safe — strip
+// runs on `aiwf update` even before init has scaffolded the yaml.
+func TestStripLegacyAiwfVersion_MissingFile(t *testing.T) {
+	root := t.TempDir()
+	changed, err := StripLegacyAiwfVersion(root)
+	if err != nil {
+		t.Errorf("StripLegacyAiwfVersion on missing file: %v", err)
+	}
+	if changed {
+		t.Errorf("changed = true on missing file, want false")
+	}
+}
+
+// TestStripLegacyAiwfVersion_IgnoresIndentedField: an indented
+// `aiwf_version:` line (a key inside some other mapping) is left
+// alone — strip targets only the documented top-level legacy field.
+func TestStripLegacyAiwfVersion_IgnoresIndentedField(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("hosts: [claude-code]\nfuture_block:\n  aiwf_version: 0.1.0\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := StripLegacyAiwfVersion(root)
+	if err != nil {
+		t.Fatalf("StripLegacyAiwfVersion: %v", err)
+	}
+	if changed {
+		t.Errorf("changed = true, want false (only top-level aiwf_version: should match)")
 	}
 }
 

@@ -57,7 +57,6 @@ func runInit(args []string) int {
 
 	res, err := initrepo.Init(context.Background(), rootDir, initrepo.Options{
 		ActorOverride: *actor,
-		AiwfVersion:   Version,
 		DryRun:        *dryRun,
 		SkipHook:      *skipHook,
 	})
@@ -768,12 +767,10 @@ func doctorReport(rootDir string, opts doctorOptions) (lines []string, problems 
 		lines = append(lines, "latest:    "+renderLatestPublished(current))
 	}
 
-	// 2. aiwf.yaml presence + pin coherence (advisory). Pin coherence
-	//    compares the aiwf_version: field against the running binary
-	//    via version.Compare; mismatches surface as advisory rows
-	//    rather than incrementing the problem count (the pin records
-	//    intent, not enforcement). Load-error states still increment
-	//    problems — those are real config faults.
+	// 2. aiwf.yaml presence (advisory). Load-error states increment
+	//    problems — those are real config faults. Two legacy fields
+	//    surface as one-line deprecation hints so the user knows
+	//    they're dead weight and `aiwf update` will strip them.
 	cfg, err := config.Load(rootDir)
 	switch {
 	case errors.Is(err, config.ErrNotFound):
@@ -783,17 +780,20 @@ func doctorReport(rootDir string, opts doctorOptions) (lines []string, problems 
 		lines = append(lines, "config:    "+err.Error())
 		problems++
 	default:
-		lines = append(lines, fmt.Sprintf("config:    ok (aiwf_version=%s)", cfg.AiwfVersion))
-		if cfg.AiwfVersion != "" {
-			lines = append(lines, "pin:       "+renderPinCoherence(current, cfg.AiwfVersion))
-		}
+		lines = append(lines, "config:    ok")
 		if cfg.LegacyActor != "" {
 			// Pre-I2.5 `actor:` field. Identity is now runtime-derived
 			// (per provenance-model.md); the file's value is ignored.
-			// Surface as a one-line deprecation hint so the user knows
-			// the field no longer does anything and can remove it.
 			lines = append(lines,
-				fmt.Sprintf("           note: aiwf.yaml carries a deprecated `actor: %s` key — identity is now runtime-derived from git config user.email; the field is ignored and can be removed", cfg.LegacyActor))
+				fmt.Sprintf("           note: aiwf.yaml carries a deprecated `actor: %s` key — identity is now runtime-derived from git config user.email; the field is ignored. Run `aiwf update` to remove.", cfg.LegacyActor))
+		}
+		if cfg.LegacyAiwfVersion != "" {
+			// Pre-G47 `aiwf_version:` pin. Set once at init, never
+			// auto-maintained, produced chronic doctor noise. Now
+			// dead — `aiwf version` reports the binary; the stored
+			// pin is redundant.
+			lines = append(lines,
+				fmt.Sprintf("           note: aiwf.yaml carries a deprecated `aiwf_version: %s` key — version state is now derived from the binary (`aiwf version`); the field is ignored. Run `aiwf update` to remove.", cfg.LegacyAiwfVersion))
 		}
 	}
 
@@ -1284,46 +1284,6 @@ func renderBinaryVersion(info version.Info) string {
 	default:
 		return info.Version + " (pseudo-version)"
 	}
-}
-
-// renderPinCoherence formats the doctor pin: row. Compares the
-// aiwf.yaml `aiwf_version:` value against the running binary and
-// returns one of:
-//
-//	matches binary
-//	pinned X, binary newer (Y) — update pin or roll back binary
-//	pinned X, binary older (Y) — run aiwf upgrade
-//	pinned X, binary at Y — skew unknown (devel or pre-release)
-//
-// Advisory only: the verb does not increment the doctor problem
-// count regardless of skew. Hardening the pin into a refusal is a
-// deliberate decision filed for later.
-func renderPinCoherence(current version.Info, pinRaw string) string {
-	pin := version.Parse(pinValueWithVPrefix(pinRaw))
-	switch version.Compare(current, pin) {
-	case version.SkewEqual:
-		return "matches binary (" + pinRaw + ")"
-	case version.SkewAhead:
-		return fmt.Sprintf("pinned %s, binary newer (%s) — update pin or roll back binary", pinRaw, current.Version)
-	case version.SkewBehind:
-		return fmt.Sprintf("pinned %s, binary older (%s) — run `aiwf upgrade`", pinRaw, current.Version)
-	default:
-		return fmt.Sprintf("pinned %s, binary at %s — skew unknown (devel or pre-release on either side)", pinRaw, current.Version)
-	}
-}
-
-// pinValueWithVPrefix normalizes the aiwf.yaml pin value for
-// version.Parse: aiwf.yaml has historically shipped pins as bare
-// "0.1.0" (no leading 'v'), while semver tooling (and the proxy)
-// expects "v0.1.0". Add the prefix when missing.
-func pinValueWithVPrefix(raw string) string {
-	if raw == "" {
-		return raw
-	}
-	if strings.HasPrefix(raw, "v") {
-		return raw
-	}
-	return "v" + raw
 }
 
 // resolveInitRoot picks the root directory for `aiwf init`. Unlike

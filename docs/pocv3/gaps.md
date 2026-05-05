@@ -198,7 +198,9 @@ Lean: option 1 (structured remediation). YAGNI on the fallback list — we hope 
 ---
 
 <a id="g47"></a>
-### G47. `aiwf_version` pin is required, set-once, and never auto-maintained — chronic doctor noise — **open**
+### G47. `aiwf_version` pin is required, set-once, and never auto-maintained — chronic doctor noise — **resolved**
+
+Resolved in commit `(this commit)` (feat(aiwf): G47 — retire the aiwf_version pin field). The field is no longer required by `internal/config/config.go` (validation drops the requirement); `aiwf init` no longer writes it (`Config{}` is the default and an empty marshal becomes a comment-header so later hand-edited yaml blocks parse correctly); `aiwf update` strips it via `StripLegacyAiwfVersion` (mirror of the legacy-actor-strip pattern); doctor's `pin:` row goes away and the `config:` row drops the `(aiwf_version=…)` text. Two new helpers + an opt-in deprecation note on doctor for any pre-G47 yaml the consumer hasn't yet updated. Tests: legacy yamls load fine, the strip is idempotent, fresh init writes neither `actor:` nor `aiwf_version:`, and the doctor advisory fires for legacy yamls but doesn't increment the problem count.
 
 `aiwf init` writes `aiwf_version: <binary-version>` to `aiwf.yaml`; the field is currently *required* by the loader (`internal/config/config.go:215`: `aiwf_version is required`). Nothing maintains the field after init. `aiwf doctor` compares the pinned value against the running binary and reports a "pin skew" row whenever they disagree. After any binary upgrade, the row becomes a chronic nag — the consumer didn't pin intentionally; the value was just whatever was current at first init.
 
@@ -866,6 +868,6 @@ Discovered through a follow-up question on G43: "does the doc say anything about
 | G44 | Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs | Medium | [x] items 1 (`b3e1b2f`), 2 (`fb589c9` + drift policy `49e72f5`), 3 (this commit) |
 | G45 | aiwf-managed git hooks don't compose with consumer-written hooks — chokepoint for G38 dogfooding | Medium | [x] `49e7764` |
 | G46 | `aiwf upgrade` fails opaquely when the install package path changes between releases — surfaced by v0.4.0 reorg | Medium | [ ] open |
-| G47 | `aiwf_version` pin is required, set-once, and never auto-maintained — chronic doctor noise | Medium | [ ] open |
+| G47 | `aiwf_version` pin is required, set-once, and never auto-maintained — chronic doctor noise | Medium | [x] (this commit) |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
