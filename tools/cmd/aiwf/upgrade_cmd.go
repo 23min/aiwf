@@ -93,7 +93,12 @@ func runUpgrade(args []string) int {
 	newBinary, err := installedBinaryPath(context.Background(), pkg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf upgrade: install succeeded, but locating the new binary failed: %v\n", err)
-		fmt.Fprintln(os.Stderr, "                run `aiwf update` manually to refresh consumer artifacts")
+		if hint := installLocationHint(pkg); hint != "" {
+			fmt.Fprintf(os.Stderr, "                the new binary is most likely at %s\n", hint)
+			fmt.Fprintf(os.Stderr, "                run `%s update --root %s` to refresh consumer artifacts\n", hint, rootDir)
+		} else {
+			fmt.Fprintln(os.Stderr, "                run `aiwf update` manually to refresh consumer artifacts")
+		}
 		return exitInternal
 	}
 
@@ -197,28 +202,63 @@ func installedBinaryPath(ctx context.Context, pkg string) (string, error) {
 // goBinDir returns the directory `go install` writes binaries into.
 // Resolution order matches `go install`'s own logic: GOBIN if set,
 // else GOPATH/bin (where GOPATH defaults to $HOME/go).
+//
+// Each variable is queried in its own `go env` call rather than as
+// `go env GOBIN GOPATH`. The combined form returns one line per name
+// with empty values rendered as a blank line, and the leading blank
+// for an unset GOBIN was being silently consumed by strings.TrimSpace
+// — see G39 in docs/pocv3/gaps.md for the upgrade-flow regression.
 func goBinDir(ctx context.Context) (string, error) {
 	goBin, err := goBinaryPath()
 	if err != nil {
 		return "", err
 	}
-	out, err := exec.CommandContext(ctx, goBin, "env", "GOBIN", "GOPATH").Output()
+	gobin, err := goEnv(ctx, goBin, "GOBIN")
 	if err != nil {
-		return "", fmt.Errorf("`go env GOBIN GOPATH`: %w", err)
+		return "", err
 	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	if len(lines) < 2 {
-		return "", fmt.Errorf("unexpected `go env` output: %q", string(out))
-	}
-	gobin := strings.TrimSpace(lines[0])
-	gopath := strings.TrimSpace(lines[1])
 	if gobin != "" {
 		return gobin, nil
+	}
+	gopath, err := goEnv(ctx, goBin, "GOPATH")
+	if err != nil {
+		return "", err
 	}
 	if gopath == "" {
 		return "", errors.New("`go env GOPATH` is empty")
 	}
 	return filepath.Join(gopath, "bin"), nil
+}
+
+// goEnv runs `go env <name>` and returns the trimmed value. Empty
+// output (an unset variable like GOBIN with no override) returns an
+// empty string with no error — the caller decides how to fall back.
+func goEnv(ctx context.Context, goBin, name string) (string, error) {
+	out, err := exec.CommandContext(ctx, goBin, "env", name).Output()
+	if err != nil {
+		return "", fmt.Errorf("`go env %s`: %w", name, err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// installLocationHint returns a best-guess absolute path to the
+// binary `go install <pkg>` would have produced, derived from the
+// caller's environment without invoking `go env`. Used only to help
+// the user recover after locateBinary failed; never load-bearing.
+// Returns an empty string when neither GOBIN/GOPATH nor a home
+// directory can be resolved.
+func installLocationHint(pkg string) string {
+	name := filepath.Base(pkg)
+	if gobin := os.Getenv("GOBIN"); gobin != "" {
+		return filepath.Join(gobin, name)
+	}
+	if gopath := os.Getenv("GOPATH"); gopath != "" {
+		return filepath.Join(gopath, "bin", name)
+	}
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		return filepath.Join(home, "go", "bin", name)
+	}
+	return ""
 }
 
 // reexecUpdate overlays the current process with the new binary
