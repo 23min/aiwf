@@ -135,6 +135,23 @@ aiwf-actor: human/peter
 
 Commit subject lines follow Conventional Commits (`feat(plan): ...`, `chore(plan): ...`, `docs(adr): ...`).
 
+## Release process
+
+Releases of `aiwf` are git tags on `poc/aiwf-v3` of the form `vX.Y.Z`. The Go module proxy resolves them when a consumer runs `aiwf upgrade` or `go install <pkg>@latest`. There is no separate release artifact to publish, but the user-facing changelog must stay in step.
+
+Before tagging `vX.Y.Z`:
+
+1. In a single release-prep commit, edit [`CHANGELOG.md`](../CHANGELOG.md):
+   - Rename the `## [Unreleased]` heading to `## [X.Y.Z] — YYYY-MM-DD`.
+   - Add a fresh empty `## [Unreleased]` heading at the top (above the new version section).
+   - Verify the moved entries summarize the user-visible delta — gaps closed, verbs added, behavior changes. Internal refactors that change nothing observable can be omitted.
+2. Use commit subject `release(aiwf): vX.Y.Z`.
+3. Push the commit, then `git tag vX.Y.Z` pointing at it, then `git push origin vX.Y.Z`.
+
+Skipping the changelog edit means the tag-push CI check fails: the workflow at [`.github/workflows/changelog-check.yml`](../.github/workflows/changelog-check.yml) verifies that every pushed `v*` tag is reachable from a commit whose `CHANGELOG.md` contains a matching `## [X.Y.Z]` heading. Per the kernel's "framework correctness must not depend on the LLM's behavior" rule, the check is the guarantee — the human-facing rule above is just the convenient version.
+
+Patch releases that are pure-mechanical (e.g. a `go.sum` refresh with no behavior delta) still require a CHANGELOG entry, even if it is a single line saying "no functional changes" — the workflow does not distinguish empty from missing.
+
 ## Dependencies
 
 - Minimize external deps. Each new dep needs a one-line justification in the commit message or PR description.
