@@ -459,7 +459,7 @@ Resolved in commit `(this commit)` (fix(aiwf): G35/G36 — render gap/ADR/decisi
 ---
 
 <a id="g37"></a>
-### G37. Cross-branch id collisions split the audit trail; allocator is local-tree only — **resolved (this commit)**
+### G37. Cross-branch id collisions split the audit trail; allocator is local-tree only — **resolved**
 
 `entity.AllocateID` (`tools/internal/entity/allocate.go:43`) walks the caller's working tree and picks `max+1`. The doc comment at lines 34-37 names this as deliberate ("cross-branch coordination is by design out of scope; collisions are caught by the ids-unique check and resolved with `aiwf reallocate`"). The design *predicted* the collision class but the resolution path was sized for a single-entity oops, not for "two parallel sessions both did real work under the same id."
 
@@ -471,16 +471,14 @@ Resolved in commit `(this commit)` (fix(aiwf): G35/G36 — render gap/ADR/decisi
 2. *Reallocate splits the audit trail.* Whichever branch loses, its pre-rename commits forever reference an id that, post-reallocate, means something else. `git log --grep "aiwf-entity: G-035"` returns commits from both branches under one id that now means two entities. The framework's "git log is the audit log" promise has an unsignalled hole in the multi-branch case.
 3. *The path-conflict surface is a symptom, not the bug.* The two G-035 files have different slugs — git doesn't conflict on the entity files themselves. Whatever did conflict (in this case STATUS.md regen) just happened to be where the deeper id-collision became visible. Without it, the merge would silently produce a tree with two G-035s.
 
-**Resolution path:** Folded into a new design doc, [`design/id-allocation.md`](design/id-allocation.md). Two pieces:
+**Resolution:** Specified in [`design/id-allocation.md`](design/id-allocation.md) and shipped in two layers:
 
-1. **Trunk-aware allocator.** The allocator reads the working tree and the configured trunk ref (default `refs/remotes/origin/main`, overridable via `aiwf.yaml: allocate.trunk`). On a missing ref, it stops with a clear error rather than falling back silently. Closes the dominant case at allocation time.
-2. **Lineage in the entity.** `aiwf reallocate` appends the old id to a `prior_ids: []` frontmatter list on the renumbered entity. `aiwf history` resolves any id (current or prior) through a reverse index built at tree load, builds the full id chain from frontmatter, and runs one `git log --grep` against the chain. The frontmatter is the single source of truth for lineage; tree-only readers (HTML render, `aiwf show`, future projections) see it without shelling out to git log. The reallocate tiebreaker uses `git merge-base --is-ancestor` against the trunk ref — the side already in trunk keeps the id; if ancestry can't decide, reallocate prompts.
+1. **Layer (a) — trunk-aware allocator + cross-tree `ids-unique`** (commit `271f514`). The allocator reads the working tree and the configured trunk ref (default `refs/remotes/origin/main`, overridable via `aiwf.yaml: allocate.trunk`). On a missing ref with no remotes the read is silently skipped (sandbox repos); on a missing ref *with* remotes the verb fails with a clear message — no silent fallback. `ids-unique` reads the trunk ref too, so a cross-tree collision surfaces as a normal pre-push finding (subcode `trunk-collision`). No `--against` flag, no merge simulation.
+2. **Layer (b) — `prior_ids` frontmatter + reallocate trunk-ancestry tiebreaker + history chain walk** (commits `b9d73d8`, `c5a98c1`, plus integration scenario `a6e8067`). `aiwf reallocate` appends the old id to a `prior_ids: []` frontmatter list on the renumbered entity. When two entities collide on an id, the verb resolves the renumber target via `git merge-base --is-ancestor` against the trunk ref — the side already in trunk keeps the id; if ancestry can't decide, the verb refuses with a clear diagnostic and asks for a path. `aiwf history` resolves any id (current or prior) through `tree.Tree.ResolveByCurrentOrPriorID`, expands the queried id through the entity's `PriorIDs` chain, and runs one `git log` grep over `aiwf-entity:` and `aiwf-prior-entity:` for the union — pre-rename, rename, and post-rename commits arrive as one chronological timeline. The doc was reconciled to match the shipped reality (both surfaces ship; trailer is the git-log-readable source, frontmatter is the tree-readable source) in commit `685f288`.
 
-`ids-unique` reads the trunk ref too, so a cross-tree collision shows up as a normal pre-push finding. No `--against` flag, no merge simulation. Implementation surface: roughly 150 LoC; one new YAML field (`allocate.trunk`), one new frontmatter field (`prior_ids`), no new trailers, no new flags, no new check rules. The design deliberately omits origin-pinning, a counter-branch push-CAS allocator, surrogate identities, and an all-refs walk — each was considered and judged more code than this gap requires.
+The design deliberately omits origin-pinning, a counter-branch push-CAS allocator, surrogate identities, and an all-refs walk — each was considered and judged more code than this gap requires. The migration verb (`aiwf migrate-lineage`) for backfilling `prior_ids` from `aiwf-prior-entity:` trailers in pre-G37 reallocate history stays unbuilt-by-design: no consumer currently has the kind of legacy reallocate history that would benefit, and the verb earns its own follow-up if one surfaces.
 
-The migration verb (`aiwf migrate-lineage`) for backfilling `prior_ids` from any pre-existing `aiwf-prior-entity:` trailers is unbuilt-by-design: no consumer (this repo or flowtime-vnext) currently has reallocate history that would benefit from it. The verb earns its own follow-up if a consumer surfaces with prior-trailer history.
-
-Severity: **High**. Audit-trail integrity is one of the framework's central correctness stories ("git log is the audit log"); the multi-branch case has had an unsignalled hole. The reproducer is real and recent, not theoretical.
+Severity: **High**. Audit-trail integrity is one of the framework's central correctness stories ("git log is the audit log"); the multi-branch case had an unsignalled hole. The reproducer was real and recent, not theoretical.
 
 ---
 
@@ -564,7 +562,7 @@ Severity: **Medium**. Not blocking PoC completion, but a real source of "we don'
 | G34 | Mutating verbs sweep pre-staged unrelated changes into their commit | High | [x] `890ab01` |
 | G35 | HTML site only generates epic/milestone pages — gap/ADR/decision/contract links 404 | High | [x] (this commit) |
 | G36 | Entity body markdown rendered as escaped raw text in HTML | High | [x] (this commit) |
-| G37 | Cross-branch id collisions split the audit trail; allocator is local-tree only | High | [x] (this commit) |
+| G37 | Cross-branch id collisions split the audit trail; allocator is local-tree only | High | [x] `271f514` (a) + `b9d73d8` (b lineage) + `c5a98c1` (b tiebreaker) + `a6e8067` + `685f288` |
 | G38 | The kernel repo does not dogfood aiwf — feasibility and fit need investigation | Medium | [ ] open |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.
