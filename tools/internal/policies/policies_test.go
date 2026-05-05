@@ -142,3 +142,7 @@ func TestPolicy_TestsRealCloneNotUpdateRef(t *testing.T) {
 func TestPolicy_ConfigFieldsAreDiscoverable(t *testing.T) {
 	runPolicy(t, PolicyConfigFieldsAreDiscoverable)
 }
+
+func TestPolicy_FSMInvariants(t *testing.T) {
+	runPolicy(t, PolicyFSMInvariants)
+}
