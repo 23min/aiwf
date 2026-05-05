@@ -614,7 +614,29 @@ Severity: **Medium**. None of the items was a live bug at the time the gap was f
 
 ---
 
-### G44. Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs — **partially closed (items 1 & 2 done; item 3 open)**
+### G44. Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs — **closed**
+
+**Item 3 — on-demand mutation testing — closed in commit `(this commit)`** (`feat(aiwf): G44 item 3 — on-demand mutation testing via gremlins`). New `.github/workflows/mutate-hunt.yml` adds a `workflow_dispatch`-only job (no cron — mutation testing is too expensive for routine CI) that installs `github.com/go-gremlins/gremlins` and runs it against a user-chosen Go package pattern. The default scope is `./tools/internal/...`, but contributors can target a single package via the `pkg_pattern` input.
+
+Local validation revealed two non-obvious tuning needs documented in the workflow's comments:
+
+- **`--workers 1`** — the default CPU-count parallelism causes the entity package's test runs to time out reliably on this repo (concurrent workers contend on the test-binary build cache). Single-worker is slower in wall-time but produces stable results.
+- **`--timeout-coefficient 15`** — gremlins's default of 3 is too tight for the kernel's test suite (especially packages that do filesystem or git work).
+
+Local runs against the kernel's packages established the baseline mutation efficacy:
+
+| Package | Killed | Lived | Not covered | Efficacy |
+|---|---|---|---|---|
+| `tools/internal/pathutil` | 6 | 0 | 0 | 100% |
+| `tools/internal/version` | 33 | 3 | 5 | 91.7% (3 lived are all noise: 2 equivalent mutants in `tripleGreater` where `a[i] > b[i]` and `a[i] >= b[i]` are semantically identical after the `!=` guard, plus 1 unreachable branch in `parseTriple` where the caller pre-validates input) |
+| `tools/internal/gitops` | 64 | 6 | 5 | 91.4% |
+| `tools/internal/entity` (workers=1) | 58 | 9 | 44 | ~86.5% |
+
+The kernel's test suite is mutation-resistant on the load-bearing paths. Most surviving mutants on inspection are equivalent-mutant noise or unreachable branches. Real surviving mutants would surface as concrete file:line entries in the workflow report and warrant either a new test or a refactor that eliminates the mutation site.
+
+Reading the report (documented in the workflow file): KILLED is good, LIVED is signal-or-noise (review by hand), NOT COVERED is a coverage gap. Equivalent mutants and unreachable-branch mutants are documented false positives — don't chase them; the right resolution is either a refactor that removes the equivalent-mutant pair, or accepting the signal as bounded noise.
+
+**Per the gap's original menu, all three items are now closed.**
 
 **Item 2 — exhaustive property tests for the FSMs (+ drift-prevention follow-up) — closed in commits `fb589c9` (tests) and `(this commit)` (policy).**
 
@@ -743,6 +765,6 @@ Discovered through a follow-up question on G43: "does the doc say anything about
 | G41 | Tree-discipline ran only at pre-push — LLM-loop signal lands too late | High | [x] `fb2e1e4` |
 | G42 | Pre-commit hook coupled enforcement and convenience — `status_md.auto_update: false` removed the gate too | High | [x] (this commit) |
 | G43 | Go toolchain and lint surface trail current best-practice — LLM-generated Go drifts toward stale idioms | Medium | [x] (this commit) |
-| G44 | Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs | Medium | [~] items 1 (`b3e1b2f`) & 2 (`fb589c9` + this commit's drift-prevention policy) done; item 3 open |
+| G44 | Test surface is example-driven only — no fuzz, property, or mutation coverage of high-value parsers and FSMs | Medium | [x] items 1 (`b3e1b2f`), 2 (`fb589c9` + drift policy `49e72f5`), 3 (this commit) |
 
 When an item is closed, mark it `[x]` and append a short note (commit SHA or PR link) to the row's title. When deferred deliberately, mark `[x] (deferred)` and add a one-line rationale either in the row or in the body of the entry.

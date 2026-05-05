@@ -1,0 +1,87 @@
+# mutate-hunt — on-demand mutation testing via gremlins.
+#
+# Filed under G44 item 3. Runs gremlins (github.com/go-gremlins/gremlins)
+# against the chosen package set, generates source-level mutants
+# (CONDITIONALS_NEGATION, CONDITIONALS_BOUNDARY, ARITHMETIC_BASE,
+# INVERT_NEGATIVES, INCREMENT_DECREMENT), runs the test suite against
+# each, and reports mutation efficacy.
+#
+# Trigger model:
+#   - workflow_dispatch only — never on push, never on cron. Mutation
+#     testing is slow (10–60s per package, longer for the heavy ones)
+#     and the survivors require human review (equivalent mutants and
+#     unreachable-branch mutants are common false positives). Routine
+#     CI gating would just create noise; the right cadence is "before
+#     a release tag" or "after a substantive test-suite change."
+#
+# Why --workers 1:
+#   The default --workers (CPU count) causes the entity package's
+#   test run to time out reliably on this codebase — concurrent
+#   workers contend on the test-binary build cache, slowing each
+#   individual run past the per-mutant timeout. Single-worker is
+#   slower in wall time but produces stable results.
+#
+# Why --timeout-coefficient 15:
+#   The default (3) is too tight for this repo's test suite, which
+#   takes ~0.2s baseline but stretches under mutated code paths
+#   (especially in packages that do filesystem or git work).
+#   Coefficient 15 ⇒ per-mutant timeout = 15 × baseline, generous
+#   enough that genuine timeouts (infinite loops induced by a
+#   mutation) still fire within reasonable wall time.
+#
+# Reading the report:
+#   - KILLED:    test suite caught the mutation (good).
+#   - LIVED:     mutation survived all tests (signal — investigate).
+#   - NOT COVERED: mutated code path has no test reaching it (test
+#                  gap — write a test or mark the branch ignorable).
+#   - TIMED OUT: subprocess exceeded the per-mutant timeout (often
+#                an infinite-loop mutant; gremlins counts these as
+#                killed in efficacy).
+#   Equivalent mutants (semantically identical to the original) and
+#   unreachable-branch mutants are common false-positive LIVED cases
+#   that no test can kill. Don't chase them.
+
+name: mutate-hunt
+
+on:
+  workflow_dispatch:
+    inputs:
+      pkg_pattern:
+        description: "Go package pattern (e.g., ./tools/internal/version, ./tools/internal/...)"
+        required: true
+        default: "./tools/internal/..."
+      timeout_coefficient:
+        description: "Per-mutant timeout = N × baseline test runtime"
+        required: true
+        default: "15"
+
+jobs:
+  mutate-hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: Configure git identity for tests
+        run: |
+          git config --global user.name "aiwf-ci"
+          git config --global user.email "ci@example.com"
+      - name: Install gremlins
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+      - name: Run mutation testing
+        run: |
+          gremlins unleash \
+            --timeout-coefficient ${{ inputs.timeout_coefficient }} \
+            --workers 1 \
+            --output mutate-report.json \
+            ${{ inputs.pkg_pattern }}
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutate-report
+          path: mutate-report.json
+          if-no-files-found: ignore

@@ -99,6 +99,14 @@ Why this rule exists: I3 step 2A's `TestRun_AddACWithTestsFlag` originally hit a
   - Specific lines marked `//coverage:ignore <reason>`.
 - The PoC is small enough that 100% coverage on internal packages is realistic; aim for it but don't block on it.
 
+### Beyond line coverage: fuzz, property, and mutation testing
+
+Line coverage measures *what code runs under the test suite*; it does not measure whether the assertions are strong enough to catch a regression. Three additional layers complement coverage on the load-bearing paths:
+
+- **Fuzz tests (G44 item 1)** — `Fuzz*` functions in `tools/internal/{entity,gitops,version,pathutil}/` exercise high-value parsers (Slugify, Split, parseTrailers, Parse, Inside) against arbitrary input. Seed corpora run as part of the routine `go test`; full fuzzing (`-fuzztime=2m` per target) runs on the `fuzz` workflow (`workflow_dispatch` + weekly cron). New corpus seeds discovered by fuzzing belong under `testdata/fuzz/Fuzz<Name>/` and get committed alongside any related fix.
+- **Property tests (G44 item 2)** — `tools/internal/entity/transition_property_test.go` asserts the FSM closed-set invariants exhaustively (state-set agreement, terminality, reachability, totality of `ValidateTransition`). The drift-prevention follow-up (`PolicyFSMInvariants` in `tools/internal/policies/`) catches "new Kind without FSM wiring" and "FSM cycle introduced" — invariants the original tests miss because their iteration source is also their test target.
+- **Mutation testing (G44 item 3)** — `mutate-hunt` workflow runs gremlins against a chosen package pattern. **Workflow_dispatch only**; never on push. Use before tagging a release or after a substantive test-suite change. Read survivors carefully: equivalent-mutant noise (e.g., `a > b` and `a >= b` after a `a != b` guard) and unreachable-branch noise are common false positives — don't chase them. Real survivors are concrete file:line entries that warrant either a new test or a refactor that eliminates the mutation site. Required tuning for this repo: `--workers 1` (default parallelism contends on the test-binary build cache and times out) and `--timeout-coefficient 15`.
+
 ## Error handling
 
 - Wrap every error returned across a function boundary with context: `fmt.Errorf("loading frontmatter from %s: %w", path, err)`.
