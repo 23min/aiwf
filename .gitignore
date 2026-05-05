@@ -19,12 +19,14 @@ Thumbs.db
 # Node (for documentation tooling, e.g., link-check action runs)
 node_modules/
 
-# Defense-in-depth: this repo is the framework, not a consumer of it.
-# These directories belong only in consumer repositories. If they ever
-# appear here, something is wrong; gitignore them so they cannot land.
+# Defense-in-depth: legacy framework version (v1/v2) directories.
+# These do not apply to v3's `work/` layout and shouldn't appear here.
+# Note: `work/epics/` was originally listed too as a defense-in-depth
+# entry against the framework writing to its own tree, but G38 turned
+# this repo into a consumer (epics + milestones live under `work/epics/`
+# now); that line was removed in the G38 follow-up.
 .ai/
 .ai-repo/
-work/epics/
 .github/skills/
 
 # .claude/ is gitignored except the shared project config: the status line

@@ -91,6 +91,7 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-05 | human/peter | import | feat(aiwf): G38 follow-up — bulk-import historical epics + milestones from poc-plan |
 | 2026-05-05 | human/peter | promote | aiwf promote G-049 open [audit-only] |
 | 2026-05-05 | human/peter | promote | aiwf promote G-038 open -> addressed |
 | 2026-05-05 | human/peter | add | aiwf add gap G-049 'gap-resolved-has-resolver fires chronically on legacy-imported gaps' |
