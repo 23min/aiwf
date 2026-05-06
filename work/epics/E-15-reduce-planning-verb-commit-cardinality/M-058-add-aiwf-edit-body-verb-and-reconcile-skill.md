@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: aiwf edit-body verb exists; accepts --body-file or stdin
       status: open
+    - id: AC-2
+      title: edit-body produces single trailered commit (aiwf-verb edit-body)
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ Skill text update is a one-line change to `.claude/skills/aiwf-add/SKILL.md`: re
 ## Acceptance criteria
 
 ### AC-1 — aiwf edit-body verb exists; accepts --body-file or stdin
+
+### AC-2 — edit-body produces single trailered commit (aiwf-verb edit-body)
 
