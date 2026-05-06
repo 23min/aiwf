@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: Hand-editing frontmatter never required to satisfy resolver checks
-      status: open
+      status: met
 ---
 
 ## Goal
