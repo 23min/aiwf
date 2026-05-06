@@ -6,7 +6,7 @@ parent: E-14
 acs:
     - id: AC-1
       title: Each verb's --help has at least one example invocation
-      status: open
+      status: met
     - id: AC-2
       title: No 'previously was' or migration notes in any user-facing docs
       status: open
