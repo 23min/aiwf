@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: Body content from file replaces empty body in created entity
-      status: open
+      status: met
     - id: AC-3
       title: --body-file is optional; absence preserves current behavior
       status: open
