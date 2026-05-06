@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: Cobra root command and subcommand routing structure in cmd/aiwf
       status: open
+    - id: AC-3
+      title: version verb migrated; --format=json envelope shape preserved byte-exact
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ Add Cobra to the module, set up the root command and subcommand routing scaffold
 ### AC-1 — Cobra dependency added to go.mod with one-line justification in commit message
 
 ### AC-2 — Cobra root command and subcommand routing structure in cmd/aiwf
+
+### AC-3 — version verb migrated; --format=json envelope shape preserved byte-exact
 
