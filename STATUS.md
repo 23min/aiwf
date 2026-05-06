@@ -6,7 +6,7 @@ _126 entities · 0 errors · 0 warnings_
 
 ### E-15 — Reduce planning-verb commit cardinality _(active)_
 
-- → **M-056** — Add --body-file to aiwf add variants _(in_progress)_ — ACs 3/5 met (2 open)
+- → **M-056** — Add --body-file to aiwf add variants _(in_progress)_ — ACs 4/5 met (1 open)
 - **M-057** — Batched --title on aiwf add ac _(draft)_ — ACs 0/5 met (5 open)
 - **M-058** — Add aiwf edit-body verb and reconcile skill _(draft)_ — ACs 0/4 met (4 open)
 - ✓ **M-059** — Add resolver-pointer flags to status-transition verbs _(done)_ — ACs 4/4 met
@@ -14,7 +14,7 @@ _126 entities · 0 errors · 0 warnings_
 ```mermaid
 flowchart LR
   E_15["E-15<br/>Reduce planning-verb commit cardinality"]:::epic_active
-  M_056["M-056 (3/5)<br/>Add --body-file to aiwf add variants"]:::ms_in_progress
+  M_056["M-056 (4/5)<br/>Add --body-file to aiwf add variants"]:::ms_in_progress
   E_15 --> M_056
   M_057["M-057 (0/5)<br/>Batched --title on aiwf add ac"]:::ms_draft
   E_15 --> M_057
@@ -105,9 +105,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote M-056/AC-3 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-056/AC-2 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-056/AC-1 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-056 draft -> in_progress |
 | 2026-05-06 | human/peter | promote | aiwf promote G-053 open -> addressed |
-| 2026-05-06 | human/peter | promote | aiwf promote M-059 in_progress -> done |
 

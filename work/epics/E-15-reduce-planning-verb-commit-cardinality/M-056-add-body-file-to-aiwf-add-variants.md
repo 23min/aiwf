@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: Body and frontmatter committed together in single create commit
-      status: open
+      status: met
     - id: AC-5
       title: Subprocess integration test exercises --body-file path
       status: open
