@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: Exit codes preserved for each migrated read-only verb
-      status: open
+      status: met
     - id: AC-4
       title: Subprocess integration tests pass for all six read-only verbs
       status: open
