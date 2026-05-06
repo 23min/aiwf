@@ -108,9 +108,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add milestone M-059 'Add resolver-pointer flags to status-transition verbs' |
 | 2026-05-06 | human/peter | add | aiwf add gap G-053 'No verb-flag populates resolver-pointer fields on status transitions' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-4 'G-051 and G-052 are promotable to addressed after this milestone' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-3 'aiwf-add skill text removes plain-git body-edit carve-out' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-2 'edit-body produces single trailered commit (aiwf-verb edit-body)' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-1 'aiwf edit-body verb exists; accepts --body-file or stdin' |
 

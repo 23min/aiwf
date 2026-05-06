@@ -37,3 +37,9 @@ After this, `provenance-untrailered-entity-commit` should never fire under norma
 These should be solved together. The `--body-file` flag is a single change that resolves both:
 - Saves the extra body-content commit (G-051).
 - Eliminates the untrailered commit that triggers the warnings (G-052).
+
+## Considered alternative: retroactive trailer-attach
+
+Briefly considered: a `aiwf trailer-attach <sha> --entity <id> --verb edit-body` verb that adds a trailer to an *existing* untrailered commit, instead of creating an empty-diff audit commit. **Rejected** because adding a trailer to an existing commit means amending or rebasing — destructive history operations explicitly counter to the kernel's *"prefer to create a new commit rather than amending"* rule. A softer interpretation (create an empty-diff trailered commit pointing back at the original) is mechanically equivalent to `aiwf promote --audit-only` already, so adds nothing beyond ergonomics.
+
+The chosen direction (`aiwf edit-body` + `--body-file` on `aiwf add`) eliminates the friction at the source rather than offering a retroactive escape hatch.
