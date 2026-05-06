@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-06
 
-_126 entities · 0 errors · 0 warnings_
+_127 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -70,6 +70,7 @@ _(none)_
 |----|-------|---------------|
 | G-022 | Provenance model extension surface |  |
 | G-023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
+| G-054 | aiwf edit-body lacks bless-current-edits mode for the natural human workflow | M-058 |
 
 ## Warnings
 
@@ -79,9 +80,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote E-15 active -> done |
 | 2026-05-06 | human/peter | promote | aiwf promote G-052 open -> addressed |
 | 2026-05-06 | human/peter | promote | aiwf promote M-058 in_progress -> done |
 | 2026-05-06 | human/peter | promote | aiwf promote M-058/AC-4 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-058/AC-3 open -> met |
-| 2026-05-06 | human/peter | promote | aiwf promote M-058/AC-2 open -> met |
 
