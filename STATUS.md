@@ -64,7 +64,7 @@ flowchart LR
 
 - **M-056** — Add --body-file to aiwf add variants _(draft)_ — ACs 0/5 met (5 open)
 - **M-057** — Batched --title on aiwf add ac _(draft)_ — ACs 0/5 met (5 open)
-- **M-058** — Add aiwf edit-body verb and reconcile skill _(draft)_ — ACs 0/3 met (3 open)
+- **M-058** — Add aiwf edit-body verb and reconcile skill _(draft)_ — ACs 0/4 met (4 open)
 
 ```mermaid
 flowchart LR
@@ -73,7 +73,7 @@ flowchart LR
   E_15 --> M_056
   M_057["M-057 (0/5)<br/>Batched --title on aiwf add ac"]:::ms_draft
   E_15 --> M_057
-  M_058["M-058 (0/3)<br/>Add aiwf edit-body verb and reconcile skill"]:::ms_draft
+  M_058["M-058 (0/4)<br/>Add aiwf edit-body verb and reconcile skill"]:::ms_draft
   E_15 --> M_058
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -104,9 +104,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-3 'aiwf-add skill text removes plain-git body-edit carve-out' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-2 'edit-body produces single trailered commit (aiwf-verb edit-body)' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-1 'aiwf edit-body verb exists; accepts --body-file or stdin' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-057/AC-5 'Single-title invocation continues to work unchanged' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-057/AC-4 'Single commit produced regardless of N (one or many ACs)' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-057/AC-3 'Commit trailers list every created AC composite id' |
 
