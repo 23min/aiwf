@@ -1,7 +1,7 @@
 ---
 id: M-052
 title: Migrate setup verbs
-status: draft
+status: in_progress
 parent: E-14
 acs:
     - id: AC-1
