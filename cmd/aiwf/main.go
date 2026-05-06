@@ -4,6 +4,13 @@
 // upgrade, history, doctor, render, import, schema, template, plus help/version.
 // See docs/pocv3/archive/poc-plan-pre-migration.md for the session breakdown that produced this
 // surface.
+//
+// Dispatch is built on github.com/spf13/cobra so every verb, subverb,
+// flag, and closed-set value can be exposed to shell tab-completion
+// (E-14). M-049 bootstraps the Cobra root command and migrates only
+// `version`; remaining verbs continue to use their stdlib-flag handlers
+// via newPassthroughCmd until they are rewritten as native Cobra
+// commands in M-050…M-052.
 package main
 
 import (
@@ -15,6 +22,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/spf13/cobra"
 
 	"github.com/23min/ai-workflow-v2/internal/check"
 	"github.com/23min/ai-workflow-v2/internal/config"
@@ -54,6 +63,19 @@ const (
 	exitInternal = 3
 )
 
+// exitError carries a verb-handler return code through Cobra's
+// Execute boundary. run() unwraps it so the wrapped code becomes the
+// process exit status. Without this typed shuttle, Cobra would
+// collapse the 0/1/2/3 contract to "0 or non-zero" because it only
+// knows about its own usage-error return path.
+type exitError struct {
+	code int
+}
+
+func (e *exitError) Error() string {
+	return fmt.Sprintf("exit %d", e.code)
+}
+
 func main() {
 	if err := assertSupportedOS(runtime.GOOS); err != nil {
 		fmt.Fprintln(os.Stderr, "aiwf:", err)
@@ -62,65 +84,134 @@ func main() {
 	os.Exit(run(os.Args[1:]))
 }
 
+// run dispatches one CLI invocation through the Cobra root command.
+// Args here are the args after the binary name (i.e., os.Args[1:]).
+// The command tree is built fresh per call so tests can drive run() in
+// parallel without any shared mutable state.
 func run(args []string) int {
-	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "aiwf: missing verb. Try 'aiwf help'.")
-		return exitUsage
+	rootCmd := newRootCmd()
+	rootCmd.SetArgs(args)
+
+	err := rootCmd.Execute()
+	if err == nil {
+		return exitOK
 	}
-	switch args[0] {
-	case "--help", "-h", "help":
-		printHelp()
-		return exitOK
-	case "--version", "-v", "version":
-		fmt.Println(resolvedVersion())
-		return exitOK
-	case "check":
-		return runCheck(args[1:])
-	case "add":
-		return runAdd(args[1:])
-	case "promote":
-		return runPromote(args[1:])
-	case "cancel":
-		return runCancel(args[1:])
-	case "rename":
-		return runRename(args[1:])
-	case "edit-body":
-		return runEditBody(args[1:])
-	case "move":
-		return runMove(args[1:])
-	case "reallocate":
-		return runReallocate(args[1:])
-	case "init":
-		return runInit(args[1:])
-	case "update":
-		return runUpdate(args[1:])
-	case "upgrade":
-		return runUpgrade(args[1:])
-	case "history":
-		return runHistory(args[1:])
-	case "doctor":
-		return runDoctor(args[1:])
-	case "render":
-		return runRender(args[1:])
-	case "import":
-		return runImport(args[1:])
-	case "whoami":
-		return runWhoami(args[1:])
-	case "status":
-		return runStatus(args[1:])
-	case "schema":
-		return runSchema(args[1:])
-	case "show":
-		return runShow(args[1:])
-	case "template":
-		return runTemplate(args[1:])
-	case "contract":
-		return runContract(args[1:])
-	case "authorize":
-		return runAuthorize(args[1:])
-	default:
-		fmt.Fprintf(os.Stderr, "aiwf: unknown verb %q. Try 'aiwf help'.\n", args[0])
-		return exitUsage
+	var ee *exitError
+	if errors.As(err, &ee) {
+		return ee.code
+	}
+	// Non-exitError means Cobra surfaced a usage problem (unknown verb,
+	// bad flag, missing required arg). With SilenceErrors:true on the
+	// root, Cobra didn't print; we print here in the existing house style.
+	fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
+	return exitUsage
+}
+
+// newRootCmd assembles the Cobra command tree. `version` is the only
+// natively-Cobra subcommand in M-049; every other verb is wrapped via
+// newPassthroughCmd to defer to its existing stdlib-flag handler. The
+// passthrough adapters disappear as M-050…M-052 rewrite each verb as
+// a native Cobra command (which makes its flags tab-completable per
+// E-14's drift-prevention rule).
+func newRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "aiwf",
+		Short:         "ai-workflow framework CLI",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(c *cobra.Command, args []string) error {
+			if v, _ := c.Flags().GetBool("version"); v {
+				fmt.Println(resolvedVersion())
+				return nil
+			}
+			fmt.Fprintln(os.Stderr, "aiwf: missing verb. Try 'aiwf help'.")
+			return &exitError{code: exitUsage}
+		},
+	}
+	// Manual --version/-v registration (rather than cmd.Version) lets
+	// us bind both the long form and the -v shorthand without relying
+	// on Cobra's auto-add timing — the auto-flag is added during
+	// Execute, after construction, so its Shorthand can't be set here.
+	cmd.Flags().BoolP("version", "v", false, "print version and exit")
+
+	// Until subsequent milestones populate per-verb metadata, the
+	// hand-curated printHelp() text continues to be authoritative for
+	// `aiwf`, `aiwf help`, `aiwf -h`, `aiwf --help`. Subverb help still
+	// flows through the legacy handler via the passthrough adapter
+	// (DisableFlagParsing leaves --help in args).
+	cmd.SetHelpFunc(func(c *cobra.Command, _ []string) {
+		if c == cmd {
+			printHelp()
+			return
+		}
+		_ = c.Help() // best-effort; only fires for natively-Cobra subverbs
+	})
+
+	cmd.AddCommand(newVersionCmd())
+
+	cmd.AddCommand(newPassthroughCmd("check", runCheck))
+	cmd.AddCommand(newPassthroughCmd("add", runAdd))
+	cmd.AddCommand(newPassthroughCmd("promote", runPromote))
+	cmd.AddCommand(newPassthroughCmd("cancel", runCancel))
+	cmd.AddCommand(newPassthroughCmd("rename", runRename))
+	cmd.AddCommand(newPassthroughCmd("edit-body", runEditBody))
+	cmd.AddCommand(newPassthroughCmd("move", runMove))
+	cmd.AddCommand(newPassthroughCmd("reallocate", runReallocate))
+	cmd.AddCommand(newPassthroughCmd("init", runInit))
+	cmd.AddCommand(newPassthroughCmd("update", runUpdate))
+	cmd.AddCommand(newPassthroughCmd("upgrade", runUpgrade))
+	cmd.AddCommand(newPassthroughCmd("history", runHistory))
+	cmd.AddCommand(newPassthroughCmd("doctor", runDoctor))
+	cmd.AddCommand(newPassthroughCmd("render", runRender))
+	cmd.AddCommand(newPassthroughCmd("import", runImport))
+	cmd.AddCommand(newPassthroughCmd("whoami", runWhoami))
+	cmd.AddCommand(newPassthroughCmd("status", runStatus))
+	cmd.AddCommand(newPassthroughCmd("schema", runSchema))
+	cmd.AddCommand(newPassthroughCmd("show", runShow))
+	cmd.AddCommand(newPassthroughCmd("template", runTemplate))
+	cmd.AddCommand(newPassthroughCmd("contract", runContract))
+	cmd.AddCommand(newPassthroughCmd("authorize", runAuthorize))
+
+	return cmd
+}
+
+// newVersionCmd is the M-049 reference shape: a native Cobra command
+// whose RunE writes a single-line version string to stdout. It must
+// stay byte-coherent with `aiwf -v` / `aiwf --version` (both backed by
+// resolvedVersion via the root RunE).
+func newVersionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:           "version",
+		Short:         "Print the binary version",
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			fmt.Println(resolvedVersion())
+			return nil
+		},
+	}
+}
+
+// newPassthroughCmd wraps a legacy []string-taking handler in a Cobra
+// command that turns off Cobra flag parsing entirely. Tokens after the
+// verb name flow through verbatim, so the existing stdlib-flag-based
+// handlers continue to parse their own flags. M-050 onward replaces
+// each passthrough with a native Cobra command; the adapter exists so
+// the migration can land verb-by-verb instead of as one big rewrite.
+func newPassthroughCmd(use string, handler func([]string) int) *cobra.Command {
+	return &cobra.Command{
+		Use:                use,
+		DisableFlagParsing: true,
+		SilenceErrors:      true,
+		SilenceUsage:       true,
+		RunE: func(c *cobra.Command, args []string) error {
+			code := handler(args)
+			if code == exitOK {
+				return nil
+			}
+			return &exitError{code: code}
+		},
 	}
 }
 
