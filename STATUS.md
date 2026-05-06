@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-06
 
-_122 entities · 0 errors · 0 warnings_
+_123 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -63,12 +63,15 @@ flowchart LR
 ### E-15 — Reduce planning-verb commit cardinality _(proposed)_
 
 - **M-056** — Add --body-file to aiwf add variants _(draft)_
+- **M-057** — Batched --title on aiwf add ac _(draft)_
 
 ```mermaid
 flowchart LR
   E_15["E-15<br/>Reduce planning-verb commit cardinality"]:::epic_proposed
   M_056["M-056<br/>Add --body-file to aiwf add variants"]:::ms_draft
   E_15 --> M_056
+  M_057["M-057<br/>Batched --title on aiwf add ac"]:::ms_draft
+  E_15 --> M_057
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -98,9 +101,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add milestone M-056 'Add --body-file to aiwf add variants' |
 | 2026-05-06 | human/peter | add | aiwf add epic E-15 'Reduce planning-verb commit cardinality' |
 | 2026-05-06 | human/peter | add | aiwf add gap G-052 'Plain-git body edits trigger warnings despite skill permitting them' |
 | 2026-05-06 | human/peter | add | aiwf add gap G-051 'Planning sessions emit one commit per entity, not per logical mutation' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-055/AC-4 'CLAUDE.md Go conventions references Cobra as standard CLI library' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-055/AC-3 'README CLI section reflects the Cobra-shaped surface' |
 
