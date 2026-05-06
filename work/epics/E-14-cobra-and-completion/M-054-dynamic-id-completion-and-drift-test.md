@@ -6,7 +6,7 @@ parent: E-14
 acs:
     - id: AC-1
       title: --epic=<TAB> enumerates live epic ids from the planning tree
-      status: open
+      status: met
     - id: AC-2
       title: Graceful no-op completion when cwd is not a valid aiwf project
       status: open

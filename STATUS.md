@@ -11,7 +11,7 @@ _128 entities · 0 errors · 0 warnings_
 - ✓ **M-051** — Migrate mutating verbs _(done)_ — ACs 6/6 met
 - ✓ **M-052** — Migrate setup verbs _(done)_ — ACs 4/4 met
 - ✓ **M-053** — Completion verb and static completion _(done)_ — ACs 5/5 met
-- → **M-054** — Dynamic id completion and drift test _(in_progress)_ — ACs 0/4 met (4 open)
+- → **M-054** — Dynamic id completion and drift test _(in_progress)_ — ACs 1/4 met (3 open)
 - **M-055** — Documentation pass _(draft)_ — ACs 0/4 met (4 open)
 
 ```mermaid
@@ -27,7 +27,7 @@ flowchart LR
   E_14 --> M_052
   M_053["M-053 (5/5)<br/>Completion verb and static completion"]:::ms_done
   E_14 --> M_053
-  M_054["M-054 (0/4)<br/>Dynamic id completion and drift test"]:::ms_in_progress
+  M_054["M-054 (1/4)<br/>Dynamic id completion and drift test"]:::ms_in_progress
   E_14 --> M_054
   M_055["M-055 (0/4)<br/>Documentation pass"]:::ms_draft
   E_14 --> M_055
