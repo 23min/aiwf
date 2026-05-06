@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: Top-level subverbs auto-complete (aiwf <TAB>)
-      status: open
+      status: met
     - id: AC-3
       title: --status= auto-completes per-kind closed-set values
       status: open
