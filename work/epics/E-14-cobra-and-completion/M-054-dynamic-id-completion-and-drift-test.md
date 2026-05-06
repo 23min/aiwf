@@ -3,6 +3,10 @@ id: M-054
 title: Dynamic id completion and drift test
 status: draft
 parent: E-14
+acs:
+    - id: AC-1
+      title: --epic=<TAB> enumerates live epic ids from the planning tree
+      status: open
 ---
 
 ## Goal
@@ -14,3 +18,6 @@ Wire dynamic completion of live entity ids — `--epic=<TAB>`, `--milestone=<TAB
 `ValidArgsFunction` shells back to aiwf to enumerate ids. Graceful degradation when cwd isn't a project: return empty completions, no error spam — the user just sees no suggestions, not a crash. The drift-prevention policy test enumerates Cobra's flag tree and asserts every flag has either a completion function bound or a documented opt-out, in the spirit of the existing `internal/policies/` tests.
 
 ## Acceptance criteria
+
+### AC-1 — --epic=<TAB> enumerates live epic ids from the planning tree
+
