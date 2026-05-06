@@ -12,7 +12,7 @@ _128 entities · 0 errors · 0 warnings_
 - ✓ **M-052** — Migrate setup verbs _(done)_ — ACs 4/4 met
 - ✓ **M-053** — Completion verb and static completion _(done)_ — ACs 5/5 met
 - ✓ **M-054** — Dynamic id completion and drift test _(done)_ — ACs 4/4 met
-- → **M-055** — Documentation pass _(in_progress)_ — ACs 4/4 met
+- ✓ **M-055** — Documentation pass _(done)_ — ACs 4/4 met
 
 ```mermaid
 flowchart LR
@@ -29,7 +29,7 @@ flowchart LR
   E_14 --> M_053
   M_054["M-054 (4/4)<br/>Dynamic id completion and drift test"]:::ms_done
   E_14 --> M_054
-  M_055["M-055 (4/4)<br/>Documentation pass"]:::ms_in_progress
+  M_055["M-055 (4/4)<br/>Documentation pass"]:::ms_done
   E_14 --> M_055
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -77,9 +77,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-055/AC-4 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-055/AC-3 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-055/AC-2 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-055/AC-1 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-055 draft -> in_progress |
-| 2026-05-07 | human/peter | promote | aiwf promote M-054 in_progress -> done |
 
