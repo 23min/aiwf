@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-06
 
-_124 entities · 0 errors · 0 warnings_
+_125 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -95,6 +95,7 @@ _(none)_
 | G-023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
 | G-051 | Planning sessions emit one commit per entity, not per logical mutation | E-14 |
 | G-052 | Plain-git body edits trigger warnings despite skill permitting them | E-14 |
+| G-053 | No verb-flag populates resolver-pointer fields on status transitions | E-14 |
 
 ## Warnings
 
@@ -104,9 +105,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-4 'G-051 and G-052 are promotable to addressed after this milestone' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-3 'aiwf-add skill text removes plain-git body-edit carve-out' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-2 'edit-body produces single trailered commit (aiwf-verb edit-body)' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-058/AC-1 'aiwf edit-body verb exists; accepts --body-file or stdin' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-057/AC-5 'Single-title invocation continues to work unchanged' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-057/AC-4 'Single commit produced regardless of N (one or many ACs)' |
 
