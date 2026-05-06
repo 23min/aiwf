@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-06
 
-_111 entities · 0 errors · 0 warnings_
+_112 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -27,7 +27,20 @@ flowchart LR
 
 ### E-14 — Cobra and completion _(proposed)_
 
-_(no milestones)_
+- **M-049** — Bootstrap Cobra and migrate version _(draft)_
+
+```mermaid
+flowchart LR
+  E_14["E-14<br/>Cobra and completion"]:::epic_proposed
+  M_049["M-049<br/>Bootstrap Cobra and migrate version"]:::ms_draft
+  E_14 --> M_049
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Open decisions
 
@@ -48,9 +61,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add epic E-14 'Cobra and completion' |
 | 2026-05-06 | human/peter | promote | aiwf promote G-048 addressed [audit-only] |
 | 2026-05-06 | human/peter | promote | aiwf promote G-050 addressed [audit-only] |
 | 2026-05-06 | human/peter | promote | aiwf promote G-049 addressed [audit-only] |
 | 2026-05-06 | human/peter | promote | aiwf promote G-048 open -> addressed |
-| 2026-05-06 | human/peter | promote | aiwf promote G-050 open -> addressed |
 
