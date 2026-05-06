@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: README CLI section reflects the Cobra-shaped surface
-      status: open
+      status: met
     - id: AC-4
       title: CLAUDE.md Go conventions references Cobra as standard CLI library
       status: open
