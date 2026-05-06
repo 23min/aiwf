@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-5
       title: AC sub-section edits land via bless mode on the parent milestone
-      status: open
+      status: met
 ---
 ## Goal
 
