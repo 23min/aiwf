@@ -6,7 +6,7 @@ _128 entities · 0 errors · 0 warnings_
 
 ### E-14 — Cobra and completion _(active)_
 
-- → **M-049** — Bootstrap Cobra and migrate version _(in_progress)_ — ACs 6/6 met
+- ✓ **M-049** — Bootstrap Cobra and migrate version _(done)_ — ACs 6/6 met
 - **M-050** — Migrate read-only verbs _(draft)_ — ACs 0/4 met (4 open)
 - **M-051** — Migrate mutating verbs _(draft)_ — ACs 0/6 met (6 open)
 - **M-052** — Migrate setup verbs _(draft)_ — ACs 0/4 met (4 open)
@@ -17,7 +17,7 @@ _128 entities · 0 errors · 0 warnings_
 ```mermaid
 flowchart LR
   E_14["E-14<br/>Cobra and completion"]:::epic_active
-  M_049["M-049 (6/6)<br/>Bootstrap Cobra and migrate version"]:::ms_in_progress
+  M_049["M-049 (6/6)<br/>Bootstrap Cobra and migrate version"]:::ms_done
   E_14 --> M_049
   M_050["M-050 (0/4)<br/>Migrate read-only verbs"]:::ms_draft
   E_14 --> M_050
@@ -77,9 +77,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote M-049/AC-6 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-049/AC-5 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-049/AC-4 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-049/AC-3 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-049/AC-2 open -> met |
-| 2026-05-06 | human/peter | promote | aiwf promote M-049/AC-1 open -> met |
 
