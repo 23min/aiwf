@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: aiwf completion bash|zsh emits a sourceable shell script
       status: open
+    - id: AC-2
+      title: Top-level subverbs auto-complete (aiwf <TAB>)
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ Cobra's built-in completion generator handles the script generation; the work is
 ## Acceptance criteria
 
 ### AC-1 — aiwf completion bash|zsh emits a sourceable shell script
+
+### AC-2 — Top-level subverbs auto-complete (aiwf <TAB>)
 
