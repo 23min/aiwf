@@ -1,7 +1,7 @@
 ---
 id: M-056
 title: Add --body-file to aiwf add variants
-status: in_progress
+status: done
 parent: E-15
 acs:
     - id: AC-1
