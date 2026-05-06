@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-06
 
-_110 entities · 0 errors · 1 warnings · run `aiwf check` for details_
+_110 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -39,17 +39,15 @@ _(none)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| gap-resolved-has-resolver | G-050 | work/gaps/G-050-pre-commit-hook-aborts-when-status-md-is-gitignored-violates-tolerant-by-design-contract-orphans-git-index-lock.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote G-050 open -> addressed |
 | 2026-05-06 | human/peter | add | aiwf add gap G-050 'Pre-commit hook aborts when STATUS.md is gitignored — violates 'tolerant by design' contract, orphans .git/index.lock' |
 | 2026-05-06 | human/peter | promote | aiwf promote G-049 addressed [audit-only] |
 | 2026-05-06 | human/peter | promote | aiwf promote G-049 open -> addressed |
 | 2026-05-05 | human/peter | import | feat(aiwf): G38 follow-up — bulk-import historical epics + milestones from poc-plan |
-| 2026-05-05 | human/peter | promote | aiwf promote G-049 open [audit-only] |
 
