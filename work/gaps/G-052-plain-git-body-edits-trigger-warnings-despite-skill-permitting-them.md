@@ -1,8 +1,10 @@
 ---
 id: G-052
 title: Plain-git body edits trigger warnings despite skill permitting them
-status: open
+status: addressed
 discovered_in: E-14
+addressed_by:
+    - M-058
 ---
 
 ## Problem
