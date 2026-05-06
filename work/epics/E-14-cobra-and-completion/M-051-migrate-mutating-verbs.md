@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: Single-commit-per-verb invariant preserved for each mutating verb
-      status: open
+      status: met
     - id: AC-3
       title: Trailer keys aiwf-verb/aiwf-entity/aiwf-actor preserved byte-exact
       status: open
