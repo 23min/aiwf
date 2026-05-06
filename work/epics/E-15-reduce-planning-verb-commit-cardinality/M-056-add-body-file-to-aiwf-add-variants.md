@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: --body-file is optional; absence preserves current behavior
       status: open
+    - id: AC-4
+      title: Body and frontmatter committed together in single create commit
+      status: open
 ---
 
 ## Goal
@@ -32,4 +35,6 @@ This is the highest-leverage milestone of the epic — it converts the most comm
 ### AC-2 — Body content from file replaces empty body in created entity
 
 ### AC-3 — --body-file is optional; absence preserves current behavior
+
+### AC-4 — Body and frontmatter committed together in single create commit
 
