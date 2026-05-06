@@ -24,6 +24,8 @@ This is a draft of why I think so, and what I think replaces it.
 
 LLMs don't care about what's right-sized for a human. An LLM can work tirelessly on a scope larger than a typical issue, faster than any human could, and produce a coherent diff that touches twenty files. If we let LLMs open PRs and route them through human review, we get exactly what teams are reporting: a queue of large PRs that humans can't keep up with.
 
+The size drift is measurable, not just felt. Faros AI's 2026 telemetry across 22,000-plus developers reports that AI-assisted work increases pull-request size by roughly 50%; DORA's 2025 State of AI-Assisted Software Development report finds that "working in small batches amplifies AI's positive effects" while large batches amplify the downsides (citations carried by [`surveys/workflow-work-division-and-who-implements`](surveys/workflow-work-division-and-who-implements.md)). AI defaults toward bigger PRs, and the teams getting positive ROI are the ones actively fighting that drift.
+
 The standard responses are predictable. Work longer hours. "Multitask" through reviews (which means rubber-stamping). Buy a better tool. Hire more reviewers — except nobody actually hires reviewers; the trend is the other way. Or quietly let the LLM merge its own work, which means dropping HITL entirely.
 
 None of these fix the problem. They just decide which form of damage to absorb.
@@ -43,6 +45,8 @@ A pull request, in git's etymology, is a request to *pull* a branch into a share
 This matters because "kill the PR" sounds like "kill peer review," which it isn't. Peer review is valuable and stays. What dies is the *batched, post-hoc, all-at-once* version of integration that the PR encodes. The integration moment can be smaller, more continuous, more woven into the work — and review can come earlier, distributed across the work rather than concentrated at the end.
 
 So the question is not whether to kill review. The question is whether *batched post-hoc review of large diffs* is the right unit of human judgment in a world where LLMs produce most of the diff.
+
+An empirical signal that the breakage has a shape, not just a volume: the MSR 2026 study of agent-authored pull requests found that *intervention frequency* on agent PRs is lower than on human PRs (52% vs. 84%) but *cost per intervention* is higher — larger churn, longer review duration. When humans do step in, they're doing more work per touch. The bottleneck isn't only "more PRs to look at"; it's "the PRs that need attention need more of it." (Citation in [`surveys/workflow-work-division-and-who-implements`](surveys/workflow-work-division-and-who-implements.md).)
 
 ## Two paths the industry is taking, both wrong
 

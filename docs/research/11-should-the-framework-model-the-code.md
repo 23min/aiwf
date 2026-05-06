@@ -236,5 +236,6 @@ The position does not settle several things, named so future research can addres
 ## In this series
 
 - Previous: [`10 — Spec-based development is waterfall in disguise`](10-spec-based-as-waterfall.md)
+- Next: [`12 — aiwf is operating-model-agnostic`](12-operating-model-agnostic.md)
 - Synthesis: [working paper](../working-paper.md)
 - Reference: [`KERNEL.md`](KERNEL.md)

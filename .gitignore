@@ -36,3 +36,8 @@ work/epics/
 # Drafts that ship to proliminal.net/notes are written and revised locally,
 # not tracked in this repo. They face publicly via proliminal, not via git.
 docs/notes/
+
+# Local scratch space — extracted notes, mining outputs, repo-specific
+# artifacts pulled from external projects. Sanitize before promoting anything
+# from here into tracked docs.
+.scratch/

@@ -33,6 +33,8 @@ Strip the marketing. An orchestrator in an LLM-amplified team is doing roughly t
 
 Notice the shape. Orchestration is *technical-flavored*. It requires understanding what the LLM is doing, not just that work is being done. It requires knowing the artifacts well enough to ratify them. It requires being close to the work — close enough to catch a misframed prompt, a missed edge case, a contract that won't compose with its neighbors.
 
+The autonomy gradient this orchestration sits on has firmed up enough in 2026 to name. The Swarmia five-level taxonomy — assistive (inline suggestions), in-editor agent (Cursor agent mode, Claude Code interactive), background coding agent (headless, async, returns a PR), autonomous teammate (the agent picks tasks), agentic swarm (many parallel agents under planner/worker/judge hierarchies) — describes the levels reasonably well, even if the numbering is descriptive rather than load-bearing (citation in [`surveys/workflow-work-division-and-who-implements`](surveys/workflow-work-division-and-who-implements.md)). The orchestrator's job kicks in seriously at level 3 and dominates at levels 4–5. Anthropic's December 2025 internal study reports Claude Code chains an average of 21 independent tool calls per task without human turns — up from 9.8 six months earlier — while engineers describe their own future as "taking accountability for the work of 1, 5, or 100 Claudes." That phrasing names the orchestrator's role from the inside: the unit of accountability is the agent's session, and as session length grows, so does the leverage of the human directing it.
+
 ## What a project manager actually does
 
 Now the same exercise, honestly, for traditional PM work. Setting aside the marketing here too:
@@ -91,7 +93,7 @@ Pulling on the same thread, the broader role economy in LLM-amplified teams:
 - **Specialty judgment domains** — legal, security, accessibility, compliance, regulatory. Anywhere being wrong has real cost and the LLM is not yet trustworthy alone. These survive as ratification roles; the human says yes or no, possibly with LLM-generated evidence.
 - **Senior craft** — the people who can tell when LLM output is subtly wrong, who hold the team's taste, who know what good looks like in their domain. Not because they produce more than the LLM, but because they *judge* better than the LLM.
 
-The throughline: **judgment scales; production doesn't need to.** Roles defined by judgment compound in value. Roles defined by production lose differentiation.
+The throughline: **judgment scales; production doesn't need to.** Roles defined by judgment compound in value. Roles defined by production lose differentiation. The MSR 2026 study of agent-authored PRs measures this from the outside: 58% of human intervention effort on agent PRs is *guidance-level* — restricting agent behavior, enforcing project conventions — and only 17% is direct code changes (citation in [`surveys/workflow-work-division-and-who-implements`](surveys/workflow-work-division-and-who-implements.md)). The shape of the surviving work is precisely the orchestrator's: directing what the agent does, ratifying what it produces, holding the conventions the agent doesn't infer. "What roles fade and what stays sharp" is, increasingly, the same question as "where in the LLM-amplified workflow does the human still have to think."
 
 ## Are orchestrators project managers? The compressed answer
 
