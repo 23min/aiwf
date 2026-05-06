@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: --format= auto-completes text|json values
-      status: open
+      status: met
     - id: AC-5
       title: 'README has install one-liner: source <(aiwf completion zsh)'
       status: open
