@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: version verb migrated; --format=json envelope shape preserved byte-exact
-      status: open
+      status: met
     - id: AC-4
       title: Exit codes 0/1/2/3 preserved end-to-end through Cobra dispatch
       status: open
