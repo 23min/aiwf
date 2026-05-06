@@ -221,13 +221,17 @@ func TestIntegration_HonorsCoreHooksPath(t *testing.T) {
 		}
 	}
 
-	// 2. add an epic — fires the pre-commit hook from the configured
-	// path. If the hook isn't found by git, no pre-commit gate runs;
-	// if it IS found and broken, the commit fails. Either way the
-	// runBin error tells us. A clean exit proves the hook fires
-	// correctly from the configured location.
+	// 2. add an epic — drives a commit, which fires the pre-commit
+	// hook. If git can't find the hook at the configured path, the
+	// commit silently skips the hook (and STATUS.md never gets
+	// regenerated). Asserting STATUS.md exists after the add proves
+	// the pre-commit hook actually fired from the configured
+	// location — pure exit-code observation isn't enough.
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Foundations"); err != nil {
 		t.Fatalf("aiwf add (drives a commit through pre-commit hook): %v\n%s", err, out)
+	}
+	if _, err := os.Stat(filepath.Join(root, "STATUS.md")); err != nil {
+		t.Errorf("STATUS.md missing after aiwf add — pre-commit hook did not fire from configured path: %v", err)
 	}
 
 	// 3. Run the pre-push hook from the configured path directly to
