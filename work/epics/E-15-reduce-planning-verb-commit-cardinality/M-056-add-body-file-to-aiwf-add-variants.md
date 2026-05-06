@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: --body-file is optional; absence preserves current behavior
-      status: open
+      status: met
     - id: AC-4
       title: Body and frontmatter committed together in single create commit
       status: open
