@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: Repeated --title flag accepted on aiwf add ac M-NNN
       status: open
+    - id: AC-2
+      title: All N ACs allocated atomically; failure reverts entire batch
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ Single-`--title` invocation continues to work unchanged — backward-compatible 
 ## Acceptance criteria
 
 ### AC-1 — Repeated --title flag accepted on aiwf add ac M-NNN
+
+### AC-2 — All N ACs allocated atomically; failure reverts entire batch
 
