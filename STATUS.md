@@ -28,7 +28,7 @@ flowchart LR
 ### E-14 — Cobra and completion _(proposed)_
 
 - **M-049** — Bootstrap Cobra and migrate version _(draft)_ — ACs 0/6 met (6 open)
-- **M-050** — Migrate read-only verbs _(draft)_ — ACs 0/3 met (3 open)
+- **M-050** — Migrate read-only verbs _(draft)_ — ACs 0/4 met (4 open)
 - **M-051** — Migrate mutating verbs _(draft)_
 - **M-052** — Migrate setup verbs _(draft)_
 - **M-053** — Completion verb and static completion _(draft)_
@@ -40,7 +40,7 @@ flowchart LR
   E_14["E-14<br/>Cobra and completion"]:::epic_proposed
   M_049["M-049 (0/6)<br/>Bootstrap Cobra and migrate version"]:::ms_draft
   E_14 --> M_049
-  M_050["M-050 (0/3)<br/>Migrate read-only verbs"]:::ms_draft
+  M_050["M-050 (0/4)<br/>Migrate read-only verbs"]:::ms_draft
   E_14 --> M_050
   M_051["M-051<br/>Migrate mutating verbs"]:::ms_draft
   E_14 --> M_051
@@ -79,9 +79,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add ac M-050/AC-3 'Exit codes preserved for each migrated read-only verb' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-050/AC-2 '--format=json envelope output preserved byte-exact for each verb' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-050/AC-1 'check, history, doctor, schema, template, render migrated to Cobra' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-049/AC-6 'Auto-completion design principle added to CLAUDE.md' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-049/AC-5 'Subprocess integration test for version verb passes against the migrated binary' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-049/AC-4 'Exit codes 0/1/2/3 preserved end-to-end through Cobra dispatch' |
 

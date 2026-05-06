@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: Exit codes preserved for each migrated read-only verb
       status: open
+    - id: AC-4
+      title: Subprocess integration tests pass for all six read-only verbs
+      status: open
 ---
 
 ## Goal
@@ -30,4 +33,6 @@ One verb at a time. Each verb's `--format=json` envelope is the contract; preser
 ### AC-2 — --format=json envelope output preserved byte-exact for each verb
 
 ### AC-3 — Exit codes preserved for each migrated read-only verb
+
+### AC-4 — Subprocess integration tests pass for all six read-only verbs
 
