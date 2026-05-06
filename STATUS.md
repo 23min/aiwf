@@ -104,9 +104,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add milestone M-058 'Add aiwf edit-body verb and reconcile skill' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-057 'Batched --title on aiwf add ac' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-056 'Add --body-file to aiwf add variants' |
 | 2026-05-06 | human/peter | add | aiwf add epic E-15 'Reduce planning-verb commit cardinality' |
 | 2026-05-06 | human/peter | add | aiwf add gap G-052 'Plain-git body edits trigger warnings despite skill permitting them' |
-| 2026-05-06 | human/peter | add | aiwf add gap G-051 'Planning sessions emit one commit per entity, not per logical mutation' |
 
