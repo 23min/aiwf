@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: --format=json envelope output preserved byte-exact for each verb
-      status: open
+      status: met
     - id: AC-3
       title: Exit codes preserved for each migrated read-only verb
       status: open
