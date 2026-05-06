@@ -16,6 +16,9 @@ acs:
     - id: AC-4
       title: Provenance trailer coherence rules preserved across migrated verbs
       status: open
+    - id: AC-5
+      title: Repo lock contract preserved for each mutating verb
+      status: open
 ---
 
 ## Goal
@@ -35,4 +38,6 @@ Subprocess integration tests are the proof of behavior preservation. Provenance 
 ### AC-3 — Trailer keys aiwf-verb/aiwf-entity/aiwf-actor preserved byte-exact
 
 ### AC-4 — Provenance trailer coherence rules preserved across migrated verbs
+
+### AC-5 — Repo lock contract preserved for each mutating verb
 
