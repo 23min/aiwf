@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: Subprocess integration tests pass for all six read-only verbs
-      status: open
+      status: met
 ---
 
 ## Goal
