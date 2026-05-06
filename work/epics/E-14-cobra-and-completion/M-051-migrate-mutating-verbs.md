@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-5
       title: Repo lock contract preserved for each mutating verb
-      status: open
+      status: met
     - id: AC-6
       title: Subprocess integration tests pass for all six mutating verbs
       status: open
