@@ -1,7 +1,7 @@
 ---
 id: G-048
 title: '`aiwf init` doesn''t honor `core.hooksPath` — installs hooks into `.git/hooks/` regardless'
-status: open
+status: addressed
 ---
 
 `aiwf init` writes hooks into `<gitDir>/hooks/<name>` (via `gitops.GitDir(root)`), which is git's default location. A consumer who has set `core.hooksPath` to a tracked directory (e.g. `scripts/git-hooks/`) ends up with aiwf's hooks at `.git/hooks/<name>` where git won't invoke them — `core.hooksPath` overrides the default. The chokepoint silently fails to fire, but `aiwf doctor`'s hook row still reports `ok` because the file exists at the path it knows to check.
