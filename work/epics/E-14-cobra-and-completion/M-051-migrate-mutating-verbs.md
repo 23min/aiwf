@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: Provenance trailer coherence rules preserved across migrated verbs
-      status: open
+      status: met
     - id: AC-5
       title: Repo lock contract preserved for each mutating verb
       status: open
