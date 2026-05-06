@@ -8,7 +8,7 @@ _126 entities · 0 errors · 0 warnings_
 
 - ✓ **M-056** — Add --body-file to aiwf add variants _(done)_ — ACs 5/5 met
 - ✓ **M-057** — Batched --title on aiwf add ac _(done)_ — ACs 5/5 met
-- → **M-058** — Add aiwf edit-body verb and reconcile skill _(in_progress)_ — ACs 3/4 met (1 open)
+- → **M-058** — Add aiwf edit-body verb and reconcile skill _(in_progress)_ — ACs 4/4 met
 - ✓ **M-059** — Add resolver-pointer flags to status-transition verbs _(done)_ — ACs 4/4 met
 
 ```mermaid
@@ -18,7 +18,7 @@ flowchart LR
   E_15 --> M_056
   M_057["M-057 (5/5)<br/>Batched --title on aiwf add ac"]:::ms_done
   E_15 --> M_057
-  M_058["M-058 (3/4)<br/>Add aiwf edit-body verb and reconcile skill"]:::ms_in_progress
+  M_058["M-058 (4/4)<br/>Add aiwf edit-body verb and reconcile skill"]:::ms_in_progress
   E_15 --> M_058
   M_059["M-059 (4/4)<br/>Add resolver-pointer flags to status-transition verbs"]:::ms_done
   E_15 --> M_059
@@ -104,9 +104,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote M-058/AC-3 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-058/AC-2 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-058/AC-1 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-058 draft -> in_progress |
 | 2026-05-06 | human/peter | promote | aiwf promote M-057 in_progress -> done |
-| 2026-05-06 | human/peter | promote | aiwf promote M-057/AC-5 open -> met |
 

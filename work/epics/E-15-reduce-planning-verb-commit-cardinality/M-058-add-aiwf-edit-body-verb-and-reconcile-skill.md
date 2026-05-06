@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: G-051 and G-052 are promotable to addressed after this milestone
-      status: open
+      status: met
 ---
 
 ## Goal
