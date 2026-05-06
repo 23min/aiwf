@@ -6,7 +6,7 @@ parent: E-15
 acs:
     - id: AC-1
       title: --body-file flag on aiwf add for all six kinds
-      status: open
+      status: met
     - id: AC-2
       title: Body content from file replaces empty body in created entity
       status: open
