@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: --status= auto-completes per-kind closed-set values
       status: open
+    - id: AC-4
+      title: --format= auto-completes text|json values
+      status: open
 ---
 
 ## Goal
@@ -30,4 +33,6 @@ Cobra's built-in completion generator handles the script generation; the work is
 ### AC-2 — Top-level subverbs auto-complete (aiwf <TAB>)
 
 ### AC-3 — --status= auto-completes per-kind closed-set values
+
+### AC-4 — --format= auto-completes text|json values
 
