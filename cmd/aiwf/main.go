@@ -278,13 +278,13 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newDoctorCmd())
 	cmd.AddCommand(newRenderCmd())
 	cmd.AddCommand(newImportCmd())
-	cmd.AddCommand(newPassthroughCmd("whoami", runWhoami))
-	cmd.AddCommand(newPassthroughCmd("status", runStatus))
+	cmd.AddCommand(newWhoamiCmd())
+	cmd.AddCommand(newStatusCmd())
 	cmd.AddCommand(newSchemaCmd())
-	cmd.AddCommand(newPassthroughCmd("show", runShow))
+	cmd.AddCommand(newShowCmd())
 	cmd.AddCommand(newTemplateCmd())
 	cmd.AddCommand(newPassthroughCmd("contract", runContract))
-	cmd.AddCommand(newPassthroughCmd("authorize", runAuthorize))
+	cmd.AddCommand(newAuthorizeCmd())
 
 	return cmd
 }

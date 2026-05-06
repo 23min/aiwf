@@ -9,7 +9,7 @@ import (
 
 func TestRunWhoami_FromFlag(t *testing.T) {
 	out := string(captureStdout(t, func() {
-		if rc := runWhoami([]string{"--actor", "human/peter"}); rc != exitOK {
+		if rc := run([]string{"whoami", "--actor", "human/peter"}); rc != exitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -42,7 +42,7 @@ func TestRunWhoami_LegacyConfigActorIgnored(t *testing.T) {
 	}
 
 	out := string(captureStdout(t, func() {
-		if rc := runWhoami([]string{"--root", root}); rc != exitOK {
+		if rc := run([]string{"whoami", "--root", root}); rc != exitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -74,7 +74,7 @@ func TestRunWhoami_FromGitConfig(t *testing.T) {
 	}
 
 	out := string(captureStdout(t, func() {
-		if rc := runWhoami(nil); rc != exitOK {
+		if rc := run([]string{"whoami"}); rc != exitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -98,13 +98,13 @@ func TestRunWhoami_NoActorAvailable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if rc := runWhoami(nil); rc != exitFindings {
+	if rc := run([]string{"whoami"}); rc != exitFindings {
 		t.Errorf("rc = %d, want %d", rc, exitFindings)
 	}
 }
 
 func TestRunWhoami_InvalidActorFlag(t *testing.T) {
-	if rc := runWhoami([]string{"--actor", "no-slash"}); rc != exitFindings {
+	if rc := run([]string{"whoami", "--actor", "no-slash"}); rc != exitFindings {
 		t.Errorf("rc = %d, want %d", rc, exitFindings)
 	}
 }

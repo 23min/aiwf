@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/spf13/cobra"
 
 	"github.com/23min/ai-workflow-v2/internal/check"
 	"github.com/23min/ai-workflow-v2/internal/entity"
@@ -42,35 +43,54 @@ func readEntityBody(root, relPath string) []byte {
 	return body
 }
 
-// runShow handles `aiwf show <id>`. Aggregates per-entity state from
+// newShowCmd builds `aiwf show <id>`. Aggregates per-entity state from
 // the existing data sources — frontmatter (entity), git log (history),
 // aiwf check (findings) — into one human-readable view (or one JSON
 // envelope when --format=json). No new state; pure projection.
 //
 // For composite ids (M-NNN/AC-N), renders just the AC's slice of the
 // parent milestone plus its history.
-func runShow(args []string) int {
-	fs := flag.NewFlagSet("show", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root")
-	format := fs.String("format", "text", "output format: text or json")
-	pretty := fs.Bool("pretty", false, "indent JSON output (only with --format=json)")
-	historyLimit := fs.Int("history", 10, "max recent history events to render (0 = none, -1 = all)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"root", "format", "history"}, []string{"pretty"})); err != nil {
-		return exitUsage
+func newShowCmd() *cobra.Command {
+	var (
+		root         string
+		format       string
+		pretty       bool
+		historyLimit int
+	)
+	cmd := &cobra.Command{
+		Use:   "show <id>",
+		Short: "Aggregate per-entity view: frontmatter, ACs, history, findings, referenced_by",
+		Example: `  # Aggregate view of an epic
+  aiwf show E-01
+
+  # JSON envelope (carries body + per-AC descriptions on milestones)
+  aiwf show M-007 --format=json --pretty
+
+  # Composite id: just the AC slice of its parent milestone
+  aiwf show M-007/AC-1`,
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runShowCmd(args[0], root, format, pretty, historyLimit))
+		},
 	}
-	rest := fs.Args()
-	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf show: usage: aiwf show <id-or-composite-id>")
-		return exitUsage
-	}
-	id := rest[0]
-	if *format != "text" && *format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf show: --format must be text or json, got %q\n", *format)
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
+	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	cmd.Flags().IntVar(&historyLimit, "history", 10, "max recent history events to render (0 = none, -1 = all)")
+	registerFormatCompletion(cmd)
+	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
+	return cmd
+}
+
+func runShowCmd(id, root, format string, pretty bool, historyLimit int) int {
+	if format != "text" && format != "json" {
+		fmt.Fprintf(os.Stderr, "aiwf show: --format must be text or json, got %q\n", format)
 		return exitUsage
 	}
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
 		return exitUsage
@@ -83,13 +103,13 @@ func runShow(args []string) int {
 		return exitInternal
 	}
 
-	view, ok := buildShowView(ctx, rootDir, tr, loadErrs, id, *historyLimit)
+	view, ok := buildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
 	if !ok {
 		fmt.Fprintf(os.Stderr, "aiwf show: %s not found\n", id)
 		return exitUsage
 	}
 
-	switch *format {
+	switch format {
 	case "text":
 		renderShowText(view)
 	case "json":
@@ -103,7 +123,7 @@ func runShow(args []string) int {
 				"id":   id,
 			},
 		}
-		if err := render.JSON(os.Stdout, env, *pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
 			return exitInternal
 		}

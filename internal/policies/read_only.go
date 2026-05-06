@@ -22,10 +22,10 @@ import (
 var readOnlyVerbs = map[string]bool{
 	"runCheckCmd":      true,
 	"runHistoryCmd":    true,
-	"runShow":          true,
+	"runShowCmd":       true,
 	"runDoctorCmd":     true,
-	"runStatus":        true,
-	"runWhoami":        true,
+	"runStatusCmd":     true,
+	"runWhoamiCmd":     true,
 	"runSchemaCmd":     true,
 	"runRenderSiteCmd": true, // html render path; runRenderRoadmapCmd writes only with --write and is policed via the RenderRoadmap rule
 }

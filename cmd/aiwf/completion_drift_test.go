@@ -64,13 +64,17 @@ func TestPolicy_FlagsHaveCompletion(t *testing.T) {
 		// Commit SHAs (no closed set; user enumerates via git log).
 		{flag: "by-commit"}: "comma-separated commit SHAs; no closed set worth enumerating",
 
+		// Integer flags (no closed set worth enumerating).
+		{cmd: "aiwf show", flag: "history"}: "integer event-count cap (0=none, -1=all); no closed set",
+
 		// Identity (could complete from git history, but YAGNI for the PoC).
 		{flag: "actor"}:     "role/identifier; free-form identity string",
 		{flag: "principal"}: "human/<id>; free-form identity string",
 
-		// Authorize verb-specific flags (passthrough-shaped today; will
-		// migrate as part of the broader Cobra adoption — until then
-		// they don't have RegisterFlagCompletionFunc bindings).
+		// `aiwf authorize` flags carry free-form prose (--reason, --pause,
+		// --resume) or an agent identifier whose closed set isn't yet
+		// authoritative (--to is principal × agent × scope; we'd need a
+		// registry of allowed agents to populate it).
 		{cmd: "aiwf authorize", flag: "to"}:     "agent name; closed set is principal × agent × scope, not yet enumerated",
 		{cmd: "aiwf authorize", flag: "pause"}:  "free-form pause-reason text",
 		{cmd: "aiwf authorize", flag: "resume"}: "free-form resume-reason text",
@@ -136,6 +140,8 @@ func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 		"aiwf update":                "no positional args",
 		"aiwf upgrade":               "no positional args",
 		"aiwf version":               "no positional args",
+		"aiwf whoami":                "no positional args",
+		"aiwf status":                "no positional args",
 		"aiwf render":                "no positional args (subcommand or --format=html)",
 		"aiwf render roadmap":        "no positional args",
 		"aiwf render help":           "hidden help alias; no positional args",
@@ -147,15 +153,11 @@ func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 		"aiwf completion powershell": "Cobra completion script generator; out of E-14 scope",
 		"aiwf help":                  "Cobra-default help command; positional is the verb name (auto-completed)",
 
-		// Verbs not yet migrated to native Cobra (still passthrough-shaped):
-		// these do not have ValidArgsFunction set because their argument
-		// parsing happens inside the legacy handler. They will gain
-		// completion when they migrate.
-		"aiwf show":      "passthrough verb; not yet migrated to native Cobra",
-		"aiwf status":    "passthrough verb; not yet migrated to native Cobra",
-		"aiwf whoami":    "passthrough verb; not yet migrated to native Cobra",
-		"aiwf authorize": "passthrough verb; not yet migrated to native Cobra",
-		"aiwf contract":  "passthrough verb; not yet migrated to native Cobra",
+		// `aiwf contract` is a subcommand family (verify / bind / unbind /
+		// recipes / recipe show|install|remove) still routed through the
+		// passthrough adapter. Argument parsing happens inside the legacy
+		// handler; deferred to a follow-up migration.
+		"aiwf contract": "passthrough verb; subcommand tree migration deferred to a follow-up",
 	}
 
 	var failures []string

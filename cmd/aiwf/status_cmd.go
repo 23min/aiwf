@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/23min/ai-workflow-v2/internal/check"
 	"github.com/23min/ai-workflow-v2/internal/entity"
@@ -153,25 +154,48 @@ type statusHealthCounts struct {
 	Warnings int `json:"warnings"`
 }
 
-// runStatus handles `aiwf status`: a project-wide snapshot of in-flight
+// newStatusCmd builds `aiwf status`: a project-wide snapshot of in-flight
 // work, open decisions, open gaps, and recent activity. Read-only;
 // produces no commit. Use it to answer "what's next?", "where are we?",
 // "what are we working on?".
-func runStatus(args []string) int {
-	fs := flag.NewFlagSet("status", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root (default: discover via aiwf.yaml)")
-	format := fs.String("format", "text", "output format: text, json, or md")
-	pretty := fs.Bool("pretty", false, "indent JSON output (only with --format=json)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
-		return exitUsage
+func newStatusCmd() *cobra.Command {
+	var (
+		root   string
+		format string
+		pretty bool
+	)
+	cmd := &cobra.Command{
+		Use:   "status",
+		Short: "Project snapshot: in-flight work, open decisions, gaps, recent activity",
+		Example: `  # One-screen project snapshot
+  aiwf status
+
+  # Markdown form (the same output committed to STATUS.md)
+  aiwf status --format=md`,
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runStatusCmd(root, format, pretty))
+		},
 	}
-	if *format != "text" && *format != "json" && *format != "md" {
-		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", *format)
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text, json, or md")
+	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	_ = cmd.RegisterFlagCompletionFunc("format", cobra.FixedCompletions(
+		[]string{"text", "json", "md"},
+		cobra.ShellCompDirectiveNoFileComp,
+	))
+	return cmd
+}
+
+func runStatusCmd(root, format string, pretty bool) int {
+	if format != "text" && format != "json" && format != "md" {
+		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
 		return exitUsage
 	}
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf status: %v\n", err)
 		return exitUsage
@@ -193,7 +217,7 @@ func runStatus(args []string) int {
 	}
 	report.RecentActivity = recent
 
-	switch *format {
+	switch format {
 	case "text":
 		if err := renderStatusText(os.Stdout, &report); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
@@ -210,7 +234,7 @@ func runStatus(args []string) int {
 				"entities": report.Health.Entities,
 			},
 		}
-		if err := render.JSON(os.Stdout, env, *pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
 			return exitInternal
 		}

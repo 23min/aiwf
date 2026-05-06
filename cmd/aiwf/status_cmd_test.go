@@ -466,7 +466,7 @@ func TestMdEscape(t *testing.T) {
 // TestRunStatus_BadFormat: --format with an unsupported value returns
 // the usage exit code.
 func TestRunStatus_BadFormat(t *testing.T) {
-	rc := runStatus([]string{"--format=xml"})
+	rc := run([]string{"status", "--format=xml"})
 	if rc != exitUsage {
 		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
 	}

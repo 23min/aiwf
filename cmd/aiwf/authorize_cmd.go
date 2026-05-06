@@ -2,16 +2,17 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/23min/ai-workflow-v2/internal/tree"
 	"github.com/23min/ai-workflow-v2/internal/verb"
 )
 
-// runAuthorize handles `aiwf authorize <id>` in its three modes:
+// newAuthorizeCmd builds `aiwf authorize <id>` in its three modes:
 //
 //	aiwf authorize <id> --to <agent> [--reason "..."] [--force]
 //	aiwf authorize <id> --pause "<reason>"
@@ -28,34 +29,54 @@ import (
 //   - --pause / --resume: required; the argument to the flag is itself
 //     the reason (e.g. `--pause "blocked by E-09"`). Passing both
 //     `--pause "..."` and `--reason "..."` is a usage error.
-func runAuthorize(args []string) int {
-	fs := flag.NewFlagSet("authorize", flag.ContinueOnError)
-	actor := fs.String("actor", "", "actor for the commit trailer (default: derived from git config user.email; must be human/...)")
-	root := fs.String("root", "", "consumer repo root")
-	to := fs.String("to", "", "agent the scope authorizes (e.g. ai/claude); opens a new scope")
-	pause := fs.String("pause", "", "pause the most-recently-opened active scope on <id>; the argument is the reason")
-	resume := fs.String("resume", "", "resume the most-recently-paused scope on <id>; the argument is the reason")
-	reason := fs.String("reason", "", "rationale text for --to (optional) / --force (required); ignored by --pause and --resume (their argument is the reason)")
-	force := fs.Bool("force", false, "open a fresh scope on a terminal scope-entity (requires --reason)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "root", "to", "pause", "resume", "reason"}, []string{"force"})); err != nil {
-		return exitUsage
-	}
-	rest := fs.Args()
-	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf authorize: usage: aiwf authorize <id> --to <agent> [--reason \"...\"] | --pause \"<reason>\" | --resume \"<reason>\"")
-		return exitUsage
-	}
-	id := rest[0]
+func newAuthorizeCmd() *cobra.Command {
+	var (
+		actor  string
+		root   string
+		to     string
+		pause  string
+		resume string
+		reason string
+		force  bool
+	)
+	cmd := &cobra.Command{
+		Use:   "authorize <id>",
+		Short: "Open / pause / resume an autonomous-work scope on an entity",
+		Example: `  # Delegate autonomous work on an epic to ai/claude
+  aiwf authorize E-14 --to ai/claude --reason "delegated cobra+completion epic"
 
+  # Pause the most-recently-opened active scope
+  aiwf authorize E-14 --pause "blocked on review feedback"
+
+  # Resume the most-recently-paused scope
+  aiwf authorize E-14 --resume "review feedback addressed"`,
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runAuthorizeCmd(args[0], actor, root, to, pause, resume, reason, force))
+		},
+	}
+	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (default: derived from git config user.email; must be human/...)")
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&to, "to", "", "agent the scope authorizes (e.g. ai/claude); opens a new scope")
+	cmd.Flags().StringVar(&pause, "pause", "", "pause the most-recently-opened active scope on <id>; the argument is the reason")
+	cmd.Flags().StringVar(&resume, "resume", "", "resume the most-recently-paused scope on <id>; the argument is the reason")
+	cmd.Flags().StringVar(&reason, "reason", "", "rationale text for --to (optional) / --force (required); ignored by --pause and --resume (their argument is the reason)")
+	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason)")
+	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
+	return cmd
+}
+
+func runAuthorizeCmd(id, actor, root, to, pause, resume, reason string, force bool) int {
 	modes := 0
-	if *to != "" {
+	if to != "" {
 		modes++
 	}
-	if *pause != "" {
+	if pause != "" {
 		modes++
 	}
-	if *resume != "" {
+	if resume != "" {
 		modes++
 	}
 	if modes != 1 {
@@ -65,25 +86,25 @@ func runAuthorize(args []string) int {
 	// `--reason` is meaningful only with --to (and --to --force). For
 	// --pause / --resume the flag value IS the reason; a separate
 	// --reason would be ambiguous.
-	if (*pause != "" || *resume != "") && *reason != "" {
+	if (pause != "" || resume != "") && reason != "" {
 		fmt.Fprintln(os.Stderr, "aiwf authorize: --reason is not used with --pause / --resume; the argument to --pause/--resume is itself the reason")
 		return exitUsage
 	}
-	if *force && *to == "" {
+	if force && to == "" {
 		fmt.Fprintln(os.Stderr, "aiwf authorize: --force is only meaningful with --to (overrides terminal-scope-entity refusal)")
 		return exitUsage
 	}
-	if *force && strings.TrimSpace(*reason) == "" {
+	if force && strings.TrimSpace(reason) == "" {
 		fmt.Fprintln(os.Stderr, "aiwf authorize: --force requires --reason \"...\" (non-empty after trim)")
 		return exitUsage
 	}
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf authorize: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf authorize: %v\n", err)
 		return exitUsage
@@ -104,17 +125,17 @@ func runAuthorize(args []string) int {
 
 	opts := verb.AuthorizeOptions{}
 	switch {
-	case *to != "":
+	case to != "":
 		opts.Mode = verb.AuthorizeOpen
-		opts.Agent = *to
-		opts.Reason = *reason
-		opts.Force = *force
-	case *pause != "":
+		opts.Agent = to
+		opts.Reason = reason
+		opts.Force = force
+	case pause != "":
 		opts.Mode = verb.AuthorizePause
-		opts.Reason = *pause
-	case *resume != "":
+		opts.Reason = pause
+	case resume != "":
 		opts.Mode = verb.AuthorizeResume
-		opts.Reason = *resume
+		opts.Reason = resume
 	}
 	if opts.Mode == verb.AuthorizePause || opts.Mode == verb.AuthorizeResume {
 		scopes, scopesErr := loadEntityScopes(ctx, rootDir, id)
