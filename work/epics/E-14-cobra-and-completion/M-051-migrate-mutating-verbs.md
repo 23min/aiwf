@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: Single-commit-per-verb invariant preserved for each mutating verb
       status: open
+    - id: AC-3
+      title: Trailer keys aiwf-verb/aiwf-entity/aiwf-actor preserved byte-exact
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ Subprocess integration tests are the proof of behavior preservation. Provenance 
 ### AC-1 — add, promote, cancel, rename, reallocate, import migrated to Cobra
 
 ### AC-2 — Single-commit-per-verb invariant preserved for each mutating verb
+
+### AC-3 — Trailer keys aiwf-verb/aiwf-entity/aiwf-actor preserved byte-exact
 
