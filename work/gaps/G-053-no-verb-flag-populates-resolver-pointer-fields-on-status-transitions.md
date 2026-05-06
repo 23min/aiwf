@@ -1,8 +1,10 @@
 ---
 id: G-053
 title: No verb-flag populates resolver-pointer fields on status transitions
-status: open
+status: addressed
 discovered_in: E-14
+addressed_by:
+    - M-059
 ---
 
 ## Problem
