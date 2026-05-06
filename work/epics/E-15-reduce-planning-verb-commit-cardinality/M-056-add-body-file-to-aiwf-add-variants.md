@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: Body content from file replaces empty body in created entity
       status: open
+    - id: AC-3
+      title: --body-file is optional; absence preserves current behavior
+      status: open
 ---
 
 ## Goal
@@ -27,4 +30,6 @@ This is the highest-leverage milestone of the epic — it converts the most comm
 ### AC-1 — --body-file flag on aiwf add for all six kinds
 
 ### AC-2 — Body content from file replaces empty body in created entity
+
+### AC-3 — --body-file is optional; absence preserves current behavior
 
