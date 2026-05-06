@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: --body-file flag on aiwf add for all six kinds
       status: open
+    - id: AC-2
+      title: Body content from file replaces empty body in created entity
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ This is the highest-leverage milestone of the epic — it converts the most comm
 ## Acceptance criteria
 
 ### AC-1 — --body-file flag on aiwf add for all six kinds
+
+### AC-2 — Body content from file replaces empty body in created entity
 
