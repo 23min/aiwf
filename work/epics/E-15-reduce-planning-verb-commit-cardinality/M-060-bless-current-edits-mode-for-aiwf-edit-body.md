@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: M-058 --body-file mode continues to work unchanged
-      status: open
+      status: met
     - id: AC-5
       title: AC sub-section edits land via bless mode on the parent milestone
       status: open
