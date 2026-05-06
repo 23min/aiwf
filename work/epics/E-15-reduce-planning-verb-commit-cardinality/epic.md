@@ -1,7 +1,7 @@
 ---
 id: E-15
 title: Reduce planning-verb commit cardinality
-status: done
+status: active
 ---
 
 ## Goal

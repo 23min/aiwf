@@ -4,7 +4,31 @@ _127 entities · 0 errors · 0 warnings_
 
 ## In flight
 
-_(no active epics)_
+### E-15 — Reduce planning-verb commit cardinality _(active)_
+
+- ✓ **M-056** — Add --body-file to aiwf add variants _(done)_ — ACs 5/5 met
+- ✓ **M-057** — Batched --title on aiwf add ac _(done)_ — ACs 5/5 met
+- ✓ **M-058** — Add aiwf edit-body verb and reconcile skill _(done)_ — ACs 4/4 met
+- ✓ **M-059** — Add resolver-pointer flags to status-transition verbs _(done)_ — ACs 4/4 met
+
+```mermaid
+flowchart LR
+  E_15["E-15<br/>Reduce planning-verb commit cardinality"]:::epic_active
+  M_056["M-056 (5/5)<br/>Add --body-file to aiwf add variants"]:::ms_done
+  E_15 --> M_056
+  M_057["M-057 (5/5)<br/>Batched --title on aiwf add ac"]:::ms_done
+  E_15 --> M_057
+  M_058["M-058 (4/4)<br/>Add aiwf edit-body verb and reconcile skill"]:::ms_done
+  E_15 --> M_058
+  M_059["M-059 (4/4)<br/>Add resolver-pointer flags to status-transition verbs"]:::ms_done
+  E_15 --> M_059
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Roadmap
 
@@ -80,9 +104,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add gap G-054 'aiwf edit-body lacks bless-current-edits mode for the natural human workflow' |
 | 2026-05-06 | human/peter | promote | aiwf promote E-15 active -> done |
 | 2026-05-06 | human/peter | promote | aiwf promote G-052 open -> addressed |
 | 2026-05-06 | human/peter | promote | aiwf promote M-058 in_progress -> done |
 | 2026-05-06 | human/peter | promote | aiwf promote M-058/AC-4 open -> met |
-| 2026-05-06 | human/peter | promote | aiwf promote M-058/AC-3 open -> met |
 
