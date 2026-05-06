@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: aiwf promote G-NNN addressed --by accepts entity ids and commit shas
       status: open
+    - id: AC-2
+      title: aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids
+      status: open
 ---
 
 ## Goal
@@ -26,4 +29,6 @@ Concrete cases on day one: `gap → addressed` (`--by <id>` for entity-resolver,
 ## Acceptance criteria
 
 ### AC-1 — aiwf promote G-NNN addressed --by accepts entity ids and commit shas
+
+### AC-2 — aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids
 
