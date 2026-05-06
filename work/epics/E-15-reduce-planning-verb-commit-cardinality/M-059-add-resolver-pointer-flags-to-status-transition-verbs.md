@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids
       status: open
+    - id: AC-3
+      title: Verb writes resolver field atomically with status change
+      status: open
 ---
 
 ## Goal
@@ -31,4 +34,6 @@ Concrete cases on day one: `gap → addressed` (`--by <id>` for entity-resolver,
 ### AC-1 — aiwf promote G-NNN addressed --by accepts entity ids and commit shas
 
 ### AC-2 — aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids
+
+### AC-3 — Verb writes resolver field atomically with status change
 
