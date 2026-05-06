@@ -3,6 +3,22 @@ id: M-060
 title: Bless-current-edits mode for aiwf edit-body
 status: draft
 parent: E-15
+acs:
+    - id: AC-1
+      title: Bare aiwf edit-body commits on-disk body changes with edit-body trailers
+      status: open
+    - id: AC-2
+      title: Frontmatter-changed bless invocation refuses with structured-state-verb pointer
+      status: open
+    - id: AC-3
+      title: No-diff invocation refuses cleanly without an empty commit
+      status: open
+    - id: AC-4
+      title: M-058 --body-file mode continues to work unchanged
+      status: open
+    - id: AC-5
+      title: AC sub-section edits land via bless mode on the parent milestone
+      status: open
 ---
 ## Goal
 
@@ -32,3 +48,14 @@ AC sub-section editing (the workflow-4 case from G-054) is covered by bless mode
 The git-diff comparison wants a stable "what's HEAD's version of this path" read. `gitops` already exposes shaped reads (e.g., for the trunk-walk path); a small `gitops.ReadFromHEAD(ctx, root, path) ([]byte, error)` helper (or equivalent) is the right shape — returns nil-bytes when the file is new (so callers can decide whether bless on a new file is valid; for now it is not, since `aiwf add --body-file` covers the new-file case).
 
 The existing `validateUserBodyBytes` helper (extracted in M-058) is reused — body content from the working copy can no more begin with `---` than body content from a `--body-file`. Same shared rule.
+
+### AC-1 — Bare aiwf edit-body commits on-disk body changes with edit-body trailers
+
+### AC-2 — Frontmatter-changed bless invocation refuses with structured-state-verb pointer
+
+### AC-3 — No-diff invocation refuses cleanly without an empty commit
+
+### AC-4 — M-058 --body-file mode continues to work unchanged
+
+### AC-5 — AC sub-section edits land via bless mode on the parent milestone
+
