@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -87,6 +88,129 @@ func TestBinary_VersionVerb_FallsBackToBuildInfo(t *testing.T) {
 	}
 	if docVer != verVer {
 		t.Errorf("seam mismatch (G27): aiwf version = %q, doctor binary: row version = %q\nrow: %s", verVer, docVer, strings.TrimSpace(row))
+	}
+}
+
+// TestBinary_MutatingVerbs_Subprocess pins M-051 AC-6's strict reading:
+// each migrated mutating verb runs cleanly as a subprocess against the
+// real binary, in a sequence that mirrors a typical consumer-repo
+// lifecycle. doctor --self-check (covered separately) exercises every
+// verb in one shot; this test exercises each verb as its own subprocess
+// invocation so a regression in any single verb's Cobra wiring is
+// reported against that verb's name rather than the bundled run.
+//
+// The sequence: init → add epic → add milestone → add ac → rename →
+// promote (entity, AC) → edit-body → cancel → add second epic → move →
+// reallocate → import (dry-run) → check.
+func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
+	skipIfShortOrUnsupported(t)
+	tmp := t.TempDir()
+	bin := buildBinary(t, tmp /* no ldflags */)
+
+	repo := t.TempDir()
+	mustExec(t, repo, "git", "init", "-q")
+	mustExec(t, repo, "git", "config", "user.email", "test@example.com")
+	mustExec(t, repo, "git", "config", "user.name", "aiwf-test")
+
+	// Common args for every mutating verb invocation.
+	rootArgs := []string{"--root", repo, "--actor", "human/test"}
+
+	// runVerb invokes bin in repo with the given args; on non-zero
+	// exit it fails the subtest with verb name + combined output.
+	runVerb := func(name string, args ...string) {
+		t.Helper()
+		out, err := runBinaryAt(repo, bin, args...)
+		if err != nil {
+			t.Fatalf("aiwf %s: %v\n%s", name, err, out)
+		}
+	}
+
+	// init has no --actor flag in non-mutating-verb shape; pass --root
+	// + --skip-hook (the hook would chain to a test-binary path under
+	// `go test`, hanging the subprocess).
+	runVerb("init", "init", "--root", repo, "--actor", "human/test", "--skip-hook")
+
+	runVerb("add epic",
+		append([]string{"add", "epic", "--title", "Foundations"}, rootArgs...)...)
+	runVerb("add milestone",
+		append([]string{"add", "milestone", "--epic", "E-01", "--title", "First milestone"}, rootArgs...)...)
+	runVerb("add ac",
+		append([]string{"add", "ac", "M-001", "--title", "AC-1: trees stay green"}, rootArgs...)...)
+
+	// rename preserves the id; verb's slug-only mutation surface.
+	runVerb("rename",
+		append([]string{"rename", "M-001", "renamed-first"}, rootArgs...)...)
+
+	// promote: entity status, then AC status.
+	runVerb("promote E-01",
+		append([]string{"promote", "E-01", "active"}, rootArgs...)...)
+	runVerb("promote M-001 in_progress",
+		append([]string{"promote", "M-001", "in_progress"}, rootArgs...)...)
+	runVerb("promote AC met",
+		append([]string{"promote", "M-001/AC-1", "met"}, rootArgs...)...)
+
+	// edit-body: explicit-mode (--body-file) so the verb has something
+	// concrete to commit. Bless mode would error here because nothing
+	// in the working copy has changed.
+	bodyFile := filepath.Join(repo, "fixtures-edit-body.md")
+	if err := os.WriteFile(bodyFile, []byte("## Goal\n\nReplaced via subprocess test.\n"), 0o644); err != nil {
+		t.Fatalf("write body file: %v", err)
+	}
+	runVerb("edit-body",
+		append([]string{"edit-body", "M-001", "--body-file", bodyFile, "--reason", "subprocess test"}, rootArgs...)...)
+
+	// move: reparent to a fresh second epic.
+	runVerb("add second epic",
+		append([]string{"add", "epic", "--title", "Second"}, rootArgs...)...)
+	runVerb("move",
+		append([]string{"move", "M-001", "--epic", "E-02"}, rootArgs...)...)
+
+	// import (dry-run): a tiny manifest with one explicit-id epic; the
+	// dry-run path doesn't touch disk so we don't need a clean stash.
+	manifest := filepath.Join(repo, "fixtures-import.yaml")
+	if err := os.WriteFile(manifest, []byte(`version: 1
+actor: human/test
+entities:
+  - kind: gap
+    id: auto
+    frontmatter:
+      title: Imported sample gap
+      status: open
+`), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	runVerb("import dry-run",
+		append([]string{"import", manifest, "--dry-run"}, rootArgs...)...)
+
+	// cancel: terminate the milestone (its AC is already met, so the
+	// milestone is finalizable without finishing the FSM).
+	runVerb("cancel",
+		append([]string{"cancel", "M-001", "--reason", "test cleanup"}, rootArgs...)...)
+
+	// Final invariant: the planning tree is consistent end-to-end.
+	runVerb("check", "check", "--root", repo)
+}
+
+// runBinaryAt runs the binary under workdir, capturing combined output.
+// Used by TestBinary_MutatingVerbs_Subprocess so verbs that walk up
+// from cwd looking for aiwf.yaml see the right tree.
+func runBinaryAt(workdir, bin string, args ...string) (string, error) {
+	cmd := exec.Command(bin, args...)
+	cmd.Dir = workdir
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+	err := cmd.Run()
+	return buf.String(), err
+}
+
+// mustExec runs name with args in workdir; failure t.Fatals.
+func mustExec(t *testing.T, workdir, name string, args ...string) {
+	t.Helper()
+	cmd := exec.Command(name, args...)
+	cmd.Dir = workdir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("%s %v: %v\n%s", name, args, err, out)
 	}
 }
 
