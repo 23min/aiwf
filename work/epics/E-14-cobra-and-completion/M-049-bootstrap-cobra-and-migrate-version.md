@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-5
       title: Subprocess integration test for version verb passes against the migrated binary
-      status: open
+      status: met
     - id: AC-6
       title: Auto-completion design principle added to CLAUDE.md
       status: open
