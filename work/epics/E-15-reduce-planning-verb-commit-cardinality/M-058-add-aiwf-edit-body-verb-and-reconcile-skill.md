@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: aiwf-add skill text removes plain-git body-edit carve-out
-      status: open
+      status: met
     - id: AC-4
       title: G-051 and G-052 are promotable to addressed after this milestone
       status: open
