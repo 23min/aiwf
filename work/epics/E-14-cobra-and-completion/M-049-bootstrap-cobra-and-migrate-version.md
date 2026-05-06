@@ -6,7 +6,7 @@ parent: E-14
 acs:
     - id: AC-1
       title: Cobra dependency added to go.mod with one-line justification in commit message
-      status: open
+      status: met
     - id: AC-2
       title: Cobra root command and subcommand routing structure in cmd/aiwf
       status: open
