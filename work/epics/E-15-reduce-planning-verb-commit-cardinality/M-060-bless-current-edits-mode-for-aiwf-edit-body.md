@@ -1,7 +1,7 @@
 ---
 id: M-060
 title: Bless-current-edits mode for aiwf edit-body
-status: in_progress
+status: done
 parent: E-15
 acs:
     - id: AC-1
