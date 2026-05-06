@@ -9,7 +9,7 @@ _128 entities · 0 errors · 0 warnings_
 - ✓ **M-049** — Bootstrap Cobra and migrate version _(done)_ — ACs 6/6 met
 - ✓ **M-050** — Migrate read-only verbs _(done)_ — ACs 4/4 met
 - ✓ **M-051** — Migrate mutating verbs _(done)_ — ACs 6/6 met
-- → **M-052** — Migrate setup verbs _(in_progress)_ — ACs 4/4 met
+- ✓ **M-052** — Migrate setup verbs _(done)_ — ACs 4/4 met
 - **M-053** — Completion verb and static completion _(draft)_ — ACs 0/5 met (5 open)
 - **M-054** — Dynamic id completion and drift test _(draft)_ — ACs 0/4 met (4 open)
 - **M-055** — Documentation pass _(draft)_ — ACs 0/4 met (4 open)
@@ -23,7 +23,7 @@ flowchart LR
   E_14 --> M_050
   M_051["M-051 (6/6)<br/>Migrate mutating verbs"]:::ms_done
   E_14 --> M_051
-  M_052["M-052 (4/4)<br/>Migrate setup verbs"]:::ms_in_progress
+  M_052["M-052 (4/4)<br/>Migrate setup verbs"]:::ms_done
   E_14 --> M_052
   M_053["M-053 (0/5)<br/>Completion verb and static completion"]:::ms_draft
   E_14 --> M_053
@@ -77,9 +77,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-052/AC-4 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-052/AC-3 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-052/AC-2 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-052/AC-1 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-052 draft -> in_progress |
-| 2026-05-07 | human/peter | promote | aiwf promote M-051 in_progress -> done |
 
