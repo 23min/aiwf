@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: Frontmatter-changed bless invocation refuses with structured-state-verb pointer
-      status: open
+      status: met
     - id: AC-3
       title: No-diff invocation refuses cleanly without an empty commit
       status: open
