@@ -21,7 +21,7 @@ acs:
       status: met
     - id: AC-6
       title: Subprocess integration tests pass for all six mutating verbs
-      status: open
+      status: met
 ---
 
 ## Goal
