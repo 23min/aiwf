@@ -7,7 +7,7 @@ _126 entities · 0 errors · 0 warnings_
 ### E-15 — Reduce planning-verb commit cardinality _(active)_
 
 - ✓ **M-056** — Add --body-file to aiwf add variants _(done)_ — ACs 5/5 met
-- **M-057** — Batched --title on aiwf add ac _(draft)_ — ACs 0/5 met (5 open)
+- → **M-057** — Batched --title on aiwf add ac _(in_progress)_ — ACs 0/5 met (5 open)
 - **M-058** — Add aiwf edit-body verb and reconcile skill _(draft)_ — ACs 0/4 met (4 open)
 - ✓ **M-059** — Add resolver-pointer flags to status-transition verbs _(done)_ — ACs 4/4 met
 
@@ -16,7 +16,7 @@ flowchart LR
   E_15["E-15<br/>Reduce planning-verb commit cardinality"]:::epic_active
   M_056["M-056 (5/5)<br/>Add --body-file to aiwf add variants"]:::ms_done
   E_15 --> M_056
-  M_057["M-057 (0/5)<br/>Batched --title on aiwf add ac"]:::ms_draft
+  M_057["M-057 (0/5)<br/>Batched --title on aiwf add ac"]:::ms_in_progress
   E_15 --> M_057
   M_058["M-058 (0/4)<br/>Add aiwf edit-body verb and reconcile skill"]:::ms_draft
   E_15 --> M_058
