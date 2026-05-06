@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: No-diff invocation refuses cleanly without an empty commit
-      status: open
+      status: met
     - id: AC-4
       title: M-058 --body-file mode continues to work unchanged
       status: open
