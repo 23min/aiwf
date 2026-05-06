@@ -6,7 +6,7 @@ parent: E-14
 acs:
     - id: AC-1
       title: aiwf completion bash|zsh emits a sourceable shell script
-      status: open
+      status: met
     - id: AC-2
       title: Top-level subverbs auto-complete (aiwf <TAB>)
       status: open
