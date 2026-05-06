@@ -1,7 +1,7 @@
 ---
 id: M-050
 title: Migrate read-only verbs
-status: in_progress
+status: done
 parent: E-14
 acs:
     - id: AC-1
