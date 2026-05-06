@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: --epic=<TAB> enumerates live epic ids from the planning tree
       status: open
+    - id: AC-2
+      title: Graceful no-op completion when cwd is not a valid aiwf project
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ Wire dynamic completion of live entity ids — `--epic=<TAB>`, `--milestone=<TAB
 ## Acceptance criteria
 
 ### AC-1 — --epic=<TAB> enumerates live epic ids from the planning tree
+
+### AC-2 — Graceful no-op completion when cwd is not a valid aiwf project
 
