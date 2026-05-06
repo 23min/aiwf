@@ -147,12 +147,17 @@ func preCommitHookScript(execPath string, regenStatus bool) string {
 	bin := shellQuoteSingle(execPath)
 	regenBlock := ""
 	if regenStatus {
+		// The trailing `2>/dev/null || true` on `git add` keeps the
+		// "tolerant by design — never blocks commits" contract honest
+		// when the consumer has gitignored STATUS.md (G50). Without it,
+		// `git add` of an ignored path exits non-zero and `set -e`
+		// aborts the entire pre-commit hook, also orphaning .git/index.lock.
 		regenBlock = `
 # (2) STATUS.md regen. Tolerant by design — never blocks commits.
 tmp="$repo_root/STATUS.md.tmp"
 if ` + bin + ` status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
     mv "$tmp" "$repo_root/STATUS.md"
-    git add "$repo_root/STATUS.md"
+    git add "$repo_root/STATUS.md" 2>/dev/null || true
 else
     rm -f "$tmp"
 fi

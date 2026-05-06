@@ -429,6 +429,54 @@ status_md:
 	}
 }
 
+// TestPreCommitHook_TolerantOfGitignoredStatusMd (G50): when the
+// consumer gitignores STATUS.md (a legitimate choice — the file is
+// regenerated on every commit and would otherwise produce churn),
+// the hook's `git add STATUS.md` exits non-zero. Without the
+// `2>/dev/null || true` suffix, `set -e` aborts the entire hook and
+// commits fail — also orphaning .git/index.lock. This test runs the
+// installed shell script directly and asserts exit 0 in that
+// scenario.
+func TestPreCommitHook_TolerantOfGitignoredStatusMd(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("aiwf hooks are unix-only")
+	}
+	root := freshGitRepo(t)
+	hooksDir := filepath.Join(root, ".git", "hooks")
+
+	// Stub binary covers both verbs the hook calls. `status` writes a
+	// minimal markdown body so the regen branch reaches the `git add`.
+	// `check` exits 0 so the tree-discipline gate passes.
+	stubBin := filepath.Join(t.TempDir(), "aiwf-stub.sh")
+	stubScript := "#!/bin/sh\n" +
+		"case \"$1\" in\n" +
+		"  status) printf '# fake status\\n'; exit 0 ;;\n" +
+		"  *)      exit 0 ;;\n" +
+		"esac\n"
+	if err := os.WriteFile(stubBin, []byte(stubScript), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	hookBody := preCommitHookScript(stubBin, true)
+	hookPath := filepath.Join(hooksDir, "pre-commit")
+	if err := os.WriteFile(hookPath, []byte(hookBody), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("aiwf_version: test\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte("STATUS.md\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command("sh", hookPath)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("hook exited non-zero on gitignored STATUS.md (G50 regression): %v\n%s", err, out)
+	}
+}
+
 func bytesEqual(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
