@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-5
       title: Subprocess integration test exercises --body-file path
-      status: open
+      status: met
 ---
 
 ## Goal
