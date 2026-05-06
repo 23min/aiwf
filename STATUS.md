@@ -31,7 +31,7 @@ flowchart LR
 - **M-050** — Migrate read-only verbs _(draft)_ — ACs 0/4 met (4 open)
 - **M-051** — Migrate mutating verbs _(draft)_ — ACs 0/6 met (6 open)
 - **M-052** — Migrate setup verbs _(draft)_ — ACs 0/4 met (4 open)
-- **M-053** — Completion verb and static completion _(draft)_ — ACs 0/4 met (4 open)
+- **M-053** — Completion verb and static completion _(draft)_ — ACs 0/5 met (5 open)
 - **M-054** — Dynamic id completion and drift test _(draft)_
 - **M-055** — Documentation pass _(draft)_
 
@@ -46,7 +46,7 @@ flowchart LR
   E_14 --> M_051
   M_052["M-052 (0/4)<br/>Migrate setup verbs"]:::ms_draft
   E_14 --> M_052
-  M_053["M-053 (0/4)<br/>Completion verb and static completion"]:::ms_draft
+  M_053["M-053 (0/5)<br/>Completion verb and static completion"]:::ms_draft
   E_14 --> M_053
   M_054["M-054<br/>Dynamic id completion and drift test"]:::ms_draft
   E_14 --> M_054
@@ -79,9 +79,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add ac M-053/AC-4 '--format= auto-completes text\|json values' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-053/AC-3 '--status= auto-completes per-kind closed-set values' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-053/AC-2 'Top-level subverbs auto-complete (aiwf <TAB>)' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-053/AC-1 'aiwf completion bash\|zsh emits a sourceable shell script' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-052/AC-4 'Installed git hooks remain byte-identical or update goldens with rationale' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-052/AC-3 'aiwf doctor --self-check passes after init in fresh consumer repo' |
 

@@ -16,6 +16,9 @@ acs:
     - id: AC-4
       title: --format= auto-completes text|json values
       status: open
+    - id: AC-5
+      title: 'README has install one-liner: source <(aiwf completion zsh)'
+      status: open
 ---
 
 ## Goal
@@ -35,4 +38,6 @@ Cobra's built-in completion generator handles the script generation; the work is
 ### AC-3 — --status= auto-completes per-kind closed-set values
 
 ### AC-4 — --format= auto-completes text|json values
+
+### AC-5 — README has install one-liner: source <(aiwf completion zsh)
 
