@@ -30,6 +30,21 @@ The six kinds and their required flags:
 | contract | `--title` | Allocates `C-NNN` and creates `work/contracts/C-NNN-<slug>/contract.md`. Optional `--linked-adr <id,id,...>` records the motivating ADRs. Pass `--validator <name> --schema <path> --fixtures <path>` together to also bind the contract in aiwf.yaml within the same commit. |
 | ac | `--title`, positional milestone id | Allocates `AC-N` per-milestone (max+1 across the full `acs[]` including cancelled). Appends to the milestone's frontmatter `acs[]` and scaffolds a `### AC-N — <title>` body heading. The milestone file is rewritten in place — no separate AC file. |
 
+## Repeated --title for batched AC creation
+
+`aiwf add ac M-NNN` accepts repeated `--title` flags to create N acceptance criteria in one atomic commit. Each title gets a consecutive AC id (`AC-X..AC-Y`); the commit's `aiwf-entity:` trailer set carries every created composite id, so `aiwf history M-NNN/AC-X` finds the batch commit for any AC in the batch.
+
+```bash
+aiwf add ac M-001 \
+  --title "first criterion" \
+  --title "second criterion" \
+  --title "third criterion"
+```
+
+Atomic-on-failure: if any title is empty, prosey, or otherwise rejected, the entire batch aborts before disk work — no partial-batch commit. `--tests` is rejected when N>1 (a single test-metrics value can't apply unambiguously to multiple ACs); seed test metrics one AC at a time when needed.
+
+Single `--title` still works exactly as before — same subject shape, same single `aiwf-entity:` trailer.
+
 ## --body-file for ride-along body content
 
 By default, `aiwf add` lands a per-kind body template (e.g., `## Goal`, `## Scope` headings on an epic). To replace that with real body prose in the same atomic create commit — and avoid a follow-up untrailered hand-edit that triggers `provenance-untrailered-entity-commit` — pass `--body-file <path>` (or `--body-file -` to read from stdin):

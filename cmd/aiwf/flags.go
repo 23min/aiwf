@@ -68,6 +68,31 @@ func reorderFlagsFirst(args, knownFlags, knownBoolFlags []string) []string {
 	return append(hoisted, rest...)
 }
 
+// repeatedString implements flag.Value for a flag that may appear
+// multiple times on the command line, accumulating each value into
+// a slice. Used by `aiwf add ac --title "..." --title "..."` so a
+// single invocation can create N acceptance criteria atomically
+// (M-057). The Set method returns nil for empty input so the
+// `--title ""` corner case is caught downstream by the verb's
+// title-shape validation, not silently dropped here.
+type repeatedString []string
+
+// Set is the flag.Value contract — called once per flag occurrence.
+func (r *repeatedString) Set(v string) error {
+	*r = append(*r, v)
+	return nil
+}
+
+// String renders the accumulated values for `--help` and error
+// output. Comma-separated keeps the diagnostic readable when a
+// batch is large.
+func (r *repeatedString) String() string {
+	if r == nil {
+		return ""
+	}
+	return strings.Join(*r, ", ")
+}
+
 // flagName extracts the name from a CLI arg that looks like a flag.
 // Returns ("", false) when the arg isn't flag-shaped. Returns
 // (name, true) when the arg is `--name=value` (so the caller knows

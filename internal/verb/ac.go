@@ -22,24 +22,61 @@ import (
 )
 
 // AddAC creates a new acceptance criterion under the named milestone.
-// The new AC is appended to the milestone's acs[] (max+1 position-
-// stable; cancelled entries count toward position) and a matching
-// `### AC-<N> — <title>` heading is appended to the milestone body.
-//
-// When the parent milestone is `tdd: required`, the verb seeds
-// `tdd_phase: red` — the only legal starting state under the FSM.
-// Otherwise tdd_phase is left absent.
-//
-// Returns a Go error for "couldn't even start": milestone not found,
-// not a milestone, empty title. Tree-level findings caused by the
-// addition are returned in Result.Findings.
+// Single-title convenience wrapper around AddACBatch — the existing
+// signature is preserved so callers that want exactly one AC don't
+// need to wrap their input in a slice. See AddACBatch for the
+// batched-creation contract; this entry point applies the same
+// rules with len(titles)=1.
 func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tests *gitops.TestMetrics) (*Result, error) {
+	return AddACBatch(ctx, t, parentID, []string{title}, actor, tests)
+}
+
+// AddACBatch creates one or more acceptance criteria under the same
+// milestone in a single atomic commit (M-057). Each title gets a
+// consecutive AC id starting at len(parent.ACs)+1, position-stable
+// per existing rules (cancelled entries count toward position). A
+// matching `### AC-<N> — <title>` heading is appended to the
+// milestone body for each created AC.
+//
+// When the parent milestone is `tdd: required`, every new AC is
+// seeded with `tdd_phase: red` — the only legal starting state under
+// the FSM.
+//
+// Validation is whole-batch (M-057/AC-2): titles are checked first
+// (empty-after-trim, not-prosey), then the milestone projection runs
+// once with all N new entries; if any rule fires, the entire batch
+// aborts with no commit. The plan returns exactly one OpWrite for
+// the milestone file regardless of N (M-057/AC-4), so per-mutation
+// atomicity is preserved.
+//
+// The commit carries N `aiwf-entity:` trailers — one per created
+// composite id, in allocation order (M-057/AC-3). `aiwf history
+// M-NNN/AC-X` finds the commit because git's --grep matches any
+// trailer line. The single-title invocation produces exactly one
+// aiwf-entity trailer, matching pre-batch behavior (M-057/AC-5).
+//
+// --tests is only meaningful when seeding a single AC into a
+// tdd-required milestone (the original AddAC semantic). For N > 1 it
+// is rejected; an LLM batching N criteria with one --tests value
+// would otherwise silently apply the same metrics to every AC,
+// which is almost certainly not what the operator meant.
+//
+// Returns a Go error for setup failures (empty titles slice, empty
+// or prosey title, milestone not found, kind mismatch, --tests with
+// N > 1 or with non-tdd-required parent). Tree-level findings caused
+// by the addition are returned in Result.Findings.
+func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []string, actor string, tests *gitops.TestMetrics) (*Result, error) {
 	_ = ctx
-	if strings.TrimSpace(title) == "" {
-		return nil, fmt.Errorf("--title is required")
+	if len(titles) == 0 {
+		return nil, fmt.Errorf("--title is required (at least one)")
 	}
-	if entity.IsProseyTitle(title) {
-		return nil, fmt.Errorf("title %q looks like prose, not a short label\n\nKeep the AC title short (≤80 chars, single sentence, no markdown formatting). It becomes the YAML `title:` field AND the `### AC-N — <title>` body heading; markdown or multi-sentence prose renders as one giant heading.\n\nUse a short label for --title, then hand-edit the body section under the heading to add detail prose, examples, references", title)
+	for _, title := range titles {
+		if strings.TrimSpace(title) == "" {
+			return nil, fmt.Errorf("--title is required (empty title in batch)")
+		}
+		if entity.IsProseyTitle(title) {
+			return nil, fmt.Errorf("title %q looks like prose, not a short label\n\nKeep the AC title short (≤80 chars, single sentence, no markdown formatting). It becomes the YAML `title:` field AND the `### AC-N — <title>` body heading; markdown or multi-sentence prose renders as one giant heading.\n\nUse a short label for --title, then hand-edit the body section under the heading to add detail prose, examples, references", title)
+		}
 	}
 	parent := t.ByID(parentID)
 	if parent == nil {
@@ -48,26 +85,41 @@ func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tes
 	if parent.Kind != entity.KindMilestone {
 		return nil, fmt.Errorf("%s is a %s, not a milestone — only milestones host ACs", parentID, parent.Kind)
 	}
-
-	nextID := fmt.Sprintf("AC-%d", len(parent.ACs)+1)
-	newAC := entity.AcceptanceCriterion{
-		ID:     nextID,
-		Title:  title,
-		Status: entity.StatusOpen,
+	if tests != nil && len(titles) > 1 {
+		return nil, fmt.Errorf("--tests is only valid when adding a single AC at a time (got %d titles); test metrics for a batch would apply ambiguously", len(titles))
 	}
-	if parent.TDD == "required" {
-		newAC.TDDPhase = entity.TDDPhaseRed
+	if tests != nil && parent.TDD != "required" {
+		return nil, fmt.Errorf("--tests is only valid when seeding red (parent milestone %s is not tdd: required)", parent.ID)
+	}
+
+	base := len(parent.ACs)
+	newACs := make([]entity.AcceptanceCriterion, 0, len(titles))
+	compositeIDs := make([]string, 0, len(titles))
+	for i, title := range titles {
+		nextID := fmt.Sprintf("AC-%d", base+i+1)
+		ac := entity.AcceptanceCriterion{
+			ID:     nextID,
+			Title:  title,
+			Status: entity.StatusOpen,
+		}
+		if parent.TDD == "required" {
+			ac.TDDPhase = entity.TDDPhaseRed
+		}
+		newACs = append(newACs, ac)
+		compositeIDs = append(compositeIDs, parent.ID+"/"+nextID)
 	}
 
 	modified := *parent
 	modified.ACs = append([]entity.AcceptanceCriterion(nil), parent.ACs...)
-	modified.ACs = append(modified.ACs, newAC)
+	modified.ACs = append(modified.ACs, newACs...)
 
 	body, err := readBody(t.Root, parent.Path)
 	if err != nil {
 		return nil, err
 	}
-	body = appendACHeading(body, nextID, title)
+	for _, ac := range newACs {
+		body = appendACHeading(body, ac.ID, ac.Title)
+	}
 
 	content, err := entity.Serialize(&modified, body)
 	if err != nil {
@@ -79,23 +131,51 @@ func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tes
 		return findings(fs), nil
 	}
 
-	compositeID := parent.ID + "/" + nextID
-	subject := fmt.Sprintf("aiwf add ac %s %q", compositeID, title)
-	trailers := standardTrailers("add", compositeID, actor)
-	if newAC.TDDPhase == entity.TDDPhaseRed && tests != nil {
+	subject := batchACSubject(compositeIDs, titles)
+	trailers := batchACTrailers(compositeIDs, actor)
+	// --tests applies only to the single-AC seeding path (length-1
+	// batch into a tdd-required milestone). The validation above
+	// already guards N > 1 and non-tdd parents, so reaching here
+	// with tests != nil implies len(titles) == 1 and the AC is in
+	// red — emit the trailer.
+	if tests != nil {
 		trailers = appendTestsTrailer(trailers, tests)
-	} else if tests != nil && newAC.TDDPhase != entity.TDDPhaseRed {
-		// --tests is meaningful only when the AC enters a TDD phase. A
-		// non-tdd-required milestone seeds the AC at no-phase, so test
-		// metrics aren't applicable; surface the inconsistency rather
-		// than silently dropping the trailer.
-		return nil, fmt.Errorf("--tests is only valid when seeding red (parent milestone %s is not tdd: required)", parent.ID)
 	}
 	return plan(&Plan{
 		Subject:  subject,
 		Trailers: trailers,
 		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
 	}), nil
+}
+
+// batchACSubject builds the commit subject. N=1 preserves the
+// historical shape `aiwf add ac M-NNN/AC-N "title"` so AC-5's
+// "single-title invocation continues to work unchanged" guarantee
+// holds at the commit-message level too. N>1 uses a range form
+// `aiwf add ac M-NNN AC-X..AC-Y (N criteria)` so the subject stays
+// short even for large batches; per-AC titles live in the trailer
+// set and the file diff, not the subject line.
+func batchACSubject(compositeIDs, titles []string) string {
+	if len(compositeIDs) == 1 {
+		return fmt.Sprintf("aiwf add ac %s %q", compositeIDs[0], titles[0])
+	}
+	parent, firstSub, _ := strings.Cut(compositeIDs[0], "/")
+	_, lastSub, _ := strings.Cut(compositeIDs[len(compositeIDs)-1], "/")
+	return fmt.Sprintf("aiwf add ac %s %s..%s (%d criteria)", parent, firstSub, lastSub, len(compositeIDs))
+}
+
+// batchACTrailers emits one aiwf-entity trailer per created
+// composite id (M-057/AC-3). Single-title batches emit exactly one
+// — matching pre-batch shape — so the subject + trailer set are
+// indistinguishable from the historical AddAC output.
+func batchACTrailers(compositeIDs []string, actor string) []gitops.Trailer {
+	trailers := make([]gitops.Trailer, 0, 2+len(compositeIDs))
+	trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerVerb, Value: "add"})
+	for _, cid := range compositeIDs {
+		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerEntity, Value: cid})
+	}
+	trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerActor, Value: actor})
+	return trailers
 }
 
 // promoteAC handles `aiwf promote M-NNN/AC-N <newStatus>`. Mirrors

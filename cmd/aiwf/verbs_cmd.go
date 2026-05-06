@@ -148,24 +148,25 @@ func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
 // kind in the schema sense, so they have their own verb shape.
 func runAddAC(args []string) int {
 	fs := flag.NewFlagSet("add ac", flag.ContinueOnError)
-	title := fs.String("title", "", "AC title (required)")
+	var titles repeatedString
+	fs.Var(&titles, "title", "AC title (required; repeat to create multiple ACs in one atomic commit — M-057)")
 	actor := fs.String("actor", "", "actor for the commit trailer")
 	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
-	tests := fs.String("tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
+	tests := fs.String("tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
 	fs.SetOutput(os.Stderr)
 	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "title", "tests"}, nil)); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
 	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf add ac: usage: aiwf add ac <milestone-id> --title \"...\"")
+		fmt.Fprintln(os.Stderr, "aiwf add ac: usage: aiwf add ac <milestone-id> --title \"...\" [--title \"...\" ...]")
 		return exitUsage
 	}
 	parentID := rest[0]
 
-	if strings.TrimSpace(*title) == "" {
-		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required")
+	if len(titles) == 0 {
+		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
 		return exitUsage
 	}
 
@@ -197,7 +198,7 @@ func runAddAC(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf add ac: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.AddAC(ctx, tr, parentID, *title, actorStr, metrics)
+	result, err := verb.AddACBatch(ctx, tr, parentID, []string(titles), actorStr, metrics)
 	// An AC is a sub-element of its parent milestone — its sole
 	// "outbound reference" for scope reachability is the parent id.
 	pctx := provenanceContext{
