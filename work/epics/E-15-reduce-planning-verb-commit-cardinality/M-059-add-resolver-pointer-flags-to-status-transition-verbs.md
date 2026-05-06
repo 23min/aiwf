@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: Verb writes resolver field atomically with status change
       status: open
+    - id: AC-4
+      title: Hand-editing frontmatter never required to satisfy resolver checks
+      status: open
 ---
 
 ## Goal
@@ -36,4 +39,6 @@ Concrete cases on day one: `gap → addressed` (`--by <id>` for entity-resolver,
 ### AC-2 — aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids
 
 ### AC-3 — Verb writes resolver field atomically with status change
+
+### AC-4 — Hand-editing frontmatter never required to satisfy resolver checks
 
