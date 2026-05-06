@@ -44,9 +44,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote G-050 addressed [audit-only] |
 | 2026-05-06 | human/peter | promote | aiwf promote G-049 addressed [audit-only] |
 | 2026-05-06 | human/peter | promote | aiwf promote G-048 open -> addressed |
 | 2026-05-06 | human/peter | promote | aiwf promote G-050 open -> addressed |
 | 2026-05-06 | human/peter | add | aiwf add gap G-050 'Pre-commit hook aborts when STATUS.md is gitignored — violates 'tolerant by design' contract, orphans .git/index.lock' |
-| 2026-05-06 | human/peter | promote | aiwf promote G-049 addressed [audit-only] |
 
