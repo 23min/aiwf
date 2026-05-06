@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-06
 
-_120 entities · 0 errors · 0 warnings_
+_121 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -59,6 +59,10 @@ flowchart LR
   classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
 ```
+
+### E-15 — Reduce planning-verb commit cardinality _(proposed)_
+
+_(no milestones)_
 
 ## Open decisions
 
