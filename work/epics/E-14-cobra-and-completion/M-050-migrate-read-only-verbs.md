@@ -3,6 +3,10 @@ id: M-050
 title: Migrate read-only verbs
 status: draft
 parent: E-14
+acs:
+    - id: AC-1
+      title: check, history, doctor, schema, template, render migrated to Cobra
+      status: open
 ---
 
 ## Goal
@@ -14,3 +18,6 @@ Migrate `check`, `history`, `doctor`, `schema`, `template`, and `render` to the 
 One verb at a time. Each verb's `--format=json` envelope is the contract; preserve byte-exact JSON output while letting Cobra control text/help formatting (the human surface can change; the machine surface cannot). Subprocess integration tests are the proof — if they pass, the migration is invisible to downstream consumers.
 
 ## Acceptance criteria
+
+### AC-1 — check, history, doctor, schema, template, render migrated to Cobra
+
