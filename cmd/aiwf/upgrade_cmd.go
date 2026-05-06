@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -14,10 +13,12 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/spf13/cobra"
+
 	"github.com/23min/ai-workflow-v2/internal/version"
 )
 
-// runUpgrade handles `aiwf upgrade`: a one-command flow that fetches
+// newUpgradeCmd builds `aiwf upgrade`: a one-command flow that fetches
 // a newer (or specified) aiwf binary via `go install` and re-execs
 // the new binary to refresh the consumer repo's framework artifacts
 // via `aiwf update`.
@@ -32,16 +33,29 @@ import (
 //   - AIWF_NO_REEXEC: when set to a non-empty value, skip the
 //     syscall.Exec into the new binary after install. Lets tests
 //     verify install succeeds without overlaying the test process.
-func runUpgrade(args []string) int {
-	fs := flag.NewFlagSet("upgrade", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root for the post-install `aiwf update` step (default: cwd)")
-	target := fs.String("version", "latest", "version to install: a semver tag (e.g. v0.2.0) or 'latest'")
-	checkOnly := fs.Bool("check", false, "print the current/target comparison and exit without installing")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
-		return exitUsage
+func newUpgradeCmd() *cobra.Command {
+	var (
+		root      string
+		target    string
+		checkOnly bool
+	)
+	cmd := &cobra.Command{
+		Use:           "upgrade",
+		Short:         "Fetch a newer aiwf binary via go install and refresh artifacts",
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runUpgradeCmd(root, target, checkOnly))
+		},
 	}
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root for the post-install `aiwf update` step (default: cwd)")
+	cmd.Flags().StringVar(&target, "version", "latest", "version to install: a semver tag (e.g. v0.2.0) or 'latest'")
+	cmd.Flags().BoolVar(&checkOnly, "check", false, "print the current/target comparison and exit without installing")
+	return cmd
+}
 
+func runUpgradeCmd(root, target string, checkOnly bool) int {
 	pkg := version.PackagePath()
 	if pkg == "" {
 		fmt.Fprintln(os.Stderr, "aiwf upgrade: package path unavailable from build info — run `go install <pkg>@latest` manually")
@@ -51,14 +65,14 @@ func runUpgrade(args []string) int {
 	current := version.Current()
 	fmt.Printf("current:  %s\n", renderVersionLabel(current))
 
-	resolved, latestErr := resolveTarget(*target)
+	resolved, latestErr := resolveTarget(target)
 	switch {
 	case latestErr == nil:
 		fmt.Printf("target:   %s\n", renderVersionLabel(resolved))
 	case errors.Is(latestErr, version.ErrProxyDisabled):
-		fmt.Printf("target:   %s (proxy disabled — go install will resolve at install time)\n", *target)
+		fmt.Printf("target:   %s (proxy disabled — go install will resolve at install time)\n", target)
 	default:
-		fmt.Printf("target:   %s (proxy lookup failed: %v)\n", *target, latestErr)
+		fmt.Printf("target:   %s (proxy lookup failed: %v)\n", target, latestErr)
 	}
 
 	if latestErr == nil {
@@ -75,17 +89,17 @@ func runUpgrade(args []string) int {
 		}
 	}
 
-	if *checkOnly {
+	if checkOnly {
 		return exitOK
 	}
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf upgrade: %v\n", err)
 		return exitUsage
 	}
 
-	installArg := pkg + "@" + *target
+	installArg := pkg + "@" + target
 	fmt.Printf("\nrunning:  go install %s\n", installArg)
 
 	if stderrBuf, installErr := runGoInstall(context.Background(), installArg); installErr != nil {
@@ -96,7 +110,7 @@ func runUpgrade(args []string) int {
 		// `go install` error and has to figure out the recovery
 		// command themselves.
 		if missingPkg, ok := pathChangedFromStderr(stderrBuf); ok {
-			printPackagePathChangedHint(pkg, *target, missingPkg)
+			printPackagePathChangedHint(pkg, target, missingPkg)
 		}
 		return exitInternal
 	}

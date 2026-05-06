@@ -22,7 +22,7 @@ import (
 func TestRunUpgrade_CheckOnly_NoNetworkRequired(t *testing.T) {
 	t.Setenv("GOPROXY", "off")
 	rc, stdout, _ := captureRun(t, func() int {
-		return runUpgrade([]string{"--check"})
+		return run([]string{"upgrade", "--check"})
 	})
 	if rc != exitOK {
 		t.Fatalf("rc = %d, want %d (stdout: %s)", rc, exitOK, stdout)
@@ -48,7 +48,7 @@ func TestRunUpgrade_CheckOnly_FakeProxy(t *testing.T) {
 	t.Setenv("GOPROXY", srv.URL)
 
 	rc, stdout, _ := captureRun(t, func() int {
-		return runUpgrade([]string{"--check"})
+		return run([]string{"upgrade", "--check"})
 	})
 	if rc != exitOK {
 		t.Fatalf("rc = %d, want %d (stdout: %s)", rc, exitOK, stdout)
@@ -68,7 +68,7 @@ func TestRunUpgrade_NoGoBinary(t *testing.T) {
 	t.Setenv("AIWF_NO_REEXEC", "1") // belt-and-braces
 
 	rc, _, stderr := captureRun(t, func() int {
-		return runUpgrade([]string{"--version", "v0.1.0"})
+		return run([]string{"upgrade", "--version", "v0.1.0"})
 	})
 	if rc == exitOK {
 		t.Fatalf("expected non-zero exit when go binary is missing")
@@ -104,7 +104,7 @@ func TestRunUpgrade_FullFlow_NoReexec(t *testing.T) {
 	t.Setenv("AIWF_TEST_INSTALL_DIR", gobinDir)
 
 	rc, stdout, stderr := captureRun(t, func() int {
-		return runUpgrade([]string{"--version", "v0.1.0", "--root", tmp})
+		return run([]string{"upgrade", "--version", "v0.1.0", "--root", tmp})
 	})
 	if rc != exitOK {
 		t.Fatalf("rc = %d, want %d (stdout=%s, stderr=%s)", rc, exitOK, stdout, stderr)
@@ -156,7 +156,7 @@ func TestRunUpgrade_FullFlow_GOBINUnset(t *testing.T) {
 	t.Setenv("AIWF_TEST_INSTALL_DIR", gopathBin)
 
 	rc, stdout, stderr := captureRun(t, func() int {
-		return runUpgrade([]string{"--version", "v0.1.0", "--root", tmp})
+		return run([]string{"upgrade", "--version", "v0.1.0", "--root", tmp})
 	})
 	if rc != exitOK {
 		t.Fatalf("rc = %d, want %d (stdout=%s, stderr=%s)", rc, exitOK, stdout, stderr)
@@ -343,7 +343,7 @@ esac
 	t.Setenv("GOPROXY", "off")
 
 	rc, _, stderr := captureRun(t, func() int {
-		return runUpgrade([]string{"--version", "v0.4.0", "--root", tmp})
+		return run([]string{"upgrade", "--version", "v0.4.0", "--root", tmp})
 	})
 	if rc != exitInternal {
 		t.Errorf("rc = %d, want %d (install fails)", rc, exitInternal)
@@ -387,7 +387,7 @@ esac
 	t.Setenv("GOPROXY", "off")
 
 	rc, _, stderr := captureRun(t, func() int {
-		return runUpgrade([]string{"--version", "v9.9.9", "--root", tmp})
+		return run([]string{"upgrade", "--version", "v9.9.9", "--root", tmp})
 	})
 	if rc != exitInternal {
 		t.Errorf("rc = %d, want %d", rc, exitInternal)
@@ -438,7 +438,7 @@ esac
 // TestRunUpgrade_BadFlag covers the usage-error path.
 func TestRunUpgrade_BadFlag(t *testing.T) {
 	rc, _, _ := captureRun(t, func() int {
-		return runUpgrade([]string{"--nope"})
+		return run([]string{"upgrade", "--nope"})
 	})
 	if rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)

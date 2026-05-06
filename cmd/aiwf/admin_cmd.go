@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -26,30 +25,44 @@ import (
 	"github.com/23min/ai-workflow-v2/internal/version"
 )
 
-// runInit handles `aiwf init`: writes aiwf.yaml, scaffolds entity
+// newInitCmd builds `aiwf init`: writes aiwf.yaml, scaffolds entity
 // directories, materializes skills, appends to .gitignore, writes a
 // CLAUDE.md template, and installs the pre-push hook. No commit.
 //
 // --dry-run reports the would-be ledger without touching disk.
 // --skip-hook performs every other step but omits hook installation.
-func runInit(args []string) int {
-	fs := flag.NewFlagSet("init", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root (default: cwd)")
-	actor := fs.String("actor", "", "default actor for the commit trailer (overrides git config derivation)")
-	dryRun := fs.Bool("dry-run", false, "report what init would do without writing anything")
-	skipHook := fs.Bool("skip-hook", false, "skip installing the pre-push hook (every other step still runs)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
-		return exitUsage
+func newInitCmd() *cobra.Command {
+	var (
+		root     string
+		actor    string
+		dryRun   bool
+		skipHook bool
+	)
+	cmd := &cobra.Command{
+		Use:           "init",
+		Short:         "One-time setup: aiwf.yaml, scaffolding, skills, pre-push hook",
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runInitCmd(root, actor, dryRun, skipHook))
+		},
 	}
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: cwd)")
+	cmd.Flags().StringVar(&actor, "actor", "", "default actor for the commit trailer (overrides git config derivation)")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what init would do without writing anything")
+	cmd.Flags().BoolVar(&skipHook, "skip-hook", false, "skip installing the pre-push hook (every other step still runs)")
+	return cmd
+}
 
-	rootDir, err := resolveInitRoot(*root)
+func runInitCmd(root, actor string, dryRun, skipHook bool) int {
+	rootDir, err := resolveInitRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
 		return exitUsage
 	}
 
-	if !*dryRun {
+	if !dryRun {
 		release, rc := acquireRepoLock(rootDir, "aiwf init")
 		if release == nil {
 			return rc
@@ -58,9 +71,9 @@ func runInit(args []string) int {
 	}
 
 	res, err := initrepo.Init(context.Background(), rootDir, initrepo.Options{
-		ActorOverride: *actor,
-		DryRun:        *dryRun,
-		SkipHook:      *skipHook,
+		ActorOverride: actor,
+		DryRun:        dryRun,
+		SkipHook:      skipHook,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
@@ -100,7 +113,7 @@ func runInit(args []string) int {
 	switch {
 	case res.DryRun:
 		fmt.Println("\naiwf init: dry-run complete. Re-run without --dry-run to apply.")
-	case *skipHook:
+	case skipHook:
 		fmt.Println("\naiwf init: done (pre-push hook skipped). Commit aiwf.yaml when you're ready.")
 		fmt.Println("Run `aiwf init` again later to install the hook, or wire `aiwf check` into your push flow manually.")
 		if !ritualsPluginInstalled(rootDir) {
@@ -115,7 +128,7 @@ func runInit(args []string) int {
 	return exitOK
 }
 
-// runUpdate handles `aiwf update`: refreshes every marker-managed
+// newUpdateCmd builds `aiwf update`: refreshes every marker-managed
 // framework artifact the consumer is opted into. The pipeline is the
 // same one `aiwf init` runs after first-time scaffolding —
 // `initrepo.RefreshArtifacts` — so init and update converge to the
@@ -131,15 +144,24 @@ func runInit(args []string) int {
 // Hook conflicts (a non-marker hook already in place) are reported
 // in the per-step ledger and surface a remediation block, mirroring
 // `aiwf init`'s conflict path.
-func runUpdate(args []string) int {
-	fs := flag.NewFlagSet("update", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
-		return exitUsage
+func newUpdateCmd() *cobra.Command {
+	var root string
+	cmd := &cobra.Command{
+		Use:           "update",
+		Short:         "Refresh marker-managed framework artifacts (skills, hooks)",
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runUpdateCmd(root))
+		},
 	}
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	return cmd
+}
 
-	rootDir, err := resolveRoot(*root)
+func runUpdateCmd(root string) int {
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
 		return exitUsage
