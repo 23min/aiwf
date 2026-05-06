@@ -85,9 +85,12 @@ If the LLM is invoked turn-by-turn by a human (HITL / tool mode), pass `--actor 
 
 `work/` is the entity tree, not a scratch space. Tree-shape changes — creating an entity, renaming, status transitions, adding ACs — go through verbs (`aiwf add`, `aiwf rename`, `aiwf promote`, `aiwf reallocate`). **Do not write a new file under `work/` directly.** The id allocator, FSM, atomic-commit, repo lock, and trailer pipeline are all bypassed by hand-writes, and the resulting state is silently inconsistent.
 
-What's allowed without a verb:
+Every entity-file mutation goes through a verb route:
 
-- **Body-prose edits** to an existing entity file — the markdown under the frontmatter. The frontmatter itself is structured state; leave it to verbs. Note: when *creating* an entity with body content already drafted, prefer `aiwf add --body-file <path>` so the body lands in the same atomic create commit and skips the untrailered hand-edit step.
+- **Creating an entity with body content already drafted**: use `aiwf add --body-file <path>` so the body lands in the same atomic create commit.
+- **Editing the body of an existing entity**: use `aiwf edit-body <id> --body-file <path>` (see the `aiwf-edit-body` skill). Frontmatter stays the domain of structured-state verbs (promote / rename / cancel); body-prose edits go through `aiwf edit-body` so the commit carries proper trailers.
+
+Plain `git commit` against an entity file triggers `provenance-untrailered-entity-commit` on the next `aiwf check` — that warning is real, not a false positive. Backfill with `--audit-only` if you genuinely had to bypass the verb route, but the typical answer is "use `aiwf edit-body` instead."
 
 What `aiwf check` reports as `unexpected-tree-file`:
 

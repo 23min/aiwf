@@ -104,9 +104,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote M-057 in_progress -> done |
 | 2026-05-06 | human/peter | promote | aiwf promote M-057/AC-5 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-057/AC-4 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-057/AC-3 open -> met |
 | 2026-05-06 | human/peter | promote | aiwf promote M-057/AC-2 open -> met |
-| 2026-05-06 | human/peter | promote | aiwf promote M-057/AC-1 open -> met |
 

@@ -1,6 +1,8 @@
 package verb
 
 import (
+	"bytes"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -8,6 +10,24 @@ import (
 	"github.com/23min/ai-workflow-v2/internal/entity"
 	"github.com/23min/ai-workflow-v2/internal/tree"
 )
+
+// validateUserBodyBytes refuses user-supplied body content that begins
+// with a YAML frontmatter delimiter (`---\n`). Concatenating such
+// content with the verb's serialized frontmatter would produce a
+// malformed double-block file the loader can't parse — better to
+// refuse early with a clear message than to silently strip and
+// surprise the user. Leading whitespace is trimmed before the check
+// so users can't smuggle frontmatter past with a couple of newlines.
+//
+// Used by `aiwf add --body-file` (resolveAddBody) and `aiwf edit-body`
+// (M-058) so both routes apply the same rule against the same shape.
+func validateUserBodyBytes(body []byte) error {
+	trimmed := bytes.TrimLeft(body, " \t\r\n")
+	if bytes.HasPrefix(trimmed, []byte("---\n")) || bytes.HasPrefix(trimmed, []byte("---\r\n")) {
+		return fmt.Errorf("body content begins with a frontmatter delimiter (---); pass body content only, not a full markdown file with its own frontmatter")
+	}
+	return nil
+}
 
 // pathInside reports whether the repo-relative path p is the directory
 // dir or lives somewhere underneath it. Comparison is forward-slash so

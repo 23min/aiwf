@@ -410,6 +410,73 @@ func runPromote(args []string) int {
 	return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 }
 
+// runEditBody handles `aiwf edit-body <id> --body-file <path>` (and
+// `--body-file -` for stdin) — the post-creation body-edit verb that
+// closes the plain-git carve-out from G-052 / M-058. Frontmatter is
+// untouched; only the markdown body below the frontmatter delimiter
+// is replaced. One commit per invocation, standard provenance.
+func runEditBody(args []string) int {
+	fs := flag.NewFlagSet("edit-body", flag.ContinueOnError)
+	actor := fs.String("actor", "", "actor for the commit trailer")
+	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	root := fs.String("root", "", "consumer repo root")
+	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
+	bodyFile := fs.String("body-file", "", `path to a file whose content becomes the entity's new body (use "-" to read from stdin); the file must contain body content only — leading "---" is refused`)
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason", "body-file"}, nil)); err != nil {
+		return exitUsage
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		fmt.Fprintln(os.Stderr, "aiwf edit-body: usage: aiwf edit-body <id> --body-file <path>  (use --body-file - for stdin)")
+		return exitUsage
+	}
+	id := rest[0]
+
+	if *bodyFile == "" {
+		fmt.Fprintln(os.Stderr, "aiwf edit-body: --body-file <path> is required (use --body-file - for stdin)")
+		return exitUsage
+	}
+	body, readErr := readBodyFile(*bodyFile)
+	if readErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", readErr)
+		return exitUsage
+	}
+
+	rootDir, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", err)
+		return exitUsage
+	}
+	actorStr, err := resolveActor(*actor, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", err)
+		return exitUsage
+	}
+
+	release, rc := acquireRepoLock(rootDir, "aiwf edit-body")
+	if release == nil {
+		return rc
+	}
+	defer release()
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf edit-body: loading tree: %v\n", err)
+		return exitInternal
+	}
+
+	pctx := provenanceContext{
+		Actor:     actorStr,
+		Principal: strings.TrimSpace(*principal),
+		VerbKind:  verb.VerbAct,
+		TargetID:  id,
+	}
+	result, vErr := verb.EditBody(ctx, tr, id, body, actorStr, *reason)
+	return decorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx)
+}
+
 // runCancel handles `aiwf cancel <id> [--reason "..."]`.
 func runCancel(args []string) int {
 	fs := flag.NewFlagSet("cancel", flag.ContinueOnError)

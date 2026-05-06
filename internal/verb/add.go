@@ -1,7 +1,6 @@
 package verb
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -312,18 +311,15 @@ func buildAddOps(e *entity.Entity, body []byte) ([]FileOp, error) {
 
 // resolveAddBody returns the body bytes for the new entity. When
 // opts.BodyOverride is set it replaces the kind's default template
-// (M-056 — `aiwf add --body-file`). The override must contain body
-// content only; if it begins with a YAML frontmatter delimiter
-// (`---\n`) the verb refuses, since concatenating user-supplied
-// frontmatter with the verb's serialized frontmatter would produce
-// a malformed file with two frontmatter blocks.
+// (M-056 — `aiwf add --body-file`); validateUserBodyBytes refuses
+// content that begins with a frontmatter delimiter so the create
+// commit can't accidentally produce a double-frontmatter file.
 func resolveAddBody(kind entity.Kind, opts AddOptions) ([]byte, error) {
 	if opts.BodyOverride == nil {
 		return entity.BodyTemplate(kind), nil
 	}
-	trimmed := bytes.TrimLeft(opts.BodyOverride, " \t\r\n")
-	if bytes.HasPrefix(trimmed, []byte("---\n")) || bytes.HasPrefix(trimmed, []byte("---\r\n")) {
-		return nil, fmt.Errorf("--body-file content begins with a frontmatter delimiter (---); pass body content only, not a full markdown file with its own frontmatter")
+	if err := validateUserBodyBytes(opts.BodyOverride); err != nil {
+		return nil, fmt.Errorf("--body-file: %w", err)
 	}
 	return opts.BodyOverride, nil
 }
