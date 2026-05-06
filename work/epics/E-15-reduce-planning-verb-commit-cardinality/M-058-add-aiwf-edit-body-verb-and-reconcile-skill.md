@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: edit-body produces single trailered commit (aiwf-verb edit-body)
-      status: open
+      status: met
     - id: AC-3
       title: aiwf-add skill text removes plain-git body-edit carve-out
       status: open
