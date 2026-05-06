@@ -17,9 +17,11 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-05-06
+
 ### Fixed
 - **G50 — Pre-commit hook tolerant of gitignored `STATUS.md`.** The hook regenerates `STATUS.md` and stages it via `git add`; when the consumer has gitignored the file (legitimate — it's regenerated every commit), `git add` exited non-zero and `set -e` aborted the entire hook, in violation of the hook header's "tolerant by design — never blocks commits" promise. The aborted commit also commonly orphaned `.git/index.lock`, masquerading as an aiwf bug on subsequent verbs. Fix: append `2>/dev/null || true` to the `git add` invocation. Consumer migration: run `aiwf update` after upgrading. (`572bc96`)
-- **G48 — `aiwf init`, `aiwf update`, and `aiwf doctor` honor `core.hooksPath`.** A consumer who has set git's `core.hooksPath` (a tracked-hooks pattern via husky/lefthook or a home-grown convention) previously got hooks installed at `.git/hooks/` regardless — git's hook lookup missed them and the validation chokepoint silently disappeared. New `gitops.HooksDir` helper resolves the effective hooks directory once; init, update, and doctor read through it. Reports (`StepResult.What`, doctor lines, migration messages) reflect the actual install path. Consumer migration: run `aiwf update` after upgrading.
+- **G48 — `aiwf init`, `aiwf update`, and `aiwf doctor` honor `core.hooksPath`.** A consumer who has set git's `core.hooksPath` (a tracked-hooks pattern via husky/lefthook or a home-grown convention) previously got hooks installed at `.git/hooks/` regardless — git's hook lookup missed them and the validation chokepoint silently disappeared. New `gitops.HooksDir` helper resolves the effective hooks directory once; init, update, and doctor read through it. Reports (`StepResult.What`, doctor lines, migration messages) reflect the actual install path. Consumer migration: run `aiwf update` after upgrading. (`6432f0f`)
 
 ## [0.5.1] — 2026-05-06
 
