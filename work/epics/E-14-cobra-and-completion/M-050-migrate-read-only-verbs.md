@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: --format=json envelope output preserved byte-exact for each verb
       status: open
+    - id: AC-3
+      title: Exit codes preserved for each migrated read-only verb
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ One verb at a time. Each verb's `--format=json` envelope is the contract; preser
 ### AC-1 — check, history, doctor, schema, template, render migrated to Cobra
 
 ### AC-2 — --format=json envelope output preserved byte-exact for each verb
+
+### AC-3 — Exit codes preserved for each migrated read-only verb
 
