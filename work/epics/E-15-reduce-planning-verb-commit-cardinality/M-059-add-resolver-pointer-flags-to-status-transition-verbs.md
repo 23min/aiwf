@@ -1,7 +1,7 @@
 ---
 id: M-059
 title: Add resolver-pointer flags to status-transition verbs
-status: in_progress
+status: done
 parent: E-15
 acs:
     - id: AC-1
