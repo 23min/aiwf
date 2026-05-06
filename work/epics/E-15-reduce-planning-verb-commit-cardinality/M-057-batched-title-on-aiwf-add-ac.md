@@ -16,6 +16,9 @@ acs:
     - id: AC-4
       title: Single commit produced regardless of N (one or many ACs)
       status: open
+    - id: AC-5
+      title: Single-title invocation continues to work unchanged
+      status: open
 ---
 
 ## Goal
@@ -37,4 +40,6 @@ Single-`--title` invocation continues to work unchanged — backward-compatible 
 ### AC-3 — Commit trailers list every created AC composite id
 
 ### AC-4 — Single commit produced regardless of N (one or many ACs)
+
+### AC-5 — Single-title invocation continues to work unchanged
 

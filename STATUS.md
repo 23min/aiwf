@@ -63,7 +63,7 @@ flowchart LR
 ### E-15 — Reduce planning-verb commit cardinality _(proposed)_
 
 - **M-056** — Add --body-file to aiwf add variants _(draft)_ — ACs 0/5 met (5 open)
-- **M-057** — Batched --title on aiwf add ac _(draft)_ — ACs 0/4 met (4 open)
+- **M-057** — Batched --title on aiwf add ac _(draft)_ — ACs 0/5 met (5 open)
 - **M-058** — Add aiwf edit-body verb and reconcile skill _(draft)_
 
 ```mermaid
@@ -71,7 +71,7 @@ flowchart LR
   E_15["E-15<br/>Reduce planning-verb commit cardinality"]:::epic_proposed
   M_056["M-056 (0/5)<br/>Add --body-file to aiwf add variants"]:::ms_draft
   E_15 --> M_056
-  M_057["M-057 (0/4)<br/>Batched --title on aiwf add ac"]:::ms_draft
+  M_057["M-057 (0/5)<br/>Batched --title on aiwf add ac"]:::ms_draft
   E_15 --> M_057
   M_058["M-058<br/>Add aiwf edit-body verb and reconcile skill"]:::ms_draft
   E_15 --> M_058
@@ -104,9 +104,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add ac M-057/AC-4 'Single commit produced regardless of N (one or many ACs)' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-057/AC-3 'Commit trailers list every created AC composite id' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-057/AC-2 'All N ACs allocated atomically; failure reverts entire batch' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-057/AC-1 'Repeated --title flag accepted on aiwf add ac M-NNN' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-056/AC-5 'Subprocess integration test exercises --body-file path' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-056/AC-4 'Body and frontmatter committed together in single create commit' |
 
