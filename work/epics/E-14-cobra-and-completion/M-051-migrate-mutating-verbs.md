@@ -19,6 +19,9 @@ acs:
     - id: AC-5
       title: Repo lock contract preserved for each mutating verb
       status: open
+    - id: AC-6
+      title: Subprocess integration tests pass for all six mutating verbs
+      status: open
 ---
 
 ## Goal
@@ -40,4 +43,6 @@ Subprocess integration tests are the proof of behavior preservation. Provenance 
 ### AC-4 — Provenance trailer coherence rules preserved across migrated verbs
 
 ### AC-5 — Repo lock contract preserved for each mutating verb
+
+### AC-6 — Subprocess integration tests pass for all six mutating verbs
 
