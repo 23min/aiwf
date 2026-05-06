@@ -3,6 +3,10 @@ id: M-052
 title: Migrate setup verbs
 status: draft
 parent: E-14
+acs:
+    - id: AC-1
+      title: init, update, upgrade migrated to Cobra
+      status: open
 ---
 
 ## Goal
@@ -14,3 +18,6 @@ Migrate `init`, `update`, and `upgrade` — verbs that touch the consumer repo's
 Test against a fresh tempdir consumer repo (per the existing pattern). After `init`, `aiwf doctor --self-check` must pass — that's the integration anchor. Hooks installed under `.git/hooks/` must be byte-identical to the pre-migration installer's output (or deliberately updated, in which case the change goes through the doctor goldens with rationale).
 
 ## Acceptance criteria
+
+### AC-1 — init, update, upgrade migrated to Cobra
+
