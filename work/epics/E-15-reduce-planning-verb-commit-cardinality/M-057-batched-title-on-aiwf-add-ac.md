@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: Commit trailers list every created AC composite id
       status: open
+    - id: AC-4
+      title: Single commit produced regardless of N (one or many ACs)
+      status: open
 ---
 
 ## Goal
@@ -32,4 +35,6 @@ Single-`--title` invocation continues to work unchanged — backward-compatible 
 ### AC-2 — All N ACs allocated atomically; failure reverts entire batch
 
 ### AC-3 — Commit trailers list every created AC composite id
+
+### AC-4 — Single commit produced regardless of N (one or many ACs)
 
