@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: Marker-based artifact regeneration preserved (skills, hook markers)
-      status: open
+      status: met
     - id: AC-3
       title: aiwf doctor --self-check passes after init in fresh consumer repo
       status: open
