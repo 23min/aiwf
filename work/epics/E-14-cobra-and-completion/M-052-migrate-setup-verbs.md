@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: aiwf doctor --self-check passes after init in fresh consumer repo
-      status: open
+      status: met
     - id: AC-4
       title: Installed git hooks remain byte-identical or update goldens with rationale
       status: open
