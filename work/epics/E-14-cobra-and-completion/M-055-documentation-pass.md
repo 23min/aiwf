@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: CLAUDE.md Go conventions references Cobra as standard CLI library
-      status: open
+      status: met
 ---
 
 ## Goal
