@@ -79,9 +79,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add milestone M-055 'Documentation pass' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-054 'Dynamic id completion and drift test' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-053 'Completion verb and static completion' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-052 'Migrate setup verbs' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-051 'Migrate mutating verbs' |
-| 2026-05-06 | human/peter | add | aiwf add milestone M-050 'Migrate read-only verbs' |
 
