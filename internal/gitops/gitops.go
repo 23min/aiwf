@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -197,6 +198,44 @@ func GitDir(ctx context.Context, workdir string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(out), nil
+}
+
+// HooksDir returns the effective hooks directory for workdir. When
+// `core.hooksPath` is set in the repo's git config, it is honored
+// (relative paths resolve against workdir); otherwise the default
+// `<gitDir>/hooks` is returned. The result is always an absolute
+// path with symlinks resolved, matching git's own canonicalization
+// (via `--absolute-git-dir`).
+//
+// `git config --get` exits 1 when the key is unset, which `output`
+// surfaces as an error; we treat any error as "fall back to
+// default." If git is genuinely broken, the GitDir call below
+// surfaces the same underlying issue with a clearer message.
+//
+// Symlink resolution matters on macOS: `t.TempDir()` returns
+// `/var/folders/...` but git resolves it to `/private/var/folders/...`.
+// Without canonicalizing the relative-path branch, callers that
+// compare the returned value against git-derived paths get
+// long-up-and-back relative results that aren't useful for
+// human-facing reports.
+func HooksDir(ctx context.Context, workdir string) (string, error) {
+	if out, err := output(ctx, workdir, "config", "--get", "core.hooksPath"); err == nil {
+		if configured := strings.TrimSpace(out); configured != "" {
+			if filepath.IsAbs(configured) {
+				return configured, nil
+			}
+			canonical, evalErr := filepath.EvalSymlinks(workdir)
+			if evalErr != nil {
+				canonical = workdir
+			}
+			return filepath.Join(canonical, configured), nil
+		}
+	}
+	gitDir, err := GitDir(ctx, workdir)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(gitDir, "hooks"), nil
 }
 
 // HeadSubject returns the subject line of HEAD's commit. Used by tests

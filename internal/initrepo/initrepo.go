@@ -91,8 +91,9 @@ Skills under ` + "`.claude/skills/aiwf-*/`" + ` are gitignored and regenerated o
 func preHookScript(execPath string) string {
 	return `#!/bin/sh
 ` + preHookMarker + `
-# Installed by aiwf init. Chains to .git/hooks/pre-push.local first
-# (G45) so consumer-written hooks compose rather than collide.
+# Installed by aiwf init. Chains to the pre-push.local sibling in
+# this hook's directory first (G45) so consumer-written hooks
+# compose rather than collide.
 [ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
 ` + chainPrelude("pre-push") + `
 exec ` + shellQuoteSingle(execPath) + ` check
@@ -165,8 +166,9 @@ fi
 	}
 	return `#!/bin/sh
 ` + preCommitHookMarker + `
-# Installed by aiwf init/update. Chains to .git/hooks/pre-commit.local
-# first (G45) so consumer-written hooks compose rather than collide.
+# Installed by aiwf init/update. Chains to the pre-commit.local
+# sibling in this hook's directory first (G45) so consumer-written
+# hooks compose rather than collide.
 #   (1) Tree-discipline gate: stray files under work/ block the
 #       commit when aiwf.yaml has tree.strict: true; otherwise they
 #       print a warning but proceed. Always present.
@@ -372,14 +374,25 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 	steps = append(steps, gitignoreStep)
 
 	if opts.SkipHooks {
+		// Report against the path hooks would have landed at, so the
+		// ledger reflects the consumer's effective hook location even
+		// when nothing is installed. Falls back to the default path
+		// strings if HooksDir cannot resolve (e.g. dry-run on a path
+		// that isn't yet a git repo).
+		prePushReport := ".git/hooks/pre-push"
+		preCommitReport := ".git/hooks/pre-commit"
+		if hooksDir, hdErr := gitops.HooksDir(ctx, root); hdErr == nil {
+			prePushReport = hookReportPath(root, filepath.Join(hooksDir, "pre-push"))
+			preCommitReport = hookReportPath(root, filepath.Join(hooksDir, "pre-commit"))
+		}
 		steps = append(steps,
 			StepResult{
-				What:   ".git/hooks/pre-push",
+				What:   prePushReport,
 				Action: ActionSkipped,
 				Detail: "--skip-hook flag set",
 			},
 			StepResult{
-				What:   ".git/hooks/pre-commit",
+				What:   preCommitReport,
 				Action: ActionSkipped,
 				Detail: "--skip-hook flag set",
 			},
@@ -841,18 +854,18 @@ func ensureClaudeMd(root string, dryRun bool) (StepResult, error) {
 // In dry-run mode, conflict and migration detection still run
 // (read-only) but no directory or file is created.
 func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, bool, error) {
-	gitDir, err := gitops.GitDir(ctx, root)
+	hooksDir, err := gitops.HooksDir(ctx, root)
 	if err != nil {
-		return StepResult{}, false, fmt.Errorf("locating git dir: %w", err)
+		return StepResult{}, false, fmt.Errorf("locating hooks dir: %w", err)
 	}
-	hooksDir := filepath.Join(gitDir, "hooks")
 	if !dryRun {
 		if mkErr := os.MkdirAll(hooksDir, 0o755); mkErr != nil {
 			return StepResult{}, false, fmt.Errorf("creating hooks dir: %w", mkErr)
 		}
 	}
 	hookPath := filepath.Join(hooksDir, "pre-push")
-	what := ".git/hooks/pre-push"
+	what := hookReportPath(root, hookPath)
+	localReport := hookReportPath(root, filepath.Join(hooksDir, "pre-push.local"))
 
 	existing, readErr := os.ReadFile(hookPath)
 	migrated := false
@@ -873,7 +886,7 @@ func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, b
 			return StepResult{
 				What:   what,
 				Action: ActionSkipped,
-				Detail: "existing non-aiwf hook would migrate to .git/hooks/pre-push.local but that file already exists; resolve manually (merge content or rename) and re-run init",
+				Detail: "existing non-aiwf hook would migrate to " + localReport + " but that file already exists; resolve manually (merge content or rename) and re-run init",
 			}, true, nil
 		}
 		if !dryRun {
@@ -902,7 +915,7 @@ func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, b
 	}
 	detail := "exec " + exePath
 	if migrated {
-		detail = "existing hook moved to .git/hooks/pre-push.local; aiwf's chain-aware hook now runs it before " + exePath + " check"
+		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before " + exePath + " check"
 	}
 	return StepResult{
 		What:   what,
@@ -975,13 +988,13 @@ func PreCommitHookMarker() string { return preCommitHookMarker }
 // StepResult still reflects what would have happened so the user
 // can preview.
 func ensurePreCommitHook(ctx context.Context, root string, regenStatus, dryRun bool) (StepResult, bool, error) {
-	gitDir, err := gitops.GitDir(ctx, root)
+	hooksDir, err := gitops.HooksDir(ctx, root)
 	if err != nil {
-		return StepResult{}, false, fmt.Errorf("locating git dir: %w", err)
+		return StepResult{}, false, fmt.Errorf("locating hooks dir: %w", err)
 	}
-	hooksDir := filepath.Join(gitDir, "hooks")
 	hookPath := filepath.Join(hooksDir, "pre-commit")
-	what := ".git/hooks/pre-commit"
+	what := hookReportPath(root, hookPath)
+	localReport := hookReportPath(root, filepath.Join(hooksDir, "pre-commit.local"))
 
 	existing, readErr := os.ReadFile(hookPath)
 	hasOurMarker := readErr == nil && strings.Contains(string(existing), preCommitHookMarker)
@@ -995,7 +1008,7 @@ func ensurePreCommitHook(ctx context.Context, root string, regenStatus, dryRun b
 			return StepResult{
 				What:   what,
 				Action: ActionSkipped,
-				Detail: "existing non-aiwf hook would migrate to .git/hooks/pre-commit.local but that file already exists; resolve manually (merge content or rename) and re-run init",
+				Detail: "existing non-aiwf hook would migrate to " + localReport + " but that file already exists; resolve manually (merge content or rename) and re-run init",
 			}, true, nil
 		}
 		if !dryRun {
@@ -1036,11 +1049,37 @@ func ensurePreCommitHook(ctx context.Context, root string, regenStatus, dryRun b
 		detail += " (status regen disabled by status_md.auto_update: false)"
 	}
 	if migrated {
-		detail = "existing hook moved to .git/hooks/pre-commit.local; aiwf's chain-aware hook now runs it before " + exePath + " check --shape-only"
+		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before " + exePath + " check --shape-only"
 	}
 	return StepResult{
 		What:   what,
 		Action: action,
 		Detail: detail,
 	}, false, nil
+}
+
+// hookReportPath returns the install path of a hook file for use in
+// StepResult.What and Detail strings, expressed relative to root
+// when reasonable. Reports thus reflect the actual install path the
+// consumer sees (e.g. ".git/hooks/pre-push" for default config,
+// "scripts/git-hooks/pre-push" when core.hooksPath is configured).
+//
+// root is canonicalized via EvalSymlinks before the rel calculation
+// because gitops.HooksDir returns the symlink-resolved path
+// (git's --absolute-git-dir resolves symlinks; macOS /var ->
+// /private/var is the canonical example). Without this, Rel produces
+// a long up-and-back traversal between the two forms of the same
+// directory.
+//
+// On any unrecoverable error the absolute path is returned verbatim —
+// informative even if not pretty.
+func hookReportPath(root, hookPath string) string {
+	if resolved, err := filepath.EvalSymlinks(root); err == nil {
+		root = resolved
+	}
+	rel, err := filepath.Rel(root, hookPath)
+	if err != nil {
+		return hookPath
+	}
+	return rel
 }

@@ -15,7 +15,7 @@ import (
 // dispatcher OR the htmlrender package can drift unnoticed.
 func TestRun_RenderHTML_DispatchesToSite(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Schema", "--actor", "human/test", "--root", root)
 
@@ -61,7 +61,7 @@ func TestRun_RenderHTML_DispatchesToSite(t *testing.T) {
 // --format=html` without a flag override.
 func TestRun_RenderHTML_HonorsAiwfYAMLOutDir(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 
 	yamlPath := filepath.Join(root, "aiwf.yaml")
@@ -101,7 +101,7 @@ func TestRun_RenderHTML_HonorsAiwfYAMLOutDir(t *testing.T) {
 // asserts the property holds when invoked through `aiwf render`).
 func TestRun_RenderHTML_DeterministicAcrossInvocations(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
@@ -125,7 +125,7 @@ func TestRun_RenderHTML_DeterministicAcrossInvocations(t *testing.T) {
 // --format is a usage error.
 func TestRun_Render_DispatcherDistinguishesSubcommandFromFormat(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 
 	// roadmap subcommand still emits markdown on stdout.

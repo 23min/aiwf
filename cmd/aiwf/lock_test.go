@@ -15,7 +15,7 @@ import (
 // a busy message.
 func TestRun_ConcurrentMutations_OneWinsOneBusy(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -64,7 +64,7 @@ func TestRun_ConcurrentMutations_OneWinsOneBusy(t *testing.T) {
 // while a mutation lock is held — concurrent reads/writes are fine.
 func TestRun_Check_DoesNotAcquireLock(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 

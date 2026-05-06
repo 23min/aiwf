@@ -118,23 +118,31 @@ func TestWalkUpFor(t *testing.T) {
 // setupCLITestRepo gives the test process a git identity and an
 // initialized repo; returns the repo root.
 //
-// GIT_CONFIG_PARAMETERS is set so every git subprocess this test
-// (or its children, including selfcheck's own temp repo) spawns
-// reads `core.hooksPath` pointing at a non-existent directory.
-// Hooks installed by Init still land on disk, but git's hook
-// lookup misses them and they never fire. Without this redirect,
-// the pre-commit hook installed by Init execs os.Executable(),
-// which under `go test` is the test binary — running the test
-// binary as a hook can hang or behave unpredictably and was
-// observed to deadlock `aiwf add` integration tests.
+// Hook discipline: every test calling `aiwf init` via this in-process
+// dispatcher must pass `--skip-hook` unless it specifically wants to
+// verify hook installation. The hook bakes in `os.Executable()`,
+// which under `go test` resolves to the test binary — letting git
+// then exec the test binary as a hook can hang or behave
+// unpredictably (deadlocked `aiwf add` integration tests historically).
+// Tests that need consumer-parity hook firing should use the
+// runBin-style subprocess pattern (see auditonly_cmd_test.go,
+// authorize_cmd_test.go) where a real aiwf binary is built and
+// driven as a child process.
+//
+// Pre-G48 this helper redirected `core.hooksPath` to a non-existent
+// directory so git's hook lookup would miss aiwf's hooks at
+// `.git/hooks/`. That worked because `aiwf init` was buggy and
+// installed to `.git/hooks/` regardless of `core.hooksPath`. After
+// G48 the install path follows `core.hooksPath`, so the redirect
+// would now actually surface aiwf's hooks at the configured path
+// and re-introduce the test-binary-as-hook hazard. The discipline
+// above (explicit `--skip-hook`) replaces it.
 func setupCLITestRepo(t *testing.T) string {
 	t.Helper()
 	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
 	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
 	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-	t.Setenv("GIT_CONFIG_PARAMETERS",
-		"'core.hooksPath="+filepath.Join(t.TempDir(), "no-hooks-here")+"'")
 	root := t.TempDir()
 	if got := run([]string{"check", "--root=" + root}); got != exitOK {
 		t.Fatalf("baseline check on tmpdir = %d", got)

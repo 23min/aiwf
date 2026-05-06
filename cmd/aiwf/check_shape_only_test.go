@@ -11,7 +11,7 @@ import (
 // repo that only contains recognized entity files.
 func TestRun_CheckShapeOnly_CleanTree(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "gap", "--title", "Real gap", "--root", root, "--actor", "human/test"}); rc != exitOK {
@@ -33,7 +33,7 @@ func TestRun_CheckShapeOnly_CleanTree(t *testing.T) {
 // prints the finding but exits 0 — the pre-commit hook proceeds.
 func TestRun_CheckShapeOnly_StrayWarning_ExitOK(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if err := os.MkdirAll(filepath.Join(root, "work", "gaps"), 0o755); err != nil {
@@ -62,7 +62,7 @@ func TestRun_CheckShapeOnly_StrayWarning_ExitOK(t *testing.T) {
 // exits with findings — the pre-commit hook blocks the commit.
 func TestRun_CheckShapeOnly_StrayStrict_ExitFindings(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	// Append tree.strict: true to the aiwf.yaml init wrote.
@@ -96,7 +96,7 @@ func TestRun_CheckShapeOnly_StrayStrict_ExitFindings(t *testing.T) {
 // strict mode on.
 func TestRun_CheckShapeOnly_AllowPathsExempt(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	yamlPath := filepath.Join(root, "aiwf.yaml")

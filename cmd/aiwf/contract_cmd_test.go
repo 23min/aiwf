@@ -36,7 +36,7 @@ esac
 // status is exitOK with no findings.
 func TestRun_ContractVerifyClean(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
@@ -81,7 +81,7 @@ contracts:
 // error-severity finding and a non-zero exit code.
 func TestRun_ContractVerifyReportsFixtureRejected(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
@@ -129,7 +129,7 @@ contracts:
 // the same hook fires both kinds of validation.
 func TestRun_CheckIncludesContractFindings(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
@@ -175,7 +175,7 @@ contracts:
 // would otherwise fail does not block `aiwf check`.
 func TestRun_CheckSkipsTerminalContracts(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "contract", "--title", "Old API", "--root", root, "--actor", "human/test"}); rc != exitOK {
@@ -222,7 +222,7 @@ contracts:
 // doesn't resolve.
 func TestRun_ContractVerifyReportsConfigMissingSchema(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
@@ -270,7 +270,7 @@ contracts:
 // validator-unavailable warning, and the exit code must be exitOK.
 func TestRun_ContractVerify_ValidatorUnavailableIsWarning(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
@@ -317,7 +317,7 @@ contracts:
 // machine can keep that behavior.
 func TestRun_ContractVerify_StrictValidators_IsError(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
@@ -373,7 +373,7 @@ contracts:
 //  8. unbind and verify clean again
 func TestRun_ContractEndToEnd_FullChain(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -452,7 +452,7 @@ args:
 // printing a no-op message and not creating a second commit.
 func TestRun_ContractRecipeInstallIsIdempotent(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -483,7 +483,7 @@ args:
 // must error out (exit 2) and name the offending binding.
 func TestRun_ContractRecipeRemoveRefusesWhenBindingExists(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	script := fakeValidatorCLI(t, root)
@@ -525,7 +525,7 @@ args: ["{{fixture}}"]
 // problem and leave no entity behind.
 func TestRun_ContractAddPartialBindFlagsRejected(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	script := fakeValidatorCLI(t, root)

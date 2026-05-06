@@ -289,6 +289,101 @@ func TestInit_RefusesPreHookMigrationOnCollision(t *testing.T) {
 	}
 }
 
+// TestInit_HonorsCoreHooksPath (G48): when the consumer has set
+// `core.hooksPath` (a tracked-hooks pattern via husky/lefthook or a
+// home-grown convention), `aiwf init` writes its hooks at the
+// configured path, not the default `.git/hooks/`. Without this fix
+// aiwf's hooks land where git won't look and the validation
+// chokepoint silently disappears.
+func TestInit_HonorsCoreHooksPath(t *testing.T) {
+	root := freshGitRepo(t)
+	// Configure a relative tracked-hooks dir, the most common shape.
+	c := exec.Command("git", "config", "core.hooksPath", "scripts/git-hooks")
+	c.Dir = root
+	if out, err := c.CombinedOutput(); err != nil {
+		t.Fatalf("git config core.hooksPath: %v\n%s", err, out)
+	}
+
+	res, err := Init(context.Background(), root, Options{})
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	// Hooks land at the configured path, not .git/hooks/.
+	configured := filepath.Join(root, "scripts", "git-hooks")
+	for _, name := range []string{"pre-push", "pre-commit"} {
+		atConfigured := filepath.Join(configured, name)
+		if _, err := os.Stat(atConfigured); err != nil {
+			t.Errorf("%s missing at configured hooksPath %s: %v", name, atConfigured, err)
+		}
+		atDefault := filepath.Join(root, ".git", "hooks", name)
+		if _, err := os.Stat(atDefault); err == nil {
+			t.Errorf("%s exists at default .git/hooks/ but core.hooksPath is set; should only exist at configured path", name)
+		}
+	}
+
+	// Step ledger reflects the configured path so the consumer's
+	// `aiwf init` summary shows where hooks landed.
+	prePushStep := findStep(t, res.Steps, "scripts/git-hooks/pre-push")
+	if prePushStep.Action != ActionCreated {
+		t.Errorf("pre-push step action = %q, want %q", prePushStep.Action, ActionCreated)
+	}
+	preCommitStep := findStep(t, res.Steps, "scripts/git-hooks/pre-commit")
+	if preCommitStep.Action != ActionCreated {
+		t.Errorf("pre-commit step action = %q, want %q", preCommitStep.Action, ActionCreated)
+	}
+}
+
+// TestInit_HonorsCoreHooksPath_MigratesAlien (G48 + G45): when
+// `core.hooksPath` is set AND a non-marker hook is already present
+// at that location, the G45 auto-migration runs against the
+// configured directory. The alien hook moves to <name>.local
+// alongside the configured location, not `.git/hooks/`.
+func TestInit_HonorsCoreHooksPath_MigratesAlien(t *testing.T) {
+	root := freshGitRepo(t)
+	configured := filepath.Join(root, "scripts", "git-hooks")
+	if err := os.MkdirAll(configured, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	c := exec.Command("git", "config", "core.hooksPath", "scripts/git-hooks")
+	c.Dir = root
+	if out, err := c.CombinedOutput(); err != nil {
+		t.Fatalf("git config: %v\n%s", err, out)
+	}
+	alien := []byte("#!/bin/sh\n# user's pre-existing tracked hook\nexit 0\n")
+	if err := os.WriteFile(filepath.Join(configured, "pre-commit"), alien, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := Init(context.Background(), root, Options{})
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	if res.HookConflict {
+		t.Errorf("HookConflict = true, want false (G45 auto-migrates)")
+	}
+
+	migrated, err := os.ReadFile(filepath.Join(configured, "pre-commit.local"))
+	if err != nil {
+		t.Fatalf("reading migrated .local at configured path: %v", err)
+	}
+	if !bytes.Equal(migrated, alien) {
+		t.Errorf("migrated content drifted at configured path:\n got  %s\n want %s", migrated, alien)
+	}
+
+	step := findStep(t, res.Steps, "scripts/git-hooks/pre-commit")
+	if step.Action != ActionMigrated {
+		t.Errorf("step action = %q, want %q", step.Action, ActionMigrated)
+	}
+	// Detail names the configured-path .local sibling, not .git/hooks/.
+	if !strings.Contains(step.Detail, "scripts/git-hooks/pre-commit.local") {
+		t.Errorf("Detail should reference configured-path .local sibling: %s", step.Detail)
+	}
+	if strings.Contains(step.Detail, ".git/hooks/") {
+		t.Errorf("Detail should not hardcode .git/hooks/ when core.hooksPath is set: %s", step.Detail)
+	}
+}
+
 // findStep returns the StepResult with What == what; fails the test
 // if not found. Tests that target a specific ledger row (rather than
 // the last) use this so step-order tweaks don't ripple.

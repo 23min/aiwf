@@ -14,7 +14,7 @@ import (
 // rollup per epic" requirement through the dispatcher seam.
 func TestRender_IndexShowsACRollup(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "A1")
@@ -37,7 +37,7 @@ func TestRender_IndexShowsACRollup(t *testing.T) {
 // nav links resolve.
 func TestRender_MilestoneEmitsSixTabs(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
@@ -65,7 +65,7 @@ func TestRender_MilestoneEmitsSixTabs(t *testing.T) {
 // off, the Tests tab shows the "advisory" badge.
 func TestRender_TestsTabPolicyBadge_Advisory(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
@@ -82,7 +82,7 @@ func TestRender_TestsTabPolicyBadge_Advisory(t *testing.T) {
 // on, the badge flips to "strict".
 func TestRender_TestsTabPolicyBadge_Strict(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	yamlPath := filepath.Join(root, "aiwf.yaml")
 	raw, err := os.ReadFile(yamlPath)
 	if err != nil {
@@ -110,7 +110,7 @@ func TestRender_TestsTabPolicyBadge_Strict(t *testing.T) {
 // the templates.
 func TestRender_EpicBodyGoalRendered(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	ePath := filepath.Join(root, "work", "epics", "E-01-f", "epic.md")
 	raw, err := os.ReadFile(ePath)
@@ -142,7 +142,7 @@ func TestRender_EpicBodyGoalRendered(t *testing.T) {
 // wrong tab) is what the testing-rules audit caught.
 func TestRender_ACAnchorWiredManifestToBuild(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Engine")
@@ -165,7 +165,7 @@ func TestRender_ACAnchorWiredManifestToBuild(t *testing.T) {
 // the testing-rules audit flagged as "passes for wrong reasons."
 func TestRender_TestsTabBadgeIsInsideTestsTab(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
@@ -186,7 +186,7 @@ func TestRender_TestsTabBadgeIsInsideTestsTab(t *testing.T) {
 // I3 step-5 smoke render; this test is the regression pin.
 func TestRender_BuildTabExcludesStatusEvents(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Engine")
@@ -211,7 +211,7 @@ func TestRender_BuildTabExcludesStatusEvents(t *testing.T) {
 // any test).
 func TestRender_BuildTabIncludesPhaseHistory(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Engine")
@@ -242,7 +242,7 @@ func TestRender_BuildTabIncludesPhaseHistory(t *testing.T) {
 // authorize commits).
 func TestRender_ProvenanceTabShowsAuthorizeScope(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "authorize", "--root", root, "--actor", "human/test", "M-001", "--to", "ai/claude")
@@ -266,7 +266,7 @@ func TestRender_ProvenanceTabShowsAuthorizeScope(t *testing.T) {
 // surfaced by the smoke render.
 func TestRender_OverviewSuppressesEmptyLinkedDecisions(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
@@ -283,7 +283,7 @@ func TestRender_OverviewSuppressesEmptyLinkedDecisions(t *testing.T) {
 // historyEventToRow originally passed the raw Date through.
 func TestRender_CommitDatesAreDateOnly(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 

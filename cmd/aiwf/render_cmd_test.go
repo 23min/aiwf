@@ -15,7 +15,7 @@ import (
 // lands without --write.
 func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -65,7 +65,7 @@ func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 // no-op (HEAD doesn't advance) because content is unchanged.
 func TestRun_RenderRoadmap_WriteCommits(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {

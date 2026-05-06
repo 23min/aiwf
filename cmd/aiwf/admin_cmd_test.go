@@ -14,12 +14,18 @@ import (
 )
 
 // TestRun_InitThroughDispatcher confirms `aiwf init` wires through the
-// dispatcher: scaffolds dirs, writes aiwf.yaml, materializes skills,
-// installs the pre-push hook.
+// dispatcher: scaffolds dirs, writes aiwf.yaml, materializes skills.
+//
+// The dispatcher test passes --skip-hook because the in-process
+// dispatcher bakes os.Executable() (= the test binary) into any
+// hook it installs; firing the test binary as a hook is unsafe
+// (see setupCLITestRepo's discipline note). End-to-end hook
+// installation is covered by the runBin-style binary integration
+// tests, which build a real aiwf and exercise consumer parity.
 func TestRun_InitThroughDispatcher(t *testing.T) {
 	root := setupCLITestRepo(t)
 
-	rc := run([]string{"init", "--root", root, "--actor", "human/test"})
+	rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"})
 	if rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
@@ -29,12 +35,9 @@ func TestRun_InitThroughDispatcher(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")); err != nil {
 		t.Errorf("aiwf-add skill missing: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".git", "hooks", "pre-push")); err != nil {
-		t.Errorf("pre-push hook missing: %v", err)
-	}
 
 	// Re-run to confirm idempotency through the dispatcher.
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Errorf("re-run init: %d", rc)
 	}
 }
@@ -46,7 +49,7 @@ func TestRun_InitDryRun(t *testing.T) {
 	root := setupCLITestRepo(t)
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--dry-run"}); rc != exitOK {
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook", "--dry-run"}); rc != exitOK {
 			t.Errorf("got rc=%d, want %d", rc, exitOK)
 		}
 	})
@@ -120,6 +123,10 @@ func TestRun_InitMigratesAlienHook(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
+		// No --skip-hook here: this test exercises the G45 hook
+		// migration path and needs init to actually install (and
+		// migrate) the hook. The test does not trigger any commits,
+		// so the test binary won't be invoked as a hook.
 		if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 			t.Errorf("got %d, want %d (G45 auto-migrates, no conflict)", rc, exitOK)
 		}
@@ -163,7 +170,7 @@ func TestRun_InitMigratesAlienHook(t *testing.T) {
 // `aiwf update` restores the embedded content byte-for-byte.
 func TestRun_UpdateMaterializes(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	skillPath := filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")
@@ -188,6 +195,10 @@ func TestRun_UpdateMaterializes(t *testing.T) {
 // update only re-materialised skills.
 func TestRun_UpdateRefreshesPrePushHook(t *testing.T) {
 	root := setupCLITestRepo(t)
+	// No --skip-hook: this test exercises update's hook-refresh
+	// behavior and needs init to land a real hook first. The test
+	// triggers no commits, so the embedded test-binary path never
+	// fires as a hook.
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
@@ -211,6 +222,7 @@ func TestRun_UpdateRefreshesPrePushHook(t *testing.T) {
 // new pre-commit hook (default-on per status_md.auto_update).
 func TestRun_UpdateRefreshesPreCommitHook(t *testing.T) {
 	root := setupCLITestRepo(t)
+	// No --skip-hook: same rationale as TestRun_UpdateRefreshesPrePushHook.
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
@@ -237,6 +249,9 @@ func TestRun_UpdateRefreshesPreCommitHook(t *testing.T) {
 // STATUS.md regen step is dropped from the script body.
 func TestRun_UpdateDropsRegenKeepsGateOnOptOut(t *testing.T) {
 	root := setupCLITestRepo(t)
+	// No --skip-hook: this test verifies G42 round-trip behavior
+	// (install → opt-out → re-install) which needs real hook
+	// installation through init. No commits triggered.
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
@@ -289,7 +304,7 @@ func TestRun_UpdateMissingConfig(t *testing.T) {
 // events for the entity, oldest-first.
 func TestRun_HistoryShowsAddPromoteCancel(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -325,7 +340,7 @@ func TestRun_HistoryShowsAddPromoteCancel(t *testing.T) {
 // we then parse the envelope and assert its shape.
 func TestRun_HistoryJSON(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -406,7 +421,7 @@ func captureStdout(t *testing.T, fn func()) []byte {
 // matches only that AC.
 func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -451,7 +466,7 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 // bearing field-projection paths.
 func TestRun_HistoryReadsAiwfToAndForce(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -533,7 +548,7 @@ func TestRun_HistoryRenderToDash(t *testing.T) {
 // the main row. Pinned via captured stdout.
 func TestRun_HistoryTextOutputIncludesForceLine(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -565,7 +580,7 @@ func TestRun_HistoryTextOutputIncludesForceLine(t *testing.T) {
 // returns no events and exits cleanly.
 func TestRun_HistoryUnknownIDIsEmpty(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"history", "--root", root, "E-99"}); rc != exitOK {
@@ -578,7 +593,7 @@ func TestRun_HistoryUnknownIDIsEmpty(t *testing.T) {
 // old id still surfaces a final event.
 func TestRun_HistoryReallocateBridgesBothIDs(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Bar", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -613,6 +628,10 @@ func TestRun_HistoryReallocateBridgesBothIDs(t *testing.T) {
 // TestRun_DoctorClean reports problems=0 in a freshly-initialized repo.
 func TestRun_DoctorClean(t *testing.T) {
 	root := setupCLITestRepo(t)
+	// No --skip-hook: doctor's "clean" judgement requires both
+	// hooks to be installed. The test runs only doctor afterward
+	// (read-only), no commits, so the test-binary-as-hook hazard
+	// doesn't apply.
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
@@ -625,7 +644,7 @@ func TestRun_DoctorClean(t *testing.T) {
 // and confirm doctor surfaces it as a problem.
 func TestRun_DoctorDetectsSkillDrift(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	skillPath := filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")
@@ -652,7 +671,7 @@ func TestRun_DoctorReportsMissingConfig(t *testing.T) {
 // (the field is harmless, just unnecessary).
 func TestRun_DoctorReportsLegacyActor(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	// Append the legacy `actor:` line to simulate a pre-I2.5 repo.
@@ -672,7 +691,7 @@ func TestRun_DoctorReportsLegacyActor(t *testing.T) {
 // the next mutating verb's aiwf-actor: trailer would say.
 func TestRun_DoctorReportsRuntimeIdentity(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	lines, _ := doctorReport(root, doctorOptions{})
@@ -693,6 +712,10 @@ func TestRun_DoctorReportsRuntimeIdentity(t *testing.T) {
 // increment the doctor problem count.
 func TestRun_DoctorReportsLegacyAiwfVersion(t *testing.T) {
 	root := setupCLITestRepo(t)
+	// No --skip-hook: the test asserts problems == 0 (the legacy
+	// field is advisory, not a problem). Without hooks installed
+	// the missing-hook problems would mask the assertion. No
+	// commits triggered.
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
@@ -720,21 +743,20 @@ func TestRun_DoctorReportsLegacyAiwfVersion(t *testing.T) {
 
 // TestRun_DoctorSelfCheck_Passes runs doctor --self-check end-to-end
 // and asserts the run reports a clean pass. The self-check spins up
-// its own throwaway repo, so no setup is needed beyond the test
-// process's git identity (which setupCLITestRepo provides).
+// its own throwaway repo and exercises every verb including ones
+// that commit (which fire the pre-commit hook installed during
+// init). Driving it as a subprocess via runBin gives consumer
+// parity: the hook bakes in a real aiwf binary path rather than
+// the test binary's path, so the hook fires correctly. Running
+// in-process via the dispatcher would deadlock (hook execs the
+// test binary).
 func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
-	// The test process needs git identity for the self-check repo's
-	// commits; setupCLITestRepo already exports it. We don't actually
-	// use the returned root — self-check ignores --root.
-	_ = setupCLITestRepo(t)
+	root := t.TempDir()
 
-	captured := captureStdout(t, func() {
-		if rc := run([]string{"doctor", "--self-check"}); rc != exitOK {
-			t.Fatalf("doctor --self-check rc = %d, want %d", rc, exitOK)
-		}
-	})
-
-	out := string(captured)
+	out, err := runBin(t, root, "", nil, "doctor", "--self-check")
+	if err != nil {
+		t.Fatalf("doctor --self-check: %v\n%s", err, out)
+	}
 	if !strings.Contains(out, "self-check passed") {
 		t.Errorf("output missing pass marker:\n%s", out)
 	}
@@ -782,6 +804,48 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 	repoPath := strings.TrimSpace(after[:end])
 	if _, err := os.Stat(repoPath); !os.IsNotExist(err) {
 		t.Errorf("self-check should clean up its repo on success: stat %s err=%v", repoPath, err)
+	}
+}
+
+// TestDoctor_HonorsCoreHooksPath (G48): when the consumer has set
+// `core.hooksPath`, doctor reads the hook at the configured location
+// (not hardcoded `.git/hooks/`) and reports against it. Without
+// G48's helper, doctor would say "missing — pre-push validation not
+// installed" because it looked at the wrong location.
+func TestDoctor_HonorsCoreHooksPath(t *testing.T) {
+	root := setupCLITestRepo(t)
+	// Configure a relative tracked-hooks dir before init lands hooks.
+	if err := osExec(t, root, "git", "config", "core.hooksPath", "scripts/git-hooks"); err != nil {
+		t.Fatalf("git config core.hooksPath: %v", err)
+	}
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	// Confirm the install landed at the configured path (this is
+	// what G48 fixes).
+	configured := filepath.Join(root, "scripts", "git-hooks")
+	for _, name := range []string{"pre-push", "pre-commit"} {
+		if _, err := os.Stat(filepath.Join(configured, name)); err != nil {
+			t.Fatalf("%s missing at configured hooksPath: %v", name, err)
+		}
+	}
+
+	lines, problems := doctorReport(root, doctorOptions{})
+	joined := strings.Join(lines, "\n")
+	if problems != 0 {
+		t.Errorf("doctor problems = %d, want 0\n%s", problems, joined)
+	}
+	// The hook line should report ok against the configured path,
+	// not the default. We don't pin the exact phrasing — just
+	// confirm doctor isn't lying about a missing hook.
+	if strings.Contains(joined, "hook:      missing") {
+		t.Errorf("doctor reports pre-push hook missing despite install at configured path:\n%s", joined)
+	}
+	if strings.Contains(joined, "pre-commit: missing") {
+		t.Errorf("doctor reports pre-commit hook missing despite install at configured path:\n%s", joined)
 	}
 }
 

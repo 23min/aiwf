@@ -17,7 +17,7 @@ import (
 // both AC rows, the recent-history block, and the no-findings line.
 func TestRun_ShowMilestoneAggregatesACsHistoryFindings(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -62,7 +62,7 @@ func TestRun_ShowMilestoneAggregatesACsHistoryFindings(t *testing.T) {
 // milestone shown as "parent: M-NNN".
 func TestRun_ShowCompositeIDRendersACSlice(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -101,7 +101,7 @@ func TestRun_ShowCompositeIDRendersACSlice(t *testing.T) {
 // envelope with the right shape.
 func TestRun_ShowJSONEnvelope(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -138,7 +138,7 @@ func TestRun_ShowJSONEnvelope(t *testing.T) {
 // usage exit code.
 func TestRun_ShowUnknownIDIsUsageError(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"show", "--root", root, "E-99"}); rc != exitUsage {
@@ -152,7 +152,7 @@ func TestRun_ShowUnknownIDIsUsageError(t *testing.T) {
 // covered by tree.TestLoad_ReverseRefs.
 func TestRun_ShowReferencedByPopulated(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -213,7 +213,7 @@ func TestRun_ShowReferencedByPopulated(t *testing.T) {
 // downstream consumers don't have to check for field presence.
 func TestRun_ShowReferencedByEmptyIsPresent(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Lonely", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -244,7 +244,7 @@ func TestRun_ShowReferencedByEmptyIsPresent(t *testing.T) {
 // catch.
 func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -298,7 +298,7 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 // step 5, which reads these slugs to populate the per-tab content.
 func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -350,7 +350,7 @@ func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {
 // tab in I3 step 5, which renders each AC's body inline.
 func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -438,7 +438,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 // step 1 so step-5 templates have data to render.
 func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {

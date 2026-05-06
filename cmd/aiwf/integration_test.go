@@ -170,6 +170,78 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 	_ = binDir
 }
 
+// TestIntegration_HonorsCoreHooksPath (G48): when the consumer has
+// set `core.hooksPath` (a tracked-hooks pattern via husky/lefthook
+// or a home-grown convention), `aiwf init` lands hooks at the
+// configured path AND git fires them on commits. This is the
+// consumer-parity proof: building a real binary, configuring a
+// real git repo as a consumer would, and observing real hook
+// invocation. Without G48's helper, hooks would land at
+// `.git/hooks/` while git looked at the configured path —
+// validation chokepoint silently disabled.
+func TestIntegration_HonorsCoreHooksPath(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+		// Configure a relative tracked-hooks dir before init runs.
+		{"config", "core.hooksPath", "scripts/git-hooks"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	// 1. aiwf init.
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+
+	// Hooks land at the configured path, not the default.
+	configured := filepath.Join(root, "scripts", "git-hooks")
+	for _, name := range []string{"pre-push", "pre-commit"} {
+		atConfigured := filepath.Join(configured, name)
+		info, err := os.Stat(atConfigured)
+		if err != nil {
+			t.Errorf("%s missing at configured hooksPath %s: %v", name, atConfigured, err)
+			continue
+		}
+		if info.Mode()&0o111 == 0 {
+			t.Errorf("%s at configured path is not executable: %v", name, info.Mode())
+		}
+		atDefault := filepath.Join(root, ".git", "hooks", name)
+		if _, err := os.Stat(atDefault); err == nil {
+			t.Errorf("%s also exists at default .git/hooks/ but core.hooksPath is set; install should be exclusive", name)
+		}
+	}
+
+	// 2. add an epic — fires the pre-commit hook from the configured
+	// path. If the hook isn't found by git, no pre-commit gate runs;
+	// if it IS found and broken, the commit fails. Either way the
+	// runBin error tells us. A clean exit proves the hook fires
+	// correctly from the configured location.
+	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Foundations"); err != nil {
+		t.Fatalf("aiwf add (drives a commit through pre-commit hook): %v\n%s", err, out)
+	}
+
+	// 3. Run the pre-push hook from the configured path directly to
+	// confirm it actually validates the tree (exit 0 on a clean
+	// tree, the chokepoint G48 was preserving).
+	hookPath := filepath.Join(configured, "pre-push")
+	cmd := exec.Command(hookPath)
+	cmd.Dir = root
+	cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=aiwf-test", "GIT_AUTHOR_EMAIL=test@example.com")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("pre-push hook from configured path failed on clean tree: %v\n%s", err, out)
+	}
+}
+
 // runGit invokes git in workdir and returns combined output.
 func runGit(workdir string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)

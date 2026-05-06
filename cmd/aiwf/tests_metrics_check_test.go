@@ -94,7 +94,7 @@ func TestRunTestsMetricsCheck_SilentWhenTrailerOnHistory(t *testing.T) {
 // the consumer's TDD policy, not a universal AC requirement.
 func TestRunTestsMetricsCheck_SilentForNonRequiredMilestone(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Optional", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine")
@@ -151,7 +151,7 @@ func TestRunCheck_TestsMetricsWarningSurfacesViaDispatcher(t *testing.T) {
 func setupTDDDoneAC(t *testing.T) string {
 	t.Helper()
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Required", "--actor", "human/test", "--root", root)
 

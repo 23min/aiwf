@@ -359,3 +359,98 @@ func TestStagedPaths(t *testing.T) {
 		t.Errorf("StagedPaths mismatch (-want +got):\n%s", diff)
 	}
 }
+
+// TestHooksDir covers the three states HooksDir distinguishes:
+// `core.hooksPath` unset (fall back to <gitDir>/hooks), set to an
+// absolute path (returned verbatim), set to a relative path
+// (resolved against workdir). G-048.
+func TestHooksDir(t *testing.T) {
+	gitTestEnv(t)
+	ctx := context.Background()
+
+	t.Run("unset falls back to gitDir/hooks", func(t *testing.T) {
+		root := t.TempDir()
+		if err := Init(ctx, root); err != nil {
+			t.Fatalf("init: %v", err)
+		}
+		got, err := HooksDir(ctx, root)
+		if err != nil {
+			t.Fatalf("HooksDir: %v", err)
+		}
+		gitDir, err := GitDir(ctx, root)
+		if err != nil {
+			t.Fatalf("GitDir: %v", err)
+		}
+		want := filepath.Join(gitDir, "hooks")
+		if got != want {
+			t.Errorf("HooksDir = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("absolute path returned verbatim", func(t *testing.T) {
+		root := t.TempDir()
+		if err := Init(ctx, root); err != nil {
+			t.Fatalf("init: %v", err)
+		}
+		want := filepath.Join(t.TempDir(), "absolute-hooks")
+		if err := run(ctx, root, "config", "core.hooksPath", want); err != nil {
+			t.Fatalf("git config: %v", err)
+		}
+		got, err := HooksDir(ctx, root)
+		if err != nil {
+			t.Fatalf("HooksDir: %v", err)
+		}
+		if got != want {
+			t.Errorf("HooksDir = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("relative path resolves against workdir", func(t *testing.T) {
+		root := t.TempDir()
+		if err := Init(ctx, root); err != nil {
+			t.Fatalf("init: %v", err)
+		}
+		if err := run(ctx, root, "config", "core.hooksPath", "scripts/git-hooks"); err != nil {
+			t.Fatalf("git config: %v", err)
+		}
+		got, err := HooksDir(ctx, root)
+		if err != nil {
+			t.Fatalf("HooksDir: %v", err)
+		}
+		// HooksDir canonicalizes workdir via EvalSymlinks so the
+		// result matches git's own form (e.g. /private/var/... on
+		// macOS rather than the symlink alias /var/...).
+		canonicalRoot, err := filepath.EvalSymlinks(root)
+		if err != nil {
+			t.Fatalf("EvalSymlinks: %v", err)
+		}
+		want := filepath.Join(canonicalRoot, "scripts", "git-hooks")
+		if got != want {
+			t.Errorf("HooksDir = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("empty value falls back to gitDir/hooks", func(t *testing.T) {
+		root := t.TempDir()
+		if err := Init(ctx, root); err != nil {
+			t.Fatalf("init: %v", err)
+		}
+		// `git config core.hooksPath ""` sets the key to empty;
+		// HooksDir should treat empty the same as unset.
+		if err := run(ctx, root, "config", "core.hooksPath", ""); err != nil {
+			t.Fatalf("git config: %v", err)
+		}
+		got, err := HooksDir(ctx, root)
+		if err != nil {
+			t.Fatalf("HooksDir: %v", err)
+		}
+		gitDir, err := GitDir(ctx, root)
+		if err != nil {
+			t.Fatalf("GitDir: %v", err)
+		}
+		want := filepath.Join(gitDir, "hooks")
+		if got != want {
+			t.Errorf("HooksDir = %q, want %q", got, want)
+		}
+	})
+}

@@ -22,7 +22,7 @@ import (
 // This test exercises the full dispatcher → verb → commit path.
 func TestRun_PromotePhaseWithTestsFlag(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine starts")
@@ -54,7 +54,7 @@ func TestRun_PromotePhaseWithTestsFlag(t *testing.T) {
 // invoked and no commit lands.
 func TestRun_PromotePhase_TestsRejectsBadInput(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC")
@@ -84,7 +84,7 @@ func TestRun_PromotePhase_TestsRejectsBadInput(t *testing.T) {
 // surfaces the verb's refusal as a non-zero exit.
 func TestRun_AddACWithTestsFlag(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Required", "--actor", "human/test", "--root", root)
 
@@ -141,7 +141,7 @@ func TestRun_AddACWithTestsFlag(t *testing.T) {
 // mode) is a usage error.
 func TestRun_PromoteStatusModeRejectsTests(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 
 	rc := run([]string{

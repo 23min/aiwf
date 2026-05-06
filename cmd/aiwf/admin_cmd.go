@@ -948,16 +948,22 @@ func appendRenderReport(in []string, problemsIn int, rootDir string) (lines []st
 	return lines, problems
 }
 
-// appendHookReport inspects .git/hooks/pre-push and reports its
-// state: missing, present-but-not-aiwf-managed, stale (the embedded
-// absolute binary path no longer exists), or ok. A stale or
-// missing-from-tracked-managed hook is a problem; a non-aiwf hook
-// is a warning surfaced as informational text.
+// appendHookReport inspects the pre-push hook at the consumer's
+// effective hooks directory (default `<gitDir>/hooks/` or whatever
+// `core.hooksPath` resolves to) and reports its state: missing,
+// present-but-not-aiwf-managed, stale (the embedded absolute binary
+// path no longer exists), or ok. A stale or missing-from-managed
+// hook is a problem; a non-aiwf hook is a warning surfaced as
+// informational text.
+//
+// Per G48 the path is resolved via gitops.HooksDir so a consumer
+// with `core.hooksPath` set sees the correct hook reported.
 func appendHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
 	lines = in
 	problems = problemsIn
 
-	hookPath := filepath.Join(rootDir, ".git", "hooks", "pre-push")
+	hooksDir := resolveHooksDir(rootDir)
+	hookPath := filepath.Join(hooksDir, "pre-push")
 	raw, err := os.ReadFile(hookPath)
 	if errors.Is(err, os.ErrNotExist) {
 		lines = append(lines, "hook:      missing — pre-push validation not installed; run `aiwf init` to install")
@@ -985,7 +991,7 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 		problems++
 		return lines, problems
 	}
-	chainSuffix, chainProblem := localChainSuffix(rootDir, "pre-push")
+	chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "pre-push")
 	if chainProblem {
 		problems++
 	}
@@ -993,28 +999,66 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 	return lines, problems
 }
 
+// resolveHooksDir returns the effective hooks directory for the
+// repo at rootDir, falling back to `<rootDir>/.git/hooks` if the
+// gitops query fails. The fallback keeps doctor useful even when
+// git's machinery is partially broken (e.g. a stripped repo with
+// no `.git/config`); the report just describes the default layout
+// instead of refusing to render.
+func resolveHooksDir(rootDir string) string {
+	if dir, err := gitops.HooksDir(context.Background(), rootDir); err == nil {
+		return dir
+	}
+	return filepath.Join(rootDir, ".git", "hooks")
+}
+
+// hookDisplayPath returns a hook file path for use in doctor's
+// human-readable lines, expressed relative to rootDir when the
+// hook lives under it. Symlink-resolves rootDir to match the
+// canonicalization gitops.HooksDir does. Falls back to the
+// absolute path if the relative form would up-traverse outside
+// the repo (e.g. `core.hooksPath` set to an absolute path
+// elsewhere on disk).
+func hookDisplayPath(rootDir, hookPath string) string {
+	canonical := rootDir
+	if resolved, err := filepath.EvalSymlinks(rootDir); err == nil {
+		canonical = resolved
+	}
+	rel, err := filepath.Rel(canonical, hookPath)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return hookPath
+	}
+	return rel
+}
+
 // localChainSuffix returns the suffix to append to the hook line
 // describing the `.local` sibling state plus a bool indicating
 // whether the state is a problem (non-executable). Mirrors the G45
 // chain semantics in the installed hook script.
 //
+// hooksDir is the effective hooks directory (default `<gitDir>/hooks`
+// or whatever `core.hooksPath` resolves to per G48). rootDir is the
+// repo root, used to render the .local path in a friendlier form
+// (relative to rootDir when the hook lives under it).
+//
 // States:
 //   - sibling absent → "" (no suffix); not a problem.
-//   - sibling present and executable → "; chains to .git/hooks/<name>.local"; not a problem.
-//   - sibling present, not executable → "; .git/hooks/<name>.local exists but is not executable — chmod +x"; IS a problem.
-func localChainSuffix(rootDir, hookName string) (suffix string, problem bool) {
-	localPath := filepath.Join(rootDir, ".git", "hooks", hookName+".local")
+//   - sibling present and executable → "; chains to <display>"; not a problem.
+//   - sibling present, not executable → problem with chmod hint.
+func localChainSuffix(rootDir, hooksDir, hookName string) (suffix string, problem bool) {
+	localPath := filepath.Join(hooksDir, hookName+".local")
+	report := hookDisplayPath(rootDir, localPath)
 	info, err := os.Stat(localPath)
 	if errors.Is(err, os.ErrNotExist) {
 		return "", false
 	}
 	if err != nil {
-		return "; .git/hooks/" + hookName + ".local: " + err.Error(), true
+		return "; " + report + ": " + err.Error(), true
 	}
 	if info.Mode()&0o111 == 0 {
-		return "; .git/hooks/" + hookName + ".local exists but is not executable — chmod +x to enable, or remove the file", true
+		return "; " + report + " exists but is not executable — chmod +x to enable, or remove the file", true
 	}
-	return "; chains to .git/hooks/" + hookName + ".local", false
+	return "; chains to " + report, false
 }
 
 // appendPreCommitHookReport inspects .git/hooks/pre-commit and
@@ -1044,7 +1088,8 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		autoUpdate = cfg.StatusMdAutoUpdate()
 	}
 
-	hookPath := filepath.Join(rootDir, ".git", "hooks", "pre-commit")
+	hooksDir := resolveHooksDir(rootDir)
+	hookPath := filepath.Join(hooksDir, "pre-commit")
 	raw, err := os.ReadFile(hookPath)
 	if errors.Is(err, os.ErrNotExist) {
 		// Per G42 the gate must always be installed when aiwf is
@@ -1075,7 +1120,7 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		return lines, problems
 	}
 	hasRegen := strings.Contains(string(raw), "status --root")
-	chainSuffix, chainProblem := localChainSuffix(rootDir, "pre-commit")
+	chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "pre-commit")
 	if chainProblem {
 		problems++
 	}

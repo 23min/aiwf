@@ -22,7 +22,7 @@ import (
 // produce different DOMs.
 func TestRender_AllPagesAreWellFormed(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "epic", "--title", "Adoption", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Schema parser", "--actor", "human/test", "--root", root)

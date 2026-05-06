@@ -13,10 +13,13 @@ import (
 // surfaces the consumer's render setup.
 func TestRun_DoctorReportsRenderConfig(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 
 	captured := captureStdout(t, func() {
-		mustRun(t, "doctor", "--root", root)
+		// Ignore rc: --skip-hook means hooks are missing, so doctor
+		// reports problems and exits non-zero. The test only
+		// inspects render-config output, not the exit code.
+		_ = run([]string{"doctor", "--root", root})
 	})
 	if !strings.Contains(string(captured), "render:") {
 		t.Errorf("doctor missing render: line:\n%s", captured)
@@ -35,7 +38,7 @@ func TestRun_DoctorReportsRenderConfig(t *testing.T) {
 // non-zero so CI catches the misconfiguration.
 func TestRun_DoctorDetectsCommitOutputDrift(t *testing.T) {
 	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test")
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	// Confirm site/ is in the gitignore from the default init.
 	gi, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
 	if !strings.Contains(string(gi), "site/") {
