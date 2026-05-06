@@ -9,7 +9,7 @@ _126 entities · 0 errors · 0 warnings_
 - **M-056** — Add --body-file to aiwf add variants _(draft)_ — ACs 0/5 met (5 open)
 - **M-057** — Batched --title on aiwf add ac _(draft)_ — ACs 0/5 met (5 open)
 - **M-058** — Add aiwf edit-body verb and reconcile skill _(draft)_ — ACs 0/4 met (4 open)
-- → **M-059** — Add resolver-pointer flags to status-transition verbs _(in_progress)_ — ACs 0/4 met (4 open)
+- → **M-059** — Add resolver-pointer flags to status-transition verbs _(in_progress)_ — ACs 1/4 met (3 open)
 
 ```mermaid
 flowchart LR
@@ -20,7 +20,7 @@ flowchart LR
   E_15 --> M_057
   M_058["M-058 (0/4)<br/>Add aiwf edit-body verb and reconcile skill"]:::ms_draft
   E_15 --> M_058
-  M_059["M-059 (0/4)<br/>Add resolver-pointer flags to status-transition verbs"]:::ms_in_progress
+  M_059["M-059 (1/4)<br/>Add resolver-pointer flags to status-transition verbs"]:::ms_in_progress
   E_15 --> M_059
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -106,9 +106,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote M-059 draft -> in_progress |
 | 2026-05-06 | human/peter | promote | aiwf promote E-15 proposed -> active |
 | 2026-05-06 | human/peter | add | aiwf add ac M-059/AC-4 'Hand-editing frontmatter never required to satisfy resolver checks' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-059/AC-3 'Verb writes resolver field atomically with status change' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-059/AC-2 'aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-059/AC-1 'aiwf promote G-NNN addressed --by accepts entity ids and commit shas' |
 

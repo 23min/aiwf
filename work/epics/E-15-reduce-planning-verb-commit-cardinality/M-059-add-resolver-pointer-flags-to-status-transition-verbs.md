@@ -6,7 +6,7 @@ parent: E-15
 acs:
     - id: AC-1
       title: aiwf promote G-NNN addressed --by accepts entity ids and commit shas
-      status: open
+      status: met
     - id: AC-2
       title: aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids
       status: open
