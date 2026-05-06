@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: add, promote, cancel, rename, reallocate, import migrated to Cobra
       status: open
+    - id: AC-2
+      title: Single-commit-per-verb invariant preserved for each mutating verb
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ Subprocess integration tests are the proof of behavior preservation. Provenance 
 ## Acceptance criteria
 
 ### AC-1 — add, promote, cancel, rename, reallocate, import migrated to Cobra
+
+### AC-2 — Single-commit-per-verb invariant preserved for each mutating verb
 
