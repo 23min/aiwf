@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: Each verb's --help has at least one example invocation
       status: open
+    - id: AC-2
+      title: No 'previously was' or migration notes in any user-facing docs
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ Systematic walk through every verb's help text, the README, and CLAUDE.md. Treat
 ## Acceptance criteria
 
 ### AC-1 — Each verb's --help has at least one example invocation
+
+### AC-2 — No 'previously was' or migration notes in any user-facing docs
 
