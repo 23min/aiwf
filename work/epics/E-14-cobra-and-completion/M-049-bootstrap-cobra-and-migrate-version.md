@@ -21,7 +21,7 @@ acs:
       status: met
     - id: AC-6
       title: Auto-completion design principle added to CLAUDE.md
-      status: open
+      status: met
 ---
 
 ## Goal
