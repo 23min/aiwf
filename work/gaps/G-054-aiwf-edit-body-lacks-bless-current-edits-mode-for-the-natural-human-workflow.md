@@ -66,3 +66,7 @@ This gap is the follow-up to M-058's closure review. The fix is additive to what
 - **Composite-id `aiwf edit-body M-NNN/AC-N --body-file <path>`** for AC sub-sections only. Solves workflow 4 but not 2 or 3. More code (regex-anchored section finder), more failure modes (heading drift, sub-headings inside an AC). The bless-mode shape solves all three workflows with one path.
 - **`aiwf edit-body --in-editor`** (open `$EDITOR` with the current body, capture the result, commit). Works but adds an editor-handling layer the kernel doesn't need; bless mode covers the same use case by trusting the user's existing editor session.
 - **Restore the carve-out** — admit M-058 was premature, revert AC-3's skill change. Cleanest in "don't ship strictness before the replacement is complete" terms, but undoes work that's substantively useful for workflow 1 (AI/script). Bless mode keeps M-058's value and closes the workflow gap.
+
+## Resolution
+
+M-060 ships bless mode as designed in *Direction* above — `aiwf edit-body <id>` (no `--body-file`) commits whatever the user edited in the working copy of the entity file. This very edit was committed via bless mode against the kernel's own repo, dogfooding the new affordance end-to-end.
