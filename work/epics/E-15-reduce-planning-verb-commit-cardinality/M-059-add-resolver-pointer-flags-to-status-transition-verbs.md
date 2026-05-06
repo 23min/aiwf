@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids
-      status: open
+      status: met
     - id: AC-3
       title: Verb writes resolver field atomically with status change
       status: open
