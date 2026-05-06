@@ -10,7 +10,7 @@ import (
 
 func TestRunTemplate_OneKindRaw(t *testing.T) {
 	out := string(captureStdout(t, func() {
-		if rc := runTemplate([]string{"epic"}); rc != exitOK {
+		if rc := run([]string{"template", "epic"}); rc != exitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -25,7 +25,7 @@ func TestRunTemplate_OneKindRaw(t *testing.T) {
 
 func TestRunTemplate_AllKindsHasHeaders(t *testing.T) {
 	out := string(captureStdout(t, func() {
-		if rc := runTemplate(nil); rc != exitOK {
+		if rc := run([]string{"template"}); rc != exitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -49,32 +49,32 @@ func TestRunTemplate_AllKindsHasHeaders(t *testing.T) {
 }
 
 func TestRunTemplate_UnknownKind(t *testing.T) {
-	if rc := runTemplate([]string{"nonsense"}); rc != exitUsage {
+	if rc := run([]string{"template", "nonsense"}); rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)
 	}
 }
 
 func TestRunTemplate_TooManyArgs(t *testing.T) {
-	if rc := runTemplate([]string{"epic", "milestone"}); rc != exitUsage {
+	if rc := run([]string{"template", "epic", "milestone"}); rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)
 	}
 }
 
 func TestRunTemplate_BadFormat(t *testing.T) {
-	if rc := runTemplate([]string{"--format", "yaml"}); rc != exitUsage {
+	if rc := run([]string{"template", "--format", "yaml"}); rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)
 	}
 }
 
 func TestRunTemplate_PrettyWithoutJSONIsHarmless(t *testing.T) {
-	if rc := runTemplate([]string{"--pretty", "epic"}); rc != exitOK {
+	if rc := run([]string{"template", "--pretty", "epic"}); rc != exitOK {
 		t.Errorf("rc = %d, want %d", rc, exitOK)
 	}
 }
 
 func TestRunTemplate_JSONEnvelope(t *testing.T) {
 	out := captureStdout(t, func() {
-		if rc := runTemplate([]string{"--format", "json"}); rc != exitOK {
+		if rc := run([]string{"template", "--format", "json"}); rc != exitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	})
@@ -110,7 +110,7 @@ func TestRunTemplate_JSONEnvelope(t *testing.T) {
 
 func TestRunTemplate_JSONOneKind(t *testing.T) {
 	out := captureStdout(t, func() {
-		if rc := runTemplate([]string{"--format", "json", "epic"}); rc != exitOK {
+		if rc := run([]string{"template", "--format", "json", "epic"}); rc != exitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	})

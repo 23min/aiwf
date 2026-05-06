@@ -90,6 +90,53 @@ func TestBinary_VersionVerb_FallsBackToBuildInfo(t *testing.T) {
 	}
 }
 
+// TestBinary_ReadOnlyVerbs_ExitOK pins M-050 AC-4: each migrated
+// read-only verb (check, history, doctor, schema, template, render)
+// runs cleanly as a subprocess against the migrated Cobra binary
+// and returns the contracted exit code. This covers the production
+// path the in-process `run()` tests cannot — Cobra's flag parsing,
+// our exitError unwrap, and the os.Exit translation only become
+// visible when a real binary executes.
+func TestBinary_ReadOnlyVerbs_ExitOK(t *testing.T) {
+	skipIfShortOrUnsupported(t)
+	tmp := t.TempDir()
+	bin := buildBinary(t, tmp /* no ldflags */)
+
+	// Empty repo (no aiwf.yaml, no work tree). Doctor returns 1
+	// ("findings"); the others run cleanly with exit 0.
+	emptyRepo := t.TempDir()
+
+	cases := []struct {
+		name string
+		args []string
+		want int // expected exit code
+	}{
+		{"check_empty", []string{"check", "--root", emptyRepo}, 0},
+		{"history_unknown_id", []string{"history", "E-99", "--root", emptyRepo}, 0},
+		{"doctor_empty", []string{"doctor", "--root", emptyRepo}, 1},
+		{"schema_all", []string{"schema"}, 0},
+		{"schema_one", []string{"schema", "epic"}, 0},
+		{"template_all", []string{"template"}, 0},
+		{"template_one", []string{"template", "milestone"}, 0},
+		{"render_help", []string{"render", "--help"}, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := runBinary(bin, tc.args...)
+			got := 0
+			if err != nil {
+				if !exitedWithCode(err, tc.want) {
+					t.Fatalf("aiwf %v: unexpected error %v\n%s", tc.args, err, out)
+				}
+				got = tc.want
+			}
+			if got != tc.want {
+				t.Errorf("aiwf %v exit = %d, want %d\n%s", tc.args, got, tc.want, out)
+			}
+		})
+	}
+}
+
 // skipIfShortOrUnsupported gates the binary integration tests:
 // requires `go` on PATH, skipped under `-short`, skipped on Windows
 // (aiwf is unix-only).

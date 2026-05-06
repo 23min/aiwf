@@ -1,10 +1,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/spf13/cobra"
 
 	"github.com/23min/ai-workflow-v2/internal/entity"
 	"github.com/23min/ai-workflow-v2/internal/render"
@@ -18,9 +19,9 @@ type templateOut struct {
 	Body string      `json:"body"`
 }
 
-// runTemplate handles `aiwf template [kind]`: prints the per-kind body
-// template that `aiwf add` would scaffold after the frontmatter. Read-
-// only; produces no commit and does not require a consumer repo.
+// newTemplateCmd builds `aiwf template [kind]`: prints the per-kind
+// body template that `aiwf add` would scaffold after the frontmatter.
+// Read-only; produces no commit and does not require a consumer repo.
 //
 // Companion to `aiwf schema`. Schema describes the *frontmatter*
 // contract; template describes the body shape (section headers).
@@ -30,33 +31,40 @@ type templateOut struct {
 // With no kind: emits every kind, separated by `KIND: <kind>` headers.
 // With a kind: emits just that template, raw and unprefixed — so
 // `aiwf template epic > new_epic_body.md` works as a one-liner.
-func runTemplate(args []string) int {
-	fs := flag.NewFlagSet("template", flag.ContinueOnError)
-	format := fs.String("format", "text", "output format: text or json")
-	pretty := fs.Bool("pretty", false, "indent JSON output (only with --format=json)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
+func newTemplateCmd() *cobra.Command {
+	var (
+		format string
+		pretty bool
+	)
+	cmd := &cobra.Command{
+		Use:           "template [kind]",
+		Short:         "Print the body-section template aiwf add would scaffold",
+		Args:          cobra.MaximumNArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runTemplateCmd(args, format, pretty))
+		},
+	}
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
+	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	return cmd
+}
+
+func runTemplateCmd(args []string, format string, pretty bool) int {
+	if format != "text" && format != "json" {
+		fmt.Fprintf(os.Stderr, "aiwf template: --format must be 'text' or 'json', got %q\n", format)
 		return exitUsage
 	}
-	if *format != "text" && *format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf template: --format must be 'text' or 'json', got %q\n", *format)
-		return exitUsage
-	}
-	if *pretty && *format != "json" {
+	if pretty && format != "json" {
 		fmt.Fprintln(os.Stderr, "aiwf template: --pretty has no effect without --format=json")
 	}
 
-	rest := fs.Args()
-	if len(rest) > 1 {
-		fmt.Fprintf(os.Stderr, "aiwf template: expected zero or one kind argument, got %d\n", len(rest))
-		return exitUsage
-	}
-
 	var templates []templateOut
-	if len(rest) == 1 {
-		k := entity.Kind(rest[0])
+	if len(args) == 1 {
+		k := entity.Kind(args[0])
 		if _, ok := entity.SchemaForKind(k); !ok {
-			fmt.Fprintf(os.Stderr, "aiwf template: unknown kind %q (known: %s)\n", rest[0], joinKinds(entity.AllKinds()))
+			fmt.Fprintf(os.Stderr, "aiwf template: unknown kind %q (known: %s)\n", args[0], joinKinds(entity.AllKinds()))
 			return exitUsage
 		}
 		templates = []templateOut{{Kind: k, Body: string(entity.BodyTemplate(k))}}
@@ -66,7 +74,7 @@ func runTemplate(args []string) int {
 		}
 	}
 
-	switch *format {
+	switch format {
 	case "text":
 		single := len(templates) == 1
 		if err := writeTemplateText(os.Stdout, templates, single); err != nil {
@@ -80,7 +88,7 @@ func runTemplate(args []string) int {
 			Status:  "ok",
 			Result:  map[string]any{"templates": templates},
 		}
-		if err := render.JSON(os.Stdout, env, *pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf template: writing output: %v\n", err)
 			return exitInternal
 		}

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/23min/ai-workflow-v2/internal/check"
 	"github.com/23min/ai-workflow-v2/internal/config"
@@ -19,30 +19,62 @@ import (
 	"github.com/23min/ai-workflow-v2/internal/tree"
 )
 
-// runRender is the dispatcher for `aiwf render`. Two surfaces:
-//   - `aiwf render roadmap [--write]` → markdown roadmap (legacy).
+// newRenderCmd builds `aiwf render`. Two surfaces:
+//   - `aiwf render roadmap [--write]` → markdown roadmap.
 //   - `aiwf render --format=html [...]` → static-site HTML render.
 //
-// The format flag is recognized when no subcommand is given; the
-// roadmap subcommand has its own flag set.
-func runRender(args []string) int {
-	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "aiwf render: missing subcommand or --format. Try 'aiwf render roadmap' or 'aiwf render --format=html'.")
-		return exitUsage
+// Roadmap is a Cobra subcommand; html mode is the parent's RunE
+// (matches the existing public CLI shape rather than introducing a new
+// `render html` subverb that would break consumer scripts).
+func newRenderCmd() *cobra.Command {
+	var (
+		root      string
+		format    string
+		out       string
+		scope     string
+		noHistory bool
+		pretty    bool
+	)
+	cmd := &cobra.Command{
+		Use:           "render",
+		Short:         "Produce derived views of the planning tree",
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			if format == "" {
+				fmt.Fprintln(os.Stderr, "aiwf render: missing subcommand or --format. Try 'aiwf render roadmap' or 'aiwf render --format=html'.")
+				return &exitError{code: exitUsage}
+			}
+			return wrapExitCode(runRenderSiteCmd(root, format, out, scope, noHistory, pretty))
+		},
 	}
-	if args[0] == "--help" || args[0] == "-h" || args[0] == "help" {
-		printRenderHelp()
-		return exitOK
-	}
-	if args[0] == "roadmap" {
-		return runRenderRoadmap(args[1:])
-	}
-	// --format=<x> mode: peek for the flag before delegating.
-	if hasFormatFlag(args) {
-		return runRenderSite(args)
-	}
-	fmt.Fprintf(os.Stderr, "aiwf render: unknown subcommand %q (try 'roadmap' or '--format=html')\n", args[0])
-	return exitUsage
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&format, "format", "", "output format (required: html)")
+	cmd.Flags().StringVar(&out, "out", "", "output directory (overrides aiwf.yaml.html.out_dir; default 'site')")
+	cmd.Flags().StringVar(&scope, "scope", "", "render only this entity and its referenced children (reserved; not yet implemented)")
+	cmd.Flags().BoolVar(&noHistory, "no-history", false, "skip git-log walks per page (reserved; not yet implemented)")
+	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent the JSON envelope on stdout")
+	cmd.SetHelpFunc(func(c *cobra.Command, _ []string) {
+		if c == cmd {
+			printRenderHelp()
+			return
+		}
+		_ = c.Help() // child subcommand falls back to Cobra default
+	})
+	cmd.AddCommand(newRenderRoadmapCmd())
+	// `aiwf render help` is a positional alias for `aiwf render --help`,
+	// matching the pre-Cobra dispatcher's accepted shapes. Hidden so it
+	// does not appear in the auto-generated subcommand list.
+	cmd.AddCommand(&cobra.Command{
+		Use:    "help",
+		Short:  "Show help for aiwf render",
+		Hidden: true,
+		Run: func(_ *cobra.Command, _ []string) {
+			printRenderHelp()
+		},
+	})
+	return cmd
 }
 
 // printRenderHelp emits the verb's catalog of surfaces. Two
@@ -69,37 +101,35 @@ Surfaces:
 See 'aiwf help' for the master verb catalog.`)
 }
 
-// hasFormatFlag reports whether any token in args looks like a
-// `--format` declaration (split or `=`-joined). Used by runRender
-// to disambiguate between subcommand and flag-only invocations
-// without parsing twice.
-func hasFormatFlag(args []string) bool {
-	for _, a := range args {
-		switch {
-		case a == "--format", a == "-format":
-			return true
-		case strings.HasPrefix(a, "--format="), strings.HasPrefix(a, "-format="):
-			return true
-		}
+// newRenderRoadmapCmd builds `aiwf render roadmap`: prints the markdown
+// roadmap to stdout, or with --write replaces ROADMAP.md and creates a
+// single commit. When the rendered output already matches the on-disk
+// file, --write is a no-op (no commit) so the verb is safely re-runnable
+// in CI.
+func newRenderRoadmapCmd() *cobra.Command {
+	var (
+		root  string
+		write bool
+		actor string
+	)
+	cmd := &cobra.Command{
+		Use:           "roadmap",
+		Short:         "Print or write the markdown roadmap",
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runRenderRoadmapCmd(root, write, actor))
+		},
 	}
-	return false
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().BoolVar(&write, "write", false, "write ROADMAP.md and commit (no-op when content is unchanged)")
+	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (only with --write)")
+	return cmd
 }
 
-// runRenderRoadmap prints the markdown roadmap to stdout, or with
-// --write replaces ROADMAP.md and creates a single commit. When the
-// rendered output already matches the on-disk file, --write is a
-// no-op (no commit) so the verb is safely re-runnable in CI.
-func runRenderRoadmap(args []string) int {
-	fs := flag.NewFlagSet("render roadmap", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root")
-	write := fs.Bool("write", false, "write ROADMAP.md and commit (no-op when content is unchanged)")
-	actor := fs.String("actor", "", "actor for the commit trailer (only with --write)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
-		return exitUsage
-	}
-
-	rootDir, err := resolveRoot(*root)
+func runRenderRoadmapCmd(root string, write bool, actor string) int {
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return exitUsage
@@ -127,7 +157,7 @@ func runRenderRoadmap(args []string) int {
 	}
 	content = roadmap.AppendCandidates(content, roadmap.ExtractCandidates(existing))
 
-	if !*write {
+	if !write {
 		if _, werr := os.Stdout.Write(content); werr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", werr)
 			return exitInternal
@@ -140,7 +170,7 @@ func runRenderRoadmap(args []string) int {
 		return exitOK
 	}
 
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return exitUsage
@@ -211,7 +241,7 @@ func runRenderRoadmap(args []string) int {
 	return exitOK
 }
 
-// runRenderSite handles `aiwf render --format=html [--out <dir>]
+// runRenderSiteCmd handles `aiwf render --format=html [--out <dir>]
 // [--scope <id>] [--no-history] [--pretty]`. Read-only — produces a
 // directory of HTML files. No commit. Always emits the standard JSON
 // envelope on stdout per I3 plan §5; --pretty toggles indent.
@@ -219,26 +249,15 @@ func runRenderRoadmap(args []string) int {
 // Result payload:
 //
 //	{ "result": { "out_dir": "<abs>", "files_written": N, "elapsed_ms": M } }
-func runRenderSite(args []string) int {
-	fs := flag.NewFlagSet("render", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root")
-	format := fs.String("format", "", "output format (required: html)")
-	out := fs.String("out", "", "output directory (overrides aiwf.yaml.html.out_dir; default 'site')")
-	scope := fs.String("scope", "", "render only this entity and its referenced children (reserved; not yet implemented)")
-	noHistory := fs.Bool("no-history", false, "skip git-log walks per page (reserved; not yet implemented)")
-	pretty := fs.Bool("pretty", false, "indent the JSON envelope on stdout")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
-		return exitUsage
-	}
-	if *format != "html" {
-		fmt.Fprintf(os.Stderr, "aiwf render: --format must be 'html'; got %q\n", *format)
+func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) int {
+	if format != "html" {
+		fmt.Fprintf(os.Stderr, "aiwf render: --format must be 'html'; got %q\n", format)
 		return exitUsage
 	}
 	_ = scope     // step-4 placeholder: reserved for §3 incremental render
 	_ = noHistory // step-4 placeholder: reserved for the no-history flag
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)
 		return exitUsage
@@ -254,7 +273,7 @@ func runRenderSite(args []string) int {
 	findings := check.Run(tr, loadErrs)
 	resolver := newRenderResolver(ctx, rootDir, tr, cfg, findings)
 
-	outDir := resolveHTMLOutDir(rootDir, *out)
+	outDir := resolveHTMLOutDir(rootDir, out)
 	res, err := htmlrender.Render(htmlrender.Options{
 		OutDir: outDir,
 		Tree:   tr,
@@ -277,7 +296,7 @@ func runRenderSite(args []string) int {
 		},
 		Metadata: map[string]any{"root": rootDir},
 	}
-	if werr := render.JSON(os.Stdout, env, *pretty); werr != nil {
+	if werr := render.JSON(os.Stdout, env, pretty); werr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", werr)
 		return exitInternal
 	}

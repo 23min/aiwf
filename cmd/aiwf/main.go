@@ -16,7 +16,6 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io/fs"
 	"os"
@@ -74,6 +73,17 @@ type exitError struct {
 
 func (e *exitError) Error() string {
 	return fmt.Sprintf("exit %d", e.code)
+}
+
+// wrapExitCode lifts a verb's int return code into the error channel
+// Cobra's RunE expects. exitOK collapses to nil (success); anything
+// else becomes an *exitError that run() unwraps. Centralizing the
+// translation keeps every RunE one-liner-shaped.
+func wrapExitCode(code int) error {
+	if code == exitOK {
+		return nil
+	}
+	return &exitError{code: code}
 }
 
 func main() {
@@ -149,7 +159,7 @@ func newRootCmd() *cobra.Command {
 
 	cmd.AddCommand(newVersionCmd())
 
-	cmd.AddCommand(newPassthroughCmd("check", runCheck))
+	cmd.AddCommand(newCheckCmd())
 	cmd.AddCommand(newPassthroughCmd("add", runAdd))
 	cmd.AddCommand(newPassthroughCmd("promote", runPromote))
 	cmd.AddCommand(newPassthroughCmd("cancel", runCancel))
@@ -160,15 +170,15 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newPassthroughCmd("init", runInit))
 	cmd.AddCommand(newPassthroughCmd("update", runUpdate))
 	cmd.AddCommand(newPassthroughCmd("upgrade", runUpgrade))
-	cmd.AddCommand(newPassthroughCmd("history", runHistory))
-	cmd.AddCommand(newPassthroughCmd("doctor", runDoctor))
-	cmd.AddCommand(newPassthroughCmd("render", runRender))
+	cmd.AddCommand(newHistoryCmd())
+	cmd.AddCommand(newDoctorCmd())
+	cmd.AddCommand(newRenderCmd())
 	cmd.AddCommand(newPassthroughCmd("import", runImport))
 	cmd.AddCommand(newPassthroughCmd("whoami", runWhoami))
 	cmd.AddCommand(newPassthroughCmd("status", runStatus))
-	cmd.AddCommand(newPassthroughCmd("schema", runSchema))
+	cmd.AddCommand(newSchemaCmd())
 	cmd.AddCommand(newPassthroughCmd("show", runShow))
-	cmd.AddCommand(newPassthroughCmd("template", runTemplate))
+	cmd.AddCommand(newTemplateCmd())
 	cmd.AddCommand(newPassthroughCmd("contract", runContract))
 	cmd.AddCommand(newPassthroughCmd("authorize", runAuthorize))
 
@@ -300,35 +310,54 @@ Exit codes: 0 = no errors, 1 = errors found, 2 = usage error, 3 = internal error
 Docs: docs/pocv3/archive/poc-plan-pre-migration.md and docs/pocv3/design/design-decisions.md.`)
 }
 
-func runCheck(args []string) int {
-	flags := flag.NewFlagSet("check", flag.ContinueOnError)
-	root := flags.String("root", "", "consumer repo root (default: discover via aiwf.yaml)")
-	format := flags.String("format", "text", "output format: text or json")
-	pretty := flags.Bool("pretty", false, "indent JSON output (only with --format=json)")
-	since := flags.String("since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
-	shapeOnly := flags.Bool("shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
-	flags.SetOutput(os.Stderr)
-	if err := flags.Parse(args); err != nil {
-		return exitUsage
+// newCheckCmd builds `aiwf check`: validate the consumer repo's
+// planning state. Read-only; produces no commit. The pre-push git hook
+// runs this verb — its findings + exit code are the framework's
+// authoritative correctness gate.
+func newCheckCmd() *cobra.Command {
+	var (
+		root      string
+		format    string
+		pretty    bool
+		since     string
+		shapeOnly bool
+	)
+	cmd := &cobra.Command{
+		Use:           "check",
+		Short:         "Validate the consumer repo's planning state",
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runCheckCmd(root, format, pretty, since, shapeOnly))
+		},
 	}
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
+	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
+	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
+	return cmd
+}
 
-	if *format != "text" && *format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf check: --format must be 'text' or 'json', got %q\n", *format)
+func runCheckCmd(root, format string, pretty bool, since string, shapeOnly bool) int {
+	if format != "text" && format != "json" {
+		fmt.Fprintf(os.Stderr, "aiwf check: --format must be 'text' or 'json', got %q\n", format)
 		return exitUsage
 	}
-	if *pretty && *format != "json" {
+	if pretty && format != "json" {
 		fmt.Fprintln(os.Stderr, "aiwf check: --pretty has no effect without --format=json")
 	}
 
-	resolved, err := resolveRoot(*root)
+	resolved, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", err)
 		return exitUsage
 	}
 
 	ctx := context.Background()
-	if *shapeOnly {
-		return runCheckShapeOnly(ctx, resolved, *format, *pretty)
+	if shapeOnly {
+		return runCheckShapeOnly(ctx, resolved, format, pretty)
 	}
 
 	tr, loadErrs, err := loadTreeWithTrunk(ctx, resolved)
@@ -347,7 +376,7 @@ func runCheck(args []string) int {
 	contractFindings := runContractValidation(ctx, tr, resolved, contracts)
 	findings = append(findings, contractFindings...)
 
-	provenanceFindings, pErr := runProvenanceCheck(ctx, resolved, tr, *since)
+	provenanceFindings, pErr := runProvenanceCheck(ctx, resolved, tr, since)
 	if pErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
 		return exitInternal
@@ -374,7 +403,7 @@ func runCheck(args []string) int {
 	applyHintsLikeRun(findings)
 	check.SortFindings(findings)
 
-	switch *format {
+	switch format {
 	case "text":
 		if err := render.Text(os.Stdout, findings); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
@@ -393,7 +422,7 @@ func runCheck(args []string) int {
 				"findings": len(findings),
 			},
 		}
-		if err := render.JSON(os.Stdout, env, *pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
 			return exitInternal
 		}

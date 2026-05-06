@@ -13,15 +13,21 @@ import (
 // gitops.Commit / gitops.Mv / gitops.Add or os.WriteFile call from
 // one of these is a regression — the verb is now writing without
 // a Plan.
+//
+// Names ending in `Cmd` are the body-function shape introduced by
+// E-14's Cobra migration: each Cobra command's RunE delegates to a
+// `run<Verb>Cmd(...)` helper that holds the verb's actual logic.
+// The legacy `runX(args []string) int` shape remains for verbs not
+// yet migrated.
 var readOnlyVerbs = map[string]bool{
-	"runCheck":   true,
-	"runHistory": true,
-	"runShow":    true,
-	"runDoctor":  true,
-	"runStatus":  true,
-	"runWhoami":  true,
-	"runSchema":  true,
-	"runRender":  true, // unless --write; see RenderRoadmap policy below
+	"runCheckCmd":      true,
+	"runHistoryCmd":    true,
+	"runShow":          true,
+	"runDoctorCmd":     true,
+	"runStatus":        true,
+	"runWhoami":        true,
+	"runSchemaCmd":     true,
+	"runRenderSiteCmd": true, // html render path; runRenderRoadmapCmd writes only with --write and is policed via the RenderRoadmap rule
 }
 
 // forbiddenMutations is the set of function/method calls a
@@ -46,10 +52,11 @@ var forbiddenMutations = []string{
 // analysis would be needed; this catches the direct case which is
 // almost always how the regression starts.
 //
-// Exception: runRender writes only when --write is set; we let
-// it reference os.WriteFile but flag the others. To keep the
-// policy uniform we list runRender in readOnlyVerbs and include a
-// targeted carve-out below.
+// Note on render: post-E-14 the verb splits into two functions —
+// runRenderSiteCmd (html path, no writes) and runRenderRoadmapCmd
+// (markdown path, writes only with --write). Only the site path is
+// listed above; the roadmap path is governed by the dedicated
+// RenderRoadmap policy below.
 func PolicyReadOnlyVerbsDoNotMutate(root string) ([]Violation, error) {
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
@@ -82,11 +89,6 @@ func PolicyReadOnlyVerbsDoNotMutate(root string) ([]Violation, error) {
 			}
 			body := string(f.Contents[start:end])
 			for _, mut := range forbiddenMutations {
-				// runRender legitimately uses os.WriteFile in --write
-				// mode. The policy whitelists that one pairing.
-				if fn.Name.Name == "runRender" && mut == "os.WriteFile" {
-					continue
-				}
 				if strings.Contains(body, mut) {
 					out = append(out, Violation{
 						Policy: "read-only-verbs-do-not-mutate",

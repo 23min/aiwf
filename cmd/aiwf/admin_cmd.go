@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
 	"github.com/23min/ai-workflow-v2/internal/check"
 	"github.com/23min/ai-workflow-v2/internal/config"
@@ -185,30 +187,39 @@ func runUpdate(args []string) int {
 	return exitOK
 }
 
-// runHistory handles `aiwf history <id>`: filters git log for the
+// newHistoryCmd builds `aiwf history <id>`: filters git log for the
 // entity's structured trailers and prints one line per event.
-func runHistory(args []string) int {
-	fs := flag.NewFlagSet("history", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root")
-	format := fs.String("format", "text", "output format: text or json")
-	pretty := fs.Bool("pretty", false, "indent JSON output (only with --format=json)")
-	showAuth := fs.Bool("show-authorization", false, "include the full aiwf-authorized-by SHA on scope-authorized rows (text format only)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
-		return exitUsage
+func newHistoryCmd() *cobra.Command {
+	var (
+		root     string
+		format   string
+		pretty   bool
+		showAuth bool
+	)
+	cmd := &cobra.Command{
+		Use:           "history <id>",
+		Short:         "Show the entity's lifecycle from git log trailers",
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runHistoryCmd(args[0], root, format, pretty, showAuth))
+		},
 	}
-	rest := fs.Args()
-	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf history: usage: aiwf history <id>")
-		return exitUsage
-	}
-	if *format != "text" && *format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf history: --format must be text or json, got %q\n", *format)
-		return exitUsage
-	}
-	id := rest[0]
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
+	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	cmd.Flags().BoolVar(&showAuth, "show-authorization", false, "include the full aiwf-authorized-by SHA on scope-authorized rows (text format only)")
+	return cmd
+}
 
-	rootDir, err := resolveRoot(*root)
+func runHistoryCmd(id, root, format string, pretty, showAuth bool) int {
+	if format != "text" && format != "json" {
+		fmt.Fprintf(os.Stderr, "aiwf history: --format must be text or json, got %q\n", format)
+		return exitUsage
+	}
+
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
 		return exitUsage
@@ -246,7 +257,7 @@ func runHistory(args []string) int {
 		return exitInternal
 	}
 
-	switch *format {
+	switch format {
 	case "text":
 		if len(events) == 0 {
 			fmt.Printf("no history for %s\n", id)
@@ -260,7 +271,7 @@ func runHistory(args []string) int {
 			e := &events[i]
 			fmt.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
 				e.Date, renderActor(*e), e.Verb, renderTo(e.To), e.Detail, e.Commit,
-				renderScopeChips(*e, scopeEntities, *showAuth))
+				renderScopeChips(*e, scopeEntities, showAuth))
 			if e.Force != "" {
 				fmt.Printf("    [forced: %s]\n", e.Force)
 			}
@@ -287,7 +298,7 @@ func runHistory(args []string) int {
 				"events": len(events),
 			},
 		}
-		if err := render.JSON(os.Stdout, env, *pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
 			return exitInternal
 		}
@@ -707,31 +718,44 @@ func hasCommits(ctx context.Context, root string) bool {
 	return cmd.Run() == nil
 }
 
-// runDoctor handles `aiwf doctor`: version check, materialized-skill
+// newDoctorCmd builds `aiwf doctor`: version check, materialized-skill
 // drift check, id-collision check. With --self-check, instead drives
 // every mutating verb against a throwaway repo to prove the binary
 // works end-to-end.
-func runDoctor(args []string) int {
-	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
-	root := fs.String("root", "", "consumer repo root")
-	selfCheck := fs.Bool("self-check", false, "run every verb against a temp repo and report pass/fail")
-	checkLatest := fs.Bool("check-latest", false, "look up the latest published aiwf version on the Go module proxy (one HTTP call; honors GOPROXY=off)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
-		return exitUsage
+func newDoctorCmd() *cobra.Command {
+	var (
+		root        string
+		selfCheck   bool
+		checkLatest bool
+	)
+	cmd := &cobra.Command{
+		Use:           "doctor",
+		Short:         "Drift / version / id-collision health check",
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runDoctorCmd(root, selfCheck, checkLatest))
+		},
 	}
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().BoolVar(&selfCheck, "self-check", false, "run every verb against a temp repo and report pass/fail")
+	cmd.Flags().BoolVar(&checkLatest, "check-latest", false, "look up the latest published aiwf version on the Go module proxy (one HTTP call; honors GOPROXY=off)")
+	return cmd
+}
 
-	if *selfCheck {
+func runDoctorCmd(root string, selfCheck, checkLatest bool) int {
+	if selfCheck {
 		return runSelfCheck()
 	}
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor: %v\n", err)
 		return exitUsage
 	}
 
-	report, problems := doctorReport(rootDir, doctorOptions{CheckLatest: *checkLatest})
+	report, problems := doctorReport(rootDir, doctorOptions{CheckLatest: checkLatest})
 	for _, line := range report {
 		fmt.Println(line)
 	}

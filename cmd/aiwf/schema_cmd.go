@@ -1,49 +1,57 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/23min/ai-workflow-v2/internal/entity"
 	"github.com/23min/ai-workflow-v2/internal/render"
 )
 
-// runSchema handles `aiwf schema [kind]`: prints the frontmatter
+// newSchemaCmd builds `aiwf schema [kind]`: prints the frontmatter
 // contract for one kind or for all six. Read-only; produces no commit
 // and does not require a consumer repo. The intended audience is skill
 // authors writing recipes that hand-edit aiwf-managed files — they can
 // read the schema once and stop guessing field names.
-func runSchema(args []string) int {
-	fs := flag.NewFlagSet("schema", flag.ContinueOnError)
-	format := fs.String("format", "text", "output format: text or json")
-	pretty := fs.Bool("pretty", false, "indent JSON output (only with --format=json)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args); err != nil {
+func newSchemaCmd() *cobra.Command {
+	var (
+		format string
+		pretty bool
+	)
+	cmd := &cobra.Command{
+		Use:           "schema [kind]",
+		Short:         "Print the frontmatter contract for one or all kinds",
+		Args:          cobra.MaximumNArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runSchemaCmd(args, format, pretty))
+		},
+	}
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
+	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	return cmd
+}
+
+func runSchemaCmd(args []string, format string, pretty bool) int {
+	if format != "text" && format != "json" {
+		fmt.Fprintf(os.Stderr, "aiwf schema: --format must be 'text' or 'json', got %q\n", format)
 		return exitUsage
 	}
-	if *format != "text" && *format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf schema: --format must be 'text' or 'json', got %q\n", *format)
-		return exitUsage
-	}
-	if *pretty && *format != "json" {
+	if pretty && format != "json" {
 		fmt.Fprintln(os.Stderr, "aiwf schema: --pretty has no effect without --format=json")
 	}
 
-	rest := fs.Args()
-	if len(rest) > 1 {
-		fmt.Fprintf(os.Stderr, "aiwf schema: expected zero or one kind argument, got %d\n", len(rest))
-		return exitUsage
-	}
-
 	var schemas []entity.Schema
-	if len(rest) == 1 {
-		k := entity.Kind(rest[0])
+	if len(args) == 1 {
+		k := entity.Kind(args[0])
 		s, ok := entity.SchemaForKind(k)
 		if !ok {
-			fmt.Fprintf(os.Stderr, "aiwf schema: unknown kind %q (known: %s)\n", rest[0], joinKinds(entity.AllKinds()))
+			fmt.Fprintf(os.Stderr, "aiwf schema: unknown kind %q (known: %s)\n", args[0], joinKinds(entity.AllKinds()))
 			return exitUsage
 		}
 		schemas = []entity.Schema{s}
@@ -51,7 +59,7 @@ func runSchema(args []string) int {
 		schemas = entity.AllSchemas()
 	}
 
-	switch *format {
+	switch format {
 	case "text":
 		if err := writeSchemaText(os.Stdout, schemas); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf schema: writing output: %v\n", err)
@@ -64,7 +72,7 @@ func runSchema(args []string) int {
 			Status:  "ok",
 			Result:  map[string]any{"schemas": schemas},
 		}
-		if err := render.JSON(os.Stdout, env, *pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf schema: writing output: %v\n", err)
 			return exitInternal
 		}
