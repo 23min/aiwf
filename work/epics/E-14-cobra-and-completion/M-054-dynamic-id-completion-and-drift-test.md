@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: Graceful no-op completion when cwd is not a valid aiwf project
-      status: open
+      status: met
     - id: AC-3
       title: Drift-prevention policy test fails CI on flag without completion wiring
       status: open
