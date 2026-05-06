@@ -63,7 +63,7 @@ flowchart LR
 ### E-15 — Reduce planning-verb commit cardinality _(proposed)_
 
 - **M-056** — Add --body-file to aiwf add variants _(draft)_ — ACs 0/5 met (5 open)
-- **M-057** — Batched --title on aiwf add ac _(draft)_
+- **M-057** — Batched --title on aiwf add ac _(draft)_ — ACs 0/1 met (1 open)
 - **M-058** — Add aiwf edit-body verb and reconcile skill _(draft)_
 
 ```mermaid
@@ -71,7 +71,7 @@ flowchart LR
   E_15["E-15<br/>Reduce planning-verb commit cardinality"]:::epic_proposed
   M_056["M-056 (0/5)<br/>Add --body-file to aiwf add variants"]:::ms_draft
   E_15 --> M_056
-  M_057["M-057<br/>Batched --title on aiwf add ac"]:::ms_draft
+  M_057["M-057 (0/1)<br/>Batched --title on aiwf add ac"]:::ms_draft
   E_15 --> M_057
   M_058["M-058<br/>Add aiwf edit-body verb and reconcile skill"]:::ms_draft
   E_15 --> M_058
@@ -104,9 +104,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add ac M-056/AC-5 'Subprocess integration test exercises --body-file path' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-056/AC-4 'Body and frontmatter committed together in single create commit' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-056/AC-3 '--body-file is optional; absence preserves current behavior' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-056/AC-2 'Body content from file replaces empty body in created entity' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-056/AC-1 '--body-file flag on aiwf add for all six kinds' |
-| 2026-05-06 | human/peter | add | aiwf add milestone M-058 'Add aiwf edit-body verb and reconcile skill' |
 

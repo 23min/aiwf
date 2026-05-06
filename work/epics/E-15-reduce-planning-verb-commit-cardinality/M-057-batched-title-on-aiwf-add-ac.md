@@ -3,6 +3,10 @@ id: M-057
 title: Batched --title on aiwf add ac
 status: draft
 parent: E-15
+acs:
+    - id: AC-1
+      title: Repeated --title flag accepted on aiwf add ac M-NNN
+      status: open
 ---
 
 ## Goal
@@ -16,3 +20,6 @@ Repeated-flag support is mechanical in stdlib `flag` (custom `Value`) and trivia
 Single-`--title` invocation continues to work unchanged — backward-compatible by construction.
 
 ## Acceptance criteria
+
+### AC-1 — Repeated --title flag accepted on aiwf add ac M-NNN
+
