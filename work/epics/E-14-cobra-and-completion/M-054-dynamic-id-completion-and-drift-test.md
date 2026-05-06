@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: Drift-prevention policy test fails CI on flag without completion wiring
       status: open
+    - id: AC-4
+      title: Test covers static-completion and dynamic-completion required cases
+      status: open
 ---
 
 ## Goal
@@ -30,4 +33,6 @@ Wire dynamic completion of live entity ids — `--epic=<TAB>`, `--milestone=<TAB
 ### AC-2 — Graceful no-op completion when cwd is not a valid aiwf project
 
 ### AC-3 — Drift-prevention policy test fails CI on flag without completion wiring
+
+### AC-4 — Test covers static-completion and dynamic-completion required cases
 

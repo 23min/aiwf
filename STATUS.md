@@ -32,7 +32,7 @@ flowchart LR
 - **M-051** — Migrate mutating verbs _(draft)_ — ACs 0/6 met (6 open)
 - **M-052** — Migrate setup verbs _(draft)_ — ACs 0/4 met (4 open)
 - **M-053** — Completion verb and static completion _(draft)_ — ACs 0/5 met (5 open)
-- **M-054** — Dynamic id completion and drift test _(draft)_ — ACs 0/3 met (3 open)
+- **M-054** — Dynamic id completion and drift test _(draft)_ — ACs 0/4 met (4 open)
 - **M-055** — Documentation pass _(draft)_
 
 ```mermaid
@@ -48,7 +48,7 @@ flowchart LR
   E_14 --> M_052
   M_053["M-053 (0/5)<br/>Completion verb and static completion"]:::ms_draft
   E_14 --> M_053
-  M_054["M-054 (0/3)<br/>Dynamic id completion and drift test"]:::ms_draft
+  M_054["M-054 (0/4)<br/>Dynamic id completion and drift test"]:::ms_draft
   E_14 --> M_054
   M_055["M-055<br/>Documentation pass"]:::ms_draft
   E_14 --> M_055
@@ -79,9 +79,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add ac M-054/AC-3 'Drift-prevention policy test fails CI on flag without completion wiring' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-054/AC-2 'Graceful no-op completion when cwd is not a valid aiwf project' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-054/AC-1 '--epic=<TAB> enumerates live epic ids from the planning tree' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-053/AC-5 'README has install one-liner: source <(aiwf completion zsh)' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-053/AC-4 '--format= auto-completes text\|json values' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-053/AC-3 '--status= auto-completes per-kind closed-set values' |
 
