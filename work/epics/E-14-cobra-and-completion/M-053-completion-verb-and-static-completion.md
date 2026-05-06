@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: --status= auto-completes per-kind closed-set values
-      status: open
+      status: met
     - id: AC-4
       title: --format= auto-completes text|json values
       status: open
