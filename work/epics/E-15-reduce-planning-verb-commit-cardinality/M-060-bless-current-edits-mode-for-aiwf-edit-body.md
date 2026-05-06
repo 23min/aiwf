@@ -6,7 +6,7 @@ parent: E-15
 acs:
     - id: AC-1
       title: Bare aiwf edit-body commits on-disk body changes with edit-body trailers
-      status: open
+      status: met
     - id: AC-2
       title: Frontmatter-changed bless invocation refuses with structured-state-verb pointer
       status: open

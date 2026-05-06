@@ -10,7 +10,7 @@ _128 entities · 0 errors · 0 warnings_
 - ✓ **M-057** — Batched --title on aiwf add ac _(done)_ — ACs 5/5 met
 - ✓ **M-058** — Add aiwf edit-body verb and reconcile skill _(done)_ — ACs 4/4 met
 - ✓ **M-059** — Add resolver-pointer flags to status-transition verbs _(done)_ — ACs 4/4 met
-- → **M-060** — Bless-current-edits mode for aiwf edit-body _(in_progress)_ — ACs 0/5 met (5 open)
+- → **M-060** — Bless-current-edits mode for aiwf edit-body _(in_progress)_ — ACs 1/5 met (4 open)
 
 ```mermaid
 flowchart LR
@@ -23,7 +23,7 @@ flowchart LR
   E_15 --> M_058
   M_059["M-059 (4/4)<br/>Add resolver-pointer flags to status-transition verbs"]:::ms_done
   E_15 --> M_059
-  M_060["M-060 (0/5)<br/>Bless-current-edits mode for aiwf edit-body"]:::ms_in_progress
+  M_060["M-060 (1/5)<br/>Bless-current-edits mode for aiwf edit-body"]:::ms_in_progress
   E_15 --> M_060
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
