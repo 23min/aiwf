@@ -6,7 +6,7 @@ parent: E-14
 acs:
     - id: AC-1
       title: add, promote, cancel, rename, reallocate, import migrated to Cobra
-      status: open
+      status: met
     - id: AC-2
       title: Single-commit-per-verb invariant preserved for each mutating verb
       status: open
