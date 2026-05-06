@@ -49,6 +49,10 @@ func newImportCmd() *cobra.Command {
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; per-entity scope gating is deferred to G22 — bulk import currently only enforces principal coherence)")
 	cmd.Flags().StringVar(&onCollision, "on-collision", verb.OnCollisionFail, "behavior when an explicit id already exists: fail|skip|update")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate the projection and print the would-be plan without writing")
+	_ = cmd.RegisterFlagCompletionFunc("on-collision", cobra.FixedCompletions(
+		[]string{verb.OnCollisionFail, verb.OnCollisionSkip, verb.OnCollisionUpdate},
+		cobra.ShellCompDirectiveNoFileComp,
+	))
 	return cmd
 }
 

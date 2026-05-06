@@ -233,6 +233,7 @@ func newHistoryCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().BoolVar(&showAuth, "show-authorization", false, "include the full aiwf-authorized-by SHA on scope-authorized rows (text format only)")
 	registerFormatCompletion(cmd)
+	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
 	return cmd
 }
 

@@ -55,6 +55,10 @@ func newRenderCmd() *cobra.Command {
 	cmd.Flags().StringVar(&scope, "scope", "", "render only this entity and its referenced children (reserved; not yet implemented)")
 	cmd.Flags().BoolVar(&noHistory, "no-history", false, "skip git-log walks per page (reserved; not yet implemented)")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent the JSON envelope on stdout")
+	_ = cmd.RegisterFlagCompletionFunc("format", cobra.FixedCompletions(
+		[]string{"html"},
+		cobra.ShellCompDirectiveNoFileComp,
+	))
 	cmd.SetHelpFunc(func(c *cobra.Command, _ []string) {
 		if c == cmd {
 			printRenderHelp()

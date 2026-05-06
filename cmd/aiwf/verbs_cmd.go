@@ -92,6 +92,10 @@ func newAddCmd() *cobra.Command {
 		// only the six top-level kinds need explicit listing here.
 		return allKindNames(), cobra.ShellCompDirectiveNoFileComp
 	}
+	_ = cmd.RegisterFlagCompletionFunc("epic", completeEntityIDFlag(entity.KindEpic))
+	_ = cmd.RegisterFlagCompletionFunc("discovered-in", completeEntityIDFlag(""))
+	_ = cmd.RegisterFlagCompletionFunc("relates-to", completeEntityIDFlag(""))
+	_ = cmd.RegisterFlagCompletionFunc("linked-adr", completeEntityIDFlag(entity.KindADR))
 
 	cmd.AddCommand(newAddACCmd(&titles, &actor, &principal, &root))
 	return cmd
@@ -207,6 +211,7 @@ func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Comman
 		},
 	}
 	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
+	cmd.ValidArgsFunction = completeEntityIDArg(entity.KindMilestone, 0)
 	return cmd
 }
 
@@ -358,7 +363,10 @@ func newPromoteCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
-		if len(args) == 1 {
+		switch len(args) {
+		case 0:
+			return completeEntityIDs("")
+		case 1:
 			// args[0] is the entity id; the kind is determined by the
 			// id prefix (E-/M-/ADR-/G-/D-/C-) without loading the tree.
 			// Composite ids return nil — phase advancement uses --phase
@@ -370,6 +378,12 @@ func newPromoteCmd() *cobra.Command {
 		}
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
+	_ = cmd.RegisterFlagCompletionFunc("phase", cobra.FixedCompletions(
+		[]string{"red", "green", "refactor", "done"},
+		cobra.ShellCompDirectiveNoFileComp,
+	))
+	_ = cmd.RegisterFlagCompletionFunc("by", completeEntityIDFlag(""))
+	_ = cmd.RegisterFlagCompletionFunc("superseded-by", completeEntityIDFlag(entity.KindADR))
 	return cmd
 }
 
@@ -514,6 +528,7 @@ func newEditBodyCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity's new body (use "-" to read from stdin); the file must contain body content only — leading "---" is refused. Omit to use bless mode: commit whatever the user edited in the working copy of the entity file`)
+	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
 	return cmd
 }
 
@@ -595,6 +610,7 @@ func newCancelCmd() *cobra.Command {
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().BoolVar(&force, "force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
+	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
 	return cmd
 }
 
@@ -670,6 +686,7 @@ func newRenameCmd() *cobra.Command {
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
 	return cmd
 }
 
@@ -734,6 +751,8 @@ func newMoveCmd() *cobra.Command {
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&epic, "epic", "", "target epic id (e.g., E-04)")
+	cmd.ValidArgsFunction = completeEntityIDArg(entity.KindMilestone, 0)
+	_ = cmd.RegisterFlagCompletionFunc("epic", completeEntityIDFlag(entity.KindEpic))
 	return cmd
 }
 
@@ -799,6 +818,7 @@ func newReallocateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
 	return cmd
 }
 

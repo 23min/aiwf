@@ -127,6 +127,56 @@ func statusesForID(id string) []string {
 	return entity.AllowedStatuses(k)
 }
 
+// completeEntityIDs returns the live ids in the consumer repo's
+// planning tree, optionally filtered to a single kind. Designed for
+// use as a Cobra ValidArgsFunction or RegisterFlagCompletionFunc body:
+// failures (no aiwf.yaml, malformed tree, unreadable disk) collapse
+// to an empty list rather than spamming the user's shell with errors,
+// satisfying M-054 AC-2's graceful-no-op rule.
+func completeEntityIDs(filter entity.Kind) ([]string, cobra.ShellCompDirective) {
+	rootDir, err := resolveRoot("")
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	tr, _, err := tree.Load(context.Background(), rootDir)
+	if err != nil || tr == nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	ids := make([]string, 0, len(tr.Entities))
+	for _, e := range tr.Entities {
+		if filter != "" && e.Kind != filter {
+			continue
+		}
+		ids = append(ids, e.ID)
+	}
+	return ids, cobra.ShellCompDirectiveNoFileComp
+}
+
+// completeEntityIDFlag is the standard Cobra flag-completion adapter
+// over completeEntityIDs. Callers wire it via
+// `cmd.RegisterFlagCompletionFunc(name, completeEntityIDFlag(kind))`
+// where kind is either "" for all kinds or a specific entity.Kind.
+func completeEntityIDFlag(filter entity.Kind) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return completeEntityIDs(filter)
+	}
+}
+
+// completeEntityIDArg is the standard Cobra positional-arg completion
+// adapter over completeEntityIDs. Callers assign it as a command's
+// ValidArgsFunction. Unlike the flag adapter, this version respects
+// the args slice — if the positional in question isn't the first one,
+// it returns no suggestions (so e.g. `aiwf promote E-01 <TAB>` doesn't
+// re-suggest entity ids when the second positional is the new-status).
+func completeEntityIDArg(filter entity.Kind, position int) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
+		if len(args) != position {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		return completeEntityIDs(filter)
+	}
+}
+
 func main() {
 	if err := assertSupportedOS(runtime.GOOS); err != nil {
 		fmt.Fprintln(os.Stderr, "aiwf:", err)
