@@ -1,7 +1,7 @@
 ---
 id: M-051
 title: Migrate mutating verbs
-status: draft
+status: in_progress
 parent: E-14
 acs:
     - id: AC-1
