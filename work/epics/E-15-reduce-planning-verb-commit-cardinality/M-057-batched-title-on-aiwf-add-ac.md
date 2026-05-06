@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: All N ACs allocated atomically; failure reverts entire batch
-      status: open
+      status: met
     - id: AC-3
       title: Commit trailers list every created AC composite id
       status: open
