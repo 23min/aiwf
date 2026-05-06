@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: Cobra dependency added to go.mod with one-line justification in commit message
       status: open
+    - id: AC-2
+      title: Cobra root command and subcommand routing structure in cmd/aiwf
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ Add Cobra to the module, set up the root command and subcommand routing scaffold
 ## Acceptance criteria
 
 ### AC-1 — Cobra dependency added to go.mod with one-line justification in commit message
+
+### AC-2 — Cobra root command and subcommand routing structure in cmd/aiwf
 

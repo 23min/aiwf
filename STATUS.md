@@ -27,7 +27,7 @@ flowchart LR
 
 ### E-14 — Cobra and completion _(proposed)_
 
-- **M-049** — Bootstrap Cobra and migrate version _(draft)_ — ACs 0/1 met (1 open)
+- **M-049** — Bootstrap Cobra and migrate version _(draft)_ — ACs 0/2 met (2 open)
 - **M-050** — Migrate read-only verbs _(draft)_
 - **M-051** — Migrate mutating verbs _(draft)_
 - **M-052** — Migrate setup verbs _(draft)_
@@ -38,7 +38,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   E_14["E-14<br/>Cobra and completion"]:::epic_proposed
-  M_049["M-049 (0/1)<br/>Bootstrap Cobra and migrate version"]:::ms_draft
+  M_049["M-049 (0/2)<br/>Bootstrap Cobra and migrate version"]:::ms_draft
   E_14 --> M_049
   M_050["M-050<br/>Migrate read-only verbs"]:::ms_draft
   E_14 --> M_050
@@ -79,9 +79,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add ac M-049/AC-1 'Cobra dependency added to go.mod with one-line justification in commit message' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-055 'Documentation pass' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-054 'Dynamic id completion and drift test' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-053 'Completion verb and static completion' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-052 'Migrate setup verbs' |
-| 2026-05-06 | human/peter | add | aiwf add milestone M-051 'Migrate mutating verbs' |
 
