@@ -4,28 +4,7 @@ _128 entities · 0 errors · 0 warnings_
 
 ## In flight
 
-_(no active epics)_
-
-## Roadmap
-
-### E-13 — Status report _(proposed)_
-
-- **M-048** — Status report: cross-entity summaries + dashboard + time-window views _(draft)_
-
-```mermaid
-flowchart LR
-  E_13["E-13<br/>Status report"]:::epic_proposed
-  M_048["M-048<br/>Status report: cross-entity summaries + dashboard + time-window views"]:::ms_draft
-  E_13 --> M_048
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
-
-### E-14 — Cobra and completion _(proposed)_
+### E-14 — Cobra and completion _(active)_
 
 - **M-049** — Bootstrap Cobra and migrate version _(draft)_ — ACs 0/6 met (6 open)
 - **M-050** — Migrate read-only verbs _(draft)_ — ACs 0/4 met (4 open)
@@ -37,7 +16,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  E_14["E-14<br/>Cobra and completion"]:::epic_proposed
+  E_14["E-14<br/>Cobra and completion"]:::epic_active
   M_049["M-049 (0/6)<br/>Bootstrap Cobra and migrate version"]:::ms_draft
   E_14 --> M_049
   M_050["M-050 (0/4)<br/>Migrate read-only verbs"]:::ms_draft
@@ -52,6 +31,25 @@ flowchart LR
   E_14 --> M_054
   M_055["M-055 (0/4)<br/>Documentation pass"]:::ms_draft
   E_14 --> M_055
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
+
+## Roadmap
+
+### E-13 — Status report _(proposed)_
+
+- **M-048** — Status report: cross-entity summaries + dashboard + time-window views _(draft)_
+
+```mermaid
+flowchart LR
+  E_13["E-13<br/>Status report"]:::epic_proposed
+  M_048["M-048<br/>Status report: cross-entity summaries + dashboard + time-window views"]:::ms_draft
+  E_13 --> M_048
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
