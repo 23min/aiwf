@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: All N ACs allocated atomically; failure reverts entire batch
       status: open
+    - id: AC-3
+      title: Commit trailers list every created AC composite id
+      status: open
 ---
 
 ## Goal
@@ -27,4 +30,6 @@ Single-`--title` invocation continues to work unchanged — backward-compatible 
 ### AC-1 — Repeated --title flag accepted on aiwf add ac M-NNN
 
 ### AC-2 — All N ACs allocated atomically; failure reverts entire batch
+
+### AC-3 — Commit trailers list every created AC composite id
 
