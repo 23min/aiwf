@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-5
       title: Single-title invocation continues to work unchanged
-      status: open
+      status: met
 ---
 
 ## Goal
