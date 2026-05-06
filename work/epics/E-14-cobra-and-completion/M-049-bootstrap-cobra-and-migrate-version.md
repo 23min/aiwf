@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: Cobra root command and subcommand routing structure in cmd/aiwf
-      status: open
+      status: met
     - id: AC-3
       title: version verb migrated; --format=json envelope shape preserved byte-exact
       status: open
