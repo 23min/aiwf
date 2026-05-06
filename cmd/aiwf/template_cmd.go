@@ -37,8 +37,13 @@ func newTemplateCmd() *cobra.Command {
 		pretty bool
 	)
 	cmd := &cobra.Command{
-		Use:           "template [kind]",
-		Short:         "Print the body-section template aiwf add would scaffold",
+		Use:   "template [kind]",
+		Short: "Print the body-section template aiwf add would scaffold",
+		Example: `  # Pipe the epic body template into a new file
+  aiwf template epic > my-epic-body.md
+
+  # List every kind's template, separated by KIND: headers
+  aiwf template`,
 		Args:          cobra.MaximumNArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

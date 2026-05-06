@@ -295,8 +295,10 @@ func newRootCmd() *cobra.Command {
 // resolvedVersion via the root RunE).
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:           "version",
-		Short:         "Print the binary version",
+		Use:   "version",
+		Short: "Print the binary version",
+		Example: `  # Print the installed binary's version
+  aiwf version`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -364,6 +366,7 @@ Verbs:
   contract recipe show <name>    print an embedded recipe's markdown
   contract recipe install <name|--from <path>> [--force]  install a validator from the embedded set or from a YAML file
   contract recipe remove <name>  remove a declared validator (errors when bindings still reference it)
+  completion <bash|zsh|fish|powershell>  emit a sourceable shell-completion script (kubectl/gh idiom)
   help, --help                   show this message
   version, --version             print the binary version
 
@@ -427,8 +430,13 @@ func newCheckCmd() *cobra.Command {
 		shapeOnly bool
 	)
 	cmd := &cobra.Command{
-		Use:           "check",
-		Short:         "Validate the consumer repo's planning state",
+		Use:   "check",
+		Short: "Validate the consumer repo's planning state",
+		Example: `  # Run the full validation pass
+  aiwf check
+
+  # Emit a JSON envelope for CI scripts
+  aiwf check --format=json --pretty`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,

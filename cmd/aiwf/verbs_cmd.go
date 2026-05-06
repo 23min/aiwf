@@ -39,8 +39,17 @@ func newAddCmd() *cobra.Command {
 		bodyFile      string
 	)
 	cmd := &cobra.Command{
-		Use:           "add <kind> [...]",
-		Short:         "Create a new entity of the given kind",
+		Use:   "add <kind> [...]",
+		Short: "Create a new entity of the given kind",
+		Example: `  # Create a top-level epic
+  aiwf add epic --title "Foundations and aiwf check"
+
+  # Create a milestone under an epic
+  aiwf add milestone --epic E-01 --title "Bootstrap Cobra"
+
+  # Create a contract atomically wired to a validator
+  aiwf add contract --linked-adr ADR-0001 --title "Render envelope" \
+    --validator render --schema schemas/render.cue --fixtures fixtures/render`,
 		Args:          cobra.MinimumNArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -201,8 +210,15 @@ func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
 func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
 	var tests string
 	cmd := &cobra.Command{
-		Use:           "ac <milestone-id>",
-		Short:         "Add one or more acceptance criteria to a milestone",
+		Use:   "ac <milestone-id>",
+		Short: "Add one or more acceptance criteria to a milestone",
+		Example: `  # Add a single AC
+  aiwf add ac M-007 --title "Cobra dep added with one-line justification"
+
+  # Add multiple ACs in one atomic commit
+  aiwf add ac M-007 \
+    --title "version verb migrated" \
+    --title "exit codes preserved"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -341,8 +357,16 @@ func newPromoteCmd() *cobra.Command {
 		auditOnly    bool
 	)
 	cmd := &cobra.Command{
-		Use:           "promote <id> [new-status]",
-		Short:         "Advance an entity's status (or AC tdd_phase via --phase)",
+		Use:   "promote <id> [new-status]",
+		Short: "Advance an entity's status (or AC tdd_phase via --phase)",
+		Example: `  # Move an epic from proposed to active
+  aiwf promote E-01 active
+
+  # Mark an acceptance criterion as met
+  aiwf promote M-007/AC-1 met
+
+  # Advance an AC's TDD phase
+  aiwf promote M-007/AC-1 --phase green --tests "pass=12 fail=0 skip=0"`,
 		Args:          cobra.RangeArgs(1, 2),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -514,8 +538,13 @@ func newEditBodyCmd() *cobra.Command {
 		bodyFile  string
 	)
 	cmd := &cobra.Command{
-		Use:           "edit-body <id>",
-		Short:         "Replace the entity's markdown body (frontmatter untouched)",
+		Use:   "edit-body <id>",
+		Short: "Replace the entity's markdown body (frontmatter untouched)",
+		Example: `  # Bless current working-copy edits to the entity body
+  aiwf edit-body M-007
+
+  # Replace the body from a file
+  aiwf edit-body M-007 --body-file new-body.md --reason "refresh AC list"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -595,8 +624,10 @@ func newCancelCmd() *cobra.Command {
 		auditOnly bool
 	)
 	cmd := &cobra.Command{
-		Use:           "cancel <id>",
-		Short:         "Promote to the kind's terminal-cancel status",
+		Use:   "cancel <id>",
+		Short: "Promote to the kind's terminal-cancel status",
+		Example: `  # Cancel an in-flight epic with a rationale
+  aiwf cancel E-01 --reason "scope absorbed into E-02"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -674,8 +705,10 @@ func newRenameCmd() *cobra.Command {
 		root      string
 	)
 	cmd := &cobra.Command{
-		Use:           "rename <id> <new-slug>",
-		Short:         "Rename the file/dir slug; id preserved",
+		Use:   "rename <id> <new-slug>",
+		Short: "Rename the file/dir slug; id preserved",
+		Example: `  # Rename M-007's slug to a clearer phrase
+  aiwf rename M-007 cobra-and-completion`,
 		Args:          cobra.ExactArgs(2),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -734,8 +767,10 @@ func newMoveCmd() *cobra.Command {
 		epic      string
 	)
 	cmd := &cobra.Command{
-		Use:           "move <M-id> --epic <E-id>",
-		Short:         "Move a milestone to a different epic; id preserved",
+		Use:   "move <M-id> --epic <E-id>",
+		Short: "Move a milestone to a different epic; id preserved",
+		Example: `  # Reparent M-007 under epic E-04
+  aiwf move M-007 --epic E-04`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -806,8 +841,10 @@ func newReallocateCmd() *cobra.Command {
 		root      string
 	)
 	cmd := &cobra.Command{
-		Use:           "reallocate <id-or-path>",
-		Short:         "Renumber the entity; rewrite refs in others",
+		Use:   "reallocate <id-or-path>",
+		Short: "Renumber the entity; rewrite refs in others",
+		Example: `  # Resolve an id collision detected by aiwf check
+  aiwf reallocate M-007`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

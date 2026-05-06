@@ -36,8 +36,13 @@ func newRenderCmd() *cobra.Command {
 		pretty    bool
 	)
 	cmd := &cobra.Command{
-		Use:           "render",
-		Short:         "Produce derived views of the planning tree",
+		Use:   "render",
+		Short: "Produce derived views of the planning tree",
+		Example: `  # Render the static-site governance pages under ./site
+  aiwf render --format=html
+
+  # Render to a custom output directory
+  aiwf render --format=html --out /tmp/aiwf-site --pretty`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -117,8 +122,13 @@ func newRenderRoadmapCmd() *cobra.Command {
 		actor string
 	)
 	cmd := &cobra.Command{
-		Use:           "roadmap",
-		Short:         "Print or write the markdown roadmap",
+		Use:   "roadmap",
+		Short: "Print or write the markdown roadmap",
+		Example: `  # Print the markdown roadmap to stdout
+  aiwf render roadmap
+
+  # Replace ROADMAP.md and create a single commit
+  aiwf render roadmap --write`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,

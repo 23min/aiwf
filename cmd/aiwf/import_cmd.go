@@ -35,8 +35,13 @@ func newImportCmd() *cobra.Command {
 		dryRun      bool
 	)
 	cmd := &cobra.Command{
-		Use:           "import <manifest>",
-		Short:         "Bulk-create entities from a YAML/JSON manifest (one commit by default)",
+		Use:   "import <manifest>",
+		Short: "Bulk-create entities from a YAML/JSON manifest (one commit by default)",
+		Example: `  # Validate a manifest without writing
+  aiwf import seed.yaml --dry-run
+
+  # Apply, replacing entities with explicit ids that already exist
+  aiwf import seed.yaml --on-collision update`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

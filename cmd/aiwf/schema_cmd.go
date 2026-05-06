@@ -23,8 +23,13 @@ func newSchemaCmd() *cobra.Command {
 		pretty bool
 	)
 	cmd := &cobra.Command{
-		Use:           "schema [kind]",
-		Short:         "Print the frontmatter contract for one or all kinds",
+		Use:   "schema [kind]",
+		Short: "Print the frontmatter contract for one or all kinds",
+		Example: `  # Print every kind's contract
+  aiwf schema
+
+  # Print just the milestone contract
+  aiwf schema milestone`,
 		Args:          cobra.MaximumNArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

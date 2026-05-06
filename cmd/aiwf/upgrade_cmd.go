@@ -40,8 +40,16 @@ func newUpgradeCmd() *cobra.Command {
 		checkOnly bool
 	)
 	cmd := &cobra.Command{
-		Use:           "upgrade",
-		Short:         "Fetch a newer aiwf binary via go install and refresh artifacts",
+		Use:   "upgrade",
+		Short: "Fetch a newer aiwf binary via go install and refresh artifacts",
+		Example: `  # Upgrade to latest published release
+  aiwf upgrade
+
+  # Pin to a specific tag
+  aiwf upgrade --version v0.6.0
+
+  # Print the current/target comparison without installing
+  aiwf upgrade --check`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,

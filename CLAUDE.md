@@ -219,11 +219,12 @@ Line coverage measures *what code runs under the test suite*; it does not measur
 
 Every binary (currently just `aiwf`) follows:
 
-- **Exit codes:** `0` ok, `1` findings (validation succeeded but reported issues), `2` usage error, `3` internal error.
+- **Framework:** [`github.com/spf13/cobra`](https://github.com/spf13/cobra) is the standard CLI library. Each verb is a `cobra.Command`; a `runXCmd(...)` helper holds the verb's body and is called from `RunE`. Closed-set flag values bind to completion via `cmd.RegisterFlagCompletionFunc(name, cobra.FixedCompletions(...))`; entity-id flags use the dynamic `completeEntityIDFlag(kind)` helper. New commands are added under `cmd/aiwf/` and wired from `newRootCmd`. The drift test in `cmd/aiwf/completion_drift_test.go` is the chokepoint — a flag added without completion wiring (or an entry in the opt-out list) fails CI.
+- **Exit codes:** `0` ok, `1` findings (validation succeeded but reported issues), `2` usage error, `3` internal error. Verbs return `int`; the Cobra `RunE` adapter wraps the value via `wrapExitCode` and `run()` translates it back through the `*exitError` typed shuttle.
 - **Output:** Human-readable text by default; `--format=json` emits a structured JSON envelope for CI scripts and downstream tools. `--pretty` (with `--format=json`) indents the envelope. `aiwf` is an interactive CLI first; the JSON shape is the secondary surface.
 - **JSON envelope:** `{ tool, version, status, findings, result, metadata }`. `status` is one of `ok`, `findings`, `error`. `findings` is an array (possibly empty); `result` carries the verb's payload; `metadata` carries timing, counts, and the calling correlation_id when present.
 - **Logging:** `log/slog` to stderr (default level `INFO`). Tool output goes to stdout. `fmt.Fprintln(os.Stderr, …)` is not a substitute.
-- **Flags:** `--help`, `--version`, `--pretty` plus verb-specific. No global config files; everything via flags, env, or `aiwf.yaml` at the consumer repo root.
+- **Flags:** `--help`, `--version`, `-v`, `--pretty` plus verb-specific. No global config files; everything via flags, env, or `aiwf.yaml` at the consumer repo root.
 - **No package-level mutable state.** Pass dependencies via struct fields. In particular, don't introduce production patterns purely to satisfy test-injection — if tests need to swap a dependency, the production code uses constructor injection (`func New(deps Deps) *T`); never a package-level `var registry = map[…]` that tests mutate.
 
 ### Commit conventions

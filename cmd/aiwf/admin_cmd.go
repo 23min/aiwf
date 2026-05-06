@@ -39,8 +39,13 @@ func newInitCmd() *cobra.Command {
 		skipHook bool
 	)
 	cmd := &cobra.Command{
-		Use:           "init",
-		Short:         "One-time setup: aiwf.yaml, scaffolding, skills, pre-push hook",
+		Use:   "init",
+		Short: "One-time setup: aiwf.yaml, scaffolding, skills, pre-push hook",
+		Example: `  # Scaffold a fresh consumer repo (run once)
+  aiwf init
+
+  # Preview what init would do without writing
+  aiwf init --dry-run`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -147,8 +152,10 @@ func runInitCmd(root, actor string, dryRun, skipHook bool) int {
 func newUpdateCmd() *cobra.Command {
 	var root string
 	cmd := &cobra.Command{
-		Use:           "update",
-		Short:         "Refresh marker-managed framework artifacts (skills, hooks)",
+		Use:   "update",
+		Short: "Refresh marker-managed framework artifacts (skills, hooks)",
+		Example: `  # Refresh skills + hooks against the current binary version
+  aiwf update`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -219,8 +226,13 @@ func newHistoryCmd() *cobra.Command {
 		showAuth bool
 	)
 	cmd := &cobra.Command{
-		Use:           "history <id>",
-		Short:         "Show the entity's lifecycle from git log trailers",
+		Use:   "history <id>",
+		Short: "Show the entity's lifecycle from git log trailers",
+		Example: `  # Print one line per lifecycle event
+  aiwf history E-01
+
+  # Render the full provenance chain as JSON
+  aiwf history M-007 --format=json --pretty`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -753,8 +765,16 @@ func newDoctorCmd() *cobra.Command {
 		checkLatest bool
 	)
 	cmd := &cobra.Command{
-		Use:           "doctor",
-		Short:         "Drift / version / id-collision health check",
+		Use:   "doctor",
+		Short: "Drift / version / id-collision health check",
+		Example: `  # Local health check on the current consumer repo
+  aiwf doctor
+
+  # Drive every verb against a throwaway repo (CI smoke test)
+  aiwf doctor --self-check
+
+  # Compare to the latest published release on the Go module proxy
+  aiwf doctor --check-latest`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
