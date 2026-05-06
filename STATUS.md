@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-06
 
-_114 entities · 0 errors · 0 warnings_
+_115 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -30,6 +30,7 @@ flowchart LR
 - **M-049** — Bootstrap Cobra and migrate version _(draft)_
 - **M-050** — Migrate read-only verbs _(draft)_
 - **M-051** — Migrate mutating verbs _(draft)_
+- **M-052** — Migrate setup verbs _(draft)_
 
 ```mermaid
 flowchart LR
@@ -40,6 +41,8 @@ flowchart LR
   E_14 --> M_050
   M_051["M-051<br/>Migrate mutating verbs"]:::ms_draft
   E_14 --> M_051
+  M_052["M-052<br/>Migrate setup verbs"]:::ms_draft
+  E_14 --> M_052
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -67,9 +70,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add milestone M-051 'Migrate mutating verbs' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-050 'Migrate read-only verbs' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-049 'Bootstrap Cobra and migrate version' |
 | 2026-05-06 | human/peter | add | aiwf add epic E-14 'Cobra and completion' |
 | 2026-05-06 | human/peter | promote | aiwf promote G-048 addressed [audit-only] |
-| 2026-05-06 | human/peter | promote | aiwf promote G-050 addressed [audit-only] |
 
