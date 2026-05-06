@@ -16,6 +16,9 @@ acs:
     - id: AC-4
       title: Exit codes 0/1/2/3 preserved end-to-end through Cobra dispatch
       status: open
+    - id: AC-5
+      title: Subprocess integration test for version verb passes against the migrated binary
+      status: open
 ---
 
 ## Goal
@@ -35,4 +38,6 @@ Add Cobra to the module, set up the root command and subcommand routing scaffold
 ### AC-3 — version verb migrated; --format=json envelope shape preserved byte-exact
 
 ### AC-4 — Exit codes 0/1/2/3 preserved end-to-end through Cobra dispatch
+
+### AC-5 — Subprocess integration test for version verb passes against the migrated binary
 
