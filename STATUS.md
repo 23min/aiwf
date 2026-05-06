@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-06
 
-_119 entities · 0 errors · 0 warnings_
+_120 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -71,6 +71,7 @@ _(none)_
 | G-022 | Provenance model extension surface |  |
 | G-023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
 | G-051 | Planning sessions emit one commit per entity, not per logical mutation | E-14 |
+| G-052 | Plain-git body edits trigger warnings despite skill permitting them | E-14 |
 
 ## Warnings
 
@@ -80,9 +81,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add gap G-051 'Planning sessions emit one commit per entity, not per logical mutation' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-055/AC-4 'CLAUDE.md Go conventions references Cobra as standard CLI library' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-055/AC-3 'README CLI section reflects the Cobra-shaped surface' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-055/AC-2 'No 'previously was' or migration notes in any user-facing docs' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-055/AC-1 'Each verb's --help has at least one example invocation' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-054/AC-4 'Test covers static-completion and dynamic-completion required cases' |
 
