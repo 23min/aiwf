@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: edit-body produces single trailered commit (aiwf-verb edit-body)
       status: open
+    - id: AC-3
+      title: aiwf-add skill text removes plain-git body-edit carve-out
+      status: open
 ---
 
 ## Goal
@@ -27,4 +30,6 @@ Skill text update is a one-line change to `.claude/skills/aiwf-add/SKILL.md`: re
 ### AC-1 — aiwf edit-body verb exists; accepts --body-file or stdin
 
 ### AC-2 — edit-body produces single trailered commit (aiwf-verb edit-body)
+
+### AC-3 — aiwf-add skill text removes plain-git body-edit carve-out
 
