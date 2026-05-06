@@ -1,7 +1,7 @@
 ---
 id: M-055
 title: Documentation pass
-status: draft
+status: in_progress
 parent: E-14
 acs:
     - id: AC-1
