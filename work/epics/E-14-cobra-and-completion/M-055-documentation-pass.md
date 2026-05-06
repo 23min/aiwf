@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: README CLI section reflects the Cobra-shaped surface
       status: open
+    - id: AC-4
+      title: CLAUDE.md Go conventions references Cobra as standard CLI library
+      status: open
 ---
 
 ## Goal
@@ -30,4 +33,6 @@ Systematic walk through every verb's help text, the README, and CLAUDE.md. Treat
 ### AC-2 — No 'previously was' or migration notes in any user-facing docs
 
 ### AC-3 — README CLI section reflects the Cobra-shaped surface
+
+### AC-4 — CLAUDE.md Go conventions references Cobra as standard CLI library
 
