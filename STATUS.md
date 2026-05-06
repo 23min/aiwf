@@ -62,14 +62,14 @@ flowchart LR
 
 ### E-15 — Reduce planning-verb commit cardinality _(proposed)_
 
-- **M-056** — Add --body-file to aiwf add variants _(draft)_
+- **M-056** — Add --body-file to aiwf add variants _(draft)_ — ACs 0/1 met (1 open)
 - **M-057** — Batched --title on aiwf add ac _(draft)_
 - **M-058** — Add aiwf edit-body verb and reconcile skill _(draft)_
 
 ```mermaid
 flowchart LR
   E_15["E-15<br/>Reduce planning-verb commit cardinality"]:::epic_proposed
-  M_056["M-056<br/>Add --body-file to aiwf add variants"]:::ms_draft
+  M_056["M-056 (0/1)<br/>Add --body-file to aiwf add variants"]:::ms_draft
   E_15 --> M_056
   M_057["M-057<br/>Batched --title on aiwf add ac"]:::ms_draft
   E_15 --> M_057

@@ -3,6 +3,10 @@ id: M-056
 title: Add --body-file to aiwf add variants
 status: draft
 parent: E-15
+acs:
+    - id: AC-1
+      title: --body-file flag on aiwf add for all six kinds
+      status: open
 ---
 
 ## Goal
@@ -16,3 +20,6 @@ The flag reads a file (or stdin) and writes its content as the body of the new e
 This is the highest-leverage milestone of the epic — it converts the most common multi-commit pattern (create + body edit) into a single commit.
 
 ## Acceptance criteria
+
+### AC-1 — --body-file flag on aiwf add for all six kinds
+
