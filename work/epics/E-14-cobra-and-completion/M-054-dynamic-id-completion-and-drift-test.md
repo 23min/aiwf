@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: Test covers static-completion and dynamic-completion required cases
-      status: open
+      status: met
 ---
 
 ## Goal
