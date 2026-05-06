@@ -1,7 +1,7 @@
 ---
 id: M-058
 title: Add aiwf edit-body verb and reconcile skill
-status: draft
+status: in_progress
 parent: E-15
 acs:
     - id: AC-1
