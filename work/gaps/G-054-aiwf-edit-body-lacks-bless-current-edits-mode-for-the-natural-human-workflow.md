@@ -1,8 +1,10 @@
 ---
 id: G-054
 title: aiwf edit-body lacks bless-current-edits mode for the natural human workflow
-status: open
+status: addressed
 discovered_in: M-058
+addressed_by:
+    - M-060
 ---
 ## Problem
 
