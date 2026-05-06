@@ -33,7 +33,7 @@ flowchart LR
 - **M-052** — Migrate setup verbs _(draft)_ — ACs 0/4 met (4 open)
 - **M-053** — Completion verb and static completion _(draft)_ — ACs 0/5 met (5 open)
 - **M-054** — Dynamic id completion and drift test _(draft)_ — ACs 0/4 met (4 open)
-- **M-055** — Documentation pass _(draft)_ — ACs 0/2 met (2 open)
+- **M-055** — Documentation pass _(draft)_ — ACs 0/3 met (3 open)
 
 ```mermaid
 flowchart LR
@@ -50,7 +50,7 @@ flowchart LR
   E_14 --> M_053
   M_054["M-054 (0/4)<br/>Dynamic id completion and drift test"]:::ms_draft
   E_14 --> M_054
-  M_055["M-055 (0/2)<br/>Documentation pass"]:::ms_draft
+  M_055["M-055 (0/3)<br/>Documentation pass"]:::ms_draft
   E_14 --> M_055
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -79,9 +79,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add ac M-055/AC-2 'No 'previously was' or migration notes in any user-facing docs' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-055/AC-1 'Each verb's --help has at least one example invocation' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-054/AC-4 'Test covers static-completion and dynamic-completion required cases' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-054/AC-3 'Drift-prevention policy test fails CI on flag without completion wiring' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-054/AC-2 'Graceful no-op completion when cwd is not a valid aiwf project' |
-| 2026-05-06 | human/peter | add | aiwf add ac M-054/AC-1 '--epic=<TAB> enumerates live epic ids from the planning tree' |
 

@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: No 'previously was' or migration notes in any user-facing docs
       status: open
+    - id: AC-3
+      title: README CLI section reflects the Cobra-shaped surface
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ Systematic walk through every verb's help text, the README, and CLAUDE.md. Treat
 ### AC-1 — Each verb's --help has at least one example invocation
 
 ### AC-2 — No 'previously was' or migration notes in any user-facing docs
+
+### AC-3 — README CLI section reflects the Cobra-shaped surface
 
