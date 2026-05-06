@@ -1,7 +1,7 @@
 ---
 id: M-053
 title: Completion verb and static completion
-status: draft
+status: in_progress
 parent: E-14
 acs:
     - id: AC-1
