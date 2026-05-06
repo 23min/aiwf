@@ -6,7 +6,7 @@ parent: E-14
 acs:
     - id: AC-1
       title: init, update, upgrade migrated to Cobra
-      status: open
+      status: met
     - id: AC-2
       title: Marker-based artifact regeneration preserved (skills, hook markers)
       status: open
