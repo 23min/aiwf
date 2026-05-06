@@ -6,7 +6,7 @@ parent: E-15
 acs:
     - id: AC-1
       title: Repeated --title flag accepted on aiwf add ac M-NNN
-      status: open
+      status: met
     - id: AC-2
       title: All N ACs allocated atomically; failure reverts entire batch
       status: open
