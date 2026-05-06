@@ -3,6 +3,10 @@ id: M-059
 title: Add resolver-pointer flags to status-transition verbs
 status: draft
 parent: E-15
+acs:
+    - id: AC-1
+      title: aiwf promote G-NNN addressed --by accepts entity ids and commit shas
+      status: open
 ---
 
 ## Goal
@@ -20,3 +24,6 @@ For each status transition that has a corresponding resolver/pointer field check
 Concrete cases on day one: `gap → addressed` (`--by <id>` for entity-resolver, `--by-commit <sha>` for commit-resolver), `adr → superseded` (`--superseded-by <ADR-id>`). Implementation should generalize so future pointer-requiring transitions only need to register the flag and the field name — not duplicate the wiring per verb.
 
 ## Acceptance criteria
+
+### AC-1 — aiwf promote G-NNN addressed --by accepts entity ids and commit shas
+
