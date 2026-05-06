@@ -1,8 +1,10 @@
 ---
 id: G-051
 title: Planning sessions emit one commit per entity, not per logical mutation
-status: open
+status: addressed
 discovered_in: E-14
+addressed_by:
+    - M-056
 ---
 
 ## Problem
