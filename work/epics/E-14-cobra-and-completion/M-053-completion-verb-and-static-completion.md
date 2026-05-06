@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: Top-level subverbs auto-complete (aiwf <TAB>)
       status: open
+    - id: AC-3
+      title: --status= auto-completes per-kind closed-set values
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ Cobra's built-in completion generator handles the script generation; the work is
 ### AC-1 — aiwf completion bash|zsh emits a sourceable shell script
 
 ### AC-2 — Top-level subverbs auto-complete (aiwf <TAB>)
+
+### AC-3 — --status= auto-completes per-kind closed-set values
 
