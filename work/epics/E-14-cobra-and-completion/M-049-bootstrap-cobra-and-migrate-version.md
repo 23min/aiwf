@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: version verb migrated; --format=json envelope shape preserved byte-exact
       status: open
+    - id: AC-4
+      title: Exit codes 0/1/2/3 preserved end-to-end through Cobra dispatch
+      status: open
 ---
 
 ## Goal
@@ -30,4 +33,6 @@ Add Cobra to the module, set up the root command and subcommand routing scaffold
 ### AC-2 — Cobra root command and subcommand routing structure in cmd/aiwf
 
 ### AC-3 — version verb migrated; --format=json envelope shape preserved byte-exact
+
+### AC-4 — Exit codes 0/1/2/3 preserved end-to-end through Cobra dispatch
 
