@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-06
 
-_117 entities · 0 errors · 0 warnings_
+_118 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -33,6 +33,7 @@ flowchart LR
 - **M-052** — Migrate setup verbs _(draft)_
 - **M-053** — Completion verb and static completion _(draft)_
 - **M-054** — Dynamic id completion and drift test _(draft)_
+- **M-055** — Documentation pass _(draft)_
 
 ```mermaid
 flowchart LR
@@ -49,6 +50,8 @@ flowchart LR
   E_14 --> M_053
   M_054["M-054<br/>Dynamic id completion and drift test"]:::ms_draft
   E_14 --> M_054
+  M_055["M-055<br/>Documentation pass"]:::ms_draft
+  E_14 --> M_055
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -76,9 +79,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | add | aiwf add milestone M-054 'Dynamic id completion and drift test' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-053 'Completion verb and static completion' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-052 'Migrate setup verbs' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-051 'Migrate mutating verbs' |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-050 'Migrate read-only verbs' |
-| 2026-05-06 | human/peter | add | aiwf add milestone M-049 'Bootstrap Cobra and migrate version' |
 
