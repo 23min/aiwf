@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: Trailer keys aiwf-verb/aiwf-entity/aiwf-actor preserved byte-exact
-      status: open
+      status: met
     - id: AC-4
       title: Provenance trailer coherence rules preserved across migrated verbs
       status: open
