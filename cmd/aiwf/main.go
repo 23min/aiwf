@@ -135,7 +135,7 @@ Verbs:
   promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status); --tests "pass=N fail=N skip=N [total=N]" attaches an aiwf-tests trailer in phase mode (recognized keys only; non-negative integers)
   cancel <id>                    promote to the kind's terminal-cancel status (optional --reason "..."; --force --reason "..." records the cancellation as an audit event)
   rename <id> <new-slug>         rename the file/dir slug; id preserved
-  edit-body <id> --body-file <p> replace the entity's markdown body (frontmatter untouched); use --body-file - for stdin; --reason "..." optional
+  edit-body <id> [--body-file <p>] replace the entity's markdown body (frontmatter untouched); omit --body-file to bless current working-copy edits, or use --body-file - for stdin; --reason "..." optional
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
   authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope; human-only verb

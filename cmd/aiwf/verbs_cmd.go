@@ -421,26 +421,36 @@ func runEditBody(args []string) int {
 	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	root := fs.String("root", "", "consumer repo root")
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
-	bodyFile := fs.String("body-file", "", `path to a file whose content becomes the entity's new body (use "-" to read from stdin); the file must contain body content only — leading "---" is refused`)
+	bodyFile := fs.String("body-file", "", `path to a file whose content becomes the entity's new body (use "-" to read from stdin); the file must contain body content only — leading "---" is refused. Omit to use bless mode: commit whatever the user edited in the working copy of the entity file`)
 	fs.SetOutput(os.Stderr)
 	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason", "body-file"}, nil)); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
 	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf edit-body: usage: aiwf edit-body <id> --body-file <path>  (use --body-file - for stdin)")
+		fmt.Fprintln(os.Stderr, "aiwf edit-body: usage: aiwf edit-body <id> [--body-file <path>]  (omit --body-file to bless current working-copy edits; use --body-file - for stdin)")
 		return exitUsage
 	}
 	id := rest[0]
 
-	if *bodyFile == "" {
-		fmt.Fprintln(os.Stderr, "aiwf edit-body: --body-file <path> is required (use --body-file - for stdin)")
-		return exitUsage
-	}
-	body, readErr := readBodyFile(*bodyFile)
-	if readErr != nil {
-		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", readErr)
-		return exitUsage
+	// Bless mode (M-060): when --body-file is absent, pass nil bytes
+	// so the verb reads working-copy and HEAD itself and commits the
+	// diff. Explicit mode (M-058): when --body-file is set, read the
+	// file (or stdin for "-") and pass the bytes through.
+	var body []byte
+	if *bodyFile != "" {
+		var readErr error
+		body, readErr = readBodyFile(*bodyFile)
+		if readErr != nil {
+			fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", readErr)
+			return exitUsage
+		}
+		if body == nil {
+			// readBodyFile returned a nil slice from a real file/stdin
+			// (rather than the bless-mode signal); treat as empty body
+			// and let the verb's validateUserBodyBytes path handle it.
+			body = []byte{}
+		}
 	}
 
 	rootDir, err := resolveRoot(*root)

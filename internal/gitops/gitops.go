@@ -264,6 +264,47 @@ func HeadTrailers(ctx context.Context, workdir string) ([]Trailer, error) {
 	return parseTrailers(out), nil
 }
 
+// ReadFromHEAD returns the bytes of relPath as it exists in the
+// HEAD commit. Returns (nil, nil) when the path is not present at
+// HEAD (e.g., the file is new in the working tree but not yet
+// committed) so callers can branch on "exists at HEAD" cleanly
+// without parsing stderr. Real git errors (no HEAD, repo-not-found,
+// transport failure) are wrapped and returned.
+//
+// relPath must be repo-relative and forward-slashed; git's
+// HEAD:<path> grammar requires that shape.
+//
+// Used by `aiwf edit-body` (M-060 bless mode) to compare working-
+// copy bytes against HEAD bytes for the no-diff and frontmatter-
+// changed refusal paths. Two-step (exists check then content read)
+// avoids parsing localized git stderr text — the existence probe is
+// the canonical pattern for this question.
+func ReadFromHEAD(ctx context.Context, workdir, relPath string) ([]byte, error) {
+	probe := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "--quiet", "HEAD:"+relPath)
+	probe.Dir = workdir
+	probe.Env = gitEnv()
+	if err := probe.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			// exit 1 with --quiet means the path does not exist at HEAD.
+			return nil, nil
+		}
+		return nil, fmt.Errorf("git rev-parse HEAD:%s: %w", relPath, err)
+	}
+	cmd := exec.CommandContext(ctx, "git", "show", "HEAD:"+relPath)
+	cmd.Dir = workdir
+	cmd.Env = gitEnv()
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, fmt.Errorf("git show HEAD:%s: %w\n%s", relPath, err, strings.TrimSpace(string(exitErr.Stderr)))
+		}
+		return nil, fmt.Errorf("git show HEAD:%s: %w", relPath, err)
+	}
+	return out, nil
+}
+
 func parseTrailers(out string) []Trailer {
 	var trailers []Trailer
 	for _, line := range strings.Split(out, "\n") {

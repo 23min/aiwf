@@ -136,6 +136,73 @@ func TestEndToEnd_InitAddMvCommit(t *testing.T) {
 	}
 }
 
+// TestReadFromHEAD covers the branches the helper distinguishes:
+// (1) path exists at HEAD → returns the bytes; (2) path does not
+// exist at HEAD (either because HEAD has no such path, or because
+// the repo has no HEAD yet) → returns (nil, nil). The two
+// "no version" cases collapse to the same caller-facing semantic
+// because `git rev-parse --verify --quiet HEAD:<path>` returns
+// exit 1 silently in both — and a caller in bless mode treats both
+// as "use aiwf add to create this entity for the first time."
+func TestReadFromHEAD(t *testing.T) {
+	gitTestEnv(t)
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := Init(ctx, root); err != nil {
+		t.Fatal(err)
+	}
+
+	// Empty repo (no HEAD): treated as "no version" (nil, nil).
+	got, err := ReadFromHEAD(ctx, root, "alpha.md")
+	if err != nil {
+		t.Errorf("expected nil error in empty repo; got %v", err)
+	}
+	if got != nil {
+		t.Errorf("expected nil bytes in empty repo; got %q", got)
+	}
+
+	// Commit a file.
+	if writeErr := os.WriteFile(filepath.Join(root, "alpha.md"), []byte("alpha v1\n"), 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	if addErr := Add(ctx, root, "alpha.md"); addErr != nil {
+		t.Fatal(addErr)
+	}
+	if commitErr := Commit(ctx, root, "add alpha", "", []Trailer{{Key: "aiwf-verb", Value: "add"}}); commitErr != nil {
+		t.Fatal(commitErr)
+	}
+
+	// (1) path exists at HEAD → bytes match the committed content.
+	got, err = ReadFromHEAD(ctx, root, "alpha.md")
+	if err != nil {
+		t.Fatalf("ReadFromHEAD: %v", err)
+	}
+	if string(got) != "alpha v1\n" {
+		t.Errorf("HEAD content = %q, want %q", got, "alpha v1\n")
+	}
+
+	// Modify the working copy — ReadFromHEAD still returns the v1 bytes.
+	if writeErr := os.WriteFile(filepath.Join(root, "alpha.md"), []byte("alpha v2 (uncommitted)\n"), 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	got, err = ReadFromHEAD(ctx, root, "alpha.md")
+	if err != nil {
+		t.Fatalf("ReadFromHEAD: %v", err)
+	}
+	if string(got) != "alpha v1\n" {
+		t.Errorf("HEAD content after working-copy edit = %q, want unchanged %q", got, "alpha v1\n")
+	}
+
+	// (2) path does not exist at HEAD → (nil, nil).
+	got, err = ReadFromHEAD(ctx, root, "never-committed.md")
+	if err != nil {
+		t.Errorf("expected nil error for path-not-in-HEAD; got %v", err)
+	}
+	if got != nil {
+		t.Errorf("expected nil bytes for path-not-in-HEAD; got %q", got)
+	}
+}
+
 // TestCommitAllowEmpty: a commit with no staged changes lands when
 // allow-empty is in effect, with the trailer set intact. Used by
 // `aiwf authorize` and the `--audit-only` recovery mode (plan step 5b).

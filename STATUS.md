@@ -107,9 +107,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote M-060 draft -> in_progress |
 | 2026-05-06 | human/peter | add | aiwf add ac M-060 AC-1..AC-5 (5 criteria) |
 | 2026-05-06 | human/peter | add | aiwf add milestone M-060 'Bless-current-edits mode for aiwf edit-body' |
 | 2026-05-06 | human/peter | promote | aiwf promote E-15 done -> active |
 | 2026-05-06 | human/peter | add | aiwf add gap G-054 'aiwf edit-body lacks bless-current-edits mode for the natural human workflow' |
-| 2026-05-06 | human/peter | promote | aiwf promote E-15 active -> done |
 

@@ -178,10 +178,130 @@ func TestEditBody_RejectsFrontmatter_BinaryEndToEnd(t *testing.T) {
 	}
 }
 
-// TestEditBody_MissingBodyFile_RejectsCleanly: the dispatcher
-// requires --body-file. Without it, a clear usage error and no
-// repo mutation.
-func TestEditBody_MissingBodyFile_RejectsCleanly(t *testing.T) {
+// TestEditBody_Bless_BinaryEndToEnd is the M-060 dispatcher-seam
+// closure: a real subprocess invocation of `aiwf edit-body <id>`
+// (no --body-file) reads the working-copy edit, validates, and
+// commits with edit-body trailers. Without this test, a regression
+// that drops the "body == nil → bless mode" branch from the
+// dispatcher would still pass internal/verb tests.
+func TestEditBody_Bless_BinaryEndToEnd(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Bless target"); err != nil {
+		t.Fatalf("add epic: %v\n%s", err, out)
+	}
+
+	// Simulate the user editing the epic body in $EDITOR.
+	matches, _ := filepath.Glob(filepath.Join(root, "work", "epics", "E-*", "epic.md"))
+	if len(matches) != 1 {
+		t.Fatalf("expected one epic.md; got %v", matches)
+	}
+	epicPath := matches[0]
+	original, err := os.ReadFile(epicPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	edited := strings.Replace(string(original), "## Goal", "## Goal\n\nUser-edited goal prose, written in place.", 1)
+	if writeErr := os.WriteFile(epicPath, []byte(edited), 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+
+	// Bless: no --body-file flag.
+	out, err := runBin(t, root, binDir, nil, "edit-body", "E-01")
+	if err != nil {
+		t.Fatalf("aiwf edit-body (bless): %v\n%s", err, out)
+	}
+
+	// Edit landed in the committed file.
+	got, err := os.ReadFile(epicPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(got), "User-edited goal prose, written in place.") {
+		t.Errorf("epic missing edited body content:\n%s", got)
+	}
+
+	// Trailer set is the standard edit-body triple — bless mode is
+	// not distinguishable from explicit mode in `aiwf history`,
+	// which is the right outcome.
+	tr, err := gitops.HeadTrailers(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasTrailer(t, tr, "aiwf-verb", "edit-body")
+	hasTrailer(t, tr, "aiwf-entity", "E-01")
+
+	// `aiwf check` doesn't surface provenance-untrailered-entity-commit
+	// against this commit — bless mode produces a proper trailered
+	// commit, closing the workflow gap that G-052 documented and
+	// G-054 surfaced as M-058's residual.
+	checkOut, err := runBin(t, root, binDir, nil, "check")
+	if err != nil {
+		t.Fatalf("aiwf check after bless: %v\n%s", err, checkOut)
+	}
+	if strings.Contains(checkOut, "provenance-untrailered-entity-commit") {
+		t.Errorf("post-bless check surfaces untrailered-entity warning:\n%s", checkOut)
+	}
+}
+
+// TestEditBody_Bless_NoChanges_BinaryRefusal: bless mode against
+// a clean working copy refuses with a clear "no changes" message
+// rather than producing an empty commit.
+func TestEditBody_Bless_NoChanges_BinaryRefusal(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "gap", "--title", "Quiet gap"); err != nil {
+		t.Fatalf("add gap: %v\n%s", err, out)
+	}
+
+	// No edit between add and bless — should refuse cleanly.
+	out, err := runBin(t, root, binDir, nil, "edit-body", "G-001")
+	if err == nil {
+		t.Fatalf("expected no-changes refusal; got:\n%s", out)
+	}
+	if !strings.Contains(out, "no changes to commit") {
+		t.Errorf("expected 'no changes to commit' message; got:\n%s", out)
+	}
+}
+
+// TestEditBody_BareCommand_BlessModeOnNonExistentID: omitting
+// --body-file enters bless mode (M-060). With no entity at the
+// given id, the verb refuses with "entity not found" — a different
+// shape from the pre-M-060 "--body-file required" usage error, but
+// equally clear.
+func TestEditBody_BareCommand_BlessModeOnNonExistentID(t *testing.T) {
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -203,9 +323,9 @@ func TestEditBody_MissingBodyFile_RejectsCleanly(t *testing.T) {
 
 	out, err := runBin(t, root, binDir, nil, "edit-body", "E-01")
 	if err == nil {
-		t.Fatalf("expected refusal with no --body-file; got:\n%s", out)
+		t.Fatalf("expected refusal on non-existent id; got:\n%s", out)
 	}
-	if !strings.Contains(out, "--body-file") {
-		t.Errorf("expected --body-file required message; got:\n%s", out)
+	if !strings.Contains(out, "not found") {
+		t.Errorf("expected entity-not-found message; got:\n%s", out)
 	}
 }
