@@ -26,6 +26,7 @@ import (
 
 	"github.com/23min/ai-workflow-v2/internal/check"
 	"github.com/23min/ai-workflow-v2/internal/config"
+	"github.com/23min/ai-workflow-v2/internal/entity"
 	"github.com/23min/ai-workflow-v2/internal/render"
 	"github.com/23min/ai-workflow-v2/internal/tree"
 	"github.com/23min/ai-workflow-v2/internal/version"
@@ -84,6 +85,46 @@ func wrapExitCode(code int) error {
 		return nil
 	}
 	return &exitError{code: code}
+}
+
+// registerFormatCompletion wires `--format=` shell completion to the
+// closed set {text, json}. Called by every read-only verb that
+// accepts --format so the shell-completion experience is uniform
+// across the surface (E-14's auto-completion-friendliness rule).
+func registerFormatCompletion(cmd *cobra.Command) {
+	_ = cmd.RegisterFlagCompletionFunc("format", cobra.FixedCompletions(
+		[]string{"text", "json"},
+		cobra.ShellCompDirectiveNoFileComp,
+	))
+}
+
+// allKindNames returns the entity-kind names as strings, in the
+// canonical iteration order from entity.AllKinds(). Used by the
+// `aiwf add` and `aiwf schema` / `aiwf template` completion functions.
+func allKindNames() []string {
+	all := entity.AllKinds()
+	names := make([]string, len(all))
+	for i, k := range all {
+		names[i] = string(k)
+	}
+	return names
+}
+
+// statusesForID returns the closed set of statuses that an entity's
+// kind allows, derived from the id's prefix without loading the
+// repo's tree. Used as the static-completion source for `aiwf promote
+// <id> <new-status>`. Returns nil for ids whose kind isn't recognized
+// (composite ids, malformed input) — the completion source then falls
+// back to file completion at the shell level.
+func statusesForID(id string) []string {
+	if id == "" || entity.IsCompositeID(id) {
+		return nil
+	}
+	k, ok := entity.KindFromID(id)
+	if !ok {
+		return nil
+	}
+	return entity.AllowedStatuses(k)
 }
 
 func main() {
@@ -154,7 +195,20 @@ func newRootCmd() *cobra.Command {
 			printHelp()
 			return
 		}
-		_ = c.Help() // best-effort; only fires for natively-Cobra subverbs
+		// Non-root descendants render Cobra's standard usage block.
+		// We can't call c.Help() here because SetHelpFunc on root is
+		// inherited by every descendant — c.Help() would re-enter
+		// this function and recurse until stack overflow.
+		out := c.OutOrStderr()
+		switch {
+		case c.Long != "":
+			_, _ = fmt.Fprintln(out, c.Long)
+			_, _ = fmt.Fprintln(out)
+		case c.Short != "":
+			_, _ = fmt.Fprintln(out, c.Short)
+			_, _ = fmt.Fprintln(out)
+		}
+		_, _ = fmt.Fprint(out, c.UsageString())
 	})
 
 	cmd.AddCommand(newVersionCmd())
@@ -337,6 +391,7 @@ func newCheckCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
 	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
+	registerFormatCompletion(cmd)
 	return cmd
 }
 

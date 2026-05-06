@@ -84,6 +84,15 @@ func newAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&bindFixtures, "fixtures", "", "repo-relative path to the fixtures-tree root (contract only; pairs with --validator and --schema)")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter (use "-" to read from stdin); replaces the per-kind default template; the file must contain body content only — leading "---" is refused`)
 
+	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
+		if len(args) > 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		// `ac` is a Cobra subcommand and gets surfaced automatically;
+		// only the six top-level kinds need explicit listing here.
+		return allKindNames(), cobra.ShellCompDirectiveNoFileComp
+	}
+
 	cmd.AddCommand(newAddACCmd(&titles, &actor, &principal, &root))
 	return cmd
 }
@@ -348,6 +357,19 @@ func newPromoteCmd() *cobra.Command {
 	cmd.Flags().StringVar(&supersededBy, "superseded-by", "", "ADR id to write into superseded_by (adr → superseded only); satisfies adr-supersession-mutual atomically with the status change")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
+	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
+		if len(args) == 1 {
+			// args[0] is the entity id; the kind is determined by the
+			// id prefix (E-/M-/ADR-/G-/D-/C-) without loading the tree.
+			// Composite ids return nil — phase advancement uses --phase
+			// rather than a positional new-status, so completion is a
+			// no-op.
+			if statuses := statusesForID(args[0]); len(statuses) > 0 {
+				return statuses, cobra.ShellCompDirectiveNoFileComp
+			}
+		}
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
 	return cmd
 }
 

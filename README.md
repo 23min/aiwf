@@ -87,6 +87,20 @@ make install                                                # embeds branch + sh
 
 Distribution via brew/apt/scoop/winget will come if and when the PoC graduates.
 
+### Shell completion
+
+`aiwf` ships native bash and zsh completion. Source the script in your shell rc:
+
+```bash
+# zsh — append to ~/.zshrc
+source <(aiwf completion zsh)
+
+# bash — append to ~/.bashrc (requires bash-completion v2)
+source <(aiwf completion bash)
+```
+
+After sourcing, `aiwf <TAB>` lists the verb catalog, `aiwf promote E-01 <TAB>` lists the kind's allowed statuses, `aiwf check --format=<TAB>` lists `text|json`, and so on. fish and powershell scripts are emitted by `aiwf completion fish` / `aiwf completion powershell` as well.
+
 ---
 
 ## Upgrade
