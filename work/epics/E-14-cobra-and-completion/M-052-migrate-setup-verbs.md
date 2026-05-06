@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: Installed git hooks remain byte-identical or update goldens with rationale
-      status: open
+      status: met
 ---
 
 ## Goal
