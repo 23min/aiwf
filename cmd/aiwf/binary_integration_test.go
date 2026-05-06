@@ -90,6 +90,30 @@ func TestBinary_VersionVerb_FallsBackToBuildInfo(t *testing.T) {
 	}
 }
 
+// TestBinary_DoctorSelfCheck_Passes pins M-051 AC-6: every mutating
+// verb (add, promote, cancel, rename, reallocate, import, plus
+// edit-body and move) runs cleanly inside a real binary subprocess.
+// `doctor --self-check` is the canonical end-to-end matrix — it
+// scaffolds a throwaway repo, drives every verb through it, and
+// asserts the resulting state. Exit 0 here means the entire post-
+// Cobra dispatch tree (root command + each verb's flag binding +
+// repo lock acquisition + decorateAndFinish path + verb.Apply) works
+// the way a user's installed binary does, not just the way go test's
+// in-process run() works.
+func TestBinary_DoctorSelfCheck_Passes(t *testing.T) {
+	skipIfShortOrUnsupported(t)
+	tmp := t.TempDir()
+	bin := buildBinary(t, tmp /* no ldflags */)
+
+	out, err := runBinary(bin, "doctor", "--self-check")
+	if err != nil {
+		t.Fatalf("aiwf doctor --self-check: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "self-check passed") {
+		t.Errorf("expected 'self-check passed' in output:\n%s", out)
+	}
+}
+
 // TestBinary_ReadOnlyVerbs_ExitOK pins M-050 AC-4: each migrated
 // read-only verb (check, history, doctor, schema, template, render)
 // runs cleanly as a subprocess against the migrated Cobra binary

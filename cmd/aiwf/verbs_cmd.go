@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/23min/ai-workflow-v2/internal/check"
 	"github.com/23min/ai-workflow-v2/internal/entity"
@@ -16,51 +17,87 @@ import (
 	"github.com/23min/ai-workflow-v2/internal/verb"
 )
 
-// runAdd handles `aiwf add <kind> --title "..." [kind-specific flags]`.
-// The "ac" sub-target dispatches to runAddAC: ACs are sub-elements of
-// a milestone, not a kind, and the verb shape (parent id positional,
-// then --title) differs.
-func runAdd(args []string) int {
-	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "aiwf add: missing kind. Usage: aiwf add <epic|milestone|adr|gap|decision|contract|ac> [...]")
-		return exitUsage
+// newAddCmd builds `aiwf add <kind> --title "..." [kind-specific flags]`
+// and the `aiwf add ac <milestone-id> --title "..."` sub-shape. ACs are
+// modeled as a Cobra subcommand of add (matching their composite-id
+// status as sub-elements of a milestone, not a kind in the schema
+// sense). For the six top-level kinds, args[0] is the kind and the
+// runtime validates kind-vs-flag relevance — same shape as pre-Cobra.
+func newAddCmd() *cobra.Command {
+	var (
+		titles        []string
+		actor         string
+		principal     string
+		root          string
+		epicID        string
+		discoveredIn  string
+		relatesTo     string
+		linkedADRs    string
+		bindValidator string
+		bindSchema    string
+		bindFixtures  string
+		bodyFile      string
+	)
+	cmd := &cobra.Command{
+		Use:           "add <kind> [...]",
+		Short:         "Create a new entity of the given kind",
+		Args:          cobra.MinimumNArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			if len(args) > 1 {
+				fmt.Fprintf(os.Stderr, "aiwf add: unexpected args after kind %q: %v\n", args[0], args[1:])
+				return &exitError{code: exitUsage}
+			}
+			kindArg := args[0]
+			k, ok := parseKind(kindArg)
+			if !ok {
+				fmt.Fprintf(os.Stderr, "aiwf add: unknown kind %q\n", kindArg)
+				return &exitError{code: exitUsage}
+			}
+			if len(titles) > 1 {
+				fmt.Fprintf(os.Stderr, "aiwf add: --title may not be repeated for kind %q (only `aiwf add ac` accepts a repeated --title for batched creation)\n", kindArg)
+				return &exitError{code: exitUsage}
+			}
+			title := ""
+			if len(titles) == 1 {
+				title = titles[0]
+			}
+			return wrapExitCode(runAddCmd(k, title, actor, principal, root,
+				epicID, discoveredIn, relatesTo, linkedADRs,
+				bindValidator, bindSchema, bindFixtures, bodyFile))
+		},
 	}
-	kindArg := args[0]
-	if kindArg == "ac" {
-		return runAddAC(args[1:])
-	}
-	k, ok := parseKind(kindArg)
-	if !ok {
-		fmt.Fprintf(os.Stderr, "aiwf add: unknown kind %q\n", kindArg)
-		return exitUsage
-	}
+	// PersistentFlags are inherited by the `add ac` child so the shared
+	// `--title`, `--actor`, `--principal`, `--root` work uniformly on
+	// both `aiwf add <kind>` and `aiwf add ac <milestone-id>`.
+	cmd.PersistentFlags().StringArrayVar(&titles, "title", nil, "entity title (required; for `aiwf add ac` may repeat to create multiple ACs in one atomic commit — M-057)")
+	cmd.PersistentFlags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	cmd.PersistentFlags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.PersistentFlags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&epicID, "epic", "", "parent epic id (milestone only)")
+	cmd.Flags().StringVar(&discoveredIn, "discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
+	cmd.Flags().StringVar(&relatesTo, "relates-to", "", "comma-separated ids the decision relates to (decision only)")
+	cmd.Flags().StringVar(&linkedADRs, "linked-adr", "", "comma-separated ADR ids motivating the contract (contract only)")
+	cmd.Flags().StringVar(&bindValidator, "validator", "", "validator name (contract only; if set, --schema and --fixtures are also required and the binding is added atomically)")
+	cmd.Flags().StringVar(&bindSchema, "schema", "", "repo-relative path to the schema (contract only; pairs with --validator and --fixtures)")
+	cmd.Flags().StringVar(&bindFixtures, "fixtures", "", "repo-relative path to the fixtures-tree root (contract only; pairs with --validator and --schema)")
+	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter (use "-" to read from stdin); replaces the per-kind default template; the file must contain body content only — leading "---" is refused`)
 
-	fs := flag.NewFlagSet("add "+kindArg, flag.ContinueOnError)
-	title := fs.String("title", "", "entity title (required)")
-	actor := fs.String("actor", "", "actor for the commit trailer")
-	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
-	root := fs.String("root", "", "consumer repo root")
+	cmd.AddCommand(newAddACCmd(&titles, &actor, &principal, &root))
+	return cmd
+}
 
-	epicID := fs.String("epic", "", "parent epic id (milestone only)")
-	discoveredIn := fs.String("discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
-	relatesTo := fs.String("relates-to", "", "comma-separated ids the decision relates to (decision only)")
-	linkedADRs := fs.String("linked-adr", "", "comma-separated ADR ids motivating the contract (contract only)")
-	bindValidator := fs.String("validator", "", "validator name (contract only; if set, --schema and --fixtures are also required and the binding is added atomically)")
-	bindSchema := fs.String("schema", "", "repo-relative path to the schema (contract only; pairs with --validator and --fixtures)")
-	bindFixtures := fs.String("fixtures", "", "repo-relative path to the fixtures-tree root (contract only; pairs with --validator and --schema)")
-	bodyFile := fs.String("body-file", "", `path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter (use "-" to read from stdin); replaces the per-kind default template; the file must contain body content only — leading "---" is refused`)
-
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(args[1:]); err != nil {
-		return exitUsage
-	}
-
-	rootDir, err := resolveRoot(*root)
+func runAddCmd(k entity.Kind, title, actor, principal, root,
+	epicID, discoveredIn, relatesTo, linkedADRs,
+	bindValidator, bindSchema, bindFixtures, bodyFile string,
+) int {
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
 		return exitUsage
@@ -80,17 +117,17 @@ func runAdd(args []string) int {
 	}
 
 	opts := verb.AddOptions{
-		EpicID:        *epicID,
-		DiscoveredIn:  *discoveredIn,
-		BindValidator: *bindValidator,
-		BindSchema:    *bindSchema,
-		BindFixtures:  *bindFixtures,
+		EpicID:        epicID,
+		DiscoveredIn:  discoveredIn,
+		BindValidator: bindValidator,
+		BindSchema:    bindSchema,
+		BindFixtures:  bindFixtures,
 	}
-	opts.RelatesTo = splitCommaList(*relatesTo)
-	opts.LinkedADRs = splitCommaList(*linkedADRs)
+	opts.RelatesTo = splitCommaList(relatesTo)
+	opts.LinkedADRs = splitCommaList(linkedADRs)
 
-	if *bodyFile != "" {
-		body, readErr := readBodyFile(*bodyFile)
+	if bodyFile != "" {
+		body, readErr := readBodyFile(bodyFile)
 		if readErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", readErr)
 			return exitUsage
@@ -98,7 +135,7 @@ func runAdd(args []string) int {
 		opts.BodyOverride = body
 	}
 
-	if k == entity.KindContract && *bindValidator != "" {
+	if k == entity.KindContract && bindValidator != "" {
 		doc, contracts, loadErr := loadContractsDoc(rootDir)
 		if loadErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", loadErr)
@@ -109,10 +146,10 @@ func runAdd(args []string) int {
 		opts.RepoRoot = rootDir
 	}
 
-	result, err := verb.Add(ctx, tr, k, *title, actorStr, opts)
+	result, err := verb.Add(ctx, tr, k, title, actorStr, opts)
 	pctx := provenanceContext{
 		Actor:        actorStr,
-		Principal:    strings.TrimSpace(*principal),
+		Principal:    strings.TrimSpace(principal),
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: addCreationRefs(k, opts),
 	}
@@ -143,44 +180,43 @@ func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
 	return refs
 }
 
-// runAddAC handles `aiwf add ac <milestone-id> --title "..."`. ACs
-// are sub-elements of a milestone (composite id M-NNN/AC-N), not a
-// kind in the schema sense, so they have their own verb shape.
-func runAddAC(args []string) int {
-	fs := flag.NewFlagSet("add ac", flag.ContinueOnError)
-	var titles repeatedString
-	fs.Var(&titles, "title", "AC title (required; repeat to create multiple ACs in one atomic commit — M-057)")
-	actor := fs.String("actor", "", "actor for the commit trailer")
-	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
-	root := fs.String("root", "", "consumer repo root")
-	tests := fs.String("tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "title", "tests"}, nil)); err != nil {
-		return exitUsage
+// newAddACCmd builds `aiwf add ac <milestone-id> --title "..." [--title
+// "..."]`. ACs are sub-elements (composite id M-NNN/AC-N), not a kind in
+// the schema sense, so they're modeled as a child Cobra command. The
+// pointers to the parent's flag variables let one --title slice be
+// shared between kinds and ac (a typical pattern with cobra child cmds).
+func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
+	var tests string
+	cmd := &cobra.Command{
+		Use:           "ac <milestone-id>",
+		Short:         "Add one or more acceptance criteria to a milestone",
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runAddACCmd(args[0], *titles, *actor, *principal, *root, tests))
+		},
 	}
-	rest := fs.Args()
-	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf add ac: usage: aiwf add ac <milestone-id> --title \"...\" [--title \"...\" ...]")
-		return exitUsage
-	}
-	parentID := rest[0]
+	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
+	return cmd
+}
 
+func runAddACCmd(parentID string, titles []string, actor, principal, root, tests string) int {
 	if len(titles) == 0 {
 		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
 		return exitUsage
 	}
-
-	metrics, err := parseTestsFlag(*tests, "aiwf add ac")
+	metrics, err := parseTestsFlag(tests, "aiwf add ac")
 	if err != nil {
 		return exitUsage
 	}
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add ac: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add ac: %v\n", err)
 		return exitUsage
@@ -198,12 +234,12 @@ func runAddAC(args []string) int {
 		fmt.Fprintf(os.Stderr, "aiwf add ac: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.AddACBatch(ctx, tr, parentID, []string(titles), actorStr, metrics)
+	result, err := verb.AddACBatch(ctx, tr, parentID, titles, actorStr, metrics)
 	// An AC is a sub-element of its parent milestone — its sole
 	// "outbound reference" for scope reachability is the parent id.
 	pctx := provenanceContext{
 		Actor:        actorStr,
-		Principal:    strings.TrimSpace(*principal),
+		Principal:    strings.TrimSpace(principal),
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: []string{parentID},
 	}
@@ -266,7 +302,7 @@ func splitCommaList(s string) []string {
 	return out
 }
 
-// runPromote handles `aiwf promote <id> <new-status>` and the I2
+// newPromoteCmd builds `aiwf promote <id> <new-status>` and the I2
 // composite/--phase variants:
 //
 //	aiwf promote E-01 active                       (top-level entity)
@@ -276,52 +312,70 @@ func splitCommaList(s string) []string {
 // --phase is mutex with the positional new-status: pass one or the
 // other, never both. --phase is only valid for composite ids; using
 // it on a top-level entity is a usage error.
-func runPromote(args []string) int {
-	fs := flag.NewFlagSet("promote", flag.ContinueOnError)
-	actor := fs.String("actor", "", "actor for the commit trailer")
-	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
-	root := fs.String("root", "", "consumer repo root")
-	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
-	phase := fs.String("phase", "", "advance an AC's tdd_phase (composite ids only; mutex with positional new-status)")
-	tests := fs.String("tests", "", `optional test metrics for a phase promotion (composite + --phase only); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
-	by := fs.String("by", "", "comma-separated entity ids to write into addressed_by (gap → addressed only); satisfies gap-resolved-has-resolver atomically with the status change")
-	byCommit := fs.String("by-commit", "", "comma-separated commit SHAs to write into addressed_by_commit (gap → addressed only); use when the gap was closed by a specific commit rather than a milestone")
-	supersededBy := fs.String("superseded-by", "", "ADR id to write into superseded_by (adr → superseded only); satisfies adr-supersession-mutual atomically with the status change")
-	force := fs.Bool("force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
-	auditOnly := fs.Bool("audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason", "phase", "tests", "by", "by-commit", "superseded-by"}, []string{"force", "audit-only"})); err != nil {
-		return exitUsage
+func newPromoteCmd() *cobra.Command {
+	var (
+		actor        string
+		principal    string
+		root         string
+		reason       string
+		phase        string
+		tests        string
+		by           string
+		byCommit     string
+		supersededBy string
+		force        bool
+		auditOnly    bool
+	)
+	cmd := &cobra.Command{
+		Use:           "promote <id> [new-status]",
+		Short:         "Advance an entity's status (or AC tdd_phase via --phase)",
+		Args:          cobra.RangeArgs(1, 2),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runPromoteCmd(args, actor, principal, root, reason,
+				phase, tests, by, byCommit, supersededBy, force, auditOnly))
+		},
 	}
-	rest := fs.Args()
-	if len(rest) < 1 || len(rest) > 2 {
-		fmt.Fprintln(os.Stderr, "aiwf promote: usage: aiwf promote <id> <new-status>  |  aiwf promote <composite-id> --phase <p>  [--reason \"...\"] [--force --reason \"...\"] [--audit-only --reason \"...\"]")
-		return exitUsage
-	}
-	id := rest[0]
+	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
+	cmd.Flags().StringVar(&phase, "phase", "", "advance an AC's tdd_phase (composite ids only; mutex with positional new-status)")
+	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for a phase promotion (composite + --phase only); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
+	cmd.Flags().StringVar(&by, "by", "", "comma-separated entity ids to write into addressed_by (gap → addressed only); satisfies gap-resolved-has-resolver atomically with the status change")
+	cmd.Flags().StringVar(&byCommit, "by-commit", "", "comma-separated commit SHAs to write into addressed_by_commit (gap → addressed only); use when the gap was closed by a specific commit rather than a milestone")
+	cmd.Flags().StringVar(&supersededBy, "superseded-by", "", "ADR id to write into superseded_by (adr → superseded only); satisfies adr-supersession-mutual atomically with the status change")
+	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
+	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
+	return cmd
+}
 
-	// Mode resolution: phase mode (composite + --phase, no positional state)
-	// vs. status mode (positional new-status).
-	phaseMode := *phase != ""
+func runPromoteCmd(args []string, actor, principal, root, reason,
+	phase, tests, by, byCommit, supersededBy string, force, auditOnly bool,
+) int {
+	id := args[0]
+
+	phaseMode := phase != ""
 	switch {
-	case phaseMode && len(rest) == 2:
+	case phaseMode && len(args) == 2:
 		fmt.Fprintln(os.Stderr, "aiwf promote: --phase is mutex with the positional new-status; pass one or the other")
 		return exitUsage
 	case phaseMode && !entity.IsCompositeID(id):
 		fmt.Fprintf(os.Stderr, "aiwf promote: --phase is only valid for composite ids (M-NNN/AC-N); got %q\n", id)
 		return exitUsage
-	case !phaseMode && len(rest) != 2:
+	case !phaseMode && len(args) != 2:
 		fmt.Fprintln(os.Stderr, "aiwf promote: missing new-status. Usage: aiwf promote <id> <new-status>")
 		return exitUsage
 	}
 
-	if *force && *auditOnly {
+	if force && auditOnly {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
 		return exitUsage
 	}
-	if (*force || *auditOnly) && strings.TrimSpace(*reason) == "" {
+	if (force || auditOnly) && strings.TrimSpace(reason) == "" {
 		gateFlag := "--force"
-		if *auditOnly {
+		if auditOnly {
 			gateFlag = "--audit-only"
 		}
 		fmt.Fprintf(os.Stderr, "aiwf promote: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
@@ -329,26 +383,26 @@ func runPromote(args []string) int {
 	}
 
 	resolverOpts := verb.PromoteOptions{
-		AddressedBy:       splitCommaList(*by),
-		AddressedByCommit: splitCommaList(*byCommit),
-		SupersededBy:      strings.TrimSpace(*supersededBy),
+		AddressedBy:       splitCommaList(by),
+		AddressedByCommit: splitCommaList(byCommit),
+		SupersededBy:      strings.TrimSpace(supersededBy),
 	}
 	resolverSet := len(resolverOpts.AddressedBy) > 0 || len(resolverOpts.AddressedByCommit) > 0 || resolverOpts.SupersededBy != ""
-	if resolverSet && *auditOnly {
+	if resolverSet && auditOnly {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --by/--by-commit/--superseded-by are not allowed with --audit-only (audit-only records an existing transition; resolver-flag values would imply a mutation)")
 		return exitUsage
 	}
-	if resolverSet && *phase != "" {
+	if resolverSet && phase != "" {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --by/--by-commit/--superseded-by are not valid in phase mode (resolver fields apply to entity status, not AC phase)")
 		return exitUsage
 	}
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
 		return exitUsage
@@ -369,96 +423,102 @@ func runPromote(args []string) int {
 
 	pctx := provenanceContext{
 		Actor:     actorStr,
-		Principal: strings.TrimSpace(*principal),
+		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
 
 	if phaseMode {
-		metrics, mErr := parseTestsFlag(*tests, "aiwf promote")
+		metrics, mErr := parseTestsFlag(tests, "aiwf promote")
 		if mErr != nil {
 			return exitUsage
 		}
 		var result *verb.Result
 		var vErr error
-		if *auditOnly {
+		if auditOnly {
 			if metrics != nil {
 				fmt.Fprintln(os.Stderr, "aiwf promote: --tests is not allowed with --audit-only (audit-only records an existing transition; no test cycle ran)")
 				return exitUsage
 			}
-			result, vErr = verb.PromoteACPhaseAuditOnly(ctx, tr, id, *phase, actorStr, *reason)
+			result, vErr = verb.PromoteACPhaseAuditOnly(ctx, tr, id, phase, actorStr, reason)
 		} else {
-			result, vErr = verb.PromoteACPhase(ctx, tr, id, *phase, actorStr, *reason, *force, metrics)
+			result, vErr = verb.PromoteACPhase(ctx, tr, id, phase, actorStr, reason, force, metrics)
 		}
 		return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 	}
-	if strings.TrimSpace(*tests) != "" {
+	if strings.TrimSpace(tests) != "" {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --tests is only valid in phase mode (composite id with --phase <p>)")
 		return exitUsage
 	}
-	newStatus := rest[1]
+	newStatus := args[1]
 	if !entity.IsCompositeID(id) {
 		if e := tr.ByID(id); e != nil {
 			pctx.IsTerminalPromote = isTerminalPromote(e.Kind, newStatus)
 		}
 	}
-	if *auditOnly {
-		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, *reason)
+	if auditOnly {
+		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, reason)
 		return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 	}
-	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason, *force, resolverOpts)
+	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, reason, force, resolverOpts)
 	return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 }
 
-// runEditBody handles `aiwf edit-body <id> --body-file <path>` (and
+// newEditBodyCmd builds `aiwf edit-body <id> --body-file <path>` (and
 // `--body-file -` for stdin) — the post-creation body-edit verb that
 // closes the plain-git carve-out from G-052 / M-058. Frontmatter is
 // untouched; only the markdown body below the frontmatter delimiter
 // is replaced. One commit per invocation, standard provenance.
-func runEditBody(args []string) int {
-	fs := flag.NewFlagSet("edit-body", flag.ContinueOnError)
-	actor := fs.String("actor", "", "actor for the commit trailer")
-	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
-	root := fs.String("root", "", "consumer repo root")
-	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
-	bodyFile := fs.String("body-file", "", `path to a file whose content becomes the entity's new body (use "-" to read from stdin); the file must contain body content only — leading "---" is refused. Omit to use bless mode: commit whatever the user edited in the working copy of the entity file`)
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason", "body-file"}, nil)); err != nil {
-		return exitUsage
+func newEditBodyCmd() *cobra.Command {
+	var (
+		actor     string
+		principal string
+		root      string
+		reason    string
+		bodyFile  string
+	)
+	cmd := &cobra.Command{
+		Use:           "edit-body <id>",
+		Short:         "Replace the entity's markdown body (frontmatter untouched)",
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runEditBodyCmd(args[0], actor, principal, root, reason, bodyFile))
+		},
 	}
-	rest := fs.Args()
-	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf edit-body: usage: aiwf edit-body <id> [--body-file <path>]  (omit --body-file to bless current working-copy edits; use --body-file - for stdin)")
-		return exitUsage
-	}
-	id := rest[0]
+	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
+	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity's new body (use "-" to read from stdin); the file must contain body content only — leading "---" is refused. Omit to use bless mode: commit whatever the user edited in the working copy of the entity file`)
+	return cmd
+}
 
+func runEditBodyCmd(id, actor, principal, root, reason, bodyFile string) int {
 	// Bless mode (M-060): when --body-file is absent, pass nil bytes
 	// so the verb reads working-copy and HEAD itself and commits the
 	// diff. Explicit mode (M-058): when --body-file is set, read the
 	// file (or stdin for "-") and pass the bytes through.
 	var body []byte
-	if *bodyFile != "" {
+	if bodyFile != "" {
 		var readErr error
-		body, readErr = readBodyFile(*bodyFile)
+		body, readErr = readBodyFile(bodyFile)
 		if readErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", readErr)
 			return exitUsage
 		}
 		if body == nil {
-			// readBodyFile returned a nil slice from a real file/stdin
-			// (rather than the bless-mode signal); treat as empty body
-			// and let the verb's validateUserBodyBytes path handle it.
 			body = []byte{}
 		}
 	}
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", err)
 		return exitUsage
@@ -479,53 +539,63 @@ func runEditBody(args []string) int {
 
 	pctx := provenanceContext{
 		Actor:     actorStr,
-		Principal: strings.TrimSpace(*principal),
+		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
-	result, vErr := verb.EditBody(ctx, tr, id, body, actorStr, *reason)
+	result, vErr := verb.EditBody(ctx, tr, id, body, actorStr, reason)
 	return decorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx)
 }
 
-// runCancel handles `aiwf cancel <id> [--reason "..."]`.
-func runCancel(args []string) int {
-	fs := flag.NewFlagSet("cancel", flag.ContinueOnError)
-	actor := fs.String("actor", "", "actor for the commit trailer")
-	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
-	root := fs.String("root", "", "consumer repo root")
-	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
-	force := fs.Bool("force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
-	auditOnly := fs.Bool("audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason"}, []string{"force", "audit-only"})); err != nil {
-		return exitUsage
+// newCancelCmd builds `aiwf cancel <id> [--reason "..."]`.
+func newCancelCmd() *cobra.Command {
+	var (
+		actor     string
+		principal string
+		root      string
+		reason    string
+		force     bool
+		auditOnly bool
+	)
+	cmd := &cobra.Command{
+		Use:           "cancel <id>",
+		Short:         "Promote to the kind's terminal-cancel status",
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runCancelCmd(args[0], actor, principal, root, reason, force, auditOnly))
+		},
 	}
-	rest := fs.Args()
-	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf cancel: usage: aiwf cancel <id> [--reason \"...\"] [--force --reason \"...\"] [--audit-only --reason \"...\"]")
-		return exitUsage
-	}
-	id := rest[0]
+	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
+	cmd.Flags().BoolVar(&force, "force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
+	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
+	return cmd
+}
 
-	if *force && *auditOnly {
+func runCancelCmd(id, actor, principal, root, reason string, force, auditOnly bool) int {
+	if force && auditOnly {
 		fmt.Fprintln(os.Stderr, "aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
 		return exitUsage
 	}
-	if (*force || *auditOnly) && strings.TrimSpace(*reason) == "" {
+	if (force || auditOnly) && strings.TrimSpace(reason) == "" {
 		gateFlag := "--force"
-		if *auditOnly {
+		if auditOnly {
 			gateFlag = "--audit-only"
 		}
 		fmt.Fprintf(os.Stderr, "aiwf cancel: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
 		return exitUsage
 	}
 
-	rootDir, err := resolveRoot(*root)
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
 		return exitUsage
@@ -545,42 +615,49 @@ func runCancel(args []string) int {
 	}
 	pctx := provenanceContext{
 		Actor:             actorStr,
-		Principal:         strings.TrimSpace(*principal),
+		Principal:         strings.TrimSpace(principal),
 		VerbKind:          verb.VerbAct,
 		TargetID:          id,
 		IsTerminalPromote: !entity.IsCompositeID(id), // cancel always lands on a kind's terminal-cancel target
 	}
-	if *auditOnly {
-		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, *reason)
+	if auditOnly {
+		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, reason)
 		return decorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
 	}
-	result, vErr := verb.Cancel(ctx, tr, id, actorStr, *reason, *force)
+	result, vErr := verb.Cancel(ctx, tr, id, actorStr, reason, force)
 	return decorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
 }
 
-// runRename handles `aiwf rename <id> <new-slug>`.
-func runRename(args []string) int {
-	fs := flag.NewFlagSet("rename", flag.ContinueOnError)
-	actor := fs.String("actor", "", "actor for the commit trailer")
-	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
-	root := fs.String("root", "", "consumer repo root")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root"}, nil)); err != nil {
-		return exitUsage
+// newRenameCmd builds `aiwf rename <id> <new-slug>`.
+func newRenameCmd() *cobra.Command {
+	var (
+		actor     string
+		principal string
+		root      string
+	)
+	cmd := &cobra.Command{
+		Use:           "rename <id> <new-slug>",
+		Short:         "Rename the file/dir slug; id preserved",
+		Args:          cobra.ExactArgs(2),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runRenameCmd(args[0], args[1], actor, principal, root))
+		},
 	}
-	rest := fs.Args()
-	if len(rest) != 2 {
-		fmt.Fprintln(os.Stderr, "aiwf rename: usage: aiwf rename <id> <new-slug>")
-		return exitUsage
-	}
-	id, newSlug := rest[0], rest[1]
+	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	return cmd
+}
 
-	rootDir, err := resolveRoot(*root)
+func runRenameCmd(id, newSlug, actor, principal, root string) int {
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
 		return exitUsage
@@ -601,42 +678,50 @@ func runRename(args []string) int {
 	result, err := verb.Rename(ctx, tr, id, newSlug, actorStr)
 	pctx := provenanceContext{
 		Actor:     actorStr,
-		Principal: strings.TrimSpace(*principal),
+		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
 	return decorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx)
 }
 
-// runMove handles `aiwf move <M-id> --epic <E-id>`: relocates a
+// newMoveCmd builds `aiwf move <M-id> --epic <E-id>`: relocates a
 // milestone to a different epic in one commit.
-func runMove(args []string) int {
-	fs := flag.NewFlagSet("move", flag.ContinueOnError)
-	actor := fs.String("actor", "", "actor for the commit trailer")
-	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
-	root := fs.String("root", "", "consumer repo root")
-	epic := fs.String("epic", "", "target epic id (e.g., E-04)")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "epic"}, nil)); err != nil {
-		return exitUsage
+func newMoveCmd() *cobra.Command {
+	var (
+		actor     string
+		principal string
+		root      string
+		epic      string
+	)
+	cmd := &cobra.Command{
+		Use:           "move <M-id> --epic <E-id>",
+		Short:         "Move a milestone to a different epic; id preserved",
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			if epic == "" {
+				fmt.Fprintln(os.Stderr, "aiwf move: --epic <E-id> is required")
+				return &exitError{code: exitUsage}
+			}
+			return wrapExitCode(runMoveCmd(args[0], epic, actor, principal, root))
+		},
 	}
-	rest := fs.Args()
-	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf move: usage: aiwf move <M-id> --epic <E-id>")
-		return exitUsage
-	}
-	id := rest[0]
-	if *epic == "" {
-		fmt.Fprintln(os.Stderr, "aiwf move: --epic <E-id> is required")
-		return exitUsage
-	}
+	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&epic, "epic", "", "target epic id (e.g., E-04)")
+	return cmd
+}
 
-	rootDir, err := resolveRoot(*root)
+func runMoveCmd(id, epic, actor, principal, root string) int {
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
 		return exitUsage
@@ -661,40 +746,47 @@ func runMove(args []string) int {
 	if e := tr.ByID(id); e != nil {
 		moveSource = e.Parent
 	}
-	result, err := verb.Move(ctx, tr, id, *epic, actorStr)
+	result, err := verb.Move(ctx, tr, id, epic, actorStr)
 	pctx := provenanceContext{
 		Actor:      actorStr,
-		Principal:  strings.TrimSpace(*principal),
+		Principal:  strings.TrimSpace(principal),
 		VerbKind:   verb.VerbMove,
-		TargetID:   *epic,
+		TargetID:   epic,
 		MoveSource: moveSource,
 	}
 	return decorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx)
 }
 
-// runReallocate handles `aiwf reallocate <id-or-path>`.
-func runReallocate(args []string) int {
-	fs := flag.NewFlagSet("reallocate", flag.ContinueOnError)
-	actor := fs.String("actor", "", "actor for the commit trailer")
-	principal := fs.String("principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
-	root := fs.String("root", "", "consumer repo root")
-	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root"}, nil)); err != nil {
-		return exitUsage
+// newReallocateCmd builds `aiwf reallocate <id-or-path>`.
+func newReallocateCmd() *cobra.Command {
+	var (
+		actor     string
+		principal string
+		root      string
+	)
+	cmd := &cobra.Command{
+		Use:           "reallocate <id-or-path>",
+		Short:         "Renumber the entity; rewrite refs in others",
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runReallocateCmd(args[0], actor, principal, root))
+		},
 	}
-	rest := fs.Args()
-	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf reallocate: usage: aiwf reallocate <id-or-path>")
-		return exitUsage
-	}
-	target := rest[0]
+	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	return cmd
+}
 
-	rootDir, err := resolveRoot(*root)
+func runReallocateCmd(target, actor, principal, root string) int {
+	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
 		return exitUsage
 	}
-	actorStr, err := resolveActor(*actor, rootDir)
+	actorStr, err := resolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
 		return exitUsage
@@ -715,7 +807,7 @@ func runReallocate(args []string) int {
 	result, err := verb.Reallocate(ctx, tr, target, actorStr)
 	pctx := provenanceContext{
 		Actor:     actorStr,
-		Principal: strings.TrimSpace(*principal),
+		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 		TargetID:  target,
 	}
