@@ -10,6 +10,9 @@ acs:
     - id: AC-2
       title: Graceful no-op completion when cwd is not a valid aiwf project
       status: open
+    - id: AC-3
+      title: Drift-prevention policy test fails CI on flag without completion wiring
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ Wire dynamic completion of live entity ids — `--epic=<TAB>`, `--milestone=<TAB
 ### AC-1 — --epic=<TAB> enumerates live epic ids from the planning tree
 
 ### AC-2 — Graceful no-op completion when cwd is not a valid aiwf project
+
+### AC-3 — Drift-prevention policy test fails CI on flag without completion wiring
 
