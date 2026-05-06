@@ -3,6 +3,10 @@ id: M-058
 title: Add aiwf edit-body verb and reconcile skill
 status: draft
 parent: E-15
+acs:
+    - id: AC-1
+      title: aiwf edit-body verb exists; accepts --body-file or stdin
+      status: open
 ---
 
 ## Goal
@@ -16,3 +20,6 @@ A new verb `aiwf edit-body <id> --body-file <path>` (and `--body -` for stdin) r
 Skill text update is a one-line change to `.claude/skills/aiwf-add/SKILL.md`: remove the "body-prose edits to an existing entity file ... [are allowed]" sentence, replace with a pointer to `aiwf edit-body`. Rides along with the verb implementation in the same milestone.
 
 ## Acceptance criteria
+
+### AC-1 — aiwf edit-body verb exists; accepts --body-file or stdin
+
