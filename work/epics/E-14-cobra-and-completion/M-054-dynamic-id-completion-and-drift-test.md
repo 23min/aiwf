@@ -1,7 +1,7 @@
 ---
 id: M-054
 title: Dynamic id completion and drift test
-status: in_progress
+status: done
 parent: E-14
 acs:
     - id: AC-1
