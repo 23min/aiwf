@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: Drift-prevention policy test fails CI on flag without completion wiring
-      status: open
+      status: met
     - id: AC-4
       title: Test covers static-completion and dynamic-completion required cases
       status: open
