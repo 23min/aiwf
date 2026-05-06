@@ -13,6 +13,30 @@ import (
 	"github.com/23min/ai-workflow-v2/internal/tree"
 )
 
+// PromoteOptions carries optional fields for Promote — resolver
+// pointers (gap.addressed_by / gap.addressed_by_commit, adr.superseded_by)
+// that need to be written atomically with the status change so the
+// matching check rule (gap-resolved-has-resolver, adr-supersession-mutual)
+// is satisfied without a follow-up hand-edit.
+//
+// AddressedBy / AddressedByCommit are valid only when the target is a
+// gap and newStatus is "addressed". SupersededBy is valid only when
+// the target is an ADR and newStatus is "superseded". Mismatches return
+// a Go error before any disk work — usage misalignment, not a finding.
+//
+// When a slice or string is set, it replaces the existing field on the
+// entity (this is a one-shot setting at status-change time, not a
+// merge). Unset fields leave the entity's existing values untouched.
+type PromoteOptions struct {
+	AddressedBy       []string
+	AddressedByCommit []string
+	SupersededBy      string
+}
+
+func (o PromoteOptions) hasResolverFlag() bool {
+	return len(o.AddressedBy) > 0 || len(o.AddressedByCommit) > 0 || o.SupersededBy != ""
+}
+
 // Promote advances an entity's status. The transition is validated
 // against the kind's FSM (entity.ValidateTransition) before any
 // projection runs, so unknown statuses and illegal jumps are rejected
@@ -31,12 +55,21 @@ import (
 // enforcing that. When force is set, the standard trailers gain
 // `aiwf-force: <reason>` so the audit trail is queryable.
 //
+// opts carries optional resolver pointers that need to be written in
+// the same commit as the status change (see PromoteOptions). The
+// resolver is validated against the entity's kind and the target
+// status before any disk work — a mismatch is a Go error.
+//
 // Returns a Go error for "couldn't even start": id not found, illegal
-// transition (when not forced). Tree-level findings caused by the
-// change are returned as a Result with non-empty Findings.
-func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason string, force bool) (*Result, error) {
+// transition (when not forced), resolver-flag/kind/status mismatch.
+// Tree-level findings caused by the change are returned as a Result
+// with non-empty Findings.
+func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason string, force bool, opts PromoteOptions) (*Result, error) {
 	_ = ctx
 	if entity.IsCompositeID(id) {
+		if opts.hasResolverFlag() {
+			return nil, fmt.Errorf("resolver flags (--by/--by-commit/--superseded-by) are not valid for AC promotions")
+		}
 		return promoteAC(t, id, newStatus, actor, reason, force)
 	}
 	e := t.ByID(id)
@@ -48,9 +81,13 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 			return nil, err
 		}
 	}
+	if err := validateResolverFlags(e.Kind, newStatus, opts); err != nil {
+		return nil, err
+	}
 
 	modified := *e
 	modified.Status = newStatus
+	applyResolverFlags(&modified, opts)
 
 	body, err := readBody(t.Root, e.Path)
 	if err != nil {
@@ -160,6 +197,48 @@ func transitionTrailers(verbName, id, actor, reason, to string, force bool) []gi
 		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerForce, Value: strings.TrimSpace(reason)})
 	}
 	return trailers
+}
+
+// validateResolverFlags returns an error if any field in opts is set
+// for a kind/target-status combination it doesn't apply to. Resolver
+// fields are tied to specific transitions: addressed_by/addressed_by_commit
+// to gap → addressed, superseded_by to adr → superseded. Any other
+// combination is a usage misalignment — return a Go error so the
+// dispatcher exits with the right code rather than producing a
+// projection finding the user has to interpret.
+func validateResolverFlags(k entity.Kind, newStatus string, opts PromoteOptions) error {
+	if len(opts.AddressedBy) > 0 || len(opts.AddressedByCommit) > 0 {
+		if k != entity.KindGap {
+			return fmt.Errorf("--by/--by-commit are only valid for gap entities; got kind %q", k)
+		}
+		if newStatus != entity.StatusAddressed {
+			return fmt.Errorf("--by/--by-commit are only valid when promoting to %q; got %q", entity.StatusAddressed, newStatus)
+		}
+	}
+	if opts.SupersededBy != "" {
+		if k != entity.KindADR {
+			return fmt.Errorf("--superseded-by is only valid for ADR entities; got kind %q", k)
+		}
+		if newStatus != entity.StatusSuperseded {
+			return fmt.Errorf("--superseded-by is only valid when promoting to %q; got %q", entity.StatusSuperseded, newStatus)
+		}
+	}
+	return nil
+}
+
+// applyResolverFlags writes any set resolver fields from opts onto e.
+// Unset fields are left alone. Replacement, not append: the flag value
+// is the new state of the field.
+func applyResolverFlags(e *entity.Entity, opts PromoteOptions) {
+	if len(opts.AddressedBy) > 0 {
+		e.AddressedBy = opts.AddressedBy
+	}
+	if len(opts.AddressedByCommit) > 0 {
+		e.AddressedByCommit = opts.AddressedByCommit
+	}
+	if opts.SupersededBy != "" {
+		e.SupersededBy = opts.SupersededBy
+	}
 }
 
 // readBody reads the body bytes from an existing entity file. Returns

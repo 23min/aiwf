@@ -187,7 +187,7 @@ func TestPromote_Composite(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
-	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "", false))
+	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "", false, verb.PromoteOptions{}))
 
 	m := r.tree().ByID("M-001")
 	if m.ACs[0].Status != "met" {
@@ -206,8 +206,8 @@ func TestPromote_CompositeRespectsACFSM(t *testing.T) {
 	// open → cancelled is legal; open → "weird" isn't a valid status,
 	// so even the FSM check fails. Use met → done as the illegal
 	// jump (met can only go to deferred or cancelled).
-	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "", false))
-	_, err := verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "done", testActor, "", false)
+	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "", false, verb.PromoteOptions{}))
+	_, err := verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "done", testActor, "", false, verb.PromoteOptions{})
 	if err == nil || !strings.Contains(err.Error(), "cannot transition") {
 		t.Errorf("expected illegal-transition error for met → done, got %v", err)
 	}

@@ -17,6 +17,9 @@ section in this file.
 
 ## [Unreleased]
 
+### Added
+- **M-059 — Resolver-pointer flags on `aiwf promote`.** New `--by`, `--by-commit`, and `--superseded-by` flags write the matching frontmatter field atomically with the status change, so `aiwf promote G-NNN addressed --by M-007` (or `--by-commit <sha>`) and `aiwf promote ADR-NNNN superseded --superseded-by ADR-MMMM` no longer require a follow-up hand-edit to satisfy the `gap-resolved-has-resolver` and `adr-supersession-mutual` checks. Flags reject mismatched kind/target-status combinations and are mutex with `--audit-only` (which is empty-diff by definition). Closes **G-053**.
+
 ## [0.5.2] — 2026-05-06
 
 ### Fixed

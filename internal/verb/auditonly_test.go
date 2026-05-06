@@ -17,7 +17,7 @@ import (
 func TestPromoteAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(context.Background(), r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
 	// E-01 is now `active`. Audit-only against `active` should pass.
 	res, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-01", "active", testActor, "manual fixup, recovering trail")
 	if err != nil {
@@ -164,7 +164,7 @@ func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
-	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "actually done", false))
+	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "actually done", false, verb.PromoteOptions{}))
 
 	res, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "backfill")
 	if err != nil {

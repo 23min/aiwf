@@ -258,10 +258,13 @@ func runPromote(args []string) int {
 	reason := fs.String("reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	phase := fs.String("phase", "", "advance an AC's tdd_phase (composite ids only; mutex with positional new-status)")
 	tests := fs.String("tests", "", `optional test metrics for a phase promotion (composite + --phase only); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
+	by := fs.String("by", "", "comma-separated entity ids to write into addressed_by (gap → addressed only); satisfies gap-resolved-has-resolver atomically with the status change")
+	byCommit := fs.String("by-commit", "", "comma-separated commit SHAs to write into addressed_by_commit (gap → addressed only); use when the gap was closed by a specific commit rather than a milestone")
+	supersededBy := fs.String("superseded-by", "", "ADR id to write into superseded_by (adr → superseded only); satisfies adr-supersession-mutual atomically with the status change")
 	force := fs.Bool("force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	auditOnly := fs.Bool("audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
 	fs.SetOutput(os.Stderr)
-	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason", "phase", "tests"}, []string{"force", "audit-only"})); err != nil {
+	if err := fs.Parse(reorderFlagsFirst(args, []string{"actor", "principal", "root", "reason", "phase", "tests", "by", "by-commit", "superseded-by"}, []string{"force", "audit-only"})); err != nil {
 		return exitUsage
 	}
 	rest := fs.Args()
@@ -296,6 +299,21 @@ func runPromote(args []string) int {
 			gateFlag = "--audit-only"
 		}
 		fmt.Fprintf(os.Stderr, "aiwf promote: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
+		return exitUsage
+	}
+
+	resolverOpts := verb.PromoteOptions{
+		AddressedBy:       splitCommaList(*by),
+		AddressedByCommit: splitCommaList(*byCommit),
+		SupersededBy:      strings.TrimSpace(*supersededBy),
+	}
+	resolverSet := len(resolverOpts.AddressedBy) > 0 || len(resolverOpts.AddressedByCommit) > 0 || resolverOpts.SupersededBy != ""
+	if resolverSet && *auditOnly {
+		fmt.Fprintln(os.Stderr, "aiwf promote: --by/--by-commit/--superseded-by are not allowed with --audit-only (audit-only records an existing transition; resolver-flag values would imply a mutation)")
+		return exitUsage
+	}
+	if resolverSet && *phase != "" {
+		fmt.Fprintln(os.Stderr, "aiwf promote: --by/--by-commit/--superseded-by are not valid in phase mode (resolver fields apply to entity status, not AC phase)")
 		return exitUsage
 	}
 
@@ -362,7 +380,7 @@ func runPromote(args []string) int {
 		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, *reason)
 		return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 	}
-	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason, *force)
+	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, *reason, *force, resolverOpts)
 	return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 }
 

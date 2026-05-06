@@ -191,7 +191,7 @@ func TestAdd_AllocatesSequentially(t *testing.T) {
 func TestPromote_RoundTrip(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "", false))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "", false, verb.PromoteOptions{}))
 
 	if e := r.tree().ByID("E-01"); e == nil || e.Status != "active" {
 		t.Errorf("E-01 = %+v", e)
@@ -201,7 +201,7 @@ func TestPromote_RoundTrip(t *testing.T) {
 func TestPromote_RejectsBadTransition(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	_, err := verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "", false)
+	_, err := verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "", false, verb.PromoteOptions{})
 	if err == nil || !strings.Contains(err.Error(), "cannot transition") {
 		t.Errorf("expected illegal-transition error, got %v", err)
 	}
@@ -237,7 +237,7 @@ func TestCancel_WithReason(t *testing.T) {
 func TestPromote_WithReason(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "kicking off after the planning review", false))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "kicking off after the planning review", false, verb.PromoteOptions{}))
 
 	body, err := gitops.HeadBody(r.ctx, r.root)
 	if err != nil {
@@ -777,11 +777,11 @@ func TestPromote_ForceSkipsFSM(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 
 	// Sanity: without force, proposed → done is illegal.
-	if _, err := verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "", false); err == nil {
+	if _, err := verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "", false, verb.PromoteOptions{}); err == nil {
 		t.Fatal("expected illegal-transition error without force")
 	}
 	// With force, the same transition lands.
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "the rare emergency", true))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "the rare emergency", true, verb.PromoteOptions{}))
 	if e := r.tree().ByID("E-01"); e == nil || e.Status != "done" {
 		t.Errorf("E-01 = %+v after forced promote", e)
 	}
@@ -796,7 +796,7 @@ func TestPromote_ForceStillFailsCoherence(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 
 	// Force does not allow promoting to a non-kind status.
-	result, err := verb.Promote(r.ctx, r.tree(), "E-01", "in_progress", testActor, "tried to skip the FSM", true)
+	result, err := verb.Promote(r.ctx, r.tree(), "E-01", "in_progress", testActor, "tried to skip the FSM", true, verb.PromoteOptions{})
 	if err != nil {
 		t.Fatalf("unexpected Go error: %v", err)
 	}
@@ -824,7 +824,7 @@ func TestPromote_ForceStillFailsCoherence(t *testing.T) {
 func TestPromote_ForceEmitsTrailer(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "the rare emergency", true))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "the rare emergency", true, verb.PromoteOptions{}))
 
 	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
 	if err != nil {
@@ -851,7 +851,7 @@ func TestPromote_ForceEmitsTrailer(t *testing.T) {
 func TestPromote_NoForceNoTrailer(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "kicking off", false))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "kicking off", false, verb.PromoteOptions{}))
 
 	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
 	if err != nil {
@@ -897,7 +897,7 @@ func TestCancel_ForceEmitsTrailer(t *testing.T) {
 func TestPromote_ForceTrailerTrimsReason(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "  whitespace around it  ", true))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "  whitespace around it  ", true, verb.PromoteOptions{}))
 
 	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
 	if err != nil {
@@ -922,7 +922,7 @@ func TestPromote_ForceTrailerTrimsReason(t *testing.T) {
 func TestPromote_EmitsAiwfTo(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "", false))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "", false, verb.PromoteOptions{}))
 
 	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
 	if err != nil {
@@ -968,7 +968,7 @@ func TestCancel_DoesNotEmitAiwfTo(t *testing.T) {
 func TestPromote_AiwfToCarriesForcedTarget(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "the rare emergency", true))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "the rare emergency", true, verb.PromoteOptions{}))
 
 	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
 	if err != nil {
@@ -994,7 +994,7 @@ func TestPromote_AiwfToCarriesForcedTarget(t *testing.T) {
 // TestPromote_NonExistentID returns a Go error before any disk work.
 func TestPromote_NonExistentID(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.Promote(r.ctx, r.tree(), "E-99", "active", testActor, "", false)
+	_, err := verb.Promote(r.ctx, r.tree(), "E-99", "active", testActor, "", false, verb.PromoteOptions{})
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected not-found error, got %v", err)
 	}

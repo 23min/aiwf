@@ -106,9 +106,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote E-15 proposed -> active |
 | 2026-05-06 | human/peter | add | aiwf add ac M-059/AC-4 'Hand-editing frontmatter never required to satisfy resolver checks' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-059/AC-3 'Verb writes resolver field atomically with status change' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-059/AC-2 'aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids' |
 | 2026-05-06 | human/peter | add | aiwf add ac M-059/AC-1 'aiwf promote G-NNN addressed --by accepts entity ids and commit shas' |
-| 2026-05-06 | human/peter | add | aiwf add milestone M-059 'Add resolver-pointer flags to status-transition verbs' |
 

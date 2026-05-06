@@ -46,6 +46,27 @@ aiwf promote E-01 done --force --reason "shipped without staging review for hotf
 
 For milestones with open ACs, `--force` lets the milestone reach `done` but the standing `aiwf check` will keep surfacing `milestone-done-incomplete-acs` until the ACs reach a terminal state. The kernel reports the inconsistency every time; force only relaxes the verb-time refusal.
 
+## Resolver-pointer flags for status-transitions that need a successor
+
+Two transitions require a pointer to *what addressed the entity* before the kernel considers the tree clean: gap → addressed (resolver-or-commit) and adr → superseded (replacement ADR). Pass the resolver via flag at promote time so the status flip and the resolver write land in one commit:
+
+```bash
+aiwf promote G-NNN addressed --by M-007                # gap closed by milestone (single id)
+aiwf promote G-NNN addressed --by M-007,E-03           # gap closed by multiple entities
+aiwf promote G-NNN addressed --by-commit abcdef1234    # gap closed by a specific commit (sha goes into addressed_by_commit)
+aiwf promote ADR-NNNN superseded --superseded-by ADR-NNNN
+```
+
+| Flag | Field written | Valid when |
+|---|---|---|
+| `--by <comma-list>` | `addressed_by` | gap → addressed |
+| `--by-commit <comma-list>` | `addressed_by_commit` | gap → addressed |
+| `--superseded-by <id>` | `superseded_by` | adr → superseded |
+
+A flag/kind/status mismatch is a usage error (Go-error before any disk work), not a finding. The flags are mutex with `--audit-only` (audit-only is empty-diff by definition; resolver flags imply a mutation) and not valid in phase mode (resolver fields apply to entity status, not AC tdd_phase).
+
+Use the verb route, not hand-editing: the gap-resolved-has-resolver and adr-supersession-mutual checks fire whenever the field is missing, and the verb route writes the field atomically with the status change so the standing check goes silent immediately.
+
 ## --audit-only --reason for backfilling state already reached
 
 When state was already reached via a manual `git commit` (no aiwf trailers), `aiwf promote <id> <state> --audit-only --reason "..."` records an empty-diff commit with the trailer block so `aiwf history` reflects the move. The verb refuses unless the entity is **already** at the named state — audit-only records what's true, not transitions. Mutex with `--force`. Human-only (the kernel refuses non-human actors). See `aiwf-authorize` and the G24 recovery story.
