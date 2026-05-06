@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: Trailer keys aiwf-verb/aiwf-entity/aiwf-actor preserved byte-exact
       status: open
+    - id: AC-4
+      title: Provenance trailer coherence rules preserved across migrated verbs
+      status: open
 ---
 
 ## Goal
@@ -30,4 +33,6 @@ Subprocess integration tests are the proof of behavior preservation. Provenance 
 ### AC-2 — Single-commit-per-verb invariant preserved for each mutating verb
 
 ### AC-3 — Trailer keys aiwf-verb/aiwf-entity/aiwf-actor preserved byte-exact
+
+### AC-4 — Provenance trailer coherence rules preserved across migrated verbs
 
