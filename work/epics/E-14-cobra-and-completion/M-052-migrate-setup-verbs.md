@@ -7,6 +7,9 @@ acs:
     - id: AC-1
       title: init, update, upgrade migrated to Cobra
       status: open
+    - id: AC-2
+      title: Marker-based artifact regeneration preserved (skills, hook markers)
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ Test against a fresh tempdir consumer repo (per the existing pattern). After `in
 ## Acceptance criteria
 
 ### AC-1 — init, update, upgrade migrated to Cobra
+
+### AC-2 — Marker-based artifact regeneration preserved (skills, hook markers)
 
