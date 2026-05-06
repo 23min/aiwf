@@ -30,6 +30,17 @@ The six kinds and their required flags:
 | contract | `--title` | Allocates `C-NNN` and creates `work/contracts/C-NNN-<slug>/contract.md`. Optional `--linked-adr <id,id,...>` records the motivating ADRs. Pass `--validator <name> --schema <path> --fixtures <path>` together to also bind the contract in aiwf.yaml within the same commit. |
 | ac | `--title`, positional milestone id | Allocates `AC-N` per-milestone (max+1 across the full `acs[]` including cancelled). Appends to the milestone's frontmatter `acs[]` and scaffolds a `### AC-N — <title>` body heading. The milestone file is rewritten in place — no separate AC file. |
 
+## --body-file for ride-along body content
+
+By default, `aiwf add` lands a per-kind body template (e.g., `## Goal`, `## Scope` headings on an epic). To replace that with real body prose in the same atomic create commit — and avoid a follow-up untrailered hand-edit that triggers `provenance-untrailered-entity-commit` — pass `--body-file <path>` (or `--body-file -` to read from stdin):
+
+```bash
+aiwf add gap --title "Validators leak temp files" --body-file gap-body.md
+echo "## Goal\n\nFleshed out goal." | aiwf add epic --title "Caching" --body-file -
+```
+
+Valid for all six kinds (epic, milestone, adr, gap, decision, contract). The file must contain body content only — leading `---` (YAML frontmatter delimiter) is refused with a clear error rather than silently stripped, so the create commit can't accidentally produce a double-frontmatter file.
+
 ## What aiwf does
 
 1. Allocates the next free id by scanning the working tree and the configured trunk ref (default `refs/remotes/origin/main`; override via `aiwf.yaml: allocate.trunk`). For ACs the scan is the milestone's `acs[]`. The trunk read is silently skipped when the repo has no remotes configured; an explicitly-configured trunk ref that doesn't resolve is a hard error so the operator notices.
@@ -61,7 +72,7 @@ If the LLM is invoked turn-by-turn by a human (HITL / tool mode), pass `--actor 
 
 What's allowed without a verb:
 
-- **Body-prose edits** to an existing entity file — the markdown under the frontmatter. The frontmatter itself is structured state; leave it to verbs.
+- **Body-prose edits** to an existing entity file — the markdown under the frontmatter. The frontmatter itself is structured state; leave it to verbs. Note: when *creating* an entity with body content already drafted, prefer `aiwf add --body-file <path>` so the body lands in the same atomic create commit and skips the untrailered hand-edit step.
 
 What `aiwf check` reports as `unexpected-tree-file`:
 

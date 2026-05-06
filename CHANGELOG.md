@@ -19,6 +19,7 @@ section in this file.
 
 ### Added
 - **M-059 — Resolver-pointer flags on `aiwf promote`.** New `--by`, `--by-commit`, and `--superseded-by` flags write the matching frontmatter field atomically with the status change, so `aiwf promote G-NNN addressed --by M-007` (or `--by-commit <sha>`) and `aiwf promote ADR-NNNN superseded --superseded-by ADR-MMMM` no longer require a follow-up hand-edit to satisfy the `gap-resolved-has-resolver` and `adr-supersession-mutual` checks. Flags reject mismatched kind/target-status combinations and are mutex with `--audit-only` (which is empty-diff by definition). Closes **G-053**.
+- **M-056 — `--body-file` flag on `aiwf add` for all six kinds.** Pass `aiwf add <kind> --title "..." --body-file <path>` (or `--body-file -` for stdin) to land body prose in the same atomic commit as the new frontmatter, replacing the per-kind default template. Eliminates the create-then-hand-edit pattern that today triggers `provenance-untrailered-entity-commit` warnings on the body-edit commit. The file must contain body content only — leading `---` (frontmatter delimiter) is refused so the create commit can't accidentally produce a double-frontmatter file.
 
 ## [0.5.2] — 2026-05-06
 

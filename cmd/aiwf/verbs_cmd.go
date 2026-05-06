@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -47,6 +48,7 @@ func runAdd(args []string) int {
 	bindValidator := fs.String("validator", "", "validator name (contract only; if set, --schema and --fixtures are also required and the binding is added atomically)")
 	bindSchema := fs.String("schema", "", "repo-relative path to the schema (contract only; pairs with --validator and --fixtures)")
 	bindFixtures := fs.String("fixtures", "", "repo-relative path to the fixtures-tree root (contract only; pairs with --validator and --schema)")
+	bodyFile := fs.String("body-file", "", `path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter (use "-" to read from stdin); replaces the per-kind default template; the file must contain body content only — leading "---" is refused`)
 
 	fs.SetOutput(os.Stderr)
 	if err := fs.Parse(args[1:]); err != nil {
@@ -86,6 +88,15 @@ func runAdd(args []string) int {
 	}
 	opts.RelatesTo = splitCommaList(*relatesTo)
 	opts.LinkedADRs = splitCommaList(*linkedADRs)
+
+	if *bodyFile != "" {
+		body, readErr := readBodyFile(*bodyFile)
+		if readErr != nil {
+			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", readErr)
+			return exitUsage
+		}
+		opts.BodyOverride = body
+	}
 
 	if k == entity.KindContract && *bindValidator != "" {
 		doc, contracts, loadErr := loadContractsDoc(rootDir)
@@ -222,6 +233,20 @@ func parseTestsFlag(raw, verbLabel string) (*gitops.TestMetrics, error) {
 		return nil, nil
 	}
 	return &m, nil
+}
+
+// readBodyFile loads body content for `aiwf add --body-file`. A path
+// of "-" reads stdin (so callers can pipe body text without a temp
+// file). Any other value is read as a regular file. Returns the raw
+// bytes; the verb-side resolveAddBody is the rule-checking layer
+// (it refuses content that begins with a frontmatter delimiter so
+// the create commit can't accidentally produce a double-frontmatter
+// file).
+func readBodyFile(path string) ([]byte, error) {
+	if path == "-" {
+		return io.ReadAll(os.Stdin)
+	}
+	return os.ReadFile(path)
 }
 
 // splitCommaList parses comma-separated CLI values into a clean slice

@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -42,6 +43,14 @@ type AddOptions struct {
 	// fixtures paths exist on disk (G18). Required when the bind
 	// triplet is provided; ignored otherwise.
 	RepoRoot string
+	// BodyOverride, when non-nil, replaces the kind's default body
+	// template. Used by `aiwf add --body-file` so the body content
+	// rides along with the create commit instead of forcing a
+	// follow-up untrailered hand-edit (M-056). Nil leaves current
+	// behavior — the per-kind template lands as the body. The bytes
+	// must not begin with a YAML frontmatter delimiter (`---\n`);
+	// callers pass body content only, not a full markdown document.
+	BodyOverride []byte
 }
 
 // Add creates a new entity of the given kind. Allocates the next free
@@ -90,7 +99,12 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 	}
 	applyAddOpts(e, opts)
 
-	ops, err := buildAddOps(e)
+	body, err := resolveAddBody(kind, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	ops, err := buildAddOps(e, body)
 	if err != nil {
 		return nil, err
 	}
@@ -285,12 +299,31 @@ func applyAddOpts(e *entity.Entity, opts AddOptions) {
 
 // buildAddOps composes the file operations needed to land the new
 // entity: a single OpWrite of the entity file with serialized
-// frontmatter and the kind's body template.
-func buildAddOps(e *entity.Entity) ([]FileOp, error) {
-	body := entity.BodyTemplate(e.Kind)
+// frontmatter and the supplied body bytes. The single-OpWrite shape
+// is what makes the create commit atomic — frontmatter and body
+// land together. Callers pass the body chosen by resolveAddBody.
+func buildAddOps(e *entity.Entity, body []byte) ([]FileOp, error) {
 	content, err := entity.Serialize(e, body)
 	if err != nil {
 		return nil, fmt.Errorf("serializing %s: %w", e.ID, err)
 	}
 	return []FileOp{{Type: OpWrite, Path: e.Path, Content: content}}, nil
+}
+
+// resolveAddBody returns the body bytes for the new entity. When
+// opts.BodyOverride is set it replaces the kind's default template
+// (M-056 — `aiwf add --body-file`). The override must contain body
+// content only; if it begins with a YAML frontmatter delimiter
+// (`---\n`) the verb refuses, since concatenating user-supplied
+// frontmatter with the verb's serialized frontmatter would produce
+// a malformed file with two frontmatter blocks.
+func resolveAddBody(kind entity.Kind, opts AddOptions) ([]byte, error) {
+	if opts.BodyOverride == nil {
+		return entity.BodyTemplate(kind), nil
+	}
+	trimmed := bytes.TrimLeft(opts.BodyOverride, " \t\r\n")
+	if bytes.HasPrefix(trimmed, []byte("---\n")) || bytes.HasPrefix(trimmed, []byte("---\r\n")) {
+		return nil, fmt.Errorf("--body-file content begins with a frontmatter delimiter (---); pass body content only, not a full markdown file with its own frontmatter")
+	}
+	return opts.BodyOverride, nil
 }
