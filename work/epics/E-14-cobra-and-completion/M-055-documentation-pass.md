@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: No 'previously was' or migration notes in any user-facing docs
-      status: open
+      status: met
     - id: AC-3
       title: README CLI section reflects the Cobra-shaped surface
       status: open
