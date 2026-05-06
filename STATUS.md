@@ -77,9 +77,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-06 | human/peter | promote | aiwf promote E-14 proposed -> active |
 | 2026-05-06 | human/peter | promote | aiwf promote E-15 active -> done |
 | 2026-05-06 | human/peter | promote | aiwf promote G-054 open -> addressed |
 | 2026-05-06 | human/peter | edit-body | aiwf edit-body G-054 |
 | 2026-05-06 | human/peter | promote | aiwf promote M-060 in_progress -> done |
-| 2026-05-06 | human/peter | promote | aiwf promote M-060/AC-5 open -> met |
 
