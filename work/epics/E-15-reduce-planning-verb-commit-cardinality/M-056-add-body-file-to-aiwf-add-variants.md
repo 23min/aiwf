@@ -16,6 +16,9 @@ acs:
     - id: AC-4
       title: Body and frontmatter committed together in single create commit
       status: open
+    - id: AC-5
+      title: Subprocess integration test exercises --body-file path
+      status: open
 ---
 
 ## Goal
@@ -37,4 +40,6 @@ This is the highest-leverage milestone of the epic — it converts the most comm
 ### AC-3 — --body-file is optional; absence preserves current behavior
 
 ### AC-4 — Body and frontmatter committed together in single create commit
+
+### AC-5 — Subprocess integration test exercises --body-file path
 
