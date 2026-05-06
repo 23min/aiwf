@@ -1,7 +1,7 @@
 ---
 id: M-049
 title: Bootstrap Cobra and migrate version
-status: draft
+status: in_progress
 parent: E-14
 acs:
     - id: AC-1
