@@ -2,6 +2,8 @@
 id: G-049
 title: gap-resolved-has-resolver fires chronically on legacy-imported gaps
 status: addressed
+addressed_by_commit:
+  - de39e01
 ---
 
 ## What's missing
