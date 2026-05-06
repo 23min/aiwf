@@ -13,6 +13,9 @@ acs:
     - id: AC-3
       title: aiwf doctor --self-check passes after init in fresh consumer repo
       status: open
+    - id: AC-4
+      title: Installed git hooks remain byte-identical or update goldens with rationale
+      status: open
 ---
 
 ## Goal
@@ -30,4 +33,6 @@ Test against a fresh tempdir consumer repo (per the existing pattern). After `in
 ### AC-2 — Marker-based artifact regeneration preserved (skills, hook markers)
 
 ### AC-3 — aiwf doctor --self-check passes after init in fresh consumer repo
+
+### AC-4 — Installed git hooks remain byte-identical or update goldens with rationale
 
