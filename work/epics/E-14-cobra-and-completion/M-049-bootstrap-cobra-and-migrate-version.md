@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: Exit codes 0/1/2/3 preserved end-to-end through Cobra dispatch
-      status: open
+      status: met
     - id: AC-5
       title: Subprocess integration test for version verb passes against the migrated binary
       status: open
