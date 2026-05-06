@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: Commit trailers list every created AC composite id
-      status: open
+      status: met
     - id: AC-4
       title: Single commit produced regardless of N (one or many ACs)
       status: open
