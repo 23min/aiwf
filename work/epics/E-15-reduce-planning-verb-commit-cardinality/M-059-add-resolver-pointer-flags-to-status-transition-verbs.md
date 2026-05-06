@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: Verb writes resolver field atomically with status change
-      status: open
+      status: met
     - id: AC-4
       title: Hand-editing frontmatter never required to satisfy resolver checks
       status: open
