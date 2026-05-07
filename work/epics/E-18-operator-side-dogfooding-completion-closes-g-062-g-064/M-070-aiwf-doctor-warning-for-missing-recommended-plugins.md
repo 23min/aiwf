@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Plugins installed for this project's scope produce no finding
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Plugins installed only for other scopes produce a finding
