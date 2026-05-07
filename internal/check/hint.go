@@ -36,6 +36,21 @@ var hintTable = map[string]string{
 	"acs-title-prose":                    "shorten the AC title to a single short label and move the detail prose into the body section under `### AC-N`; titles render as one big heading",
 	"milestone-done-incomplete-acs":      "promote the open ACs to met / deferred / cancelled, or use --force --reason to override (the standing check still surfaces this)",
 
+	// M-066 entity-body-empty: each kind's load-bearing body sections
+	// must contain non-empty prose. AC bodies have a verb-side shortcut
+	// (`aiwf add ac --body-file` from M-067); other kinds rely on
+	// `aiwf edit-body` until the analogous flag for those verbs lands
+	// (G-066). The bare-code hint is the catch-all when the subcode
+	// (kind tag) doesn't have its own entry yet.
+	"entity-body-empty":           "write prose for the named body section via `aiwf edit-body <id>`; for ACs, `aiwf add ac --body-file` (M-067) can scaffold the body during create",
+	"entity-body-empty/ac":        "fill the AC body under `### AC-N` via `aiwf edit-body M-NNN`; on create, `aiwf add ac --body-file` (M-067) scaffolds the body in the same atomic commit",
+	"entity-body-empty/epic":      "write prose for the named section in the epic body via `aiwf edit-body E-NN`; per-section detail belongs in the body, not the title",
+	"entity-body-empty/milestone": "write prose for the named section in the milestone body via `aiwf edit-body M-NNN`; the per-AC detail goes under each `### AC-N` heading",
+	"entity-body-empty/gap":       "write prose for the named section in the gap body via `aiwf edit-body G-NNN`; explain what's missing and why it matters so future readers understand the friction",
+	"entity-body-empty/adr":       "write prose for the named section in the ADR body via `aiwf edit-body ADR-NNNN`; Context/Decision/Consequences are the load-bearing record",
+	"entity-body-empty/decision":  "write prose for the named section in the decision body via `aiwf edit-body D-NNN`; Question/Decision/Reasoning are the load-bearing record",
+	"entity-body-empty/contract":  "write prose for the named section in the contract body via `aiwf edit-body C-NNN`; Purpose/Stability are the load-bearing record",
+
 	"contract-config/missing-entity":        "create a contract entity for this id (`aiwf add contract`), or remove the entry from aiwf.yaml.contracts.entries[]",
 	"contract-config/missing-schema":        "fix the `schema:` path in aiwf.yaml.contracts.entries[], or create the file at that location",
 	"contract-config/missing-fixtures":      "fix the `fixtures:` path in aiwf.yaml.contracts.entries[], or create the directory",
