@@ -9,6 +9,10 @@ acs:
       title: aiwf.yaml declares aiwf-extensions and wf-rituals as recommended
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Both plugins are installed for this repo's project scope
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -16,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — aiwf.yaml declares aiwf-extensions and wf-rituals as recommended
+
+### AC-2 — Both plugins are installed for this repo's project scope
 
