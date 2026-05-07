@@ -95,3 +95,43 @@ Spec drift call-out: AC-4's spec text claimed the flag was AC-only with G-066 ca
 Sixth entry in the `## Don't` list: "Don't leave load-bearing body sections empty for any entity kind — the title is a label, not a spec. `aiwf check` surfaces the omission as `entity-body-empty` (warning by default; error under `aiwf.yaml: tdd.strict: true`) per M-066. The body is the spec — write the prose detail before declaring the entity complete. See *After `aiwf add <kind>`: fill in the body* above for the per-kind shapes." The Don't entry is the short reminder; the body-prose subsection (AC-1..AC-4) is the long-form prescription.
 
 `TestSkill_AddDontEntryAgainstEmptyBodies` pins four markers ("empty", "body", "entity-body-empty", "M-066") **inside** the `## Don't` section via `extractH2Section`. Structural scoping ensures a future drift can't satisfy the assertion by surfacing the markers somewhere else. RED→GREEN: all four failed red; edit landed; all four green. · commit fd7195b · tests pass=1 fail=0 skip=0
+
+### Branch-coverage closure — extractH2Section helper
+
+Self-review surfaced that the `extractH2Section` helper added in AC-3's diff has three reachable arms but only the populated-body arm was directly exercised by the AC tests. Closed the gap with `TestExtractH2Section` (two subcases): heading-missing returns ok=false; fenced `## What's missing` inside a markdown example doesn't terminate the scope. Mirror of the regression class AC-3's diff originally surfaced in AC-2 — without the fence-aware logic, AC-2's citation assertions silently broke. · commit fb0da2b · tests pass=2 fail=0 skip=0
+
+## Validation
+
+Wrap-time checks at 2026-05-07:
+
+- `aiwf show M-068` — 5/5 ACs `[met]` · `phase: done`.
+- `aiwf check` — 0 errors, 1 unrelated warning (`provenance-untrailered-scope-undefined`: branch has no upstream per the PoC's local-only convention; not a milestone-quality finding).
+- `go test -race ./...` — green across all packages.
+- `go build` — green.
+- `golangci-lint run ./...` — 0 issues.
+- `wf-doc-lint` (scoped to M-068 branch since `epic/E-17`) — clean. Narrative-doc footprint empty; new content lives entirely in the embedded `aiwf-add/SKILL.md`.
+
+Test additions (this milestone):
+
+- `internal/skills/skills_test.go` — `TestSkill_AddNamesFillInBodyAsRequiredNextStep` (AC-1), `TestSkill_AddCitesDesignIntent` (AC-2), `TestSkill_AddRecommendsBodyShape` (AC-3), `TestSkill_AddNamesBodyFileAsAlternative` (AC-4), `TestSkill_AddDontEntryAgainstEmptyBodies` (AC-5), `TestExtractH2Section` (helper branch coverage). 7 test functions, all subcases green.
+
+Branch-coverage audit (HARD RULE): every reachable arm of the new `extractH2Section` helper is exercised by an explicit subcase. The SKILL.md changes are pure content with no code branches.
+
+## Deferrals
+
+None. All five ACs reached `met`. The G-066-staleness discovery noted under Reviewer notes is not deferred work this milestone owed and skipped — it's a separate audit observation about an unrelated entity that surfaced during AC-4's research.
+
+## Reviewer notes
+
+**Spec drift on AC-4 vs. actual `--body-file` availability.** AC-4's spec text claimed the flag was AC-only with [G-066](../../gaps/G-066-aiwf-add-epic-milestone-gap-adr-decision-contract-verbs-lack-body-file-flag-for-in-verb-body-scaffolding-only-aiwf-add-ac-will-gain-it-via-m-067-leaving-the-other-six-entity-creation-verbs-reliant-on-post-add-aiwf-edit-body.md) capturing the non-AC follow-up. That's stale — `git log -- internal/verb/add*.go` shows M-056 (commit `cf96be6`) extended `--body-file` to all six top-level kinds before M-067 added the AC variant with positional pairing. The skill landed on this branch reflects current reality (universal availability, both M-056 and M-067 named); G-066's `open` status is now factually incorrect. Two candidate cleanup paths:
+
+- Promote G-066 to `addressed` with `--by M-056,M-067` so the gap-resolution trail correctly names the pair of milestones that delivered the surface. Lossy if the operator wanted the "wide kind coverage" question to remain visible — but the verb is in fact wide today, so silencing the gap is honest.
+- Open a fresh gap if there's a separate "skill should describe the in-verb form as universally available" concern that wasn't covered by M-068's diff. (Not applicable here — M-068 covers it.)
+
+The cheap, correct move is option 1 (promote to addressed). Out of M-068's scope as a wrap-only deliverable, but the user may want to land it as a one-line `wf-patch` immediately after this wrap.
+
+**Cross-cutting fix during AC-3.** The naive `\n## ` section-cap I started AC-2's test with treated `## ` lines inside markdown fenced examples as section breaks. AC-3's diff added two such examples (an AC body and a gap body), which falsely terminated AC-2's scope at the example block — AC-2's citation assertions, which live in the closing paragraph after the examples, started failing. Replaced both inline caps with a shared `extractH2Section` helper that walks line-by-line tracking fenced state. The helper is small (~25 LOC), test-only support code, with branches all directly exercised by `TestExtractH2Section` and indirectly by the five AC tests. The same regression class is now structurally fenced off — a future content edit that puts headings in fences won't break the test scoping.
+
+**Five wf-tdd-cycle iterations all RED-first this time.** No discipline slips. Each AC's RED assertion failed on specific content markers; each GREEN edit added the markers; each green run confirmed the per-AC contract before promoting. AC-2 (contract-pin) used mutation-and-restore for its sanity check — replaced the citation parenthetical with a marker comment, both citations failed red, restored. The pattern matches the M-066/AC-3..AC-6 contract-pin discipline established earlier in E-17.
+
+**Body-prose subsection now cross-references three of E-17's deliverables.** M-066 (the `entity-body-empty` rule), M-067 (the AC `--body-file` variant with positional pairing), and the shape recommendations (this milestone). Together, an LLM reading `aiwf-add` SKILL.md alone has the full picture: when bodies must be non-empty (M-066), how to land them in-verb (M-067), and what shape to write per kind (M-068). E-17's epic-level closure should now be possible — all three pieces are co-located in the operator-facing channel.
