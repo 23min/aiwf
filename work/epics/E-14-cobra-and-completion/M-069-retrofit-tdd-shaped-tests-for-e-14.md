@@ -77,6 +77,20 @@ The assertion is `delta == 1` (strict equality), not `delta >= 1`. Strict equali
 
 ### AC-3 — Trailer-key shape asserted per mutating verb
 
+`aiwf history` projects the per-entity timeline by reading `git log` filtered on structured commit trailers (`aiwf-verb`, `aiwf-entity`, `aiwf-actor`, plus the I2.5 provenance keys `aiwf-principal`, `aiwf-on-behalf-of`, `aiwf-authorized-by`). The trailer-key shape is the projection's only contract — a verb that forgets a key, types a key wrong (e.g. `aiwf_verb` snake-case, `aiwf-acto` truncated), or emits a brand-new key the canonical set in `internal/gitops/trailers.go` doesn't know about *silently* breaks `aiwf history`'s rendering of that entity's timeline, the provenance audit's ability to walk authorized-by chains, and the policy-test catalog that greps for trailer values.
+
+The existing infrastructure protects the *source side*. `internal/policies/PolicyTrailerKeysViaConstants` flags any production Go file that string-literals a known trailer name instead of referencing the `gitops.Trailer*` constant. `PolicyIntegrationTestsAssertTrailers` flags integration-test functions that drive a mutating verb without referencing the trailer-assertion API. Both are *static* checks — they prevent source drift but say nothing about runtime behavior. A verb whose code wires `gitops.TrailerVerb` to a literal `"promot"` (typo) compiles, passes the source-policy, and only surfaces when a human reads the resulting commit.
+
+This AC adds a runtime test that drives every mutating verb through the in-process dispatcher and reads HEAD's trailers via `gitops.HeadTrailers`:
+
+- The required keys `aiwf-verb`, `aiwf-entity`, `aiwf-actor` are present on every mutating verb's commit.
+- `aiwf-verb` value matches the canonical verb name.
+- `aiwf-actor` value matches the supplied `--actor` (`human/test` in the test's setup).
+- Every trailer key on the commit is a member of the canonical set declared in `internal/gitops/trailers.go` (the `trailerOrder` slice). A new key landing without a corresponding `Trailer*` constant fails this test on the next CI run.
+- `import` is the multi-entity case: the single commit must carry one `aiwf-entity` trailer per imported entity — which is also how `aiwf history` discovers the entity-set on a bundled-import commit.
+
+The assertion uses the canonical set as its source of truth; adding a new trailer key in `trailers.go` automatically broadens what's accepted. Removing one (a deprecation) requires updating both the constant and the test, which is the right order. The test sits at the seam between verb dispatch and `gitops.CommitMessage` — a verb that constructed its commit through the canonical helper produces canonical trailers; a verb that bypassed the helper surfaces here.
+
 ### AC-4 — Pre-push hook byte-golden plus template-equals-installed cross-check
 
 ### AC-5 — init then doctor --self-check seam in a fresh tempdir repo
