@@ -10,12 +10,12 @@ _(no active epics)_
 
 ### E-13 — Status report _(proposed)_
 
-- **M-048** — Status report: cross-entity summaries + dashboard + time-window views _(draft)_
+- → **M-048** — Status report: cross-entity summaries + dashboard + time-window views _(in_progress)_
 
 ```mermaid
 flowchart LR
   E_13["E-13<br/>Status report"]:::epic_proposed
-  M_048["M-048<br/>Status report: cross-entity summaries + dashboard + time-window views"]:::ms_draft
+  M_048["M-048<br/>Status report: cross-entity summaries + dashboard + time-window views"]:::ms_in_progress
   E_13 --> M_048
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
