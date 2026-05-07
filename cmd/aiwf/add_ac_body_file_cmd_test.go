@@ -277,6 +277,133 @@ func TestAddAC_BodyFile_MultiAC_PositionalPairing(t *testing.T) {
 	}
 }
 
+// TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation is the
+// M-067/AC-3 closure: when --body-file is provided but the
+// per-flag counts of --title and --body-file differ, the verb
+// exits with usage code 2 before any id allocation, lock
+// acquisition, or disk write. The error message must let the
+// operator self-correct: observed counts, the positional-pairing
+// rule, and the note that omitting --body-file entirely is also
+// valid (the AC-6 path).
+//
+// The test pins both shapes of the mismatch (more titles than
+// bodies, more bodies than titles) so a future refactor can't
+// accept one direction silently.
+func TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
+		t.Fatalf("add epic: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+		t.Fatalf("add milestone: %v\n%s", err, out)
+	}
+
+	// Two real body files; the test invocations vary the counts
+	// without ever providing a missing path (we want to isolate
+	// the count-check, not the file-read error path).
+	body1 := filepath.Join(root, "b1.md")
+	body2 := filepath.Join(root, "b2.md")
+	for _, p := range []string{body1, body2} {
+		if err := os.WriteFile(p, []byte("body for "+filepath.Base(p)+"\n"), 0o644); err != nil {
+			t.Fatalf("write %s: %v", p, err)
+		}
+	}
+
+	headBefore, err := runGit(root, "rev-list", "--count", "HEAD")
+	if err != nil {
+		t.Fatalf("rev-list before: %v\n%s", err, headBefore)
+	}
+
+	cases := []struct {
+		name       string
+		args       []string
+		wantTitles string
+		wantBodies string
+	}{
+		{
+			name: "more titles than body files",
+			args: []string{
+				"add", "ac", "M-001",
+				"--title", "T1", "--title", "T2", "--title", "T3",
+				"--body-file", body1, "--body-file", body2,
+			},
+			wantTitles: "3 titles",
+			wantBodies: "2 body files",
+		},
+		{
+			name: "more body files than titles",
+			args: []string{
+				"add", "ac", "M-001",
+				"--title", "T1", "--title", "T2",
+				"--body-file", body1, "--body-file", body2, "--body-file", body1,
+			},
+			wantTitles: "2 titles",
+			wantBodies: "3 body files",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, runErr := runBin(t, root, binDir, nil, tc.args...)
+			if runErr == nil {
+				t.Fatalf("expected count-mismatch refusal; got success:\n%s", out)
+			}
+			if !strings.Contains(out, tc.wantTitles) {
+				t.Errorf("error missing observed title count %q:\n%s", tc.wantTitles, out)
+			}
+			if !strings.Contains(out, tc.wantBodies) {
+				t.Errorf("error missing observed body-file count %q:\n%s", tc.wantBodies, out)
+			}
+			// Pairing rule is stated so the operator knows the
+			// ordering contract. "positional" is the canonical
+			// keyword from the AC-2 contract.
+			if !strings.Contains(out, "positional") {
+				t.Errorf("error missing pairing rule (expected the word 'positional'):\n%s", out)
+			}
+			// AC-6 hint: bodyless invocations are still valid.
+			if !strings.Contains(out, "omit") {
+				t.Errorf("error missing 'omit --body-file is valid' hint:\n%s", out)
+			}
+		})
+	}
+
+	// Pre-allocation check: nothing was committed across the
+	// whole run, and the milestone still has no ACs.
+	headAfter, err := runGit(root, "rev-list", "--count", "HEAD")
+	if err != nil {
+		t.Fatalf("rev-list after: %v\n%s", err, headAfter)
+	}
+	if strings.TrimSpace(headBefore) != strings.TrimSpace(headAfter) {
+		t.Errorf("commit count changed across refusal cases (%s -> %s); refusal must precede commit",
+			strings.TrimSpace(headBefore), strings.TrimSpace(headAfter))
+	}
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
+	}
+	got, _ := os.ReadFile(matches[0])
+	if strings.Contains(string(got), "### AC-1") {
+		t.Errorf("AC was created despite count mismatch:\n%s", got)
+	}
+}
+
 // TestAddAC_BodyFile_MissingFile_ExitsUsage covers the defensive
 // branch in runAddACCmd's body-file loop: when the path does not
 // resolve, the verb exits with the usage code (2) and creates no AC.

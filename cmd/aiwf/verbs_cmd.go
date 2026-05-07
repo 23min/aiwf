@@ -250,6 +250,18 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
 		return exitUsage
 	}
+	// M-067/AC-3: when --body-file is provided at all, per-flag
+	// counts must match — the Nth --body-file pairs positionally
+	// with the Nth --title. Refuse before file reads, lock, or
+	// id allocation so the operator gets a clean usage error.
+	if len(bodyFiles) > 0 && len(bodyFiles) != len(titles) {
+		fmt.Fprintf(os.Stderr,
+			"aiwf add ac: got %d titles, %d body files — counts must match "+
+				"(positional pairing: the Nth --body-file populates the Nth --title's body; "+
+				"equal counts required). To create ACs without bodies, omit --body-file entirely.\n",
+			len(titles), len(bodyFiles))
+		return exitUsage
+	}
 	metrics, err := parseTestsFlag(tests, "aiwf add ac")
 	if err != nil {
 		return exitUsage
