@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Finding does not retroactively engage acs-tdd-audit
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: Finding code documented in aiwf-check skill
       status: open
