@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_128 entities · 0 errors · 0 warnings_
+_129 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -13,6 +13,7 @@ _128 entities · 0 errors · 0 warnings_
 - ✓ **M-053** — Completion verb and static completion _(done)_ — ACs 5/5 met
 - ✓ **M-054** — Dynamic id completion and drift test _(done)_ — ACs 4/4 met
 - ✓ **M-055** — Documentation pass _(done)_ — ACs 4/4 met
+- **M-061** — Contract family migration + changelog retrofill + help-recursion test _(draft)_
 
 ```mermaid
 flowchart LR
@@ -31,6 +32,8 @@ flowchart LR
   E_14 --> M_054
   M_055["M-055 (4/4)<br/>Documentation pass"]:::ms_done
   E_14 --> M_055
+  M_061["M-061<br/>Contract family migration + changelog retrofill + help-recursion test"]:::ms_draft
+  E_14 --> M_061
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -77,9 +80,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | authorize | aiwf authorize E-14 --to ai/claude |
 | 2026-05-07 | human/peter | promote | aiwf promote E-14 done -> active |
 | 2026-05-07 | human/peter | promote | aiwf promote E-14 active -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-055 in_progress -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-055/AC-4 open -> met |
-| 2026-05-07 | human/peter | promote | aiwf promote M-055/AC-3 open -> met |
 
