@@ -106,6 +106,22 @@ The pair caps both regression vectors: byte-golden catches template drift; cross
 
 ### AC-5 — init then doctor --self-check seam in a fresh tempdir repo
 
+`aiwf doctor --self-check` is the kernel's end-to-end smoke test: it spins up an internal throwaway repo, drives every verb through it, and reports pass/fail. Existing tests run it directly against a bare tempdir (`TestRun_DoctorSelfCheck_Passes`, `TestBinary_DoctorSelfCheck_Passes`) — they confirm doctor's *internal* sequence works. They do *not* exercise the consumer's natural quickstart flow: a user clones a fresh repo, runs `aiwf init` to scaffold it, and *only then* runs `aiwf doctor --self-check` to verify the install is healthy.
+
+The seam between `aiwf init` (consumer-tempdir scaffolding) and `aiwf doctor --self-check` (internal-tempdir verb matrix) is where state from one could silently break the other. Concretely: `aiwf init` in the consumer's repo writes `aiwf.yaml`, `.git/hooks/pre-push`, `.gitignore` patterns, a CLAUDE.md scaffold, and skill adapters under `.claude/skills/aiwf-*`. `aiwf doctor --self-check` then runs from inside that repo and creates *its own* throwaway tempdir for the verb matrix. A regression where doctor's initialization implicitly read the consumer's `aiwf.yaml`, the consumer's hooks fired against the throwaway repo's commits, or doctor's tempdir naming collided with the consumer's `.git/` layout would fail this seam without showing up in either of the existing direct tests.
+
+This AC adds `TestSeam_InitThenDoctorSelfCheck`, gated under `-short` (it builds the binary). The flow:
+
+- Build the aiwf binary (`go build`).
+- Create a fresh tempdir and `git init` it.
+- Run `aiwf init --actor human/test` against that tempdir (full hook install — consumer parity).
+- Run `aiwf doctor --self-check` from that same tempdir.
+- Assert both invocations exit 0 and the doctor output contains the canonical pass marker (`self-check passed`).
+
+The test runs the binary as a subprocess (the `runBinaryAt` pattern) so the consumer's installed pre-push hook fires correctly during any commits the doctor's internal repo happens to make. In-process dispatch (`run([]string{...})`) would deadlock because the test-binary itself is what `aiwf init` would have baked into the hook script.
+
+A regression where init left state (a file in `.aiwf/state/`, a marker in `aiwf.yaml`, an env var) that doctor read during its own scaffolding, or a hook that intercepted the wrong git invocation, surfaces as a non-zero exit on either step. The existing tests pass even with such a regression because they skip the init step entirely.
+
 ### AC-6 — Native-Cobra drift test fails CI on passthrough-adapter regression
 
 ### AC-7 — Help-quality drift asserts Example present and no migration prose
