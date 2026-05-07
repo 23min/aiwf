@@ -97,9 +97,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add ac M-068 AC-1..AC-5 (5 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add ac M-067 AC-1..AC-8 (8 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add ac M-066 AC-1..AC-6 (6 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-068 'aiwf-add skill names fill-in-body as required next step' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-067 'aiwf add ac --body-file flag for in-verb body scaffolding' |
-| 2026-05-07 | human/peter | add | aiwf add milestone M-066 'aiwf check finding acs-body-empty' |
 
