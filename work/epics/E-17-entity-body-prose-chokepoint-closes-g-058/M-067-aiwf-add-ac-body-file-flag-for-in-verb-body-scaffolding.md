@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: --body-file <path> populates AC body in same atomic commit
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Multi-AC form pairs --body-file positionally with --title
       status: open
