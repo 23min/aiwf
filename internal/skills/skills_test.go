@@ -155,6 +155,98 @@ func TestList_I2_5ContentMarkers(t *testing.T) {
 	}
 }
 
+// TestSkill_AddNamesFillInBodyAsRequiredNextStep pins M-068/AC-1:
+// the embedded `aiwf-add` SKILL.md must name "fill in the body" as a
+// required follow-up step — not optional, not just for ACs — across
+// every entity kind. Today the skill describes each `aiwf add <kind>`
+// invocation and stops at the verb's atomic commit; an LLM (or
+// human) following the skill ends up with bare body sections by
+// default. M-068 makes the skill teach the design intent explicitly
+// so the typical entity-creation flow produces non-empty bodies.
+//
+// The AC has two surfaces inside the skill:
+//
+//   - A body-prose subsection (heading + body) stating step 1 is
+//     scaffolding and step 2 is filling the body, that step 2 is
+//     **required** rather than optional, and that the requirement
+//     applies across all six entity kinds plus ACs.
+//   - A new step in the existing "What aiwf does" numbered list
+//     calling out that scaffolded body sections are empty by design
+//     and must be filled in before the entity counts as complete.
+//
+// Both surfaces target the same failure mode from different angles
+// so an LLM scanning the skill can't miss the requirement no matter
+// which section it reads first.
+func TestSkill_AddNamesFillInBodyAsRequiredNextStep(t *testing.T) {
+	skills, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var content string
+	for _, s := range skills {
+		if s.Name == "aiwf-add" {
+			content = string(s.Content)
+			break
+		}
+	}
+	if content == "" {
+		t.Fatal("aiwf-add skill not found in embedded set")
+	}
+
+	// AC-1 surface 1 — body-prose subsection. We assert markers that
+	// any reasonable phrasing of the spec would hit: a heading that
+	// names "fill in the body" (or equivalent), explicit "required"
+	// language so the operator can't read it as optional, and the
+	// per-kind list so the requirement applies to more than ACs.
+	mustContain := []string{
+		// A heading marker — the subsection lands as a `## ...`
+		// section, not a stray sentence buried in another section.
+		"## After `aiwf add",
+		// Required-not-optional language. The exact wording can be
+		// "required, not optional" or "is required" — both flavors
+		// pass; what matters is the operator sees "required."
+		"required",
+		// Per-kind reach. The subsection (or step 6 below) names the
+		// load-bearing body sections per kind, not just AC bodies.
+		// We sample three kinds that operators commonly create.
+		"epic",
+		"milestone",
+		"gap",
+		// AC body shape — `### AC-N — <title>` is the AC's body
+		// heading; the skill should reference it explicitly.
+		"### AC-N",
+	}
+	for _, m := range mustContain {
+		if !strings.Contains(content, m) {
+			t.Errorf("AC-1 surface (body-prose subsection): missing marker %q", m)
+		}
+	}
+
+	// AC-1 surface 2 — step 6 in "What aiwf does." The numbered list
+	// today ends at step 5 (creates one commit). M-068 adds step 6
+	// pointing at the body. We assert the literal "6." plus the
+	// "fill" verb co-occurring inside that section's body.
+	idx := strings.Index(content, "## What aiwf does")
+	if idx < 0 {
+		t.Fatal("aiwf-add skill missing the `## What aiwf does` section heading")
+	}
+	// Cap the search at the next top-level section so we don't
+	// accidentally match a "6." in a later unrelated section.
+	tail := content[idx:]
+	if next := strings.Index(tail[2:], "\n## "); next > 0 {
+		tail = tail[:next+2]
+	}
+	step6Markers := []string{
+		"6.",
+		"fill",
+	}
+	for _, m := range step6Markers {
+		if !strings.Contains(tail, m) {
+			t.Errorf("AC-1 surface (`## What aiwf does` step 6): missing marker %q", m)
+		}
+	}
+}
+
 // TestMaterialize_FreshDir writes every embedded skill into a clean
 // directory and verifies the on-disk content matches the embed
 // byte-for-byte.

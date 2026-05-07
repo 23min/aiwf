@@ -86,6 +86,30 @@ Same leading-`---` rejection as the whole-entity flag. AC-specific rules:
 3. When the parent milestone is `tdd: required`, an AC is seeded with `tdd_phase: red` — the only legal entry phase under the FSM. Otherwise `tdd_phase` is left absent.
 4. Validates the projected tree before touching disk; if a finding would be introduced, aborts with no changes.
 5. Creates one commit carrying `aiwf-verb: add`, `aiwf-entity: <id>` (composite `M-NNN/AC-N` for ACs), `aiwf-actor: <actor>` trailers. When the operator is non-human (`ai/<id>`, `bot/<id>`), the kernel additionally requires a `--principal human/<id>` flag and stamps `aiwf-principal:` on the commit. If an active authorization scope (see `aiwf-authorize`) covers the new entity's parent / references, `aiwf-on-behalf-of:` and `aiwf-authorized-by:` are added too.
+6. **Scaffolds load-bearing body sections empty.** Step 5 closes the create commit, but the entity is not done yet — the body sections under each `## <Section>` heading (and the `### AC-N — <title>` body for ACs) are deliberately empty. They are placeholders meant to be filled in. `aiwf check` reports `entity-body-empty` for any load-bearing section that ships empty (warning by default; error under `aiwf.yaml: tdd.strict: true`). Fill the body before declaring the entity complete — see *"After `aiwf add <kind>`: fill in the body"* below.
+
+## After `aiwf add <kind>`: fill in the body
+
+`aiwf add` is step 1 of 2. The verb writes correct frontmatter and an atomic create commit; the body prose under each `## <Section>` heading is **required, not optional**, across all six top-level kinds and ACs. The kernel doesn't fail closed on missing prose at create time so the verb stays cheap, but `aiwf check` surfaces empty bodies as `entity-body-empty` findings, and any milestone or epic or AC with a hollow body is half-shipped.
+
+The load-bearing body sections per kind:
+
+| Kind | Required body sections |
+|---|---|
+| epic | `## Goal`, `## Scope`, `## Out of scope` |
+| milestone | `## Goal`, `## Approach`, `## Acceptance criteria` |
+| ac | The `### AC-N — <title>` body (one paragraph covering pass criteria, edge cases, and code references) |
+| gap | `## What's missing`, `## Why it matters` |
+| adr | `## Context`, `## Decision`, `## Consequences` |
+| decision | `## Question`, `## Decision`, `## Reasoning` |
+| contract | `## Purpose`, `## Stability` |
+
+Two ways to land the body content:
+
+- **Two-step (default)**: `aiwf add <kind> --title "..."` creates the entity with empty body sections; then edit the file and run `aiwf edit-body <id>` to commit the prose with proper trailers. Works for every kind today.
+- **One-step (in-verb)**: pass `--body-file <path>` (or `-` for stdin) on `aiwf add` so the body lands in the same atomic create commit as the frontmatter. Available for all six top-level kinds and for ACs (with positional pairing — see the body-file sections above).
+
+Skip the prose and `aiwf check` reports the omission. Don't ship a half-written entity hoping the body "follows later" — the design's "prose is not parsed" principle (per `docs/pocv3/plans/acs-and-tdd-plan.md:22` and `docs/pocv3/design/design-decisions.md:139`) treats body content as the spec; the title is a label, not a substitute.
 
 ## Provenance flags
 
