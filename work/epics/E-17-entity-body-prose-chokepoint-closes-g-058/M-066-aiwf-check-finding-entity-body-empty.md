@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: Finding code documented in aiwf-check skill
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Rescope note (per G-063, 2026-05-07)
