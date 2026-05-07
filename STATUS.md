@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_153 entities · 0 errors · 0 warnings_
+_154 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -75,12 +75,15 @@ flowchart LR
 ### E-18 — Operator-side dogfooding completion (closes G-062, G-064) _(proposed)_
 
 - **M-070** — aiwf doctor warning for missing recommended plugins _(draft)_ — tdd: required
+- **M-071** — Install ritual plugins in kernel repo + document operator setup path _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_18["E-18<br/>Operator-side dogfooding completion (closes G-062, G-064)"]:::epic_proposed
   M_070["M-070<br/>aiwf doctor warning for missing recommended plugins"]:::ms_draft
   E_18 --> M_070
+  M_071["M-071<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_draft
+  E_18 --> M_071
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -119,9 +122,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add milestone M-070 'aiwf doctor warning for missing recommended plugins' |
 | 2026-05-07 | human/peter | add | aiwf add epic E-18 'Operator-side dogfooding completion (closes G-062, G-064)' |
 | 2026-05-07 | human/peter | retitle | aiwf retitle M-068/AC-5 + edit-body M-068 (manual; G-065 verb does not yet exist) |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-067 — fix stale references to renamed M-066 + acs-body-empty |
 | 2026-05-07 | human/peter | retitle | aiwf retitle M-066 + AC-1, AC-3 (manual; G-065 verb does not yet exist) |
-| 2026-05-07 | human/peter | retitle | aiwf retitle E-17 (manual; G-065 verb does not yet exist) |
 
