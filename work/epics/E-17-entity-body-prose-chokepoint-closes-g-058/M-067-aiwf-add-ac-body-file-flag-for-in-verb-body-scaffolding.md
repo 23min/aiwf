@@ -1,7 +1,7 @@
 ---
 id: M-067
 title: aiwf add ac --body-file flag for in-verb body scaffolding
-status: in_progress
+status: done
 parent: E-17
 tdd: required
 acs:
