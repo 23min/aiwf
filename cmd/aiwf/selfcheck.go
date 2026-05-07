@@ -52,6 +52,38 @@ func runSelfCheck() int {
 		}
 	}()
 
+	// Redirect HOME to a fresh temp dir for the duration of the
+	// self-check so the M-070 recommended-plugins steps below can
+	// construct a synthetic `~/.claude/plugins/installed_plugins.json`
+	// without leaking into the operator's real home dir. Saved and
+	// restored on exit. Doctor is the only verb that consults $HOME
+	// today; redirecting it here keeps the rest of the self-check
+	// unaffected.
+	fakeHome, err := os.MkdirTemp("", "aiwf-self-check-home-")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
+		return exitInternal
+	}
+	defer func() { _ = os.RemoveAll(fakeHome) }()
+	// Seed a synthetic ~/.gitconfig so identity-resolution
+	// (`exec.Command("git", "config", "user.email")` in resolveActor)
+	// still produces a valid actor under the redirected HOME — every
+	// step that runs a mutating verb depends on this.
+	gitconfig := []byte("[user]\n\temail = self-check@aiwf.local\n\tname = aiwf self-check\n")
+	if err := os.WriteFile(filepath.Join(fakeHome, ".gitconfig"), gitconfig, 0o644); err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
+		return exitInternal
+	}
+	prevHome, hadHome := os.LookupEnv("HOME")
+	_ = os.Setenv("HOME", fakeHome)
+	defer func() {
+		if hadHome {
+			_ = os.Setenv("HOME", prevHome)
+		} else {
+			_ = os.Unsetenv("HOME")
+		}
+	}()
+
 	ctx := context.Background()
 	if err := gitops.Init(ctx, tmp); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: git init: %v\n", err)
@@ -206,6 +238,43 @@ func runSelfCheck() int {
 			label: "doctor --check-latest",
 			args:  []string{"doctor", "--check-latest", "--root", tmp},
 		},
+		// M-070/AC-7: end-to-end coverage of the recommended-plugin
+		// check. The fake HOME redirect at the top of runSelfCheck
+		// scopes the synthetic installed_plugins.json fixture to this
+		// process. The synthetic plugin name avoids coupling to real
+		// marketplace state.
+		{
+			label: "doctor recommended-plugins fixture: declare in aiwf.yaml",
+			setup: func() error {
+				return appendDoctorRecommendedPlugins(tmp, []string{"aiwf-self-check@synthetic-marketplace"})
+			},
+			args: []string{"doctor", "--root", tmp},
+			verifyOutput: func(out string) error {
+				if !strings.Contains(out, "recommended-plugin-not-installed") {
+					return fmt.Errorf("expected recommended-plugin-not-installed warning before install fixture; got:\n%s", out)
+				}
+				if !strings.Contains(out, "aiwf-self-check@synthetic-marketplace") {
+					return fmt.Errorf("warning should name the synthetic plugin id; got:\n%s", out)
+				}
+				if !strings.Contains(out, "claude /plugin install aiwf-self-check@synthetic-marketplace") {
+					return fmt.Errorf("warning should include install command; got:\n%s", out)
+				}
+				return nil
+			},
+		},
+		{
+			label: "doctor recommended-plugins fixture: warning silent after install",
+			setup: func() error {
+				return writeInstalledPluginsForSelfCheck(fakeHome, "aiwf-self-check@synthetic-marketplace", tmp)
+			},
+			args: []string{"doctor", "--root", tmp},
+			verifyOutput: func(out string) error {
+				if strings.Contains(out, "recommended-plugin-not-installed") {
+					return fmt.Errorf("matching install fixture should silence the warning; got:\n%s", out)
+				}
+				return nil
+			},
+		},
 	}
 
 	fmt.Printf("self-check repo: %s\n\n", tmp)
@@ -252,6 +321,61 @@ func runSelfCheck() int {
 	}
 	fmt.Printf("\nself-check passed (%d steps).\n", len(steps))
 	return exitOK
+}
+
+// appendDoctorRecommendedPlugins appends a `doctor:` /
+// `recommended_plugins:` block to <repo>/aiwf.yaml if absent. Used
+// by the M-070 self-check step to drive the new check via the verb
+// surface (rather than synthetically calling the helper). Idempotent:
+// a second invocation with the same plugin set is a no-op.
+func appendDoctorRecommendedPlugins(repo string, plugins []string) error {
+	path := filepath.Join(repo, "aiwf.yaml")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", path, err)
+	}
+	if strings.Contains(string(raw), "recommended_plugins:") {
+		return nil
+	}
+	var block strings.Builder
+	if !strings.HasSuffix(string(raw), "\n") {
+		block.WriteString("\n")
+	}
+	block.WriteString("doctor:\n  recommended_plugins:\n")
+	for _, p := range plugins {
+		block.WriteString("    - " + p + "\n")
+	}
+	out := append([]byte(nil), raw...)
+	out = append(out, []byte(block.String())...)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		return fmt.Errorf("writing %s: %w", path, err)
+	}
+	return nil
+}
+
+// writeInstalledPluginsForSelfCheck writes the synthetic
+// installed_plugins.json under <home>/.claude/plugins/ with one
+// project-scope entry for `plugin` whose `projectPath` matches the
+// self-check repo `repo`. The fixture mirrors the real Claude Code
+// JSON shape so the matcher exercises the same parse + match path
+// it would in a real install.
+func writeInstalledPluginsForSelfCheck(home, plugin, repo string) error {
+	dir := filepath.Join(home, ".claude", "plugins")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("mkdir %s: %w", dir, err)
+	}
+	body := fmt.Sprintf(`{
+  "version": 2,
+  "plugins": {
+    %q: [
+      {"scope": "project", "projectPath": %q, "installPath": "/synthetic/cache", "version": "self-check"}
+    ]
+  }
+}`, plugin, repo)
+	if err := os.WriteFile(filepath.Join(dir, "installed_plugins.json"), []byte(body), 0o644); err != nil {
+		return fmt.Errorf("writing %s: %w", dir, err)
+	}
+	return nil
 }
 
 // rewriteAiwfYAMLAutoUpdate rewrites <repo>/aiwf.yaml so that

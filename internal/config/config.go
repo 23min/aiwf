@@ -70,7 +70,30 @@ type Config struct {
 	HTML              HTML     `yaml:"html,omitempty"`
 	Allocate          Allocate `yaml:"allocate,omitempty"`
 	Tree              Tree     `yaml:"tree,omitempty"`
+	Doctor            Doctor   `yaml:"doctor,omitempty"`
 }
+
+// Doctor carries opt-in configuration consumed by `aiwf doctor`.
+// RecommendedPlugins is a list of Claude Code plugin identifiers,
+// each shaped `<name>@<marketplace>` (the same string a user types
+// into `claude /plugin install`). Doctor warns once per entry that
+// is not present in `~/.claude/plugins/installed_plugins.json` for
+// the consumer repo's project scope.
+//
+// Default behavior (empty Doctor block, or absent doctor.recommended_plugins):
+// the check makes zero observations — the kernel makes no assumption
+// about which plugins a consumer "should" have. See M-070 for the
+// detection rules and M-071 for this repo's own declared list.
+type Doctor struct {
+	RecommendedPlugins []string `yaml:"recommended_plugins,omitempty"`
+}
+
+// pluginEntryPattern matches `<name>@<marketplace>`: exactly one '@',
+// neither side empty, no whitespace. Mirrors the format Claude Code's
+// `/plugin install` command accepts. Strict but minimal — the kernel
+// doesn't validate against a marketplace registry; it just refuses
+// shapes that obviously cannot be a Claude Code plugin id.
+var pluginEntryPattern = regexp.MustCompile(`^[^\s@]+@[^\s@]+$`)
 
 // Tree is the consumer's policy for what may live under `work/`.
 // AllowPaths is a list of repo-relative glob patterns (filepath.Match
@@ -202,6 +225,9 @@ func Load(root string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %w", FileName, err)
 	}
+	if shapeErr := preCheckTypedShape(bytes); shapeErr != nil {
+		return nil, fmt.Errorf("%s: %w", FileName, shapeErr)
+	}
 	var cfg Config
 	if err := yaml.Unmarshal(bytes, &cfg); err != nil {
 		return nil, fmt.Errorf("parsing %s: %w", FileName, err)
@@ -210,6 +236,34 @@ func Load(root string) (*Config, error) {
 		return nil, fmt.Errorf("%s: %w", FileName, err)
 	}
 	return &cfg, nil
+}
+
+// preCheckTypedShape catches type-shape errors that yaml.Unmarshal
+// would otherwise surface as a generic "cannot unmarshal !!str into
+// []string" without naming the field path. Today only
+// `doctor.recommended_plugins` needs this — it's the field whose
+// AC requires a clear field-path error message. Returns nil on
+// shape-correct input; the caller still runs the typed unmarshal
+// for the actual decode.
+func preCheckTypedShape(data []byte) error {
+	var generic map[string]any
+	if err := yaml.Unmarshal(data, &generic); err != nil {
+		// Real yaml syntax errors fall through to the typed
+		// unmarshal which produces the canonical parse error.
+		return nil
+	}
+	doctor, ok := generic["doctor"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	raw, present := doctor["recommended_plugins"]
+	if !present || raw == nil {
+		return nil
+	}
+	if _, isList := raw.([]any); !isList {
+		return fmt.Errorf("doctor.recommended_plugins must be a list of strings, got %T", raw)
+	}
+	return nil
 }
 
 // Validate enforces the documented constraints. Called by Load and
@@ -225,6 +279,11 @@ func Load(root string) (*Config, error) {
 // load fine; the legacy value is captured into LegacyAiwfVersion and
 // stripped on `aiwf update` via StripLegacyAiwfVersion.
 func (c *Config) Validate() error {
+	for i, entry := range c.Doctor.RecommendedPlugins {
+		if !pluginEntryPattern.MatchString(entry) {
+			return fmt.Errorf("doctor.recommended_plugins[%d] = %q: must match <name>@<marketplace>", i, entry)
+		}
+	}
 	return nil
 }
 

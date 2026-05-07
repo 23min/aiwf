@@ -564,6 +564,169 @@ func TestStripLegacyAiwfVersion_IgnoresIndentedField(t *testing.T) {
 	}
 }
 
+// TestLoad_DoctorRecommendedPlugins_AbsentIsEmpty: the field is
+// optional. When `aiwf.yaml` carries no `doctor:` block at all,
+// Config.Doctor.RecommendedPlugins is empty. M-070/AC-1 + AC-4 —
+// kernel-neutral default.
+func TestLoad_DoctorRecommendedPlugins_AbsentIsEmpty(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(cfg.Doctor.RecommendedPlugins) != 0 {
+		t.Errorf("Doctor.RecommendedPlugins = %v, want empty", cfg.Doctor.RecommendedPlugins)
+	}
+}
+
+// TestLoad_DoctorRecommendedPlugins_ExplicitEmpty: `[]` is identical
+// in effect to absence — empty slice, no checks fire downstream.
+func TestLoad_DoctorRecommendedPlugins_ExplicitEmpty(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName), []byte("doctor:\n  recommended_plugins: []\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(cfg.Doctor.RecommendedPlugins) != 0 {
+		t.Errorf("Doctor.RecommendedPlugins = %v, want empty", cfg.Doctor.RecommendedPlugins)
+	}
+}
+
+// TestLoad_DoctorRecommendedPlugins_RoundTrip: a populated list
+// loads in order with each entry preserved verbatim.
+func TestLoad_DoctorRecommendedPlugins_RoundTrip(t *testing.T) {
+	cases := []struct {
+		name string
+		yaml string
+		want []string
+	}{
+		{
+			name: "single entry",
+			yaml: "doctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n",
+			want: []string{"aiwf-extensions@ai-workflow-rituals"},
+		},
+		{
+			name: "multiple entries",
+			yaml: "doctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n    - wf-rituals@ai-workflow-rituals\n",
+			want: []string{"aiwf-extensions@ai-workflow-rituals", "wf-rituals@ai-workflow-rituals"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			if err := os.WriteFile(filepath.Join(root, FileName), []byte(tc.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := Load(root)
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if len(cfg.Doctor.RecommendedPlugins) != len(tc.want) {
+				t.Fatalf("Doctor.RecommendedPlugins = %v, want %v", cfg.Doctor.RecommendedPlugins, tc.want)
+			}
+			for i, w := range tc.want {
+				if cfg.Doctor.RecommendedPlugins[i] != w {
+					t.Errorf("[%d] = %q, want %q", i, cfg.Doctor.RecommendedPlugins[i], w)
+				}
+			}
+		})
+	}
+}
+
+// TestLoad_DoctorBlock_FallsThrough_WhenRecommendedPluginsAbsent:
+// the `doctor:` block exists but has no `recommended_plugins` field
+// (or has it explicitly null). Pre-check returns nil; typed unmarshal
+// proceeds; cfg.Doctor.RecommendedPlugins is empty. Covers the
+// `!present || raw == nil` branch of preCheckTypedShape that the
+// fully-absent fixtures don't exercise (they take the !ok branch
+// one step earlier).
+func TestLoad_DoctorBlock_FallsThrough_WhenRecommendedPluginsAbsent(t *testing.T) {
+	cases := []struct {
+		name string
+		yaml string
+	}{
+		// doctor block with a different, currently-unknown field.
+		// yaml.Unmarshal ignores unknown fields by default, so the
+		// load succeeds; the pre-check's `!present` branch fires.
+		{name: "no recommended_plugins key", yaml: "doctor:\n  some_other_future_field: ignored\n"},
+		// recommended_plugins key but value omitted: parses as nil;
+		// the pre-check's `raw == nil` branch fires.
+		{name: "recommended_plugins null", yaml: "doctor:\n  recommended_plugins:\n"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			if err := os.WriteFile(filepath.Join(root, FileName), []byte(tc.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := Load(root)
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if len(cfg.Doctor.RecommendedPlugins) != 0 {
+				t.Errorf("Doctor.RecommendedPlugins = %v, want empty", cfg.Doctor.RecommendedPlugins)
+			}
+		})
+	}
+}
+
+// TestLoad_DoctorRecommendedPlugins_RejectsMalformed: every malformed
+// shape rejects the load with a clear error pointing at the field
+// path. Covers entry-without-@, non-string entry, and non-list value.
+// Each error message must name `doctor.recommended_plugins` so a
+// reader can locate the offending key without grepping the source.
+func TestLoad_DoctorRecommendedPlugins_RejectsMalformed(t *testing.T) {
+	cases := []struct {
+		name        string
+		yaml        string
+		errContains string
+	}{
+		{
+			name:        "entry missing @",
+			yaml:        "doctor:\n  recommended_plugins:\n    - just-a-name\n",
+			errContains: "doctor.recommended_plugins",
+		},
+		{
+			name:        "entry empty marketplace",
+			yaml:        "doctor:\n  recommended_plugins:\n    - aiwf-extensions@\n",
+			errContains: "doctor.recommended_plugins",
+		},
+		{
+			name: "entry empty name",
+			// `@`-prefixed value must be YAML-quoted to parse. The
+			// validation below should catch the empty-name shape.
+			yaml:        "doctor:\n  recommended_plugins:\n    - \"@ai-workflow-rituals\"\n",
+			errContains: "doctor.recommended_plugins",
+		},
+		{
+			name:        "non-list value",
+			yaml:        "doctor:\n  recommended_plugins: aiwf-extensions@ai-workflow-rituals\n",
+			errContains: "doctor.recommended_plugins",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			if err := os.WriteFile(filepath.Join(root, FileName), []byte(tc.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			_, err := Load(root)
+			if err == nil {
+				t.Fatalf("Load: nil error, want failure naming %q", tc.errContains)
+			}
+			if !strings.Contains(err.Error(), tc.errContains) {
+				t.Errorf("Load error = %q, want to contain %q", err.Error(), tc.errContains)
+			}
+		})
+	}
+}
+
 func TestActorPattern(t *testing.T) {
 	tests := []struct {
 		s    string
