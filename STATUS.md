@@ -1,19 +1,19 @@
 # aiwf status — 2026-05-07
 
-_155 entities · 0 errors · 0 warnings_
+_158 entities · 0 errors · 0 warnings_
 
 ## In flight
 
 ### E-17 — Entity body prose chokepoint (closes G-058) _(active)_
 
-- **M-066** — aiwf check finding entity-body-empty _(draft)_ — ACs 0/6 met (6 open) — tdd: required
+- ✓ **M-066** — aiwf check finding entity-body-empty _(done)_ — ACs 6/6 met — tdd: required
 - ✓ **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(done)_ — ACs 7/7 met — tdd: required
 - **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — ACs 0/5 met (5 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_17["E-17<br/>Entity body prose chokepoint (closes G-058)"]:::epic_active
-  M_066["M-066 (0/6)<br/>aiwf check finding entity-body-empty"]:::ms_draft
+  M_066["M-066 (6/6)<br/>aiwf check finding entity-body-empty"]:::ms_done
   E_17 --> M_066
   M_067["M-067 (7/7)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_done
   E_17 --> M_067
@@ -115,6 +115,8 @@ flowchart LR
 | G-064 | Kernel repo dogfooding closed partial (G-038) without installing the ritual plugins (aiwf-extensions, wf-rituals); operator-side surface incomplete here despite framework design assuming rituals are present |  |
 | G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
 | G-066 | aiwf add epic/milestone/gap/adr/decision/contract verbs lack --body-file flag for in-verb body scaffolding; only aiwf add ac will gain it via M-067, leaving the other six entity-creation verbs reliant on post-add aiwf edit-body |  |
+| G-067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-066 |
+| G-068 | Discoverability policy misses dynamic finding subcodes | M-066 |
 
 ## Warnings
 
@@ -124,9 +126,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-07 | human/peter | promote | aiwf promote M-067 in_progress -> done |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-067 |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-067 |
-| 2026-05-07 | human/peter | promote | aiwf promote M-067/AC-8 open -> met |
-| 2026-05-07 | human/peter | promote | aiwf promote M-067/AC-8 --phase green -> done |
+| 2026-05-07 | human/peter | promote | aiwf promote M-066 in_progress -> done |
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body G-068 |
+| 2026-05-07 | human/peter | add | aiwf add gap G-068 'Discoverability policy misses dynamic finding subcodes' |
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 

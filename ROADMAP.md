@@ -170,7 +170,7 @@ End state: `aiwf check` reports `entity-body-empty` for any entity whose load-be
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-066 | aiwf check finding entity-body-empty | draft |
+| M-066 | aiwf check finding entity-body-empty | done |
 | M-067 | aiwf add ac --body-file flag for in-verb body scaffolding | done |
 | M-068 | aiwf-add skill names fill-in-body as required next step | draft |
 

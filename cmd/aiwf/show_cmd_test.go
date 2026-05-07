@@ -15,21 +15,44 @@ import (
 // full top-level path: a milestone with two ACs, a TDD phase walk,
 // and a status promotion. The text output must contain the header,
 // both AC rows, the recent-history block, and the no-findings line.
+//
+// The epic + milestone + ACs are created with `--body-file` so each
+// load-bearing section carries placeholder prose. Without this, the
+// M-066 `entity-body-empty` rule (and analogous AC body-empty path)
+// would fire on the freshly-scaffolded entities and the
+// "Findings: (none)" assertion would fail.
 func TestRun_ShowMilestoneAggregatesACsHistoryFindings(t *testing.T) {
 	root := setupCLITestRepo(t)
+	bodyDir := t.TempDir()
+	epicBody := filepath.Join(bodyDir, "epic-body.md")
+	if err := os.WriteFile(epicBody, []byte("## Goal\n\nFoundations.\n\n## Scope\n\nEngine warning.\n\n## Out of scope\n\nEverything else.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	mBody := filepath.Join(bodyDir, "ms-body.md")
+	if err := os.WriteFile(mBody, []byte("## Goal\n\nWarn loudly.\n\n## Approach\n\nIterate on each AC.\n\n## Acceptance criteria\n\nEach AC pins one observable behavior.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	acBody1 := filepath.Join(bodyDir, "ac1-body.md")
+	if err := os.WriteFile(acBody1, []byte("AC-1 prose under the heading.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	acBody2 := filepath.Join(bodyDir, "ac2-body.md")
+	if err := os.WriteFile(acBody2, []byte("AC-2 prose under the heading.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--body-file", epicBody, "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Engine warning", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Engine warning", "--body-file", mBody, "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC one"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC one", "--body-file", acBody1}); rc != exitOK {
 		t.Fatalf("add ac 1: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC two"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC two", "--body-file", acBody2}); rc != exitOK {
 		t.Fatalf("add ac 2: %d", rc)
 	}
 	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "met"}); rc != exitOK {

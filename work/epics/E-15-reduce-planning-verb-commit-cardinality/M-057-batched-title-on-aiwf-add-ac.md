@@ -35,11 +35,20 @@ Single-`--title` invocation continues to work unchanged — backward-compatible 
 
 ### AC-1 — Repeated --title flag accepted on aiwf add ac M-NNN
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-057/AC-1` for the actual implementation history._
+
 ### AC-2 — All N ACs allocated atomically; failure reverts entire batch
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-057/AC-2` for the actual implementation history._
 
 ### AC-3 — Commit trailers list every created AC composite id
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-057/AC-3` for the actual implementation history._
+
 ### AC-4 — Single commit produced regardless of N (one or many ACs)
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-057/AC-4` for the actual implementation history._
 
 ### AC-5 — Single-title invocation continues to work unchanged
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-057/AC-5` for the actual implementation history._

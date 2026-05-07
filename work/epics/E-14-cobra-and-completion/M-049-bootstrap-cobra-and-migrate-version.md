@@ -36,13 +36,24 @@ Add Cobra to the module, set up the root command and subcommand routing scaffold
 
 ### AC-1 — Cobra dependency added to go.mod with one-line justification in commit message
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-049/AC-1` for the actual implementation history._
+
 ### AC-2 — Cobra root command and subcommand routing structure in cmd/aiwf
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-049/AC-2` for the actual implementation history._
 
 ### AC-3 — version verb migrated; --format=json envelope shape preserved byte-exact
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-049/AC-3` for the actual implementation history._
+
 ### AC-4 — Exit codes 0/1/2/3 preserved end-to-end through Cobra dispatch
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-049/AC-4` for the actual implementation history._
 
 ### AC-5 — Subprocess integration test for version verb passes against the migrated binary
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-049/AC-5` for the actual implementation history._
+
 ### AC-6 — Auto-completion design principle added to CLAUDE.md
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-049/AC-6` for the actual implementation history._

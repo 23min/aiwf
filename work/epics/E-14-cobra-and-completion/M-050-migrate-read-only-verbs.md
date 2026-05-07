@@ -30,9 +30,16 @@ One verb at a time. Each verb's `--format=json` envelope is the contract; preser
 
 ### AC-1 — check, history, doctor, schema, template, render migrated to Cobra
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-050/AC-1` for the actual implementation history._
+
 ### AC-2 — --format=json envelope output preserved byte-exact for each verb
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-050/AC-2` for the actual implementation history._
 
 ### AC-3 — Exit codes preserved for each migrated read-only verb
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-050/AC-3` for the actual implementation history._
+
 ### AC-4 — Subprocess integration tests pass for all six read-only verbs
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-050/AC-4` for the actual implementation history._

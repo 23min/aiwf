@@ -35,11 +35,20 @@ This is the highest-leverage milestone of the epic — it converts the most comm
 
 ### AC-1 — --body-file flag on aiwf add for all six kinds
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-056/AC-1` for the actual implementation history._
+
 ### AC-2 — Body content from file replaces empty body in created entity
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-056/AC-2` for the actual implementation history._
 
 ### AC-3 — --body-file is optional; absence preserves current behavior
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-056/AC-3` for the actual implementation history._
+
 ### AC-4 — Body and frontmatter committed together in single create commit
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-056/AC-4` for the actual implementation history._
 
 ### AC-5 — Subprocess integration test exercises --body-file path
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-056/AC-5` for the actual implementation history._

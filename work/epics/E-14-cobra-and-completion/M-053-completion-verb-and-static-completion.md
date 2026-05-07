@@ -33,11 +33,20 @@ Cobra's built-in completion generator handles the script generation; the work is
 
 ### AC-1 — aiwf completion bash|zsh emits a sourceable shell script
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-053/AC-1` for the actual implementation history._
+
 ### AC-2 — Top-level subverbs auto-complete (aiwf <TAB>)
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-053/AC-2` for the actual implementation history._
 
 ### AC-3 — --status= auto-completes per-kind closed-set values
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-053/AC-3` for the actual implementation history._
+
 ### AC-4 — --format= auto-completes text|json values
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-053/AC-4` for the actual implementation history._
 
 ### AC-5 — README has install one-liner: source <(aiwf completion zsh)
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-053/AC-5` for the actual implementation history._

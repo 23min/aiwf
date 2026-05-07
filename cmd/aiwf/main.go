@@ -469,10 +469,12 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly bool)
 	requireMetrics := false
 	var treeAllow []string
 	treeStrict := false
+	tddStrict := false
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
 		treeAllow = cfg.Tree.AllowPaths
 		treeStrict = cfg.Tree.Strict
+		tddStrict = cfg.TDD.Strict
 	}
 	metricsFindings, mErr := runTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
@@ -482,6 +484,11 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly bool)
 	findings = append(findings, metricsFindings...)
 
 	findings = append(findings, check.TreeDiscipline(tr, treeAllow, treeStrict)...)
+
+	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
+	// (and any future TDD-strict-covered finding) from warning to
+	// error so the pre-push hook blocks the push.
+	check.ApplyTDDStrict(findings, tddStrict)
 
 	applyHintsLikeRun(findings)
 	check.SortFindings(findings)
