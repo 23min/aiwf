@@ -124,4 +124,15 @@ A regression where init left state (a file in `.aiwf/state/`, a marker in `aiwf.
 
 ### AC-6 — Native-Cobra drift test fails CI on passthrough-adapter regression
 
+E-14 migrated every verb from a hand-rolled passthrough adapter (manual argv parsing wrapped around legacy verbs) to native Cobra commands with declarative flag binding. The migration's user-visible payoff is the AI-discoverability and shell-completion guarantees in CLAUDE.md: `aiwf <verb> --help` is authoritative because Cobra generates it from the same flag-binding source the runtime uses, and tab-completion works because every value-taking flag has a completion function bound to that same source. The completion drift test (`TestPolicy_FlagsHaveCompletion`) pins the completion-wiring half. It does *not* pin the migration's structural half — a regression where a contributor reintroduces a passthrough adapter (sets `DisableFlagParsing: true` on a Cobra command and walks `os.Args` themselves) would silently break flag binding, completion, and help generation, and the existing drift test would not catch it because the bypassed command's flags never reach `cmd.Flags()` for the walker to find.
+
+The comment in `cmd/aiwf/main.go` at `newRootCmd` ("Every verb is a native Cobra command (E-14 left no passthrough adapters)") is currently the only thing pinning that property. CLAUDE.md design decision §"Kernel functionality must be AI-discoverable" treats the drift-prevention test in `internal/policies/` as the chokepoint, but the equivalent runtime check on the Cobra tree itself doesn't exist yet.
+
+This AC adds two paired tests:
+
+- **`TestPolicy_NoPassthroughAdapters`** walks every command in `newRootCmd()`'s tree and asserts `DisableFlagParsing` is false. A regression where a contributor sets that field on any verb fails CI with the verb's command path. The test also asserts `DisableFlagsInUseLine` is false (cosmetic but suspicious — typically paired with manual argv parsing).
+- **`TestPolicy_NoPassthroughAdapters_DetectsRegression`** is the rule-test-test pair: it constructs a synthetic Cobra tree with `DisableFlagParsing: true` on one node, runs the same walker, and asserts the violation is reported. This pins both directions: production doesn't trip the rule, and the rule actually fires when it should.
+
+The "test the test" shape closes the silent-no-op trap: a future refactor that broke the walker's loop (e.g., `walkCommands` quietly returning early) would let `TestPolicy_NoPassthroughAdapters` keep passing forever even though the rule had stopped firing. The synthetic-violation test catches that regression too.
+
 ### AC-7 — Help-quality drift asserts Example present and no migration prose
