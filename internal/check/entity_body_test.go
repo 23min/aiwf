@@ -460,6 +460,80 @@ acs:
 	}
 }
 
+// TestApplyTDDStrict_EscalatesEntityBodyEmpty pins M-066/AC-2: when
+// strict=true, every `entity-body-empty` finding (any subcode) is
+// bumped from warning to error. When strict=false, all severities
+// pass through unchanged. The bumper is the chokepoint that
+// projects with `aiwf.yaml: tdd.strict: true` use to make body
+// emptiness a push-blocker rather than a notice.
+//
+// The bumper is scoped to entity-body-empty only — other findings
+// pass through untouched. M-065's `milestone-tdd-undeclared` will
+// be added to the same bumper when its rule lands; today the
+// bumper handles only this code, but the function is the single
+// source of truth for which codes the strict flag covers.
+func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
+	build := func() []Finding {
+		return []Finding{
+			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "milestone", EntityID: "M-001"},
+			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "ac", EntityID: "M-001/AC-1"},
+			{Code: "acs-body-coherence", Severity: SeverityWarning, Subcode: "missing-heading", EntityID: "M-001/AC-2"},
+			{Code: "refs-resolve", Severity: SeverityError, Subcode: "unresolved", EntityID: "M-002"},
+		}
+	}
+
+	t.Run("strict=true bumps entity-body-empty to error", func(t *testing.T) {
+		findings := build()
+		ApplyTDDStrict(findings, true)
+		var sawMilestone, sawAC bool
+		for _, f := range findings {
+			if f.Code == "entity-body-empty" {
+				if f.Severity != SeverityError {
+					t.Errorf("entity-body-empty %s severity = %v, want error under strict",
+						f.EntityID, f.Severity)
+				}
+				if f.EntityID == "M-001" {
+					sawMilestone = true
+				}
+				if f.EntityID == "M-001/AC-1" {
+					sawAC = true
+				}
+			}
+			if f.Code == "acs-body-coherence" && f.Severity != SeverityWarning {
+				t.Errorf("acs-body-coherence severity = %v, want warning unchanged (strict only escalates entity-body-empty)",
+					f.Severity)
+			}
+			if f.Code == "refs-resolve" && f.Severity != SeverityError {
+				t.Errorf("refs-resolve severity = %v, want error preserved", f.Severity)
+			}
+		}
+		if !sawMilestone || !sawAC {
+			t.Errorf("expected both milestone- and ac-subcoded findings to escalate")
+		}
+	})
+
+	t.Run("strict=false passes severities through", func(t *testing.T) {
+		findings := build()
+		ApplyTDDStrict(findings, false)
+		for _, f := range findings {
+			if f.Code == "entity-body-empty" && f.Severity != SeverityWarning {
+				t.Errorf("entity-body-empty %s severity = %v, want warning unchanged when strict=false",
+					f.EntityID, f.Severity)
+			}
+			if f.Code == "refs-resolve" && f.Severity != SeverityError {
+				t.Errorf("refs-resolve severity = %v, want error preserved", f.Severity)
+			}
+		}
+	})
+
+	t.Run("nil findings slice is a no-op", func(t *testing.T) {
+		// Defensive: callers that have no findings yet (or have
+		// pre-filtered the slice down to zero length) must not
+		// trip on a nil-receiver-style panic.
+		ApplyTDDStrict(nil, true)
+	})
+}
+
 // TestEntityBodyEmpty_NonEmptyBodyClean confirms the rule stays silent
 // when every required section has content. Same kinds as the firing
 // test; serves as the negative control so a future bug that emits

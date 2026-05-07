@@ -154,8 +154,17 @@ func (c *Config) HTMLOutDir() string {
 // `aiwf-tests:` trailer or the check warns. Default false — the
 // trailer is informational metadata; consumers who want stricter
 // governance opt in at the project level.
+//
+// Strict promotes a defined set of TDD-related findings from warning
+// to error so the pre-push hook blocks the push. Today the bumper
+// covers `entity-body-empty` (M-066/AC-2); M-065's
+// `milestone-tdd-undeclared` will join the same bumper when its rule
+// lands. Single source of truth for the project's TDD strictness
+// posture — no parallel field, no second config knob. Default false.
+// See check.ApplyTDDStrict for the precise set of codes covered.
 type TDD struct {
 	RequireTestMetrics bool `yaml:"require_test_metrics,omitempty"`
+	Strict             bool `yaml:"strict,omitempty"`
 }
 
 // StatusMd carries the opt-out for the pre-commit hook that

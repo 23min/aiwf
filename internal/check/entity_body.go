@@ -70,9 +70,34 @@ var h2Heading = regexp.MustCompile(`^##\s+(.+?)\s*$`)
 // acsBodyCoherence's locator). Capture: AC id integer.
 var h3ACHeading = regexp.MustCompile(`^###\s+AC-(\d+)(?:\s*[—\-:]\s*(.+))?$`)
 
+// ApplyTDDStrict bumps every entity-body-empty finding's severity
+// from warning to error when strict=true (M-066/AC-2). Mutates the
+// findings slice in place. The function is the single source of
+// truth for which codes are covered by `aiwf.yaml: tdd.strict` —
+// today only entity-body-empty; M-065's `milestone-tdd-undeclared`
+// will be added to the same bumper when its rule lands. The bumper
+// is intentionally narrow: codes outside this set pass through
+// unchanged regardless of the flag.
+//
+// Callers run this AFTER `Run` (or after appending the rule's
+// findings to their own slice) so the rule's emission stays
+// config-agnostic and the strictness bump is a separate, testable
+// transformation.
+func ApplyTDDStrict(findings []Finding, strict bool) {
+	if !strict {
+		return
+	}
+	for i := range findings {
+		if findings[i].Code == "entity-body-empty" {
+			findings[i].Severity = SeverityError
+		}
+	}
+}
+
 // entityBodyEmpty fires for any entity whose load-bearing body
 // section is empty. Warning severity by default; severity escalation
-// under aiwf.yaml tdd.strict is added by AC-2's cycle.
+// to error under aiwf.yaml tdd.strict is applied separately via
+// ApplyTDDStrict (M-066/AC-2).
 func entityBodyEmpty(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
