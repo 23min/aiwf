@@ -29,6 +29,10 @@ acs:
       title: Plugins installed only for other scopes produce a finding
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: doctor --self-check covers the new check end-to-end
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -46,4 +50,6 @@ acs:
 ### AC-5 — Plugins installed for this project's scope produce no finding
 
 ### AC-6 — Plugins installed only for other scopes produce a finding
+
+### AC-7 — doctor --self-check covers the new check end-to-end
 
