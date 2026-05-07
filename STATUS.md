@@ -14,7 +14,7 @@ _145 entities · 0 errors · 0 warnings_
 - ✓ **M-054** — Dynamic id completion and drift test _(done)_ — ACs 4/4 met
 - ✓ **M-055** — Documentation pass _(done)_ — ACs 4/4 met
 - ✓ **M-061** — Contract family migration + changelog retrofill + help-recursion test _(done)_ — ACs 5/5 met
-- → **M-069** — Retrofit TDD-shaped tests for E-14 _(in_progress)_ — ACs 2/7 met (5 open) — tdd: required
+- → **M-069** — Retrofit TDD-shaped tests for E-14 _(in_progress)_ — ACs 3/7 met (4 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -35,7 +35,7 @@ flowchart LR
   E_14 --> M_055
   M_061["M-061 (5/5)<br/>Contract family migration + changelog retrofill + help-recursion test"]:::ms_done
   E_14 --> M_061
-  M_069["M-069 (2/7)<br/>Retrofit TDD-shaped tests for E-14"]:::ms_in_progress
+  M_069["M-069 (3/7)<br/>Retrofit TDD-shaped tests for E-14"]:::ms_in_progress
   E_14 --> M_069
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-2 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-1 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069 draft -> in_progress |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-060 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-059 |
-| 2026-05-07 | human/peter | add | aiwf add gap G-060 'Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail' |
 
