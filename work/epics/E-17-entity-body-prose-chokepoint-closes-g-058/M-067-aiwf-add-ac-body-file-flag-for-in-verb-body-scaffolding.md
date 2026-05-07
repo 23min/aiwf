@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Multi-AC form pairs --body-file positionally with --title
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Mismatched --body-file / --title counts refuse pre-allocation
       status: open
