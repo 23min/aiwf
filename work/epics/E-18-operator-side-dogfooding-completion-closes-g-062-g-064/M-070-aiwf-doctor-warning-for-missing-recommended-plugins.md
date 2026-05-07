@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Plugins installed for this project's scope produce no finding
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: Plugins installed only for other scopes produce a finding
       status: open
