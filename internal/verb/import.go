@@ -441,12 +441,16 @@ func buildImportPlans(m *manifest.Manifest, plans []plannedEntry, ents []*entity
 	if subject == "" {
 		subject = fmt.Sprintf("aiwf import %d entities", len(plans))
 	}
+	trailers := []gitops.Trailer{
+		{Key: gitops.TrailerVerb, Value: "import"},
+	}
+	for i := range plans {
+		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerEntity, Value: plans[i].id})
+	}
+	trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerActor, Value: actor})
 	return []*Plan{{
-		Subject: subject,
-		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "import"},
-			{Key: gitops.TrailerActor, Value: actor},
-		},
-		Ops: ops,
+		Subject:  subject,
+		Trailers: trailers,
+		Ops:      ops,
 	}}
 }
