@@ -154,8 +154,8 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 	for _, args := range [][]string{
 		{"add", "epic", "--title", "Engine"},
 		{"add", "epic", "--title", "Pipeline"},
-		{"add", "milestone", "--epic", "E-01", "--title", "Cache"},
-		{"add", "milestone", "--epic", "E-02", "--title", "Sink"},
+		{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Cache"},
+		{"add", "milestone", "--tdd", "none", "--epic", "E-02", "--title", "Sink"},
 	} {
 		if out, err := runBin(t, root, binDir, nil, args...); err != nil {
 			t.Fatalf("setup %v: %v\n%s", args, err, out)
@@ -244,7 +244,7 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 	for _, args := range [][]string{
 		{"add", "epic", "--title", "Decoy"},  // burn E-01 so reallocate has a target
 		{"add", "epic", "--title", "Engine"}, // E-02 — the one we'll reallocate
-		{"add", "milestone", "--epic", "E-02", "--title", "Cache"},
+		{"add", "milestone", "--tdd", "none", "--epic", "E-02", "--title", "Cache"},
 	} {
 		if out, err := runBin(t, root, binDir, nil, args...); err != nil {
 			t.Fatalf("setup %v: %v\n%s", args, err, out)

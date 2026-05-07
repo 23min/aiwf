@@ -133,7 +133,7 @@ func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 	runVerb("add epic",
 		append([]string{"add", "epic", "--title", "Foundations"}, rootArgs...)...)
 	runVerb("add milestone",
-		append([]string{"add", "milestone", "--epic", "E-01", "--title", "First milestone"}, rootArgs...)...)
+		append([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First milestone"}, rootArgs...)...)
 	runVerb("add ac",
 		append([]string{"add", "ac", "M-001", "--title", "AC-1: trees stay green"}, rootArgs...)...)
 
@@ -502,7 +502,7 @@ func TestBinary_RenderHTML_EndToEnd(t *testing.T) {
 	for _, args := range [][]string{
 		{"init", "--root", repo, "--actor", "human/test"},
 		{"add", "epic", "--root", repo, "--actor", "human/test", "--title", "Foundations"},
-		{"add", "milestone", "--root", repo, "--actor", "human/test", "--epic", "E-01", "--title", "Schema parser"},
+		{"add", "milestone", "--tdd", "none", "--root", repo, "--actor", "human/test", "--epic", "E-01", "--title", "Schema parser"},
 		{"add", "ac", "--root", repo, "--actor", "human/test", "M-001", "--title", "Engine starts"},
 		{"promote", "--root", repo, "--actor", "human/test", "M-001/AC-1", "--phase", "red"},
 		{

@@ -17,7 +17,7 @@ func TestRun_RenderHTML_DispatchesToSite(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Schema", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Schema", "--actor", "human/test", "--root", root)
 
 	out := filepath.Join(t.TempDir(), "site")
 	captured := captureStdout(t, func() {
@@ -103,7 +103,7 @@ func TestRun_RenderHTML_DeterministicAcrossInvocations(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
 	out1 := filepath.Join(t.TempDir(), "s1")
 	out2 := filepath.Join(t.TempDir(), "s2")

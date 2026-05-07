@@ -16,7 +16,7 @@ import (
 func TestPromote_GapAddressedBy(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Resolver", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Resolver", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Hand-edit gap", testActor, verb.AddOptions{}))
 
 	r.must(verb.Promote(r.ctx, r.tree(), "G-001", "addressed", testActor, "", false,
@@ -47,8 +47,8 @@ func TestPromote_GapAddressedBy(t *testing.T) {
 func TestPromote_GapAddressedByMultiple(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Second", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Second", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Co-resolved", testActor, verb.AddOptions{}))
 
 	r.must(verb.Promote(r.ctx, r.tree(), "G-001", "addressed", testActor, "", false,
@@ -153,7 +153,7 @@ func TestPromote_ResolverWrongStatus(t *testing.T) {
 func TestPromote_ResolverOnAC(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Bar", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Bar", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "an AC", testActor, nil))
 
 	_, err := verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "", false,
@@ -170,7 +170,7 @@ func TestPromote_ResolverOnAC(t *testing.T) {
 func TestPromote_ResolverAtomicSingleCommit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
 
 	beforeStatus := r.tree().ByID("G-001").Status

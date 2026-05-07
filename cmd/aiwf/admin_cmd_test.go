@@ -427,7 +427,7 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC one"}); rc != exitOK {

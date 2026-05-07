@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -24,7 +22,7 @@ func TestRun_PromotePhaseWithTestsFlag(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine starts")
 	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "--phase", "red")
 	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "--phase", "green",
@@ -56,7 +54,7 @@ func TestRun_PromotePhase_TestsRejectsBadInput(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC")
 	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "--phase", "red")
 
@@ -86,28 +84,8 @@ func TestRun_AddACWithTestsFlag(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Required", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "required", "--epic", "E-01", "--title", "Required", "--actor", "human/test", "--root", root)
 
-	// Hand-edit M-001 to tdd: required; the next add ac will seed red.
-	mPath := filepath.Join(root, "work", "epics", "E-01-f", "M-001-required.md")
-	raw, readErr := os.ReadFile(mPath)
-	if readErr != nil {
-		t.Fatalf("read M-001: %v", readErr)
-	}
-	patched := strings.Replace(string(raw), "status: draft\n", "status: draft\ntdd: required\n", 1)
-	if writeErr := os.WriteFile(mPath, []byte(patched), 0o644); writeErr != nil {
-		t.Fatalf("write M-001: %v", writeErr)
-	}
-
-	// The hand-edit is the test's premise: the user puts the
-	// milestone into tdd: required state, then runs `aiwf add ac
-	// --tests`. The verb must succeed on this — including the
-	// case where the hand-edit is uncommitted. Earlier iterations
-	// of this test wrapped the edit in a manual `git commit`
-	// trailer block to dodge a perceived projection issue; the
-	// I3 audit found that to be papering over rather than testing.
-	// The verb's own commit is what carries the aiwf-tests
-	// trailer; what we read at HEAD afterwards is that commit.
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine",
 		"--tests", "pass=0 fail=1 skip=0")
 
@@ -126,7 +104,7 @@ func TestRun_AddACWithTestsFlag(t *testing.T) {
 	}
 
 	// Non-tdd milestone: --tests must fail.
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Optional", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Optional", "--actor", "human/test", "--root", root)
 	rc := run([]string{
 		"add", "ac", "--actor", "human/test", "--root", root,
 		"M-002", "--title", "Pointless", "--tests", "pass=1",

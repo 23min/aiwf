@@ -187,7 +187,7 @@ func TestEditBody_Bless_PreservesYAMLFormatting(t *testing.T) {
 func TestEditBody_Bless_ACSubSectionEdit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"first criterion", "second criterion"}, testActor, nil))
 
 	mPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-mile.md")
@@ -237,7 +237,7 @@ func TestEditBody_Bless_ACSubSectionEdit(t *testing.T) {
 func TestEditBody_Bless_RejectsCompositeID(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "criterion", testActor, nil))
 
 	_, err := verb.EditBody(r.ctx, r.tree(), "M-001/AC-1", nil, testActor, "")
@@ -265,7 +265,7 @@ func TestEditBody_Bless_RejectsCompositeID(t *testing.T) {
 func TestEditBody_Bless_AcceptsBodyShapeWarnings_PrePushIsChokepoint(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "stays", testActor, nil))
 
 	mPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-mile.md")

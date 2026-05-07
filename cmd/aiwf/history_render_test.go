@@ -119,7 +119,7 @@ func TestRenderHistory_AuthorizationFlow(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--epic", "E-01", "--title", "Cache"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Cache"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
 	// Open scope on E-01.

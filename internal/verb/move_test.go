@@ -19,7 +19,7 @@ func TestMove_RoundTrip(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First half", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second half", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Travelling", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Travelling", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	r.must(verb.Move(r.ctx, r.tree(), "M-001", "E-02", testActor))
 
@@ -62,7 +62,7 @@ func TestMove_PreservesReferencingGap(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Travelling", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Travelling", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Found something", testActor, verb.AddOptions{DiscoveredIn: "M-001"}))
 
 	r.must(verb.Move(r.ctx, r.tree(), "M-001", "E-02", testActor))
@@ -100,7 +100,7 @@ func TestMove_RejectsUnknownID(t *testing.T) {
 func TestMove_RejectsUnknownEpic(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	_, err := verb.Move(r.ctx, r.tree(), "M-001", "E-99", testActor)
 	if err == nil || !strings.Contains(err.Error(), "does not exist") {
@@ -111,7 +111,7 @@ func TestMove_RejectsUnknownEpic(t *testing.T) {
 func TestMove_RejectsTargetWrongKind(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
 
 	_, err := verb.Move(r.ctx, r.tree(), "M-001", "G-001", testActor)
@@ -123,7 +123,7 @@ func TestMove_RejectsTargetWrongKind(t *testing.T) {
 func TestMove_RejectsSameEpic(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	_, err := verb.Move(r.ctx, r.tree(), "M-001", "E-01", testActor)
 	if err == nil || !strings.Contains(err.Error(), "already under") {
@@ -134,7 +134,7 @@ func TestMove_RejectsSameEpic(t *testing.T) {
 func TestMove_RequiresEpicFlag(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	_, err := verb.Move(r.ctx, r.tree(), "M-001", "", testActor)
 	if err == nil || !strings.Contains(err.Error(), "--epic") {

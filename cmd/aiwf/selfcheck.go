@@ -81,7 +81,7 @@ func runSelfCheck() int {
 		{label: "init", args: []string{"init", "--root", tmp, "--actor", actor}},
 		{label: "whoami", args: []string{"whoami", "--root", tmp}},
 		{label: "add epic", args: []string{"add", "epic", "--title", "Self-check epic", "--actor", actor, "--root", tmp}},
-		{label: "add milestone", args: []string{"add", "milestone", "--epic", "E-01", "--title", "Schema", "--actor", actor, "--root", tmp}},
+		{label: "add milestone", args: []string{"add", "milestone", "--epic", "E-01", "--tdd", "none", "--title", "Schema", "--actor", actor, "--root", tmp}},
 		{label: "add adr", args: []string{"add", "adr", "--title", "Use Postgres", "--actor", actor, "--root", tmp}},
 		{label: "add gap", args: []string{"add", "gap", "--title", "Auth gap", "--discovered-in", "M-001", "--actor", actor, "--root", tmp}},
 		{label: "add decision", args: []string{"add", "decision", "--title", "Sunset v1", "--actor", actor, "--root", tmp}},

@@ -162,7 +162,7 @@ func TestCancelAuditOnly_RefusesWhenNotAtTerminal(t *testing.T) {
 func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
 	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "actually done", false, verb.PromoteOptions{}))
 
@@ -187,7 +187,7 @@ func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
 	// AC starts with tdd_phase="" (the milestone is not tdd: required).
 	// Phase audit-only against "" isn't allowed (entry state); flip
@@ -208,7 +208,7 @@ func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
 func TestPromoteACPhaseAuditOnly_RefusesUnknownPhase(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
 
 	_, err := verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-001/AC-1", "Refactoring", testActor, "wrong case")

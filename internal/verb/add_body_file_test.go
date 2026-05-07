@@ -47,7 +47,7 @@ func TestAdd_BodyFile_AllKinds(t *testing.T) {
 		glob string
 	}{
 		{"epic", entity.KindEpic, verb.AddOptions{}, "work/epics/E-*/epic.md"},
-		{"milestone", entity.KindMilestone, verb.AddOptions{EpicID: "E-01"}, "work/epics/E-*/M-*.md"},
+		{"milestone", entity.KindMilestone, verb.AddOptions{EpicID: "E-01", TDD: "none"}, "work/epics/E-*/M-*.md"},
 		{"adr", entity.KindADR, verb.AddOptions{}, "docs/adr/ADR-*.md"},
 		{"gap", entity.KindGap, verb.AddOptions{}, "work/gaps/G-*.md"},
 		{"decision", entity.KindDecision, verb.AddOptions{}, "work/decisions/D-*.md"},

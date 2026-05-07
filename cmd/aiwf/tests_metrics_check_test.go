@@ -96,7 +96,7 @@ func TestRunTestsMetricsCheck_SilentForNonRequiredMilestone(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Optional", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Optional", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine")
 	// tdd is not set on the milestone (default: not required); promote
 	// the AC's status to met. tdd_phase remains absent.
@@ -153,24 +153,7 @@ func setupTDDDoneAC(t *testing.T) string {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "Required", "--actor", "human/test", "--root", root)
-
-	mPath := filepath.Join(root, "work", "epics", "E-01-foo", "M-001-required.md")
-	raw, err := os.ReadFile(mPath)
-	if err != nil {
-		t.Fatalf("read M-001: %v", err)
-	}
-	patched := strings.Replace(string(raw), "status: draft\n", "status: draft\ntdd: required\n", 1)
-	if err := os.WriteFile(mPath, []byte(patched), 0o644); err != nil {
-		t.Fatalf("write M-001: %v", err)
-	}
-	if err := osExec(t, root, "git", "add", "-A"); err != nil {
-		t.Fatalf("git add: %v", err)
-	}
-	if err := osExec(t, root, "git", "commit", "-m", "M-001: tdd required",
-		"-m", "aiwf-verb: edit\naiwf-entity: M-001\naiwf-actor: human/test\n"); err != nil {
-		t.Fatalf("git commit: %v", err)
-	}
+	mustRun(t, "add", "milestone", "--tdd", "required", "--epic", "E-01", "--title", "Required", "--actor", "human/test", "--root", root)
 
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine")
 	// AC is auto-seeded at red because the milestone is tdd: required;

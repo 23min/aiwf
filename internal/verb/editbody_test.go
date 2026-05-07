@@ -127,7 +127,7 @@ func TestEditBody_RejectsFrontmatter(t *testing.T) {
 func TestEditBody_RejectsCompositeID(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "criterion", testActor, nil))
 
 	_, err := verb.EditBody(r.ctx, r.tree(), "M-001/AC-1", []byte("body\n"), testActor, "")
@@ -168,7 +168,7 @@ func TestEditBody_PostEditTreeIsClean(t *testing.T) {
 func TestEditBody_PreservesFrontmatterFields(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "first", testActor, nil))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "second", testActor, nil))
 

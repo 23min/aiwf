@@ -119,7 +119,7 @@ func aiwfAddADR(t *testing.T, clone, binDir, title string) string {
 // aiwfAddMilestone adds a milestone under the given epic id.
 func aiwfAddMilestone(t *testing.T, clone, binDir, title, epicID string) string {
 	t.Helper()
-	out, err := runBin(t, clone, binDir, nil, "add", "milestone", "--title", title, "--epic", epicID)
+	out, err := runBin(t, clone, binDir, nil, "add", "milestone", "--tdd", "none", "--title", title, "--epic", epicID)
 	if err != nil {
 		t.Fatalf("aiwf add milestone %q in %s: %v\n%s", title, clone, err, out)
 	}

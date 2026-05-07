@@ -23,7 +23,7 @@ func TestRun_ShowMilestoneAggregatesACsHistoryFindings(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Engine warning", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Engine warning", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC one"}); rc != exitOK {
@@ -68,7 +68,7 @@ func TestRun_ShowCompositeIDRendersACSlice(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Just one"}); rc != exitOK {
@@ -158,10 +158,10 @@ func TestRun_ShowReferencedByPopulated(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Second", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Second", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone 2: %d", rc)
 	}
 
@@ -250,7 +250,7 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Done milestone", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Done milestone", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Open AC"}); rc != exitOK {
@@ -356,7 +356,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine starts"}); rc != exitOK {
@@ -444,7 +444,7 @@ func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine starts"}); rc != exitOK {

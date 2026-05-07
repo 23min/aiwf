@@ -30,6 +30,7 @@ func newAddCmd() *cobra.Command {
 		principal     string
 		root          string
 		epicID        string
+		tddPolicy     string
 		discoveredIn  string
 		relatesTo     string
 		linkedADRs    string
@@ -44,8 +45,8 @@ func newAddCmd() *cobra.Command {
 		Example: `  # Create a top-level epic
   aiwf add epic --title "Foundations and aiwf check"
 
-  # Create a milestone under an epic
-  aiwf add milestone --epic E-01 --title "Bootstrap Cobra"
+  # Create a milestone under an epic (--tdd is required: required|advisory|none)
+  aiwf add milestone --epic E-01 --tdd required --title "Bootstrap Cobra"
 
   # Create a contract atomically wired to a validator
   aiwf add contract --linked-adr ADR-0001 --title "Render envelope" \
@@ -73,7 +74,7 @@ func newAddCmd() *cobra.Command {
 				title = titles[0]
 			}
 			return wrapExitCode(runAddCmd(k, title, actor, principal, root,
-				epicID, discoveredIn, relatesTo, linkedADRs,
+				epicID, tddPolicy, discoveredIn, relatesTo, linkedADRs,
 				bindValidator, bindSchema, bindFixtures, bodyFile))
 		},
 	}
@@ -85,6 +86,7 @@ func newAddCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.PersistentFlags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&epicID, "epic", "", "parent epic id (milestone only)")
+	cmd.Flags().StringVar(&tddPolicy, "tdd", "", "milestone TDD policy: required|advisory|none — required at creation time for kind=milestone (G-055 layer 1)")
 	cmd.Flags().StringVar(&discoveredIn, "discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
 	cmd.Flags().StringVar(&relatesTo, "relates-to", "", "comma-separated ids the decision relates to (decision only)")
 	cmd.Flags().StringVar(&linkedADRs, "linked-adr", "", "comma-separated ADR ids motivating the contract (contract only)")
@@ -102,6 +104,7 @@ func newAddCmd() *cobra.Command {
 		return allKindNames(), cobra.ShellCompDirectiveNoFileComp
 	}
 	_ = cmd.RegisterFlagCompletionFunc("epic", completeEntityIDFlag(entity.KindEpic))
+	_ = cmd.RegisterFlagCompletionFunc("tdd", cobra.FixedCompletions(entity.AllowedTDDPolicies(), cobra.ShellCompDirectiveNoFileComp))
 	_ = cmd.RegisterFlagCompletionFunc("discovered-in", completeEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("relates-to", completeEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("linked-adr", completeEntityIDFlag(entity.KindADR))
@@ -111,7 +114,7 @@ func newAddCmd() *cobra.Command {
 }
 
 func runAddCmd(k entity.Kind, title, actor, principal, root,
-	epicID, discoveredIn, relatesTo, linkedADRs,
+	epicID, tddPolicy, discoveredIn, relatesTo, linkedADRs,
 	bindValidator, bindSchema, bindFixtures, bodyFile string,
 ) int {
 	rootDir, err := resolveRoot(root)
@@ -140,6 +143,7 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 
 	opts := verb.AddOptions{
 		EpicID:        epicID,
+		TDD:           tddPolicy,
 		DiscoveredIn:  discoveredIn,
 		BindValidator: bindValidator,
 		BindSchema:    bindSchema,

@@ -16,7 +16,7 @@ func TestRender_IndexShowsACRollup(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "A1")
 	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "A2")
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-1", "met")
@@ -39,7 +39,7 @@ func TestRender_MilestoneEmitsSixTabs(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -67,7 +67,7 @@ func TestRender_TestsTabPolicyBadge_Advisory(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -93,7 +93,7 @@ func TestRender_TestsTabPolicyBadge_Strict(t *testing.T) {
 		t.Fatalf("write aiwf.yaml: %v", err)
 	}
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -144,7 +144,7 @@ func TestRender_ACAnchorWiredManifestToBuild(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Engine")
 
 	out := filepath.Join(t.TempDir(), "site")
@@ -167,7 +167,7 @@ func TestRender_TestsTabBadgeIsInsideTestsTab(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -188,7 +188,7 @@ func TestRender_BuildTabExcludesStatusEvents(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Engine")
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-1", "met") // status, not phase
 
@@ -213,7 +213,7 @@ func TestRender_BuildTabIncludesPhaseHistory(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Engine")
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-1", "--phase", "red")
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-1", "--phase", "green",
@@ -244,7 +244,7 @@ func TestRender_ProvenanceTabShowsAuthorizeScope(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 	mustRun(t, "authorize", "--root", root, "--actor", "human/test", "M-001", "--to", "ai/claude")
 
 	out := filepath.Join(t.TempDir(), "site")
@@ -268,7 +268,7 @@ func TestRender_OverviewSuppressesEmptyLinkedDecisions(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -285,7 +285,7 @@ func TestRender_CommitDatesAreDateOnly(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
 
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)

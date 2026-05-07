@@ -40,7 +40,7 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01 active: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--title", "Cache warmup", "--epic", "E-01"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "Cache warmup", "--epic", "E-01"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
 
@@ -119,7 +119,7 @@ func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "promote", "E-02", "active"); err != nil {
 		t.Fatalf("aiwf promote E-02: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--title", "Out-of-scope", "--epic", "E-02"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "Out-of-scope", "--epic", "E-02"); err != nil {
 		t.Fatalf("aiwf add milestone under E-02: %v\n%s", err, out)
 	}
 	// Authorize the agent on E-01 only.
@@ -174,7 +174,7 @@ func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01 active: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--title", "First", "--epic", "E-01"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "First", "--epic", "E-01"); err != nil {
 		t.Fatalf("aiwf add M-001: %v\n%s", err, out)
 	}
 	// Authorize the agent on M-001.
@@ -263,7 +263,7 @@ func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
 
 	// In scope: agent adds a milestone under E-01.
 	if out, err := runBin(t, root, binDir, nil,
-		"add", "milestone", "--title", "In-scope", "--epic", "E-01",
+		"add", "milestone", "--tdd", "none", "--title", "In-scope", "--epic", "E-01",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("agent add milestone in scope: %v\n%s", err, out)
 	}
@@ -271,7 +271,7 @@ func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
 	// Out of scope: same agent under same scope, but milestone is
 	// being added under E-02. Refused.
 	out, runErr := runBin(t, root, binDir, nil,
-		"add", "milestone", "--title", "Out-of-scope", "--epic", "E-02",
+		"add", "milestone", "--tdd", "none", "--title", "Out-of-scope", "--epic", "E-02",
 		"--actor", "ai/claude", "--principal", "human/peter")
 	if runErr == nil {
 		t.Fatalf("expected refusal for out-of-scope add; got success:\n%s", out)

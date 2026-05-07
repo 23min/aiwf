@@ -41,7 +41,7 @@ func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Platform"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--epic", "E-01", "--title", "Resolver"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Resolver"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
 	if out, err := runBin(t, root, binDir, nil, "add", "gap", "--title", "Hand-edit gap"); err != nil {

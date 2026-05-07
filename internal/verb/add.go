@@ -18,6 +18,14 @@ import (
 type AddOptions struct {
 	// Milestone: id of the parent epic. Required.
 	EpicID string
+	// Milestone: TDD policy declaration. Required for kind=milestone;
+	// must be one of "required" / "advisory" / "none". Empty on
+	// non-milestone kinds (validated by validateAddOptsForKind).
+	// Closes G-055 layer #1 — pre-fix, milestones could be created
+	// with the field absent and the kernel silently treated absence
+	// as `tdd: none`. Post-fix, the policy decision is a single
+	// explicit act recorded in the create commit.
+	TDD string
 	// Gap: optional reference to the milestone or epic where the gap
 	// was discovered.
 	DiscoveredIn string
@@ -179,8 +187,21 @@ func runeListString(rs []rune) string {
 
 // validateAddOptsForKind enforces that contract-only flags
 // (LinkedADRs, BindValidator/Schema/Fixtures) are not passed for
-// other kinds, and that the bind triplet is all-or-nothing.
+// other kinds, that the bind triplet is all-or-nothing, and that
+// the milestone-only --tdd flag is required for milestones,
+// constrained to the closed policy set, and rejected on non-milestone
+// kinds (G-055 layer #1).
 func validateAddOptsForKind(kind entity.Kind, opts AddOptions) error {
+	if kind == entity.KindMilestone {
+		if opts.TDD == "" {
+			return fmt.Errorf("--tdd <required|advisory|none> is required for kind=milestone (G-055: every milestone must declare its TDD policy explicitly)")
+		}
+		if !entity.IsAllowedTDDPolicy(opts.TDD) {
+			return fmt.Errorf("--tdd %q is not a recognized policy; allowed: required, advisory, none", opts.TDD)
+		}
+	} else if opts.TDD != "" {
+		return fmt.Errorf("--tdd is only valid for kind=milestone")
+	}
 	if kind != entity.KindContract {
 		if len(opts.LinkedADRs) > 0 {
 			return fmt.Errorf("--linked-adr is only valid for kind=contract")
@@ -278,6 +299,7 @@ func applyAddOpts(e *entity.Entity, opts AddOptions) {
 	switch e.Kind {
 	case entity.KindMilestone:
 		e.Parent = opts.EpicID
+		e.TDD = opts.TDD
 	case entity.KindGap:
 		if opts.DiscoveredIn != "" {
 			e.DiscoveredIn = opts.DiscoveredIn

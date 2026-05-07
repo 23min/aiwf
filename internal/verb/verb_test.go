@@ -100,7 +100,7 @@ func TestAdd_Epic_RoundTrip(t *testing.T) {
 func TestAdd_MilestoneUnderEpic(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	wantPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-cache-warmup.md")
 	if _, err := os.Stat(wantPath); err != nil {
@@ -169,7 +169,9 @@ completed: 2026-04-30
 
 func TestAdd_MilestoneRequiresEpic(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Orphan", testActor, verb.AddOptions{})
+	// TDD: "none" satisfies the G-055 chokepoint so the --epic error
+	// (the assertion of this test) is what surfaces.
+	_, err := verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Orphan", testActor, verb.AddOptions{TDD: "none"})
 	if err == nil || !strings.Contains(err.Error(), "--epic") {
 		t.Errorf("expected --epic error, got %v", err)
 	}
@@ -251,7 +253,7 @@ func TestPromote_WithReason(t *testing.T) {
 func TestRename_FilePath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.Rename(r.ctx, r.tree(), "M-001", "warm-the-cache", testActor))
 
 	wantPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-warm-the-cache.md")
@@ -274,8 +276,8 @@ func TestRename_DirectoryKind(t *testing.T) {
 func TestReallocate_RewritesReferences(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Depends on first", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Depends on first", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	// Hand-edit M-002 to depend on M-001.
 	m2Path := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-002-depends-on-first.md")
@@ -452,8 +454,8 @@ func TestRename_NonASCIINewSlug_SurfacesSlugWarning(t *testing.T) {
 func TestReallocate_RewritesProseReferences(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mention test", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mentions M-001 in prose", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mention test", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mentions M-001 in prose", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	m2Path := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-002-mentions-m-001-in-prose.md")
 	if err := os.WriteFile(m2Path, []byte(`---
@@ -509,9 +511,9 @@ M-001 again, and a longer id M-0010 that must NOT match.
 func TestReallocate_RewritesProseAcrossMultipleEntities(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Target", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Other A", testActor, verb.AddOptions{EpicID: "E-01"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Other B", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Target", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Other A", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Other B", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	for _, name := range []string{"M-002-other-a.md", "M-003-other-b.md"} {
 		p := filepath.Join(r.root, "work", "epics", "E-01-platform", name)
@@ -553,7 +555,7 @@ func TestReallocate_RewritesProseAcrossMultipleEntities(t *testing.T) {
 func TestReallocate_RewritesSelfReferenceInTargetBody(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Target", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Target", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	targetPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-target.md")
 	raw, err := os.ReadFile(targetPath)
@@ -631,7 +633,7 @@ func mustHaveTrailer(t *testing.T, trailers []gitops.Trailer, key, value string)
 func TestReallocate_ByPath_DisambiguatesCollision(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Original", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Original", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	// Manually create a colliding M-001 with a different slug — the
 	// shape a merge from a parallel branch would land in. Stage and
@@ -735,7 +737,7 @@ func TestReallocate_Contract(t *testing.T) {
 func TestReallocate_EpicWithMilestoneInside(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache layer", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache layer", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	r.must(verb.Reallocate(r.ctx, r.tree(), "E-01", testActor))
 
@@ -1056,7 +1058,7 @@ func TestRename_SameSlug(t *testing.T) {
 func TestAdd_GapWithDiscoveredIn(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Need a thing", testActor, verb.AddOptions{DiscoveredIn: "M-001"}))
 
 	g := r.tree().ByID("G-001")
@@ -1121,7 +1123,7 @@ discovered_in: M-999
 func TestAdd_DecisionWithRelatesTo(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindDecision, "Pin the order", testActor, verb.AddOptions{
 		RelatesTo: []string{"E-01", "M-001"},
 	}))

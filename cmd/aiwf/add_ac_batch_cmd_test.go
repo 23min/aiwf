@@ -39,7 +39,7 @@ func TestAddAC_RepeatedTitle_BinaryEndToEnd(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Platform"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--epic", "E-01", "--title", "Batch"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Batch"); err != nil {
 		t.Fatalf("add milestone: %v\n%s", err, out)
 	}
 
@@ -113,7 +113,7 @@ func TestAddAC_SingleTitle_BinaryUnchanged(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Platform"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--epic", "E-01", "--title", "Single"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Single"); err != nil {
 		t.Fatalf("add milestone: %v\n%s", err, out)
 	}
 	if out, err := runBin(t, root, binDir, nil, "add", "ac", "M-001", "--title", "lone criterion"); err != nil {
