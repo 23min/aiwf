@@ -9,6 +9,10 @@ acs:
       title: doctor.recommended_plugins config field accepts list
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: doctor reads installed_plugins.json and matches project scope
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -16,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — doctor.recommended_plugins config field accepts list
+
+### AC-2 — doctor reads installed_plugins.json and matches project scope
 
