@@ -4,7 +4,25 @@ _162 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
-_(no active epics)_
+### E-18 — Operator-side dogfooding completion (closes G-062, G-064) _(active)_
+
+- **M-070** — aiwf doctor warning for missing recommended plugins _(draft)_ — ACs 0/7 met (7 open) — tdd: required
+- **M-071** — Install ritual plugins in kernel repo + document operator setup path _(draft)_ — ACs 0/4 met (4 open) — tdd: required
+
+```mermaid
+flowchart LR
+  E_18["E-18<br/>Operator-side dogfooding completion (closes G-062, G-064)"]:::epic_active
+  M_070["M-070 (0/7)<br/>aiwf doctor warning for missing recommended plugins"]:::ms_draft
+  E_18 --> M_070
+  M_071["M-071 (0/4)<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_draft
+  E_18 --> M_071
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Roadmap
 
@@ -43,26 +61,6 @@ flowchart LR
   E_16 --> M_064
   M_065["M-065 (0/5)<br/>aiwf check finding milestone-tdd-undeclared as defense-in-depth"]:::ms_draft
   E_16 --> M_065
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
-
-### E-18 — Operator-side dogfooding completion (closes G-062, G-064) _(proposed)_
-
-- **M-070** — aiwf doctor warning for missing recommended plugins _(draft)_ — ACs 0/7 met (7 open) — tdd: required
-- **M-071** — Install ritual plugins in kernel repo + document operator setup path _(draft)_ — ACs 0/4 met (4 open) — tdd: required
-
-```mermaid
-flowchart LR
-  E_18["E-18<br/>Operator-side dogfooding completion (closes G-062, G-064)"]:::epic_proposed
-  M_070["M-070 (0/7)<br/>aiwf doctor warning for missing recommended plugins"]:::ms_draft
-  E_18 --> M_070
-  M_071["M-071 (0/4)<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_draft
-  E_18 --> M_071
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
