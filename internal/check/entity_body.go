@@ -90,6 +90,10 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 		stripped := stripHTMLComments(body)
 
 		// Top-level body sections.
+		// coverage:ignore-on-miss — `requiredSectionsByKind` covers
+		// every top-level entity kind; the `has=false` arm only fires
+		// for synthetic/unknown Kind values that the tree loader does
+		// not produce. Documented unreachable in production.
 		if sections, has := requiredSectionsByKind[e.Kind]; has {
 			present := scanH2Sections(stripped)
 			for _, name := range sections {

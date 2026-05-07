@@ -242,6 +242,224 @@ acs:
 	}
 }
 
+// TestEntityBodyEmpty_FileReadError_SilentlySkipped covers the
+// defensive arm in entityBodyEmpty's file-read step: when the
+// entity's Path points at a file that doesn't exist on disk, the
+// rule silently skips that entity. The loader's `load-error`
+// finding owns the file-missing case; entity-body-empty must not
+// double-emit.
+func TestEntityBodyEmpty_FileReadError_SilentlySkipped(t *testing.T) {
+	root := t.TempDir()
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none",
+			Path: "work/epics/E-01-foo/M-001-missing.md", // never written
+		}},
+	}
+	if got := entityBodyEmpty(tr); len(got) != 0 {
+		t.Errorf("missing file should not produce entity-body-empty (load-error owns it); got %+v", got)
+	}
+}
+
+// TestEntityBodyEmpty_FrontmatterParseFailure_SilentlySkipped covers
+// the defensive arm where the file exists but has no `---`
+// frontmatter delimiters — entity.Split returns ok=false and the
+// rule continues without emitting. The loader's parse-error path is
+// the single source of truth for malformed files.
+func TestEntityBodyEmpty_FrontmatterParseFailure_SilentlySkipped(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-malformed.md"
+	abs := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Body content but no frontmatter delimiters — entity.Split
+	// returns ok=false on this shape.
+	if err := os.WriteFile(abs, []byte("## Goal\n\nbody but no frontmatter\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+		}},
+	}
+	if got := entityBodyEmpty(tr); len(got) != 0 {
+		t.Errorf("malformed-frontmatter file should not produce entity-body-empty; got %+v", got)
+	}
+}
+
+// TestEntityBodyEmpty_ScanACBodies_H2Resets covers scanACBodies'
+// arm where a `## ` heading appears after an AC heading — the
+// in-progress AC body region is closed and currentID cleared.
+// Defensive: real milestones don't usually have `## ` headings
+// nested inside `## Acceptance criteria`, but a hand-edit could
+// introduce one and the locator must not bleed AC-1's content into
+// the next AC.
+func TestEntityBodyEmpty_ScanACBodies_H2Resets(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-bar.md"
+	// AC-1 has a `## Trailing section` after it — the locator
+	// closes AC-1's region at that heading. AC-1 has prose before
+	// the `## ` so it's non-empty; AC-2 (after a normal `### `
+	// boundary) has no prose so it's empty.
+	body := `## Goal
+
+Goal prose.
+
+## Approach
+
+Approach prose.
+
+## Acceptance criteria
+
+Each AC pins one observable behavior.
+
+### AC-1 — With prose
+
+ac-1 prose
+
+## Trailing section
+
+trailing prose
+
+### AC-2 — Empty AC
+
+`
+	fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: none
+acs:
+    - id: AC-1
+      title: With prose
+      status: open
+    - id: AC-2
+      title: Empty AC
+      status: open
+---
+
+`
+	abs := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(abs, []byte(fm+body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "With prose", Status: "open"},
+				{ID: "AC-2", Title: "Empty AC", Status: "open"},
+			},
+		}},
+	}
+	got := entityBodyEmpty(tr)
+	// Expect exactly one finding for AC-2; AC-1 is non-empty.
+	var sawAC2 bool
+	for _, f := range got {
+		if f.EntityID == "M-001/AC-2" && f.Code == "entity-body-empty" {
+			sawAC2 = true
+		}
+		if f.EntityID == "M-001/AC-1" && f.Code == "entity-body-empty" {
+			t.Errorf("AC-1 has prose; should not surface entity-body-empty: %+v", f)
+		}
+	}
+	if !sawAC2 {
+		t.Errorf("AC-2 (no prose) should surface entity-body-empty; got %+v", got)
+	}
+}
+
+// TestEntityBodyEmpty_ScanACBodies_H3NonACResets covers the arm
+// where a `### ` heading that is NOT an AC heading appears mid-AC
+// region — for example a `### Sub-section under AC-1` line. The
+// locator closes the AC's region at that boundary. Defensive: AC
+// bodies are typically leaf prose, but a hand-edit could nest a
+// sub-heading.
+func TestEntityBodyEmpty_ScanACBodies_H3NonACResets(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-bar.md"
+	body := `## Goal
+
+Goal prose.
+
+## Approach
+
+Approach prose.
+
+## Acceptance criteria
+
+Each AC pins one observable behavior.
+
+### AC-1 — With prose
+
+prose under AC-1
+
+### Sub-section under AC-1
+
+sub prose
+
+### AC-2 — Empty AC
+
+`
+	fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: none
+acs:
+    - id: AC-1
+      title: With prose
+      status: open
+    - id: AC-2
+      title: Empty AC
+      status: open
+---
+
+`
+	abs := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(abs, []byte(fm+body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "With prose", Status: "open"},
+				{ID: "AC-2", Title: "Empty AC", Status: "open"},
+			},
+		}},
+	}
+	got := entityBodyEmpty(tr)
+	var sawAC2 bool
+	for _, f := range got {
+		if f.EntityID == "M-001/AC-2" && f.Code == "entity-body-empty" {
+			sawAC2 = true
+		}
+		if f.EntityID == "M-001/AC-1" && f.Code == "entity-body-empty" {
+			t.Errorf("AC-1 has prose before the sub-heading; should not surface: %+v", f)
+		}
+	}
+	if !sawAC2 {
+		t.Errorf("AC-2 (no prose) should surface entity-body-empty; got %+v", got)
+	}
+}
+
 // TestEntityBodyEmpty_NonEmptyBodyClean confirms the rule stays silent
 // when every required section has content. Same kinds as the firing
 // test; serves as the negative control so a future bug that emits
