@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -274,6 +275,19 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 			b, readErr := readBodyFile(path)
 			if readErr != nil {
 				fmt.Fprintf(os.Stderr, "aiwf add ac: --body-file[%d] %s: %v\n", i, path, readErr)
+				return exitUsage
+			}
+			// M-067/AC-4: refuse body files with leading `---`
+			// frontmatter — same rule as the whole-entity --body-file
+			// path (internal/verb/common.go:validateUserBodyBytes).
+			// The AC body is appended after a heading the verb owns,
+			// so an embedded frontmatter block would land in the
+			// wrong place and silently break document structure.
+			trimmed := bytes.TrimLeft(b, " \t\r\n")
+			if bytes.HasPrefix(trimmed, []byte("---\n")) || bytes.HasPrefix(trimmed, []byte("---\r\n")) {
+				fmt.Fprintf(os.Stderr,
+					"aiwf add ac: --body-file[%d] %s: body content begins with a frontmatter delimiter (---); pass body content only, not a full markdown file with its own frontmatter\n",
+					i, path)
 				return exitUsage
 			}
 			bodies[i] = b

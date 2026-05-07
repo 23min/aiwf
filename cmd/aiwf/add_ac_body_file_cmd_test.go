@@ -404,6 +404,114 @@ func TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation(t *testing.T) {
 	}
 }
 
+// TestAddAC_BodyFile_LeadingFrontmatter_Refused is the M-067/AC-4
+// closure: a body file whose first non-blank line is `---` exits
+// the verb with code 2 (usage error). The error message names the
+// offending file path and the rule, so the operator can fix the
+// file without re-reading the help.
+//
+// The two subcases cover the bare leading `---\n` and the
+// leading-whitespace-then-`---` case (the validator trims leading
+// whitespace before the prefix check, mirroring
+// internal/verb/common.go:validateUserBodyBytes).
+func TestAddAC_BodyFile_LeadingFrontmatter_Refused(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
+		t.Fatalf("add epic: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+		t.Fatalf("add milestone: %v\n%s", err, out)
+	}
+
+	headBefore, err := runGit(root, "rev-list", "--count", "HEAD")
+	if err != nil {
+		t.Fatalf("rev-list before: %v\n%s", err, headBefore)
+	}
+
+	cases := []struct {
+		name    string
+		content string
+	}{
+		{
+			name:    "leading triple-dash",
+			content: "---\nid: AC-9\ntitle: stowaway\n---\n\nfake body\n",
+		},
+		{
+			name:    "leading blank lines then triple-dash",
+			content: "\n\n  \n---\nrogue: yes\n---\n\nfake body\n",
+		},
+		{
+			// CRLF arm of the prefix check — Windows-edited files
+			// would otherwise slip past a Unix-only `---\n` match.
+			name:    "leading triple-dash with CRLF",
+			content: "---\r\nid: AC-9\r\n---\r\n\r\nfake body\r\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			bodyPath := filepath.Join(root, "fm-"+strings.ReplaceAll(tc.name, " ", "_")+".md")
+			if writeErr := os.WriteFile(bodyPath, []byte(tc.content), 0o644); writeErr != nil {
+				t.Fatalf("write %s: %v", bodyPath, writeErr)
+			}
+			out, runErr := runBin(t, root, binDir, nil,
+				"add", "ac", "M-001",
+				"--title", "T",
+				"--body-file", bodyPath)
+			if runErr == nil {
+				t.Fatalf("expected leading-frontmatter refusal; got success:\n%s", out)
+			}
+			// Error must name the offending path so the operator
+			// can fix the right file.
+			if !strings.Contains(out, bodyPath) {
+				t.Errorf("error missing offending path %q:\n%s", bodyPath, out)
+			}
+			// Error must name the rule. "frontmatter" is the
+			// canonical keyword from the existing
+			// validateUserBodyBytes message.
+			if !strings.Contains(out, "frontmatter") {
+				t.Errorf("error missing 'frontmatter' rule keyword:\n%s", out)
+			}
+		})
+	}
+
+	// Pre-allocation check: no commit added across the run, no AC
+	// in the milestone.
+	headAfter, err := runGit(root, "rev-list", "--count", "HEAD")
+	if err != nil {
+		t.Fatalf("rev-list after: %v\n%s", err, headAfter)
+	}
+	if strings.TrimSpace(headBefore) != strings.TrimSpace(headAfter) {
+		t.Errorf("commit count changed across refusal cases (%s -> %s); refusal must precede commit",
+			strings.TrimSpace(headBefore), strings.TrimSpace(headAfter))
+	}
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
+	}
+	got, _ := os.ReadFile(matches[0])
+	if strings.Contains(string(got), "### AC-1") {
+		t.Errorf("AC was created despite leading-frontmatter body file:\n%s", got)
+	}
+}
+
 // TestAddAC_BodyFile_MissingFile_ExitsUsage covers the defensive
 // branch in runAddACCmd's body-file loop: when the path does not
 // resolve, the verb exits with the usage code (2) and creates no AC.
