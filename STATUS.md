@@ -10,12 +10,12 @@ _(no active epics)_
 
 ### E-13 — Status report _(proposed)_
 
-- → **M-048** — Status report: cross-entity summaries + dashboard + time-window views _(in_progress)_
+- ✓ **M-048** — Status report: cross-entity summaries + dashboard + time-window views _(done)_
 
 ```mermaid
 flowchart LR
   E_13["E-13<br/>Status report"]:::epic_proposed
-  M_048["M-048<br/>Status report: cross-entity summaries + dashboard + time-window views"]:::ms_in_progress
+  M_048["M-048<br/>Status report: cross-entity summaries + dashboard + time-window views"]:::ms_done
   E_13 --> M_048
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -94,9 +94,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-048 draft -> in_progress |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-070 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-069 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-070 'aiwf doctor has no --format=json envelope; M-070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-069 'aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome' |
-| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 

@@ -1,7 +1,7 @@
 ---
 id: M-048
 title: 'Status report: cross-entity summaries + dashboard + time-window views'
-status: in_progress
+status: done
 parent: E-13
 ---
 
