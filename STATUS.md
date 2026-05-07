@@ -6,13 +6,13 @@ _162 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ### E-18 — Operator-side dogfooding completion (closes G-062, G-064) _(active)_
 
-- **M-070** — aiwf doctor warning for missing recommended plugins _(draft)_ — ACs 0/7 met (7 open) — tdd: required
+- → **M-070** — aiwf doctor warning for missing recommended plugins _(in_progress)_ — ACs 0/7 met (7 open) — tdd: required
 - **M-071** — Install ritual plugins in kernel repo + document operator setup path _(draft)_ — ACs 0/4 met (4 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_18["E-18<br/>Operator-side dogfooding completion (closes G-062, G-064)"]:::epic_active
-  M_070["M-070 (0/7)<br/>aiwf doctor warning for missing recommended plugins"]:::ms_draft
+  M_070["M-070 (0/7)<br/>aiwf doctor warning for missing recommended plugins"]:::ms_in_progress
   E_18 --> M_070
   M_071["M-071 (0/4)<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_draft
   E_18 --> M_071
@@ -112,9 +112,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote E-18 proposed -> active |
 | 2026-05-07 | human/peter | add | aiwf add epic E-19 'Parallel TDD subagents with finding-gated AC closure' |
 | 2026-05-07 | human/peter | add | aiwf add adr ADR-0004 'Uniform archive convention for terminal-status entities' |
 | 2026-05-07 | human/peter | add | aiwf add adr ADR-0003 'Add finding (F-NNN) as a seventh entity kind' |
 | 2026-05-07 | human/peter | cancel | aiwf cancel ADR-0002 -> rejected |
-| 2026-05-07 | human/peter | add | aiwf add adr ADR-0002 'TEST-DRY-RUN-DELETE-ME' |
 
