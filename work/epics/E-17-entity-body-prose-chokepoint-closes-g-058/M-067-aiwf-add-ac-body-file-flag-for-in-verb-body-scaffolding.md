@@ -98,3 +98,7 @@ The `aiwf-add` skill source (`internal/skillsembed/aiwf-add/SKILL.md` or the equ
 ### AC-1 — --body-file <path> populates AC body in same atomic commit
 
 Bound `--body-file` (StringArrayVar) on `aiwf add ac`; threaded through to `verb.AddACBatch` via new `bodies [][]byte` parameter. Body content lands under the scaffolded `### AC-N — <title>` heading in the same atomic commit. · commit f92a2e3 · tests pass=2 fail=0 skip=0
+
+### AC-2 — Multi-AC form pairs --body-file positionally with --title
+
+Contract-pinning test only — AC-1's wiring already paired `bodies[i]` to `newACs[i]` through the pre-existing M-057 multi-AC heading loop, so the multi-title + multi-body-file path was satisfied before this AC's cycle started. Added a binary-level test that drives `--title T1 --body-file b1 --title T2 --body-file b2` and asserts each AC's section contains the matching body marker (and not the other), plus atomicity (one commit) and trailer ordering (one `aiwf-entity` per composite id, in allocation order). Future refactor of the loop now has to keep the pairing; the test will catch a swap. · commit 1d60510 · tests pass=1 fail=0 skip=0
