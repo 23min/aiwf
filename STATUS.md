@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_149 entities · 0 errors · 0 warnings_
+_150 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -91,6 +91,7 @@ _(none)_
 | G-062 | aiwf doctor does not surface missing recommended plugins; ritual skills (aiwf-extensions, wf-rituals) can be silently absent from a consumer repo with no signal to operator or AI assistant |  |
 | G-063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
 | G-064 | Kernel repo dogfooding closed partial (G-038) without installing the ritual plugins (aiwf-extensions, wf-rituals); operator-side surface incomplete here despite framework design assuming rituals are present |  |
+| G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
 
 ## Warnings
 
@@ -100,9 +101,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | rename | aiwf rename M-066 slug -> aiwf-check-finding-entity-body-empty |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-064 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-064 'Kernel repo dogfooding closed partial (G-038) without installing the ritual plugins (aiwf-extensions, wf-rituals); operator-side surface incomplete here despite framework design assuming rituals are present' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-063 |
-| 2026-05-07 | human/peter | add | aiwf add gap G-063 'No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip' |
 
