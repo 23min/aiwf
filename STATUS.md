@@ -125,9 +125,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-5 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-5 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-5 --phase red -> green |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
-| 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-4 open -> met |
 
