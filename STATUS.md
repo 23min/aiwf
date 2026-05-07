@@ -126,9 +126,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-066 in_progress -> done |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-068 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-068 'Discoverability policy misses dynamic finding subcodes' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
-| 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-6 open -> met |
 
