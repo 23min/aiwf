@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_151 entities · 0 errors · 0 warnings_
+_152 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -72,6 +72,10 @@ flowchart LR
   classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
 ```
 
+### E-18 — Operator-side dogfooding completion (closes G-062, G-064) _(proposed)_
+
+_(no milestones)_
+
 ## Open decisions
 
 _(none)_
@@ -102,9 +106,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | retitle | aiwf retitle M-068/AC-5 + edit-body M-068 (manual; G-065 verb does not yet exist) |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-067 — fix stale references to renamed M-066 + acs-body-empty |
 | 2026-05-07 | human/peter | retitle | aiwf retitle M-066 + AC-1, AC-3 (manual; G-065 verb does not yet exist) |
 | 2026-05-07 | human/peter | retitle | aiwf retitle E-17 (manual; G-065 verb does not yet exist) |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-066 |
-| 2026-05-07 | human/peter | add | aiwf add gap G-066 'aiwf add epic/milestone/gap/adr/decision/contract verbs lack --body-file flag for in-verb body scaffolding; only aiwf add ac will gain it via M-067, leaving the other six entity-creation verbs reliant on post-add aiwf edit-body' |
 
