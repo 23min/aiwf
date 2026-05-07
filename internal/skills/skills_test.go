@@ -186,6 +186,45 @@ func extractH2Section(content, heading string) (string, bool) {
 	return strings.Join(out, "\n"), true
 }
 
+// TestExtractH2Section covers the helper's branches the AC tests
+// don't exercise directly. The AC tests all pass a real heading
+// and use the populated `ok=true` arm; this test pins the
+// `heading missing` arm and the fence-aware behavior the helper
+// was added for.
+func TestExtractH2Section(t *testing.T) {
+	t.Run("heading missing returns ok=false", func(t *testing.T) {
+		body, ok := extractH2Section("# only h1 here\n\nsome text\n", "## Missing")
+		if ok {
+			t.Errorf("ok = true, want false; body = %q", body)
+		}
+		if body != "" {
+			t.Errorf("body = %q, want empty", body)
+		}
+	})
+
+	t.Run("fenced ## inside example does not terminate scope", func(t *testing.T) {
+		input := "## Target\n\nfirst paragraph\n\n```markdown\n## What's missing\nfake heading inside fence\n```\n\nsecond paragraph\n\n## Next section\n\nafter\n"
+		body, ok := extractH2Section(input, "## Target")
+		if !ok {
+			t.Fatal("ok = false, want true")
+		}
+		// The body should contain both paragraphs and the fenced
+		// example, but stop at `## Next section`.
+		if !strings.Contains(body, "first paragraph") {
+			t.Error("body missing first paragraph")
+		}
+		if !strings.Contains(body, "second paragraph") {
+			t.Error("body missing second paragraph (fence-aware cap broken)")
+		}
+		if !strings.Contains(body, "fake heading inside fence") {
+			t.Error("body missing fenced example body")
+		}
+		if strings.Contains(body, "after") {
+			t.Error("body included content past `## Next section` — cap broken")
+		}
+	})
+}
+
 // TestSkill_AddNamesFillInBodyAsRequiredNextStep pins M-068/AC-1:
 // the embedded `aiwf-add` SKILL.md must name "fill in the body" as a
 // required follow-up step — not optional, not just for ACs — across
