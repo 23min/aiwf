@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Each missing plugin emits one warning with install command
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Empty config list means no checks fire (kernel-neutral)
       status: open
