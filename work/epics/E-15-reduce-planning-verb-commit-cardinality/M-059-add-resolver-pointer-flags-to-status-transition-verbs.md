@@ -36,9 +36,16 @@ Concrete cases on day one: `gap → addressed` (`--by <id>` for entity-resolver,
 
 ### AC-1 — aiwf promote G-NNN addressed --by accepts entity ids and commit shas
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-059/AC-1` for the actual implementation history._
+
 ### AC-2 — aiwf promote ADR-NNNN superseded --superseded-by accepts ADR ids
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-059/AC-2` for the actual implementation history._
 
 ### AC-3 — Verb writes resolver field atomically with status change
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-059/AC-3` for the actual implementation history._
+
 ### AC-4 — Hand-editing frontmatter never required to satisfy resolver checks
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-059/AC-4` for the actual implementation history._
