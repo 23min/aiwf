@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Pre-push hook byte-golden plus template-equals-installed cross-check
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: init then doctor --self-check seam in a fresh tempdir repo
