@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Multi-AC form pairs --body-file positionally with --title
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Mismatched --body-file / --title counts refuse pre-allocation
