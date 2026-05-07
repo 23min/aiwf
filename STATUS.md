@@ -114,9 +114,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add epic E-19 'Parallel TDD subagents with finding-gated AC closure' |
 | 2026-05-07 | human/peter | add | aiwf add adr ADR-0004 'Uniform archive convention for terminal-status entities' |
 | 2026-05-07 | human/peter | add | aiwf add adr ADR-0003 'Add finding (F-NNN) as a seventh entity kind' |
 | 2026-05-07 | human/peter | cancel | aiwf cancel ADR-0002 -> rejected |
 | 2026-05-07 | human/peter | add | aiwf add adr ADR-0002 'TEST-DRY-RUN-DELETE-ME' |
-| 2026-05-07 | human/peter | render-roadmap | aiwf render roadmap |
 
