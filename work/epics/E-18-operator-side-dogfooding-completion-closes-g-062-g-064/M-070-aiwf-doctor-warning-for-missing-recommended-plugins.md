@@ -21,6 +21,10 @@ acs:
       title: Empty config list means no checks fire (kernel-neutral)
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Plugins installed for this project's scope produce no finding
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -34,4 +38,6 @@ acs:
 ### AC-3 — Each missing plugin emits one warning with install command
 
 ### AC-4 — Empty config list means no checks fire (kernel-neutral)
+
+### AC-5 — Plugins installed for this project's scope produce no finding
 
