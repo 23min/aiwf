@@ -93,3 +93,8 @@ Each case asserts both the exit code and the produced milestone file's frontmatt
 
 The `aiwf-add` skill source (`internal/skillsembed/aiwf-add/SKILL.md` or the equivalent generation site) gains, in the `aiwf add ac` section: a description of `--body-file` (positional pairing rule, stdin shorthand, leading-`---` rejection), an example invocation showing single and multi-AC forms, and a cross-reference to M-066's `entity-body-empty` finding so the operator understands the body is not optional in the long run. Verified by the discoverability policy test (per G-021).
 
+## Work log
+
+### AC-1 — --body-file <path> populates AC body in same atomic commit
+
+Bound `--body-file` (StringArrayVar) on `aiwf add ac`; threaded through to `verb.AddACBatch` via new `bodies [][]byte` parameter. Body content lands under the scaffolded `### AC-N — <title>` heading in the same atomic commit. · commit f92a2e3 · tests pass=2 fail=0 skip=0
