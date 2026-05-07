@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_158 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_158 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -120,18 +120,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | G-068 | work/gaps/G-068-discoverability-policy-misses-dynamic-finding-subcodes.md | G-068 body section \`## What's missing\` is empty |
-| entity-body-empty | G-068 | work/gaps/G-068-discoverability-policy-misses-dynamic-finding-subcodes.md | G-068 body section \`## Why it matters\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add gap G-068 'Discoverability policy misses dynamic finding subcodes' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-6 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-6 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-6 --phase red -> green |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 
