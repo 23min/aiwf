@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: CLAUDE.md gains a setup section listing recommended plugins
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
