@@ -65,6 +65,16 @@ The verbs covered: `check`, `show`, `history`, `status`, `schema`, `template`, `
 
 ### AC-2 — Single-commit-per-verb invariant asserted per mutating verb
 
+CLAUDE.md design decision §7: "Every mutating verb produces exactly one git commit. That gives per-mutation atomicity for free. A failed mutation aborts before the commit." This is one of the load-bearing properties any change must preserve — together with stable ids, layered location-of-truth, and `aiwf check` as the chokepoint — and the audit closed via G-051 ("Planning sessions emit one commit per entity, not per logical mutation") was the user-visible symptom of an earlier era when this invariant was not enforced.
+
+`TestBinary_MutatingVerbs_Subprocess` already runs every migrated mutating verb as a subprocess sequence and asserts that each invocation exits cleanly. It does *not* assert the commit count delta per verb. A regression where `aiwf promote` started emitting two commits (one for the entity update, one for a side-effect projection) — or where `aiwf cancel` emitted zero commits and stamped its mutation as part of the *next* verb's commit — would still pass that test. The kernel's atomicity guarantee, the property `aiwf history` projects against, and the per-mutation rollback story all depend on this delta being exactly 1.
+
+This AC adds a sequence test that drives each mutating verb through the in-process dispatcher (`run([]string{...})`), records `git rev-list --count HEAD` before and after the verb, and asserts the delta is exactly 1. The sequence mirrors a typical consumer-repo lifecycle and is exhaustive over the user-facing mutating verb surface: `add` (each kind), `promote` (entity status, AC status, AC tdd_phase), `rename`, `edit-body`, `move`, `cancel`, `authorize` (open / pause / resume), `import` (default bundled-commit mode — multi-entity manifest must still be one commit), `reallocate`, and the `contract` family (`recipe install`, `bind`, `unbind`, `recipe remove`).
+
+The "default-mode `import`" subcase is the audit's namesake: a manifest with N entities must produce exactly one commit, not N. The test seeds a multi-entity manifest specifically to pin that.
+
+The assertion is `delta == 1` (strict equality), not `delta >= 1`. Strict equality catches both ends of the regression: a verb that silently produces a *second* commit (e.g. an audit-trail commit), and a verb that emits *zero* commits (the "deferred to next verb" smell). The verb table is, again, the source of truth — adding a new mutating verb without a row here is the regression this test surfaces.
+
 ### AC-3 — Trailer-key shape asserted per mutating verb
 
 ### AC-4 — Pre-push hook byte-golden plus template-equals-installed cross-check
