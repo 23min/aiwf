@@ -27,7 +27,7 @@ flowchart LR
 
 ### E-16 — TDD policy declaration chokepoint (closes G-055) _(proposed)_
 
-- **M-062** — tdd flag on aiwf add milestone with project-default fallback _(draft)_
+- **M-062** — tdd flag on aiwf add milestone with project-default fallback _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
@@ -64,9 +64,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add milestone M-062 'tdd flag on aiwf add milestone with project-default fallback' |
 | 2026-05-07 | human/peter | add | aiwf add epic E-16 'TDD policy declaration chokepoint (closes G-055)' |
 | 2026-05-07 | human/peter | add | aiwf add gap G-057 'Stray aiwf binary in repo root from local builds is not gitignored' |
 | 2026-05-07 | human/peter | add | aiwf add gap G-056 'aiwf render output (site/) is not gitignored; pollutes consumer working tree' |
 | 2026-05-07 | human/peter | add | aiwf add gap G-055 'Milestone creation does not require a TDD policy declaration' |
-| 2026-05-07 | human/peter | promote | aiwf promote E-14 active -> done |
 
