@@ -29,8 +29,8 @@ flowchart LR
 
 - **M-062** — tdd flag on aiwf add milestone with project-default fallback _(draft)_ — ACs 0/8 met (8 open) — tdd: required
 - **M-063** — aiwf.yaml tdd.default schema and aiwf init seeding _(draft)_ — tdd: required
-- **M-064** — aiwf update migration for existing aiwf.yaml with loud output _(draft)_
-- **M-065** — aiwf check finding milestone-tdd-undeclared as defense-in-depth _(draft)_
+- **M-064** — aiwf update migration for existing aiwf.yaml with loud output _(draft)_ — tdd: required
+- **M-065** — aiwf check finding milestone-tdd-undeclared as defense-in-depth _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
@@ -73,9 +73,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add milestone M-065 'aiwf check finding milestone-tdd-undeclared as defense-in-depth' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-064 'aiwf update migration for existing aiwf.yaml with loud output' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-063 'aiwf.yaml tdd.default schema and aiwf init seeding' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-062 AC-1..AC-8 (8 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-062 'tdd flag on aiwf add milestone with project-default fallback' |
-| 2026-05-07 | human/peter | add | aiwf add epic E-16 'TDD policy declaration chokepoint (closes G-055)' |
 
