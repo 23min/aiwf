@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Skill cites the design intent (acs-and-tdd-plan.md)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Skill recommends the body shape (paragraph, key contents)
       status: open
