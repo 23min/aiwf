@@ -4,6 +4,27 @@ title: aiwf check finding milestone-tdd-undeclared as defense-in-depth
 status: draft
 parent: E-16
 tdd: required
+acs:
+    - id: AC-1
+      title: 'milestone-tdd-undeclared (warning) when tdd: is absent'
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Severity escalates to error under aiwf.yaml tdd.strict true
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: 'Milestones with tdd: set produce no finding'
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Finding does not retroactively engage acs-tdd-audit
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: Finding code documented in aiwf-check skill
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -19,3 +40,14 @@ The grandfather rule from [G-055](../../gaps/G-055-milestone-creation-does-not-r
 Test fixtures cover: a milestone with no `tdd:` (warning), a milestone with `tdd: required` (no finding), the same fixtures under `tdd.strict: true` (error). The `aiwf-check` skill gains a row in its findings table per the kernel's discoverability rule (see G-021's `PolicyFindingCodesAreDiscoverable`).
 
 ## Acceptance criteria
+
+### AC-1 — milestone-tdd-undeclared (warning) when tdd: is absent
+
+### AC-2 — Severity escalates to error under aiwf.yaml tdd.strict true
+
+### AC-3 — Milestones with tdd: set produce no finding
+
+### AC-4 — Finding does not retroactively engage acs-tdd-audit
+
+### AC-5 — Finding code documented in aiwf-check skill
+
