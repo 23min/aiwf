@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: Native-Cobra drift test fails CI on passthrough-adapter regression
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: Help-quality drift asserts Example present and no migration prose
       status: open
