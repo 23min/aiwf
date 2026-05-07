@@ -6,14 +6,14 @@ _151 entities · 0 errors · 0 warnings_
 
 ### E-17 — Entity body prose chokepoint (closes G-058) _(active)_
 
-- **M-066** — aiwf check finding acs-body-empty _(draft)_ — ACs 0/6 met (6 open) — tdd: required
+- **M-066** — aiwf check finding entity-body-empty _(draft)_ — ACs 0/6 met (6 open) — tdd: required
 - **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(draft)_ — ACs 0/8 met (8 open) — tdd: required
 - **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — ACs 0/5 met (5 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_17["E-17<br/>Entity body prose chokepoint (closes G-058)"]:::epic_active
-  M_066["M-066 (0/6)<br/>aiwf check finding acs-body-empty"]:::ms_draft
+  M_066["M-066 (0/6)<br/>aiwf check finding entity-body-empty"]:::ms_draft
   E_17 --> M_066
   M_067["M-067 (0/8)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_draft
   E_17 --> M_067
@@ -102,9 +102,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | retitle | aiwf retitle E-17 (manual; G-065 verb does not yet exist) |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-066 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-066 'aiwf add epic/milestone/gap/adr/decision/contract verbs lack --body-file flag for in-verb body scaffolding; only aiwf add ac will gain it via M-067, leaving the other six entity-creation verbs reliant on post-add aiwf edit-body' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body E-17 |
 | 2026-05-07 | human/peter | rename | aiwf rename E-17 slug -> entity-body-prose-chokepoint-closes-g-058 |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body G-065 |
 

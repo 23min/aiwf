@@ -1,12 +1,12 @@
 ---
 id: M-066
-title: aiwf check finding acs-body-empty
+title: aiwf check finding entity-body-empty
 status: draft
 parent: E-17
 tdd: required
 acs:
     - id: AC-1
-      title: acs-body-empty (warning) when body section is empty
+      title: entity-body-empty (warning) when body section is empty
       status: open
       tdd_phase: red
     - id: AC-2
@@ -14,7 +14,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-3
-      title: ACs with non-empty body prose produce no finding
+      title: Entities with non-empty body prose produce no finding
       status: open
       tdd_phase: red
     - id: AC-4
@@ -35,7 +35,7 @@ acs:
 
 This milestone was originally scoped AC-only as `acs-body-empty`. **Rescoped 2026-05-07** to a kind-generalized finding `entity-body-empty` covering all entity kinds whose body carries load-bearing prose. The rescope was forced by [G-063](../../gaps/G-063-no-defined-start-epic-ritual-epic-activation-is-a-deliberate-sovereign-act-with-preflight-optional-delegation-but-kernel-treats-it-as-a-one-line-fsm-flip.md): the start-epic preflight requires a "non-empty epic body" check, and the cleanest implementation is one rule parameterized by kind rather than two parallel rules. Sub-decision #4 of G-063 governs.
 
-The frontmatter `title` field and per-AC `title` fields still reference the old code name (`acs-body-empty`, AC-only phrasing). No `aiwf retitle` verb exists today — see G-065 (filed alongside this rescope). The body below carries the authoritative scope; the frontmatter titles are stale until that gap closes.
+Title, slug, and per-AC titles have all been updated to reflect the generalized scope. The frontmatter title fields were hand-edited (operator-authorized; no `aiwf retitle` verb exists yet — see [G-065](../../gaps/G-065-no-aiwf-retitle-verb-scope-refactors-that-change-an-entity-s-or-ac-s-intent-leave-frontmatter-title-fields-permanently-misleading-only-slug-rename-is-supported.md) for the verb-mechanism gap that this rescope surfaced).
 
 ## Goal
 
@@ -65,9 +65,7 @@ The grandfather rule is preserved by *not* coupling this to `acs-tdd-audit`: his
 
 ## Acceptance criteria
 
-### AC-1 — acs-body-empty (warning) when body section is empty
-
-*Frontmatter title preserved from the original AC-only scope. Actual rule code name is `entity-body-empty`; behavior generalizes across kinds.*
+### AC-1 — entity-body-empty (warning) when body section is empty
 
 `aiwf check` against a planning tree containing an entity with at least one empty load-bearing body section emits an `entity-body-empty` finding at warning severity. The rule fires for each entity kind in the per-kind table above. AC bodies use the existing heading locator (`### AC-N — <title>`); top-level kinds scan `## <section>` headings. Definition of empty: between the section heading and the next heading (or EOF), no non-heading non-whitespace content. Multiple blank lines, leading/trailing whitespace, and Windows line endings all count as empty. The finding includes the entity id (composite for ACs), kind, missing section name, file path, and a hint pointing at `aiwf add ac --body-file` (M-067, AC-only) for ACs and to a follow-up gap for the non-AC `--body-file` flags. Implementation: a new rule in `internal/check/`, with per-kind body-section dispatch sharing the heading-locator from the existing `acs-body-coherence` rule.
 
@@ -75,9 +73,7 @@ The grandfather rule is preserved by *not* coupling this to `acs-tdd-audit`: his
 
 When `aiwf.yaml` contains `tdd.strict: true`, the `entity-body-empty` finding is emitted at error severity instead of warning, regardless of kind. The escalation reads from the same `tdd.strict` field that M-065's `milestone-tdd-undeclared` reads — single source of truth for the project's strictness posture, no parallel field. Tested with two fixtures sharing the same planning tree but differing only in `tdd.strict`; one produces a warning, the other an error. Exit code rises to 1 in the strict case.
 
-### AC-3 — ACs with non-empty body prose produce no finding
-
-*Generalizes from "ACs" to any entity kind in the per-kind table.*
+### AC-3 — Entities with non-empty body prose produce no finding
 
 For any entity whose load-bearing body sections each contain at least one non-heading line of non-whitespace content, the rule emits no finding. The check is permissive about *what* the prose is — a one-line paragraph, a bullet list, a code block, a single sentence, or rich multi-paragraph detail all clear the rule. The kernel principle "prose is not parsed" applies (per `acs-and-tdd-plan.md:197`); the rule asserts presence, not structure. Tested with several positive fixtures spanning kinds (epic, milestone, AC, gap).
 
