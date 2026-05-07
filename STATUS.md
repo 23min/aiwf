@@ -100,9 +100,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | rename | aiwf rename M-066 slug -> aiwf-check-finding-entity-body-empty |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-064 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-064 'Kernel repo dogfooding closed partial (G-038) without installing the ritual plugins (aiwf-extensions, wf-rituals); operator-side surface incomplete here despite framework design assuming rituals are present' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-063 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-063 'No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip' |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body G-062 |
 

@@ -31,41 +31,65 @@ acs:
       tdd_phase: red
 ---
 
+## Rescope note (per G-063, 2026-05-07)
+
+This milestone was originally scoped AC-only as `acs-body-empty`. **Rescoped 2026-05-07** to a kind-generalized finding `entity-body-empty` covering all entity kinds whose body carries load-bearing prose. The rescope was forced by [G-063](../../gaps/G-063-no-defined-start-epic-ritual-epic-activation-is-a-deliberate-sovereign-act-with-preflight-optional-delegation-but-kernel-treats-it-as-a-one-line-fsm-flip.md): the start-epic preflight requires a "non-empty epic body" check, and the cleanest implementation is one rule parameterized by kind rather than two parallel rules. Sub-decision #4 of G-063 governs.
+
+The frontmatter `title` field and per-AC `title` fields still reference the old code name (`acs-body-empty`, AC-only phrasing). No `aiwf retitle` verb exists today — see G-065 (filed alongside this rescope). The body below carries the authoritative scope; the frontmatter titles are stale until that gap closes.
+
 ## Goal
 
-Add an `aiwf check` finding `acs-body-empty` that fires for any AC whose body section under `### AC-N — <title>` is empty (no non-heading content between the AC's heading and the next `###` or EOF). Warning severity by default; error under `aiwf.yaml: tdd.strict: true` (sharing the same strictness field as [M-065](../E-16-tdd-policy-declaration-chokepoint-closes-g-055/M-065-aiwf-check-finding-milestone-tdd-undeclared-as-defense-in-depth.md)'s `milestone-tdd-undeclared`). This is the load-bearing chokepoint of the epic — the rule that makes the design intent mechanically enforceable.
+Add an `aiwf check` finding `entity-body-empty` that fires for any entity whose load-bearing body section is empty (no non-heading content between the section heading and the next, or EOF; HTML comments do not satisfy non-empty). Warning severity by default; error under `aiwf.yaml: tdd.strict: true` (sharing the same strictness field as [M-065](../E-16-tdd-policy-declaration-chokepoint-closes-g-055/M-065-aiwf-check-finding-milestone-tdd-undeclared-as-defense-in-depth.md)'s `milestone-tdd-undeclared`). This is the load-bearing chokepoint that makes per-kind body-prose intent mechanically enforceable.
 
 ## Approach
 
-New rule in `internal/check/`. Extends the existing `acs-body-coherence` machinery (which already locates AC body sections by heading id) with an emptiness check on the section content. Definition of empty: between the AC's `### AC-N — <title>` heading and the next `### ` (or EOF), there is no non-whitespace content other than the heading itself. A bare heading with a blank line after it counts as empty; a heading with a single `<!-- TODO -->` HTML comment also counts as empty (operator-side intent: a comment is not the prose the design specifies).
+New rule in `internal/check/`. Per-kind dispatch: each entity kind has a hardcoded list of load-bearing body sections; the rule walks the body, locates each named section by heading, and asserts non-empty content between that heading and the next.
 
-Severity is resolved from `aiwf.yaml: tdd.strict` — the same field that gates M-065's escalation. Single source of truth: both `acs-body-empty` and `milestone-tdd-undeclared` read it; no parallel field, no second config knob.
+| Kind | Required non-empty body sections |
+|---|---|
+| epic | `Goal`, `Scope`, `Out of scope` |
+| milestone | `Goal`, `Approach`, `Acceptance criteria` |
+| AC (sub-element of milestone) | `### AC-N — <title>` body |
+| gap | `What's missing`, `Why it matters` |
+| adr | `Context`, `Decision`, `Consequences` |
+| decision | `Question`, `Decision`, `Reasoning` |
+| contract | `Purpose`, `Stability` |
 
-The grandfather rule is preserved by *not* coupling this to `acs-tdd-audit` — historical milestones with met ACs and empty bodies surface as `acs-body-empty` warnings (so they're visible) but do not retroactively flunk `acs-tdd-audit`. Same pattern as M-065 / G-055.
+Definition of empty: between the section's heading and the next heading (or EOF), there is no non-whitespace content other than the heading itself. Multiple consecutive blank lines, leading/trailing whitespace, and Windows line endings all count as empty. HTML comments are stripped before the emptiness check (operator intent to defer is not the prose the design specifies).
+
+For ACs, the rule shares the heading-locator from the existing `acs-body-coherence` rule rather than re-parsing the markdown. For top-level kinds, a similar locator scans the body's `## ` headings.
+
+Severity is resolved from `aiwf.yaml: tdd.strict` — the same field that gates M-065's escalation. Single source of truth: both `entity-body-empty` and `milestone-tdd-undeclared` read it; no parallel field, no second config knob.
+
+The grandfather rule is preserved by *not* coupling this to `acs-tdd-audit`: historical entities with empty bodies surface as `entity-body-empty` warnings (so they're visible) but do not retroactively flunk other audits.
 
 ## Acceptance criteria
 
 ### AC-1 — acs-body-empty (warning) when body section is empty
 
-`aiwf check` against a planning tree that contains a milestone with at least one AC whose body section is empty emits an `acs-body-empty` finding at warning severity for that AC. Definition of empty: between the AC's `### AC-N — <title>` heading and the next `### ` heading (or EOF), there is no non-whitespace content other than the heading line itself. Multiple consecutive blank lines, leading/trailing whitespace, and Windows line endings all count as empty. The finding includes the milestone id, the AC composite id (`M-NNN/AC-N`), the file path, and a hint pointing at the `--body-file` flag (M-067) and the design-intent citation. Implementation: a new rule in `internal/check/`, sharing the heading-locator from the existing `acs-body-coherence` rule rather than re-parsing the markdown.
+*Frontmatter title preserved from the original AC-only scope. Actual rule code name is `entity-body-empty`; behavior generalizes across kinds.*
+
+`aiwf check` against a planning tree containing an entity with at least one empty load-bearing body section emits an `entity-body-empty` finding at warning severity. The rule fires for each entity kind in the per-kind table above. AC bodies use the existing heading locator (`### AC-N — <title>`); top-level kinds scan `## <section>` headings. Definition of empty: between the section heading and the next heading (or EOF), no non-heading non-whitespace content. Multiple blank lines, leading/trailing whitespace, and Windows line endings all count as empty. The finding includes the entity id (composite for ACs), kind, missing section name, file path, and a hint pointing at `aiwf add ac --body-file` (M-067, AC-only) for ACs and to a follow-up gap for the non-AC `--body-file` flags. Implementation: a new rule in `internal/check/`, with per-kind body-section dispatch sharing the heading-locator from the existing `acs-body-coherence` rule.
 
 ### AC-2 — Severity escalates to error under aiwf.yaml tdd.strict true
 
-When `aiwf.yaml` contains `tdd.strict: true`, the `acs-body-empty` finding is emitted at error severity instead of warning. The escalation reads from the same `tdd.strict` field that M-065's `milestone-tdd-undeclared` reads — single source of truth for the project's TDD strictness posture, no parallel field. Tested with two fixtures sharing the same planning tree but differing only in `tdd.strict`; one produces a warning, the other an error. Exit code rises to 1 in the strict case.
+When `aiwf.yaml` contains `tdd.strict: true`, the `entity-body-empty` finding is emitted at error severity instead of warning, regardless of kind. The escalation reads from the same `tdd.strict` field that M-065's `milestone-tdd-undeclared` reads — single source of truth for the project's strictness posture, no parallel field. Tested with two fixtures sharing the same planning tree but differing only in `tdd.strict`; one produces a warning, the other an error. Exit code rises to 1 in the strict case.
 
 ### AC-3 — ACs with non-empty body prose produce no finding
 
-For any AC whose body section contains at least one non-heading line of non-whitespace content, the rule emits no finding. The check is permissive about *what* the prose is — a one-line paragraph, a bullet list, a code block, a single sentence, or rich multi-paragraph detail all clear the rule. The kernel principle "prose is not parsed" applies (per `acs-and-tdd-plan.md:197`); the rule asserts presence, not structure. Tested with several positive fixtures covering the range of acceptable shapes.
+*Generalizes from "ACs" to any entity kind in the per-kind table.*
+
+For any entity whose load-bearing body sections each contain at least one non-heading line of non-whitespace content, the rule emits no finding. The check is permissive about *what* the prose is — a one-line paragraph, a bullet list, a code block, a single sentence, or rich multi-paragraph detail all clear the rule. The kernel principle "prose is not parsed" applies (per `acs-and-tdd-plan.md:197`); the rule asserts presence, not structure. Tested with several positive fixtures spanning kinds (epic, milestone, AC, gap).
 
 ### AC-4 — Bare HTML comments do not satisfy the non-empty requirement
 
-An AC whose body contains only HTML comments (e.g. `<!-- TODO: write this -->` or `<!-- placeholder -->`) is treated as empty — the comment is operator intent to defer, not the prose the design specifies. The rule strips HTML comment blocks before the emptiness check; if nothing non-whitespace remains, the finding fires. Edge case: a single HTML comment followed by real prose passes (the prose is what counts); a single HTML comment with nothing else does not. Tested with both shapes.
+An entity whose load-bearing body section contains only HTML comments (e.g. `<!-- TODO: write this -->` or `<!-- placeholder -->`) is treated as empty — the comment is operator intent to defer, not the prose the design specifies. The rule strips HTML comment blocks before the emptiness check; if nothing non-whitespace remains, the finding fires. Edge case: a single HTML comment followed by real prose passes (the prose is what counts); a single HTML comment with nothing else does not. Tested with both shapes across at least two kinds.
 
 ### AC-5 — Finding does not retroactively engage acs-tdd-audit
 
-The grandfather rule from G-055 / G-058 is preserved: for an AC that surfaces `acs-body-empty`, the AC's status / phase fields are not retroactively re-audited against `acs-tdd-audit`. In practice: the historical E-14 milestones (M-049 through M-055), all `met` with empty bodies, will produce one `acs-body-empty` warning per AC but **zero** new `acs-tdd-audit` findings. Tested with a fixture mirroring the historical shape (every AC `status: met`, empty body) and asserted that only `acs-body-empty` fires.
+The grandfather rule from G-055 / G-058 is preserved: for an AC that surfaces `entity-body-empty`, the AC's status / phase fields are not retroactively re-audited against `acs-tdd-audit`. In practice: the historical E-14 milestones (M-049 through M-055), all `met` with empty bodies, will produce `entity-body-empty` warnings per AC but **zero** new `acs-tdd-audit` findings. Same pattern as M-065 / G-055. Top-level kinds do not have an analogous retroactive-audit coupling, so this AC remains AC-scoped in its concern; the assertion is "no new `acs-tdd-audit` findings introduced when adding `entity-body-empty`," which is independent of how many non-AC kinds the rule covers.
 
 ### AC-6 — Finding code documented in aiwf-check skill
 
-The `aiwf-check` skill's findings table gains a row for `acs-body-empty`: severity (warning, escalates to error under `tdd.strict: true`), trigger (AC body section under `### AC-N — <title>` is empty), and remediation (write a paragraph naming pass criteria / edge cases / code references; or use `aiwf add ac --body-file` from M-067 for in-verb scaffolding). The discoverability test in `internal/policies/` (per G-021's `PolicyFindingCodesAreDiscoverable`) catches the code at CI time if the row is missing.
+The `aiwf-check` skill's findings table gains a row for `entity-body-empty`: severity (warning, escalates to error under `tdd.strict: true`), trigger (any load-bearing body section is empty per the per-kind list above), and remediation (write prose for the named section; for ACs, use `aiwf add ac --body-file` from M-067; for other kinds, edit body and run `aiwf edit-body`, until the follow-up gap delivers `--body-file` for those verbs). The discoverability test in `internal/policies/` (per G-021's `PolicyFindingCodesAreDiscoverable`) catches the code at CI time if the row is missing.
 
