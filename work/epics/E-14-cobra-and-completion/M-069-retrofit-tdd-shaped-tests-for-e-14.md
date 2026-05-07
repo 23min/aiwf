@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Single-commit-per-verb invariant asserted per mutating verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Trailer-key shape asserted per mutating verb
