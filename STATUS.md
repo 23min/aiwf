@@ -92,9 +92,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote E-18 active -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote G-064 open -> addressed |
 | 2026-05-08 | human/peter | promote | aiwf promote G-062 open -> addressed |
 | 2026-05-08 | human/peter | merge | Merge milestone M-071: install ritual plugins for project scope + document operator setup |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-08 | human/peter | promote | aiwf promote M-071 in_progress -> done |
 
