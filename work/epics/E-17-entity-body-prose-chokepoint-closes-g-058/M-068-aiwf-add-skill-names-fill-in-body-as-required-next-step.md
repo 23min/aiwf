@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Skill names fill-in-body as required next step
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Skill cites the design intent (acs-and-tdd-plan.md)
       status: open
