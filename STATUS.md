@@ -102,9 +102,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add gap G-066 'aiwf add epic/milestone/gap/adr/decision/contract verbs lack --body-file flag for in-verb body scaffolding; only aiwf add ac will gain it via M-067, leaving the other six entity-creation verbs reliant on post-add aiwf edit-body' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body E-17 |
 | 2026-05-07 | human/peter | rename | aiwf rename E-17 slug -> entity-body-prose-chokepoint-closes-g-058 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-065 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-065 'No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported' |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 
