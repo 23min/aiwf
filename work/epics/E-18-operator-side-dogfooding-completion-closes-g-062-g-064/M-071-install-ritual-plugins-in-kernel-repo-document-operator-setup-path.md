@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Both plugins are installed for this repo's project scope
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: M-070's doctor warning goes silent after install (validates G-062)
