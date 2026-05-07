@@ -99,9 +99,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add gap G-061 'Generic \`aiwf list <kind>\` verb referenced as canonical in contracts plan and shipped contract skill, but never implemented; AI assistants are instructed to invoke a non-existent verb' |
 | 2026-05-07 | human/peter | promote | aiwf promote E-14 active -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069 in_progress -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-7 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-6 open -> met |
-| 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-5 open -> met |
 
