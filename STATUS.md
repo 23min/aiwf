@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_158 entities · 0 errors · 0 warnings_
+_159 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -76,6 +76,7 @@ flowchart LR
 | ID | Kind | Title | Status |
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
+| ADR-0002 | adr | TEST-DRY-RUN-DELETE-ME | proposed |
 
 ## Open gaps
 
@@ -98,7 +99,11 @@ flowchart LR
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Context\` is empty |
+| entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Decision\` is empty |
+| entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Consequences\` is empty |
 
 ## Recent activity
 
