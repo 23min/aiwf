@@ -1,7 +1,7 @@
 ---
 id: E-14
 title: Cobra and completion
-status: active
+status: done
 ---
 
 ## Goal
