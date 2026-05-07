@@ -53,9 +53,9 @@ flowchart LR
 
 ### E-17 — AC body prose chokepoint (closes G-058) _(proposed)_
 
-- **M-066** — aiwf check finding acs-body-empty _(draft)_
-- **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(draft)_
-- **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_
+- **M-066** — aiwf check finding acs-body-empty _(draft)_ — tdd: required
+- **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(draft)_ — tdd: required
+- **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
@@ -97,9 +97,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add milestone M-068 'aiwf-add skill names fill-in-body as required next step' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-067 'aiwf add ac --body-file flag for in-verb body scaffolding' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-066 'aiwf check finding acs-body-empty' |
 | 2026-05-07 | human/peter | add | aiwf add epic E-17 'AC body prose chokepoint (closes G-058)' |
 | 2026-05-07 | human/peter | add | aiwf add gap G-058 'AC body sections ship empty; no chokepoint enforces prose intent' |
-| 2026-05-07 | human/peter | add | aiwf add ac M-065 AC-1..AC-5 (5 criteria) |
 
