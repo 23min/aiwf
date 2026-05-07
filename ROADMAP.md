@@ -160,7 +160,7 @@ End state: `aiwf add milestone --tdd required|advisory|none` is the chokepoint; 
 | M-064 | aiwf update migration for existing aiwf.yaml with loud output | draft |
 | M-065 | aiwf check finding milestone-tdd-undeclared as defense-in-depth | draft |
 
-## E-17 — Entity body prose chokepoint (closes G-058) (active)
+## E-17 — Entity body prose chokepoint (closes G-058) (done)
 
 ### Goal
 
