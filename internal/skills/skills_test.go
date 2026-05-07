@@ -425,6 +425,76 @@ func TestSkill_AddRecommendsBodyShape(t *testing.T) {
 	}
 }
 
+// TestSkill_AddNamesBodyFileAsAlternative pins M-068/AC-4: the
+// body-prose subsection names `--body-file` as the in-verb
+// alternative to the default two-step (`aiwf add` then
+// `aiwf edit-body`) flow, with an explicit cross-reference to
+// M-067 so the operator can trace the verb history. The cross-
+// reference is two-way: M-067/AC-8's tests pin the analogous
+// reference in the other direction.
+//
+// "When to use" guidance: the skill should make clear that the
+// in-verb form is the right choice when the operator has the
+// body content already drafted (mining from a design doc, prior
+// conversation, etc.) — landing it in the create commit avoids
+// the follow-up untrailered hand-edit and the
+// `provenance-untrailered-entity-commit` warning that would
+// otherwise fire.
+//
+// AC-4's spec asserted the flag was AC-only (with G-066 capturing
+// the non-AC follow-up). That's stale: M-056 already extended
+// `--body-file` to all six top-level kinds before M-067 added
+// the AC variant. This test asserts the skill's actual content,
+// which is the universal availability — it does NOT pin the
+// stale "AC-only" framing the spec text used.
+func TestSkill_AddNamesBodyFileAsAlternative(t *testing.T) {
+	skills, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var content string
+	for _, s := range skills {
+		if s.Name == "aiwf-add" {
+			content = string(s.Content)
+			break
+		}
+	}
+	if content == "" {
+		t.Fatal("aiwf-add skill not found in embedded set")
+	}
+
+	tail, ok := extractH2Section(content, "## After `aiwf add")
+	if !ok {
+		t.Fatal("AC-4 prerequisite: body-prose subsection missing — AC-1 must land first")
+	}
+
+	// AC-4 surface — the body-prose subsection must call the
+	// flag by name and pair it with the two-step alternative
+	// so the operator knows both paths.
+	mustContain := []string{
+		// The flag itself, named in the subsection (not just
+		// referenced "above" via cross-link).
+		"--body-file",
+		// The two-step alternative co-located so the operator
+		// reads them in one place rather than separately.
+		"aiwf edit-body",
+		// Explicit M-067 cross-reference. The spec calls for
+		// a two-way pointer; without the literal id the trail
+		// from this skill back to the verb history is lost.
+		"M-067",
+		// "When to use" — the skill should signal that the
+		// in-verb form is for content already drafted, not a
+		// universal default. The literal phrase the AC's spec
+		// uses is "already drafted"; we pin that wording.
+		"already drafted",
+	}
+	for _, m := range mustContain {
+		if !strings.Contains(tail, m) {
+			t.Errorf("AC-4 (body-file cross-reference): missing marker %q", m)
+		}
+	}
+}
+
 // TestMaterialize_FreshDir writes every embedded skill into a clean
 // directory and verifies the on-disk content matches the embed
 // byte-for-byte.

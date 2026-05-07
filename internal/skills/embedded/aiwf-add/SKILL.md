@@ -106,8 +106,8 @@ The load-bearing body sections per kind:
 
 Two ways to land the body content:
 
-- **Two-step (default)**: `aiwf add <kind> --title "..."` creates the entity with empty body sections; then edit the file and run `aiwf edit-body <id>` to commit the prose with proper trailers. Works for every kind today.
-- **One-step (in-verb)**: pass `--body-file <path>` (or `-` for stdin) on `aiwf add` so the body lands in the same atomic create commit as the frontmatter. Available for all six top-level kinds and for ACs (with positional pairing — see the body-file sections above).
+- **Two-step (default)**: `aiwf add <kind> --title "..."` creates the entity with empty body sections; then edit the file and run `aiwf edit-body <id>` to commit the prose with proper trailers. Works for every kind today. Right when the body shape isn't fully clear yet — let the file scaffold first, then iterate the prose.
+- **One-step (in-verb)**: pass `--body-file <path>` (or `-` for stdin) on `aiwf add` so the body lands in the same atomic create commit as the frontmatter. Available for all six top-level kinds (since M-056) and for ACs (positional pairing per M-067 — see the body-file sections above). Right when the body content is **already drafted** — mining from a design doc, a prior conversation, a code comment, or a CLI tool's stderr that named the defect. Landing it in the create commit avoids the follow-up untrailered hand-edit (and the `provenance-untrailered-entity-commit` warning that would otherwise fire on the next `aiwf check`).
 
 ### What to write per kind
 
