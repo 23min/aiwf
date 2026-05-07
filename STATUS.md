@@ -125,9 +125,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-049 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | promote | aiwf promote D-001 proposed -> accepted |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body D-001 |
 | 2026-05-07 | human/peter | add | aiwf add decision D-001 'entity-body-empty top-level sections count sub-headings as content; only AC leaf bodies require non-heading prose' |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body G-067 |
 
