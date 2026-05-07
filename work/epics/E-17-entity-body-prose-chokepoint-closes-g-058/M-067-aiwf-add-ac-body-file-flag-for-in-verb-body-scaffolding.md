@@ -110,3 +110,7 @@ Added a count-equality check in `runAddACCmd` that fires before file reads, lock
 ### AC-4 — Body file with leading --- frontmatter refused
 
 Closed the structural-break gap left when AC-1 wired `--body-file` without the same leading-`---` rejection that the whole-entity `--body-file` path (`verb.Add` via `validateUserBodyBytes`) already enforced. Inlined the trim-and-prefix check (both `---\n` and `---\r\n` arms, mirroring the existing validator) in `runAddACCmd` right after `readBodyFile`, returning `exitUsage` with an error that names the offending file path. Without this, a body file with embedded frontmatter was happily appended under the AC heading and silently broke the milestone document. · commit d1868e1 · tests pass=1 fail=0 skip=0
+
+### AC-5 — --body-file - reads from stdin (only with single --title)
+
+Single-title path was already covered by `readBodyFile("-")` → `io.ReadAll(os.Stdin)` from the AC-1 wiring; the gap was the multi-title case, where `readBodyFile` was called once per `--body-file -`, draining stdin on the first read and silently appending empty bodies to subsequent ACs. Added a pre-read check in `runAddACCmd` (`len(titles) > 1 && any p == "-"`) that returns `exitUsage` before any `--body-file` is read, so a piped operator's input isn't consumed on a doomed invocation. Test infra gained `runBinStdin` so the integration tests can pipe stdin into the subprocess. · commit 70da357 · tests pass=2 fail=0 skip=0
