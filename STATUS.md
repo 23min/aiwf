@@ -8,7 +8,7 @@ _158 entities · 0 errors · 0 warnings_
 
 - ✓ **M-066** — aiwf check finding entity-body-empty _(done)_ — ACs 6/6 met — tdd: required
 - ✓ **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(done)_ — ACs 7/7 met — tdd: required
-- **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — ACs 0/5 met (5 open) — tdd: required
+- → **M-068** — aiwf-add skill names fill-in-body as required next step _(in_progress)_ — ACs 0/5 met (5 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
   E_17 --> M_066
   M_067["M-067 (7/7)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_done
   E_17 --> M_067
-  M_068["M-068 (0/5)<br/>aiwf-add skill names fill-in-body as required next step"]:::ms_draft
+  M_068["M-068 (0/5)<br/>aiwf-add skill names fill-in-body as required next step"]:::ms_in_progress
   E_17 --> M_068
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -126,9 +126,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066 in_progress -> done |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-068 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-068 'Discoverability policy misses dynamic finding subcodes' |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 

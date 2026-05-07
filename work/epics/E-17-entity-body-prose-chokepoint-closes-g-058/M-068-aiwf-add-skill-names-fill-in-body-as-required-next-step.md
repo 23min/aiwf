@@ -1,7 +1,7 @@
 ---
 id: M-068
 title: aiwf-add skill names fill-in-body as required next step
-status: draft
+status: in_progress
 parent: E-17
 tdd: required
 acs:
