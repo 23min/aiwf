@@ -14,7 +14,7 @@ _143 entities · 0 errors · 0 warnings_
 - ✓ **M-054** — Dynamic id completion and drift test _(done)_ — ACs 4/4 met
 - ✓ **M-055** — Documentation pass _(done)_ — ACs 4/4 met
 - ✓ **M-061** — Contract family migration + changelog retrofill + help-recursion test _(done)_ — ACs 5/5 met
-- **M-069** — Retrofit TDD-shaped tests for E-14 _(draft)_ — tdd: required
+- **M-069** — Retrofit TDD-shaped tests for E-14 _(draft)_ — ACs 0/7 met (7 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -35,7 +35,7 @@ flowchart LR
   E_14 --> M_055
   M_061["M-061 (5/5)<br/>Contract family migration + changelog retrofill + help-recursion test"]:::ms_done
   E_14 --> M_061
-  M_069["M-069<br/>Retrofit TDD-shaped tests for E-14"]:::ms_draft
+  M_069["M-069 (0/7)<br/>Retrofit TDD-shaped tests for E-14"]:::ms_draft
   E_14 --> M_069
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -135,9 +135,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add milestone M-069 'Retrofit TDD-shaped tests for E-14' |
 | 2026-05-07 | human/peter | promote | aiwf promote E-14 done -> active |
 | 2026-05-07 | human/peter | promote | aiwf promote G-055 open -> addressed |
 | 2026-05-07 | human/peter | add | aiwf add ac M-068 AC-1..AC-5 (5 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add ac M-067 AC-1..AC-8 (8 criteria) |
-| 2026-05-07 | human/peter | add | aiwf add ac M-066 AC-1..AC-6 (6 criteria) |
 
