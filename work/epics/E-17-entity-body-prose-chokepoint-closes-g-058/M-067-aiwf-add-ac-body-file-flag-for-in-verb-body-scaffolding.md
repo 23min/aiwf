@@ -102,3 +102,7 @@ Bound `--body-file` (StringArrayVar) on `aiwf add ac`; threaded through to `verb
 ### AC-2 — Multi-AC form pairs --body-file positionally with --title
 
 Contract-pinning test only — AC-1's wiring already paired `bodies[i]` to `newACs[i]` through the pre-existing M-057 multi-AC heading loop, so the multi-title + multi-body-file path was satisfied before this AC's cycle started. Added a binary-level test that drives `--title T1 --body-file b1 --title T2 --body-file b2` and asserts each AC's section contains the matching body marker (and not the other), plus atomicity (one commit) and trailer ordering (one `aiwf-entity` per composite id, in allocation order). Future refactor of the loop now has to keep the pairing; the test will catch a swap. · commit 1d60510 · tests pass=1 fail=0 skip=0
+
+### AC-3 — Mismatched --body-file / --title counts refuse pre-allocation
+
+Added a count-equality check in `runAddACCmd` that fires before file reads, lock acquisition, or `verb.AddACBatch` — `len(bodyFiles) > 0 && len(bodyFiles) != len(titles)` returns `exitUsage` with an error naming the observed counts, the positional pairing rule, and the omit-is-valid escape hatch. Both mismatch directions (more titles than bodies, more bodies than titles) refused; without the guard, a 3/2 invocation silently allocated three ACs with bodies on the first two only, and a 2/3 invocation silently dropped the third body. · commit 178d656 · tests pass=1 fail=0 skip=0
