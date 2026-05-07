@@ -31,7 +31,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: doctor --self-check covers the new check end-to-end
-      status: open
+      status: met
       tdd_phase: done
 ---
 
