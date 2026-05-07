@@ -4,6 +4,35 @@ title: aiwf.yaml tdd.default schema and aiwf init seeding
 status: draft
 parent: E-16
 tdd: required
+acs:
+    - id: AC-1
+      title: tdd.default field accepted in aiwf.yaml schema
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Schema rejects values outside required, advisory, none
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: 'aiwf init seeds tdd.default: required into new aiwf.yaml'
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Seeded comment names override paths and closed set
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: Init'd aiwf.yaml is consumed by M-062 resolver as fallback
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: aiwf doctor --self-check passes after init in fresh tempdir
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: Doctor goldens updated with rationale for tdd.default
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -21,3 +50,18 @@ Tests cover schema parse + validate (positive + each negative), init-into-tempdi
 The grandfather rule for existing milestones (no retroactive audit) is enforced *by* the resolver in M-062, not here — this milestone just makes the field exist and the default land in new repos. Existing repos absorb the field via M-064.
 
 ## Acceptance criteria
+
+### AC-1 — tdd.default field accepted in aiwf.yaml schema
+
+### AC-2 — Schema rejects values outside required, advisory, none
+
+### AC-3 — aiwf init seeds tdd.default: required into new aiwf.yaml
+
+### AC-4 — Seeded comment names override paths and closed set
+
+### AC-5 — Init'd aiwf.yaml is consumed by M-062 resolver as fallback
+
+### AC-6 — aiwf doctor --self-check passes after init in fresh tempdir
+
+### AC-7 — Doctor goldens updated with rationale for tdd.default
+
