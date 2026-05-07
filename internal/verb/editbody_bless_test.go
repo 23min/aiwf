@@ -188,7 +188,7 @@ func TestEditBody_Bless_ACSubSectionEdit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"first criterion", "second criterion"}, testActor, nil))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"first criterion", "second criterion"}, nil, testActor, nil))
 
 	mPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-mile.md")
 	raw, err := os.ReadFile(mPath)

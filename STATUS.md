@@ -7,7 +7,7 @@ _155 entities · 0 errors · 0 warnings_
 ### E-17 — Entity body prose chokepoint (closes G-058) _(active)_
 
 - **M-066** — aiwf check finding entity-body-empty _(draft)_ — ACs 0/6 met (6 open) — tdd: required
-- → **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(in_progress)_ — ACs 0/8 met (8 open) — tdd: required
+- ✓ **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(done)_ — ACs 7/7 met — tdd: required
 - **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — ACs 0/5 met (5 open) — tdd: required
 
 ```mermaid
@@ -15,7 +15,7 @@ flowchart LR
   E_17["E-17<br/>Entity body prose chokepoint (closes G-058)"]:::epic_active
   M_066["M-066 (0/6)<br/>aiwf check finding entity-body-empty"]:::ms_draft
   E_17 --> M_066
-  M_067["M-067 (0/8)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_in_progress
+  M_067["M-067 (7/7)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_done
   E_17 --> M_067
   M_068["M-068 (0/5)<br/>aiwf-add skill names fill-in-body as required next step"]:::ms_draft
   E_17 --> M_068
@@ -124,9 +124,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body ADR-0001 |
-| 2026-05-07 | human/peter | add | aiwf add adr ADR-0001 'Mint entity ids at trunk integration via per-kind inbox state' |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-071 |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-070 |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body E-18 |
+| 2026-05-07 | human/peter | promote | aiwf promote M-067 in_progress -> done |
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-067 |
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-067 |
+| 2026-05-07 | human/peter | promote | aiwf promote M-067/AC-8 open -> met |
+| 2026-05-07 | human/peter | promote | aiwf promote M-067/AC-8 --phase green -> done |
 

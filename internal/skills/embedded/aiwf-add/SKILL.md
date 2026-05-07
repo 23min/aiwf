@@ -54,7 +54,30 @@ aiwf add gap --title "Validators leak temp files" --body-file gap-body.md
 echo "## Goal\n\nFleshed out goal." | aiwf add epic --title "Caching" --body-file -
 ```
 
-Valid for all six kinds (epic, milestone, adr, gap, decision, contract). The file must contain body content only — leading `---` (YAML frontmatter delimiter) is refused with a clear error rather than silently stripped, so the create commit can't accidentally produce a double-frontmatter file.
+Valid for all six kinds (epic, milestone, adr, gap, decision, contract). For acceptance criteria the flag exists too but with positional-pairing semantics — see *"--body-file for AC body scaffolding"* below. The file must contain body content only — leading `---` (YAML frontmatter delimiter) is refused with a clear error rather than silently stripped, so the create commit can't accidentally produce a double-frontmatter file.
+
+## --body-file for AC body scaffolding (positional pairing)
+
+`aiwf add ac M-NNN` accepts `--body-file <path>` (repeatable) so each AC's body content lands in the same atomic create commit as its frontmatter and `### AC-N — <title>` heading. Pairing is positional: the Nth `--body-file` populates the body of the Nth `--title`.
+
+```bash
+# Single AC with body content from a file
+aiwf add ac M-001 --title "Rejects malformed YAML" --body-file ac1-body.md
+
+# Multi-AC, positional pairing — one --body-file per --title, equal counts required
+aiwf add ac M-001 \
+  --title "Rejects malformed YAML"   --body-file ac1-body.md \
+  --title "Reports the offending line" --body-file ac2-body.md
+
+# Stdin shorthand — only valid with exactly one --title
+echo "Concrete pass criteria..." | aiwf add ac M-001 --title "Matches semver" --body-file -
+```
+
+Same leading-`---` rejection as the whole-entity flag. AC-specific rules:
+
+- **Equal counts required.** When `--body-file` is provided at all, the count of `--body-file` flags must equal the count of `--title` flags. Mismatched counts refuse pre-allocation with exit 2 — the verb does not partially populate.
+- **Stdin only with single --title.** `--body-file -` is valid only when exactly one `--title` is given; stdin is one stream and cannot be split positionally. Multi-title invocations using `-` refuse before any read so the operator's piped input isn't consumed on a doomed call.
+- **Omitting --body-file is valid** (any count of `--title`). The bare `### AC-N — <title>` heading is still scaffolded with no body content under it; the `entity-body-empty` finding from `aiwf check` is the chokepoint that surfaces the empty-body case at validation time. The body is not optional in the long run, but the friction-reducing flag is opt-in at create time so multi-AC quick-scaffold flows still work.
 
 ## What aiwf does
 

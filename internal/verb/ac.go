@@ -26,9 +26,11 @@ import (
 // signature is preserved so callers that want exactly one AC don't
 // need to wrap their input in a slice. See AddACBatch for the
 // batched-creation contract; this entry point applies the same
-// rules with len(titles)=1.
+// rules with len(titles)=1. No body content is supplied; callers
+// that want to populate the AC body in the same atomic commit use
+// AddACBatch directly with a non-nil bodies slice.
 func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tests *gitops.TestMetrics) (*Result, error) {
-	return AddACBatch(ctx, t, parentID, []string{title}, actor, tests)
+	return AddACBatch(ctx, t, parentID, []string{title}, nil, actor, tests)
 }
 
 // AddACBatch creates one or more acceptance criteria under the same
@@ -61,11 +63,17 @@ func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tes
 // would otherwise silently apply the same metrics to every AC,
 // which is almost certainly not what the operator meant.
 //
+// When bodies is non-nil and bodies[i] is non-empty, its bytes are
+// appended under the matching AC's `### AC-N — <title>` heading in
+// the same atomic commit (M-067/AC-1). Other AC-067 ACs (count
+// validation, frontmatter rejection, stdin pairing) bring their own
+// rules in subsequent cycles; the AC-1 cycle does only the wiring.
+//
 // Returns a Go error for setup failures (empty titles slice, empty
 // or prosey title, milestone not found, kind mismatch, --tests with
 // N > 1 or with non-tdd-required parent). Tree-level findings caused
 // by the addition are returned in Result.Findings.
-func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []string, actor string, tests *gitops.TestMetrics) (*Result, error) {
+func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []string, bodies [][]byte, actor string, tests *gitops.TestMetrics) (*Result, error) {
 	_ = ctx
 	if len(titles) == 0 {
 		return nil, fmt.Errorf("--title is required (at least one)")
@@ -117,8 +125,11 @@ func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []str
 	if err != nil {
 		return nil, err
 	}
-	for _, ac := range newACs {
+	for i, ac := range newACs {
 		body = appendACHeading(body, ac.ID, ac.Title)
+		if i < len(bodies) {
+			body = appendACBody(body, bodies[i])
+		}
 	}
 
 	content, err := entity.Serialize(&modified, body)
@@ -404,6 +415,15 @@ func appendACHeading(body []byte, acID, title string) []byte {
 	suffix := fmt.Sprintf("\n### %s — %s\n\n", acID, title)
 	trimmed := strings.TrimRight(string(body), "\n")
 	return []byte(trimmed + "\n" + suffix)
+}
+
+// appendACBody appends user-supplied body content directly after the
+// most recently appended AC heading. Trailing newlines on content are
+// trimmed and replaced with `\n\n` so the next heading (or EOF) keeps
+// a clean blank-line separator.
+func appendACBody(body, content []byte) []byte {
+	trimmed := strings.TrimRight(string(content), "\n")
+	return append(body, []byte(trimmed+"\n\n")...)
 }
 
 // acHeadingLinePattern matches a `### AC-N <separator> <title>` line

@@ -1,42 +1,42 @@
 ---
 id: M-067
 title: aiwf add ac --body-file flag for in-verb body scaffolding
-status: in_progress
+status: done
 parent: E-17
 tdd: required
 acs:
     - id: AC-1
       title: --body-file <path> populates AC body in same atomic commit
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Multi-AC form pairs --body-file positionally with --title
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Mismatched --body-file / --title counts refuse pre-allocation
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Body file with leading --- frontmatter refused
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: --body-file - reads from stdin (only with single --title)
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: Omitting --body-file leaves body empty (today's behavior)
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-7
       title: Subprocess integration test covers single, multi, stdin, refusal
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-8
       title: aiwf-add skill documents the new --body-file flag
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -93,3 +93,60 @@ Each case asserts both the exit code and the produced milestone file's frontmatt
 
 The `aiwf-add` skill source (`internal/skillsembed/aiwf-add/SKILL.md` or the equivalent generation site) gains, in the `aiwf add ac` section: a description of `--body-file` (positional pairing rule, stdin shorthand, leading-`---` rejection), an example invocation showing single and multi-AC forms, and a cross-reference to M-066's `entity-body-empty` finding so the operator understands the body is not optional in the long run. Verified by the discoverability policy test (per G-021).
 
+## Work log
+
+### AC-1 — --body-file <path> populates AC body in same atomic commit
+
+Bound `--body-file` (StringArrayVar) on `aiwf add ac`; threaded through to `verb.AddACBatch` via new `bodies [][]byte` parameter. Body content lands under the scaffolded `### AC-N — <title>` heading in the same atomic commit. · commit f92a2e3 · tests pass=2 fail=0 skip=0
+
+### AC-2 — Multi-AC form pairs --body-file positionally with --title
+
+Contract-pinning test only — AC-1's wiring already paired `bodies[i]` to `newACs[i]` through the pre-existing M-057 multi-AC heading loop, so the multi-title + multi-body-file path was satisfied before this AC's cycle started. Added a binary-level test that drives `--title T1 --body-file b1 --title T2 --body-file b2` and asserts each AC's section contains the matching body marker (and not the other), plus atomicity (one commit) and trailer ordering (one `aiwf-entity` per composite id, in allocation order). Future refactor of the loop now has to keep the pairing; the test will catch a swap. · commit 1d60510 · tests pass=1 fail=0 skip=0
+
+### AC-3 — Mismatched --body-file / --title counts refuse pre-allocation
+
+Added a count-equality check in `runAddACCmd` that fires before file reads, lock acquisition, or `verb.AddACBatch` — `len(bodyFiles) > 0 && len(bodyFiles) != len(titles)` returns `exitUsage` with an error naming the observed counts, the positional pairing rule, and the omit-is-valid escape hatch. Both mismatch directions (more titles than bodies, more bodies than titles) refused; without the guard, a 3/2 invocation silently allocated three ACs with bodies on the first two only, and a 2/3 invocation silently dropped the third body. · commit 178d656 · tests pass=1 fail=0 skip=0
+
+### AC-4 — Body file with leading --- frontmatter refused
+
+Closed the structural-break gap left when AC-1 wired `--body-file` without the same leading-`---` rejection that the whole-entity `--body-file` path (`verb.Add` via `validateUserBodyBytes`) already enforced. Inlined the trim-and-prefix check (both `---\n` and `---\r\n` arms, mirroring the existing validator) in `runAddACCmd` right after `readBodyFile`, returning `exitUsage` with an error that names the offending file path. Without this, a body file with embedded frontmatter was happily appended under the AC heading and silently broke the milestone document. · commit d1868e1 · tests pass=1 fail=0 skip=0
+
+### AC-5 — --body-file - reads from stdin (only with single --title)
+
+Single-title path was already covered by `readBodyFile("-")` → `io.ReadAll(os.Stdin)` from the AC-1 wiring; the gap was the multi-title case, where `readBodyFile` was called once per `--body-file -`, draining stdin on the first read and silently appending empty bodies to subsequent ACs. Added a pre-read check in `runAddACCmd` (`len(titles) > 1 && any p == "-"`) that returns `exitUsage` before any `--body-file` is read, so a piped operator's input isn't consumed on a doomed invocation. Test infra gained `runBinStdin` so the integration tests can pipe stdin into the subprocess. · commit 70da357 · tests pass=2 fail=0 skip=0
+
+### AC-6 — Omitting --body-file leaves body empty (today's behavior)
+
+Contract-pinning test only — no production change. `aiwf add ac --title T` (no `--body-file`) keeps allocating the AC frontmatter and scaffolding a bare `### AC-N — <title>` heading with whitespace-only content beneath it, preserving the multi-AC quick-scaffold flow (operator still figuring out what each AC means) as opt-in. M-066's `entity-body-empty` check is the downstream chokepoint at validation time. The two subcases (single + multi-title) walk each AC's section from its heading to the next `### ` (or EOF) and assert it's whitespace-only. · commit 7536248 · tests pass=1 fail=0 skip=0
+
+### AC-7 — Subprocess integration test covers single, multi, stdin, refusal — CANCELLED
+
+Cancelled — the matrix this AC envisioned (single, multi, stdin, mismatched-count refusal, leading-frontmatter refusal) is already covered by binary-level subprocess tests landed during AC-1..5: `TestAddAC_BodyFile_BinaryEndToEnd`, `TestAddAC_BodyFile_MultiAC_PositionalPairing`, `TestAddAC_BodyFile_Stdin_SingleTitle_Succeeds`, `TestAddAC_BodyFile_Stdin_MultiTitle_Refused`, `TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation`, `TestAddAC_BodyFile_LeadingFrontmatter_Refused`. All run the real `aiwf` binary via `runBin` / `runBinStdin` and assert exit codes, milestone-file shape, atomicity, and trailers via substring + structural assertions. The remaining novel ask was the byte-exact golden-fixture style; judged redundant given the existing assertions already pin the contract — pure maintenance cost without proportional drift-detection benefit at PoC scale.
+
+### AC-8 — aiwf-add skill documents the new --body-file flag
+
+Updated `internal/skills/embedded/aiwf-add/SKILL.md` (the embedded source baked into the binary via `go:embed`) with a new "--body-file for AC body scaffolding (positional pairing)" section right after the existing whole-entity `--body-file` section. The new section documents AC-specific semantics: positional pairing (Nth --body-file pairs Nth --title), equal-counts rule, stdin restricted to single-title invocations, omit-is-valid with cross-reference to M-066's `entity-body-empty` finding. The whole-entity section gained a back-reference so readers don't miss the AC pairing twist. The materialized consumer copy under `.claude/skills/aiwf-add/SKILL.md` will refresh on the next `aiwf init`/`aiwf update` (gitignored; G-064 / E-18 covers the dogfooding sync). · commit 4e2a3f6 · tests pass=0 fail=0 skip=0
+
+## Decisions made during implementation
+
+- **AC-7 cancelled mid-flight.** The original spec asked for a consolidated subprocess matrix in `cmd/aiwf/binary_integration_test.go` with byte-exact golden fixtures for the five canonical cases (single, multi, stdin, count-mismatch, frontmatter-rejection). By the time AC-7 came up the AC-1..5 cycles had each landed binary-level subprocess tests via `runBin`/`runBinStdin` covering the same cases with substring + structural assertions (atomicity, trailer shape, heading-bound section slicing). The remaining novel ask was the golden-fixture style. Decision: cancel rather than land redundant fixtures whose primary value (catching incidental whitespace drift) judged not worth the maintenance burden at PoC scale. Audit trail: the cancel commit's `aiwf-force-reason` trailer + the AC-7 work-log entry. No `D-NNN` was opened — the cancellation reason in the trailer chain is the durable record at this scale; if the project ever wants stricter mid-flight decision rigor the process gap can be filed separately.
+
+## Validation
+
+- `go build -o /tmp/aiwf-wrap-check ./cmd/aiwf` → green (CGO_ENABLED=0).
+- `go test -race ./...` → 24/24 packages pass, 0 failures.
+- `golangci-lint run ./...` → 0 issues.
+- `aiwf check` on the milestone branch → 0 errors, 1 warning (`provenance-untrailered-scope-undefined`: branches local-only per the operator's instruction; expected).
+- `wf-doc-lint` scoped to the 3 changed docs (`STATUS.md`, `internal/skills/embedded/aiwf-add/SKILL.md`, this spec) → 0 findings; all 7 Go-symbol references in the spec body resolve in source.
+
+## Deferrals
+
+- **Materialized consumer SKILL.md sync.** AC-8 updated the embedded source `internal/skills/embedded/aiwf-add/SKILL.md`; the consumer copy under `.claude/skills/aiwf-add/SKILL.md` (gitignored, regenerated on `aiwf init`/`aiwf update`) was not refreshed. Already tracked under [G-064](../../gaps/G-064-kernel-repo-dogfooding-partial-some-skills-installed-but-not-tracked-in-aiwfyaml-no-aiwf-update-run-no-confirmation-that-skills-checks-or-policies-resolve-from-the-installed-binary-rather-than-the-source-tree-g38-follow-up.md) under [E-18](../E-18-operator-side-dogfooding-completion-closes-g-062-g-064/epic.md); no new gap needed.
+- **Generalizing `--body-file` to the other entity-creation verbs.** This milestone scoped to the AC subverb only by design. The other six `aiwf add <kind>` verbs (epic, milestone, adr, gap, decision, contract) already have `--body-file` for the whole-entity body, but they don't share AC's positional-pairing surface (there's nothing to pair against). Already tracked as [G-066](../../gaps/G-066-aiwf-add-epic-milestone-gap-adr-decision-contract-verbs-lack-body-file-flag-for-in-verb-body-scaffolding-only-aiwf-add-ac-will-gain-it-via-m-067-leaving-the-other-six-entity-creation-verbs-reliant-on-post-add-aiwf-edit-body.md); no new gap needed.
+
+## Reviewer notes
+
+- **AC-2 and AC-6 were contract-pinning, not feature-add.** AC-2's multi-AC positional pairing fell out for free from AC-1's wiring — the pre-existing M-057 multi-AC heading loop already iterated each AC; AC-1's `bodies[i]` access slotted into that loop without further plumbing. AC-6 pinned today's "no `--body-file` = empty body" behavior with no production change. Both ACs ship test-only and the work-log entries flag this clearly. Worth keeping in mind if the verbs-with-no-prod-change ratio ever feels off in a future milestone — TDD discipline still wants the test for the regression-detection value, but the cycle metric "lines of prod code per AC" is misleading here.
+- **AC-4 caught a real bug AC-1 missed.** AC-1's wiring shipped without the same leading-`---` rejection that the whole-entity `--body-file` path enforced via `validateUserBodyBytes`. Until AC-4 fired, an operator handing a body file that started with `---` would have had embedded YAML happily appended under the AC heading — silently breaking the milestone document. The fact that AC-4 was a separate AC (not bundled into AC-1) is what surfaced this. Lesson: when a flag has parallel implementations across kinds, audit each path for the same set of guards rather than assuming the verb-time check happens elsewhere.
+- **Two minor audit-trail slips on the AC-2 cycle.** (a) The impl commit (1d60510) carried `aiwf-verb: edit-body` even though it wasn't a verb invocation — a slip from copy-pasting the trailer block from a recent edit-body commit. `aiwf history M-067/AC-2` now surfaces it as "edit-body" misleadingly. (b) The red→green phase promote reported `pass=3 fail=0 skip=0` (cumulative test count for the body-file feature) where the convention seems to be per-AC. Both noted in the wrap-time review of AC-2; left in place rather than rewriting history. AC-3+ commits avoided both slips.
+- **No regressions surfaced.** The full suite ran green at every AC closure and at wrap; no flakes observed across the 8-AC cycle. The integration tests under `cmd/aiwf/` are the slow part (~140s) — worth keeping an eye on as the matrix grows.
