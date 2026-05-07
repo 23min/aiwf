@@ -155,6 +155,37 @@ func TestList_I2_5ContentMarkers(t *testing.T) {
 	}
 }
 
+// extractH2Section returns the body of the named `## <heading>`
+// section in markdown content, honoring fenced code blocks so a
+// `## ` line inside a fenced example does not terminate the scan
+// early. Used by M-068's AC tests to scope assertions to the
+// body-prose subsection.
+func extractH2Section(content, heading string) (string, bool) {
+	idx := strings.Index(content, heading)
+	if idx < 0 {
+		return "", false
+	}
+	body := content[idx:]
+	lines := strings.Split(body, "\n")
+	if len(lines) == 0 {
+		return body, true
+	}
+	out := []string{lines[0]}
+	inFence := false
+	for _, line := range lines[1:] {
+		if strings.HasPrefix(line, "```") {
+			inFence = !inFence
+			out = append(out, line)
+			continue
+		}
+		if !inFence && strings.HasPrefix(line, "## ") {
+			break
+		}
+		out = append(out, line)
+	}
+	return strings.Join(out, "\n"), true
+}
+
 // TestSkill_AddNamesFillInBodyAsRequiredNextStep pins M-068/AC-1:
 // the embedded `aiwf-add` SKILL.md must name "fill in the body" as a
 // required follow-up step — not optional, not just for ACs — across
@@ -290,15 +321,9 @@ func TestSkill_AddCitesDesignIntent(t *testing.T) {
 	// Locate the body-prose subsection introduced by AC-1, then
 	// scope the citation assertions to its body so a future
 	// drift can't slip them past us by relocating the text.
-	const sectionHeading = "## After `aiwf add"
-	idx := strings.Index(content, sectionHeading)
-	if idx < 0 {
-		t.Fatalf("AC-2 prerequisite: section %q missing — AC-1 must land first",
-			sectionHeading)
-	}
-	tail := content[idx:]
-	if next := strings.Index(tail[len(sectionHeading):], "\n## "); next > 0 {
-		tail = tail[:len(sectionHeading)+next]
+	tail, ok := extractH2Section(content, "## After `aiwf add")
+	if !ok {
+		t.Fatal("AC-2 prerequisite: body-prose subsection missing — AC-1 must land first")
 	}
 
 	citations := []string{
@@ -309,6 +334,94 @@ func TestSkill_AddCitesDesignIntent(t *testing.T) {
 		if !strings.Contains(tail, c) {
 			t.Errorf("AC-2: citation %q missing from the body-prose subsection", c)
 		}
+	}
+}
+
+// TestSkill_AddRecommendsBodyShape pins M-068/AC-3: the body-prose
+// subsection prescribes a body-shape recommendation per kind plus
+// at least one short concrete example block per shape, so an
+// operator (or LLM) following the skill has a copyable starting
+// point rather than a "fill it in somehow" hand-wave.
+//
+// Two structural surfaces inside the body-prose subsection:
+//
+//   - A "What to write per kind" sub-heading (`### `) carrying
+//     the per-kind shape guidance paragraphs.
+//   - At least one fenced code block (` ``` `) inside that sub-
+//     section so the operator can see and copy a concrete shape.
+//
+// Plus content markers covering the spec's three required pieces
+// for the AC-body shape (pass criterion, edge cases, code
+// references) and at least one top-level kind's shape phrase
+// (gap "What's missing" — "concrete defect", per the spec's
+// own example).
+func TestSkill_AddRecommendsBodyShape(t *testing.T) {
+	skills, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var content string
+	for _, s := range skills {
+		if s.Name == "aiwf-add" {
+			content = string(s.Content)
+			break
+		}
+	}
+	if content == "" {
+		t.Fatal("aiwf-add skill not found in embedded set")
+	}
+
+	// Scope to the body-prose subsection so the per-kind shape
+	// guidance lands in the same place the operator reads the
+	// rule itself, not in a stray section elsewhere.
+	tail, ok := extractH2Section(content, "## After `aiwf add")
+	if !ok {
+		t.Fatal("AC-3 prerequisite: body-prose subsection missing — AC-1 must land first")
+	}
+
+	// AC-3 surface 1 — sub-heading anchoring the per-kind shape
+	// guidance. Without an anchor heading, the prescriptions
+	// could drift across the rest of the section over time.
+	if !strings.Contains(tail, "### What to write per kind") {
+		t.Errorf("AC-3 surface (anchor heading): missing %q", "### What to write per kind")
+	}
+
+	// AC-3 surface 2 — at least one fenced code block (example).
+	// We require the closing fence too so a stray ``` doesn't
+	// pass — the example must actually be a complete fenced
+	// block.
+	openCount := strings.Count(tail, "\n```")
+	if openCount < 2 {
+		// Each fenced block has an opening and a closing fence,
+		// so at least one block means at least 2 occurrences.
+		t.Errorf("AC-3 surface (example block): need at least one fenced code block in the body-prose subsection (got %d fence markers)",
+			openCount)
+	}
+
+	// AC-3 content markers — the AC-body shape spec says the
+	// paragraph covers pass criterion, edge cases, and code
+	// references. All three must appear inside the sub-section
+	// so the operator sees the full shape for AC bodies.
+	acBodyMarkers := []string{
+		"pass criterion",
+		"edge cases",
+		"code references",
+	}
+	for _, m := range acBodyMarkers {
+		if !strings.Contains(tail, m) {
+			t.Errorf("AC-3 content (AC body shape): missing marker %q", m)
+		}
+	}
+
+	// AC-3 content markers — at least one top-level kind's
+	// shape phrase. The spec's own example for `## What's
+	// missing` is "the concrete defect"; we pin that literal
+	// (cheap, exact) rather than try to assert across all six
+	// top-level kinds, which would couple the test too tightly
+	// to wording.
+	if !strings.Contains(tail, "concrete defect") {
+		t.Errorf("AC-3 content (top-level shape): missing marker %q (gap What's-missing example phrase)",
+			"concrete defect")
 	}
 }
 

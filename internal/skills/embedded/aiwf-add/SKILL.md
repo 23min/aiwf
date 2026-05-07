@@ -109,6 +109,52 @@ Two ways to land the body content:
 - **Two-step (default)**: `aiwf add <kind> --title "..."` creates the entity with empty body sections; then edit the file and run `aiwf edit-body <id>` to commit the prose with proper trailers. Works for every kind today.
 - **One-step (in-verb)**: pass `--body-file <path>` (or `-` for stdin) on `aiwf add` so the body lands in the same atomic create commit as the frontmatter. Available for all six top-level kinds and for ACs (with positional pairing — see the body-file sections above).
 
+### What to write per kind
+
+The per-kind table above lists *which* sections must be non-empty; this subsection covers *what* to write in each. The recommendations are advisory — `aiwf check` asserts presence, not structure — but they shape the project's default; an LLM (or human) skimming this skill produces better entities by following them than by inventing a shape.
+
+**Acceptance criteria.** One paragraph (not an essay, not a one-liner) covering three things: (a) the **pass criterion** — the assertable claim, "under inputs X the system produces Y"; (b) the **edge cases** the test must cover — boundary values, malformed inputs, error paths, concurrency; (c) the **code references** — the file or function the AC will land against, or the test file that pins it. The forward references trade a little churn (paths can move) for a lot of context (a future reader doesn't have to grep for the call site).
+
+```markdown
+### AC-3 — Validates frontmatter shape on add
+
+The verb refuses to write when frontmatter would be malformed.
+**Pass criterion**: `aiwf add gap --title ""` exits 2 with the
+literal `title is empty` in stderr; no file is written; no commit.
+**Edge cases**: leading/trailing whitespace on `--title` (treated as
+empty), non-UTF-8 bytes (refused with `invalid encoding`), multi-line
+title (refused, single line). **Code references**: validation in
+`cmd/aiwf/add_cmd.go` (the `validateTitle` helper); regression tests
+in `cmd/aiwf/add_cmd_test.go`.
+```
+
+**Epics.** `## Goal` describes the problem the epic solves and what success looks like — one paragraph, no longer than four sentences. `## Scope` enumerates what's in (one bullet per major piece of work, often a milestone). `## Out of scope` enumerates what's deliberately not — usually the most-tempting adjacent work, with a one-line "why not yet."
+
+**Milestones.** `## Goal` describes the chunk of value this milestone ships. `## Approach` is the implementation sketch — which packages get touched, which existing patterns get extended, what the verb / rule / file shape will be. `## Acceptance criteria` is the heading container; the actual ACs land as `### AC-N — <title>` sub-elements with their own bodies.
+
+**Gaps.** `## What's missing` is the **concrete defect** — what specifically doesn't exist or doesn't work; one paragraph naming the symptom and the affected surface. `## Why it matters` is the consequence — what fails, who notices, what bug class this enables; one paragraph naming the operational impact.
+
+**ADRs / decisions.** `## Context` (or `## Question`) frames the choice the team faces. `## Decision` records the choice in one or two sentences. `## Consequences` (or `## Reasoning`) names the trade-offs accepted — what becomes easy, what becomes harder, what we'd revisit if a constraint changed.
+
+**Contracts.** `## Purpose` names what the schema captures and who consumes it. `## Stability` names the contract's evolution posture (frozen, additive-only, breaking-allowed-with-migration), with a sentence on what triggers a version bump.
+
+```markdown
+## What's missing
+
+`aiwf add gap` accepts `--discovered-in <id>` but does not validate
+that the referenced entity exists. A typo (`M-007` for `M-007`) lands
+silently; only `aiwf check` catches it later, and only as a
+`refs-resolve/unresolved` warning rather than at the point of intent.
+
+## Why it matters
+
+Operators who file gaps mid-flow rely on the kernel to catch finger-
+errors at the verb boundary. A silently-accepted typo means the gap
+points at no entity at all, the audit trail loses a meaningful link,
+and the operator has to repair the gap separately later — exactly
+the failure class the verb-time projection check exists to prevent.
+```
+
 Skip the prose and `aiwf check` reports the omission. Don't ship a half-written entity hoping the body "follows later" — the design's "prose is not parsed" principle (per `docs/pocv3/plans/acs-and-tdd-plan.md:22` and `docs/pocv3/design/design-decisions.md:139`) treats body content as the spec; the title is a label, not a substitute.
 
 ## Provenance flags
