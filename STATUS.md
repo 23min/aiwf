@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_145 entities · 0 errors · 0 warnings_
+_146 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -89,6 +89,7 @@ _(none)_
 | G-058 | AC body sections ship empty; no chokepoint enforces prose intent | E-16 |
 | G-059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-069 |
 | G-060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
+| G-061 | Generic \`aiwf list <kind>\` verb referenced as canonical in contracts plan and shipped contract skill, but never implemented; AI assistants are instructed to invoke a non-existent verb |  |
 
 ## Warnings
 
@@ -98,9 +99,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote E-14 active -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069 in_progress -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-7 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-6 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-5 open -> met |
-| 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-4 open -> met |
 
