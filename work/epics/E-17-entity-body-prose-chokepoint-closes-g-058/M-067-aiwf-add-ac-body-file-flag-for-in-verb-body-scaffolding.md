@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Body file with leading --- frontmatter refused
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: --body-file - reads from stdin (only with single --title)
       status: open
