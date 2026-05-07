@@ -4,22 +4,7 @@ _164 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
-### E-13 — Status report _(active)_
-
-- ✓ **M-048** — Status report: cross-entity summaries + dashboard + time-window views _(done)_
-
-```mermaid
-flowchart LR
-  E_13["E-13<br/>Status report"]:::epic_active
-  M_048["M-048<br/>Status report: cross-entity summaries + dashboard + time-window views"]:::ms_done
-  E_13 --> M_048
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
+_(no active epics)_
 
 ## Roadmap
 
@@ -92,9 +77,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote E-13 proposed -> active |
 | 2026-05-08 | human/peter | promote | aiwf promote M-048 in_progress -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-048 draft -> in_progress |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-070 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-069 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-070 'aiwf doctor has no --format=json envelope; M-070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears' |
 

@@ -1,7 +1,7 @@
 ---
 id: E-13
 title: Status report
-status: active
+status: done
 ---
 
 ## Summary
