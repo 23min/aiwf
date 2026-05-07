@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_132 entities · 0 errors · 0 warnings_
+_133 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -25,6 +25,10 @@ flowchart LR
   classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
 ```
 
+### E-16 — TDD policy declaration chokepoint (closes G-055) _(proposed)_
+
+_(no milestones)_
+
 ## Open decisions
 
 _(none)_
@@ -47,9 +51,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add gap G-057 'Stray aiwf binary in repo root from local builds is not gitignored' |
 | 2026-05-07 | human/peter | add | aiwf add gap G-056 'aiwf render output (site/) is not gitignored; pollutes consumer working tree' |
 | 2026-05-07 | human/peter | add | aiwf add gap G-055 'Milestone creation does not require a TDD policy declaration' |
 | 2026-05-07 | human/peter | promote | aiwf promote E-14 active -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-061 in_progress -> done |
-| 2026-05-07 | human/peter | promote | aiwf promote M-061/AC-5 open -> met |
 
