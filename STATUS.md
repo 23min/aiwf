@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_148 entities · 0 errors · 0 warnings_
+_149 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -90,6 +90,7 @@ _(none)_
 | G-061 | Generic \`aiwf list <kind>\` verb referenced as canonical in contracts plan and shipped contract skill, but never implemented; AI assistants are instructed to invoke a non-existent verb |  |
 | G-062 | aiwf doctor does not surface missing recommended plugins; ritual skills (aiwf-extensions, wf-rituals) can be silently absent from a consumer repo with no signal to operator or AI assistant |  |
 | G-063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
+| G-064 | Kernel repo dogfooding closed partial (G-038) without installing the ritual plugins (aiwf-extensions, wf-rituals); operator-side surface incomplete here despite framework design assuming rituals are present |  |
 
 ## Warnings
 
@@ -99,9 +100,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body G-063 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-063 'No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-062 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-062 'aiwf doctor does not surface missing recommended plugins; ritual skills (aiwf-extensions, wf-rituals) can be silently absent from a consumer repo with no signal to operator or AI assistant' |
 | 2026-05-07 | human/peter | promote | aiwf promote E-17 proposed -> active |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body G-061 |
 
