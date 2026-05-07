@@ -112,9 +112,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-070/AC-1 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-070 draft -> in_progress |
 | 2026-05-08 | human/peter | promote | aiwf promote E-18 proposed -> active |
 | 2026-05-07 | human/peter | add | aiwf add epic E-19 'Parallel TDD subagents with finding-gated AC closure' |
 | 2026-05-07 | human/peter | add | aiwf add adr ADR-0004 'Uniform archive convention for terminal-status entities' |
-| 2026-05-07 | human/peter | add | aiwf add adr ADR-0003 'Add finding (F-NNN) as a seventh entity kind' |
 
