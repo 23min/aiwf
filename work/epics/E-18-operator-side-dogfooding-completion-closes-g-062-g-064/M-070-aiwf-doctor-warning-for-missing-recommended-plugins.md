@@ -32,7 +32,7 @@ acs:
     - id: AC-7
       title: doctor --self-check covers the new check end-to-end
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
