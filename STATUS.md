@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_164 entities · 0 errors · 7 warnings · run `aiwf check` for details_
+_164 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -89,18 +89,14 @@ _(no milestones)_
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Context\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Decision\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Consequences\` is empty |
-| entity-body-empty | G-069 | work/gaps/G-069-aiwf-init-s-printritualssuggestion-hardcodes-the-cli-install-form-which-defaults-to-user-scope-and-won-t-satisfy-doctor-recommended-plugins-nudge-silently-steers-fresh-operators-away-from-project-scope-outcome.md | G-069 body section \`## What's missing\` is empty |
-| entity-body-empty | G-069 | work/gaps/G-069-aiwf-init-s-printritualssuggestion-hardcodes-the-cli-install-form-which-defaults-to-user-scope-and-won-t-satisfy-doctor-recommended-plugins-nudge-silently-steers-fresh-operators-away-from-project-scope-outcome.md | G-069 body section \`## Why it matters\` is empty |
-| entity-body-empty | G-070 | work/gaps/G-070-aiwf-doctor-has-no-format-json-envelope-m-070-s-recommended-plugin-not-installed-finding-code-surfaces-only-as-human-text-add-json-envelope-when-a-json-consuming-caller-appears.md | G-070 body section \`## What's missing\` is empty |
-| entity-body-empty | G-070 | work/gaps/G-070-aiwf-doctor-has-no-format-json-envelope-m-070-s-recommended-plugin-not-installed-finding-code-surfaces-only-as-human-text-add-json-envelope-when-a-json-consuming-caller-appears.md | G-070 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add gap G-070 'aiwf doctor has no --format=json envelope; M-070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-069 'aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome' |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | promote | aiwf promote E-18 active -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote G-064 open -> addressed |
-| 2026-05-08 | human/peter | promote | aiwf promote G-062 open -> addressed |
 
