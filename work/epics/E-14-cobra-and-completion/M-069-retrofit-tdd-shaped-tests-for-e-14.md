@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Trailer-key shape asserted per mutating verb
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Pre-push hook byte-golden plus template-equals-installed cross-check
       status: open
