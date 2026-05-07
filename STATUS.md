@@ -8,7 +8,7 @@ _158 entities · 0 errors · 0 warnings_
 
 - ✓ **M-066** — aiwf check finding entity-body-empty _(done)_ — ACs 6/6 met — tdd: required
 - ✓ **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(done)_ — ACs 7/7 met — tdd: required
-- → **M-068** — aiwf-add skill names fill-in-body as required next step _(in_progress)_ — ACs 3/5 met (2 open) — tdd: required
+- → **M-068** — aiwf-add skill names fill-in-body as required next step _(in_progress)_ — ACs 4/5 met (1 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
   E_17 --> M_066
   M_067["M-067 (7/7)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_done
   E_17 --> M_067
-  M_068["M-068 (3/5)<br/>aiwf-add skill names fill-in-body as required next step"]:::ms_in_progress
+  M_068["M-068 (4/5)<br/>aiwf-add skill names fill-in-body as required next step"]:::ms_in_progress
   E_17 --> M_068
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -126,9 +126,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-4 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-4 --phase red -> green |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-3 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-3 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-3 --phase red -> green |
-| 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-2 open -> met |
 
