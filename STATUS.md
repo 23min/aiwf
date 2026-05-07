@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_157 entities · 0 errors · 0 warnings_
+_158 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -116,18 +116,22 @@ flowchart LR
 | G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
 | G-066 | aiwf add epic/milestone/gap/adr/decision/contract verbs lack --body-file flag for in-verb body scaffolding; only aiwf add ac will gain it via M-067, leaving the other six entity-creation verbs reliant on post-add aiwf edit-body |  |
 | G-067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-066 |
+| G-068 | Discoverability policy misses dynamic finding subcodes | M-066 |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | G-068 | work/gaps/G-068-discoverability-policy-misses-dynamic-finding-subcodes.md | G-068 body section \`## What's missing\` is empty |
+| entity-body-empty | G-068 | work/gaps/G-068-discoverability-policy-misses-dynamic-finding-subcodes.md | G-068 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-6 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-6 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-6 --phase red -> green |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
-| 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-5 open -> met |
 
