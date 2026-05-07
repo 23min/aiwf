@@ -247,6 +247,71 @@ func TestSkill_AddNamesFillInBodyAsRequiredNextStep(t *testing.T) {
 	}
 }
 
+// TestSkill_AddCitesDesignIntent pins M-068/AC-2: the body-prose
+// subsection introduced by AC-1 must cite the two canonical design
+// sources for the "prose is not parsed" / body-as-spec stance.
+// Without explicit citations, an LLM following the skill has no
+// breadcrumb back to the kernel-level rationale and is likely to
+// treat the body-prose requirement as a per-skill quirk rather than
+// a design invariant — exactly the failure mode the design-doc-anchors
+// principle exists to prevent.
+//
+// Two paths must appear in the SKILL.md content **and** must land
+// inside the body-prose subsection (not buried elsewhere — the
+// citation must be co-located with the prescription so the operator
+// sees them together):
+//
+//   - docs/pocv3/plans/acs-and-tdd-plan.md:22 — the "prose is not
+//     parsed" line and the AC body-shape recommendation.
+//   - docs/pocv3/design/design-decisions.md:139 — the broader
+//     "tree carries semantic detail in prose, not in structure"
+//     stance.
+//
+// Both literal paths must be present; both must be inside the
+// `## After aiwf add <kind>: fill in the body` section. Substring
+// presence anywhere is not enough — that would let a future change
+// move the citation into a footnote and the test wouldn't notice.
+func TestSkill_AddCitesDesignIntent(t *testing.T) {
+	skills, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var content string
+	for _, s := range skills {
+		if s.Name == "aiwf-add" {
+			content = string(s.Content)
+			break
+		}
+	}
+	if content == "" {
+		t.Fatal("aiwf-add skill not found in embedded set")
+	}
+
+	// Locate the body-prose subsection introduced by AC-1, then
+	// scope the citation assertions to its body so a future
+	// drift can't slip them past us by relocating the text.
+	const sectionHeading = "## After `aiwf add"
+	idx := strings.Index(content, sectionHeading)
+	if idx < 0 {
+		t.Fatalf("AC-2 prerequisite: section %q missing — AC-1 must land first",
+			sectionHeading)
+	}
+	tail := content[idx:]
+	if next := strings.Index(tail[len(sectionHeading):], "\n## "); next > 0 {
+		tail = tail[:len(sectionHeading)+next]
+	}
+
+	citations := []string{
+		"docs/pocv3/plans/acs-and-tdd-plan.md:22",
+		"docs/pocv3/design/design-decisions.md:139",
+	}
+	for _, c := range citations {
+		if !strings.Contains(tail, c) {
+			t.Errorf("AC-2: citation %q missing from the body-prose subsection", c)
+		}
+	}
+}
+
 // TestMaterialize_FreshDir writes every embedded skill into a clean
 // directory and verifies the on-disk content matches the embed
 // byte-for-byte.
