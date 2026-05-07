@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Skill carries Don't entry against empty entity bodies
-      status: open
+      status: met
       tdd_phase: done
 ---
 
