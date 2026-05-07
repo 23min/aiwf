@@ -550,6 +550,85 @@ func TestEntityBodyEmpty_NonEmptyBodyClean(t *testing.T) {
 	}
 }
 
+// TestEntityBodyEmpty_AcceptsVariedProseShapes pins M-066/AC-3:
+// the rule is permissive about WHAT the prose is. A single sentence,
+// a multi-paragraph block, a bullet list, a numbered list, and a
+// fenced code block all clear the emptiness check — the rule asserts
+// presence of non-heading non-whitespace content, not structure.
+//
+// Per the design's "prose is not parsed" principle, the contract is:
+// once any non-heading non-whitespace line appears under a load-bearing
+// heading, the section is non-empty. The fixtures below exercise that
+// permissiveness across both top-level (`## Section`) shape and AC
+// (`### AC-N`) leaf-prose shape.
+//
+// This test is the regression chokepoint for the rule's permissiveness:
+// a future change that tightens the rule (e.g. requires a paragraph
+// shape, rejects code blocks, demands a minimum word count) fails here.
+func TestEntityBodyEmpty_AcceptsVariedProseShapes(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+	}{
+		{
+			name: "single sentence",
+			body: "Approach.",
+		},
+		{
+			name: "multi-paragraph",
+			body: "First paragraph describes the approach.\n\n" +
+				"Second paragraph elaborates with edge cases and trade-offs the\n" +
+				"reader should know about before reading the diff.",
+		},
+		{
+			name: "bullet list",
+			body: "- bullet one\n- bullet two\n- bullet three",
+		},
+		{
+			name: "numbered list",
+			body: "1. first step\n2. second step\n3. third step",
+		},
+		{
+			name: "fenced code block",
+			body: "```go\nfunc f() error {\n\treturn nil\n}\n```",
+		},
+		{
+			name: "paragraph plus bullet plus code",
+			body: "Approach paragraph.\n\n" +
+				"- bullet point one\n- bullet point two\n\n" +
+				"```bash\naiwf check\n```",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run("milestone Approach: "+tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := writeMilestoneWithApproachBody(tc.body)(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			if got := entityBodyEmpty(tr); len(got) != 0 {
+				t.Errorf("milestone Approach body %q should produce no findings; got %+v",
+					tc.body, got)
+			}
+		})
+
+		t.Run("AC-1 body: "+tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := writeMilestoneWithACBody(tc.body)(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			if got := entityBodyEmpty(tr); len(got) != 0 {
+				t.Errorf("AC-1 body %q should produce no findings; got %+v",
+					tc.body, got)
+			}
+		})
+	}
+}
+
 // --- fixture builders ---------------------------------------------------
 
 func writeEpicFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
@@ -783,4 +862,55 @@ func write1(root, rel, content string, e *entity.Entity) ([]*entity.Entity, erro
 		return nil, err
 	}
 	return []*entity.Entity{e}, nil
+}
+
+// writeMilestoneWithApproachBody returns a milestone fixture builder
+// where every required section is non-empty and `## Approach` carries
+// the supplied body. Used by AC-3's varied-prose contract test.
+func writeMilestoneWithApproachBody(approach string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := "## Goal\n\nGoal prose.\n\n" +
+			"## Approach\n\n" + approach + "\n\n" +
+			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n"
+		fm := "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n"
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+		})
+	}
+}
+
+// writeMilestoneWithACBody returns a milestone fixture builder where
+// every top-level section is populated and AC-1's body carries the
+// supplied prose. AC-1 is `status: open`. Used by AC-3's varied-prose
+// contract test for the leaf-level (AC) emptiness check.
+func writeMilestoneWithACBody(acBody string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := "## Goal\n\nGoal prose.\n\n" +
+			"## Approach\n\nApproach prose.\n\n" +
+			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
+			"### AC-1 — Filled AC\n\n" + acBody + "\n"
+		fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: none
+acs:
+    - id: AC-1
+      title: Filled AC
+      status: open
+---
+
+`
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "Filled AC", Status: "open"},
+			},
+		})
+	}
 }
