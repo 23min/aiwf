@@ -36,3 +36,5 @@ node_modules/
 !.claude/statusline.sh
 
 .scratch/
+site/
+aiwf
