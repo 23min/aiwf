@@ -1,7 +1,7 @@
 ---
 id: M-071
 title: Install ritual plugins in kernel repo + document operator setup path
-status: draft
+status: in_progress
 parent: E-18
 tdd: required
 acs:
