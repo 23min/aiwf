@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: entity-body-empty (warning) when body section is empty
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Severity escalates to error under aiwf.yaml tdd.strict true
       status: open
