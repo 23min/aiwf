@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add gap G-060 'Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail' |
 | 2026-05-07 | human/peter | add | aiwf add gap G-059 'Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current' |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-7 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-7 --phase red -> green |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-069 |
-| 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-6 --phase green -> done |
 
