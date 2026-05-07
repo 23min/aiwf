@@ -629,6 +629,102 @@ func TestEntityBodyEmpty_AcceptsVariedProseShapes(t *testing.T) {
 	}
 }
 
+// TestEntityBodyEmpty_HTMLCommentsAreEmpty pins M-066/AC-4: a body
+// section whose only content is HTML comment block(s) is treated as
+// empty — operator intent to defer is not the prose the design
+// specifies. The rule strips HTML comments before the emptiness
+// check; if nothing non-whitespace remains, the finding fires.
+//
+// Edge case asserted: an HTML comment paired with real prose passes
+// (the prose is what counts). Single-line, multi-line, and stacked
+// comment shapes all behave identically — the regex strips them all
+// before the per-line walker sees the content.
+//
+// Each shape runs at both the top-level (`## Approach`) and the
+// AC-leaf (`### AC-1`) level so both consumers of stripHTMLComments
+// are pinned.
+func TestEntityBodyEmpty_HTMLCommentsAreEmpty(t *testing.T) {
+	cases := []struct {
+		name      string
+		body      string
+		wantFires bool
+	}{
+		{
+			name:      "single-line HTML comment only",
+			body:      "<!-- TODO: write this -->",
+			wantFires: true,
+		},
+		{
+			name:      "multi-line HTML comment only",
+			body:      "<!--\nTODO: write\nthis later\n-->",
+			wantFires: true,
+		},
+		{
+			name:      "two HTML comments only",
+			body:      "<!-- placeholder -->\n<!-- another placeholder -->",
+			wantFires: true,
+		},
+		{
+			name:      "HTML comment with surrounding whitespace",
+			body:      "\n  <!-- TODO -->  \n\n",
+			wantFires: true,
+		},
+		{
+			name:      "HTML comment then real prose",
+			body:      "<!-- TODO: tighten later -->\nReal prose follows.",
+			wantFires: false,
+		},
+		{
+			name:      "real prose then HTML comment",
+			body:      "Real prose first.\n<!-- internal note -->",
+			wantFires: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run("milestone Approach: "+tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := writeMilestoneWithApproachBody(tc.body)(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			got := entityBodyEmpty(tr)
+			fired := false
+			for _, f := range got {
+				if f.Subcode == "milestone" &&
+					contains(f.Message, "Approach") {
+					fired = true
+				}
+			}
+			if fired != tc.wantFires {
+				t.Errorf("milestone Approach body %q: fired=%v, want %v; findings=%+v",
+					tc.body, fired, tc.wantFires, got)
+			}
+		})
+
+		t.Run("AC-1 body: "+tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := writeMilestoneWithACBody(tc.body)(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			got := entityBodyEmpty(tr)
+			fired := false
+			for _, f := range got {
+				if f.Subcode == "ac" && f.EntityID == "M-001/AC-1" {
+					fired = true
+				}
+			}
+			if fired != tc.wantFires {
+				t.Errorf("AC-1 body %q: fired=%v, want %v; findings=%+v",
+					tc.body, fired, tc.wantFires, got)
+			}
+		})
+	}
+}
+
 // --- fixture builders ---------------------------------------------------
 
 func writeEpicFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
