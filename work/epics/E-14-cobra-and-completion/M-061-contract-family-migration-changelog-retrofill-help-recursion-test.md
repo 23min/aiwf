@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-3
       title: Subprocess integration test passes for every contract subcommand
-      status: open
+      status: met
     - id: AC-4
       title: CHANGELOG Unreleased retrofilled with E-14 user-visible changes
       status: open
