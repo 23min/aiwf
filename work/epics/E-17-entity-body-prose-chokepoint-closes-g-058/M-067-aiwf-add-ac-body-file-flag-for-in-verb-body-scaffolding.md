@@ -36,7 +36,7 @@ acs:
     - id: AC-8
       title: aiwf-add skill documents the new --body-file flag
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
