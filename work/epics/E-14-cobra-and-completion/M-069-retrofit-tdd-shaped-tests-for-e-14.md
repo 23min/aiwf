@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Single-commit-per-verb invariant asserted per mutating verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Trailer-key shape asserted per mutating verb
       status: open
