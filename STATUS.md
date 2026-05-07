@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_140 entities · 0 errors · 0 warnings_
+_141 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -54,12 +54,15 @@ flowchart LR
 ### E-17 — AC body prose chokepoint (closes G-058) _(proposed)_
 
 - **M-066** — aiwf check finding acs-body-empty _(draft)_
+- **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(draft)_
 
 ```mermaid
 flowchart LR
   E_17["E-17<br/>AC body prose chokepoint (closes G-058)"]:::epic_proposed
   M_066["M-066<br/>aiwf check finding acs-body-empty"]:::ms_draft
   E_17 --> M_066
+  M_067["M-067<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_draft
+  E_17 --> M_067
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -91,9 +94,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add milestone M-066 'aiwf check finding acs-body-empty' |
 | 2026-05-07 | human/peter | add | aiwf add epic E-17 'AC body prose chokepoint (closes G-058)' |
 | 2026-05-07 | human/peter | add | aiwf add gap G-058 'AC body sections ship empty; no chokepoint enforces prose intent' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-065 AC-1..AC-5 (5 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add ac M-064 AC-1..AC-8 (8 criteria) |
-| 2026-05-07 | human/peter | add | aiwf add ac M-063 AC-1..AC-7 (7 criteria) |
 
