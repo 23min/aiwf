@@ -4,6 +4,39 @@ title: aiwf add ac --body-file flag for in-verb body scaffolding
 status: draft
 parent: E-17
 tdd: required
+acs:
+    - id: AC-1
+      title: --body-file <path> populates AC body in same atomic commit
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Multi-AC form pairs --body-file positionally with --title
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Mismatched --body-file / --title counts refuse pre-allocation
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Body file with leading --- frontmatter refused
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: --body-file - reads from stdin (only with single --title)
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: Omitting --body-file leaves body empty (today's behavior)
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: Subprocess integration test covers single, multi, stdin, refusal
+      status: open
+      tdd_phase: red
+    - id: AC-8
+      title: aiwf-add skill documents the new --body-file flag
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -19,3 +52,20 @@ The body file content is appended after the verb-scaffolded `### AC-N — <title
 When `--body-file` is omitted for some or all ACs, the verb's behavior is unchanged from today: bare heading scaffolded, body left empty. The check finding from [M-066](M-066-aiwf-check-finding-acs-body-empty.md) catches the empty case at validation time.
 
 ## Acceptance criteria
+
+### AC-1 — --body-file <path> populates AC body in same atomic commit
+
+### AC-2 — Multi-AC form pairs --body-file positionally with --title
+
+### AC-3 — Mismatched --body-file / --title counts refuse pre-allocation
+
+### AC-4 — Body file with leading --- frontmatter refused
+
+### AC-5 — --body-file - reads from stdin (only with single --title)
+
+### AC-6 — Omitting --body-file leaves body empty (today's behavior)
+
+### AC-7 — Subprocess integration test covers single, multi, stdin, refusal
+
+### AC-8 — aiwf-add skill documents the new --body-file flag
+
