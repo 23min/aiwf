@@ -19,6 +19,7 @@ import (
 	"github.com/23min/ai-workflow-v2/internal/config"
 	"github.com/23min/ai-workflow-v2/internal/gitops"
 	"github.com/23min/ai-workflow-v2/internal/initrepo"
+	"github.com/23min/ai-workflow-v2/internal/pluginstate"
 	"github.com/23min/ai-workflow-v2/internal/render"
 	"github.com/23min/ai-workflow-v2/internal/skills"
 	"github.com/23min/ai-workflow-v2/internal/tree"
@@ -954,24 +955,61 @@ func doctorReport(rootDir string, opts doctorOptions) (lines []string, problems 
 	//     out_dir line (recoverable by `aiwf update`).
 	lines, problems = appendRenderReport(lines, problems, rootDir)
 
-	// 5. Rituals-plugin presence (soft note — does not increment
-	// problems). Best-effort heuristic: greps project/local settings
-	// for `aiwf-extensions`. User-scope installs are invisible here,
-	// so a "not detected" result is a hint, not a finding.
-	if ritualsPluginInstalled(rootDir) {
-		lines = append(lines, "plugin:    rituals plugin detected (aiwf-extensions in .claude/settings)")
-	} else {
-		lines = append(lines,
-			"plugin:    rituals plugin not detected in .claude/settings.{json,local.json}",
-			"             aiwf works alone, but the workflow skills and role agents that turn it",
-			"             into an end-to-end loop ship via the companion plugin. To install:",
-			"               /plugin marketplace add "+ritualsMarketplaceSlug,
-			"               /plugin install aiwf-extensions@"+ritualsMarketplaceName,
-			"             User-scope plugin installs aren't visible to this check; ignore if installed.",
-		)
-	}
+	// 5. Recommended-plugin presence (M-070). Reads
+	//    `doctor.recommended_plugins` from aiwf.yaml and warns once per
+	//    declared plugin not installed for this repo's project scope.
+	//    Empty/absent list → zero observations; the kernel makes no
+	//    assumption about which plugins a consumer "should" have.
+	//    Severity: warning (problems unchanged) — refusing on absence
+	//    is too strong for an advisory surface. Replaces the pre-M-070
+	//    hardcoded `aiwf-extensions` heuristic that grepped
+	//    `.claude/settings*.json`; see commit history for the prior
+	//    behavior.
+	lines = appendRecommendedPluginsReport(lines, cfg, rootDir)
 
 	return lines, problems
+}
+
+// appendRecommendedPluginsReport emits one warning per recommended
+// plugin not installed for the consumer's project scope. The check
+// is opt-in via aiwf.yaml's `doctor.recommended_plugins` list (an
+// empty/absent list is the kernel-neutral default — no observations).
+//
+// Warnings are soft: the function does not return a problem count
+// because the M-070 spec ("Plugins are advisory; refusing on absence
+// is too strong") forbids them from contributing to the doctor's
+// non-zero exit code. Compare to other append* helpers that do return
+// a problem count for hard findings.
+//
+// On read errors (corrupted installed_plugins.json, permission denied
+// on the home dir) the function emits a single advisory line and skips
+// the per-plugin checks; the absence case (file missing entirely) is
+// deliberately treated as "no plugins installed" so every recommended
+// plugin warns — see pluginstate.Load.
+func appendRecommendedPluginsReport(in []string, cfg *config.Config, rootDir string) []string {
+	if cfg == nil || len(cfg.Doctor.RecommendedPlugins) == 0 {
+		return in
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return append(in, "plugins:   "+err.Error())
+	}
+	idx, err := pluginstate.Load(home)
+	if err != nil {
+		return append(in, "plugins:   "+err.Error())
+	}
+	out := in
+	for _, plugin := range cfg.Doctor.RecommendedPlugins {
+		ok, _ := idx.HasProjectScope(plugin, rootDir)
+		if ok {
+			continue
+		}
+		out = append(out,
+			fmt.Sprintf("plugins:   recommended-plugin-not-installed: %s", plugin),
+			fmt.Sprintf("             install: claude /plugin install %s", plugin),
+		)
+	}
+	return out
 }
 
 // appendRenderReport surfaces the consumer's HTML render

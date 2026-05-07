@@ -91,50 +91,13 @@ func TestPrintRitualsSuggestion_ContainsKeyLines(t *testing.T) {
 	}
 }
 
-// TestDoctorReport_NotesMissingPlugin: doctorReport surfaces the
-// missing-plugin hint without incrementing problems (it's a soft note,
-// not a finding).
-func TestDoctorReport_NotesMissingPlugin(t *testing.T) {
-	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
-		[]byte("aiwf_version: dev\nactor: human/test\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	// No .claude/settings — plugin "not detected."
-
-	lines, _ := doctorReport(root, doctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "rituals plugin not detected") {
-		t.Errorf("expected 'rituals plugin not detected' note:\n%s", joined)
-	}
-	if !strings.Contains(joined, "/plugin marketplace add") {
-		t.Errorf("expected install instructions in soft note:\n%s", joined)
-	}
-}
-
-// TestDoctorReport_NotesPresentPlugin: when the plugin reference is
-// present in settings.json, doctorReport reports it as detected.
-func TestDoctorReport_NotesPresentPlugin(t *testing.T) {
-	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
-		[]byte("aiwf_version: dev\nactor: human/test\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	claude := filepath.Join(root, ".claude")
-	if err := os.MkdirAll(claude, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(claude, "settings.json"),
-		[]byte(`{"enabledPlugins":{"aiwf-extensions@ai-workflow-rituals":true}}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	lines, _ := doctorReport(root, doctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "rituals plugin detected") {
-		t.Errorf("expected 'rituals plugin detected' line:\n%s", joined)
-	}
-	if strings.Contains(joined, "rituals plugin not detected") {
-		t.Errorf("'not detected' should not appear when plugin is present:\n%s", joined)
-	}
-}
+// Pre-M-070 the doctor verb carried a hardcoded soft note for the
+// `aiwf-extensions` plugin (greppable via `.claude/settings*.json`).
+// M-070 replaced that with a config-driven check
+// (doctor.recommended_plugins → installed_plugins.json) covered by
+// TestDoctorReport_RecommendedPlugins_* in admin_cmd_test.go. The
+// previous tests for the old block (TestDoctorReport_NotesMissingPlugin,
+// TestDoctorReport_NotesPresentPlugin) were deleted alongside the
+// block. The `ritualsPluginInstalled` / `printRitualsSuggestion`
+// functions remain because `aiwf init` still calls them as a
+// one-shot setup nudge — see the Init usage tests above.
