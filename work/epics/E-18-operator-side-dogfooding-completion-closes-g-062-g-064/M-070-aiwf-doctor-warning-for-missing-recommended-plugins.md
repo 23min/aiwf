@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: Plugins installed only for other scopes produce a finding
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: doctor --self-check covers the new check end-to-end
       status: open
