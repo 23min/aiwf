@@ -17,6 +17,10 @@ acs:
       title: Each missing plugin emits one warning with install command
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: Empty config list means no checks fire (kernel-neutral)
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -28,4 +32,6 @@ acs:
 ### AC-2 — doctor reads installed_plugins.json and matches project scope
 
 ### AC-3 — Each missing plugin emits one warning with install command
+
+### AC-4 — Empty config list means no checks fire (kernel-neutral)
 

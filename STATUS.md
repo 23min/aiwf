@@ -74,13 +74,13 @@ flowchart LR
 
 ### E-18 — Operator-side dogfooding completion (closes G-062, G-064) _(proposed)_
 
-- **M-070** — aiwf doctor warning for missing recommended plugins _(draft)_ — ACs 0/3 met (3 open) — tdd: required
+- **M-070** — aiwf doctor warning for missing recommended plugins _(draft)_ — ACs 0/4 met (4 open) — tdd: required
 - **M-071** — Install ritual plugins in kernel repo + document operator setup path _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_18["E-18<br/>Operator-side dogfooding completion (closes G-062, G-064)"]:::epic_proposed
-  M_070["M-070 (0/3)<br/>aiwf doctor warning for missing recommended plugins"]:::ms_draft
+  M_070["M-070 (0/4)<br/>aiwf doctor warning for missing recommended plugins"]:::ms_draft
   E_18 --> M_070
   M_071["M-071<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_draft
   E_18 --> M_071
@@ -122,9 +122,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add ac M-070/AC-3 'Each missing plugin emits one warning with install command' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-070/AC-2 'doctor reads installed_plugins.json and matches project scope' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-070/AC-1 'doctor.recommended_plugins config field accepts list' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-071 'Install ritual plugins in kernel repo + document operator setup path' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-070 'aiwf doctor warning for missing recommended plugins' |
-| 2026-05-07 | human/peter | add | aiwf add epic E-18 'Operator-side dogfooding completion (closes G-062, G-064)' |
 
