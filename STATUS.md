@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_143 entities · 0 errors · 0 warnings_
+_144 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -126,6 +126,7 @@ _(none)_
 | G-056 | aiwf render output (site/) is not gitignored; pollutes consumer working tree | E-14 |
 | G-057 | Stray aiwf binary in repo root from local builds is not gitignored |  |
 | G-058 | AC body sections ship empty; no chokepoint enforces prose intent | E-16 |
+| G-059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-069 |
 
 ## Warnings
 
@@ -135,9 +136,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-7 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-7 --phase red -> green |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-069 |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-6 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-6 --phase red -> green |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-069 |
 
