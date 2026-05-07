@@ -6,7 +6,7 @@ parent: E-14
 acs:
     - id: AC-1
       title: aiwf contract family migrated to native Cobra
-      status: open
+      status: met
     - id: AC-2
       title: Contract subcommand flags wired for completion; opt-out removed
       status: open

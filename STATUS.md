@@ -13,7 +13,7 @@ _129 entities · 0 errors · 0 warnings_
 - ✓ **M-053** — Completion verb and static completion _(done)_ — ACs 5/5 met
 - ✓ **M-054** — Dynamic id completion and drift test _(done)_ — ACs 4/4 met
 - ✓ **M-055** — Documentation pass _(done)_ — ACs 4/4 met
-- → **M-061** — Contract family migration + changelog retrofill + help-recursion test _(in_progress)_ — ACs 0/5 met (5 open)
+- → **M-061** — Contract family migration + changelog retrofill + help-recursion test _(in_progress)_ — ACs 1/5 met (4 open)
 
 ```mermaid
 flowchart LR
@@ -32,7 +32,7 @@ flowchart LR
   E_14 --> M_054
   M_055["M-055 (4/4)<br/>Documentation pass"]:::ms_done
   E_14 --> M_055
-  M_061["M-061 (0/5)<br/>Contract family migration + changelog retrofill + help-recursion test"]:::ms_in_progress
+  M_061["M-061 (1/5)<br/>Contract family migration + changelog retrofill + help-recursion test"]:::ms_in_progress
   E_14 --> M_061
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
