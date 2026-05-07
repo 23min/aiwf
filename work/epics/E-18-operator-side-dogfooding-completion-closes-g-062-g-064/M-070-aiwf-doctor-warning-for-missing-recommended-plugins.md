@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Empty config list means no checks fire (kernel-neutral)
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Plugins installed for this project's scope produce no finding
       status: open
