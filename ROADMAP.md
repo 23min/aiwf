@@ -172,7 +172,7 @@ End state: `aiwf check` reports `entity-body-empty` for any entity whose load-be
 |---|---|---|
 | M-066 | aiwf check finding entity-body-empty | done |
 | M-067 | aiwf add ac --body-file flag for in-verb body scaffolding | done |
-| M-068 | aiwf-add skill names fill-in-body as required next step | draft |
+| M-068 | aiwf-add skill names fill-in-body as required next step | done |
 
 ## E-18 — Operator-side dogfooding completion (closes G-062, G-064) (proposed)
 
