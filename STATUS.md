@@ -124,9 +124,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add adr ADR-0001 'Mint entity ids at trunk integration via per-kind inbox state' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-071 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-070 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body E-18 |
 | 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-4 'CLAUDE.md gains a setup section listing recommended plugins' |
-| 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-3 'M-070's doctor warning goes silent after install (validates G-062)' |
 
