@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: init then doctor --self-check seam in a fresh tempdir repo
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: Native-Cobra drift test fails CI on passthrough-adapter regression
       status: open
