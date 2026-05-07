@@ -174,7 +174,7 @@ End state: `aiwf check` reports `entity-body-empty` for any entity whose load-be
 | M-067 | aiwf add ac --body-file flag for in-verb body scaffolding | done |
 | M-068 | aiwf-add skill names fill-in-body as required next step | done |
 
-## E-18 — Operator-side dogfooding completion (closes G-062, G-064) (proposed)
+## E-18 — Operator-side dogfooding completion (closes G-062, G-064) (active)
 
 ### Goal
 
@@ -189,6 +189,14 @@ End state:
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-070 | aiwf doctor warning for missing recommended plugins | draft |
+| M-070 | aiwf doctor warning for missing recommended plugins | done |
 | M-071 | Install ritual plugins in kernel repo + document operator setup path | draft |
+
+## E-19 — Parallel TDD subagents with finding-gated AC closure (proposed)
+
+### Goal
+
+Land **parallel TDD subagent execution with finding-gated AC closure**, so multi-AC milestones can run their cycles concurrently with mechanical guarantees against the M-066/AC-1 branch-coverage drift class of bugs. The end state: a milestone with N independent ACs spawns N TDD-cycle subagents in worktree isolation; each runs its own red→green→refactor+audit; concerns surface as `finding` (F-NNN) entities; the human triages findings before AC closure; subagents structurally cannot waive their own findings.
+
+_No milestones yet._
 
