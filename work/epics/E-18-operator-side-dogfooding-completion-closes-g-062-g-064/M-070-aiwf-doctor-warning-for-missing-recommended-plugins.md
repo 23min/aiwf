@@ -25,6 +25,10 @@ acs:
       title: Plugins installed for this project's scope produce no finding
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: Plugins installed only for other scopes produce a finding
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -40,4 +44,6 @@ acs:
 ### AC-4 — Empty config list means no checks fire (kernel-neutral)
 
 ### AC-5 — Plugins installed for this project's scope produce no finding
+
+### AC-6 — Plugins installed only for other scopes produce a finding
 
