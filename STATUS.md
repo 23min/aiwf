@@ -125,9 +125,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote D-001 proposed -> accepted |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body D-001 |
 | 2026-05-07 | human/peter | add | aiwf add decision D-001 'entity-body-empty top-level sections count sub-headings as content; only AC leaf bodies require non-heading prose' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-067 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-067 'wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed)' |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 
