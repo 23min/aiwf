@@ -495,6 +495,63 @@ func TestSkill_AddNamesBodyFileAsAlternative(t *testing.T) {
 	}
 }
 
+// TestSkill_AddDontEntryAgainstEmptyBodies pins M-068/AC-5: the
+// skill's `## Don't` section gains a concise entry against shipping
+// load-bearing body sections empty. The body-prose subsection
+// (AC-1, AC-2, AC-3, AC-4) is the long-form prescription; the
+// Don't entry is the short reminder. Both surfaces target the same
+// failure mode at different reading depths so an LLM scanning the
+// skill catches the requirement whichever section it lands in
+// first.
+//
+// The entry must:
+//
+//   - Live inside the `## Don't` section, not floating elsewhere.
+//   - Name the failure mode in operator-facing language ("empty
+//     body sections" or equivalent).
+//   - Reference `entity-body-empty` so the operator knows the
+//     finding code that surfaces the omission.
+//   - Reference M-066 so the cross-link to the rule is explicit.
+func TestSkill_AddDontEntryAgainstEmptyBodies(t *testing.T) {
+	skills, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var content string
+	for _, s := range skills {
+		if s.Name == "aiwf-add" {
+			content = string(s.Content)
+			break
+		}
+	}
+	if content == "" {
+		t.Fatal("aiwf-add skill not found in embedded set")
+	}
+
+	tail, ok := extractH2Section(content, "## Don't")
+	if !ok {
+		t.Fatal("AC-5 prerequisite: `## Don't` section missing from aiwf-add SKILL.md")
+	}
+
+	mustContain := []string{
+		// Operator-facing phrasing — the entry must use the
+		// load-bearing-body language, not abstract jargon.
+		"empty",
+		"body",
+		// Finding code so the operator knows what `aiwf check`
+		// will surface.
+		"entity-body-empty",
+		// Cross-reference to the rule's milestone so the trail
+		// from the Don't entry back to the rule is one click.
+		"M-066",
+	}
+	for _, m := range mustContain {
+		if !strings.Contains(tail, m) {
+			t.Errorf("AC-5 (Don't entry): missing marker %q from `## Don't` section", m)
+		}
+	}
+}
+
 // TestMaterialize_FreshDir writes every embedded skill into a clean
 // directory and verifies the on-disk content matches the embed
 // byte-for-byte.
