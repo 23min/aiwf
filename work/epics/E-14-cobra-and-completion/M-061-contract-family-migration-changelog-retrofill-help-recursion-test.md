@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-4
       title: CHANGELOG Unreleased retrofilled with E-14 user-visible changes
-      status: open
+      status: met
     - id: AC-5
       title: Help-recursion regression test pins the SetHelpFunc inheritance fix
       status: open
