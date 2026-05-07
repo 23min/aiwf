@@ -125,9 +125,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-059 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-058 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-057 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-056 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-061 |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-055 |
 

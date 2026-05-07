@@ -51,11 +51,20 @@ The existing `validateUserBodyBytes` helper (extracted in M-058) is reused — b
 
 ### AC-1 — Bare aiwf edit-body commits on-disk body changes with edit-body trailers
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-060/AC-1` for the actual implementation history._
+
 ### AC-2 — Frontmatter-changed bless invocation refuses with structured-state-verb pointer
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-060/AC-2` for the actual implementation history._
 
 ### AC-3 — No-diff invocation refuses cleanly without an empty commit
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-060/AC-3` for the actual implementation history._
+
 ### AC-4 — M-058 --body-file mode continues to work unchanged
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-060/AC-4` for the actual implementation history._
 
 ### AC-5 — AC sub-section edits land via bless mode on the parent milestone
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-060/AC-5` for the actual implementation history._
