@@ -74,9 +74,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add gap G-058 'AC body sections ship empty; no chokepoint enforces prose intent' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-065 AC-1..AC-5 (5 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add ac M-064 AC-1..AC-8 (8 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add ac M-063 AC-1..AC-7 (7 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-065 'aiwf check finding milestone-tdd-undeclared as defense-in-depth' |
-| 2026-05-07 | human/peter | add | aiwf add milestone M-064 'aiwf update migration for existing aiwf.yaml with loud output' |
 
