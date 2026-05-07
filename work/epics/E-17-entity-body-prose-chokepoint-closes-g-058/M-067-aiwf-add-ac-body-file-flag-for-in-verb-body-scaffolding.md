@@ -114,3 +114,7 @@ Closed the structural-break gap left when AC-1 wired `--body-file` without the s
 ### AC-5 — --body-file - reads from stdin (only with single --title)
 
 Single-title path was already covered by `readBodyFile("-")` → `io.ReadAll(os.Stdin)` from the AC-1 wiring; the gap was the multi-title case, where `readBodyFile` was called once per `--body-file -`, draining stdin on the first read and silently appending empty bodies to subsequent ACs. Added a pre-read check in `runAddACCmd` (`len(titles) > 1 && any p == "-"`) that returns `exitUsage` before any `--body-file` is read, so a piped operator's input isn't consumed on a doomed invocation. Test infra gained `runBinStdin` so the integration tests can pipe stdin into the subprocess. · commit 70da357 · tests pass=2 fail=0 skip=0
+
+### AC-6 — Omitting --body-file leaves body empty (today's behavior)
+
+Contract-pinning test only — no production change. `aiwf add ac --title T` (no `--body-file`) keeps allocating the AC frontmatter and scaffolding a bare `### AC-N — <title>` heading with whitespace-only content beneath it, preserving the multi-AC quick-scaffold flow (operator still figuring out what each AC means) as opt-in. M-066's `entity-body-empty` check is the downstream chokepoint at validation time. The two subcases (single + multi-title) walk each AC's section from its heading to the next `### ` (or EOF) and assert it's whitespace-only. · commit 7536248 · tests pass=1 fail=0 skip=0
