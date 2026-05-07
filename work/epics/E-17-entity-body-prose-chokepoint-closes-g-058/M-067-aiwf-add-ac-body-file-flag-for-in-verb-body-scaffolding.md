@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: --body-file - reads from stdin (only with single --title)
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: Omitting --body-file leaves body empty (today's behavior)
       status: open
