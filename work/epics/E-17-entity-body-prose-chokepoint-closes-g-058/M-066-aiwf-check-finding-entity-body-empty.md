@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Bare HTML comments do not satisfy the non-empty requirement
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Finding does not retroactively engage acs-tdd-audit
       status: open
