@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_162 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_163 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -79,6 +79,7 @@ _(no milestones)_
 | G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
 | G-067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-066 |
 | G-068 | Discoverability policy misses dynamic finding subcodes | M-066 |
+| G-069 | aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome | M-070 |
 
 ## Warnings
 
@@ -87,14 +88,16 @@ _(no milestones)_
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Context\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Decision\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Consequences\` is empty |
+| entity-body-empty | G-069 | work/gaps/G-069-aiwf-init-s-printritualssuggestion-hardcodes-the-cli-install-form-which-defaults-to-user-scope-and-won-t-satisfy-doctor-recommended-plugins-nudge-silently-steers-fresh-operators-away-from-project-scope-outcome.md | G-069 body section \`## What's missing\` is empty |
+| entity-body-empty | G-069 | work/gaps/G-069-aiwf-init-s-printritualssuggestion-hardcodes-the-cli-install-form-which-defaults-to-user-scope-and-won-t-satisfy-doctor-recommended-plugins-nudge-silently-steers-fresh-operators-away-from-project-scope-outcome.md | G-069 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | promote | aiwf promote E-18 active -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote G-064 open -> addressed |
 | 2026-05-08 | human/peter | promote | aiwf promote G-062 open -> addressed |
 | 2026-05-08 | human/peter | merge | Merge milestone M-071: install ritual plugins for project scope + document operator setup |
-| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 
