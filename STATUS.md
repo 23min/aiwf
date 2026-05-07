@@ -135,9 +135,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-1 --phase red -> green |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-069 |
 | 2026-05-07 | human/peter | add | aiwf add ac M-069 AC-1..AC-7 (7 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-069 'Retrofit TDD-shaped tests for E-14' |
 | 2026-05-07 | human/peter | promote | aiwf promote E-14 done -> active |
-| 2026-05-07 | human/peter | promote | aiwf promote G-055 open -> addressed |
 
