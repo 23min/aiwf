@@ -112,9 +112,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-1 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-1 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-1 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-071 draft -> in_progress |
 | 2026-05-08 | human/peter | merge | Merge milestone M-070: aiwf doctor warning for missing recommended plugins |
-| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 
