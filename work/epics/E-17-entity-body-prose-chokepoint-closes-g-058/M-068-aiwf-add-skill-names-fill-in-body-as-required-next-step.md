@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Skill recommends the body shape (paragraph, key contents)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Skill names --body-file as in-verb alternative
       status: open

@@ -126,9 +126,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-3 --phase red -> green |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-2 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-2 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-2 --phase red -> green |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-1 open -> met |
-| 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-1 --phase green -> done |
 
