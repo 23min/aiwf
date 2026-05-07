@@ -77,9 +77,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote E-13 active -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote E-13 proposed -> active |
 | 2026-05-08 | human/peter | promote | aiwf promote M-048 in_progress -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-048 draft -> in_progress |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-070 |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-069 |
 
