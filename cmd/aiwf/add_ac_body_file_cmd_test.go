@@ -680,6 +680,122 @@ func TestAddAC_BodyFile_Stdin_MultiTitle_Refused(t *testing.T) {
 	}
 }
 
+// TestAddAC_NoBodyFile_LeavesBodyEmpty pins M-067/AC-6: when
+// --body-file is omitted entirely, the verb's pre-AC-1 behavior
+// holds — the AC frontmatter is allocated and the bare `### AC-N
+// — <title>` heading is scaffolded with no body content under it.
+// The friction-reducing flag stays opt-in; the multi-AC
+// quick-scaffold flow (operator still figuring out what each AC
+// means) keeps working. M-066's entity-body-empty check is the
+// downstream chokepoint; this AC pins that the verb itself does
+// not pre-emptively force a body.
+//
+// The two subcases pin both single- and multi-title invocations.
+// "Empty body" here means: between this AC's heading and either
+// the next `### ` heading or EOF, nothing but whitespace appears.
+func TestAddAC_NoBodyFile_LeavesBodyEmpty(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	cases := []struct {
+		name    string
+		args    []string
+		wantACs []string // AC heading suffixes ("AC-N — <title>") to verify exist with empty bodies
+	}{
+		{
+			name:    "single AC, no --body-file",
+			args:    []string{"add", "ac", "M-001", "--title", "Quick scaffold"},
+			wantACs: []string{"AC-1 — Quick scaffold"},
+		},
+		{
+			name: "multi AC, no --body-file",
+			args: []string{
+				"add", "ac", "M-001",
+				"--title", "First quick AC",
+				"--title", "Second quick AC",
+				"--title", "Third quick AC",
+			},
+			wantACs: []string{
+				"AC-1 — First quick AC",
+				"AC-2 — Second quick AC",
+				"AC-3 — Third quick AC",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			if out, err := runGit(root, "init", "-q"); err != nil {
+				t.Fatalf("git init: %v\n%s", err, out)
+			}
+			for _, args := range [][]string{
+				{"config", "user.email", "peter@example.com"},
+				{"config", "user.name", "Peter Test"},
+			} {
+				if out, err := runGit(root, args...); err != nil {
+					t.Fatalf("git %v: %v\n%s", args, err, out)
+				}
+			}
+			if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+				t.Fatalf("aiwf init: %v\n%s", err, out)
+			}
+			if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
+				t.Fatalf("add epic: %v\n%s", err, out)
+			}
+			if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+				t.Fatalf("add milestone: %v\n%s", err, out)
+			}
+
+			out, err := runBin(t, root, binDir, nil, tc.args...)
+			if err != nil {
+				t.Fatalf("aiwf add ac (no --body-file): %v\n%s", err, out)
+			}
+
+			matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+			if err != nil || len(matches) != 1 {
+				t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
+			}
+			got, err := os.ReadFile(matches[0])
+			if err != nil {
+				t.Fatalf("read milestone: %v", err)
+			}
+			gotStr := string(got)
+
+			// Slice each AC's section: from its heading line to
+			// either the next `### ` heading or EOF. Assert that
+			// after stripping the heading line, only whitespace
+			// remains.
+			for i, want := range tc.wantACs {
+				headingLine := "### " + want
+				start := strings.Index(gotStr, headingLine)
+				if start < 0 {
+					t.Errorf("milestone missing heading %q:\n%s", headingLine, gotStr)
+					continue
+				}
+				// Section starts just after the heading line.
+				afterHeading := start + len(headingLine)
+				if afterHeading > len(gotStr) && gotStr[afterHeading] == '\n' {
+					afterHeading++
+				}
+				rest := gotStr[afterHeading:]
+				// End of section: next "### " or EOF.
+				end := strings.Index(rest, "\n### ")
+				var section string
+				if end < 0 {
+					section = rest
+				} else {
+					section = rest[:end]
+				}
+				if strings.TrimSpace(section) != "" {
+					t.Errorf("AC[%d] %q: body section non-empty (expected only whitespace):\n%q",
+						i, want, section)
+				}
+			}
+		})
+	}
+}
+
 // TestAddAC_BodyFile_MissingFile_ExitsUsage covers the defensive
 // branch in runAddACCmd's body-file loop: when the path does not
 // resolve, the verb exits with the usage code (2) and creates no AC.
