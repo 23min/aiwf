@@ -75,14 +75,14 @@ flowchart LR
 ### E-18 — Operator-side dogfooding completion (closes G-062, G-064) _(proposed)_
 
 - **M-070** — aiwf doctor warning for missing recommended plugins _(draft)_ — ACs 0/7 met (7 open) — tdd: required
-- **M-071** — Install ritual plugins in kernel repo + document operator setup path _(draft)_ — ACs 0/2 met (2 open) — tdd: required
+- **M-071** — Install ritual plugins in kernel repo + document operator setup path _(draft)_ — ACs 0/3 met (3 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_18["E-18<br/>Operator-side dogfooding completion (closes G-062, G-064)"]:::epic_proposed
   M_070["M-070 (0/7)<br/>aiwf doctor warning for missing recommended plugins"]:::ms_draft
   E_18 --> M_070
-  M_071["M-071 (0/2)<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_draft
+  M_071["M-071 (0/3)<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_draft
   E_18 --> M_071
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -122,9 +122,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-2 'Both plugins are installed for this repo's project scope' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-1 'aiwf.yaml declares aiwf-extensions and wf-rituals as recommended' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-070/AC-7 'doctor --self-check covers the new check end-to-end' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-070/AC-6 'Plugins installed only for other scopes produce a finding' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-070/AC-5 'Plugins installed for this project's scope produce no finding' |
-| 2026-05-07 | human/peter | add | aiwf add ac M-070/AC-4 'Empty config list means no checks fire (kernel-neutral)' |
 

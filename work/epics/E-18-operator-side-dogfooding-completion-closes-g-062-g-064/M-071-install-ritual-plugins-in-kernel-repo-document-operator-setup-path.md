@@ -13,6 +13,10 @@ acs:
       title: Both plugins are installed for this repo's project scope
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: M-070's doctor warning goes silent after install (validates G-062)
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -22,4 +26,6 @@ acs:
 ### AC-1 — aiwf.yaml declares aiwf-extensions and wf-rituals as recommended
 
 ### AC-2 — Both plugins are installed for this repo's project scope
+
+### AC-3 — M-070's doctor warning goes silent after install (validates G-062)
 
