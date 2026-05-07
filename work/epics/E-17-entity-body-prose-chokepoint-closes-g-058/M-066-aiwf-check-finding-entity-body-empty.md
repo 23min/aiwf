@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Entities with non-empty body prose produce no finding
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Bare HTML comments do not satisfy the non-empty requirement
       status: open
