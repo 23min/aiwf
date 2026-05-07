@@ -102,9 +102,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | retitle | aiwf retitle M-066 + AC-1, AC-3 (manual; G-065 verb does not yet exist) |
 | 2026-05-07 | human/peter | retitle | aiwf retitle E-17 (manual; G-065 verb does not yet exist) |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-066 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-066 'aiwf add epic/milestone/gap/adr/decision/contract verbs lack --body-file flag for in-verb body scaffolding; only aiwf add ac will gain it via M-067, leaving the other six entity-creation verbs reliant on post-add aiwf edit-body' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body E-17 |
-| 2026-05-07 | human/peter | rename | aiwf rename E-17 slug -> entity-body-prose-chokepoint-closes-g-058 |
 

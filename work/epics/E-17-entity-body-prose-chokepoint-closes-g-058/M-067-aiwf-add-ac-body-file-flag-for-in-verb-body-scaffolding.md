@@ -41,7 +41,7 @@ acs:
 
 ## Goal
 
-Extend `aiwf add ac` with a `--body-file <path>` flag that scaffolds the AC's body section (the prose under `### AC-N — <title>`) in the same atomic commit that creates the AC. Multi-AC form pairs `--body-file` positionally with `--title` so a single invocation can populate several fully-formed ACs at once. Reduces friction so the right thing (non-empty body) is also the easy thing — without forcing operators who genuinely have nothing yet to write to provide one (the [M-066](M-066-aiwf-check-finding-acs-body-empty.md) check finding is the chokepoint; this milestone is friction reduction).
+Extend `aiwf add ac` with a `--body-file <path>` flag that scaffolds the AC's body section (the prose under `### AC-N — <title>`) in the same atomic commit that creates the AC. Multi-AC form pairs `--body-file` positionally with `--title` so a single invocation can populate several fully-formed ACs at once. Reduces friction so the right thing (non-empty body) is also the easy thing — without forcing operators who genuinely have nothing yet to write to provide one (the [M-066](M-066-aiwf-check-finding-entity-body-empty.md) `entity-body-empty` finding is the chokepoint; this milestone is friction reduction). Scoped to the AC verb only — generalizing the flag to other entity-creation verbs is captured as [G-066](../../gaps/G-066-aiwf-add-epic-milestone-gap-adr-decision-contract-verbs-lack-body-file-flag-for-in-verb-body-scaffolding-only-aiwf-add-ac-will-gain-it-via-m-067-leaving-the-other-six-entity-creation-verbs-reliant-on-post-add-aiwf-edit-body.md).
 
 ## Approach
 
@@ -49,7 +49,7 @@ The whole-entity `--body-file` already exists for `aiwf add <kind>` (per the `ai
 
 The body file content is appended after the verb-scaffolded `### AC-N — <title>` heading; the file must not contain its own AC heading (the verb owns that). A leading `---` is refused (same rule as the whole-entity `--body-file` flag, per the existing skill docs). `-` (single dash) reads from stdin; only valid when exactly one `--title` is provided (stdin can't be split positionally).
 
-When `--body-file` is omitted for some or all ACs, the verb's behavior is unchanged from today: bare heading scaffolded, body left empty. The check finding from [M-066](M-066-aiwf-check-finding-acs-body-empty.md) catches the empty case at validation time.
+When `--body-file` is omitted for some or all ACs, the verb's behavior is unchanged from today: bare heading scaffolded, body left empty. The `entity-body-empty` check finding from [M-066](M-066-aiwf-check-finding-entity-body-empty.md) catches the empty case at validation time.
 
 ## Acceptance criteria
 
@@ -91,5 +91,5 @@ Each case asserts both the exit code and the produced milestone file's frontmatt
 
 ### AC-8 — aiwf-add skill documents the new --body-file flag
 
-The `aiwf-add` skill source (`internal/skillsembed/aiwf-add/SKILL.md` or the equivalent generation site) gains, in the `aiwf add ac` section: a description of `--body-file` (positional pairing rule, stdin shorthand, leading-`---` rejection), an example invocation showing single and multi-AC forms, and a cross-reference to M-066's `acs-body-empty` finding so the operator understands the body is not optional in the long run. Verified by the discoverability policy test (per G-021).
+The `aiwf-add` skill source (`internal/skillsembed/aiwf-add/SKILL.md` or the equivalent generation site) gains, in the `aiwf add ac` section: a description of `--body-file` (positional pairing rule, stdin shorthand, leading-`---` rejection), an example invocation showing single and multi-AC forms, and a cross-reference to M-066's `entity-body-empty` finding so the operator understands the body is not optional in the long run. Verified by the discoverability policy test (per G-021).
 
