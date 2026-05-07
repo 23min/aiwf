@@ -9,7 +9,7 @@ acs:
       status: met
     - id: AC-2
       title: Contract subcommand flags wired for completion; opt-out removed
-      status: open
+      status: met
     - id: AC-3
       title: Subprocess integration test passes for every contract subcommand
       status: open
