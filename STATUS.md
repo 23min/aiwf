@@ -124,9 +124,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-067 draft -> in_progress |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body ADR-0001 |
 | 2026-05-07 | human/peter | add | aiwf add adr ADR-0001 'Mint entity ids at trunk integration via per-kind inbox state' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-071 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-070 |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body E-18 |
 

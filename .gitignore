@@ -37,4 +37,6 @@ node_modules/
 
 .scratch/
 site/
-aiwf
+# Anchored to repo root: only the local-build artifact at /aiwf gets
+# ignored; the cmd/aiwf source directory must remain trackable.
+/aiwf
