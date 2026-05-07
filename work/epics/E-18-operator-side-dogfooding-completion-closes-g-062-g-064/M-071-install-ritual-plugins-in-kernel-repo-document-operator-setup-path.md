@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: M-070's doctor warning goes silent after install (validates G-062)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: CLAUDE.md gains a setup section listing recommended plugins
