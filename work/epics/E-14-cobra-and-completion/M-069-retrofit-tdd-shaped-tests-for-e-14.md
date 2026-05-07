@@ -93,6 +93,17 @@ The assertion uses the canonical set as its source of truth; adding a new traile
 
 ### AC-4 — Pre-push hook byte-golden plus template-equals-installed cross-check
 
+CLAUDE.md design decision §3: "`aiwf check` runs as a pre-push git hook. Validation is the chokepoint. The hook is what makes the framework's guarantees real; without it, skills are just suggestions." The pre-push hook is the load-bearing chokepoint that turns kernel rules from advisory into enforced. Hook content drift — between the template `preHookScript` returns and the bytes `ensurePreHook` writes to `.git/hooks/pre-push` — silently weakens that chokepoint. A regression where the install path quietly dropped the chain prelude (G45's `pre-push.local` chaining), or the brownfield guard, or the `exec aiwf check` line, would break the kernel's enforcement story.
+
+The existing tests check the *substring* level only. `TestPreHookScript_HasBrownfieldGuard` greps for the brownfield literal; `TestInit_MigratesAlienPreHook` asserts the marker is present after migration; the broader `initrepo_test.go` assertions are similar `bytes.Contains` checks. CLAUDE.md `Substring assertions are not structural assertions` calls this out: a substring match proves a literal exists *somewhere*, not in the right *place*. The hook body has semantic weight on every line — the chain prelude order matters, the brownfield-guard placement matters, the `exec` is what makes the hook useful. Pinning it byte-for-byte is the right granularity.
+
+This AC adds two paired tests:
+
+- **`TestPreHookScript_ByteGolden`** renders `preHookScript("/AIWF_BIN")` (a sentinel binary path) and diffs the output against `testdata/pre-push.golden`. Any template change — body prose, marker, chain prelude, brownfield guard — surfaces as a failing diff. An intentional change requires regenerating the golden; an accidental one fails CI before merge.
+- **`TestPreHookScript_TemplateEqualsInstalled`** runs `Init` in a fresh tempdir, reads the installed `.git/hooks/pre-push` bytes, re-renders `preHookScript(exePath)` with the same path `Init` resolved via `resolveExecutable()`, and asserts byte-equality. This is the seam test (CLAUDE.md `Test the seam, not just the layer`): the install path must use the template function as its sole source of truth. A regression where `ensurePreHook` post-processed the output, took a fallback branch, or quietly maintained a parallel template would surface here even if both halves passed their own unit tests.
+
+The pair caps both regression vectors: byte-golden catches template drift; cross-check catches install-path drift. Together they make the chokepoint's content unambiguous.
+
 ### AC-5 — init then doctor --self-check seam in a fresh tempdir repo
 
 ### AC-6 — Native-Cobra drift test fails CI on passthrough-adapter regression
