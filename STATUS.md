@@ -29,7 +29,7 @@ flowchart LR
 
 - **M-062** — tdd flag on aiwf add milestone with project-default fallback _(draft)_ — ACs 0/8 met (8 open) — tdd: required
 - **M-063** — aiwf.yaml tdd.default schema and aiwf init seeding _(draft)_ — ACs 0/7 met (7 open) — tdd: required
-- **M-064** — aiwf update migration for existing aiwf.yaml with loud output _(draft)_ — tdd: required
+- **M-064** — aiwf update migration for existing aiwf.yaml with loud output _(draft)_ — ACs 0/8 met (8 open) — tdd: required
 - **M-065** — aiwf check finding milestone-tdd-undeclared as defense-in-depth _(draft)_ — tdd: required
 
 ```mermaid
@@ -39,7 +39,7 @@ flowchart LR
   E_16 --> M_062
   M_063["M-063 (0/7)<br/>aiwf.yaml tdd.default schema and aiwf init seeding"]:::ms_draft
   E_16 --> M_063
-  M_064["M-064<br/>aiwf update migration for existing aiwf.yaml with loud output"]:::ms_draft
+  M_064["M-064 (0/8)<br/>aiwf update migration for existing aiwf.yaml with loud output"]:::ms_draft
   E_16 --> M_064
   M_065["M-065<br/>aiwf check finding milestone-tdd-undeclared as defense-in-depth"]:::ms_draft
   E_16 --> M_065
@@ -73,9 +73,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add ac M-063 AC-1..AC-7 (7 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-065 'aiwf check finding milestone-tdd-undeclared as defense-in-depth' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-064 'aiwf update migration for existing aiwf.yaml with loud output' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-063 'aiwf.yaml tdd.default schema and aiwf init seeding' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-062 AC-1..AC-8 (8 criteria) |
-| 2026-05-07 | human/peter | add | aiwf add milestone M-062 'tdd flag on aiwf add milestone with project-default fallback' |
 
