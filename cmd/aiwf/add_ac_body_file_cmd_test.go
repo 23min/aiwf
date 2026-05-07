@@ -512,6 +512,174 @@ func TestAddAC_BodyFile_LeadingFrontmatter_Refused(t *testing.T) {
 	}
 }
 
+// TestAddAC_BodyFile_Stdin_SingleTitle_Succeeds covers the happy
+// path of M-067/AC-5: `aiwf add ac M-NNN --title T --body-file -`
+// reads body content from stdin and lands it under the AC heading,
+// consistent with the existing whole-entity --body-file - shorthand.
+func TestAddAC_BodyFile_Stdin_SingleTitle_Succeeds(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
+		t.Fatalf("add epic: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+		t.Fatalf("add milestone: %v\n%s", err, out)
+	}
+
+	stdinText := "Body piped from stdin.\n\nSpecific to AC-1.\n"
+
+	out, err := runBinStdin(t, root, binDir, strings.NewReader(stdinText),
+		"add", "ac", "M-001",
+		"--title", "Stdin AC",
+		"--body-file", "-")
+	if err != nil {
+		t.Fatalf("aiwf add ac --body-file -: %v\n%s", err, out)
+	}
+
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
+	}
+	got, err := os.ReadFile(matches[0])
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	gotStr := string(got)
+	if !strings.Contains(gotStr, "### AC-1 — Stdin AC") {
+		t.Fatalf("milestone missing AC-1 heading:\n%s", gotStr)
+	}
+	if !strings.Contains(gotStr, "Specific to AC-1") {
+		t.Errorf("milestone missing stdin body content marker:\n%s", gotStr)
+	}
+}
+
+// TestAddAC_BodyFile_Stdin_MultiTitle_Refused covers the refusal
+// path of M-067/AC-5: when more than one --title is provided and
+// any --body-file value is `-`, the verb exits with code 2 before
+// stdin is consumed. Stdin is one stream — silently routing it to
+// "the first AC" would surprise the operator. The check must fire
+// pre-read so a piped operator doesn't lose their input on a
+// doomed invocation.
+//
+// The two subcases pin both shapes: stdin used for every AC
+// (--body-file - --body-file -) and stdin mixed with a real file
+// (--body-file - --body-file file.md). Either form is forbidden.
+func TestAddAC_BodyFile_Stdin_MultiTitle_Refused(t *testing.T) {
+	bin := aiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := runGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := runGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := runBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
+		t.Fatalf("add epic: %v\n%s", err, out)
+	}
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+		t.Fatalf("add milestone: %v\n%s", err, out)
+	}
+
+	realFile := filepath.Join(root, "real.md")
+	if err := os.WriteFile(realFile, []byte("real body\n"), 0o644); err != nil {
+		t.Fatalf("write real file: %v", err)
+	}
+
+	headBefore, err := runGit(root, "rev-list", "--count", "HEAD")
+	if err != nil {
+		t.Fatalf("rev-list before: %v\n%s", err, headBefore)
+	}
+
+	cases := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "stdin used for every AC",
+			args: []string{
+				"add", "ac", "M-001",
+				"--title", "T1", "--title", "T2",
+				"--body-file", "-", "--body-file", "-",
+			},
+		},
+		{
+			// realFile listed first so the loop walks past a
+			// non-stdin entry before hitting `-` — exercises the
+			// "skip non-stdin path" arm of the inner check too.
+			name: "stdin mixed with a real file (stdin second)",
+			args: []string{
+				"add", "ac", "M-001",
+				"--title", "T1", "--title", "T2",
+				"--body-file", realFile, "--body-file", "-",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Provide a non-empty stdin so a green-on-empty bug
+			// can't masquerade as the refusal we want.
+			out, runErr := runBinStdin(t, root, binDir,
+				strings.NewReader("would-be body content from stdin\n"),
+				tc.args...)
+			if runErr == nil {
+				t.Fatalf("expected stdin+multi-title refusal; got success:\n%s", out)
+			}
+			// Error names the constraint.
+			if !strings.Contains(out, "stdin") && !strings.Contains(out, "--body-file -") {
+				t.Errorf("error missing stdin/`--body-file -` mention:\n%s", out)
+			}
+			if !strings.Contains(out, "single --title") {
+				t.Errorf("error missing 'single --title' constraint phrasing:\n%s", out)
+			}
+		})
+	}
+
+	// Pre-read check: nothing was committed across the run.
+	headAfter, err := runGit(root, "rev-list", "--count", "HEAD")
+	if err != nil {
+		t.Fatalf("rev-list after: %v\n%s", err, headAfter)
+	}
+	if strings.TrimSpace(headBefore) != strings.TrimSpace(headAfter) {
+		t.Errorf("commit count changed across refusal cases (%s -> %s); refusal must precede commit",
+			strings.TrimSpace(headBefore), strings.TrimSpace(headAfter))
+	}
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
+	}
+	got, _ := os.ReadFile(matches[0])
+	if strings.Contains(string(got), "### AC-1") {
+		t.Errorf("AC was created despite stdin+multi-title refusal:\n%s", got)
+	}
+}
+
 // TestAddAC_BodyFile_MissingFile_ExitsUsage covers the defensive
 // branch in runAddACCmd's body-file loop: when the path does not
 // resolve, the verb exits with the usage code (2) and creates no AC.

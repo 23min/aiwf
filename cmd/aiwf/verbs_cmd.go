@@ -263,6 +263,21 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 			len(titles), len(bodyFiles))
 		return exitUsage
 	}
+	// M-067/AC-5: --body-file - is only valid with a single
+	// --title. Stdin is one stream and cannot be split
+	// positionally — silently routing it to "the first AC" would
+	// surprise the operator. Refuse before reading any --body-file
+	// so a piped operator doesn't lose their input.
+	if len(titles) > 1 {
+		for i, p := range bodyFiles {
+			if p == "-" {
+				fmt.Fprintf(os.Stderr,
+					"aiwf add ac: --body-file[%d] -: stdin (--body-file -) is only valid with a single --title (got %d titles); stdin is one stream and cannot be split positionally — use files for multi-AC invocations\n",
+					i, len(titles))
+				return exitUsage
+			}
+		}
+	}
 	metrics, err := parseTestsFlag(tests, "aiwf add ac")
 	if err != nil {
 		return exitUsage
