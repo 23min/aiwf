@@ -125,9 +125,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add gap G-067 'wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed)' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-1 open -> met |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-1 --phase green -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-1 --phase red -> green |
-| 2026-05-07 | human/peter | promote | aiwf promote M-066 draft -> in_progress |
 
