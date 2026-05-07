@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: doctor reads installed_plugins.json and matches project scope
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Each missing plugin emits one warning with install command
       status: open
