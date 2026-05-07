@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -73,6 +74,27 @@ func runBin(t *testing.T, workdir, extraPath string, env []string, args ...strin
 		"PATH="+extraPath+string(os.PathListSeparator)+os.Getenv("PATH"),
 	)
 	cmd.Env = append(cmd.Env, env...)
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+// runBinStdin is the stdin-bearing variant of runBin: pipes the
+// supplied reader to the binary's stdin so tests can exercise
+// `--body-file -` and similar shorthands. Otherwise identical to
+// runBin (env, working dir, combined stdout+stderr).
+func runBinStdin(t *testing.T, workdir, extraPath string, stdin io.Reader, args ...string) (string, error) {
+	t.Helper()
+	bin := aiwfBinary(t)
+	cmd := exec.Command(bin, args...)
+	cmd.Dir = workdir
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=aiwf-test",
+		"GIT_AUTHOR_EMAIL=test@example.com",
+		"GIT_COMMITTER_NAME=aiwf-test",
+		"GIT_COMMITTER_EMAIL=test@example.com",
+		"PATH="+extraPath+string(os.PathListSeparator)+os.Getenv("PATH"),
+	)
+	cmd.Stdin = stdin
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }

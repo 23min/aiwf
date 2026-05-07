@@ -30,9 +30,16 @@ Wire dynamic completion of live entity ids — `--epic=<TAB>`, `--milestone=<TAB
 
 ### AC-1 — --epic=<TAB> enumerates live epic ids from the planning tree
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-054/AC-1` for the actual implementation history._
+
 ### AC-2 — Graceful no-op completion when cwd is not a valid aiwf project
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-054/AC-2` for the actual implementation history._
 
 ### AC-3 — Drift-prevention policy test fails CI on flag without completion wiring
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-054/AC-3` for the actual implementation history._
+
 ### AC-4 — Test covers static-completion and dynamic-completion required cases
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-054/AC-4` for the actual implementation history._

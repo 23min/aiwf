@@ -22,7 +22,7 @@ func TestAddACBatch_RoundTrip(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
 	titles := []string{"first criterion", "second criterion", "third criterion"}
-	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", titles, testActor, nil))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", titles, nil, testActor, nil))
 
 	m := r.tree().ByID("M-001")
 	if m == nil {
@@ -57,7 +57,7 @@ func TestAddACBatch_AppendsToExistingACs(t *testing.T) {
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "first existing", testActor, nil))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "second existing", testActor, nil))
 
-	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"third batch", "fourth batch"}, testActor, nil))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"third batch", "fourth batch"}, nil, testActor, nil))
 
 	m := r.tree().ByID("M-001")
 	if len(m.ACs) != 4 {
@@ -84,7 +84,7 @@ func TestAddACBatch_SingleOpWriteAndCommit(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
-	res, err := verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"a", "b", "c", "d"}, testActor, nil)
+	res, err := verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"a", "b", "c", "d"}, nil, testActor, nil)
 	if err != nil {
 		t.Fatalf("AddACBatch: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestAddACBatch_EmitsOneEntityTrailerPerAC(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"a", "b", "c"}, testActor, nil))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"a", "b", "c"}, nil, testActor, nil))
 
 	trailers, err := gitops.HeadTrailers(context.Background(), r.root)
 	if err != nil {
@@ -140,7 +140,7 @@ func TestAddACBatch_SingleTitleUnchanged(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Single", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"only one"}, testActor, nil))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"only one"}, nil, testActor, nil))
 
 	subject, err := gitops.HeadSubject(context.Background(), r.root)
 	if err != nil {
@@ -174,7 +174,7 @@ func TestAddACBatch_RejectsEmptyTitleInBatch(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
-	_, err := verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"good", "  ", "also good"}, testActor, nil)
+	_, err := verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"good", "  ", "also good"}, nil, testActor, nil)
 	if err == nil || !strings.Contains(err.Error(), "empty title") {
 		t.Errorf("expected empty-title-in-batch error; got %v", err)
 	}
@@ -195,7 +195,7 @@ func TestAddACBatch_RejectsTestsWithMultipleTitles(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 
-	_, err := verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"a", "b"}, testActor,
+	_, err := verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"a", "b"}, nil, testActor,
 		&gitops.TestMetrics{Total: 1, Pass: 1})
 	if err == nil || !strings.Contains(err.Error(), "single AC at a time") {
 		t.Errorf("expected --tests/N>1 error; got %v", err)
@@ -218,7 +218,7 @@ func TestAddACBatch_AtomicReversionOnProjectionFailure(t *testing.T) {
 	// likely to be tripped by an LLM batching auto-generated content.
 	prosey := strings.Repeat("Long sentence that exceeds the prose threshold so the title validator refuses it. ", 3)
 	_, err := verb.AddACBatch(r.ctx, r.tree(), "M-001",
-		[]string{"good first", prosey, "would-be-third"}, testActor, nil)
+		[]string{"good first", prosey, "would-be-third"}, nil, testActor, nil)
 	if err == nil {
 		t.Fatal("expected refusal on prosey title in batch")
 	}
@@ -244,9 +244,9 @@ func TestAddACBatch_BodyHeadingsAppendedInOrder(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Body", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
 	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001",
-		[]string{"alpha criterion", "beta criterion", "gamma criterion"}, testActor, nil))
+		[]string{"alpha criterion", "beta criterion", "gamma criterion"}, nil, testActor, nil))
 
-	res, err := verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"delta criterion"}, testActor, nil)
+	res, err := verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"delta criterion"}, nil, testActor, nil)
 	if err != nil {
 		t.Fatalf("AddACBatch: %v", err)
 	}

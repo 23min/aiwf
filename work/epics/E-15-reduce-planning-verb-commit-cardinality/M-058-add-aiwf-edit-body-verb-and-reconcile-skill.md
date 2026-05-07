@@ -32,9 +32,16 @@ Skill text update is a one-line change to `.claude/skills/aiwf-add/SKILL.md`: re
 
 ### AC-1 — aiwf edit-body verb exists; accepts --body-file or stdin
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-058/AC-1` for the actual implementation history._
+
 ### AC-2 — edit-body produces single trailered commit (aiwf-verb edit-body)
+
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-058/AC-2` for the actual implementation history._
 
 ### AC-3 — aiwf-add skill text removes plain-git body-edit carve-out
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-058/AC-3` for the actual implementation history._
+
 ### AC-4 — G-051 and G-052 are promotable to addressed after this milestone
 
+_Grandfathered: this AC was met before M-066's `entity-body-empty` rule made body prose required. The behavior pinned here is recorded in the AC's commit chain — see `aiwf history M-058/AC-4` for the actual implementation history._

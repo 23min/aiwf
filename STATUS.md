@@ -1,31 +1,10 @@
 # aiwf status — 2026-05-07
 
-_155 entities · 0 errors · 0 warnings_
+_158 entities · 0 errors · 0 warnings_
 
 ## In flight
 
-### E-17 — Entity body prose chokepoint (closes G-058) _(active)_
-
-- **M-066** — aiwf check finding entity-body-empty _(draft)_ — ACs 0/6 met (6 open) — tdd: required
-- → **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(in_progress)_ — ACs 0/8 met (8 open) — tdd: required
-- **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — ACs 0/5 met (5 open) — tdd: required
-
-```mermaid
-flowchart LR
-  E_17["E-17<br/>Entity body prose chokepoint (closes G-058)"]:::epic_active
-  M_066["M-066 (0/6)<br/>aiwf check finding entity-body-empty"]:::ms_draft
-  E_17 --> M_066
-  M_067["M-067 (0/8)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_in_progress
-  E_17 --> M_067
-  M_068["M-068 (0/5)<br/>aiwf-add skill names fill-in-body as required next step"]:::ms_draft
-  E_17 --> M_068
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
+_(no active epics)_
 
 ## Roadmap
 
@@ -114,7 +93,8 @@ flowchart LR
 | G-063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
 | G-064 | Kernel repo dogfooding closed partial (G-038) without installing the ritual plugins (aiwf-extensions, wf-rituals); operator-side surface incomplete here despite framework design assuming rituals are present |  |
 | G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
-| G-066 | aiwf add epic/milestone/gap/adr/decision/contract verbs lack --body-file flag for in-verb body scaffolding; only aiwf add ac will gain it via M-067, leaving the other six entity-creation verbs reliant on post-add aiwf edit-body |  |
+| G-067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-066 |
+| G-068 | Discoverability policy misses dynamic finding subcodes | M-066 |
 
 ## Warnings
 
@@ -124,9 +104,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body ADR-0001 |
-| 2026-05-07 | human/peter | add | aiwf add adr ADR-0001 'Mint entity ids at trunk integration via per-kind inbox state' |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-071 |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-070 |
-| 2026-05-07 | human/peter | edit-body | aiwf edit-body E-18 |
+| 2026-05-07 | human/peter | promote | aiwf promote G-066 open -> addressed |
+| 2026-05-07 | human/peter | render-roadmap | aiwf render roadmap |
+| 2026-05-07 | human/peter | promote | aiwf promote M-068 in_progress -> done |
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-068 |
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-068 |
 
