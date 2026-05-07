@@ -4,6 +4,27 @@ title: aiwf-add skill names fill-in-body as required next step
 status: draft
 parent: E-17
 tdd: required
+acs:
+    - id: AC-1
+      title: Skill names fill-in-body as required next step
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Skill cites the design intent (acs-and-tdd-plan.md)
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Skill recommends the body shape (paragraph, key contents)
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Skill names --body-file as in-verb alternative
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: Skill carries Don't entry against empty AC bodies
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -20,3 +41,14 @@ Edit `internal/skillsembed/aiwf-add/SKILL.md` (or wherever the skill source live
 The change is verified by the discoverability policy test (`internal/policies/PolicyFindingCodesAreDiscoverable` and the broader skill-doc enumeration from G-021) for the new finding code; the body-prose recommendation is content the policy can't enforce mechanically and ships unblocked.
 
 ## Acceptance criteria
+
+### AC-1 — Skill names fill-in-body as required next step
+
+### AC-2 — Skill cites the design intent (acs-and-tdd-plan.md)
+
+### AC-3 — Skill recommends the body shape (paragraph, key contents)
+
+### AC-4 — Skill names --body-file as in-verb alternative
+
+### AC-5 — Skill carries Don't entry against empty AC bodies
+

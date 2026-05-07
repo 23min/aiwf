@@ -55,7 +55,7 @@ flowchart LR
 
 - **M-066** — aiwf check finding acs-body-empty _(draft)_ — ACs 0/6 met (6 open) — tdd: required
 - **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(draft)_ — ACs 0/8 met (8 open) — tdd: required
-- **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — tdd: required
+- **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — ACs 0/5 met (5 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -64,7 +64,7 @@ flowchart LR
   E_17 --> M_066
   M_067["M-067 (0/8)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_draft
   E_17 --> M_067
-  M_068["M-068<br/>aiwf-add skill names fill-in-body as required next step"]:::ms_draft
+  M_068["M-068 (0/5)<br/>aiwf-add skill names fill-in-body as required next step"]:::ms_draft
   E_17 --> M_068
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -97,9 +97,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add ac M-067 AC-1..AC-8 (8 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add ac M-066 AC-1..AC-6 (6 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-068 'aiwf-add skill names fill-in-body as required next step' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-067 'aiwf add ac --body-file flag for in-verb body scaffolding' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-066 'aiwf check finding acs-body-empty' |
-| 2026-05-07 | human/peter | add | aiwf add epic E-17 'AC body prose chokepoint (closes G-058)' |
 
