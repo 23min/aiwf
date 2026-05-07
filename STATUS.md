@@ -53,14 +53,14 @@ flowchart LR
 
 ### E-17 — AC body prose chokepoint (closes G-058) _(proposed)_
 
-- **M-066** — aiwf check finding acs-body-empty _(draft)_ — tdd: required
+- **M-066** — aiwf check finding acs-body-empty _(draft)_ — ACs 0/6 met (6 open) — tdd: required
 - **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(draft)_ — tdd: required
 - **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_17["E-17<br/>AC body prose chokepoint (closes G-058)"]:::epic_proposed
-  M_066["M-066<br/>aiwf check finding acs-body-empty"]:::ms_draft
+  M_066["M-066 (0/6)<br/>aiwf check finding acs-body-empty"]:::ms_draft
   E_17 --> M_066
   M_067["M-067<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_draft
   E_17 --> M_067
