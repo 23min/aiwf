@@ -13,6 +13,10 @@ acs:
       title: doctor reads installed_plugins.json and matches project scope
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: Each missing plugin emits one warning with install command
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -22,4 +26,6 @@ acs:
 ### AC-1 — doctor.recommended_plugins config field accepts list
 
 ### AC-2 — doctor reads installed_plugins.json and matches project scope
+
+### AC-3 — Each missing plugin emits one warning with install command
 
