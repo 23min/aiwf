@@ -190,7 +190,7 @@ End state:
 | Milestone | Title | Status |
 |---|---|---|
 | M-070 | aiwf doctor warning for missing recommended plugins | done |
-| M-071 | Install ritual plugins in kernel repo + document operator setup path | draft |
+| M-071 | Install ritual plugins in kernel repo + document operator setup path | done |
 
 ## E-19 — Parallel TDD subagents with finding-gated AC closure (proposed)
 

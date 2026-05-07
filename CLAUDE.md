@@ -83,6 +83,22 @@ All three should pass before committing. CI runs all of them on every push.
 
 ---
 
+## Operator setup
+
+After cloning, install the framework's companion plugins **for this project's scope** so the planning skills (`aiwfx-start-milestone`, `wf-tdd-cycle`, etc.) and role agents activate in this repo. Without them, `aiwf` is just the planning data layer and `aiwf doctor` warns (per M-070's recommended-plugin check). The expected set is declared in [`aiwf.yaml`'s `doctor.recommended_plugins`](aiwf.yaml).
+
+In a Claude Code session at this repo's root:
+
+```
+/plugin marketplace add 23min/ai-workflow-rituals
+/plugin                     # Discover tab → install each at PROJECT scope
+/reload-plugins
+```
+
+Install both `aiwf-extensions@ai-workflow-rituals` and `wf-rituals@ai-workflow-rituals`. **The CLI form `claude /plugin install <name>@<marketplace>` defaults to *user* scope** — only the interactive `/plugin` menu offers a project-scope choice. Verify with `aiwf doctor`: once both are project-scope-installed, the `recommended-plugin-not-installed:` warnings go silent. (Closes G-064 via M-071, which lives under E-18.)
+
+---
+
 ## Working on the PoC
 
 The historical sessions and iterations are archived at [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md). Forward work tracks via epic + milestone entities under `work/`; allocate via `aiwf add epic` / `aiwf add milestone` and run `aiwf status` to see in-flight state.

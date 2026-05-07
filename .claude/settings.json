@@ -4,6 +4,7 @@
     "command": ".claude/statusline.sh"
   },
   "enabledPlugins": {
+    "wf-rituals@ai-workflow-rituals": true,
     "aiwf-extensions@ai-workflow-rituals": true
   }
 }

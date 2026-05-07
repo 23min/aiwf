@@ -12,3 +12,13 @@ tree:
   # ritual writes it nowhere else. First exemption added at E-17 wrap.
   allow_paths:
     - work/epics/*/wrap.md
+
+doctor:
+  # Claude Code plugins this repo expects operators to have installed
+  # for the project scope. `aiwf doctor` warns once per missing entry
+  # (M-070). Installation is the operator's responsibility — see
+  # CLAUDE.md "Operator setup" for the install commands. Closes G-064
+  # (kernel-repo dogfooding) via M-071 (E-18).
+  recommended_plugins:
+    - aiwf-extensions@ai-workflow-rituals
+    - wf-rituals@ai-workflow-rituals
