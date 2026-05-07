@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_146 entities · 0 errors · 0 warnings_
+_147 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -88,6 +88,7 @@ _(none)_
 | G-059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-069 |
 | G-060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
 | G-061 | Generic \`aiwf list <kind>\` verb referenced as canonical in contracts plan and shipped contract skill, but never implemented; AI assistants are instructed to invoke a non-existent verb |  |
+| G-062 | aiwf doctor does not surface missing recommended plugins; ritual skills (aiwf-extensions, wf-rituals) can be silently absent from a consumer repo with no signal to operator or AI assistant |  |
 
 ## Warnings
 
@@ -97,9 +98,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote E-17 proposed -> active |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-061 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-061 'Generic \`aiwf list <kind>\` verb referenced as canonical in contracts plan and shipped contract skill, but never implemented; AI assistants are instructed to invoke a non-existent verb' |
 | 2026-05-07 | human/peter | promote | aiwf promote E-14 active -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-069 in_progress -> done |
-| 2026-05-07 | human/peter | promote | aiwf promote M-069/AC-7 open -> met |
 
