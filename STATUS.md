@@ -94,9 +94,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-069 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-070 'aiwf doctor has no --format=json envelope; M-070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-069 'aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome' |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | promote | aiwf promote E-18 active -> done |
-| 2026-05-08 | human/peter | promote | aiwf promote G-064 open -> addressed |
 
