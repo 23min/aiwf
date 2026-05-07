@@ -4,6 +4,39 @@ title: tdd flag on aiwf add milestone with project-default fallback
 status: draft
 parent: E-16
 tdd: required
+acs:
+    - id: AC-1
+      title: --tdd flag writes resolved value to milestone frontmatter
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Project default from aiwf.yaml tdd.default applies when --tdd omitted
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Verb refuses when neither --tdd nor tdd.default is set
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Invalid --tdd values exit with code 2 and usage error
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: --tdd value tab-completes the closed set
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: 'aiwf add ac still seeds tdd_phase: red for tdd: required parents'
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: Subprocess integration test covers all four resolution paths
+      status: open
+      tdd_phase: red
+    - id: AC-8
+      title: aiwf-add skill documents --tdd flag and resolution order
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -19,3 +52,20 @@ The flag is added to the existing Cobra command in `cmd/aiwf/add_cmd.go`; the re
 The error message for the no-default-no-flag case is part of the contract: it must name the flag (`--tdd`), the closed-set values, the config field (`aiwf.yaml: tdd.default`), and recommend `--tdd required` for code milestones.
 
 ## Acceptance criteria
+
+### AC-1 — --tdd flag writes resolved value to milestone frontmatter
+
+### AC-2 — Project default from aiwf.yaml tdd.default applies when --tdd omitted
+
+### AC-3 — Verb refuses when neither --tdd nor tdd.default is set
+
+### AC-4 — Invalid --tdd values exit with code 2 and usage error
+
+### AC-5 — --tdd value tab-completes the closed set
+
+### AC-6 — aiwf add ac still seeds tdd_phase: red for tdd: required parents
+
+### AC-7 — Subprocess integration test covers all four resolution paths
+
+### AC-8 — aiwf-add skill documents --tdd flag and resolution order
+

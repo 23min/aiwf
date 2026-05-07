@@ -27,12 +27,12 @@ flowchart LR
 
 ### E-16 — TDD policy declaration chokepoint (closes G-055) _(proposed)_
 
-- **M-062** — tdd flag on aiwf add milestone with project-default fallback _(draft)_ — tdd: required
+- **M-062** — tdd flag on aiwf add milestone with project-default fallback _(draft)_ — ACs 0/8 met (8 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_16["E-16<br/>TDD policy declaration chokepoint (closes G-055)"]:::epic_proposed
-  M_062["M-062<br/>tdd flag on aiwf add milestone with project-default fallback"]:::ms_draft
+  M_062["M-062 (0/8)<br/>tdd flag on aiwf add milestone with project-default fallback"]:::ms_draft
   E_16 --> M_062
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
