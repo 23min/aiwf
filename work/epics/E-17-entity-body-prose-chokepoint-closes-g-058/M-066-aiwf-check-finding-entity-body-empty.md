@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Severity escalates to error under aiwf.yaml tdd.strict true
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Entities with non-empty body prose produce no finding
       status: open
