@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: Omitting --body-file leaves body empty (today's behavior)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: Subprocess integration test covers single, multi, stdin, refusal
       status: open
