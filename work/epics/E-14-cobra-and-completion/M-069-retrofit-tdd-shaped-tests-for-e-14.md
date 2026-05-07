@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Envelope conforms to documented schema for every --format=json verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Single-commit-per-verb invariant asserted per mutating verb
