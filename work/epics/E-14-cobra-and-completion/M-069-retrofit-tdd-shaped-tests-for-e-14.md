@@ -1,7 +1,7 @@
 ---
 id: M-069
 title: Retrofit TDD-shaped tests for E-14
-status: in_progress
+status: done
 parent: E-14
 tdd: required
 acs:
