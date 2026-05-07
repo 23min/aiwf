@@ -217,11 +217,11 @@ func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Comman
 		Use:   "ac <milestone-id>",
 		Short: "Add one or more acceptance criteria to a milestone",
 		Example: `  # Add a single AC
-  aiwf add ac M-007 --title "Cobra dep added with one-line justification"
+  aiwf add ac M-007 --title "rename preserves the entity id"
 
   # Add multiple ACs in one atomic commit
   aiwf add ac M-007 \
-    --title "version verb migrated" \
+    --title "verb writes exactly one commit" \
     --title "exit codes preserved"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
