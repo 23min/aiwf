@@ -31,7 +31,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: Subprocess integration test covers single, multi, stdin, refusal
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-8
       title: aiwf-add skill documents the new --body-file flag
