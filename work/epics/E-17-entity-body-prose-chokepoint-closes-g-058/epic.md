@@ -1,7 +1,7 @@
 ---
 id: E-17
 title: Entity body prose chokepoint (closes G-058)
-status: active
+status: done
 ---
 
 ## Rescope note (per G-063, 2026-05-07)

@@ -4,28 +4,7 @@ _158 entities · 0 errors · 0 warnings_
 
 ## In flight
 
-### E-17 — Entity body prose chokepoint (closes G-058) _(active)_
-
-- ✓ **M-066** — aiwf check finding entity-body-empty _(done)_ — ACs 6/6 met — tdd: required
-- ✓ **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(done)_ — ACs 7/7 met — tdd: required
-- ✓ **M-068** — aiwf-add skill names fill-in-body as required next step _(done)_ — ACs 5/5 met — tdd: required
-
-```mermaid
-flowchart LR
-  E_17["E-17<br/>Entity body prose chokepoint (closes G-058)"]:::epic_active
-  M_066["M-066 (6/6)<br/>aiwf check finding entity-body-empty"]:::ms_done
-  E_17 --> M_066
-  M_067["M-067 (7/7)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_done
-  E_17 --> M_067
-  M_068["M-068 (5/5)<br/>aiwf-add skill names fill-in-body as required next step"]:::ms_done
-  E_17 --> M_068
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
+_(no active epics)_
 
 ## Roadmap
 
@@ -125,9 +104,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote G-066 open -> addressed |
 | 2026-05-07 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068 in_progress -> done |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-068 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-068 |
-| 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-5 open -> met |
 
