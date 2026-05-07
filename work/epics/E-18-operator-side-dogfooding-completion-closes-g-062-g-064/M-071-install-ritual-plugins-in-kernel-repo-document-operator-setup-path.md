@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: aiwf.yaml declares aiwf-extensions and wf-rituals as recommended
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Both plugins are installed for this repo's project scope
       status: open
