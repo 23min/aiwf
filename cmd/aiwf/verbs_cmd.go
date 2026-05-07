@@ -207,12 +207,18 @@ func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
 }
 
 // newAddACCmd builds `aiwf add ac <milestone-id> --title "..." [--title
-// "..."]`. ACs are sub-elements (composite id M-NNN/AC-N), not a kind in
-// the schema sense, so they're modeled as a child Cobra command. The
-// pointers to the parent's flag variables let one --title slice be
-// shared between kinds and ac (a typical pattern with cobra child cmds).
+// "..."] [--body-file <path>] [--body-file <path>]`. ACs are sub-elements
+// (composite id M-NNN/AC-N), not a kind in the schema sense, so they're
+// modeled as a child Cobra command. The pointers to the parent's flag
+// variables let one --title slice be shared between kinds and ac (a
+// typical pattern with cobra child cmds). --body-file is a separate
+// repeatable flag local to the ac subcommand: positional pairing with
+// --title (the Nth --body-file populates the body of the Nth AC).
 func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
-	var tests string
+	var (
+		tests     string
+		bodyFiles []string
+	)
 	cmd := &cobra.Command{
 		Use:   "ac <milestone-id>",
 		Short: "Add one or more acceptance criteria to a milestone",
@@ -222,20 +228,24 @@ func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Comman
   # Add multiple ACs in one atomic commit
   aiwf add ac M-007 \
     --title "verb writes exactly one commit" \
-    --title "exit codes preserved"`,
+    --title "exit codes preserved"
+
+  # Add an AC with body content from a file (M-067)
+  aiwf add ac M-007 --title "rename preserves id" --body-file ./ac1-body.md`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runAddACCmd(args[0], *titles, *actor, *principal, *root, tests))
+			return wrapExitCode(runAddACCmd(args[0], *titles, bodyFiles, *actor, *principal, *root, tests))
 		},
 	}
 	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
+	cmd.Flags().StringArrayVar(&bodyFiles, "body-file", nil, `path to a file whose content becomes the AC body section under "### AC-N — <title>" (use "-" to read from stdin; only valid with single --title); positionally paired with --title — the Nth --body-file populates the Nth AC; the file must contain body content only — leading "---" is refused`)
 	cmd.ValidArgsFunction = completeEntityIDArg(entity.KindMilestone, 0)
 	return cmd
 }
 
-func runAddACCmd(parentID string, titles []string, actor, principal, root, tests string) int {
+func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, root, tests string) int {
 	if len(titles) == 0 {
 		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
 		return exitUsage
@@ -243,6 +253,19 @@ func runAddACCmd(parentID string, titles []string, actor, principal, root, tests
 	metrics, err := parseTestsFlag(tests, "aiwf add ac")
 	if err != nil {
 		return exitUsage
+	}
+
+	var bodies [][]byte
+	if len(bodyFiles) > 0 {
+		bodies = make([][]byte, len(bodyFiles))
+		for i, path := range bodyFiles {
+			b, readErr := readBodyFile(path)
+			if readErr != nil {
+				fmt.Fprintf(os.Stderr, "aiwf add ac: --body-file[%d] %s: %v\n", i, path, readErr)
+				return exitUsage
+			}
+			bodies[i] = b
+		}
 	}
 
 	rootDir, err := resolveRoot(root)
@@ -268,7 +291,7 @@ func runAddACCmd(parentID string, titles []string, actor, principal, root, tests
 		fmt.Fprintf(os.Stderr, "aiwf add ac: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.AddACBatch(ctx, tr, parentID, titles, actorStr, metrics)
+	result, err := verb.AddACBatch(ctx, tr, parentID, titles, bodies, actorStr, metrics)
 	// An AC is a sub-element of its parent milestone — its sole
 	// "outbound reference" for scope reachability is the parent id.
 	pctx := provenanceContext{
