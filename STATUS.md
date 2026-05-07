@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_131 entities · 0 errors · 0 warnings_
+_132 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -37,6 +37,7 @@ _(none)_
 | G-023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
 | G-055 | Milestone creation does not require a TDD policy declaration | E-14 |
 | G-056 | aiwf render output (site/) is not gitignored; pollutes consumer working tree | E-14 |
+| G-057 | Stray aiwf binary in repo root from local builds is not gitignored |  |
 
 ## Warnings
 
@@ -46,9 +47,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add gap G-056 'aiwf render output (site/) is not gitignored; pollutes consumer working tree' |
 | 2026-05-07 | human/peter | add | aiwf add gap G-055 'Milestone creation does not require a TDD policy declaration' |
 | 2026-05-07 | human/peter | promote | aiwf promote E-14 active -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-061 in_progress -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote M-061/AC-5 open -> met |
-| 2026-05-07 | human/peter | promote | aiwf promote M-061/AC-4 open -> met |
 
