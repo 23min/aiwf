@@ -725,6 +725,81 @@ func TestEntityBodyEmpty_HTMLCommentsAreEmpty(t *testing.T) {
 	}
 }
 
+// TestEntityBodyEmpty_DoesNotEngageACSTDDAudit pins M-066/AC-5: the
+// grandfather rule from G-055 / G-058 is preserved. An AC that
+// surfaces `entity-body-empty` does not retroactively re-engage
+// `acs-tdd-audit` against the AC's status / phase fields.
+//
+// The canonical historical shape: a `tdd: required` milestone with an
+// AC at `status: met` + `tdd_phase: done` whose body is empty (the
+// shape every M-049..M-061 AC takes after the backfill — bare prose
+// stub or scaffolded heading-only). Running both rules against that
+// fixture must produce:
+//
+//   - `entity-body-empty` (warning, subcode `ac`)         — 1 finding
+//   - `acs-tdd-audit`                                      — 0 findings
+//
+// The independence is structural: `acsTDDAudit` only reads
+// status/phase, never body content. AC-5 turns that structural
+// independence into a regression chokepoint — a future change that
+// couples the two (e.g. "if AC body empty, flag tdd_phase as
+// suspect") fails here.
+//
+// The companion subcase shows the audit DOES fire on its own contract
+// (met + phase: red, empty body): proves the zero-count above isn't
+// because acsTDDAudit is silent for unrelated reasons.
+func TestEntityBodyEmpty_DoesNotEngageACSTDDAudit(t *testing.T) {
+	t.Run("met+done+empty body: body-empty fires, audit silent", func(t *testing.T) {
+		root := t.TempDir()
+		ents, err := writeMetDoneACWithEmptyBody()(root)
+		if err != nil {
+			t.Fatalf("write fixture: %v", err)
+		}
+		tr := &tree.Tree{Root: root, Entities: ents}
+
+		bodyFindings := entityBodyEmpty(tr)
+		auditFindings := acsTDDAudit(tr)
+
+		acBodyHits := 0
+		for _, f := range bodyFindings {
+			if f.Subcode == "ac" && f.EntityID == "M-001/AC-1" {
+				acBodyHits++
+			}
+		}
+		if acBodyHits != 1 {
+			t.Errorf("entity-body-empty for AC-1 = %d, want 1; findings=%+v",
+				acBodyHits, bodyFindings)
+		}
+
+		if len(auditFindings) != 0 {
+			t.Errorf("acs-tdd-audit findings = %d, want 0 (grandfather rule); findings=%+v",
+				len(auditFindings), auditFindings)
+		}
+	})
+
+	t.Run("met+red+empty body: audit fires on its own contract", func(t *testing.T) {
+		// Sanity case — confirms acsTDDAudit isn't structurally silent
+		// for some other reason; if you flip the AC's phase to red
+		// (which is what acsTDDAudit actually checks), the audit fires
+		// regardless of whether the body is empty.
+		root := t.TempDir()
+		ents, err := writeMetRedACWithEmptyBody()(root)
+		if err != nil {
+			t.Fatalf("write fixture: %v", err)
+		}
+		tr := &tree.Tree{Root: root, Entities: ents}
+
+		auditFindings := acsTDDAudit(tr)
+		if len(auditFindings) != 1 {
+			t.Fatalf("acs-tdd-audit findings = %d, want 1 (met+red is the audit's own contract); findings=%+v",
+				len(auditFindings), auditFindings)
+		}
+		if auditFindings[0].Code != "acs-tdd-audit" {
+			t.Errorf("Code = %q, want acs-tdd-audit", auditFindings[0].Code)
+		}
+	})
+}
+
 // --- fixture builders ---------------------------------------------------
 
 func writeEpicFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
@@ -1006,6 +1081,88 @@ acs:
 			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "Filled AC", Status: "open"},
+			},
+		})
+	}
+}
+
+// writeMetDoneACWithEmptyBody returns a fixture builder that produces
+// a `tdd: required` milestone with one AC at status: met + tdd_phase:
+// done whose body section is empty (heading present, no prose). This
+// is the canonical historical-AC shape used by AC-5 to assert
+// independence between entity-body-empty and acs-tdd-audit.
+func writeMetDoneACWithEmptyBody() func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := "## Goal\n\nGoal prose.\n\n" +
+			"## Approach\n\nApproach prose.\n\n" +
+			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
+			"### AC-1 — Historical AC\n\n"
+		fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: required
+acs:
+    - id: AC-1
+      title: Historical AC
+      status: met
+      tdd_phase: done
+---
+
+`
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "required", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{
+					ID:       "AC-1",
+					Title:    "Historical AC",
+					Status:   entity.StatusMet,
+					TDDPhase: entity.TDDPhaseDone,
+				},
+			},
+		})
+	}
+}
+
+// writeMetRedACWithEmptyBody is the audit-still-fires sanity fixture
+// for AC-5: same shape as writeMetDoneACWithEmptyBody but the AC's
+// tdd_phase is red. acsTDDAudit's contract is "met requires done" so
+// this fixture trips the audit regardless of body content. Used to
+// prove the zero-count assertion above isn't a false negative.
+func writeMetRedACWithEmptyBody() func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := "## Goal\n\nGoal prose.\n\n" +
+			"## Approach\n\nApproach prose.\n\n" +
+			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
+			"### AC-1 — Audit-tripping AC\n\n"
+		fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: required
+acs:
+    - id: AC-1
+      title: Audit-tripping AC
+      status: met
+      tdd_phase: red
+---
+
+`
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "required", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{
+					ID:       "AC-1",
+					Title:    "Audit-tripping AC",
+					Status:   entity.StatusMet,
+					TDDPhase: entity.TDDPhaseRed,
+				},
 			},
 		})
 	}
