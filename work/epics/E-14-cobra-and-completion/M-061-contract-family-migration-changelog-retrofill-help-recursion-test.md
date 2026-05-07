@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-5
       title: Help-recursion regression test pins the SetHelpFunc inheritance fix
-      status: open
+      status: met
 ---
 
 ## Goal
