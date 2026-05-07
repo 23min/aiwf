@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_159 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_160 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -76,6 +76,7 @@ flowchart LR
 | ID | Kind | Title | Status |
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
+| ADR-0003 | adr | Add finding (F-NNN) as a seventh entity kind | proposed |
 
 ## Open gaps
 
@@ -108,9 +109,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | cancel | aiwf cancel ADR-0002 -> rejected |
 | 2026-05-07 | human/peter | add | aiwf add adr ADR-0002 'TEST-DRY-RUN-DELETE-ME' |
 | 2026-05-07 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-07 | human/peter | promote | aiwf promote E-17 active -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote G-066 open -> addressed |
-| 2026-05-07 | human/peter | render-roadmap | aiwf render roadmap |
 
