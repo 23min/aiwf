@@ -122,9 +122,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-4 'CLAUDE.md gains a setup section listing recommended plugins' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-3 'M-070's doctor warning goes silent after install (validates G-062)' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-2 'Both plugins are installed for this repo's project scope' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-1 'aiwf.yaml declares aiwf-extensions and wf-rituals as recommended' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-070/AC-7 'doctor --self-check covers the new check end-to-end' |
-| 2026-05-07 | human/peter | add | aiwf add ac M-070/AC-6 'Plugins installed only for other scopes produce a finding' |
 
