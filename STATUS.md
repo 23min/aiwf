@@ -84,7 +84,6 @@ _(none)_
 |----|-------|---------------|
 | G-022 | Provenance model extension surface |  |
 | G-023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
-| G-055 | Milestone creation does not require a TDD policy declaration | E-14 |
 | G-056 | aiwf render output (site/) is not gitignored; pollutes consumer working tree | E-14 |
 | G-057 | Stray aiwf binary in repo root from local builds is not gitignored |  |
 | G-058 | AC body sections ship empty; no chokepoint enforces prose intent | E-16 |

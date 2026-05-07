@@ -1,8 +1,10 @@
 ---
 id: G-055
 title: Milestone creation does not require a TDD policy declaration
-status: open
+status: addressed
 discovered_in: E-14
+addressed_by_commit:
+    - 09fd0ccf675fb985b6a040c13b56433bcab5d5cc
 ---
 
 ## What's missing
