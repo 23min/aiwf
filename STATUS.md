@@ -6,14 +6,14 @@ _158 entities · 0 errors · 0 warnings_
 
 ### E-17 — Entity body prose chokepoint (closes G-058) _(active)_
 
-- → **M-066** — aiwf check finding entity-body-empty _(in_progress)_ — ACs 6/6 met — tdd: required
+- ✓ **M-066** — aiwf check finding entity-body-empty _(done)_ — ACs 6/6 met — tdd: required
 - ✓ **M-067** — aiwf add ac --body-file flag for in-verb body scaffolding _(done)_ — ACs 7/7 met — tdd: required
 - **M-068** — aiwf-add skill names fill-in-body as required next step _(draft)_ — ACs 0/5 met (5 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_17["E-17<br/>Entity body prose chokepoint (closes G-058)"]:::epic_active
-  M_066["M-066 (6/6)<br/>aiwf check finding entity-body-empty"]:::ms_in_progress
+  M_066["M-066 (6/6)<br/>aiwf check finding entity-body-empty"]:::ms_done
   E_17 --> M_066
   M_067["M-067 (7/7)<br/>aiwf add ac --body-file flag for in-verb body scaffolding"]:::ms_done
   E_17 --> M_067
@@ -126,9 +126,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body G-068 |
 | 2026-05-07 | human/peter | add | aiwf add gap G-068 'Discoverability policy misses dynamic finding subcodes' |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-066 |
 | 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-6 open -> met |
-| 2026-05-07 | human/peter | promote | aiwf promote M-066/AC-6 --phase green -> done |
 

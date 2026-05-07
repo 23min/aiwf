@@ -1,7 +1,7 @@
 ---
 id: M-066
 title: aiwf check finding entity-body-empty
-status: in_progress
+status: done
 parent: E-17
 tdd: required
 acs:
