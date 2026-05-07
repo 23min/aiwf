@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_154 entities · 0 errors · 0 warnings_
+_155 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -94,7 +94,9 @@ flowchart LR
 
 ## Open decisions
 
-_(none)_
+| ID | Kind | Title | Status |
+|----|------|-------|--------|
+| ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 
 ## Open gaps
 
@@ -122,9 +124,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | edit-body | aiwf edit-body M-071 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-070 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body E-18 |
 | 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-4 'CLAUDE.md gains a setup section listing recommended plugins' |
 | 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-3 'M-070's doctor warning goes silent after install (validates G-062)' |
-| 2026-05-07 | human/peter | add | aiwf add ac M-071/AC-2 'Both plugins are installed for this repo's project scope' |
 

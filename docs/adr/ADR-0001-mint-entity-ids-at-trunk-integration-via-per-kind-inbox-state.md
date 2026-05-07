@@ -1,0 +1,134 @@
+---
+id: ADR-0001
+title: Mint entity ids at trunk integration via per-kind inbox state
+status: proposed
+---
+## Context
+
+The kernel's existing principle holds that ids are stable from creation: every `aiwf add` allocates the next id; `aiwf reallocate` resolves the rare collision after a merge. This works for one human on one branch.
+
+It breaks under parallel branches. Two branches both allocate the next id (e.g., G-47), collide at merge, and require human intervention. The collision domain spans every monotonic-id kind: gaps, milestones, ADRs, decisions, contracts, epics. Failure is silent until merge — `aiwf check` on either branch passes; trunk only learns of the collision when both pushes contend.
+
+This is not a future "team scale" concern; it is present today:
+
+- Solo developer with `aiwf authorize <id> --to ai/claude` running an agent in a worktree while filing entities from the main checkout
+- One developer in two terminals, two worktrees rooted under `~/projects/<repo>/`
+- Any deployment with two or more concurrent branches touching the planning tree
+
+Reallocate-after-collision is mechanically correct but lossy: the id quoted in PR comments, Slack, code, or earlier commits goes stale when reallocate runs. At any non-trivial parallelism rate the routine-collision tax becomes a coordination event.
+
+Cause: id allocation is *distributed* (every contributor's checkout decides the next id) while the canonical id space is *shared* (trunk is the single source of truth). Distributed allocation against a shared counter requires either centralized minting or post-hoc reconciliation. The existing design picks reconciliation; this ADR proposes centralized minting at the integration boundary.
+
+## Decision
+
+### Property shift
+
+The "stable ids" principle in `docs/pocv3/design/design-decisions.md` is reworded:
+
+> Stable ids that survive rename, cancel, and collision. **An entity's id is stable from the moment it lands in trunk, not from the moment it's first written.** Pre-mint state on a branch uses `id: <slug>` plus the slug as a temporary handle; the canonical id is minted at trunk integration. The id is the primary key; the slug is just display. Reallocate remains the fix-up tool for rare trunk-mint races.
+
+### Branch-aware default
+
+`aiwf add <kind>` decides between immediate-mint and inbox based on current branch:
+
+- If `git rev-parse --abbrev-ref HEAD` matches `aiwf.yaml.trunk:` → mint immediately (file lands at canonical path with canonical id, same as today).
+- Otherwise → use inbox (file lands at `work/<kind>/inbox/<slug>.md` with `id: <slug>` literally).
+
+### Configurable trunk
+
+A new `aiwf.yaml.trunk:` field declares the integration branch. Default `main`. Accepts any branch name including `develop`, `release/v2.x`, `poc/aiwf-v3`. This repo sets `trunk: poc/aiwf-v3`.
+
+The pattern is well-established: GitFlow's `develop`, GitHub's per-repo default-branch setting, fork workflows, long-lived development branches. Single trunk per repo for v1; multi-trunk deferred until a real consumer needs it. `aiwf check` validates that the configured trunk branch exists.
+
+### Pre-mint state on disk
+
+Inbox file: `work/<kind>/inbox/<slug>.md`. Frontmatter `id: <slug>` literally — the slug functions as the id pre-mint. Cross-references use kind-prefixed slug-form (`relates_to: gap:auth-redirect-loop`) because slugs aren't disambiguated by format the way `G-NNN` is. Commit trailers in pre-mint commits: `aiwf-entity: gap:auth-redirect-loop`.
+
+ACs under a pre-mint milestone keep their local AC-N counter; composite id pre-mint is `<slug>/AC-N`, trailer form `milestone:<slug>/AC-N`. The AC-number portion is local to the milestone and unaffected by mint.
+
+### Mint operation
+
+Triggered automatically when inbox files arrive on trunk via merge.
+
+**Triggers:** local `post-merge` and `post-commit` hooks (managed by `aiwf init` / `aiwf update` under the kernel's `# aiwf:<hook>` marker pattern), plus a CI workflow as safety net for hosted PR-merges that bypass local hooks. All three call the same `aiwf assign-pending --if-needed` entry. Each is idempotent (no inbox files on trunk → no-op) and guarded by two early-exit checks: current branch must match `aiwf.yaml.trunk:`; no rebase-in-progress (`.git/rebase-merge/` or `.git/rebase-apply/` absent).
+
+**Operation:** allocate canonical ids against trunk's high-water marks; rename inbox files to canonical paths (`work/<kind>/inbox/<slug>.md` → `work/<kind>/<id>-<slug>.md`); update frontmatter `id:` fields; rewrite cross-references in any other entity that referenced the slug-form. Single commit on trunk:
+
+```
+aiwf assign-pending: minted N entities
+
+aiwf-verb: assign-pending
+aiwf-entity: G-47
+aiwf-entity: M-068
+aiwf-mint: G-47 = gap:auth-redirect-loop
+aiwf-mint: M-068 = milestone:backport-for-legacy-clients
+aiwf-actor: framework/aiwf-mint
+aiwf-principal: human/<email of merger>
+```
+
+The `aiwf-mint:` trailer key is new and pinned in `internal/policies/trailer_keys.go`. Slug-form `aiwf-entity:` values (e.g., `gap:<slug>`, `milestone:<slug>/AC-N`) are recognized by policy. The assignment commit carries one `aiwf-entity:` trailer per minted top-level entity; ACs inherit transitively via their parent milestone's mint, keeping the trailer set bounded for milestones with many ACs.
+
+### `aiwf history` walks across mint
+
+For `aiwf history G-47`:
+
+1. Find commits with `aiwf-entity: G-47` → captures the assignment commit and all post-mint events.
+2. Among those, find any with `aiwf-verb: assign-pending`. Read the matching `aiwf-mint:` trailer to extract the slug form.
+3. Find commits with `aiwf-entity: gap:auth-redirect-loop` → pre-mint events on the merging branch.
+4. Merge timelines by commit timestamp.
+
+Reverse query (`aiwf history gap:auth-redirect-loop`) walks identically. AC history walks via the parent's mint trailer.
+
+### Trunk-mint escape hatch
+
+For "I want a stable id now without merging a branch" — typically out-of-band gaps or ADRs — `aiwf add <kind> --to-trunk` operates against trunk directly:
+
+1. Create temp worktree at `origin/<trunk>` via `git worktree add --detach`.
+2. Fetch, allocate canonical id against latest trunk.
+3. Write entity, commit with full canonical trailers, push `HEAD:<trunk>`.
+4. On non-fast-forward rejection: pull, reallocate locally, retry (≤ 3 attempts).
+5. Remove temp worktree; user's primary worktree never touched.
+
+Scope for v1: `--to-trunk` valid for gaps, ADRs, decisions (the standalone unparented kinds with high filing frequency). Parented kinds (milestones, ACs) reject the flag — minting them directly would require parallel edits to their parent on trunk and is incoherent with parallel epic work. Epics and contracts also rejected for v1; opt-in later if friction shows up.
+
+### Validation
+
+`aiwf check` is context-aware via `aiwf.yaml.trunk:` compared to the current branch. Override flag `--context=trunk|branch` available for testing.
+
+- **Branch context:** inbox files legal; slug-form ids legal; mixed slug + canonical cross-references legal (an entity can reference both pre-mint peers on its branch and already-minted entities from trunk).
+- **Trunk context:** hard errors for `inbox-on-trunk`, `slug-id-on-trunk`, `unresolved-slug-ref`, `duplicate-slug-on-trunk`, and `trunk-branch-missing` (configured trunk doesn't exist).
+
+Slug-uniqueness within a kind on trunk becomes a kernel invariant — a useful general check that the inbox model elevates to load-bearing. Slug-collision across parallel branches detected early (pre-push hook, PR-open CI) as warning, late (mint-time) as hard error if it slipped through. Resolution: `aiwf rename` to a unique slug, or deletion of the duplicate.
+
+### Slug rename pre-mint
+
+Allowed via the existing `aiwf rename` verb. Pre-mint, the verb edits the `id:` field (since slug is id pre-mint) and rewrites cross-references on the branch. Post-mint behavior unchanged. The rename commit carries both old and new slug-ids as `aiwf-entity:` trailers so `aiwf history` walks across the rename, mirroring the assignment-commit pattern. The kernel does not police external broadcast of pushed slugs — that is a human concern, consistent with how renames of canonical entities are handled today.
+
+## Consequences
+
+**Positive:**
+
+- Collision is structurally impossible for branch-authored entities. Trunk is the single mint authority; the git push protocol serializes parallel branches at integration.
+- The mechanism is uniform across all six kinds. Per-kind variations (e.g., milestones being parented) are policy on top of one mechanism, not separate machinery.
+- Reallocate retains its purpose for rare trunk-mint-verb races and the existing post-merge collision-fixup case.
+- Configurable trunk supports common workflow patterns out of the box: GitFlow-style `develop`, fork workflows, long-lived development branches like `poc/aiwf-v3`.
+- Existing canonical-id entities are unaffected. No data migration required.
+
+**Negative:**
+
+- During the PR window, in-flight entities are referenceable only by slug — not yet by canonical id. External chat threads use the slug as handle until merge mints the canonical id. The trunk-mint escape hatch (`--to-trunk`) provides a stable id immediately for the out-of-band case where this matters most.
+- Slug-uniqueness on trunk is a new invariant that didn't exist before. Today's tree (where two canonical entities could share a slug, distinguished only by id prefix) gains a check; pre-existing collisions surface as findings on first run, resolved by renaming one offender.
+- Two new hooks (`post-merge`, `post-commit`) and a new CI workflow add to the install footprint. All managed by `aiwf init` / `aiwf update` under the marker pattern, so the cost is in implementation, not user-facing surface.
+- The `aiwf-mint:` trailer key and `framework/aiwf-mint` actor namespace are new but small extensions to existing machinery.
+
+## Alternatives considered
+
+**Flat hash ids (ULID, UUID, KSUID).** Eliminates collisions structurally but trades a rare automated retry for a permanent UX cost — every reference, conversation, and CLI argument becomes `01HQ9Z5N7P...` instead of `G-47`. Memorability and human conversation are load-bearing for the developer-facing surface. Rejected.
+
+**Scoped milestone ids (`M-<epicId>-N`).** Genuine structural improvement, natural extension of the existing AC scoping pattern. Eliminates milestone collisions by namespacing under epic. But: doesn't solve standalone-kind collision (gaps, ADRs, decisions still need a coordination mechanism); migration cost is high (every existing milestone and every reference rewritten); locality benefit is real but not load-bearing. Deferred to a separate ADR with its own merits-and-costs analysis. Adopting the inbox model first does not foreclose this — they are orthogonal.
+
+**Reallocate-only.** Sufficient for one human on one branch; insufficient at team scale (routine-collision tax becomes a coordination event) and at solo+agents scale (every agent-worktree merge risks collision). Rejected as primary mechanism; retained as recovery tool.
+
+**PR-open minting bot.** A CI bot mints canonical ids when a PR is opened, amending the branch. Stable ids during review. Rejected as kernel default because solo+agents and offline workflows have no CI bot. Folded back in as an *optional* adapter on top of the inbox model: teams that value stable ids during review can wrap `aiwf assign-pending` with a PR-open mint hook. The kernel ships with merge-time mint as the universal mechanism; PR-open-mint is downstream.
+
+**Inbox-only (no trunk-mint escape hatch).** Forces every entity-filing through PR ceremony, which is friction for "file a bug now without ceremony" cases. The escape hatch exists specifically to preserve that path; eliminating it would over-correct.
