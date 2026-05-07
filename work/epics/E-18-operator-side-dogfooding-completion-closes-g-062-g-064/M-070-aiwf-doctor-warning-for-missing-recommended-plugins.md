@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: doctor.recommended_plugins config field accepts list
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: doctor reads installed_plugins.json and matches project scope
