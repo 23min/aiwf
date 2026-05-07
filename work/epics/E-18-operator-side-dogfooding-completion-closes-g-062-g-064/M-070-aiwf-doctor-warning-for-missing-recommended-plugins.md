@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: doctor reads installed_plugins.json and matches project scope
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Each missing plugin emits one warning with install command
