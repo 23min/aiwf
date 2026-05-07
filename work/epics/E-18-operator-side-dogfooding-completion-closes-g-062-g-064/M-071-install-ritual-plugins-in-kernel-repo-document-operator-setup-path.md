@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: aiwf.yaml declares aiwf-extensions and wf-rituals as recommended
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Both plugins are installed for this repo's project scope
