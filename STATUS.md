@@ -76,7 +76,6 @@ flowchart LR
 | ID | Kind | Title | Status |
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
-| ADR-0002 | adr | TEST-DRY-RUN-DELETE-ME | proposed |
 
 ## Open gaps
 
@@ -109,9 +108,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add adr ADR-0002 'TEST-DRY-RUN-DELETE-ME' |
 | 2026-05-07 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-07 | human/peter | promote | aiwf promote E-17 active -> done |
 | 2026-05-07 | human/peter | promote | aiwf promote G-066 open -> addressed |
 | 2026-05-07 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-07 | human/peter | promote | aiwf promote M-068 in_progress -> done |
 
