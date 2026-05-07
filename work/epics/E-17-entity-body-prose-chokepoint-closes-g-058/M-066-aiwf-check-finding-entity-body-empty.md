@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Finding code documented in aiwf-check skill
-      status: open
+      status: met
       tdd_phase: done
 ---
 
