@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Mismatched --body-file / --title counts refuse pre-allocation
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Body file with leading --- frontmatter refused
