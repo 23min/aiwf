@@ -114,7 +114,6 @@ flowchart LR
 | G-063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
 | G-064 | Kernel repo dogfooding closed partial (G-038) without installing the ritual plugins (aiwf-extensions, wf-rituals); operator-side surface incomplete here despite framework design assuming rituals are present |  |
 | G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
-| G-066 | aiwf add epic/milestone/gap/adr/decision/contract verbs lack --body-file flag for in-verb body scaffolding; only aiwf add ac will gain it via M-067, leaving the other six entity-creation verbs reliant on post-add aiwf edit-body |  |
 | G-067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-066 |
 | G-068 | Discoverability policy misses dynamic finding subcodes | M-066 |
 
@@ -126,9 +125,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068 in_progress -> done |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-068 |
 | 2026-05-07 | human/peter | edit-body | aiwf edit-body M-068 |
 | 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-5 open -> met |
-| 2026-05-07 | human/peter | promote | aiwf promote M-068/AC-5 --phase green -> done |
 
