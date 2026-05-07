@@ -69,7 +69,21 @@ func newRenderCmd() *cobra.Command {
 			printRenderHelp()
 			return
 		}
-		_ = c.Help() // child subcommand falls back to Cobra default
+		// Non-render-parent descendants render Cobra's standard usage
+		// block directly. SetHelpFunc on render is inherited by every
+		// descendant, and c.Help() would re-enter this function and
+		// recurse to stack overflow — same shape as the bug-fix on the
+		// root SetHelpFunc in newRootCmd. M-061 AC-5 pins this.
+		out := c.OutOrStderr()
+		switch {
+		case c.Long != "":
+			_, _ = fmt.Fprintln(out, c.Long)
+			_, _ = fmt.Fprintln(out)
+		case c.Short != "":
+			_, _ = fmt.Fprintln(out, c.Short)
+			_, _ = fmt.Fprintln(out)
+		}
+		_, _ = fmt.Fprint(out, c.UsageString())
 	})
 	cmd.AddCommand(newRenderRoadmapCmd())
 	// `aiwf render help` is a positional alias for `aiwf render --help`,

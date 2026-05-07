@@ -17,6 +17,34 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-14: Cobra and completion
+
+Eight milestones (M-049 through M-055 plus M-061) replace the stdlib-`flag` dispatch with [`github.com/spf13/cobra`](https://github.com/spf13/cobra), ship `aiwf completion bash|zsh|fish|powershell`, and wire shell tab-completion for every value-taking flag and id positional. New CLAUDE.md principle: **CLI surfaces must be auto-completion-friendly** — mechanically enforced by a drift test that fails CI when a flag lands without completion wiring or an opt-out entry.
+
+- **M-049 — Bootstrap Cobra dispatch + migrate `version`.** `cmd/aiwf/main.go` becomes a Cobra root command tree; `version` is the first natively-Cobra subcommand. Other verbs continue through a `newPassthroughCmd` adapter until their own milestone migrates them. Exit codes 0/1/2/3 are preserved across Cobra's `Execute` boundary via a typed `*exitError` shuttle.
+- **M-050 — Read-only verbs migrated.** `check`, `history`, `doctor`, `schema`, `template`, `render` are now native Cobra commands. `render` keeps its dual surface (`render roadmap` subcommand vs `render --format=html` parent flag) so the public CLI shape doesn't break consumer scripts.
+- **M-051 — Mutating verbs migrated.** `add` (with `add ac` as a Cobra subcommand sharing PersistentFlags), `promote`, `cancel`, `rename`, `edit-body`, `move`, `reallocate`, `import`. Single-commit-per-verb invariant preserved; trailer keys (`aiwf-verb` / `aiwf-entity` / `aiwf-actor` plus the I2.5 provenance set) byte-identical; repo-lock contract unchanged.
+- **M-052 — Setup verbs migrated.** `init`, `update`, `upgrade`. Marker-based artifact regeneration (skills under `.claude/skills/aiwf-*`, hooks under `.git/hooks/`) goes through the same `initrepo.Init` and `initrepo.RefreshArtifacts` entry points as before, so installed hooks stay byte-identical.
+- **M-053 — `aiwf completion <bash|zsh|fish|powershell>` + static completion.** Cobra's auto-generated completion verb emits sourceable shell scripts; the README install one-liner is `source <(aiwf completion zsh)`. Static `--format=text|json` completion across read-only verbs; kind enumeration on `aiwf add`, `aiwf schema`, `aiwf template`; per-kind status enumeration on `aiwf promote <id> <TAB>` derived from the id's prefix without loading the tree; closed-set `--phase` (red|green|refactor|done) and `--on-collision` (fail|skip|update); `add ac M-NNN` filtered to milestone ids.
+- **M-054 — Dynamic id completion + drift-prevention test.** `--epic`, `--discovered-in`, `--relates-to`, `--linked-adr`, `--by`, `--superseded-by` enumerate live entity ids; positionals on `history`, `promote`, `cancel`, `rename`, `edit-body`, `move`, `reallocate` likewise. Failures (no `aiwf.yaml`, malformed tree) collapse to an empty list rather than spamming the shell. The drift test in `cmd/aiwf/completion_drift_test.go` walks the Cobra tree and asserts every value-taking flag has either a completion function bound or an entry in the curated opt-out list with a one-line rationale.
+- **M-055 — Documentation pass.** Every migrated verb's `--help` now carries a Cobra `Examples:` block with concrete copy-pastable invocations. CLAUDE.md § Go conventions § CLI conventions names Cobra as the standard CLI library and points to the `runXCmd` helper / drift-test chokepoint pattern.
+- **Follow-up cleanup commit — `show`, `status`, `whoami`, `authorize` migrated** (the four verbs the epic Scope didn't enumerate). Each gains native Cobra dispatch + completion wiring; the drift test's opt-out list shrinks accordingly.
+- **M-061 — Contract family migration + help-recursion regression test.** `aiwf contract` becomes a native Cobra command tree: `verify`, `bind <C-id>`, `unbind <C-id>`, `recipes`, plus the `recipe` sub-tree (`show`, `install`, `remove`). `--validator` completes from declared validators in `aiwf.yaml`; `recipe show|install` from the embedded recipe set; `recipe remove` from declared validators; `bind`/`unbind` positionals from contract entity ids. Subprocess integration test exercises every subcommand against the migrated binary. Bundled into this milestone: a regression test pinning the SetHelpFunc inheritance fix (a `c.Help()` re-entry that recursed to stack overflow on `aiwf <subverb> --help` until M-053 — the test caught a still-live instance of the same bug on `render roadmap --help` during authoring), and this very `[Unreleased]` retrofill.
+
+User-visible behavior delta: `--help` output for every verb now uses Cobra's standard rendering (Long description + Examples + Usage + Flags blocks), replacing the hand-rolled per-verb usage strings. Exit codes, JSON envelope shape, single-commit-per-verb, and trailer-key behavior are byte-identical to pre-migration.
+
+Auto-completion install (one line in shell rc):
+
+```bash
+# zsh
+source <(aiwf completion zsh)
+
+# bash (requires bash-completion v2)
+source <(aiwf completion bash)
+```
+
+After sourcing, `aiwf <TAB>` lists the verb catalog; `aiwf promote E-01 <TAB>` lists the kind's allowed statuses; `aiwf check --format=<TAB>` lists `text|json`; `aiwf add milestone --epic <TAB>` enumerates live epic ids from the planning tree.
+
 ## [0.6.0] — 2026-05-06
 
 ### Added — E-15: Reduce planning-verb commit cardinality

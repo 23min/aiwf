@@ -153,11 +153,12 @@ func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 		"aiwf completion powershell": "Cobra completion script generator; out of E-14 scope",
 		"aiwf help":                  "Cobra-default help command; positional is the verb name (auto-completed)",
 
-		// `aiwf contract` is a subcommand family (verify / bind / unbind /
-		// recipes / recipe show|install|remove) still routed through the
-		// passthrough adapter. Argument parsing happens inside the legacy
-		// handler; deferred to a follow-up migration.
-		"aiwf contract": "passthrough verb; subcommand tree migration deferred to a follow-up",
+		// `aiwf contract` and `aiwf contract recipe` are non-Runnable
+		// parent commands — they dispatch to children, args don't apply.
+		"aiwf contract":         "non-Runnable parent; dispatches to children",
+		"aiwf contract recipe":  "non-Runnable parent; dispatches to children",
+		"aiwf contract verify":  "no positional args",
+		"aiwf contract recipes": "no positional args",
 	}
 
 	var failures []string

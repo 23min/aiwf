@@ -80,9 +80,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | promote | aiwf promote M-061 draft -> in_progress |
 | 2026-05-07 | human/peter | add | aiwf add ac M-061 AC-1..AC-5 (5 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-061 'Contract family migration + changelog retrofill + help-recursion test' |
 | 2026-05-07 | human/peter | authorize | aiwf authorize E-14 --to ai/claude |
 | 2026-05-07 | human/peter | promote | aiwf promote E-14 done -> active |
-| 2026-05-07 | human/peter | promote | aiwf promote E-14 active -> done |
 

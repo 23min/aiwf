@@ -214,6 +214,80 @@ func mustExec(t *testing.T, workdir, name string, args ...string) {
 	}
 }
 
+// TestBinary_ContractFamily_Subprocess pins M-061 AC-3: every
+// `aiwf contract` subcommand runs cleanly as a subprocess against
+// the migrated binary. Sequence: recipes → recipe show → verify
+// (empty) → recipe install → add contract → bind → unbind → recipe
+// remove. Each step is its own subprocess invocation so a regression
+// in any single subcommand's Cobra wiring is reported by name.
+func TestBinary_ContractFamily_Subprocess(t *testing.T) {
+	skipIfShortOrUnsupported(t)
+	tmp := t.TempDir()
+	bin := buildBinary(t, tmp /* no ldflags */)
+
+	repo := t.TempDir()
+	mustExec(t, repo, "git", "init", "-q")
+	mustExec(t, repo, "git", "config", "user.email", "test@example.com")
+	mustExec(t, repo, "git", "config", "user.name", "aiwf-test")
+
+	rootArgs := []string{"--root", repo, "--actor", "human/test"}
+
+	runVerb := func(name string, args ...string) {
+		t.Helper()
+		out, err := runBinaryAt(repo, bin, args...)
+		if err != nil {
+			t.Fatalf("aiwf %s: %v\n%s", name, err, out)
+		}
+	}
+
+	runVerb("init", "init", "--root", repo, "--actor", "human/test", "--skip-hook")
+
+	// Read-only subverbs first — no state required.
+	runVerb("contract recipes",
+		append([]string{"contract", "recipes"}, "--root", repo)...)
+	runVerb("contract recipe show",
+		"contract", "recipe", "show", "jsonschema")
+	runVerb("contract verify (empty)",
+		append([]string{"contract", "verify"}, "--root", repo)...)
+
+	// Mutating: install a recipe so the validator name exists in
+	// aiwf.yaml when bind references it.
+	runVerb("contract recipe install",
+		append([]string{"contract", "recipe", "install", "jsonschema"}, rootArgs...)...)
+
+	// Create a contract entity to bind against.
+	runVerb("add contract",
+		append([]string{"add", "contract", "--title", "Sample API contract"}, rootArgs...)...)
+
+	// Plant minimal schema and fixtures paths so bind has something
+	// concrete to record (ContractBind validates the paths exist).
+	schemaPath := filepath.Join(repo, "fixtures-contract-schema.json")
+	if err := os.WriteFile(schemaPath, []byte(`{"type":"object"}`), 0o644); err != nil {
+		t.Fatalf("write schema: %v", err)
+	}
+	fixturesDir := filepath.Join(repo, "fixtures-contract-data")
+	if err := os.MkdirAll(fixturesDir, 0o755); err != nil {
+		t.Fatalf("mkdir fixtures: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(fixturesDir, "sample.json"), []byte(`{}`), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	runVerb("contract bind",
+		append([]string{
+			"contract", "bind", "C-001",
+			"--validator", "jsonschema",
+			"--schema", "fixtures-contract-schema.json",
+			"--fixtures", "fixtures-contract-data",
+		}, rootArgs...)...)
+
+	runVerb("contract unbind",
+		append([]string{"contract", "unbind", "C-001"}, rootArgs...)...)
+
+	runVerb("contract recipe remove",
+		append([]string{"contract", "recipe", "remove", "jsonschema"}, rootArgs...)...)
+}
+
 // TestBinary_DoctorSelfCheck_Passes pins M-051 AC-6: every mutating
 // verb (add, promote, cancel, rename, reallocate, import, plus
 // edit-body and move) runs cleanly inside a real binary subprocess.

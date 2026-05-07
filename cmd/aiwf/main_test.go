@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -25,6 +26,40 @@ func TestRun_HelpVariants(t *testing.T) {
 			if got := run([]string{arg}); got != exitOK {
 				t.Errorf("run(%q) = %d, want %d", arg, got, exitOK)
 			}
+		})
+	}
+}
+
+// TestRun_SubverbHelpDoesNotRecurse pins the SetHelpFunc inheritance
+// fix (M-061 AC-5). Pre-fix, `aiwf <subverb> --help` re-entered the
+// root's SetHelpFunc through c.Help() and recursed until stack-
+// overflow. The fix renders UsageString directly for non-root
+// commands. A regression here would either crash the test (stack
+// overflow) or return non-zero — both are caught.
+//
+// Cases cover one- and multi-level deep subverbs so the fix is
+// exercised against every command nesting depth.
+func TestRun_SubverbHelpDoesNotRecurse(t *testing.T) {
+	cases := [][]string{
+		{"check", "--help"},
+		{"check", "-h"},
+		{"add", "--help"},
+		{"add", "ac", "--help"},
+		{"promote", "--help"},
+		{"render", "--help"},
+		{"render", "roadmap", "--help"},
+		{"contract", "--help"},
+		{"contract", "verify", "--help"},
+		{"contract", "recipe", "--help"},
+		{"contract", "recipe", "show", "--help"},
+	}
+	for _, args := range cases {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			captureStdout(t, func() {
+				if rc := run(args); rc != exitOK {
+					t.Errorf("run(%v) = %d, want exitOK", args, rc)
+				}
+			})
 		})
 	}
 }

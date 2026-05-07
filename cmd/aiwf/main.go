@@ -1,16 +1,10 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
-// Verbs: check, add, promote, cancel, rename, reallocate, init, update,
-// upgrade, history, doctor, render, import, schema, template, plus help/version.
-// See docs/pocv3/archive/poc-plan-pre-migration.md for the session breakdown that produced this
-// surface.
-//
-// Dispatch is built on github.com/spf13/cobra so every verb, subverb,
-// flag, and closed-set value can be exposed to shell tab-completion
-// (E-14). M-049 bootstraps the Cobra root command and migrates only
-// `version`; remaining verbs continue to use their stdlib-flag handlers
-// via newPassthroughCmd until they are rewritten as native Cobra
-// commands in M-050…M-052.
+// Dispatch is built on github.com/spf13/cobra: every verb, subverb,
+// flag, and closed-set value is exposed to shell tab-completion. The
+// command tree is assembled by newRootCmd; the drift test in
+// completion_drift_test.go is the chokepoint that fails CI when a
+// flag lands without completion wiring or an opt-out entry.
 package main
 
 import (
@@ -208,12 +202,10 @@ func run(args []string) int {
 	return exitUsage
 }
 
-// newRootCmd assembles the Cobra command tree. `version` is the only
-// natively-Cobra subcommand in M-049; every other verb is wrapped via
-// newPassthroughCmd to defer to its existing stdlib-flag handler. The
-// passthrough adapters disappear as M-050…M-052 rewrite each verb as
-// a native Cobra command (which makes its flags tab-completable per
-// E-14's drift-prevention rule).
+// newRootCmd assembles the Cobra command tree. Every verb is a
+// native Cobra command (E-14 left no passthrough adapters); each
+// verb's flags are tab-completable per the drift-prevention rule
+// in completion_drift_test.go.
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "aiwf",
@@ -283,7 +275,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newSchemaCmd())
 	cmd.AddCommand(newShowCmd())
 	cmd.AddCommand(newTemplateCmd())
-	cmd.AddCommand(newPassthroughCmd("contract", runContract))
+	cmd.AddCommand(newContractCmd())
 	cmd.AddCommand(newAuthorizeCmd())
 
 	return cmd
@@ -305,28 +297,6 @@ func newVersionCmd() *cobra.Command {
 		RunE: func(c *cobra.Command, args []string) error {
 			fmt.Println(resolvedVersion())
 			return nil
-		},
-	}
-}
-
-// newPassthroughCmd wraps a legacy []string-taking handler in a Cobra
-// command that turns off Cobra flag parsing entirely. Tokens after the
-// verb name flow through verbatim, so the existing stdlib-flag-based
-// handlers continue to parse their own flags. M-050 onward replaces
-// each passthrough with a native Cobra command; the adapter exists so
-// the migration can land verb-by-verb instead of as one big rewrite.
-func newPassthroughCmd(use string, handler func([]string) int) *cobra.Command {
-	return &cobra.Command{
-		Use:                use,
-		DisableFlagParsing: true,
-		SilenceErrors:      true,
-		SilenceUsage:       true,
-		RunE: func(c *cobra.Command, args []string) error {
-			code := handler(args)
-			if code == exitOK {
-				return nil
-			}
-			return &exitError{code: code}
 		},
 	}
 }
