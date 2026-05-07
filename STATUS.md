@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-07
 
-_137 entities · 0 errors · 0 warnings_
+_138 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -64,6 +64,7 @@ _(none)_
 | G-055 | Milestone creation does not require a TDD policy declaration | E-14 |
 | G-056 | aiwf render output (site/) is not gitignored; pollutes consumer working tree | E-14 |
 | G-057 | Stray aiwf binary in repo root from local builds is not gitignored |  |
+| G-058 | AC body sections ship empty; no chokepoint enforces prose intent | E-16 |
 
 ## Warnings
 
@@ -73,9 +74,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-07 | human/peter | add | aiwf add ac M-065 AC-1..AC-5 (5 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add ac M-064 AC-1..AC-8 (8 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add ac M-063 AC-1..AC-7 (7 criteria) |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-065 'aiwf check finding milestone-tdd-undeclared as defense-in-depth' |
 | 2026-05-07 | human/peter | add | aiwf add milestone M-064 'aiwf update migration for existing aiwf.yaml with loud output' |
-| 2026-05-07 | human/peter | add | aiwf add milestone M-063 'aiwf.yaml tdd.default schema and aiwf init seeding' |
 
