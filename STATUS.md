@@ -4,25 +4,7 @@ _162 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
-### E-18 — Operator-side dogfooding completion (closes G-062, G-064) _(active)_
-
-- ✓ **M-070** — aiwf doctor warning for missing recommended plugins _(done)_ — ACs 7/7 met — tdd: required
-- ✓ **M-071** — Install ritual plugins in kernel repo + document operator setup path _(done)_ — ACs 4/4 met — tdd: required
-
-```mermaid
-flowchart LR
-  E_18["E-18<br/>Operator-side dogfooding completion (closes G-062, G-064)"]:::epic_active
-  M_070["M-070 (7/7)<br/>aiwf doctor warning for missing recommended plugins"]:::ms_done
-  E_18 --> M_070
-  M_071["M-071 (4/4)<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_done
-  E_18 --> M_071
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
+_(no active epics)_
 
 ## Roadmap
 
@@ -110,9 +92,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote G-064 open -> addressed |
 | 2026-05-08 | human/peter | promote | aiwf promote G-062 open -> addressed |
 | 2026-05-08 | human/peter | merge | Merge milestone M-071: install ritual plugins for project scope + document operator setup |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | promote | aiwf promote M-071 in_progress -> done |
-| 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-4 open -> met |
 
