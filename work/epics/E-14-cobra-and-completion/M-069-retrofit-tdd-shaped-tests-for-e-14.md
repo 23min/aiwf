@@ -34,12 +34,34 @@ acs:
       status: open
       tdd_phase: red
 ---
-
 ## Goal
+
+Retrofit the load-bearing tests E-14 (Cobra and completion) shipped without. The audit closed via G-055 found that several E-14 milestones were promoted `done` while the AC text referenced behavior that no test exercises. This milestone is `tdd: required`; each AC walks `red` → `green` → `done` so the gap is closed by mechanical evidence, not narrative.
+
+The seven ACs each pin one gap class identified in the audit. Production code is, in the audit's premise, already correct — what's missing is the test that would have failed before E-14 shipped and would fail again on regression. Where the production path turns out *not* to satisfy the test, that's a real second-order finding and gets fixed inline.
 
 ## Acceptance criteria
 
 ### AC-1 — Envelope conforms to documented schema for every --format=json verb
+
+`internal/render/render.go` documents the JSON envelope contract: every `--format=json` invocation emits a single object with `tool` (always `"aiwf"`), `version` (non-empty string), `status` (one of `"ok"` / `"findings"` / `"error"`), `findings` (array, never null/missing — empty when none), optional `result` (verb-specific payload), and optional `metadata`. The contract is the load-bearing thing CI scripts and downstream tools key off — `findings` is grepped the same way across verbs, `result` is switched on by verb name.
+
+The existing per-verb tests check the envelope loosely. `TestRun_ShowJSONEnvelope` asserts `tool == "aiwf"` and `status == "ok"` for one show invocation; nothing pins the contract across the *full* set of verbs that emit it. A regression where, say, `aiwf status --format=json` started omitting the `findings` array, or `aiwf contract verify` returned a status string outside the closed set, would not be caught by any current test — `findings` is the field downstream consumers grep, so its disappearance is a silent breaking change.
+
+This AC adds a structural conformance test that exercises every verb supporting `--format=json`, parses the envelope, and asserts the schema:
+
+- top-level keys are exactly the documented set (`tool`, `version`, `status`, `findings`, optionally `result`, optionally `metadata`); unknown keys fail the test.
+- `tool` equals `"aiwf"` exactly.
+- `version` is a non-empty string.
+- `status` is one of the three closed-set values.
+- `findings` is a JSON array (decodes into `[]any`, may be empty, must not be `null` or missing).
+- `result` and `metadata`, when present, are JSON objects.
+
+The matching uses `go-cmp.Diff` against a canonical schema-shaped value with `cmpopts.IgnoreFields` (and a comparer for the `findings` array contents) so the test pins **structure**, not specific run-varying values like the build-info version string or metadata timing fields. The verb table is the source of truth: a new `--format=json` verb that lands without an entry is the regression we want this test to catch on the next CI run.
+
+The test drives the verbs through `run([]string{...})` (the same dispatcher production uses) and captures stdout, so it sits at the seam between the verb's flag-binding and `render.JSON` — a verb that constructed its envelope manually, or skipped `render.JSON` and emitted ad-hoc JSON, would fail the conformance assertion even if its godoc still claimed the contract.
+
+The verbs covered: `check`, `show`, `history`, `status`, `schema`, `template`, `contract verify`, and `render --format=html` (which emits the envelope on stdout while writing HTML to disk).
 
 ### AC-2 — Single-commit-per-verb invariant asserted per mutating verb
 
@@ -52,4 +74,3 @@ acs:
 ### AC-6 — Native-Cobra drift test fails CI on passthrough-adapter regression
 
 ### AC-7 — Help-quality drift asserts Example present and no migration prose
-
