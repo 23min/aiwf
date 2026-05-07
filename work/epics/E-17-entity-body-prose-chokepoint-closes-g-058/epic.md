@@ -1,6 +1,6 @@
 ---
 id: E-17
-title: AC body prose chokepoint (closes G-058)
+title: Entity body prose chokepoint (closes G-058)
 status: active
 ---
 
@@ -8,7 +8,7 @@ status: active
 
 This epic was originally scoped AC-only as "AC body prose chokepoint." **Rescoped 2026-05-07** to a kind-generalized "entity body prose chokepoint" covering all entity kinds whose body carries load-bearing prose. The rescope was forced by [G-063](../../gaps/G-063-no-defined-start-epic-ritual-epic-activation-is-a-deliberate-sovereign-act-with-preflight-optional-delegation-but-kernel-treats-it-as-a-one-line-fsm-flip.md) sub-decision #4: the start-epic preflight needs a "non-empty epic body" check, and the cleanest implementation is one rule (`entity-body-empty`) parameterized by kind rather than two parallel rules.
 
-The frontmatter `title` field still says "AC body prose chokepoint (closes G-058)" — the slug has been renamed but the title cannot be mutated until [G-065](../../gaps/G-065-no-aiwf-retitle-verb-scope-refactors-that-change-an-entity-s-or-ac-s-intent-leave-frontmatter-title-fields-permanently-misleading-only-slug-rename-is-supported.md) (no `aiwf retitle` verb) closes. The body below carries the authoritative scope.
+Title and slug have both been updated as part of the rescope. The title field was hand-edited (operator-authorized; no `aiwf retitle` verb exists yet — see [G-065](../../gaps/G-065-no-aiwf-retitle-verb-scope-refactors-that-change-an-entity-s-or-ac-s-intent-leave-frontmatter-title-fields-permanently-misleading-only-slug-rename-is-supported.md)).
 
 The epic still primarily closes [G-058](../../gaps/G-058-ac-body-sections-ship-empty-no-chokepoint-enforces-prose-intent.md) (the AC body chokepoint is now one case of the generalized rule) and additionally satisfies the body-empty preflight requirement that G-063's start-epic ritual will need.
 
