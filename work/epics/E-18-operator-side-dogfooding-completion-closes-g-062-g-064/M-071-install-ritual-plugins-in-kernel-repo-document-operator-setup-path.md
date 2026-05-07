@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: CLAUDE.md gains a setup section listing recommended plugins
-      status: open
+      status: met
       tdd_phase: done
 ---
 

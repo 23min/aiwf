@@ -7,14 +7,14 @@ _162 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 ### E-18 — Operator-side dogfooding completion (closes G-062, G-064) _(active)_
 
 - ✓ **M-070** — aiwf doctor warning for missing recommended plugins _(done)_ — ACs 7/7 met — tdd: required
-- → **M-071** — Install ritual plugins in kernel repo + document operator setup path _(in_progress)_ — ACs 3/4 met (1 open) — tdd: required
+- → **M-071** — Install ritual plugins in kernel repo + document operator setup path _(in_progress)_ — ACs 4/4 met — tdd: required
 
 ```mermaid
 flowchart LR
   E_18["E-18<br/>Operator-side dogfooding completion (closes G-062, G-064)"]:::epic_active
   M_070["M-070 (7/7)<br/>aiwf doctor warning for missing recommended plugins"]:::ms_done
   E_18 --> M_070
-  M_071["M-071 (3/4)<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_in_progress
+  M_071["M-071 (4/4)<br/>Install ritual plugins in kernel repo + document operator setup path"]:::ms_in_progress
   E_18 --> M_071
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -112,9 +112,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-4 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-4 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-3 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-3 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-3 --phase red -> green |
-| 2026-05-08 | human/peter | promote | aiwf promote M-071/AC-2 open -> met |
 
