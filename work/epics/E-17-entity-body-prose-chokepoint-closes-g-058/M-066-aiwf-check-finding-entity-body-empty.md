@@ -159,3 +159,40 @@ The pre-existing material was kept verbatim: per-kind subcode list (all 7 spelle
 Sanity check (RED-first analogue for a doc AC): deleted the row entirely. `TestPolicy_FindingCodesAreDiscoverable` failed red on `entity-body-empty/ac` — exactly one violation. Restored with the improved row; policy test green. The asymmetric red pattern surfaced a related blind spot worth noting: the policy's substring matcher only enforces literal `Subcode: "..."` field values discovered by the AST walker. Six of the seven `entity-body-empty` subcodes are derived dynamically (`Subcode: string(e.Kind)`) and don't appear in the AST-discovered code set as required matches. They're documented today only because operator clarity demanded the per-kind list — not because the policy compelled it. To be tracked as a follow-up gap separate from this AC's diff.
 
 No new tests; AC-6 is contract-pin via the existing G-021 chokepoint. · commit 281d3c8 · tests pass=0 fail=0 skip=0
+
+## Validation
+
+Wrap-time checks at 2026-05-07:
+
+- `aiwf show M-066` — 6/6 ACs `[met]` · `phase: done`.
+- `aiwf check` — 0 errors, 1 unrelated warning (`provenance-untrailered-scope-undefined`: branch has no upstream per the PoC's local-only convention; not a milestone-quality finding).
+- `go test -race ./...` — green across all packages.
+- `go build -o /tmp/aiwf-wrap ./cmd/aiwf` — green.
+- `golangci-lint run ./...` — 0 issues.
+- `wf-doc-lint` (scoped to milestone branch since `poc/aiwf-v3`) — clean. M-066's narrative-doc footprint is empty; new symbols reach AI-discoverable channels via the embedded SKILL.md edit, structurally enforced by `PolicyFindingCodesAreDiscoverable`.
+
+Test additions over the milestone (cumulative):
+
+- `internal/check/entity_body_test.go` — `TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty` (7 kinds), `_CancelledACSkipped`, `_ACWithoutBodyHeadingSkipped`, `_NonEmptyBodyClean`, `_FileReadError_SilentlySkipped`, `_FrontmatterParseFailure_SilentlySkipped`, `_ScanACBodies_H2Resets`, `_ScanACBodies_H3NonACResets`, `_AcceptsVariedProseShapes` (12 subcases), `_HTMLCommentsAreEmpty` (12 subcases), `_DoesNotEngageACSTDDAudit` (2 subcases), `TestApplyTDDStrict_EscalatesEntityBodyEmpty` (3 subcases).
+- `cmd/aiwf/check_tdd_strict_test.go` — `TestCheck_TDDStrict_EscalatesEntityBodyEmpty` (dispatcher seam).
+
+Branch-coverage audit (HARD RULE): every reachable arm in `entity_body.go` is exercised by an explicit test. `requiredSectionsByKind` lookup-miss is documented as `coverage:ignore-on-miss` (synthetic Kind values only; tree loader never produces them). `ApplyTDDStrict` 6 arms (strict ✓✗ × loop empty/populated × code-match ✓✗) all hit by the bumper test. Verified mid-cycle by mutation-and-restore on `isAllWhitespaceOrHeadings` (AC-3), `stripHTMLComments` (AC-4), the `acsTDDAudit` phase guard (AC-5), and the SKILL.md row deletion (AC-6) — each mutation produced the expected red pattern in the right subcase set; each was restored before commit.
+
+## Deferrals
+
+None. All six ACs reached `met`. Two follow-up gaps were filed (see Reviewer notes below) but neither represents work this milestone owed and skipped — both are kernel-discipline observations surfaced *during* M-066's implementation that don't block its value.
+
+## Reviewer notes
+
+Two follow-up gaps surfaced during implementation, neither a deferral but both worth tracking:
+
+- [G-067](../../gaps/G-067-wf-tdd-cycle-is-llm-honor-system-advisory-under-load-the-llm-bypasses-red-first-and-the-branch-coverage-hard-rule-without-anything-mechanical-catching-it-m-066-ac-1-gap-cycle-wrote-165-lines-of-impl-before-any-test-existed.md) — `wf-tdd-cycle` is LLM-advisory under load. AC-1 wrote ~165 lines of implementation before any test existed; the slip surfaced at wrap-time review only because the user pushed back ("are you 100% confident?"), not because anything mechanical caught it. AC-1's work-log entry has the full retrospective; the gap captures the process-improvement options. AC-2 onward demonstrated proper RED-first and mutation-and-restore discipline — the slip happened once, was acknowledged, and corrected in-flight.
+
+- [G-068](../../gaps/G-068-discoverability-policy-misses-dynamic-finding-subcodes.md) — `PolicyFindingCodesAreDiscoverable` only enforces literal `Subcode:` field values discovered by the AST walker. Six of the seven `entity-body-empty` subcodes are derived from `string(e.Kind)` and bypass the policy entirely. Documented today by operator-clarity convention (M-066/AC-1 spelled them out for operator triage), not by structural enforcement. Two candidate fixes recorded in the gap body.
+
+Other reviewer-pertinent context:
+
+- **D-001 captures one substantive design call** (top-level sections count sub-headings as content; AC bodies require non-heading prose). The asymmetry exists because `## Acceptance criteria` is a container with sub-headings whereas `### AC-N` is the leaf prose unit. Without this, every AC-bearing milestone in the repo would have flagged its own `## Acceptance criteria` section as empty.
+- **The "Planning notes" section's AC-6-may-collapse prediction came true.** AC-6 closed as a doc-polish (no new test, no new code) layered on AC-1's mandatory discoverability row. The prose tightening still added meaningful operator context (asymmetric semantics, grandfather rule, permissiveness paragraph) so the AC wasn't a no-op.
+- **One commit-trailer slip on M-066/AC-2** (now closed): the impl commit `e570c9b` carries `aiwf-verb: edit-body` from a stale work-log edit context. Impl/test commits don't normally carry a verb trailer; this was a single-commit accident not corrected (would have required reset/amend). The mistake was acknowledged and AC-3 onward used clean Conventional Commits subject + body without aiwf trailers. Worth flagging because `aiwf history M-066/AC-2` may surface that commit under the edit-body verb filter slightly oddly.
+- **Backfill side-deliverable**: 13 `aiwf edit-body` commits backfilled stub prose into 61 historical AC bodies (M-049..M-061) and one milestone Goal section (M-061) per the user's option-G choice during AC-1's noise-handling discussion. Each stub names where the actual implementation history lives (`aiwf history M-NNN/AC-N`) so it's honest acknowledgement rather than silencing. Post-backfill, the kernel repo's `aiwf check` reports zero `entity-body-empty` findings.
