@@ -1,7 +1,7 @@
 ---
 id: M-061
 title: Contract family migration + changelog retrofill + help-recursion test
-status: in_progress
+status: done
 parent: E-14
 acs:
     - id: AC-1
