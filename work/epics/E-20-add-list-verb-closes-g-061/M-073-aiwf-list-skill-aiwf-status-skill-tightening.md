@@ -16,6 +16,7 @@ acs:
     - id: AC-3
       title: aiwf-status skill description tightened to narrative-snapshot phrasings
       status: met
+      tdd_phase: done
     - id: AC-4
       title: aiwf-status skill body redirects to aiwf list for tree queries
       status: met
