@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_192 entities · 0 errors · 10 warnings · run `aiwf check` for details_
+_192 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -86,26 +86,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | M-074/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-074/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-074/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-074/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-074/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-074/AC-6 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-074/AC-7 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-7 body under \`### AC-7\` is empty |
-| entity-body-empty | M-074/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-8 body under \`### AC-8\` is empty |
-| entity-body-empty | M-074/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-9 body under \`### AC-9\` is empty |
-| entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote E-20 active -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072 in_progress -> done |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body M-074 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body E-20 |
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body M-074 |
 
