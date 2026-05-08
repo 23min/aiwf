@@ -12,6 +12,7 @@ acs:
     - id: AC-2
       title: aiwf-list skill body covers recipes, output, JSON, list-vs-status criteria
       status: met
+      tdd_phase: done
     - id: AC-3
       title: aiwf-status skill description tightened to narrative-snapshot phrasings
       status: met
