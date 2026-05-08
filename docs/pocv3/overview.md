@@ -160,7 +160,7 @@ These are non-goals for the PoC. Each one was considered and deferred; see [`des
 - **No multi-host adapter generation.** Skills are materialized for Claude Code only. A second AI host can be added when there is one to integrate.
 - **No `task` or `story` entity.** Issue trackers do that better. The framework's smallest unit is the milestone.
 - **No FSM-as-YAML.** The six kinds and their statuses are hardcoded in Go. External configuration is the move when there's a second consumer who needs to customize — not before.
-- **No GitHub Issues / Linear / Jira / Azure DevOps sync.** Out of scope for the PoC. A modular backend adapter is an explicit longer-term aspiration — see [README — Beyond the PoC](../../README.md#beyond-the-poc) — but no adapter is implemented today and the adapter interface is not yet designed.
+- **No GitHub Issues / Linear / Jira / Azure DevOps sync.** Out of scope for the PoC. A modular backend adapter is an explicit longer-term aspiration — see [README — Beyond the current shape](../../README.md#beyond-the-current-shape) — but no adapter is implemented today and the adapter interface is not yet designed.
 
 ---
 

@@ -1,8 +1,6 @@
-# CLAUDE.md — aiwf PoC branch
+# CLAUDE.md — ai-workflow repo
 
-This branch (`poc/aiwf-v3`) builds a small experimental framework called `aiwf`. The framework helps humans and AI assistants keep track of what's planned, decided, and done, by validating a small set of mechanical guarantees about a markdown-and-frontmatter project tree. Read [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md) for what the PoC commits to. Read [`docs/pocv3/plans/poc-plan.md`](docs/pocv3/plans/poc-plan.md) for the four sessions of work that produce it. **Gaps live as `aiwf` entities under `work/gaps/` (per G38 dogfooding the kernel against itself); run `aiwf status --kind gap` or `aiwf show G-NNN` to inspect them. The pre-migration text record is archived at [`docs/pocv3/archive/gaps-pre-migration.md`](docs/pocv3/archive/gaps-pre-migration.md) for historical reference.**
-
-The branch is intentionally isolated from `main`: research documents and the earlier architecture design have been removed here so they do not pollute Claude's working context. They remain on `main` for visitors who want to follow the design trajectory.
+This repo carries `aiwf` — a small experimental framework that helps humans and AI assistants keep track of what's planned, decided, and done, by validating a small set of mechanical guarantees about a markdown-and-frontmatter project tree. Read [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md) for what aiwf commits to. Read [`docs/pocv3/plans/poc-plan.md`](docs/pocv3/plans/poc-plan.md) for the four sessions of work that produced it. **Gaps live as `aiwf` entities under `work/gaps/` (per G38 dogfooding the kernel against itself); run `aiwf status --kind gap` or `aiwf show G-NNN` to inspect them. The pre-migration text record is archived at [`docs/pocv3/archive/gaps-pre-migration.md`](docs/pocv3/archive/gaps-pre-migration.md) for historical reference.**
 
 ---
 
@@ -34,9 +32,9 @@ For Go-specific rules (formatting, linting, testing, coverage, error handling, C
 
 ---
 
-## What the PoC commits to
+## What aiwf commits to
 
-These are the load-bearing properties any change must preserve. They are distilled from the research arc (which lives on `main`, not here) and recorded in [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md).
+These are the load-bearing properties any change must preserve. They are distilled from the research arc and recorded in [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md).
 
 1. **Six entity kinds** — epic, milestone, ADR, gap, decision, contract — each with a closed status set and one Go function for legal transitions. Hardcoded; not driven by external YAML.
 2. **Stable ids that survive rename, cancel, and collision.** `E-NN`, `M-NNN`, `ADR-NNNN`, `G-NNN`, `D-NNN`, `C-NNN`. The id is the primary key; the slug is just display. Renames preserve the id. "Removal" means flipping status to a terminal value, not deleting the file. Collisions are detected by `aiwf check` and resolved by `aiwf reallocate`.
@@ -52,15 +50,15 @@ If a proposed change does not preserve one of these, treat it as a kernel-level 
 
 ---
 
-## What is *not* in the PoC
+## What is *not* in scope
 
-Not in scope, deliberately. None of these blocks PoC value; each can be added later when real friction demonstrates the need.
+Not in scope, deliberately. None of these blocks aiwf value; each can be added later when real friction demonstrates the need.
 
 - An events.jsonl file or any append-only event log.
 - A graph projection file or hash chain.
 - A monotonic ID counter coordinated across branches.
 - A module system or capability registry.
-- Multi-host adapter generation (PoC targets Claude Code only).
+- Multi-host adapter generation (aiwf targets Claude Code only).
 - A third-party skill registry.
 - Tombstones beyond "status = cancelled / wontfix / rejected / retired."
 - CRDT primitives, custom merge drivers, server-side hooks.
@@ -99,11 +97,11 @@ Install both `aiwf-extensions@ai-workflow-rituals` and `wf-rituals@ai-workflow-r
 
 ---
 
-## Working on the PoC
+## Working in this repo
 
 The historical sessions and iterations are archived at [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md). Forward work tracks via epic + milestone entities under `work/`; allocate via `aiwf add epic` / `aiwf add milestone` and run `aiwf status` to see in-flight state.
 
-The PoC branch is not planned to merge to `main`. Commit directly on the branch; no PR ceremony. Conventional Commits subjects are still useful (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs(poc): ...`).
+Trunk-based development on `main`: commit directly, no PR ceremony. Conventional Commits subjects are still useful (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs: ...`).
 
 When in doubt: the smaller change is the right change.
 

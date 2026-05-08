@@ -4,10 +4,9 @@ All notable changes to `aiwf` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project follows [Semantic Versioning](https://semver.org/).
 
-Releases ship as git tags on `poc/aiwf-v3`. The Go module proxy
-resolves them when a consumer runs `aiwf upgrade` or
-`go install <pkg>@latest`. The branch is not planned to merge to
-`main`.
+Releases ship as git tags on `main`. The Go module proxy resolves
+them when a consumer runs `aiwf upgrade` or
+`go install <pkg>@latest`.
 
 When cutting a release, see [`CLAUDE.md`](CLAUDE.md) § *Go conventions §
 Release process*. The tag-push CI check at

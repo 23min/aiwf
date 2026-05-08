@@ -1,6 +1,6 @@
 # aiwf — a small experimental framework for AI-assisted project tracking
 
-> Pre-alpha PoC. This branch (`poc/aiwf-v3`) carries the implementation; `main` carries the design research that motivates it.
+> This repo carries the `aiwf` implementation alongside the design research that motivates it (see [`docs/research/`](docs/research/) and [`docs/working-paper.md`](docs/working-paper.md)).
 
 ## The problem
 
@@ -79,13 +79,12 @@ If you want a local checkout to read or modify the source:
 
 ```bash
 git clone https://github.com/23min/ai-workflow-v2 && cd ai-workflow-v2
-git checkout poc/aiwf-v3
 make install                                                # embeds branch + short SHA in --version
 ```
 
 `make install` is preferred over `go install ./cmd/aiwf` because it embeds the current branch and short SHA into the binary via `-ldflags`, so `aiwf --version` later tells you exactly what's running. Plain `go install` works but leaves `--version` reporting `dev`.
 
-Distribution via brew/apt/scoop/winget will come if and when the PoC graduates.
+Distribution via brew/apt/scoop/winget will come if and when the project warrants it.
 
 ### Shell completion
 
@@ -397,13 +396,13 @@ Exit codes: `0` no errors (warnings allowed), `1` errors found, `2` usage error,
 - **Filesystem case-sensitivity.** On case-insensitive volumes (default macOS APFS, Windows NTFS), two paths that differ only in case (`E-01-foo` vs `E-01-Foo`) refer to the same on-disk directory. `aiwf check` reports this as a `case-paths` finding so the issue surfaces at validation time rather than as silent data loss when a Linux-checked-in repo is reviewed on macOS. `aiwf doctor` prints whether the current volume is case-sensitive or case-insensitive.
 - **Concurrent invocations.** Two `aiwf` mutations on the same repo serialise via an exclusive POSIX flock on `<root>/.git/aiwf.lock`. The second invocation waits up to 2s, then returns a usage-error finding. Read-only verbs (`check`, `history`, `status`, `render` without `--write`, `doctor`) do not lock and remain free to run concurrently.
 - **Validator availability.** A configured contract validator binary missing from `PATH` is a warning by default, not a hard error — your teammate without `cue` installed shouldn't be blocked from a docs-only push. Set `aiwf.yaml`'s `contracts.strict_validators: true` to upgrade to error.
-- **Unix only.** The pre-push hook is a `#!/bin/sh` script and contract validators are invoked as POSIX subprocess commands. Windows is not in scope for the PoC.
+- **Unix only.** The pre-push hook is a `#!/bin/sh` script and contract validators are invoked as POSIX subprocess commands. Windows is not in scope (yet).
 
 ---
 
-## Beyond the PoC
+## Beyond the current shape
 
-The PoC is deliberately self-contained: markdown files in the consumer repo, no server, no external sync. That is the right shape for proving the kernel works.
+aiwf is deliberately self-contained: markdown files in the consumer repo, no server, no external sync. That is the right shape for proving the kernel works.
 
 The longer-term aspiration is a modular architecture where a *backend adapter* can connect the local entity model to an external PM system — GitHub Issues, Linear, Jira, Azure DevOps, etc. — so a team that lives partly in `aiwf` and partly in their existing tracker can have the two stay in step. The pieces the PoC has already committed to make this plausible without re-architecting:
 

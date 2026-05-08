@@ -172,9 +172,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-22 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-077 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-076 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-075 |
-| 2026-05-08 | human/peter | add | aiwf add ac M-077 AC-1..AC-6 (6 criteria) |
 
