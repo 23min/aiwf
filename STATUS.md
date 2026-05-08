@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_182 entities · 0 errors · 0 warnings_
+_183 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -100,6 +100,7 @@ _(no milestones)_
 | G-077 | Post-promotion working paper (aiwf's thesis) not yet written |  |
 | G-078 | No priority field on entities; backlog isn't filterable or sortable by importance |  |
 | G-079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation; M-076 added the verb but the plugin lives in ai-workflow-rituals upstream | M-076 |
+| G-080 | Wide-table verbs wrap mid-row and break column scan; no TTY-aware sizing, glyph palette, or truncation surface | M-076 |
 
 ## Warnings
 
