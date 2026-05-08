@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Closed-set completion wired for --kind and --status
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: Shared filter helper extracted; status uses it
       status: open
