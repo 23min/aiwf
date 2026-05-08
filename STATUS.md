@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_182 entities · 0 errors · 6 warnings · run `aiwf check` for details_
+_182 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -124,22 +124,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | M-077/AC-1 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-077/AC-2 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-077/AC-3 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-077/AC-4 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-077/AC-5 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-077/AC-6 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-6 body under \`### AC-6\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-079 |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-4 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-4 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-4 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-3 open -> met |
-| 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-3 --phase green -> done |
 

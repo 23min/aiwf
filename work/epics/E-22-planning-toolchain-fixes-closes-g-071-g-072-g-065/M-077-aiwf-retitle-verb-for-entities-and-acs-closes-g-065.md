@@ -45,15 +45,27 @@ Scope refactors that change an entity's intent leave the frontmatter `title:` st
 
 ### AC-1 — aiwf retitle works for all top-level kinds with --reason
 
+`aiwf retitle <id> "<new-title>" [--reason "..."]` updates the frontmatter `title:` field for any of the six top-level kinds (epic, milestone, ADR, gap, decision, contract). Title-only mutation: no body changes, no slug renames, no other frontmatter fields touched. Empty new title (after trimming whitespace) is rejected with a usage error. Same-as-current title is rejected — there's no diff to commit. Unknown entity id is rejected. The optional `--reason` flag lands in the commit body and surfaces in `aiwf history`. Verb implementation lives in `internal/verb/retitle.go`; cmd in `cmd/aiwf/retitle_cmd.go`.
+
 ### AC-2 — Composite-id retitle updates frontmatter and body atomically
+
+`aiwf retitle M-NNN/AC-N "<new-title>"` updates the AC's `title:` inside the parent milestone's `acs[]` array AND regenerates the matching `### AC-N — <new-title>` body heading. Both happen in one atomic file write, so the commit captures both changes. Reuses `lookupAC`, `withACMutation`, and `rewriteACHeading` from `internal/verb/ac.go` (the same helpers `aiwf rename M-NNN/AC-N` consumes for its composite-id arm) — no new parser, no new heading-rewriter. The trailer is `aiwf-verb: retitle` so `aiwf history M-NNN/AC-N` distinguishes retitle invocations from rename's composite-id arm.
 
 ### AC-3 — aiwf-retitle skill exists with title-shaped phrasings
 
+New `internal/skills/embedded/aiwf-retitle/SKILL.md` with frontmatter description densely populated with title-shaped phrasings: *"the title doesn't match anymore"*, *"fix the title"*, *"retitle to reflect new scope"*, *"correct the title"*, *"rename the title"*. The last phrasing intentionally overlaps with `aiwf-rename` to cover the natural confusion; the body redirects to the right verb in either skill. The `internal/skills/skills_test.go` `TestList_AllShippedSkillsPresent` table is extended to expect 12 skills including `aiwf-retitle`.
+
 ### AC-4 — aiwf-rename skill body redirects to retitle
+
+`internal/skills/embedded/aiwf-rename/SKILL.md` gains a short blockquote near the top: *"Looking to change a title? For changing an entity's title (the prose label, distinct from the slug), use `aiwf retitle <id> <new-title>` — that is the dedicated verb for title mutations. This skill covers slug renames only."* The redirect ensures AI assistants land on the right verb regardless of which skill they invoke first.
 
 ### AC-5 — Closed-set completion for retitle id argument
 
+The positional `<id>` arg on `aiwf retitle` registers `completeEntityIDArg("", 0)` so shell completion proposes any entity id (all six top-level kinds, plus composite ids since the empty filter accepts both). New flags (`--actor`, `--principal`, `--root`, `--reason`) are covered by the existing completion-drift opt-out table; the test passes without modification.
+
 ### AC-6 — Verb-level integration test drives the dispatcher
+
+Per CLAUDE.md "Test the seam, not just the layer": `TestRetitle_DispatcherSeam_TopLevel` and `TestRetitle_DispatcherSeam_Composite` drive `run([]string{"retitle", ...})` end-to-end through cmd → verb → projection → apply → git, then assert (a) on-disk frontmatter title changed AND (b) `aiwf history <id>` finds the trailered retitle commit (proving the trailer chain reached git). A regression where the cmd flag is read but never copied into the verb call slips past unit tests but trips these.
 
 ## Constraints
 
