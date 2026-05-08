@@ -13,9 +13,21 @@ retry_wait_time = 5
 no_progress = true
 
 # Skip these paths entirely.
+# docs/explorations, docs/research, docs/archive, docs/pocv3, and work/
+# are narrative / scratch / historical content not under link discipline.
+# internal/check/testdata holds synthetic fixture trees with deliberate
+# placeholder links. Excluding them keeps link-check focused on the
+# project's user-facing surfaces (README, CHANGELOG, CLAUDE, ADRs).
 exclude_path = [
   "node_modules",
   ".git",
+  "docs/explorations",
+  "docs/research",
+  "docs/archive",
+  "docs/pocv3",
+  "work",
+  "internal/check/testdata",
+  "internal/skills/embedded",
 ]
 
 # Skip URLs matching these regexes (locally-bound, examples, or
