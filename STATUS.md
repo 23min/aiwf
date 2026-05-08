@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_181 entities · 0 errors · 7 warnings · run `aiwf check` for details_
+_181 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -123,23 +123,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | M-076/AC-1 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-076/AC-2 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-076/AC-3 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-076/AC-4 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-076/AC-5 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-076/AC-6 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-076/AC-7 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-7 body under \`### AC-7\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-7 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-7 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-7 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-6 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-6 --phase green -> done |
-| 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-6 --phase red -> green |
 

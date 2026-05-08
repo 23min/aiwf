@@ -49,17 +49,31 @@ Milestone `depends_on` is structurally supported in the kernel — universal str
 
 ### AC-1 — --depends-on flag on aiwf add milestone
 
+`aiwf add milestone --epic E-NN --tdd <policy> --title "..." --depends-on M-PPP[,M-QQQ]` accepts a comma-separated list of milestone ids and writes them to the new milestone's `depends_on:` frontmatter array atomically with the create commit. Absent flag produces no `depends_on` block (the YAML omitempty tag holds). The flag is milestone-only — passing it on any other kind (`aiwf add gap --depends-on M-001`) is a usage error. Wired through `verb.AddOptions.DependsOn` with cmd-side parsing via `splitCommaList`.
+
 ### AC-2 — aiwf milestone depends-on dedicated verb
+
+`aiwf milestone depends-on M-NNN --on M-PPP[,M-QQQ]` is a top-level kind-prefixed verb that sets a milestone's `depends_on:` frontmatter array on an already-allocated milestone, in one commit with `aiwf-verb: milestone-depends-on` trailers. Replace-not-append semantics: a second invocation replaces the list rather than extending it. Forward-compatible with G-073's eventual cross-kind generalisation (`aiwf <kind> depends-on <id> --on <ids>`) — the verb-name segment "milestone" is the kind, and the verb signature extends to other kinds without renaming this one. Implemented in `internal/verb/milestone_depends_on.go`; cmd in `cmd/aiwf/milestone_cmd.go`.
 
 ### AC-3 — --clear flag empties the depends_on list
 
+`aiwf milestone depends-on M-NNN --clear` empties the target's `depends_on:` array (the YAML omitempty tag means the block disappears entirely from frontmatter). `--clear` and `--on` are mutually exclusive — passing both is a usage error caught at the cmd boundary. Bare invocation (neither `--on` nor `--clear`) is also a usage error so the verb can't no-op silently. Replace-with-trimmed-list covers single-element removal; `--remove-depends-on` is deferred per the spec's Out-of-scope.
+
 ### AC-4 — Allocation-time referent validation refuses invalid ids
+
+Both `--depends-on` (on `aiwf add milestone`) and `--on` (on `aiwf milestone depends-on`) refuse before writing if any id doesn't resolve to an existing milestone. Errors name the specific unresolvable id so a comma-separated typo is fast to fix. Three failure modes covered: id not found, id of wrong kind (e.g. `E-01`), and partial-list with a mix of valid/invalid (whole call refuses, no partial writes). Cycle detection stays in `aiwf check` — referent existence is the writer's job, DAG validity is the check's job.
 
 ### AC-5 — Closed-set completion for new flags and verb
 
+`--depends-on` (on `aiwf add`) and `--on` (on `aiwf milestone depends-on`) both register `completeEntityIDFlag(KindMilestone)` so shell completion proposes milestone ids only. The positional milestone-id arg on `aiwf milestone depends-on` registers `completeEntityIDArg(KindMilestone, 0)` for the same. The drift-prevention chokepoint test in `cmd/aiwf/completion_drift_test.go` verifies wiring exists; `cmd/aiwf/milestone_depends_on_completion_test.go` adds named M-076-specific assertions.
+
 ### AC-6 — aiwf-add skill updated; aiwfx-plan-milestones update documented
 
+`internal/skills/embedded/aiwf-add/SKILL.md` gains a "Milestone `depends_on`: declare DAG edges via verb (M-076)" section describing both writer surfaces, the replace-not-append semantic, the `--clear`/`--on` mutex, and the don't-hand-edit guidance. The skill's frontmatter description is broadened to mention dependency declaration so AI assistants asking "how do I declare a milestone's dependencies?" route into this skill. `aiwfx-plan-milestones` lives in the `ai-workflow-rituals` plugin (separate repo) — its update is documented in this milestone's Deferrals so the change is filed upstream when the plugin is next touched.
+
 ### AC-7 — Verb-level integration test drives the dispatcher
+
+Per CLAUDE.md "Test the seam, not just the layer": `TestMilestoneDependsOn_DispatcherSeam_AddFlag` and `TestMilestoneDependsOn_DispatcherSeam_Verb` drive the cmd → verb → projection → apply → git path end-to-end via `run([]string{...})`, then assert both the on-disk milestone frontmatter shape AND that `aiwf history M-NNN` finds the trailered create/depends-on commit (proving the verb's trailer chain reached git). A regression where, say, the cmd flag is read but never copied into AddOptions, would slip past unit tests but trip these.
 
 ## Constraints
 
