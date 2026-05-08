@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Allocation-time referent validation refuses invalid ids
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Closed-set completion for new flags and verb
