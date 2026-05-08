@@ -147,7 +147,31 @@ After the doc edits land in the same commit (or commit pair) as the AC-9 CLAUDE.
 
 ## Coverage notes
 
-- (filled at wrap)
+- `internal/policies/skill_coverage.go`: **90.4%** file-level coverage.
+  Per-function:
+  `runSkillCoverageChecks 100%`, `checkSkillFrontmatter 100%`,
+  `checkVerbCoverage 100%`, `checkSkillBodyMentionsResolve 100%`,
+  `backtickedAiwfMentions 100%`, `parseSkillMarkdown 83.9%`,
+  `findTopLevelVerbs 89.4%`, `extractCobraUseField 91.3%`,
+  `loadEmbeddedSkillsForPolicy 77.8%`, `PolicySkillCoverageMatchesVerbs 71.4%`.
+- The four enforcement checks (AC-2..AC-5) are at **100%**. The lower
+  numbers on `parseSkillMarkdown`, `findTopLevelVerbs`, and the loader are
+  on error-path branches that fire only on malformed source files
+  (parse failures, unreadable files); same defensive shape as the
+  precedent `config_fields_discoverable.go`. The sub-100% on
+  `PolicySkillCoverageMatchesVerbs` itself is the disk-load error path.
+- Test count: **15 new tests** in `skill_coverage_test.go`. Three positive
+  shape-parser tests (`TestParseSkillMarkdown_FrontmatterShapes`),
+  two extractor tests (`TestBacktickedAiwfMentions_Extraction` +
+  `_FlagOnlyDoesNotMatch`), two allowlist-invariant tests
+  (`HasShowEntry` + `AllEntriesHaveRationale`), eight per-AC negative
+  tests covering each enforcement axis (AC-2..AC-5: empty name, empty
+  desc, name/dir mismatch, missing aiwf- prefix, bare aiwf-, uncovered
+  verb, allowlist rescue, skill rescue, unknown verb mention, fenced+
+  inline, help/completion always resolve), and one composite drift test
+  (`TestRunSkillCoverageChecks_FullDriftFiresAllAxes`).
+- Plus `TestNoReintroducedDeadVerbForms_ContractsAndSkill` (the M-072
+  AC-8 sub-positional drift guard, scoped to the two M-072 named files).
 
 ## References
 
@@ -168,11 +192,60 @@ After the doc edits land in the same commit (or commit pair) as the AC-9 CLAUDE.
 
 ## Decisions made during implementation
 
-- (none — all decisions are pre-locked above)
+- **First-word verb resolution (AC-5).** The policy's mention-resolution
+  check looks at only the first word after `aiwf <X>`. Full sub-verb
+  resolution (e.g. `aiwf list contracts` — first word `list` is real but
+  `contracts` is a dead positional) is out of scope by design — see the
+  policy header godoc. The follow-up coverage for that shape is the
+  scoped `TestNoReintroducedDeadVerbForms_ContractsAndSkill` test, plus
+  G-086 for the third file the test doesn't cover yet.
+- **Refactor for testability (post-audit).** The first attempt
+  enforced its checks inline in `PolicySkillCoverageMatchesVerbs` and
+  shipped a single integration-style test that ran against the live
+  tree. Audit revealed: the test passes when there's nothing to find,
+  but doesn't prove the policy fires when there *is* drift. Refactor
+  extracted three per-check helpers (`checkSkillFrontmatter`,
+  `checkVerbCoverage`, `checkSkillBodyMentionsResolve`) that take
+  in-memory inputs; negative-case tests then drive each helper with
+  synthetic violating inputs and assert the expected violation. The
+  full-policy disk-loading wrapper stays thin.
+- **G-087 placeholder allocation.** The allowlist's `show` entry was
+  initially written with `G-NNN` as a placeholder during policy
+  authoring; updated to `G-087` after the gap was filed via
+  `aiwf add gap`. `TestSkillCoverageAllowlist_HasShowEntry` asserts
+  the rationale references "G-" specifically so any future drop of
+  the gap reference fails CI.
+- **AC-9 + AC-11 share their commit pass.** `CLAUDE.md` carries both
+  the new *Skills policy* section (AC-9) and the swept G-085 site at
+  line 3 (AC-11) — folded into one diff because both touched the same
+  file. The other four G-085 sites and the AC-9 *What's enforced* row
+  are in the same commit (`e1896d3`).
 
 ## Validation
 
-(pasted at wrap)
+```
+$ go test -race ./internal/policies/ -v -run "TestPolicy_SkillCoverage|TestParseSkillMarkdown|TestBacktickedAiwfMentions|TestSkillCoverageAllowlist|TestCheckSkillFrontmatter|TestCheckVerbCoverage|TestCheckSkillBodyMentionsResolve|TestRunSkillCoverageChecks|TestNoReintroducedDeadVerbForms" 2>&1 | tail
+--- PASS: TestSkillCoverageAllowlist_AllEntriesHaveRationale (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnEmptyName (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnEmptyDescription (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnNameDirMismatch (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnAiwfPrefixMissing (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnAiwfPrefixOnly (0.00s)
+--- PASS: TestCheckVerbCoverage_FiresOnUncoveredVerb (0.00s)
+--- PASS: TestCheckVerbCoverage_AllowlistRescuesUncoveredVerb (0.00s)
+--- PASS: TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb (0.00s)
+--- PASS: TestRunSkillCoverageChecks_FullDriftFiresAllAxes (0.00s)
+--- PASS: TestNoReintroducedDeadVerbForms_ContractsAndSkill (0.00s)
+PASS
+
+$ go test ./...   # full sweep — every package green
+$ golangci-lint run ./...
+0 issues.
+```
+
+Smoke-tested against the live tree: `TestPolicy_SkillCoverageMatchesVerbs`
+passes (no live-tree drift); `aiwf doctor` reports 13 skills byte-equal;
+`aiwf check` clean except 2 pre-existing warnings unrelated to E-20.
 
 ## Deferrals
 
@@ -180,4 +253,29 @@ After the doc edits land in the same commit (or commit pair) as the AC-9 CLAUDE.
 
 ## Reviewer notes
 
-- (filled at wrap)
+- **Read the policy header godoc first** (`internal/policies/skill_coverage.go`).
+  It enumerates the four invariants the policy enforces (AC-2..AC-5) and the
+  judgment-vs-mechanical split (the *why* lives in ADR-0006; this file
+  captures only the mechanically evaluable *what*).
+- **The negative-case test suite is the load-bearing safety net.** A
+  positive-only test of the full policy (passes against the live tree)
+  proves nothing about whether the policy fires on real drift. The
+  per-check helpers + negative tests in `skill_coverage_test.go` prove
+  each enforcement axis catches a synthetic violation that a future
+  contributor might introduce. This was added in the wrap pass after
+  audit found the original closure premature.
+- **ADR-0006 is `proposed`, not `accepted`.** The milestone spec
+  explicitly says ratification is not a blocker. The mechanical policy
+  ships independently — its enforcement does not depend on the ADR's
+  ratification status.
+- **G-087 is the only allowlist entry whose rationale points at a gap.**
+  The other 12 entries cite stable categories (ops verb, trivially-
+  documented, etc.). When G-087 closes (an `aiwf-show` skill ships),
+  the allowlist's `show` entry is removed; that's the migration path
+  the ADR's *Re-evaluation prompts* paragraph describes.
+- **Dependency on M-072 + M-073 is real.** M-072's contract-skill drift
+  fix had to land first or this milestone's AC-5 check would fire on
+  stale `aiwf list contracts` mentions. M-073's `aiwf-list` skill had
+  to land first or the AC-4 verb-coverage check would either need a
+  `list` allowlist entry (defeating M-073) or fire a violation. The
+  milestone order in the epic spec is correct.
