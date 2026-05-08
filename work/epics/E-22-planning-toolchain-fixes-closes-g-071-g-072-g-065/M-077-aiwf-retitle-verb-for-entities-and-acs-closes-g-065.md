@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Closed-set completion for retitle id argument
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: Verb-level integration test drives the dispatcher
       status: open
