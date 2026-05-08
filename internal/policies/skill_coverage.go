@@ -40,15 +40,37 @@ func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	verbs, err := findTopLevelVerbs(root)
 	if err != nil {
 		return nil, err
 	}
+	return runSkillCoverageChecks(skills, verbs, skillCoverageAllowlist), nil
+}
 
+// runSkillCoverageChecks applies every skill-coverage invariant to the
+// already-loaded inputs. Split from PolicySkillCoverageMatchesVerbs so
+// negative-case unit tests can drive the checks with synthetic inputs
+// without a tempdir fixture (CLAUDE.md §"Test untested code paths"
+// — a positive-only test of the full policy proves nothing about
+// whether the policy fires on real drift).
+func runSkillCoverageChecks(
+	skills []embeddedSkillEntry,
+	verbs map[string]string,
+	allowlist map[string]string,
+) []Violation {
 	var out []Violation
+	out = append(out, checkSkillFrontmatter(skills)...)
+	out = append(out, checkVerbCoverage(skills, verbs, allowlist)...)
+	out = append(out, checkSkillBodyMentionsResolve(skills, verbs)...)
+	return out
+}
 
-	// Check #1 + #2: per-skill frontmatter shape.
+// checkSkillFrontmatter enforces M-074 AC-2 and AC-3: every embedded
+// skill carries a non-empty `name:` matching its directory and the
+// `aiwf-<topic>` convention, and a non-empty `description:` (the host's
+// match-scoring depends on it).
+func checkSkillFrontmatter(skills []embeddedSkillEntry) []Violation {
+	var out []Violation
 	for _, s := range skills {
 		switch {
 		case s.frontmatterName == "":
@@ -78,23 +100,32 @@ func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 			})
 		}
 	}
+	return out
+}
 
-	// Check #3: every top-level verb is covered by a same-named skill
-	// or allowlisted with a rationale. The convention is one-to-one
-	// (skill `aiwf-X` covers verb `X`); topical skills covering many
-	// verbs at once (precedent: aiwf-contract) are left to allowlist
-	// the additional verbs explicitly so the rationale is visible.
+// checkVerbCoverage enforces M-074 AC-4: every top-level Cobra verb is
+// either covered by a same-named `aiwf-<verb>` skill or appears in the
+// allowlist with a rationale. Topical skills (precedent:
+// `aiwf-contract`) cover only their primary verb; additional verbs in
+// the topical bundle must be explicitly allowlisted so the rationale
+// stays visible.
+func checkVerbCoverage(
+	skills []embeddedSkillEntry,
+	verbs map[string]string,
+	allowlist map[string]string,
+) []Violation {
 	skillCovered := map[string]bool{}
 	for _, s := range skills {
 		if strings.HasPrefix(s.frontmatterName, "aiwf-") {
 			skillCovered[strings.TrimPrefix(s.frontmatterName, "aiwf-")] = true
 		}
 	}
+	var out []Violation
 	for verb := range verbs {
 		if skillCovered[verb] {
 			continue
 		}
-		if _, ok := skillCoverageAllowlist[verb]; ok {
+		if _, ok := allowlist[verb]; ok {
 			continue
 		}
 		out = append(out, Violation{
@@ -103,11 +134,18 @@ func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 			Detail: fmt.Sprintf("top-level verb %q has no embedded skill (no `internal/skills/embedded/aiwf-%s/`) and no entry in skillCoverageAllowlist — add a skill or allowlist the verb with a one-line rationale", verb, verb),
 		})
 	}
+	return out
+}
 
-	// Check #4: every backticked `aiwf <verb>` mention in a skill body
-	// resolves to a real registered verb. The first word after `aiwf`
-	// is the chokepoint; full-path validation (subverbs, args) is out
-	// of scope by design — see the policy header godoc.
+// checkSkillBodyMentionsResolve enforces M-074 AC-5: every backticked
+// `aiwf <verb>` mention inside a skill body resolves to a registered
+// top-level Cobra verb. The first word after `aiwf` is the chokepoint;
+// full-path validation (subverbs, args) is out of scope by design —
+// see the policy header godoc.
+func checkSkillBodyMentionsResolve(
+	skills []embeddedSkillEntry,
+	verbs map[string]string,
+) []Violation {
 	verbSet := map[string]bool{}
 	for v := range verbs {
 		verbSet[v] = true
@@ -117,6 +155,7 @@ func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 	verbSet["help"] = true
 	verbSet["completion"] = true
 
+	var out []Violation
 	for _, s := range skills {
 		for _, m := range backtickedAiwfMentions(s.body) {
 			if !verbSet[m.verb] {
@@ -128,8 +167,7 @@ func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 			}
 		}
 	}
-
-	return out, nil
+	return out
 }
 
 // skillCoverageAllowlist names every top-level Cobra verb that ships
