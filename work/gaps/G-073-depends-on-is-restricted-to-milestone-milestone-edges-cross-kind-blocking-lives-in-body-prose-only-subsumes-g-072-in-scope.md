@@ -78,6 +78,16 @@ But fixing only G-072 (a writer verb for milestone `depends_on`) ships a **half-
 
 The two should land together as one epic when the friction is paid for. G-072 stays open as the discovery record; this gap is the design lens. The implementation epic, when filed, lists both.
 
+## Decision (2026-05-08)
+
+E-22 / M-076 ships the milestone-only writer with a forward-compatible kind-prefixed verb shape (`aiwf milestone depends-on M-NNN --on M-PPP[,…]` plus the `--depends-on` flag on `aiwf add milestone`). The verb-name segment "milestone" is the *kind*, deliberately reserving the slot so a future `aiwf <kind> depends-on <id> --on <id>` cross-kind verb extends without rename. M-076's *Constraints* section locks this in.
+
+G-073's cross-kind generalisation (schema relaxation across all kinds, per-kind referent rules, generalised cycle detection, the `SatisfiesDependency(kind, status)` predicate, and `aiwf promote` FSM gating on unsatisfied dependencies) is **not** in M-076 and is **not** in E-22. It awaits its own epic when the friction is paid for — most likely after E-21's synthesis skill begins relying on the data and the prose-only fallback bites.
+
+Rationale: M-076 is not a half-feature given its forward-compat shape; it's the milestone slice of a cross-kind story whose remaining four changes form a coherent separate epic. Bundling everything would expand E-22's surface from three planning-toolchain milestones to a schema/FSM rewrite — outside what E-22 was scoped for.
+
+This gap stays open as the future epic's design lens.
+
 ## Surfaced
 
 Discovered during E-20 planning when E-21's design conversation asked *"what blocks what, deterministically?"* The first proposal was a parallel `blocked_by` field; the operator pushed back ("doesn't depends_on imply blocked_by? Do we really need a new field?"), exposing that `depends_on` already carries the semantic — it's just narrowly scoped. Captured here so the future implementation epic has the full design context ready.
