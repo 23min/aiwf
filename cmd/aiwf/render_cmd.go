@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -312,6 +314,7 @@ func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) i
 		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)
 		return exitInternal
 	}
+	emitGitignoreWarning(rootDir, outDir, cfg)
 
 	env := render.Envelope{
 		Tool:    "aiwf",
@@ -329,6 +332,39 @@ func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) i
 		return exitInternal
 	}
 	return exitOK
+}
+
+// emitGitignoreWarning probes whether outDir is covered by the
+// consumer's .gitignore and prints a one-line stderr warning when it
+// isn't. Defense-in-depth for G-056: catches the cases the
+// init/update reconciliation cannot — operator passed an ad-hoc
+// --out, the consumer hasn't run aiwf update since changing
+// html.out_dir, or a custom gitignore workflow stripped the marker
+// block. Silent when html.commit_output: true (operator opted in to
+// tracking the rendered files), when outDir is outside the repo
+// root (gitignore semantics don't apply), or when `git
+// check-ignore` is unavailable (fail-soft).
+func emitGitignoreWarning(root, outDir string, cfg *config.Config) {
+	if cfg != nil && cfg.HTML.CommitOutput {
+		return
+	}
+	rel, err := filepath.Rel(root, outDir)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return
+	}
+	target := filepath.ToSlash(rel) + "/"
+	cmd := exec.Command("git", "-C", root, "check-ignore", "-q", target)
+	err = cmd.Run()
+	if err == nil {
+		return
+	}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+		fmt.Fprintf(os.Stderr,
+			"aiwf render: warning: %s is not gitignored; rendered files will appear in `git status`.\n"+
+				"             Run `aiwf update` to reconcile, or set `html.commit_output: true` to track them.\n",
+			target)
+	}
 }
 
 // resolveHTMLOutDir picks the absolute output path. Precedence:
