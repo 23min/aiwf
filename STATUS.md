@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_191 entities · 0 errors · 19 warnings · run `aiwf check` for details_
+_191 entities · 0 errors · 20 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -84,7 +84,6 @@ _(no milestones)_
 | G-058 | AC body sections ship empty; no chokepoint enforces prose intent | E-16 |
 | G-059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-069 |
 | G-060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
-| G-061 | Generic \`aiwf list <kind>\` verb referenced as canonical in contracts plan and shipped contract skill, but never implemented; AI assistants are instructed to invoke a non-existent verb |  |
 | G-063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
 | G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
 | G-067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-066 |
@@ -131,6 +130,7 @@ _(no milestones)_
 | entity-body-empty | G-086 | work/gaps/G-086-docs-pocv3-contracts-md-still-references-non-existent-aiwf-list-contracts-lines-98-114-117-same-drift-class-as-g-061-g-085-different-file.md | G-086 body section \`## Why it matters\` is empty |
 | entity-body-empty | G-087 | work/gaps/G-087-no-aiwf-show-embedded-skill-show-is-the-per-entity-inspection-verb-every-ai-reaches-for-but-help-only-coverage-misses-body-rendering-and-composite-id-discovery.md | G-087 body section \`## What's missing\` is empty |
 | entity-body-empty | G-087 | work/gaps/G-087-no-aiwf-show-embedded-skill-show-is-the-per-entity-inspection-verb-every-ai-reaches-for-but-help-only-coverage-misses-body-rendering-and-composite-id-discovery.md | G-087 body section \`## Why it matters\` is empty |
+| gap-resolved-has-resolver | G-061 | work/gaps/G-061-generic-aiwf-list-kind-verb-referenced-as-canonical-in-contracts-plan-and-shipped-contract-skill-but-never-implemented-ai-assistants-are-instructed-to-invoke-a-non-existent-verb.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
