@@ -44,7 +44,7 @@ acs:
     - id: AC-10
       title: G-061 promoted to terminal status with closing commit citing this epic
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-11
       title: G-085 doc-sweep and gap closure
       status: open
