@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: skill-coverage policy file exists, modeled on config_fields_discoverable
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Policy enforces non-empty name and description on every embedded skill
