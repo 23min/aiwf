@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_188 entities · 0 errors · 0 warnings_
+_189 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -104,6 +104,7 @@ _(no milestones)_
 | G-082 | Planning closure should default-merge to main before implementation begins | E-21 |
 | G-083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-21 |
 | G-084 | Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella | E-21 |
+| G-085 | \`aiwf status --kind gap\` advertised in CLAUDE.md, docs/pocv3 (3 files), and a gap body, but \`--kind\` flag doesn't exist on the status verb; canonical fix is \`aiwf list --kind gap\` once E-20 ships | E-20 |
 
 ## Warnings
 
@@ -113,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote G-072 open -> addressed |
 | 2026-05-08 | human/peter | promote | aiwf promote G-071 open -> addressed |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-084 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-084 'Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body ADR-0005 |
-| 2026-05-08 | human/peter | add | aiwf add adr ADR-0005 'Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs' |
 
