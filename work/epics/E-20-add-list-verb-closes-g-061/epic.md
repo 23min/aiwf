@@ -1,7 +1,7 @@
 ---
 id: E-20
 title: Add list verb (closes G-061)
-status: done
+status: active
 ---
 
 # E-20 — Add list verb (closes G-061)
