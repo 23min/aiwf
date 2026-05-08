@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Policy enforces skill name matches dir and aiwf-<topic> convention
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Policy enforces every top-level verb is documented or in allowlist
       status: open
