@@ -135,9 +135,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-22 |
 | 2026-05-08 | human/peter | add | aiwf add epic E-22 'Planning toolchain fixes (closes G-071, G-072, G-065)' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-073 'depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-072 in scope' |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body E-21 |
 

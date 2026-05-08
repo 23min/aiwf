@@ -76,14 +76,18 @@ Out of scope versus G-073 (the broader cross-kind generalisation): G-072's narro
 - [ ] G-071, G-072, G-065 each promoted to terminal status via `aiwf promote`; closing commits cite this epic in their bodies.
 - [ ] All three milestones close with `tdd_phase: done` on every AC; per-milestone branch-coverage audit per `wf-tdd-cycle`'s hard rule.
 
-## Open questions
+## Design decisions (locked at planning time)
 
-| Question | Blocking? | Resolution path |
-|---|---|---|
-| Where does the `aiwf retitle` skill live — new `aiwf-retitle/SKILL.md`, or addition to `aiwf-rename/SKILL.md`? | No | Decided in M-C planning. Lean: small new skill (`aiwf-retitle`), since title and slug are conceptually different mutations and skill descriptions benefit from focused phrasings. The skills-coverage policy from E-20/M-074 will validate either choice when it lands. |
-| Does `aiwf retitle` accept `--reason` like `aiwf promote` and `aiwf cancel`? | No | Lean: yes — title changes during scope refactors deserve a why; `--reason` lands in commit body and `aiwf history` per the existing pattern. |
-| Does `aiwf milestone depends-on` accept multiple `--on` invocations or comma-separated list? | No | Decided in M-B planning. Lean: comma-separated list matching `aiwf add ac`'s `--title` repeating-flag style would also work; pick whichever parses uniformly with the existing flag conventions. |
-| Should `aiwf add milestone --depends-on M-PPP` validate that M-PPP exists at allocation time, or defer to `aiwf check`? | No | Lean: validate at allocation time — `aiwf add` already validates `--epic E-NN` exists; same precedent. Cycle detection still runs at check time. |
+These four design questions surfaced during epic scope confirmation and were resolved via Q&A before milestone planning. They constrain the milestone implementations and feed `aiwfx-plan-milestones` as locked inputs.
+
+| Decision | Rationale |
+|---|---|
+| **`aiwf retitle` lives in a new `aiwf-retitle/SKILL.md`** (not an addition to `aiwf-rename`'s skill). | Title and slug are parallel mutations on different fields, not topically related. Same discoverability-priority lens that gave us the `aiwf-status` / `aiwf-list` split: focused descriptions outrank topical bundling for distinct query phrasings. `aiwf-rename`'s skill body adds a redirect to retitle for title changes (parallel to the redirect E-20/M-073 puts in `aiwf-status` for query-shaped prompts). |
+| **`aiwf retitle` accepts `--reason`.** | Matches the convention from `aiwf promote`, `aiwf cancel`, `aiwf authorize`, `aiwf edit-body` — every soft-state-mutating verb accepts `--reason`. Title changes during scope refactors deserve a "why"; the reason becomes searchable history via `aiwf history`. Optional flag. |
+| **Multiple `depends_on` entries are expressed via comma-separated lists** (`--on M-072,M-073` on the dedicated verb; `--depends-on M-072,M-073` on `aiwf add milestone`). | Matches `--linked-adr` and `--relates-to` precedent (id-list flags). Same parsing strategy works for both surfaces, uniform with the kernel's id-list pattern. The id-list semantic reads naturally as "the list of milestones I depend on." |
+| **`--depends-on` referents are validated at allocation time** (the verb refuses if any id doesn't resolve to an existing milestone). | Matches `--epic`, `--linked-adr`, `--discovered-in` precedent — the kernel's habit is validate-at-allocation for entity-id flag values. Fast feedback on typos; tree never carries dangling refs even briefly. Cycle detection remains `aiwf check`'s job (different layer — DAG validity, not referent existence). |
+
+No further open questions blocking milestone planning.
 
 ## Risks
 
