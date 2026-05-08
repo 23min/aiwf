@@ -135,9 +135,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-8 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote G-085 open -> addressed |
 | 2026-05-09 | human/peter | promote | aiwf promote G-061 open -> addressed |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-078 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0006 |
-| 2026-05-09 | human/peter | add | aiwf add adr ADR-0006 'Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices' |
 
