@@ -1,13 +1,13 @@
 # aiwf status — 2026-05-08
 
-_181 entities · 0 errors · 0 warnings_
+_182 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 ## In flight
 
 ### E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) _(active)_
 
 - ✓ **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(done)_ — ACs 5/5 met — tdd: required
-- **M-076** — Writer surface for milestone depends_on (closes G-072) _(draft)_ — ACs 0/7 met (7 open) — tdd: required
+- ✓ **M-076** — Writer surface for milestone depends_on (closes G-072) _(done)_ — ACs 7/7 met — tdd: required
 - **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(draft)_ — ACs 0/6 met (6 open) — tdd: required
 
 ```mermaid
@@ -15,7 +15,7 @@ flowchart LR
   E_22["E-22<br/>Planning toolchain fixes (closes G-071, G-072, G-065)"]:::epic_active
   M_075["M-075 (5/5)<br/>Lifecycle-gate entity-body-empty rule (closes G-071)"]:::ms_done
   E_22 --> M_075
-  M_076["M-076 (0/7)<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_draft
+  M_076["M-076 (7/7)<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_done
   E_22 --> M_076
   M_077["M-077 (0/6)<br/>aiwf retitle verb for entities and ACs (closes G-065)"]:::ms_draft
   E_22 --> M_077
@@ -120,18 +120,22 @@ _(no milestones)_
 | G-076 | CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main |  |
 | G-077 | Post-promotion working paper (aiwf's thesis) not yet written |  |
 | G-078 | No priority field on entities; backlog isn't filterable or sortable by importance |  |
+| G-079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation; M-076 added the verb but the plugin lives in ai-workflow-rituals upstream | M-076 |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | G-079 | work/gaps/G-079-aiwfx-plan-milestones-plugin-skill-needs-depends-on-documentation-m-076-added-the-verb-but-the-plugin-lives-in-ai-workflow-rituals-upstream.md | G-079 body section \`## What's missing\` is empty |
+| entity-body-empty | G-079 | work/gaps/G-079-aiwfx-plan-milestones-plugin-skill-needs-depends-on-documentation-m-076-added-the-verb-but-the-plugin-lives-in-ai-workflow-rituals-upstream.md | G-079 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-08 | human/peter | promote | aiwf promote M-075 in_progress -> done |
-| 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-5 open -> met |
-| 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-5 --phase green -> done |
-| 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-5 --phase red -> green |
+| 2026-05-08 | human/peter | promote | aiwf promote M-076 in_progress -> done |
+| 2026-05-08 | human/test | add | aiwf add gap G-079 'aiwfx-plan-milestones plugin skill needs --depends-on documentation; M-076 added the verb but the plugin lives in ai-workflow-rituals upstream' |
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-076 |
+| 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-7 open -> met |
 

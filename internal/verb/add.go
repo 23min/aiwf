@@ -26,6 +26,13 @@ type AddOptions struct {
 	// as `tdd: none`. Post-fix, the policy decision is a single
 	// explicit act recorded in the create commit.
 	TDD string
+	// Milestone: optional list of milestone ids the new milestone
+	// depends on. Each id must resolve to an existing milestone
+	// (allocation-time referent validation, M-076/AC-4); the list is
+	// written verbatim into the entity's depends_on frontmatter array.
+	// Cycle detection stays in `aiwf check`. Empty list (or absence)
+	// produces no depends_on block.
+	DependsOn []string
 	// Gap: optional reference to the milestone or epic where the gap
 	// was discovered.
 	DiscoveredIn string
@@ -80,6 +87,9 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 		return nil, fmt.Errorf("--title is required")
 	}
 	if err := validateAddOptsForKind(kind, opts); err != nil {
+		return nil, err
+	}
+	if err := validateDependsOnReferents(t, kind, opts); err != nil {
 		return nil, err
 	}
 	id := entity.AllocateID(kind, t.Entities, t.TrunkIDStrings())
@@ -202,6 +212,9 @@ func validateAddOptsForKind(kind entity.Kind, opts AddOptions) error {
 	} else if opts.TDD != "" {
 		return fmt.Errorf("--tdd is only valid for kind=milestone")
 	}
+	if kind != entity.KindMilestone && len(opts.DependsOn) > 0 {
+		return fmt.Errorf("--depends-on is only valid for kind=milestone")
+	}
 	if kind != entity.KindContract {
 		if len(opts.LinkedADRs) > 0 {
 			return fmt.Errorf("--linked-adr is only valid for kind=contract")
@@ -222,6 +235,32 @@ func validateAddOptsForKind(kind entity.Kind, opts AddOptions) error {
 	}
 	if bindCount == 3 && opts.AiwfDoc == nil {
 		return fmt.Errorf("contract add+bind requires aiwf.yaml; run 'aiwf init' first")
+	}
+	return nil
+}
+
+// validateDependsOnReferents enforces that every id passed to
+// --depends-on resolves to an existing milestone before the verb
+// commits. Matches the --epic / --linked-adr / --discovered-in
+// precedent (validate-at-allocation for entity-id flag values). Cycle
+// detection stays at `aiwf check`'s layer; this helper only pins
+// referent existence and kind. Returns nil for non-milestone kinds
+// (the kind-mismatch case is caught by validateAddOptsForKind).
+//
+// The error message names the specific unresolvable id so a
+// comma-separated typo is fast to fix.
+func validateDependsOnReferents(t *tree.Tree, kind entity.Kind, opts AddOptions) error {
+	if kind != entity.KindMilestone || len(opts.DependsOn) == 0 {
+		return nil
+	}
+	for _, id := range opts.DependsOn {
+		ref := t.ByID(id)
+		if ref == nil {
+			return fmt.Errorf("--depends-on %q does not resolve to an existing entity", id)
+		}
+		if ref.Kind != entity.KindMilestone {
+			return fmt.Errorf("--depends-on %q is of kind %s, not milestone (depends_on edges are milestone→milestone only)", id, ref.Kind)
+		}
 	}
 	return nil
 }
@@ -300,6 +339,9 @@ func applyAddOpts(e *entity.Entity, opts AddOptions) {
 	case entity.KindMilestone:
 		e.Parent = opts.EpicID
 		e.TDD = opts.TDD
+		if len(opts.DependsOn) > 0 {
+			e.DependsOn = append([]string(nil), opts.DependsOn...)
+		}
 	case entity.KindGap:
 		if opts.DiscoveredIn != "" {
 			e.DiscoveredIn = opts.DiscoveredIn

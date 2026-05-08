@@ -229,6 +229,6 @@ Ship three Tier 1 kernel-discipline fixes together before E-20 implementation be
 | Milestone | Title | Status |
 |---|---|---|
 | M-075 | Lifecycle-gate entity-body-empty rule (closes G-071) | done |
-| M-076 | Writer surface for milestone depends_on (closes G-072) | draft |
+| M-076 | Writer surface for milestone depends_on (closes G-072) | done |
 | M-077 | aiwf retitle verb for entities and ACs (closes G-065) | draft |
 

@@ -1,6 +1,6 @@
 ---
 name: aiwf-add
-description: Use when the user wants to add a new aiwf entity (epic, milestone, ADR, gap, decision, or contract) or an acceptance criterion under an existing milestone. Runs `aiwf add` so the id allocation, frontmatter, and commit happen mechanically.
+description: Use when the user wants to add a new aiwf entity (epic, milestone, ADR, gap, decision, or contract) or an acceptance criterion under an existing milestone, or to declare a milestone's `depends_on` edges. Runs `aiwf add` (or `aiwf milestone depends-on` for post-allocation edits) so the id allocation, frontmatter, and commit happen mechanically.
 ---
 
 # aiwf-add
@@ -23,7 +23,7 @@ The six kinds and their required flags:
 | Kind | Required flags | Notes |
 |---|---|---|
 | epic | `--title` | Allocates `E-NN`. |
-| milestone | `--title`, `--epic <E-id>` | Lives under the epic's directory. |
+| milestone | `--title`, `--epic <E-id>`, `--tdd <required\|advisory\|none>` | Lives under the epic's directory. Optional `--depends-on M-PPP[,M-QQQ]` declares prerequisite milestones at allocation time (M-076); each id must already exist as a milestone. |
 | adr | `--title` | Allocates `ADR-NNNN` under `docs/adr/`. |
 | gap | `--title` | Optional `--discovered-in <id>`. |
 | decision | `--title` | Optional `--relates-to <id,id,...>`. |
@@ -87,6 +87,28 @@ Same leading-`---` rejection as the whole-entity flag. AC-specific rules:
 4. Validates the projected tree before touching disk; if a finding would be introduced, aborts with no changes.
 5. Creates one commit carrying `aiwf-verb: add`, `aiwf-entity: <id>` (composite `M-NNN/AC-N` for ACs), `aiwf-actor: <actor>` trailers. When the operator is non-human (`ai/<id>`, `bot/<id>`), the kernel additionally requires a `--principal human/<id>` flag and stamps `aiwf-principal:` on the commit. If an active authorization scope (see `aiwf-authorize`) covers the new entity's parent / references, `aiwf-on-behalf-of:` and `aiwf-authorized-by:` are added too.
 6. **Scaffolds load-bearing body sections empty.** Step 5 closes the create commit, but the entity is not done yet — the body sections under each `## <Section>` heading (and the `### AC-N — <title>` body for ACs) are deliberately empty. They are placeholders meant to be filled in. `aiwf check` reports `entity-body-empty` for any load-bearing section that ships empty (warning by default; error under `aiwf.yaml: tdd.strict: true`). Fill the body before declaring the entity complete — see *"After `aiwf add <kind>`: fill in the body"* below.
+
+## Milestone `depends_on`: declare DAG edges via verb (M-076)
+
+Milestone-to-milestone dependencies live in the `depends_on:` frontmatter array. Two writer surfaces, both producing one atomic commit with `aiwf-verb` trailers:
+
+```bash
+# At allocation time: pass --depends-on
+aiwf add milestone --epic E-01 --tdd required \
+  --title "Bootstrap" --depends-on M-001,M-002
+
+# Post-allocation: dedicated verb
+aiwf milestone depends-on M-NNN --on M-PPP[,M-QQQ]
+
+# Empty the list
+aiwf milestone depends-on M-NNN --clear
+```
+
+Replace-not-append semantics: a second `--on` invocation replaces the list, it does not extend. To add a single dependency to an existing list, the operator passes the full updated list. `--on` and `--clear` are mutually exclusive.
+
+Each id passed to `--depends-on` or `--on` must resolve to an existing milestone before the verb commits — typos and pre-allocation references are refused with an error naming the unresolvable id. Cycle detection happens at the next `aiwf check` (and pre-push hook); the writers don't pre-check global DAG validity. Cross-kind dependencies (e.g. milestone depends on ADR) are out of scope today; G-073 generalises the schema if the friction earns it.
+
+Don't hand-edit `depends_on:` directly — `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file triggers `provenance-untrailered-entity-commit`. Both writer verbs above leave a trailered commit `aiwf history M-NNN` can render.
 
 ## After `aiwf add <kind>`: fill in the body
 
