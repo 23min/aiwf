@@ -135,9 +135,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-1 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-1 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-1 --phase red -> green |
 | 2026-05-09 | human/peter | add | aiwf add gap G-087 'no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery' |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074 draft -> in_progress |
-| 2026-05-09 | human/peter | promote | aiwf promote M-073 in_progress -> done |
 
