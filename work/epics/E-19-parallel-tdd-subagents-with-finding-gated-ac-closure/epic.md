@@ -3,6 +3,16 @@ id: E-19
 title: Parallel TDD subagents with finding-gated AC closure
 status: proposed
 ---
+## Status — deferred
+
+This epic is **deferred** pending completion of the upstream substrate. Specifically:
+
+1. The **agent-orchestration design substrate** in [`docs/pocv3/design/agent-orchestration.md`](../../../docs/pocv3/design/agent-orchestration.md) (landed 2026-05-08) needs to be considered fully finished — the substrate broadened the scope beyond this epic's original TDD-only framing into a general agent-orchestration model (agent registry, role-based concurrency, sub-scope provenance, per-epic pipelines, forensic bundles). When E-19 unfreezes, its scope likely needs **rewriting** against the agent-orchestration model rather than the original four-fork framing captured in *Context* below.
+2. The substrate's design must then be **implemented** — likely via one or more dedicated epics decomposed from the agent-orchestration doc once it stabilizes.
+3. The dependencies listed under *Dependencies* below (ADR-0003, ADR-0004, plus their implementation epics; optional ADR-0001) all remain blockers in addition to (1) and (2).
+
+Treat the body below as the **original framing** preserved for historical reference. The actual work shape will be reassessed when the substrate is ready. Until then, this epic is a placeholder on the roadmap, not a queued execution target.
+
 ## Goal
 
 Land **parallel TDD subagent execution with finding-gated AC closure**, so multi-AC milestones can run their cycles concurrently with mechanical guarantees against the M-066/AC-1 branch-coverage drift class of bugs. The end state: a milestone with N independent ACs spawns N TDD-cycle subagents in worktree isolation; each runs its own red→green→refactor+audit; concerns surface as `finding` (F-NNN) entities; the human triages findings before AC closure; subagents structurally cannot waive their own findings.

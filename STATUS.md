@@ -126,9 +126,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-071 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-072 'milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-20 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-074 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-073 |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-072 |
 
