@@ -149,9 +149,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-080 draft [audit-only] |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-080 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-079 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-078 |
-| 2026-05-08 | human/peter | add | aiwf add ac M-080 AC-1..AC-7 (7 criteria) |
 
