@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_186 entities · 0 errors · 0 warnings_
+_187 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -72,6 +72,7 @@ _(no milestones)_
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 | ADR-0003 | adr | Add finding (F-NNN) as a seventh entity kind | proposed |
 | ADR-0004 | adr | Uniform archive convention for terminal-status entities | proposed |
+| ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
 
 ## Open gaps
 
@@ -107,15 +108,19 @@ _(no milestones)_
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | ADR-0005 | docs/adr/ADR-0005-verb-hygiene-contract-complete-consistent-pre-flighted-aiwf-verbs.md | ADR-0005 body section \`## Context\` is empty |
+| entity-body-empty | ADR-0005 | docs/adr/ADR-0005-verb-hygiene-contract-complete-consistent-pre-flighted-aiwf-verbs.md | ADR-0005 body section \`## Decision\` is empty |
+| entity-body-empty | ADR-0005 | docs/adr/ADR-0005-verb-hygiene-contract-complete-consistent-pre-flighted-aiwf-verbs.md | ADR-0005 body section \`## Consequences\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-083 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-083 'aiwf retitle does not sync entity body H1 with frontmatter title' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-081 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-082 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-082 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-082 'Planning closure should default-merge to main before implementation begins' |
 
