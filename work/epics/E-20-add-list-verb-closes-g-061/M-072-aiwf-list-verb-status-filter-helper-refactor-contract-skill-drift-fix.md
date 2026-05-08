@@ -1,7 +1,7 @@
 ---
 id: M-072
 title: aiwf list verb, status filter-helper refactor, contract-skill drift fix
-status: done
+status: in_progress
 parent: E-20
 tdd: required
 acs:
