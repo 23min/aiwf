@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: aiwf-rename skill body redirects to retitle
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Closed-set completion for retitle id argument
       status: met
