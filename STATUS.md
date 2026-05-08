@@ -92,9 +92,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-083 |
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-082 |
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-081 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-085 '\`aiwf status --kind gap\` advertised in CLAUDE.md, docs/pocv3 (3 files), and a gap body, but \`--kind\` flag doesn't exist on the status verb; canonical fix is \`aiwf list --kind gap\` once E-20 ships' |
-| 2026-05-08 | human/peter | promote | aiwf promote G-072 open -> addressed |
+| 2026-05-09 | human/peter | promote | aiwf promote M-074 in_progress -> done |
+| 2026-05-09 | human/peter | promote | aiwf promote E-20 active -> done |
+| 2026-05-09 | human/peter | promote | aiwf promote M-073 in_progress -> done |
+| 2026-05-09 | human/peter | promote | aiwf promote M-072 in_progress -> done |
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body M-074 |
 
