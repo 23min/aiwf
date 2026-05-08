@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: aiwf-list embedded skill exists with list-shaped description
-      status: open
+      status: met
     - id: AC-2
       title: aiwf-list skill body covers recipes, output, JSON, list-vs-status criteria
       status: open
