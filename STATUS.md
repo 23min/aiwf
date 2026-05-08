@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_171 entities · 0 errors · 27 warnings · run `aiwf check` for details_
+_172 entities · 0 errors · 27 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -93,6 +93,7 @@ _(no milestones)_
 | G-070 | aiwf doctor has no --format=json envelope; M-070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears | M-070 |
 | G-071 | entity-body-empty/ac fires on freshly-allocated ACs in draft milestones; conflicts with plan-milestones 'shape now, detail later' discipline | E-20 |
 | G-072 | milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story | E-20 |
+| G-073 | depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-072 in scope | E-21 |
 
 ## Warnings
 
@@ -130,9 +131,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-21 |
 | 2026-05-08 | human/peter | add | aiwf add epic E-21 'Open-work synthesis: recommended-sequence skill (replaces critical-path.md)' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-19 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-071 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-072 'milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story' |
 
