@@ -8,6 +8,7 @@ acs:
     - id: AC-1
       title: aiwf-list embedded skill exists with list-shaped description
       status: met
+      tdd_phase: done
     - id: AC-2
       title: aiwf-list skill body covers recipes, output, JSON, list-vs-status criteria
       status: met
