@@ -102,9 +102,9 @@ This epic does not depend on either ADR landing. It commits to a default semanti
 
 <!-- Bulleted list, ordered by execution sequence. Status lives in each milestone's frontmatter. Milestone ids are global (M-NNN), not epic-scoped; allocated by aiwfx-plan-milestones. -->
 
-- [M-NNN](M-NNN-list-verb.md) — `aiwf list` verb, status filter-helper refactor, contracts-plan and contract-skill drift fix · depends on: —
-- [M-NNN](M-NNN-skills-split.md) — New `aiwf-list` embedded skill; tighten `aiwf-status` description and body · depends on: previous milestone
-- [M-NNN](M-NNN-skill-coverage-policy.md) — `internal/policies/skill_coverage.go`, judgment ADR, `CLAUDE.md` *Skills policy* section, follow-up gap for `aiwf-show` skill, G-061 closure · depends on: previous milestone
+- [M-072](M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md) — `aiwf list` verb, status filter-helper refactor, contract-skill drift fix · `tdd: required` · depends on: —
+- [M-073](M-073-aiwf-list-skill-aiwf-status-skill-tightening.md) — New `aiwf-list` embedded skill; tighten `aiwf-status` description and body · `tdd: advisory` · depends on: M-072
+- [M-074](M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md) — `internal/policies/skill_coverage.go`, judgment ADR, `CLAUDE.md` *Skills policy* section, follow-up gap for `aiwf-show` skill, G-061 closure · `tdd: required` · depends on: M-073
 
 ## ADRs produced (optional)
 
