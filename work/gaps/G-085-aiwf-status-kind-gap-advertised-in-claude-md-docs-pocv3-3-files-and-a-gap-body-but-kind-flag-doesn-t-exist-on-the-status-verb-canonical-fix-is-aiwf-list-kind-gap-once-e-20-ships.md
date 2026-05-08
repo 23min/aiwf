@@ -1,8 +1,10 @@
 ---
 id: G-085
 title: '`aiwf status --kind gap` advertised in CLAUDE.md, docs/pocv3 (3 files), and a gap body, but `--kind` flag doesn''t exist on the status verb; canonical fix is `aiwf list --kind gap` once E-20 ships'
-status: open
+status: addressed
 discovered_in: E-20
+addressed_by:
+    - M-074
 ---
 ## Problem
 

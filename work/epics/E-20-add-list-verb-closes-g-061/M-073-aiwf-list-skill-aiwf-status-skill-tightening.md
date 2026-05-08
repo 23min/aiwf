@@ -1,25 +1,30 @@
 ---
 id: M-073
 title: aiwf-list skill, aiwf-status skill tightening
-status: draft
+status: done
 parent: E-20
 tdd: advisory
 acs:
     - id: AC-1
       title: aiwf-list embedded skill exists with list-shaped description
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: aiwf-list skill body covers recipes, output, JSON, list-vs-status criteria
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: aiwf-status skill description tightened to narrative-snapshot phrasings
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: aiwf-status skill body redirects to aiwf list for tree queries
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Both skills materialize via aiwf init and aiwf update
-      status: open
+      status: met
+      tdd_phase: done
 ---
 
 # M-073 — aiwf-list skill, aiwf-status skill tightening
@@ -83,7 +88,17 @@ The skill host (Claude Code) loads skills based on description-match scoring aga
 
 ## Coverage notes
 
-- (filled at wrap)
+- This milestone is `tdd: advisory` — its deliverables are prose (skill bodies)
+  and a one-time materialization check, not testable code. No new code coverage
+  to report.
+- Materialization is guarded by `internal/skills/skills_test.go`'s
+  `TestList_AllShippedSkillsPresent` (updated to expect 13 skills, including
+  `aiwf-list`) and `TestList_ContentNonEmptyAndYAMLFrontmatter` (every embedded
+  SKILL.md starts with `---` and the `name:` field matches its directory). Both
+  pass on the post-milestone tree.
+- The materialization pipeline itself is covered by `internal/initrepo/...`
+  and `internal/skills/...` tests upstream of this milestone (E-03, E-11);
+  M-073 ships content, not engine changes, and inherits that coverage.
 
 ## References
 
@@ -100,11 +115,40 @@ The skill host (Claude Code) loads skills based on description-match scoring aga
 
 ## Decisions made during implementation
 
-- (none — all decisions are pre-locked above)
+- **AC-3 minimal tightening (disclosed):** the spec called for tightening `aiwf-status`'s description to drop list-shaped phrasings like "list every X", "find all Y", "filter Z". Audit found the original description never contained any such phrasings — its phrasings were already narrative-only ("what's next?", "where are we?", "what are we working on?", "current status?", "what's in flight?"). The AC's contract was therefore satisfied at start-time. Implementation went further: added a "narrative-shaped" framing word, added "give me a summary" to the example list, and added an explicit "for those, use `aiwf list`" redirect — bonus discoverability work, not the AC's literal contract. Logging here so the closure doesn't read as having corrected drift that wasn't there.
 
 ## Validation
 
-(pasted at wrap)
+```
+$ aiwf doctor 2>&1 | head -5
+binary:    (devel) (working-tree build)
+config:    ok
+actor:     human/peter (from git config user.email)
+skills:    ok (13 skills, byte-equal to embed)
+ids:       ok (no collisions)
+
+$ ls .claude/skills/ | grep -E "list|status"
+aiwf-list
+aiwf-status
+
+$ head -3 .claude/skills/aiwf-list/SKILL.md
+---
+name: aiwf-list
+description: Use to filter the planning tree by kind, status, parent, or archive flag — answers prompts like "list every milestone with status X", ...
+
+$ head -4 .claude/skills/aiwf-status/SKILL.md
+---
+name: aiwf-status
+description: Use for narrative-shaped state questions — "what's next?", "where are we?", ...
+---
+
+$ go test ./internal/skills/...
+ok  	github.com/23min/ai-workflow-v2/internal/skills	0.371s
+```
+
+Both skills materialize from `internal/skills/embedded/` to
+`.claude/skills/aiwf-*/SKILL.md` byte-equal; doctor reports 13 skills
+total (one more than pre-milestone, accounting for the new `aiwf-list`).
 
 ## Deferrals
 
@@ -112,4 +156,22 @@ The skill host (Claude Code) loads skills based on description-match scoring aga
 
 ## Reviewer notes
 
-- (filled at wrap)
+- **Read AC-3's "minimal tightening" disclosure** (in *Decisions made during
+  implementation*, above). It documents that the original `aiwf-status`
+  description was already narrative-only — there were no list-shaped phrasings
+  to drop. The work landed (added narrative framing + redirect) but the AC's
+  literal contract was satisfied at start-time. Honest log rather than a
+  re-revert.
+- **The split-skill design follows ADR-0006's "discoverability-priority split"
+  case.** `aiwf-list` and `aiwf-status` cover closely related read verbs over
+  the same planning tree but are split because their description-match prompt
+  shapes diverge: list answers structured-filter prompts, status answers
+  narrative-state prompts. Bundling them would dilute either description.
+- **The redirect note in `aiwf-status`'s body is the only structural cue
+  pointing AI assistants from status to list.** If the host's
+  description-match scoring still routes a filter-shaped prompt to status,
+  the body's bold-paragraph redirect is what catches the recovery in one hop.
+- **`tdd: advisory` does not mean "skip TDD phase tracking".** All five ACs
+  are stamped `tdd_phase: done` post-wrap (the kernel's `acs-tdd-audit`
+  rule warns when `met` lands without phase, even under advisory). Earlier
+  closure left phase absent and was caught at the second-audit pass.

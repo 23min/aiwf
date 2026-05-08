@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_189 entities · 0 errors · 0 warnings_
+_192 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -38,29 +38,6 @@ flowchart LR
 
 _(no milestones)_
 
-### E-20 — Add list verb (closes G-061) _(proposed)_
-
-- **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(draft)_ — ACs 0/9 met (9 open) — tdd: required
-- **M-073** — aiwf-list skill, aiwf-status skill tightening _(draft)_ — ACs 0/5 met (5 open) — tdd: advisory
-- **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(draft)_ — ACs 0/10 met (10 open) — tdd: required
-
-```mermaid
-flowchart LR
-  E_20["E-20<br/>Add list verb (closes G-061)"]:::epic_proposed
-  M_072["M-072 (0/9)<br/>aiwf list verb, status filter-helper refactor, contract-skill drift fix"]:::ms_draft
-  E_20 --> M_072
-  M_073["M-073 (0/5)<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_draft
-  E_20 --> M_073
-  M_074["M-074 (0/10)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_draft
-  E_20 --> M_074
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
-
 ### E-21 — Open-work synthesis: recommended-sequence skill (replaces critical-path.md) _(proposed)_
 
 _(no milestones)_
@@ -73,6 +50,7 @@ _(no milestones)_
 | ADR-0003 | adr | Add finding (F-NNN) as a seventh entity kind | proposed |
 | ADR-0004 | adr | Uniform archive convention for terminal-status entities | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
+| ADR-0006 | adr | Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices | proposed |
 
 ## Open gaps
 
@@ -85,7 +63,6 @@ _(no milestones)_
 | G-058 | AC body sections ship empty; no chokepoint enforces prose intent | E-16 |
 | G-059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-069 |
 | G-060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
-| G-061 | Generic \`aiwf list <kind>\` verb referenced as canonical in contracts plan and shipped contract skill, but never implemented; AI assistants are instructed to invoke a non-existent verb |  |
 | G-063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
 | G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
 | G-067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-066 |
@@ -104,7 +81,8 @@ _(no milestones)_
 | G-082 | Planning closure should default-merge to main before implementation begins | E-21 |
 | G-083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-21 |
 | G-084 | Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella | E-21 |
-| G-085 | \`aiwf status --kind gap\` advertised in CLAUDE.md, docs/pocv3 (3 files), and a gap body, but \`--kind\` flag doesn't exist on the status verb; canonical fix is \`aiwf list --kind gap\` once E-20 ships | E-20 |
+| G-086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file | M-072 |
+| G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
 
 ## Warnings
 
@@ -114,9 +92,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-083 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-082 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-081 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-085 '\`aiwf status --kind gap\` advertised in CLAUDE.md, docs/pocv3 (3 files), and a gap body, but \`--kind\` flag doesn't exist on the status verb; canonical fix is \`aiwf list --kind gap\` once E-20 ships' |
 | 2026-05-08 | human/peter | promote | aiwf promote G-072 open -> addressed |
-| 2026-05-08 | human/peter | promote | aiwf promote G-071 open -> addressed |
 

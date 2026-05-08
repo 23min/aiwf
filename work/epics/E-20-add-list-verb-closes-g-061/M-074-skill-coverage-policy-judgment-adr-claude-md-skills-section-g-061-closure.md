@@ -1,50 +1,54 @@
 ---
 id: M-074
 title: skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure
-status: draft
+status: done
 parent: E-20
 tdd: required
 acs:
     - id: AC-1
       title: skill-coverage policy file exists, modeled on config_fields_discoverable
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Policy enforces non-empty name and description on every embedded skill
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Policy enforces skill name matches dir and aiwf-<topic> convention
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Policy enforces every top-level verb is documented or in allowlist
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Policy enforces every aiwf <verb> mention in skills resolves to a real verb
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: Allowlist has rationale per entry; show entry rationale references follow-up gap
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-7
       title: Follow-up gap for aiwf-show skill exists
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-8
       title: Skills judgment ADR allocated and proposed
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-9
       title: CLAUDE.md gains Skills policy section and What's enforced row
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-10
       title: G-061 promoted to terminal status with closing commit citing this epic
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
+    - id: AC-11
+      title: G-085 doc-sweep and gap closure
+      status: met
+      tdd_phase: done
 ---
 
 # M-074 — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure
@@ -79,14 +83,27 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 
 ### AC-10 — G-061 promoted to terminal status with closing commit citing this epic
 
+### AC-11 — G-085 doc-sweep and gap closure
+
+Five sites (CLAUDE.md, three under `docs/pocv3/`, one gap body) advertise the non-existent `aiwf status --kind gap` command. M-072 shipped the canonical replacement (`aiwf list --kind gap`); this AC sweeps the prose and closes the gap. Mechanical search-and-replace across:
+
+- `CLAUDE.md:3`
+- `docs/pocv3/README.md:11`
+- `docs/pocv3/architecture.md:184`
+- `docs/pocv3/archive/gaps-pre-migration.md:3`
+- `work/gaps/G-078-*.md:9`
+
+After the doc edits land in the same commit (or commit pair) as the AC-9 CLAUDE.md edit, `aiwf promote G-085 <terminal>` closes the gap with a body citing E-20 — same shape as AC-10's G-061 closure.
+
 ## Constraints
 
 - Same precedent: `internal/policies/skill_coverage.go` follows the shape of `config_fields_discoverable.go` exactly — same `Violation` struct, same `readDiscoverabilityChannels` haystack helper, same allowlist-with-rationale-comment pattern. No new framework primitives in `internal/policies/`.
 - Mechanical vs. judgment split is non-negotiable. The policy contains *only* mechanically evaluable invariants. Judgment lives in the ADR. The two artifacts cross-reference each other; neither smuggles the other's role.
 - AC-4's allowlist must carry a one-line rationale comment per entry in source, exactly like `excluded["actor"]` in `config_fields_discoverable.go:52`. The entry for `show` references the follow-up gap by id.
 - AC-7 (follow-up gap) is allocated via `aiwf add gap` — not hand-crafted. The gap's body explains *why* `show` warrants its own skill (body-rendering branches, composite-id handling, AI assistants reach for it constantly) and is filed under `discovered_in: M-074`.
-- AC-8 (judgment ADR) is allocated via `aiwf add adr` and lives under `docs/adr/ADR-NNNN-*.md`. Status `proposed` at minimum; ratification is not a blocker for this milestone's `done`.
+- AC-8 (judgment ADR) is allocated via `aiwf add adr` and lives under `docs/adr/ADR-NNNN-*.md`. Status `proposed` at minimum; ratification is not a blocker for this milestone's `done`. **Allocated as [ADR-0006](../../../docs/adr/ADR-0006-skills-policy-per-verb-default-topical-multi-verb-when-concept-shaped-no-skill-when-help-suffices.md), status `proposed`.**
 - AC-10's closing commit is produced by `aiwf promote G-061 <terminal>`; the commit's `aiwf-entity:` trailer references G-061 and the body cites this epic. Do not hand-craft the closure commit.
+- AC-11's G-085 closure follows the same pattern as AC-10: `aiwf promote G-085 <terminal>` after the five doc-sweep edits land. The doc sweep is mechanical (a single `aiwf status --kind gap` → `aiwf list --kind gap` substitution at each of the five sites); confirm each site renders correctly afterwards (especially `docs/pocv3/archive/gaps-pre-migration.md`, which is otherwise frozen content).
 
 ## Design notes
 
@@ -105,10 +122,15 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 
 - `internal/policies/skill_coverage.go` (new)
 - `internal/policies/policies_test.go` (test entry)
-- `docs/adr/ADR-NNNN-*.md` (new — judgment rule)
-- `CLAUDE.md` (Skills policy section + What's enforced row)
+- `docs/adr/ADR-0006-skills-policy-per-verb-default-topical-multi-verb-when-concept-shaped-no-skill-when-help-suffices.md` (new — judgment rule)
+- `CLAUDE.md` (Skills policy section + What's enforced row + AC-11 doc-sweep edit)
+- `docs/pocv3/README.md` (AC-11 — `aiwf status --kind gap` → `aiwf list --kind gap`)
+- `docs/pocv3/architecture.md` (AC-11 — same substitution)
+- `docs/pocv3/archive/gaps-pre-migration.md` (AC-11 — same substitution)
+- `work/gaps/G-078-*.md` (AC-11 — same substitution in body prose)
 - `work/gaps/G-NNN-*.md` (new — follow-up gap for aiwf-show skill)
 - G-061 (status promotion only)
+- G-085 (status promotion only — AC-11)
 
 ## Out of scope
 
@@ -125,12 +147,37 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 
 ## Coverage notes
 
-- (filled at wrap)
+- `internal/policies/skill_coverage.go`: **90.4%** file-level coverage.
+  Per-function:
+  `runSkillCoverageChecks 100%`, `checkSkillFrontmatter 100%`,
+  `checkVerbCoverage 100%`, `checkSkillBodyMentionsResolve 100%`,
+  `backtickedAiwfMentions 100%`, `parseSkillMarkdown 83.9%`,
+  `findTopLevelVerbs 89.4%`, `extractCobraUseField 91.3%`,
+  `loadEmbeddedSkillsForPolicy 77.8%`, `PolicySkillCoverageMatchesVerbs 71.4%`.
+- The four enforcement checks (AC-2..AC-5) are at **100%**. The lower
+  numbers on `parseSkillMarkdown`, `findTopLevelVerbs`, and the loader are
+  on error-path branches that fire only on malformed source files
+  (parse failures, unreadable files); same defensive shape as the
+  precedent `config_fields_discoverable.go`. The sub-100% on
+  `PolicySkillCoverageMatchesVerbs` itself is the disk-load error path.
+- Test count: **15 new tests** in `skill_coverage_test.go`. Three positive
+  shape-parser tests (`TestParseSkillMarkdown_FrontmatterShapes`),
+  two extractor tests (`TestBacktickedAiwfMentions_Extraction` +
+  `_FlagOnlyDoesNotMatch`), two allowlist-invariant tests
+  (`HasShowEntry` + `AllEntriesHaveRationale`), eight per-AC negative
+  tests covering each enforcement axis (AC-2..AC-5: empty name, empty
+  desc, name/dir mismatch, missing aiwf- prefix, bare aiwf-, uncovered
+  verb, allowlist rescue, skill rescue, unknown verb mention, fenced+
+  inline, help/completion always resolve), and one composite drift test
+  (`TestRunSkillCoverageChecks_FullDriftFiresAllAxes`).
+- Plus `TestNoReintroducedDeadVerbForms_ContractsAndSkill` (the M-072
+  AC-8 sub-positional drift guard, scoped to the two M-072 named files).
 
 ## References
 
 - E-20 epic spec (this milestone's parent).
 - G-061 — the gap this milestone closes.
+- G-085 — sibling drift case to G-061: five sites advertise `aiwf status --kind gap`, a non-existent flag; M-072 ships `aiwf list --kind gap` and AC-11 sweeps the prose. Closed by AC-11.
 - `internal/policies/discoverability.go` — `PolicyFindingCodesAreDiscoverable`. Precedent for haystack and Violation shape.
 - `internal/policies/config_fields_discoverable.go` — `PolicyConfigFieldsAreDiscoverable`. Precedent for the allowlist-with-rationale-comment pattern (see `excluded` map at line 52).
 - `internal/policies/policies.go` — the package's `Violation` and `WalkGoFiles` primitives this milestone reuses.
@@ -145,11 +192,60 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 
 ## Decisions made during implementation
 
-- (none — all decisions are pre-locked above)
+- **First-word verb resolution (AC-5).** The policy's mention-resolution
+  check looks at only the first word after `aiwf <X>`. Full sub-verb
+  resolution (e.g. `aiwf list contracts` — first word `list` is real but
+  `contracts` is a dead positional) is out of scope by design — see the
+  policy header godoc. The follow-up coverage for that shape is the
+  scoped `TestNoReintroducedDeadVerbForms_ContractsAndSkill` test, plus
+  G-086 for the third file the test doesn't cover yet.
+- **Refactor for testability (post-audit).** The first attempt
+  enforced its checks inline in `PolicySkillCoverageMatchesVerbs` and
+  shipped a single integration-style test that ran against the live
+  tree. Audit revealed: the test passes when there's nothing to find,
+  but doesn't prove the policy fires when there *is* drift. Refactor
+  extracted three per-check helpers (`checkSkillFrontmatter`,
+  `checkVerbCoverage`, `checkSkillBodyMentionsResolve`) that take
+  in-memory inputs; negative-case tests then drive each helper with
+  synthetic violating inputs and assert the expected violation. The
+  full-policy disk-loading wrapper stays thin.
+- **G-087 placeholder allocation.** The allowlist's `show` entry was
+  initially written with `G-NNN` as a placeholder during policy
+  authoring; updated to `G-087` after the gap was filed via
+  `aiwf add gap`. `TestSkillCoverageAllowlist_HasShowEntry` asserts
+  the rationale references "G-" specifically so any future drop of
+  the gap reference fails CI.
+- **AC-9 + AC-11 share their commit pass.** `CLAUDE.md` carries both
+  the new *Skills policy* section (AC-9) and the swept G-085 site at
+  line 3 (AC-11) — folded into one diff because both touched the same
+  file. The other four G-085 sites and the AC-9 *What's enforced* row
+  are in the same commit (`e1896d3`).
 
 ## Validation
 
-(pasted at wrap)
+```
+$ go test -race ./internal/policies/ -v -run "TestPolicy_SkillCoverage|TestParseSkillMarkdown|TestBacktickedAiwfMentions|TestSkillCoverageAllowlist|TestCheckSkillFrontmatter|TestCheckVerbCoverage|TestCheckSkillBodyMentionsResolve|TestRunSkillCoverageChecks|TestNoReintroducedDeadVerbForms" 2>&1 | tail
+--- PASS: TestSkillCoverageAllowlist_AllEntriesHaveRationale (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnEmptyName (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnEmptyDescription (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnNameDirMismatch (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnAiwfPrefixMissing (0.00s)
+--- PASS: TestCheckSkillFrontmatter_FiresOnAiwfPrefixOnly (0.00s)
+--- PASS: TestCheckVerbCoverage_FiresOnUncoveredVerb (0.00s)
+--- PASS: TestCheckVerbCoverage_AllowlistRescuesUncoveredVerb (0.00s)
+--- PASS: TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb (0.00s)
+--- PASS: TestRunSkillCoverageChecks_FullDriftFiresAllAxes (0.00s)
+--- PASS: TestNoReintroducedDeadVerbForms_ContractsAndSkill (0.00s)
+PASS
+
+$ go test ./...   # full sweep — every package green
+$ golangci-lint run ./...
+0 issues.
+```
+
+Smoke-tested against the live tree: `TestPolicy_SkillCoverageMatchesVerbs`
+passes (no live-tree drift); `aiwf doctor` reports 13 skills byte-equal;
+`aiwf check` clean except 2 pre-existing warnings unrelated to E-20.
 
 ## Deferrals
 
@@ -157,4 +253,29 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 
 ## Reviewer notes
 
-- (filled at wrap)
+- **Read the policy header godoc first** (`internal/policies/skill_coverage.go`).
+  It enumerates the four invariants the policy enforces (AC-2..AC-5) and the
+  judgment-vs-mechanical split (the *why* lives in ADR-0006; this file
+  captures only the mechanically evaluable *what*).
+- **The negative-case test suite is the load-bearing safety net.** A
+  positive-only test of the full policy (passes against the live tree)
+  proves nothing about whether the policy fires on real drift. The
+  per-check helpers + negative tests in `skill_coverage_test.go` prove
+  each enforcement axis catches a synthetic violation that a future
+  contributor might introduce. This was added in the wrap pass after
+  audit found the original closure premature.
+- **ADR-0006 is `proposed`, not `accepted`.** The milestone spec
+  explicitly says ratification is not a blocker. The mechanical policy
+  ships independently — its enforcement does not depend on the ADR's
+  ratification status.
+- **G-087 is the only allowlist entry whose rationale points at a gap.**
+  The other 12 entries cite stable categories (ops verb, trivially-
+  documented, etc.). When G-087 closes (an `aiwf-show` skill ships),
+  the allowlist's `show` entry is removed; that's the migration path
+  the ADR's *Re-evaluation prompts* paragraph describes.
+- **Dependency on M-072 + M-073 is real.** M-072's contract-skill drift
+  fix had to land first or this milestone's AC-5 check would fire on
+  stale `aiwf list contracts` mentions. M-073's `aiwf-list` skill had
+  to land first or the AC-4 verb-coverage check would either need a
+  `list` allowlist entry (defeating M-073) or fire a violation. The
+  milestone order in the epic spec is correct.

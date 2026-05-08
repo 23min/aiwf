@@ -181,7 +181,7 @@ If a proposed change forces a violation of any of these, treat it as a kernel-le
 
 - [`design/design-decisions.md`](design/design-decisions.md) — the seven kernel commitments and the "deliberately not in the PoC" list. The *why* behind §1–§4 above.
 - [`design/design-lessons.md`](design/design-lessons.md) — the three principles and the vocabulary sweep findings. The *why* behind §5.
-- Gap entities under `work/gaps/` (post-G38 dogfood migration). `aiwf status --kind gap` for open gaps; `aiwf show G-NNN` for one. Pre-migration history is archived at [`archive/gaps-pre-migration.md`](archive/gaps-pre-migration.md).
+- Gap entities under `work/gaps/` (post-G38 dogfood migration). `aiwf list --kind gap` for open gaps; `aiwf show G-NNN` for one. Pre-migration history is archived at [`archive/gaps-pre-migration.md`](archive/gaps-pre-migration.md).
 - [`plans/poc-plan.md`](archive/poc-plan-pre-migration.md) — the four sessions of work that produced the engine, plus the I1 contracts iteration that built on top.
 - [`skill-author-guide.md`](skill-author-guide.md) — the contract for AI skill scaffolders. The published surface from §4 above, expressed as rules and a worked example.
 - Root [`CLAUDE.md`](../../CLAUDE.md) — the engineering principles (KISS, YAGNI, no half-finished implementations).

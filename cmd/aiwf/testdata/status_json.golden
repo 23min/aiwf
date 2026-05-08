@@ -1,0 +1,111 @@
+{
+  "tool": "aiwf",
+  "version": "test-golden",
+  "status": "ok",
+  "findings": [],
+  "result": {
+    "date": "2026-05-09",
+    "in_flight_epics": [
+      {
+        "id": "E-99",
+        "title": "Goldenfix epic for refactor parity",
+        "status": "active",
+        "milestones": [
+          {
+            "id": "M-901",
+            "title": "Lay foundations",
+            "status": "done"
+          },
+          {
+            "id": "M-902",
+            "title": "Wire the seam",
+            "status": "in_progress",
+            "tdd": "required",
+            "acs": {
+              "total": 3,
+              "in_scope": 3,
+              "open": 1,
+              "met": 2,
+              "deferred": 0,
+              "cancelled": 0
+            }
+          },
+          {
+            "id": "M-903",
+            "title": "Polish edges",
+            "status": "draft"
+          }
+        ]
+      }
+    ],
+    "planned_epics": [
+      {
+        "id": "E-100",
+        "title": "Future work that hasn't started",
+        "status": "proposed",
+        "milestones": [
+          {
+            "id": "M-910",
+            "title": "First plan step",
+            "status": "draft"
+          }
+        ]
+      }
+    ],
+    "open_decisions": [
+      {
+        "id": "ADR-0901",
+        "title": "Adopt fictional convention",
+        "status": "proposed",
+        "kind": "adr"
+      },
+      {
+        "id": "D-901",
+        "title": "Pick approach A or B",
+        "status": "proposed",
+        "kind": "decision"
+      }
+    ],
+    "open_gaps": [
+      {
+        "id": "G-901",
+        "title": "Refactor leaves a seam",
+        "discovered_in": "M-902"
+      }
+    ],
+    "warnings": [
+      {
+        "code": "gap-resolved-has-resolver",
+        "entity_id": "G-902",
+        "path": "work/gaps/G-902-fictional-fix.md",
+        "message": "gap is marked addressed but addressed_by is empty"
+      }
+    ],
+    "recent_activity": [
+      {
+        "date": "2026-05-09",
+        "actor": "human/golden",
+        "verb": "promote",
+        "detail": "aiwf promote M-902 in_progress",
+        "commit": "feedf00d",
+        "to": "in_progress"
+      },
+      {
+        "date": "2026-05-08",
+        "actor": "human/golden",
+        "verb": "add",
+        "detail": "aiwf add milestone M-903",
+        "commit": "deadbeef"
+      }
+    ],
+    "health": {
+      "entities": 11,
+      "errors": 0,
+      "warnings": 1
+    }
+  },
+  "metadata": {
+    "entities": 11,
+    "root": "/golden/fixture"
+  }
+}

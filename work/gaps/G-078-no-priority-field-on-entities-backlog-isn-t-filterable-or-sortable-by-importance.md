@@ -6,7 +6,7 @@ status: open
 
 ## Problem
 
-Entities have no kernel-supported field expressing importance or urgency. `aiwf status --kind gap` lists open gaps in id order; there is no way to express "do this one first" in structured state, no way to filter (`aiwf status --kind gap --priority high`), and no way for the HTML renderer or any future `aiwf list` verb (G-061) to surface a backlog ranked by what to work next.
+Entities have no kernel-supported field expressing importance or urgency. `aiwf list --kind gap` lists open gaps in id order; there is no way to express "do this one first" in structured state, no way to filter (`aiwf list --kind gap --priority high`), and no way for the HTML renderer or `aiwf list` to surface a backlog ranked by what to work next.
 
 The friction first surfaced on the gap kind — the kernel's primary backlog — but applies to every kind that accumulates open work: gap, milestone, decision, ADR. Filing this kernel-wide; the per-kind cut belongs to the implementing milestone.
 

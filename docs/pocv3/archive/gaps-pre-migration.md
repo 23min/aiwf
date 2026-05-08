@@ -1,6 +1,6 @@
 # PoC gaps — pre-migration archive
 
-> **This file is frozen at the G38 dogfood-migration cutover (commit `4b89c36`, 2026-05-05).** All gaps it lists were imported into the `aiwf` entity tree at that point. **For current gap state, run `aiwf status --kind gap` or `aiwf show G-NNN`.** New gaps land via `aiwf add gap ...`, not by editing this file.
+> **This file is frozen at the G38 dogfood-migration cutover (commit `4b89c36`, 2026-05-05).** All gaps it lists were imported into the `aiwf` entity tree at that point. **For current gap state, run `aiwf list --kind gap` or `aiwf show G-NNN`.** New gaps land via `aiwf add gap ...`, not by editing this file.
 >
 > The matrix at the end is preserved as the historical record of the pre-migration state. Some closed-gap entries reference "(this commit)" placeholders that were never backfilled with their actual commit SHAs — those are part of the archive's accuracy, not bugs to fix here. The kernel's `git log` carries the authoritative SHAs for each closure.
 >

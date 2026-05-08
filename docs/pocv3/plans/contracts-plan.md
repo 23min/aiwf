@@ -206,7 +206,7 @@ Status changes (`promote`, `cancel`) **never modify the binding**. The binding s
 | `aiwf contract verify [<C-id>]` | Run verify+evolve. Both passes always run; no mode flags. `--format=json [--pretty]` for tooling. |
 | `aiwf contract recipes` | List the embedded recipes plus the validators currently declared in `aiwf.yaml`. |
 | `aiwf contract recipe show <name>` | Print the embedded recipe's markdown (the validator block, install instructions, gotchas, worked example). |
-| `aiwf list contracts` | Generic verb. List contract entities with their statuses and binding state. |
+| `aiwf list --kind contract` | Generic verb. List contract entities with their statuses and binding state. |
 | `aiwf show <C-id>` | Generic verb. Full record + lifecycle. |
 | `aiwf history <C-id>` | Generic verb. Lifecycle events from git log, including `bind` / `unbind` / `recipe-install` / `recipe-remove` mutations relevant to the contract. |
 
@@ -421,8 +421,8 @@ I1 is the floor: without it, contracts are not enforced. I2 is the floor for ado
 - No compiled-in validators. Adding a language is a YAML block plus an optional recipe markdown file, never an engine release.
 - No `.aiwf/hooks.yaml` or executable hook scripts in the consumer repo. Validator declarations live in `aiwf.yaml`; the runner is in the engine.
 - No `live_source` field on the entity. No drift detection on file paths. Contracts are verified by exercising fixtures, not by watching files.
-- No `aiwf render contracts` / `CONTRACTS.md` auto-generation. A contract registry is browsable via `aiwf list contracts`. Hand-maintained matrix files in the consumer repo (e.g. `docs/architecture/indexes/contract-matrix.md`) remain repo content.
-- No `aiwf contract list / status / matrix` verbs. Generic verbs (`aiwf list contracts`, `aiwf show C-NNN`, `aiwf history C-NNN`) cover these.
+- No `aiwf render contracts` / `CONTRACTS.md` auto-generation. A contract registry is browsable via `aiwf list --kind contract`. Hand-maintained matrix files in the consumer repo (e.g. `docs/architecture/indexes/contract-matrix.md`) remain repo content.
+- No `aiwf contract list / status / matrix` verbs. Generic verbs (`aiwf list --kind contract`, `aiwf show C-NNN`, `aiwf history C-NNN`) cover these.
 - No symbol-level live-source tracking. Out of scope for the engine.
 - No `aiwf contract verify --mode <verify|evolve>`. Both passes always run.
 - No filter flags (`--drifted`, `--untouched-since`, `--linked-adr`, `--verified-status`) until a real user asks.
@@ -486,7 +486,7 @@ Every mutation of `aiwf.yaml.contracts.*` has a verb. The LLM uses the verb. Alw
 | Move the entity's status forward | `aiwf promote <C-id> <status> --reason "..."` |
 | Cancel a contract (rejected) | `aiwf cancel <C-id> --reason "..."` |
 | Run verification | `aiwf contract verify [<C-id>]` |
-| List recipes / contracts | `aiwf contract recipes`, `aiwf list contracts` |
+| List recipes / contracts | `aiwf contract recipes`, `aiwf list --kind contract` |
 | Inspect | `aiwf contract recipe show <name>`, `aiwf show <C-id>`, `aiwf history <C-id>` |
 
 If the user asks for something not covered by a verb, the answer is **not** "edit `aiwf.yaml` directly." The answer is "we don't support that mutation; here is the closest verb."
@@ -590,7 +590,7 @@ The fix is **always a verb**: `aiwf contract bind <id> --validator <name> --sche
 ### "What contracts do I have?" / "List contracts"
 
 ```bash
-aiwf list contracts
+aiwf list --kind contract
 aiwf show C-NNN
 aiwf history C-NNN
 ```
@@ -651,7 +651,7 @@ If the user wants to share their pattern, encourage upstreaming a recipe — but
 
 ### "Add a contract without a validator yet"
 
-Allowed and supported. Run `aiwf add contract --title "..." --linked-adr ADR-NNN` **without** the `--validator / --schema / --fixtures` flags. The entity is created; no binding is added. The contract appears in `aiwf list contracts` as a registry record but has no verification target. When the user is ready to wire validation, run `aiwf contract bind <id> --validator ... --schema ... --fixtures ...`.
+Allowed and supported. Run `aiwf add contract --title "..." --linked-adr ADR-NNN` **without** the `--validator / --schema / --fixtures` flags. The entity is created; no binding is added. The contract appears in `aiwf list --kind contract` as a registry record but has no verification target. When the user is ready to wire validation, run `aiwf contract bind <id> --validator ... --schema ... --fixtures ...`.
 
 This is the right answer when:
 
@@ -705,7 +705,7 @@ There is no `--fix`. Every finding is a human decision; aiwf reports, the user r
 - Don't conflate the registry record (the `contract` entity) with the validator binding (`aiwf.yaml.contracts.entries[]`). Two responsibilities, two locations, linked by `id`. Different verbs for each.
 - Don't suggest deleting fixtures to silence findings.
 - Don't run `aiwf contract verify` against an empty `entries:` block expecting work — it returns "skipped" and that is correct.
-- Don't invent new verb forms (`aiwf contract list`, `aiwf contract status`). The generic `aiwf list contracts` / `aiwf show C-NNN` are authoritative.
+- Don't invent new verb forms (`aiwf contract list`, `aiwf contract status`). The generic `aiwf list --kind contract` / `aiwf show C-NNN` are authoritative.
 - Don't claim a `skip_in_check` config option exists. Pre-push verification is unconditional for non-terminal contracts.
 ````
 
