@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: --clear flag empties the depends_on list
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Allocation-time referent validation refuses invalid ids

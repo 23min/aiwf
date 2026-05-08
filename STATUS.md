@@ -7,7 +7,7 @@ _181 entities · 0 errors · 7 warnings · run `aiwf check` for details_
 ### E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) _(active)_
 
 - ✓ **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(done)_ — ACs 5/5 met — tdd: required
-- → **M-076** — Writer surface for milestone depends_on (closes G-072) _(in_progress)_ — ACs 2/7 met (5 open) — tdd: required
+- → **M-076** — Writer surface for milestone depends_on (closes G-072) _(in_progress)_ — ACs 3/7 met (4 open) — tdd: required
 - **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(draft)_ — ACs 0/6 met (6 open) — tdd: required
 
 ```mermaid
@@ -15,7 +15,7 @@ flowchart LR
   E_22["E-22<br/>Planning toolchain fixes (closes G-071, G-072, G-065)"]:::epic_active
   M_075["M-075 (5/5)<br/>Lifecycle-gate entity-body-empty rule (closes G-071)"]:::ms_done
   E_22 --> M_075
-  M_076["M-076 (2/7)<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_in_progress
+  M_076["M-076 (3/7)<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_in_progress
   E_22 --> M_076
   M_077["M-077 (0/6)<br/>aiwf retitle verb for entities and ACs (closes G-065)"]:::ms_draft
   E_22 --> M_077
@@ -137,9 +137,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-3 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-3 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-2 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-2 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-2 --phase red -> green |
-| 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-1 open -> met |
 
