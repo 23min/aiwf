@@ -21,7 +21,10 @@ jobs:
       - name: Check for forbidden identifiers
         run: |
           # Add new identifiers here as needed. Match is case-insensitive.
-          FORBIDDEN='(liminara|flowtime|deathcleaning)'
+          # `flowtime` and `liminara` were removed from this list when their
+          # surveys were graduated into docs/explorations/surveys/ and the
+          # source projects are public — see docs/archive/promotion-2026-05-08.md.
+          FORBIDDEN='(deathcleaning)'
 
           # Exclude this workflow file itself (it contains the pattern by definition).
           if grep -rni -E "$FORBIDDEN" \

@@ -68,7 +68,8 @@ Follow-on work that falls out:
 
 - **Reverse query.** `aiwf list --depended-on-by <id>` traverses the same `depends_on` data backwards. UI feature on existing data; ships once `aiwf list` exists (E-20).
 - **Render integration.** Mermaid graphs in `aiwf render` and `aiwf status --format=md` gain blocking edges. Falls out of generalised cycle detection's data structures.
-- **Writer verb** (G-072's original scope). Folds into this work — a writer that only handles milestone referents would be incomplete once the schema allows cross-kind. The verb shape (`aiwf milestone depends-on M-NNN --on M-MMM` or `--depends-on` flag on `aiwf add milestone`) generalises naturally.
+- **Writer verb** (G-072's original scope). Folds into this work — a writer that only handles milestone referents would be incomplete once the schema allows cross-kind. The verb shape (`aiwf milestone depends-on M-NNN --on M-MMM` or `--depends-on` flag on `aiwf add milestone`) generalises naturally — M-076 (E-22) shipped the milestone-only writer with a forward-compatible kind-prefixed verb shape, so this generalisation extends without rename.
+- **Dangling-on-cancel detection.** When a referent reaches a *negative* terminal (`cancelled` for epic/milestone, `rejected` for ADR/decision/contract, `wontfix` for gap), every dependent that still lists it in `depends_on` carries a stale reference. Today the kernel only flags structural existence + cycles; it does not flag "I depend on a milestone that was cancelled." This case folds naturally into the predicate work above: `SatisfiesDependency(kind, status)` already distinguishes positive terminals from negative ones, so a new `aiwf check` subcode (e.g. `depends-on-negative-terminal` or `depends-on-cancelled`) becomes a one-rule consumer of the same predicate. Severity warning by default; the operator either retargets the dependency at a successor or accepts the now-orphan state. Surfaced during E-22 wrap (2026-05-08); reviewed against G-073's existing scope and judged a clean fit because the predicate split (positive vs negative terminal) is already load-bearing for FSM gating. Filing a separate gap would invite the same predicate to ship twice.
 
 ## Relationship to G-072
 
@@ -77,6 +78,16 @@ This gap **supersedes G-072 in scope**. G-072 was the trigger: discovered when p
 But fixing only G-072 (a writer verb for milestone `depends_on`) ships a **half-feature**: the field would be writable but still scoped milestone-only, leaving cross-kind blocking in prose forever. The synthesis skill (E-21) and the FSM gating both want the same generalisation.
 
 The two should land together as one epic when the friction is paid for. G-072 stays open as the discovery record; this gap is the design lens. The implementation epic, when filed, lists both.
+
+## Decision (2026-05-08)
+
+E-22 / M-076 ships the milestone-only writer with a forward-compatible kind-prefixed verb shape (`aiwf milestone depends-on M-NNN --on M-PPP[,…]` plus the `--depends-on` flag on `aiwf add milestone`). The verb-name segment "milestone" is the *kind*, deliberately reserving the slot so a future `aiwf <kind> depends-on <id> --on <id>` cross-kind verb extends without rename. M-076's *Constraints* section locks this in.
+
+G-073's cross-kind generalisation (schema relaxation across all kinds, per-kind referent rules, generalised cycle detection, the `SatisfiesDependency(kind, status)` predicate, and `aiwf promote` FSM gating on unsatisfied dependencies) is **not** in M-076 and is **not** in E-22. It awaits its own epic when the friction is paid for — most likely after E-21's synthesis skill begins relying on the data and the prose-only fallback bites.
+
+Rationale: M-076 is not a half-feature given its forward-compat shape; it's the milestone slice of a cross-kind story whose remaining four changes form a coherent separate epic. Bundling everything would expand E-22's surface from three planning-toolchain milestones to a schema/FSM rewrite — outside what E-22 was scoped for.
+
+This gap stays open as the future epic's design lens.
 
 ## Surfaced
 

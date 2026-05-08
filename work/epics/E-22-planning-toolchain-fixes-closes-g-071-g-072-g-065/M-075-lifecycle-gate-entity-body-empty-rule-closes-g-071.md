@@ -1,30 +1,30 @@
 ---
 id: M-075
 title: Lifecycle-gate entity-body-empty rule (closes G-071)
-status: draft
+status: done
 parent: E-22
 tdd: required
 acs:
     - id: AC-1
       title: entity.IsTerminal(kind, status) helper available
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Rule skips terminal-status entities
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Rule skips ACs whose parent milestone is draft
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Rule still fires on active-state entities with empty sections
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Warning baseline on kernel tree drops by 27
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 # M-075 — Lifecycle-gate entity-body-empty rule (closes G-071)
@@ -41,13 +41,23 @@ The rule was scoped at M-066/AC-1 to catch *shipped* empty bodies — entities p
 
 ### AC-1 — entity.IsTerminal(kind, status) helper available
 
+`internal/entity/transition.go` exposes `IsTerminal(k Kind, status string) bool`. Returns true exactly when `(k, status)` names a state with no outgoing transitions in the per-kind FSM. Returns false for unknown kinds and unknown statuses (so junk-status entities still flow through downstream checks rather than being silently exempted). Derives terminality from the existing `transitions` map rather than maintaining a parallel hardcoded list — one source of truth for terminal state per kind. Exhaustive table-driven test enumerates every (kind, status) pair in `AllowedStatuses(k)` plus unknown-input cases.
+
 ### AC-2 — Rule skips terminal-status entities
+
+`entityBodyEmpty` in `internal/check/entity_body.go` consults `entity.IsTerminal(e.Kind, e.Status)` at the top of each entity's loop iteration. When true, the entity is skipped entirely — no top-level section walk, no AC-body walk. Closes G-071 case 2: ADR-0002 (`status: superseded`) and any other historical artifact at a terminal state stops emitting `entity-body-empty` warnings perpetually. Tested across every terminal status in every kind via parametrized fixtures (epic done/cancelled, milestone done/cancelled, ADR superseded/rejected, decision superseded/rejected, gap addressed/wontfix, contract retired/rejected).
 
 ### AC-3 — Rule skips ACs whose parent milestone is draft
 
+The AC-walk arm of `entityBodyEmpty` is gated on `e.Status != entity.StatusDraft` (the entity being walked at that call site is the parent milestone). Closes G-071 case 1: freshly-allocated ACs in draft milestones (the routine output of `aiwfx-plan-milestones`, which ships shape first and prose later as TDD work begins) stop emitting noise before any implementation begins. The gate is narrow to the AC-body arm — the top-level milestone sections (`## Goal`, `## Approach`, `## Acceptance criteria`) still fire if empty under a draft milestone, since drafts ship with shape *and* design prose.
+
 ### AC-4 — Rule still fires on active-state entities with empty sections
 
+The active-band population (epic active/proposed, milestone in_progress, ADR proposed/accepted, decision proposed/accepted, gap open, contract proposed/accepted/deprecated) continues to emit `entity-body-empty` warnings when load-bearing sections are empty. The lifecycle gates only exempt the lifecycle states the spec named (terminal per AC-2, draft milestones for the AC-body arm per AC-3). Regression-pinned by parametrized test cases across every kind's non-terminal non-draft status set. A future widening of either gate that silently silences the rule on its target population fails this test.
+
 ### AC-5 — Warning baseline on kernel tree drops by 27
+
+Running `aiwf check` on this repo's tree at M-075 wrap shows a warning-count drop of at least 27 from the pre-M-075 baseline: 24 `entity-body-empty/ac` warnings on E-20's M-072/M-073/M-074 (still draft, silenced by AC-3) plus 3 `entity-body-empty/adr` warnings on ADR-0002 (`superseded`, silenced by AC-2). Other warnings unchanged: `unexpected-tree-file` on `work/epics/critical-path.md` is E-21's job, not this milestone's. Recorded as a Validation entry in the wrap commit with before/after counts.
 
 ## Constraints
 
@@ -87,7 +97,8 @@ The rule was scoped at M-066/AC-1 to catch *shipped* empty bodies — entities p
 
 ## Coverage notes
 
-- (filled at wrap)
+- `internal/entity/transition.go:IsTerminal` — 100% statement coverage. Branch audit: unknown-kind (`TestIsTerminal_UnknownInputs/unknown_kind`, `empty_kind`); unknown-status (`unknown_status_on_known_kind`, `empty_status`); terminal arm (`TestIsTerminal_TerminalSet`, `TestIsTerminal_ExhaustiveOverFSM` over terminal pairs); non-terminal arm (`TestIsTerminal_NonTerminal`, `_ExhaustiveOverFSM` over non-terminal pairs).
+- `internal/check/entity_body.go:entityBodyEmpty` — 100% statement coverage. New branches exercised: terminal-true (`TestEntityBodyEmpty_TerminalStatusSkipped` 12 cases); terminal-false (every existing FiresPerKind/ActiveStateStillFires case); milestone-not-draft (FiresPerKind AC body case, InProgressMilestoneACBodiesStillFire); not-milestone (every non-milestone fixture); milestone-draft (DraftMilestoneACsSkipped, DraftMilestoneTopSectionsStillFire).
 
 ## References
 
@@ -101,7 +112,25 @@ The rule was scoped at M-066/AC-1 to catch *shipped* empty bodies — entities p
 
 ## Work log
 
-(filled during implementation)
+### AC-1 — entity.IsTerminal helper
+
+Added `IsTerminal(k Kind, status string) bool` to `internal/entity/transition.go`. Derives terminality from the existing `transitions` map (one source of truth) — returns true exactly when `transitions[k][status]` exists and has zero outgoing edges. Returns false for unknown kinds and unknown statuses so junk-status entities aren't silently exempted from downstream checks. Tests: `TestIsTerminal_ExhaustiveOverFSM` (every kind × every allowed status), `TestIsTerminal_TerminalSet` (locks the spec's named terminal sets), `TestIsTerminal_NonTerminal`, `TestIsTerminal_UnknownInputs`. Coverage: 100%.
+
+### AC-2 — Skip terminal-status entities
+
+Added a `if entity.IsTerminal(e.Kind, e.Status) { continue }` gate at the top of `entityBodyEmpty`'s per-entity loop in `internal/check/entity_body.go`. Skips the whole entity (top-level walk + AC walk) when terminal. Test: `TestEntityBodyEmpty_TerminalStatusSkipped` enumerates every terminal status across the six kinds (12 cases) and asserts zero findings. Closes G-071 case 2 — ADR-0002 (`superseded`) and any future terminal-state artifact stops emitting `entity-body-empty` warnings.
+
+### AC-3 — Skip ACs whose parent milestone is draft
+
+Tightened the AC-walk arm guard from `if e.Kind == entity.KindMilestone` to `if e.Kind == entity.KindMilestone && e.Status != entity.StatusDraft`. Tests: `TestEntityBodyEmpty_DraftMilestoneACsSkipped` (zero `ac` findings on a draft milestone with three empty AC bodies), `TestEntityBodyEmpty_DraftMilestoneTopSectionsStillFire` (gate is narrow: top-level milestone sections still fire under draft milestones — only the AC-body arm is exempted). Closes G-071 case 1 — `aiwfx-plan-milestones`'s "shape now, prose later" output stops generating warning noise before TDD work begins.
+
+### AC-4 — Active-state regression guard
+
+Added `TestEntityBodyEmpty_ActiveStateStillFires` (8 cases: active epic, proposed epic, in_progress milestone, proposed/accepted ADR, open gap, deprecated contract, accepted decision) and `TestEntityBodyEmpty_InProgressMilestoneACBodiesStillFire`. The guards lock down that the AC-2 and AC-3 gates only exempt the lifecycle states the spec named — a future widening of either gate that silently silences the rule on its target population fails this test.
+
+### AC-5 — Real-tree warning baseline drop
+
+`aiwf check` on this repo's tree dropped from 46 warnings (45 `entity-body-empty/{ac,adr}` + 1 `unexpected-tree-file`) to 1 warning (`unexpected-tree-file` only — that's E-21's job, not M-075's). The 45-warning drop decomposes as: 24 silenced on E-20's M-072/M-073/M-074 (AC-3, draft milestones), 13 silenced on E-22's M-076/M-077 (AC-3, draft milestones), 3 silenced on ADR-0002 (AC-2, `superseded`), and 5 silenced on M-075's own ACs (filled in via `aiwf edit-body M-075` once the milestone went `in_progress`). Spec target of 27 (E-20 24 + ADR-0002 3) met and exceeded.
 
 ## Decisions made during implementation
 
@@ -109,7 +138,13 @@ The rule was scoped at M-066/AC-1 to catch *shipped* empty bodies — entities p
 
 ## Validation
 
-(pasted at wrap)
+- `go test -race ./...` — green. All packages pass.
+- `go build -o /tmp/aiwf ./cmd/aiwf` — green.
+- `golangci-lint run ./internal/check/ ./internal/entity/` — 0 issues.
+- `aiwf check` — 0 errors, 2 warnings; both unrelated to M-075. (`provenance-untrailered-scope-undefined` because the milestone branch has no upstream yet; `unexpected-tree-file` on `work/epics/critical-path.md` is E-21's scope.)
+- `aiwf show M-075` — every AC at `met` + `tdd_phase: done`; status `in_progress` (promoted to `done` by this wrap).
+- Coverage: 100% statement coverage on both changed functions (`IsTerminal`, `entityBodyEmpty`); branch audit clean — see Coverage notes.
+- Real-tree integration check: `aiwf check` on this repo's planning tree dropped from 46 warnings to 1 (45 silenced; spec target 27 met and exceeded). Decomposition in AC-5's Work log entry.
 
 ## Deferrals
 
@@ -117,4 +152,9 @@ The rule was scoped at M-066/AC-1 to catch *shipped* empty bodies — entities p
 
 ## Reviewer notes
 
-- (filled at wrap)
+- **One source of truth for terminality.** `IsTerminal` derives from the existing `transitions` map rather than maintaining a parallel hardcoded list. This means a future FSM tweak (e.g., adding a `paused` epic state, making a terminal status non-terminal) is automatically reflected in the predicate's behavior — and `TestIsTerminal_TerminalSet` will fail loudly if such a tweak unintentionally demotes a status the spec named as terminal.
+- **Unknown inputs return false, deliberately.** A junk-status entity (status not in the kind's FSM) is *not* terminal — it's broken. The other check rules (`status-valid`, etc.) surface the brokenness; `entity-body-empty` keeps firing on it because the lifecycle gate doesn't apply to states the FSM doesn't know about. Without this, junk-status entities would silently slip past the body check.
+- **Draft-milestone gate is narrow to AC bodies.** Top-level milestone sections (`## Goal`, `## Approach`, `## Acceptance criteria`) still fire under draft milestones — `aiwfx-plan-milestones` ships the *body design prose* at allocation time even though it leaves AC body prose for later. The `TestEntityBodyEmpty_DraftMilestoneTopSectionsStillFire` regression guard pins this; widening the gate to silence the top-level walk too would mask actual planning-quality drift.
+- **Coordination with E-20/M-072 closed in M-075's favor.** The epic spec said whichever epic shipped first adds `entity.IsTerminal`; M-075 added it. E-20/M-072 will consume the existing helper rather than duplicating.
+- **Phase gating deliberately deferred** (`tdd_phase`-aware AC skipping in `tdd: required` milestones). Status gating already covers both G-071 cases with one predicate; phase gating would only refine Case 1 and adds another orthogonal axis. Defer until precision-need justifies — captured in the spec's Out of scope and the epic spec.
+- **Verb reversal**: this milestone is a rule-behavior change (read-only); reversal is a config rollback or revert-via-rebuild, not a separate verb. Per the epic spec's "what verb undoes this?" gate.

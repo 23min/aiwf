@@ -7,6 +7,8 @@ description: Use when the user wants to rename an entity's slug (the human-reada
 
 The `aiwf rename` verb changes the slug portion of an entity's path while preserving the id. References to the entity (which use the id) keep working.
 
+> **Looking to change a title?** For changing an entity's title (the prose label, distinct from the slug), use `aiwf retitle <id> <new-title>` — that is the dedicated verb for title mutations. This skill covers slug renames only. (The two verbs stay separate by design — single-mutation rule keeps reasoning local.)
+
 ## When to use
 
 The user wants the file or directory name to read better but the entity itself isn't changing identity. Examples: a milestone was named `M-003-things` and they want it to be `M-003-acceptance-criteria`.

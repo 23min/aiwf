@@ -6,27 +6,30 @@ status: open
 
 ## What's missing
 
-A bare `go build ./cmd/aiwf` (or any equivalent without `-o /tmp/aiwf`) drops an `aiwf` binary in the repo root. The repo's `.gitignore` already covers `/bin/`, `/dist/`, `*.test`, and `*.out` — but not a bare `aiwf` executable at the root. Result: the binary shows up in `git status` as an untracked file (currently visible in this branch's status), inviting accidental commit.
+`aiwf init` and `aiwf update` reconcile a fixed set of patterns into the consumer's `.gitignore`: skill cache via `internal/skills/skills.go`'s `GitignorePatterns()`, html render output dir via `internal/initrepo/initrepo.go`'s `ensureGitignore` and `htmlOutDirIgnore` helpers. Neither emits `/aiwf` — the local-build artifact a bare `go build ./cmd/aiwf` drops at the repo root. Any consumer that builds the binary in-tree gets no protection from the kernel.
 
-CLAUDE.md prescribes `go build -o /tmp/aiwf ./cmd/aiwf` for local validation specifically to keep the binary out of the tree, but the prescription depends on the operator (or LLM) remembering. A typo, a copy-paste, or `go install` wired to `GOBIN=$PWD` reproduces the problem.
+This kernel repo's own `.gitignore` carries `/aiwf` since `ba52ba2` (May 7), but that's a maintainer hand-edit. Running `aiwf init` / `aiwf update` here would not have produced it. The symptom is mitigated for this repo only.
 
 ## Why it matters
 
-Two failure modes, both real:
+- **`git add -A` captures the binary.** A several-megabyte ELF/Mach-O lands in a commit, the push goes out, and the repo's history carries a binary nobody wanted. Rewriting history to remove it is expensive.
+- **Combined with the G-056-class pollution** (a render run on a stale init), `git status` becomes unreadable — burying real changes.
 
-- **`git add -A` captures the binary.** A several-megabyte ELF/Mach-O blob lands in a commit, the push goes out, and now the repo's history carries a binary nobody wanted. Rewriting history to remove it is expensive and disruptive.
-- **The pollution interacts with G-056.** Combined with the un-gitignored `site/` from a render run, `git status` shows ~140 untracked entries — burying any actual changes the operator wants to review or commit.
+The kernel's "framework correctness must not depend on operator behavior" rule applies: the `/aiwf` line should ship from `aiwf init`, not from a build incantation operators are expected to remember.
 
-The kernel's "framework correctness must not depend on LLM behavior" principle applies here too: the canonical fix is a `.gitignore` rule, not a documented convention.
+## The real fix
 
-## Possible remedies
+Extend `internal/skills/skills.go`'s `GitignorePatterns()` (or carve out a sibling helper for engine-level artifacts — the current name is skill-specific) to emit `/aiwf` alongside the skill patterns. `ensureGitignore` already iterates the returned slice and reconciles each entry idempotently; no other call site needs to change. Add a unit test asserting `/aiwf` appears post-`init` on a fresh consumer tree.
 
-1. **Add `/aiwf` to `.gitignore`.** Anchored to root with the leading slash so the kernel's source path `cmd/aiwf/` and any future package named `aiwf` are unaffected. Smallest possible change; closes the gap completely for this repo.
-2. **Document the build command path more visibly.** CLAUDE.md already says `go build -o /tmp/aiwf ./cmd/aiwf`; reinforcing it in `aiwf doctor --self-check` output (a one-line hint when a stray `./aiwf` is present) catches drift in consumer repos that copy the build incantation but not the gitignore rule.
-3. **Make `aiwf init` write `/aiwf` into the consumer repo's `.gitignore`** alongside the G-056 entry for `site/`. Only matters if a consumer also builds the binary in their repo (rare), but cheap to bundle into the same marker block.
+The leading slash is load-bearing — it anchors to repo root so `cmd/aiwf/` and any future package named `aiwf` stay trackable.
 
-The repo-root `.gitignore` edit (1) is the load-bearing fix for the kernel repo itself. (2) and (3) are belt-and-braces for downstream consumers.
+Once shipped, promote G-057 to `addressed` with the implementing commit as `--by-commit`.
+
+## Out of scope
+
+- A `doctor --self-check` hint about a stray `./aiwf` in the working tree. The init-time write is sufficient; a runtime hint is noise.
+- Centralizing build-artifact path conventions across all aiwf-style binaries. Current scope: just `aiwf`.
 
 ## Related
 
-- [G-056](G-056-aiwf-render-output-site-is-not-gitignored-pollutes-consumer-working-tree.md) — same class of defect: artifact produced by the framework with no `.gitignore` coverage. The init/update marker-block design proposed for G-056 is the natural carrier for this entry too.
+- [G-056](G-056-aiwf-render-output-site-is-not-gitignored-pollutes-consumer-working-tree.md) — same class of defect (framework-produced artifact without gitignore coverage); html out_dir reconciliation shipped in `056139d`.

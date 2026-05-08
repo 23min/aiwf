@@ -5,35 +5,35 @@ status: open
 discovered_in: E-14
 ---
 
-## What's missing
+## What's left
 
-`aiwf render --format=html` writes its output to `site/` by default (overridable via `--out` or `aiwf.yaml: html.out_dir`). Neither `aiwf init` nor `aiwf update` adds the configured output directory to the consumer repo's `.gitignore`. A single render run drops 100+ generated files into the working tree — empirically observed: 136 untracked files after one `aiwf render --format=html` invocation in this repo.
+The kernel-level reconciliation of the html render output dir landed in `056139d` (May 3, "I3 step 4b — init/update reconcile gitignore for html out_dir"): `aiwf init` and `aiwf update` consult `aiwf.yaml: html.commit_output` and add or remove the `<out_dir>/` line idempotently. Remedies (1) init-writes and (2) update-reconciles from the original gap framing are implemented in `internal/initrepo/initrepo.go`'s `ensureGitignore`, with `htmlOutDirIgnore` and `htmlOutDirCandidates` helpers. The fix predates the gap's filing.
 
-The render is read-only at the kernel level (no commit) and is intended for ephemeral inspection or for publishing via a separate channel (CI artifact, GitHub Pages workflow). It is not intended to live in `git status`.
+What is still owed: **defense-in-depth at render time.** When `aiwf render --format=html` writes its output and the destination is not covered by `.gitignore`, the verb should print a one-line warning. Cases the init/update fix doesn't catch:
 
-## Why it matters
+- The consumer hasn't yet run `aiwf init` / `aiwf update` after configuring or changing `html.out_dir`.
+- A team's `.gitignore` workflow strips marker-managed blocks (rare but real).
+- A consumer pointed `--out` at an ad-hoc path different from `aiwf.yaml: html.out_dir`; reconciliation only knows about the configured value.
 
-Generated artifacts polluting `git status` is exactly the problem `.gitignore` exists to solve. Concrete consequences:
+## Why it still matters
 
-- **`git status` becomes unreadable.** 136 untracked files drown the operator's signal. Real working-tree changes (the file the operator is actually editing) get lost in the noise.
-- **Accidental commits become easy.** `git add -A` or `git commit -a` (both common reflexes) capture every generated file. Once committed, the render output has to be reverted in a follow-up — and the commit's been made, so the trailer chain now records a noise event.
-- **Wraps around to the kernel's own discoverability rule.** A consumer who runs `aiwf render` for the first time should not be punished with a working-tree mess. The "framework correctness must not depend on the LLM remembering" rule applies here: the LLM (or human) shouldn't have to remember to gitignore the output.
+The original symptom — 100+ generated files in `git status` after one render — recurs in any of the cases above. `aiwf render` is the highest-signal place to surface the warning: the operator is one keystroke away from the misconfiguration and most likely to act on it.
 
-## Possible remedies
+## The real fix
 
-1. **`aiwf init` writes the render output dir to `.gitignore`.** Default entry is `site/`; if the consumer has set `html.out_dir` in `aiwf.yaml` before init (rare), use that value. Marker-comment block (e.g. `# aiwf:render-out`) so subsequent edits are detectable.
-2. **`aiwf update` reconciles the entry.** When `aiwf.yaml: html.out_dir` changes (or the marker block is missing), `aiwf update` rewrites the marker block to match. Idempotent. Output is loud about the change in the same shape as the `tdd.default` migration in [G-055](G-055-milestone-creation-does-not-require-a-tdd-policy-declaration.md):
+At the end of `aiwf render --format=html`, probe whether the resolved output dir is gitignored (e.g. `git check-ignore -q <out_dir>/` — cheap; respects user-authored entries that don't match the marker block). If not, emit one stderr line:
 
-   ```
-   .gitignore:
-     + site/   (aiwf render output)
-   ```
+```
+warning: <out_dir>/ is not gitignored; rendered files will appear in `git status`.
+         Run `aiwf update` to reconcile, or set `html.commit_output: true` to track them.
+```
 
-3. **`aiwf render` warns when its output dir is not gitignored.** Belt-and-braces: even if init/update missed it, the verb itself prints a one-line warning the first time the output lands in an un-ignored path. Cheap, high-signal.
+Advisory output only; no exit-code change. Tested against three states: gitignored (silent), un-ignored (warns), `commit_output: true` (silent — operator opted in).
 
-The init/update path (1 + 2) is the load-bearing fix. The render-time warning (3) catches the case where the consumer has a custom `.gitignore` workflow that strips marker blocks.
+Once shipped, promote G-056 to `addressed` with the implementing commit as `--by-commit`.
 
 ## Out of scope
 
-- Whether `site/` should be the right default name (it is — matches `mkdocs`, `hugo`, `jekyll` convention).
-- Whether the render should commit its output (it shouldn't — this is the subject of separate decisions about ephemeral vs. published artifacts).
+- A `check` finding for un-gitignored render output. The render verb itself is the right place — the warning fires when the operator is most likely to act on it.
+- Whether `site/` is the right default name (it is — matches mkdocs/hugo/jekyll convention).
+- Whether render should commit its output (separate decision, controlled by `html.commit_output`).
