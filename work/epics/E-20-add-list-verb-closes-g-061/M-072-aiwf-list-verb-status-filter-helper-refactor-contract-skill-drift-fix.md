@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: 'JSON envelope: result is array of summary objects'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Default excludes terminal status; --archived includes them
