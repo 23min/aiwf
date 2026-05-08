@@ -139,9 +139,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-1 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-1 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-1 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077 draft -> in_progress |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-08 | human/peter | promote | aiwf promote M-076 in_progress -> done |
 
