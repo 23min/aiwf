@@ -170,5 +170,11 @@ flowchart LR
 
 ## Recent activity
 
-_(none)_
+| Date | Actor | Verb | Detail |
+|------|-------|------|--------|
+| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body E-22 |
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-077 |
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-076 |
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-075 |
 

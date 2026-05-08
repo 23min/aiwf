@@ -290,7 +290,7 @@ This is the layer that converts "the LLM might miss it" into "missed work cannot
 
 Practical consequences of taking this synthesis seriously:
 
-1. **`docs/architecture.md` should be split.** A core "what the framework actually guarantees" section (small, mechanical, CI-enforced) and a "current direction of exploration" section (the rest). Today the document presents the full ambition as if all of it is committed.
+1. **`docs/archive/architecture.md` should be split.** A core "what the framework actually guarantees" section (small, mechanical, CI-enforced) and a "current direction of exploration" section (the rest). Today the document presents the full ambition as if all of it is committed.
 
 2. **`CLAUDE.md`'s "Architectural commitments" benefit from being re-stated as enforcement layers.** Each commitment can answer: where is this enforced? Skill (advisory)? Verb (helpful but bypassable)? CI (mechanical, blocking)? Today the commitments read as obligations on the assistant; reframing them as guarantees the framework provides via specific mechanisms makes the enforcement story legible.
 
@@ -298,7 +298,7 @@ Practical consequences of taking this synthesis seriously:
 
 4. **The first new code to write is `aiwf check`**, with `ids`, `refs`, `tombstones`, `renames`, `transitions` subcommands. Each is a small, testable, deterministic function from the working tree to a list of findings. Each is independently useful. Together they constitute the enforcement layer.
 
-5. **The events.jsonl and graph.json work in `docs/build-plan.md` Stage 2 is a candidate for pausing.** Not deletion — the design might still fit a later, larger-scoped version — but explicit deferral until the CI-checks layer has been used long enough to show what the event log would actually be needed for.
+5. **The events.jsonl and graph.json work in `docs/archive/build-plan.md` Stage 2 is a candidate for pausing.** Not deletion — the design might still fit a later, larger-scoped version — but explicit deferral until the CI-checks layer has been used long enough to show what the event log would actually be needed for.
 
 ---
 
@@ -323,7 +323,7 @@ Practical consequences of taking this synthesis seriously:
 → Keep it. Just rebuild it on referentially-stable ids + tombstones + CI checks, instead of events.jsonl + hash chain.
 
 **"I have benefited from having a roadmap and architecture documents in the repo."**
-→ Keep them. The framework should make their cross-references mechanically verifiable (CI check that `docs/architecture.md` mentions of `E-19` resolve), not replace them.
+→ Keep them. The framework should make their cross-references mechanically verifiable (CI check that `docs/archive/architecture.md` mentions of `E-19` resolve), not replace them.
 
 ---
 

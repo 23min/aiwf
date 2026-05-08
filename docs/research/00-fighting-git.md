@@ -3,7 +3,7 @@
 > **Status:** defended-position
 > **Hypothesis:** A totally-ordered hash-chained event log layered onto git fights git's branching model and cannot be made to survive merges by construction; the framework must either lift the substrate (CRDT), lower the abstraction (markdown-canonical), mediate at merge (custom merge driver), or concede to git (use `git log` as the event log).
 > **Audience:** anyone proposing changes to the event log, ID allocator, projection-hash chain, or `aiwf verify`.
-> **Premise:** the framework as designed in [`docs/architecture.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/architecture.md) is examined for consistency with git's branching model.
+> **Premise:** the framework as designed in [`docs/archive/architecture.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/archive/architecture.md) is examined for consistency with git's branching model.
 > **Tags:** #thesis #git #aiwf #state-model #research
 
 ---
@@ -16,7 +16,7 @@ The framework's original architecture persists structural state in three coordin
 
 ## 1. Problem statement
 
-The framework persists structural state in three coordinated artifacts inside a consumer's git repository (`docs/architecture.md` §2.2):
+The framework persists structural state in three coordinated artifacts inside a consumer's git repository (`docs/archive/architecture.md` §2.2):
 
 | Artifact | Path | Tracked? | Role |
 |---|---|---|---|
@@ -104,7 +104,7 @@ The architecture's hierarchy of derivability — `graph.json` from `events.jsonl
 
 ### 3.2 The unresolved design ambiguity
 
-`docs/architecture.md` §2.2 declares **markdown the source of truth**. §3 (the event-sourced kernel) and the §"Architectural commitments" in `CLAUDE.md` (trace-first writes, recovery-is-forward-only-via-the-trace) treat **`events.jsonl` as canonical at runtime**. Both stances are defensible. The framework currently reads as one in §2 and the other in §3+. Every merge question has two answers depending on which paragraph you privilege.
+`docs/archive/architecture.md` §2.2 declares **markdown the source of truth**. §3 (the event-sourced kernel) and the §"Architectural commitments" in `CLAUDE.md` (trace-first writes, recovery-is-forward-only-via-the-trace) treat **`events.jsonl` as canonical at runtime**. Both stances are defensible. The framework currently reads as one in §2 and the other in §3+. Every merge question has two answers depending on which paragraph you privilege.
 
 The two stances:
 

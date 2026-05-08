@@ -29,7 +29,7 @@ There are six distinct questions in there. I'll answer each, then propose three 
 
 ## 2. Did the original premise even hold?
 
-The original premise, as it appears in `docs/architecture.md` and as I implicitly reinforced in `git-native-planning.md`, is approximately:
+The original premise, as it appears in `docs/archive/architecture.md` and as I implicitly reinforced in `git-native-planning.md`, is approximately:
 
 > *AI assistants in long-horizon collaborative work need a structured, machine-validatable, git-tracked representation of project state, with strong consistency guarantees and a closed vocabulary, so that they can reason coherently about what's planned/decided/in-flight without losing fidelity over time.*
 
@@ -309,7 +309,7 @@ But it should be read as **caution against committing months of engineering befo
 - Do not finalize the entity vocabulary (`epic`, `milestone`, `adr`, `decision`, `gap`, `contract`) as the model. Start with ADRs and a context file. Add entities only when they prove useful.
 - Do not build the install script, the adapter generator, the boundary contract loader, or the audit pipeline yet. None of these have shown they are load-bearing.
 - **Do** keep writing skills. Skills are the cheapest, highest-leverage component. They can be developed against Shape A and reused if you ever escalate to Shape B or C.
-- **Do** keep `docs/architecture.md` as the long-term north star, but mark it explicitly as "aspirational design for if/when scope demands it."
+- **Do** keep `docs/archive/architecture.md` as the long-term north star, but mark it explicitly as "aspirational design for if/when scope demands it."
 
 ---
 

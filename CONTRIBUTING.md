@@ -2,7 +2,7 @@
 
 This project is in **preview**. The architecture is settled; the implementation is being built in the open. The ways to engage are described below.
 
-If you're new here, please read [`docs/architecture.md`](docs/architecture.md) first. Most "should we add X?" questions are answered there.
+If you're new here, please read [`docs/archive/architecture.md`](docs/archive/architecture.md) first. Most "should we add X?" questions are answered there.
 
 ---
 
@@ -48,7 +48,7 @@ Once a PR is open:
 - **Keep changes small.** One logical change per PR. Refactoring + a feature in the same PR doubles the review cost.
 - **Update `CHANGELOG.md`** under `[Unreleased]` for any user-visible change. Lead with the user-observable effect, not the diff.
 - **Run the pre-PR audit** described in [`CLAUDE.md`](CLAUDE.md). Walk the diff against the rules; report conformance in the description.
-- **Tests stay green.** Race-detector clean. 100% coverage on internal Go packages (per [`tools/CLAUDE.md`](tools/CLAUDE.md)).
+- **Tests stay green.** Race-detector clean. 100% coverage on internal Go packages (per [`CLAUDE.md` § Go conventions](CLAUDE.md#go-conventions)).
 
 ---
 
@@ -73,7 +73,7 @@ Sign-offs are not required. The Apache-2.0 inbound license terms apply to all co
 - Bug fixes for shipped behavior, with a test that reproduces the bug.
 - Documentation clarifications grounded in a question someone actually asked.
 - Adapter additions (a new host's skill format, e.g., a different IDE) that don't change the framework's contracts.
-- New modules that fill a clear gap and follow the module-structure conventions in [`docs/architecture.md`](docs/architecture.md) §10.
+- New modules that fill a clear gap and follow the module-structure conventions in [`docs/archive/architecture.md`](docs/archive/architecture.md) §10.
 
 ## What needs more discussion first
 

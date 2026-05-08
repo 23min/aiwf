@@ -2,7 +2,7 @@
 
 > **Status:** defended-position
 > **Hypothesis:** If markdown files are accepted as canonical state and git as the time machine, the framework's residual job is small (validator, verbs, renderers) and serves all eight kernel needs without fighting git — by deleting rather than defending the parallel state stores the original architecture proposed.
-> **Audience:** anyone questioning the foundations of [`docs/architecture.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/architecture.md) §2–§3 (the three coordinated representations and the event-sourced kernel).
+> **Audience:** anyone questioning the foundations of [`docs/archive/architecture.md`](https://github.com/23min/ai-workflow-v2/blob/main/docs/archive/architecture.md) §2–§3 (the three coordinated representations and the event-sourced kernel).
 > **Premise:** modeling planning with clay (rewritable, prunable, gardenable) is *exactly* git's native model. The framework's job is to make that ergonomic, not to build a parallel reality alongside it.
 > **Tags:** #thesis #git #aiwf #state-model
 
@@ -379,7 +379,7 @@ If a future proposal adopts the git-native model, it should:
 - Cite this document and `fighting-git.md` as its lineage.
 - Take a clear stance on the open questions in §10.
 - Show the migration path for any consumer that already has `.ai-repo/events.jsonl` and `.ai-repo/graph.json`.
-- Update `docs/architecture.md` §2 (the three coordinated representations becomes one) and §3 (the event-sourced kernel becomes "the validating engine over the working tree").
+- Update `docs/archive/architecture.md` §2 (the three coordinated representations becomes one) and §3 (the event-sourced kernel becomes "the validating engine over the working tree").
 - Update `CLAUDE.md` "Architectural commitments" — trace-first writes become localized to in-flight verb crash recovery, not a permanent ledger; hash-verified projections become "validated tree, computed views."
 
 A future proposal need not feel obligated to preserve every architectural commitment. Several of them — trace-first writes to a permanent log, hash-verified projection drift detection, monotonic ID allocation — exist to defend the events.jsonl + graph.json model. If that model goes, those commitments lose their original justification and become candidates for revision.

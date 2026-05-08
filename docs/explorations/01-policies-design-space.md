@@ -204,7 +204,7 @@ policy "no-secrets-in-frontmatter": {
 
 Pro: deterministic, no prose-to-mechanism leap. Con: heavy upfront cost, narrows expressiveness, needs an evaluator. Most policies do not *want* this much rigidity.
 
-**Shape C — Code-as-policy.** The policy is a function that takes the system state and returns findings. The PoC's `tools/internal/policies/` package already does this for the meta-rules it enforces (one Go function per policy, each producing findings).
+**Shape C — Code-as-policy.** The policy is a function that takes the system state and returns findings. The PoC's `internal/policies/` package already does this for the meta-rules it enforces (one Go function per policy, each producing findings).
 
 Pro: fully expressive; lives in the same language as the system; testable like any other code. Con: opaque to non-engineers; a non-trivial barrier to adding a policy.
 
