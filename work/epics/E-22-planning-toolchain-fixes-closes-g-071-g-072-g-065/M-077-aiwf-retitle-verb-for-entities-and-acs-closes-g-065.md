@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: aiwf-retitle skill exists with title-shaped phrasings
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: aiwf-rename skill body redirects to retitle
       status: open
