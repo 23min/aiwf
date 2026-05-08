@@ -1,6 +1,6 @@
 # Build plan
 
-> **Note:** This document predates the research arc in [`research/`](research/) and is preserved as historical context. The build sequence below targets the earlier event-sourced architecture that the research walked back. See [`research/06-poc-build-plan.md`](research/06-poc-build-plan.md) for the current PoC plan.
+> **Note — archived.** This document predates the research arc in [`../research/`](../research/) and is preserved as historical context. The build sequence below targets the earlier event-sourced architecture that the research walked back. See [`../research/06-poc-build-plan.md`](../research/06-poc-build-plan.md) for the current PoC plan.
 
 **Status:** plan of record. This document describes what gets built, in what order, and the principles that guide consumer onboarding. Companion to `architecture.md`, which is the technical design this plan implements.
 
