@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_176 entities · 0 errors · 33 warnings · run `aiwf check` for details_
+_176 entities · 0 errors · 37 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -67,14 +67,14 @@ _(no milestones)_
 
 ### E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) _(proposed)_
 
-- **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(draft)_ — tdd: required
+- **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(draft)_ — ACs 0/5 met (5 open) — tdd: required
 - **M-076** — Writer surface for milestone depends_on (closes G-072) _(draft)_ — tdd: required
 - **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_22["E-22<br/>Planning toolchain fixes (closes G-071, G-072, G-065)"]:::epic_proposed
-  M_075["M-075<br/>Lifecycle-gate entity-body-empty rule (closes G-071)"]:::ms_draft
+  M_075["M-075 (0/5)<br/>Lifecycle-gate entity-body-empty rule (closes G-071)"]:::ms_draft
   E_22 --> M_075
   M_076["M-076<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_draft
   E_22 --> M_076
@@ -150,7 +150,11 @@ flowchart LR
 | entity-body-empty | M-074/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-9 body under \`### AC-9\` is empty |
 | entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
 | entity-body-empty | M-075 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075 body section \`## Goal\` is empty |
-| entity-body-empty | M-075 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075 body section \`## Acceptance criteria\` is empty |
+| entity-body-empty | M-075/AC-1 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-1 body under \`### AC-1\` is empty |
+| entity-body-empty | M-075/AC-2 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-2 body under \`### AC-2\` is empty |
+| entity-body-empty | M-075/AC-3 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-3 body under \`### AC-3\` is empty |
+| entity-body-empty | M-075/AC-4 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-4 body under \`### AC-4\` is empty |
+| entity-body-empty | M-075/AC-5 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-5 body under \`### AC-5\` is empty |
 | entity-body-empty | M-076 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076 body section \`## Goal\` is empty |
 | entity-body-empty | M-076 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-077 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077 body section \`## Goal\` is empty |
@@ -160,9 +164,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add milestone M-077 'aiwf retitle verb for entities and ACs (closes G-065)' |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-076 'Writer surface for milestone depends_on (closes G-072)' |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-075 'Lifecycle-gate entity-body-empty rule (closes G-071)' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-22 |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body E-22 |
 
