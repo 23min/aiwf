@@ -7,6 +7,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/spf13/cobra"
+
+	"github.com/23min/ai-workflow-v2/internal/entity"
+	"github.com/23min/ai-workflow-v2/internal/tree"
 )
 
 // TestRun_List_CoreFlagsEndToEnd is M-072 AC-1 + AC-9: the verb-level
@@ -339,6 +343,116 @@ func TestRun_List_BadKind(t *testing.T) {
 	if rc := run([]string{"list", "--root", root, "--kind", "milestoneish"}); rc != exitUsage {
 		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
 	}
+}
+
+// TestSeam_ListAndStatusAgreeOnOpenGaps is M-072 AC-6's chokepoint:
+// `aiwf list --kind gap --status open` and the *Open gaps* slice
+// produced by `buildStatus` must agree on the same fixture tree.
+// Both routes through tree.FilterByKindStatuses; if a future change
+// re-introduces parallel filter logic in either site, the agreement
+// breaks here even when each verb's own tests still pass.
+func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
+	tr := &tree.Tree{Entities: []*entity.Entity{
+		{Kind: entity.KindGap, ID: "G-001", Status: "open", Title: "open one"},
+		{Kind: entity.KindGap, ID: "G-002", Status: "addressed", Title: "addressed (terminal)"},
+		{Kind: entity.KindGap, ID: "G-003", Status: "open", Title: "open two", DiscoveredIn: "M-007"},
+		{Kind: entity.KindGap, ID: "G-004", Status: "wontfix", Title: "wontfix (terminal)"},
+		// Non-gap noise that must not leak into either result.
+		{Kind: entity.KindEpic, ID: "E-01", Status: "active"},
+		{Kind: entity.KindMilestone, ID: "M-001", Status: "draft", Parent: "E-01"},
+	}}
+
+	listIDs := make([]string, 0)
+	for _, r := range buildListRows(tr, "gap", "open", "", false) {
+		listIDs = append(listIDs, r.ID)
+	}
+
+	report := buildStatus(tr, nil)
+	statusIDs := make([]string, 0, len(report.OpenGaps))
+	for _, g := range report.OpenGaps {
+		statusIDs = append(statusIDs, g.ID)
+	}
+
+	if diff := cmp.Diff(statusIDs, listIDs); diff != "" {
+		t.Errorf("list and status disagree on open gaps (-status +list):\n%s\n\nlist=%v status=%v",
+			diff, listIDs, statusIDs)
+	}
+	// And both must equal the documented expected set; otherwise both
+	// could agree on the wrong answer.
+	want := []string{"G-001", "G-003"}
+	if diff := cmp.Diff(want, listIDs); diff != "" {
+		t.Errorf("agreed result is wrong (-want +got):\n%s", diff)
+	}
+}
+
+// TestNewListCmd_CompletionWiring is M-072 AC-5: --kind and --status
+// have closed-set completion functions bound, returning the canonical
+// kind list and (kind-aware) status list. The completion-drift policy
+// (TestPolicy_FlagsHaveCompletion) catches "wired or opt-out", but a
+// regression that wires a completion func returning the wrong values
+// (e.g., the empty slice, or a different closed set) compiles, passes
+// the drift test, and silently degrades the shell-completion UX. This
+// test pins the closed-set semantics directly.
+func TestNewListCmd_CompletionWiring(t *testing.T) {
+	cmd := newListCmd()
+
+	t.Run("--kind returns entity.AllKinds", func(t *testing.T) {
+		fn, ok := cmd.GetFlagCompletionFunc("kind")
+		if !ok {
+			t.Fatal("--kind has no completion function bound")
+		}
+		got, dir := fn(cmd, nil, "")
+		if dir != cobra.ShellCompDirectiveNoFileComp {
+			t.Errorf("directive = %v, want NoFileComp", dir)
+		}
+		if diff := cmp.Diff(allKindNames(), got); diff != "" {
+			t.Errorf("--kind completions mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("--status without --kind returns the de-duplicated union", func(t *testing.T) {
+		fn, ok := cmd.GetFlagCompletionFunc("status")
+		if !ok {
+			t.Fatal("--status has no completion function bound")
+		}
+		got, dir := fn(cmd, nil, "")
+		if dir != cobra.ShellCompDirectiveNoFileComp {
+			t.Errorf("directive = %v, want NoFileComp", dir)
+		}
+		if diff := cmp.Diff(unionAllStatuses(), got); diff != "" {
+			t.Errorf("--status (no kind) completions mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("--status with --kind=milestone is kind-aware", func(t *testing.T) {
+		// Same fresh command per subtest so flag state is isolated.
+		c := newListCmd()
+		if err := c.Flags().Set("kind", "milestone"); err != nil {
+			t.Fatalf("set --kind: %v", err)
+		}
+		fn, ok := c.GetFlagCompletionFunc("status")
+		if !ok {
+			t.Fatal("--status has no completion function bound")
+		}
+		got, dir := fn(c, nil, "")
+		if dir != cobra.ShellCompDirectiveNoFileComp {
+			t.Errorf("directive = %v, want NoFileComp", dir)
+		}
+		want := entity.AllowedStatuses(entity.KindMilestone)
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("--status (kind=milestone) completions mismatch (-want +got):\n%s", diff)
+		}
+		// Cross-check: ADR statuses must NOT appear in the
+		// kind=milestone completion set, proving the closure actually
+		// branches on --kind rather than always returning the union.
+		for _, s := range got {
+			for _, adrOnly := range []string{"accepted", "superseded"} {
+				if s == adrOnly {
+					t.Errorf("ADR-only status %q leaked into kind=milestone completion: %v", adrOnly, got)
+				}
+			}
+		}
+	})
 }
 
 // TestUnionAllStatuses asserts the --status completion fallback

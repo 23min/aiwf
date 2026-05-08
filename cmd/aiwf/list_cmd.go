@@ -198,15 +198,19 @@ func isKnownKind(s string) bool {
 // buildListRows applies the V1 filter axes to tr and returns the
 // matched entities as summary rows in id-ascending order. Default
 // semantic excludes terminal-status entities; archived=true widens.
+//
+// The kind+status filter routes through tree.FilterByKindStatuses so
+// `aiwf list --kind gap --status open` and `aiwf status`'s Open gaps
+// section share one source of truth (M-072 AC-6).
 func buildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []listSummary {
-	var rows []listSummary
-	for _, e := range tr.Entities {
-		if kind != "" && string(e.Kind) != kind {
-			continue
-		}
-		if status != "" && e.Status != status {
-			continue
-		}
+	var statuses []string
+	if status != "" {
+		statuses = []string{status}
+	}
+	matched := tr.FilterByKindStatuses(entity.Kind(kind), statuses...)
+
+	rows := make([]listSummary, 0, len(matched))
+	for _, e := range matched {
 		if parent != "" && e.Parent != parent {
 			continue
 		}
@@ -222,7 +226,6 @@ func buildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []
 			Path:   e.Path,
 		})
 	}
-	sort.SliceStable(rows, func(i, j int) bool { return rows[i].ID < rows[j].ID })
 	return rows
 }
 

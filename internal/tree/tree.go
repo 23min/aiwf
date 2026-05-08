@@ -416,3 +416,33 @@ func (t *Tree) ByKind(k entity.Kind) []*entity.Entity {
 	}
 	return out
 }
+
+// FilterByKindStatuses returns entities whose Kind matches k (when k
+// is non-empty) and whose Status appears in statuses (when statuses
+// is non-empty), sorted by ID ascending. Empty k means "any kind";
+// empty statuses means "any status". Used by both `aiwf list --kind
+// X --status Y` and `aiwf status`'s per-section slices so the two
+// verbs cannot drift on the same query.
+func (t *Tree) FilterByKindStatuses(k entity.Kind, statuses ...string) []*entity.Entity {
+	var statusSet map[string]struct{}
+	if len(statuses) > 0 {
+		statusSet = make(map[string]struct{}, len(statuses))
+		for _, s := range statuses {
+			statusSet[s] = struct{}{}
+		}
+	}
+	out := make([]*entity.Entity, 0)
+	for _, e := range t.Entities {
+		if k != "" && e.Kind != k {
+			continue
+		}
+		if statusSet != nil {
+			if _, ok := statusSet[e.Status]; !ok {
+				continue
+			}
+		}
+		out = append(out, e)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
+}
