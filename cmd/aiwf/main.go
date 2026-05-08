@@ -260,6 +260,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newPromoteCmd())
 	cmd.AddCommand(newCancelCmd())
 	cmd.AddCommand(newRenameCmd())
+	cmd.AddCommand(newRetitleCmd())
 	cmd.AddCommand(newEditBodyCmd())
 	cmd.AddCommand(newMoveCmd())
 	cmd.AddCommand(newReallocateCmd())
@@ -276,6 +277,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newShowCmd())
 	cmd.AddCommand(newTemplateCmd())
 	cmd.AddCommand(newContractCmd())
+	cmd.AddCommand(newMilestoneCmd())
 	cmd.AddCommand(newAuthorizeCmd())
 
 	return cmd
@@ -350,6 +352,7 @@ Provenance:
 
 Flags for 'add':
   --epic <id>                    parent epic id (milestone)
+  --depends-on <id,id,...>       milestones the new milestone depends on (milestone)
   --discovered-in <id>           discovery context (gap)
   --relates-to <id,id,...>       related entities (decision)
   --linked-adr <id,id,...>       ADRs motivating the contract (contract)

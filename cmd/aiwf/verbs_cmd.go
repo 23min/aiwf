@@ -32,6 +32,7 @@ func newAddCmd() *cobra.Command {
 		root          string
 		epicID        string
 		tddPolicy     string
+		dependsOn     string
 		discoveredIn  string
 		relatesTo     string
 		linkedADRs    string
@@ -75,7 +76,7 @@ func newAddCmd() *cobra.Command {
 				title = titles[0]
 			}
 			return wrapExitCode(runAddCmd(k, title, actor, principal, root,
-				epicID, tddPolicy, discoveredIn, relatesTo, linkedADRs,
+				epicID, tddPolicy, dependsOn, discoveredIn, relatesTo, linkedADRs,
 				bindValidator, bindSchema, bindFixtures, bodyFile))
 		},
 	}
@@ -88,6 +89,7 @@ func newAddCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&epicID, "epic", "", "parent epic id (milestone only)")
 	cmd.Flags().StringVar(&tddPolicy, "tdd", "", "milestone TDD policy: required|advisory|none — required at creation time for kind=milestone (G-055 layer 1)")
+	cmd.Flags().StringVar(&dependsOn, "depends-on", "", "comma-separated milestone ids the new milestone depends on (milestone only); each id must resolve to an existing milestone (M-076)")
 	cmd.Flags().StringVar(&discoveredIn, "discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
 	cmd.Flags().StringVar(&relatesTo, "relates-to", "", "comma-separated ids the decision relates to (decision only)")
 	cmd.Flags().StringVar(&linkedADRs, "linked-adr", "", "comma-separated ADR ids motivating the contract (contract only)")
@@ -106,6 +108,7 @@ func newAddCmd() *cobra.Command {
 	}
 	_ = cmd.RegisterFlagCompletionFunc("epic", completeEntityIDFlag(entity.KindEpic))
 	_ = cmd.RegisterFlagCompletionFunc("tdd", cobra.FixedCompletions(entity.AllowedTDDPolicies(), cobra.ShellCompDirectiveNoFileComp))
+	_ = cmd.RegisterFlagCompletionFunc("depends-on", completeEntityIDFlag(entity.KindMilestone))
 	_ = cmd.RegisterFlagCompletionFunc("discovered-in", completeEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("relates-to", completeEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("linked-adr", completeEntityIDFlag(entity.KindADR))
@@ -115,7 +118,7 @@ func newAddCmd() *cobra.Command {
 }
 
 func runAddCmd(k entity.Kind, title, actor, principal, root,
-	epicID, tddPolicy, discoveredIn, relatesTo, linkedADRs,
+	epicID, tddPolicy, dependsOn, discoveredIn, relatesTo, linkedADRs,
 	bindValidator, bindSchema, bindFixtures, bodyFile string,
 ) int {
 	rootDir, err := resolveRoot(root)
@@ -152,6 +155,7 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 	}
 	opts.RelatesTo = splitCommaList(relatesTo)
 	opts.LinkedADRs = splitCommaList(linkedADRs)
+	opts.DependsOn = splitCommaList(dependsOn)
 
 	if bodyFile != "" {
 		body, readErr := readBodyFile(bodyFile)
@@ -203,6 +207,7 @@ func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
 	}
 	refs = append(refs, opts.RelatesTo...)
 	refs = append(refs, opts.LinkedADRs...)
+	refs = append(refs, opts.DependsOn...)
 	_ = k // reserved for future kind-specific ref derivation
 	return refs
 }
