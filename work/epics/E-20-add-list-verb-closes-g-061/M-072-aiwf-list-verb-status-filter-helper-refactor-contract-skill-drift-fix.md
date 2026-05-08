@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Shared filter helper extracted; status uses it
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-7
       title: Status text and JSON goldens unchanged after refactor
