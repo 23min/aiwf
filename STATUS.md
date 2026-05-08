@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_191 entities · 0 errors · 20 warnings · run `aiwf check` for details_
+_192 entities · 0 errors · 20 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -90,8 +90,6 @@ _(no milestones)_
 | G-068 | Discoverability policy misses dynamic finding subcodes | M-066 |
 | G-069 | aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome | M-070 |
 | G-070 | aiwf doctor has no --format=json envelope; M-070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears | M-070 |
-| G-071 | entity-body-empty/ac fires on freshly-allocated ACs in draft milestones; conflicts with plan-milestones 'shape now, detail later' discipline | E-20 |
-| G-072 | milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story | E-20 |
 | G-073 | depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-072 in scope | E-21 |
 | G-074 | docs/pocv3/ body prose still uses PoC framing; needs sweep |  |
 | G-075 | docs/pocv3/ directory naming is now historical; rename or accept |  |
@@ -104,6 +102,7 @@ _(no milestones)_
 | G-082 | Planning closure should default-merge to main before implementation begins | E-21 |
 | G-083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-21 |
 | G-084 | Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella | E-21 |
+| G-085 | \`aiwf status --kind gap\` advertised in CLAUDE.md, docs/pocv3 (3 files), and a gap body, but \`--kind\` flag doesn't exist on the status verb; canonical fix is \`aiwf list --kind gap\` once E-20 ships | E-20 |
 | G-086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file | M-072 |
 | G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
 
@@ -136,9 +135,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote G-061 open -> addressed |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-078 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0006 |
 | 2026-05-09 | human/peter | add | aiwf add adr ADR-0006 'Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices' |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-7 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-7 --phase green -> done |
 

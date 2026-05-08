@@ -1,8 +1,10 @@
 ---
 id: G-072
 title: milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story
-status: open
+status: addressed
 discovered_in: E-20
+addressed_by:
+    - M-076
 ---
 ## What's missing
 
