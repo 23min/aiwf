@@ -1,7 +1,7 @@
 ---
 id: M-073
 title: aiwf-list skill, aiwf-status skill tightening
-status: done
+status: in_progress
 parent: E-20
 tdd: advisory
 acs:
