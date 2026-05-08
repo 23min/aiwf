@@ -138,9 +138,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body E-20 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body M-074 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body M-073 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body M-072 |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074 done -> in_progress |
-| 2026-05-09 | human/peter | promote | aiwf promote M-073 done -> in_progress |
 

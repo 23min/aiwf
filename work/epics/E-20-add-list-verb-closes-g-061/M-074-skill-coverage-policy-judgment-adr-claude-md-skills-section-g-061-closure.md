@@ -101,7 +101,7 @@ After the doc edits land in the same commit (or commit pair) as the AC-9 CLAUDE.
 - Mechanical vs. judgment split is non-negotiable. The policy contains *only* mechanically evaluable invariants. Judgment lives in the ADR. The two artifacts cross-reference each other; neither smuggles the other's role.
 - AC-4's allowlist must carry a one-line rationale comment per entry in source, exactly like `excluded["actor"]` in `config_fields_discoverable.go:52`. The entry for `show` references the follow-up gap by id.
 - AC-7 (follow-up gap) is allocated via `aiwf add gap` — not hand-crafted. The gap's body explains *why* `show` warrants its own skill (body-rendering branches, composite-id handling, AI assistants reach for it constantly) and is filed under `discovered_in: M-074`.
-- AC-8 (judgment ADR) is allocated via `aiwf add adr` and lives under `docs/adr/ADR-NNNN-*.md`. Status `proposed` at minimum; ratification is not a blocker for this milestone's `done`.
+- AC-8 (judgment ADR) is allocated via `aiwf add adr` and lives under `docs/adr/ADR-NNNN-*.md`. Status `proposed` at minimum; ratification is not a blocker for this milestone's `done`. **Allocated as [ADR-0006](../../../docs/adr/ADR-0006-skills-policy-per-verb-default-topical-multi-verb-when-concept-shaped-no-skill-when-help-suffices.md), status `proposed`.**
 - AC-10's closing commit is produced by `aiwf promote G-061 <terminal>`; the commit's `aiwf-entity:` trailer references G-061 and the body cites this epic. Do not hand-craft the closure commit.
 - AC-11's G-085 closure follows the same pattern as AC-10: `aiwf promote G-085 <terminal>` after the five doc-sweep edits land. The doc sweep is mechanical (a single `aiwf status --kind gap` → `aiwf list --kind gap` substitution at each of the five sites); confirm each site renders correctly afterwards (especially `docs/pocv3/archive/gaps-pre-migration.md`, which is otherwise frozen content).
 
@@ -122,7 +122,7 @@ After the doc edits land in the same commit (or commit pair) as the AC-9 CLAUDE.
 
 - `internal/policies/skill_coverage.go` (new)
 - `internal/policies/policies_test.go` (test entry)
-- `docs/adr/ADR-NNNN-*.md` (new — judgment rule)
+- `docs/adr/ADR-0006-skills-policy-per-verb-default-topical-multi-verb-when-concept-shaped-no-skill-when-help-suffices.md` (new — judgment rule)
 - `CLAUDE.md` (Skills policy section + What's enforced row + AC-11 doc-sweep edit)
 - `docs/pocv3/README.md` (AC-11 — `aiwf status --kind gap` → `aiwf list --kind gap`)
 - `docs/pocv3/architecture.md` (AC-11 — same substitution)
