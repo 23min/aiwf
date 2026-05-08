@@ -30,7 +30,7 @@ Every mutation of `aiwf.yaml.contracts.*` has a verb. The LLM uses the verb. Alw
 | Move the entity's status forward | `aiwf promote <C-id> <status> --reason "..."` |
 | Cancel a contract (rejected) | `aiwf cancel <C-id> --reason "..."` |
 | Run verification | `aiwf contract verify` |
-| List recipes / contracts | `aiwf contract recipes`, `aiwf list contracts` |
+| List recipes / contracts | `aiwf contract recipes`, `aiwf list --kind contract` |
 | Inspect | `aiwf contract recipe show <name>`, `aiwf show <C-id>`, `aiwf history <C-id>` |
 
 If the user asks for something not covered by a verb, the answer is **not** "edit `aiwf.yaml` directly." The answer is "we don't support that mutation; here is the closest verb."
