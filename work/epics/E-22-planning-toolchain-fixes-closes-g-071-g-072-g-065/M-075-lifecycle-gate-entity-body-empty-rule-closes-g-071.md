@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Warning baseline on kernel tree drops by 27
-      status: open
+      status: met
       tdd_phase: done
 ---
 
