@@ -67,6 +67,10 @@ func TestPolicy_FindingCodesAreDiscoverable(t *testing.T) {
 	runPolicy(t, PolicyFindingCodesAreDiscoverable)
 }
 
+func TestPolicy_SkillCoverageMatchesVerbs(t *testing.T) {
+	runPolicy(t, PolicySkillCoverageMatchesVerbs)
+}
+
 func TestPolicy_NoHistoryRewrites(t *testing.T) {
 	runPolicy(t, PolicyNoHistoryRewrites)
 }
