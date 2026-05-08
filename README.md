@@ -240,6 +240,8 @@ The output is a pure function of the planning tree: render twice into separate d
 | `aiwf promote <id> <status>` | Transition status; rejected if the transition is illegal for the kind's FSM. Composite ids (`M-NNN/AC-N`) accepted. `--phase` for AC `tdd_phase`. `--reason "…"` records intent; `--force --reason "…"` skips the FSM. |
 | `aiwf cancel <id>` | Set status to the kind's terminal-cancel value (`cancelled`/`wontfix`/`rejected`/`retired`). |
 | `aiwf rename <id> <new-slug>` | `git mv` to a new slug; the id is preserved. Composite ids accepted (rewrites the AC body heading). |
+| `aiwf retitle <id> <new-title>` | Update the entity's frontmatter `title:` (the prose label, distinct from the slug). Composite ids accepted (rewrites the AC body heading and `acs[].title` atomically). `--reason "…"` records intent. |
+| `aiwf milestone depends-on <M-id> --on <id,id,...>` | Set or clear (`--clear`) a milestone's `depends_on:` array. Replace-not-append; each referent must already exist as a milestone. Allocation-time alternative: `aiwf add milestone --depends-on <ids>`. |
 | `aiwf move <M-id> --epic <E-id>` | Move a milestone to a different epic; id preserved. |
 | `aiwf reallocate <id\|path>` | Renumber an entity (recovery from a merge collision); rewrites references in other entities. |
 | `aiwf import <manifest>` | Bulk-create entities from a YAML/JSON manifest; one atomic commit by default. |
@@ -340,7 +342,7 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 
 **What aiwf writes:**
 
-- `.claude/skills/aiwf-*/SKILL.md` — ten skill files (`aiwf-add`, `aiwf-authorize`, `aiwf-check`, `aiwf-contract`, `aiwf-history`, `aiwf-promote`, `aiwf-reallocate`, `aiwf-render`, `aiwf-rename`, `aiwf-status`) materialized from the binary. Wiped and rewritten by `aiwf init` / `aiwf update`. New skills added in future binary versions land automatically on the next `aiwf update`.
+- `.claude/skills/aiwf-*/SKILL.md` — twelve skill files (`aiwf-add`, `aiwf-authorize`, `aiwf-check`, `aiwf-contract`, `aiwf-edit-body`, `aiwf-history`, `aiwf-promote`, `aiwf-reallocate`, `aiwf-render`, `aiwf-rename`, `aiwf-retitle`, `aiwf-status`) materialized from the binary. Wiped and rewritten by `aiwf init` / `aiwf update`. New skills added in future binary versions land automatically on the next `aiwf update`.
 - `.gitignore` — appends a wildcard for the `aiwf-*` skill namespace plus the `.aiwf-owned` ownership manifest. Your other `.claude/` content is yours to commit or gitignore as you choose; `aiwf` does not gitignore the directory wholesale.
 - `aiwf.yaml`, `CLAUDE.md` — written only if absent. Existing files are preserved verbatim.
 - `.git/hooks/pre-push` — installed (or refreshed) by `aiwf init` and `aiwf update`. The hook carries an `# aiwf:pre-push` marker. If a non-marker hook is already in place, init **auto-migrates** it to `.git/hooks/pre-push.local`, then installs aiwf's chain-aware hook on top (G45). The chain runs `pre-push.local` first; on exit 0 it falls through to `aiwf check`. Your existing hook content keeps working byte-for-byte, just at the `.local` path. The exception: if a `pre-push.local` already exists when migration would write one, init refuses (won't clobber a deliberate `.local`) and asks you to merge content manually. The hook silently no-ops on branches or clones with no `aiwf.yaml` at the repo root, so brownfield migrations and pre-init checkouts aren't blocked from pushing.
