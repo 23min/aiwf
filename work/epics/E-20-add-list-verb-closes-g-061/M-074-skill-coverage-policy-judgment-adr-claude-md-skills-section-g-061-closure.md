@@ -40,7 +40,7 @@ acs:
     - id: AC-9
       title: CLAUDE.md gains Skills policy section and What's enforced row
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-10
       title: G-061 promoted to terminal status with closing commit citing this epic
       status: open
