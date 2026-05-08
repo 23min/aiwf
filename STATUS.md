@@ -175,9 +175,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-1 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-075 draft -> in_progress |
 | 2026-05-08 | human/peter | promote | aiwf promote E-22 proposed -> active |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-073 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-078 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-078 'No priority field on entities; backlog isn't filterable or sortable by importance' |
 
