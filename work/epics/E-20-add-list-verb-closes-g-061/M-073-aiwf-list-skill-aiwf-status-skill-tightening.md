@@ -24,6 +24,7 @@ acs:
     - id: AC-5
       title: Both skills materialize via aiwf init and aiwf update
       status: met
+      tdd_phase: done
 ---
 
 # M-073 — aiwf-list skill, aiwf-status skill tightening

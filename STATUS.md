@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_192 entities · 0 errors · 1 warnings · run `aiwf check` for details_
+_192 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -86,17 +86,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| acs-tdd-audit | M-073/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-5 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-4 --phase  -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-3 --phase  -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-2 --phase  -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-1 --phase  -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote G-085 open -> addressed |
-| 2026-05-09 | human/peter | promote | aiwf promote G-061 open -> addressed |
 
