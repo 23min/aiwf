@@ -35,7 +35,7 @@ acs:
       tdd_phase: done
     - id: AC-8
       title: Skills judgment ADR allocated and proposed
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-9
       title: CLAUDE.md gains Skills policy section and What's enforced row
