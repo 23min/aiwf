@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: entity.IsTerminal(kind, status) helper available
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Rule skips terminal-status entities
       status: open
