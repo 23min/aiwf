@@ -107,11 +107,11 @@
 |---|---|---|
 | M-047 | Rituals plugin scaffolding: aiwfx-* and wf-* namespaces, two plugins in marketplace | done |
 
-## E-13 — Status report (proposed)
+## E-13 — Status report (done)
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-048 | Status report: cross-entity summaries + dashboard + time-window views | draft |
+| M-048 | Status report: cross-entity summaries + dashboard + time-window views | done |
 
 ## E-14 — Cobra and completion (done)
 
@@ -197,6 +197,14 @@ End state:
 ### Goal
 
 Land **parallel TDD subagent execution with finding-gated AC closure**, so multi-AC milestones can run their cycles concurrently with mechanical guarantees against the M-066/AC-1 branch-coverage drift class of bugs. The end state: a milestone with N independent ACs spawns N TDD-cycle subagents in worktree isolation; each runs its own red→green→refactor+audit; concerns surface as `finding` (F-NNN) entities; the human triages findings before AC closure; subagents structurally cannot waive their own findings.
+
+_No milestones yet._
+
+## E-20 — Add list verb (closes G-061) (proposed)
+
+### Goal
+
+Ship `aiwf list` as the AI's hot-path read primitive over the planning tree, route AI discovery to it via a split-skill design that demotes `aiwf status` to its real role (human-curated narrative), and lock the discoverability surface against drift via a kernel policy. Closes G-061, whose central observation — *"AI assistants are instructed to invoke a non-existent verb"* — remains true today on every materialized consumer repo.
 
 _No milestones yet._
 

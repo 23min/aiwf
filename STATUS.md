@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_165 entities · 0 errors · 6 warnings · run `aiwf check` for details_
+_165 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -76,17 +76,14 @@ _(no milestones)_
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Context\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Decision\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Consequences\` is empty |
-| entity-body-empty | E-20 | work/epics/E-20-add-list-verb-closes-g-061/epic.md | E-20 body section \`## Goal\` is empty |
-| entity-body-empty | E-20 | work/epics/E-20-add-list-verb-closes-g-061/epic.md | E-20 body section \`## Scope\` is empty |
-| entity-body-empty | E-20 | work/epics/E-20-add-list-verb-closes-g-061/epic.md | E-20 body section \`## Out of scope\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add epic E-20 'Add list verb (closes G-061)' |
 | 2026-05-08 | human/peter | promote | aiwf promote E-13 active -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote E-13 proposed -> active |
 | 2026-05-08 | human/peter | promote | aiwf promote M-048 in_progress -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-048 draft -> in_progress |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-070 |
 
