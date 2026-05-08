@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Core flag set works end-to-end
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: 'JSON envelope: result is array of summary objects'
       status: open
