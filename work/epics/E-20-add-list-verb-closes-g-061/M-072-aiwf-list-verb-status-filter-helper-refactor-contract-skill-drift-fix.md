@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Closed-set completion wired for --kind and --status
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Shared filter helper extracted; status uses it
