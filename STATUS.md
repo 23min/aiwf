@@ -144,9 +144,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-2 met -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072 done -> in_progress |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074 done -> in_progress |
 | 2026-05-09 | human/peter | promote | aiwf promote E-20 done -> active |
 | 2026-05-09 | human/peter | promote | aiwf promote E-20 active -> done |
-| 2026-05-09 | human/peter | promote | aiwf promote M-074 in_progress -> done |
 

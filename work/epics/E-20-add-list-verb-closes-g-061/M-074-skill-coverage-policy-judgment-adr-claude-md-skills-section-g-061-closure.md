@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Policy enforces non-empty name and description on every embedded skill
       status: open
-      tdd_phase: done
+      tdd_phase: red
     - id: AC-3
       title: Policy enforces skill name matches dir and aiwf-<topic> convention
       status: met
