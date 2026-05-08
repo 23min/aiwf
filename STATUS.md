@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_179 entities · 0 errors · 45 warnings · run `aiwf check` for details_
+_180 entities · 0 errors · 45 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -120,6 +120,7 @@ flowchart LR
 | G-074 | docs/pocv3/ body prose still uses PoC framing; needs sweep |  |
 | G-075 | docs/pocv3/ directory naming is now historical; rename or accept |  |
 | G-076 | CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main |  |
+| G-077 | Post-promotion working paper (aiwf's thesis) not yet written |  |
 
 ## Warnings
 
@@ -175,9 +176,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add gap G-076 'CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-075 'docs/pocv3/ directory naming is now historical; rename or accept' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-074 'docs/pocv3/ body prose still uses PoC framing; needs sweep' |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-22 |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-077 |
 
