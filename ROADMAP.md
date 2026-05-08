@@ -212,3 +212,11 @@ Ship `aiwf list` as the AI's hot-path read primitive over the planning tree, rou
 | M-073 | aiwf-list skill, aiwf-status skill tightening | draft |
 | M-074 | skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure | draft |
 
+## E-21 — Open-work synthesis: recommended-sequence skill (replaces critical-path.md) (proposed)
+
+### Goal
+
+Graduate the open-work synthesis pattern — the tiered landscape, recommended sequence, and pending-decisions Q&A flow that produced [`work/epics/critical-path.md`](../critical-path.md) — into a reproducible kernel feature. Ship a synthesis skill that any AI assistant routing through it can produce a fresh, current critical-path-style narrative on demand, with a Q&A gate for the operator to walk through pending decisions one at a time.
+
+_No milestones yet._
+

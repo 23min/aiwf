@@ -130,9 +130,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body E-21 |
 | 2026-05-08 | human/peter | add | aiwf add epic E-21 'Open-work synthesis: recommended-sequence skill (replaces critical-path.md)' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-19 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-071 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-072 'milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body E-20 |
 
