@@ -92,6 +92,7 @@ The skill body edits are small — two skills, one prompt apiece, plus the bifur
 
 ## References
 
+- **ADR-0005** — *"Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs"*. This gap implements obligation 3 (**surface follow-up actions in skills**); filed under umbrella gap G-084.
 - G-081 — sibling gap on the rename verb's pre-flight. Same family ("verbs / skills should refuse-with-guidance, not allow-then-warn"); different specific case.
 - G-059 — broader gap on the canonical branch model. This gap fills a specific recommendation slot inside G-059's territory, not a redefinition of it.
 - G-063 — *"no start-epic ritual"*. Adjacent ritual gap.
