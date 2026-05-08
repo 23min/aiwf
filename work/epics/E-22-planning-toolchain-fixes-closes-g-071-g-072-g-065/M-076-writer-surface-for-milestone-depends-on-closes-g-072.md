@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Closed-set completion for new flags and verb
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: aiwf-add skill updated; aiwfx-plan-milestones update documented
       status: open
