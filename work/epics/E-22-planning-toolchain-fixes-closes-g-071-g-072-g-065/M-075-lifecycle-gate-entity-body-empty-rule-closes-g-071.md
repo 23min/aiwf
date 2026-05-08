@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Warning baseline on kernel tree drops by 27
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-075 — Lifecycle-gate entity-body-empty rule (closes G-071)
