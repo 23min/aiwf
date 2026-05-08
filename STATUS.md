@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_168 entities · 0 errors · 17 warnings · run `aiwf check` for details_
+_168 entities · 0 errors · 21 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -41,7 +41,7 @@ _(no milestones)_
 ### E-20 — Add list verb (closes G-061) _(proposed)_
 
 - **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(draft)_ — ACs 0/9 met (9 open) — tdd: required
-- **M-073** — aiwf-list skill, aiwf-status skill tightening _(draft)_ — tdd: advisory
+- **M-073** — aiwf-list skill, aiwf-status skill tightening _(draft)_ — ACs 0/5 met (5 open) — tdd: advisory
 - **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(draft)_ — tdd: required
 
 ```mermaid
@@ -49,7 +49,7 @@ flowchart LR
   E_20["E-20<br/>Add list verb (closes G-061)"]:::epic_proposed
   M_072["M-072 (0/9)<br/>aiwf list verb, status filter-helper refactor, contract-skill drift fix"]:::ms_draft
   E_20 --> M_072
-  M_073["M-073<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_draft
+  M_073["M-073 (0/5)<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_draft
   E_20 --> M_073
   M_074["M-074<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_draft
   E_20 --> M_074
@@ -106,7 +106,11 @@ flowchart LR
 | entity-body-empty | M-072/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-8 body under \`### AC-8\` is empty |
 | entity-body-empty | M-072/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-9 body under \`### AC-9\` is empty |
 | entity-body-empty | M-073 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073 body section \`## Goal\` is empty |
-| entity-body-empty | M-073 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073 body section \`## Acceptance criteria\` is empty |
+| entity-body-empty | M-073/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-1 body under \`### AC-1\` is empty |
+| entity-body-empty | M-073/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-2 body under \`### AC-2\` is empty |
+| entity-body-empty | M-073/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-3 body under \`### AC-3\` is empty |
+| entity-body-empty | M-073/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-4 body under \`### AC-4\` is empty |
+| entity-body-empty | M-073/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-5 body under \`### AC-5\` is empty |
 | entity-body-empty | M-074 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074 body section \`## Goal\` is empty |
 | entity-body-empty | M-074 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074 body section \`## Acceptance criteria\` is empty |
 
@@ -114,9 +118,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add ac M-072 AC-1..AC-9 (9 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-074 'skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure' |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-073 'aiwf-list skill, aiwf-status skill tightening' |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-072 'aiwf list verb, status filter-helper refactor, contract-skill drift fix' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-20 |
-| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 
