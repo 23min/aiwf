@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Verb-level integration test drives the dispatcher
-      status: open
+      status: met
       tdd_phase: done
 ---
 
