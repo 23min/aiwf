@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Composite-id retitle updates frontmatter and body atomically
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: aiwf-retitle skill exists with title-shaped phrasings
