@@ -92,7 +92,6 @@ _(no milestones)_
 | G-068 | Discoverability policy misses dynamic finding subcodes | M-066 |
 | G-069 | aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome | M-070 |
 | G-070 | aiwf doctor has no --format=json envelope; M-070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears | M-070 |
-| G-072 | milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story | E-20 |
 | G-073 | depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-072 in scope | E-21 |
 | G-074 | docs/pocv3/ body prose still uses PoC framing; needs sweep |  |
 | G-075 | docs/pocv3/ directory naming is now historical; rename or accept |  |
@@ -114,9 +113,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote G-071 open -> addressed |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-084 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-084 'Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-08 | human/peter | add | aiwf add adr ADR-0005 'Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-083 |
 
