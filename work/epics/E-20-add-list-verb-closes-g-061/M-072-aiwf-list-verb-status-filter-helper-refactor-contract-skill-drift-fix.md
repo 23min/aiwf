@@ -36,7 +36,7 @@ acs:
     - id: AC-8
       title: contracts-plan and contract-skill drift fixed
       status: open
-      tdd_phase: done
+      tdd_phase: red
     - id: AC-9
       title: Verb-level integration test drives the dispatcher
       status: met
