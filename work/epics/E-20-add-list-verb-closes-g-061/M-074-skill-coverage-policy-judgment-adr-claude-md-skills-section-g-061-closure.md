@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Policy enforces every top-level verb is documented or in allowlist
       status: open
-      tdd_phase: done
+      tdd_phase: red
     - id: AC-5
       title: Policy enforces every aiwf <verb> mention in skills resolves to a real verb
       status: met
