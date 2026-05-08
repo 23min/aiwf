@@ -27,7 +27,7 @@ acs:
       tdd_phase: red
     - id: AC-6
       title: Allowlist has rationale per entry; show entry rationale references follow-up gap
-      status: met
+      status: open
       tdd_phase: done
     - id: AC-7
       title: Follow-up gap for aiwf-show skill exists
