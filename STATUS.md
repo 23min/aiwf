@@ -136,9 +136,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0006 |
 | 2026-05-09 | human/peter | add | aiwf add adr ADR-0006 'Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices' |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-7 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-7 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-7 --phase red -> green |
-| 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-6 open -> met |
 
