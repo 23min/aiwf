@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Default excludes terminal status; --archived includes them
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: entity.IsTerminal(kind, status) helper added
