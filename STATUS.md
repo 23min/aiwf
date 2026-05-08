@@ -123,9 +123,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-2 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-4 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-4 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-4 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-9 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-9 --phase green -> done |
 
