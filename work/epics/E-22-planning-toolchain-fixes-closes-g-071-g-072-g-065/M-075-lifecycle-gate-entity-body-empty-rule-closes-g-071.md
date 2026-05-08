@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Rule still fires on active-state entities with empty sections
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Warning baseline on kernel tree drops by 27
