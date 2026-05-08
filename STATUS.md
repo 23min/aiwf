@@ -98,9 +98,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-086 |
 | 2026-05-09 | human/peter | promote | aiwf promote E-20 active -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-6 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-6 --phase green -> done |
 
