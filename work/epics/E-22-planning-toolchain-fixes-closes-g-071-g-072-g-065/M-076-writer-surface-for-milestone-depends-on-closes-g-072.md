@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: --depends-on flag on aiwf add milestone
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: aiwf milestone depends-on dedicated verb
       status: open
