@@ -8,7 +8,7 @@ _192 entities · 0 errors · 30 warnings · run `aiwf check` for details_
 
 - → **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(in_progress)_ — ACs 9/9 met — tdd: required
 - ✓ **M-073** — aiwf-list skill, aiwf-status skill tightening _(done)_ — ACs 5/5 met — tdd: advisory
-- → **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(in_progress)_ — ACs 10/11 met (1 open) — tdd: required
+- → **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(in_progress)_ — ACs 9/11 met (2 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
   E_20 --> M_072
   M_073["M-073 (5/5)<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_done
   E_20 --> M_073
-  M_074["M-074 (10/11)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_in_progress
+  M_074["M-074 (9/11)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_in_progress
   E_20 --> M_074
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -144,9 +144,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-2 --phase done -> red |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-2 met -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072 done -> in_progress |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074 done -> in_progress |
 | 2026-05-09 | human/peter | promote | aiwf promote E-20 done -> active |
-| 2026-05-09 | human/peter | promote | aiwf promote E-20 active -> done |
 
