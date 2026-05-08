@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_188 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_188 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -109,18 +109,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | G-084 | work/gaps/G-084-verb-hygiene-contract-is-undocumented-g-081-g-082-g-083-lack-umbrella.md | G-084 body section \`## What's missing\` is empty |
-| entity-body-empty | G-084 | work/gaps/G-084-verb-hygiene-contract-is-undocumented-g-081-g-082-g-083-lack-umbrella.md | G-084 body section \`## Why it matters\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add gap G-084 'Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-08 | human/peter | add | aiwf add adr ADR-0005 'Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-083 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-083 'aiwf retitle does not sync entity body H1 with frontmatter title' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-081 |
 
