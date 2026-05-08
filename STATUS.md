@@ -4,7 +4,28 @@ _188 entities · 0 errors · 0 warnings_
 
 ## In flight
 
-_(no active epics)_
+### E-20 — Add list verb (closes G-061) _(active)_
+
+- **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(draft)_ — ACs 0/9 met (9 open) — tdd: required
+- **M-073** — aiwf-list skill, aiwf-status skill tightening _(draft)_ — ACs 0/5 met (5 open) — tdd: advisory
+- **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(draft)_ — ACs 0/10 met (10 open) — tdd: required
+
+```mermaid
+flowchart LR
+  E_20["E-20<br/>Add list verb (closes G-061)"]:::epic_active
+  M_072["M-072 (0/9)<br/>aiwf list verb, status filter-helper refactor, contract-skill drift fix"]:::ms_draft
+  E_20 --> M_072
+  M_073["M-073 (0/5)<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_draft
+  E_20 --> M_073
+  M_074["M-074 (0/10)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_draft
+  E_20 --> M_074
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Roadmap
 
@@ -37,29 +58,6 @@ flowchart LR
 ### E-19 — Parallel TDD subagents with finding-gated AC closure _(proposed)_
 
 _(no milestones)_
-
-### E-20 — Add list verb (closes G-061) _(proposed)_
-
-- **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(draft)_ — ACs 0/9 met (9 open) — tdd: required
-- **M-073** — aiwf-list skill, aiwf-status skill tightening _(draft)_ — ACs 0/5 met (5 open) — tdd: advisory
-- **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(draft)_ — ACs 0/10 met (10 open) — tdd: required
-
-```mermaid
-flowchart LR
-  E_20["E-20<br/>Add list verb (closes G-061)"]:::epic_proposed
-  M_072["M-072 (0/9)<br/>aiwf list verb, status filter-helper refactor, contract-skill drift fix"]:::ms_draft
-  E_20 --> M_072
-  M_073["M-073 (0/5)<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_draft
-  E_20 --> M_073
-  M_074["M-074 (0/10)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_draft
-  E_20 --> M_074
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
 
 ### E-21 — Open-work synthesis: recommended-sequence skill (replaces critical-path.md) _(proposed)_
 
@@ -115,9 +113,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-084 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-084 'Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-08 | human/peter | add | aiwf add adr ADR-0005 'Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-083 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-083 'aiwf retitle does not sync entity body H1 with frontmatter title' |
 
