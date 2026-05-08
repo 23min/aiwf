@@ -41,13 +41,23 @@ The rule was scoped at M-066/AC-1 to catch *shipped* empty bodies — entities p
 
 ### AC-1 — entity.IsTerminal(kind, status) helper available
 
+`internal/entity/transition.go` exposes `IsTerminal(k Kind, status string) bool`. Returns true exactly when `(k, status)` names a state with no outgoing transitions in the per-kind FSM. Returns false for unknown kinds and unknown statuses (so junk-status entities still flow through downstream checks rather than being silently exempted). Derives terminality from the existing `transitions` map rather than maintaining a parallel hardcoded list — one source of truth for terminal state per kind. Exhaustive table-driven test enumerates every (kind, status) pair in `AllowedStatuses(k)` plus unknown-input cases.
+
 ### AC-2 — Rule skips terminal-status entities
+
+`entityBodyEmpty` in `internal/check/entity_body.go` consults `entity.IsTerminal(e.Kind, e.Status)` at the top of each entity's loop iteration. When true, the entity is skipped entirely — no top-level section walk, no AC-body walk. Closes G-071 case 2: ADR-0002 (`status: superseded`) and any other historical artifact at a terminal state stops emitting `entity-body-empty` warnings perpetually. Tested across every terminal status in every kind via parametrized fixtures (epic done/cancelled, milestone done/cancelled, ADR superseded/rejected, decision superseded/rejected, gap addressed/wontfix, contract retired/rejected).
 
 ### AC-3 — Rule skips ACs whose parent milestone is draft
 
+The AC-walk arm of `entityBodyEmpty` is gated on `e.Status != entity.StatusDraft` (the entity being walked at that call site is the parent milestone). Closes G-071 case 1: freshly-allocated ACs in draft milestones (the routine output of `aiwfx-plan-milestones`, which ships shape first and prose later as TDD work begins) stop emitting noise before any implementation begins. The gate is narrow to the AC-body arm — the top-level milestone sections (`## Goal`, `## Approach`, `## Acceptance criteria`) still fire if empty under a draft milestone, since drafts ship with shape *and* design prose.
+
 ### AC-4 — Rule still fires on active-state entities with empty sections
 
+The active-band population (epic active/proposed, milestone in_progress, ADR proposed/accepted, decision proposed/accepted, gap open, contract proposed/accepted/deprecated) continues to emit `entity-body-empty` warnings when load-bearing sections are empty. The lifecycle gates only exempt the lifecycle states the spec named (terminal per AC-2, draft milestones for the AC-body arm per AC-3). Regression-pinned by parametrized test cases across every kind's non-terminal non-draft status set. A future widening of either gate that silently silences the rule on its target population fails this test.
+
 ### AC-5 — Warning baseline on kernel tree drops by 27
+
+Running `aiwf check` on this repo's tree at M-075 wrap shows a warning-count drop of at least 27 from the pre-M-075 baseline: 24 `entity-body-empty/ac` warnings on E-20's M-072/M-073/M-074 (still draft, silenced by AC-3) plus 3 `entity-body-empty/adr` warnings on ADR-0002 (`superseded`, silenced by AC-2). Other warnings unchanged: `unexpected-tree-file` on `work/epics/critical-path.md` is E-21's job, not this milestone's. Recorded as a Validation entry in the wrap commit with before/after counts.
 
 ## Constraints
 

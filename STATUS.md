@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_181 entities · 0 errors · 45 warnings · run `aiwf check` for details_
+_181 entities · 0 errors · 40 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -152,11 +152,6 @@ _(no milestones)_
 | entity-body-empty | M-074/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-8 body under \`### AC-8\` is empty |
 | entity-body-empty | M-074/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-9 body under \`### AC-9\` is empty |
 | entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
-| entity-body-empty | M-075/AC-1 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-075/AC-2 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-075/AC-3 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-075/AC-4 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-075/AC-5 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-5 body under \`### AC-5\` is empty |
 | entity-body-empty | M-076/AC-1 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-1 body under \`### AC-1\` is empty |
 | entity-body-empty | M-076/AC-2 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-2 body under \`### AC-2\` is empty |
 | entity-body-empty | M-076/AC-3 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-3 body under \`### AC-3\` is empty |
@@ -175,9 +170,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-4 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-4 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-4 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-3 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-3 --phase green -> done |
-| 2026-05-08 | human/peter | promote | aiwf promote M-075/AC-3 --phase red -> green |
 
