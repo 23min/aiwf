@@ -1,7 +1,7 @@
 ---
 id: M-076
 title: Writer surface for milestone depends_on (closes G-072)
-status: in_progress
+status: done
 parent: E-22
 tdd: required
 acs:
@@ -122,7 +122,11 @@ Per CLAUDE.md "Test the seam, not just the layer": `TestMilestoneDependsOn_Dispa
 
 ## Coverage notes
 
-- (filled at wrap)
+- `internal/verb/add.go:validateDependsOnReferents` — 100%. Branch audit: kind != milestone (returns nil); empty list (returns nil); unresolvable id (returns error); wrong-kind referent (returns error); all-valid (returns nil). Each branch has a dedicated test in `cmd/aiwf/add_milestone_depends_on_test.go`.
+- `internal/verb/add.go:applyAddOpts` (milestone arm) — 100%. The new `len(opts.DependsOn) > 0` guard is exercised by both the "with --depends-on" tests and the "without" baseline.
+- `internal/verb/milestone_depends_on.go:MilestoneDependsOn` — every conditional branch covered: composite-id rejection (`TestMilestoneDependsOn_CompositeIDRejected`), clear+on mutex, neither set, unknown target, wrong-kind target, self-loop (`TestMilestoneDependsOn_SelfDependencyRejected`), unknown referent, wrong-kind referent, clear-true arm, set-arm, replace semantics, multiple deps. Statement coverage 80% (the 20% remaining is defensive IO error paths in `readBody` / `entity.Serialize` that can't fire on a well-formed tree without filesystem-level corruption).
+- `cmd/aiwf/milestone_cmd.go:newMilestoneCmd` and `newMilestoneDependsOnCmd` — 100% (constructed by every test that walks the cmd tree, including the policy/drift tests).
+- `cmd/aiwf/milestone_cmd.go:runMilestoneDependsOnCmd` — 74%. The uncovered region is the lock/loadTree error arms which require filesystem failure or concurrent-locked state to exercise; the project convention treats those as defensive (matching the parallel arms in `runEditBodyCmd`, `runRenameCmd`, etc.).
 
 ## References
 
@@ -136,7 +140,33 @@ Per CLAUDE.md "Test the seam, not just the layer": `TestMilestoneDependsOn_Dispa
 
 ## Work log
 
-(filled during implementation)
+### AC-1 — --depends-on flag on aiwf add milestone
+
+Added `DependsOn []string` to `internal/verb/AddOptions`, validated milestone-only via `validateAddOptsForKind`, applied to entity in `applyAddOpts`. Cmd-side parsing via `splitCommaList` matches `--linked-adr` / `--relates-to` precedent. Wired completion via `completeEntityIDFlag(KindMilestone)`. `addCreationRefs` extended so the I2.5 allow-rule sees the new outbound refs. Tests: 7 cases in `cmd/aiwf/add_milestone_depends_on_test.go` covering single id, multi-id, absence, non-milestone-kind rejection, unknown referent, wrong-kind referent, partial-list.
+
+### AC-2 — aiwf milestone depends-on dedicated verb
+
+New top-level verb `aiwf milestone` with `depends-on` subcommand at `cmd/aiwf/milestone_cmd.go`; verb logic at `internal/verb/milestone_depends_on.go`. One commit per invocation with `aiwf-verb: milestone-depends-on` trailers. Replace-not-append semantics. Forward-compatible with G-073 (the `milestone` segment is the kind; cross-kind generalisation extends without renaming this verb). Tests: 10 cases in `cmd/aiwf/milestone_depends_on_test.go` covering set-single/multi/replace, unknown/wrong-kind target, unknown/wrong-kind referent, plus the explicit branch-coverage tests for composite-id and self-loop rejection.
+
+### AC-3 — --clear flag empties the depends_on list
+
+`--clear` boolean flag on `aiwf milestone depends-on` empties `depends_on:` (the YAML omitempty tag means the block disappears). Mutex with `--on` enforced at the cmd boundary; bare invocation (neither flag) is also a usage error so the verb can't no-op silently. Lint pass forced renaming the local variable from `clear` to `clearList` per `gocritic`'s `builtinShadow` (Go 1.21+ has `clear()`). Tests in the same file as AC-2 (`TestMilestoneDependsOn_Clear`, `_ClearAndOnMutex`, `_NoFlagIsUsage`).
+
+### AC-4 — Allocation-time referent validation refuses invalid ids
+
+`validateDependsOnReferents` runs before `id := entity.AllocateID(...)` so a refused call leaves no partial trace. The verb-side equivalent is inline at the top of `MilestoneDependsOn`. Three failure modes covered: id not found, id of wrong kind, partial-valid list (the whole call refuses; no partial writes). Self-loop guard (`--on M-NNN` where M-NNN is the target) is a nice-to-have caught at the same layer.
+
+### AC-5 — Closed-set completion for new flags and verb
+
+`--depends-on` (on `aiwf add`) and `--on` (on `aiwf milestone depends-on`) both register `completeEntityIDFlag(KindMilestone)`. The positional milestone-id arg uses `completeEntityIDArg(KindMilestone, 0)`. Generic `TestPolicy_FlagsHaveCompletion` and `TestPolicy_PositionalsHaveCompletion` already cover absence-of-wiring; explicit M-076-named assertions in `cmd/aiwf/milestone_depends_on_completion_test.go` pin the specific surfaces so a future refactor that drops the wiring fails with a named message.
+
+### AC-6 — aiwf-add skill updated; aiwfx-plan-milestones update documented
+
+`internal/skills/embedded/aiwf-add/SKILL.md`: frontmatter description broadened to mention dependency declaration; milestone row in the kinds table extended with `--depends-on`; new "Milestone `depends_on`: declare DAG edges via verb (M-076)" section describing both writer surfaces, replace-not-append, the `--clear`/`--on` mutex, and the don't-hand-edit guidance. The `aiwfx-plan-milestones` plugin skill lives in `ai-workflow-rituals` (separate repo); its update is captured in Deferrals as G-079 so the change is filed upstream.
+
+### AC-7 — Verb-level integration test drives the dispatcher
+
+`TestMilestoneDependsOn_DispatcherSeam_AddFlag` and `_DispatcherSeam_Verb` drive `run([]string{...})` end-to-end through cmd → verb → projection → apply → git, then assert (a) on-disk frontmatter shape AND (b) `aiwf history M-NNN` finds the trailered commit (proving the trailer chain reached git). A regression where the cmd flag is read but never copied into AddOptions slips past unit tests but trips here, per CLAUDE.md's "Test the seam, not just the layer" rule.
 
 ## Decisions made during implementation
 
@@ -144,12 +174,25 @@ Per CLAUDE.md "Test the seam, not just the layer": `TestMilestoneDependsOn_Dispa
 
 ## Validation
 
-(pasted at wrap)
+- `go test -race ./...` — green. All packages pass.
+- `go build -o /tmp/aiwf ./cmd/aiwf` — green.
+- `golangci-lint run ./cmd/aiwf/ ./internal/verb/ ./internal/skills/` — 0 issues (after the `clear` → `clearList` rename to satisfy `gocritic`'s `builtinShadow`).
+- `aiwf check` — 0 errors, 2 unrelated warnings (`provenance-untrailered-scope-undefined` because the milestone branch has no upstream yet; `unexpected-tree-file` on `work/epics/critical-path.md` is E-21's scope).
+- `aiwf show M-076` — every AC at `met` + `tdd_phase: done`; status `in_progress` (promoted to `done` by this wrap).
+- Coverage: see Coverage notes — branch audit clean across both new functions and the modified `entityBodyEmpty` consumers.
+- Real-tree dogfood: `aiwf add milestone --depends-on …` and `aiwf milestone depends-on … --on …` both round-trip through `aiwf history` with the right trailers. The seam tests pin this end-to-end.
 
 ## Deferrals
 
-- (none)
+- [G-079](../../gaps/G-079-aiwfx-plan-milestones-plugin-skill-needs-depends-on-documentation-m-076-added-the-verb-but-the-plugin-lives-in-ai-workflow-rituals-upstream.md) — `aiwfx-plan-milestones` skill update lives in the `ai-workflow-rituals` plugin (separate repo). Per the spec's AC-6 acceptance bar, this milestone closes when (a) `aiwf-add` is updated in this repo (done) AND (b) the plugin update is filed (G-079 captures the upstream PR).
 
 ## Reviewer notes
 
-- (filled at wrap)
+- **Replace-not-append is the simpler primitive.** A second invocation of `aiwf milestone depends-on M-NNN --on M-XXX` replaces the list — it does not extend. To add a single dep to an existing list, the operator passes the full updated list. Append-style (`--add-depends-on M-XXX`) is deferred until friction earns it; the spec's Out-of-scope and the verb's body comment both pin this. Reviewers should resist a "make it append by default" reflex — that closes off the unambiguous-replace path which is the easier primitive to reason about.
+- **Verb name segment "milestone" is the *kind*, not stutter.** `aiwf milestone depends-on M-NNN --on M-PPP` reads as "milestone-X declares dependency on milestone-Y" with the leading `milestone` indicating which kind owns the verb. When G-073's cross-kind generalisation lands, `aiwf <kind> depends-on <id> --on <ids>` extends the same shape to other kinds without renaming this verb. Reviewers worried about "redundant 'milestone' in `aiwf milestone depends-on M-NNN`" — that's the kind segment, and it stays load-bearing under the future generalisation.
+- **Forward-compatibility with G-073 is non-negotiable per the epic spec.** The verb signature (`<kind>` segment, `--on <ids>` list flag) is a clean subset of the cross-kind future. The narrow milestone-only schema (`AllowedKinds: []Kind{KindMilestone}`) is intentionally unchanged here; G-073 expands it when the cross-kind friction surfaces.
+- **`clear` → `clearList` rename was a lint fix, not a design change.** Go 1.21+ has a builtin `clear()`. `gocritic`'s `builtinShadow` rule flags any local named `clear`. Renaming was the cheapest fix; the verb and flag are still spelled `--clear` on the user-facing surface.
+- **Cycle detection deliberately stays in `aiwf check`.** The writer's job is referent existence; the check's job is DAG validity. Different concerns, different chokepoints. A cycle introduced by this verb surfaces at the next pre-push hook rather than being pre-checked at write time. This matches the layered design and keeps the writer cheap; reviewers should not push for pre-write cycle detection without a concrete friction case.
+- **`addCreationRefs` extended** so the I2.5 allow-rule's reachability check sees the new outbound `depends_on` refs at allocation time. Without this, a non-human actor scoped to (say) M-001 could add a milestone with `--depends-on M-001` even if the scope didn't reach the new entity's parent. Standard pattern; no surprises.
+- **No ADR/D-NNN produced.** Every locked design choice (skill placement, comma-separated lists, allocation-time validation, replace-not-append, `--clear` mutex) was pre-locked in the epic spec. Nothing surfaced mid-implementation that warranted a separate decision artifact.
+- **`.gitignore` change rides along** because the kernel's marker-managed-skills convention (`.claude/skills/aiwf-*` is gitignored per CLAUDE.md) was missing from the consumer repo's gitignore. Two-line addition; harmless, on-topic for keeping the consumer-repo state clean. Not a separate patch.
