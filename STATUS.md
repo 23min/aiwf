@@ -172,9 +172,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-076 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-075 |
 | 2026-05-08 | human/peter | add | aiwf add ac M-077 AC-1..AC-6 (6 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add ac M-076 AC-1..AC-7 (7 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add ac M-075 AC-1..AC-5 (5 criteria) |
-| 2026-05-08 | human/peter | add | aiwf add milestone M-077 'aiwf retitle verb for entities and ACs (closes G-065)' |
 
