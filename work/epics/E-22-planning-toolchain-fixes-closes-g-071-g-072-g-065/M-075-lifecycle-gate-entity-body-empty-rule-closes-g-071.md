@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Rule skips terminal-status entities
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Rule skips ACs whose parent milestone is draft
       status: open
