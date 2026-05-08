@@ -81,7 +81,6 @@ _(no milestones)_
 | G-082 | Planning closure should default-merge to main before implementation begins | E-21 |
 | G-083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-21 |
 | G-084 | Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella | E-21 |
-| G-085 | \`aiwf status --kind gap\` advertised in CLAUDE.md, docs/pocv3 (3 files), and a gap body, but \`--kind\` flag doesn't exist on the status verb; canonical fix is \`aiwf list --kind gap\` once E-20 ships | E-20 |
 | G-086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file | M-072 |
 | G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
 
@@ -99,9 +98,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote G-061 open -> addressed |
 | 2026-05-09 | human/peter | promote | aiwf promote G-085 addressed -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote G-061 addressed -> open |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-087 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-086 |
-| 2026-05-09 | human/peter | promote | aiwf promote E-20 active -> done |
 
