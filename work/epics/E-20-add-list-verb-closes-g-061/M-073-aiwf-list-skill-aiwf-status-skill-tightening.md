@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: aiwf-status skill description tightened to narrative-snapshot phrasings
-      status: open
+      status: met
     - id: AC-4
       title: aiwf-status skill body redirects to aiwf list for tree queries
       status: open
