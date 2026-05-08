@@ -4,7 +4,28 @@ _181 entities · 0 errors · 45 warnings · run `aiwf check` for details_
 
 ## In flight
 
-_(no active epics)_
+### E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) _(active)_
+
+- **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(draft)_ — ACs 0/5 met (5 open) — tdd: required
+- **M-076** — Writer surface for milestone depends_on (closes G-072) _(draft)_ — ACs 0/7 met (7 open) — tdd: required
+- **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(draft)_ — ACs 0/6 met (6 open) — tdd: required
+
+```mermaid
+flowchart LR
+  E_22["E-22<br/>Planning toolchain fixes (closes G-071, G-072, G-065)"]:::epic_active
+  M_075["M-075 (0/5)<br/>Lifecycle-gate entity-body-empty rule (closes G-071)"]:::ms_draft
+  E_22 --> M_075
+  M_076["M-076 (0/7)<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_draft
+  E_22 --> M_076
+  M_077["M-077 (0/6)<br/>aiwf retitle verb for entities and ACs (closes G-065)"]:::ms_draft
+  E_22 --> M_077
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Roadmap
 
@@ -64,29 +85,6 @@ flowchart LR
 ### E-21 — Open-work synthesis: recommended-sequence skill (replaces critical-path.md) _(proposed)_
 
 _(no milestones)_
-
-### E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) _(proposed)_
-
-- **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(draft)_ — ACs 0/5 met (5 open) — tdd: required
-- **M-076** — Writer surface for milestone depends_on (closes G-072) _(draft)_ — ACs 0/7 met (7 open) — tdd: required
-- **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(draft)_ — ACs 0/6 met (6 open) — tdd: required
-
-```mermaid
-flowchart LR
-  E_22["E-22<br/>Planning toolchain fixes (closes G-071, G-072, G-065)"]:::epic_proposed
-  M_075["M-075 (0/5)<br/>Lifecycle-gate entity-body-empty rule (closes G-071)"]:::ms_draft
-  E_22 --> M_075
-  M_076["M-076 (0/7)<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_draft
-  E_22 --> M_076
-  M_077["M-077 (0/6)<br/>aiwf retitle verb for entities and ACs (closes G-065)"]:::ms_draft
-  E_22 --> M_077
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
 
 ## Open decisions
 
@@ -177,9 +175,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-073 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-078 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-078 'No priority field on entities; backlog isn't filterable or sortable by importance' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-077 'Post-promotion working paper (aiwf's thesis) not yet written' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-076 'CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main' |
-| 2026-05-08 | human/peter | add | aiwf add gap G-075 'docs/pocv3/ directory naming is now historical; rename or accept' |
 
