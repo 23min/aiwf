@@ -173,6 +173,154 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 	})
 }
 
+// TestRun_List_JSONResultIsArrayOfSummaryObjects is M-072 AC-2: the
+// envelope's `result` is an array whose elements carry the documented
+// six-field summary shape {id, kind, status, title, parent, path}.
+// Stricter than the AC-1 JSON subtest, which only asserts id and
+// parent — a regression that drops `kind`, `status`, `title`, or
+// `path` from the Summary struct silently passes there but fails here.
+func TestRun_List_JSONResultIsArrayOfSummaryObjects(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add epic E-01: %d", rc)
+	}
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+		t.Fatalf("promote E-01: %d", rc)
+	}
+	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "M one", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add milestone: %d", rc)
+	}
+
+	out := captureStdout(t, func() {
+		if rc := run([]string{"list", "--kind", "milestone", "--format=json", "--root", root}); rc != exitOK {
+			t.Fatalf("list rc != exitOK")
+		}
+	})
+
+	var envelope struct {
+		Result []map[string]any `json:"result"`
+	}
+	if err := json.Unmarshal(out, &envelope); err != nil {
+		t.Fatalf("json unmarshal: %v\nraw:\n%s", err, out)
+	}
+	if len(envelope.Result) != 1 {
+		t.Fatalf("expected 1 milestone row, got %d:\n%s", len(envelope.Result), out)
+	}
+
+	row := envelope.Result[0]
+
+	// Every documented field is present and string-typed. Pin the
+	// expected values for the load-bearing ones (id, kind, status,
+	// parent) and assert non-emptiness for the descriptive ones (title,
+	// path) so a future renumbering of the slug doesn't churn the test.
+	wantStrings := map[string]string{
+		"id":     "M-001",
+		"kind":   "milestone",
+		"status": "draft",
+		"parent": "E-01",
+	}
+	for k, want := range wantStrings {
+		got, ok := row[k].(string)
+		if !ok {
+			t.Errorf("field %q missing or not a string in row: %#v", k, row)
+			continue
+		}
+		if got != want {
+			t.Errorf("field %q = %q, want %q", k, got, want)
+		}
+	}
+	for _, k := range []string{"title", "path"} {
+		got, ok := row[k].(string)
+		if !ok || got == "" {
+			t.Errorf("field %q missing, empty, or not a string in row: %#v", k, row)
+		}
+	}
+
+	// `path` must point at the milestone file under work/ — proof that
+	// the loader-set Entity.Path made it into the Summary verbatim.
+	if path, _ := row["path"].(string); !strings.HasSuffix(path, ".md") {
+		t.Errorf("path %q does not end in .md", path)
+	}
+	if path, _ := row["path"].(string); !strings.Contains(path, "M-001") {
+		t.Errorf("path %q does not name M-001", path)
+	}
+}
+
+// TestRun_List_ArchivedFlag is M-072 AC-3: the default filter excludes
+// entities whose status is terminal under their kind's FSM; passing
+// --archived widens to include them. Pre-ADR-0004 the behavior is
+// driven by entity.IsTerminal; post-ADR-0004 the same flag walks
+// archive/ subdirs without a list-side change.
+//
+// Fixture: one active epic with two milestones — one in_progress
+// (non-terminal), one cancelled (terminal). The default invocation
+// must surface only the in_progress one; --archived must surface both.
+func TestRun_List_ArchivedFlag(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+		t.Fatalf("promote epic active: %d", rc)
+	}
+	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Live", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add M-001: %d", rc)
+	}
+	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Doomed", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("add M-002: %d", rc)
+	}
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-001", "in_progress"}); rc != exitOK {
+		t.Fatalf("promote M-001 in_progress: %d", rc)
+	}
+	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "M-002"}); rc != exitOK {
+		t.Fatalf("cancel M-002: %d", rc)
+	}
+
+	t.Run("default excludes terminal-status entities", func(t *testing.T) {
+		out := captureStdout(t, func() {
+			if rc := run([]string{"list", "--kind", "milestone", "--root", root}); rc != exitOK {
+				t.Fatalf("list rc != exitOK")
+			}
+		})
+		s := string(out)
+		if !strings.Contains(s, "M-001") {
+			t.Errorf("default list missing in_progress milestone M-001:\n%s", s)
+		}
+		if strings.Contains(s, "M-002") {
+			t.Errorf("default list leaked cancelled milestone M-002:\n%s", s)
+		}
+	})
+
+	t.Run("--archived includes terminal-status entities", func(t *testing.T) {
+		out := captureStdout(t, func() {
+			if rc := run([]string{"list", "--kind", "milestone", "--archived", "--root", root}); rc != exitOK {
+				t.Fatalf("list --archived rc != exitOK")
+			}
+		})
+		s := string(out)
+		if !strings.Contains(s, "M-001") {
+			t.Errorf("--archived list missing M-001:\n%s", s)
+		}
+		if !strings.Contains(s, "M-002") {
+			t.Errorf("--archived list missing the cancelled M-002 (the entire point of the flag):\n%s", s)
+		}
+	})
+
+	t.Run("no-args counts exclude terminal entities", func(t *testing.T) {
+		out := captureStdout(t, func() {
+			if rc := run([]string{"list", "--root", root}); rc != exitOK {
+				t.Fatalf("no-args rc != exitOK")
+			}
+		})
+		s := string(out)
+		// One non-terminal milestone (M-001); the cancelled M-002 is
+		// excluded from the count.
+		if !strings.Contains(s, "1 milestone") {
+			t.Errorf("no-args output missing `1 milestone` (the cancelled one should not count):\n%s", s)
+		}
+	})
+}
+
 // TestRun_List_BadFormat covers the format-validation usage-error path
 // (`--format=xml` and other unsupported values). Mirrors
 // TestRunStatus_BadFormat for the same closed-set discipline.
