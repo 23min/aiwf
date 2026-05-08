@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_181 entities · 0 errors · 0 warnings_
+_182 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -120,18 +120,22 @@ _(no milestones)_
 | G-076 | CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main |  |
 | G-077 | Post-promotion working paper (aiwf's thesis) not yet written |  |
 | G-078 | No priority field on entities; backlog isn't filterable or sortable by importance |  |
+| G-079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation; M-076 added the verb but the plugin lives in ai-workflow-rituals upstream | M-076 |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | G-079 | work/gaps/G-079-aiwfx-plan-milestones-plugin-skill-needs-depends-on-documentation-m-076-added-the-verb-but-the-plugin-lives-in-ai-workflow-rituals-upstream.md | G-079 body section \`## What's missing\` is empty |
+| entity-body-empty | G-079 | work/gaps/G-079-aiwfx-plan-milestones-plugin-skill-needs-depends-on-documentation-m-076-added-the-verb-but-the-plugin-lives-in-ai-workflow-rituals-upstream.md | G-079 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-076 |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-7 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-7 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-7 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-6 open -> met |
-| 2026-05-08 | human/peter | promote | aiwf promote M-076/AC-6 --phase green -> done |
 
