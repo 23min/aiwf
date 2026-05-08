@@ -4,28 +4,7 @@ _192 entities · 0 errors · 11 warnings · run `aiwf check` for details_
 
 ## In flight
 
-### E-20 — Add list verb (closes G-061) _(active)_
-
-- ✓ **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(done)_ — ACs 9/9 met — tdd: required
-- ✓ **M-073** — aiwf-list skill, aiwf-status skill tightening _(done)_ — ACs 5/5 met — tdd: advisory
-- ✓ **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(done)_ — ACs 11/11 met — tdd: required
-
-```mermaid
-flowchart LR
-  E_20["E-20<br/>Add list verb (closes G-061)"]:::epic_active
-  M_072["M-072 (9/9)<br/>aiwf list verb, status filter-helper refactor, contract-skill drift fix"]:::ms_done
-  E_20 --> M_072
-  M_073["M-073 (5/5)<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_done
-  E_20 --> M_073
-  M_074["M-074 (11/11)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_done
-  E_20 --> M_074
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
+_(no active epics)_
 
 ## Roadmap
 
@@ -125,9 +104,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-074 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-11 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-11 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-11 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-10 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-10 --phase green -> done |
 
