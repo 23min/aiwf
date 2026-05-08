@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-4
       title: aiwf-status skill body redirects to aiwf list for tree queries
-      status: open
+      status: met
     - id: AC-5
       title: Both skills materialize via aiwf init and aiwf update
       status: open
