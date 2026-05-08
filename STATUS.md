@@ -122,9 +122,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-073 draft -> in_progress |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-8 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-8 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-8 --phase red -> green |
-| 2026-05-09 | human/peter | add | aiwf add gap G-086 'docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file' |
 
