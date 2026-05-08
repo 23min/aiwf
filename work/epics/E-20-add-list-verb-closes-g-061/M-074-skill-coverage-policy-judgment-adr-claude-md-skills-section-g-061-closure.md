@@ -45,6 +45,10 @@ acs:
       title: G-061 promoted to terminal status with closing commit citing this epic
       status: open
       tdd_phase: red
+    - id: AC-11
+      title: G-085 doc-sweep and gap closure
+      status: open
+      tdd_phase: red
 ---
 
 # M-074 — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure
@@ -158,3 +162,6 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 ## Reviewer notes
 
 - (filled at wrap)
+
+### AC-11 — G-085 doc-sweep and gap closure
+

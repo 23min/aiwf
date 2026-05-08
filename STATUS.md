@@ -8,7 +8,7 @@ _188 entities · 0 errors · 9 warnings · run `aiwf check` for details_
 
 - → **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(in_progress)_ — ACs 0/9 met (9 open) — tdd: required
 - **M-073** — aiwf-list skill, aiwf-status skill tightening _(draft)_ — ACs 0/5 met (5 open) — tdd: advisory
-- **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(draft)_ — ACs 0/10 met (10 open) — tdd: required
+- **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(draft)_ — ACs 0/11 met (11 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
   E_20 --> M_072
   M_073["M-073 (0/5)<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_draft
   E_20 --> M_073
-  M_074["M-074 (0/10)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_draft
+  M_074["M-074 (0/11)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_draft
   E_20 --> M_074
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
