@@ -13,8 +13,9 @@ import (
 // the six verb skills from session 3, aiwf-status (added on
 // poc/aiwf-rename-skills), aiwf-contract (added in I1.8 of the
 // contracts plan), aiwf-authorize (added in I2.5), aiwf-render
-// (added with the v0.2.0 HTML render), and aiwf-edit-body (added
-// in M-058 of E-15).
+// (added with the v0.2.0 HTML render), aiwf-edit-body (added in
+// M-058 of E-15), and aiwf-retitle (added in M-077 of E-22 for the
+// title-mutation verb that closes G-065).
 func TestList_AllShippedSkillsPresent(t *testing.T) {
 	skills, err := List()
 	if err != nil {
@@ -24,7 +25,7 @@ func TestList_AllShippedSkillsPresent(t *testing.T) {
 	for i, s := range skills {
 		got[i] = s.Name
 	}
-	want := []string{"aiwf-add", "aiwf-authorize", "aiwf-check", "aiwf-contract", "aiwf-edit-body", "aiwf-history", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-render", "aiwf-status"}
+	want := []string{"aiwf-add", "aiwf-authorize", "aiwf-check", "aiwf-contract", "aiwf-edit-body", "aiwf-history", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-render", "aiwf-retitle", "aiwf-status"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d skills, want %d (%v vs %v)", len(got), len(want), got, want)
 	}
