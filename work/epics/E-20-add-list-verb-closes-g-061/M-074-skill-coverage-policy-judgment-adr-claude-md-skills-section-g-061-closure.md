@@ -47,7 +47,7 @@ acs:
       tdd_phase: done
     - id: AC-11
       title: G-085 doc-sweep and gap closure
-      status: open
+      status: met
       tdd_phase: done
 ---
 
