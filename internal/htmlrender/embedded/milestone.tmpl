@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Milestone.ID}} — {{.Milestone.Title}}</title>
+<link rel="stylesheet" href="{{cssHref}}">
+</head>
+<body>
+<div class="layout">
+{{template "sidebar" .Sidebar}}
+<main>
+<nav>
+<a href="index.html">← index</a>
+{{- if .ParentEpic}} · <a href="{{.ParentEpic.FileName}}">{{.ParentEpic.ID}}</a>{{end}}
+</nav>
+<p class="kicker">milestone · {{.Milestone.ID}}{{if .ParentEpic}} · {{.ParentEpic.ID}}{{end}}</p>
+<h1>{{.Milestone.Title}}</h1>
+<p>
+<span class="status status-{{.Milestone.Status}}">{{.Milestone.Status}}</span>
+{{- if .Milestone.TDD}} · <span class="tdd tdd-{{.Milestone.TDD}}">tdd: {{.Milestone.TDD}}</span>{{end}}
+ · <span class="ac-rollup">ACs: {{.ACMet}}/{{.ACTotal}}</span>
+</p>
+
+<nav class="tabs">
+<a href="#tab-overview" class="tab tab-overview">Overview</a>
+<a href="#tab-manifest" class="tab tab-manifest">Manifest</a>
+<a href="#tab-build" class="tab tab-build">Build</a>
+<a href="#tab-tests" class="tab tab-tests">Tests</a>
+<a href="#tab-commits" class="tab tab-commits">Commits</a>
+<a href="#tab-provenance" class="tab tab-provenance">Provenance</a>
+</nav>
+
+<section data-tab="overview" id="tab-overview">
+<h2>Overview</h2>
+{{- with index .Body "goal"}}
+<h3>Goal</h3>
+{{markdown .}}
+{{- end}}
+{{- if .LinkedDecisions}}
+<h3>Linked decisions</h3>
+<ul class="linked">
+{{- range .LinkedDecisions}}
+<li><a href="{{.FileName}}">{{.ID}}</a> — {{.Title}}</li>
+{{- end}}
+</ul>
+{{- end}}
+</section>
+
+<section data-tab="manifest" id="tab-manifest">
+<h2>Manifest — Acceptance criteria</h2>
+{{- if .ACs}}
+{{- range .ACs}}
+<section class="ac" id="{{.Anchor}}">
+<h3>{{.ID}} — {{.Title}}</h3>
+<p>
+<span class="status status-{{.Status}}">{{.Status}}</span>
+{{- if .TDDPhase}} · <span class="phase phase-{{.TDDPhase}}">phase: {{.TDDPhase}}</span>{{end}}
+</p>
+{{- if .Description}}
+{{markdown .Description}}
+{{- end}}
+</section>
+{{- end}}
+{{- else}}
+<p>No ACs yet.</p>
+{{- end}}
+</section>
+
+<section data-tab="build" id="tab-build">
+<h2>Build — TDD timeline per AC</h2>
+{{- if .ACs}}
+{{- range .ACs}}
+<section class="build-ac">
+<h3><a href="#{{.Anchor}}">{{.ID}}</a> — {{.Title}}</h3>
+{{- if .Phases}}
+<ol class="phases">
+{{- range .Phases}}
+<li>
+<span class="phase phase-{{.Phase}}">{{.Phase}}</span>
+<span class="date">{{.Date}}</span>
+{{- if .Forced}} <span class="forced">forced</span>{{end}}
+{{- if .Tests}} <span class="tests">tests: pass={{.Tests.Pass}} fail={{.Tests.Fail}} skip={{.Tests.Skip}}</span>{{end}}
+{{- if .Reason}} <span class="reason">{{.Reason}}</span>{{end}}
+</li>
+{{- end}}
+</ol>
+{{- else}}
+<p class="empty">No phase events recorded.</p>
+{{- end}}
+</section>
+{{- end}}
+{{- else}}
+<p>No ACs yet.</p>
+{{- end}}
+</section>
+
+<section data-tab="tests" id="tab-tests">
+<h2>Tests
+<span class="policy {{if .TestsPolicy.Strict}}policy-strict{{else}}policy-advisory{{end}}">
+{{- if .TestsPolicy.Strict}}strict{{else}}advisory{{end -}}
+</span>
+</h2>
+{{- if .ACs}}
+<table class="tests-table">
+<thead><tr><th>AC</th><th>Phase</th><th>Pass</th><th>Fail</th><th>Skip</th></tr></thead>
+<tbody>
+{{- range .ACs}}
+<tr>
+<td><a href="#{{.Anchor}}">{{.ID}}</a></td>
+<td>{{if .TDDPhase}}{{.TDDPhase}}{{else}}—{{end}}</td>
+{{- if .Tests}}
+<td>{{.Tests.Pass}}</td><td>{{.Tests.Fail}}</td><td>{{.Tests.Skip}}</td>
+{{- else if eq .TDDPhase "done"}}
+<td colspan="3" class="missing">{{if $.TestsPolicy.Strict}}required, missing{{else}}no metrics recorded{{end}}</td>
+{{- else}}
+<td colspan="3" class="empty">—</td>
+{{- end}}
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- else}}
+<p>No ACs yet.</p>
+{{- end}}
+</section>
+
+<section data-tab="commits" id="tab-commits">
+<h2>Commits</h2>
+{{- if .Commits}}
+<table class="commits">
+<thead><tr><th>Date</th><th>Verb</th><th>Detail</th><th>Actor</th></tr></thead>
+<tbody>
+{{- range .Commits}}
+<tr>
+<td>{{.Date}}</td>
+<td>{{.Verb}}{{if .To}} → {{.To}}{{end}}</td>
+<td>{{.Detail}}</td>
+<td>{{if .Principal}}{{.Principal}} via {{end}}{{.Actor}}</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- else}}
+<p>No aiwf commits on this milestone yet.</p>
+{{- end}}
+</section>
+
+<section data-tab="provenance" id="tab-provenance">
+<h2>Provenance</h2>
+{{- if .Provenance.Scopes}}
+<h3>Scopes</h3>
+<table class="scopes">
+<thead><tr><th>SHA</th><th>Agent</th><th>Principal</th><th>Opened</th><th>Ended</th><th>State</th><th>Events</th></tr></thead>
+<tbody>
+{{- range .Provenance.Scopes}}
+<tr>
+<td><code>{{.AuthSHA}}</code></td>
+<td>{{.Agent}}</td>
+<td>{{.Principal}}</td>
+<td>{{.Opened}}</td>
+<td>{{if .EndedAt}}{{.EndedAt}}{{else}}—{{end}}</td>
+<td><span class="scope-state scope-state-{{.State}}">{{.State}}</span></td>
+<td>{{.EventCount}}</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- else}}
+<p>No authorized scopes on this milestone.</p>
+{{- end}}
+{{- if .Provenance.Timeline}}
+<h3>Timeline</h3>
+<ol class="timeline">
+{{- range .Provenance.Timeline}}
+<li>
+<span class="date">{{.Date}}</span>
+<span class="verb">{{.Verb}}{{if .To}} → {{.To}}{{end}}</span>
+<span class="actor">{{if .Principal}}{{.Principal}} via {{end}}{{.Actor}}</span>
+{{- if .AuthorizedBy}} <span class="scope-chip">scope <code>{{slice .AuthorizedBy 0 8}}</code></span>{{end}}
+{{- if .Force}} <span class="force">forced{{if .ForceReason}}: {{.ForceReason}}{{end}}</span>{{end}}
+{{- if .AuditOnly}} <span class="audit">audit-only{{if .AuditReason}}: {{.AuditReason}}{{end}}</span>{{end}}
+{{- if .ScopeEnds}} <span class="scope-end">scope ended</span>{{end}}
+</li>
+{{- end}}
+</ol>
+{{- end}}
+</section>
+
+</main>
+</div>
+</body>
+</html>

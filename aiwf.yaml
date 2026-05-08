@@ -1,0 +1,24 @@
+# aiwf consumer-repo config. Append top-level keys (e.g. html: { commit_output: true })
+# to opt into framework features. See `aiwf doctor` and the README for the full list.
+
+tree:
+  # The aiwfx-wrap-epic ritual creates `work/epics/E-NN-<slug>/wrap.md` per
+  # closed epic — a non-entity documentation artefact carrying the epic's
+  # closure record (milestones delivered, ADRs ratified, follow-ups
+  # carried forward). The kernel's tree-shape rule does not recognize
+  # `wrap.md` as an entity file shape, so without this exemption every
+  # closed epic produces an `unexpected-tree-file` warning. The exemption
+  # is narrow: only `wrap.md` directly under an epic directory; the
+  # ritual writes it nowhere else. First exemption added at E-17 wrap.
+  allow_paths:
+    - work/epics/*/wrap.md
+
+doctor:
+  # Claude Code plugins this repo expects operators to have installed
+  # for the project scope. `aiwf doctor` warns once per missing entry
+  # (M-070). Installation is the operator's responsibility — see
+  # CLAUDE.md "Operator setup" for the install commands. Closes G-064
+  # (kernel-repo dogfooding) via M-071 (E-18).
+  recommended_plugins:
+    - aiwf-extensions@ai-workflow-rituals
+    - wf-rituals@ai-workflow-rituals

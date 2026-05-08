@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Epic.ID}} — {{.Epic.Title}}</title>
+<link rel="stylesheet" href="{{cssHref}}">
+</head>
+<body>
+<div class="layout">
+{{template "sidebar" .Sidebar}}
+<main>
+<nav><a href="index.html">← index</a></nav>
+<p class="kicker">epic · {{.Epic.ID}}</p>
+<h1>{{.Epic.Title}}</h1>
+<p>
+<span class="status status-{{.Epic.Status}}">{{.Epic.Status}}</span>
+ · <span class="ac-rollup">ACs: {{.ACMet}}/{{.ACTotal}}</span>
+</p>
+
+{{- with index .Body "goal"}}
+<section class="goal">
+<h2>Goal</h2>
+{{markdown .}}
+</section>
+{{- end}}
+{{- with index .Body "scope"}}
+<section class="scope">
+<h2>Scope</h2>
+{{markdown .}}
+</section>
+{{- end}}
+{{- with index .Body "out_of_scope"}}
+<section class="out-of-scope">
+<h2>Out of scope</h2>
+{{markdown .}}
+</section>
+{{- end}}
+
+<h2>Milestones</h2>
+{{- if .Milestones}}
+<table class="milestones">
+<thead><tr><th>Id</th><th>Title</th><th>Status</th><th>TDD</th><th>ACs met</th></tr></thead>
+<tbody>
+{{- range .Milestones}}
+<tr>
+<td><a href="{{.FileName}}">{{.ID}}</a></td>
+<td>{{.Title}}</td>
+<td><span class="status status-{{.Status}}">{{.Status}}</span></td>
+<td>{{if .TDD}}{{.TDD}}{{else}}—{{end}}</td>
+<td>{{.ACMet}}/{{.ACTotal}}</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- else}}
+<p>No milestones yet.</p>
+{{- end}}
+
+{{- if .DependencyDAG}}
+<h2>Dependency DAG</h2>
+<ul class="dag">
+{{- range .DependencyDAG}}
+<li>{{.From}} → {{.To}}</li>
+{{- end}}
+</ul>
+{{- end}}
+
+{{- if .LinkedEntities}}
+<h2>Linked entities</h2>
+<ul class="linked">
+{{- range .LinkedEntities}}
+<li><a href="{{.FileName}}">{{.ID}}</a> — {{.Title}} <span class="kind">{{.Kind}}</span> <span class="dir">{{.Direction}}</span></li>
+{{- end}}
+</ul>
+{{- end}}
+
+{{- if .History}}
+<h2>Recent activity</h2>
+<table class="history">
+<thead><tr><th>Date</th><th>Verb</th><th>Detail</th><th>Actor</th></tr></thead>
+<tbody>
+{{- range .History}}
+<tr>
+<td>{{.Date}}</td>
+<td>{{.Verb}}</td>
+<td>{{.Detail}}</td>
+<td>{{if .Principal}}{{.Principal}} via {{end}}{{.Actor}}</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- end}}
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="{{cssHref}}">
+</head>
+<body>
+<div class="layout">
+{{template "sidebar" .Sidebar}}
+<main>
+<p class="kicker">aiwf · governance</p>
+<h1>{{.Title}}</h1>
+<h2>Epics</h2>
+{{- if .Epics}}
+<table class="epics">
+<thead><tr><th>Id</th><th>Title</th><th>Status</th><th>Milestones</th><th>ACs met</th></tr></thead>
+<tbody>
+{{- range .Epics}}
+<tr>
+<td><a href="{{.FileName}}">{{.ID}}</a></td>
+<td>{{.Title}}</td>
+<td><span class="status status-{{.Status}}">{{.Status}}</span></td>
+<td>{{.MilestoneCount}}</td>
+<td>{{.ACMet}}/{{.ACTotal}}</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- else}}
+<p>No epics yet.</p>
+{{- end}}
+{{- if or .FindingCounts.Errors .FindingCounts.Warnings}}
+<p class="findings">Findings: {{.FindingCounts.Errors}} error(s), {{.FindingCounts.Warnings}} warning(s).</p>
+{{- end}}
+</main>
+</div>
+</body>
+</html>

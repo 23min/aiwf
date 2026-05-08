@@ -1,112 +1,443 @@
-# ai-workflow
+# aiwf — a small experimental framework for AI-assisted project tracking
 
-> Design research and an experimental PoC for AI-assisted software engineering with structured planning state in the repo.
+> This repo carries the `aiwf` implementation alongside the design research that motivates it (see [`docs/research/`](docs/research/) and [`docs/working-paper.md`](docs/working-paper.md)).
 
-This repository is two things at once: a body of design research that worked through what an "AI workflow framework" should actually be, and a small working PoC that puts the lightest plausible answer to the test.
+## The problem
 
-## Who this is for
+When a human and an AI assistant work on a software project together over many sessions, the planning state ends up scattered: a goal in one chat, a half-decision in another, a task list in a Notion page, an ADR in a wiki. The next session — or the next person, or the next AI — cannot reliably see what was planned, what was decided, what was started, what was paused, what was abandoned, or *why*. Renames and re-numbers break references. "Done" is whatever the last conversation claimed.
 
-This is a record of one developer thinking through what AI-assisted software work actually needs, and trying to build the smallest plausible answer. The writing is aimed at solo practitioners and small teams who are working through the same problems on their own projects, with adjacent readers — technical project managers, tech leads, builders of AI-coding tools, spec-driven-development practitioners — welcome to sit in. It is not a finished framework, not a recommendation for large or regulated teams, and not a sales pitch; it is a thinking-in-public exercise that will either ship something useful or pivot into a clearer understanding of why something else is the better answer.
+Most existing tools optimise for one of those concerns and ignore the others. Issue trackers manage tasks but not decisions; ADR repos record decisions but not progress; AI assistants summarise but don't enforce. None of them treat the project's planning state as something the working repo itself can carry, version, and validate.
 
-**Single-document entry point:** [`docs/working-paper.md`](docs/working-paper.md) is a thesis-style synthesis of the research arc. Read it instead of (or before) the numbered docs in `docs/research/` if you want one document rather than thirteen.
+## How aiwf addresses it
 
----
+`aiwf` keeps the planning state inside the consumer repo as plain markdown files with YAML frontmatter — six entity kinds (epic, milestone, ADR, gap, decision, contract), each with a closed status set and a stable id that survives rename, re-number, and merge collisions. The framework is a single Go binary that:
 
-## Why this repo exists
+- **Allocates ids and creates entities** with the right shape (`aiwf add`).
+- **Enforces legal status transitions** per kind (`aiwf promote`, `aiwf cancel`).
+- **Preserves identity across renames and re-numbers** (`aiwf rename`, `aiwf reallocate`), rewriting references in other entities and producing exactly one git commit per mutation.
+- **Validates the whole tree** (`aiwf check`) — uniqueness, references, status validity, cycles, frontmatter shape — and reports findings as `path:line: severity code: message — hint: <action>`.
+- **Hooks itself into `git push`** (`aiwf init`) so an inconsistent tree never reaches the remote.
+- **Reads the lifecycle from `git log`** (`aiwf history <id>`) via structured commit trailers; no separate event log.
 
-AI-assisted software development has changed what "tracking the work" means. The AI helps plan, design, code, and decide — but it does so across stateless sessions, often on partial context, and without a consistent place to consult what was already settled. Existing approaches cover parts of the problem and miss others: external project-management tools (Linear, Jira, GitHub Projects) keep planning state out of the AI's working set; ADRs alone are too thin for evolving plans; ad-hoc in-repo conventions vary across teams and degrade as work scales.
+Markdown files are the source of truth; `git log` is the audit trail; `aiwf check` is the validator. No server, no API key, no separate database. The framework is deliberately minimal: it does not try to be a project-management tool, and the AI host (Claude Code at the moment) sees the planning state through materialized skills, not a custom protocol.
 
-Concrete symptoms we have hit repeatedly:
-
-- The AI re-plans from scratch each session because it cannot find the current plan.
-- Renaming or rescoping a milestone silently breaks references elsewhere in the repo.
-- Switching branches changes the rules the AI thinks it should follow.
-- Decisions get re-litigated because no one knows whether something was already settled.
-- Plans drift faster than they're recorded, and structural state quietly desynchronizes from the code it claims to describe.
-
-The research in this repo takes the problem seriously: what should an AI-aware planning framework actually be, given that the AI is now half the team and that git is already a state-management system? The PoC is the smallest concrete answer the research could justify — a place to validate the ideas in working code on real projects rather than only on paper.
-
----
-
-## The research
-
-`docs/research/` contains an arc of documents (`KERNEL.md`, `0-introduction.md`, then `00`–`11`) that walk through the load-bearing problems and how they interact:
-
-- How a totally-ordered event log fights git's branching model.
-- Whether the framework should reinvent state management or let git be the time machine.
-- Whether a framework is needed at all, or whether ADRs plus a discipline are enough.
-- Where discipline can live so it does not depend on the LLM remembering to enforce it.
-- Where governance and provenance UX belong, and how the project-shape spectrum (solo↔team, short↔long, regulated↔not) shapes what's needed.
-- Where state lives — in repo, outside, or layered — and which model is more successful.
-- A concrete PoC build plan that survives all of the above.
-
-The conclusions are distilled into [`docs/research/KERNEL.md`](docs/research/KERNEL.md) (the eight things the framework needs to do and the cross-cutting properties any solution must respect) and [`docs/research/06-poc-build-plan.md`](docs/research/06-poc-build-plan.md) (the smallest concrete shape that delivers them at solo + short-horizon scale).
-
-For visitors who want a single synthesized document, [`docs/working-paper.md`](docs/working-paper.md) is the thesis-style version of the same argument. For visitors who want to follow the trajectory, read `KERNEL.md` first, then skim `06-poc-build-plan.md`; the numbered docs in between are the intermediate reasoning.
-
----
-
-## What we've learned
-
-Six conclusions distilled from the research arc — each is the answer to a question we did not have a settled answer to when we started:
-
-- **An append-only, totally-ordered event log fights git's branching model.** We walked back from the original event-sourced architecture; the merge story does not work cleanly at any scale.
-- **Markdown is the source of truth; git is the time machine.** No separate event log file, no graph projection file, no hash chain. Structured commit trailers make `git log` queryable per entity.
-- **Yes, a framework is needed — but a much smaller one than originally scoped.** ADRs plus a discipline is too thin; an event-sourced kernel is too thick. The right shape is a small validator plus a few verbs that produce well-shaped commits.
-- **Enforcement must live where the LLM cannot skip it.** Skills are advisory; the LLM may not invoke them. The pre-push git hook and `aiwf check` are authoritative. A guarantee that depends on the LLM remembering is not a guarantee.
-- **State must be layered.** Engine binary external (machine-installed). Per-project policy and planning state in-repo. Materialized AI skill adapters in-repo but gitignored, regenerated only on explicit `aiwf init` / `aiwf update`. Each layer lives where its constraints are best served.
-- **Referential stability is achievable; semantic stability of prose is not.** The framework guarantees that ids like `E-19` keep meaning the same entity through rename, cancel, and collision. It does not pretend to guarantee that the meaning of the prose stays fixed; that is a property of human and AI understanding.
-
-The full arguments live in `docs/research/`.
-
----
-
-## The PoC
-
-**Why now:** the conclusions above are settled enough on paper that more documents will not strengthen them. What strengthens them is working code we can use on real projects and learn from. We want to validate the core ideas with a few focused sessions of implementation rather than committing months of engineering to the more ambitious original design. Real friction will tell us what to add next; nothing else is committed to in advance.
-
-The PoC is a deliberately minimal expression of the kernel. It lives on the branch [`poc/aiwf-v3`](../../tree/poc/aiwf-v3):
-
-- A single Go binary `aiwf`, installed via `go install`.
-- Six entity kinds — epic, milestone, ADR, gap, decision, contract — each with a closed status set.
-- Stable ids (`E-01`, `M-001`, `ADR-0001`, `G-001`, `D-001`, `C-001`) that survive rename, cancel, and collision.
-- A small `aiwf check` validator that runs as a pre-push git hook.
-- Skills materialized into the consumer repo's `.claude/skills/` directory and gitignored, regenerated only on explicit `aiwf init` / `aiwf update`.
-- No event log, no graph projection, no CRDTs, no module system, no registry, no multi-host adapters — yet.
-
-The intent is to validate concepts quickly, iterate from there, and not paint ourselves into a corner. Decisions made in the PoC are deliberately reversible: the PoC branch is not planned to merge back to `main`, so a future redesign is free to take a different shape without paying for the PoC's choices.
-
-**On forward compatibility:** if you adopt the PoC and we later build a successor framework, your repository will still be readable. The PoC's on-disk format (markdown files with frontmatter, a conventional directory layout, and structured commit trailers in `git log`) is simple enough that a future framework can import a PoC-shaped repo mechanically — even if that future framework takes a different internal shape. The door to a backwards-compatible successor is left explicitly open; the PoC is not a dead end for repositories that adopt it.
-
----
-
-## Layout
-
-```text
-docs/
-├── working-paper.md         # thesis-style synthesis of the research arc — single-document entry point
-├── research/                # the design arc — full reasoning across the numbered documents
-│   ├── KERNEL.md
-│   ├── 00-fighting-git.md
-│   ├── 01-git-native-planning.md
-│   ├── 02-do-we-need-this.md
-│   ├── 03-discipline-where-the-llm-cant-skip-it.md
-│   ├── 04-governance-provenance-and-the-pre-pr-tier.md
-│   ├── 05-where-state-lives.md
-│   └── 06-poc-build-plan.md
-├── architecture.md          # earlier design (preserved as historical context)
-└── build-plan.md            # earlier build sequence (likewise)
-ROADMAP.md                   # earlier stage list (likewise)
-tools/                       # source for the PoC binary (active development on poc/aiwf-v3)
-```
-
-The earlier `architecture.md`, `build-plan.md`, and `ROADMAP.md` describe a more ambitious design (event-sourced kernel with hash-verified projections) that the research walked back. They are preserved because the reasoning is useful and a future version of the framework may revisit pieces of it. See [`docs/research/00-fighting-git.md`](docs/research/00-fighting-git.md) for why the original direction was reconsidered.
+For the lifecycle diagrams and the per-kind state machines, see [`docs/pocv3/overview.md`](docs/pocv3/overview.md). For worked walk-throughs of typical sessions and example AI prompts, see [`docs/pocv3/workflows.md`](docs/pocv3/workflows.md). For the design closure that produced this shape, see [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md). The historical session/iteration narrative is archived at [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md); current in-flight work lives in the entity tree under `work/` (run `aiwf status`).
 
 ---
 
 ## Status
 
-Pre-alpha. The PoC branch is being built; nothing is published yet. Not recommended for production use, or any use, at present.
+| Phase | Status | What shipped |
+|---|---|---|
+| Session 1 — Foundations and `aiwf check` | ✅ done | Frontmatter parser, tree loader, validators, JSON + text output, exit codes, fixture-driven integration test. |
+| Session 2 — Mutating verbs and trailers | ✅ done | `aiwf add` (all six kinds), `promote`, `cancel`, `rename`, `reallocate`. Validate-then-write contract; structured commit trailers; `aiwf-prior-entity:` on reallocate. |
+| Session 3 — Skills, history, hooks | ✅ done | `aiwf init`, `update`, `history`, `doctor`, materialized Claude Code skills, pre-push hook. |
+| Session 4 — Polish for real use | ✅ done | `aiwf render roadmap`, `aiwf doctor --self-check`, polished error output (`file:line` + hints), workflows walk-through. |
+| Session 5 — Adoption surface | ✅ done | `aiwf import` (YAML/JSON manifests), `--dry-run`, `--skip-hook`, brownfield migration guide. |
+| Iteration I1 — Contracts | ✅ done | Contract bindings in `aiwf.yaml`; verify + evolve passes; recipes for CUE / JSON Schema; `aiwf contract bind/unbind/verify`, `aiwf contract recipe …`. |
+| Iteration I2 — ACs + TDD | ✅ done | Acceptance criteria as namespaced milestone sub-elements (`M-NNN/AC-N`); TDD phase tracking; `aiwf show`, AC-related check rules. |
+| Iteration I2.5 — Provenance | ✅ done | Runtime-derived identity, three-layer trailer set, scope FSM, `aiwf authorize` (open/pause/resume), `--audit-only`/`--force` recovery, pre-push trailer audit. |
+| Upgrade flow | ✅ done | `aiwf upgrade` verb, version-skew advisory rows in `aiwf doctor` (`--check-latest`), tagged releases via `go install …@vX.Y.Z`. |
+
+The framework is usable end-to-end today: `go install` → `aiwf init` in a target repo → drive entities with the verbs below. The pre-push hook wired in by `aiwf init` is the chokepoint that makes the framework's guarantees real.
+
+A live snapshot of the entity tree (in flight, roadmap, open decisions, open gaps, warnings, recent activity) is generated by `aiwf status --format=md` and committed at [`STATUS.md`](STATUS.md). `aiwf init` installs a pre-commit hook that regenerates the file on every commit so the snapshot stays in sync; opt out with `status_md.auto_update: false` in `aiwf.yaml` and re-run `aiwf update`.
+
+---
+
+## Install
+
+The fastest path is to let the Go toolchain fetch and build directly from the repo — no clone, no rebuild of any container, just one command:
+
+```bash
+go install github.com/23min/ai-workflow-v2/cmd/aiwf@latest
+```
+
+The binary lands in `$GOBIN` (defaults to `$GOPATH/bin`, typically `~/go/bin`). Make sure that directory is on `$PATH`.
+
+`@latest` resolves to the highest published semver tag via the Go module proxy. Pin to a specific release for reproducible installs (e.g. in CI):
+
+```bash
+go install github.com/23min/ai-workflow-v2/cmd/aiwf@v0.1.0
+```
+
+Or to a specific commit SHA when running from an unreleased branch:
+
+```bash
+go install github.com/23min/ai-workflow-v2/cmd/aiwf@<sha>
+```
+
+### Prerequisites
+
+- **Go 1.22+** in the environment running the install. Verify with `go version`.
+- **`$HOME/go/bin` (or `$GOBIN`) on `$PATH`.** Verify with `command -v aiwf` after install.
+- **Network access to GitHub.** If you're offline or behind a proxy without GitHub access, fall back to the clone path below.
+
+### Alternate: clone-and-install
+
+If you want a local checkout to read or modify the source:
+
+```bash
+git clone https://github.com/23min/ai-workflow-v2 && cd ai-workflow-v2
+make install                                                # embeds branch + short SHA in --version
+```
+
+`make install` is preferred over `go install ./cmd/aiwf` because it embeds the current branch and short SHA into the binary via `-ldflags`, so `aiwf --version` later tells you exactly what's running. Plain `go install` works but leaves `--version` reporting `dev`.
+
+Distribution via brew/apt/scoop/winget will come if and when the project warrants it.
+
+### Shell completion
+
+`aiwf` ships native bash and zsh completion. Source the script in your shell rc:
+
+```bash
+# zsh — append to ~/.zshrc
+source <(aiwf completion zsh)
+
+# bash — append to ~/.bashrc (requires bash-completion v2)
+source <(aiwf completion bash)
+```
+
+After sourcing, `aiwf <TAB>` lists the verb catalog, `aiwf promote E-01 <TAB>` lists the kind's allowed statuses, `aiwf check --format=<TAB>` lists `text|json`, and so on. fish and powershell scripts are emitted by `aiwf completion fish` / `aiwf completion powershell` as well.
+
+---
+
+## Upgrade
+
+After the first install, the canonical upgrade path is one command:
+
+```bash
+aiwf upgrade
+```
+
+This runs `go install <pkg>@latest` and re-execs the new binary into `aiwf update` against the current consumer repo, refreshing every marker-managed artifact (skills, `.gitignore` entries, pre-push hook, pre-commit hook) in one shot. Add `--version vX.Y.Z` to pin a specific release; `--check` reports the current/target comparison without installing.
+
+### Upgrading from a pre-`v0.1.0` install
+
+The `aiwf upgrade` verb shipped in `v0.1.0`. If your installed binary predates that — installed via `go install …@poc/aiwf-v3` or pinned to a pre-release SHA — you don't have `aiwf upgrade` yet. One-time bootstrap:
+
+```bash
+go install github.com/23min/ai-workflow-v2/cmd/aiwf@latest
+aiwf update                                             # in each consumer repo
+```
+
+After that, every subsequent upgrade is just `aiwf upgrade`. To check what version you're on right now: `aiwf version` (or `aiwf doctor` and look at the `binary:` row).
+
+### Skew detection in `aiwf doctor`
+
+- `binary:` — the running version (always shown).
+- `pin:` — comparison against `aiwf.yaml`'s `aiwf_version:` field, when present (advisory).
+- `latest:` — comparison against the latest published version (opt-in via `aiwf doctor --check-latest`; one HTTP call to the Go module proxy; honors `GOPROXY=off`).
+
+All three rows are advisory — doctor never refuses to run on a version mismatch. The pin records intent; `aiwf upgrade` is the action.
+
+---
+
+## Quick start
+
+aiwf adoption is two steps: install the binary and install the companion rituals plugin.
+
+### 1. Install aiwf core
+
+In a consumer repository (or a fresh `mkdir + git init`):
+
+```bash
+git init -q && git config user.email you@example.com
+
+aiwf init                                                 # writes aiwf.yaml, scaffolds dirs, installs pre-push + pre-commit hooks, materializes skills
+aiwf add epic --title "Discovery and ramp-up"             # → E-01
+aiwf add milestone --epic E-01 --title "Map the system"   # → M-001
+aiwf add ac M-001 --title "Inventory complete"            # → M-001/AC-1
+aiwf promote M-001 in_progress
+aiwf rename M-001 system-survey
+aiwf add adr --title "Adopt OpenAPI 3.1"                  # → ADR-0001
+aiwf check                                                # validates the tree
+aiwf show M-001                                           # frontmatter + ACs + recent history + active findings
+aiwf history E-01                                         # show this entity's lifecycle from git log
+aiwf render roadmap                                       # markdown table of epics + milestones
+aiwf render --format=html                                 # static-site render: site/index.html + one page per epic/milestone (gitignored by default)
+aiwf status                                               # project snapshot (the same view STATUS.md carries)
+```
+
+Identity is derived from `git config user.email` (e.g., `you@example.com` becomes actor `human/you`); `--actor` overrides per invocation. Each mutating verb produces a single git commit with structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`, plus the I2.5 provenance set when relevant). The pre-push hook installed by `aiwf init` runs `aiwf check` on every push so an inconsistent tree never reaches the remote.
+
+### 2. Install the companion rituals plugin
+
+aiwf core is the planning data layer. The end-to-end workflow — milestone-lifecycle skills, the four role agents (planner, builder, reviewer, deployer), and templates — ships separately as a Claude Code plugin marketplace at [`23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals).
+
+In a Claude Code session inside the consumer repo:
+
+```
+/plugin marketplace add 23min/ai-workflow-rituals
+/plugin install aiwf-extensions@ai-workflow-rituals
+```
+
+Pick **Project** scope when Claude Code prompts — it commits `.claude/settings.json` so collaborators on this repo get the same plugins on clone. Other projects on your machine using a different framework stay clean.
+
+Optional second plugin (generic engineering rituals — TDD cycle, code review, doc-lint; works with or without aiwf):
+
+```
+/plugin install wf-rituals@ai-workflow-rituals
+```
+
+You can skip the rituals plugin and use aiwf as a planning data store only — it works alone — but the workflow surface that turns aiwf into an end-to-end loop lives in that plugin.
+
+To verify your install works end-to-end, run `aiwf doctor --self-check` — it spins up a throwaway repo, drives every verb, and reports pass/fail per step.
+
+### Sample of `aiwf check` output
+
+When validation finds something, output is one finding per line in linter form: `path:line: severity code: message — hint: <action>`.
+
+```text
+work/epics/E-01-foo/M-001-bad.md:5: error refs-resolve/unresolved: milestone field "parent" references unknown id "E-99" — hint: check the spelling, or remove the reference if the target was deleted
+work/epics/E-01-foo/epic.md:4: error status-valid: status "bogus" is not allowed for kind epic (allowed: proposed, active, done, cancelled) — hint: use one of the allowed statuses listed above
+work/epics/E-01-foo/epic.md:3: warning titles-nonempty: title is empty or whitespace-only — hint: set a non-empty `title:` in the frontmatter
+
+3 findings (2 errors, 1 warnings)
+```
+
+Pipe through `--format=json` (with optional `--pretty`) when feeding CI. Exit codes: `0` clean, `1` errors found, `2` usage error, `3` internal error.
+
+### HTML render
+
+`aiwf render --format=html` produces a self-contained directory of HTML files: `index.html` (epics table with the `met / (total - cancelled)` AC rollup), one page per epic, and one page per milestone with six tabs (Overview, Manifest, Build, Tests, Commits, Provenance). A single embedded stylesheet ships alongside; no JS, no runtime, no external assets. Tab show/hide is `:target`-driven (with `:has()` to handle the default-tab fallback) so per-tab URLs (`M-007.html#tab-build`) are bookmarkable.
+
+The render covers two surfaces: the **governance** view (epics + milestones + ACs + provenance, one page per entity) and the **project status** view (in-flight work, open decisions, open gaps, recent activity). The status view replaces the markdown output of `aiwf status` for browser consumption — same data, same `buildStatus` helper.
+
+Configuration lives in `aiwf.yaml`:
+
+```yaml
+html:
+  out_dir: site            # default; relative to the repo root
+  commit_output: false     # default; framework-managed gitignore covers out_dir/
+```
+
+Set `commit_output: true` if you want to commit the rendered HTML (e.g., serving via `raw.githubusercontent.com`); the next `aiwf init` or `aiwf update` removes the gitignore line. Most projects publish via CI instead — see [`docs/pocv3/plans/governance-html-plan.md`](docs/pocv3/plans/governance-html-plan.md) §2 for the four deployment patterns (local, GitHub Pages artifact, `gh-pages` branch, committed-to-source).
+
+The output is a pure function of the planning tree: render twice into separate directories and the files compare byte-equal.
+
+---
+
+## Verbs
+
+`aiwf help` is the up-to-date catalog; the table below summarises the surface as of the current release. 22 verbs total (counting `aiwf contract …` and `aiwf contract recipe …` as families).
+
+**Setup and lifecycle:**
+
+| Verb | Purpose |
+|---|---|
+| `aiwf init` | First-time setup: write `aiwf.yaml`, scaffold planning dirs, then run the same refresh pipeline `aiwf update` calls. Idempotent. |
+| `aiwf update` | Refresh every marker-managed framework artifact the consumer is opted into: `.claude/skills/aiwf-*`, `.gitignore` patterns, `.git/hooks/pre-push`, and `.git/hooks/pre-commit` (gated on `status_md.auto_update`). The artifact-refresh verb. |
+| `aiwf upgrade` | Fetch a newer aiwf binary via `go install` and re-exec into `aiwf update`. Default target is `@latest` from the Go module proxy; `--version vX.Y.Z` pins. `--check` reports the current/target comparison without installing. |
+| `aiwf doctor` | Self-diagnostics: binary version, skill drift, id-collision health, version-skew advisories (binary, pin, latest). `--self-check` drives every verb against a throwaway repo; `--check-latest` adds the opt-in module-proxy lookup. |
+| `aiwf whoami` | Print the resolved actor and the source it came from (typically `git config user.email`). |
+
+**Mutate planning state:**
+
+| Verb | Purpose |
+|---|---|
+| `aiwf add <kind>` | Allocate id and create the entity. Kinds: `epic`, `milestone`, `adr`, `gap`, `decision`, `contract`. Composite-id `aiwf add ac M-NNN` for AC sub-elements. |
+| `aiwf promote <id> <status>` | Transition status; rejected if the transition is illegal for the kind's FSM. Composite ids (`M-NNN/AC-N`) accepted. `--phase` for AC `tdd_phase`. `--reason "…"` records intent; `--force --reason "…"` skips the FSM. |
+| `aiwf cancel <id>` | Set status to the kind's terminal-cancel value (`cancelled`/`wontfix`/`rejected`/`retired`). |
+| `aiwf rename <id> <new-slug>` | `git mv` to a new slug; the id is preserved. Composite ids accepted (rewrites the AC body heading). |
+| `aiwf move <M-id> --epic <E-id>` | Move a milestone to a different epic; id preserved. |
+| `aiwf reallocate <id\|path>` | Renumber an entity (recovery from a merge collision); rewrites references in other entities. |
+| `aiwf import <manifest>` | Bulk-create entities from a YAML/JSON manifest; one atomic commit by default. |
+| `aiwf authorize <id> --to <agent>` | Open a typed scope authorising autonomous (LLM) work on `<id>` for `<agent>`. `--pause "<reason>"` / `--resume "<reason>"` cycle the scope. Human-only. |
+
+**Read planning state:**
+
+| Verb | Purpose |
+|---|---|
+| `aiwf check` | Validate the tree and report findings. |
+| `aiwf history <id>` | Render `git log` filtered for the entity's structured trailers; dual-matches reallocate's old/new id; matches AC composite ids under a milestone. |
+| `aiwf show <id>` | Aggregate view: frontmatter + ACs + recent history + active findings + `referenced_by`. Composite ids accepted. |
+| `aiwf status` | Project snapshot: in-flight work, open decisions, gaps, recent activity. Same data the auto-updated `STATUS.md` shows. |
+| `aiwf render roadmap` | Markdown table of epics + milestones. `--write` updates `ROADMAP.md` and commits. |
+| `aiwf render --format=html` | Static-site governance render: `index.html` + one HTML per epic and milestone, plus an embedded stylesheet. Output dir defaults to `site/` (configurable via `aiwf.yaml.html.out_dir` or `--out`). Read-only — no commit. JSON envelope on stdout reports `out_dir / files_written / elapsed_ms`. |
+| `aiwf schema [kind]` | Print the frontmatter contract for one kind (or all six); machine-readable via `--format=json --pretty`. |
+| `aiwf template [kind]` | Print the body-section template `aiwf add` would scaffold. |
+
+**Contracts:**
+
+| Verb | Purpose |
+|---|---|
+| `aiwf contract verify` | Run the verify and evolve passes for every contract binding declared in `aiwf.yaml`. |
+| `aiwf contract bind <C-id>` | Add or replace a binding (`--validator`, `--schema`, `--fixtures`). |
+| `aiwf contract unbind <C-id>` | Remove a binding (entity status untouched). |
+| `aiwf contract recipes` | List embedded validator recipes plus currently declared validators. |
+| `aiwf contract recipe show \| install \| remove` | Manage validators: install from the embedded set or `--from <path>`; remove a declared validator (errors if bindings still reference it). |
+
+---
+
+## Common flags
+
+| Flag | Verbs | Default |
+|---|---|---|
+| `--root <path>` | every verb | walk up from cwd looking for `aiwf.yaml`, else cwd |
+| `--actor <role>/<id>` | mutating verbs | derived from `git config user.email` localpart (e.g., `human/peter`); flag overrides per invocation |
+| `--principal human/<id>` | mutating verbs | required when `--actor` is non-human (`ai/…`, `bot/…`); forbidden when `--actor` is `human/…` |
+| `--reason "<text>"` | `promote`, `cancel` | optional rationale, recorded as `aiwf-reason:` trailer |
+| `--force --reason "<text>"` | `promote`, `cancel` | bypass the FSM transition rule; human-only; reason required |
+| `--audit-only --reason "<text>"` | `promote`, `cancel` | record an empty-diff commit when the entity is already at the target state (G24 recovery); human-only |
+| `--format <fmt>` | `check`, `history`, `contract verify`, `schema`, `template`, `show` | `text` (alternative: `json`) |
+| `--pretty` | with `--format=json` | indented JSON |
+| `--write` | `render roadmap` | print to stdout (no commit); with `--write` updates `ROADMAP.md` and commits |
+| `--self-check` | `doctor` | run normal diagnostics; with `--self-check` drives every verb against a temp repo |
+| `--check-latest` | `doctor` | hit the Go module proxy for the latest published version (advisory; honors `GOPROXY=off`) |
+| `--check`, `--version vX.Y.Z` | `upgrade` | `--check`: print comparison and exit; `--version`: pin install target |
+| `--show-authorization` | `history` | include the full `aiwf-authorized-by:` SHA on scope-authorized rows (text format) |
+| `--dry-run` | `init`, `import` | report the would-be ledger / projection without writing |
+| `--skip-hook` | `init` | install everything except the pre-push hook |
+| `--on-collision <mode>` | `import` | `fail` (default) \| `skip` \| `update` |
+
+Verb-specific flags for `add`:
+
+| Flag | Kind |
+|---|---|
+| `--title "..."` | required for every kind |
+| `--epic <id>` | milestone (required) |
+| `--discovered-in <id>` | gap (optional) |
+| `--relates-to <id,id,...>` | decision (optional) |
+| `--linked-adr <id,id,...>` | contract (optional) |
+| `--validator <name> --schema <path> --fixtures <path>` | contract (optional triplet, atomic add+bind) |
+
+---
+
+## Repo layout
+
+`aiwf init` creates this layout in the consumer repo:
+
+```
+<consumer-repo>/
+├── aiwf.yaml                              # tiny config (~10 lines)
+├── work/
+│   ├── epics/
+│   │   └── E-NN-<slug>/
+│   │       ├── epic.md
+│   │       └── M-NNN-<slug>.md            # milestones live inside their epic
+│   ├── gaps/
+│   │   └── G-NNN-<slug>.md
+│   ├── decisions/
+│   │   └── D-NNN-<slug>.md
+│   └── contracts/
+│       └── C-NNN-<slug>/
+│           └── contract.md                # registry record only; schemas + fixtures referenced from aiwf.yaml
+├── docs/
+│   └── adr/
+│       └── ADR-NNNN-<slug>.md
+├── .claude/skills/aiwf-*/                 # gitignored; materialized by aiwf init/update
+└── STATUS.md                              # generated snapshot; opt out via aiwf.yaml status_md.auto_update
+```
+
+For the full kind/status/transition reference and the per-kind state-machine diagrams, see [`docs/pocv3/overview.md`](docs/pocv3/overview.md).
+
+---
+
+## Coexistence with your `.claude/`
+
+`aiwf` is designed to live alongside your own Claude Code setup — your own skills, agents, slash commands, output styles, and any other tooling you've configured. It uses a strict `aiwf-*` namespace and never touches anything outside it.
+
+**What aiwf writes:**
+
+- `.claude/skills/aiwf-*/SKILL.md` — ten skill files (`aiwf-add`, `aiwf-authorize`, `aiwf-check`, `aiwf-contract`, `aiwf-history`, `aiwf-promote`, `aiwf-reallocate`, `aiwf-render`, `aiwf-rename`, `aiwf-status`) materialized from the binary. Wiped and rewritten by `aiwf init` / `aiwf update`. New skills added in future binary versions land automatically on the next `aiwf update`.
+- `.gitignore` — appends a wildcard for the `aiwf-*` skill namespace plus the `.aiwf-owned` ownership manifest. Your other `.claude/` content is yours to commit or gitignore as you choose; `aiwf` does not gitignore the directory wholesale.
+- `aiwf.yaml`, `CLAUDE.md` — written only if absent. Existing files are preserved verbatim.
+- `.git/hooks/pre-push` — installed (or refreshed) by `aiwf init` and `aiwf update`. The hook carries an `# aiwf:pre-push` marker. If a non-marker hook is already in place, init **auto-migrates** it to `.git/hooks/pre-push.local`, then installs aiwf's chain-aware hook on top (G45). The chain runs `pre-push.local` first; on exit 0 it falls through to `aiwf check`. Your existing hook content keeps working byte-for-byte, just at the `.local` path. The exception: if a `pre-push.local` already exists when migration would write one, init refuses (won't clobber a deliberate `.local`) and asks you to merge content manually. The hook silently no-ops on branches or clones with no `aiwf.yaml` at the repo root, so brownfield migrations and pre-init checkouts aren't blocked from pushing.
+- `.git/hooks/pre-commit` — installed (or refreshed) by `aiwf init` and `aiwf update`, gated on `aiwf.yaml`'s `status_md.auto_update` (default `true`). The hook runs the tree-discipline gate and (when opted in) regenerates `STATUS.md` (a committed `aiwf status --format=md` snapshot) on every commit so anyone browsing the repo sees an up-to-date project view without needing to install aiwf. Same `# aiwf:pre-commit` marker, same auto-migration to `pre-commit.local` when a non-marker hook is found, same brownfield no-op when no `aiwf.yaml` is at the repo root. Set `status_md.auto_update: false` and re-run `aiwf update` to opt out — the regen step drops while the gate (and any `.local` chain) stays.
+
+**Hook chain semantics (G45):** the aiwf-managed hooks invoke `<hook-name>.local` (if present and executable) before running aiwf's own work. User-first ordering means your existing checks gate aiwf rather than the other way around. A `.local` that exists but is not executable fails loud — `aiwf doctor` flags it and the hook itself refuses to run silently around it (chmod +x to enable, or remove the file). `aiwf doctor` reports the chain shape per hook: absent (no suffix), present + executable (`chains to .git/hooks/<name>.local`), or present + non-executable (error).
+
+**What aiwf does *not* touch:**
+
+- Skills outside the `aiwf-*` namespace. Your own user-authored skills sit next to aiwf's and are never overwritten by `aiwf update`. Optional companion plugins (such as the planned [ai-workflow-rituals](https://github.com/23min/ai-workflow-rituals) marketplace, which uses the `aiwfx-*` and `wf-*` namespaces) are installed by Claude Code into separate plugin directories — they don't share `.claude/skills/` with aiwf core.
+- Anything under `.claude/agents/`, `.claude/commands/`, `.claude/output-styles/`, your `.claude/settings.json`, or any other path under `.claude/` outside `skills/aiwf-*/`.
+- An existing `CLAUDE.md`, `.gitignore`, or `aiwf.yaml`.
+- Anything outside the consumer repo. There are no writes to `~/.claude/`, no changes to your MCP server config, and no API settings touched.
+
+**Why the `aiwf-*` skills are gitignored.** The materialized skills are a derivable cache: `aiwf init` and `aiwf update` regenerate them byte-for-byte from the binary's embedded copies. Gitignoring the cache rather than committing it means teammates on different `aiwf` versions don't fight merge conflicts, an old `git checkout` doesn't drag stale skill text along with it, and the source of truth stays in the binary. `aiwf doctor` byte-compares the on-disk copies against the embedded ones and surfaces drift; `aiwf update` is the one-button restore.
+
+---
+
+## Validators (`aiwf check`)
+
+`aiwf check` runs on every invocation, and on every `git push` via the pre-push hook installed by `aiwf init`. The full list of finding codes is documented in the embedded `aiwf-check` skill (materialized at `.claude/skills/aiwf-check/SKILL.md`); the highlights:
+
+**Core (Sessions 1–2):**
+
+| Code | Severity | What it checks |
+|---|---|---|
+| `ids-unique` | error | No two entities share an id. |
+| `frontmatter-shape` | error | Required fields present; id format matches kind; per-kind required fields (e.g., milestone `parent`). |
+| `status-valid` | error | Status is in the kind's allowed set. |
+| `refs-resolve` | error | Every reference field resolves to an existing entity *of the right kind*. |
+| `no-cycles` | error | No cycles in `depends_on` (milestones) or the `supersedes`/`superseded_by` chain (ADRs). |
+| `id-path-consistent` | error | Path-encoded id matches the frontmatter id. |
+| `titles-nonempty` | warning | Every entity has a non-empty title. |
+| `adr-supersession-mutual` | warning | If A.superseded_by = B, then B.supersedes ⊇ {A}. |
+| `gap-resolved-has-resolver` | warning | A gap with status `addressed` has a non-empty `addressed_by`. |
+| `case-paths` | error | Two paths differ only in case (footgun on case-insensitive volumes). |
+| `load-error` | error | Frontmatter or file-load failure for an entity (with stub registration so referrers don't cascade). |
+
+**ACs + TDD (I2):** `acs-shape`, `acs-body-coherence`, `acs-tdd-audit`, `acs-transition`, `acs-title-prose`, `milestone-done-incomplete-acs`.
+
+**Contracts (I1):** `contract-config` with subcodes (`missing-entity`, `missing-schema`, `missing-fixtures`, `no-binding`, `path-escape`, `validator-unavailable`).
+
+**Provenance (I2.5):** `provenance-actor-malformed`, `provenance-principal-non-human`, `provenance-on-behalf-of-non-human`, `provenance-authorized-by-malformed`, `provenance-trailer-incoherent`, `provenance-authorization-missing`, `provenance-authorization-out-of-scope`, `provenance-authorization-ended`, `provenance-no-active-scope`, `provenance-force-non-human`, `provenance-audit-only-non-human`, `provenance-untrailered-entity-commit`.
+
+Each finding renders as `path:line: severity code[/subcode]: message — hint: <action>`. The `hint` is also exposed as `hint` in the `--format=json` envelope so downstream tools can surface it. The `aiwf-check` skill carries the full table of codes plus their fix-recipes.
+
+Exit codes: `0` no errors (warnings allowed), `1` errors found, `2` usage error, `3` internal error.
+
+---
+
+## Known limitations
+
+- **Filesystem case-sensitivity.** On case-insensitive volumes (default macOS APFS, Windows NTFS), two paths that differ only in case (`E-01-foo` vs `E-01-Foo`) refer to the same on-disk directory. `aiwf check` reports this as a `case-paths` finding so the issue surfaces at validation time rather than as silent data loss when a Linux-checked-in repo is reviewed on macOS. `aiwf doctor` prints whether the current volume is case-sensitive or case-insensitive.
+- **Concurrent invocations.** Two `aiwf` mutations on the same repo serialise via an exclusive POSIX flock on `<root>/.git/aiwf.lock`. The second invocation waits up to 2s, then returns a usage-error finding. Read-only verbs (`check`, `history`, `status`, `render` without `--write`, `doctor`) do not lock and remain free to run concurrently.
+- **Validator availability.** A configured contract validator binary missing from `PATH` is a warning by default, not a hard error — your teammate without `cue` installed shouldn't be blocked from a docs-only push. Set `aiwf.yaml`'s `contracts.strict_validators: true` to upgrade to error.
+- **Unix only.** The pre-push hook is a `#!/bin/sh` script and contract validators are invoked as POSIX subprocess commands. Windows is not in scope (yet).
+
+---
+
+## Beyond the current shape
+
+aiwf is deliberately self-contained: markdown files in the consumer repo, no server, no external sync. That is the right shape for proving the kernel works.
+
+The longer-term aspiration is a modular architecture where a *backend adapter* can connect the local entity model to an external PM system — GitHub Issues, Linear, Jira, Azure DevOps, etc. — so a team that lives partly in `aiwf` and partly in their existing tracker can have the two stay in step. The pieces the PoC has already committed to make this plausible without re-architecting:
+
+- **Closed-set entities with stable ids.** A milestone with id `M-007` is the obvious target for a sync adapter to map onto a Linear issue or a GitHub issue number.
+- **Structured commit trailers** (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) on every mutation. An adapter can read `git log` after each push and replay the lifecycle into the external system without scraping the markdown.
+- **Validate-then-write semantics.** The chokepoint is already factored: a backend adapter can hook in at the same boundary that the pre-push hook uses today, so an outbound sync only happens against a tree that already validates.
+
+That said: no adapter has been implemented, the adapter interface is not yet designed, and the choice of which backend to support first will be driven by the first real consumer who needs it — not by speculation. This section is direction, not commitment.
+
+If you would find a particular backend valuable, opening an issue with the use case is the right move; that is what would prioritise it.
+
+---
+
+## Contributing to aiwf
+
+If you're working on the aiwf kernel itself (not just consuming it), run this once after cloning:
+
+```bash
+make install-hooks
+```
+
+This points `core.hooksPath` at the tracked `scripts/git-hooks/` directory. The pre-commit hook there runs `go test ./internal/policies/...` and aborts the commit on any policy violation — the same gate CI enforces, just earlier. Subsequent updates to the tracked hooks propagate on the next `git pull`; no second install step.
+
+The hook is tolerant of a missing Go toolchain (silently skipped) so doc-only commits from a non-Go machine aren't blocked.
+
+### Browser tests for the HTML render (opt-in)
+
+The HTML render (`aiwf render --format=html`) has a Playwright suite under [`e2e/playwright/`](e2e/playwright/) that covers the CSS-driven behavior the Go test suite can't reach: `:target`-tab show/hide, computed status-pill colors, anchor scrolling, console-error checks, and dead-link detection across every emitted page. The suite is opt-in — it requires Node and a one-time ~100 MB Chromium install — so it's not part of `make ci`.
+
+```bash
+make e2e-install   # one-shot per machine: npm install + npx playwright install chromium
+make e2e           # run the suite (~10 s end-to-end)
+```
+
+The fixture script (`fixture.ts`) builds the aiwf binary with `go build` on each test process and renders a populated planning tree (epics, milestones, ACs, phase history with `aiwf-tests` trailers, an open authorize scope) into a tmp directory; the spec then drives a headless Chromium against `file://` URLs. Add new specs whenever you change `internal/htmlrender/` templates or CSS — the suite caught the original `~`-vs-`:has()` bug in the tab show/hide rules on its first run.
 
 ---
 

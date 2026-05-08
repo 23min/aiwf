@@ -1,11 +1,13 @@
-# Lint configuration for the ai-workflow Go monorepo.
-# See tools/CLAUDE.md for the full discipline.
+# Lint configuration for the aiwf Go module.
+# See CLAUDE.md § Go conventions for the full discipline.
 version: "2"
 linters:
   default: none
   enable:
     - bodyclose
     - errcheck
+    - errorlint
+    - forbidigo
     - gocritic
     - gosec
     - govet
@@ -13,6 +15,7 @@ linters:
     - misspell
     - revive
     - staticcheck
+    - thelper
     - unconvert
     - unused
   settings:
@@ -27,6 +30,17 @@ linters:
       disable:
         - fieldalignment
       enable-all: true
+    forbidigo:
+      # Two project-specific rules from CLAUDE.md § Go conventions:
+      #   - "Library code never panics or os.Exits. Only cmd/<tool>/main.go
+      #      calls os.Exit." (§Error handling)
+      #   - The verb/apply.go re-panic in G2's atomic-rollback path is the
+      #      single sanctioned panic site; exempted via exclusions below.
+      forbid:
+        - pattern: '^panic\('
+          msg: "library code must not panic; the only sanctioned site is verb/apply.go's controlled re-panic after rollback (G2)"
+        - pattern: '^os\.Exit\('
+          msg: "library code must not call os.Exit; only cmd/aiwf/main.go does"
     revive:
       rules:
         - name: exported
@@ -44,6 +58,30 @@ linters:
           - errcheck
           - gosec
         path: _test\.go
+      # gosec noise that doesn't apply to a developer-CLI threat model:
+      # - G204: subprocess via variable (gitops shells out to git with
+      #         controlled args; that's its whole purpose)
+      # - G304: file inclusion via variable (the loader and verbs read
+      #         user-named entity files; that's their whole purpose)
+      # - G301/G302/G306: 0755 dirs, 0o755 chmod (hooks need exec bit),
+      #         and 0644 files are the standard for a developer's
+      #         working repo, not a multi-tenant server
+      # - G122: WalkDir symlink TOCTOU; the consumer repo is the user's
+      #         own working tree, not adversarial input
+      # - G703: path traversal via taint analysis; aiwf writes to paths
+      #         it built from rootDir (user-supplied via --root or
+      #         walk-up). Same threat model as G304: developer CLI on
+      #         the developer's own repo.
+      - linters: [gosec]
+        text: "G204|G304|G301|G302|G306|G122|G703"
+      # forbidigo: panic/os.Exit are forbidden in library code, but two
+      # paths are sanctioned (per CLAUDE.md § Go conventions and G2's design):
+      #   - cmd/aiwf/main.go: the documented os.Exit chokepoint.
+      #   - verb/apply.go:    the controlled re-panic after atomic rollback.
+      - linters: [forbidigo]
+        path: cmd/aiwf/main\.go
+      - linters: [forbidigo]
+        path: internal/verb/apply\.go
     paths:
       - third_party$
       - builtin$

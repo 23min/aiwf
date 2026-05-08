@@ -1,0 +1,15 @@
+{
+  "name": "aiwf-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Playwright end-to-end tests for the aiwf governance HTML render. The kernel is Go; these tests live separately because the renderer's CSS-driven behavior (`:target`-tabs, computed colors, anchor scrolling) needs a real browser to verify.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "install-browser": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "typescript": "^5.6.0"
+  }
+}

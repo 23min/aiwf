@@ -1,0 +1,1169 @@
+package check
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/23min/ai-workflow-v2/internal/entity"
+	"github.com/23min/ai-workflow-v2/internal/tree"
+)
+
+// TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty pins M-066/AC-1:
+// for each entity kind in the per-kind table, an entity whose
+// frontmatter is fine and most body sections have prose, but one
+// load-bearing section has nothing under its heading, surfaces a
+// single `entity-body-empty` warning naming the empty section.
+//
+// The cases share the same tempdir-and-fixture pattern so each kind
+// runs in isolation; the fixture builders below produce minimal
+// frontmatter + the body shape the rule walks. The "AC sub-element"
+// case lives under a milestone parent because ACs are not standalone
+// files.
+func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
+	cases := []struct {
+		name         string
+		writeFixture func(root string) (entities []*entity.Entity, err error)
+		wantEntityID string
+		wantSubcode  string
+		wantSection  string // appears in Message
+	}{
+		{
+			name:         "epic with empty Scope",
+			writeFixture: writeEpicFixture("Scope"),
+			wantEntityID: "E-01",
+			wantSubcode:  "epic",
+			wantSection:  "Scope",
+		},
+		{
+			name:         "milestone with empty Approach",
+			writeFixture: writeMilestoneFixture("Approach"),
+			wantEntityID: "M-001",
+			wantSubcode:  "milestone",
+			wantSection:  "Approach",
+		},
+		{
+			name:         "AC body empty under heading",
+			writeFixture: writeACFixture(),
+			wantEntityID: "M-001/AC-1",
+			wantSubcode:  "ac",
+			wantSection:  "AC-1",
+		},
+		{
+			name:         "gap with empty `Why it matters`",
+			writeFixture: writeGapFixture("Why it matters"),
+			wantEntityID: "G-001",
+			wantSubcode:  "gap",
+			wantSection:  "Why it matters",
+		},
+		{
+			name:         "adr with empty Decision",
+			writeFixture: writeADRFixture("Decision"),
+			wantEntityID: "ADR-0001",
+			wantSubcode:  "adr",
+			wantSection:  "Decision",
+		},
+		{
+			name:         "decision with empty Reasoning",
+			writeFixture: writeDecisionFixture("Reasoning"),
+			wantEntityID: "D-001",
+			wantSubcode:  "decision",
+			wantSection:  "Reasoning",
+		},
+		{
+			name:         "contract with empty Stability",
+			writeFixture: writeContractFixture("Stability"),
+			wantEntityID: "C-001",
+			wantSubcode:  "contract",
+			wantSection:  "Stability",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := tc.writeFixture(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+
+			got := entityBodyEmpty(tr)
+			if len(got) != 1 {
+				t.Fatalf("entityBodyEmpty findings = %d, want 1: %+v", len(got), got)
+			}
+			f := got[0]
+			if f.Code != "entity-body-empty" {
+				t.Errorf("Code = %q, want entity-body-empty", f.Code)
+			}
+			if f.Severity != SeverityWarning {
+				t.Errorf("Severity = %v, want warning", f.Severity)
+			}
+			if f.Subcode != tc.wantSubcode {
+				t.Errorf("Subcode = %q, want %q", f.Subcode, tc.wantSubcode)
+			}
+			if f.EntityID != tc.wantEntityID {
+				t.Errorf("EntityID = %q, want %q", f.EntityID, tc.wantEntityID)
+			}
+			if !contains(f.Message, tc.wantSection) {
+				t.Errorf("Message %q should mention section %q", f.Message, tc.wantSection)
+			}
+			if f.Path == "" {
+				t.Errorf("Path empty; finding must name the file path")
+			}
+		})
+	}
+}
+
+// TestEntityBodyEmpty_CancelledACSkipped pins the cancelled-AC arm
+// of the AC-body branch: when an AC is `status: cancelled`, the rule
+// must not fire even if its body section is empty. Cancellation
+// signals "this AC was ruled out"; surfacing an empty-body warning
+// against it would be noise.
+func TestEntityBodyEmpty_CancelledACSkipped(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-bar.md"
+	body := `## Goal
+
+Goal prose.
+
+## Approach
+
+Approach prose.
+
+## Acceptance criteria
+
+Each AC pins one observable behavior.
+
+### AC-1 — Live AC
+
+prose
+
+### AC-2 — Cancelled AC
+
+`
+	fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: none
+acs:
+    - id: AC-1
+      title: Live AC
+      status: open
+    - id: AC-2
+      title: Cancelled AC
+      status: cancelled
+---
+
+`
+	abs := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(abs, []byte(fm+body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "Live AC", Status: "open"},
+				{ID: "AC-2", Title: "Cancelled AC", Status: entity.StatusCancelled},
+			},
+		}},
+	}
+	got := entityBodyEmpty(tr)
+	if len(got) != 0 {
+		t.Errorf("cancelled AC with empty body should produce no finding; got %+v", got)
+	}
+}
+
+// TestEntityBodyEmpty_ACWithoutBodyHeadingSkipped pins the
+// "AC heading missing from body" arm: when an AC exists in
+// frontmatter `acs[]` but has no matching `### AC-N` body heading,
+// `acs-body-coherence/missing-heading` is the rule that owns the
+// finding. entity-body-empty must stay silent so the operator gets
+// one signal, not two redundant ones.
+func TestEntityBodyEmpty_ACWithoutBodyHeadingSkipped(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-bar.md"
+	// AC-1 exists in frontmatter but the body has only `## ` headings,
+	// no `### AC-1` heading. acs-body-coherence reports the missing
+	// heading; entity-body-empty stays silent.
+	body := `## Goal
+
+Goal prose.
+
+## Approach
+
+Approach prose.
+
+## Acceptance criteria
+
+Each AC pins one observable behavior.
+`
+	fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: none
+acs:
+    - id: AC-1
+      title: Orphaned in frontmatter
+      status: open
+---
+
+`
+	abs := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(abs, []byte(fm+body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "Orphaned in frontmatter", Status: "open"},
+			},
+		}},
+	}
+	got := entityBodyEmpty(tr)
+	if len(got) != 0 {
+		t.Errorf("AC missing body heading should not surface entity-body-empty (acs-body-coherence handles it); got %+v", got)
+	}
+}
+
+// TestEntityBodyEmpty_FileReadError_SilentlySkipped covers the
+// defensive arm in entityBodyEmpty's file-read step: when the
+// entity's Path points at a file that doesn't exist on disk, the
+// rule silently skips that entity. The loader's `load-error`
+// finding owns the file-missing case; entity-body-empty must not
+// double-emit.
+func TestEntityBodyEmpty_FileReadError_SilentlySkipped(t *testing.T) {
+	root := t.TempDir()
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none",
+			Path: "work/epics/E-01-foo/M-001-missing.md", // never written
+		}},
+	}
+	if got := entityBodyEmpty(tr); len(got) != 0 {
+		t.Errorf("missing file should not produce entity-body-empty (load-error owns it); got %+v", got)
+	}
+}
+
+// TestEntityBodyEmpty_FrontmatterParseFailure_SilentlySkipped covers
+// the defensive arm where the file exists but has no `---`
+// frontmatter delimiters — entity.Split returns ok=false and the
+// rule continues without emitting. The loader's parse-error path is
+// the single source of truth for malformed files.
+func TestEntityBodyEmpty_FrontmatterParseFailure_SilentlySkipped(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-malformed.md"
+	abs := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Body content but no frontmatter delimiters — entity.Split
+	// returns ok=false on this shape.
+	if err := os.WriteFile(abs, []byte("## Goal\n\nbody but no frontmatter\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+		}},
+	}
+	if got := entityBodyEmpty(tr); len(got) != 0 {
+		t.Errorf("malformed-frontmatter file should not produce entity-body-empty; got %+v", got)
+	}
+}
+
+// TestEntityBodyEmpty_ScanACBodies_H2Resets covers scanACBodies'
+// arm where a `## ` heading appears after an AC heading — the
+// in-progress AC body region is closed and currentID cleared.
+// Defensive: real milestones don't usually have `## ` headings
+// nested inside `## Acceptance criteria`, but a hand-edit could
+// introduce one and the locator must not bleed AC-1's content into
+// the next AC.
+func TestEntityBodyEmpty_ScanACBodies_H2Resets(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-bar.md"
+	// AC-1 has a `## Trailing section` after it — the locator
+	// closes AC-1's region at that heading. AC-1 has prose before
+	// the `## ` so it's non-empty; AC-2 (after a normal `### `
+	// boundary) has no prose so it's empty.
+	body := `## Goal
+
+Goal prose.
+
+## Approach
+
+Approach prose.
+
+## Acceptance criteria
+
+Each AC pins one observable behavior.
+
+### AC-1 — With prose
+
+ac-1 prose
+
+## Trailing section
+
+trailing prose
+
+### AC-2 — Empty AC
+
+`
+	fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: none
+acs:
+    - id: AC-1
+      title: With prose
+      status: open
+    - id: AC-2
+      title: Empty AC
+      status: open
+---
+
+`
+	abs := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(abs, []byte(fm+body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "With prose", Status: "open"},
+				{ID: "AC-2", Title: "Empty AC", Status: "open"},
+			},
+		}},
+	}
+	got := entityBodyEmpty(tr)
+	// Expect exactly one finding for AC-2; AC-1 is non-empty.
+	var sawAC2 bool
+	for _, f := range got {
+		if f.EntityID == "M-001/AC-2" && f.Code == "entity-body-empty" {
+			sawAC2 = true
+		}
+		if f.EntityID == "M-001/AC-1" && f.Code == "entity-body-empty" {
+			t.Errorf("AC-1 has prose; should not surface entity-body-empty: %+v", f)
+		}
+	}
+	if !sawAC2 {
+		t.Errorf("AC-2 (no prose) should surface entity-body-empty; got %+v", got)
+	}
+}
+
+// TestEntityBodyEmpty_ScanACBodies_H3NonACResets covers the arm
+// where a `### ` heading that is NOT an AC heading appears mid-AC
+// region — for example a `### Sub-section under AC-1` line. The
+// locator closes the AC's region at that boundary. Defensive: AC
+// bodies are typically leaf prose, but a hand-edit could nest a
+// sub-heading.
+func TestEntityBodyEmpty_ScanACBodies_H3NonACResets(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-bar.md"
+	body := `## Goal
+
+Goal prose.
+
+## Approach
+
+Approach prose.
+
+## Acceptance criteria
+
+Each AC pins one observable behavior.
+
+### AC-1 — With prose
+
+prose under AC-1
+
+### Sub-section under AC-1
+
+sub prose
+
+### AC-2 — Empty AC
+
+`
+	fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: none
+acs:
+    - id: AC-1
+      title: With prose
+      status: open
+    - id: AC-2
+      title: Empty AC
+      status: open
+---
+
+`
+	abs := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(abs, []byte(fm+body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "With prose", Status: "open"},
+				{ID: "AC-2", Title: "Empty AC", Status: "open"},
+			},
+		}},
+	}
+	got := entityBodyEmpty(tr)
+	var sawAC2 bool
+	for _, f := range got {
+		if f.EntityID == "M-001/AC-2" && f.Code == "entity-body-empty" {
+			sawAC2 = true
+		}
+		if f.EntityID == "M-001/AC-1" && f.Code == "entity-body-empty" {
+			t.Errorf("AC-1 has prose before the sub-heading; should not surface: %+v", f)
+		}
+	}
+	if !sawAC2 {
+		t.Errorf("AC-2 (no prose) should surface entity-body-empty; got %+v", got)
+	}
+}
+
+// TestApplyTDDStrict_EscalatesEntityBodyEmpty pins M-066/AC-2: when
+// strict=true, every `entity-body-empty` finding (any subcode) is
+// bumped from warning to error. When strict=false, all severities
+// pass through unchanged. The bumper is the chokepoint that
+// projects with `aiwf.yaml: tdd.strict: true` use to make body
+// emptiness a push-blocker rather than a notice.
+//
+// The bumper is scoped to entity-body-empty only — other findings
+// pass through untouched. M-065's `milestone-tdd-undeclared` will
+// be added to the same bumper when its rule lands; today the
+// bumper handles only this code, but the function is the single
+// source of truth for which codes the strict flag covers.
+func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
+	build := func() []Finding {
+		return []Finding{
+			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "milestone", EntityID: "M-001"},
+			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "ac", EntityID: "M-001/AC-1"},
+			{Code: "acs-body-coherence", Severity: SeverityWarning, Subcode: "missing-heading", EntityID: "M-001/AC-2"},
+			{Code: "refs-resolve", Severity: SeverityError, Subcode: "unresolved", EntityID: "M-002"},
+		}
+	}
+
+	t.Run("strict=true bumps entity-body-empty to error", func(t *testing.T) {
+		findings := build()
+		ApplyTDDStrict(findings, true)
+		var sawMilestone, sawAC bool
+		for _, f := range findings {
+			if f.Code == "entity-body-empty" {
+				if f.Severity != SeverityError {
+					t.Errorf("entity-body-empty %s severity = %v, want error under strict",
+						f.EntityID, f.Severity)
+				}
+				if f.EntityID == "M-001" {
+					sawMilestone = true
+				}
+				if f.EntityID == "M-001/AC-1" {
+					sawAC = true
+				}
+			}
+			if f.Code == "acs-body-coherence" && f.Severity != SeverityWarning {
+				t.Errorf("acs-body-coherence severity = %v, want warning unchanged (strict only escalates entity-body-empty)",
+					f.Severity)
+			}
+			if f.Code == "refs-resolve" && f.Severity != SeverityError {
+				t.Errorf("refs-resolve severity = %v, want error preserved", f.Severity)
+			}
+		}
+		if !sawMilestone || !sawAC {
+			t.Errorf("expected both milestone- and ac-subcoded findings to escalate")
+		}
+	})
+
+	t.Run("strict=false passes severities through", func(t *testing.T) {
+		findings := build()
+		ApplyTDDStrict(findings, false)
+		for _, f := range findings {
+			if f.Code == "entity-body-empty" && f.Severity != SeverityWarning {
+				t.Errorf("entity-body-empty %s severity = %v, want warning unchanged when strict=false",
+					f.EntityID, f.Severity)
+			}
+			if f.Code == "refs-resolve" && f.Severity != SeverityError {
+				t.Errorf("refs-resolve severity = %v, want error preserved", f.Severity)
+			}
+		}
+	})
+
+	t.Run("nil findings slice is a no-op", func(t *testing.T) {
+		// Defensive: callers that have no findings yet (or have
+		// pre-filtered the slice down to zero length) must not
+		// trip on a nil-receiver-style panic.
+		ApplyTDDStrict(nil, true)
+	})
+}
+
+// TestEntityBodyEmpty_NonEmptyBodyClean confirms the rule stays silent
+// when every required section has content. Same kinds as the firing
+// test; serves as the negative control so a future bug that emits
+// findings on healthy trees is caught fast.
+func TestEntityBodyEmpty_NonEmptyBodyClean(t *testing.T) {
+	root := t.TempDir()
+	ents, err := writeFullyPopulatedFixture(root)
+	if err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	tr := &tree.Tree{Root: root, Entities: ents}
+	if got := entityBodyEmpty(tr); len(got) != 0 {
+		t.Errorf("populated tree should produce no findings; got %+v", got)
+	}
+}
+
+// TestEntityBodyEmpty_AcceptsVariedProseShapes pins M-066/AC-3:
+// the rule is permissive about WHAT the prose is. A single sentence,
+// a multi-paragraph block, a bullet list, a numbered list, and a
+// fenced code block all clear the emptiness check — the rule asserts
+// presence of non-heading non-whitespace content, not structure.
+//
+// Per the design's "prose is not parsed" principle, the contract is:
+// once any non-heading non-whitespace line appears under a load-bearing
+// heading, the section is non-empty. The fixtures below exercise that
+// permissiveness across both top-level (`## Section`) shape and AC
+// (`### AC-N`) leaf-prose shape.
+//
+// This test is the regression chokepoint for the rule's permissiveness:
+// a future change that tightens the rule (e.g. requires a paragraph
+// shape, rejects code blocks, demands a minimum word count) fails here.
+func TestEntityBodyEmpty_AcceptsVariedProseShapes(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+	}{
+		{
+			name: "single sentence",
+			body: "Approach.",
+		},
+		{
+			name: "multi-paragraph",
+			body: "First paragraph describes the approach.\n\n" +
+				"Second paragraph elaborates with edge cases and trade-offs the\n" +
+				"reader should know about before reading the diff.",
+		},
+		{
+			name: "bullet list",
+			body: "- bullet one\n- bullet two\n- bullet three",
+		},
+		{
+			name: "numbered list",
+			body: "1. first step\n2. second step\n3. third step",
+		},
+		{
+			name: "fenced code block",
+			body: "```go\nfunc f() error {\n\treturn nil\n}\n```",
+		},
+		{
+			name: "paragraph plus bullet plus code",
+			body: "Approach paragraph.\n\n" +
+				"- bullet point one\n- bullet point two\n\n" +
+				"```bash\naiwf check\n```",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run("milestone Approach: "+tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := writeMilestoneWithApproachBody(tc.body)(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			if got := entityBodyEmpty(tr); len(got) != 0 {
+				t.Errorf("milestone Approach body %q should produce no findings; got %+v",
+					tc.body, got)
+			}
+		})
+
+		t.Run("AC-1 body: "+tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := writeMilestoneWithACBody(tc.body)(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			if got := entityBodyEmpty(tr); len(got) != 0 {
+				t.Errorf("AC-1 body %q should produce no findings; got %+v",
+					tc.body, got)
+			}
+		})
+	}
+}
+
+// TestEntityBodyEmpty_HTMLCommentsAreEmpty pins M-066/AC-4: a body
+// section whose only content is HTML comment block(s) is treated as
+// empty — operator intent to defer is not the prose the design
+// specifies. The rule strips HTML comments before the emptiness
+// check; if nothing non-whitespace remains, the finding fires.
+//
+// Edge case asserted: an HTML comment paired with real prose passes
+// (the prose is what counts). Single-line, multi-line, and stacked
+// comment shapes all behave identically — the regex strips them all
+// before the per-line walker sees the content.
+//
+// Each shape runs at both the top-level (`## Approach`) and the
+// AC-leaf (`### AC-1`) level so both consumers of stripHTMLComments
+// are pinned.
+func TestEntityBodyEmpty_HTMLCommentsAreEmpty(t *testing.T) {
+	cases := []struct {
+		name      string
+		body      string
+		wantFires bool
+	}{
+		{
+			name:      "single-line HTML comment only",
+			body:      "<!-- TODO: write this -->",
+			wantFires: true,
+		},
+		{
+			name:      "multi-line HTML comment only",
+			body:      "<!--\nTODO: write\nthis later\n-->",
+			wantFires: true,
+		},
+		{
+			name:      "two HTML comments only",
+			body:      "<!-- placeholder -->\n<!-- another placeholder -->",
+			wantFires: true,
+		},
+		{
+			name:      "HTML comment with surrounding whitespace",
+			body:      "\n  <!-- TODO -->  \n\n",
+			wantFires: true,
+		},
+		{
+			name:      "HTML comment then real prose",
+			body:      "<!-- TODO: tighten later -->\nReal prose follows.",
+			wantFires: false,
+		},
+		{
+			name:      "real prose then HTML comment",
+			body:      "Real prose first.\n<!-- internal note -->",
+			wantFires: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run("milestone Approach: "+tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := writeMilestoneWithApproachBody(tc.body)(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			got := entityBodyEmpty(tr)
+			fired := false
+			for _, f := range got {
+				if f.Subcode == "milestone" &&
+					contains(f.Message, "Approach") {
+					fired = true
+				}
+			}
+			if fired != tc.wantFires {
+				t.Errorf("milestone Approach body %q: fired=%v, want %v; findings=%+v",
+					tc.body, fired, tc.wantFires, got)
+			}
+		})
+
+		t.Run("AC-1 body: "+tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := writeMilestoneWithACBody(tc.body)(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			got := entityBodyEmpty(tr)
+			fired := false
+			for _, f := range got {
+				if f.Subcode == "ac" && f.EntityID == "M-001/AC-1" {
+					fired = true
+				}
+			}
+			if fired != tc.wantFires {
+				t.Errorf("AC-1 body %q: fired=%v, want %v; findings=%+v",
+					tc.body, fired, tc.wantFires, got)
+			}
+		})
+	}
+}
+
+// TestEntityBodyEmpty_DoesNotEngageACSTDDAudit pins M-066/AC-5: the
+// grandfather rule from G-055 / G-058 is preserved. An AC that
+// surfaces `entity-body-empty` does not retroactively re-engage
+// `acs-tdd-audit` against the AC's status / phase fields.
+//
+// The canonical historical shape: a `tdd: required` milestone with an
+// AC at `status: met` + `tdd_phase: done` whose body is empty (the
+// shape every M-049..M-061 AC takes after the backfill — bare prose
+// stub or scaffolded heading-only). Running both rules against that
+// fixture must produce:
+//
+//   - `entity-body-empty` (warning, subcode `ac`)         — 1 finding
+//   - `acs-tdd-audit`                                      — 0 findings
+//
+// The independence is structural: `acsTDDAudit` only reads
+// status/phase, never body content. AC-5 turns that structural
+// independence into a regression chokepoint — a future change that
+// couples the two (e.g. "if AC body empty, flag tdd_phase as
+// suspect") fails here.
+//
+// The companion subcase shows the audit DOES fire on its own contract
+// (met + phase: red, empty body): proves the zero-count above isn't
+// because acsTDDAudit is silent for unrelated reasons.
+func TestEntityBodyEmpty_DoesNotEngageACSTDDAudit(t *testing.T) {
+	t.Run("met+done+empty body: body-empty fires, audit silent", func(t *testing.T) {
+		root := t.TempDir()
+		ents, err := writeMetDoneACWithEmptyBody()(root)
+		if err != nil {
+			t.Fatalf("write fixture: %v", err)
+		}
+		tr := &tree.Tree{Root: root, Entities: ents}
+
+		bodyFindings := entityBodyEmpty(tr)
+		auditFindings := acsTDDAudit(tr)
+
+		acBodyHits := 0
+		for _, f := range bodyFindings {
+			if f.Subcode == "ac" && f.EntityID == "M-001/AC-1" {
+				acBodyHits++
+			}
+		}
+		if acBodyHits != 1 {
+			t.Errorf("entity-body-empty for AC-1 = %d, want 1; findings=%+v",
+				acBodyHits, bodyFindings)
+		}
+
+		if len(auditFindings) != 0 {
+			t.Errorf("acs-tdd-audit findings = %d, want 0 (grandfather rule); findings=%+v",
+				len(auditFindings), auditFindings)
+		}
+	})
+
+	t.Run("met+red+empty body: audit fires on its own contract", func(t *testing.T) {
+		// Sanity case — confirms acsTDDAudit isn't structurally silent
+		// for some other reason; if you flip the AC's phase to red
+		// (which is what acsTDDAudit actually checks), the audit fires
+		// regardless of whether the body is empty.
+		root := t.TempDir()
+		ents, err := writeMetRedACWithEmptyBody()(root)
+		if err != nil {
+			t.Fatalf("write fixture: %v", err)
+		}
+		tr := &tree.Tree{Root: root, Entities: ents}
+
+		auditFindings := acsTDDAudit(tr)
+		if len(auditFindings) != 1 {
+			t.Fatalf("acs-tdd-audit findings = %d, want 1 (met+red is the audit's own contract); findings=%+v",
+				len(auditFindings), auditFindings)
+		}
+		if auditFindings[0].Code != "acs-tdd-audit" {
+			t.Errorf("Code = %q, want acs-tdd-audit", auditFindings[0].Code)
+		}
+	})
+}
+
+// --- fixture builders ---------------------------------------------------
+
+func writeEpicFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/epic.md"
+		body := buildBody(map[string]string{
+			"Goal":         "Goal prose.",
+			"Scope":        "Scope prose.",
+			"Out of scope": "Out-of-scope prose.",
+		}, []string{"Goal", "Scope", "Out of scope"}, emptySection)
+		fm := "---\nid: E-01\ntitle: Foo\nstatus: active\n---\n\n"
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: path,
+		})
+	}
+}
+
+func writeMilestoneFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := buildBody(map[string]string{
+			"Goal":                "Goal prose.",
+			"Approach":            "Approach prose.",
+			"Acceptance criteria": "Each AC pins one observable behavior.",
+		}, []string{"Goal", "Approach", "Acceptance criteria"}, emptySection)
+		fm := "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n"
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+		})
+	}
+}
+
+// writeACFixture builds a milestone whose AC-1 body is empty
+// (heading present, no prose under it) and AC-2 body has prose.
+// All three top-level milestone sections have prose.
+func writeACFixture() func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := `## Goal
+
+Goal prose.
+
+## Approach
+
+Approach prose.
+
+## Acceptance criteria
+
+Each AC pins one observable behavior.
+
+### AC-1 — Empty AC
+
+### AC-2 — Filled AC
+
+ac-2 prose
+`
+		fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: none
+acs:
+    - id: AC-1
+      title: Empty AC
+      status: open
+    - id: AC-2
+      title: Filled AC
+      status: open
+---
+
+`
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "Empty AC", Status: "open"},
+				{ID: "AC-2", Title: "Filled AC", Status: "open"},
+			},
+		})
+	}
+}
+
+func writeGapFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/gaps/G-001-foo.md"
+		body := buildBody(map[string]string{
+			"What's missing": "Missing prose.",
+			"Why it matters": "Matters prose.",
+		}, []string{"What's missing", "Why it matters"}, emptySection)
+		fm := "---\nid: G-001\ntitle: Foo\nstatus: open\n---\n\n"
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "G-001", Kind: entity.KindGap, Title: "Foo", Status: "open", Path: path,
+		})
+	}
+}
+
+func writeADRFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "docs/adr/ADR-0001-foo.md"
+		body := buildBody(map[string]string{
+			"Context":      "Context prose.",
+			"Decision":     "Decision prose.",
+			"Consequences": "Consequences prose.",
+		}, []string{"Context", "Decision", "Consequences"}, emptySection)
+		fm := "---\nid: ADR-0001\ntitle: Foo\nstatus: proposed\n---\n\n"
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "ADR-0001", Kind: entity.KindADR, Title: "Foo", Status: "proposed", Path: path,
+		})
+	}
+}
+
+func writeDecisionFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/decisions/D-001-foo.md"
+		body := buildBody(map[string]string{
+			"Question":  "Question prose.",
+			"Decision":  "Decision prose.",
+			"Reasoning": "Reasoning prose.",
+		}, []string{"Question", "Decision", "Reasoning"}, emptySection)
+		fm := "---\nid: D-001\ntitle: Foo\nstatus: proposed\n---\n\n"
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "D-001", Kind: entity.KindDecision, Title: "Foo", Status: "proposed", Path: path,
+		})
+	}
+}
+
+func writeContractFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/contracts/C-001-foo/contract.md"
+		body := buildBody(map[string]string{
+			"Purpose":   "Purpose prose.",
+			"Stability": "Stability prose.",
+		}, []string{"Purpose", "Stability"}, emptySection)
+		fm := "---\nid: C-001\ntitle: Foo\nstatus: proposed\n---\n\n"
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "proposed", Path: path,
+		})
+	}
+}
+
+// writeFullyPopulatedFixture builds a tree with one entity per kind,
+// each with all required sections non-empty. Used by the negative
+// control test.
+func writeFullyPopulatedFixture(root string) ([]*entity.Entity, error) {
+	type want struct {
+		path string
+		fm   string
+		body string
+		ent  *entity.Entity
+	}
+	all := []want{
+		{
+			path: "work/epics/E-01-foo/epic.md",
+			fm:   "---\nid: E-01\ntitle: Foo\nstatus: active\n---\n\n",
+			body: "## Goal\n\nGoal.\n\n## Scope\n\nScope.\n\n## Out of scope\n\nOOS.\n",
+			ent:  &entity.Entity{ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: "work/epics/E-01-foo/epic.md"},
+		},
+		{
+			path: "work/epics/E-01-foo/M-001-bar.md",
+			fm:   "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n",
+			body: "## Goal\n\nGoal.\n\n## Approach\n\nApproach.\n\n## Acceptance criteria\n\nEach AC pins one observable behavior.\n",
+			ent:  &entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Title: "Bar", Status: "in_progress", Parent: "E-01", TDD: "none", Path: "work/epics/E-01-foo/M-001-bar.md"},
+		},
+		{
+			path: "work/gaps/G-001-foo.md",
+			fm:   "---\nid: G-001\ntitle: Foo\nstatus: open\n---\n\n",
+			body: "## What's missing\n\nMissing.\n\n## Why it matters\n\nMatters.\n",
+			ent:  &entity.Entity{ID: "G-001", Kind: entity.KindGap, Title: "Foo", Status: "open", Path: "work/gaps/G-001-foo.md"},
+		},
+		{
+			path: "docs/adr/ADR-0001-foo.md",
+			fm:   "---\nid: ADR-0001\ntitle: Foo\nstatus: proposed\n---\n\n",
+			body: "## Context\n\nContext.\n\n## Decision\n\nDecision.\n\n## Consequences\n\nConsequences.\n",
+			ent:  &entity.Entity{ID: "ADR-0001", Kind: entity.KindADR, Title: "Foo", Status: "proposed", Path: "docs/adr/ADR-0001-foo.md"},
+		},
+		{
+			path: "work/decisions/D-001-foo.md",
+			fm:   "---\nid: D-001\ntitle: Foo\nstatus: proposed\n---\n\n",
+			body: "## Question\n\nQuestion.\n\n## Decision\n\nDecision.\n\n## Reasoning\n\nReasoning.\n",
+			ent:  &entity.Entity{ID: "D-001", Kind: entity.KindDecision, Title: "Foo", Status: "proposed", Path: "work/decisions/D-001-foo.md"},
+		},
+		{
+			path: "work/contracts/C-001-foo/contract.md",
+			fm:   "---\nid: C-001\ntitle: Foo\nstatus: proposed\n---\n\n",
+			body: "## Purpose\n\nPurpose.\n\n## Stability\n\nStability.\n",
+			ent:  &entity.Entity{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "proposed", Path: "work/contracts/C-001-foo/contract.md"},
+		},
+	}
+	ents := make([]*entity.Entity, 0, len(all))
+	for _, w := range all {
+		abs := filepath.Join(root, filepath.FromSlash(w.path))
+		if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(abs, []byte(w.fm+w.body), 0o644); err != nil {
+			return nil, err
+		}
+		ents = append(ents, w.ent)
+	}
+	return ents, nil
+}
+
+// buildBody constructs a body where every named section gets its
+// prose from filled, except `empty` which is rendered as a bare
+// heading with no content beneath it.
+func buildBody(filled map[string]string, order []string, empty string) string {
+	var b []byte
+	for i, name := range order {
+		b = append(b, []byte("## "+name+"\n\n")...)
+		if name != empty {
+			b = append(b, []byte(filled[name]+"\n")...)
+		}
+		if i < len(order)-1 {
+			b = append(b, []byte("\n")...)
+		}
+	}
+	return string(b)
+}
+
+// write1 writes one entity file and returns the entity slice for the
+// tree. Couples the on-disk write with the in-memory entity so the
+// fixture builders stay readable.
+func write1(root, rel, content string, e *entity.Entity) ([]*entity.Entity, error) {
+	abs := filepath.Join(root, filepath.FromSlash(rel))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		return nil, err
+	}
+	if err := os.WriteFile(abs, []byte(content), 0o644); err != nil {
+		return nil, err
+	}
+	return []*entity.Entity{e}, nil
+}
+
+// writeMilestoneWithApproachBody returns a milestone fixture builder
+// where every required section is non-empty and `## Approach` carries
+// the supplied body. Used by AC-3's varied-prose contract test.
+func writeMilestoneWithApproachBody(approach string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := "## Goal\n\nGoal prose.\n\n" +
+			"## Approach\n\n" + approach + "\n\n" +
+			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n"
+		fm := "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n"
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+		})
+	}
+}
+
+// writeMilestoneWithACBody returns a milestone fixture builder where
+// every top-level section is populated and AC-1's body carries the
+// supplied prose. AC-1 is `status: open`. Used by AC-3's varied-prose
+// contract test for the leaf-level (AC) emptiness check.
+func writeMilestoneWithACBody(acBody string) func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := "## Goal\n\nGoal prose.\n\n" +
+			"## Approach\n\nApproach prose.\n\n" +
+			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
+			"### AC-1 — Filled AC\n\n" + acBody + "\n"
+		fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: none
+acs:
+    - id: AC-1
+      title: Filled AC
+      status: open
+---
+
+`
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "Filled AC", Status: "open"},
+			},
+		})
+	}
+}
+
+// writeMetDoneACWithEmptyBody returns a fixture builder that produces
+// a `tdd: required` milestone with one AC at status: met + tdd_phase:
+// done whose body section is empty (heading present, no prose). This
+// is the canonical historical-AC shape used by AC-5 to assert
+// independence between entity-body-empty and acs-tdd-audit.
+func writeMetDoneACWithEmptyBody() func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := "## Goal\n\nGoal prose.\n\n" +
+			"## Approach\n\nApproach prose.\n\n" +
+			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
+			"### AC-1 — Historical AC\n\n"
+		fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: required
+acs:
+    - id: AC-1
+      title: Historical AC
+      status: met
+      tdd_phase: done
+---
+
+`
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "required", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{
+					ID:       "AC-1",
+					Title:    "Historical AC",
+					Status:   entity.StatusMet,
+					TDDPhase: entity.TDDPhaseDone,
+				},
+			},
+		})
+	}
+}
+
+// writeMetRedACWithEmptyBody is the audit-still-fires sanity fixture
+// for AC-5: same shape as writeMetDoneACWithEmptyBody but the AC's
+// tdd_phase is red. acsTDDAudit's contract is "met requires done" so
+// this fixture trips the audit regardless of body content. Used to
+// prove the zero-count assertion above isn't a false negative.
+func writeMetRedACWithEmptyBody() func(root string) ([]*entity.Entity, error) {
+	return func(root string) ([]*entity.Entity, error) {
+		path := "work/epics/E-01-foo/M-001-bar.md"
+		body := "## Goal\n\nGoal prose.\n\n" +
+			"## Approach\n\nApproach prose.\n\n" +
+			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n\n" +
+			"### AC-1 — Audit-tripping AC\n\n"
+		fm := `---
+id: M-001
+title: Bar
+status: in_progress
+parent: E-01
+tdd: required
+acs:
+    - id: AC-1
+      title: Audit-tripping AC
+      status: met
+      tdd_phase: red
+---
+
+`
+		return write1(root, path, fm+body, &entity.Entity{
+			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-01", TDD: "required", Path: path,
+			ACs: []entity.AcceptanceCriterion{
+				{
+					ID:       "AC-1",
+					Title:    "Audit-tripping AC",
+					Status:   entity.StatusMet,
+					TDDPhase: entity.TDDPhaseRed,
+				},
+			},
+		})
+	}
+}

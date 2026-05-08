@@ -1,0 +1,16 @@
+#!/bin/sh
+# aiwf:pre-push
+# Installed by aiwf init. Chains to the pre-push.local sibling in
+# this hook's directory first (G45) so consumer-written hooks
+# compose rather than collide.
+[ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
+hook_dir="$(dirname "$0")"
+local_hook="$hook_dir/pre-push.local"
+if [ -e "$local_hook" ]; then
+    if [ ! -x "$local_hook" ]; then
+        echo "aiwf pre-push: $local_hook exists but is not executable — chmod +x to enable, or remove the file" >&2
+        exit 1
+    fi
+    "$local_hook" "$@" || exit $?
+fi
+exec '/AIWF_BIN' check

@@ -1,0 +1,502 @@
+/* aiwf governance render stylesheet.
+ * Hand-written, no framework. Color tokens live as CSS custom
+ * properties so the prefers-color-scheme: dark block at the bottom
+ * is a re-mapping, not a parallel sheet.
+ *
+ * Pill styling uses color-mix() against per-status tokens — one
+ * generic rule per pill family replaces ~20 lines of explicit
+ * .status-X overrides. color-mix() ships in every modern browser
+ * (Chrome 111+, Safari 16.2+, Firefox 113+).
+ *
+ * Tab show/hide is the only stateful piece — driven by :target +
+ * :has(). No JS. */
+
+/* Palette: Linear-leaning. Lower saturation than Vercel; iris/violet
+ * accent (Linear's signature `#5e6ad2`); status pills sit at 8% mix
+ * over the card background with a 20% mix border — quieter than the
+ * default Vercel-y 12/30. Borders are hairline; shadow is gone in
+ * light mode (Linear uses borders for separation, not elevation). */
+:root {
+  --fg: #1c1d22;
+  --fg-muted: #6c707a;
+  --bg: #fbfbfc;
+  --bg-card: #ffffff;
+  --bg-tint: #f4f5f8;
+  --border: #e4e6ea;
+  --border-soft: #eef0f3;
+  --shadow: 0 0 0 transparent;
+  --link: #5e6ad2;
+  --accent: #5e6ad2;
+
+  /* One token per status; the pill rules derive the tinted bg +
+   * faint border via color-mix(). Keep in sync with the closed
+   * status sets in tools/internal/entity/. */
+  --status-active: #3d8b6e;
+  --status-done: #3d8b6e;
+  --status-met: #3d8b6e;
+  --status-accepted: #3d8b6e;
+  --status-in_progress: #5e6ad2;
+  --status-open: #bf8233;
+  --status-deferred: #bf8233;
+  --status-proposed: #6c707a;
+  --status-draft: #6c707a;
+  --status-cancelled: #94989f;
+  --status-wontfix: #94989f;
+  --status-rejected: #94989f;
+  --status-retired: #94989f;
+  --status-deprecated: #94989f;
+
+  --phase-red: #c4554a;
+  --phase-green: #3d8b6e;
+  --phase-refactor: #7c5fc7;
+  --phase-done: #3d8b6e;
+
+  --tdd-required: #c4554a;
+  --tdd-advisory: #bf8233;
+  --tdd-none: #6c707a;
+
+  --policy-strict: #c4554a;
+  --policy-advisory: #bf8233;
+
+  --scope-active: #3d8b6e;
+  --scope-paused: #bf8233;
+  --scope-ended: #94989f;
+
+  --force-fg: #bf8233;
+  --audit-fg: #5e6ad2;
+
+  /* Pill mix percentages — exposed as variables so dark mode and
+   * future themes don't have to copy-paste the magic numbers.
+   * Linear uses very quiet pill tints; we follow at 8%/20%. */
+  --pill-bg-mix: 8%;
+  --pill-border-mix: 20%;
+}
+
+/* ---------- Reset + base ---------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font: 15px/1.45 -apple-system, system-ui, "Segoe UI", sans-serif;
+  margin: 2rem auto;
+  max-width: 78rem;
+  padding: 0 1rem;
+  color: var(--fg);
+  background: var(--bg);
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Two-column layout: sidebar (left) + main content (right). The
+ * layout grid is the body's only child wrapper; main keeps its
+ * card styling, sidebar gets its own. On narrow viewports the
+ * grid collapses to one column with the sidebar pushed below
+ * main (no JS hamburger needed). */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { order: 2; position: static !important; }
+}
+
+main {
+  background: var(--bg-card);
+  padding: 2rem 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+  min-width: 0; /* prevent grid blow-out on long lines/code */
+}
+
+/* Sidebar — sticky on tall pages so the nav follows the user as
+ * they scroll milestone Commits / Provenance tabs. Subtle styling;
+ * the page content is the focus, the nav is the wayfinder. */
+.sidebar {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+  font-size: 0.92rem;
+}
+
+/* Brand mark + wordmark above the section label. The SVG inherits
+ * `color` from the parent so dark mode flips automatically (the
+ * SVG itself uses fill="currentColor"). */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+  margin: 0 0 0.9rem;
+  color: var(--accent);
+}
+.sidebar-logo { flex: 0 0 auto; }
+.sidebar-wordmark {
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+
+.sidebar-title {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+  padding: 0 0.5rem;
+}
+
+.sidebar nav { display: flex; flex-direction: column; gap: 0.15rem; }
+.sidebar ul { list-style: none; margin: 0; padding: 0; }
+.sidebar a {
+  display: block;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  color: var(--fg-muted);
+  text-decoration: none;
+  line-height: 1.35;
+}
+.sidebar a:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--fg);
+}
+.sidebar a[aria-current="page"] {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.sidebar-top { margin-bottom: 0.4rem; }
+
+/* Each epic is a <details>; the summary carries the epic link.
+ * Hide the default disclosure triangle and use a custom rotating
+ * caret so the visual matches the rest of the design. */
+.sidebar-epic { margin: 0.05rem 0; }
+.sidebar-epic > summary {
+  list-style: none;
+  cursor: pointer;
+  position: relative;
+  padding-left: 1.1rem;
+}
+.sidebar-epic > summary::-webkit-details-marker { display: none; }
+.sidebar-epic > summary::before {
+  content: "›";
+  position: absolute;
+  left: 0.45rem;
+  top: 0.3rem;
+  font-size: 0.85em;
+  color: var(--fg-muted);
+  transition: transform 120ms ease;
+  display: inline-block;
+}
+.sidebar-epic[open] > summary::before { transform: rotate(90deg); }
+.sidebar-epic > summary > a { display: inline-block; padding: 0.3rem 0.5rem 0.3rem 0; }
+.sidebar-milestones { padding-left: 1.5rem !important; border-left: 1px solid var(--border-soft); margin-left: 0.95rem !important; }
+.sidebar-milestones a { font-size: 0.88rem; }
+
+/* The signature visual gesture: a thin accent stripe along the top
+ * of the content card. Single colored line is enough — no logo
+ * needed. Uses an absolutely-positioned pseudo-element so the
+ * card padding is unchanged and content lays out the same way.
+ * 2 px is calmer than 3 — Linear-leaning. */
+main::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* ---------- Typography ---------- */
+
+h1 { font-size: 1.55rem; line-height: 1.25; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 1.75rem 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border); letter-spacing: -0.005em; }
+h3 { font-size: 0.98rem; margin: 1.1rem 0 0.3rem; }
+
+/* Kicker: small uppercase label above each H1, gives more visual
+ * hierarchy without losing the entity-id information. The
+ * renderer emits .kicker on every page header. */
+.kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  font-weight: 600;
+  margin: 0 0 0.4rem;
+}
+
+p { margin: 0.5rem 0; }
+nav a { color: var(--link); text-decoration: none; }
+nav a:hover { text-decoration: underline; }
+a { color: var(--link); }
+
+/* ---------- Tables ---------- */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+  font-variant-numeric: tabular-nums;
+}
+th, td {
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: top;
+}
+th {
+  font-weight: 600;
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+
+code {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 0.88em;
+  background: var(--bg-tint);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+
+ul, ol { margin: 0.4rem 0 0.6rem 1.4rem; padding: 0; }
+li { margin: 0.2rem 0; }
+
+/* ---------- Pills (status / phase / tdd / scope / policy) ----------
+ *
+ * Every pill renders as: tinted background (12% mix over the bg-
+ * card), faint border (30% mix), saturated text (the raw token
+ * color). The .pill-bind helper below assigns one token to the
+ * --pill-color custom property; the generic rule consumes it.
+ *
+ * The duplication of class selectors is deliberate — one rule per
+ * value class, each setting --pill-color from its token. That way
+ * adding a new status is "add one CSS line" rather than "edit a
+ * shared rule." */
+
+.status, .phase, .tdd, .scope-state, .policy {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8em;
+  font-weight: 500;
+  background: color-mix(in srgb, var(--pill-color, var(--fg-muted)) var(--pill-bg-mix), var(--bg-card));
+  color: var(--pill-color, var(--fg-muted));
+  border: 1px solid color-mix(in srgb, var(--pill-color, var(--fg-muted)) var(--pill-border-mix), transparent);
+  line-height: 1.5;
+}
+
+.status-active   { --pill-color: var(--status-active); }
+.status-done     { --pill-color: var(--status-done); }
+.status-met      { --pill-color: var(--status-met); }
+.status-accepted { --pill-color: var(--status-accepted); }
+.status-in_progress { --pill-color: var(--status-in_progress); }
+.status-open     { --pill-color: var(--status-open); }
+.status-deferred { --pill-color: var(--status-deferred); }
+.status-proposed { --pill-color: var(--status-proposed); }
+.status-draft    { --pill-color: var(--status-draft); }
+.status-cancelled, .status-wontfix, .status-rejected, .status-retired, .status-deprecated {
+  --pill-color: var(--status-cancelled);
+  text-decoration: line-through;
+}
+
+.phase-red       { --pill-color: var(--phase-red); }
+.phase-green     { --pill-color: var(--phase-green); }
+.phase-refactor  { --pill-color: var(--phase-refactor); }
+.phase-done      { --pill-color: var(--phase-done); }
+
+.tdd-required    { --pill-color: var(--tdd-required); }
+.tdd-advisory    { --pill-color: var(--tdd-advisory); }
+.tdd-none        { --pill-color: var(--tdd-none); }
+
+.policy-strict   { --pill-color: var(--policy-strict); }
+.policy-advisory { --pill-color: var(--policy-advisory); }
+
+.scope-state-active { --pill-color: var(--scope-active); }
+.scope-state-paused { --pill-color: var(--scope-paused); }
+.scope-state-ended  { --pill-color: var(--scope-ended); }
+
+.ac-rollup { color: var(--fg-muted); font-size: 0.95em; }
+.findings { color: var(--fg-muted); }
+.dir, .kind { color: var(--fg-muted); font-size: 0.82em; margin-left: 0.4rem; }
+
+/* ---------- Tabs ---------- */
+
+.tabs {
+  display: flex;
+  gap: 0.15rem;
+  margin: 1.25rem 0 0.5rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+}
+.tabs .tab {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  color: var(--fg-muted);
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+.tabs .tab:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); color: var(--fg); text-decoration: none; }
+
+/* Default: every tab section hides; overview shows on bare URL.
+ * When the URL fragment names a section, that section becomes
+ * :target (display: block), and the :has() rule on main hides
+ * overview. The `~` general-sibling combinator only matches
+ * following siblings, which is why we need :has() here — overview
+ * is first in DOM order so a sibling-only rule can't reach it. */
+section[data-tab] { display: none; padding: 0.5rem 0; }
+section[data-tab="overview"] { display: block; }
+section[data-tab]:target { display: block; }
+main:has(section[data-tab]:target:not([data-tab="overview"])) section[data-tab="overview"] { display: none; }
+
+/* Active-tab styling on the nav strip. */
+.tabs .tab-overview {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--fg);
+}
+main:has(section[data-tab]:target:not([data-tab="overview"])) .tabs .tab-overview {
+  background: transparent;
+  border-color: transparent;
+  color: var(--fg-muted);
+}
+section[data-tab="manifest"]:target ~ nav.tabs .tab-manifest,
+section[data-tab="build"]:target ~ nav.tabs .tab-build,
+section[data-tab="tests"]:target ~ nav.tabs .tab-tests,
+section[data-tab="commits"]:target ~ nav.tabs .tab-commits,
+section[data-tab="provenance"]:target ~ nav.tabs .tab-provenance {
+  /* (the nav.tabs is *before* the sections in DOM, so this rule
+   * doesn't actually fire — the active-tab styling is provided by
+   * the :hover state above and the per-tab visited indication in
+   * the browser. Kept here as a documented placeholder; the
+   * :has() approach below is the working version.) */
+}
+nav.tabs:has(+ section[data-tab="manifest"]:target) .tab-manifest,
+main:has(section[data-tab="manifest"]:target) .tabs .tab-manifest,
+main:has(section[data-tab="build"]:target) .tabs .tab-build,
+main:has(section[data-tab="tests"]:target) .tabs .tab-tests,
+main:has(section[data-tab="commits"]:target) .tabs .tab-commits,
+main:has(section[data-tab="provenance"]:target) .tabs .tab-provenance {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--fg);
+}
+
+/* ---------- AC cards (Manifest tab) ---------- */
+
+.ac {
+  padding: 0.85rem 1.1rem;
+  border-left: 3px solid var(--border);
+  margin: 0.6rem 0;
+  background: var(--bg-tint);
+  border-radius: 0 6px 6px 0;
+}
+.ac:target { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--bg-card)); }
+
+/* ---------- Build phases / commits / timeline ---------- */
+
+.phases { list-style: none; margin: 0; padding-left: 0; }
+.phases li { padding: 0.3rem 0; }
+.phases .date, .timeline .date { color: var(--fg-muted); font-size: 0.85em; margin-left: 0.4rem; }
+.phases .tests, .commits .verb, .timeline .verb { color: var(--fg-muted); font-size: 0.85em; margin-left: 0.4rem; }
+
+.timeline { list-style: none; padding-left: 0; }
+.timeline li { padding: 0.4rem 0; border-bottom: 1px dashed var(--border-soft); }
+.timeline .actor { margin-left: 0.4rem; }
+
+.scope-chip, .force, .audit, .scope-end {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.8em;
+  margin-left: 0.4rem;
+  border: 1px solid transparent;
+}
+.scope-chip { background: var(--bg-tint); color: var(--fg-muted); border-color: var(--border-soft); }
+.force {
+  background: color-mix(in srgb, var(--force-fg) var(--pill-bg-mix), var(--bg-card));
+  color: var(--force-fg);
+  border-color: color-mix(in srgb, var(--force-fg) var(--pill-border-mix), transparent);
+}
+.audit {
+  background: color-mix(in srgb, var(--audit-fg) var(--pill-bg-mix), var(--bg-card));
+  color: var(--audit-fg);
+  border-color: color-mix(in srgb, var(--audit-fg) var(--pill-border-mix), transparent);
+}
+.scope-end { background: var(--bg-tint); color: var(--fg-muted); border-color: var(--border-soft); }
+
+.tests-table .missing { color: var(--policy-strict); font-weight: 500; }
+.tests-table .empty { color: var(--fg-muted); }
+.dag { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.9em; }
+
+/* ---------- Dark mode (OS preference; no toggle, no JS) ----------
+ *
+ * Re-maps the same tokens. color-mix() picks up the new --bg-card
+ * automatically so pill backgrounds re-tint to dark. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Linear-style dark: near-black bg with subtle blue undertone,
+     * card barely elevated, hairline borders, no shadow. */
+    --fg: #e1e2e6;
+    --fg-muted: #84878f;
+    --bg: #08090a;
+    --bg-card: #101113;
+    --bg-tint: #17181b;
+    --border: #23252a;
+    --border-soft: #1a1c20;
+    --shadow: 0 0 0 transparent;
+    --link: #7d8ddf;
+    --accent: #7d8ddf;
+
+    --status-active: #5ea487;
+    --status-done: #5ea487;
+    --status-met: #5ea487;
+    --status-accepted: #5ea487;
+    --status-in_progress: #7d8ddf;
+    --status-open: #d49b54;
+    --status-deferred: #d49b54;
+    --status-proposed: #84878f;
+    --status-draft: #84878f;
+    --status-cancelled: #5a5e66;
+    --status-wontfix: #5a5e66;
+    --status-rejected: #5a5e66;
+    --status-retired: #5a5e66;
+    --status-deprecated: #5a5e66;
+
+    --phase-red: #d97268;
+    --phase-green: #5ea487;
+    --phase-refactor: #9d83d8;
+    --phase-done: #5ea487;
+
+    --tdd-required: #d97268;
+    --tdd-advisory: #d49b54;
+    --tdd-none: #84878f;
+
+    --policy-strict: #d97268;
+    --policy-advisory: #d49b54;
+
+    --scope-active: #5ea487;
+    --scope-paused: #d49b54;
+    --scope-ended: #5a5e66;
+
+    --force-fg: #d49b54;
+    --audit-fg: #7d8ddf;
+
+    /* Slightly higher mix in dark mode so pills stay legible
+     * against the near-black card. */
+    --pill-bg-mix: 14%;
+    --pill-border-mix: 28%;
+  }
+}

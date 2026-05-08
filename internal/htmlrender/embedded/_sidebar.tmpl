@@ -1,0 +1,60 @@
+{{- /* Reusable sidebar partial. Callers invoke as
+       `{{template "sidebar" .Sidebar}}`. Each epic renders as a
+       <details>; the current page's epic carries `open` so the
+       user lands with the right branch expanded. The current
+       page link carries aria-current="page" so CSS can highlight
+       it. */ -}}
+{{define "sidebar"}}
+<aside class="sidebar">
+<div class="sidebar-brand" aria-label="aiwf">
+<svg class="sidebar-logo" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+<rect x="3" y="5" width="18" height="3" rx="1.5" fill="currentColor"/>
+<rect x="3" y="11" width="13" height="3" rx="1.5" fill="currentColor" opacity="0.6"/>
+<rect x="3" y="17" width="8" height="3" rx="1.5" fill="currentColor" opacity="0.32"/>
+</svg>
+<span class="sidebar-wordmark">aiwf</span>
+</div>
+<nav>
+<ul class="sidebar-top">
+{{- if .HasStatus}}
+<li>
+{{- if .IsCurrentStatus}}
+<a href="status.html" aria-current="page">Project status</a>
+{{- else}}
+<a href="status.html">Project status</a>
+{{- end}}
+</li>
+{{- end}}
+<li>
+{{- if .IsCurrentIndex}}
+<a href="index.html" aria-current="page">Overview</a>
+{{- else}}
+<a href="index.html">Overview</a>
+{{- end}}
+</li>
+</ul>
+{{- range .Epics}}
+<details class="sidebar-epic"{{if .IsActive}} open{{end}}>
+<summary>
+{{- if .IsCurrent}}
+<a href="{{.FileName}}" aria-current="page">{{.ID}} · {{.Title}}</a>
+{{- else}}
+<a href="{{.FileName}}">{{.ID}} · {{.Title}}</a>
+{{- end}}
+</summary>
+{{- if .Milestones}}
+<ul class="sidebar-milestones">
+{{- range .Milestones}}
+{{- if .IsCurrent}}
+<li><a href="{{.FileName}}" aria-current="page">{{.ID}} · {{.Title}}</a></li>
+{{- else}}
+<li><a href="{{.FileName}}">{{.ID}} · {{.Title}}</a></li>
+{{- end}}
+{{- end}}
+</ul>
+{{- end}}
+</details>
+{{- end}}
+</nav>
+</aside>
+{{end}}

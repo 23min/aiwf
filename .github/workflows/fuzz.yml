@@ -1,0 +1,59 @@
+# fuzz — periodic fuzz-testing run for high-value parsers.
+#
+# Filed under G44 item 1. Runs `go test -fuzz=` for ~2 minutes per
+# target against the parsers identified as load-bearing for kernel
+# correctness: Slugify, Split (frontmatter delimiter), parseTrailers,
+# Parse (version + pseudo-version + +dirty), Inside (path containment).
+#
+# Trigger model:
+#   - workflow_dispatch  — manual run when you want a fresh fuzz pass
+#                          before tagging a release or after a parser
+#                          change.
+#   - cron               — weekly Sunday 03:00 UTC sweep so a parser
+#                          regression that survives the seed-corpus
+#                          pass gets caught within a week.
+#
+# Findings: when fuzzing surfaces a counterexample, Go writes the seed
+# to testdata/fuzz/FuzzName/<hash>. Commit that file together with the
+# fix (or, if the invariant is wrong, alongside an updated invariant)
+# so the case stays a regression seed.
+
+name: fuzz
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 0"
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { pkg: "./internal/entity",   fn: "FuzzSlugify" }
+          - { pkg: "./internal/entity",   fn: "FuzzSplit" }
+          - { pkg: "./internal/gitops",   fn: "FuzzParseTrailers" }
+          - { pkg: "./internal/version",  fn: "FuzzParse" }
+          - { pkg: "./internal/pathutil", fn: "FuzzInside" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: Configure git identity for tests
+        run: |
+          git config --global user.name "aiwf-ci"
+          git config --global user.email "ci@example.com"
+      - name: Fuzz ${{ matrix.target.fn }} in ${{ matrix.target.pkg }}
+        run: go test -run='^$' -fuzz=${{ matrix.target.fn }} -fuzztime=2m ${{ matrix.target.pkg }}
+      - name: Upload corpus on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-corpus-${{ matrix.target.fn }}
+          path: ${{ matrix.target.pkg }}/testdata/fuzz/${{ matrix.target.fn }}/
+          if-no-files-found: ignore

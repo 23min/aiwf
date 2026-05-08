@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Project status</title>
+<link rel="stylesheet" href="{{cssHref}}">
+</head>
+<body>
+<div class="layout">
+{{template "sidebar" .Sidebar}}
+<main>
+<p class="kicker">aiwf · status</p>
+<h1>Project status</h1>
+<p>
+<span class="ac-rollup">
+{{- .Health.Entities}} entities
+{{- if .Health.Errors}} · <span class="status status-rejected">{{.Health.Errors}} error(s)</span>{{end}}
+{{- if .Health.Warnings}} · <span class="status status-open">{{.Health.Warnings}} warning(s)</span>{{end}}
+ · generated {{.GeneratedAt}}
+</span>
+</p>
+
+<h2>In-flight work</h2>
+{{- if .InFlightEpics}}
+{{- range .InFlightEpics}}
+<section class="status-epic">
+<h3><a href="{{.FileName}}">{{.ID}} — {{.Title}}</a> <span class="status status-{{.Status}}">{{.Status}}</span></h3>
+{{- if .Milestones}}
+<table class="milestones">
+<thead><tr><th>Id</th><th>Title</th><th>Status</th><th>TDD</th><th>ACs met</th></tr></thead>
+<tbody>
+{{- range .Milestones}}
+<tr>
+<td><a href="{{.FileName}}">{{.ID}}</a></td>
+<td>{{.Title}}</td>
+<td><span class="status status-{{.Status}}">{{.Status}}</span></td>
+<td>{{if .TDD}}{{.TDD}}{{else}}—{{end}}</td>
+<td>
+{{- if .ACTotal}}{{.ACMet}}/{{.ACTotal}}{{if .OpenACs}} ({{.OpenACs}} open){{end}}
+{{- else}}—{{end}}
+</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- end}}
+</section>
+{{- end}}
+{{- else}}
+<p>No in-flight epics.</p>
+{{- end}}
+
+<h2>Open decisions</h2>
+{{- if .OpenDecisions}}
+<ul class="status-list">
+{{- range .OpenDecisions}}
+<li><a href="{{.FileName}}">{{.ID}}</a> — {{.Title}} <span class="status status-{{.Status}}">{{.Status}}</span></li>
+{{- end}}
+</ul>
+{{- else}}
+<p>No open decisions.</p>
+{{- end}}
+
+<h2>Open gaps</h2>
+{{- if .OpenGaps}}
+<ul class="status-list">
+{{- range .OpenGaps}}
+<li>
+<a href="{{.FileName}}">{{.ID}}</a> — {{.Title}}
+{{- if .DiscoveredIn}} <span class="kind">discovered in {{.DiscoveredIn}}</span>{{end}}
+</li>
+{{- end}}
+</ul>
+{{- else}}
+<p>No open gaps.</p>
+{{- end}}
+
+{{- if .Warnings}}
+<h2>Active warnings</h2>
+<table class="warnings">
+<thead><tr><th>Code</th><th>Entity</th><th>Message</th></tr></thead>
+<tbody>
+{{- range .Warnings}}
+<tr>
+<td><code>{{.Code}}</code></td>
+<td>{{if .EntityID}}{{.EntityID}}{{else}}—{{end}}</td>
+<td>{{.Message}}</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- end}}
+
+<h2>Recent activity</h2>
+{{- if .RecentActivity}}
+<table class="history">
+<thead><tr><th>Date</th><th>Verb</th><th>Detail</th><th>Actor</th></tr></thead>
+<tbody>
+{{- range .RecentActivity}}
+<tr>
+<td>{{.Date}}</td>
+<td>{{.Verb}}{{if .To}} → {{.To}}{{end}}</td>
+<td>{{.Detail}}</td>
+<td>{{if .Principal}}{{.Principal}} via {{end}}{{.Actor}}</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- else}}
+<p>No recent aiwf-trailer commits.</p>
+{{- end}}
+
+</main>
+</div>
+</body>
+</html>
