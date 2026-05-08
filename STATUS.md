@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_165 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_166 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -40,7 +40,20 @@ _(no milestones)_
 
 ### E-20 — Add list verb (closes G-061) _(proposed)_
 
-_(no milestones)_
+- **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(draft)_ — tdd: required
+
+```mermaid
+flowchart LR
+  E_20["E-20<br/>Add list verb (closes G-061)"]:::epic_proposed
+  M_072["M-072<br/>aiwf list verb, status filter-helper refactor, contract-skill drift fix"]:::ms_draft
+  E_20 --> M_072
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Open decisions
 
@@ -76,14 +89,16 @@ _(no milestones)_
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Context\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Decision\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Consequences\` is empty |
+| entity-body-empty | M-072 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072 body section \`## Goal\` is empty |
+| entity-body-empty | M-072 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072 body section \`## Acceptance criteria\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body E-20 |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | add | aiwf add epic E-20 'Add list verb (closes G-061)' |
 | 2026-05-08 | human/peter | promote | aiwf promote E-13 active -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote E-13 proposed -> active |
-| 2026-05-08 | human/peter | promote | aiwf promote M-048 in_progress -> done |
 
