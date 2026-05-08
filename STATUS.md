@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_183 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_183 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -145,16 +145,15 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-079 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079 body section \`## Goal\` is empty |
 | entity-body-empty | M-080 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-080-whiteboard-skill-fixture-validation-retire-critical-path-md-close-e-21.md | M-080 body section \`## Goal\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-078 |
 | 2026-05-08 | human/peter | add | aiwf add ac M-080 AC-1..AC-7 (7 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add ac M-079 AC-1..AC-8 (8 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add ac M-078 AC-1..AC-5 (5 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-080 'Whiteboard skill fixture validation; retire critical-path.md; close E-21' |
-| 2026-05-08 | human/peter | add | aiwf add milestone M-079 'aiwfx-whiteboard skill: classification rubric, output template, Q&A gate' |
 
