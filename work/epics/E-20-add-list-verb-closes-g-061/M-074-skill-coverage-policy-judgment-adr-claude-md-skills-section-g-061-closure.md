@@ -1,7 +1,7 @@
 ---
 id: M-074
 title: skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure
-status: draft
+status: in_progress
 parent: E-20
 tdd: required
 acs:
