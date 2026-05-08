@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_192 entities · 0 errors · 5 warnings · run `aiwf check` for details_
+_192 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -63,6 +63,7 @@ _(no milestones)_
 | G-058 | AC body sections ship empty; no chokepoint enforces prose intent | E-16 |
 | G-059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-069 |
 | G-060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
+| G-061 | Generic \`aiwf list <kind>\` verb referenced as canonical in contracts plan and shipped contract skill, but never implemented; AI assistants are instructed to invoke a non-existent verb |  |
 | G-063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
 | G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
 | G-067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-066 |
@@ -93,14 +94,15 @@ _(no milestones)_
 | acs-tdd-audit | M-073/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-3 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-073/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-4 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-073/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-5 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
+| gap-resolved-has-resolver | G-085 | work/gaps/G-085-aiwf-status-kind-gap-advertised-in-claude-md-docs-pocv3-3-files-and-a-gap-body-but-kind-flag-doesn-t-exist-on-the-status-verb-canonical-fix-is-aiwf-list-kind-gap-once-e-20-ships.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-087 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-086 |
 | 2026-05-09 | human/peter | promote | aiwf promote E-20 active -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-074 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072 in_progress -> done |
-| 2026-05-09 | human/peter | promote | aiwf promote M-074/AC-6 open -> met |
 
