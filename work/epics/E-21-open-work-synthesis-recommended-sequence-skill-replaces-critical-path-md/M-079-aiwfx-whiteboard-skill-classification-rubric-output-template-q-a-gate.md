@@ -4,6 +4,7 @@ title: 'aiwfx-whiteboard skill: classification rubric, output template, Q&A gate
 status: draft
 parent: E-21
 tdd: advisory
+depends_on: [M-078]
 acs:
     - id: AC-1
       title: Skill scaffolded at aiwfx-whiteboard with frontmatter and SKILL.md

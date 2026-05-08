@@ -4,6 +4,7 @@ title: Whiteboard skill fixture validation; retire critical-path.md; close E-21
 status: draft
 parent: E-21
 tdd: required
+depends_on: [M-079]
 acs:
     - id: AC-1
       title: Fixture-validation test runs the skill against the current planning tree

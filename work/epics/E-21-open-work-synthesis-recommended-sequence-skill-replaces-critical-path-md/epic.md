@@ -86,11 +86,11 @@ The proximate trigger: during E-20's planning session, the operator named the ga
 
 ## Milestones
 
-<!-- Bulleted list, ordered by execution sequence. To be allocated and shaped by aiwfx-plan-milestones. -->
+<!-- Bulleted list, ordered by execution sequence. Allocated and shaped by aiwfx-plan-milestones on 2026-05-08. -->
 
-- [M-NNN](M-NNN-classification-rubric.md) — Skill body and frontmatter; classification rubric for tier placement; output template structure · depends on: —
-- [M-NNN](M-NNN-qa-gate-flow.md) — Q&A gate flow; one-at-a-time decision walkthrough; declining-to-Q&A exit · depends on: previous milestone
-- [M-NNN](M-NNN-test-fixture-and-retirement.md) — Test fixture against current critical-path.md; retire holding doc; final skill registration · depends on: previous milestone
+- [M-078](M-078-planning-conversation-skills-design-adr-placement-tiering-name-rationale.md) — Design ADR: rituals-plugin placement; pure-skill-first tiering; `aiwfx-whiteboard` name with rejected alternatives · `tdd: none` · depends on: — · sizing ~0.5–1d
+- [M-079](M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md) — Skill scaffold + body: tier-classification rubric, output template (landscape, sequence, first decision, pending), Q&A gate, anti-patterns · `tdd: advisory` · depends on: M-078 · sizing ~2–3d
+- [M-080](M-080-whiteboard-skill-fixture-validation-retire-critical-path-md-close-e-21.md) — Fixture validation against `critical-path.md`; deletion of holding doc; close E-21 · `tdd: required` · depends on: M-079 · sizing ~1d
 
 ## ADRs produced (optional)
 
