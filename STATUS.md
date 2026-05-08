@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_174 entities · 0 errors · 29 warnings · run `aiwf check` for details_
+_175 entities · 0 errors · 31 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -68,12 +68,15 @@ _(no milestones)_
 ### E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) _(proposed)_
 
 - **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(draft)_ — tdd: required
+- **M-076** — Writer surface for milestone depends_on (closes G-072) _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_22["E-22<br/>Planning toolchain fixes (closes G-071, G-072, G-065)"]:::epic_proposed
   M_075["M-075<br/>Lifecycle-gate entity-body-empty rule (closes G-071)"]:::ms_draft
   E_22 --> M_075
+  M_076["M-076<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_draft
+  E_22 --> M_076
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -145,14 +148,16 @@ flowchart LR
 | entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
 | entity-body-empty | M-075 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075 body section \`## Goal\` is empty |
 | entity-body-empty | M-075 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075 body section \`## Acceptance criteria\` is empty |
+| entity-body-empty | M-076 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076 body section \`## Goal\` is empty |
+| entity-body-empty | M-076 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076 body section \`## Acceptance criteria\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add milestone M-075 'Lifecycle-gate entity-body-empty rule (closes G-071)' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-22 |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-22 |
 | 2026-05-08 | human/peter | add | aiwf add epic E-22 'Planning toolchain fixes (closes G-071, G-072, G-065)' |
-| 2026-05-08 | human/peter | add | aiwf add gap G-073 'depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-072 in scope' |
 
