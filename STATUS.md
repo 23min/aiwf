@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_192 entities · 0 errors · 14 warnings · run `aiwf check` for details_
+_192 entities · 0 errors · 24 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -8,7 +8,7 @@ _192 entities · 0 errors · 14 warnings · run `aiwf check` for details_
 
 - → **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(in_progress)_ — ACs 9/9 met — tdd: required
 - → **M-073** — aiwf-list skill, aiwf-status skill tightening _(in_progress)_ — ACs 5/5 met — tdd: advisory
-- ✓ **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(done)_ — ACs 11/11 met — tdd: required
+- → **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(in_progress)_ — ACs 11/11 met — tdd: required
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
   E_20 --> M_072
   M_073["M-073 (5/5)<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_in_progress
   E_20 --> M_073
-  M_074["M-074 (11/11)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_done
+  M_074["M-074 (11/11)<br/>skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure"]:::ms_in_progress
   E_20 --> M_074
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -123,14 +123,24 @@ _(no milestones)_
 | entity-body-empty | M-073/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-3 body under \`### AC-3\` is empty |
 | entity-body-empty | M-073/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-4 body under \`### AC-4\` is empty |
 | entity-body-empty | M-073/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-5 body under \`### AC-5\` is empty |
+| entity-body-empty | M-074/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-1 body under \`### AC-1\` is empty |
+| entity-body-empty | M-074/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-2 body under \`### AC-2\` is empty |
+| entity-body-empty | M-074/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-3 body under \`### AC-3\` is empty |
+| entity-body-empty | M-074/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-4 body under \`### AC-4\` is empty |
+| entity-body-empty | M-074/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-5 body under \`### AC-5\` is empty |
+| entity-body-empty | M-074/AC-6 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-6 body under \`### AC-6\` is empty |
+| entity-body-empty | M-074/AC-7 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-7 body under \`### AC-7\` is empty |
+| entity-body-empty | M-074/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-8 body under \`### AC-8\` is empty |
+| entity-body-empty | M-074/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-9 body under \`### AC-9\` is empty |
+| entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-073 done -> in_progress |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072 done -> in_progress |
 | 2026-05-09 | human/peter | promote | aiwf promote E-20 done -> active |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-5 --phase  -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-4 --phase  -> done |
-| 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-3 --phase  -> done |
 
