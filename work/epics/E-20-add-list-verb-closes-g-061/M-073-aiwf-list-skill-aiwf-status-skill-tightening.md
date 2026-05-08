@@ -100,7 +100,7 @@ The skill host (Claude Code) loads skills based on description-match scoring aga
 
 ## Decisions made during implementation
 
-- (none — all decisions are pre-locked above)
+- **AC-3 minimal tightening (disclosed):** the spec called for tightening `aiwf-status`'s description to drop list-shaped phrasings like "list every X", "find all Y", "filter Z". Audit found the original description never contained any such phrasings — its phrasings were already narrative-only ("what's next?", "where are we?", "what are we working on?", "current status?", "what's in flight?"). The AC's contract was therefore satisfied at start-time. Implementation went further: added a "narrative-shaped" framing word, added "give me a summary" to the example list, and added an explicit "for those, use `aiwf list`" redirect — bonus discoverability work, not the AC's literal contract. Logging here so the closure doesn't read as having corrected drift that wasn't there.
 
 ## Validation
 
