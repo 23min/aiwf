@@ -131,9 +131,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body E-21 |
 | 2026-05-08 | human/peter | retitle | aiwf retitle E-21 -> 'Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-082 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-082 'Planning closure should default-merge to main before implementation begins' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-081 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-081 'aiwf rename does not pre-flight trunk-collision check' |
 

@@ -3,15 +3,16 @@ id: M-080
 title: Whiteboard skill fixture validation; retire critical-path.md; close E-21
 status: draft
 parent: E-21
+depends_on:
+    - M-079
 tdd: required
-depends_on: [M-079]
 acs:
     - id: AC-1
       title: Fixture-validation test runs the skill against the current planning tree
       status: open
       tdd_phase: red
     - id: AC-2
-      title: Output structurally agrees with critical-path.md (tier set, sequence, fork)
+      title: Output agrees with critical-path.md on structural shape, not content
       status: open
       tdd_phase: red
     - id: AC-3
@@ -56,9 +57,9 @@ Per the kernel rule *"render output must be human-verified before the iteration 
 
 Operator opens a Claude Code session against this repo, invokes the `aiwfx-whiteboard` skill via natural-language query (one of the AC-4 prompts), captures the skill's output as a transcript paste under this milestone's *Validation* section. The capture is the fixture this milestone preserves in the entity body before `critical-path.md` is deleted.
 
-### AC-2 — Output structurally agrees with critical-path.md (tier set, sequence, fork)
+### AC-2 — Output agrees with critical-path.md on structural shape, not content
 
-Validation paste demonstrates structural agreement: same tier set (Tier 1–5 with same axes — leverage, foundational, ritual, debris, defer), same item placements at Tier 1 (G-071, G-072 minimally; others permissible), same recommended-sequence section with similar pre-E-20 / E-20 / post-E-20 / parallel ordering, same first-decision fork with three options A/B/C carrying the bundling-into-M-072 question. Diff is permissible (LLM judgement varies); structural agreement on sections and tier set is required. The validation paste explicitly notes any structural divergences with one-line rationale.
+Validation paste demonstrates structural agreement on the **structural shape** of the output, not on its content: same tier axes (Tier 1–5: leverage, foundational, ritual, debris, defer), same section ordering (landscape → recommended sequence → first-decision fork → pending decisions), same column structure in the landscape table, same Q&A gate terminator. Tier *contents* are explicitly allowed to drift — at the time critical-path.md was authored (2026-05-08), Tier 1 contained G-071/G-072/G-065; those gaps closed via E-22 the same day, so the live skill on the post-E-22 tree will likely surface a different (or empty) Tier 1, a different first-decision fork, and a refreshed pending-decisions list. That drift is *expected and correct*: critical-path.md is a historical fixture, not a live agreement target. The validation paste captures the side-by-side and notes which differences are content-drift (acceptable) versus structural-drift (would block AC-2). Critical-path.md is treated as a *graduation reference* — it shows what shape the skill produces; whether the skill's live content matches it is no longer the assertion.
 
 ### AC-3 — Pending-decisions section enumerates at least the decisions in critical-path.md
 
