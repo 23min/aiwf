@@ -1,19 +1,19 @@
 # aiwf status — 2026-05-08
 
-_189 entities · 0 errors · 11 warnings · run `aiwf check` for details_
+_189 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 ## In flight
 
 ### E-20 — Add list verb (closes G-061) _(active)_
 
-- → **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(in_progress)_ — ACs 9/9 met — tdd: required
+- ✓ **M-072** — aiwf list verb, status filter-helper refactor, contract-skill drift fix _(done)_ — ACs 9/9 met — tdd: required
 - **M-073** — aiwf-list skill, aiwf-status skill tightening _(draft)_ — ACs 0/5 met (5 open) — tdd: advisory
 - **M-074** — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure _(draft)_ — ACs 0/11 met (11 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_20["E-20<br/>Add list verb (closes G-061)"]:::epic_active
-  M_072["M-072 (9/9)<br/>aiwf list verb, status filter-helper refactor, contract-skill drift fix"]:::ms_in_progress
+  M_072["M-072 (9/9)<br/>aiwf list verb, status filter-helper refactor, contract-skill drift fix"]:::ms_done
   E_20 --> M_072
   M_073["M-073 (0/5)<br/>aiwf-list skill, aiwf-status skill tightening"]:::ms_draft
   E_20 --> M_073
@@ -110,15 +110,6 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-072/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-072/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-072/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-072/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-072/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-072/AC-6 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-072/AC-7 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-7 body under \`### AC-7\` is empty |
-| entity-body-empty | M-072/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-8 body under \`### AC-8\` is empty |
-| entity-body-empty | M-072/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-9 body under \`### AC-9\` is empty |
 | entity-body-empty | G-086 | work/gaps/G-086-docs-pocv3-contracts-md-still-references-non-existent-aiwf-list-contracts-lines-98-114-117-same-drift-class-as-g-061-g-085-different-file.md | G-086 body section \`## What's missing\` is empty |
 | entity-body-empty | G-086 | work/gaps/G-086-docs-pocv3-contracts-md-still-references-non-existent-aiwf-list-contracts-lines-98-114-117-same-drift-class-as-g-061-g-085-different-file.md | G-086 body section \`## Why it matters\` is empty |
 
@@ -126,9 +117,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-8 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-8 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-8 --phase red -> green |
 | 2026-05-09 | human/peter | add | aiwf add gap G-086 'docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file' |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-7 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-7 --phase green -> done |
 
