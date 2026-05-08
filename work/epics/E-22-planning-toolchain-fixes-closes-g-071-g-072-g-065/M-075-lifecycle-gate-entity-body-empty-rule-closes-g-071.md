@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Rule skips ACs whose parent milestone is draft
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Rule still fires on active-state entities with empty sections
       status: open
