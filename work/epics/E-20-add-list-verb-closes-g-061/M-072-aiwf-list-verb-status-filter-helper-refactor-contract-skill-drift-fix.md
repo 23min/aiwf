@@ -40,7 +40,7 @@ acs:
     - id: AC-9
       title: Verb-level integration test drives the dispatcher
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-072 — aiwf list verb, status filter-helper refactor, contract-skill drift fix

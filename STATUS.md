@@ -123,9 +123,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-1 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-072/AC-1 --phase green -> done |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-074 |
 | 2026-05-08 | human/peter | add | aiwf add ac M-074/AC-11 'G-085 doc-sweep and gap closure' |
 | 2026-05-08 | human/peter | promote | aiwf promote M-072/AC-1 --phase red -> green |
-| 2026-05-08 | human/peter | promote | aiwf promote M-072 draft -> in_progress |
 
