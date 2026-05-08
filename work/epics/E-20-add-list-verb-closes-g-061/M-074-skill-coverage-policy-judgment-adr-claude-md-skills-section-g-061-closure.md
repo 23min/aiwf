@@ -47,7 +47,15 @@ acs:
       tdd_phase: red
 ---
 
+# M-074 — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure
+
 ## Goal
+
+Lock the AI-discoverability surface for skills against drift via a kernel policy, capture the judgment rule that drove this epic's split-skill design as an ADR, weave both into `CLAUDE.md`'s authoritative ruleset, file the deferred-skill follow-up gap for `aiwf show`, and close G-061 with a commit that cites this epic as its resolution.
+
+## Context
+
+Two policies in `internal/policies/` already enforce that AI-discoverable surfaces don't go undocumented: `PolicyFindingCodesAreDiscoverable` (`discoverability.go`) and `PolicyConfigFieldsAreDiscoverable` (`config_fields_discoverable.go`). Both share the `Violation` shape, `readDiscoverabilityChannels` haystack, and the small allowlist-with-rationale pattern. Skill coverage of verbs is the third leg of the same surface and has been un-policed: a verb can ship without skill coverage, and a skill can reference a verb that doesn't exist (G-061's exact failure mode). This milestone closes that loop. The judgment rule that drove the split-skill design (per-verb default for mutating verbs, topical multi-verb when concept-shaped, no skill when --help suffices, discoverability priority justifies splitting within an otherwise topical group) lives in an ADR — judgment-shaped, not mechanically evaluable. The ADR is the *why*; the policy is the enforced *what*.
 
 ## Acceptance criteria
 
@@ -71,3 +79,82 @@ acs:
 
 ### AC-10 — G-061 promoted to terminal status with closing commit citing this epic
 
+## Constraints
+
+- Same precedent: `internal/policies/skill_coverage.go` follows the shape of `config_fields_discoverable.go` exactly — same `Violation` struct, same `readDiscoverabilityChannels` haystack helper, same allowlist-with-rationale-comment pattern. No new framework primitives in `internal/policies/`.
+- Mechanical vs. judgment split is non-negotiable. The policy contains *only* mechanically evaluable invariants. Judgment lives in the ADR. The two artifacts cross-reference each other; neither smuggles the other's role.
+- AC-4's allowlist must carry a one-line rationale comment per entry in source, exactly like `excluded["actor"]` in `config_fields_discoverable.go:52`. The entry for `show` references the follow-up gap by id.
+- AC-7 (follow-up gap) is allocated via `aiwf add gap` — not hand-crafted. The gap's body explains *why* `show` warrants its own skill (body-rendering branches, composite-id handling, AI assistants reach for it constantly) and is filed under `discovered_in: M-074`.
+- AC-8 (judgment ADR) is allocated via `aiwf add adr` and lives under `docs/adr/ADR-NNNN-*.md`. Status `proposed` at minimum; ratification is not a blocker for this milestone's `done`.
+- AC-10's closing commit is produced by `aiwf promote G-061 <terminal>`; the commit's `aiwf-entity:` trailer references G-061 and the body cites this epic. Do not hand-craft the closure commit.
+
+## Design notes
+
+- Policy implementation outline (refine at start-milestone):
+  1. Walk `internal/skills/embedded/aiwf-*/SKILL.md` files; parse frontmatter; assert `name:` non-empty and matches the directory; assert `description:` non-empty; assert name matches `aiwf-<topic>` regex.
+  2. Walk `cmd/aiwf/*.go` for top-level Cobra `Use:` strings; build the verb set.
+  3. For each verb: assert it appears in some skill body OR appears in the allowlist with a rationale comment.
+  4. For each skill body: extract every backticked `aiwf <verb>` mention; assert each resolves to a verb in the verb set.
+- Allowlist initial entries (refine at start-milestone): `init`, `doctor`, `update`, `upgrade`, `version`, `verbs`, `schema`, `template`, `whoami`, `import`, `move`, `edit-body`, `cancel`, `roadmap`, `recipes`, `help`, `show`. Each carries a rationale; `show` carries `"deferred — see G-NNN"` where G-NNN is the follow-up gap from AC-7. The other entries are stable "ops verb" or "trivially documented in --help" rationales.
+- ADR title (suggested, refine at allocation): "Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices; discoverability priority justifies splitting".
+- ADR body covers: the four cases (per-verb / topical / no-skill / split-within-topical); the precedents (`aiwf-contract` for topical bundling, `aiwf-status` and `aiwf-list` after this epic for the split-within-topical case); the principle that skill descriptions enumerate natural-language *query phrasings*, not just verb names; the cross-reference to `internal/policies/skill_coverage.go` as the mechanical companion.
+- CLAUDE.md *Skills policy* section (~10 lines): summarize the four cases, point at the ADR for the *why* and the policy file for the enforced *what*. Add one row to the *What's enforced and where* table: rule = "Every verb has skill coverage or an allowlist entry; every `aiwf <verb>` mention in a skill resolves", chokepoint = `internal/policies/skill_coverage.go` test, status = "Blocking via CI test".
+- G-061 closure: `aiwf promote G-061 addressed` (or whichever terminal status `gap` uses; `entity.IsTerminal(KindGap, ...)` from M-072's helper resolves it). The closing reason cites E-20.
+
+## Surfaces touched
+
+- `internal/policies/skill_coverage.go` (new)
+- `internal/policies/policies_test.go` (test entry)
+- `docs/adr/ADR-NNNN-*.md` (new — judgment rule)
+- `CLAUDE.md` (Skills policy section + What's enforced row)
+- `work/gaps/G-NNN-*.md` (new — follow-up gap for aiwf-show skill)
+- G-061 (status promotion only)
+
+## Out of scope
+
+- A new `aiwf-show` embedded skill. The whole point of the deferred entry plus follow-up gap is that this milestone records the absence rather than papers over it. The actual skill ships in a future milestone.
+- Migration of this policy into a future `P-NNN` under the `aiwf-rituals` bundle when policy-model.md's opt-in module lands. That migration is name-only and out of scope here.
+- Closure of G-068 (discoverability policy misses dynamic finding subcodes). Different policy, different fix shape.
+- Any change to the existing `PolicyFindingCodesAreDiscoverable` or `PolicyConfigFieldsAreDiscoverable`.
+
+## Dependencies
+
+- M-072 — the contract-skill drift fix must have landed so AC-5's "every `aiwf <verb>` resolves" check doesn't trip on stale `aiwf list contracts` mentions in `aiwf-contract/SKILL.md`.
+- M-073 — the new `aiwf-list` skill must exist so the policy's verb-coverage check passes (without it, `list` would have no skill and would need an allowlist entry, defeating the M-073 work).
+- E-14 conventions for `internal/policies/` test wiring (`policies_test.go` runPolicy pattern).
+
+## Coverage notes
+
+- (filled at wrap)
+
+## References
+
+- E-20 epic spec (this milestone's parent).
+- G-061 — the gap this milestone closes.
+- `internal/policies/discoverability.go` — `PolicyFindingCodesAreDiscoverable`. Precedent for haystack and Violation shape.
+- `internal/policies/config_fields_discoverable.go` — `PolicyConfigFieldsAreDiscoverable`. Precedent for the allowlist-with-rationale-comment pattern (see `excluded` map at line 52).
+- `internal/policies/policies.go` — the package's `Violation` and `WalkGoFiles` primitives this milestone reuses.
+- `docs/pocv3/design/policy-model.md` — future opt-in policy module; the ADR notes the migration story (name-only) but this milestone does not depend on the module landing.
+- CLAUDE.md kernel principles cited verbatim by the ADR: *"kernel functionality must be AI-discoverable"*, *"the framework's correctness must not depend on the LLM's behavior"*.
+
+---
+
+## Work log
+
+(filled during implementation)
+
+## Decisions made during implementation
+
+- (none — all decisions are pre-locked above)
+
+## Validation
+
+(pasted at wrap)
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (filled at wrap)
