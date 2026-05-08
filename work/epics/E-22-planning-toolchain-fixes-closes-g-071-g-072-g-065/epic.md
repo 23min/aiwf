@@ -102,9 +102,9 @@ No further open questions blocking milestone planning.
 
 <!-- Bulleted list, ordered by execution sequence. Status lives in each milestone's frontmatter. Milestone ids are global (M-NNN), not epic-scoped; allocated by aiwfx-plan-milestones. -->
 
-- [M-NNN](M-NNN-lifecycle-gate-entity-body-empty.md) — Lifecycle-gate `entity-body-empty` rule; closes G-071 · `tdd: required` · depends on: —
-- [M-NNN](M-NNN-depends-on-writer-verbs.md) — Writer surface for milestone `depends_on` (`--depends-on` flag on `aiwf add milestone` + dedicated `aiwf milestone depends-on`); closes G-072 · `tdd: required` · depends on: —
-- [M-NNN](M-NNN-retitle-verb.md) — `aiwf retitle <id|composite-id>` for entity and AC titles; closes G-065 · `tdd: required` · depends on: —
+- [M-075](M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md) — Lifecycle-gate `entity-body-empty` rule; closes G-071 · `tdd: required` · depends on: —
+- [M-076](M-076-writer-surface-for-milestone-depends-on-closes-g-072.md) — Writer surface for milestone `depends_on` (`--depends-on` flag on `aiwf add milestone` + dedicated `aiwf milestone depends-on`); closes G-072 · `tdd: required` · depends on: —
+- [M-077](M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md) — `aiwf retitle <id|composite-id>` for entity and AC titles; closes G-065 · `tdd: required` · depends on: —
 
 (Internal milestone dependencies are loose: M-A is independent of M-B and M-C; M-B and M-C are independent of each other and could swap if planning surfaces a reason. The recommended order is M-A → M-B → M-C, with M-A first because it pays for itself immediately by clearing warnings.)
 
