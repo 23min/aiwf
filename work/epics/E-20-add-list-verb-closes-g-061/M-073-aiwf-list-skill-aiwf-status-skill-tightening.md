@@ -20,6 +20,7 @@ acs:
     - id: AC-4
       title: aiwf-status skill body redirects to aiwf list for tree queries
       status: met
+      tdd_phase: done
     - id: AC-5
       title: Both skills materialize via aiwf init and aiwf update
       status: met
