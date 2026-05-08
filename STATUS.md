@@ -6,14 +6,14 @@ _181 entities · 0 errors · 45 warnings · run `aiwf check` for details_
 
 ### E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) _(active)_
 
-- **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(draft)_ — ACs 0/5 met (5 open) — tdd: required
+- → **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(in_progress)_ — ACs 0/5 met (5 open) — tdd: required
 - **M-076** — Writer surface for milestone depends_on (closes G-072) _(draft)_ — ACs 0/7 met (7 open) — tdd: required
 - **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(draft)_ — ACs 0/6 met (6 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_22["E-22<br/>Planning toolchain fixes (closes G-071, G-072, G-065)"]:::epic_active
-  M_075["M-075 (0/5)<br/>Lifecycle-gate entity-body-empty rule (closes G-071)"]:::ms_draft
+  M_075["M-075 (0/5)<br/>Lifecycle-gate entity-body-empty rule (closes G-071)"]:::ms_in_progress
   E_22 --> M_075
   M_076["M-076 (0/7)<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_draft
   E_22 --> M_076
@@ -175,9 +175,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote E-22 proposed -> active |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-073 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-078 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-078 'No priority field on entities; backlog isn't filterable or sortable by importance' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-077 'Post-promotion working paper (aiwf's thesis) not yet written' |
-| 2026-05-08 | human/peter | add | aiwf add gap G-076 'CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main' |
 
