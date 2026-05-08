@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_192 entities · 0 errors · 20 warnings · run `aiwf check` for details_
+_192 entities · 0 errors · 21 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -102,7 +102,6 @@ _(no milestones)_
 | G-082 | Planning closure should default-merge to main before implementation begins | E-21 |
 | G-083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-21 |
 | G-084 | Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella | E-21 |
-| G-085 | \`aiwf status --kind gap\` advertised in CLAUDE.md, docs/pocv3 (3 files), and a gap body, but \`--kind\` flag doesn't exist on the status verb; canonical fix is \`aiwf list --kind gap\` once E-20 ships | E-20 |
 | G-086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file | M-072 |
 | G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
 
@@ -130,6 +129,7 @@ _(no milestones)_
 | entity-body-empty | G-087 | work/gaps/G-087-no-aiwf-show-embedded-skill-show-is-the-per-entity-inspection-verb-every-ai-reaches-for-but-help-only-coverage-misses-body-rendering-and-composite-id-discovery.md | G-087 body section \`## What's missing\` is empty |
 | entity-body-empty | G-087 | work/gaps/G-087-no-aiwf-show-embedded-skill-show-is-the-per-entity-inspection-verb-every-ai-reaches-for-but-help-only-coverage-misses-body-rendering-and-composite-id-discovery.md | G-087 body section \`## Why it matters\` is empty |
 | gap-resolved-has-resolver | G-061 | work/gaps/G-061-generic-aiwf-list-kind-verb-referenced-as-canonical-in-contracts-plan-and-shipped-contract-skill-but-never-implemented-ai-assistants-are-instructed-to-invoke-a-non-existent-verb.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
+| gap-resolved-has-resolver | G-085 | work/gaps/G-085-aiwf-status-kind-gap-advertised-in-claude-md-docs-pocv3-3-files-and-a-gap-body-but-kind-flag-doesn-t-exist-on-the-status-verb-canonical-fix-is-aiwf-list-kind-gap-once-e-20-ships.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
