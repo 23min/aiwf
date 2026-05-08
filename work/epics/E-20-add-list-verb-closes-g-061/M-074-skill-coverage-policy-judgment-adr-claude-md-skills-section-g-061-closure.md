@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Policy enforces every aiwf <verb> mention in skills resolves to a real verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Allowlist has rationale per entry; show entry rationale references follow-up gap
