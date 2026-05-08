@@ -160,4 +160,4 @@ Initial PoC release. Six entity kinds; stable ids that survive rename, cancel, a
 ### Added
 - **`aiwf upgrade` verb** — one-command flow with skew detection, install via `go install`, and re-exec into `aiwf update`. Includes `--check`, `--version=`, and friendly messages on missing `go` or proxy-disabled. Wired into `aiwf doctor --self-check`. (`3e2d7ff`, `d1c4b1c`, `6136754`, `efa59c2`)
 - **`version` package** — `Current()`, `Compare()`, `Latest()` against the Go module proxy. (`62928e5`, `05dd773`)
-- **G1 – G26** resolved across iterations I0–I2. See [`docs/pocv3/gaps.md`](docs/pocv3/gaps.md) for the full matrix.
+- **G1 – G26** resolved across iterations I0–I2. See [`docs/pocv3/archive/gaps-pre-migration.md`](docs/pocv3/archive/gaps-pre-migration.md) for the full matrix.
