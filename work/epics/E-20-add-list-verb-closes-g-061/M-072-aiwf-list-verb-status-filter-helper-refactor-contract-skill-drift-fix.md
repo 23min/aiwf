@@ -112,7 +112,30 @@ Ship the `aiwf list` verb as the AI's hot-path read primitive over the planning 
 
 ## Coverage notes
 
-- (filled at wrap)
+- `cmd/aiwf/list_cmd.go`: **91.5%** file-level coverage. Per-function:
+  `newListCmd 100%`, `runListCmd 75%`, `isKnownKind 100%`, `buildListRows 100%`,
+  `buildListCounts 100%`, `unionAllStatuses 100%`, `renderListCountsText 100%`,
+  `pluralKindLabel 100%`, `renderListRowsText 90%`.
+- `internal/tree/tree.go`'s `FilterByKindStatuses` (the AC-6 helper): **100%**.
+- Uncovered lines in `runListCmd` are defensive paths that never fire under
+  unit tests: `resolveRoot` failure (only on bad `--root` path), `tree.Load`
+  failure (only on disk corruption), and `render.JSON` write errors to
+  `os.Stdout` (only on stdout pipe failure). Same precedent as
+  `runStatusCmd` in `status_cmd.go`. Marked as defensive rather than
+  `//coverage:ignore`'d so a reviewer can see the shape.
+- Test count by AC:
+  AC-1 — `TestRun_List_CoreFlagsEndToEnd` (5 subtests),
+  AC-2 — `TestRun_List_JSONResultIsArrayOfSummaryObjects`,
+  AC-3 — `TestRun_List_ArchivedFlag` (3 subtests),
+  AC-4 — exhaustive in `internal/entity/transition_test.go::TestIsTerminal_*`,
+  AC-5 — `TestNewListCmd_CompletionWiring` (3 subtests),
+  AC-6 — `TestSeam_ListAndStatusAgreeOnOpenGaps` + 5 helper subtests,
+  AC-7 — `TestRenderStatus_Goldens` (text + JSON byte-equal),
+  AC-8 — `TestNoReintroducedDeadVerbForms_ContractsAndSkill` (drift guard),
+  AC-9 — same test as AC-1 (the verb-level seam test satisfies both).
+- Plus entries to `TestEnvelopeSchemaConformance_AllJSONVerbs` (no-args
+  `result` is object; filtered `result` is array) lock the JSON envelope
+  shape against future drift.
 
 ## References
 
@@ -131,11 +154,66 @@ Ship the `aiwf list` verb as the AI's hot-path read primitive over the planning 
 
 ## Decisions made during implementation
 
-- (none — all decisions are pre-locked above)
+- **AC-4 (`entity.IsTerminal` helper) was already present.** Audit at start-milestone
+  found the helper at `internal/entity/transition.go:93` with exhaustive property
+  tests (`TestIsTerminal_ExhaustiveOverFSM`, `TestIsTerminal_TerminalSet`). Someone
+  added it before this epic, presumably anticipating ADR-0004's needs. M-072's
+  consumers (`buildListRows`, `buildListCounts`) wire it in; AC-4 closes by virtue
+  of pre-existing work. The milestone spec was correct that the helper is
+  needed; just incorrect that it didn't exist.
+- **AC-7 ("goldens unchanged") raised the testing bar mid-milestone.** The
+  pre-existing `TestRenderStatus*` tests use structural-substring assertions, not
+  byte-equal goldens. They survived the AC-6 refactor — that's necessary parity
+  evidence — but they do not satisfy the AC's word "goldens" literally. Wrap-pass
+  added `TestRenderStatus_Goldens` with byte-equal `cmd/aiwf/testdata/status_*.golden`
+  files locked to a deterministic `canonicalStatusReport` fixture. The
+  structural-substring tests are kept; the goldens supplement, not replace.
+- **AC-8 fixed 7 references in `contracts-plan.md`, not the spec's 5.** Lines 209,
+  425, 489, 593, 708 were named; lines 424 and 654 also carried the dead form.
+  Fixed all 7 — over-delivered to avoid leaving residual drift.
+- **G-086 filed for out-of-scope drift.** `docs/pocv3/contracts.md` carries 5
+  more `aiwf list contracts` references in speculative-future-flag context
+  (`--drifted`, `--verified-status`, etc.). M-072 AC-8's named scope did not
+  cover this file; filed as G-086 rather than a silent inclusion. The
+  `TestNoReintroducedDeadVerbForms_ContractsAndSkill` drift guard's `sites`
+  list is the natural extension point when G-086 closes.
 
 ## Validation
 
-(pasted at wrap)
+```
+$ go test -race ./... 2>&1 | grep -E "FAIL|ok" | tail
+ok  	github.com/23min/ai-workflow-v2/cmd/aiwf	167.290s
+ok  	github.com/23min/ai-workflow-v2/internal/aiwfyaml	(cached)
+ok  	github.com/23min/ai-workflow-v2/internal/entity	(cached)
+ok  	github.com/23min/ai-workflow-v2/internal/policies	6.442s
+ok  	github.com/23min/ai-workflow-v2/internal/render	(cached)
+ok  	github.com/23min/ai-workflow-v2/internal/skills	3.788s
+ok  	github.com/23min/ai-workflow-v2/internal/tree	4.071s
+ok  	github.com/23min/ai-workflow-v2/internal/verb	34.480s
+... (every package green)
+
+$ golangci-lint run ./...
+0 issues.
+
+$ aiwf check 2>&1 | tail -1
+2 findings (0 errors, 2 warnings)   # both pre-existing, not from this session
+
+$ aiwf doctor 2>&1 | head -8
+binary:    (devel) (working-tree build)
+config:    ok
+actor:     human/peter (from git config user.email)
+skills:    ok (13 skills, byte-equal to embed)
+ids:       ok (no collisions)
+filesystem: case-insensitive
+hook:      ok
+pre-commit: ok
+```
+
+Smoke-tested against the live planning tree:
+- `aiwf list` → `4 epics · 7 milestones · 4 ADRs · 28 gaps · 1 decision · 0 contracts`
+- `aiwf list --kind milestone --status in_progress` → only M-072
+- `aiwf list --parent E-20` → M-072, M-073, M-074
+- `aiwf list --kind gap` → 28 rows; `--archived` widens to 83 rows.
 
 ## Deferrals
 
@@ -143,4 +221,27 @@ Ship the `aiwf list` verb as the AI's hot-path read primitive over the planning 
 
 ## Reviewer notes
 
-- (filled at wrap)
+- **Read `tree.FilterByKindStatuses` first** (`internal/tree/tree.go`). It's the
+  AC-6 chokepoint that lets `aiwf list --kind X --status Y` and `aiwf status`'s
+  per-section slices route through one source of truth. The seam test
+  `TestSeam_ListAndStatusAgreeOnOpenGaps` would catch any future re-introduction
+  of parallel filter logic in either consumer.
+- **The verb's V1 flag set is locked** to `--kind / --status / --parent /
+  --archived / --format / --pretty`. Future axes (`--actor`, `--since`,
+  `--has-tdd`, `--ac-status`, `--has-findings`, `--format=md`) are explicitly
+  out-of-scope and earn their place when concrete friction demands them.
+- **AC-1 ↔ AC-9 share one test.** `TestRun_List_CoreFlagsEndToEnd` is both
+  the core-flag-set test and the verb-level seam test. AC-9's "drives the
+  dispatcher" requirement is satisfied by the same code; both ACs cite it.
+- **The earlier closure pass was reverted and remediated.** AC-7 originally
+  closed against structural-substring proxies (the pre-existing
+  `TestRenderStatus*` suite); audit revealed those don't match the AC's word
+  "goldens" literally. AC-8 closed without a future-drift guard; the
+  skill-coverage policy from M-074 doesn't catch sub-positional drift like
+  `aiwf list contracts` (since `list` is now a real verb). Both gaps were
+  closed in the wrap pass: byte-equal goldens for AC-7, scoped drift guard
+  for AC-8. The history of those reverts is in the git log between the first
+  and second `aiwf promote M-072 done` commits.
+- **G-086 is a follow-up to M-072 AC-8.** Same drift class, third file
+  (`docs/pocv3/contracts.md`). Out of M-072's named scope. Worth a quick
+  pickup in a future small milestone.
