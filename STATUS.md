@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_183 entities · 0 errors · 0 warnings_
+_184 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -101,18 +101,22 @@ _(no milestones)_
 | G-078 | No priority field on entities; backlog isn't filterable or sortable by importance |  |
 | G-079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation; M-076 added the verb but the plugin lives in ai-workflow-rituals upstream | M-076 |
 | G-080 | Wide-table verbs wrap mid-row and break column scan; no TTY-aware sizing, glyph palette, or truncation surface | M-076 |
+| G-081 | aiwf rename does not pre-flight trunk-collision check | E-21 |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | G-081 | work/gaps/G-081-aiwf-rename-does-not-pre-flight-trunk-collision-check.md | G-081 body section \`## What's missing\` is empty |
+| entity-body-empty | G-081 | work/gaps/G-081-aiwf-rename-does-not-pre-flight-trunk-collision-check.md | G-081 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-076 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-056 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-057 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-080 'Wide-table verbs wrap mid-row and break column scan; no TTY-aware sizing, glyph palette, or truncation surface' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-073 |
-| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 
