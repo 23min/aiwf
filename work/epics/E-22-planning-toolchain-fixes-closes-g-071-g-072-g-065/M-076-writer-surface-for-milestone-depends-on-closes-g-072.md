@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: aiwf milestone depends-on dedicated verb
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: --clear flag empties the depends_on list
       status: open
