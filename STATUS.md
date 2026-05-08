@@ -149,9 +149,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote E-21 proposed [audit-only] |
 | 2026-05-08 | human/peter | promote | aiwf promote M-080 draft [audit-only] |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-080 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-079 |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-078 |
 
