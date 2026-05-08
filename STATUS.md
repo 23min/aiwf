@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_169 entities · 0 errors · 27 warnings · run `aiwf check` for details_
+_170 entities · 0 errors · 27 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -88,6 +88,7 @@ flowchart LR
 | G-069 | aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome | M-070 |
 | G-070 | aiwf doctor has no --format=json envelope; M-070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears | M-070 |
 | G-071 | entity-body-empty/ac fires on freshly-allocated ACs in draft milestones; conflicts with plan-milestones 'shape now, detail later' discipline | E-20 |
+| G-072 | milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story | E-20 |
 
 ## Warnings
 
@@ -125,9 +126,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body E-20 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-074 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-073 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body M-072 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-071 'entity-body-empty/ac fires on freshly-allocated ACs in draft milestones; conflicts with plan-milestones 'shape now, detail later' discipline' |
-| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 
