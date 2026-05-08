@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_171 entities · 0 errors · 30 warnings · run `aiwf check` for details_
+_171 entities · 0 errors · 27 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -125,17 +125,14 @@ _(no milestones)_
 | entity-body-empty | M-074/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-8 body under \`### AC-8\` is empty |
 | entity-body-empty | M-074/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-9 body under \`### AC-9\` is empty |
 | entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
-| entity-body-empty | E-21 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/epic.md | E-21 body section \`## Goal\` is empty |
-| entity-body-empty | E-21 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/epic.md | E-21 body section \`## Scope\` is empty |
-| entity-body-empty | E-21 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/epic.md | E-21 body section \`## Out of scope\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add epic E-21 'Open-work synthesis: recommended-sequence skill (replaces critical-path.md)' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-19 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-071 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-072 'milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-20 |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-074 |
 
