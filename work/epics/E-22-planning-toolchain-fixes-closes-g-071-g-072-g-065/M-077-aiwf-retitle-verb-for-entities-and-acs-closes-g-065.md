@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: aiwf retitle works for all top-level kinds with --reason
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Composite-id retitle updates frontmatter and body atomically
       status: open
