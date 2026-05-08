@@ -61,7 +61,7 @@ flowchart LR
   classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
 ```
 
-### E-21 — Open-work synthesis: recommended-sequence skill (replaces critical-path.md) _(proposed)_
+### E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md _(proposed)_
 
 - **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(draft)_ — ACs 0/5 met (5 open) — tdd: none
 - **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(draft)_ — ACs 0/8 met (8 open) — tdd: advisory
@@ -69,7 +69,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  E_21["E-21<br/>Open-work synthesis: recommended-sequence skill (replaces critical-path.md)"]:::epic_proposed
+  E_21["E-21<br/>Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md"]:::epic_proposed
   M_078["M-078 (0/5)<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_draft
   E_21 --> M_078
   M_079["M-079 (0/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_draft
@@ -131,9 +131,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-08 | human/peter | promote | aiwf promote M-079 draft [audit-only] |
-| 2026-05-08 | human/peter | promote | aiwf promote E-21 proposed [audit-only] |
-| 2026-05-08 | human/peter | promote | aiwf promote M-080 draft [audit-only] |
-| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-080 |
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-082 |
+| 2026-05-08 | human/peter | add | aiwf add gap G-082 'Planning closure should default-merge to main before implementation begins' |
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-081 |
+| 2026-05-08 | human/peter | add | aiwf add gap G-081 'aiwf rename does not pre-flight trunk-collision check' |
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-076 |
 

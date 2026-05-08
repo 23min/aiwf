@@ -1,6 +1,6 @@
 ---
 id: E-21
-title: 'Open-work synthesis: recommended-sequence skill (replaces critical-path.md)'
+title: 'Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md'
 status: proposed
 ---
 
