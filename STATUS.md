@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add gap G-085 '\`aiwf status --kind gap\` advertised in CLAUDE.md, docs/pocv3 (3 files), and a gap body, but \`--kind\` flag doesn't exist on the status verb; canonical fix is \`aiwf list --kind gap\` once E-20 ships' |
 | 2026-05-08 | human/peter | promote | aiwf promote G-072 open -> addressed |
 | 2026-05-08 | human/peter | promote | aiwf promote G-071 open -> addressed |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-084 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-084 'Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 

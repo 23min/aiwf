@@ -48,6 +48,7 @@ The collision exists because trunk's tree still has `E-NN-old/`; the branch now 
 
 ## References
 
+- **ADR-0005** — *"Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs"*. This gap implements obligation 1 (**pre-flight against known finding rules**); filed under umbrella gap G-084.
 - E-21 milestone planning conversation, 2026-05-08 — surface event. Reverted via `git reset --hard` since the rename commits were local-only and not pushed.
 - `internal/check/...` (or wherever the `ids-unique/trunk-collision` rule lives) — the existing checker the rename verb would call into.
 - G-072 (depends_on writer verb — closed via E-22/M-076), G-065 (no `aiwf retitle` verb — closed via E-22/M-077) — adjacent verb-asymmetry gaps that closed during the E-21 planning session that surfaced this one. This gap is shape-different: the rename verb exists; it just doesn't pre-flight against the trunk-collision rule.
