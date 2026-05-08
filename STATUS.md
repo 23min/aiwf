@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_176 entities · 0 errors · 45 warnings · run `aiwf check` for details_
+_177 entities · 0 errors · 45 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -117,6 +117,7 @@ flowchart LR
 | G-071 | entity-body-empty/ac fires on freshly-allocated ACs in draft milestones; conflicts with plan-milestones 'shape now, detail later' discipline | E-20 |
 | G-072 | milestone depends_on has six kernel read sites and zero writer verbs; populating it requires a hand-edit aiwf edit-body refuses, and neither aiwf-add nor aiwfx-plan-milestones tells the full story | E-20 |
 | G-073 | depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-072 in scope | E-21 |
+| G-074 | docs/pocv3/ body prose still uses PoC framing; needs sweep |  |
 
 ## Warnings
 
