@@ -31,7 +31,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: Follow-up gap for aiwf-show skill exists
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-8
       title: Skills judgment ADR allocated and proposed
