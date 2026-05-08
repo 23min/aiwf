@@ -32,7 +32,7 @@ acs:
     - id: AC-7
       title: Status text and JSON goldens unchanged after refactor
       status: open
-      tdd_phase: done
+      tdd_phase: red
     - id: AC-8
       title: contracts-plan and contract-skill drift fixed
       status: met
