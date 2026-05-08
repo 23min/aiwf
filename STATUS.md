@@ -81,9 +81,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | add | aiwf add epic E-20 'Add list verb (closes G-061)' |
 | 2026-05-08 | human/peter | promote | aiwf promote E-13 active -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote E-13 proposed -> active |
 | 2026-05-08 | human/peter | promote | aiwf promote M-048 in_progress -> done |
-| 2026-05-08 | human/peter | promote | aiwf promote M-048 draft -> in_progress |
 
