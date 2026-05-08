@@ -220,7 +220,7 @@ Graduate the open-work synthesis pattern — the tiered landscape, recommended s
 
 _No milestones yet._
 
-## E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) (active)
+## E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) (done)
 
 ### Goal
 
