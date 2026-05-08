@@ -81,6 +81,27 @@ func ValidateTransition(k Kind, from, to string) error {
 	return fmt.Errorf("%s status %q cannot transition to %q (allowed: %v)", k, from, to, allowed)
 }
 
+// IsTerminal reports whether (kind, status) names a terminal state in
+// the kind's FSM — i.e., a state with no outgoing transitions. Returns
+// false for unknown kinds and unknown statuses, so downstream checks
+// keep firing on junk-status entities rather than silently exempting
+// them.
+//
+// Derives terminality from the FSM rather than a parallel hardcoded
+// list to keep one source of truth: if the FSM grows or shrinks a
+// state's outgoing edges, IsTerminal tracks it automatically.
+func IsTerminal(k Kind, status string) bool {
+	kindTransitions, ok := transitions[k]
+	if !ok {
+		return false
+	}
+	outgoing, known := kindTransitions[status]
+	if !known {
+		return false
+	}
+	return len(outgoing) == 0
+}
+
 // CancelTarget returns the kind's terminal-cancel status — the one
 // `aiwf cancel` promotes any non-terminal entity to. Used by the cancel
 // verb to know which terminal status maps to "discarded": cancelled

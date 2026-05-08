@@ -114,6 +114,16 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 		}
 		stripped := stripHTMLComments(body)
 
+		// Lifecycle gate (M-075/AC-2, closes G-071 case 2): terminal-
+		// status entities are preserved historical artifacts; warning
+		// about empty body sections perpetually after the entity has
+		// reached `done`/`cancelled`/`superseded`/`rejected`/`addressed`/
+		// `wontfix`/`retired` is noise. The rule was scoped to catch
+		// active drafting; the predicate keeps it scoped to live entities.
+		if entity.IsTerminal(e.Kind, e.Status) {
+			continue
+		}
+
 		// Top-level body sections.
 		// coverage:ignore-on-miss — `requiredSectionsByKind` covers
 		// every top-level entity kind; the `has=false` arm only fires
@@ -142,7 +152,12 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 		}
 
 		// AC sub-element bodies (under a milestone parent).
-		if e.Kind == entity.KindMilestone {
+		// Lifecycle gate (M-075/AC-3, closes G-071 case 1): when the
+		// parent milestone is `draft`, freshly-allocated ACs have
+		// empty bodies by design — `aiwfx-plan-milestones` ships shape
+		// first, prose lands as TDD work begins. Warning before the
+		// milestone promotes to `in_progress` is noise.
+		if e.Kind == entity.KindMilestone && e.Status != entity.StatusDraft {
 			acBodies := scanACBodies(stripped)
 			for _, ac := range e.ACs {
 				if ac.ID == "" || ac.Status == entity.StatusCancelled {

@@ -800,9 +800,306 @@ func TestEntityBodyEmpty_DoesNotEngageACSTDDAudit(t *testing.T) {
 	})
 }
 
+// TestEntityBodyEmpty_TerminalStatusSkipped pins M-075/AC-2: when an
+// entity is at a terminal status (per entity.IsTerminal), the rule
+// must not fire even if its load-bearing body sections are empty.
+// Closes G-071 case 2: standing terminal-state entities like ADR-0002
+// don't deserve perpetual warnings for empty sections — the rule was
+// scoped to catch *active* drafting, not preserved historical artifacts.
+//
+// The case enumerates every terminal status across the six kinds so a
+// future kind that grows a new terminal state without wiring it through
+// the IsTerminal predicate fails here.
+func TestEntityBodyEmpty_TerminalStatusSkipped(t *testing.T) {
+	cases := []struct {
+		name         string
+		writeFixture func(root string) ([]*entity.Entity, error)
+	}{
+		{
+			name:         "epic done with empty Scope",
+			writeFixture: writeEpicFixtureWithStatus("Scope", entity.StatusDone),
+		},
+		{
+			name:         "epic cancelled with empty Out of scope",
+			writeFixture: writeEpicFixtureWithStatus("Out of scope", entity.StatusCancelled),
+		},
+		{
+			name:         "adr superseded with empty Decision",
+			writeFixture: writeADRFixtureWithStatus("Decision", entity.StatusSuperseded),
+		},
+		{
+			name:         "adr rejected with empty Consequences",
+			writeFixture: writeADRFixtureWithStatus("Consequences", entity.StatusRejected),
+		},
+		{
+			name:         "decision superseded with empty Reasoning",
+			writeFixture: writeDecisionFixtureWithStatus("Reasoning", entity.StatusSuperseded),
+		},
+		{
+			name:         "decision rejected with empty Decision",
+			writeFixture: writeDecisionFixtureWithStatus("Decision", entity.StatusRejected),
+		},
+		{
+			name:         "gap addressed with empty Why it matters",
+			writeFixture: writeGapFixtureWithStatus("Why it matters", entity.StatusAddressed),
+		},
+		{
+			name:         "gap wontfix with empty What's missing",
+			writeFixture: writeGapFixtureWithStatus("What's missing", entity.StatusWontfix),
+		},
+		{
+			name:         "contract retired with empty Stability",
+			writeFixture: writeContractFixtureWithStatus("Stability", entity.StatusRetired),
+		},
+		{
+			name:         "contract rejected with empty Purpose",
+			writeFixture: writeContractFixtureWithStatus("Purpose", entity.StatusRejected),
+		},
+		{
+			name:         "milestone done with empty Approach",
+			writeFixture: writeMilestoneFixtureWithStatus("Approach", entity.StatusDone),
+		},
+		{
+			name:         "milestone cancelled with empty Goal",
+			writeFixture: writeMilestoneFixtureWithStatus("Goal", entity.StatusCancelled),
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := tc.writeFixture(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			if got := entityBodyEmpty(tr); len(got) != 0 {
+				t.Errorf("terminal-status entity should produce no findings; got %+v", got)
+			}
+		})
+	}
+}
+
+// TestEntityBodyEmpty_DraftMilestoneACsSkipped pins M-075/AC-3: when a
+// milestone is at status `draft`, AC bodies under it are exempted from
+// the emptiness check. Closes G-071 case 1: freshly-allocated ACs in
+// draft milestones (the routine output of `aiwfx-plan-milestones`)
+// don't deserve N warnings before any TDD work begins.
+//
+// The top-level milestone sections (`## Goal`, `## Approach`, `##
+// Acceptance criteria`) still fire if empty — this gate is narrow to
+// the AC-body arm, not the whole entity.
+func TestEntityBodyEmpty_DraftMilestoneACsSkipped(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-bar.md"
+	body := `## Goal
+
+Goal prose.
+
+## Approach
+
+Approach prose.
+
+## Acceptance criteria
+
+Each AC pins one observable behavior.
+
+### AC-1 — Empty AC
+
+### AC-2 — Also empty AC
+
+### AC-3 — Also empty AC
+`
+	fm := `---
+id: M-001
+title: Bar
+status: draft
+parent: E-01
+tdd: required
+acs:
+    - id: AC-1
+      title: Empty AC
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Also empty AC
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Also empty AC
+      status: open
+      tdd_phase: red
+---
+
+`
+	ents, err := write1(root, path, fm+body, &entity.Entity{
+		ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+		Status: "draft", Parent: "E-01", TDD: "required", Path: path,
+		ACs: []entity.AcceptanceCriterion{
+			{ID: "AC-1", Title: "Empty AC", Status: "open", TDDPhase: "red"},
+			{ID: "AC-2", Title: "Also empty AC", Status: "open", TDDPhase: "red"},
+			{ID: "AC-3", Title: "Also empty AC", Status: "open", TDDPhase: "red"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	tr := &tree.Tree{Root: root, Entities: ents}
+	got := entityBodyEmpty(tr)
+	for _, f := range got {
+		if f.Subcode == "ac" {
+			t.Errorf("draft milestone AC body should produce no findings; got %+v", f)
+		}
+	}
+}
+
+// TestEntityBodyEmpty_DraftMilestoneTopSectionsStillFire is the narrow-
+// gate guard for AC-3. The draft-milestone exemption applies only to
+// the AC-body arm; the top-level required-section walk still fires if
+// `## Goal`, `## Approach`, or `## Acceptance criteria` is empty under
+// a draft milestone. Drafts ship with shape; the spec body is still
+// load-bearing prose.
+func TestEntityBodyEmpty_DraftMilestoneTopSectionsStillFire(t *testing.T) {
+	root := t.TempDir()
+	path := "work/epics/E-01-foo/M-001-bar.md"
+	// `## Approach` is empty; everything else has prose.
+	body := `## Goal
+
+Goal prose.
+
+## Approach
+
+## Acceptance criteria
+
+Each AC pins one observable behavior.
+`
+	fm := "---\nid: M-001\ntitle: Bar\nstatus: draft\nparent: E-01\ntdd: required\n---\n\n"
+	ents, err := write1(root, path, fm+body, &entity.Entity{
+		ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
+		Status: "draft", Parent: "E-01", TDD: "required", Path: path,
+	})
+	if err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	tr := &tree.Tree{Root: root, Entities: ents}
+	got := entityBodyEmpty(tr)
+	if len(got) != 1 {
+		t.Fatalf("draft milestone with empty Approach should produce 1 finding; got %d: %+v", len(got), got)
+	}
+	if got[0].Subcode != "milestone" {
+		t.Errorf("Subcode = %q, want milestone", got[0].Subcode)
+	}
+	if !contains(got[0].Message, "Approach") {
+		t.Errorf("Message %q should mention Approach", got[0].Message)
+	}
+}
+
+// TestEntityBodyEmpty_ActiveStateStillFires pins M-075/AC-4: the rule
+// must keep firing on the original target population — non-terminal,
+// non-draft entities with empty load-bearing sections. Locks down that
+// the AC-2 (terminal) and AC-3 (draft-milestone) gates only exempt
+// the lifecycle states the spec named.
+//
+// Each case picks an active-band status the lifecycle gates don't
+// exempt and asserts the rule still emits a finding. Without this
+// regression guard, a future widening of either gate (e.g., "skip
+// `accepted` ADRs too") would silently silence the rule on its
+// intended target population.
+func TestEntityBodyEmpty_ActiveStateStillFires(t *testing.T) {
+	cases := []struct {
+		name         string
+		writeFixture func(root string) ([]*entity.Entity, error)
+		wantSubcode  string
+	}{
+		{
+			name:         "active epic still fires",
+			writeFixture: writeEpicFixtureWithStatus("Scope", entity.StatusActive),
+			wantSubcode:  "epic",
+		},
+		{
+			name:         "proposed epic still fires",
+			writeFixture: writeEpicFixtureWithStatus("Scope", entity.StatusProposed),
+			wantSubcode:  "epic",
+		},
+		{
+			name:         "in_progress milestone still fires",
+			writeFixture: writeMilestoneFixtureWithStatus("Approach", entity.StatusInProgress),
+			wantSubcode:  "milestone",
+		},
+		{
+			name:         "proposed adr still fires",
+			writeFixture: writeADRFixtureWithStatus("Decision", entity.StatusProposed),
+			wantSubcode:  "adr",
+		},
+		{
+			name:         "accepted adr still fires",
+			writeFixture: writeADRFixtureWithStatus("Decision", entity.StatusAccepted),
+			wantSubcode:  "adr",
+		},
+		{
+			name:         "open gap still fires",
+			writeFixture: writeGapFixtureWithStatus("Why it matters", entity.StatusOpen),
+			wantSubcode:  "gap",
+		},
+		{
+			name:         "deprecated contract still fires",
+			writeFixture: writeContractFixtureWithStatus("Stability", entity.StatusDeprecated),
+			wantSubcode:  "contract",
+		},
+		{
+			name:         "accepted decision still fires",
+			writeFixture: writeDecisionFixtureWithStatus("Reasoning", entity.StatusAccepted),
+			wantSubcode:  "decision",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			ents, err := tc.writeFixture(root)
+			if err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+			tr := &tree.Tree{Root: root, Entities: ents}
+			got := entityBodyEmpty(tr)
+			if len(got) != 1 {
+				t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+			}
+			if got[0].Subcode != tc.wantSubcode {
+				t.Errorf("Subcode = %q, want %q", got[0].Subcode, tc.wantSubcode)
+			}
+		})
+	}
+}
+
+// TestEntityBodyEmpty_InProgressMilestoneACBodiesStillFire is the
+// AC-side regression guard for AC-4. The draft-milestone gate is
+// narrow to status: draft; once a milestone promotes to `in_progress`,
+// empty AC bodies fire again.
+func TestEntityBodyEmpty_InProgressMilestoneACBodiesStillFire(t *testing.T) {
+	root := t.TempDir()
+	ents, err := writeACFixture()(root)
+	if err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	tr := &tree.Tree{Root: root, Entities: ents}
+	got := entityBodyEmpty(tr)
+	var acFindings int
+	for _, f := range got {
+		if f.Subcode == "ac" {
+			acFindings++
+		}
+	}
+	if acFindings != 1 {
+		t.Errorf("in_progress milestone with empty AC-1 body should produce 1 ac finding; got %d: %+v", acFindings, got)
+	}
+}
+
 // --- fixture builders ---------------------------------------------------
 
 func writeEpicFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return writeEpicFixtureWithStatus(emptySection, "active")
+}
+
+func writeEpicFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/epic.md"
 		body := buildBody(map[string]string{
@@ -810,14 +1107,18 @@ func writeEpicFixture(emptySection string) func(root string) ([]*entity.Entity, 
 			"Scope":        "Scope prose.",
 			"Out of scope": "Out-of-scope prose.",
 		}, []string{"Goal", "Scope", "Out of scope"}, emptySection)
-		fm := "---\nid: E-01\ntitle: Foo\nstatus: active\n---\n\n"
+		fm := "---\nid: E-01\ntitle: Foo\nstatus: " + status + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: path,
+			ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: status, Path: path,
 		})
 	}
 }
 
 func writeMilestoneFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return writeMilestoneFixtureWithStatus(emptySection, "in_progress")
+}
+
+func writeMilestoneFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := buildBody(map[string]string{
@@ -825,10 +1126,10 @@ func writeMilestoneFixture(emptySection string) func(root string) ([]*entity.Ent
 			"Approach":            "Approach prose.",
 			"Acceptance criteria": "Each AC pins one observable behavior.",
 		}, []string{"Goal", "Approach", "Acceptance criteria"}, emptySection)
-		fm := "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n"
+		fm := "---\nid: M-001\ntitle: Bar\nstatus: " + status + "\nparent: E-01\ntdd: none\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
 			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			Status: status, Parent: "E-01", TDD: "none", Path: path,
 		})
 	}
 }
@@ -885,20 +1186,28 @@ acs:
 }
 
 func writeGapFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return writeGapFixtureWithStatus(emptySection, "open")
+}
+
+func writeGapFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/gaps/G-001-foo.md"
 		body := buildBody(map[string]string{
 			"What's missing": "Missing prose.",
 			"Why it matters": "Matters prose.",
 		}, []string{"What's missing", "Why it matters"}, emptySection)
-		fm := "---\nid: G-001\ntitle: Foo\nstatus: open\n---\n\n"
+		fm := "---\nid: G-001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "G-001", Kind: entity.KindGap, Title: "Foo", Status: "open", Path: path,
+			ID: "G-001", Kind: entity.KindGap, Title: "Foo", Status: status, Path: path,
 		})
 	}
 }
 
 func writeADRFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return writeADRFixtureWithStatus(emptySection, "proposed")
+}
+
+func writeADRFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "docs/adr/ADR-0001-foo.md"
 		body := buildBody(map[string]string{
@@ -906,14 +1215,18 @@ func writeADRFixture(emptySection string) func(root string) ([]*entity.Entity, e
 			"Decision":     "Decision prose.",
 			"Consequences": "Consequences prose.",
 		}, []string{"Context", "Decision", "Consequences"}, emptySection)
-		fm := "---\nid: ADR-0001\ntitle: Foo\nstatus: proposed\n---\n\n"
+		fm := "---\nid: ADR-0001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "ADR-0001", Kind: entity.KindADR, Title: "Foo", Status: "proposed", Path: path,
+			ID: "ADR-0001", Kind: entity.KindADR, Title: "Foo", Status: status, Path: path,
 		})
 	}
 }
 
 func writeDecisionFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return writeDecisionFixtureWithStatus(emptySection, "proposed")
+}
+
+func writeDecisionFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/decisions/D-001-foo.md"
 		body := buildBody(map[string]string{
@@ -921,23 +1234,27 @@ func writeDecisionFixture(emptySection string) func(root string) ([]*entity.Enti
 			"Decision":  "Decision prose.",
 			"Reasoning": "Reasoning prose.",
 		}, []string{"Question", "Decision", "Reasoning"}, emptySection)
-		fm := "---\nid: D-001\ntitle: Foo\nstatus: proposed\n---\n\n"
+		fm := "---\nid: D-001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "D-001", Kind: entity.KindDecision, Title: "Foo", Status: "proposed", Path: path,
+			ID: "D-001", Kind: entity.KindDecision, Title: "Foo", Status: status, Path: path,
 		})
 	}
 }
 
 func writeContractFixture(emptySection string) func(root string) ([]*entity.Entity, error) {
+	return writeContractFixtureWithStatus(emptySection, "proposed")
+}
+
+func writeContractFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/contracts/C-001-foo/contract.md"
 		body := buildBody(map[string]string{
 			"Purpose":   "Purpose prose.",
 			"Stability": "Stability prose.",
 		}, []string{"Purpose", "Stability"}, emptySection)
-		fm := "---\nid: C-001\ntitle: Foo\nstatus: proposed\n---\n\n"
+		fm := "---\nid: C-001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "proposed", Path: path,
+			ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: status, Path: path,
 		})
 	}
 }

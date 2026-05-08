@@ -314,6 +314,102 @@ func TestMilestoneCanGoDone_NilEntity(t *testing.T) {
 	}
 }
 
+// TestIsTerminal_ExhaustiveOverFSM enumerates every (kind, status) pair
+// reachable from the per-kind FSM and asserts IsTerminal returns true
+// exactly when the FSM has no outgoing transitions from that status.
+// This guards both the spec's terminal status sets (epic/milestone:
+// done|cancelled; ADR/decision: superseded|rejected; gap: addressed|
+// wontfix; contract: retired|rejected) and the property that IsTerminal
+// derives from the FSM rather than maintaining a parallel hardcoded list.
+func TestIsTerminal_ExhaustiveOverFSM(t *testing.T) {
+	for _, k := range AllKinds() {
+		for _, status := range AllowedStatuses(k) {
+			t.Run(string(k)+"/"+status, func(t *testing.T) {
+				want := len(AllowedTransitions(k, status)) == 0
+				if got := IsTerminal(k, status); got != want {
+					t.Errorf("IsTerminal(%s, %q) = %v, want %v", k, status, got, want)
+				}
+			})
+		}
+	}
+}
+
+// TestIsTerminal_TerminalSet locks the spec's named terminal sets so a
+// future FSM tweak can't silently demote a status from terminal without
+// failing this assertion.
+func TestIsTerminal_TerminalSet(t *testing.T) {
+	wantTerminal := map[Kind][]string{
+		KindEpic:      {"done", "cancelled"},
+		KindMilestone: {"done", "cancelled"},
+		KindADR:       {"superseded", "rejected"},
+		KindDecision:  {"superseded", "rejected"},
+		KindGap:       {"addressed", "wontfix"},
+		KindContract:  {"retired", "rejected"},
+	}
+	for kind, statuses := range wantTerminal {
+		for _, s := range statuses {
+			t.Run(string(kind)+"/"+s, func(t *testing.T) {
+				if !IsTerminal(kind, s) {
+					t.Errorf("IsTerminal(%s, %q) = false, want true", kind, s)
+				}
+			})
+		}
+	}
+}
+
+// TestIsTerminal_NonTerminal samples every non-terminal status across
+// the six kinds and asserts IsTerminal returns false.
+func TestIsTerminal_NonTerminal(t *testing.T) {
+	cases := []struct {
+		kind   Kind
+		status string
+	}{
+		{KindEpic, "proposed"},
+		{KindEpic, "active"},
+		{KindMilestone, "draft"},
+		{KindMilestone, "in_progress"},
+		{KindADR, "proposed"},
+		{KindADR, "accepted"},
+		{KindDecision, "proposed"},
+		{KindDecision, "accepted"},
+		{KindGap, "open"},
+		{KindContract, "proposed"},
+		{KindContract, "accepted"},
+		{KindContract, "deprecated"},
+	}
+	for _, c := range cases {
+		t.Run(string(c.kind)+"/"+c.status, func(t *testing.T) {
+			if IsTerminal(c.kind, c.status) {
+				t.Errorf("IsTerminal(%s, %q) = true, want false", c.kind, c.status)
+			}
+		})
+	}
+}
+
+// TestIsTerminal_UnknownInputs returns false for unknown kinds and
+// unknown statuses. An unrecognized status is not "terminal" — the
+// downstream checks (like entity-body-empty) must keep firing on
+// junk-status entities so other findings surface them.
+func TestIsTerminal_UnknownInputs(t *testing.T) {
+	cases := []struct {
+		name   string
+		kind   Kind
+		status string
+	}{
+		{"unknown kind", Kind("widget"), "done"},
+		{"unknown status on known kind", KindEpic, "weird"},
+		{"empty status", KindEpic, ""},
+		{"empty kind", Kind(""), "done"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if IsTerminal(c.kind, c.status) {
+				t.Errorf("IsTerminal(%s, %q) = true, want false", c.kind, c.status)
+			}
+		})
+	}
+}
+
 func equalStringSlices(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
