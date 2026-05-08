@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: aiwf-add skill updated; aiwfx-plan-milestones update documented
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-7
       title: Verb-level integration test drives the dispatcher
