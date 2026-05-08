@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: Verb-level integration test drives the dispatcher
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-077 — aiwf retitle verb for entities and ACs (closes G-065)
