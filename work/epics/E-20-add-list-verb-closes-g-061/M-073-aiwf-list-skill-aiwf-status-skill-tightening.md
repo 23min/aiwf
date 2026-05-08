@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: aiwf-list skill body covers recipes, output, JSON, list-vs-status criteria
-      status: open
+      status: met
     - id: AC-3
       title: aiwf-status skill description tightened to narrative-snapshot phrasings
       status: open
