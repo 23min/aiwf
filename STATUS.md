@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_182 entities · 0 errors · 4 warnings · run `aiwf check` for details_
+_183 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -65,6 +65,7 @@ flowchart LR
 
 - **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(draft)_ — tdd: none
 - **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(draft)_ — tdd: advisory
+- **M-080** — Whiteboard skill fixture validation; retire critical-path.md; close E-21 _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
@@ -73,6 +74,8 @@ flowchart LR
   E_21 --> M_078
   M_079["M-079<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_draft
   E_21 --> M_079
+  M_080["M-080<br/>Whiteboard skill fixture validation; retire critical-path.md; close E-21"]:::ms_draft
+  E_21 --> M_080
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -146,14 +149,16 @@ flowchart LR
 | entity-body-empty | M-078 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-078-planning-conversation-skills-design-adr-placement-tiering-name-rationale.md | M-078 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-079 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079 body section \`## Goal\` is empty |
 | entity-body-empty | M-079 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079 body section \`## Acceptance criteria\` is empty |
+| entity-body-empty | M-080 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-080-whiteboard-skill-fixture-validation-retire-critical-path-md-close-e-21.md | M-080 body section \`## Goal\` is empty |
+| entity-body-empty | M-080 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-080-whiteboard-skill-fixture-validation-retire-critical-path-md-close-e-21.md | M-080 body section \`## Acceptance criteria\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add milestone M-079 'aiwfx-whiteboard skill: classification rubric, output template, Q&A gate' |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-078 'Planning-conversation skills design ADR (placement, tiering, name rationale)' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-077 'Post-promotion working paper (aiwf's thesis) not yet written' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-076 'CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-075 'docs/pocv3/ directory naming is now historical; rename or accept' |
-| 2026-05-08 | human/peter | add | aiwf add gap G-074 'docs/pocv3/ body prose still uses PoC framing; needs sweep' |
 
