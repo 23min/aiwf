@@ -57,6 +57,7 @@ Lean: refuse-with-hint, with `--frontmatter-only` as the explicit opt-out for th
 
 ## References
 
+- **ADR-0005** — *"Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs"*. This gap implements obligation 2 (**atomic completeness over consistent surfaces**); filed under umbrella gap G-084.
 - M-077 (E-22) — the milestone that added `aiwf retitle`. The AC-aware body-sync was implemented; entity-body-sync was not. The asymmetry may be a deliberate scope choice or an oversight; either way it warrants closing.
 - G-081 — sibling gap on `aiwf rename`'s lack of pre-flight. Both gaps touch the rename / retitle family of verbs.
 - G-065 (closed via M-077) — the original gap that motivated `aiwf retitle`. This new gap is a follow-up to its scope, not a re-litigation.
