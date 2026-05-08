@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_168 entities · 0 errors · 30 warnings · run `aiwf check` for details_
+_168 entities · 0 errors · 27 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -95,7 +95,6 @@ flowchart LR
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Context\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Decision\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Consequences\` is empty |
-| entity-body-empty | M-072 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072 body section \`## Goal\` is empty |
 | entity-body-empty | M-072/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-1 body under \`### AC-1\` is empty |
 | entity-body-empty | M-072/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-2 body under \`### AC-2\` is empty |
 | entity-body-empty | M-072/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-3 body under \`### AC-3\` is empty |
@@ -105,13 +104,11 @@ flowchart LR
 | entity-body-empty | M-072/AC-7 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-7 body under \`### AC-7\` is empty |
 | entity-body-empty | M-072/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-8 body under \`### AC-8\` is empty |
 | entity-body-empty | M-072/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-9 body under \`### AC-9\` is empty |
-| entity-body-empty | M-073 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073 body section \`## Goal\` is empty |
 | entity-body-empty | M-073/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-1 body under \`### AC-1\` is empty |
 | entity-body-empty | M-073/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-2 body under \`### AC-2\` is empty |
 | entity-body-empty | M-073/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-3 body under \`### AC-3\` is empty |
 | entity-body-empty | M-073/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-4 body under \`### AC-4\` is empty |
 | entity-body-empty | M-073/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-074 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074 body section \`## Goal\` is empty |
 | entity-body-empty | M-074/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-1 body under \`### AC-1\` is empty |
 | entity-body-empty | M-074/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-2 body under \`### AC-2\` is empty |
 | entity-body-empty | M-074/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-3 body under \`### AC-3\` is empty |
@@ -127,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add ac M-074 AC-1..AC-10 (10 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add ac M-073 AC-1..AC-5 (5 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add ac M-072 AC-1..AC-9 (9 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-074 'skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure' |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-073 'aiwf-list skill, aiwf-status skill tightening' |
-| 2026-05-08 | human/peter | add | aiwf add milestone M-072 'aiwf list verb, status filter-helper refactor, contract-skill drift fix' |
 

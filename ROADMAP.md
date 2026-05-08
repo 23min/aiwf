@@ -206,5 +206,9 @@ _No milestones yet._
 
 Ship `aiwf list` as the AI's hot-path read primitive over the planning tree, route AI discovery to it via a split-skill design that demotes `aiwf status` to its real role (human-curated narrative), and lock the discoverability surface against drift via a kernel policy. Closes G-061, whose central observation — *"AI assistants are instructed to invoke a non-existent verb"* — remains true today on every materialized consumer repo.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-072 | aiwf list verb, status filter-helper refactor, contract-skill drift fix | draft |
+| M-073 | aiwf-list skill, aiwf-status skill tightening | draft |
+| M-074 | skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure | draft |
 
