@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Allocation-time referent validation refuses invalid ids
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Closed-set completion for new flags and verb
       status: open
