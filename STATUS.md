@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_180 entities · 0 errors · 45 warnings · run `aiwf check` for details_
+_181 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -63,7 +63,20 @@ flowchart LR
 
 ### E-21 — Open-work synthesis: recommended-sequence skill (replaces critical-path.md) _(proposed)_
 
-_(no milestones)_
+- **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(draft)_ — tdd: none
+
+```mermaid
+flowchart LR
+  E_21["E-21<br/>Open-work synthesis: recommended-sequence skill (replaces critical-path.md)"]:::epic_proposed
+  M_078["M-078<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_draft
+  E_21 --> M_078
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ### E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) _(proposed)_
 
@@ -126,51 +139,8 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Context\` is empty |
-| entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Decision\` is empty |
-| entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Consequences\` is empty |
-| entity-body-empty | M-072/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-072/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-072/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-072/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-072/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-072/AC-6 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-072/AC-7 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-7 body under \`### AC-7\` is empty |
-| entity-body-empty | M-072/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-8 body under \`### AC-8\` is empty |
-| entity-body-empty | M-072/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-072-aiwf-list-verb-status-filter-helper-refactor-contract-skill-drift-fix.md | M-072/AC-9 body under \`### AC-9\` is empty |
-| entity-body-empty | M-073/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-073/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-073/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-073/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-073/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-073-aiwf-list-skill-aiwf-status-skill-tightening.md | M-073/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-074/AC-1 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-074/AC-2 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-074/AC-3 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-074/AC-4 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-074/AC-5 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-074/AC-6 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-074/AC-7 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-7 body under \`### AC-7\` is empty |
-| entity-body-empty | M-074/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-8 body under \`### AC-8\` is empty |
-| entity-body-empty | M-074/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-9 body under \`### AC-9\` is empty |
-| entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
-| entity-body-empty | M-075/AC-1 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-075/AC-2 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-075/AC-3 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-075/AC-4 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-075/AC-5 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-075-lifecycle-gate-entity-body-empty-rule-closes-g-071.md | M-075/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-076/AC-1 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-076/AC-2 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-076/AC-3 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-076/AC-4 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-076/AC-5 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-076/AC-6 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-076/AC-7 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-076-writer-surface-for-milestone-depends-on-closes-g-072.md | M-076/AC-7 body under \`### AC-7\` is empty |
-| entity-body-empty | M-077/AC-1 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-077/AC-2 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-077/AC-3 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-077/AC-4 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-077/AC-5 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-077/AC-6 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-6 body under \`### AC-6\` is empty |
+| entity-body-empty | M-078 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-078-planning-conversation-skills-design-adr-placement-tiering-name-rationale.md | M-078 body section \`## Goal\` is empty |
+| entity-body-empty | M-078 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-078-planning-conversation-skills-design-adr-placement-tiering-name-rationale.md | M-078 body section \`## Acceptance criteria\` is empty |
 
 ## Recent activity
 
