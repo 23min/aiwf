@@ -32,7 +32,7 @@ acs:
     - id: AC-7
       title: Verb-level integration test drives the dispatcher
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-076 — Writer surface for milestone depends_on (closes G-072)
