@@ -226,5 +226,9 @@ _No milestones yet._
 
 Ship three Tier 1 kernel-discipline fixes together before E-20 implementation begins. Each removes a recurring source of noise or workaround in the planning workflow: lifecycle-gate the `entity-body-empty` rule (G-071), add a writer surface for milestone `depends_on` (G-072), and add a `retitle` verb for entities and ACs (G-065). After this epic, planning a multi-milestone epic produces a clean tree, milestones declare their DAG via verb, and titles can be corrected when scope shifts.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-075 | Lifecycle-gate entity-body-empty rule (closes G-071) | draft |
+| M-076 | Writer surface for milestone depends_on (closes G-072) | draft |
+| M-077 | aiwf retitle verb for entities and ACs (closes G-065) | draft |
 
