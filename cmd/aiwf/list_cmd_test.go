@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 // TestRun_List_CoreFlagsEndToEnd is M-072 AC-1 + AC-9: the verb-level
@@ -50,14 +53,23 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 			t.Fatalf("rc = %d, want exitOK", rc)
 		}
 		s := string(out)
-		// Counts across the fixture: 2 epics, 2 milestones, 0 of others.
-		// The exact phrasing isn't fixed by the AC; pin the load-bearing
-		// signal — the kind names and the count for ones we created.
-		if !strings.Contains(s, "epic") || !strings.Contains(s, "milestone") {
-			t.Errorf("no-args output missing kind names:\n%s", s)
+		// Structural per-kind assertions: each fixture-created kind shows
+		// its exact count alongside the kind name. A bare `Contains(s,
+		// "2")` was too loose — the digit floats freely in path strings,
+		// json offsets, etc., and `99 milestones · 12 epics` would have
+		// passed even though the values are wrong.
+		for _, want := range []string{"2 epics", "2 milestones"} {
+			if !strings.Contains(s, want) {
+				t.Errorf("no-args output missing %q:\n%s", want, s)
+			}
 		}
-		if !strings.Contains(s, "2") {
-			t.Errorf("no-args output missing the count `2` (we created 2 epics, 2 milestones):\n%s", s)
+		// Non-fixture kinds are zero — pin them so a regression that
+		// counts terminal-status entities into the no-args summary
+		// surfaces here.
+		for _, want := range []string{"0 ADRs", "0 gaps", "0 decisions", "0 contracts"} {
+			if !strings.Contains(s, want) {
+				t.Errorf("no-args output missing %q:\n%s", want, s)
+			}
 		}
 	})
 
@@ -159,4 +171,81 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 			t.Errorf("--pretty did not produce indented output:\n%s", out)
 		}
 	})
+}
+
+// TestRun_List_BadFormat covers the format-validation usage-error path
+// (`--format=xml` and other unsupported values). Mirrors
+// TestRunStatus_BadFormat for the same closed-set discipline.
+func TestRun_List_BadFormat(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"list", "--root", root, "--format=xml"}); rc != exitUsage {
+		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
+	}
+}
+
+// TestRun_List_BadKind covers the --kind validation usage-error path.
+// A value outside entity.AllKinds() must not cause a tree walk; the
+// verb returns exitUsage before loading anything.
+func TestRun_List_BadKind(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"list", "--root", root, "--kind", "milestoneish"}); rc != exitUsage {
+		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
+	}
+}
+
+// TestUnionAllStatuses asserts the --status completion fallback
+// returns the de-duplicated, sorted union of every kind's allowed
+// statuses. Pure helper; unit-test only.
+func TestUnionAllStatuses(t *testing.T) {
+	got := unionAllStatuses()
+	if len(got) == 0 {
+		t.Fatalf("unionAllStatuses returned empty slice")
+	}
+
+	// De-dup invariant: every value appears at most once.
+	seen := map[string]int{}
+	for _, s := range got {
+		seen[s]++
+	}
+	for s, n := range seen {
+		if n > 1 {
+			t.Errorf("status %q appears %d times; expected 1", s, n)
+		}
+	}
+
+	// Sort invariant: result is sorted ascending.
+	for i := 1; i < len(got); i++ {
+		if got[i-1] > got[i] {
+			t.Errorf("not sorted at index %d: %q > %q", i, got[i-1], got[i])
+		}
+	}
+
+	// Membership invariant: a representative per-kind status appears.
+	// Picks one well-known status from each kind so a future kind that
+	// drops one of these (or the helper that filters one out) surfaces
+	// here.
+	want := []string{
+		"accepted",  // ADR
+		"active",    // epic
+		"addressed", // gap
+		"draft",     // milestone
+		"open",      // gap
+		"proposed",  // multiple kinds
+	}
+	missing := []string{}
+	for _, w := range want {
+		found := false
+		for _, s := range got {
+			if s == w {
+				found = true
+				break
+			}
+		}
+		if !found {
+			missing = append(missing, w)
+		}
+	}
+	if diff := cmp.Diff([]string(nil), missing, cmpopts.EquateEmpty()); diff != "" {
+		t.Errorf("missing expected statuses (-want +got):\n%s\n\nfull union: %v", diff, got)
+	}
 }
