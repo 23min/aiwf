@@ -110,9 +110,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add gap G-080 'Wide-table verbs wrap mid-row and break column scan; no TTY-aware sizing, glyph palette, or truncation surface' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-073 |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | promote | aiwf promote E-22 active -> done |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-08 | human/peter | promote | aiwf promote M-077 in_progress -> done |
 

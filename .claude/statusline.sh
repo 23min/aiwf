@@ -64,6 +64,7 @@ elif [ "$pct" -lt 80 ]; then color=$'\033[33m'   # yellow
 else                         color=$'\033[31m'   # red
 fi
 red=$'\033[31m'
+blue=$'\033[34m'
 reset=$'\033[0m'
 ball="${color}●${reset}"
 tokens_fmt="${color}$(fmt_tokens "$tokens") tokens${reset}"
@@ -199,8 +200,8 @@ fi
 
 parts=("$ball $model" "$repo")
 [ -n "$branch_seg" ]    && parts+=("$branch_seg")
-[ -n "$epic_seg" ]      && parts+=("$epic_seg")
-[ -n "$milestone_seg" ] && parts+=("$milestone_seg")
+[ -n "$epic_seg" ]      && parts+=("${blue}${epic_seg}${reset}")
+[ -n "$milestone_seg" ] && parts+=("${blue}${milestone_seg}${reset}")
 parts+=("$ci_fmt" "$tokens_fmt")
 
 # Join with " · ".
