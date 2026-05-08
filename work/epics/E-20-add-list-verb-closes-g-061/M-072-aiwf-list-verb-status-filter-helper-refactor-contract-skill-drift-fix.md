@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Core flag set works end-to-end
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: 'JSON envelope: result is array of summary objects'
