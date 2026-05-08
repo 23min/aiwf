@@ -83,6 +83,18 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 
 ### AC-10 — G-061 promoted to terminal status with closing commit citing this epic
 
+### AC-11 — G-085 doc-sweep and gap closure
+
+Five sites (CLAUDE.md, three under `docs/pocv3/`, one gap body) advertise the non-existent `aiwf status --kind gap` command. M-072 shipped the canonical replacement (`aiwf list --kind gap`); this AC sweeps the prose and closes the gap. Mechanical search-and-replace across:
+
+- `CLAUDE.md:3`
+- `docs/pocv3/README.md:11`
+- `docs/pocv3/architecture.md:184`
+- `docs/pocv3/archive/gaps-pre-migration.md:3`
+- `work/gaps/G-078-*.md:9`
+
+After the doc edits land in the same commit (or commit pair) as the AC-9 CLAUDE.md edit, `aiwf promote G-085 <terminal>` closes the gap with a body citing E-20 — same shape as AC-10's G-061 closure.
+
 ## Constraints
 
 - Same precedent: `internal/policies/skill_coverage.go` follows the shape of `config_fields_discoverable.go` exactly — same `Violation` struct, same `readDiscoverabilityChannels` haystack helper, same allowlist-with-rationale-comment pattern. No new framework primitives in `internal/policies/`.
@@ -91,6 +103,7 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 - AC-7 (follow-up gap) is allocated via `aiwf add gap` — not hand-crafted. The gap's body explains *why* `show` warrants its own skill (body-rendering branches, composite-id handling, AI assistants reach for it constantly) and is filed under `discovered_in: M-074`.
 - AC-8 (judgment ADR) is allocated via `aiwf add adr` and lives under `docs/adr/ADR-NNNN-*.md`. Status `proposed` at minimum; ratification is not a blocker for this milestone's `done`.
 - AC-10's closing commit is produced by `aiwf promote G-061 <terminal>`; the commit's `aiwf-entity:` trailer references G-061 and the body cites this epic. Do not hand-craft the closure commit.
+- AC-11's G-085 closure follows the same pattern as AC-10: `aiwf promote G-085 <terminal>` after the five doc-sweep edits land. The doc sweep is mechanical (a single `aiwf status --kind gap` → `aiwf list --kind gap` substitution at each of the five sites); confirm each site renders correctly afterwards (especially `docs/pocv3/archive/gaps-pre-migration.md`, which is otherwise frozen content).
 
 ## Design notes
 
@@ -110,9 +123,14 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 - `internal/policies/skill_coverage.go` (new)
 - `internal/policies/policies_test.go` (test entry)
 - `docs/adr/ADR-NNNN-*.md` (new — judgment rule)
-- `CLAUDE.md` (Skills policy section + What's enforced row)
+- `CLAUDE.md` (Skills policy section + What's enforced row + AC-11 doc-sweep edit)
+- `docs/pocv3/README.md` (AC-11 — `aiwf status --kind gap` → `aiwf list --kind gap`)
+- `docs/pocv3/architecture.md` (AC-11 — same substitution)
+- `docs/pocv3/archive/gaps-pre-migration.md` (AC-11 — same substitution)
+- `work/gaps/G-078-*.md` (AC-11 — same substitution in body prose)
 - `work/gaps/G-NNN-*.md` (new — follow-up gap for aiwf-show skill)
 - G-061 (status promotion only)
+- G-085 (status promotion only — AC-11)
 
 ## Out of scope
 
@@ -135,6 +153,7 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 
 - E-20 epic spec (this milestone's parent).
 - G-061 — the gap this milestone closes.
+- G-085 — sibling drift case to G-061: five sites advertise `aiwf status --kind gap`, a non-existent flag; M-072 ships `aiwf list --kind gap` and AC-11 sweeps the prose. Closed by AC-11.
 - `internal/policies/discoverability.go` — `PolicyFindingCodesAreDiscoverable`. Precedent for haystack and Violation shape.
 - `internal/policies/config_fields_discoverable.go` — `PolicyConfigFieldsAreDiscoverable`. Precedent for the allowlist-with-rationale-comment pattern (see `excluded` map at line 52).
 - `internal/policies/policies.go` — the package's `Violation` and `WalkGoFiles` primitives this milestone reuses.
@@ -162,6 +181,3 @@ Two policies in `internal/policies/` already enforce that AI-discoverable surfac
 ## Reviewer notes
 
 - (filled at wrap)
-
-### AC-11 — G-085 doc-sweep and gap closure
-

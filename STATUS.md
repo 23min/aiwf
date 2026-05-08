@@ -123,9 +123,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add ac M-074/AC-11 'G-085 doc-sweep and gap closure' |
 | 2026-05-08 | human/peter | promote | aiwf promote M-072/AC-1 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-072 draft -> in_progress |
 | 2026-05-08 | human/peter | promote | aiwf promote E-20 proposed -> active |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-084 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-084 'Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella' |
 
