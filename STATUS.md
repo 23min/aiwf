@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_182 entities · 0 errors · 8 warnings · run `aiwf check` for details_
+_182 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -132,16 +132,14 @@ _(no milestones)_
 | entity-body-empty | M-077/AC-4 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-4 body under \`### AC-4\` is empty |
 | entity-body-empty | M-077/AC-5 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-5 body under \`### AC-5\` is empty |
 | entity-body-empty | M-077/AC-6 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | G-079 | work/gaps/G-079-aiwfx-plan-milestones-plugin-skill-needs-depends-on-documentation-m-076-added-the-verb-but-the-plugin-lives-in-ai-workflow-rituals-upstream.md | G-079 body section \`## What's missing\` is empty |
-| entity-body-empty | G-079 | work/gaps/G-079-aiwfx-plan-milestones-plugin-skill-needs-depends-on-documentation-m-076-added-the-verb-but-the-plugin-lives-in-ai-workflow-rituals-upstream.md | G-079 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-4 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-4 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-4 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-3 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-3 --phase green -> done |
-| 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-3 --phase red -> green |
 
