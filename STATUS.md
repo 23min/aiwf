@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_168 entities · 0 errors · 27 warnings · run `aiwf check` for details_
+_169 entities · 0 errors · 27 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -87,6 +87,7 @@ flowchart LR
 | G-068 | Discoverability policy misses dynamic finding subcodes | M-066 |
 | G-069 | aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome | M-070 |
 | G-070 | aiwf doctor has no --format=json envelope; M-070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears | M-070 |
+| G-071 | entity-body-empty/ac fires on freshly-allocated ACs in draft milestones; conflicts with plan-milestones 'shape now, detail later' discipline | E-20 |
 
 ## Warnings
 
@@ -124,9 +125,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | add | aiwf add ac M-074 AC-1..AC-10 (10 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add ac M-073 AC-1..AC-5 (5 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add ac M-072 AC-1..AC-9 (9 criteria) |
 | 2026-05-08 | human/peter | add | aiwf add milestone M-074 'skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure' |
-| 2026-05-08 | human/peter | add | aiwf add milestone M-073 'aiwf-list skill, aiwf-status skill tightening' |
 
