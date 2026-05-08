@@ -48,7 +48,7 @@ acs:
     - id: AC-11
       title: G-085 doc-sweep and gap closure
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-074 — skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure
