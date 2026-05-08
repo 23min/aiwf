@@ -1,8 +1,10 @@
 ---
 id: G-071
 title: entity-body-empty/ac fires on freshly-allocated ACs in draft milestones; conflicts with plan-milestones 'shape now, detail later' discipline
-status: open
+status: addressed
 discovered_in: E-20
+addressed_by:
+    - M-075
 ---
 ## What's missing
 
