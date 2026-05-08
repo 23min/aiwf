@@ -8,7 +8,7 @@ _182 entities · 0 errors · 8 warnings · run `aiwf check` for details_
 
 - ✓ **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(done)_ — ACs 5/5 met — tdd: required
 - ✓ **M-076** — Writer surface for milestone depends_on (closes G-072) _(done)_ — ACs 7/7 met — tdd: required
-- → **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(in_progress)_ — ACs 0/6 met (6 open) — tdd: required
+- → **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(in_progress)_ — ACs 1/6 met (5 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
   E_22 --> M_075
   M_076["M-076 (7/7)<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_done
   E_22 --> M_076
-  M_077["M-077 (0/6)<br/>aiwf retitle verb for entities and ACs (closes G-065)"]:::ms_in_progress
+  M_077["M-077 (1/6)<br/>aiwf retitle verb for entities and ACs (closes G-065)"]:::ms_in_progress
   E_22 --> M_077
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -139,9 +139,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-1 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-1 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077 draft -> in_progress |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076 in_progress -> done |
-| 2026-05-08 | human/test | add | aiwf add gap G-079 'aiwfx-plan-milestones plugin skill needs --depends-on documentation; M-076 added the verb but the plugin lives in ai-workflow-rituals upstream' |
 
