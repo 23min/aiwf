@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: 'JSON envelope: result is array of summary objects'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Default excludes terminal status; --archived includes them
       status: open
