@@ -39,7 +39,7 @@ acs:
       tdd_phase: red
     - id: AC-9
       title: Verb-level integration test drives the dispatcher
-      status: open
+      status: met
       tdd_phase: done
 ---
 
