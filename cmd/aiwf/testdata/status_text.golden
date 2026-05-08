@@ -1,0 +1,28 @@
+aiwf status — 2026-05-09
+
+In flight
+  E-99 — Goldenfix epic for refactor parity    [active]
+     ✓ M-901 — Lay foundations    [done]
+     → M-902 — Wire the seam    [in_progress]    · ACs 2/3 met (1 open)    · tdd: required
+       M-903 — Polish edges    [draft]
+
+Roadmap
+  E-100 — Future work that hasn't started    [proposed]
+       M-910 — First plan step    [draft]
+
+Open decisions
+  ADR-0901 — Adopt fictional convention    [proposed]
+  D-901 — Pick approach A or B    [proposed]
+
+Open gaps
+  G-901 — Refactor leaves a seam    (discovered in M-902)
+
+Warnings
+  gap-resolved-has-resolver  [G-902]  gap is marked addressed but addressed_by is empty
+
+Recent activity
+  2026-05-09  human/golden      promote     aiwf promote M-902 in_progress
+  2026-05-08  human/golden      add         aiwf add milestone M-903
+
+Health
+  11 entities · 0 errors · 1 warnings · run `aiwf check` for details

@@ -1,6 +1,9 @@
 package policies
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -383,4 +386,65 @@ func mustHaveViolation(t *testing.T, vs []Violation, needle string) {
 		}
 	}
 	t.Errorf("expected a violation containing %q; got %d violations:\n%+v", needle, len(vs), vs)
+}
+
+// TestNoReintroducedDeadVerbForms_ContractsAndSkill is M-072 AC-8's
+// future-drift guard. The skill-coverage policy resolves only the
+// *first word* after `aiwf` (per its header godoc); `aiwf list
+// contracts` would no longer trip it because `list` is now a real
+// verb. But the second word `contracts` is still a dead positional —
+// the original G-061 drift shape — and the spec for M-072 AC-8 named
+// docs/pocv3/plans/contracts-plan.md and aiwf-contract/SKILL.md
+// specifically. This test pins the fix.
+//
+// Scoped narrowly: only the two files M-072 AC-8 sweeps. Other files
+// where this form might appear are out-of-scope (G-086 tracks
+// docs/pocv3/contracts.md separately). When G-086 closes, extend the
+// site list here rather than diluting the scoping.
+func TestNoReintroducedDeadVerbForms_ContractsAndSkill(t *testing.T) {
+	root := repoRootForFile(t)
+
+	type deadForm struct {
+		needle  string
+		because string
+	}
+	dead := []deadForm{
+		{
+			needle:  "aiwf list contracts",
+			because: "G-061: kind is a flag, not a positional. Use `aiwf list --kind contract`.",
+		},
+	}
+
+	sites := []string{
+		"docs/pocv3/plans/contracts-plan.md",
+		"internal/skills/embedded/aiwf-contract/SKILL.md",
+	}
+
+	for _, site := range sites {
+		path := filepath.Join(root, site)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Errorf("read %s: %v", site, err)
+			continue
+		}
+		content := string(data)
+		for _, d := range dead {
+			if strings.Contains(content, d.needle) {
+				t.Errorf("%s contains forbidden form %q (M-072 AC-8 / G-061): %s",
+					site, d.needle, d.because)
+			}
+		}
+	}
+}
+
+// repoRootForFile returns the repo root from this test file's
+// location, mirroring repoRoot() in policies_test.go but local to
+// this file so it doesn't depend on the other test's helper.
+func repoRootForFile(t *testing.T) string {
+	t.Helper()
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller returned ok=false")
+	}
+	return filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
 }
