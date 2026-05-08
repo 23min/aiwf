@@ -45,6 +45,8 @@ No mention of merging planning to main. The same shape applies to `aiwfx-plan-ep
 
 ### Layer 1 — skill-level (v1, ships first)
 
+**Workflow assumption — single checkout, not a worktree.** The skill assumes the operator runs planning in a single checkout (the same one calling the skill). Planning is sequential conversation; it doesn't benefit from worktree-level parallelism, and the cwd-and-session switching that worktrees impose adds friction without payoff. Worktrees are an implementation-phase tool — useful when you want one checkout free for grep/lookups while TDD runs in another — not a planning-phase tool. The merge command the skill prompts is therefore the in-place form (`git checkout main && git merge --ff-only <ritual-branch>`), not a cross-worktree `git -C <path>` invocation.
+
 Edit both planning skills' bodies to add a closing prompt at planning closure. Concrete shape (refine at implementation):
 
 > **Planning is closed. Default behavior is to merge to main now. Decline only with a specific reason — entity shape uncertain, near-term re-planning expected, team convention overrides. Merge now? (Y/n)**
