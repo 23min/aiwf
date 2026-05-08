@@ -1,6 +1,6 @@
-# aiwf status — 2026-05-07
+# aiwf status — 2026-05-08
 
-_164 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_165 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -38,6 +38,10 @@ flowchart LR
 
 _(no milestones)_
 
+### E-20 — Add list verb (closes G-061) _(proposed)_
+
+_(no milestones)_
+
 ## Open decisions
 
 | ID | Kind | Title | Status |
@@ -72,6 +76,9 @@ _(no milestones)_
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Context\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Decision\` is empty |
 | entity-body-empty | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | ADR-0002 body section \`## Consequences\` is empty |
+| entity-body-empty | E-20 | work/epics/E-20-add-list-verb-closes-g-061/epic.md | E-20 body section \`## Goal\` is empty |
+| entity-body-empty | E-20 | work/epics/E-20-add-list-verb-closes-g-061/epic.md | E-20 body section \`## Scope\` is empty |
+| entity-body-empty | E-20 | work/epics/E-20-add-list-verb-closes-g-061/epic.md | E-20 body section \`## Out of scope\` is empty |
 
 ## Recent activity
 
