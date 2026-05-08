@@ -36,7 +36,7 @@ acs:
     - id: AC-8
       title: Skills judgment ADR allocated and proposed
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-9
       title: CLAUDE.md gains Skills policy section and What's enforced row
       status: open
