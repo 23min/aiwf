@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_170 entities · 0 errors · 27 warnings · run `aiwf check` for details_
+_171 entities · 0 errors · 30 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -60,6 +60,10 @@ flowchart LR
   classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
 ```
+
+### E-21 — Open-work synthesis: recommended-sequence skill (replaces critical-path.md) _(proposed)_
+
+_(no milestones)_
 
 ## Open decisions
 
@@ -121,6 +125,9 @@ flowchart LR
 | entity-body-empty | M-074/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-8 body under \`### AC-8\` is empty |
 | entity-body-empty | M-074/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-9 body under \`### AC-9\` is empty |
 | entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
+| entity-body-empty | E-21 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/epic.md | E-21 body section \`## Goal\` is empty |
+| entity-body-empty | E-21 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/epic.md | E-21 body section \`## Scope\` is empty |
+| entity-body-empty | E-21 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/epic.md | E-21 body section \`## Out of scope\` is empty |
 
 ## Recent activity
 
