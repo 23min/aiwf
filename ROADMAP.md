@@ -218,7 +218,11 @@ Ship `aiwf list` as the AI's hot-path read primitive over the planning tree, rou
 
 Graduate the open-work synthesis pattern — the tiered landscape, recommended sequence, and pending-decisions Q&A flow that produced [`work/epics/critical-path.md`](../critical-path.md) — into a reproducible kernel feature. Ship a synthesis skill that any AI assistant routing through it can produce a fresh, current critical-path-style narrative on demand, with a Q&A gate for the operator to walk through pending decisions one at a time.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-078 | Planning-conversation skills design ADR (placement, tiering, name rationale) | draft |
+| M-079 | aiwfx-whiteboard skill: classification rubric, output template, Q&A gate | draft |
+| M-080 | Whiteboard skill fixture validation; retire critical-path.md; close E-21 | draft |
 
 ## E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) (proposed)
 
