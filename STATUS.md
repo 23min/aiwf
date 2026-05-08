@@ -139,9 +139,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-1 --phase red -> green |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077 draft -> in_progress |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | promote | aiwf promote M-076 in_progress -> done |
 | 2026-05-08 | human/test | add | aiwf add gap G-079 'aiwfx-plan-milestones plugin skill needs --depends-on documentation; M-076 added the verb but the plugin lives in ai-workflow-rituals upstream' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-076 |
 
