@@ -19,7 +19,7 @@ acs:
       tdd_phase: red
     - id: AC-4
       title: entity.IsTerminal(kind, status) helper added
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Closed-set completion wired for --kind and --status
