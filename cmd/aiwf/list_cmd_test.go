@@ -73,8 +73,12 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 		if !strings.Contains(s, "M-001") || !strings.Contains(s, "M-002") {
 			t.Errorf("--kind milestone missing M-001 or M-002:\n%s", s)
 		}
-		if strings.Contains(s, "E-01") || strings.Contains(s, "E-02") {
-			t.Errorf("--kind milestone should not list epic ids:\n%s", s)
+		// Epic titles must not leak — they would only appear if epic
+		// rows were emitted. Plain `E-01` substring isn't a valid
+		// negative because milestone rows carry their parent in the
+		// parent column.
+		if strings.Contains(s, "Active epic") || strings.Contains(s, "Planned epic") {
+			t.Errorf("--kind milestone leaked epic rows:\n%s", s)
 		}
 	})
 

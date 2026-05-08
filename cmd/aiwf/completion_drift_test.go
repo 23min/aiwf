@@ -142,6 +142,7 @@ func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 		"aiwf version":               "no positional args",
 		"aiwf whoami":                "no positional args",
 		"aiwf status":                "no positional args",
+		"aiwf list":                  "no positional args (filter is flag-shaped per E-20 epic decision)",
 		"aiwf render":                "no positional args (subcommand or --format=html)",
 		"aiwf render roadmap":        "no positional args",
 		"aiwf render help":           "hidden help alias; no positional args",
