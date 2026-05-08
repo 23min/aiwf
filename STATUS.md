@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_181 entities · 0 errors · 47 warnings · run `aiwf check` for details_
+_181 entities · 0 errors · 45 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -172,16 +172,14 @@ flowchart LR
 | entity-body-empty | M-077/AC-4 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-4 body under \`### AC-4\` is empty |
 | entity-body-empty | M-077/AC-5 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-5 body under \`### AC-5\` is empty |
 | entity-body-empty | M-077/AC-6 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/M-077-aiwf-retitle-verb-for-entities-and-acs-closes-g-065.md | M-077/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | G-078 | work/gaps/G-078-no-priority-field-on-entities-backlog-isn-t-filterable-or-sortable-by-importance.md | G-078 body section \`## What's missing\` is empty |
-| entity-body-empty | G-078 | work/gaps/G-078-no-priority-field-on-entities-backlog-isn-t-filterable-or-sortable-by-importance.md | G-078 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add gap G-078 'No priority field on entities; backlog isn't filterable or sortable by importance' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-077 'Post-promotion working paper (aiwf's thesis) not yet written' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-076 'CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-075 'docs/pocv3/ directory naming is now historical; rename or accept' |
 | 2026-05-08 | human/peter | add | aiwf add gap G-074 'docs/pocv3/ body prose still uses PoC framing; needs sweep' |
-| 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 
