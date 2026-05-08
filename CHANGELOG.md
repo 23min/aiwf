@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — Trunk promotion (poc/aiwf-v3 → main)
+
+The `poc/aiwf-v3` branch graduates to `main` on 2026-05-08. After this point, the engine, planning state, and design research all live in a single trunk. Future releases tag on `main` (next: v0.7.0); the `poc/aiwf-v3` branch is preserved as a frozen historical reference for the PoC's full git history.
+
+The merge brings the design research previously isolated on `main` into the same trunk as the implementation:
+
+- **Research arc** at `docs/research/` — `KERNEL.md`, `0-introduction.md`, and thirteen numbered docs (`00`–`13`) tracing the project from the original event-sourced ambition through to policies-as-primitive.
+- **Working paper** at `docs/working-paper.md` — thesis-style synthesis; one-document entry point for visitors.
+- **Explorations** at `docs/explorations/` — `01`–`05` on policies as a primitive, plus mining-corpus surveys at `surveys/{flowtime,liminara}/` and landscape surveys at `docs/research/surveys/`.
+- **Pre-PoC design archive** at `docs/archive/` — original `architecture.md` and `build-plan.md` preserved for archaeology.
+- **Repo conventions** carried from main: `CONTRIBUTING.md`, `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md`, `.github/workflows/pr-conventions.yml`. The trunk-based development model in `CLAUDE.md` is the primary workflow; PR ceremony applies to external contributions. `CONTRIBUTING.md` awaits a reconciliation pass.
+
 ### Added — E-14: Cobra and completion
 
 Eight milestones (M-049 through M-055 plus M-061) replace the stdlib-`flag` dispatch with [`github.com/spf13/cobra`](https://github.com/spf13/cobra), ship `aiwf completion bash|zsh|fish|powershell`, and wire shell tab-completion for every value-taking flag and id positional. New CLAUDE.md principle: **CLI surfaces must be auto-completion-friendly** — mechanically enforced by a drift test that fails CI when a flag lands without completion wiring or an opt-out entry.
