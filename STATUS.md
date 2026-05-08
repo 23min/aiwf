@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_184 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_184 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -105,18 +105,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | G-081 | work/gaps/G-081-aiwf-rename-does-not-pre-flight-trunk-collision-check.md | G-081 body section \`## What's missing\` is empty |
-| entity-body-empty | G-081 | work/gaps/G-081-aiwf-rename-does-not-pre-flight-trunk-collision-check.md | G-081 body section \`## Why it matters\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add gap G-081 'aiwf rename does not pre-flight trunk-collision check' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-076 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-056 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-057 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-080 'Wide-table verbs wrap mid-row and break column scan; no TTY-aware sizing, glyph palette, or truncation surface' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-073 |
 
