@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_172 entities · 0 errors · 27 warnings · run `aiwf check` for details_
+_173 entities · 0 errors · 30 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -65,6 +65,10 @@ flowchart LR
 
 _(no milestones)_
 
+### E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) _(proposed)_
+
+_(no milestones)_
+
 ## Open decisions
 
 | ID | Kind | Title | Status |
@@ -126,14 +130,17 @@ _(no milestones)_
 | entity-body-empty | M-074/AC-8 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-8 body under \`### AC-8\` is empty |
 | entity-body-empty | M-074/AC-9 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-9 body under \`### AC-9\` is empty |
 | entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
+| entity-body-empty | E-22 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/epic.md | E-22 body section \`## Goal\` is empty |
+| entity-body-empty | E-22 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/epic.md | E-22 body section \`## Scope\` is empty |
+| entity-body-empty | E-22 | work/epics/E-22-planning-toolchain-fixes-closes-g-071-g-072-g-065/epic.md | E-22 body section \`## Out of scope\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add gap G-073 'depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-072 in scope' |
 | 2026-05-08 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-21 |
 | 2026-05-08 | human/peter | add | aiwf add epic E-21 'Open-work synthesis: recommended-sequence skill (replaces critical-path.md)' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-19 |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-071 |
 
