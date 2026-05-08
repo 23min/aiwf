@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_186 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_186 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -107,18 +107,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | G-083 | work/gaps/G-083-aiwf-retitle-does-not-sync-entity-body-h1-with-frontmatter-title.md | G-083 body section \`## What's missing\` is empty |
-| entity-body-empty | G-083 | work/gaps/G-083-aiwf-retitle-does-not-sync-entity-body-h1-with-frontmatter-title.md | G-083 body section \`## Why it matters\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | add | aiwf add gap G-083 'aiwf retitle does not sync entity body H1 with frontmatter title' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-081 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-082 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-082 |
 | 2026-05-08 | human/peter | add | aiwf add gap G-082 'Planning closure should default-merge to main before implementation begins' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-081 |
 
