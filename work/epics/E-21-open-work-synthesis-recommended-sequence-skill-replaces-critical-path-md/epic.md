@@ -4,7 +4,7 @@ title: 'Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md'
 status: proposed
 ---
 
-# E-21 — Open-work synthesis: recommended-sequence skill (replaces critical-path.md)
+# E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md
 
 ## Goal
 
@@ -27,7 +27,7 @@ The proximate trigger: during E-20's planning session, the operator named the ga
 
 ### In scope
 
-- A synthesis skill (working name `aiwfx-recommend-sequence`; final name decided in milestone planning) that loads tree state via existing read verbs (`aiwf status`, `aiwf list` once E-20 ships, `aiwf show`, `aiwf history`) and produces:
+- A synthesis skill named `aiwfx-whiteboard` (locked during milestone planning; rationale recorded in M-078's design ADR) that loads tree state via existing read verbs (`aiwf status`, `aiwf list` once E-20 ships, `aiwf show`, `aiwf history`) and produces:
   - Tiered open-work landscape (gaps, ADRs, epics, milestones), classified by leverage on future work.
   - Recommended sequence ordering Tier 1 fixes before downstream work.
   - First-decision fork — the next concrete sequencing question — with options and a lean.
@@ -99,7 +99,7 @@ The proximate trigger: during E-20's planning session, the operator named the ga
 ## Dependencies
 
 - **Depends on E-20.** The synthesis skill calls `aiwf list` directly (not yet shipped); also expects the skills-coverage policy from E-20/M-074 to police the new skill's frontmatter. Starting E-21 before E-20 ships would force re-work of both pieces.
-- **Compatible with G-071 / G-072 fixes** (see `critical-path.md`). If those fixes land before E-21, the skill operates on a cleaner baseline; if not, the skill must explicitly call out the G-071-shaped backlog as part of "expected noise" in its tier-5 output. Either is workable.
+- **G-071 / G-072 / G-065 fixes already landed via E-22** (closed 2026-05-08). The skill now operates on the cleaner baseline `critical-path.md` anticipated. One downstream effect: critical-path.md's Tier 1 row (the bundling-into-M-072 fork) is now historical — those gaps are closed. The skill's live output will surface a different Tier 1 (or empty Tier 1) than the fixture. M-080's structural-agreement check tolerates this drift.
 - **Compatible with the future agent-orchestration substrate** that unfreezes E-19. If the substrate generalises into a "landscape over arbitrary work axes" pattern, this skill is an instance of that pattern.
 
 ## References
