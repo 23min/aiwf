@@ -8,7 +8,7 @@ _182 entities · 0 errors · 0 warnings_
 
 - ✓ **M-075** — Lifecycle-gate entity-body-empty rule (closes G-071) _(done)_ — ACs 5/5 met — tdd: required
 - ✓ **M-076** — Writer surface for milestone depends_on (closes G-072) _(done)_ — ACs 7/7 met — tdd: required
-- → **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(in_progress)_ — ACs 6/6 met — tdd: required
+- ✓ **M-077** — aiwf retitle verb for entities and ACs (closes G-065) _(done)_ — ACs 6/6 met — tdd: required
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
   E_22 --> M_075
   M_076["M-076 (7/7)<br/>Writer surface for milestone depends_on (closes G-072)"]:::ms_done
   E_22 --> M_076
-  M_077["M-077 (6/6)<br/>aiwf retitle verb for entities and ACs (closes G-065)"]:::ms_in_progress
+  M_077["M-077 (6/6)<br/>aiwf retitle verb for entities and ACs (closes G-065)"]:::ms_done
   E_22 --> M_077
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -130,9 +130,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-08 | human/peter | edit-body | aiwf edit-body M-077 |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-079 |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-4 open -> met |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-4 --phase green -> done |
 | 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-4 --phase red -> green |
-| 2026-05-08 | human/peter | promote | aiwf promote M-077/AC-3 open -> met |
 

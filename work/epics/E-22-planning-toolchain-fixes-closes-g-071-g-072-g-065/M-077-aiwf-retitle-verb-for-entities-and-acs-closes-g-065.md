@@ -1,7 +1,7 @@
 ---
 id: M-077
 title: aiwf retitle verb for entities and ACs (closes G-065)
-status: in_progress
+status: done
 parent: E-22
 tdd: required
 acs:
@@ -113,7 +113,11 @@ Per CLAUDE.md "Test the seam, not just the layer": `TestRetitle_DispatcherSeam_T
 
 ## Coverage notes
 
-- (filled at wrap)
+- `internal/verb/retitle.go:Retitle` — 87% statement. Branch audit: composite-id false (top-level path) and true (composite path) both covered; empty-title arm via `TestRetitle_EmptyTitleRejected`; unknown-id via `_UnknownIdRejected`; same-title via `_SameTitleRejected`; success arm via every kind in `TestRetitle_AllKinds`. Uncovered: `readBody` IO failure, `entity.Serialize` failure, `projectionFindings` error arm — defensive paths consistent with the project's pattern (M-075 `entityBodyEmpty`, M-076 `MilestoneDependsOn` follow the same convention).
+- `internal/verb/retitle.go:retitleAC` — 76% statement. Branch audit: `lookupAC` error covered via `_AC_UnknownRejected`; same-title arm reachable via the top-level same-title test path's logic; success arm via `_AC_FrontmatterAndBody`, `_DispatcherSeam_Composite`. Uncovered: same defensive IO arms (readBody/Serialize/projection).
+- `cmd/aiwf/retitle_cmd.go:newRetitleCmd` — 100%.
+- `cmd/aiwf/retitle_cmd.go:runRetitleCmd` — 65%. The uncovered region is the lock/loadTree/actor-resolve error arms which require filesystem failure or concurrent-locked state to exercise — same convention as `runRenameCmd`, `runEditBodyCmd`, etc.
+- `internal/skills` — `TestList_AllShippedSkillsPresent` table extended to 12 entries; the new `aiwf-retitle` skill is asserted present alongside the existing 11.
 
 ## References
 
@@ -128,7 +132,36 @@ Per CLAUDE.md "Test the seam, not just the layer": `TestRetitle_DispatcherSeam_T
 
 ## Work log
 
-(filled during implementation)
+### AC-1 — retitle works for all top-level kinds
+
+Added `Retitle` to `internal/verb/retitle.go` and `aiwf retitle` cmd to `cmd/aiwf/retitle_cmd.go`. Top-level path: load entity → mutate `title:` field → re-serialize with existing body → project + check → emit `aiwf-verb: retitle` plan. Reuses the same load/serialize machinery as `aiwf rename` but on a different field. Tests in `cmd/aiwf/retitle_cmd_test.go`: `TestRetitle_AllKinds` (6 sub-cases, one per kind), `TestRetitle_Reason`, `TestRetitle_EmptyTitleRejected`, `TestRetitle_SameTitleRejected`, `TestRetitle_UnknownIdRejected`.
+
+### AC-2 — Composite-id retitle (frontmatter + body heading)
+
+Added `retitleAC` helper in the same file. Reuses `lookupAC`, `withACMutation`, and `rewriteACHeading` from `internal/verb/ac.go` — no new parser, no new heading-rewriter. The shape parallels `renameAC`'s composite-id arm but emits a `retitle` trailer so `aiwf history M-NNN/AC-N` distinguishes the two invocation paths. Test: `TestRetitle_AC_FrontmatterAndBody` asserts both the `acs[].title` mutation AND the body heading regeneration in the same atomic commit; `TestRetitle_AC_UnknownRejected` covers the missing-AC arm.
+
+### AC-3 — aiwf-retitle skill
+
+New `internal/skills/embedded/aiwf-retitle/SKILL.md` with title-shaped phrasings densely populated in the frontmatter description: *"the title doesn't match anymore"*, *"fix the title"*, *"retitle to reflect new scope"*, *"correct the title"*, *"rename the title"*. The last phrasing intentionally overlaps with `aiwf-rename`; the body redirects in either skill. `internal/skills/skills_test.go` updated to expect 12 skills.
+
+### AC-4 — aiwf-rename skill body redirect
+
+Inserted a short blockquote near the top of `internal/skills/embedded/aiwf-rename/SKILL.md` pointing operators to `aiwf retitle` for title changes. Symmetric with the redirect in `aiwf-retitle`'s body — AI assistants land on the right verb regardless of which skill they invoke first.
+
+### AC-5 — Closed-set completion
+
+The positional `<id>` arg uses `completeEntityIDArg("", 0)` which proposes any entity id (all six kinds plus composite ids). New flags (`--actor`, `--principal`, `--root`, `--reason`) are covered by the existing completion-drift opt-out table — `TestPolicy_FlagsHaveCompletion` and `TestPolicy_PositionalsHaveCompletion` pass without modification.
+
+### AC-6 — Verb-level seam tests
+
+`TestRetitle_DispatcherSeam_TopLevel` and `TestRetitle_DispatcherSeam_Composite` drive `run([]string{"retitle", ...})` end-to-end; assert (a) on-disk frontmatter title changed AND (b) `aiwf history <id>` finds the trailered commit. Per CLAUDE.md "Test the seam, not just the layer."
+
+### Side cleanup — G-079 body backfilled, README updated
+
+While on the M-077 branch I noticed two stale items left over from M-076 wrap and an earlier session that needed cleanup before this branch could land:
+
+1. `G-079` was filed during M-076 wrap as the deferred-skill-update gap, but its body was never filled. Backfilled the prose via `aiwf edit-body G-079` so the gap reads cleanly when consumed by future planning.
+2. `README.md`'s verb table missed `aiwf retitle` (this milestone) and `aiwf milestone depends-on` (M-076). The skills-list line said "ten skill files" while the actual count is twelve (now including `aiwf-edit-body` and `aiwf-retitle`). Both updated atomically with this wrap so the README reflects what aiwf actually ships.
 
 ## Decisions made during implementation
 
@@ -136,7 +169,12 @@ Per CLAUDE.md "Test the seam, not just the layer": `TestRetitle_DispatcherSeam_T
 
 ## Validation
 
-(pasted at wrap)
+- `go test -race ./...` — green. All packages pass.
+- `go build -o /tmp/aiwf ./cmd/aiwf` — green.
+- `golangci-lint run ./cmd/aiwf/ ./internal/verb/ ./internal/skills/` — 0 issues (after `gofumpt -w` on `retitle_cmd_test.go`).
+- `aiwf check` — 0 errors, 2 unrelated warnings (`provenance-untrailered-scope-undefined` because the milestone branch has no upstream; `unexpected-tree-file` on `work/epics/critical-path.md` is E-21's scope).
+- `aiwf show M-077` — every AC at `met` + `tdd_phase: done`.
+- Real-tree dogfood: `aiwf retitle <id>` and `aiwf retitle M-NNN/AC-N` both round-trip through `aiwf history` with the right trailers; the seam tests pin this end-to-end.
 
 ## Deferrals
 
@@ -144,4 +182,10 @@ Per CLAUDE.md "Test the seam, not just the layer": `TestRetitle_DispatcherSeam_T
 
 ## Reviewer notes
 
-- (filled at wrap)
+- **Why a separate `aiwf retitle` rather than extending `aiwf rename`.** Per the epic's locked decision (M-077 spec design notes; epic spec §"Design decisions" Q1): title and slug are parallel mutations on different frontmatter fields, not topically related. `aiwf-rename` and `aiwf-retitle` are kept separate so the single-mutation rule keeps reasoning local. The skill-level confusion ("rename the title") is mitigated by the redirect in both skills' bodies — same pattern E-20/M-073 used for `aiwf-status` ↔ `aiwf-list`.
+- **Composite-id arm shares helpers with `renameAC` deliberately.** The lookup, mutation, and body-heading-rewrite are identical; only the trailer differs. Re-implementing from scratch would invite drift. The shared helpers (`lookupAC`, `withACMutation`, `rewriteACHeading`) live in `internal/verb/ac.go` and are stable. If a future change touches AC body-heading mechanics, both `rename` and `retitle` benefit automatically.
+- **`aiwf rename M-NNN/AC-N "<title>"` still works** — that's the existing path, untouched. Operators with muscle memory aren't broken by this milestone. Going forward, `aiwf retitle` is the dedicated verb; the skill redirects steer humans and AI assistants to it.
+- **`Retitle`'s same-title rejection is a kindness, not a kernel-level invariant.** A no-op produces an empty diff, which the kernel would handle, but rejecting at the verb boundary means the operator notices the typo immediately rather than producing a no-op commit. Same convention as `renameAC`'s same-title check (`internal/verb/ac.go:283`).
+- **Forward-compat note for G-073's eventual cross-kind generalisation.** This verb is unaffected — `retitle` operates on `title:` which is universal across kinds. Cross-kind dependency mechanics (G-073's territory) are orthogonal.
+- **README updates and G-079 body backfill rode along** rather than splitting into a separate `wf-patch`. Both were on-topic and minor: the README updates document M-077's and M-076's verbs (the spec calls for AI-discoverable surfaces, README counts), and G-079's body was the receiving gap from M-076's deferred skill-update — leaving it with empty `## What's missing` / `## Why it matters` would be dead weight. Reviewers may prefer the patch route in the future; in this case the bundled wrap was lower friction.
+- **No ADR/D-NNN produced.** Every locked design choice (verb name, separate skill, `--reason` flag, composite-id support, title-only mutation) was pre-locked in the epic spec.
