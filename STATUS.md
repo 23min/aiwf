@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-08
 
-_189 entities · 0 errors · 17 warnings · run `aiwf check` for details_
+_190 entities · 0 errors · 19 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -105,6 +105,7 @@ _(no milestones)_
 | G-083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-21 |
 | G-084 | Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella | E-21 |
 | G-086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file | M-072 |
+| G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
 
 ## Warnings
 
@@ -127,14 +128,16 @@ _(no milestones)_
 | entity-body-empty | M-074/AC-10 | work/epics/E-20-add-list-verb-closes-g-061/M-074-skill-coverage-policy-judgment-adr-claude-md-skills-section-g-061-closure.md | M-074/AC-10 body under \`### AC-10\` is empty |
 | entity-body-empty | G-086 | work/gaps/G-086-docs-pocv3-contracts-md-still-references-non-existent-aiwf-list-contracts-lines-98-114-117-same-drift-class-as-g-061-g-085-different-file.md | G-086 body section \`## What's missing\` is empty |
 | entity-body-empty | G-086 | work/gaps/G-086-docs-pocv3-contracts-md-still-references-non-existent-aiwf-list-contracts-lines-98-114-117-same-drift-class-as-g-061-g-085-different-file.md | G-086 body section \`## Why it matters\` is empty |
+| entity-body-empty | G-087 | work/gaps/G-087-no-aiwf-show-embedded-skill-show-is-the-per-entity-inspection-verb-every-ai-reaches-for-but-help-only-coverage-misses-body-rendering-and-composite-id-discovery.md | G-087 body section \`## What's missing\` is empty |
+| entity-body-empty | G-087 | work/gaps/G-087-no-aiwf-show-embedded-skill-show-is-the-per-entity-inspection-verb-every-ai-reaches-for-but-help-only-coverage-misses-body-rendering-and-composite-id-discovery.md | G-087 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-074 draft -> in_progress |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-5 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-4 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-3 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-073/AC-2 open -> met |
 
