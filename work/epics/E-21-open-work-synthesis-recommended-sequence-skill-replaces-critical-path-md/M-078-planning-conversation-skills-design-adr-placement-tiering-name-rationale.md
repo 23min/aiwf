@@ -19,7 +19,7 @@ acs:
       status: met
     - id: AC-5
       title: ADR cross-references M-074 skills ADR and CLAUDE.md principles
-      status: open
+      status: met
 ---
 
 # M-078 — Planning-conversation skills design ADR (placement, tiering, name rationale)
