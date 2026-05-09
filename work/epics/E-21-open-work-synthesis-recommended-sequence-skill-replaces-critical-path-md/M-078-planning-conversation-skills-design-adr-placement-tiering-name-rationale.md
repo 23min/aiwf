@@ -10,7 +10,7 @@ acs:
       status: open
     - id: AC-2
       title: 'ADR records placement: rituals plugin, not kernel-embedded'
-      status: met
+      status: open
     - id: AC-3
       title: ADR records pure-skill-first tiering rule
       status: met
