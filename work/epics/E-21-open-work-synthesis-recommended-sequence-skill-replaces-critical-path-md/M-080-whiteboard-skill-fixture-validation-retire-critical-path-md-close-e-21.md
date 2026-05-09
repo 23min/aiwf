@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Output agrees with critical-path.md on structural shape, not content
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Pending-decisions section enumerates at least the decisions in critical-path.md
       status: open
