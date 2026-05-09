@@ -1,7 +1,7 @@
 ---
 id: M-082
 title: Implement aiwf rewidth verb and apply to this repo's tree
-status: draft
+status: in_progress
 parent: E-23
 depends_on:
     - M-081
