@@ -1,7 +1,7 @@
 ---
 id: M-081
 title: Canonical 4-digit IDs in parser, renderer, and allocator
-status: draft
+status: in_progress
 parent: E-23
 tdd: required
 acs:
