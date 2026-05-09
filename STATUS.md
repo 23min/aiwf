@@ -44,7 +44,6 @@ _(no milestones)_
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 | ADR-0003 | adr | Add finding (F-NNN) as a seventh entity kind | proposed |
-| ADR-0004 | adr | Uniform archive convention for terminal-status entities | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
 | ADR-0006 | adr | Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices | proposed |
 | ADR-0007 | adr | Planning-conversation skills: rituals-plugin placement; pure-skill first, kernel verb only if usage demands it | proposed |
@@ -98,9 +97,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0004 |
 | 2026-05-09 | human/peter | add | aiwf add gap G-091 'No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped' |
 | 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-09 | human/peter | promote | aiwf promote E-21 active -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote E-21 proposed -> active |
-| 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
 

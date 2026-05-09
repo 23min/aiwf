@@ -1,7 +1,7 @@
 ---
 id: ADR-0004
 title: Uniform archive convention for terminal-status entities
-status: proposed
+status: accepted
 ---
 ## Context
 
