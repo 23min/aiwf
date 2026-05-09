@@ -594,3 +594,66 @@ func TestTree_ByKind(t *testing.T) {
 		t.Errorf("ByKind ids = %v", ids)
 	}
 }
+
+// TestTree_FilterByKindStatuses pins the helper's filter axes and
+// id-ascending sort. The chokepoint test for M-072 AC-6: both `aiwf
+// list --kind X --status Y` and `aiwf status`'s per-section slices
+// route through this single function, so a regression here would
+// drift both verbs in lockstep — much easier to spot than two
+// independent regressions diverging silently.
+func TestTree_FilterByKindStatuses(t *testing.T) {
+	tr := &Tree{Entities: []*entity.Entity{
+		{ID: "E-02", Kind: entity.KindEpic, Status: "active"},
+		{ID: "E-01", Kind: entity.KindEpic, Status: "active"},
+		{ID: "E-03", Kind: entity.KindEpic, Status: "proposed"},
+		{ID: "G-001", Kind: entity.KindGap, Status: "open"},
+		{ID: "G-002", Kind: entity.KindGap, Status: "addressed"},
+		{ID: "G-003", Kind: entity.KindGap, Status: "open"},
+	}}
+
+	t.Run("kind+single-status filter, sorted by id", func(t *testing.T) {
+		got := tr.FilterByKindStatuses(entity.KindEpic, "active")
+		ids := make([]string, len(got))
+		for i, e := range got {
+			ids[i] = e.ID
+		}
+		want := []string{"E-01", "E-02"}
+		if !equalStrings(ids, want) {
+			t.Errorf("ids = %v, want %v", ids, want)
+		}
+	})
+
+	t.Run("kind+multiple-statuses filter (active OR proposed)", func(t *testing.T) {
+		got := tr.FilterByKindStatuses(entity.KindEpic, "active", "proposed")
+		if len(got) != 3 {
+			t.Errorf("count = %d, want 3", len(got))
+		}
+	})
+
+	t.Run("kind only (no status filter)", func(t *testing.T) {
+		got := tr.FilterByKindStatuses(entity.KindGap)
+		if len(got) != 3 {
+			t.Errorf("count = %d, want 3", len(got))
+		}
+	})
+
+	t.Run("empty kind keeps every kind", func(t *testing.T) {
+		got := tr.FilterByKindStatuses("", "open")
+		if len(got) != 2 {
+			t.Errorf("count = %d, want 2 (G-001 and G-003)", len(got))
+		}
+		if got[0].ID != "G-001" || got[1].ID != "G-003" {
+			t.Errorf("ids = [%s %s], want [G-001 G-003]", got[0].ID, got[1].ID)
+		}
+	})
+
+	t.Run("empty result is non-nil empty slice", func(t *testing.T) {
+		got := tr.FilterByKindStatuses(entity.KindEpic, "cancelled")
+		if got == nil {
+			t.Error("expected non-nil empty slice for sentinel-friendly callers")
+		}
+		if len(got) != 0 {
+			t.Errorf("len = %d, want 0", len(got))
+		}
+	})
+}

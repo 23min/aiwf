@@ -1,11 +1,13 @@
 ---
 name: aiwf-status
-description: Use to answer project-state questions like "what's next?", "where are we?", "what are we working on?", "current status?", "what's in flight?". Runs `aiwf status`, which prints a one-screen snapshot of in-flight epics + their milestones, open decisions (proposed ADRs and D-NNN), open gaps, the last 5 events from git history, and tree-health counts. Read-only; no commit.
+description: Use for narrative-shaped state questions — "what's next?", "where are we?", "what are we working on?", "current status?", "what's in flight?", "give me a summary". Runs `aiwf status`, which prints a one-screen snapshot of in-flight epics + their milestones, open decisions (proposed ADRs and D-NNN), open gaps, the last 5 events from git history, and tree-health counts. Curated for human readers, not for programmatic filter queries — for those, use `aiwf list`. Read-only; no commit.
 ---
 
 # aiwf-status
 
-A one-screen project snapshot. Reach for this whenever the user asks a vague-state question — *"what's next?"*, *"where are we?"*, *"what are we working on?"*, *"status?"*, *"what's in flight?"*. Don't compose multiple `aiwf check` / `aiwf history` calls and read raw frontmatter when one verb answers the question.
+A one-screen project snapshot for human readers. Reach for this whenever the user asks a vague narrative-state question — *"what's next?"*, *"where are we?"*, *"what are we working on?"*, *"status?"*, *"what's in flight?"*, *"give me a summary"*. Don't compose multiple `aiwf check` / `aiwf history` calls and read raw frontmatter when one verb answers the question.
+
+**For programmatic tree queries — every milestone with status X, all entities by parent Y, every open gap, filter by kind — prefer `aiwf list`. That is the hot path for filter-shaped prompts; this skill covers narrative snapshots only.** The two verbs split the read surface deliberately: list answers structured queries, status answers human-state questions.
 
 ## What it does
 

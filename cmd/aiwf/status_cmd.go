@@ -256,9 +256,12 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 		Date: time.Now().UTC().Format("2006-01-02"),
 	}
 
-	// In-flight epics: status == "active". Sorted by id.
-	epics := append([]*entity.Entity(nil), tr.ByKind(entity.KindEpic)...)
-	sort.SliceStable(epics, func(i, j int) bool { return epics[i].ID < epics[j].ID })
+	// In-flight epics: active or proposed. The shared filter helper
+	// gives us both buckets pre-sorted; the loop below splits them.
+	// `aiwf list --kind epic --status active` routes through the same
+	// helper, so the two verbs cannot drift on identical queries
+	// (M-072 AC-6).
+	epics := tr.FilterByKindStatuses(entity.KindEpic, entity.StatusActive, entity.StatusProposed)
 
 	milestonesByParent := map[string][]*entity.Entity{}
 	for _, m := range tr.ByKind(entity.KindMilestone) {
@@ -269,9 +272,6 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	}
 
 	for _, e := range epics {
-		if e.Status != entity.StatusActive && e.Status != entity.StatusProposed {
-			continue
-		}
 		se := statusEpic{
 			ID:     e.ID,
 			Title:  e.Title,
@@ -295,10 +295,9 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	}
 
 	// Open decisions: ADRs and Decision entities with status == "proposed".
-	for _, e := range tr.ByKind(entity.KindADR) {
-		if e.Status != entity.StatusProposed {
-			continue
-		}
+	// Each kind is one helper call; the merge needs an outer sort to
+	// interleave the two id namespaces deterministically.
+	for _, e := range tr.FilterByKindStatuses(entity.KindADR, entity.StatusProposed) {
 		r.OpenDecisions = append(r.OpenDecisions, statusEntity{
 			ID:     e.ID,
 			Title:  e.Title,
@@ -306,10 +305,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 			Kind:   string(entity.KindADR),
 		})
 	}
-	for _, e := range tr.ByKind(entity.KindDecision) {
-		if e.Status != entity.StatusProposed {
-			continue
-		}
+	for _, e := range tr.FilterByKindStatuses(entity.KindDecision, entity.StatusProposed) {
 		r.OpenDecisions = append(r.OpenDecisions, statusEntity{
 			ID:     e.ID,
 			Title:  e.Title,
@@ -319,18 +315,15 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	}
 	sort.SliceStable(r.OpenDecisions, func(i, j int) bool { return r.OpenDecisions[i].ID < r.OpenDecisions[j].ID })
 
-	// Open gaps: status == "open".
-	for _, e := range tr.ByKind(entity.KindGap) {
-		if e.Status != entity.StatusOpen {
-			continue
-		}
+	// Open gaps: status == "open". Helper returns id-sorted; no extra
+	// sort needed.
+	for _, e := range tr.FilterByKindStatuses(entity.KindGap, entity.StatusOpen) {
 		r.OpenGaps = append(r.OpenGaps, statusGap{
 			ID:           e.ID,
 			Title:        e.Title,
 			DiscoveredIn: e.DiscoveredIn,
 		})
 	}
-	sort.SliceStable(r.OpenGaps, func(i, j int) bool { return r.OpenGaps[i].ID < r.OpenGaps[j].ID })
 
 	// Health: errors and warnings from a single check.Run. Warning
 	// detail is surfaced inline; errors stay summarised — if there are

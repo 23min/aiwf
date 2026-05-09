@@ -45,6 +45,8 @@ No mention of merging planning to main. The same shape applies to `aiwfx-plan-ep
 
 ### Layer 1 — skill-level (v1, ships first)
 
+**Workflow assumption — single checkout, not a worktree.** The skill assumes the operator runs planning in a single checkout (the same one calling the skill). Planning is sequential conversation; it doesn't benefit from worktree-level parallelism, and the cwd-and-session switching that worktrees impose adds friction without payoff. Worktrees are an implementation-phase tool — useful when you want one checkout free for grep/lookups while TDD runs in another — not a planning-phase tool. The merge command the skill prompts is therefore the in-place form (`git checkout main && git merge --ff-only <ritual-branch>`), not a cross-worktree `git -C <path>` invocation.
+
 Edit both planning skills' bodies to add a closing prompt at planning closure. Concrete shape (refine at implementation):
 
 > **Planning is closed. Default behavior is to merge to main now. Decline only with a specific reason — entity shape uncertain, near-term re-planning expected, team convention overrides. Merge now? (Y/n)**
@@ -90,6 +92,7 @@ The skill body edits are small — two skills, one prompt apiece, plus the bifur
 
 ## References
 
+- **ADR-0005** — *"Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs"*. This gap implements obligation 3 (**surface follow-up actions in skills**); filed under umbrella gap G-084.
 - G-081 — sibling gap on the rename verb's pre-flight. Same family ("verbs / skills should refuse-with-guidance, not allow-then-warn"); different specific case.
 - G-059 — broader gap on the canonical branch model. This gap fills a specific recommendation slot inside G-059's territory, not a redefinition of it.
 - G-063 — *"no start-epic ritual"*. Adjacent ritual gap.

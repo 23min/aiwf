@@ -1,6 +1,6 @@
 # CLAUDE.md — ai-workflow repo
 
-This repo carries `aiwf` — a small experimental framework that helps humans and AI assistants keep track of what's planned, decided, and done, by validating a small set of mechanical guarantees about a markdown-and-frontmatter project tree. Read [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md) for what aiwf commits to. Read [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md) for the four sessions of work that produced it. **Gaps live as `aiwf` entities under `work/gaps/` (per G38 dogfooding the kernel against itself); run `aiwf status --kind gap` or `aiwf show G-NNN` to inspect them. The pre-migration text record is archived at [`docs/pocv3/archive/gaps-pre-migration.md`](docs/pocv3/archive/gaps-pre-migration.md) for historical reference.**
+This repo carries `aiwf` — a small experimental framework that helps humans and AI assistants keep track of what's planned, decided, and done, by validating a small set of mechanical guarantees about a markdown-and-frontmatter project tree. Read [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md) for what aiwf commits to. Read [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md) for the four sessions of work that produced it. **Gaps live as `aiwf` entities under `work/gaps/` (per G38 dogfooding the kernel against itself); run `aiwf list --kind gap` or `aiwf show G-NNN` to inspect them. The pre-migration text record is archived at [`docs/pocv3/archive/gaps-pre-migration.md`](docs/pocv3/archive/gaps-pre-migration.md) for historical reference.**
 
 ---
 
@@ -301,6 +301,14 @@ Before adding a verb to `cmd/aiwf/`, the design isn't done until you can answer 
 
 Not acceptable: *"we'll figure that out later"* — the verb isn't ready. See [docs/pocv3/design/design-lessons.md](docs/pocv3/design/design-lessons.md) §"On reversal" for the principle this comes from.
 
+### Skills policy
+
+Every top-level Cobra verb is reachable through some AI-discoverable channel. The shape of that coverage follows four cases — **per-verb skill** (default for mutating verbs that carry decision logic), **topical multi-verb skill** (when users reach for the concept rather than the verb; precedent: `aiwf-contract`), **no skill** (when `--help` plus tab-completion fully cover the surface; e.g. `aiwf version`, `aiwf init`), and **discoverability-priority split** (when a topical group's prompt shapes diverge enough to dilute one bundled description; precedent: `aiwf-list` and `aiwf-status`).
+
+The judgment rule lives in [ADR-0006](docs/adr/ADR-0006-skills-policy-per-verb-default-topical-multi-verb-when-concept-shaped-no-skill-when-help-suffices.md). The mechanical companion is [`internal/policies/skill_coverage.go`](internal/policies/skill_coverage.go) — it asserts that every verb has either a same-named `aiwf-<verb>` skill or an entry in `skillCoverageAllowlist` with a one-line rationale, that every embedded skill carries valid `name:` and `description:` frontmatter, and that every backticked `` `aiwf <verb>` `` mention inside a skill body resolves to a registered top-level verb. CI fails any future PR that adds a verb without satisfying both bars.
+
+When designing a new verb, answer the *what verb undoes this?* question above first, then *which case from ADR-0006 applies, and where does this verb's skill live?*
+
 ### What's enforced and where
 
 The kernel's "framework correctness must not depend on LLM behavior" principle applies here too: the rules below are enforced by tooling at named chokepoints, not by remembering to tick a checklist. This section names the chokepoint for each rule so a contributor (human or LLM) can see what will block a bad commit and what is still advisory.
@@ -320,6 +328,7 @@ The kernel's "framework correctness must not depend on LLM behavior" principle a
 | Planning-tree shape (no stray files under `work/`)           | `aiwf check --shape-only` — pre-commit hook (G41)                | Blocking pre-commit     |
 | Full planning-tree validation (refs, ids, FSM, contracts)    | `aiwf check` — pre-push hook                                     | Blocking pre-push       |
 | Repo-specific invariants (trailer keys, sovereign acts, etc.) | `internal/policies/` — runs as a Go test package                 | Blocking via CI test    |
+| Every verb has skill coverage or an allowlist entry; every `aiwf <verb>` mention in a skill resolves | `internal/policies/skill_coverage.go` — runs as a Go test (M-074) | Blocking via CI test    |
 | `context.Context` as first arg of new IO function            | Code review                                                      | Advisory                |
 | No new package-level mutable state                           | Code review                                                      | Advisory                |
 | Each new dep has a one-line justification                    | Code review (commit message / PR description)                    | Advisory                |

@@ -131,6 +131,20 @@ func TestEnvelopeSchemaConformance_AllJSONVerbs(t *testing.T) {
 			args:           []string{"status", "--root", "<root>", "--format=json"},
 			wantResultKind: resultObject,
 		},
+		// `list` (no-args) — per-kind counts under result (object).
+		{
+			name:           "list no-args",
+			setup:          standardSetup,
+			args:           []string{"list", "--root", "<root>", "--format=json"},
+			wantResultKind: resultObject,
+		},
+		// `list` filtered — array of summary objects under result.
+		{
+			name:           "list filtered",
+			setup:          standardSetup,
+			args:           []string{"list", "--root", "<root>", "--kind", "milestone", "--format=json"},
+			wantResultKind: resultArray,
+		},
 		// `schema [kind]` — closed-set schema dump under result.
 		{
 			name:           "schema all",

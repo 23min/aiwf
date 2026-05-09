@@ -273,6 +273,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newImportCmd())
 	cmd.AddCommand(newWhoamiCmd())
 	cmd.AddCommand(newStatusCmd())
+	cmd.AddCommand(newListCmd())
 	cmd.AddCommand(newSchemaCmd())
 	cmd.AddCommand(newShowCmd())
 	cmd.AddCommand(newTemplateCmd())
