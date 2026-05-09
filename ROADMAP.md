@@ -212,7 +212,7 @@ Ship `aiwf list` as the AI's hot-path read primitive over the planning tree, rou
 | M-073 | aiwf-list skill, aiwf-status skill tightening | done |
 | M-074 | skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure | done |
 
-## E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md (proposed)
+## E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md (done)
 
 ### Goal
 
