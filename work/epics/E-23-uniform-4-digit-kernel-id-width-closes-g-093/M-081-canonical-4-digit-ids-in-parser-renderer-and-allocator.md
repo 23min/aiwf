@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Allocator emits canonical 4-digit ids for every kind
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Parser tolerates both widths at every audited call site
       status: open
