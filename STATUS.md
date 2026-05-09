@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_206 entities · 0 errors · 0 warnings_
+_207 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -101,6 +101,7 @@ flowchart LR
 | G-091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 | G-092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
 | G-093 | Mixed kernel ID widths can't survive PoC graduation; E-NN exhausts at 99 and the §07 proposal silently drifts F-NNN to F-NNNN |  |
+| G-094 | GitHub repo name 'ai-workflow-v2' is post-promotion historical; mismatches kernel identity 'aiwf' across go install path, internal/version proxy queries, and 155 in-repo references |  |
 
 ## Warnings
 
@@ -110,9 +111,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | add | aiwf add ac M-082 AC-1..AC-5 (5 criteria) |
 | 2026-05-09 | human/peter | add | aiwf add milestone M-082 'Implement aiwf rewidth verb and apply to this repo's tree' |
 | 2026-05-09 | human/peter | add | aiwf add ac M-081 AC-1..AC-6 (6 criteria) |
 | 2026-05-09 | human/peter | add | aiwf add milestone M-081 'Canonical 4-digit IDs in parser, renderer, and allocator' |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body E-23 |
-| 2026-05-09 | human/peter | add | aiwf add epic E-23 'Uniform 4-digit kernel ID width (closes G-093)' |
 
