@@ -112,9 +112,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-5 met -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-4 met -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-3 met -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-2 met -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-1 met -> open |
-| 2026-05-09 | human/peter | promote | aiwf promote M-078 done -> in_progress |
 
