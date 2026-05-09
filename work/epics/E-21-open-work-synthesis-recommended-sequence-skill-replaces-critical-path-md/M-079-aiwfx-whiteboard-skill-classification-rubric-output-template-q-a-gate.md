@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Skill scaffolded at aiwfx-whiteboard with frontmatter and SKILL.md
-      status: open
+      status: met
     - id: AC-2
       title: Frontmatter description carries the natural-language query phrasings
       status: open
