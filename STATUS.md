@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_196 entities · 0 errors · 0 warnings_
+_199 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -41,7 +41,7 @@ _(no milestones)_
 ### E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md _(proposed)_
 
 - ✓ **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(done)_ — ACs 5/5 met — tdd: none
-- → **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(in_progress)_ — ACs 0/8 met (8 open) — tdd: advisory
+- ✓ **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(done)_ — ACs 8/8 met — tdd: advisory
 - **M-080** — Whiteboard skill fixture validation; retire critical-path.md; close E-21 _(draft)_ — ACs 0/7 met (7 open) — tdd: required
 
 ```mermaid
@@ -49,7 +49,7 @@ flowchart LR
   E_21["E-21<br/>Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md"]:::epic_proposed
   M_078["M-078 (5/5)<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_done
   E_21 --> M_078
-  M_079["M-079 (0/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_in_progress
+  M_079["M-079 (8/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_done
   E_21 --> M_079
   M_080["M-080 (0/7)<br/>Whiteboard skill fixture validation; retire critical-path.md; close E-21"]:::ms_draft
   E_21 --> M_080
@@ -103,18 +103,28 @@ flowchart LR
 | G-084 | Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella | E-21 |
 | G-086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file | M-072 |
 | G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
+| G-088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-079 did | M-079 |
+| G-089 | aiwfx-whiteboard skill should write a gitignored WHITEBOARD.md cache after invocation; SKILL.md anti-pattern #3 currently forbids it but the rule is over-restrictive (STATUS.md is a counter-example of acceptable hook-regenerated persistence) | M-079 |
+| G-090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-079 |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## What's missing\` is empty |
+| entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## Why it matters\` is empty |
+| entity-body-empty | G-089 | work/gaps/G-089-aiwfx-whiteboard-skill-should-write-a-gitignored-whiteboard-md-cache-after-invocation-skill-md-anti-pattern-3-currently-forbids-it-but-the-rule-is-over-restrictive-status-md-is-a-counter-example-of-acceptable-hook-regenerated-persistence.md | G-089 body section \`## What's missing\` is empty |
+| entity-body-empty | G-089 | work/gaps/G-089-aiwfx-whiteboard-skill-should-write-a-gitignored-whiteboard-md-cache-after-invocation-skill-md-anti-pattern-3-currently-forbids-it-but-the-rule-is-over-restrictive-status-md-is-a-counter-example-of-acceptable-hook-regenerated-persistence.md | G-089 body section \`## Why it matters\` is empty |
+| entity-body-empty | G-090 | work/gaps/G-090-ac-8-materialisation-drift-check-has-three-branches-not-unit-tested-refactor-lookup-to-take-cache-root-as-parameter-for-hermetic-testing-with-synthetic-temp-dirs.md | G-090 body section \`## What's missing\` is empty |
+| entity-body-empty | G-090 | work/gaps/G-090-ac-8-materialisation-drift-check-has-three-branches-not-unit-tested-refactor-lookup-to-take-cache-root-as-parameter-for-hermetic-testing-with-synthetic-temp-dirs.md | G-090 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-09 | human/peter | promote | aiwf promote M-078 in_progress -> done |
-| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-5 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-4 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-3 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-2 open -> met |
+| 2026-05-09 | human/peter | promote | aiwf promote M-079 in_progress -> done |
+| 2026-05-09 | human/peter | add | aiwf add gap G-090 'AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs' |
+| 2026-05-09 | human/peter | add | aiwf add gap G-089 'aiwfx-whiteboard skill should write a gitignored WHITEBOARD.md cache after invocation; SKILL.md anti-pattern #3 currently forbids it but the rule is over-restrictive (STATUS.md is a counter-example of acceptable hook-regenerated persistence)' |
+| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-8 --phase green -> done |
+| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-8 --phase red -> green |
 
