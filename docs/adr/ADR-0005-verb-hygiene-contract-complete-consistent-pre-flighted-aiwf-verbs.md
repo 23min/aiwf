@@ -96,7 +96,7 @@ Proposed. Ratification follows the kernel's standard ADR cadence — accept afte
 - G-081 — pre-flight obligation, instance.
 - G-082 — workflow-follow-up obligation, instance (skill-layer).
 - G-083 — atomic-completeness obligation, instance.
-- G-NNN (meta-gap, filed alongside this ADR) — catalogue of the asymmetries this ADR's contract addresses.
+- G-084 — catalogue / umbrella of the asymmetries this ADR's contract addresses (filed alongside this ADR as the meta-gap; placeholder `G-NNN` resolved to G-084 in a 2026-05-09 editorial pass).
 - CLAUDE.md *Engineering principles* §"Errors are findings, not parse failures" — informs obligation 1's opt-out structure.
 - CLAUDE.md *Engineering principles* §"Framework's correctness must not depend on the LLM's behavior" — informs obligation 3's mandate that workflow prompts live as a *strong* recommendation, with the underlying compliance moving toward kernel-level enforcement when usage demonstrates the prompt is being skipped.
 - CLAUDE.md *Engineering principles* §"Kernel functionality must be AI-discoverable" — informs the requirement that opt-out flags are documented, named, and surfaced via `--help`.
