@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_202 entities · 0 errors · 0 warnings_
+_203 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -44,6 +44,7 @@ _(no milestones)_
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
+| ADR-0008 | adr | Canonicalize kernel IDs to 4 digits; parsers tolerate narrower legacy widths on input | proposed |
 
 ## Open gaps
 
@@ -89,9 +90,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | add | aiwf add gap G-093 'Mixed kernel ID widths can't survive PoC graduation; E-NN exhausts at 99 and the §07 proposal silently drifts F-NNN to F-NNNN' |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0007 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0006 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-09 | human/peter | promote | aiwf promote ADR-0003 proposed -> accepted |
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 
