@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_199 entities · 0 errors · 5 warnings · run `aiwf check` for details_
+_200 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -82,6 +82,7 @@ _(no milestones)_
 | G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
 | G-088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-079 did | M-079 |
 | G-090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-079 |
+| G-091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 
 ## Warnings
 
