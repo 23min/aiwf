@@ -114,9 +114,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-1 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079 draft -> in_progress |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-5 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-4 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-3 open -> met |
 
