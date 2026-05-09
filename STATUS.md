@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_207 entities · 0 errors · 0 warnings_
+_208 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -42,6 +42,7 @@ _(no milestones)_
 
 - **M-081** — Canonical 4-digit IDs in parser, renderer, and allocator _(draft)_ — ACs 0/6 met (6 open) — tdd: required
 - **M-082** — Implement aiwf rewidth verb and apply to this repo's tree _(draft)_ — ACs 0/5 met (5 open) — tdd: required
+- **M-083** — Drift check, normative-doc amendments, and skill content refresh _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
@@ -50,6 +51,8 @@ flowchart LR
   E_23 --> M_081
   M_082["M-082 (0/5)<br/>Implement aiwf rewidth verb and apply to this repo's tree"]:::ms_draft
   E_23 --> M_082
+  M_083["M-083<br/>Drift check, normative-doc amendments, and skill content refresh"]:::ms_draft
+  E_23 --> M_083
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -111,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | add | aiwf add gap G-094 'GitHub repo name 'ai-workflow-v2' is post-promotion historical; mismatches kernel identity 'aiwf' across go install path, internal/version proxy queries, and 155 in-repo references' |
 | 2026-05-09 | human/peter | add | aiwf add ac M-082 AC-1..AC-5 (5 criteria) |
 | 2026-05-09 | human/peter | add | aiwf add milestone M-082 'Implement aiwf rewidth verb and apply to this repo's tree' |
 | 2026-05-09 | human/peter | add | aiwf add ac M-081 AC-1..AC-6 (6 criteria) |
 | 2026-05-09 | human/peter | add | aiwf add milestone M-081 'Canonical 4-digit IDs in parser, renderer, and allocator' |
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body E-23 |
 
