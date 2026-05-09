@@ -100,3 +100,43 @@ func TestAiwfxWhiteboard_AC1_SkillScaffolded(t *testing.T) {
 		t.Error("AC-1: frontmatter `description:` must be non-empty")
 	}
 }
+
+// TestAiwfxWhiteboard_AC2_DescriptionPhrasings asserts AC-2: the
+// frontmatter `description:` carries at minimum five of the named
+// natural-language query phrasings the user might type to a
+// description-match-routing host. Per the spec, the skill name
+// (`whiteboard`) is metaphor-shaped not query-shaped, so
+// description-density does the routing work.
+func TestAiwfxWhiteboard_AC2_DescriptionPhrasings(t *testing.T) {
+	body := loadAiwfxWhiteboardFixture(t)
+	desc := frontmatterField(body, "description")
+	if desc == "" {
+		t.Fatal("AC-2: frontmatter description is empty (AC-1 should have caught this)")
+	}
+
+	// Spec-listed phrasings. AC-2 requires at least 5 of these
+	// (the spec offers 6 + an "or equivalent metaphor-anchored
+	// phrasing" for the last). Match case-insensitively because
+	// the description may quote them with different capitalisation.
+	candidates := []string{
+		"what should i work on next",
+		"give me the landscape",
+		"where should we focus",
+		"what's the critical path",
+		"synthesise the open work",
+		"draw the whiteboard",
+	}
+	lower := strings.ToLower(desc)
+	hits := 0
+	missing := []string{}
+	for _, p := range candidates {
+		if strings.Contains(lower, p) {
+			hits++
+		} else {
+			missing = append(missing, p)
+		}
+	}
+	if hits < 5 {
+		t.Errorf("AC-2: description must carry ≥5 spec-listed phrasings (got %d; missing: %v)", hits, missing)
+	}
+}
