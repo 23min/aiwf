@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Output agrees with critical-path.md on structural shape, not content
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Pending-decisions section enumerates at least the decisions in critical-path.md
