@@ -32,6 +32,18 @@ For Go-specific rules (formatting, linting, testing, coverage, error handling, C
 
 ---
 
+## Authoring an ADR
+
+An ADR captures an architectural decision. **Decision is decision.** Once written down, what the ADR records is the choice — not the schedule for acting on it.
+
+Don't write gate language into ADR bodies — *"ratify after X happens,"* *"status remains proposed through Y wraps,"* *"accept after the implementing gaps' resolution shapes prove the contract works in practice."* Either you're committed (ratify it via `aiwf promote ADR-NNNN accepted`) or you're not (keep it `proposed` and let the conversation continue). When to *act on* the decision — what milestone, in what sequence, gated on what — is a planning concern that lives in the planning surface (`aiwf status`, the whiteboard, the rituals plugin's planning skills), not in the ADR body.
+
+The prior pattern (gate language in ADR bodies, sometimes backed by bespoke `internal/policies/` tests pinning status) conflated *"what's the decision?"* with *"are we ready to act on it?"*. Reviewers and LLM agents reading the ADR couldn't tell whether the gate was decision rationale ("we'll ratify if the design holds up") or schedule artifact ("we'll ratify when the epic closes"). The clean separation: **ADR captures the choice; planning sequences the action.**
+
+The FSM (`proposed → accepted | rejected`; `accepted → superseded`) and `aiwf promote` are the only mechanical surfaces that should constrain ADR status transitions. No bespoke per-ADR test pins. Sovereign override (`--force --reason`) remains available when an exceptional ratification path is genuinely needed.
+
+---
+
 ## What aiwf commits to
 
 These are the load-bearing properties any change must preserve. They are distilled from the research arc and recorded in [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md).
