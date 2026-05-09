@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_197 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_198 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -104,6 +104,7 @@ flowchart LR
 | G-086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file | M-072 |
 | G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
 | G-088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-079 did | M-079 |
+| G-089 | aiwfx-whiteboard skill should write a gitignored WHITEBOARD.md cache after invocation; SKILL.md anti-pattern #3 currently forbids it but the rule is over-restrictive (STATUS.md is a counter-example of acceptable hook-regenerated persistence) | M-079 |
 
 ## Warnings
 
@@ -111,6 +112,8 @@ flowchart LR
 |------|--------|------|---------|
 | entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## What's missing\` is empty |
 | entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## Why it matters\` is empty |
+| entity-body-empty | G-089 | work/gaps/G-089-aiwfx-whiteboard-skill-should-write-a-gitignored-whiteboard-md-cache-after-invocation-skill-md-anti-pattern-3-currently-forbids-it-but-the-rule-is-over-restrictive-status-md-is-a-counter-example-of-acceptable-hook-regenerated-persistence.md | G-089 body section \`## What's missing\` is empty |
+| entity-body-empty | G-089 | work/gaps/G-089-aiwfx-whiteboard-skill-should-write-a-gitignored-whiteboard-md-cache-after-invocation-skill-md-anti-pattern-3-currently-forbids-it-but-the-rule-is-over-restrictive-status-md-is-a-counter-example-of-acceptable-hook-regenerated-persistence.md | G-089 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
