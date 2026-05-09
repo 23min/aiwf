@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: ADR allocated under docs/adr/ and status proposed
-      status: met
+      status: open
     - id: AC-2
       title: 'ADR records placement: rituals plugin, not kernel-embedded'
       status: met
