@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_195 entities · 0 errors · 0 warnings_
+_196 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -70,6 +70,7 @@ flowchart LR
 | ADR-0004 | adr | Uniform archive convention for terminal-status entities | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
 | ADR-0006 | adr | Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices | proposed |
+| ADR-0007 | adr | Planning-conversation skills: rituals-plugin placement; pure-skill first, kernel verb only if usage demands it | proposed |
 
 ## Open gaps
 
@@ -105,15 +106,19 @@ flowchart LR
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | ADR-0007 | docs/adr/ADR-0007-planning-conversation-skills-rituals-plugin-placement-pure-skill-first-kernel-verb-only-if-usage-demands-it.md | ADR-0007 body section \`## Context\` is empty |
+| entity-body-empty | ADR-0007 | docs/adr/ADR-0007-planning-conversation-skills-rituals-plugin-placement-pure-skill-first-kernel-verb-only-if-usage-demands-it.md | ADR-0007 body section \`## Decision\` is empty |
+| entity-body-empty | ADR-0007 | docs/adr/ADR-0007-planning-conversation-skills-rituals-plugin-placement-pure-skill-first-kernel-verb-only-if-usage-demands-it.md | ADR-0007 body section \`## Consequences\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-078 draft -> in_progress |
 | 2026-05-08 | human/peter | retitle | aiwf retitle M-080/AC-2 -> 'Output agrees with critical-path.md on structural shape, not content' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-21 |
 | 2026-05-08 | human/peter | retitle | aiwf retitle E-21 -> 'Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body G-082 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-082 'Planning closure should default-merge to main before implementation begins' |
 
