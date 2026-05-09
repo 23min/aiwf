@@ -40,14 +40,14 @@ _(no milestones)_
 
 ### E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md _(proposed)_
 
-- → **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(in_progress)_ — ACs 1/5 met (4 open) — tdd: none
+- → **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(in_progress)_ — ACs 2/5 met (3 open) — tdd: none
 - **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(draft)_ — ACs 0/8 met (8 open) — tdd: advisory
 - **M-080** — Whiteboard skill fixture validation; retire critical-path.md; close E-21 _(draft)_ — ACs 0/7 met (7 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_21["E-21<br/>Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md"]:::epic_proposed
-  M_078["M-078 (1/5)<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_in_progress
+  M_078["M-078 (2/5)<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_in_progress
   E_21 --> M_078
   M_079["M-079 (0/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_draft
   E_21 --> M_079
@@ -112,9 +112,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-1 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-5 met -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-4 met -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-3 met -> open |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-2 met -> open |
-| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-1 met -> open |
 
