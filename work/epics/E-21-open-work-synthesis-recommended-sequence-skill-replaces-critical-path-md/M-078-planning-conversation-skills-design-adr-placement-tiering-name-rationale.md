@@ -1,7 +1,7 @@
 ---
 id: M-078
 title: Planning-conversation skills design ADR (placement, tiering, name rationale)
-status: in_progress
+status: done
 parent: E-21
 tdd: none
 acs:
@@ -105,15 +105,37 @@ ADR body explicitly references M-074's skills-judgment ADR (the "per-verb defaul
 
 ## Work log
 
-(filled during implementation)
+### AC-1 — ADR allocated under docs/adr/ and status proposed
+
+ADR-0007 allocated via `aiwf add adr` with title *"Planning-conversation skills: rituals-plugin placement; pure-skill first, kernel verb only if usage demands it"*; frontmatter `status: proposed` · commit 58e7f7a.
+
+### AC-2 — ADR records placement: rituals plugin, not kernel-embedded
+
+Body §Placement names the rule, table of existing pattern cites `aiwfx-plan-epic`, `aiwfx-plan-milestones`, `aiwfx-start-milestone`, `aiwfx-wrap-milestone`, `aiwfx-wrap-epic`, `aiwfx-record-decision`, `aiwfx-release` as plugin-side and `aiwf-status`, `aiwf-list`, `aiwf-history`, `aiwf-contract` as kernel-embedded verb wrappers; `aiwfx-whiteboard` flagged as planning conversation, not verb wrapper · commit d2b1b56.
+
+### AC-3 — ADR records pure-skill-first tiering rule
+
+Body §Tiering articulates the rule, names the deferred follow-on (`aiwf whiteboard` kernel verb — verb shares the skill's name to keep the surface unified), enumerates three trigger conditions for promotion, explicitly cites E-21 success criterion #7 as closed · commit d2b1b56.
+
+### AC-4 — ADR records name worked example: aiwfx-whiteboard with rejected alternatives
+
+Body §Name documents the three-bullet whiteboard fit-rationale (ephemerality, surfacing-not-deciding, operator-at-the-board) and rejects eight alternatives with one-line rationale per (`recommend-sequence`, `landscape`, `paths`, `focus`, `next`, `survey`, `synthesise-open-work`, `critical-path`) · commit d2b1b56.
+
+### AC-5 — ADR cross-references M-074 skills ADR and CLAUDE.md principles
+
+Body §Context frames this ADR as complementary to ADR-0006 (M-074's skills judgment ADR — granularity *within* a topic; this ADR — placement/tiering *across* kernel/plugin); CLAUDE.md *"Kernel functionality must be AI-discoverable"* and *"Framework correctness must not depend on the LLM's behavior"* cited inline and in References · commit d2b1b56.
 
 ## Decisions made during implementation
 
-- (none — all decisions are pre-locked above)
+- **Deferred kernel verb is `aiwf whiteboard`, not `aiwf landscape`.** Earlier ADR drafts named the deferred follow-on `aiwf landscape` (matching the noun-shaped tier-data). User correction during self-review: the verb shares the skill's name to keep the surface unified across plugin and kernel. Captured in ADR-0007 §Tiering, §Name §rejected `landscape`, and §Consequences. Not D-NNN-worthy — it's a name clarification within an already-deferred verb that isn't filed yet, and the rationale (unified surface) lives in the ADR itself · commit 834acf2.
 
 ## Validation
 
-(pasted at wrap)
+- `aiwf check` — 0 errors, 0 warnings on M-078 or ADR-0007 (the live tree carries 31 warnings unrelated to this milestone: 30 are merge-introduced `provenance-untrailered-entity-commit` against the post-merge `f4ea732` commit and clear on next push per their own hint; 1 is the standing `unexpected-tree-file` for `work/epics/critical-path.md` that M-080 retires).
+- `go build -o /tmp/aiwf-m078 ./cmd/aiwf` — clean (exit 0).
+- `go test ./...` — 25 packages, 0 failures (exit 0). Cached after the post-merge full run; tests were re-run with `-race` against the merged baseline before milestone implementation began and all green.
+- `wf-doc-lint` (scoped to M-078 diff) — 0 findings: no broken code references, no removed-feature drift, no orphan files, no doc TODOs.
+- `wf-review-code` — verdict `approve`, 0 blocking findings, 2 track-for-later items (table is illustrative-not-exhaustive; deferred-verb name will revisit at filing time per CLAUDE.md *Designing a new verb*).
 
 ## Deferrals
 
@@ -121,4 +143,7 @@ ADR body explicitly references M-074's skills-judgment ADR (the "per-verb defaul
 
 ## Reviewer notes
 
-- (filled at wrap)
+- **Existing-pattern table in ADR §Placement is illustrative, not exhaustive.** The table cites 4 kernel-embedded skills (`aiwf-status`, `aiwf-list`, `aiwf-history`, `aiwf-contract`) and 7 plugin skills (`aiwfx-plan-epic`, `aiwfx-plan-milestones`, `aiwfx-start-milestone`, `aiwfx-wrap-milestone`, `aiwfx-wrap-epic`, `aiwfx-record-decision`, `aiwfx-release`). Kernel-side actually has 13 embedded skills (also `aiwf-add`, `aiwf-authorize`, `aiwf-check`, `aiwf-edit-body`, `aiwf-promote`, `aiwf-reallocate`, `aiwf-rename`, `aiwf-render`, `aiwf-retitle`). The narrowing is deliberate — AC-2's spec text named only the 4, and the table's job is to *demonstrate the principle*, not enumerate every skill. The exhaustive list lives in the source tree (`internal/skills/embedded/`).
+- **Status remains `proposed`.** Promotion to `accepted` is a separate decision after E-21 closes (or later); per spec constraint *"Status remains `proposed` through M-079. If M-079's implementation surfaces a constraint that changes the rationale, edit-body the ADR before promoting."* The Deferrals section captures this.
+- **No code changed; `tdd: none` is the right policy.** AC test surface is the body content itself; `aiwf check` already polices empty body sections (ADR-0007's three top-level sections are non-empty). Validation's "build/test green" is a baseline assertion (the tree wasn't broken by this work), not a coverage assertion.
+- **The `aiwf landscape` → `aiwf whiteboard` correction was caught by user review, not by lint or test.** This is appropriate for a doctrinal ADR — the correctness check is human reading. The mechanical chokepoints (`aiwf check`, doc-lint) wouldn't have flagged the divergence because both names are syntactically valid; consistency between the skill's name and the deferred verb's name is a design judgment.
