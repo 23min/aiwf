@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_201 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_201 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -88,17 +88,15 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | G-090 | work/gaps/G-090-ac-8-materialisation-drift-check-has-three-branches-not-unit-tested-refactor-lookup-to-take-cache-root-as-parameter-for-hermetic-testing-with-synthetic-temp-dirs.md | G-090 body section \`## What's missing\` is empty |
-| entity-body-empty | G-090 | work/gaps/G-090-ac-8-materialisation-drift-check-has-three-branches-not-unit-tested-refactor-lookup-to-take-cache-root-as-parameter-for-hermetic-testing-with-synthetic-temp-dirs.md | G-090 body section \`## Why it matters\` is empty |
 | gap-resolved-has-resolver | G-089 | work/gaps/G-089-aiwfx-whiteboard-skill-should-write-a-gitignored-whiteboard-md-cache-after-invocation-skill-md-anti-pattern-3-currently-forbids-it-but-the-rule-is-over-restrictive-status-md-is-a-counter-example-of-acceptable-hook-regenerated-persistence.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-088 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0004 |
 | 2026-05-09 | human/peter | add | aiwf add gap G-092 'No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file' |
 | 2026-05-09 | human/peter | promote | aiwf promote ADR-0004 proposed -> accepted |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0004 |
-| 2026-05-09 | human/peter | add | aiwf add gap G-091 'No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped' |
 
