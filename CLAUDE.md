@@ -21,14 +21,14 @@ For Go-specific rules (formatting, linting, testing, coverage, error handling, C
 
 ## Working with the user
 
-- **Q&A / interview format.** When the user says "Q&A", "interview me", or anything similar, present questions or findings **one at a time**, not as a batch. For each item, give:
+- **Q&A / interview format.** When the user says "Q&A", "interview me", or anything similar — or whenever you have ≥3 distinct decisions queued and would otherwise dump them in one message — present questions or findings **one at a time**, not as a batch. For each item, give:
   1. **Context** — what the question is about and why it matters here.
   2. **Pros / cons** (or whys / why-nots) for each option.
   3. **Risks**, if any.
-  4. **Your lean** and the reasoning behind it.
+  4. **Your lean** and the reasoning behind it. State it plainly; don't hedge to the point of uselessness.
   5. A **numbered list of options** the user can pick from (including "something else").
 
-  Wait for the user's choice before moving to the next item.
+  Wait for the user's choice before moving to the next item. Once they pick, confirm the decision in one line and move on.
 
 ---
 
