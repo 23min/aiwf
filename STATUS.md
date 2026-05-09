@@ -90,9 +90,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-093 |
 | 2026-05-09 | human/peter | add | aiwf add adr ADR-0008 'Canonicalize kernel IDs to 4 digits; parsers tolerate narrower legacy widths on input' |
 | 2026-05-09 | human/peter | add | aiwf add gap G-093 'Mixed kernel ID widths can't survive PoC graduation; E-NN exhausts at 99 and the §07 proposal silently drifts F-NNN to F-NNNN' |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0007 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0006 |
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 
