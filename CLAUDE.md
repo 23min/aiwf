@@ -107,6 +107,26 @@ When in doubt: the smaller change is the right change.
 
 ---
 
+## AC promotion requires mechanical evidence
+
+Before `aiwf promote M-NNN/AC-<N> met`, there must be a mechanical assertion that fails if the AC's claim breaks — a Go test under `internal/policies/`, a kernel finding-rule, or a fixture-validation script. *"I read the file and it looks right"* is not evidence; it makes the AC's correctness depend on the reviewer's recall, which is exactly the dependency *"framework correctness must not depend on the LLM's behavior"* forbids.
+
+This applies **even to milestones with `tdd: none`**. The `tdd:` policy controls whether the kernel's `acs-tdd-audit` finding fires; it does not waive the test-discipline obligation. For doc-shaped ACs (ADR content, skill body content), the test is typically a structural assertion on a named markdown section — per Go conventions §"Substring assertions are not structural assertions" below, scope the assertion to the section, don't grep flat over the file.
+
+The chokepoint is the AC-promote command. Discipline is the chokepoint until a kernel finding-rule lands that polices test-existence per AC.
+
+---
+
+## Cross-repo plugin testing
+
+When a milestone's deliverable is a `SKILL.md` (or other content) that lives in the rituals plugin repo at `/Users/peterbru/Projects/ai-workflow-rituals/` (distributed via the Claude Code marketplace), the **canonical authoring location during the milestone is a fixture in this repo** at `internal/policies/testdata/<skill-name>/SKILL.md`. AC tests under `internal/policies/` assert content claims against the fixture; red→green TDD iteration happens against it.
+
+At wrap, the fixture content is copied into the rituals repo as a separate commit there; the wrap-side spec records the rituals-repo commit SHA in *Validation*. A drift-check test in this repo compares the fixture against the local marketplace cache (`~/.claude/plugins/cache/ai-workflow-rituals/.../SKILL.md`) and fires if they diverge — and skips cleanly when the cache is absent (CI without a plugin install).
+
+Subtree and submodule are wrong for this: the rituals repo is the upstream, and vendoring it here would invert the relationship and add CI/contributor friction. **No tests live in the rituals repo** — it stays pure markdown.
+
+---
+
 ## Go conventions
 
 These rules apply to all Go code in the module. The repo-wide engineering principles above (KISS, YAGNI, no half-finished implementations, errors-as-findings) cascade in on top of these.

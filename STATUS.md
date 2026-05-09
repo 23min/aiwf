@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_192 entities · 0 errors · 0 warnings_
+_199 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -38,10 +38,6 @@ flowchart LR
 
 _(no milestones)_
 
-### E-21 — Open-work synthesis: recommended-sequence skill (replaces critical-path.md) _(proposed)_
-
-_(no milestones)_
-
 ## Open decisions
 
 | ID | Kind | Title | Status |
@@ -51,6 +47,7 @@ _(no milestones)_
 | ADR-0004 | adr | Uniform archive convention for terminal-status entities | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
 | ADR-0006 | adr | Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices | proposed |
+| ADR-0007 | adr | Planning-conversation skills: rituals-plugin placement; pure-skill first, kernel verb only if usage demands it | proposed |
 
 ## Open gaps
 
@@ -83,10 +80,18 @@ _(no milestones)_
 | G-084 | Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella | E-21 |
 | G-086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file | M-072 |
 | G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
+| G-088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-079 did | M-079 |
+| G-090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-079 |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## What's missing\` is empty |
+| entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## Why it matters\` is empty |
+| entity-body-empty | G-090 | work/gaps/G-090-ac-8-materialisation-drift-check-has-three-branches-not-unit-tested-refactor-lookup-to-take-cache-root-as-parameter-for-hermetic-testing-with-synthetic-temp-dirs.md | G-090 body section \`## What's missing\` is empty |
+| entity-body-empty | G-090 | work/gaps/G-090-ac-8-materialisation-drift-check-has-three-branches-not-unit-tested-refactor-lookup-to-take-cache-root-as-parameter-for-hermetic-testing-with-synthetic-temp-dirs.md | G-090 body section \`## Why it matters\` is empty |
+| gap-resolved-has-resolver | G-089 | work/gaps/G-089-aiwfx-whiteboard-skill-should-write-a-gitignored-whiteboard-md-cache-after-invocation-skill-md-anti-pattern-3-currently-forbids-it-but-the-rule-is-over-restrictive-status-md-is-a-counter-example-of-acceptable-hook-regenerated-persistence.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
