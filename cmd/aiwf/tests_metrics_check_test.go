@@ -54,7 +54,7 @@ func TestRunTestsMetricsCheck_WarnsWhenRequireOnAndTrailerMissing(t *testing.T) 
 	if f.Severity != check.SeverityWarning {
 		t.Errorf("Severity = %q, want warning", f.Severity)
 	}
-	if f.EntityID != "M-001/AC-1" {
+	if f.EntityID != "M-0001/AC-1" {
 		t.Errorf("EntityID = %q, want M-001/AC-1", f.EntityID)
 	}
 }
@@ -96,11 +96,11 @@ func TestRunTestsMetricsCheck_SilentForNonRequiredMilestone(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Optional", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine")
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Optional", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine")
 	// tdd is not set on the milestone (default: not required); promote
 	// the AC's status to met. tdd_phase remains absent.
-	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "met")
+	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "met")
 
 	tr, _, err := tree.Load(context.Background(), root)
 	if err != nil {
@@ -153,12 +153,12 @@ func setupTDDDoneAC(t *testing.T) string {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "required", "--epic", "E-01", "--title", "Required", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "required", "--epic", "E-0001", "--title", "Required", "--actor", "human/test", "--root", root)
 
-	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine")
+	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine")
 	// AC is auto-seeded at red because the milestone is tdd: required;
 	// walk it to done with no metrics flagged.
-	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "--phase", "green")
-	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "--phase", "done")
+	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "green")
+	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "done")
 	return root
 }

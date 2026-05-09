@@ -36,10 +36,10 @@ func TestText_PathLineSeverityCodeMessageHint(t *testing.T) {
 			Code:     "refs-resolve",
 			Severity: check.SeverityError,
 			Subcode:  "unresolved",
-			Message:  `milestone field "parent" references unknown id "E-99"`,
+			Message:  `milestone field "parent" references unknown id "E-0099"`,
 			Path:     "work/epics/E-01-foo/M-007.md",
 			Line:     5,
-			EntityID: "M-007",
+			EntityID: "M-0007",
 			Hint:     "check the spelling, or remove the reference if the target was deleted",
 		},
 		{
@@ -57,7 +57,7 @@ func TestText_PathLineSeverityCodeMessageHint(t *testing.T) {
 	}
 	got := buf.String()
 	for _, want := range []string{
-		`work/epics/E-01-foo/M-007.md:5: error refs-resolve/unresolved: milestone field "parent" references unknown id "E-99" — hint: check the spelling, or remove the reference if the target was deleted`,
+		`work/epics/E-01-foo/M-007.md:5: error refs-resolve/unresolved: milestone field "parent" references unknown id "E-0099" — hint: check the spelling, or remove the reference if the target was deleted`,
 		"work/epics/E-01-foo/epic.md:3: warning titles-nonempty: title is empty or whitespace-only — hint: set a non-empty `title:` in the frontmatter",
 		"2 findings (1 errors, 1 warnings)",
 	} {
@@ -110,7 +110,7 @@ func TestText_HintOmittedWhenEmpty(t *testing.T) {
 	findings := []check.Finding{{
 		Code:     "ids-unique",
 		Severity: check.SeverityError,
-		Message:  `id "M-001" is also used by other.md`,
+		Message:  `id "M-0001" is also used by other.md`,
 		Path:     "work/epics/dup.md",
 		Line:     2,
 	}}

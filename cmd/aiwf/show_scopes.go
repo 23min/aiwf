@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/23min/ai-workflow-v2/internal/entity"
 	"github.com/23min/ai-workflow-v2/internal/scope"
 )
 
@@ -153,7 +154,11 @@ func readAllAuthorizeOpeners(ctx context.Context, root string) (map[string]strin
 		if sha == "" || ent == "" {
 			continue
 		}
-		result[sha] = ent
+		// Canonicalize the trailer-stored entity id so callers comparing
+		// against tree-loaded ids never have to disambiguate widths.
+		// Per AC-2 in M-081: the read side is the chokepoint for
+		// width tolerance.
+		result[sha] = entity.Canonicalize(ent)
 	}
 	return result, nil
 }

@@ -21,7 +21,7 @@ func retitleSetup(t *testing.T) string {
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--tdd", "none", "--title", "First Milestone", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "First Milestone", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	if rc := run([]string{"add", "adr", "--title", "First ADR", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -48,12 +48,12 @@ func TestRetitle_AllKinds(t *testing.T) {
 		newTitle string
 		path     string
 	}{
-		{"epic", "E-01", "Refocused Foundations", "work/epics/E-01-foundations/epic.md"},
-		{"milestone", "M-001", "Refocused First Milestone", "work/epics/E-01-foundations/M-001-first-milestone.md"},
+		{"epic", "E-0001", "Refocused Foundations", "work/epics/E-0001-foundations/epic.md"},
+		{"milestone", "M-0001", "Refocused First Milestone", "work/epics/E-0001-foundations/M-0001-first-milestone.md"},
 		{"adr", "ADR-0001", "Refocused First ADR", "docs/adr/ADR-0001-first-adr.md"},
-		{"gap", "G-001", "Refocused First Gap", "work/gaps/G-001-first-gap.md"},
-		{"decision", "D-001", "Refocused First Decision", "work/decisions/D-001-first-decision.md"},
-		{"contract", "C-001", "Refocused First Contract", "work/contracts/C-001-first-contract/contract.md"},
+		{"gap", "G-0001", "Refocused First Gap", "work/gaps/G-0001-first-gap.md"},
+		{"decision", "D-0001", "Refocused First Decision", "work/decisions/D-0001-first-decision.md"},
+		{"contract", "C-0001", "Refocused First Contract", "work/contracts/C-0001-first-contract/contract.md"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestRetitle_Reason(t *testing.T) {
 	root := retitleSetup(t)
 
 	rc := run([]string{
-		"retitle", "E-01", "Reasoned Title",
+		"retitle", "E-0001", "Reasoned Title",
 		"--reason", "scope absorbed M-076 work",
 		"--actor", "human/test",
 		"--root", root,
@@ -96,7 +96,7 @@ func TestRetitle_Reason(t *testing.T) {
 	}
 
 	// History should land — the trailer chain reached git.
-	if rc := run([]string{"history", "E-01", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "E-0001", "--root", root}); rc != exitOK {
 		t.Errorf("history E-01: %d", rc)
 	}
 }
@@ -106,7 +106,7 @@ func TestRetitle_EmptyTitleRejected(t *testing.T) {
 	root := retitleSetup(t)
 
 	rc := run([]string{
-		"retitle", "E-01", "   ",
+		"retitle", "E-0001", "   ",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -122,7 +122,7 @@ func TestRetitle_SameTitleRejected(t *testing.T) {
 	root := retitleSetup(t)
 
 	rc := run([]string{
-		"retitle", "E-01", "Foundations",
+		"retitle", "E-0001", "Foundations",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -136,7 +136,7 @@ func TestRetitle_UnknownIdRejected(t *testing.T) {
 	root := retitleSetup(t)
 
 	rc := run([]string{
-		"retitle", "E-99", "Whatever",
+		"retitle", "E-0099", "Whatever",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -150,12 +150,12 @@ func TestRetitle_UnknownIdRejected(t *testing.T) {
 // `### AC-N — <title>` body heading, atomically in one commit.
 func TestRetitle_AC_FrontmatterAndBody(t *testing.T) {
 	root := retitleSetup(t)
-	if rc := run([]string{"add", "ac", "M-001", "--title", "original ac title", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "M-0001", "--title", "original ac title", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
 	rc := run([]string{
-		"retitle", "M-001/AC-1", "refocused ac title",
+		"retitle", "M-0001/AC-1", "refocused ac title",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -163,7 +163,7 @@ func TestRetitle_AC_FrontmatterAndBody(t *testing.T) {
 		t.Fatalf("retitle M-001/AC-1: %d", rc)
 	}
 
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-001-first-milestone.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-first-milestone.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
@@ -186,7 +186,7 @@ func TestRetitle_AC_UnknownRejected(t *testing.T) {
 	root := retitleSetup(t)
 
 	rc := run([]string{
-		"retitle", "M-001/AC-9", "Whatever",
+		"retitle", "M-0001/AC-9", "Whatever",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -203,7 +203,7 @@ func TestRetitle_DispatcherSeam_TopLevel(t *testing.T) {
 	root := retitleSetup(t)
 
 	rc := run([]string{
-		"retitle", "E-01", "Seam-tested Foundations",
+		"retitle", "E-0001", "Seam-tested Foundations",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -211,14 +211,14 @@ func TestRetitle_DispatcherSeam_TopLevel(t *testing.T) {
 		t.Fatalf("retitle (seam top-level): %d", rc)
 	}
 
-	body, err := os.ReadFile(filepath.Join(root, "work", "epics", "E-01-foundations", "epic.md"))
+	body, err := os.ReadFile(filepath.Join(root, "work", "epics", "E-0001-foundations", "epic.md"))
 	if err != nil {
 		t.Fatalf("read epic: %v", err)
 	}
 	if !strings.Contains(string(body), "title: Seam-tested Foundations") {
 		t.Errorf("epic frontmatter missing new title (seam):\n%s", body)
 	}
-	if rc := run([]string{"history", "E-01", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "E-0001", "--root", root}); rc != exitOK {
 		t.Errorf("aiwf history E-01 (seam): %d", rc)
 	}
 }
@@ -227,19 +227,19 @@ func TestRetitle_DispatcherSeam_TopLevel(t *testing.T) {
 // the composite-id path.
 func TestRetitle_DispatcherSeam_Composite(t *testing.T) {
 	root := retitleSetup(t)
-	if rc := run([]string{"add", "ac", "M-001", "--title", "original", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "M-0001", "--title", "original", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
 	rc := run([]string{
-		"retitle", "M-001/AC-1", "seam-tested",
+		"retitle", "M-0001/AC-1", "seam-tested",
 		"--actor", "human/test",
 		"--root", root,
 	})
 	if rc != exitOK {
 		t.Fatalf("retitle (seam composite): %d", rc)
 	}
-	if rc := run([]string{"history", "M-001/AC-1", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "M-0001/AC-1", "--root", root}); rc != exitOK {
 		t.Errorf("aiwf history M-001/AC-1 (seam): %d", rc)
 	}
 }

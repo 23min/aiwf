@@ -67,23 +67,23 @@ func TestShow_CompositeIdWithScopes(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Cache"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Cache"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "ac", "M-001", "--title", "warmup works"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "warmup works"); err != nil {
 		t.Fatalf("aiwf add ac: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
 	// Agent acts on the AC inside the scope (status transition).
 	if out, err := runBin(t, root, binDir, nil,
-		"promote", "M-001/AC-1", "met",
+		"promote", "M-0001/AC-1", "met",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("promote AC: %v\n%s", err, out)
 	}
 
-	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "M-001/AC-1")
+	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "M-0001/AC-1")
 	if err != nil {
 		t.Fatalf("show composite: %v\n%s", err, out)
 	}
@@ -142,16 +142,16 @@ func TestShow_AncestorScopeNotInheritedWithoutAct(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Cache"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Cache"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
 	// Open scope on E-01 but NEVER act on M-001 under it.
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
 
 	// E-01 surfaces the scope — opened on it directly.
-	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-01")
+	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-0001")
 	if err != nil {
 		t.Fatalf("show E-01: %v\n%s", err, out)
 	}
@@ -167,7 +167,7 @@ func TestShow_AncestorScopeNotInheritedWithoutAct(t *testing.T) {
 
 	// M-001 does NOT surface the ancestor scope — no commit on
 	// M-001 references it yet.
-	mout, mErr := runBin(t, root, binDir, nil, "show", "--format=json", "M-001")
+	mout, mErr := runBin(t, root, binDir, nil, "show", "--format=json", "M-0001")
 	if mErr != nil {
 		t.Fatalf("show M-001: %v\n%s", mErr, mout)
 	}
@@ -212,17 +212,17 @@ func TestShow_MultipleScopesSorted(t *testing.T) {
 	// surprise (the kernel allows multiple parallel scopes on one
 	// entity, but pausing makes the test's observed behavior
 	// unambiguous).
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize 1: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--pause", "switching agent"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--pause", "switching agent"); err != nil {
 		t.Fatalf("authorize pause: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "bot/ci"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "bot/ci"); err != nil {
 		t.Fatalf("authorize 2: %v\n%s", err, out)
 	}
 
-	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-01")
+	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-0001")
 	if err != nil {
 		t.Fatalf("show E-01: %v\n%s", err, out)
 	}

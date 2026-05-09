@@ -22,7 +22,7 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 			name: "Example 1: solo human, direct verb",
 			trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "add"},
-				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerEntity, Value: "G-0001"},
 				{Key: gitops.TrailerActor, Value: "human/peter"},
 			},
 		},
@@ -30,7 +30,7 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 			name: "Example 2: human directs LLM, no scope",
 			trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "add"},
-				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerEntity, Value: "G-0001"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 			},
@@ -39,7 +39,7 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 			name: "Example 3: authorized autonomous work (full trailer set)",
 			trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "M-007"},
+				{Key: gitops.TrailerEntity, Value: "M-0007"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 				{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
@@ -50,7 +50,7 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 			name: "Example 6: forced override by human",
 			trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "cancel"},
-				{Key: gitops.TrailerEntity, Value: "M-007"},
+				{Key: gitops.TrailerEntity, Value: "M-0007"},
 				{Key: gitops.TrailerActor, Value: "human/peter"},
 				{Key: gitops.TrailerForce, Value: "scope was wrong from the start"},
 			},
@@ -59,7 +59,7 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 			name: "audit-only by human (G24 recovery)",
 			trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "cancel"},
-				{Key: gitops.TrailerEntity, Value: "G-021"},
+				{Key: gitops.TrailerEntity, Value: "G-0021"},
 				{Key: gitops.TrailerActor, Value: "human/peter"},
 				{Key: gitops.TrailerAuditOnly, Value: "manual commit recovery"},
 			},
@@ -68,7 +68,7 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 			name: "authorize commit (open scope) by human",
 			trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "authorize"},
-				{Key: gitops.TrailerEntity, Value: "E-03"},
+				{Key: gitops.TrailerEntity, Value: "E-0003"},
 				{Key: gitops.TrailerActor, Value: "human/peter"},
 				{Key: gitops.TrailerTo, Value: "ai/claude"},
 				{Key: gitops.TrailerScope, Value: "opened"},
@@ -171,7 +171,7 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 			name: "authorize commit inside an existing scope: tolerated (G22-deferred)",
 			trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "authorize"},
-				{Key: gitops.TrailerEntity, Value: "M-007"},
+				{Key: gitops.TrailerEntity, Value: "M-0007"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 				{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},

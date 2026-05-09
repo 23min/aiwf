@@ -359,6 +359,10 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 	// Build entityID → latest chrono index of an audit-only commit
 	// that backfills it. Composite ids roll up to the parent so the
 	// match works against manual commits that touch the parent file.
+	// Keys are canonicalized so a narrow legacy trailer
+	// (`aiwf-entity: G-001`) covers a manual commit that touched the
+	// canonical-shape path (`G-0001-leak.md`) and vice versa
+	// (AC-2/AC-4 in M-081).
 	auditAt := map[string]int{}
 	for i := range commits {
 		idx := indexCommitTrailersForProvenance(commits[i].Trailers)
@@ -369,7 +373,7 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 		if entID == "" {
 			continue
 		}
-		entID = compositeRoot(entID)
+		entID = entity.Canonicalize(compositeRoot(entID))
 		auditAt[entID] = i
 	}
 
@@ -412,13 +416,14 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 			if isEntityCoveredByLaterAudit(id, i, auditAt) {
 				continue
 			}
+			canonID := entity.Canonicalize(id)
 			findings = append(findings, Finding{
 				Code:     CodeProvenanceUntrailedEntityCommit,
 				Subcode:  subcode,
 				Severity: SeverityWarning,
-				EntityID: id,
+				EntityID: canonID,
 				Message: fmt.Sprintf("commit %s touched %s with no aiwf-verb: trailer",
-					short(c.SHA), id),
+					short(c.SHA), canonID),
 			})
 		}
 		// Defensive: PathKind matched but IDFromPath did not.
@@ -441,8 +446,11 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 // RunUntrailedAudit to suppress the warning per (commit, entity)
 // pair once the operator has backfilled that entity's audit trail
 // with `aiwf <verb> --audit-only`.
+//
+// Canonicalizes id before lookup so a query at one width matches a
+// stored audit-only at another (AC-2 in M-081).
 func isEntityCoveredByLaterAudit(id string, manualIdx int, auditAt map[string]int) bool {
-	laterIdx, ok := auditAt[compositeRoot(id)]
+	laterIdx, ok := auditAt[entity.Canonicalize(compositeRoot(id))]
 	return ok && laterIdx > manualIdx
 }
 

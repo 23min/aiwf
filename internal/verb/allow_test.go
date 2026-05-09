@@ -18,7 +18,7 @@ import (
 func TestAllow_HumanActorBypassesScopeCheck(t *testing.T) {
 	res := verb.Allow(verb.AllowInput{
 		Kind:     verb.VerbAct,
-		TargetID: "M-007",
+		TargetID: "M-0007",
 		Actor:    "human/peter",
 	})
 	if !res.Allowed {
@@ -35,7 +35,7 @@ func TestAllow_HumanActorBypassesScopeCheck(t *testing.T) {
 func TestAllow_HumanActorWithPrincipalRefused(t *testing.T) {
 	res := verb.Allow(verb.AllowInput{
 		Kind:      verb.VerbAct,
-		TargetID:  "M-007",
+		TargetID:  "M-0007",
 		Actor:     "human/peter",
 		Principal: "human/peter",
 	})
@@ -52,7 +52,7 @@ func TestAllow_HumanActorWithPrincipalRefused(t *testing.T) {
 func TestAllow_NonHumanActorNeedsPrincipal(t *testing.T) {
 	res := verb.Allow(verb.AllowInput{
 		Kind:     verb.VerbAct,
-		TargetID: "M-007",
+		TargetID: "M-0007",
 		Actor:    "ai/claude",
 	})
 	if res.Allowed {
@@ -70,7 +70,7 @@ func TestAllow_NonHumanActorNoActiveScope(t *testing.T) {
 	tr := buildAllowTree(t)
 	res := verb.Allow(verb.AllowInput{
 		Kind:      verb.VerbAct,
-		TargetID:  "M-001",
+		TargetID:  "M-0001",
 		Actor:     "ai/claude",
 		Principal: "human/peter",
 		Tree:      tr,
@@ -90,11 +90,11 @@ func TestAllow_NonHumanActorNoActiveScope(t *testing.T) {
 func TestAllow_NonHumanActorAllowedViaActiveScope(t *testing.T) {
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
-		{AuthSHA: "deadbee", Entity: "E-01", Agent: "ai/claude", Principal: "human/peter", State: scope.StateActive},
+		{AuthSHA: "deadbee", Entity: "E-0001", Agent: "ai/claude", Principal: "human/peter", State: scope.StateActive},
 	}
 	res := verb.Allow(verb.AllowInput{
 		Kind:      verb.VerbAct,
-		TargetID:  "M-001",
+		TargetID:  "M-0001",
 		Actor:     "ai/claude",
 		Principal: "human/peter",
 		Tree:      tr,
@@ -113,11 +113,11 @@ func TestAllow_NonHumanActorAllowedViaActiveScope(t *testing.T) {
 func TestAllow_NonHumanActorRefusedOutOfScope(t *testing.T) {
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
-		{AuthSHA: "outscope", Entity: "E-09", Agent: "ai/claude", Principal: "human/peter", State: scope.StateActive},
+		{AuthSHA: "outscope", Entity: "E-0009", Agent: "ai/claude", Principal: "human/peter", State: scope.StateActive},
 	}
 	res := verb.Allow(verb.AllowInput{
 		Kind:      verb.VerbAct,
-		TargetID:  "M-001",
+		TargetID:  "M-0001",
 		Actor:     "ai/claude",
 		Principal: "human/peter",
 		Tree:      tr,
@@ -133,11 +133,11 @@ func TestAllow_NonHumanActorRefusedOutOfScope(t *testing.T) {
 func TestAllow_PausedScopeDoesNotAuthorize(t *testing.T) {
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
-		{AuthSHA: "paused1", Entity: "E-01", State: scope.StatePaused},
+		{AuthSHA: "paused1", Entity: "E-0001", State: scope.StatePaused},
 	}
 	res := verb.Allow(verb.AllowInput{
 		Kind:      verb.VerbAct,
-		TargetID:  "M-001",
+		TargetID:  "M-0001",
 		Actor:     "ai/claude",
 		Principal: "human/peter",
 		Tree:      tr,
@@ -155,12 +155,12 @@ func TestAllow_PausedScopeDoesNotAuthorize(t *testing.T) {
 func TestAllow_PicksMostRecentlyOpenedActiveScope(t *testing.T) {
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
-		{AuthSHA: "older11", Entity: "E-01", State: scope.StateActive},
-		{AuthSHA: "newer22", Entity: "E-01", State: scope.StateActive},
+		{AuthSHA: "older11", Entity: "E-0001", State: scope.StateActive},
+		{AuthSHA: "newer22", Entity: "E-0001", State: scope.StateActive},
 	}
 	res := verb.Allow(verb.AllowInput{
 		Kind:      verb.VerbAct,
-		TargetID:  "M-001",
+		TargetID:  "M-0001",
 		Actor:     "ai/claude",
 		Principal: "human/peter",
 		Tree:      tr,
@@ -180,13 +180,13 @@ func TestAllow_PicksMostRecentlyOpenedActiveScope(t *testing.T) {
 func TestAllow_VerbCreateUsesCreationRefs(t *testing.T) {
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
-		{AuthSHA: "scope11", Entity: "E-01", State: scope.StateActive},
+		{AuthSHA: "scope11", Entity: "E-0001", State: scope.StateActive},
 	}
 	// Adding a milestone with parent: E-01 — its creation refs
 	// include E-01 itself. Allowed.
 	res := verb.Allow(verb.AllowInput{
 		Kind:         verb.VerbCreate,
-		CreationRefs: []string{"E-01"},
+		CreationRefs: []string{"E-0001"},
 		Actor:        "ai/claude",
 		Principal:    "human/peter",
 		Tree:         tr,
@@ -198,7 +198,7 @@ func TestAllow_VerbCreateUsesCreationRefs(t *testing.T) {
 	// Adding an unrelated entity (parent: E-09) — does not reach E-01.
 	res = verb.Allow(verb.AllowInput{
 		Kind:         verb.VerbCreate,
-		CreationRefs: []string{"E-09"},
+		CreationRefs: []string{"E-0009"},
 		Actor:        "ai/claude",
 		Principal:    "human/peter",
 		Tree:         tr,
@@ -215,14 +215,14 @@ func TestAllow_VerbCreateUsesCreationRefs(t *testing.T) {
 func TestAllow_VerbMoveBothEndpoints(t *testing.T) {
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
-		{AuthSHA: "scope11", Entity: "E-01", State: scope.StateActive},
+		{AuthSHA: "scope11", Entity: "E-0001", State: scope.StateActive},
 	}
 	// Source M-001 reaches E-01; destination M-002 also reaches E-01.
 	// Allowed.
 	res := verb.Allow(verb.AllowInput{
 		Kind:       verb.VerbMove,
-		TargetID:   "M-002",
-		MoveSource: "M-001",
+		TargetID:   "M-0002",
+		MoveSource: "M-0001",
 		Actor:      "ai/claude",
 		Principal:  "human/peter",
 		Tree:       tr,
@@ -234,8 +234,8 @@ func TestAllow_VerbMoveBothEndpoints(t *testing.T) {
 	// Destination is OUT of scope (M-009 not in tree). Refused.
 	res = verb.Allow(verb.AllowInput{
 		Kind:       verb.VerbMove,
-		TargetID:   "M-009",
-		MoveSource: "M-001",
+		TargetID:   "M-0009",
+		MoveSource: "M-0001",
 		Actor:      "ai/claude",
 		Principal:  "human/peter",
 		Tree:       tr,
@@ -252,7 +252,7 @@ func TestAllow_VerbMoveBothEndpoints(t *testing.T) {
 func TestAllow_EmptyActorRefused(t *testing.T) {
 	res := verb.Allow(verb.AllowInput{
 		Kind:     verb.VerbAct,
-		TargetID: "M-001",
+		TargetID: "M-0001",
 	})
 	if res.Allowed {
 		t.Error("Allowed = true; want false (empty actor)")

@@ -31,28 +31,28 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 		{
 			name:         "epic with empty Scope",
 			writeFixture: writeEpicFixture("Scope"),
-			wantEntityID: "E-01",
+			wantEntityID: "E-0001",
 			wantSubcode:  "epic",
 			wantSection:  "Scope",
 		},
 		{
 			name:         "milestone with empty Approach",
 			writeFixture: writeMilestoneFixture("Approach"),
-			wantEntityID: "M-001",
+			wantEntityID: "M-0001",
 			wantSubcode:  "milestone",
 			wantSection:  "Approach",
 		},
 		{
 			name:         "AC body empty under heading",
 			writeFixture: writeACFixture(),
-			wantEntityID: "M-001/AC-1",
+			wantEntityID: "M-0001/AC-1",
 			wantSubcode:  "ac",
 			wantSection:  "AC-1",
 		},
 		{
 			name:         "gap with empty `Why it matters`",
 			writeFixture: writeGapFixture("Why it matters"),
-			wantEntityID: "G-001",
+			wantEntityID: "G-0001",
 			wantSubcode:  "gap",
 			wantSection:  "Why it matters",
 		},
@@ -66,14 +66,14 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 		{
 			name:         "decision with empty Reasoning",
 			writeFixture: writeDecisionFixture("Reasoning"),
-			wantEntityID: "D-001",
+			wantEntityID: "D-0001",
 			wantSubcode:  "decision",
 			wantSection:  "Reasoning",
 		},
 		{
 			name:         "contract with empty Stability",
 			writeFixture: writeContractFixture("Stability"),
-			wantEntityID: "C-001",
+			wantEntityID: "C-0001",
 			wantSubcode:  "contract",
 			wantSection:  "Stability",
 		},
@@ -168,8 +168,8 @@ acs:
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "Live AC", Status: "open"},
 				{ID: "AC-2", Title: "Cancelled AC", Status: entity.StatusCancelled},
@@ -229,8 +229,8 @@ acs:
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "Orphaned in frontmatter", Status: "open"},
 			},
@@ -253,8 +253,8 @@ func TestEntityBodyEmpty_FileReadError_SilentlySkipped(t *testing.T) {
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none",
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "none",
 			Path: "work/epics/E-01-foo/M-001-missing.md", // never written
 		}},
 	}
@@ -283,8 +283,8 @@ func TestEntityBodyEmpty_FrontmatterParseFailure_SilentlySkipped(t *testing.T) {
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
 		}},
 	}
 	if got := entityBodyEmpty(tr); len(got) != 0 {
@@ -355,8 +355,8 @@ acs:
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "With prose", Status: "open"},
 				{ID: "AC-2", Title: "Empty AC", Status: "open"},
@@ -367,10 +367,10 @@ acs:
 	// Expect exactly one finding for AC-2; AC-1 is non-empty.
 	var sawAC2 bool
 	for _, f := range got {
-		if f.EntityID == "M-001/AC-2" && f.Code == "entity-body-empty" {
+		if f.EntityID == "M-0001/AC-2" && f.Code == "entity-body-empty" {
 			sawAC2 = true
 		}
-		if f.EntityID == "M-001/AC-1" && f.Code == "entity-body-empty" {
+		if f.EntityID == "M-0001/AC-1" && f.Code == "entity-body-empty" {
 			t.Errorf("AC-1 has prose; should not surface entity-body-empty: %+v", f)
 		}
 	}
@@ -437,8 +437,8 @@ acs:
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "With prose", Status: "open"},
 				{ID: "AC-2", Title: "Empty AC", Status: "open"},
@@ -448,10 +448,10 @@ acs:
 	got := entityBodyEmpty(tr)
 	var sawAC2 bool
 	for _, f := range got {
-		if f.EntityID == "M-001/AC-2" && f.Code == "entity-body-empty" {
+		if f.EntityID == "M-0001/AC-2" && f.Code == "entity-body-empty" {
 			sawAC2 = true
 		}
-		if f.EntityID == "M-001/AC-1" && f.Code == "entity-body-empty" {
+		if f.EntityID == "M-0001/AC-1" && f.Code == "entity-body-empty" {
 			t.Errorf("AC-1 has prose before the sub-heading; should not surface: %+v", f)
 		}
 	}
@@ -475,10 +475,10 @@ acs:
 func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 	build := func() []Finding {
 		return []Finding{
-			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "milestone", EntityID: "M-001"},
-			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "ac", EntityID: "M-001/AC-1"},
-			{Code: "acs-body-coherence", Severity: SeverityWarning, Subcode: "missing-heading", EntityID: "M-001/AC-2"},
-			{Code: "refs-resolve", Severity: SeverityError, Subcode: "unresolved", EntityID: "M-002"},
+			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "milestone", EntityID: "M-0001"},
+			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "ac", EntityID: "M-0001/AC-1"},
+			{Code: "acs-body-coherence", Severity: SeverityWarning, Subcode: "missing-heading", EntityID: "M-0001/AC-2"},
+			{Code: "refs-resolve", Severity: SeverityError, Subcode: "unresolved", EntityID: "M-0002"},
 		}
 	}
 
@@ -492,10 +492,10 @@ func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 					t.Errorf("entity-body-empty %s severity = %v, want error under strict",
 						f.EntityID, f.Severity)
 				}
-				if f.EntityID == "M-001" {
+				if f.EntityID == "M-0001" {
 					sawMilestone = true
 				}
-				if f.EntityID == "M-001/AC-1" {
+				if f.EntityID == "M-0001/AC-1" {
 					sawAC = true
 				}
 			}
@@ -713,7 +713,7 @@ func TestEntityBodyEmpty_HTMLCommentsAreEmpty(t *testing.T) {
 			got := entityBodyEmpty(tr)
 			fired := false
 			for _, f := range got {
-				if f.Subcode == "ac" && f.EntityID == "M-001/AC-1" {
+				if f.Subcode == "ac" && f.EntityID == "M-0001/AC-1" {
 					fired = true
 				}
 			}
@@ -762,7 +762,7 @@ func TestEntityBodyEmpty_DoesNotEngageACSTDDAudit(t *testing.T) {
 
 		acBodyHits := 0
 		for _, f := range bodyFindings {
-			if f.Subcode == "ac" && f.EntityID == "M-001/AC-1" {
+			if f.Subcode == "ac" && f.EntityID == "M-0001/AC-1" {
 				acBodyHits++
 			}
 		}
@@ -932,8 +932,8 @@ acs:
 
 `
 	ents, err := write1(root, path, fm+body, &entity.Entity{
-		ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-		Status: "draft", Parent: "E-01", TDD: "required", Path: path,
+		ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+		Status: "draft", Parent: "E-0001", TDD: "required", Path: path,
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "Empty AC", Status: "open", TDDPhase: "red"},
 			{ID: "AC-2", Title: "Also empty AC", Status: "open", TDDPhase: "red"},
@@ -974,8 +974,8 @@ Each AC pins one observable behavior.
 `
 	fm := "---\nid: M-001\ntitle: Bar\nstatus: draft\nparent: E-01\ntdd: required\n---\n\n"
 	ents, err := write1(root, path, fm+body, &entity.Entity{
-		ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-		Status: "draft", Parent: "E-01", TDD: "required", Path: path,
+		ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+		Status: "draft", Parent: "E-0001", TDD: "required", Path: path,
 	})
 	if err != nil {
 		t.Fatalf("write fixture: %v", err)
@@ -1109,7 +1109,7 @@ func writeEpicFixtureWithStatus(emptySection, status string) func(root string) (
 		}, []string{"Goal", "Scope", "Out of scope"}, emptySection)
 		fm := "---\nid: E-01\ntitle: Foo\nstatus: " + status + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: status, Path: path,
+			ID: "E-0001", Kind: entity.KindEpic, Title: "Foo", Status: status, Path: path,
 		})
 	}
 }
@@ -1128,8 +1128,8 @@ func writeMilestoneFixtureWithStatus(emptySection, status string) func(root stri
 		}, []string{"Goal", "Approach", "Acceptance criteria"}, emptySection)
 		fm := "---\nid: M-001\ntitle: Bar\nstatus: " + status + "\nparent: E-01\ntdd: none\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: status, Parent: "E-01", TDD: "none", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: status, Parent: "E-0001", TDD: "none", Path: path,
 		})
 	}
 }
@@ -1175,8 +1175,8 @@ acs:
 
 `
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "Empty AC", Status: "open"},
 				{ID: "AC-2", Title: "Filled AC", Status: "open"},
@@ -1198,7 +1198,7 @@ func writeGapFixtureWithStatus(emptySection, status string) func(root string) ([
 		}, []string{"What's missing", "Why it matters"}, emptySection)
 		fm := "---\nid: G-001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "G-001", Kind: entity.KindGap, Title: "Foo", Status: status, Path: path,
+			ID: "G-0001", Kind: entity.KindGap, Title: "Foo", Status: status, Path: path,
 		})
 	}
 }
@@ -1236,7 +1236,7 @@ func writeDecisionFixtureWithStatus(emptySection, status string) func(root strin
 		}, []string{"Question", "Decision", "Reasoning"}, emptySection)
 		fm := "---\nid: D-001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "D-001", Kind: entity.KindDecision, Title: "Foo", Status: status, Path: path,
+			ID: "D-0001", Kind: entity.KindDecision, Title: "Foo", Status: status, Path: path,
 		})
 	}
 }
@@ -1254,7 +1254,7 @@ func writeContractFixtureWithStatus(emptySection, status string) func(root strin
 		}, []string{"Purpose", "Stability"}, emptySection)
 		fm := "---\nid: C-001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: status, Path: path,
+			ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: status, Path: path,
 		})
 	}
 }
@@ -1274,19 +1274,19 @@ func writeFullyPopulatedFixture(root string) ([]*entity.Entity, error) {
 			path: "work/epics/E-01-foo/epic.md",
 			fm:   "---\nid: E-01\ntitle: Foo\nstatus: active\n---\n\n",
 			body: "## Goal\n\nGoal.\n\n## Scope\n\nScope.\n\n## Out of scope\n\nOOS.\n",
-			ent:  &entity.Entity{ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: "work/epics/E-01-foo/epic.md"},
+			ent:  &entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: "work/epics/E-01-foo/epic.md"},
 		},
 		{
 			path: "work/epics/E-01-foo/M-001-bar.md",
 			fm:   "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n",
 			body: "## Goal\n\nGoal.\n\n## Approach\n\nApproach.\n\n## Acceptance criteria\n\nEach AC pins one observable behavior.\n",
-			ent:  &entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Title: "Bar", Status: "in_progress", Parent: "E-01", TDD: "none", Path: "work/epics/E-01-foo/M-001-bar.md"},
+			ent:  &entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar", Status: "in_progress", Parent: "E-0001", TDD: "none", Path: "work/epics/E-01-foo/M-001-bar.md"},
 		},
 		{
 			path: "work/gaps/G-001-foo.md",
 			fm:   "---\nid: G-001\ntitle: Foo\nstatus: open\n---\n\n",
 			body: "## What's missing\n\nMissing.\n\n## Why it matters\n\nMatters.\n",
-			ent:  &entity.Entity{ID: "G-001", Kind: entity.KindGap, Title: "Foo", Status: "open", Path: "work/gaps/G-001-foo.md"},
+			ent:  &entity.Entity{ID: "G-0001", Kind: entity.KindGap, Title: "Foo", Status: "open", Path: "work/gaps/G-001-foo.md"},
 		},
 		{
 			path: "docs/adr/ADR-0001-foo.md",
@@ -1298,13 +1298,13 @@ func writeFullyPopulatedFixture(root string) ([]*entity.Entity, error) {
 			path: "work/decisions/D-001-foo.md",
 			fm:   "---\nid: D-001\ntitle: Foo\nstatus: proposed\n---\n\n",
 			body: "## Question\n\nQuestion.\n\n## Decision\n\nDecision.\n\n## Reasoning\n\nReasoning.\n",
-			ent:  &entity.Entity{ID: "D-001", Kind: entity.KindDecision, Title: "Foo", Status: "proposed", Path: "work/decisions/D-001-foo.md"},
+			ent:  &entity.Entity{ID: "D-0001", Kind: entity.KindDecision, Title: "Foo", Status: "proposed", Path: "work/decisions/D-001-foo.md"},
 		},
 		{
 			path: "work/contracts/C-001-foo/contract.md",
 			fm:   "---\nid: C-001\ntitle: Foo\nstatus: proposed\n---\n\n",
 			body: "## Purpose\n\nPurpose.\n\n## Stability\n\nStability.\n",
-			ent:  &entity.Entity{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "proposed", Path: "work/contracts/C-001-foo/contract.md"},
+			ent:  &entity.Entity{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "proposed", Path: "work/contracts/C-001-foo/contract.md"},
 		},
 	}
 	ents := make([]*entity.Entity, 0, len(all))
@@ -1363,8 +1363,8 @@ func writeMilestoneWithApproachBody(approach string) func(root string) ([]*entit
 			"## Acceptance criteria\n\nEach AC pins one observable behavior.\n"
 		fm := "---\nid: M-001\ntitle: Bar\nstatus: in_progress\nparent: E-01\ntdd: none\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
 		})
 	}
 }
@@ -1394,8 +1394,8 @@ acs:
 
 `
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "none", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "none", Path: path,
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "Filled AC", Status: "open"},
 			},
@@ -1430,8 +1430,8 @@ acs:
 
 `
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "required", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "required", Path: path,
 			ACs: []entity.AcceptanceCriterion{
 				{
 					ID:       "AC-1",
@@ -1471,8 +1471,8 @@ acs:
 
 `
 		return write1(root, path, fm+body, &entity.Entity{
-			ID: "M-001", Kind: entity.KindMilestone, Title: "Bar",
-			Status: "in_progress", Parent: "E-01", TDD: "required", Path: path,
+			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
+			Status: "in_progress", Parent: "E-0001", TDD: "required", Path: path,
 			ACs: []entity.AcceptanceCriterion{
 				{
 					ID:       "AC-1",

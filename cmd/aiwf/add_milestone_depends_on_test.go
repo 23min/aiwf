@@ -26,10 +26,10 @@ func addMilestoneDependsOnSetup(t *testing.T) string {
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--tdd", "none", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add M-001: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--tdd", "none", "--title", "Second", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Second", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add M-002: %d", rc)
 	}
 	return root
@@ -43,10 +43,10 @@ func TestAddMilestone_DependsOnSingle(t *testing.T) {
 
 	rc := run([]string{
 		"add", "milestone",
-		"--epic", "E-01",
+		"--epic", "E-0001",
 		"--tdd", "none",
 		"--title", "Third",
-		"--depends-on", "M-001",
+		"--depends-on", "M-0001",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -54,7 +54,7 @@ func TestAddMilestone_DependsOnSingle(t *testing.T) {
 		t.Fatalf("add milestone --depends-on M-001 = %d, want %d", rc, exitOK)
 	}
 
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-003-third.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
@@ -62,8 +62,8 @@ func TestAddMilestone_DependsOnSingle(t *testing.T) {
 	if !strings.Contains(string(body), "depends_on:") {
 		t.Errorf("milestone frontmatter missing `depends_on:` block:\n%s", body)
 	}
-	if !strings.Contains(string(body), "- M-001") {
-		t.Errorf("milestone frontmatter missing `- M-001` entry:\n%s", body)
+	if !strings.Contains(string(body), "- M-0001") {
+		t.Errorf("milestone frontmatter missing `- M-0001` entry:\n%s", body)
 	}
 }
 
@@ -74,10 +74,10 @@ func TestAddMilestone_DependsOnMultiple(t *testing.T) {
 
 	rc := run([]string{
 		"add", "milestone",
-		"--epic", "E-01",
+		"--epic", "E-0001",
 		"--tdd", "none",
 		"--title", "Third",
-		"--depends-on", "M-001,M-002",
+		"--depends-on", "M-0001,M-0002",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -85,17 +85,17 @@ func TestAddMilestone_DependsOnMultiple(t *testing.T) {
 		t.Fatalf("add milestone --depends-on M-001,M-002 = %d, want %d", rc, exitOK)
 	}
 
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-003-third.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
 	}
 	content := string(body)
-	if !strings.Contains(content, "- M-001") {
-		t.Errorf("milestone frontmatter missing `- M-001`:\n%s", content)
+	if !strings.Contains(content, "- M-0001") {
+		t.Errorf("milestone frontmatter missing `- M-0001`:\n%s", content)
 	}
-	if !strings.Contains(content, "- M-002") {
-		t.Errorf("milestone frontmatter missing `- M-002`:\n%s", content)
+	if !strings.Contains(content, "- M-0002") {
+		t.Errorf("milestone frontmatter missing `- M-0002`:\n%s", content)
 	}
 }
 
@@ -107,10 +107,10 @@ func TestAddMilestone_DependsOnAbsent(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--tdd", "none", "--title", "Solo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Solo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-001-solo.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-solo.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
@@ -128,7 +128,7 @@ func TestAddMilestone_DependsOnRejectedOnNonMilestone(t *testing.T) {
 	rc := run([]string{
 		"add", "gap",
 		"--title", "stray",
-		"--depends-on", "M-001",
+		"--depends-on", "M-0001",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -149,10 +149,10 @@ func TestAddMilestone_DependsOnUnknownReferent(t *testing.T) {
 
 	rc := run([]string{
 		"add", "milestone",
-		"--epic", "E-01",
+		"--epic", "E-0001",
 		"--tdd", "none",
 		"--title", "Bogus",
-		"--depends-on", "M-999",
+		"--depends-on", "M-0999",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -161,7 +161,7 @@ func TestAddMilestone_DependsOnUnknownReferent(t *testing.T) {
 	}
 
 	// The would-be milestone file must NOT have been written.
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-001-bogus.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-bogus.md")
 	if _, err := os.Stat(mPath); !os.IsNotExist(err) {
 		t.Errorf("milestone file should not exist after referent rejection: stat err = %v", err)
 	}
@@ -175,10 +175,10 @@ func TestAddMilestone_DependsOnNonMilestoneReferent(t *testing.T) {
 
 	rc := run([]string{
 		"add", "milestone",
-		"--epic", "E-01",
+		"--epic", "E-0001",
 		"--tdd", "none",
 		"--title", "WrongKind",
-		"--depends-on", "E-01",
+		"--depends-on", "E-0001",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -195,7 +195,7 @@ func TestAddMilestone_DependsOnPartialUnknown(t *testing.T) {
 
 	rc := run([]string{
 		"add", "milestone",
-		"--epic", "E-01",
+		"--epic", "E-0001",
 		"--tdd", "none",
 		"--title", "Mixed",
 		"--depends-on", "M-001,M-999",

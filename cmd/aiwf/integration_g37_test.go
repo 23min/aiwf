@@ -242,10 +242,10 @@ func TestIntegrationG37_AllocatorSkipsTrunkAfterFetch(t *testing.T) {
 	fetchOrigin(t, cloneB)
 
 	out := aiwfAddGap(t, cloneB, binDir, "B's first gap")
-	if !strings.Contains(out, "G-002") {
+	if !strings.Contains(out, "G-0002") {
 		t.Errorf("expected B to allocate G-002 after fetching A's G-001 from trunk; got:\n%s", out)
 	}
-	if !strings.Contains(out, "G-002") || strings.Contains(out, "added gap G-001") {
+	if !strings.Contains(out, "G-0002") || strings.Contains(out, "added gap G-001") {
 		t.Errorf("allocator did not consult trunk; output:\n%s", out)
 	}
 	gapDir := filepath.Join(cloneB, "work", "gaps")
@@ -259,7 +259,7 @@ func TestIntegrationG37_AllocatorSkipsTrunkAfterFetch(t *testing.T) {
 	}
 	hasG002 := false
 	for _, p := range gotPaths {
-		if strings.HasPrefix(p, "G-002-") {
+		if strings.HasPrefix(p, "G-0002-") {
 			hasG002 = true
 			break
 		}
@@ -315,7 +315,7 @@ func TestIntegrationG37_DivergedBranchesCaughtByCheckPostFetch(t *testing.T) {
 	if !strings.Contains(out, "trunk") {
 		t.Errorf("finding should mention trunk; got:\n%s", out)
 	}
-	if !strings.Contains(out, "G-001") {
+	if !strings.Contains(out, "G-0001") {
 		t.Errorf("finding should name G-001; got:\n%s", out)
 	}
 }
@@ -347,11 +347,11 @@ func TestIntegrationG37_NoRemoteSkipsSilently(t *testing.T) {
 	}
 
 	out := aiwfAddGap(t, root, binDir, "First")
-	if !strings.Contains(out, "G-001") {
+	if !strings.Contains(out, "G-0001") {
 		t.Errorf("expected G-001 in no-remote sandbox; got:\n%s", out)
 	}
 	out2 := aiwfAddGap(t, root, binDir, "Second")
-	if !strings.Contains(out2, "G-002") {
+	if !strings.Contains(out2, "G-0002") {
 		t.Errorf("expected G-002 in no-remote sandbox; got:\n%s", out2)
 	}
 }
@@ -385,7 +385,7 @@ func TestIntegrationG37_MixedKindsAcrossTrunk(t *testing.T) {
 
 	// B's allocations must reflect kind-filtered trunk awareness.
 	gapOut := aiwfAddGap(t, cloneB, binDir, "B's gap")
-	if !strings.Contains(gapOut, "G-002") {
+	if !strings.Contains(gapOut, "G-0002") {
 		t.Errorf("gap should be G-002 (skipping trunk's G-001); got:\n%s", gapOut)
 	}
 	adrOut := aiwfAddADR(t, cloneB, binDir, "B's ADR")
@@ -399,8 +399,8 @@ func TestIntegrationG37_MixedKindsAcrossTrunk(t *testing.T) {
 	if out, err := runGit(cloneB, "rebase", "-q", "origin/main"); err != nil {
 		t.Fatalf("rebase in B: %v\n%s", err, out)
 	}
-	mOut := aiwfAddMilestone(t, cloneB, binDir, "B's milestone", "E-01")
-	if !strings.Contains(mOut, "M-001") {
+	mOut := aiwfAddMilestone(t, cloneB, binDir, "B's milestone", "E-0001")
+	if !strings.Contains(mOut, "M-0001") {
 		t.Errorf("milestone should be M-001 (no milestones on trunk); got:\n%s", mOut)
 	}
 }
@@ -431,10 +431,10 @@ func TestIntegrationG37_ReallocateUsesTrunkView(t *testing.T) {
 	fetchOrigin(t, cloneB)
 
 	// B's allocations must skip trunk's G-001 and G-002.
-	if out := aiwfAddGap(t, cloneB, binDir, "B local one"); !strings.Contains(out, "G-003") {
+	if out := aiwfAddGap(t, cloneB, binDir, "B local one"); !strings.Contains(out, "G-0003") {
 		t.Fatalf("expected B's first add to allocate G-003; got:\n%s", out)
 	}
-	if out := aiwfAddGap(t, cloneB, binDir, "B local two"); !strings.Contains(out, "G-004") {
+	if out := aiwfAddGap(t, cloneB, binDir, "B local two"); !strings.Contains(out, "G-0004") {
 		t.Fatalf("expected B's second add to allocate G-004; got:\n%s", out)
 	}
 
@@ -446,7 +446,7 @@ func TestIntegrationG37_ReallocateUsesTrunkView(t *testing.T) {
 	}
 	var g004Path string
 	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), "G-004-") {
+		if strings.HasPrefix(e.Name(), "G-0004-") {
 			g004Path = filepath.Join("work", "gaps", e.Name())
 			break
 		}
@@ -459,7 +459,7 @@ func TestIntegrationG37_ReallocateUsesTrunkView(t *testing.T) {
 	if err != nil {
 		t.Fatalf("aiwf reallocate %s: %v\n%s", g004Path, err, out)
 	}
-	if !strings.Contains(out, "G-005") {
+	if !strings.Contains(out, "G-0005") {
 		t.Errorf("reallocate of G-004 should produce G-005 (max of trunk ∪ working + 1); got:\n%s", out)
 	}
 	// G-004 must no longer exist in the working tree; G-005 must.
@@ -469,18 +469,18 @@ func TestIntegrationG37_ReallocateUsesTrunkView(t *testing.T) {
 	}
 	var hasG004, hasG005 bool
 	for _, e := range post {
-		if strings.HasPrefix(e.Name(), "G-004-") {
+		if strings.HasPrefix(e.Name(), "G-0004-") {
 			hasG004 = true
 		}
-		if strings.HasPrefix(e.Name(), "G-005-") {
+		if strings.HasPrefix(e.Name(), "G-0005-") {
 			hasG005 = true
 		}
 	}
 	if hasG004 {
-		t.Error("G-004-*.md should be gone after reallocate")
+		t.Error("G-0004-*.md should be gone after reallocate")
 	}
 	if !hasG005 {
-		t.Error("G-005-*.md should exist after reallocate")
+		t.Error("G-0005-*.md should exist after reallocate")
 	}
 
 	// Audit-trail check: the reallocate commit must carry the standard
@@ -495,8 +495,8 @@ func TestIntegrationG37_ReallocateUsesTrunkView(t *testing.T) {
 	}
 	for _, want := range []string{
 		"aiwf-verb: reallocate",
-		"aiwf-entity: G-005",
-		"aiwf-prior-entity: G-004",
+		"aiwf-entity: G-0005",
+		"aiwf-prior-entity: G-0004",
 		"aiwf-actor: ",
 	} {
 		if !strings.Contains(trailers, want) {
@@ -530,7 +530,7 @@ func TestIntegrationG37_CleanFetchAndMergeRoundTrip(t *testing.T) {
 	// B fetches and adds a gap — must allocate G-002 cleanly.
 	fetchOrigin(t, cloneB)
 	out := aiwfAddGap(t, cloneB, binDir, "B's gap")
-	if !strings.Contains(out, "G-002") {
+	if !strings.Contains(out, "G-0002") {
 		t.Errorf("expected G-002; got:\n%s", out)
 	}
 
@@ -587,12 +587,12 @@ func TestIntegrationG37_CleanFetchAndMergeRoundTrip(t *testing.T) {
 //     after the reallocate — the reference rewrite rode along in the
 //     same commit.
 //  3. The reallocate commit carries the standard verb/entity/actor
-//     trailers plus aiwf-prior-entity: G-001, the bridge that lets
+//     trailers plus aiwf-prior-entity: G-0001, the bridge that lets
 //     `aiwf history G-001` continue to find the entity post-rename.
 //  4. `aiwf history G-001` returns at least one event referencing
 //     the rename (via the prior-entity trailer match).
 //  5. `aiwf history G-003` returns the post-rename history (matching
-//     aiwf-entity: G-003 directly).
+//     aiwf-entity: G-0003 directly).
 //
 // This is the test that pins the kernel's "git log is the audit log"
 // guarantee for the cross-tree reallocate path: id-aware, ref-aware,
@@ -610,7 +610,7 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 	// A creates the cross-referenced pair: a gap and a decision
 	// that names the gap in relates_to. Both push to trunk.
 	aiwfAddGap(t, cloneA, binDir, "Cache eviction breaks under churn")
-	aiwfAddDecision(t, cloneA, binDir, "Bound the cache by entry count", []string{"G-001"})
+	aiwfAddDecision(t, cloneA, binDir, "Bound the cache by entry count", []string{"G-0001"})
 	pushAll(t, cloneA)
 
 	// B brings trunk in via rebase so the working tree has both
@@ -622,7 +622,7 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 	}
 
 	// Verify the precondition: D-001 references G-001 in B's tree.
-	dPath := findEntityPath(t, cloneB, "work/decisions", "D-001-")
+	dPath := findEntityPath(t, cloneB, "work/decisions", "D-0001-")
 	if dPath == "" {
 		t.Fatal("expected D-001-*.md in B's work/decisions/")
 	}
@@ -630,7 +630,7 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(dContent), "G-001") {
+	if !strings.Contains(string(dContent), "G-0001") {
 		t.Fatalf("decision should reference G-001 before reallocate; got:\n%s", dContent)
 	}
 
@@ -643,27 +643,27 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 
 	// Reallocate G-001 on B. Trunk-aware allocator must skip
 	// G-002 (only on trunk) and pick G-003.
-	gPath := findEntityPath(t, cloneB, "work/gaps", "G-001-")
+	gPath := findEntityPath(t, cloneB, "work/gaps", "G-0001-")
 	if gPath == "" {
 		t.Fatal("expected G-001-*.md in B's work/gaps/ before reallocate")
 	}
 	out := aiwfReallocateByPath(t, cloneB, binDir, gPath)
-	if !strings.Contains(out, "G-003") {
+	if !strings.Contains(out, "G-0003") {
 		t.Fatalf("reallocate should produce G-003 (skipping trunk's G-002); got:\n%s", out)
 	}
 
 	// Assertion 1: G-001 is gone from disk; G-003 has replaced it.
-	if got := findEntityPath(t, cloneB, "work/gaps", "G-001-"); got != "" {
-		t.Errorf("G-001-*.md should be gone after reallocate; still found %s", got)
+	if got := findEntityPath(t, cloneB, "work/gaps", "G-0001-"); got != "" {
+		t.Errorf("G-0001-*.md should be gone after reallocate; still found %s", got)
 	}
-	g3Path := findEntityPath(t, cloneB, "work/gaps", "G-003-")
+	g3Path := findEntityPath(t, cloneB, "work/gaps", "G-0003-")
 	if g3Path == "" {
 		t.Errorf("expected G-003-*.md to exist after reallocate")
 	}
 
 	// Assertion 2: D-001's frontmatter relates_to was rewritten in
 	// the same commit. This is the core "references update" check.
-	dPathPost := findEntityPath(t, cloneB, "work/decisions", "D-001-")
+	dPathPost := findEntityPath(t, cloneB, "work/decisions", "D-0001-")
 	if dPathPost == "" {
 		t.Fatal("expected D-001-*.md still present after reallocate")
 	}
@@ -671,10 +671,10 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(dContentPost), "G-001") {
+	if strings.Contains(string(dContentPost), "G-0001") {
 		t.Errorf("D-001 should no longer reference G-001 after reallocate; got:\n%s", dContentPost)
 	}
-	if !strings.Contains(string(dContentPost), "G-003") {
+	if !strings.Contains(string(dContentPost), "G-0003") {
 		t.Errorf("D-001 should now reference G-003; got:\n%s", dContentPost)
 	}
 
@@ -686,8 +686,8 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 	}
 	for _, want := range []string{
 		"aiwf-verb: reallocate",
-		"aiwf-entity: G-003",
-		"aiwf-prior-entity: G-001",
+		"aiwf-entity: G-0003",
+		"aiwf-prior-entity: G-0001",
 		"aiwf-actor: ",
 	} {
 		if !strings.Contains(trailers, want) {
@@ -698,7 +698,7 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 	// Assertion 4: aiwf history G-001 (the OLD id) still finds the
 	// entity's lifecycle via the aiwf-prior-entity backward grep.
 	// At minimum it should return the rename commit itself.
-	histOld, err := runBin(t, cloneB, binDir, nil, "history", "G-001")
+	histOld, err := runBin(t, cloneB, binDir, nil, "history", "G-0001")
 	if err != nil {
 		t.Fatalf("aiwf history G-001: %v\n%s", err, histOld)
 	}
@@ -708,7 +708,7 @@ func TestIntegrationG37_ReallocateRewritesRefsAndHistoryThreads(t *testing.T) {
 
 	// Assertion 5: aiwf history G-003 (the NEW id) finds the post-
 	// rename history via the aiwf-entity trailer.
-	histNew, err := runBin(t, cloneB, binDir, nil, "history", "G-003")
+	histNew, err := runBin(t, cloneB, binDir, nil, "history", "G-0003")
 	if err != nil {
 		t.Fatalf("aiwf history G-003: %v\n%s", err, histNew)
 	}
@@ -775,7 +775,7 @@ func TestIntegrationG37_ReallocateTiebreakerPicksLocalSide(t *testing.T) {
 	}
 	g001Count := 0
 	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), "G-001-") {
+		if strings.HasPrefix(e.Name(), "G-0001-") {
 			g001Count++
 		}
 	}
@@ -787,11 +787,11 @@ func TestIntegrationG37_ReallocateTiebreakerPicksLocalSide(t *testing.T) {
 	// this would fail with "ambiguous, pass a path". With the
 	// tiebreaker, ancestry resolves: A's G-001 is on trunk, B's is
 	// not, so B's side is the loser and gets renumbered.
-	out, err := runBin(t, cloneB, binDir, nil, "reallocate", "G-001")
+	out, err := runBin(t, cloneB, binDir, nil, "reallocate", "G-0001")
 	if err != nil {
 		t.Fatalf("aiwf reallocate G-001 (bare): %v\n%s", err, out)
 	}
-	if !strings.Contains(out, "G-002") {
+	if !strings.Contains(out, "G-0002") {
 		t.Errorf("reallocate output should reference G-002 (the renumbered local side); got:\n%s", out)
 	}
 
@@ -804,11 +804,11 @@ func TestIntegrationG37_ReallocateTiebreakerPicksLocalSide(t *testing.T) {
 	var hasG001CacheBusts, hasG002PreAiwf, lingeringG001Pre bool
 	for _, e := range entries {
 		switch {
-		case strings.HasPrefix(e.Name(), "G-001-cache-busts"):
+		case strings.HasPrefix(e.Name(), "G-0001-cache-busts"):
 			hasG001CacheBusts = true
-		case strings.HasPrefix(e.Name(), "G-002-pre-aiwf"):
+		case strings.HasPrefix(e.Name(), "G-0002-pre-aiwf"):
 			hasG002PreAiwf = true
-		case strings.HasPrefix(e.Name(), "G-001-pre-aiwf"):
+		case strings.HasPrefix(e.Name(), "G-0001-pre-aiwf"):
 			lingeringG001Pre = true
 		}
 	}
@@ -837,8 +837,8 @@ func TestIntegrationG37_ReallocateTiebreakerPicksLocalSide(t *testing.T) {
 	}
 	for _, want := range []string{
 		"aiwf-verb: reallocate",
-		"aiwf-entity: G-002",
-		"aiwf-prior-entity: G-001",
+		"aiwf-entity: G-0002",
+		"aiwf-prior-entity: G-0001",
 		"aiwf-actor: ",
 	} {
 		if !strings.Contains(trailers, want) {
@@ -894,7 +894,7 @@ func TestIntegrationG37_ReallocateTiebreakerAmbiguousNeitherInTrunk(t *testing.T
 	entries, _ := os.ReadDir(gapDir)
 	g001Count := 0
 	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), "G-001-") {
+		if strings.HasPrefix(e.Name(), "G-0001-") {
 			g001Count++
 		}
 	}
@@ -904,7 +904,7 @@ func TestIntegrationG37_ReallocateTiebreakerAmbiguousNeitherInTrunk(t *testing.T
 
 	// Bare-id reallocate must refuse with a clear "ambiguous" message
 	// naming both candidate paths and the diagnostic.
-	out, err := runBin(t, cloneB, binDir, nil, "reallocate", "G-001")
+	out, err := runBin(t, cloneB, binDir, nil, "reallocate", "G-0001")
 	if err == nil {
 		t.Fatalf("reallocate G-001 (bare) should fail when ancestry can't decide; output:\n%s", out)
 	}
@@ -942,27 +942,27 @@ func TestIntegrationG37_HistoryWalksLineageChain(t *testing.T) {
 	// id: G-001 → G-002 → G-003.
 	aiwfAddGap(t, clone, binDir, "Original phrasing")
 
-	g1Path := findEntityPath(t, clone, "work/gaps", "G-001-")
+	g1Path := findEntityPath(t, clone, "work/gaps", "G-0001-")
 	if g1Path == "" {
-		t.Fatal("G-001-*.md missing after add")
+		t.Fatal("G-0001-*.md missing after add")
 	}
-	if out := aiwfReallocateByPath(t, clone, binDir, g1Path); !strings.Contains(out, "G-002") {
+	if out := aiwfReallocateByPath(t, clone, binDir, g1Path); !strings.Contains(out, "G-0002") {
 		t.Fatalf("first reallocate should produce G-002; got:\n%s", out)
 	}
 
-	g2Path := findEntityPath(t, clone, "work/gaps", "G-002-")
+	g2Path := findEntityPath(t, clone, "work/gaps", "G-0002-")
 	if g2Path == "" {
-		t.Fatal("G-002-*.md missing after first reallocate")
+		t.Fatal("G-0002-*.md missing after first reallocate")
 	}
-	if out := aiwfReallocateByPath(t, clone, binDir, g2Path); !strings.Contains(out, "G-003") {
+	if out := aiwfReallocateByPath(t, clone, binDir, g2Path); !strings.Contains(out, "G-0003") {
 		t.Fatalf("second reallocate should produce G-003; got:\n%s", out)
 	}
 
 	// Confirm the prior_ids chain landed on disk: the surviving
 	// entity must list both prior ids, oldest-first.
-	g3Path := findEntityPath(t, clone, "work/gaps", "G-003-")
+	g3Path := findEntityPath(t, clone, "work/gaps", "G-0003-")
 	if g3Path == "" {
-		t.Fatal("G-003-*.md missing after second reallocate")
+		t.Fatal("G-0003-*.md missing after second reallocate")
 	}
 	g3Content, err := os.ReadFile(filepath.Join(clone, g3Path))
 	if err != nil {
@@ -971,7 +971,7 @@ func TestIntegrationG37_HistoryWalksLineageChain(t *testing.T) {
 	if !strings.Contains(string(g3Content), "prior_ids:") {
 		t.Errorf("G-003 frontmatter should carry prior_ids; got:\n%s", g3Content)
 	}
-	if !strings.Contains(string(g3Content), "G-001") || !strings.Contains(string(g3Content), "G-002") {
+	if !strings.Contains(string(g3Content), "G-0001") || !strings.Contains(string(g3Content), "G-0002") {
 		t.Errorf("G-003.prior_ids should include both G-001 and G-002; got:\n%s", g3Content)
 	}
 
@@ -979,7 +979,7 @@ func TestIntegrationG37_HistoryWalksLineageChain(t *testing.T) {
 	// original add (under G-001), the first rename (G-001 → G-002),
 	// and the second rename (G-002 → G-003). The chain expander is
 	// what makes the by-old-id queries see the post-rename events.
-	for _, q := range []string{"G-001", "G-002", "G-003"} {
+	for _, q := range []string{"G-0001", "G-0002", "G-0003"} {
 		out, err := runBin(t, clone, binDir, nil, "history", q)
 		if err != nil {
 			t.Fatalf("aiwf history %s: %v\n%s", q, err, out)

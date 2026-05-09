@@ -7,6 +7,7 @@ import (
 
 	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
 	"github.com/23min/ai-workflow-v2/internal/config"
+	"github.com/23min/ai-workflow-v2/internal/entity"
 	"github.com/23min/ai-workflow-v2/internal/gitops"
 )
 
@@ -122,7 +123,8 @@ func validatorEqual(a, b aiwfyaml.Validator) bool {
 
 // bindingsReferencing returns the sorted list of contract ids in
 // current.Entries that name `validator` as their validator. nil
-// inputs return nil.
+// inputs return nil. Emitted ids are canonicalized per AC-3 in M-081
+// so the trailers / error messages downstream are uniform width.
 func bindingsReferencing(current *aiwfyaml.Contracts, validator string) []string {
 	if current == nil {
 		return nil
@@ -130,7 +132,7 @@ func bindingsReferencing(current *aiwfyaml.Contracts, validator string) []string
 	var out []string
 	for _, e := range current.Entries {
 		if e.Validator == validator {
-			out = append(out, e.ID)
+			out = append(out, entity.Canonicalize(e.ID))
 		}
 	}
 	sort.Strings(out)

@@ -116,7 +116,8 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 
 	trailers := []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "authorize"},
-		{Key: gitops.TrailerEntity, Value: e.ID},
+		// Canonical width per AC-1 in M-081.
+		{Key: gitops.TrailerEntity, Value: entity.Canonicalize(e.ID)},
 		{Key: gitops.TrailerActor, Value: actor},
 		{Key: gitops.TrailerTo, Value: agent},
 		{Key: gitops.TrailerScope, Value: "opened"},
@@ -135,7 +136,7 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 		return nil, err
 	}
 
-	subject := fmt.Sprintf("aiwf authorize %s --to %s", e.ID, agent)
+	subject := fmt.Sprintf("aiwf authorize %s --to %s", entity.Canonicalize(e.ID), agent)
 	return plan(&Plan{
 		Subject:    subject,
 		Body:       opts.Reason,
@@ -164,7 +165,8 @@ func authorizeTransition(
 
 	trailers := []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "authorize"},
-		{Key: gitops.TrailerEntity, Value: e.ID},
+		// Canonical width per AC-1 in M-081.
+		{Key: gitops.TrailerEntity, Value: entity.Canonicalize(e.ID)},
 		{Key: gitops.TrailerActor, Value: actor},
 		{Key: gitops.TrailerScope, Value: scopeValue},
 		{Key: gitops.TrailerReason, Value: r},
@@ -176,7 +178,7 @@ func authorizeTransition(
 		return nil, err
 	}
 
-	subject := fmt.Sprintf("aiwf authorize %s --%s", e.ID, modeWord)
+	subject := fmt.Sprintf("aiwf authorize %s --%s", entity.Canonicalize(e.ID), modeWord)
 	return plan(&Plan{
 		Subject:    subject,
 		Body:       r,

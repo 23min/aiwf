@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
-	"regexp"
 	"strings"
 
+	"github.com/23min/ai-workflow-v2/internal/entity"
 	"github.com/23min/ai-workflow-v2/internal/gitops"
 	"github.com/23min/ai-workflow-v2/internal/scope"
 )
@@ -136,7 +136,9 @@ func readEntityScopeCommits(ctx context.Context, root, id string) ([]commitTrail
 		"log",
 		"--reverse",
 		"-E",
-		"--grep", "^aiwf-entity: " + regexp.QuoteMeta(id) + "$",
+		// Width-tolerant per AC-2/AC-4 in M-081: pre-migration trailers
+		// at narrow width still match a canonical-id query (and vice versa).
+		"--grep", "^aiwf-entity: " + entity.IDGrepAlternation(id) + "$",
 		"--pretty=tformat:%H" + fieldSep + "%(trailers:only=true,unfold=true)\x1e",
 	}
 	cmd := exec.CommandContext(ctx, "git", args...)
@@ -216,7 +218,8 @@ func readPriorEntityNewID(ctx context.Context, root, priorID string) (string, er
 	args := []string{
 		"log",
 		"-E",
-		"--grep", "^aiwf-prior-entity: " + regexp.QuoteMeta(priorID) + "$",
+		// Width-tolerant per AC-2/AC-4 in M-081.
+		"--grep", "^aiwf-prior-entity: " + entity.IDGrepAlternation(priorID) + "$",
 		"--pretty=tformat:%(trailers:key=aiwf-entity,valueonly=true,unfold=true)" + sep + "\x1e",
 	}
 	// priorID is regexp-quoted into the --grep argument; exec.Command
@@ -239,7 +242,9 @@ func readPriorEntityNewID(ctx context.Context, root, priorID string) (string, er
 		}
 		parts := strings.SplitN(rec, sep, 2)
 		entityID := strings.TrimSpace(parts[0])
-		if entityID != "" && entityID != priorID {
+		// Compare canonicalized so a narrow trailer value is recognized
+		// as "the same entity as priorID" when the lineage is mid-migration.
+		if entityID != "" && entity.Canonicalize(entityID) != entity.Canonicalize(priorID) {
 			return entityID, nil
 		}
 	}

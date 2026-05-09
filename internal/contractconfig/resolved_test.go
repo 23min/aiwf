@@ -73,7 +73,7 @@ func TestResolve_bothPathsInsideAndExist(t *testing.T) {
 	writeFile(t, filepath.Join(root, "schema.cue"))
 	mkdir(t, filepath.Join(root, "fixtures"))
 
-	entries := []aiwfyaml.Entry{entry("C-001", "schema.cue", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", "fixtures")}
 	resolved, findings := Resolve(root, entries)
 
 	if got := len(findings); got != 0 {
@@ -95,7 +95,7 @@ func TestResolve_bothPathsInsideAndExist(t *testing.T) {
 
 func TestResolve_bothPathsInsideMissing(t *testing.T) {
 	root := realRoot(t)
-	entries := []aiwfyaml.Entry{entry("C-001", "schema.cue", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", "fixtures")}
 	resolved, findings := Resolve(root, entries)
 	if len(findings) != 0 {
 		t.Errorf("missing-but-inside should not raise path-escape: %+v", findings)
@@ -107,10 +107,10 @@ func TestResolve_bothPathsInsideMissing(t *testing.T) {
 
 func TestResolve_dotdotEscape_schema(t *testing.T) {
 	root := realRoot(t)
-	entries := []aiwfyaml.Entry{entry("C-001", "../../etc/passwd", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "../../etc/passwd", "fixtures")}
 	resolved, findings := Resolve(root, entries)
 
-	if !hasEscape(findings, "C-001", "schema") {
+	if !hasEscape(findings, "C-0001", "schema") {
 		t.Errorf("want path-escape for schema; got findings %+v", findings)
 	}
 	for _, f := range findings {
@@ -129,10 +129,10 @@ func TestResolve_dotdotEscape_schema(t *testing.T) {
 func TestResolve_absoluteEscape_fixtures(t *testing.T) {
 	root := realRoot(t)
 	outside := realRoot(t)
-	entries := []aiwfyaml.Entry{entry("C-001", "schema.cue", outside)}
+	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", outside)}
 	resolved, findings := Resolve(root, entries)
 
-	if !hasEscape(findings, "C-001", "fixtures") {
+	if !hasEscape(findings, "C-0001", "fixtures") {
 		t.Errorf("want path-escape for fixtures; got %+v", findings)
 	}
 	if !resolved[0].Skip {
@@ -154,10 +154,10 @@ func TestResolve_symlinkOutsideRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries := []aiwfyaml.Entry{entry("C-001", "schema.cue", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", "fixtures")}
 	resolved, findings := Resolve(root, entries)
 
-	if !hasEscape(findings, "C-001", "schema") {
+	if !hasEscape(findings, "C-0001", "schema") {
 		t.Errorf("symlink-outside should produce path-escape; got %+v", findings)
 	}
 	if !resolved[0].Skip {
@@ -178,7 +178,7 @@ func TestResolve_symlinkInsideRepo(t *testing.T) {
 	}
 	mkdir(t, filepath.Join(root, "fixtures"))
 
-	entries := []aiwfyaml.Entry{entry("C-001", "schema.cue", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", "fixtures")}
 	resolved, findings := Resolve(root, entries)
 
 	if len(findings) != 0 {
@@ -203,10 +203,10 @@ func TestResolve_symlinkLoop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries := []aiwfyaml.Entry{entry("C-001", "a", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "a", "fixtures")}
 	resolved, findings := Resolve(root, entries)
 
-	if !hasEscape(findings, "C-001", "schema") {
+	if !hasEscape(findings, "C-0001", "schema") {
 		t.Errorf("symlink-loop should fail closed as path-escape; got %+v", findings)
 	}
 	if !resolved[0].Skip {
@@ -216,13 +216,13 @@ func TestResolve_symlinkLoop(t *testing.T) {
 
 func TestResolve_bothPathsEscape(t *testing.T) {
 	root := realRoot(t)
-	entries := []aiwfyaml.Entry{entry("C-001", "../escape1", "../escape2")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "../escape1", "../escape2")}
 	resolved, findings := Resolve(root, entries)
 
-	if !hasEscape(findings, "C-001", "schema") {
+	if !hasEscape(findings, "C-0001", "schema") {
 		t.Error("want schema path-escape")
 	}
-	if !hasEscape(findings, "C-001", "fixtures") {
+	if !hasEscape(findings, "C-0001", "fixtures") {
 		t.Error("want fixtures path-escape")
 	}
 	if !resolved[0].Skip {
@@ -232,9 +232,9 @@ func TestResolve_bothPathsEscape(t *testing.T) {
 
 func TestResolve_emptyConfiguredPath(t *testing.T) {
 	root := realRoot(t)
-	entries := []aiwfyaml.Entry{entry("C-001", "", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "", "fixtures")}
 	resolved, findings := Resolve(root, entries)
-	if !hasEscape(findings, "C-001", "schema") {
+	if !hasEscape(findings, "C-0001", "schema") {
 		t.Errorf("empty schema must raise path-escape; got %+v", findings)
 	}
 	if !resolved[0].Skip {
@@ -246,9 +246,9 @@ func TestResolve_relativeRepoRootRejected(t *testing.T) {
 	// Relative repoRoot is a usage error: callers (the engine) always
 	// pass absolute. We fail closed — every entry is marked Skip with
 	// path-escape findings.
-	entries := []aiwfyaml.Entry{entry("C-001", "schema.cue", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", "fixtures")}
 	resolved, findings := Resolve("relative/root", entries)
-	if !hasEscape(findings, "C-001", "schema") {
+	if !hasEscape(findings, "C-0001", "schema") {
 		t.Errorf("relative repoRoot must escape schema; got %+v", findings)
 	}
 	if !resolved[0].Skip {
@@ -262,20 +262,20 @@ func TestResolve_threeEntriesMixed(t *testing.T) {
 	mkdir(t, filepath.Join(root, "fixtures"))
 
 	entries := []aiwfyaml.Entry{
-		entry("C-001", "../escape", "fixtures"),
-		entry("C-002", "schema.cue", "fixtures"),
-		entry("C-003", "schema.cue", "../oops"),
+		entry("C-0001", "../escape", "fixtures"),
+		entry("C-0002", "schema.cue", "fixtures"),
+		entry("C-0003", "schema.cue", "../oops"),
 	}
 	resolved, findings := Resolve(root, entries)
 
-	if !hasEscape(findings, "C-001", "schema") {
+	if !hasEscape(findings, "C-0001", "schema") {
 		t.Error("C-001 schema escape missing")
 	}
-	if !hasEscape(findings, "C-003", "fixtures") {
+	if !hasEscape(findings, "C-0003", "fixtures") {
 		t.Error("C-003 fixtures escape missing")
 	}
 	for _, f := range findings {
-		if f.EntityID == "C-002" && f.Subcode == "path-escape" {
+		if f.EntityID == "C-0002" && f.Subcode == "path-escape" {
 			t.Errorf("C-002 should not have path-escape: %+v", f)
 		}
 	}
@@ -292,7 +292,7 @@ func TestResolve_threeEntriesMixed(t *testing.T) {
 
 func TestResolve_unresolvableRepoRoot(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "does", "not", "exist")
-	entries := []aiwfyaml.Entry{entry("C-001", "schema.cue", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", "fixtures")}
 	resolved, findings := Resolve(missing, entries)
 	// A non-existent root resolves lexically; entries below it are still
 	// "inside" relative to that lexical form, so no path-escape is
@@ -323,7 +323,7 @@ func TestResolve_repoRootSymlinkLoop(t *testing.T) {
 	// repoRoot is a symlink loop; resolveRepoRoot falls back to the
 	// lexical absolute form. Entries with relative paths still join
 	// cleanly against it.
-	entries := []aiwfyaml.Entry{entry("C-001", "schema.cue", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", "fixtures")}
 	resolved, _ := Resolve(a, entries)
 	if resolved == nil {
 		t.Fatal("Resolve returned nil")
@@ -332,7 +332,7 @@ func TestResolve_repoRootSymlinkLoop(t *testing.T) {
 
 func TestResolve_findingShape(t *testing.T) {
 	root := realRoot(t)
-	entries := []aiwfyaml.Entry{entry("C-042", "../bad", "fixtures")}
+	entries := []aiwfyaml.Entry{entry("C-0042", "../bad", "fixtures")}
 	_, findings := Resolve(root, entries)
 	if len(findings) == 0 {
 		t.Fatal("want at least one finding")
@@ -347,7 +347,7 @@ func TestResolve_findingShape(t *testing.T) {
 	if f.Subcode != "path-escape" {
 		t.Errorf("Subcode = %q, want path-escape", f.Subcode)
 	}
-	if f.EntityID != "C-042" {
+	if f.EntityID != "C-0042" {
 		t.Errorf("EntityID = %q, want C-042", f.EntityID)
 	}
 	if f.Path != "aiwf.yaml" {

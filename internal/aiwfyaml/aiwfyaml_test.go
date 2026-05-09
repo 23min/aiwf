@@ -30,7 +30,7 @@ contracts:
       command: cue
       args: [vet, "{{schema}}", "{{fixture}}"]
   entries:
-    - id: C-001
+    - id: C-0001
       validator: cue
       schema: docs/schemas/opspec/schema.cue
       fixtures: docs/schemas/opspec/fixtures
@@ -49,7 +49,7 @@ contracts:
 		t.Errorf("validators mismatch (-want +got):\n%s", diff)
 	}
 	wantEntries := []Entry{{
-		ID:        "C-001",
+		ID:        "C-0001",
 		Validator: "cue",
 		Schema:    "docs/schemas/opspec/schema.cue",
 		Fixtures:  "docs/schemas/opspec/fixtures",
@@ -105,7 +105,7 @@ func TestSetContracts_RoundTripsStrictValidators(t *testing.T) {
 			"cue": {Command: "cue", Args: []string{"vet"}},
 		},
 		Entries: []Entry{{
-			ID: "C-001", Validator: "cue", Schema: "s.cue", Fixtures: "fix",
+			ID: "C-0001", Validator: "cue", Schema: "s.cue", Fixtures: "fix",
 		}},
 	}
 	if setErr := doc.SetContracts(c); setErr != nil {
@@ -177,7 +177,7 @@ contracts:
       command: cue
       args: [vet]
   entries:
-    - id: C-001
+    - id: C-0001
       validator: cue
       schema: s
       fixtures: f
@@ -219,7 +219,7 @@ contracts:
       command: cue
       args: [vet]
   entries:
-    - id: C-001
+    - id: C-0001
       validator: ghost
       schema: s
       fixtures: f
@@ -247,7 +247,7 @@ func TestSetContracts_AppendsWhenAbsent(t *testing.T) {
 			"cue": {Command: "cue", Args: []string{"vet", "{{schema}}", "{{fixture}}"}},
 		},
 		Entries: []Entry{{
-			ID: "C-001", Validator: "cue", Schema: "s.cue", Fixtures: "f",
+			ID: "C-0001", Validator: "cue", Schema: "s.cue", Fixtures: "f",
 		}},
 	}
 	if err = d.SetContracts(in); err != nil {
@@ -284,7 +284,7 @@ contracts:
       command: cue
       args: [vet]
   entries:
-    - id: C-001
+    - id: C-0001
       validator: cue
       schema: old/schema.cue
       fixtures: old/fixtures
@@ -337,7 +337,7 @@ contracts:
       command: cue
       args: [vet]
   entries:
-    - id: C-001
+    - id: C-0001
       validator: cue
       schema: old/schema.cue
       fixtures: old/fixtures
@@ -406,8 +406,8 @@ func TestSetContracts_RoundTripIsStable(t *testing.T) {
 			"jsonschema": {Command: "ajv", Args: []string{"validate", "-s", "{{schema}}", "-d", "{{fixture}}"}},
 		},
 		Entries: []Entry{
-			{ID: "C-001", Validator: "cue", Schema: "a.cue", Fixtures: "fa"},
-			{ID: "C-002", Validator: "jsonschema", Schema: "b.json", Fixtures: "fb"},
+			{ID: "C-0001", Validator: "cue", Schema: "a.cue", Fixtures: "fa"},
+			{ID: "C-0002", Validator: "jsonschema", Schema: "b.json", Fixtures: "fb"},
 		},
 	}
 	d, _, err := ReadBytes([]byte(baseConfig))
@@ -483,12 +483,12 @@ func TestRead_BOMTolerant(t *testing.T) {
 }
 
 func TestRead_CRLFLineEndings(t *testing.T) {
-	src := "aiwf_version: 0.1.0\r\nactor: human/peter\r\ncontracts:\r\n  validators:\r\n    cue:\r\n      command: cue\r\n      args: [vet]\r\n  entries:\r\n    - id: C-001\r\n      validator: cue\r\n      schema: s\r\n      fixtures: f\r\n"
+	src := "aiwf_version: 0.1.0\r\nactor: human/peter\r\ncontracts:\r\n  validators:\r\n    cue:\r\n      command: cue\r\n      args: [vet]\r\n  entries:\r\n    - id: C-0001\r\n      validator: cue\r\n      schema: s\r\n      fixtures: f\r\n"
 	_, c, err := ReadBytes([]byte(src))
 	if err != nil {
 		t.Fatalf("ReadBytes CRLF: %v", err)
 	}
-	if c == nil || len(c.Entries) != 1 || c.Entries[0].ID != "C-001" {
+	if c == nil || len(c.Entries) != 1 || c.Entries[0].ID != "C-0001" {
 		t.Errorf("CRLF source did not parse cleanly: %+v", c)
 	}
 }
@@ -504,7 +504,7 @@ func TestRead_EmptyFile(t *testing.T) {
 	// And SetContracts on an empty file should append a fresh block.
 	in := &Contracts{
 		Validators: map[string]Validator{"cue": {Command: "cue"}},
-		Entries:    []Entry{{ID: "C-001", Validator: "cue", Schema: "s", Fixtures: "f"}},
+		Entries:    []Entry{{ID: "C-0001", Validator: "cue", Schema: "s", Fixtures: "f"}},
 	}
 	if err := d.SetContracts(in); err != nil {
 		t.Fatalf("SetContracts on empty doc: %v", err)
@@ -524,7 +524,7 @@ func TestRead_OnlyContractsBlock(t *testing.T) {
       command: cue
       args: [vet]
   entries:
-    - id: C-001
+    - id: C-0001
       validator: cue
       schema: old.cue
       fixtures: f
@@ -554,7 +554,7 @@ func TestRead_FlowStyleMapping(t *testing.T) {
 contracts:
   validators: { cue: { command: cue, args: [vet] } }
   entries:
-    - id: C-001
+    - id: C-0001
       validator: cue
       schema: s
       fixtures: f
@@ -591,7 +591,7 @@ contracts:
       args: [validate]
 
   entries:
-    - id: C-001
+    - id: C-0001
       validator: cue
       schema: s
       fixtures: f
@@ -642,7 +642,7 @@ hosts: [claude-code]
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
 	}
-	c.Entries = []Entry{{ID: "C-001", Validator: "cue", Schema: "s", Fixtures: "f"}}
+	c.Entries = []Entry{{ID: "C-0001", Validator: "cue", Schema: "s", Fixtures: "f"}}
 	if err := d.SetContracts(c); err != nil {
 		t.Fatalf("SetContracts: %v", err)
 	}
@@ -683,7 +683,7 @@ contracts:
 	}
 	in := &Contracts{
 		Validators: map[string]Validator{"cue": {Command: "cue", Args: []string{"vet"}}},
-		Entries:    []Entry{{ID: "C-001", Validator: "cue", Schema: "s", Fixtures: "f"}},
+		Entries:    []Entry{{ID: "C-0001", Validator: "cue", Schema: "s", Fixtures: "f"}},
 	}
 	if err = d.SetContracts(in); err != nil {
 		t.Fatalf("SetContracts: %v", err)

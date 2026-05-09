@@ -23,7 +23,7 @@ func milestoneDependsOnSetup(t *testing.T) string {
 	}
 	for i, slug := range []string{"First", "Second", "Third"} {
 		_ = i
-		if rc := run([]string{"add", "milestone", "--epic", "E-01", "--tdd", "none", "--title", slug, "--actor", "human/test", "--root", root}); rc != exitOK {
+		if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", slug, "--actor", "human/test", "--root", root}); rc != exitOK {
 			t.Fatalf("add milestone %s: %d", slug, rc)
 		}
 	}
@@ -37,8 +37,8 @@ func TestMilestoneDependsOn_SetSingle(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-003",
-		"--on", "M-001",
+		"milestone", "depends-on", "M-0003",
+		"--on", "M-0001",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -46,7 +46,7 @@ func TestMilestoneDependsOn_SetSingle(t *testing.T) {
 		t.Fatalf("milestone depends-on M-003 --on M-001 = %d, want %d", rc, exitOK)
 	}
 
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-003-third.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
@@ -54,8 +54,8 @@ func TestMilestoneDependsOn_SetSingle(t *testing.T) {
 	if !strings.Contains(string(body), "depends_on:") {
 		t.Errorf("frontmatter missing depends_on block:\n%s", body)
 	}
-	if !strings.Contains(string(body), "- M-001") {
-		t.Errorf("frontmatter missing - M-001:\n%s", body)
+	if !strings.Contains(string(body), "- M-0001") {
+		t.Errorf("frontmatter missing - M-0001:\n%s", body)
 	}
 }
 
@@ -64,26 +64,26 @@ func TestMilestoneDependsOn_SetMultiple(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-003",
-		"--on", "M-001,M-002",
+		"milestone", "depends-on", "M-0003",
+		"--on", "M-0001,M-0002",
 		"--actor", "human/test",
 		"--root", root,
 	})
 	if rc != exitOK {
-		t.Fatalf("milestone depends-on M-003 --on M-001,M-002 = %d, want %d", rc, exitOK)
+		t.Fatalf("milestone depends-on M-0003 --on M-0001,M-0002 = %d, want %d", rc, exitOK)
 	}
 
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-003-third.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
 	}
 	content := string(body)
-	if !strings.Contains(content, "- M-001") {
-		t.Errorf("frontmatter missing - M-001:\n%s", content)
+	if !strings.Contains(content, "- M-0001") {
+		t.Errorf("frontmatter missing - M-0001:\n%s", content)
 	}
-	if !strings.Contains(content, "- M-002") {
-		t.Errorf("frontmatter missing - M-002:\n%s", content)
+	if !strings.Contains(content, "- M-0002") {
+		t.Errorf("frontmatter missing - M-0002:\n%s", content)
 	}
 }
 
@@ -93,24 +93,24 @@ func TestMilestoneDependsOn_SetMultiple(t *testing.T) {
 func TestMilestoneDependsOn_Replace(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
-	if rc := run([]string{"milestone", "depends-on", "M-003", "--on", "M-001", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0001", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("first set: %d", rc)
 	}
-	if rc := run([]string{"milestone", "depends-on", "M-003", "--on", "M-002", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0002", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("second set (replace): %d", rc)
 	}
 
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-003-third.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
 	}
 	content := string(body)
-	if strings.Contains(content, "- M-001") {
-		t.Errorf("replace semantics broken: M-001 still present after second set:\n%s", content)
+	if strings.Contains(content, "- M-0001") {
+		t.Errorf("replace semantics broken: M-0001 still present after second set:\n%s", content)
 	}
-	if !strings.Contains(content, "- M-002") {
-		t.Errorf("frontmatter missing - M-002 after replace:\n%s", content)
+	if !strings.Contains(content, "- M-0002") {
+		t.Errorf("frontmatter missing - M-0002 after replace:\n%s", content)
 	}
 }
 
@@ -119,14 +119,14 @@ func TestMilestoneDependsOn_Replace(t *testing.T) {
 func TestMilestoneDependsOn_Clear(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
-	if rc := run([]string{"milestone", "depends-on", "M-003", "--on", "M-001,M-002", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0001,M-0002", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("set initial: %d", rc)
 	}
-	if rc := run([]string{"milestone", "depends-on", "M-003", "--clear", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"milestone", "depends-on", "M-0003", "--clear", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("clear: %d", rc)
 	}
 
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-003-third.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
@@ -142,8 +142,8 @@ func TestMilestoneDependsOn_ClearAndOnMutex(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-003",
-		"--on", "M-001",
+		"milestone", "depends-on", "M-0003",
+		"--on", "M-0001",
 		"--clear",
 		"--actor", "human/test",
 		"--root", root,
@@ -160,7 +160,7 @@ func TestMilestoneDependsOn_NoFlagIsUsage(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-003",
+		"milestone", "depends-on", "M-0003",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -175,8 +175,8 @@ func TestMilestoneDependsOn_TargetNotMilestone(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "E-01",
-		"--on", "M-001",
+		"milestone", "depends-on", "E-0001",
+		"--on", "M-0001",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -191,8 +191,8 @@ func TestMilestoneDependsOn_TargetUnknown(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-999",
-		"--on", "M-001",
+		"milestone", "depends-on", "M-0999",
+		"--on", "M-0001",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -207,8 +207,8 @@ func TestMilestoneDependsOn_OnRefUnknown(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-003",
-		"--on", "M-999",
+		"milestone", "depends-on", "M-0003",
+		"--on", "M-0999",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -223,8 +223,8 @@ func TestMilestoneDependsOn_OnRefNonMilestone(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-003",
-		"--on", "E-01",
+		"milestone", "depends-on", "M-0003",
+		"--on", "E-0001",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -239,13 +239,13 @@ func TestMilestoneDependsOn_OnRefNonMilestone(t *testing.T) {
 func TestMilestoneDependsOn_CompositeIDRejected(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 	// Allocate an AC under M-001 so the composite id resolves.
-	if rc := run([]string{"add", "ac", "M-001", "--title", "first ac", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "M-0001", "--title", "first ac", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-001/AC-1",
-		"--on", "M-002",
+		"milestone", "depends-on", "M-0001/AC-1",
+		"--on", "M-0002",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -260,8 +260,8 @@ func TestMilestoneDependsOn_SelfDependencyRejected(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-003",
-		"--on", "M-003",
+		"milestone", "depends-on", "M-0003",
+		"--on", "M-0003",
 		"--actor", "human/test",
 		"--root", root,
 	})
@@ -288,7 +288,7 @@ func TestMilestoneDependsOn_DispatcherSeam_AddFlag(t *testing.T) {
 
 	rc := run([]string{
 		"add", "milestone",
-		"--epic", "E-01",
+		"--epic", "E-0001",
 		"--tdd", "required",
 		"--title", "Fourth",
 		"--depends-on", "M-001,M-002",
@@ -300,7 +300,7 @@ func TestMilestoneDependsOn_DispatcherSeam_AddFlag(t *testing.T) {
 	}
 
 	// On-disk shape: the new milestone carries depends_on with both ids.
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-004-fourth.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0004-fourth.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read M-004: %v", err)
@@ -314,7 +314,7 @@ func TestMilestoneDependsOn_DispatcherSeam_AddFlag(t *testing.T) {
 
 	// Verb trailers: history finds the create commit with the new
 	// entity's id, proving the dispatcher's actor / trailer chain ran.
-	if rc := run([]string{"history", "M-004", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "M-0004", "--root", root}); rc != exitOK {
 		t.Errorf("aiwf history M-004 (seam): %d", rc)
 	}
 }
@@ -327,7 +327,7 @@ func TestMilestoneDependsOn_DispatcherSeam_Verb(t *testing.T) {
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
-		"milestone", "depends-on", "M-003",
+		"milestone", "depends-on", "M-0003",
 		"--on", "M-001,M-002",
 		"--actor", "human/test",
 		"--root", root,
@@ -337,7 +337,7 @@ func TestMilestoneDependsOn_DispatcherSeam_Verb(t *testing.T) {
 	}
 
 	// On-disk shape.
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-003-third.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read M-003: %v", err)
@@ -351,7 +351,7 @@ func TestMilestoneDependsOn_DispatcherSeam_Verb(t *testing.T) {
 
 	// `aiwf history M-003` finds the trailered milestone-depends-on
 	// commit, proving the verb's trailer chain reached git.
-	if rc := run([]string{"history", "M-003", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "M-0003", "--root", root}); rc != exitOK {
 		t.Errorf("aiwf history M-003 (seam): %d", rc)
 	}
 }

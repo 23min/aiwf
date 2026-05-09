@@ -35,7 +35,7 @@ func newApplyTestRepo(t *testing.T) *applyTestRepo {
 	if err := gitops.Init(ctx, root); err != nil {
 		t.Fatalf("git init: %v", err)
 	}
-	tracked := filepath.Join("work", "epics", "E-01-foo", "epic.md")
+	tracked := filepath.Join("work", "epics", "E-0001-foo", "epic.md")
 	full := filepath.Join(root, tracked)
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		t.Fatal(err)
@@ -212,7 +212,7 @@ func TestApply_RollsBackUntrackedNewFiles(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(noWrite, 0o755) })
 
-	newFilePath := filepath.Join("work", "milestones", "M-001-new", "milestone.md")
+	newFilePath := filepath.Join("work", "milestones", "M-0001-new", "milestone.md")
 	plan := &verb.Plan{
 		Subject:  "test new-file rollback",
 		Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}},

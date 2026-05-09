@@ -33,8 +33,8 @@ func TestRenderActor(t *testing.T) {
 // scope-authorized rows, and per-end chips on terminal-promote rows.
 func TestRenderScopeChips(t *testing.T) {
 	scopeEntities := map[string]string{
-		"4b13a0fdeadbeef": "E-03",
-		"abc1234deadbeef": "E-09",
+		"4b13a0fdeadbeef": "E-0003",
+		"abc1234deadbeef": "E-0009",
 	}
 
 	tests := []struct {
@@ -61,23 +61,23 @@ func TestRenderScopeChips(t *testing.T) {
 		{
 			name: "scope-authorized agent verb",
 			e:    HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
-			want: "  [E-03 4b13a0f]",
+			want: "  [E-0003 4b13a0f]",
 		},
 		{
 			name:     "scope-authorized with --show-authorization",
 			e:        HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
 			showAuth: true,
-			want:     "  [E-03 4b13a0fdeadbeef]",
+			want:     "  [E-0003 4b13a0fdeadbeef]",
 		},
 		{
 			name: "terminal-promote ends one scope",
 			e:    HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef", ScopeEnds: []string{"4b13a0fdeadbeef"}},
-			want: "  [E-03 4b13a0f] [E-03 ended]",
+			want: "  [E-0003 4b13a0f] [E-0003 ended]",
 		},
 		{
 			name: "terminal-promote ends two scopes",
 			e:    HistoryEvent{Verb: "promote", ScopeEnds: []string{"4b13a0fdeadbeef", "abc1234deadbeef"}},
-			want: "  [E-03 ended] [E-09 ended]",
+			want: "  [E-0003 ended] [E-0009 ended]",
 		},
 		{
 			name: "unknown auth-sha falls back to ?",
@@ -119,21 +119,21 @@ func TestRenderHistory_AuthorizationFlow(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Cache"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Cache"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
 	// Open scope on E-01.
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
 	// Agent promotes M-001 inside the scope.
 	if out, err := runBin(t, root, binDir, nil,
-		"promote", "M-001", "in_progress",
+		"promote", "M-0001", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("promote M-001: %v\n%s", err, out)
 	}
 
-	out, err := runBin(t, root, binDir, nil, "history", "E-01")
+	out, err := runBin(t, root, binDir, nil, "history", "E-0001")
 	if err != nil {
 		t.Fatalf("history: %v\n%s", err, out)
 	}
@@ -141,12 +141,12 @@ func TestRenderHistory_AuthorizationFlow(t *testing.T) {
 		t.Errorf("expected [scope: opened] chip on the authorize event:\n%s", out)
 	}
 
-	mout, err := runBin(t, root, binDir, nil, "history", "M-001")
+	mout, err := runBin(t, root, binDir, nil, "history", "M-0001")
 	if err != nil {
 		t.Fatalf("history M-001: %v\n%s", err, mout)
 	}
-	if !strings.Contains(mout, "[E-01 ") {
-		t.Errorf("expected [E-01 <sha>] chip on the agent's promote:\n%s", mout)
+	if !strings.Contains(mout, "[E-0001 ") {
+		t.Errorf("expected [E-0001 <sha>] chip on the agent's promote:\n%s", mout)
 	}
 	if !strings.Contains(mout, "human/peter via ai/claude") {
 		t.Errorf("expected `human/peter via ai/claude` actor rendering:\n%s", mout)
@@ -155,7 +155,7 @@ func TestRenderHistory_AuthorizationFlow(t *testing.T) {
 	// --show-authorization expands the SHA inline. The default chip
 	// abbreviates to 7 chars; with the flag, the chip carries the
 	// full 40-char SHA.
-	mout2, err := runBin(t, root, binDir, nil, "history", "--show-authorization", "M-001")
+	mout2, err := runBin(t, root, binDir, nil, "history", "--show-authorization", "M-0001")
 	if err != nil {
 		t.Fatalf("history --show-authorization: %v\n%s", err, mout2)
 	}
@@ -165,20 +165,20 @@ func TestRenderHistory_AuthorizationFlow(t *testing.T) {
 	logSHA, gErr := runGit(root, "log", "--reverse", "-E",
 		"--grep", "^aiwf-verb: authorize$",
 		"--grep", "^aiwf-scope: opened$",
-		"--grep", "^aiwf-entity: E-01$",
+		"--grep", "^aiwf-entity: E-0001$",
 		"--all-match",
 		"--pretty=tformat:%H")
 	if gErr != nil {
 		t.Fatalf("git log opener: %v\n%s", gErr, logSHA)
 	}
 	fullSHA := strings.Fields(strings.TrimSpace(logSHA))[0]
-	if !strings.Contains(mout2, "[E-01 "+fullSHA+"]") {
-		t.Errorf("expected [E-01 %s] chip with full SHA under --show-authorization; got:\n%s", fullSHA, mout2)
+	if !strings.Contains(mout2, "[E-0001 "+fullSHA+"]") {
+		t.Errorf("expected [E-0001 %s] chip with full SHA under --show-authorization; got:\n%s", fullSHA, mout2)
 	}
 	// And the abbreviated form should NOT appear as a standalone chip
 	// (it's a substring of the full SHA, so we check the closing
-	// bracket: with the flag, "[E-01 <7chars>]" must not appear).
-	if strings.Contains(mout2, "[E-01 "+fullSHA[:7]+"]") {
+	// bracket: with the flag, "[E-0001 <7chars>]" must not appear).
+	if strings.Contains(mout2, "[E-0001 "+fullSHA[:7]+"]") {
 		t.Errorf("--show-authorization still renders the abbreviated chip; got:\n%s", mout2)
 	}
 }

@@ -21,14 +21,15 @@ func (r defaultResolver) IndexData() (*IndexData, error) {
 	sidebar.IsCurrentIndex = true
 	out := &IndexData{Title: "Overview", Sidebar: sidebar}
 	for _, e := range sortedByID(r.tree.ByKind(entity.KindEpic)) {
+		canonEpic := entity.Canonicalize(e.ID)
 		summary := EpicSummary{
-			ID:       e.ID,
+			ID:       canonEpic,
 			Title:    e.Title,
 			Status:   e.Status,
 			FileName: idToFileName(e.ID),
 		}
 		for _, m := range sortedByID(r.tree.ByKind(entity.KindMilestone)) {
-			if m.Parent != e.ID {
+			if entity.Canonicalize(m.Parent) != canonEpic {
 				continue
 			}
 			summary.MilestoneCount++
@@ -56,24 +57,28 @@ func (r defaultResolver) StatusData() (*StatusData, error) {
 // "" for the index). activeMilestoneID names the current milestone
 // (when rendering one) so the link can carry aria-current="page".
 func (r defaultResolver) sidebar(activeEpicID, activeMilestoneID string) SidebarData {
+	canonActiveEpic := entity.Canonicalize(activeEpicID)
+	canonActiveMilestone := entity.Canonicalize(activeMilestoneID)
 	var s SidebarData
 	for _, e := range sortedByID(r.tree.ByKind(entity.KindEpic)) {
+		canonEpic := entity.Canonicalize(e.ID)
 		entry := SidebarEpic{
-			ID:        e.ID,
+			ID:        canonEpic,
 			Title:     e.Title,
 			FileName:  idToFileName(e.ID),
-			IsActive:  e.ID == activeEpicID,
-			IsCurrent: e.ID == activeEpicID && activeMilestoneID == "",
+			IsActive:  canonEpic == canonActiveEpic,
+			IsCurrent: canonEpic == canonActiveEpic && activeMilestoneID == "",
 		}
 		for _, m := range sortedByID(r.tree.ByKind(entity.KindMilestone)) {
-			if m.Parent != e.ID {
+			if entity.Canonicalize(m.Parent) != canonEpic {
 				continue
 			}
+			canonM := entity.Canonicalize(m.ID)
 			entry.Milestones = append(entry.Milestones, SidebarMilestone{
-				ID:        m.ID,
+				ID:        canonM,
 				Title:     m.Title,
 				FileName:  idToFileName(m.ID),
-				IsCurrent: m.ID == activeMilestoneID,
+				IsCurrent: canonM == canonActiveMilestone,
 			})
 		}
 		s.Epics = append(s.Epics, entry)
@@ -89,9 +94,10 @@ func (r defaultResolver) EpicData(id string) (*EpicData, error) {
 	if e == nil || e.Kind != entity.KindEpic {
 		return nil, nil
 	}
+	canonEpic := entity.Canonicalize(e.ID)
 	data := &EpicData{
 		Epic: &EntityRef{
-			ID:       e.ID,
+			ID:       canonEpic,
 			Title:    e.Title,
 			Status:   e.Status,
 			Kind:     string(e.Kind),
@@ -101,12 +107,13 @@ func (r defaultResolver) EpicData(id string) (*EpicData, error) {
 		Sidebar: r.sidebar(e.ID, ""),
 	}
 	for _, m := range sortedByID(r.tree.ByKind(entity.KindMilestone)) {
-		if m.Parent != e.ID {
+		if entity.Canonicalize(m.Parent) != canonEpic {
 			continue
 		}
+		canonM := entity.Canonicalize(m.ID)
 		met, total := acMetTotal(m.ACs)
 		data.Milestones = append(data.Milestones, MilestoneSummary{
-			ID:       m.ID,
+			ID:       canonM,
 			Title:    m.Title,
 			Status:   m.Status,
 			TDD:      m.TDD,
@@ -117,7 +124,10 @@ func (r defaultResolver) EpicData(id string) (*EpicData, error) {
 		data.ACMet += met
 		data.ACTotal += total
 		for _, dep := range m.DependsOn {
-			data.DependencyDAG = append(data.DependencyDAG, DependencyEdge{From: m.ID, To: dep})
+			data.DependencyDAG = append(data.DependencyDAG, DependencyEdge{
+				From: canonM,
+				To:   entity.Canonicalize(dep),
+			})
 		}
 	}
 	return data, nil
@@ -147,7 +157,7 @@ func (r defaultResolver) EntityData(id string) (*EntityData, error) {
 	}
 	return &EntityData{
 		Entity: &EntityRef{
-			ID:       e.ID,
+			ID:       entity.Canonicalize(e.ID),
 			Title:    e.Title,
 			Status:   e.Status,
 			Kind:     string(e.Kind),
@@ -170,7 +180,7 @@ func (r defaultResolver) MilestoneData(id string) (*MilestoneData, error) {
 	met, total := acMetTotal(m.ACs)
 	data := &MilestoneData{
 		Milestone: &EntityRef{
-			ID:       m.ID,
+			ID:       entity.Canonicalize(m.ID),
 			Title:    m.Title,
 			Status:   m.Status,
 			Kind:     string(m.Kind),
@@ -185,7 +195,7 @@ func (r defaultResolver) MilestoneData(id string) (*MilestoneData, error) {
 	if m.Parent != "" {
 		if parent := r.tree.ByID(m.Parent); parent != nil {
 			data.ParentEpic = &EntityRef{
-				ID:       parent.ID,
+				ID:       entity.Canonicalize(parent.ID),
 				Title:    parent.Title,
 				Status:   parent.Status,
 				Kind:     string(parent.Kind),

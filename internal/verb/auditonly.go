@@ -192,7 +192,8 @@ func cancelACAuditOnly(t *tree.Tree, compositeID, actor, reason string) (*Result
 func auditOnlyTrailers(verbName, id, actor, reason, to string) []gitops.Trailer {
 	trailers := []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: verbName},
-		{Key: gitops.TrailerEntity, Value: id},
+		// Canonical width per AC-1 in M-081.
+		{Key: gitops.TrailerEntity, Value: entity.Canonicalize(id)},
 		{Key: gitops.TrailerActor, Value: actor},
 	}
 	if to != "" {

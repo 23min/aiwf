@@ -70,6 +70,10 @@ func TestRead_RemoteAndDefaultTrunk_ReturnsIDs(t *testing.T) {
 	if res.Skipped {
 		t.Error("Skipped = true, want false")
 	}
+	// trunk.Read extracts ids from the on-disk filename verbatim;
+	// width canonicalization happens at the consumer layer (allocator,
+	// ids-unique check via tree.ByID). The narrow id is intentional
+	// — this is parser-tolerance test data per AC-2 in M-081.
 	want := []ID{
 		{Kind: entity.KindADR, ID: "ADR-0001", Path: "docs/adr/ADR-0001-baz.md"},
 		{Kind: entity.KindGap, ID: "G-001", Path: "work/gaps/G-001-foo.md"},
@@ -145,11 +149,11 @@ func TestRead_ExplicitTrunkMissing_HardError(t *testing.T) {
 
 func TestResult_IDStrings(t *testing.T) {
 	r := Result{IDs: []ID{
-		{Kind: entity.KindGap, ID: "G-001", Path: "work/gaps/G-001-foo.md"},
+		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-001-foo.md"},
 		{Kind: entity.KindADR, ID: "ADR-0001", Path: "docs/adr/ADR-0001-baz.md"},
 	}}
 	got := r.IDStrings()
-	want := []string{"G-001", "ADR-0001"}
+	want := []string{"G-0001", "ADR-0001"}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("IDStrings mismatch (-want +got):\n%s", diff)
 	}

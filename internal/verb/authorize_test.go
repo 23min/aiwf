@@ -18,9 +18,9 @@ import (
 func TestAuthorize_Open_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
-	res, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizeOpen,
 		Agent:  "ai/claude",
 		Reason: "implement E-01",
@@ -37,7 +37,7 @@ func TestAuthorize_Open_HappyPath(t *testing.T) {
 	if len(res.Plan.Ops) != 0 {
 		t.Errorf("Plan.Ops len = %d, want 0 (authorize never writes files)", len(res.Plan.Ops))
 	}
-	if got, want := res.Plan.Subject, "aiwf authorize E-01 --to ai/claude"; got != want {
+	if got, want := res.Plan.Subject, "aiwf authorize E-0001 --to ai/claude"; got != want {
 		t.Errorf("Subject = %q, want %q", got, want)
 	}
 	if res.Plan.Body != "implement E-01" {
@@ -52,7 +52,7 @@ func TestAuthorize_Open_HappyPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	mustHaveTrailer(t, tr, "aiwf-verb", "authorize")
-	mustHaveTrailer(t, tr, "aiwf-entity", "E-01")
+	mustHaveTrailer(t, tr, "aiwf-entity", "E-0001")
 	mustHaveTrailer(t, tr, "aiwf-actor", testActor)
 	mustHaveTrailer(t, tr, "aiwf-to", "ai/claude")
 	mustHaveTrailer(t, tr, "aiwf-scope", "opened")
@@ -64,9 +64,9 @@ func TestAuthorize_Open_HappyPath(t *testing.T) {
 func TestAuthorize_Open_NoReason(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
-	res, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:  verb.AuthorizeOpen,
 		Agent: "ai/claude",
 	})
@@ -85,9 +85,9 @@ func TestAuthorize_Open_NoReason(t *testing.T) {
 func TestAuthorize_Open_RefusesNonHumanActor(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
-	_, err := verb.Authorize(r.ctx, r.tree(), "E-01", "ai/claude", verb.AuthorizeOptions{
+	_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", "ai/claude", verb.AuthorizeOptions{
 		Mode:  verb.AuthorizeOpen,
 		Agent: "ai/claude",
 	})
@@ -104,10 +104,10 @@ func TestAuthorize_Open_RefusesNonHumanActor(t *testing.T) {
 func TestAuthorize_Open_RefusesTerminalEntity(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "ship", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "ship", false, verb.PromoteOptions{}))
 
-	_, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:  verb.AuthorizeOpen,
 		Agent: "ai/claude",
 	})
@@ -124,10 +124,10 @@ func TestAuthorize_Open_RefusesTerminalEntity(t *testing.T) {
 func TestAuthorize_Open_ForceOverridesTerminal(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "ship", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "ship", false, verb.PromoteOptions{}))
 
-	res, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizeOpen,
 		Agent:  "ai/claude",
 		Reason: "resurrect for follow-up",
@@ -151,10 +151,10 @@ func TestAuthorize_Open_ForceOverridesTerminal(t *testing.T) {
 func TestAuthorize_Open_ForceRequiresReason(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "done", testActor, "ship", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "ship", false, verb.PromoteOptions{}))
 
-	_, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:  verb.AuthorizeOpen,
 		Agent: "ai/claude",
 		Force: true,
@@ -169,9 +169,9 @@ func TestAuthorize_Open_ForceRequiresReason(t *testing.T) {
 func TestAuthorize_Open_RequiresAgent(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
-	_, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode: verb.AuthorizeOpen,
 	})
 	if err == nil || !strings.Contains(err.Error(), "agent") {
@@ -184,9 +184,9 @@ func TestAuthorize_Open_RequiresAgent(t *testing.T) {
 func TestAuthorize_Open_AgentMustBeRoleSlashID(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
-	_, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:  verb.AuthorizeOpen,
 		Agent: "claude", // missing /
 	})
@@ -200,9 +200,9 @@ func TestAuthorize_Open_AgentMustBeRoleSlashID(t *testing.T) {
 func TestAuthorize_Pause_RefusesWithoutActiveScope(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
-	_, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizePause,
 		Reason: "blocked",
 	})
@@ -217,12 +217,12 @@ func TestAuthorize_Pause_RefusesWithoutActiveScope(t *testing.T) {
 func TestAuthorize_Pause_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
 	scopes := []*scope.Scope{
-		{AuthSHA: "deadbee", Entity: "E-01", Agent: "ai/claude", Principal: testActor, State: scope.StateActive},
+		{AuthSHA: "deadbee", Entity: "E-0001", Agent: "ai/claude", Principal: testActor, State: scope.StateActive},
 	}
-	res, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizePause,
 		Reason: "blocked by E-09",
 		Scopes: scopes,
@@ -230,7 +230,7 @@ func TestAuthorize_Pause_HappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
-	if got, want := res.Plan.Subject, "aiwf authorize E-01 --pause"; got != want {
+	if got, want := res.Plan.Subject, "aiwf authorize E-0001 --pause"; got != want {
 		t.Errorf("Subject = %q, want %q", got, want)
 	}
 	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
@@ -255,13 +255,13 @@ func TestAuthorize_Pause_HappyPath(t *testing.T) {
 func TestAuthorize_Pause_RequiresReason(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
-	_, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizePause,
 		Reason: "   ",
 		Scopes: []*scope.Scope{
-			{AuthSHA: "deadbee", Entity: "E-01", State: scope.StateActive},
+			{AuthSHA: "deadbee", Entity: "E-0001", State: scope.StateActive},
 		},
 	})
 	if err == nil || !strings.Contains(err.Error(), "non-empty reason") {
@@ -274,12 +274,12 @@ func TestAuthorize_Pause_RequiresReason(t *testing.T) {
 func TestAuthorize_Resume_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
 	scopes := []*scope.Scope{
-		{AuthSHA: "deadbee", Entity: "E-01", Agent: "ai/claude", Principal: testActor, State: scope.StatePaused},
+		{AuthSHA: "deadbee", Entity: "E-0001", Agent: "ai/claude", Principal: testActor, State: scope.StatePaused},
 	}
-	res, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizeResume,
 		Reason: "back to it",
 		Scopes: scopes,
@@ -303,12 +303,12 @@ func TestAuthorize_Resume_HappyPath(t *testing.T) {
 func TestAuthorize_Resume_RefusesWithoutPausedScope(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
 	scopes := []*scope.Scope{
-		{AuthSHA: "deadbee", Entity: "E-01", State: scope.StateActive},
+		{AuthSHA: "deadbee", Entity: "E-0001", State: scope.StateActive},
 	}
-	_, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizeResume,
 		Reason: "any",
 		Scopes: scopes,
@@ -324,15 +324,15 @@ func TestAuthorize_Resume_RefusesWithoutPausedScope(t *testing.T) {
 func TestAuthorize_Pause_PicksMostRecentlyOpenedActive(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
 	// Scopes ordered oldest-first: ended, paused, active.
 	scopes := []*scope.Scope{
-		{AuthSHA: "first11", Entity: "E-01", State: scope.StateEnded},
-		{AuthSHA: "second2", Entity: "E-01", State: scope.StatePaused},
-		{AuthSHA: "third33", Entity: "E-01", State: scope.StateActive},
+		{AuthSHA: "first11", Entity: "E-0001", State: scope.StateEnded},
+		{AuthSHA: "second2", Entity: "E-0001", State: scope.StatePaused},
+		{AuthSHA: "third33", Entity: "E-0001", State: scope.StateActive},
 	}
-	res, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizePause,
 		Reason: "context switch",
 		Scopes: scopes,
@@ -344,7 +344,7 @@ func TestAuthorize_Pause_PicksMostRecentlyOpenedActive(t *testing.T) {
 	// commit), but if no active existed the verb would've refused.
 	// Add a regression on subject + trailers to lock the current
 	// behaviour.
-	if got, want := res.Plan.Subject, "aiwf authorize E-01 --pause"; got != want {
+	if got, want := res.Plan.Subject, "aiwf authorize E-0001 --pause"; got != want {
 		t.Errorf("Subject = %q, want %q", got, want)
 	}
 }
@@ -353,7 +353,7 @@ func TestAuthorize_Pause_PicksMostRecentlyOpenedActive(t *testing.T) {
 // to a tree entity is rejected before any other rule fires.
 func TestAuthorize_Open_RefusesUnknownEntity(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.Authorize(r.ctx, r.tree(), "E-99", testActor, verb.AuthorizeOptions{
+	_, err := verb.Authorize(r.ctx, r.tree(), "E-0099", testActor, verb.AuthorizeOptions{
 		Mode:  verb.AuthorizeOpen,
 		Agent: "ai/claude",
 	})
@@ -370,10 +370,10 @@ func TestAuthorize_Open_RefusesUnknownEntity(t *testing.T) {
 func TestAuthorize_Open_PauseResumeCycleE2E(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
 	// Open.
-	open, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+	open, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizeOpen,
 		Agent:  "ai/claude",
 		Reason: "implement E-01",
@@ -386,7 +386,7 @@ func TestAuthorize_Open_PauseResumeCycleE2E(t *testing.T) {
 	}
 
 	// Simulate a fresh scope (cmd would loadEntityScopes from git here).
-	s := &scope.Scope{AuthSHA: "openSHA", Entity: "E-01", State: scope.StateActive}
+	s := &scope.Scope{AuthSHA: "openSHA", Entity: "E-0001", State: scope.StateActive}
 	scopes := []*scope.Scope{s}
 
 	for _, step := range []struct {
@@ -399,7 +399,7 @@ func TestAuthorize_Open_PauseResumeCycleE2E(t *testing.T) {
 		{verb.AuthorizePause, "pause-2", scope.StatePaused},
 		{verb.AuthorizeResume, "resume-2", scope.StateActive},
 	} {
-		res, err := verb.Authorize(r.ctx, r.tree(), "E-01", testActor, verb.AuthorizeOptions{
+		res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 			Mode:   step.mode,
 			Reason: step.reason,
 			Scopes: scopes,

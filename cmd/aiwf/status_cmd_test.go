@@ -18,29 +18,29 @@ import (
 func TestBuildStatus_FiltersToInFlight(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Active", Status: "active"},
-			{Kind: entity.KindEpic, ID: "E-02", Title: "Done", Status: "done"},
-			{Kind: entity.KindEpic, ID: "E-03", Title: "Proposed", Status: "proposed"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Active", Status: "active"},
+			{Kind: entity.KindEpic, ID: "E-0002", Title: "Done", Status: "done"},
+			{Kind: entity.KindEpic, ID: "E-0003", Title: "Proposed", Status: "proposed"},
 
-			{Kind: entity.KindMilestone, ID: "M-001", Title: "First", Status: "done", Parent: "E-01"},
-			{Kind: entity.KindMilestone, ID: "M-002", Title: "Second", Status: "in_progress", Parent: "E-01"},
-			{Kind: entity.KindMilestone, ID: "M-003", Title: "Third", Status: "draft", Parent: "E-01"},
-			{Kind: entity.KindMilestone, ID: "M-004", Title: "Planned", Status: "draft", Parent: "E-03"},
-			{Kind: entity.KindMilestone, ID: "M-099", Title: "Stale", Status: "done", Parent: "E-02"},
+			{Kind: entity.KindMilestone, ID: "M-0001", Title: "First", Status: "done", Parent: "E-0001"},
+			{Kind: entity.KindMilestone, ID: "M-0002", Title: "Second", Status: "in_progress", Parent: "E-0001"},
+			{Kind: entity.KindMilestone, ID: "M-0003", Title: "Third", Status: "draft", Parent: "E-0001"},
+			{Kind: entity.KindMilestone, ID: "M-0004", Title: "Planned", Status: "draft", Parent: "E-0003"},
+			{Kind: entity.KindMilestone, ID: "M-0099", Title: "Stale", Status: "done", Parent: "E-0002"},
 
 			{Kind: entity.KindADR, ID: "ADR-0001", Title: "Proposed ADR", Status: "proposed"},
 			{Kind: entity.KindADR, ID: "ADR-0002", Title: "Accepted", Status: "accepted"},
 
-			{Kind: entity.KindDecision, ID: "D-001", Title: "Open D", Status: "proposed"},
-			{Kind: entity.KindDecision, ID: "D-002", Title: "Done D", Status: "accepted"},
+			{Kind: entity.KindDecision, ID: "D-0001", Title: "Open D", Status: "proposed"},
+			{Kind: entity.KindDecision, ID: "D-0002", Title: "Done D", Status: "accepted"},
 
-			{Kind: entity.KindGap, ID: "G-001", Title: "Open gap", Status: "open", DiscoveredIn: "M-001"},
-			{Kind: entity.KindGap, ID: "G-002", Title: "Addressed gap", Status: "addressed"},
+			{Kind: entity.KindGap, ID: "G-0001", Title: "Open gap", Status: "open", DiscoveredIn: "M-0001"},
+			{Kind: entity.KindGap, ID: "G-0002", Title: "Addressed gap", Status: "addressed"},
 		},
 	}
 	r := buildStatus(tr, nil)
 
-	if len(r.InFlightEpics) != 1 || r.InFlightEpics[0].ID != "E-01" {
+	if len(r.InFlightEpics) != 1 || r.InFlightEpics[0].ID != "E-0001" {
 		t.Errorf("InFlightEpics: only E-01 expected, got %+v", r.InFlightEpics)
 	}
 	gotMS := r.InFlightEpics[0].Milestones
@@ -48,10 +48,10 @@ func TestBuildStatus_FiltersToInFlight(t *testing.T) {
 		t.Errorf("expected 3 milestones under E-01 (all of them), got %d", len(gotMS))
 	}
 
-	if len(r.PlannedEpics) != 1 || r.PlannedEpics[0].ID != "E-03" {
+	if len(r.PlannedEpics) != 1 || r.PlannedEpics[0].ID != "E-0003" {
 		t.Errorf("PlannedEpics: only E-03 expected, got %+v", r.PlannedEpics)
 	}
-	if len(r.PlannedEpics[0].Milestones) != 1 || r.PlannedEpics[0].Milestones[0].ID != "M-004" {
+	if len(r.PlannedEpics[0].Milestones) != 1 || r.PlannedEpics[0].Milestones[0].ID != "M-0004" {
 		t.Errorf("PlannedEpics[E-03] milestones: expected [M-004], got %+v", r.PlannedEpics[0].Milestones)
 	}
 
@@ -64,7 +64,7 @@ func TestBuildStatus_FiltersToInFlight(t *testing.T) {
 		}
 	}
 
-	if len(r.OpenGaps) != 1 || r.OpenGaps[0].ID != "G-001" {
+	if len(r.OpenGaps) != 1 || r.OpenGaps[0].ID != "G-0001" {
 		t.Errorf("OpenGaps: only G-001 expected, got %+v", r.OpenGaps)
 	}
 
@@ -78,11 +78,11 @@ func TestBuildStatus_FiltersToInFlight(t *testing.T) {
 func TestBuildStatus_MilestoneOrder(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Active", Status: "active"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Active", Status: "active"},
 			// Out-of-tree-walk-order on purpose; buildStatus must sort.
-			{Kind: entity.KindMilestone, ID: "M-003", Title: "Third", Status: "draft", Parent: "E-01"},
-			{Kind: entity.KindMilestone, ID: "M-001", Title: "First", Status: "done", Parent: "E-01"},
-			{Kind: entity.KindMilestone, ID: "M-002", Title: "Second", Status: "in_progress", Parent: "E-01"},
+			{Kind: entity.KindMilestone, ID: "M-0003", Title: "Third", Status: "draft", Parent: "E-0001"},
+			{Kind: entity.KindMilestone, ID: "M-0001", Title: "First", Status: "done", Parent: "E-0001"},
+			{Kind: entity.KindMilestone, ID: "M-0002", Title: "Second", Status: "in_progress", Parent: "E-0001"},
 		},
 	}
 	r := buildStatus(tr, nil)
@@ -91,7 +91,7 @@ func TestBuildStatus_MilestoneOrder(t *testing.T) {
 	for _, m := range r.InFlightEpics[0].Milestones {
 		got = append(got, m.ID)
 	}
-	want := []string{"M-001", "M-002", "M-003"}
+	want := []string{"M-0001", "M-0002", "M-0003"}
 	for i := range want {
 		if got[i] != want[i] {
 			t.Errorf("milestone order [%d]: got %q, want %q", i, got[i], want[i])
@@ -119,11 +119,11 @@ func TestRenderStatusText_MarksInProgress(t *testing.T) {
 	r := statusReport{
 		Date: "2026-04-28",
 		InFlightEpics: []statusEpic{{
-			ID: "E-01", Title: "Active", Status: "active",
+			ID: "E-0001", Title: "Active", Status: "active",
 			Milestones: []statusMilestone{
-				{ID: "M-001", Title: "First", Status: "done"},
-				{ID: "M-002", Title: "Second", Status: "in_progress"},
-				{ID: "M-003", Title: "Third", Status: "draft"},
+				{ID: "M-0001", Title: "First", Status: "done"},
+				{ID: "M-0002", Title: "Second", Status: "in_progress"},
+				{ID: "M-0003", Title: "Third", Status: "draft"},
 			},
 		}},
 		Health: statusHealthCounts{Entities: 4},
@@ -137,10 +137,10 @@ func TestRenderStatusText_MarksInProgress(t *testing.T) {
 
 	for _, want := range []string{
 		"aiwf status — 2026-04-28",
-		"E-01 — Active",
-		" ✓ M-001",
-		" → M-002",
-		"M-003 — Third    [draft]",
+		"E-0001 — Active",
+		" ✓ M-0001",
+		" → M-0002",
+		"M-0003 — Third    [draft]",
 		"Roadmap",
 		"(nothing planned)",
 		"Warnings",
@@ -158,7 +158,7 @@ func TestBuildStatus_Warnings(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
-				Kind: entity.KindGap, ID: "G-001",
+				Kind: entity.KindGap, ID: "G-0001",
 				Title: "Half-resolved", Status: "addressed",
 				Path: "work/gaps/G-001-half-resolved.md",
 			},
@@ -176,7 +176,7 @@ func TestBuildStatus_Warnings(t *testing.T) {
 	if w.Code != "gap-resolved-has-resolver" {
 		t.Errorf("Warnings[0].Code = %q, want %q", w.Code, "gap-resolved-has-resolver")
 	}
-	if w.EntityID != "G-001" {
+	if w.EntityID != "G-0001" {
 		t.Errorf("Warnings[0].EntityID = %q, want G-001", w.EntityID)
 	}
 	if w.Message == "" {
@@ -190,7 +190,7 @@ func TestRenderStatusText_Warnings(t *testing.T) {
 	r := statusReport{
 		Date: "2026-05-01",
 		Warnings: []statusFinding{
-			{Code: "gap-resolved-has-resolver", EntityID: "G-001", Message: "gap is marked addressed but addressed_by is empty"},
+			{Code: "gap-resolved-has-resolver", EntityID: "G-0001", Message: "gap is marked addressed but addressed_by is empty"},
 		},
 		Health: statusHealthCounts{Entities: 1, Warnings: 1},
 	}
@@ -204,7 +204,7 @@ func TestRenderStatusText_Warnings(t *testing.T) {
 	for _, want := range []string{
 		"Warnings",
 		"gap-resolved-has-resolver",
-		"[G-001]",
+		"[G-0001]",
 		"gap is marked addressed",
 		"run `aiwf check` for details",
 	} {
@@ -223,26 +223,26 @@ func TestRenderStatusMarkdown_FullReport(t *testing.T) {
 	r := statusReport{
 		Date: "2026-05-01",
 		InFlightEpics: []statusEpic{{
-			ID: "E-01", Title: "Active epic", Status: "active",
+			ID: "E-0001", Title: "Active epic", Status: "active",
 			Milestones: []statusMilestone{
-				{ID: "M-001", Title: "First", Status: "done"},
-				{ID: "M-002", Title: "Second", Status: "in_progress"},
+				{ID: "M-0001", Title: "First", Status: "done"},
+				{ID: "M-0002", Title: "Second", Status: "in_progress"},
 			},
 		}},
 		PlannedEpics: []statusEpic{{
-			ID: "E-02", Title: "Planned epic", Status: "proposed",
+			ID: "E-0002", Title: "Planned epic", Status: "proposed",
 			Milestones: []statusMilestone{
-				{ID: "M-010", Title: "Setup", Status: "draft"},
+				{ID: "M-0010", Title: "Setup", Status: "draft"},
 			},
 		}},
 		OpenDecisions: []statusEntity{
 			{ID: "ADR-0001", Title: "Adopt X", Status: "proposed", Kind: "adr"},
 		},
 		OpenGaps: []statusGap{
-			{ID: "G-001", Title: "Edge case", DiscoveredIn: "M-002"},
+			{ID: "G-0001", Title: "Edge case", DiscoveredIn: "M-0002"},
 		},
 		Warnings: []statusFinding{
-			{Code: "gap-resolved-has-resolver", EntityID: "G-002", Message: "gap is marked addressed but addressed_by is empty"},
+			{Code: "gap-resolved-has-resolver", EntityID: "G-0002", Message: "gap is marked addressed but addressed_by is empty"},
 		},
 		Health: statusHealthCounts{Entities: 7, Errors: 0, Warnings: 1},
 	}
@@ -257,20 +257,20 @@ func TestRenderStatusMarkdown_FullReport(t *testing.T) {
 		"# aiwf status — 2026-05-01",
 		"_7 entities · 0 errors · 1 warnings · run `aiwf check` for details_",
 		"## In flight",
-		"### E-01 — Active epic _(active)_",
+		"### E-0001 — Active epic _(active)_",
 		"```mermaid\nflowchart LR",
-		"E_01[\"E-01<br/>Active epic\"]:::epic_active",
-		"M_002[\"M-002<br/>Second\"]:::ms_in_progress",
-		"E_01 --> M_001",
+		"E_0001[\"E-0001<br/>Active epic\"]:::epic_active",
+		"M_0002[\"M-0002<br/>Second\"]:::ms_in_progress",
+		"E_0001 --> M_0001",
 		"## Roadmap",
-		"### E-02 — Planned epic _(proposed)_",
-		"E_02[\"E-02<br/>Planned epic\"]:::epic_proposed",
+		"### E-0002 — Planned epic _(proposed)_",
+		"E_0002[\"E-0002<br/>Planned epic\"]:::epic_proposed",
 		"## Open decisions",
 		"| ADR-0001 | adr | Adopt X | proposed |",
 		"## Open gaps",
-		"| G-001 | Edge case | M-002 |",
+		"| G-0001 | Edge case | M-0002 |",
 		"## Warnings",
-		"| gap-resolved-has-resolver | G-002 |  | gap is marked addressed but addressed_by is empty |",
+		"| gap-resolved-has-resolver | G-0002 |  | gap is marked addressed but addressed_by is empty |",
 		"## Recent activity",
 	} {
 		if !strings.Contains(got, want) {
@@ -390,9 +390,9 @@ func TestRenderACProgress(t *testing.T) {
 func TestRenderStatusText_ACProgressInline(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
 			{
-				Kind: entity.KindMilestone, ID: "M-001", Title: "First", Status: "in_progress", Parent: "E-01",
+				Kind: entity.KindMilestone, ID: "M-0001", Title: "First", Status: "in_progress", Parent: "E-0001",
 				TDD: "required",
 				ACs: []entity.AcceptanceCriterion{
 					{ID: "AC-1", Title: "x", Status: "met", TDDPhase: "done"},
@@ -421,9 +421,9 @@ func TestRenderStatusText_ACProgressInline(t *testing.T) {
 func TestRenderStatusMarkdown_MermaidACBadge(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
 			{
-				Kind: entity.KindMilestone, ID: "M-007", Title: "Engine", Status: "in_progress", Parent: "E-01",
+				Kind: entity.KindMilestone, ID: "M-0007", Title: "Engine", Status: "in_progress", Parent: "E-0001",
 				ACs: []entity.AcceptanceCriterion{
 					{ID: "AC-1", Status: "met"},
 					{ID: "AC-2", Status: "met"},
@@ -441,7 +441,7 @@ func TestRenderStatusMarkdown_MermaidACBadge(t *testing.T) {
 	if !strings.Contains(out, "ACs 2/3 met (1 open)") {
 		t.Errorf("markdown bullet missing AC progress:\n%s", out)
 	}
-	if !strings.Contains(out, "M-007 (2/3)") {
+	if !strings.Contains(out, "M-0007 (2/3)") {
 		t.Errorf("mermaid label missing (2/3) badge:\n%s", out)
 	}
 }
@@ -530,7 +530,7 @@ func TestReadHistory_SkipsProseMentions(t *testing.T) {
 		t.Fatalf("git commit (prose): %v\n%s", err, out)
 	}
 
-	events, err := readHistory(context.Background(), root, "G-001")
+	events, err := readHistory(context.Background(), root, "G-0001")
 	if err != nil {
 		t.Fatalf("readHistory: %v", err)
 	}

@@ -82,7 +82,7 @@ func TestProvenanceCheck_UntrailedEntityCommit(t *testing.T) {
 
 	// Manually edit the gap file and commit without aiwf trailers —
 	// the audit-trail hole G24 cares about.
-	gapRel := mustFindFile(t, root, "G-001-")
+	gapRel := mustFindFile(t, root, "G-0001-")
 	manualFlipStatus(t, filepath.Join(root, gapRel), "open", "wontfix")
 	if out, err := runGit(root, "add", gapRel); err != nil {
 		t.Fatalf("git add: %v\n%s", err, out)

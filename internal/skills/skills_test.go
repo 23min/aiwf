@@ -522,6 +522,8 @@ func TestSkill_AddNamesBodyFileAsAlternative(t *testing.T) {
 		// Explicit M-067 cross-reference. The spec calls for
 		// a two-way pointer; without the literal id the trail
 		// from this skill back to the verb history is lost.
+		// Narrow width matches the SKILL.md prose verbatim;
+		// body-prose canonicalization is M-082's `aiwf rewidth`.
 		"M-067",
 		// "When to use" — the skill should signal that the
 		// in-verb form is for content already drafted, not a
@@ -584,6 +586,8 @@ func TestSkill_AddDontEntryAgainstEmptyBodies(t *testing.T) {
 		"entity-body-empty",
 		// Cross-reference to the rule's milestone so the trail
 		// from the Don't entry back to the rule is one click.
+		// Narrow width matches the SKILL.md prose verbatim;
+		// body-prose canonicalization is M-082's `aiwf rewidth`.
 		"M-066",
 	}
 	for _, m := range mustContain {

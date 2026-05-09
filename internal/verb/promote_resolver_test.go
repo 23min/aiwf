@@ -16,20 +16,20 @@ import (
 func TestPromote_GapAddressedBy(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Resolver", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Resolver", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Hand-edit gap", testActor, verb.AddOptions{}))
 
-	r.must(verb.Promote(r.ctx, r.tree(), "G-001", "addressed", testActor, "", false,
-		verb.PromoteOptions{AddressedBy: []string{"M-001"}}))
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedBy: []string{"M-0001"}}))
 
-	g := r.tree().ByID("G-001")
+	g := r.tree().ByID("G-0001")
 	if g == nil {
 		t.Fatal("G-001 missing after promote")
 	}
 	if g.Status != "addressed" {
 		t.Errorf("status = %q, want addressed", g.Status)
 	}
-	if len(g.AddressedBy) != 1 || g.AddressedBy[0] != "M-001" {
+	if len(g.AddressedBy) != 1 || g.AddressedBy[0] != "M-0001" {
 		t.Errorf("addressed_by = %v, want [M-001]", g.AddressedBy)
 	}
 
@@ -47,18 +47,18 @@ func TestPromote_GapAddressedBy(t *testing.T) {
 func TestPromote_GapAddressedByMultiple(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Second", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Second", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Co-resolved", testActor, verb.AddOptions{}))
 
-	r.must(verb.Promote(r.ctx, r.tree(), "G-001", "addressed", testActor, "", false,
-		verb.PromoteOptions{AddressedBy: []string{"M-001", "M-002"}}))
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedBy: []string{"M-0001", "M-0002"}}))
 
-	g := r.tree().ByID("G-001")
+	g := r.tree().ByID("G-0001")
 	if g == nil || len(g.AddressedBy) != 2 {
 		t.Fatalf("G-001 = %+v, want addressed_by [M-001 M-002]", g)
 	}
-	if g.AddressedBy[0] != "M-001" || g.AddressedBy[1] != "M-002" {
+	if g.AddressedBy[0] != "M-0001" || g.AddressedBy[1] != "M-0002" {
 		t.Errorf("addressed_by = %v, want [M-001 M-002]", g.AddressedBy)
 	}
 }
@@ -69,10 +69,10 @@ func TestPromote_GapAddressedByCommit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Closed by hardening commit", testActor, verb.AddOptions{}))
 
-	r.must(verb.Promote(r.ctx, r.tree(), "G-001", "addressed", testActor, "", false,
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
 		verb.PromoteOptions{AddressedByCommit: []string{"abcdef1234"}}))
 
-	g := r.tree().ByID("G-001")
+	g := r.tree().ByID("G-0001")
 	if g == nil {
 		t.Fatal("G-001 missing")
 	}
@@ -120,14 +120,14 @@ func TestPromote_ResolverWrongKind(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 
-	_, err := verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "", false,
-		verb.PromoteOptions{AddressedBy: []string{"M-001"}})
+	_, err := verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false,
+		verb.PromoteOptions{AddressedBy: []string{"M-0001"}})
 	if err == nil || !strings.Contains(err.Error(), "only valid for gap entities") {
 		t.Errorf("expected gap-only error, got %v", err)
 	}
 
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
-	_, err = verb.Promote(r.ctx, r.tree(), "G-001", "addressed", testActor, "", false,
+	_, err = verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
 		verb.PromoteOptions{SupersededBy: "ADR-0001"})
 	if err == nil || !strings.Contains(err.Error(), "only valid for ADR entities") {
 		t.Errorf("expected ADR-only error, got %v", err)
@@ -140,8 +140,8 @@ func TestPromote_ResolverWrongStatus(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
 
-	_, err := verb.Promote(r.ctx, r.tree(), "G-001", "wontfix", testActor, "", false,
-		verb.PromoteOptions{AddressedBy: []string{"M-001"}})
+	_, err := verb.Promote(r.ctx, r.tree(), "G-0001", "wontfix", testActor, "", false,
+		verb.PromoteOptions{AddressedBy: []string{"M-0001"}})
 	if err == nil || !strings.Contains(err.Error(), `only valid when promoting to "addressed"`) {
 		t.Errorf("expected wrong-status error, got %v", err)
 	}
@@ -153,11 +153,11 @@ func TestPromote_ResolverWrongStatus(t *testing.T) {
 func TestPromote_ResolverOnAC(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Bar", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "an AC", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Bar", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "an AC", testActor, nil))
 
-	_, err := verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "", false,
-		verb.PromoteOptions{AddressedBy: []string{"M-001"}})
+	_, err := verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "", false,
+		verb.PromoteOptions{AddressedBy: []string{"M-0001"}})
 	if err == nil || !strings.Contains(err.Error(), "AC promotions") {
 		t.Errorf("expected AC-rejection error, got %v", err)
 	}
@@ -170,20 +170,20 @@ func TestPromote_ResolverOnAC(t *testing.T) {
 func TestPromote_ResolverAtomicSingleCommit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
 
-	beforeStatus := r.tree().ByID("G-001").Status
-	beforeResolver := append([]string(nil), r.tree().ByID("G-001").AddressedBy...)
+	beforeStatus := r.tree().ByID("G-0001").Status
+	beforeResolver := append([]string(nil), r.tree().ByID("G-0001").AddressedBy...)
 	if beforeStatus != "open" || len(beforeResolver) != 0 {
 		t.Fatalf("setup invalid: before status=%q resolver=%v", beforeStatus, beforeResolver)
 	}
 
-	r.must(verb.Promote(r.ctx, r.tree(), "G-001", "addressed", testActor, "", false,
-		verb.PromoteOptions{AddressedBy: []string{"M-001"}}))
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedBy: []string{"M-0001"}}))
 
-	g := r.tree().ByID("G-001")
-	if g.Status != "addressed" || len(g.AddressedBy) != 1 || g.AddressedBy[0] != "M-001" {
+	g := r.tree().ByID("G-0001")
+	if g.Status != "addressed" || len(g.AddressedBy) != 1 || g.AddressedBy[0] != "M-0001" {
 		t.Errorf("post-promote G-001 = %+v; expected status=addressed, addressed_by=[M-001]", g)
 	}
 	// The check tree must be clean — the check rule does not fire

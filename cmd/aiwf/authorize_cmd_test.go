@@ -38,16 +38,16 @@ func TestRunAuthorize_OpenPauseResumeRoundTrip(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01 active: %v\n%s", err, out)
 	}
 
 	// Open a scope.
 	if out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--to", "ai/claude", "--reason", "implement E-01"); err != nil {
+		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-01"); err != nil {
 		t.Fatalf("aiwf authorize --to: %v\n%s", err, out)
 	}
-	scopes := mustLoadScopes(t, root, "E-01")
+	scopes := mustLoadScopes(t, root, "E-0001")
 	if len(scopes) != 1 {
 		t.Fatalf("after open: scopes len=%d, want 1", len(scopes))
 	}
@@ -57,20 +57,20 @@ func TestRunAuthorize_OpenPauseResumeRoundTrip(t *testing.T) {
 
 	// Pause it.
 	if out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--pause", "blocked by E-09"); err != nil {
+		"authorize", "E-0001", "--pause", "blocked by E-09"); err != nil {
 		t.Fatalf("aiwf authorize --pause: %v\n%s", err, out)
 	}
-	scopes = mustLoadScopes(t, root, "E-01")
+	scopes = mustLoadScopes(t, root, "E-0001")
 	if scopes[0].State != scope.StatePaused {
 		t.Errorf("after pause: state = %s, want paused", scopes[0].State)
 	}
 
 	// Resume it.
 	if out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--resume", "back to it"); err != nil {
+		"authorize", "E-0001", "--resume", "back to it"); err != nil {
 		t.Fatalf("aiwf authorize --resume: %v\n%s", err, out)
 	}
-	scopes = mustLoadScopes(t, root, "E-01")
+	scopes = mustLoadScopes(t, root, "E-0001")
 	if scopes[0].State != scope.StateActive {
 		t.Errorf("after resume: state = %s, want active", scopes[0].State)
 	}
@@ -81,7 +81,7 @@ func TestRunAuthorize_OpenPauseResumeRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	hasTrailer(t, tr, "aiwf-verb", "authorize")
-	hasTrailer(t, tr, "aiwf-entity", "E-01")
+	hasTrailer(t, tr, "aiwf-entity", "E-0001")
 	hasTrailer(t, tr, "aiwf-scope", "resumed")
 	hasTrailer(t, tr, "aiwf-reason", "back to it")
 }
@@ -110,12 +110,12 @@ func TestRunAuthorize_RefusesNonHumanActor(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote: %v\n%s", err, out)
 	}
 
 	out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--actor", "ai/claude", "--to", "ai/cursor")
+		"authorize", "E-0001", "--actor", "ai/claude", "--to", "ai/cursor")
 	if err == nil {
 		t.Fatalf("expected non-zero exit for non-human actor; output:\n%s", out)
 	}
@@ -150,7 +150,7 @@ func TestRunAuthorize_PauseRefusedWhenNoActiveScope(t *testing.T) {
 	}
 
 	out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--pause", "trying without a scope")
+		"authorize", "E-0001", "--pause", "trying without a scope")
 	if err == nil {
 		t.Fatalf("expected non-zero exit; output:\n%s", out)
 	}
@@ -181,7 +181,7 @@ func TestRunAuthorize_RejectsMixedModes(t *testing.T) {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
 	out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--pause", "x", "--resume", "y")
+		"authorize", "E-0001", "--pause", "x", "--resume", "y")
 	if err == nil {
 		t.Fatalf("expected mixed-mode usage error; got:\n%s", out)
 	}

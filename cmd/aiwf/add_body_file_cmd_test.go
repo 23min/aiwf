@@ -59,7 +59,7 @@ func TestAdd_BodyFile_BinaryEndToEnd(t *testing.T) {
 
 	// Frontmatter still rendered correctly — the body wasn't
 	// concatenated raw onto the file.
-	if !strings.Contains(string(got), "id: E-01") {
+	if !strings.Contains(string(got), "id: E-0001") {
 		t.Errorf("epic.md missing serialized frontmatter:\n%s", got)
 	}
 }

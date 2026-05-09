@@ -21,9 +21,9 @@ func TestEditBody_RoundTrip(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 
 	newBody := "## Goal\n\nFreshly edited prose.\n\n## Scope\n\nUpdated scope.\n"
-	r.must(verb.EditBody(r.ctx, r.tree(), "E-01", []byte(newBody), testActor, ""))
+	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte(newBody), testActor, ""))
 
-	got, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-01-foundations", "epic.md"))
+	got, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-0001-foundations", "epic.md"))
 	if err != nil {
 		t.Fatalf("read epic: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestEditBody_RoundTrip(t *testing.T) {
 		t.Errorf("body = %q, want %q", body, newBody)
 	}
 	// Frontmatter still has the original id/title/status.
-	if !strings.Contains(string(got), "id: E-01") {
+	if !strings.Contains(string(got), "id: E-0001") {
 		t.Errorf("frontmatter id missing: %s", got)
 	}
 	if !strings.Contains(string(got), "title: Foundations") {
@@ -53,7 +53,7 @@ func TestEditBody_SingleOpWriteAndCommit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Test gap", testActor, verb.AddOptions{}))
 
-	res, err := verb.EditBody(r.ctx, r.tree(), "G-001", []byte("## Body\n\nupdated\n"), testActor, "")
+	res, err := verb.EditBody(r.ctx, r.tree(), "G-0001", []byte("## Body\n\nupdated\n"), testActor, "")
 	if err != nil {
 		t.Fatalf("EditBody: %v", err)
 	}
@@ -74,14 +74,14 @@ func TestEditBody_SingleOpWriteAndCommit(t *testing.T) {
 func TestEditBody_TrailerSet(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.EditBody(r.ctx, r.tree(), "E-01", []byte("body content\n"), testActor, ""))
+	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte("body content\n"), testActor, ""))
 
 	trailers, err := gitops.HeadTrailers(context.Background(), r.root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	mustHaveTrailer(t, trailers, "aiwf-verb", "edit-body")
-	mustHaveTrailer(t, trailers, "aiwf-entity", "E-01")
+	mustHaveTrailer(t, trailers, "aiwf-entity", "E-0001")
 	mustHaveTrailer(t, trailers, "aiwf-actor", testActor)
 	for _, tr := range trailers {
 		if tr.Key == "aiwf-to" {
@@ -95,7 +95,7 @@ func TestEditBody_TrailerSet(t *testing.T) {
 func TestEditBody_WithReason(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.EditBody(r.ctx, r.tree(), "E-01", []byte("body\n"), testActor,
+	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte("body\n"), testActor,
 		"reframing scope after the planning review"))
 
 	body, err := gitops.HeadBody(context.Background(), r.root)
@@ -115,7 +115,7 @@ func TestEditBody_RejectsFrontmatter(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
 
 	bad := []byte("---\nid: PRETEND\n---\n\n## body\n")
-	_, err := verb.EditBody(r.ctx, r.tree(), "E-01", bad, testActor, "")
+	_, err := verb.EditBody(r.ctx, r.tree(), "E-0001", bad, testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "frontmatter delimiter") {
 		t.Errorf("expected frontmatter-delimiter error, got %v", err)
 	}
@@ -127,10 +127,10 @@ func TestEditBody_RejectsFrontmatter(t *testing.T) {
 func TestEditBody_RejectsCompositeID(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "criterion", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "criterion", testActor, nil))
 
-	_, err := verb.EditBody(r.ctx, r.tree(), "M-001/AC-1", []byte("body\n"), testActor, "")
+	_, err := verb.EditBody(r.ctx, r.tree(), "M-0001/AC-1", []byte("body\n"), testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "composite ids") {
 		t.Errorf("expected composite-id error, got %v", err)
 	}
@@ -140,7 +140,7 @@ func TestEditBody_RejectsCompositeID(t *testing.T) {
 // work — same shape as Promote/Cancel for missing ids.
 func TestEditBody_NonExistentID(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.EditBody(r.ctx, r.tree(), "E-99", []byte("body\n"), testActor, "")
+	_, err := verb.EditBody(r.ctx, r.tree(), "E-0099", []byte("body\n"), testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected not-found error, got %v", err)
 	}
@@ -153,7 +153,7 @@ func TestEditBody_NonExistentID(t *testing.T) {
 func TestEditBody_PostEditTreeIsClean(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.EditBody(r.ctx, r.tree(), "E-01", []byte("## Goal\n\nClean body.\n"), testActor, ""))
+	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte("## Goal\n\nClean body.\n"), testActor, ""))
 
 	if findings := check.Run(r.tree(), nil); check.HasErrors(findings) {
 		t.Errorf("post-edit-body tree has errors: %+v", findings)
@@ -168,19 +168,19 @@ func TestEditBody_PostEditTreeIsClean(t *testing.T) {
 func TestEditBody_PreservesFrontmatterFields(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "first", testActor, nil))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "second", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "first", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "second", testActor, nil))
 
-	r.must(verb.EditBody(r.ctx, r.tree(), "M-001",
+	r.must(verb.EditBody(r.ctx, r.tree(), "M-0001",
 		[]byte("## Goal\n\nrewritten\n\n### AC-1 — first\n\n### AC-2 — second\n"),
 		testActor, ""))
 
-	m := r.tree().ByID("M-001")
+	m := r.tree().ByID("M-0001")
 	if m == nil {
 		t.Fatal("M-001 missing")
 	}
-	if m.Parent != "E-01" {
+	if m.Parent != "E-0001" {
 		t.Errorf("parent = %q, want E-01", m.Parent)
 	}
 	if len(m.ACs) != 2 || m.ACs[0].ID != "AC-1" || m.ACs[1].ID != "AC-2" {

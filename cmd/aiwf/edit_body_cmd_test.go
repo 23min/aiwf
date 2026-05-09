@@ -45,7 +45,7 @@ func TestEditBody_BinaryEndToEnd(t *testing.T) {
 		t.Fatalf("write body file: %v", err)
 	}
 
-	out, err := runBin(t, root, binDir, nil, "edit-body", "E-01", "--body-file", bodyPath)
+	out, err := runBin(t, root, binDir, nil, "edit-body", "E-0001", "--body-file", bodyPath)
 	if err != nil {
 		t.Fatalf("aiwf edit-body: %v\n%s", err, out)
 	}
@@ -55,7 +55,7 @@ func TestEditBody_BinaryEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	hasTrailer(t, tr, "aiwf-verb", "edit-body")
-	hasTrailer(t, tr, "aiwf-entity", "E-01")
+	hasTrailer(t, tr, "aiwf-entity", "E-0001")
 
 	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-*", "epic.md"))
 	if err != nil || len(matches) != 1 {
@@ -68,7 +68,7 @@ func TestEditBody_BinaryEndToEnd(t *testing.T) {
 	if !strings.Contains(string(got), "Fleshed-out goal prose") {
 		t.Errorf("epic.md missing edited body content:\n%s", got)
 	}
-	if !strings.Contains(string(got), "id: E-01") {
+	if !strings.Contains(string(got), "id: E-0001") {
 		t.Errorf("epic.md frontmatter id missing after edit:\n%s", got)
 	}
 
@@ -110,7 +110,7 @@ func TestEditBody_StdinEndToEnd(t *testing.T) {
 	}
 
 	stdin := "## Body via stdin\n\nThis content arrived through a pipe.\n"
-	cmd := exec.Command(bin, "edit-body", "G-001", "--body-file", "-")
+	cmd := exec.Command(bin, "edit-body", "G-0001", "--body-file", "-")
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(),
 		"GIT_AUTHOR_NAME=aiwf-test",
@@ -169,7 +169,7 @@ func TestEditBody_RejectsFrontmatter_BinaryEndToEnd(t *testing.T) {
 		t.Fatalf("write: %v", err)
 	}
 
-	out, err := runBin(t, root, binDir, nil, "edit-body", "E-01", "--body-file", bodyPath)
+	out, err := runBin(t, root, binDir, nil, "edit-body", "E-0001", "--body-file", bodyPath)
 	if err == nil {
 		t.Fatalf("expected refusal; got:\n%s", out)
 	}
@@ -223,7 +223,7 @@ func TestEditBody_Bless_BinaryEndToEnd(t *testing.T) {
 	}
 
 	// Bless: no --body-file flag.
-	out, err := runBin(t, root, binDir, nil, "edit-body", "E-01")
+	out, err := runBin(t, root, binDir, nil, "edit-body", "E-0001")
 	if err != nil {
 		t.Fatalf("aiwf edit-body (bless): %v\n%s", err, out)
 	}
@@ -245,7 +245,7 @@ func TestEditBody_Bless_BinaryEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	hasTrailer(t, tr, "aiwf-verb", "edit-body")
-	hasTrailer(t, tr, "aiwf-entity", "E-01")
+	hasTrailer(t, tr, "aiwf-entity", "E-0001")
 
 	// `aiwf check` doesn't surface provenance-untrailered-entity-commit
 	// against this commit — bless mode produces a proper trailered
@@ -287,7 +287,7 @@ func TestEditBody_Bless_NoChanges_BinaryRefusal(t *testing.T) {
 	}
 
 	// No edit between add and bless — should refuse cleanly.
-	out, err := runBin(t, root, binDir, nil, "edit-body", "G-001")
+	out, err := runBin(t, root, binDir, nil, "edit-body", "G-0001")
 	if err == nil {
 		t.Fatalf("expected no-changes refusal; got:\n%s", out)
 	}
@@ -321,7 +321,7 @@ func TestEditBody_BareCommand_BlessModeOnNonExistentID(t *testing.T) {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
 
-	out, err := runBin(t, root, binDir, nil, "edit-body", "E-01")
+	out, err := runBin(t, root, binDir, nil, "edit-body", "E-0001")
 	if err == nil {
 		t.Fatalf("expected refusal on non-existent id; got:\n%s", out)
 	}

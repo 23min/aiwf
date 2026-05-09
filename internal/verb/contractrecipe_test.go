@@ -102,7 +102,7 @@ contracts:
 	if err != nil {
 		t.Fatalf("RecipeInstall --force: %v", err)
 	}
-	wantIDs := map[string]bool{"C-001": true, "C-002": true}
+	wantIDs := map[string]bool{"C-0001": true, "C-0002": true}
 	gotIDs := map[string]bool{}
 	for _, tr := range res.Plan.Trailers {
 		if tr.Key == "aiwf-entity" {
@@ -117,7 +117,7 @@ contracts:
 			t.Errorf("trailer aiwf-entity:%s missing", id)
 		}
 	}
-	if gotIDs["C-003"] {
+	if gotIDs["C-0003"] {
 		t.Error("C-003 should not have a trailer (different validator)")
 	}
 }
@@ -155,7 +155,7 @@ contracts:
 `
 	d, c := mustReadDoc(t, src)
 	_, err := RecipeRemove(context.Background(), d, c, "cue", "human/test")
-	if err == nil || !strings.Contains(err.Error(), "C-001") {
+	if err == nil || !strings.Contains(err.Error(), "C-0001") {
 		t.Errorf("expected error naming C-001; got %v", err)
 	}
 }
@@ -245,7 +245,7 @@ contracts:
 	if err == nil {
 		t.Fatal("expected error for referenced validator")
 	}
-	for _, want := range []string{"C-001", "C-007"} {
+	for _, want := range []string{"C-0001", "C-0007"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error %q missing reference %s", err, want)
 		}
@@ -267,12 +267,12 @@ func TestBindingsReferencing_IsNilSafeAndSorted(t *testing.T) {
 	c := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{
-			{ID: "C-002", Validator: "cue", Schema: "s", Fixtures: "f"},
-			{ID: "C-001", Validator: "cue", Schema: "s", Fixtures: "f"},
+			{ID: "C-0002", Validator: "cue", Schema: "s", Fixtures: "f"},
+			{ID: "C-0001", Validator: "cue", Schema: "s", Fixtures: "f"},
 		},
 	}
 	got := bindingsReferencing(c, "cue")
-	if len(got) != 2 || got[0] != "C-001" || got[1] != "C-002" {
+	if len(got) != 2 || got[0] != "C-0001" || got[1] != "C-0002" {
 		t.Errorf("expected sorted [C-001 C-002]; got %v", got)
 	}
 }

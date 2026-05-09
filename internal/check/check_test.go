@@ -37,15 +37,15 @@ func codes(fs []Finding) []string {
 
 func TestIDsUnique(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Path: "a.md"},
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Path: "b.md"},
-		&entity.Entity{ID: "M-002", Kind: entity.KindMilestone, Path: "c.md"},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "a.md"},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "b.md"},
+		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, Path: "c.md"},
 	)
 	got := idsUnique(tr)
 	if len(got) != 1 {
 		t.Fatalf("idsUnique findings = %d, want 1: %+v", len(got), got)
 	}
-	if got[0].EntityID != "M-001" || got[0].Path != "b.md" {
+	if got[0].EntityID != "M-0001" || got[0].Path != "b.md" {
 		t.Errorf("got %+v", got[0])
 	}
 }
@@ -55,10 +55,10 @@ func TestIDsUnique_TrunkCollision(t *testing.T) {
 	// path — the G37 case. The check must surface this as a finding so
 	// the pre-push hook fails before the colliding push lands.
 	tr := makeTree(
-		&entity.Entity{ID: "G-035", Kind: entity.KindGap, Path: "work/gaps/G-035-local.md"},
+		&entity.Entity{ID: "G-0035", Kind: entity.KindGap, Path: "work/gaps/G-035-local.md"},
 	)
 	tr.TrunkIDs = []trunk.ID{
-		{Kind: entity.KindGap, ID: "G-035", Path: "work/gaps/G-035-trunk.md"},
+		{Kind: entity.KindGap, ID: "G-0035", Path: "work/gaps/G-035-trunk.md"},
 	}
 	got := idsUnique(tr)
 	if len(got) != 1 {
@@ -68,7 +68,7 @@ func TestIDsUnique_TrunkCollision(t *testing.T) {
 	if f.Code != "ids-unique" {
 		t.Errorf("Code = %q, want ids-unique", f.Code)
 	}
-	if f.EntityID != "G-035" {
+	if f.EntityID != "G-0035" {
 		t.Errorf("EntityID = %q, want G-035", f.EntityID)
 	}
 	if f.Subcode != "trunk-collision" {
@@ -87,10 +87,10 @@ func TestIDsUnique_TrunkSamePath_NoFinding(t *testing.T) {
 	// normal post-merge state, not a collision. The check must stay
 	// silent so every aiwf check doesn't drown in noise.
 	tr := makeTree(
-		&entity.Entity{ID: "G-001", Kind: entity.KindGap, Path: "work/gaps/G-001-foo.md"},
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-001-foo.md"},
 	)
 	tr.TrunkIDs = []trunk.ID{
-		{Kind: entity.KindGap, ID: "G-001", Path: "work/gaps/G-001-foo.md"},
+		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-001-foo.md"},
 	}
 	got := idsUnique(tr)
 	if len(got) != 0 {
@@ -104,10 +104,10 @@ func TestIDsUnique_TrunkOnlyID_NoFinding(t *testing.T) {
 	// not to carry that entity yet. The allocator's job is to avoid
 	// re-using G-007; the check's job is only to catch overlaps.
 	tr := makeTree(
-		&entity.Entity{ID: "G-001", Kind: entity.KindGap, Path: "work/gaps/G-001-foo.md"},
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-001-foo.md"},
 	)
 	tr.TrunkIDs = []trunk.ID{
-		{Kind: entity.KindGap, ID: "G-007", Path: "work/gaps/G-007-trunk-only.md"},
+		{Kind: entity.KindGap, ID: "G-0007", Path: "work/gaps/G-007-trunk-only.md"},
 	}
 	got := idsUnique(tr)
 	if len(got) != 0 {
@@ -123,9 +123,9 @@ func TestIDsUnique_TrunkOnlyID_NoFinding(t *testing.T) {
 // silently surfaces as data loss on checkout.
 func TestCasePaths_ReportsCaseEquivalentEntities(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
-		&entity.Entity{ID: "E-02", Kind: entity.KindEpic, Path: "work/epics/E-01-Foo/epic.md"},
-		&entity.Entity{ID: "E-03", Kind: entity.KindEpic, Path: "work/epics/E-03-bar/epic.md"},
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
+		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Path: "work/epics/E-01-Foo/epic.md"},
+		&entity.Entity{ID: "E-0003", Kind: entity.KindEpic, Path: "work/epics/E-03-bar/epic.md"},
 	)
 	got := casePaths(tr)
 	if len(got) != 1 {
@@ -135,6 +135,9 @@ func TestCasePaths_ReportsCaseEquivalentEntities(t *testing.T) {
 		t.Errorf("code = %q, want case-paths", got[0].Code)
 	}
 	// Message must name the colliding pair so the user can locate them.
+	// On-disk paths are still narrow (E-01-foo) per the parser-tolerance
+	// invariant — the kernel's lookup canonicalizes ids but the path
+	// strings aren't rewritten until M-082's `aiwf rewidth`.
 	msg := got[0].Message
 	if !strings.Contains(msg, "E-01-foo") || !strings.Contains(msg, "E-01-Foo") {
 		t.Errorf("message should name both colliding paths; got %q", msg)
@@ -145,8 +148,8 @@ func TestCasePaths_ReportsCaseEquivalentEntities(t *testing.T) {
 // produces no case-paths findings.
 func TestCasePaths_CleanTreeNoFindings(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
-		&entity.Entity{ID: "E-02", Kind: entity.KindEpic, Path: "work/epics/E-02-bar/epic.md"},
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
+		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Path: "work/epics/E-02-bar/epic.md"},
 	)
 	got := casePaths(tr)
 	if len(got) != 0 {
@@ -159,9 +162,9 @@ func TestCasePaths_CleanTreeNoFindings(t *testing.T) {
 // user sees every offender, not just one.
 func TestCasePaths_ThreeWayCollision(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
-		&entity.Entity{ID: "E-02", Kind: entity.KindEpic, Path: "work/epics/E-01-FOO/epic.md"},
-		&entity.Entity{ID: "E-03", Kind: entity.KindEpic, Path: "work/epics/E-01-Foo/epic.md"},
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
+		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Path: "work/epics/E-01-FOO/epic.md"},
+		&entity.Entity{ID: "E-0003", Kind: entity.KindEpic, Path: "work/epics/E-01-Foo/epic.md"},
 	)
 	got := casePaths(tr)
 	if len(got) < 2 {
@@ -171,17 +174,17 @@ func TestCasePaths_ThreeWayCollision(t *testing.T) {
 
 func TestStatusValid(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Status: "active"},            // ok
-		&entity.Entity{ID: "E-02", Kind: entity.KindEpic, Status: "in_progress"},       // milestone-only status
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Status: "in_progress"}, // ok
-		&entity.Entity{ID: "M-002", Kind: entity.KindMilestone, Status: "done"},        // ok
-		&entity.Entity{ID: "G-001", Kind: entity.KindGap, Status: ""},                  // empty: skipped
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Status: "active"},           // ok
+		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Status: "in_progress"},      // milestone-only status
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Status: "in_progress"}, // ok
+		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, Status: "done"},        // ok
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Status: ""},                  // empty: skipped
 	)
 	got := statusValid(tr)
 	if len(got) != 1 {
 		t.Fatalf("got %d findings, want 1: %+v", len(got), got)
 	}
-	if got[0].EntityID != "E-02" {
+	if got[0].EntityID != "E-0002" {
 		t.Errorf("got %+v", got[0])
 	}
 }
@@ -193,11 +196,11 @@ func TestFrontmatterShape(t *testing.T) {
 		// Bad id format for kind.
 		&entity.Entity{ID: "X-99", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: "b.md"},
 		// Milestone missing parent.
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Title: "Foo", Status: "draft", Path: "c.md"},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "Foo", Status: "draft", Path: "c.md"},
 		// Contract minimal — id, title, status only — is clean.
-		&entity.Entity{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "proposed", Path: "d.md"},
+		&entity.Entity{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "proposed", Path: "d.md"},
 		// Clean gap.
-		&entity.Entity{ID: "G-001", Kind: entity.KindGap, Title: "Foo", Status: "open", Path: "e.md"},
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Title: "Foo", Status: "open", Path: "e.md"},
 	)
 	got := frontmatterShape(tr)
 	want := []string{
@@ -212,8 +215,8 @@ func TestFrontmatterShape(t *testing.T) {
 
 func TestRefsResolve_Unresolved(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic},
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Parent: "E-99"}, // unresolved
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"}, // unresolved
 	)
 	got := refsResolve(tr)
 	if len(got) != 1 || got[0].Subcode != "unresolved" {
@@ -223,8 +226,8 @@ func TestRefsResolve_Unresolved(t *testing.T) {
 
 func TestRefsResolve_WrongKind(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "D-001", Kind: entity.KindDecision},
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Parent: "D-001"}, // parent must be epic
+		&entity.Entity{ID: "D-0001", Kind: entity.KindDecision},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "D-0001"}, // parent must be epic
 	)
 	got := refsResolve(tr)
 	if len(got) != 1 || got[0].Subcode != "wrong-kind" {
@@ -242,13 +245,13 @@ func TestRefsResolve_StubResolvesReferences(t *testing.T) {
 	// parse failure still appears as a load-error finding via Run().
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{ID: "M-001", Kind: entity.KindMilestone, Parent: "E-01", Path: "m1.md"},
-			{ID: "M-002", Kind: entity.KindMilestone, Parent: "E-01", Path: "m2.md"},
-			{ID: "G-001", Kind: entity.KindGap, DiscoveredIn: "E-01", Path: "g1.md"},
-			{ID: "D-001", Kind: entity.KindDecision, RelatesTo: []string{"E-01"}, Path: "d1.md"},
+			{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0001", Path: "m1.md"},
+			{ID: "M-0002", Kind: entity.KindMilestone, Parent: "E-0001", Path: "m2.md"},
+			{ID: "G-0001", Kind: entity.KindGap, DiscoveredIn: "E-0001", Path: "g1.md"},
+			{ID: "D-0001", Kind: entity.KindDecision, RelatesTo: []string{"E-0001"}, Path: "d1.md"},
 		},
 		Stubs: []*entity.Entity{
-			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-bad/epic.md"},
+			{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-bad/epic.md"},
 		},
 	}
 	got := refsResolve(tr)
@@ -264,10 +267,10 @@ func TestRefsResolve_StubPreservesWrongKindCheck(t *testing.T) {
 	// the wrong-kind finding must still be raised.
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{ID: "M-001", Kind: entity.KindMilestone, Parent: "G-001", Path: "m.md"},
+			{ID: "M-0001", Kind: entity.KindMilestone, Parent: "G-0001", Path: "m.md"},
 		},
 		Stubs: []*entity.Entity{
-			{ID: "G-001", Kind: entity.KindGap, Path: "work/gaps/G-001.md"},
+			{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-001.md"},
 		},
 	}
 	got := refsResolve(tr)
@@ -282,11 +285,11 @@ func TestRefsResolve_RealEntityWinsOverStub(t *testing.T) {
 	// first and wins.
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{ID: "E-01", Kind: entity.KindEpic, Path: "good.md"},
-			{ID: "M-001", Kind: entity.KindMilestone, Parent: "E-01", Path: "m.md"},
+			{ID: "E-0001", Kind: entity.KindEpic, Path: "good.md"},
+			{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0001", Path: "m.md"},
 		},
 		Stubs: []*entity.Entity{
-			{ID: "E-01", Kind: entity.KindGap, Path: "stub.md"}, // wrong kind
+			{ID: "E-0001", Kind: entity.KindGap, Path: "stub.md"}, // wrong kind
 		},
 	}
 	got := refsResolve(tr)
@@ -311,7 +314,7 @@ func TestRefsResolve_ProliminalCascadeRepro(t *testing.T) {
 		entities = append(entities, &entity.Entity{
 			ID:     fmt.Sprintf("M-%03d", i),
 			Kind:   entity.KindMilestone,
-			Parent: "E-01",
+			Parent: "E-0001",
 			Path:   fmt.Sprintf("work/epics/E-01-foo/M-%03d.md", i),
 		})
 	}
@@ -320,7 +323,7 @@ func TestRefsResolve_ProliminalCascadeRepro(t *testing.T) {
 		entities = append(entities, &entity.Entity{
 			ID:           fmt.Sprintf("G-%03d", i),
 			Kind:         entity.KindGap,
-			DiscoveredIn: "E-01",
+			DiscoveredIn: "E-0001",
 			Path:         fmt.Sprintf("work/gaps/G-%03d.md", i),
 		})
 	}
@@ -329,14 +332,14 @@ func TestRefsResolve_ProliminalCascadeRepro(t *testing.T) {
 		entities = append(entities, &entity.Entity{
 			ID:        fmt.Sprintf("D-%03d", i),
 			Kind:      entity.KindDecision,
-			RelatesTo: []string{"E-01"},
+			RelatesTo: []string{"E-0001"},
 			Path:      fmt.Sprintf("work/decisions/D-%03d.md", i),
 		})
 	}
 	tr := &tree.Tree{
 		Entities: entities,
 		Stubs: []*entity.Entity{
-			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
+			{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
 		},
 	}
 	got := refsResolve(tr)
@@ -352,10 +355,10 @@ func TestIdsUnique_StubVsRealCollision(t *testing.T) {
 	// id-collision.
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-good/epic.md"},
+			{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-good/epic.md"},
 		},
 		Stubs: []*entity.Entity{
-			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-bad/epic.md"},
+			{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-bad/epic.md"},
 		},
 	}
 	got := idsUnique(tr)
@@ -370,8 +373,8 @@ func TestIdsUnique_StubVsRealCollision(t *testing.T) {
 func TestIdsUnique_StubVsStubCollision(t *testing.T) {
 	tr := &tree.Tree{
 		Stubs: []*entity.Entity{
-			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-a/epic.md"},
-			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-b/epic.md"},
+			{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-a/epic.md"},
+			{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-b/epic.md"},
 		},
 	}
 	got := idsUnique(tr)
@@ -382,7 +385,7 @@ func TestIdsUnique_StubVsStubCollision(t *testing.T) {
 
 func TestIdPathConsistent_Mismatch(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID:   "M-100",
+		ID:   "M-0100",
 		Kind: entity.KindMilestone,
 		Path: "work/epics/E-01-foo/M-099-thing.md",
 	})
@@ -393,17 +396,17 @@ func TestIdPathConsistent_Mismatch(t *testing.T) {
 	if got[0].Code != "id-path-consistent" {
 		t.Errorf("Code = %q, want id-path-consistent", got[0].Code)
 	}
-	if got[0].EntityID != "M-100" {
+	if got[0].EntityID != "M-0100" {
 		t.Errorf("EntityID = %q, want M-100", got[0].EntityID)
 	}
-	if !strings.Contains(got[0].Message, "M-099") || !strings.Contains(got[0].Message, "M-100") {
+	if !strings.Contains(got[0].Message, "M-0099") || !strings.Contains(got[0].Message, "M-0100") {
 		t.Errorf("Message should mention both ids; got %q", got[0].Message)
 	}
 }
 
 func TestIdPathConsistent_Agrees(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID:   "E-01",
+		ID:   "E-0001",
 		Kind: entity.KindEpic,
 		Path: "work/epics/E-01-platform/epic.md",
 	})
@@ -418,7 +421,7 @@ func TestIdPathConsistent_SkipsEntitiesWithoutPathID(t *testing.T) {
 	// Defensive: shouldn't happen post-loader, but the check
 	// must not crash if it does.
 	tr := makeTree(&entity.Entity{
-		ID:   "E-01",
+		ID:   "E-0001",
 		Kind: entity.KindEpic,
 		Path: "work/epics/no-id-here/epic.md",
 	})
@@ -435,7 +438,7 @@ func TestIdPathConsistent_StubsTriviallyMatch(t *testing.T) {
 	// spurious pass through some other code path.
 	tr := &tree.Tree{
 		Stubs: []*entity.Entity{
-			{ID: "E-01", Kind: entity.KindEpic, Path: "work/epics/E-01-stubbed/epic.md"},
+			{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-stubbed/epic.md"},
 		},
 	}
 	got := idPathConsistent(tr)
@@ -537,11 +540,11 @@ func TestRefsResolve_AnyKindFields(t *testing.T) {
 	// addressed_by and relates_to permit any kind, so a gap addressed_by
 	// a milestone or a decision relates_to a contract should resolve fine.
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic},
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Parent: "E-01"},
-		&entity.Entity{ID: "C-001", Kind: entity.KindContract},
-		&entity.Entity{ID: "G-001", Kind: entity.KindGap, AddressedBy: []string{"M-001"}},
-		&entity.Entity{ID: "D-001", Kind: entity.KindDecision, RelatesTo: []string{"C-001"}},
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0001"},
+		&entity.Entity{ID: "C-0001", Kind: entity.KindContract},
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, AddressedBy: []string{"M-0001"}},
+		&entity.Entity{ID: "D-0001", Kind: entity.KindDecision, RelatesTo: []string{"C-0001"}},
 	)
 	got := refsResolve(tr)
 	if len(got) != 0 {
@@ -551,9 +554,9 @@ func TestRefsResolve_AnyKindFields(t *testing.T) {
 
 func TestNoCycles_DependsOn(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, DependsOn: []string{"M-002"}, Path: "1.md"},
-		&entity.Entity{ID: "M-002", Kind: entity.KindMilestone, DependsOn: []string{"M-003"}, Path: "2.md"},
-		&entity.Entity{ID: "M-003", Kind: entity.KindMilestone, DependsOn: []string{"M-001"}, Path: "3.md"},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0002"}, Path: "1.md"},
+		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, DependsOn: []string{"M-0003"}, Path: "2.md"},
+		&entity.Entity{ID: "M-0003", Kind: entity.KindMilestone, DependsOn: []string{"M-0001"}, Path: "3.md"},
 	)
 	got := noCycles(tr)
 	if len(got) != 3 {
@@ -584,9 +587,9 @@ func TestNoCycles_ADRChain(t *testing.T) {
 
 func TestNoCycles_AcyclicIsClean(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, DependsOn: []string{"M-002"}},
-		&entity.Entity{ID: "M-002", Kind: entity.KindMilestone, DependsOn: []string{"M-003"}},
-		&entity.Entity{ID: "M-003", Kind: entity.KindMilestone},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0002"}},
+		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, DependsOn: []string{"M-0003"}},
+		&entity.Entity{ID: "M-0003", Kind: entity.KindMilestone},
 	)
 	got := noCycles(tr)
 	if len(got) != 0 {
@@ -596,7 +599,7 @@ func TestNoCycles_AcyclicIsClean(t *testing.T) {
 
 func TestNoCycles_SelfLoop(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, DependsOn: []string{"M-001"}, Path: "1.md"},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0001"}, Path: "1.md"},
 	)
 	got := noCycles(tr)
 	if len(got) != 1 {
@@ -606,9 +609,9 @@ func TestNoCycles_SelfLoop(t *testing.T) {
 
 func TestTitlesNonempty(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Title: "good"},
-		&entity.Entity{ID: "E-02", Kind: entity.KindEpic, Title: ""},
-		&entity.Entity{ID: "E-03", Kind: entity.KindEpic, Title: "   "},
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "good"},
+		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Title: ""},
+		&entity.Entity{ID: "E-0003", Kind: entity.KindEpic, Title: "   "},
 	)
 	got := titlesNonempty(tr)
 	if len(got) != 2 {
@@ -642,24 +645,24 @@ func TestADRSupersessionMutual(t *testing.T) {
 func TestGapResolvedHasResolver(t *testing.T) {
 	tr := makeTree(
 		// Open gap: no constraint.
-		&entity.Entity{ID: "G-001", Kind: entity.KindGap, Status: "open"},
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Status: "open"},
 		// Wontfix: no constraint.
-		&entity.Entity{ID: "G-002", Kind: entity.KindGap, Status: "wontfix"},
+		&entity.Entity{ID: "G-0002", Kind: entity.KindGap, Status: "wontfix"},
 		// Addressed without resolver.
-		&entity.Entity{ID: "G-003", Kind: entity.KindGap, Status: "addressed"},
+		&entity.Entity{ID: "G-0003", Kind: entity.KindGap, Status: "addressed"},
 		// Addressed with resolver.
-		&entity.Entity{ID: "G-004", Kind: entity.KindGap, Status: "addressed", AddressedBy: []string{"M-001"}},
+		&entity.Entity{ID: "G-0004", Kind: entity.KindGap, Status: "addressed", AddressedBy: []string{"M-0001"}},
 	)
 	got := gapResolvedHasResolver(tr)
-	if len(got) != 1 || got[0].EntityID != "G-003" {
+	if len(got) != 1 || got[0].EntityID != "G-0003" {
 		t.Errorf("got %+v", got)
 	}
 }
 
 func TestRun_OrdersBySeverity(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Title: "", Status: "active"}, // titles-nonempty (warning)
-		&entity.Entity{ID: "E-02", Kind: entity.KindEpic, Title: "Foo", Status: "wat"}, // status-valid (error)
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "", Status: "active"}, // titles-nonempty (warning)
+		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Title: "Foo", Status: "wat"}, // status-valid (error)
 	)
 	got := Run(tr, nil)
 	if len(got) < 2 {
@@ -711,9 +714,9 @@ func (e *fakeError) Error() string { return e.msg }
 // 2 findings, not 1).
 func TestIDsUnique_ThreeWayCollision(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Path: "a.md"},
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Path: "b.md"},
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, Path: "c.md"},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "a.md"},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "b.md"},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "c.md"},
 	)
 	got := idsUnique(tr)
 	if len(got) != 2 {
@@ -730,10 +733,10 @@ func TestIDsUnique_ThreeWayCollision(t *testing.T) {
 // as a cycle.
 func TestNoCycles_DiamondIsAcyclic(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, DependsOn: []string{"M-002", "M-003"}},
-		&entity.Entity{ID: "M-002", Kind: entity.KindMilestone, DependsOn: []string{"M-004"}},
-		&entity.Entity{ID: "M-003", Kind: entity.KindMilestone, DependsOn: []string{"M-004"}},
-		&entity.Entity{ID: "M-004", Kind: entity.KindMilestone},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0002", "M-0003"}},
+		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, DependsOn: []string{"M-0004"}},
+		&entity.Entity{ID: "M-0003", Kind: entity.KindMilestone, DependsOn: []string{"M-0004"}},
+		&entity.Entity{ID: "M-0004", Kind: entity.KindMilestone},
 	)
 	got := noCycles(tr)
 	if len(got) != 0 {
@@ -745,11 +748,11 @@ func TestNoCycles_DiamondIsAcyclic(t *testing.T) {
 func TestNoCycles_TwoDisjointCycles(t *testing.T) {
 	tr := makeTree(
 		// Cycle A: M-001 <-> M-002
-		&entity.Entity{ID: "M-001", Kind: entity.KindMilestone, DependsOn: []string{"M-002"}, Path: "1.md"},
-		&entity.Entity{ID: "M-002", Kind: entity.KindMilestone, DependsOn: []string{"M-001"}, Path: "2.md"},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0002"}, Path: "1.md"},
+		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, DependsOn: []string{"M-0001"}, Path: "2.md"},
 		// Cycle B: M-003 <-> M-004
-		&entity.Entity{ID: "M-003", Kind: entity.KindMilestone, DependsOn: []string{"M-004"}, Path: "3.md"},
-		&entity.Entity{ID: "M-004", Kind: entity.KindMilestone, DependsOn: []string{"M-003"}, Path: "4.md"},
+		&entity.Entity{ID: "M-0003", Kind: entity.KindMilestone, DependsOn: []string{"M-0004"}, Path: "3.md"},
+		&entity.Entity{ID: "M-0004", Kind: entity.KindMilestone, DependsOn: []string{"M-0003"}, Path: "4.md"},
 	)
 	got := noCycles(tr)
 	if len(got) != 4 {
@@ -759,7 +762,7 @@ func TestNoCycles_TwoDisjointCycles(t *testing.T) {
 	for _, f := range got {
 		seen[f.EntityID] = true
 	}
-	for _, want := range []string{"M-001", "M-002", "M-003", "M-004"} {
+	for _, want := range []string{"M-0001", "M-0002", "M-0003", "M-0004"} {
 		if !seen[want] {
 			t.Errorf("cycle finding for %s missing", want)
 		}
@@ -815,20 +818,22 @@ depends_on: M-002
 // has something to scan.
 func TestRun_PopulatesHintsAndLines(t *testing.T) {
 	root := t.TempDir()
-	dir := filepath.Join(root, "work", "epics", "E-01-foo")
+	// On-disk dir/filename uses canonical width to align with AC-1's
+	// emission policy. The id-string contents inside frontmatter are
+	// also canonical; the parent ref intentionally points at a
+	// non-existent E-0099 to trigger the refs-resolve finding.
+	dir := filepath.Join(root, "work", "epics", "E-0001-foo")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	// Layout: parent on line 5, status on line 4. The line resolver
 	// indexes the first occurrence of `<key>:` per file.
-	body := "---\nid: M-001\ntitle: Bad parent\nstatus: draft\nparent: E-99\n---\n"
-	mPath := filepath.Join(dir, "M-001-bad.md")
+	body := "---\nid: M-0001\ntitle: Bad parent\nstatus: draft\nparent: E-0099\n---\n"
+	mPath := filepath.Join(dir, "M-0001-bad.md")
 	if err := os.WriteFile(mPath, []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	// Minimal epic so the milestone has a tree to live in (its parent
-	// is intentionally pointing at E-99 to trigger the finding).
-	epicBody := "---\nid: E-01\ntitle: Foo\nstatus: active\n---\n"
+	epicBody := "---\nid: E-0001\ntitle: Foo\nstatus: active\n---\n"
 	if err := os.WriteFile(filepath.Join(dir, "epic.md"), []byte(epicBody), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -836,8 +841,8 @@ func TestRun_PopulatesHintsAndLines(t *testing.T) {
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{
-			{ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: "work/epics/E-01-foo/epic.md"},
-			{ID: "M-001", Kind: entity.KindMilestone, Title: "Bad parent", Status: "draft", Parent: "E-99", Path: "work/epics/E-01-foo/M-001-bad.md"},
+			{ID: "E-0001", Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: "work/epics/E-0001-foo/epic.md"},
+			{ID: "M-0001", Kind: entity.KindMilestone, Title: "Bad parent", Status: "draft", Parent: "E-0099", Path: "work/epics/E-0001-foo/M-0001-bad.md"},
 		},
 	}
 
@@ -865,7 +870,7 @@ func TestRun_PopulatesHintsAndLines(t *testing.T) {
 // so editors still get a clickable file:line link.
 func TestRun_LineFallsBackToOne(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "bogus",
+		ID: "E-0001", Kind: entity.KindEpic, Title: "Foo", Status: "bogus",
 		Path: "synthetic-no-such-file.md",
 	})
 	findings := Run(tr, nil)

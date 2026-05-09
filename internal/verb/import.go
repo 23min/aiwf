@@ -82,9 +82,11 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 	}
 
 	// Build an id → existing-entity map for collision detection.
+	// Keyed by canonical id so a manifest declaring `E-01` collides
+	// correctly with a tree-resident `E-0001` per AC-2 in M-081.
 	existing := make(map[string]*entity.Entity, len(t.Entities))
 	for _, e := range t.Entities {
-		existing[e.ID] = e
+		existing[entity.Canonicalize(e.ID)] = e
 	}
 
 	// Step 1+2: resolve explicit-id collisions and dedupe within
@@ -101,11 +103,14 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 		if e.IsAuto() {
 			continue
 		}
-		// Intra-manifest duplicate?
+		// Intra-manifest duplicate? Canonicalize so a manifest
+		// declaring both `E-01` and `E-0001` is caught as one
+		// duplicate (AC-2 in M-081).
+		canonE := entity.Canonicalize(e.ID)
 		if reserved[k] == nil {
 			reserved[k] = map[string]bool{}
 		}
-		if reserved[k][e.ID] {
+		if reserved[k][canonE] {
 			collisionFindings = append(collisionFindings, check.Finding{
 				Code:     "import-duplicate-id",
 				Severity: check.SeverityError,
@@ -114,9 +119,9 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 			})
 			continue
 		}
-		reserved[k][e.ID] = true
+		reserved[k][canonE] = true
 
-		ex, hit := existing[e.ID]
+		ex, hit := existing[entity.Canonicalize(e.ID)]
 		if !hit {
 			plannedEntries = append(plannedEntries, plannedEntry{idx: i, entry: e, kind: k, id: e.ID})
 			continue
@@ -126,14 +131,17 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 			collisionFindings = append(collisionFindings, check.Finding{
 				Code:     "import-collision",
 				Severity: check.SeverityError,
-				EntityID: e.ID,
+				EntityID: canonE,
 				Path:     ex.Path,
-				Message:  fmt.Sprintf("id %s already exists in tree (re-run with --on-collision=skip or --on-collision=update)", e.ID),
+				Message:  fmt.Sprintf("id %s already exists in tree (re-run with --on-collision=skip or --on-collision=update)", canonE),
 			})
 		case OnCollisionSkip:
 			// drop silently from action list
 		case OnCollisionUpdate:
-			plannedEntries = append(plannedEntries, plannedEntry{idx: i, entry: e, kind: k, id: e.ID, isUpdate: true, existing: ex})
+			// On update, use the existing entity's id so the resulting
+			// path-resolution and projection target the right file
+			// (the existing on-disk shape, not the manifest's).
+			plannedEntries = append(plannedEntries, plannedEntry{idx: i, entry: e, kind: k, id: ex.ID, isUpdate: true, existing: ex})
 		}
 	}
 
@@ -161,9 +169,12 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 	// Step 4: build entities and resolve paths. Path resolution may
 	// reference an epic that's also in the manifest (forward ref),
 	// so build a transient lookup over (existing ∪ planned) ids.
+	// Keyed by canonical id so a manifest forward-ref to `E-01`
+	// matches another manifest entry whose id reads `E-0001` (and
+	// vice versa) per AC-2 in M-081.
 	plannedByID := make(map[string]*plannedEntry, len(plannedEntries))
 	for i := range plannedEntries {
-		plannedByID[plannedEntries[i].id] = &plannedEntries[i]
+		plannedByID[entity.Canonicalize(plannedEntries[i].id)] = &plannedEntries[i]
 	}
 
 	entities := make([]*entity.Entity, len(plannedEntries))
@@ -258,21 +269,11 @@ func idPrefix(k entity.Kind) string {
 }
 
 // formatID builds an id string for kind k with the canonical pad
-// width applied to n. Mirrors entity.AllocateID's formatting.
+// width applied to n. Mirrors entity.AllocateID's formatting; both
+// share entity.CanonicalPad as the single source of truth per
+// ADR-0008.
 func formatID(k entity.Kind, n int) string {
-	pad := canonicalPadFor(k)
-	return fmt.Sprintf("%s%0*d", idPrefix(k), pad, n)
-}
-
-func canonicalPadFor(k entity.Kind) int {
-	switch k {
-	case entity.KindEpic:
-		return 2
-	case entity.KindADR:
-		return 4
-	default:
-		return 3
-	}
+	return fmt.Sprintf("%s%0*d", idPrefix(k), entity.CanonicalPad, n)
 }
 
 // buildEntityFromEntry materializes a manifest entry into an
@@ -348,7 +349,7 @@ func lookupEpicDir(epicID string, t *tree.Tree, plannedByID map[string]*plannedE
 		}
 		return filepath.Dir(ex.Path), nil
 	}
-	pe, ok := plannedByID[epicID]
+	pe, ok := plannedByID[entity.Canonicalize(epicID)]
 	if !ok {
 		return "", fmt.Errorf("parent %q does not exist in tree or manifest", epicID)
 	}
@@ -421,14 +422,16 @@ func buildImportPlans(m *manifest.Manifest, plans []plannedEntry, ents []*entity
 		for i := range plans {
 			pe := &plans[i]
 			subject := fmt.Sprintf("aiwf import %s %s %q", pe.kind, pe.id, ents[i].Title)
+			canonID := entity.Canonicalize(pe.id)
 			if pe.isUpdate {
-				subject = fmt.Sprintf("aiwf import update %s %s %q", pe.kind, pe.id, ents[i].Title)
+				subject = fmt.Sprintf("aiwf import update %s %s %q", pe.kind, canonID, ents[i].Title)
 			}
 			out[i] = &Plan{
 				Subject: subject,
 				Trailers: []gitops.Trailer{
 					{Key: gitops.TrailerVerb, Value: "add"},
-					{Key: gitops.TrailerEntity, Value: pe.id},
+					// Canonical width per AC-1 in M-081.
+					{Key: gitops.TrailerEntity, Value: canonID},
 					{Key: gitops.TrailerActor, Value: actor},
 				},
 				Ops: []FileOp{ops[i]},
@@ -445,7 +448,8 @@ func buildImportPlans(m *manifest.Manifest, plans []plannedEntry, ents []*entity
 		{Key: gitops.TrailerVerb, Value: "import"},
 	}
 	for i := range plans {
-		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerEntity, Value: plans[i].id})
+		// Canonical width per AC-1 in M-081.
+		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerEntity, Value: entity.Canonicalize(plans[i].id)})
 	}
 	trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerActor, Value: actor})
 	return []*Plan{{

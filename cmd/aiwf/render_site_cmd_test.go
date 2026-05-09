@@ -17,7 +17,7 @@ func TestRun_RenderHTML_DispatchesToSite(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Schema", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema", "--actor", "human/test", "--root", root)
 
 	out := filepath.Join(t.TempDir(), "site")
 	captured := captureStdout(t, func() {
@@ -47,7 +47,7 @@ func TestRun_RenderHTML_DispatchesToSite(t *testing.T) {
 		t.Errorf("result.files_written = %d, want 4", env.Result.FilesWritten)
 	}
 
-	for _, name := range []string{"index.html", "status.html", "E-01.html", "M-001.html", "assets/style.css"} {
+	for _, name := range []string{"index.html", "status.html", "E-0001.html", "M-0001.html", "assets/style.css"} {
 		if _, err := os.Stat(filepath.Join(out, name)); err != nil {
 			t.Errorf("expected %s in out dir; %v", name, err)
 		}
@@ -103,14 +103,14 @@ func TestRun_RenderHTML_DeterministicAcrossInvocations(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "M", "--actor", "human/test", "--root", root)
 
 	out1 := filepath.Join(t.TempDir(), "s1")
 	out2 := filepath.Join(t.TempDir(), "s2")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out1)
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out2)
 
-	for _, rel := range []string{"index.html", "E-01.html", "M-001.html", "assets/style.css"} {
+	for _, rel := range []string{"index.html", "E-0001.html", "M-0001.html", "assets/style.css"} {
 		a := readFileT(t, filepath.Join(out1, rel))
 		b := readFileT(t, filepath.Join(out2, rel))
 		if a != b {

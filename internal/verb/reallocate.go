@@ -178,14 +178,20 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		ops = append(ops, FileOp{Type: OpWrite, Path: writePath, Content: content})
 	}
 
-	subject := fmt.Sprintf("aiwf reallocate %s -> %s", oldID, newID)
+	// Canonicalize trailer values per AC-1 in M-081: new commits
+	// always carry canonical-width trailers, even when the renumbered
+	// entity's old id was at narrow legacy width on disk. Lookup at
+	// read time stays width-tolerant via entity.IDGrepAlternation.
+	canonOld := entity.Canonicalize(oldID)
+	canonNew := entity.Canonicalize(newID)
+	subject := fmt.Sprintf("aiwf reallocate %s -> %s", canonOld, canonNew)
 	return &Result{
 		Plan: &Plan{
 			Subject: subject,
 			Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "reallocate"},
-				{Key: gitops.TrailerEntity, Value: newID},
-				{Key: gitops.TrailerPriorEntity, Value: oldID},
+				{Key: gitops.TrailerEntity, Value: canonNew},
+				{Key: gitops.TrailerPriorEntity, Value: canonOld},
 				{Key: gitops.TrailerActor, Value: actor},
 			},
 			Ops: ops,
@@ -194,10 +200,16 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 }
 
 // proseRewritePattern returns a regex that matches the literal
-// id at word boundaries. Word boundaries prevent false matches
-// against longer ids (M-001 must not match M-0010 or M-0011).
+// id at word boundaries. Width-tolerant per AC-2 in M-081: a
+// query for E-0022 matches both narrow legacy `E-22` and canonical
+// `E-0022` mentions (and vice versa for M/G/D/C). Word boundaries
+// prevent false matches against longer ids — M-001 must not match
+// M-0010 or M-0011, M-0001 must not match M-00010 either.
 func proseRewritePattern(id string) *regexp.Regexp {
-	return regexp.MustCompile(`\b` + regexp.QuoteMeta(id) + `\b`)
+	// IDGrepAlternation builds a wrapped alternation `(<prefix>0*<n>)`
+	// that matches every zero-padded form of the same numeric value.
+	// Wrap in word boundaries so `M-001` doesn't match `M-0010`.
+	return regexp.MustCompile(`\b` + entity.IDGrepAlternation(id) + `\b`)
 }
 
 // appendPriorID returns prior with id appended, unless id is already
@@ -411,19 +423,25 @@ func rewriteReferences(entities []*entity.Entity, target *entity.Entity, oldID, 
 // (single or list) rewritten from oldID to newID. The bool reports
 // whether any field actually changed; callers skip writes for entities
 // that didn't reference the old id.
+//
+// Comparison is width-tolerant per AC-2 in M-081: a frontmatter
+// reference at narrow legacy width (`parent: E-01`) is replaced when
+// reallocating the canonical-width entity (`E-0001` → `E-0002`). The
+// rewritten reference always lands at canonical width.
 func rewriteEntityRefs(e *entity.Entity, oldID, newID string) (*entity.Entity, bool) {
 	modified := *e
 	changed := false
+	canonOld := entity.Canonicalize(oldID)
 
-	if modified.Parent == oldID {
+	if entity.Canonicalize(modified.Parent) == canonOld {
 		modified.Parent = newID
 		changed = true
 	}
-	if modified.SupersededBy == oldID {
+	if entity.Canonicalize(modified.SupersededBy) == canonOld {
 		modified.SupersededBy = newID
 		changed = true
 	}
-	if modified.DiscoveredIn == oldID {
+	if entity.Canonicalize(modified.DiscoveredIn) == canonOld {
 		modified.DiscoveredIn = newID
 		changed = true
 	}
@@ -448,11 +466,15 @@ func rewriteEntityRefs(e *entity.Entity, oldID, newID string) (*entity.Entity, b
 
 // rewriteList substitutes every occurrence of oldID with newID inside
 // a list field. Returns the (possibly new) slice and whether any
-// element changed. The original slice is not mutated.
+// element changed. The original slice is not mutated. Comparison is
+// width-tolerant: a list element matching the canonical form of oldID
+// (e.g. narrow legacy `M-001` against canonical query `M-0001`) is
+// rewritten to newID.
 func rewriteList(s []string, oldID, newID string) ([]string, bool) {
+	canonOld := entity.Canonicalize(oldID)
 	changed := false
 	for _, v := range s {
-		if v == oldID {
+		if entity.Canonicalize(v) == canonOld {
 			changed = true
 			break
 		}
@@ -462,7 +484,7 @@ func rewriteList(s []string, oldID, newID string) ([]string, bool) {
 	}
 	out := make([]string, len(s))
 	for i, v := range s {
-		if v == oldID {
+		if entity.Canonicalize(v) == canonOld {
 			out[i] = newID
 		} else {
 			out[i] = v

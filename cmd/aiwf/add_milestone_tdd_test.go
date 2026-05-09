@@ -42,7 +42,7 @@ func addMilestoneTDDSetup(t *testing.T) string {
 func TestAddMilestone_TDDFlagRequired(t *testing.T) {
 	root := addMilestoneTDDSetup(t)
 
-	got := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Bootstrap", "--actor", "human/test", "--root", root})
+	got := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--actor", "human/test", "--root", root})
 	if got != exitUsage {
 		t.Errorf("add milestone without --tdd = %d, want %d (usage error — G-055 layer 1)", got, exitUsage)
 	}
@@ -54,7 +54,7 @@ func TestAddMilestone_TDDValueValidation(t *testing.T) {
 	root := addMilestoneTDDSetup(t)
 
 	// A bogus value must produce exitUsage.
-	got := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Bogus", "--tdd", "bogus", "--actor", "human/test", "--root", root})
+	got := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bogus", "--tdd", "bogus", "--actor", "human/test", "--root", root})
 	if got != exitUsage {
 		t.Errorf("add milestone --tdd bogus = %d, want %d", got, exitUsage)
 	}
@@ -65,7 +65,7 @@ func TestAddMilestone_TDDValueValidation(t *testing.T) {
 	for _, val := range []string{"required", "advisory", "none"} {
 		t.Run(val, func(t *testing.T) {
 			subRoot := addMilestoneTDDSetup(t)
-			rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Bootstrap " + val, "--tdd", val, "--actor", "human/test", "--root", subRoot})
+			rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap " + val, "--tdd", val, "--actor", "human/test", "--root", subRoot})
 			if rc != exitOK {
 				t.Errorf("add milestone --tdd %s = %d, want %d", val, rc, exitOK)
 			}
@@ -78,10 +78,10 @@ func TestAddMilestone_TDDValueValidation(t *testing.T) {
 func TestAddMilestone_TDDPersisted_Required(t *testing.T) {
 	root := addMilestoneTDDSetup(t)
 
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Bootstrap", "--tdd", "required", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "required", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-001-bootstrap.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-bootstrap.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
@@ -95,10 +95,10 @@ func TestAddMilestone_TDDPersisted_Required(t *testing.T) {
 func TestAddMilestone_TDDPersisted_Advisory(t *testing.T) {
 	root := addMilestoneTDDSetup(t)
 
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Bootstrap", "--tdd", "advisory", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "advisory", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-001-bootstrap.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-bootstrap.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
@@ -115,10 +115,10 @@ func TestAddMilestone_TDDPersisted_Advisory(t *testing.T) {
 func TestAddMilestone_TDDPersisted_None(t *testing.T) {
 	root := addMilestoneTDDSetup(t)
 
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Bootstrap", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	mPath := filepath.Join(root, "work", "epics", "E-01-foundations", "M-001-bootstrap.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-bootstrap.md")
 	body, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)

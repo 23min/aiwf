@@ -224,7 +224,9 @@ func readActorOpenerEntities(ctx context.Context, root, actor string) ([]string,
 		if scopeKind != "opened" || toValue != actor || entityID == "" {
 			continue
 		}
-		entities = append(entities, entityID)
+		// Canonicalize so downstream consumers comparing against tree
+		// ids never have to disambiguate widths (AC-2 in M-081).
+		entities = append(entities, entity.Canonicalize(entityID))
 	}
 	return entities, nil
 }

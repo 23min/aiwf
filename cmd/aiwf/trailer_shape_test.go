@@ -126,30 +126,30 @@ entities:
 	steps := []step{
 		{"add epic E-01", []string{"add", "epic", "--title", "Decoy", "--actor", "human/test", "--root", root}, "add", 1},
 		{"add epic E-02", []string{"add", "epic", "--title", "Engine", "--actor", "human/test", "--root", root}, "add", 1},
-		{"add milestone M-001", []string{"add", "milestone", "--tdd", "none", "--epic", "E-02", "--title", "Cache", "--actor", "human/test", "--root", root}, "add", 1},
-		{"add ac M-001/AC-1", []string{"add", "ac", "M-001", "--title", "AC: warm-up works", "--actor", "human/test", "--root", root}, "add", 1},
+		{"add milestone M-001", []string{"add", "milestone", "--tdd", "none", "--epic", "E-0002", "--title", "Cache", "--actor", "human/test", "--root", root}, "add", 1},
+		{"add ac M-001/AC-1", []string{"add", "ac", "M-0001", "--title", "AC: warm-up works", "--actor", "human/test", "--root", root}, "add", 1},
 		{"add gap G-001", []string{"add", "gap", "--title", "Sample gap", "--actor", "human/test", "--root", root}, "add", 1},
 		{"add adr ADR-0001", []string{"add", "adr", "--title", "Sample ADR", "--actor", "human/test", "--root", root}, "add", 1},
 		{"add decision D-001", []string{"add", "decision", "--title", "Sample decision", "--actor", "human/test", "--root", root}, "add", 1},
 
-		{"promote E-02 → active", []string{"promote", "E-02", "active", "--actor", "human/test", "--root", root}, "promote", 1},
-		{"promote M-001 → in_progress", []string{"promote", "M-001", "in_progress", "--actor", "human/test", "--root", root}, "promote", 1},
-		{"promote M-001/AC-1 → met", []string{"promote", "M-001/AC-1", "met", "--actor", "human/test", "--root", root}, "promote", 1},
+		{"promote E-02 → active", []string{"promote", "E-0002", "active", "--actor", "human/test", "--root", root}, "promote", 1},
+		{"promote M-001 → in_progress", []string{"promote", "M-0001", "in_progress", "--actor", "human/test", "--root", root}, "promote", 1},
+		{"promote M-001/AC-1 → met", []string{"promote", "M-0001/AC-1", "met", "--actor", "human/test", "--root", root}, "promote", 1},
 
-		{"rename E-02", []string{"rename", "E-02", "engine-renamed", "--actor", "human/test", "--root", root}, "rename", 1},
-		{"edit-body M-001", []string{"edit-body", "M-001", "--body-file", bodyFile, "--reason", "trailer-shape test", "--actor", "human/test", "--root", root}, "edit-body", 1},
-		{"move M-001 → E-01", []string{"move", "M-001", "--epic", "E-01", "--actor", "human/test", "--root", root}, "move", 1},
+		{"rename E-02", []string{"rename", "E-0002", "engine-renamed", "--actor", "human/test", "--root", root}, "rename", 1},
+		{"edit-body M-001", []string{"edit-body", "M-0001", "--body-file", bodyFile, "--reason", "trailer-shape test", "--actor", "human/test", "--root", root}, "edit-body", 1},
+		{"move M-001 → E-01", []string{"move", "M-0001", "--epic", "E-0001", "--actor", "human/test", "--root", root}, "move", 1},
 
-		{"authorize E-02 --to ai/claude", []string{"authorize", "E-02", "--to", "ai/claude", "--actor", "human/test", "--root", root}, "authorize", 1},
-		{"authorize E-02 --pause", []string{"authorize", "E-02", "--pause", "blocked on review", "--actor", "human/test", "--root", root}, "authorize", 1},
-		{"authorize E-02 --resume", []string{"authorize", "E-02", "--resume", "review unblocked", "--actor", "human/test", "--root", root}, "authorize", 1},
+		{"authorize E-02 --to ai/claude", []string{"authorize", "E-0002", "--to", "ai/claude", "--actor", "human/test", "--root", root}, "authorize", 1},
+		{"authorize E-02 --pause", []string{"authorize", "E-0002", "--pause", "blocked on review", "--actor", "human/test", "--root", root}, "authorize", 1},
+		{"authorize E-02 --resume", []string{"authorize", "E-0002", "--resume", "review unblocked", "--actor", "human/test", "--root", root}, "authorize", 1},
 
 		// Multi-entity import — one commit MUST carry one aiwf-entity
 		// trailer per imported entity (2 in the manifest above).
 		{"import (bundled, 2 entities)", []string{"import", manifest, "--actor", "human/test", "--root", root}, "import", 2},
 
-		{"cancel M-001", []string{"cancel", "M-001", "--reason", "test cleanup", "--actor", "human/test", "--root", root}, "cancel", 1},
-		{"reallocate E-02", []string{"reallocate", "E-02", "--actor", "human/test", "--root", root}, "reallocate", 1},
+		{"cancel M-001", []string{"cancel", "M-0001", "--reason", "test cleanup", "--actor", "human/test", "--root", root}, "cancel", 1},
+		{"reallocate E-02", []string{"reallocate", "E-0002", "--actor", "human/test", "--root", root}, "reallocate", 1},
 
 		{"add contract C-001", []string{"add", "contract", "--title", "Sample API contract", "--actor", "human/test", "--root", root}, "add", 1},
 		// recipe-install and recipe-remove operate on aiwf.yaml's
@@ -187,8 +187,8 @@ entities:
 	}
 
 	bindSteps := []step{
-		{"contract bind C-001", []string{"contract", "bind", "C-001", "--validator", "jsonschema", "--schema", "fixtures-contract-schema.json", "--fixtures", "fixtures-contract-data", "--actor", "human/test", "--root", root}, "bind", 1},
-		{"contract unbind C-001", []string{"contract", "unbind", "C-001", "--actor", "human/test", "--root", root}, "unbind", 1},
+		{"contract bind C-001", []string{"contract", "bind", "C-0001", "--validator", "jsonschema", "--schema", "fixtures-contract-schema.json", "--fixtures", "fixtures-contract-data", "--actor", "human/test", "--root", root}, "bind", 1},
+		{"contract unbind C-001", []string{"contract", "unbind", "C-0001", "--actor", "human/test", "--root", root}, "unbind", 1},
 		{"contract recipe remove jsonschema", []string{"contract", "recipe", "remove", "jsonschema", "--actor", "human/test", "--root", root}, "recipe-remove", 0},
 	}
 	for _, s := range bindSteps {
