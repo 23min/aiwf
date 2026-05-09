@@ -82,8 +82,6 @@ Archive directories are legal locations for terminal-status entities of the matc
 - **Shape and health rules skip archive entirely:** `acs-shape`, `entity-body-empty-ac`, `acs-tdd-audit`, `acs-body-coherence`, `milestone-done-incomplete-acs`, `unexpected-tree-file`, etc. Archived entities are out of scope for active linting — per the forget-by-default principle, their per-rule cleanliness is not the kernel's concern.
 - **Reference-validity** (`refs-resolve` in `internal/check/check.go`): id-form references in frontmatter resolve across both active and archive directories. References from active → archived ids are legal and unflagged. References from archive → active ids are not linted (the active side is fine; the archive side is out of scope for health rules).
 
-**This dual-closes G-071.** The `entity-body-empty-ac` rule no longer fires on archived ACs, because shape rules skip the archive boundary.
-
 **New finding codes:**
 
 - `archived-entity-not-terminal` — file lives in `archive/` but frontmatter status isn't terminal. Fires after hand-edit drift. Blocking under default strictness; remediation is to revert the hand-edit (not to relocate the file — see Reversal above).
@@ -133,7 +131,6 @@ No path overlaps. Both verbs can coexist in the same commit if needed (rare but 
 - **Promotion verbs stay one-purpose.** `aiwf promote` and `aiwf cancel` don't gain a file-move side effect; their tests don't grow archive-aware branches.
 - **Grace period for inspection.** Just-closed epics and milestones stay in their normal tree position until the next sweep — operators can run wrap rituals, skim the dust just settled, follow `aiwf show` paths without "where did it go?" friction.
 - **Single verb covers migration and recurrence.** No transitional `aiwf archive-existing` to deprecate; first run *is* the migration.
-- **Closes G-071 on ratification.** Shape rules skip archive, so `entity-body-empty-ac` no longer fires on archived ACs.
 - **Stable deep links from the rendered site.** Per-entity HTML pages render regardless of status; external links survive archive moves.
 
 **Negative:**
@@ -164,6 +161,7 @@ No path overlaps. Both verbs can coexist in the same commit if needed (rare but 
 - `internal/entity/transition.go::IsTerminal` — source of truth for terminal statuses per kind.
 - `internal/check/check.go::refsResolve`, `internal/entity/refs.go::ForwardRefs` — id-form ref resolution (archive-safe by id-resolution scope spanning active+archive).
 - Companion **ADR-0003** — `finding` (F-NNN) as a seventh entity kind; co-evolved alongside this ADR because findings are the highest-volume archive consumer.
-- Related **G-071** — `entity-body-empty-ac` fires on archived ACs (closed by ratification of this ADR).
+- Related **G-071** — `entity-body-empty` lifecycle-blindness; **closed by M-075** via status-gating (rule skips terminal-status entities and draft-milestone ACs). This ADR's location-gating (shape rules skip `archive/`) is an orthogonal defense-in-depth layer; once M-075 ships, terminal entities are skipped on status grounds before they're ever swept into archive.
 - Related **G-091** — body-prose path-form refs to entity files have no preventive check (filed as the natural follow-up to this ADR).
+- Related **G-092** — no documented hierarchy of doc authority across `docs/` (filed as the natural follow-up to this ADR's doc-archive-scope clarification).
 - Precedent: `docs/pocv3/archive/gaps-pre-migration.md` — existing pre-migration text record archived under an explicit `archive/` folder.
