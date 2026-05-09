@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Pending-decisions section enumerates at least the decisions in critical-path.md
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Three natural-language test prompts route to the skill via description-match
       status: open
