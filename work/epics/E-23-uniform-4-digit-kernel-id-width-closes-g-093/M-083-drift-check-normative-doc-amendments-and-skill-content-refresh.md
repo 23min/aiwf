@@ -7,6 +7,27 @@ depends_on:
     - M-081
     - M-082
 tdd: required
+acs:
+    - id: AC-1
+      title: Drift-check rule entity-id-narrow-width with tree-state detection
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Normative docs amended for canonical 4-digit policy
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Doc-tree narrow-id sweep complete
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Skill content refreshed in kernel and rituals plugin
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: Active-tree drift check green on this repo post-M-C
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -77,3 +98,81 @@ The marketplace cache test (already in place per E-14) compares each fixture aga
 - G-091's preventive check rule for path-form refs — related but separate.
 - Any §07 TDD architecture proposal advancement — tracked separately.
 - New cycle skills or other rituals additions beyond example refreshes — out of this epic's scope.
+
+### AC-1 — Drift-check rule entity-id-narrow-width with tree-state detection
+
+`aiwf check` includes the rule `entity-id-narrow-width` with tree-state-based detection:
+
+- **Uniform narrow active tree** → consumer hasn't run `aiwf rewidth` yet → silent.
+- **Uniform canonical active tree** → consumer has migrated cleanly → silent.
+- **Mixed active tree** (some canonical alongside some narrow) → warning fires on each narrow file. Effective message: "narrow-width id detected in mixed-state active tree; run `aiwf rewidth` to complete the migration."
+
+Archive entries (`<kind>/archive/`) are excluded from the mixed-state computation entirely — archive width never participates in the active-tree state assessment.
+
+The signal works for both directions:
+- A consumer who upgrades, allocates one canonical entity (via M-A's allocator), and runs `aiwf check` sees the warning prompting them to run `aiwf rewidth`.
+- A consumer who has migrated, then somehow ends up with a narrow file (hand-edit, allocator regression) sees the same warning prompting investigation.
+
+A consumer who upgrades and never allocates anything new stays uniform-narrow indefinitely. The rule is silent. That matches the on-demand framing.
+
+Verified by table-driven test with three fixture trees: uniform-narrow (rule silent), uniform-canonical (rule silent), mixed (rule fires on narrow files only). Edge cases: empty tree (silent); single-entity tree at either width (silent). Archive subdirectories tested both empty and populated with narrow entries — neither case affects the active-tree state assessment.
+
+### AC-2 — Normative docs amended for canonical 4-digit policy
+
+Two normative-doc updates with structural assertions:
+
+- **ADR-0003 §"Id and storage"** reads `F-NNNN` (was `F-NNN`) with a cross-reference to ADR-0008. The composite "F-NNN; same family as G-NNN, D-NNN" sentence is rewritten to reflect the unified width.
+- **CLAUDE.md "What aiwf commits to" §2** reads as a single uniform rule (every id is 4 digits) with parser-tolerance note and a mention of `aiwf rewidth` for legacy migration. The previous per-kind list of widths is removed.
+
+Verified by structural assertions over named sections (per CLAUDE.md "substring assertions are not structural assertions" rule — assertions scoped to the section heading hierarchy, not flat over the file). Each test parses the markdown, navigates to the named section, and asserts the new content appears under that heading. The structural test fires if either amendment is present in the wrong section, absent, or split across multiple sections.
+
+The amended ADR-0003 stays at `status: proposed` (no status change here); only its body content is updated. CLAUDE.md is plain markdown (not an aiwf entity) and updates via standard commit.
+
+### AC-3 — Doc-tree narrow-id sweep complete
+
+Hardcoded narrow-id mentions in non-entity tracked files are updated to canonical width. Scope:
+
+- `docs/explorations/` (active exploratory docs).
+- `docs/pocv3/design/` and `docs/pocv3/plans/` (design docs).
+- `README.md`, `CHANGELOG.md` (top-level).
+- Other tracked files referencing entity ids in prose.
+
+**Excluded from sweep:**
+
+- `docs/pocv3/archive/` (historical text-record archive; preserves birth-width per ADR-0004 forget-by-default).
+- Code-fence content (literal id text in technical documentation).
+- Inline backtick spans (literal id text).
+
+Verified by structural grep: post-sweep, narrow-id pattern matches in non-archive tracked files appear only inside code fences, inline spans, or the explicit allowlist of historical mentions. Allowlist is small, named, and committed alongside the sweep — each entry has a rationale comment (e.g., "release note describing v0.1.0's narrow-width origin").
+
+The sweep can be performed by a small script (similar to `aiwf rewidth`'s reference-rewrite engine but scoped to docs prose) or by careful manual edits. Either approach satisfies the AC; the structural-grep assertion is what matters at promotion.
+
+### AC-4 — Skill content refreshed in kernel and rituals plugin
+
+Skill bodies in two locations refresh to canonical 4-digit id examples:
+
+- **Kernel-embedded skills** at `internal/policies/testdata/<skill>/SKILL.md` — examples rewritten to canonical. The drift-prevention test in `internal/policies/` (per M-074) passes against the local marketplace cache when present, skipping cleanly when absent.
+- **Rituals plugin skills** at `/Users/peterbru/Projects/ai-workflow-rituals/`, the 5 enumerated files (27 narrow-width refs total):
+  - `plugins/aiwf-extensions/templates/epic-spec.md` (1 ref)
+  - `plugins/aiwf-extensions/skills/aiwfx-plan-milestones/SKILL.md` (10 refs)
+  - `plugins/aiwf-extensions/skills/aiwfx-whiteboard/SKILL.md` (14 refs)
+  - `plugins/aiwf-extensions/skills/aiwfx-start-milestone/SKILL.md` (1 ref)
+  - `plugins/aiwf-extensions/skills/aiwfx-wrap-milestone/SKILL.md` (1 ref)
+
+The rituals-plugin commit SHA is recorded in M-C's wrap-side spec Validation per CLAUDE.md "Cross-repo plugin testing." M-C's epic does not promote to `done` until the rituals SHA is reachable from the marketplace.
+
+Verified by:
+- Embedded fixtures: structural grep for narrow-width patterns returns empty in `internal/policies/testdata/<skill>/SKILL.md`.
+- Rituals: marketplace-cache drift test green when cache present (skipped cleanly when absent).
+- Cross-repo SHA recorded in M-C's wrap commit body and Validation section.
+
+### AC-5 — Active-tree drift check green on this repo post-M-C
+
+After M-C ships and `aiwf check` runs on this repo's active tree (uniform-canonical post-M-B), the new `entity-id-narrow-width` rule produces zero warnings.
+
+Verified by: `aiwf check --format=json` post-M-C ship; assert that no findings carry the code `entity-id-narrow-width`. This is the load-bearing assertion for the milestone outcome — the rule fires only on mixed state, M-B made the active tree uniform-canonical, so the rule is silent.
+
+If this AC fails, it indicates either (a) M-B's apply step missed some active-tree files (regression in M-B), or (b) the rule's tree-state computation is wrong (regression in AC-1). The combination of AC-1's table-driven fixture tests + AC-5's actual-tree assertion catches both directions.
+
+The same assertion is part of the epic's overall success criteria: "no `entity-id-narrow-width` warnings on this repo's tree post-M-C ship (uniform-canonical active tree)." AC-5 is M-C's discharge of that epic-level criterion.
+
