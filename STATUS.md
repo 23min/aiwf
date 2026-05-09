@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_200 entities · 0 errors · 5 warnings · run `aiwf check` for details_
+_201 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -82,6 +82,7 @@ _(no milestones)_
 | G-088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-079 did | M-079 |
 | G-090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-079 |
 | G-091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
+| G-092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
 
 ## Warnings
 
@@ -97,9 +98,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote ADR-0004 proposed -> accepted |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0004 |
 | 2026-05-09 | human/peter | add | aiwf add gap G-091 'No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped' |
 | 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-09 | human/peter | promote | aiwf promote E-21 active -> done |
-| 2026-05-09 | human/peter | promote | aiwf promote E-21 proposed -> active |
 
