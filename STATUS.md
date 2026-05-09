@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_197 entities · 0 errors · 8 warnings · run `aiwf check` for details_
+_197 entities · 0 errors · 7 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -109,7 +109,6 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| acs-tdd-audit | M-079/AC-3 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-3 status: met under tdd: advisory but tdd_phase is green (expected done) |
 | acs-tdd-audit | M-079/AC-4 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-4 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-079/AC-5 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-5 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-079/AC-6 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-6 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
@@ -122,9 +121,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-3 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-3 --phase  -> red |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-2 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-2 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-2 --phase  -> red |
-| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-1 --phase green -> done |
 
