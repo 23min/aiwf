@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_196 entities · 0 errors · 6 warnings · run `aiwf check` for details_
+_197 entities · 0 errors · 8 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -103,6 +103,7 @@ flowchart LR
 | G-084 | Verb hygiene contract is undocumented; G-081/G-082/G-083 lack umbrella | E-21 |
 | G-086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-061/G-085, different file | M-072 |
 | G-087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-074 |
+| G-088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-079 did | M-079 |
 
 ## Warnings
 
@@ -114,6 +115,8 @@ flowchart LR
 | acs-tdd-audit | M-079/AC-4 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-4 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-079/AC-5 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-5 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-079/AC-6 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-6 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
+| entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## What's missing\` is empty |
+| entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## Why it matters\` is empty |
 
 ## Recent activity
 
