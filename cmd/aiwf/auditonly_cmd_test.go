@@ -41,7 +41,7 @@ func TestAuditOnly_CancelG24Recovery(t *testing.T) {
 	// Simulate the manual commit that reached `wontfix` outside the
 	// kernel: directly edit the gap file to flip status, stage, and
 	// commit with no aiwf trailers.
-	gapRel := mustFindFile(t, root, "G-001-")
+	gapRel := mustFindFile(t, root, "G-0001-")
 	manualFlipStatus(t, filepath.Join(root, gapRel), "open", "wontfix")
 	if out, err := runGit(root, "add", gapRel); err != nil {
 		t.Fatalf("git add: %v\n%s", err, out)
@@ -53,7 +53,7 @@ func TestAuditOnly_CancelG24Recovery(t *testing.T) {
 	// Now the audit-only recovery commit. After this `aiwf history`
 	// must show the [audit-only: ...] chip on the new event.
 	out, err := runBin(t, root, binDir, nil,
-		"cancel", "G-001", "--audit-only", "--reason", "manual flip from earlier")
+		"cancel", "G-0001", "--audit-only", "--reason", "manual flip from earlier")
 	if err != nil {
 		t.Fatalf("aiwf cancel --audit-only: %v\n%s", err, out)
 	}
@@ -63,10 +63,10 @@ func TestAuditOnly_CancelG24Recovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	hasTrailer(t, tr, "aiwf-verb", "cancel")
-	hasTrailer(t, tr, "aiwf-entity", "G-001")
+	hasTrailer(t, tr, "aiwf-entity", "G-0001")
 	hasTrailer(t, tr, "aiwf-audit-only", "manual flip from earlier")
 
-	historyOut, err := runBin(t, root, binDir, nil, "history", "G-001")
+	historyOut, err := runBin(t, root, binDir, nil, "history", "G-0001")
 	if err != nil {
 		t.Fatalf("aiwf history: %v\n%s", err, historyOut)
 	}
@@ -101,7 +101,7 @@ func TestAuditOnly_PromoteRefusesWhenNotAtTarget(t *testing.T) {
 	}
 	// E-01 is `proposed`; audit-only against `done` must refuse.
 	out, err := runBin(t, root, binDir, nil,
-		"promote", "E-01", "done", "--audit-only", "--reason", "trying to skip ahead")
+		"promote", "E-0001", "done", "--audit-only", "--reason", "trying to skip ahead")
 	if err == nil {
 		t.Fatalf("expected refusal; got:\n%s", out)
 	}
@@ -134,7 +134,7 @@ func TestAuditOnly_RejectsForceCombination(t *testing.T) {
 	}
 
 	out, err := runBin(t, root, binDir, nil,
-		"cancel", "G-001", "--audit-only", "--force", "--reason", "both")
+		"cancel", "G-0001", "--audit-only", "--force", "--reason", "both")
 	if err == nil {
 		t.Fatalf("expected mutex error; got:\n%s", out)
 	}

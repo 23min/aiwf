@@ -15,38 +15,38 @@ func TestReorderFlagsFirst(t *testing.T) {
 	}{
 		{
 			name: "flag at end with separate value",
-			in:   []string{"M-001", "--reason", "scope folded"},
-			want: []string{"--reason", "scope folded", "M-001"},
+			in:   []string{"M-0001", "--reason", "scope folded"},
+			want: []string{"--reason", "scope folded", "M-0001"},
 		},
 		{
 			name: "flag at end with =value",
-			in:   []string{"M-001", "--reason=scope folded"},
-			want: []string{"--reason=scope folded", "M-001"},
+			in:   []string{"M-0001", "--reason=scope folded"},
+			want: []string{"--reason=scope folded", "M-0001"},
 		},
 		{
 			name: "two flags after positional, mixed forms",
-			in:   []string{"M-001", "--actor", "human/peter", "--reason=note"},
-			want: []string{"--actor", "human/peter", "--reason=note", "M-001"},
+			in:   []string{"M-0001", "--actor", "human/peter", "--reason=note"},
+			want: []string{"--actor", "human/peter", "--reason=note", "M-0001"},
 		},
 		{
 			name: "flags already first",
-			in:   []string{"--reason", "note", "M-001"},
-			want: []string{"--reason", "note", "M-001"},
+			in:   []string{"--reason", "note", "M-0001"},
+			want: []string{"--reason", "note", "M-0001"},
 		},
 		{
 			name: "two positionals plus flag",
-			in:   []string{"E-01", "active", "--reason", "ready"},
-			want: []string{"--reason", "ready", "E-01", "active"},
+			in:   []string{"E-0001", "active", "--reason", "ready"},
+			want: []string{"--reason", "ready", "E-0001", "active"},
 		},
 		{
 			name: "unknown flag falls through to positional position",
-			in:   []string{"M-001", "--unknown", "foo"},
-			want: []string{"M-001", "--unknown", "foo"},
+			in:   []string{"M-0001", "--unknown", "foo"},
+			want: []string{"M-0001", "--unknown", "foo"},
 		},
 		{
 			name: "no flags",
-			in:   []string{"M-001", "active"},
-			want: []string{"M-001", "active"},
+			in:   []string{"M-0001", "active"},
+			want: []string{"M-0001", "active"},
 		},
 		{
 			name: "empty",
@@ -58,23 +58,23 @@ func TestReorderFlagsFirst(t *testing.T) {
 		// safely interleaved with --reason on transition verbs.
 		{
 			name: "bool flag alone after positional",
-			in:   []string{"E-01", "done", "--force"},
-			want: []string{"--force", "E-01", "done"},
+			in:   []string{"E-0001", "done", "--force"},
+			want: []string{"--force", "E-0001", "done"},
 		},
 		{
 			name: "bool flag preceding value flag — must not eat --reason",
-			in:   []string{"E-01", "done", "--force", "--reason", "got urgent"},
-			want: []string{"--force", "--reason", "got urgent", "E-01", "done"},
+			in:   []string{"E-0001", "done", "--force", "--reason", "got urgent"},
+			want: []string{"--force", "--reason", "got urgent", "E-0001", "done"},
 		},
 		{
 			name: "value flag preceding bool flag",
-			in:   []string{"M-001", "--reason", "now", "--force"},
-			want: []string{"--reason", "now", "--force", "M-001"},
+			in:   []string{"M-0001", "--reason", "now", "--force"},
+			want: []string{"--reason", "now", "--force", "M-0001"},
 		},
 		{
 			name: "bool flag with =true form",
-			in:   []string{"M-001", "--force=true"},
-			want: []string{"--force=true", "M-001"},
+			in:   []string{"M-0001", "--force=true"},
+			want: []string{"--force=true", "M-0001"},
 		},
 	}
 

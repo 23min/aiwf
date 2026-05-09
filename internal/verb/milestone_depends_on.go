@@ -92,13 +92,15 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 		return findings(fs), nil
 	}
 
-	subject := fmt.Sprintf("aiwf milestone depends-on %s", id)
+	canonID := entity.Canonicalize(id)
+	subject := fmt.Sprintf("aiwf milestone depends-on %s", canonID)
 	return plan(&Plan{
 		Subject: subject,
 		Body:    reason,
 		Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "milestone-depends-on"},
-			{Key: gitops.TrailerEntity, Value: id},
+			// Canonical width per AC-1 in M-081.
+			{Key: gitops.TrailerEntity, Value: canonID},
 			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},

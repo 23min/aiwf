@@ -103,48 +103,48 @@ entities:
 		// add — every kind emits one commit per invocation.
 		{"add epic E-01 (decoy)", []string{"add", "epic", "--title", "Decoy", "--actor", "human/test", "--root", root}},
 		{"add epic E-02 (engine)", []string{"add", "epic", "--title", "Engine", "--actor", "human/test", "--root", root}},
-		{"add milestone M-001 (tdd none)", []string{"add", "milestone", "--tdd", "none", "--epic", "E-02", "--title", "Cache", "--actor", "human/test", "--root", root}},
-		{"add ac M-001/AC-1", []string{"add", "ac", "M-001", "--title", "AC: warm-up works", "--actor", "human/test", "--root", root}},
+		{"add milestone M-001 (tdd none)", []string{"add", "milestone", "--tdd", "none", "--epic", "E-0002", "--title", "Cache", "--actor", "human/test", "--root", root}},
+		{"add ac M-001/AC-1", []string{"add", "ac", "M-0001", "--title", "AC: warm-up works", "--actor", "human/test", "--root", root}},
 		{"add gap G-001", []string{"add", "gap", "--title", "Sample gap", "--actor", "human/test", "--root", root}},
 		{"add adr ADR-0001", []string{"add", "adr", "--title", "Sample ADR", "--actor", "human/test", "--root", root}},
 		{"add decision D-001", []string{"add", "decision", "--title", "Sample decision", "--actor", "human/test", "--root", root}},
-		{"add milestone M-002 (tdd required)", []string{"add", "milestone", "--tdd", "required", "--epic", "E-02", "--title", "Strict", "--actor", "human/test", "--root", root}},
-		{"add ac M-002/AC-1 (under tdd-required)", []string{"add", "ac", "M-002", "--title", "AC: under tdd required", "--actor", "human/test", "--root", root}},
+		{"add milestone M-002 (tdd required)", []string{"add", "milestone", "--tdd", "required", "--epic", "E-0002", "--title", "Strict", "--actor", "human/test", "--root", root}},
+		{"add ac M-002/AC-1 (under tdd-required)", []string{"add", "ac", "M-0002", "--title", "AC: under tdd required", "--actor", "human/test", "--root", root}},
 
 		// promote — entity status, AC status, AC tdd_phase.
-		{"promote E-02 → active", []string{"promote", "E-02", "active", "--actor", "human/test", "--root", root}},
-		{"promote M-001 → in_progress", []string{"promote", "M-001", "in_progress", "--actor", "human/test", "--root", root}},
-		{"promote M-001/AC-1 → met", []string{"promote", "M-001/AC-1", "met", "--actor", "human/test", "--root", root}},
-		{"promote M-002/AC-1 phase → green", []string{"promote", "M-002/AC-1", "--phase", "green", "--tests", "pass=1 fail=0 skip=0", "--actor", "human/test", "--root", root}},
+		{"promote E-02 → active", []string{"promote", "E-0002", "active", "--actor", "human/test", "--root", root}},
+		{"promote M-001 → in_progress", []string{"promote", "M-0001", "in_progress", "--actor", "human/test", "--root", root}},
+		{"promote M-001/AC-1 → met", []string{"promote", "M-0001/AC-1", "met", "--actor", "human/test", "--root", root}},
+		{"promote M-002/AC-1 phase → green", []string{"promote", "M-0002/AC-1", "--phase", "green", "--tests", "pass=1 fail=0 skip=0", "--actor", "human/test", "--root", root}},
 
 		// rename — slug-only mutation; id preserved.
-		{"rename E-02 → engine-renamed", []string{"rename", "E-02", "engine-renamed", "--actor", "human/test", "--root", root}},
+		{"rename E-02 → engine-renamed", []string{"rename", "E-0002", "engine-renamed", "--actor", "human/test", "--root", root}},
 
 		// edit-body --body-file (explicit mode; bless mode is exercised
 		// elsewhere — its delta is also 1, but the invariant under test
 		// is the same).
-		{"edit-body M-001 --body-file", []string{"edit-body", "M-001", "--body-file", bodyFile, "--reason", "single-commit test", "--actor", "human/test", "--root", root}},
+		{"edit-body M-001 --body-file", []string{"edit-body", "M-0001", "--body-file", bodyFile, "--reason", "single-commit test", "--actor", "human/test", "--root", root}},
 
 		// move — reparent milestone to a different epic.
-		{"move M-002 --epic E-01", []string{"move", "M-002", "--epic", "E-01", "--actor", "human/test", "--root", root}},
+		{"move M-002 --epic E-01", []string{"move", "M-0002", "--epic", "E-0001", "--actor", "human/test", "--root", root}},
 
 		// authorize lifecycle on the active epic. open / pause / resume
 		// are each their own verb invocation and each must be one commit.
-		{"authorize E-02 --to ai/claude", []string{"authorize", "E-02", "--to", "ai/claude", "--actor", "human/test", "--root", root}},
-		{"authorize E-02 --pause", []string{"authorize", "E-02", "--pause", "blocked on review", "--actor", "human/test", "--root", root}},
-		{"authorize E-02 --resume", []string{"authorize", "E-02", "--resume", "review unblocked", "--actor", "human/test", "--root", root}},
+		{"authorize E-02 --to ai/claude", []string{"authorize", "E-0002", "--to", "ai/claude", "--actor", "human/test", "--root", root}},
+		{"authorize E-02 --pause", []string{"authorize", "E-0002", "--pause", "blocked on review", "--actor", "human/test", "--root", root}},
+		{"authorize E-02 --resume", []string{"authorize", "E-0002", "--resume", "review unblocked", "--actor", "human/test", "--root", root}},
 
 		// import — default mode is "bundled commit": N entities = 1 commit.
 		// This is the load-bearing case G-051 was about.
 		{"import (default bundled mode, 3 entities)", []string{"import", manifest, "--actor", "human/test", "--root", root}},
 
 		// cancel — terminates the in-progress milestone.
-		{"cancel M-001", []string{"cancel", "M-001", "--reason", "test cleanup", "--actor", "human/test", "--root", root}},
+		{"cancel M-001", []string{"cancel", "M-0001", "--reason", "test cleanup", "--actor", "human/test", "--root", root}},
 
 		// reallocate — renumber an entity (id collision recovery surface,
 		// invoked here on a non-colliding entity to exercise the verb's
 		// commit shape).
-		{"reallocate E-02", []string{"reallocate", "E-02", "--actor", "human/test", "--root", root}},
+		{"reallocate E-02", []string{"reallocate", "E-0002", "--actor", "human/test", "--root", root}},
 
 		// contract family — recipe install / bind / unbind / recipe remove.
 		{"add contract C-001", []string{"add", "contract", "--title", "Sample API contract", "--actor", "human/test", "--root", root}},
@@ -152,8 +152,8 @@ entities:
 		// `contract bind` needs concrete schema + fixtures paths to
 		// validate against. Plant minimal placeholders before the verb.
 		{"plant schema + fixtures (test setup, not a verb)", nil},
-		{"contract bind C-001", []string{"contract", "bind", "C-001", "--validator", "jsonschema", "--schema", "fixtures-contract-schema.json", "--fixtures", "fixtures-contract-data", "--actor", "human/test", "--root", root}},
-		{"contract unbind C-001", []string{"contract", "unbind", "C-001", "--actor", "human/test", "--root", root}},
+		{"contract bind C-001", []string{"contract", "bind", "C-0001", "--validator", "jsonschema", "--schema", "fixtures-contract-schema.json", "--fixtures", "fixtures-contract-data", "--actor", "human/test", "--root", root}},
+		{"contract unbind C-001", []string{"contract", "unbind", "C-0001", "--actor", "human/test", "--root", root}},
 		{"contract recipe remove jsonschema", []string{"contract", "recipe", "remove", "jsonschema", "--actor", "human/test", "--root", root}},
 	}
 

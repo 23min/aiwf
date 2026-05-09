@@ -19,7 +19,7 @@ commit:
   message: "import: bulk migration"
 entities:
   - kind: epic
-    id: E-11
+    id: E-0011
     frontmatter:
       title: "Svelte UI"
       status: active
@@ -31,7 +31,7 @@ entities:
     frontmatter:
       title: "Scaffold"
       status: done
-      parent: E-11
+      parent: E-0011
 `)
 	m, err := Parse(src, "yaml")
 	if err != nil {
@@ -49,7 +49,7 @@ entities:
 	if len(m.Entities) != 2 {
 		t.Fatalf("len(Entities) = %d, want 2", len(m.Entities))
 	}
-	if m.Entities[0].Kind != "epic" || m.Entities[0].ID != "E-11" {
+	if m.Entities[0].Kind != "epic" || m.Entities[0].ID != "E-0011" {
 		t.Errorf("entity[0] = %+v", m.Entities[0])
 	}
 	if !m.Entities[1].IsAuto() {
@@ -69,14 +69,14 @@ func TestParse_JSON(t *testing.T) {
 	src := []byte(`{
   "version": 1,
   "entities": [
-    {"kind": "epic", "id": "E-11", "frontmatter": {"title": "X", "status": "active"}}
+    {"kind": "epic", "id": "E-0011", "frontmatter": {"title": "X", "status": "active"}}
   ]
 }`)
 	m, err := Parse(src, "json")
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	if len(m.Entities) != 1 || m.Entities[0].ID != "E-11" {
+	if len(m.Entities) != 1 || m.Entities[0].ID != "E-0011" {
 		t.Errorf("unexpected entities: %+v", m.Entities)
 	}
 }

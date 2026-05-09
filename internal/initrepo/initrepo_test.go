@@ -826,7 +826,7 @@ func TestInit_DryRunWithSkipHook(t *testing.T) {
 // `aiwf check` and serve as a migration to-do list).
 func TestInit_PreservesExistingEntities(t *testing.T) {
 	root := freshGitRepo(t)
-	dir := filepath.Join(root, "work", "epics", "E-01-foo")
+	dir := filepath.Join(root, "work", "epics", "E-0001-foo")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}

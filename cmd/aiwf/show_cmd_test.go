@@ -46,28 +46,28 @@ func TestRun_ShowMilestoneAggregatesACsHistoryFindings(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--body-file", epicBody, "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Engine warning", "--body-file", mBody, "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Engine warning", "--body-file", mBody, "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC one", "--body-file", acBody1}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC one", "--body-file", acBody1}); rc != exitOK {
 		t.Fatalf("add ac 1: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC two", "--body-file", acBody2}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC two", "--body-file", acBody2}); rc != exitOK {
 		t.Fatalf("add ac 2: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "met"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "met"}); rc != exitOK {
 		t.Fatalf("promote: %d", rc)
 	}
 
 	out := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "M-001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "M-0001"}); rc != exitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
 	s := string(out)
 	for _, want := range []string{
-		"M-001 · Engine warning · status: draft",
-		"parent: E-01",
+		"M-0001 · Engine warning · status: draft",
+		"parent: E-0001",
 		"ACs:",
 		"AC-1 [met]",
 		"AC-2 [open]",
@@ -91,28 +91,28 @@ func TestRun_ShowCompositeIDRendersACSlice(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Just one"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Just one"}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "--phase", "red"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "red"}); rc != exitOK {
 		t.Fatalf("promote phase: %d", rc)
 	}
 
 	out := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "M-001/AC-1"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "M-0001/AC-1"}); rc != exitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
 	s := string(out)
 	for _, want := range []string{
-		"M-001/AC-1",
+		"M-0001/AC-1",
 		`"Just one"`,
 		"status: open",
 		"phase: red",
-		"parent: M-001",
+		"parent: M-0001",
 	} {
 		if !strings.Contains(s, want) {
 			t.Errorf("composite show output missing %q in:\n%s", want, s)
@@ -132,7 +132,7 @@ func TestRun_ShowJSONEnvelope(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "E-01"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
@@ -152,7 +152,7 @@ func TestRun_ShowJSONEnvelope(t *testing.T) {
 	if env.Tool != "aiwf" || env.Status != "ok" {
 		t.Errorf("envelope tool/status = %q/%q", env.Tool, env.Status)
 	}
-	if env.Result.ID != "E-01" || env.Result.Kind != "epic" {
+	if env.Result.ID != "E-0001" || env.Result.Kind != "epic" {
 		t.Errorf("result.id/kind = %q/%q", env.Result.ID, env.Result.Kind)
 	}
 }
@@ -164,7 +164,7 @@ func TestRun_ShowUnknownIDIsUsageError(t *testing.T) {
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"show", "--root", root, "E-99"}); rc != exitUsage {
+	if rc := run([]string{"show", "--root", root, "E-0099"}); rc != exitUsage {
 		t.Errorf("expected exitUsage, got %d", rc)
 	}
 }
@@ -181,25 +181,25 @@ func TestRun_ShowReferencedByPopulated(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Second", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Second", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone 2: %d", rc)
 	}
 
 	// Text path: showing E-01 must surface both milestones in the
 	// "Referenced by" block.
 	out := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "E-01"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "E-0001"}); rc != exitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
 	s := string(out)
 	for _, want := range []string{
 		"Referenced by (2):",
-		"M-001",
-		"M-002",
+		"M-0001",
+		"M-0002",
 	} {
 		if !strings.Contains(s, want) {
 			t.Errorf("show output missing %q in:\n%s", want, s)
@@ -208,7 +208,7 @@ func TestRun_ShowReferencedByPopulated(t *testing.T) {
 
 	// JSON path: result.referenced_by is the sorted referrer list.
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "E-01"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
 			t.Fatalf("show json: %d", rc)
 		}
 	})
@@ -220,7 +220,7 @@ func TestRun_ShowReferencedByPopulated(t *testing.T) {
 	if err := json.Unmarshal(captured, &env); err != nil {
 		t.Fatalf("parse JSON: %v\n%s", err, captured)
 	}
-	want := []string{"M-001", "M-002"}
+	want := []string{"M-0001", "M-0002"}
 	if len(env.Result.ReferencedBy) != len(want) {
 		t.Fatalf("referenced_by = %v, want %v", env.Result.ReferencedBy, want)
 	}
@@ -244,7 +244,7 @@ func TestRun_ShowReferencedByEmptyIsPresent(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "E-01"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
 			t.Fatalf("show json: %d", rc)
 		}
 	})
@@ -273,17 +273,17 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Done milestone", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Done milestone", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Open AC"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Open AC"}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
 	// Hand-edit the milestone to status: done while AC-1 is still
 	// open — the inconsistent state the standing check exists to
 	// catch. The verb path would refuse this; that's the point.
-	mPath := filepath.Join(root, "work", "epics", "E-01-foo", "M-001-done-milestone.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foo", "M-0001-done-milestone.md")
 	raw, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
@@ -297,7 +297,7 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tree.Load: %v", err)
 	}
-	view, ok := buildShowView(context.Background(), root, tr, nil, "M-001", 5)
+	view, ok := buildShowView(context.Background(), root, tr, nil, "M-0001", 5)
 	if !ok {
 		t.Fatal("show view missing")
 	}
@@ -329,7 +329,7 @@ func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {
 	}
 
 	// Hand-populate the body — the scaffolded body has empty sections.
-	ePath := filepath.Join(root, "work", "epics", "E-01-foundations", "epic.md")
+	ePath := filepath.Join(root, "work", "epics", "E-0001-foundations", "epic.md")
 	raw, err := os.ReadFile(ePath)
 	if err != nil {
 		t.Fatalf("read epic: %v", err)
@@ -343,7 +343,7 @@ func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "E-01"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
 			t.Fatalf("show json: %d", rc)
 		}
 	})
@@ -379,16 +379,16 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine starts"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine starts"}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
 	// `aiwf add ac` scaffolds a `### AC-1 — <title>` heading with no
 	// body underneath; populate it with prose by hand-editing.
-	mPath := filepath.Join(root, "work", "epics", "E-01-foo", "M-001-first.md")
+	mPath := filepath.Join(root, "work", "epics", "E-0001-foo", "M-0001-first.md")
 	raw, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatalf("read milestone: %v", err)
@@ -406,7 +406,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "M-001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001"}); rc != exitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
@@ -431,7 +431,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 	// Composite-id show should also surface description on the AC
 	// payload.
 	captured = captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "M-001/AC-1"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001/AC-1"}); rc != exitOK {
 			t.Fatalf("composite show: %d", rc)
 		}
 	})
@@ -467,10 +467,10 @@ func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine starts"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine starts"}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
@@ -485,7 +485,7 @@ func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "M-001/AC-1"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001/AC-1"}); rc != exitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})

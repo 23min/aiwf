@@ -74,14 +74,16 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string) (*Resu
 		return findings(introduced), nil
 	}
 
-	subject := fmt.Sprintf("aiwf rename %s slug -> %s", id, cleanSlug)
+	canonID := entity.Canonicalize(id)
+	subject := fmt.Sprintf("aiwf rename %s slug -> %s", canonID, cleanSlug)
 	return &Result{
 		Findings: slugNotices,
 		Plan: &Plan{
 			Subject: subject,
 			Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "rename"},
-				{Key: gitops.TrailerEntity, Value: id},
+				// Canonical width per AC-1 in M-081.
+				{Key: gitops.TrailerEntity, Value: canonID},
 				{Key: gitops.TrailerActor, Value: actor},
 			},
 			Ops: []FileOp{{Type: OpMove, Path: source, NewPath: dest}},

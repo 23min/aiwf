@@ -38,13 +38,13 @@ func TestRender_EmptyTree(t *testing.T) {
 func TestRender_EpicWithoutMilestones(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Foundations", Status: "active"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foundations", Status: "active"},
 		},
 	}
 	got := string(Render(tr))
 	for _, want := range []string{
 		"# Roadmap",
-		"## E-01 — Foundations (active)",
+		"## E-0001 — Foundations (active)",
 		"_No milestones yet._",
 	} {
 		if !strings.Contains(got, want) {
@@ -57,43 +57,43 @@ func TestRender_GroupsAndSortsMilestones(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			// Out-of-order on purpose to confirm we sort.
-			{Kind: entity.KindEpic, ID: "E-02", Title: "Reporting", Status: "proposed"},
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Auth", Status: "active"},
-			{Kind: entity.KindMilestone, ID: "M-002", Title: "Login", Status: "in_progress", Parent: "E-01"},
-			{Kind: entity.KindMilestone, ID: "M-001", Title: "Schema", Status: "done", Parent: "E-01"},
-			{Kind: entity.KindMilestone, ID: "M-010", Title: "Dashboards", Status: "draft", Parent: "E-02"},
+			{Kind: entity.KindEpic, ID: "E-0002", Title: "Reporting", Status: "proposed"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Auth", Status: "active"},
+			{Kind: entity.KindMilestone, ID: "M-0002", Title: "Login", Status: "in_progress", Parent: "E-0001"},
+			{Kind: entity.KindMilestone, ID: "M-0001", Title: "Schema", Status: "done", Parent: "E-0001"},
+			{Kind: entity.KindMilestone, ID: "M-0010", Title: "Dashboards", Status: "draft", Parent: "E-0002"},
 		},
 	}
 	got := string(Render(tr))
 
-	idxE01 := strings.Index(got, "## E-01")
-	idxE02 := strings.Index(got, "## E-02")
+	idxE01 := strings.Index(got, "## E-0001")
+	idxE02 := strings.Index(got, "## E-0002")
 	if idxE01 < 0 || idxE02 < 0 || idxE01 > idxE02 {
 		t.Fatalf("epics not in id order:\n%s", got)
 	}
-	idxM001 := strings.Index(got, "M-001")
-	idxM002 := strings.Index(got, "M-002")
+	idxM001 := strings.Index(got, "M-0001")
+	idxM002 := strings.Index(got, "M-0002")
 	if idxM001 < 0 || idxM002 < 0 || idxM001 > idxM002 {
 		t.Errorf("milestones within an epic not in id order:\n%s", got)
 	}
-	if !strings.Contains(got, "| M-010 | Dashboards | draft |") {
-		t.Errorf("E-02's milestone row missing:\n%s", got)
+	if !strings.Contains(got, "| M-0010 | Dashboards | draft |") {
+		t.Errorf("E-0002's milestone row missing:\n%s", got)
 	}
 }
 
 func TestRender_OrphanedMilestonesSurfaced(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Auth", Status: "active"},
-			{Kind: entity.KindMilestone, ID: "M-001", Title: "Schema", Status: "done", Parent: "E-01"},
-			{Kind: entity.KindMilestone, ID: "M-099", Title: "Stray", Status: "draft", Parent: "E-99"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Auth", Status: "active"},
+			{Kind: entity.KindMilestone, ID: "M-0001", Title: "Schema", Status: "done", Parent: "E-0001"},
+			{Kind: entity.KindMilestone, ID: "M-0099", Title: "Stray", Status: "draft", Parent: "E-0099"},
 		},
 	}
 	got := string(Render(tr))
 	if !strings.Contains(got, "## Unparented milestones") {
 		t.Errorf("orphan section missing:\n%s", got)
 	}
-	if !strings.Contains(got, "| M-099 | Stray | E-99 | draft |") {
+	if !strings.Contains(got, "| M-0099 | Stray | E-0099 | draft |") {
 		t.Errorf("orphan row missing:\n%s", got)
 	}
 }
@@ -101,8 +101,8 @@ func TestRender_OrphanedMilestonesSurfaced(t *testing.T) {
 func TestRender_EscapesPipesAndNewlinesInTitles(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Pipes | inside | title", Status: "active"},
-			{Kind: entity.KindMilestone, ID: "M-001", Title: "two\nlines", Status: "draft", Parent: "E-01"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Pipes | inside | title", Status: "active"},
+			{Kind: entity.KindMilestone, ID: "M-0001", Title: "two\nlines", Status: "draft", Parent: "E-0001"},
 		},
 	}
 	got := string(Render(tr))
@@ -112,7 +112,7 @@ func TestRender_EscapesPipesAndNewlinesInTitles(t *testing.T) {
 	if strings.Contains(got, "two\nlines") {
 		t.Errorf("milestone title newline not collapsed:\n%s", got)
 	}
-	if !strings.Contains(got, "| M-001 | two lines | draft |") {
+	if !strings.Contains(got, "| M-0001 | two lines | draft |") {
 		t.Errorf("milestone row missing or malformed:\n%s", got)
 	}
 }
@@ -121,10 +121,10 @@ func TestRender_Deterministic(t *testing.T) {
 	build := func() *tree.Tree {
 		return &tree.Tree{
 			Entities: []*entity.Entity{
-				{Kind: entity.KindEpic, ID: "E-01", Title: "A", Status: "active"},
-				{Kind: entity.KindEpic, ID: "E-02", Title: "B", Status: "proposed"},
-				{Kind: entity.KindMilestone, ID: "M-001", Title: "X", Status: "draft", Parent: "E-01"},
-				{Kind: entity.KindMilestone, ID: "M-002", Title: "Y", Status: "draft", Parent: "E-02"},
+				{Kind: entity.KindEpic, ID: "E-0001", Title: "A", Status: "active"},
+				{Kind: entity.KindEpic, ID: "E-0002", Title: "B", Status: "proposed"},
+				{Kind: entity.KindMilestone, ID: "M-0001", Title: "X", Status: "draft", Parent: "E-0001"},
+				{Kind: entity.KindMilestone, ID: "M-0002", Title: "Y", Status: "draft", Parent: "E-0002"},
 			},
 		}
 	}
@@ -138,15 +138,15 @@ func TestRender_Deterministic(t *testing.T) {
 func TestRender_IgnoresNonEpicNonMilestoneKinds(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
 			{Kind: entity.KindADR, ID: "ADR-0001", Title: "Use Postgres", Status: "accepted"},
-			{Kind: entity.KindGap, ID: "G-001", Title: "Auth gap", Status: "open"},
-			{Kind: entity.KindDecision, ID: "D-001", Title: "Sunset v1", Status: "accepted"},
-			{Kind: entity.KindContract, ID: "C-001", Title: "Public API", Status: "draft"},
+			{Kind: entity.KindGap, ID: "G-0001", Title: "Auth gap", Status: "open"},
+			{Kind: entity.KindDecision, ID: "D-0001", Title: "Sunset v1", Status: "accepted"},
+			{Kind: entity.KindContract, ID: "C-0001", Title: "Public API", Status: "draft"},
 		},
 	}
 	got := string(Render(tr))
-	for _, mustNotContain := range []string{"ADR-0001", "G-001", "D-001", "C-001"} {
+	for _, mustNotContain := range []string{"ADR-0001", "G-0001", "D-0001", "C-0001"} {
 		if strings.Contains(got, mustNotContain) {
 			t.Errorf("output should not mention %q (only epics + milestones):\n%s", mustNotContain, got)
 		}
@@ -158,7 +158,7 @@ func TestRender_IgnoresNonEpicNonMilestoneKinds(t *testing.T) {
 // epic heading and the milestone table.
 func TestRender_IncludesEpicGoal(t *testing.T) {
 	root := t.TempDir()
-	path := writeEpicFile(t, root, "E-01-foo", `---
+	path := writeEpicFile(t, root, "E-0001-foo", `---
 id: E-01
 title: Foo
 status: active
@@ -179,7 +179,7 @@ unrelated content
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active", Path: path},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active", Path: path},
 		},
 	}
 	got := string(Render(tr))
@@ -201,7 +201,7 @@ unrelated content
 // empty `### Goal` block.
 func TestRender_SkipsEmptyGoal(t *testing.T) {
 	root := t.TempDir()
-	path := writeEpicFile(t, root, "E-01-foo", `---
+	path := writeEpicFile(t, root, "E-0001-foo", `---
 id: E-01
 title: Foo
 status: active
@@ -215,7 +215,7 @@ status: active
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active", Path: path},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active", Path: path},
 		},
 	}
 	got := string(Render(tr))
@@ -230,7 +230,7 @@ status: active
 func TestRender_NoBodyFile_NoGoal(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
 		},
 	}
 	got := string(Render(tr))
@@ -338,13 +338,13 @@ func TestExtractCandidates_RunsToEOF(t *testing.T) {
 func TestAppendCandidates_RoundTrip(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
-			{Kind: entity.KindEpic, ID: "E-01", Title: "Foo", Status: "active"},
+			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
 		},
 	}
 	gen := Render(tr)
 	cands := []byte("## Candidates\n\n- Idea A\n- Idea B\n")
 	merged := AppendCandidates(gen, cands)
-	if !bytes.Contains(merged, []byte("## E-01")) {
+	if !bytes.Contains(merged, []byte("## E-0001")) {
 		t.Errorf("epic section lost in merge:\n%s", merged)
 	}
 	if !bytes.Contains(merged, []byte("- Idea A")) {

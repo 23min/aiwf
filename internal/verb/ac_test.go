@@ -18,10 +18,10 @@ import (
 func TestAddAC_AppendsACAndScaffoldsHeading(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
 
-	m := r.tree().ByID("M-001")
+	m := r.tree().ByID("M-0001")
 	if m == nil {
 		t.Fatal("M-001 missing")
 	}
@@ -46,7 +46,7 @@ func TestAddAC_AppendsACAndScaffoldsHeading(t *testing.T) {
 			entityTr = tr
 		}
 	}
-	if entityTr.Value != "M-001/AC-1" {
+	if entityTr.Value != "M-0001/AC-1" {
 		t.Errorf("aiwf-entity = %q, want M-001/AC-1", entityTr.Value)
 	}
 }
@@ -58,11 +58,11 @@ func TestAddAC_AppendsACAndScaffoldsHeading(t *testing.T) {
 func TestAddAC_SeedsRedPhaseUnderTDDRequired(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "required"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "required"}))
 
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
 
-	m := r.tree().ByID("M-001")
+	m := r.tree().ByID("M-0001")
 	if len(m.ACs) != 1 {
 		t.Fatalf("ACs = %+v", m.ACs)
 	}
@@ -77,13 +77,13 @@ func TestAddAC_SeedsRedPhaseUnderTDDRequired(t *testing.T) {
 func TestAddAC_PositionMaxPlus1AcrossCancellation(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "AC one", testActor, nil))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "AC two", testActor, nil))
-	r.must(verb.Cancel(r.ctx, r.tree(), "M-001/AC-2", testActor, "", false))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "AC three (max+1, not gap-fill)", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "AC one", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "AC two", testActor, nil))
+	r.must(verb.Cancel(r.ctx, r.tree(), "M-0001/AC-2", testActor, "", false))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "AC three (max+1, not gap-fill)", testActor, nil))
 
-	m := r.tree().ByID("M-001")
+	m := r.tree().ByID("M-0001")
 	if len(m.ACs) != 3 {
 		t.Fatalf("expected 3 ACs (cancelled AC-2 stays in place), got %d: %+v", len(m.ACs), m.ACs)
 	}
@@ -106,10 +106,10 @@ func TestAddAC_PositionMaxPlus1AcrossCancellation(t *testing.T) {
 func TestAddAC_RefusesProseyTitle(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 
 	prosey := "**Full embedment inventory.** A machine-reviewable table enumerates every rule."
-	_, err := verb.AddAC(r.ctx, r.tree(), "M-001", prosey, testActor, nil)
+	_, err := verb.AddAC(r.ctx, r.tree(), "M-0001", prosey, testActor, nil)
 	if err == nil {
 		t.Fatal("expected refusal for prose-y title; got no error")
 	}
@@ -118,7 +118,7 @@ func TestAddAC_RefusesProseyTitle(t *testing.T) {
 	}
 
 	// Sanity: the milestone still has zero ACs (verb refused before any write).
-	if m := r.tree().ByID("M-001"); m == nil || len(m.ACs) != 0 {
+	if m := r.tree().ByID("M-0001"); m == nil || len(m.ACs) != 0 {
 		t.Errorf("M-001 should have 0 ACs after refused add, got %+v", m.ACs)
 	}
 }
@@ -129,10 +129,10 @@ func TestAddAC_RefusesProseyTitle(t *testing.T) {
 func TestAddAC_AcceptsShortLabel(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "Engine emits warning on bad input", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Engine emits warning on bad input", testActor, nil))
 
-	if m := r.tree().ByID("M-001"); m == nil || len(m.ACs) != 1 {
+	if m := r.tree().ByID("M-0001"); m == nil || len(m.ACs) != 1 {
 		t.Fatalf("M-001 should have 1 AC after happy add, got %+v", m)
 	}
 }
@@ -141,7 +141,7 @@ func TestAddAC_AcceptsShortLabel(t *testing.T) {
 func TestAddAC_NotAMilestoneRefuses(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	_, err := verb.AddAC(r.ctx, r.tree(), "E-01", "nope", testActor, nil)
+	_, err := verb.AddAC(r.ctx, r.tree(), "E-0001", "nope", testActor, nil)
 	if err == nil || !strings.Contains(err.Error(), "not a milestone") {
 		t.Errorf("expected 'not a milestone' error, got %v", err)
 	}
@@ -150,7 +150,7 @@ func TestAddAC_NotAMilestoneRefuses(t *testing.T) {
 // TestAddAC_NonExistentParent surfaces a clean error.
 func TestAddAC_NonExistentParent(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.AddAC(r.ctx, r.tree(), "M-999", "title", testActor, nil)
+	_, err := verb.AddAC(r.ctx, r.tree(), "M-0999", "title", testActor, nil)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected not-found error, got %v", err)
 	}
@@ -161,11 +161,11 @@ func TestAddAC_NonExistentParent(t *testing.T) {
 func TestPromote_Composite(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
-	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "", false, verb.PromoteOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "", false, verb.PromoteOptions{}))
 
-	m := r.tree().ByID("M-001")
+	m := r.tree().ByID("M-0001")
 	if m.ACs[0].Status != "met" {
 		t.Errorf("AC-1 status = %q, want met", m.ACs[0].Status)
 	}
@@ -176,14 +176,14 @@ func TestPromote_Composite(t *testing.T) {
 func TestPromote_CompositeRespectsACFSM(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
 
 	// open → cancelled is legal; open → "weird" isn't a valid status,
 	// so even the FSM check fails. Use met → done as the illegal
 	// jump (met can only go to deferred or cancelled).
-	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "", false, verb.PromoteOptions{}))
-	_, err := verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "done", testActor, "", false, verb.PromoteOptions{})
+	r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "", false, verb.PromoteOptions{}))
+	_, err := verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "done", testActor, "", false, verb.PromoteOptions{})
 	if err == nil || !strings.Contains(err.Error(), "cannot transition") {
 		t.Errorf("expected illegal-transition error for met → done, got %v", err)
 	}
@@ -194,11 +194,11 @@ func TestPromote_CompositeRespectsACFSM(t *testing.T) {
 func TestCancel_Composite(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor, nil))
-	r.must(verb.Cancel(r.ctx, r.tree(), "M-001/AC-1", testActor, "", false))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
+	r.must(verb.Cancel(r.ctx, r.tree(), "M-0001/AC-1", testActor, "", false))
 
-	m := r.tree().ByID("M-001")
+	m := r.tree().ByID("M-0001")
 	if len(m.ACs) != 1 || m.ACs[0].ID != "AC-1" || m.ACs[0].Status != "cancelled" {
 		t.Errorf("ACs = %+v", m.ACs)
 	}
@@ -209,11 +209,11 @@ func TestCancel_Composite(t *testing.T) {
 func TestCancel_CompositeAlreadyCancelled(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor, nil))
-	r.must(verb.Cancel(r.ctx, r.tree(), "M-001/AC-1", testActor, "", false))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
+	r.must(verb.Cancel(r.ctx, r.tree(), "M-0001/AC-1", testActor, "", false))
 
-	_, err := verb.Cancel(r.ctx, r.tree(), "M-001/AC-1", testActor, "", false)
+	_, err := verb.Cancel(r.ctx, r.tree(), "M-0001/AC-1", testActor, "", false)
 	if err == nil || !strings.Contains(err.Error(), "already cancelled") {
 		t.Errorf("expected 'already cancelled' error, got %v", err)
 	}
@@ -224,11 +224,11 @@ func TestCancel_CompositeAlreadyCancelled(t *testing.T) {
 func TestRename_CompositeUpdatesTitleAndHeading(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "Old title", testActor, nil))
-	r.must(verb.Rename(r.ctx, r.tree(), "M-001/AC-1", "New title", testActor))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Old title", testActor, nil))
+	r.must(verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", "New title", testActor))
 
-	m := r.tree().ByID("M-001")
+	m := r.tree().ByID("M-0001")
 	if m.ACs[0].Title != "New title" {
 		t.Errorf("frontmatter title = %q, want New title", m.ACs[0].Title)
 	}
@@ -249,10 +249,10 @@ func TestRename_CompositeUpdatesTitleAndHeading(t *testing.T) {
 func TestRename_CompositeNoOp(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "Same title", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Same title", testActor, nil))
 
-	_, err := verb.Rename(r.ctx, r.tree(), "M-001/AC-1", "Same title", testActor)
+	_, err := verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", "Same title", testActor)
 	if err == nil || !strings.Contains(err.Error(), "already") {
 		t.Errorf("expected no-op error, got %v", err)
 	}
@@ -265,20 +265,20 @@ func TestRename_CompositeNoOp(t *testing.T) {
 func TestPromoteACPhase_RoundTrip(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
 
 	// "" → red
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "", false, nil))
-	if got := r.tree().ByID("M-001").ACs[0].TDDPhase; got != "red" {
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "red", testActor, "", false, nil))
+	if got := r.tree().ByID("M-0001").ACs[0].TDDPhase; got != "red" {
 		t.Fatalf("after first phase change: phase = %q, want red", got)
 	}
 	// red → green
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "green", testActor, "", false, nil))
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "green", testActor, "", false, nil))
 	// green → done (refactor optional)
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "done", testActor, "", false, nil))
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "done", testActor, "", false, nil))
 
-	if got := r.tree().ByID("M-001").ACs[0].TDDPhase; got != "done" {
+	if got := r.tree().ByID("M-0001").ACs[0].TDDPhase; got != "done" {
 		t.Errorf("final phase = %q, want done", got)
 	}
 }
@@ -289,16 +289,16 @@ func TestPromoteACPhase_RoundTrip(t *testing.T) {
 func TestPromoteACPhase_RejectsIllegalSkipAhead(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
 
 	// "" → green is illegal (must enter at red).
-	if _, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "green", testActor, "", false, nil); err == nil {
+	if _, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "green", testActor, "", false, nil); err == nil {
 		t.Error("expected error for empty → green phase")
 	}
 	// red → done is illegal (must go through green).
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "", false, nil))
-	if _, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "done", testActor, "", false, nil); err == nil {
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "red", testActor, "", false, nil))
+	if _, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "done", testActor, "", false, nil); err == nil {
 		t.Error("expected error for red → done phase")
 	}
 }
@@ -309,14 +309,14 @@ func TestPromoteACPhase_RejectsIllegalSkipAhead(t *testing.T) {
 func TestPromoteACPhase_ForceRelaxesFSM(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor, nil))
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "", false, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "red", testActor, "", false, nil))
 
 	// red → done forced.
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "done", testActor, "skipped green for the demo", true, nil))
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "done", testActor, "skipped green for the demo", true, nil))
 
-	if got := r.tree().ByID("M-001").ACs[0].TDDPhase; got != "done" {
+	if got := r.tree().ByID("M-0001").ACs[0].TDDPhase; got != "done" {
 		t.Errorf("phase = %q, want done", got)
 	}
 	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -351,11 +351,11 @@ func readMilestoneBody(root, relPath string) (string, error) {
 func TestPromoteACPhase_TestsTrailerWritten(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
 
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "", false, nil))
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "green", testActor, "", false,
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "red", testActor, "", false, nil))
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "green", testActor, "", false,
 		&gitops.TestMetrics{Pass: 12, Fail: 0, Skip: 1}))
 
 	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -384,10 +384,10 @@ func TestPromoteACPhase_TestsTrailerWritten(t *testing.T) {
 func TestAddAC_TestsTrailerOnSeededRedOnly(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Required", testActor, verb.AddOptions{EpicID: "E-01", TDD: "required"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Required", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "required"}))
 
 	// Trailer lands on the seeded-red AC creation commit.
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First", testActor,
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor,
 		&gitops.TestMetrics{Pass: 0, Fail: 1, Skip: 0}))
 	trailers, err := gitops.HeadTrailers(r.ctx, r.root)
 	if err != nil {
@@ -408,8 +408,8 @@ func TestAddAC_TestsTrailerOnSeededRedOnly(t *testing.T) {
 
 	// Add a second milestone without tdd — passing --tests must
 	// refuse rather than silently drop.
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Optional", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	if _, err := verb.AddAC(r.ctx, r.tree(), "M-002", "First", testActor,
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Optional", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	if _, err := verb.AddAC(r.ctx, r.tree(), "M-0002", "First", testActor,
 		&gitops.TestMetrics{Pass: 1}); err == nil {
 		t.Error("expected error when --tests is set on a non-tdd-required milestone")
 	}

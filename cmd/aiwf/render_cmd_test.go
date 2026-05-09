@@ -21,7 +21,7 @@ func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Schema", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 
@@ -39,8 +39,8 @@ func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 	out := string(captured)
 	for _, want := range []string{
 		"# Roadmap",
-		"## E-01 — Foundations (proposed)",
-		"| M-001 | Schema | draft |",
+		"## E-0001 — Foundations (proposed)",
+		"| M-0001 | Schema | draft |",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("stdout missing %q:\n%s", want, out)

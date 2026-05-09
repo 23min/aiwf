@@ -22,10 +22,10 @@ func TestRun_PromotePhaseWithTestsFlag(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine starts")
-	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "--phase", "red")
-	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "--phase", "green",
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine starts")
+	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "red")
+	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "green",
 		"--tests", "pass=12 fail=0 skip=1")
 
 	trailers, err := gitops.HeadTrailers(context.Background(), root)
@@ -54,9 +54,9 @@ func TestRun_PromotePhase_TestsRejectsBadInput(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "M", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC")
-	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "--phase", "red")
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "M", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC")
+	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "red")
 
 	cases := []string{
 		"duration=120ms",
@@ -68,7 +68,7 @@ func TestRun_PromotePhase_TestsRejectsBadInput(t *testing.T) {
 		t.Run(bad, func(t *testing.T) {
 			rc := run([]string{
 				"promote", "--actor", "human/test", "--root", root,
-				"M-001/AC-1", "--phase", "green", "--tests", bad,
+				"M-0001/AC-1", "--phase", "green", "--tests", bad,
 			})
 			if rc == exitOK {
 				t.Errorf("--tests %q should be a usage error; got exitOK", bad)
@@ -84,9 +84,9 @@ func TestRun_AddACWithTestsFlag(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "required", "--epic", "E-01", "--title", "Required", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "required", "--epic", "E-0001", "--title", "Required", "--actor", "human/test", "--root", root)
 
-	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "Engine",
+	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine",
 		"--tests", "pass=0 fail=1 skip=0")
 
 	trailers, err := gitops.HeadTrailers(context.Background(), root)
@@ -104,10 +104,10 @@ func TestRun_AddACWithTestsFlag(t *testing.T) {
 	}
 
 	// Non-tdd milestone: --tests must fail.
-	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Optional", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Optional", "--actor", "human/test", "--root", root)
 	rc := run([]string{
 		"add", "ac", "--actor", "human/test", "--root", root,
-		"M-002", "--title", "Pointless", "--tests", "pass=1",
+		"M-0002", "--title", "Pointless", "--tests", "pass=1",
 	})
 	if rc == exitOK {
 		t.Error("--tests on non-tdd milestone should fail; got exitOK")
@@ -124,7 +124,7 @@ func TestRun_PromoteStatusModeRejectsTests(t *testing.T) {
 
 	rc := run([]string{
 		"promote", "--actor", "human/test", "--root", root,
-		"E-01", "active", "--tests", "pass=1",
+		"E-0001", "active", "--tests", "pass=1",
 	})
 	if rc == exitOK {
 		t.Error("--tests in status mode should be a usage error; got exitOK")

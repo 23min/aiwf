@@ -28,13 +28,13 @@ func TestRunProvenance_CleanCommits(t *testing.T) {
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("4", 40)
 	commits := []scope.Commit{
-		humanCommit("aaaa111", "promote", "E-01", "human/peter", nil),
-		authorizeOpenedCommit(authSHA, "E-01", "human/peter", "ai/claude"),
-		agentCommit("bbbb222", "promote", "M-001", "ai/claude", "human/peter", authSHA, nil),
+		humanCommit("aaaa111", "promote", "E-0001", "human/peter", nil),
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+		agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 		// terminal-promote ends the scope: same commit, scope-ends
 		// trailer naming the auth SHA. Within-commit equality is the
 		// "auto-end" edge case — explicitly allowed by the design.
-		agentCommit("cccc333", "promote", "E-01", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+		agentCommit("cccc333", "promote", "E-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
 			{Key: gitops.TrailerScopeEnds, Value: authSHA},
 		}),
 	}
@@ -72,7 +72,7 @@ func TestRunProvenance_ShapeRules(t *testing.T) {
 			name: "actor missing slash",
 			commit: scope.Commit{SHA: "aaa1111", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "human-no-slash"},
 			}},
 			wantCode: CodeProvenanceActorMalformed,
@@ -81,7 +81,7 @@ func TestRunProvenance_ShapeRules(t *testing.T) {
 			name: "principal non-human",
 			commit: scope.Commit{SHA: "bbb2222", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "ai/sub-agent"},
 			}},
@@ -91,7 +91,7 @@ func TestRunProvenance_ShapeRules(t *testing.T) {
 			name: "on-behalf-of non-human",
 			commit: scope.Commit{SHA: "ccc3333", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 				{Key: gitops.TrailerOnBehalfOf, Value: "ai/claude"},
@@ -103,7 +103,7 @@ func TestRunProvenance_ShapeRules(t *testing.T) {
 			name: "authorized-by malformed",
 			commit: scope.Commit{SHA: "ddd4444", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 				{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
@@ -115,7 +115,7 @@ func TestRunProvenance_ShapeRules(t *testing.T) {
 			name: "force on non-human actor",
 			commit: scope.Commit{SHA: "eee5555", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "cancel"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 				{Key: gitops.TrailerForce, Value: "override"},
@@ -126,7 +126,7 @@ func TestRunProvenance_ShapeRules(t *testing.T) {
 			name: "audit-only on non-human actor",
 			commit: scope.Commit{SHA: "fff6666", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "cancel"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 				{Key: gitops.TrailerAuditOnly, Value: "manual recovery"},
@@ -156,7 +156,7 @@ func TestRunProvenance_CoherenceRules(t *testing.T) {
 			name: "on-behalf-of without authorized-by",
 			commit: scope.Commit{SHA: "1111111", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 				{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
@@ -167,7 +167,7 @@ func TestRunProvenance_CoherenceRules(t *testing.T) {
 			name: "non-human actor without principal",
 			commit: scope.Commit{SHA: "2222222", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 			}},
 			wantContain: "is non-human but aiwf-principal: is missing",
@@ -176,7 +176,7 @@ func TestRunProvenance_CoherenceRules(t *testing.T) {
 			name: "human actor with principal",
 			commit: scope.Commit{SHA: "3333333", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "human/peter"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 			}},
@@ -186,7 +186,7 @@ func TestRunProvenance_CoherenceRules(t *testing.T) {
 			name: "force with on-behalf-of",
 			commit: scope.Commit{SHA: "4444444", Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "cancel"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
 				{Key: gitops.TrailerActor, Value: "human/peter"},
 				{Key: gitops.TrailerForce, Value: "override"},
 				{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
@@ -219,7 +219,7 @@ func TestRunProvenance_CoherenceRules(t *testing.T) {
 func TestRunProvenance_NoActiveScope(t *testing.T) {
 	c := scope.Commit{SHA: "9999999", Trailers: []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "promote"},
-		{Key: gitops.TrailerEntity, Value: "E-01"},
+		{Key: gitops.TrailerEntity, Value: "E-0001"},
 		{Key: gitops.TrailerActor, Value: "ai/claude"},
 		{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 	}}
@@ -234,7 +234,7 @@ func TestRunProvenance_NoActiveScope(t *testing.T) {
 func TestRunProvenance_AuthorizationMissing(t *testing.T) {
 	c := scope.Commit{SHA: "aaaaaaa", Trailers: []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "promote"},
-		{Key: gitops.TrailerEntity, Value: "E-01"},
+		{Key: gitops.TrailerEntity, Value: "E-0001"},
 		{Key: gitops.TrailerActor, Value: "ai/claude"},
 		{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 		{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
@@ -252,15 +252,15 @@ func TestRunProvenance_AuthorizationEnded(t *testing.T) {
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("a", 40)
 	commits := []scope.Commit{
-		authorizeOpenedCommit(authSHA, "E-01", "human/peter", "ai/claude"),
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
 		// First scoped commit — fine.
-		agentCommit("bbbb222", "promote", "M-001", "ai/claude", "human/peter", authSHA, nil),
+		agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 		// Terminal-promote ends the scope (same commit). Allowed.
-		agentCommit("cccc333", "promote", "E-01", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+		agentCommit("cccc333", "promote", "E-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
 			{Key: gitops.TrailerScopeEnds, Value: authSHA},
 		}),
 		// LATE commit references the now-ended scope.
-		agentCommit("dddd444", "promote", "M-002", "ai/claude", "human/peter", authSHA, nil),
+		agentCommit("dddd444", "promote", "M-0002", "ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
 	if !hasFinding(got, CodeProvenanceAuthorizationEnded) {
@@ -275,9 +275,9 @@ func TestRunProvenance_AuthorizationOutOfScope(t *testing.T) {
 	authSHA := strings.Repeat("a", 40)
 	commits := []scope.Commit{
 		// Scope opened against the unrelated epic E-09.
-		authorizeOpenedCommit(authSHA, "E-09", "human/peter", "ai/claude"),
+		authorizeOpenedCommit(authSHA, "E-0009", "human/peter", "ai/claude"),
 		// Agent acts on M-001, which is under E-01 — out of scope.
-		agentCommit("bbbb222", "promote", "M-001", "ai/claude", "human/peter", authSHA, nil),
+		agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
 	if !hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
@@ -296,19 +296,19 @@ func TestRunProvenance_PriorEntityChainResolves(t *testing.T) {
 	// The scope was opened against E-07; the agent now operates on
 	// M-001 under E-01.
 	commits := []scope.Commit{
-		authorizeOpenedCommit(authSHA, "E-07", "human/peter", "ai/claude"),
+		authorizeOpenedCommit(authSHA, "E-0007", "human/peter", "ai/claude"),
 		// Reallocate commit: prior=E-07, new=E-01.
 		{
 			SHA: "9999991",
 			Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "reallocate"},
-				{Key: gitops.TrailerEntity, Value: "E-01"},
-				{Key: gitops.TrailerPriorEntity, Value: "E-07"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
+				{Key: gitops.TrailerPriorEntity, Value: "E-0007"},
 				{Key: gitops.TrailerActor, Value: "human/peter"},
 			},
 		},
 		// Agent acts on M-001 (under E-01, which used to be E-07).
-		agentCommit("bbbb222", "promote", "M-001", "ai/claude", "human/peter", authSHA, nil),
+		agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
 	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
@@ -323,7 +323,7 @@ func TestRunProvenance_PriorEntityChainResolves(t *testing.T) {
 func TestRunProvenance_AuthorizeCommitNoActiveScopeSkipped(t *testing.T) {
 	c := scope.Commit{SHA: "1234567", Trailers: []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "authorize"},
-		{Key: gitops.TrailerEntity, Value: "E-01"},
+		{Key: gitops.TrailerEntity, Value: "E-0001"},
 		{Key: gitops.TrailerActor, Value: "human/peter"},
 		{Key: gitops.TrailerTo, Value: "ai/claude"},
 		{Key: gitops.TrailerScope, Value: "opened"},
@@ -348,7 +348,7 @@ func TestRunUntrailedAudit_AuditOnlyClearsWarning(t *testing.T) {
 			SHA: "audit01",
 			Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "cancel"},
-				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerEntity, Value: "G-0001"},
 				{Key: gitops.TrailerAuditOnly, Value: "manual flip recovery"},
 			},
 		},
@@ -368,7 +368,7 @@ func TestRunUntrailedAudit_AuditOnlyBeforeManualStillFires(t *testing.T) {
 			SHA: "audit01",
 			Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "cancel"},
-				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerEntity, Value: "G-0001"},
 				{Key: gitops.TrailerAuditOnly, Value: "earlier recovery"},
 			},
 		},
@@ -396,7 +396,7 @@ func TestRunUntrailedAudit_AuditOnlyOnDifferentEntityDoesNotCover(t *testing.T) 
 			SHA: "audit01",
 			Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "cancel"},
-				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerEntity, Value: "G-0001"},
 				{Key: gitops.TrailerAuditOnly, Value: "different entity"},
 			},
 		},
@@ -464,7 +464,7 @@ func TestRunUntrailedAudit_PerEntityFindings(t *testing.T) {
 	if len(got) != 3 {
 		t.Fatalf("findings = %d, want 3 (one per entity); got %v", len(got), got)
 	}
-	wantIDs := map[string]bool{"G-001": true, "G-002": true, "D-005": true}
+	wantIDs := map[string]bool{"G-0001": true, "G-0002": true, "D-0005": true}
 	for _, f := range got {
 		if f.Code != CodeProvenanceUntrailedEntityCommit {
 			t.Errorf("code = %q, want %q", f.Code, CodeProvenanceUntrailedEntityCommit)
@@ -497,7 +497,7 @@ func TestRunUntrailedAudit_AuditOnlyClearsPerEntity(t *testing.T) {
 			SHA: "audit01",
 			Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "cancel"},
-				{Key: gitops.TrailerEntity, Value: "G-001"},
+				{Key: gitops.TrailerEntity, Value: "G-0001"},
 				{Key: gitops.TrailerAuditOnly, Value: "manual flip recovery"},
 			},
 		},
@@ -506,7 +506,7 @@ func TestRunUntrailedAudit_AuditOnlyClearsPerEntity(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("findings = %d, want 1 (only uncovered entity); got %v", len(got), got)
 	}
-	if got[0].EntityID != "G-002" {
+	if got[0].EntityID != "G-0002" {
 		t.Errorf("remaining finding EntityID = %q, want G-002", got[0].EntityID)
 	}
 }
@@ -525,7 +525,7 @@ func TestRunUntrailedAudit_CompositeAuditCoversParentManual(t *testing.T) {
 			SHA: "audit01",
 			Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "M-001/AC-1"},
+				{Key: gitops.TrailerEntity, Value: "M-0001/AC-1"},
 				{Key: gitops.TrailerAuditOnly, Value: "AC backfill"},
 			},
 		},
@@ -563,7 +563,7 @@ func TestRunUntrailedAudit(t *testing.T) {
 					SHA: "def5678",
 					Trailers: []gitops.Trailer{
 						{Key: gitops.TrailerVerb, Value: "promote"},
-						{Key: gitops.TrailerEntity, Value: "M-001"},
+						{Key: gitops.TrailerEntity, Value: "M-0001"},
 					},
 					Paths: []string{"work/epics/E-01-foo/M-001-bar.md"},
 				},
@@ -669,36 +669,36 @@ func TestRoleIDOK(t *testing.T) {
 //     looping.
 func TestWalkRenameChain(t *testing.T) {
 	t.Run("empty id", func(t *testing.T) {
-		if got := walkRenameChain("", map[string]string{"E-01": "E-02"}); got != "" {
+		if got := walkRenameChain("", map[string]string{"E-0001": "E-0002"}); got != "" {
 			t.Errorf("got %q, want empty", got)
 		}
 	})
 	t.Run("healthy chain", func(t *testing.T) {
 		chain := map[string]string{
-			"E-01": "E-02",
-			"E-02": "E-03",
+			"E-0001": "E-0002",
+			"E-0002": "E-0003",
 		}
-		if got := walkRenameChain("E-01", chain); got != "E-03" {
+		if got := walkRenameChain("E-0001", chain); got != "E-0003" {
 			t.Errorf("got %q, want E-03", got)
 		}
 	})
 	t.Run("not in chain", func(t *testing.T) {
-		if got := walkRenameChain("E-99", map[string]string{"E-01": "E-02"}); got != "E-99" {
+		if got := walkRenameChain("E-0099", map[string]string{"E-0001": "E-0002"}); got != "E-0099" {
 			t.Errorf("got %q, want E-99 (unchanged)", got)
 		}
 	})
 	t.Run("cycle broken", func(t *testing.T) {
 		// E-01 → E-02 → E-01 (corrupted; should not loop forever).
 		chain := map[string]string{
-			"E-01": "E-02",
-			"E-02": "E-01",
+			"E-0001": "E-0002",
+			"E-0002": "E-0001",
 		}
-		got := walkRenameChain("E-01", chain)
+		got := walkRenameChain("E-0001", chain)
 		// The cycle guard returns the latest unvisited position
 		// before the cycle closes. Either E-01 or E-02 is acceptable
 		// (the implementation visits E-01 first, walks to E-02, then
 		// E-02→E-01 hits the visited set and returns E-02).
-		if got != "E-02" && got != "E-01" {
+		if got != "E-0002" && got != "E-0001" {
 			t.Errorf("got %q, want E-01 or E-02 (cycle broken without looping)", got)
 		}
 	})
@@ -753,10 +753,10 @@ func TestRunProvenance_CompositeTargetRollsUp(t *testing.T) {
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("c", 40)
 	commits := []scope.Commit{
-		authorizeOpenedCommit(authSHA, "E-01", "human/peter", "ai/claude"),
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
 		// Agent acts on M-001/AC-1 (composite). Rolls up to M-001;
 		// M-001 reaches E-01 (parent). No out-of-scope finding.
-		agentCommit("bbbb222", "promote", "M-001/AC-1",
+		agentCommit("bbbb222", "promote", "M-0001/AC-1",
 			"ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
@@ -772,9 +772,9 @@ func TestRunProvenance_SelfReferentialOutOfScope(t *testing.T) {
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("d", 40)
 	commits := []scope.Commit{
-		authorizeOpenedCommit(authSHA, "E-01", "human/peter", "ai/claude"),
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
 		// Agent acts on E-01 itself. target == scope-entity.
-		agentCommit("bbbb222", "promote", "E-01",
+		agentCommit("bbbb222", "promote", "E-0001",
 			"ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
@@ -794,14 +794,14 @@ func TestRunProvenance_MultipleAuthorizedByLastWins(t *testing.T) {
 	goodSHA := strings.Repeat("a", 40)
 	missingSHA := strings.Repeat("0", 40)
 	commits := []scope.Commit{
-		authorizeOpenedCommit(goodSHA, "E-01", "human/peter", "ai/claude"),
+		authorizeOpenedCommit(goodSHA, "E-0001", "human/peter", "ai/claude"),
 		// Two authorized-by trailers: first valid, second missing.
 		// Last-wins → -authorization-missing fires.
 		{
 			SHA: "bbbb222",
 			Trailers: []gitops.Trailer{
 				{Key: gitops.TrailerVerb, Value: "promote"},
-				{Key: gitops.TrailerEntity, Value: "M-001"},
+				{Key: gitops.TrailerEntity, Value: "M-0001"},
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 				{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},

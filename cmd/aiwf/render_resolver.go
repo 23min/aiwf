@@ -54,7 +54,7 @@ func (r *renderResolver) IndexData() (*htmlrender.IndexData, error) {
 	out := &htmlrender.IndexData{Title: "Overview", Sidebar: sidebar}
 	for _, e := range sortedEntitiesByID(r.tree.ByKind(entity.KindEpic)) {
 		summary := htmlrender.EpicSummary{
-			ID:       e.ID,
+			ID:       entity.Canonicalize(e.ID),
 			Title:    e.Title,
 			Status:   e.Status,
 			FileName: idToHTMLFile(e.ID),
@@ -93,8 +93,9 @@ func (r *renderResolver) EpicData(id string) (*htmlrender.EpicData, error) {
 	}
 	for _, m := range r.milestonesUnder(e.ID) {
 		met, total := acRollup(m.ACs)
+		canonM := entity.Canonicalize(m.ID)
 		data.Milestones = append(data.Milestones, htmlrender.MilestoneSummary{
-			ID:           m.ID,
+			ID:           canonM,
 			Title:        m.Title,
 			Status:       m.Status,
 			TDD:          m.TDD,
@@ -106,7 +107,10 @@ func (r *renderResolver) EpicData(id string) (*htmlrender.EpicData, error) {
 		data.ACMet += met
 		data.ACTotal += total
 		for _, dep := range m.DependsOn {
-			data.DependencyDAG = append(data.DependencyDAG, htmlrender.DependencyEdge{From: m.ID, To: dep})
+			data.DependencyDAG = append(data.DependencyDAG, htmlrender.DependencyEdge{
+				From: canonM,
+				To:   entity.Canonicalize(dep),
+			})
 		}
 	}
 	data.LinkedEntities = r.linkedEntitiesFor(e)
@@ -219,24 +223,28 @@ func (r *renderResolver) sidebar(activeEpicID, activeMilestoneID string) htmlren
 }
 
 func (r *renderResolver) sidebarWithStatus(activeEpicID, activeMilestoneID string, currentStatus bool) htmlrender.SidebarData {
+	canonActiveEpic := entity.Canonicalize(activeEpicID)
+	canonActiveMilestone := entity.Canonicalize(activeMilestoneID)
 	s := htmlrender.SidebarData{
 		HasStatus:       true,
 		IsCurrentStatus: currentStatus,
 	}
 	for _, e := range sortedEntitiesByID(r.tree.ByKind(entity.KindEpic)) {
+		canonEpic := entity.Canonicalize(e.ID)
 		entry := htmlrender.SidebarEpic{
-			ID:        e.ID,
+			ID:        canonEpic,
 			Title:     e.Title,
 			FileName:  idToHTMLFile(e.ID),
-			IsActive:  e.ID == activeEpicID,
-			IsCurrent: e.ID == activeEpicID && activeMilestoneID == "",
+			IsActive:  canonEpic == canonActiveEpic,
+			IsCurrent: canonEpic == canonActiveEpic && activeMilestoneID == "",
 		}
 		for _, m := range r.milestonesUnder(e.ID) {
+			canonM := entity.Canonicalize(m.ID)
 			entry.Milestones = append(entry.Milestones, htmlrender.SidebarMilestone{
-				ID:        m.ID,
+				ID:        canonM,
 				Title:     m.Title,
 				FileName:  idToHTMLFile(m.ID),
-				IsCurrent: m.ID == activeMilestoneID,
+				IsCurrent: canonM == canonActiveMilestone,
 			})
 		}
 		s.Epics = append(s.Epics, entry)
@@ -323,9 +331,15 @@ func (r *renderResolver) StatusData() (*htmlrender.StatusData, error) {
 // entityRef builds the minimal renderer-facing struct from an
 // entity.Entity. FileName is canonical (idToHTMLFile == htmlrender's
 // own resolver, kept in sync via the same scheme).
+//
+// The emitted ID is canonicalized per AC-3 in M-081: render output is
+// uniform-width regardless of on-disk filename. FileName is derived
+// from the on-disk e.ID so links continue to point at the actual
+// file (a separate canonicalization pass — M-082's `aiwf rewidth` —
+// migrates the filenames themselves).
 func (r *renderResolver) entityRef(e *entity.Entity) *htmlrender.EntityRef {
 	return &htmlrender.EntityRef{
-		ID:       e.ID,
+		ID:       entity.Canonicalize(e.ID),
 		Title:    e.Title,
 		Status:   e.Status,
 		Path:     e.Path,
@@ -336,11 +350,14 @@ func (r *renderResolver) entityRef(e *entity.Entity) *htmlrender.EntityRef {
 }
 
 // milestonesUnder returns every milestone whose Parent == epicID,
-// sorted by id.
+// sorted by id. Comparison is canonicalized per AC-2/AC-3 in M-081
+// so a narrow on-disk parent ref still groups under a canonical
+// query (or vice versa).
 func (r *renderResolver) milestonesUnder(epicID string) []*entity.Entity {
+	canon := entity.Canonicalize(epicID)
 	var out []*entity.Entity
 	for _, m := range r.tree.ByKind(entity.KindMilestone) {
-		if m.Parent == epicID {
+		if entity.Canonicalize(m.Parent) == canon {
 			out = append(out, m)
 		}
 	}
@@ -415,11 +432,11 @@ func (r *renderResolver) linkedEntitiesFor(e *entity.Entity) []htmlrender.Linked
 		}
 		// Skip same-epic milestones in the linked list — they show
 		// up in their own table.
-		if other.Kind == entity.KindMilestone && other.Parent == e.ID {
+		if other.Kind == entity.KindMilestone && entity.Canonicalize(other.Parent) == entity.Canonicalize(e.ID) {
 			return
 		}
 		out = append(out, htmlrender.LinkedEntity{
-			ID:        other.ID,
+			ID:        entity.Canonicalize(other.ID),
 			Title:     other.Title,
 			Status:    other.Status,
 			Kind:      string(other.Kind),

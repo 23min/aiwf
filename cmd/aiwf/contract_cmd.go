@@ -141,10 +141,14 @@ func runContractValidation(ctx context.Context, tr *tree.Tree, rootDir string, c
 	}
 	configFindings := contractcheck.Run(tr, contracts, rootDir)
 
+	// Build skip set keyed by canonical id so a narrow legacy binding
+	// `id: C-001` matches the canonical-width terminal contract entity
+	// `C-0001` (AC-2 in M-081). The verify path also canonicalizes
+	// before lookup.
 	skip := make(map[string]bool)
 	for _, e := range tr.ByKind(entity.KindContract) {
 		if e.Status == entity.StatusRejected || e.Status == entity.StatusRetired {
-			skip[e.ID] = true
+			skip[entity.Canonicalize(e.ID)] = true
 		}
 	}
 	verifyResults := contractverify.Run(ctx, contractverify.Options{

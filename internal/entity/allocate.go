@@ -6,18 +6,17 @@ import (
 	"strings"
 )
 
-// canonicalPad is the minimum digit count for each kind's id format
-// (matches IDFormat: E-NN, M-NNN, ADR-NNNN, G-NNN, D-NNN, C-NNN).
+// CanonicalPad is the canonical zero-pad width for every entity
+// kind's id format (E-NNNN, M-NNNN, ADR-NNNN, G-NNNN, D-NNNN, C-NNNN).
 // Numbers exceeding 10^pad expand naturally; the pad is a *minimum*,
 // not a maximum.
-var canonicalPad = map[Kind]int{
-	KindEpic:      2,
-	KindMilestone: 3,
-	KindADR:       4,
-	KindGap:       3,
-	KindDecision:  3,
-	KindContract:  3,
-}
+//
+// Per ADR-0008, the kernel emits a uniform 4-digit width across all
+// kinds. Parsers (idPatterns, ParseCompositeID) keep accepting narrower
+// legacy widths so pre-migration trees, branches, and commit trailers
+// continue to validate without history rewrite. Display surfaces and
+// new allocations always emit canonical width via Canonicalize.
+const CanonicalPad = 4
 
 // idPrefix is the literal prefix every id of each kind starts with.
 var idPrefix = map[Kind]string{
@@ -66,11 +65,11 @@ func AllocateID(k Kind, entities []*Entity, trunkIDs []string) string {
 		}
 	}
 	next := highest + 1
-	pad, ok := canonicalPad[k]
+	prefix, ok := idPrefix[k]
 	if !ok {
-		return fmt.Sprintf("%s%d", idPrefix[k], next)
+		return fmt.Sprintf("%s%d", k, next)
 	}
-	return fmt.Sprintf("%s%0*d", idPrefix[k], pad, next)
+	return fmt.Sprintf("%s%0*d", prefix, CanonicalPad, next)
 }
 
 // parseIDNumber returns the numeric portion of an id whose prefix

@@ -132,7 +132,7 @@ func TestRender_BodyMarkdownRendersAsHTML(t *testing.T) {
 	root := t.TempDir()
 	gapsDir := filepath.Join(root, "work", "gaps")
 	mustMkdir(t, gapsDir)
-	mustWrite(t, filepath.Join(gapsDir, "G-077-mdcheck.md"),
+	mustWrite(t, filepath.Join(gapsDir, "G-0077-mdcheck.md"),
 		"---\nid: G-077\ntitle: Markdown check\nstatus: open\n---\n\n## Symptoms\n\n- list item one\n- list item two\n\nUse `aiwf check` first.\n\nSee [the docs](https://example.com).\n\n## Repro\n\n```go\nfmt.Println(\"hi\")\n```\n")
 
 	tr, _, err := tree.Load(context.Background(), root)
@@ -325,14 +325,18 @@ func TestRender_EmptyTree_StillProducesIndex(t *testing.T) {
 }
 
 func TestIDToFileName(t *testing.T) {
+	// idToFileName preserves the input width — filenames mirror the
+	// on-disk shape so links continue to point at the actual file.
+	// Display canonicalization (AC-3 in M-081) happens to the
+	// rendered link text, not to the file location.
 	cases := []struct{ in, want string }{
 		{"", "index.html"},
-		{"E-01", "E-01.html"},
-		{"M-007", "M-007.html"},
+		{"E-0001", "E-0001.html"},
+		{"M-0007", "M-0007.html"},
 		{"ADR-0042", "ADR-0042.html"},
-		{"G-099", "G-099.html"},
-		{"D-003", "D-003.html"},
-		{"C-100", "C-100.html"},
+		{"G-0099", "G-0099.html"},
+		{"D-0003", "D-0003.html"},
+		{"C-0100", "C-0100.html"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
@@ -405,11 +409,11 @@ func verifyLinkIntegrity(t *testing.T, outDir string) {
 func writeFixtureTree(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
-	epicDir := filepath.Join(root, "work", "epics", "E-01-foundations")
+	epicDir := filepath.Join(root, "work", "epics", "E-0001-foundations")
 	mustMkdir(t, epicDir)
 	mustWrite(t, filepath.Join(epicDir, "epic.md"),
 		"---\nid: E-01\ntitle: Foundations\nstatus: active\n---\n\n## Goal\n\nbuild things\n")
-	mustWrite(t, filepath.Join(epicDir, "M-001-first.md"),
+	mustWrite(t, filepath.Join(epicDir, "M-0001-first.md"),
 		`---
 id: M-001
 title: First
@@ -427,12 +431,12 @@ acs:
 ## Goal
 ship it
 `)
-	mustWrite(t, filepath.Join(epicDir, "M-002-second.md"),
+	mustWrite(t, filepath.Join(epicDir, "M-0002-second.md"),
 		"---\nid: M-002\ntitle: Second\nstatus: draft\nparent: E-01\n---\n\n## Goal\n\nlater\n")
 
 	gapsDir := filepath.Join(root, "work", "gaps")
 	mustMkdir(t, gapsDir)
-	mustWrite(t, filepath.Join(gapsDir, "G-001-flaky-build.md"),
+	mustWrite(t, filepath.Join(gapsDir, "G-0001-flaky-build.md"),
 		"---\nid: G-001\ntitle: Flaky build\nstatus: open\n---\n\n## What's missing\n\nAn investigation.\n\n## Why it matters\n\nCI is unreliable.\n")
 
 	adrDir := filepath.Join(root, "docs", "adr")
@@ -442,10 +446,10 @@ ship it
 
 	decisionDir := filepath.Join(root, "work", "decisions")
 	mustMkdir(t, decisionDir)
-	mustWrite(t, filepath.Join(decisionDir, "D-001-cadence.md"),
+	mustWrite(t, filepath.Join(decisionDir, "D-0001-cadence.md"),
 		"---\nid: D-001\ntitle: Release cadence\nstatus: open\n---\n\n## Question\n\nWhen do we ship?\n\n## Decision\n\nMonthly.\n\n## Reasoning\n\nMatches QA.\n")
 
-	contractSubdir := filepath.Join(root, "work", "contracts", "C-001-api")
+	contractSubdir := filepath.Join(root, "work", "contracts", "C-0001-api")
 	mustMkdir(t, contractSubdir)
 	mustWrite(t, filepath.Join(contractSubdir, "contract.md"),
 		"---\nid: C-001\ntitle: API contract\nstatus: accepted\n---\n\n## Purpose\n\nDescribe the API.\n\n## Stability\n\nLocked.\n")

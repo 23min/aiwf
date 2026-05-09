@@ -37,22 +37,22 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01 active: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "Cache warmup", "--epic", "E-01"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "Cache warmup", "--epic", "E-0001"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
 
 	// Open a scope on E-01 for ai/claude.
 	if out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--to", "ai/claude", "--reason", "implement E-01 end-to-end"); err != nil {
+		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-01 end-to-end"); err != nil {
 		t.Fatalf("aiwf authorize: %v\n%s", err, out)
 	}
 
 	// Capture the auth SHA so we can match it against the agent's
 	// promote trailers.
-	scopes, err := loadEntityScopes(context.Background(), root, "E-01")
+	scopes, err := loadEntityScopes(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatalf("loadEntityScopes: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 
 	// Agent runs the verb.
 	out, runErr := runBin(t, root, binDir, nil,
-		"promote", "M-001", "in_progress",
+		"promote", "M-0001", "in_progress",
 		"--actor", "ai/claude",
 		"--principal", "human/peter")
 	if runErr != nil {
@@ -75,7 +75,7 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 		t.Fatal(err)
 	}
 	hasTrailer(t, tr, "aiwf-verb", "promote")
-	hasTrailer(t, tr, "aiwf-entity", "M-001")
+	hasTrailer(t, tr, "aiwf-entity", "M-0001")
 	hasTrailer(t, tr, "aiwf-actor", "ai/claude")
 	hasTrailer(t, tr, "aiwf-principal", "human/peter")
 	hasTrailer(t, tr, "aiwf-on-behalf-of", "human/peter")
@@ -110,28 +110,28 @@ func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic E-01: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01: %v\n%s", err, out)
 	}
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Unrelated"); err != nil {
 		t.Fatalf("aiwf add epic E-02: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-02", "active"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0002", "active"); err != nil {
 		t.Fatalf("aiwf promote E-02: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "Out-of-scope", "--epic", "E-02"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "Out-of-scope", "--epic", "E-0002"); err != nil {
 		t.Fatalf("aiwf add milestone under E-02: %v\n%s", err, out)
 	}
 	// Authorize the agent on E-01 only.
 	if out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--to", "ai/claude", "--reason", "scoped to E-01"); err != nil {
+		"authorize", "E-0001", "--to", "ai/claude", "--reason", "scoped to E-01"); err != nil {
 		t.Fatalf("aiwf authorize: %v\n%s", err, out)
 	}
 
 	// Agent attempts to promote a milestone under E-02 — out of
 	// scope. Refusal expected.
 	out, err := runBin(t, root, binDir, nil,
-		"promote", "M-001", "in_progress",
+		"promote", "M-0001", "in_progress",
 		"--actor", "ai/claude",
 		"--principal", "human/peter")
 	if err == nil {
@@ -171,19 +171,19 @@ func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01 active: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "First", "--epic", "E-01"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "First", "--epic", "E-0001"); err != nil {
 		t.Fatalf("aiwf add M-001: %v\n%s", err, out)
 	}
 	// Authorize the agent on M-001.
 	if out, err := runBin(t, root, binDir, nil,
-		"authorize", "M-001", "--to", "ai/claude", "--reason", "scoped to M-001"); err != nil {
+		"authorize", "M-0001", "--to", "ai/claude", "--reason", "scoped to M-001"); err != nil {
 		t.Fatalf("aiwf authorize: %v\n%s", err, out)
 	}
 	// Reallocate M-001 → M-002 (or whatever the renumber target is).
-	if out, err := runBin(t, root, binDir, nil, "reallocate", "M-001"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "reallocate", "M-0001"); err != nil {
 		t.Fatalf("aiwf reallocate: %v\n%s", err, out)
 	}
 
@@ -200,12 +200,12 @@ func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
 			break
 		}
 	}
-	if newID == "" || newID == "M-001" {
+	if newID == "" || newID == "M-0001" {
 		t.Fatalf("reallocate did not produce a new id; head trailers: %+v", tr)
 	}
 
 	// Verify resolveCurrentEntityID walks the chain.
-	resolved, err := resolveCurrentEntityID(context.Background(), root, "M-001")
+	resolved, err := resolveCurrentEntityID(context.Background(), root, "M-0001")
 	if err != nil {
 		t.Fatalf("resolveCurrentEntityID: %v", err)
 	}
@@ -253,17 +253,17 @@ func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Unrelated"); err != nil {
 		t.Fatalf("aiwf add E-02: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01: %v\n%s", err, out)
 	}
 	if out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--to", "ai/claude", "--reason", "scoped to E-01"); err != nil {
+		"authorize", "E-0001", "--to", "ai/claude", "--reason", "scoped to E-01"); err != nil {
 		t.Fatalf("aiwf authorize: %v\n%s", err, out)
 	}
 
 	// In scope: agent adds a milestone under E-01.
 	if out, err := runBin(t, root, binDir, nil,
-		"add", "milestone", "--tdd", "none", "--title", "In-scope", "--epic", "E-01",
+		"add", "milestone", "--tdd", "none", "--title", "In-scope", "--epic", "E-0001",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("agent add milestone in scope: %v\n%s", err, out)
 	}
@@ -271,7 +271,7 @@ func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
 	// Out of scope: same agent under same scope, but milestone is
 	// being added under E-02. Refused.
 	out, runErr := runBin(t, root, binDir, nil,
-		"add", "milestone", "--tdd", "none", "--title", "Out-of-scope", "--epic", "E-02",
+		"add", "milestone", "--tdd", "none", "--title", "Out-of-scope", "--epic", "E-0002",
 		"--actor", "ai/claude", "--principal", "human/peter")
 	if runErr == nil {
 		t.Fatalf("expected refusal for out-of-scope add; got success:\n%s", out)
@@ -307,14 +307,14 @@ func TestProvenance_TerminalPromoteEmitsScopeEnds(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01 active: %v\n%s", err, out)
 	}
 	if out, err := runBin(t, root, binDir, nil,
-		"authorize", "E-01", "--to", "ai/claude", "--reason", "implement E-01"); err != nil {
+		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-01"); err != nil {
 		t.Fatalf("aiwf authorize: %v\n%s", err, out)
 	}
-	scopes, err := loadEntityScopes(context.Background(), root, "E-01")
+	scopes, err := loadEntityScopes(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatalf("loadEntityScopes (pre): %v", err)
 	}
@@ -324,7 +324,7 @@ func TestProvenance_TerminalPromoteEmitsScopeEnds(t *testing.T) {
 	authSHA := scopes[0].AuthSHA
 
 	// Human terminal-promotes E-01 directly.
-	out, runErr := runBin(t, root, binDir, nil, "promote", "E-01", "done")
+	out, runErr := runBin(t, root, binDir, nil, "promote", "E-0001", "done")
 	if runErr != nil {
 		t.Fatalf("aiwf promote E-01 done: %v\n%s", runErr, out)
 	}
@@ -334,12 +334,12 @@ func TestProvenance_TerminalPromoteEmitsScopeEnds(t *testing.T) {
 		t.Fatal(err)
 	}
 	hasTrailer(t, tr, "aiwf-verb", "promote")
-	hasTrailer(t, tr, "aiwf-entity", "E-01")
+	hasTrailer(t, tr, "aiwf-entity", "E-0001")
 	hasTrailer(t, tr, "aiwf-to", "done")
 	hasTrailer(t, tr, "aiwf-scope-ends", authSHA)
 
 	// Scope is now ended.
-	scopes, err = loadEntityScopes(context.Background(), root, "E-01")
+	scopes, err = loadEntityScopes(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatalf("loadEntityScopes (post): %v", err)
 	}

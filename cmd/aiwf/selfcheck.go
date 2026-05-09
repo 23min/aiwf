@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/23min/ai-workflow-v2/internal/entity"
 	"github.com/23min/ai-workflow-v2/internal/gitops"
 )
 
@@ -196,8 +197,10 @@ func runSelfCheck() int {
 				if !strings.Contains(out, "provenance-untrailered-entity-commit") {
 					return fmt.Errorf("expected provenance-untrailered-entity-commit to fire after manual flip; got:\n%s", out)
 				}
-				if !strings.Contains(out, "G-002") {
-					return fmt.Errorf("warning should name G-002 as the affected entity; got:\n%s", out)
+				// Canonical-width id per AC-3 — display surfaces emit
+				// the canonical form regardless of input width.
+				if !strings.Contains(out, "G-0002") {
+					return fmt.Errorf("warning should name G-0002 as the affected entity; got:\n%s", out)
 				}
 				return nil
 			},
@@ -213,9 +216,9 @@ func runSelfCheck() int {
 				// Other untrailered findings (G-001 was cancelled
 				// via the verb, so no warning for it; the only
 				// candidate is G-002). The repair must have cleared
-				// it; the substring "G-002 with no aiwf-verb" must
+				// it; the substring "G-0002 with no aiwf-verb" must
 				// be absent.
-				if strings.Contains(out, "G-002 with no aiwf-verb") {
+				if strings.Contains(out, "G-0002 with no aiwf-verb") {
 					return fmt.Errorf("audit-only failed to clear G-002 warning; got:\n%s", out)
 				}
 				return nil
@@ -430,13 +433,28 @@ func synthesizeUntrailedFlip(ctx context.Context, repo, gapID, target string) er
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", gapDir, err)
 	}
+	// Match candidate filenames by canonical id so a self-check
+	// driven with a narrow legacy id (`G-002`) finds the canonical
+	// on-disk file (`G-0002-...`) per AC-2's parser-tolerance rule.
+	canonGap := entity.Canonicalize(gapID)
 	var path string
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
 		}
-		if strings.HasPrefix(e.Name(), gapID+"-") && strings.HasSuffix(e.Name(), ".md") {
-			path = filepath.Join(gapDir, e.Name())
+		name := e.Name()
+		if !strings.HasSuffix(name, ".md") {
+			continue
+		}
+		// Reuse entity.IDFromPath against the gap's repo-relative
+		// path; canonicalizing both sides handles the width mismatch.
+		relPath := filepath.Join("work", "gaps", name)
+		idPortion, ok := entity.IDFromPath(relPath, entity.KindGap)
+		if !ok {
+			continue
+		}
+		if entity.Canonicalize(idPortion) == canonGap {
+			path = filepath.Join(gapDir, name)
 			break
 		}
 	}

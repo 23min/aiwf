@@ -185,9 +185,13 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 // (`aiwf history`) find them in a stable order: verb, entity, actor,
 // to (when present), force (when present).
 func transitionTrailers(verbName, id, actor, reason, to string, force bool) []gitops.Trailer {
+	// Canonicalize the entity-id trailer per AC-1 in M-081: new
+	// kernel commits never re-emit narrow legacy widths, even when
+	// the verb was invoked with a narrow id (which AC-2 tolerates
+	// at the lookup layer).
 	trailers := []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: verbName},
-		{Key: gitops.TrailerEntity, Value: id},
+		{Key: gitops.TrailerEntity, Value: entity.Canonicalize(id)},
 		{Key: gitops.TrailerActor, Value: actor},
 	}
 	if to != "" {

@@ -352,11 +352,11 @@ func TestReadUntrailedCommits_MergeCommitSurface(t *testing.T) {
 	if mkErr := os.MkdirAll(gapDir, 0o755); mkErr != nil {
 		t.Fatal(mkErr)
 	}
-	gapPath := filepath.Join(gapDir, "G-001-leak.md")
+	gapPath := filepath.Join(gapDir, "G-0001-leak.md")
 	if wErr := os.WriteFile(gapPath, []byte("---\nid: G-001\nstatus: wontfix\n---\n"), 0o644); wErr != nil {
 		t.Fatal(wErr)
 	}
-	if out, gErr := runGit(root, "add", "work/gaps/G-001-leak.md"); gErr != nil {
+	if out, gErr := runGit(root, "add", "work/gaps/G-0001-leak.md"); gErr != nil {
 		t.Fatalf("git add: %v\n%s", gErr, out)
 	}
 	if out, gErr := runGit(root, "commit", "-m", "manual: flip G-001 wontfix"); gErr != nil {
@@ -385,7 +385,7 @@ func TestReadUntrailedCommits_MergeCommitSurface(t *testing.T) {
 			continue
 		}
 		for _, p := range c.Paths {
-			if strings.HasSuffix(p, "G-001-leak.md") {
+			if strings.HasSuffix(p, "G-0001-leak.md") {
 				sawMerge = true
 			}
 		}
@@ -442,7 +442,7 @@ func TestLoadEntityScopeViews_NoCommits(t *testing.T) {
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
-	got, err := loadEntityScopeViews(context.Background(), root, "E-01")
+	got, err := loadEntityScopeViews(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatalf("loadEntityScopeViews: %v", err)
 	}
@@ -456,7 +456,7 @@ func TestLoadEntityScopeViews_NoCommits(t *testing.T) {
 // gracefully without erroring.
 func TestLoadEntityScopeViews_NotInGitRepo(t *testing.T) {
 	tmp := t.TempDir()
-	got, err := loadEntityScopeViews(context.Background(), tmp, "E-01")
+	got, err := loadEntityScopeViews(context.Background(), tmp, "E-0001")
 	if err != nil {
 		t.Fatalf("loadEntityScopeViews: %v", err)
 	}
@@ -486,7 +486,7 @@ func TestLoadEntityScopeViews_NoScopesTouchEntity(t *testing.T) {
 	if out, err := runGit(root, "commit", "--allow-empty", "-m", msg); err != nil {
 		t.Fatalf("git commit: %v\n%s", err, out)
 	}
-	got, err := loadEntityScopeViews(context.Background(), root, "E-01")
+	got, err := loadEntityScopeViews(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatalf("loadEntityScopeViews: %v", err)
 	}

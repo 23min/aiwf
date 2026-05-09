@@ -24,7 +24,7 @@ func TestEditBody_Bless_RoundTrip(t *testing.T) {
 
 	// Simulate the user opening the file in $EDITOR and rewriting
 	// the body in place.
-	epicPath := filepath.Join(r.root, "work", "epics", "E-01-foundations", "epic.md")
+	epicPath := filepath.Join(r.root, "work", "epics", "E-0001-foundations", "epic.md")
 	original, err := os.ReadFile(epicPath)
 	if err != nil {
 		t.Fatal(err)
@@ -38,7 +38,7 @@ func TestEditBody_Bless_RoundTrip(t *testing.T) {
 		t.Fatal(writeErr)
 	}
 
-	r.must(verb.EditBody(r.ctx, r.tree(), "E-01", nil, testActor, ""))
+	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", nil, testActor, ""))
 
 	// The committed file matches the user's working-copy edit byte-for-byte.
 	got, err := os.ReadFile(epicPath)
@@ -55,7 +55,7 @@ func TestEditBody_Bless_RoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	mustHaveTrailer(t, trailers, "aiwf-verb", "edit-body")
-	mustHaveTrailer(t, trailers, "aiwf-entity", "E-01")
+	mustHaveTrailer(t, trailers, "aiwf-entity", "E-0001")
 	mustHaveTrailer(t, trailers, "aiwf-actor", testActor)
 }
 
@@ -66,7 +66,7 @@ func TestEditBody_Bless_RefusesWhenNoChanges(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Quiet gap", testActor, verb.AddOptions{}))
 
-	_, err := verb.EditBody(r.ctx, r.tree(), "G-001", nil, testActor, "")
+	_, err := verb.EditBody(r.ctx, r.tree(), "G-0001", nil, testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "no changes to commit") {
 		t.Errorf("expected no-changes error in bless mode; got %v", err)
 	}
@@ -83,7 +83,7 @@ func TestEditBody_Bless_RefusesFrontmatterChange(t *testing.T) {
 
 	// Hand-edit frontmatter (e.g., flip status) — the kind of edit
 	// that should go through aiwf promote, not aiwf edit-body.
-	epicPath := filepath.Join(r.root, "work", "epics", "E-01-frontmatter-test", "epic.md")
+	epicPath := filepath.Join(r.root, "work", "epics", "E-0001-frontmatter-test", "epic.md")
 	raw, err := os.ReadFile(epicPath)
 	if err != nil {
 		t.Fatal(err)
@@ -93,7 +93,7 @@ func TestEditBody_Bless_RefusesFrontmatterChange(t *testing.T) {
 		t.Fatal(writeErr)
 	}
 
-	_, err = verb.EditBody(r.ctx, r.tree(), "E-01", nil, testActor, "")
+	_, err = verb.EditBody(r.ctx, r.tree(), "E-0001", nil, testActor, "")
 	if err == nil {
 		t.Fatal("expected frontmatter-changed refusal in bless mode")
 	}
@@ -119,13 +119,13 @@ func TestEditBody_Bless_RefusesNewEntity(t *testing.T) {
 	if err := os.MkdirAll(gapDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	gapPath := filepath.Join(gapDir, "G-001-untracked.md")
+	gapPath := filepath.Join(gapDir, "G-0001-untracked.md")
 	content := []byte("---\nid: G-001\ntitle: Untracked\nstatus: open\n---\n\n## Body\n\nPre-aiwf draft.\n")
 	if err := os.WriteFile(gapPath, content, 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err := verb.EditBody(r.ctx, r.tree(), "G-001", nil, testActor, "")
+	_, err := verb.EditBody(r.ctx, r.tree(), "G-0001", nil, testActor, "")
 	if err == nil {
 		t.Fatal("expected refusal on new (uncommitted) entity in bless mode")
 	}
@@ -147,7 +147,7 @@ func TestEditBody_Bless_PreservesYAMLFormatting(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Format gap", testActor, verb.AddOptions{}))
 
-	gapPath := filepath.Join(r.root, "work", "gaps", "G-001-format-gap.md")
+	gapPath := filepath.Join(r.root, "work", "gaps", "G-0001-format-gap.md")
 	original, err := os.ReadFile(gapPath)
 	if err != nil {
 		t.Fatal(err)
@@ -164,7 +164,7 @@ func TestEditBody_Bless_PreservesYAMLFormatting(t *testing.T) {
 		t.Fatal(writeErr)
 	}
 
-	r.must(verb.EditBody(r.ctx, r.tree(), "G-001", nil, testActor, ""))
+	r.must(verb.EditBody(r.ctx, r.tree(), "G-0001", nil, testActor, ""))
 
 	got, err := os.ReadFile(gapPath)
 	if err != nil {
@@ -187,10 +187,10 @@ func TestEditBody_Bless_PreservesYAMLFormatting(t *testing.T) {
 func TestEditBody_Bless_ACSubSectionEdit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-001", []string{"first criterion", "second criterion"}, nil, testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"first criterion", "second criterion"}, nil, testActor, nil))
 
-	mPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-mile.md")
+	mPath := filepath.Join(r.root, "work", "epics", "E-0001-platform", "M-0001-mile.md")
 	raw, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatal(err)
@@ -208,7 +208,7 @@ func TestEditBody_Bless_ACSubSectionEdit(t *testing.T) {
 		t.Fatal(writeErr)
 	}
 
-	r.must(verb.EditBody(r.ctx, r.tree(), "M-001", nil, testActor, ""))
+	r.must(verb.EditBody(r.ctx, r.tree(), "M-0001", nil, testActor, ""))
 
 	got, err := os.ReadFile(mPath)
 	if err != nil {
@@ -237,10 +237,10 @@ func TestEditBody_Bless_ACSubSectionEdit(t *testing.T) {
 func TestEditBody_Bless_RejectsCompositeID(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "criterion", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "criterion", testActor, nil))
 
-	_, err := verb.EditBody(r.ctx, r.tree(), "M-001/AC-1", nil, testActor, "")
+	_, err := verb.EditBody(r.ctx, r.tree(), "M-0001/AC-1", nil, testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "composite ids") {
 		t.Errorf("expected composite-id refusal in bless mode; got %v", err)
 	}
@@ -265,10 +265,10 @@ func TestEditBody_Bless_RejectsCompositeID(t *testing.T) {
 func TestEditBody_Bless_AcceptsBodyShapeWarnings_PrePushIsChokepoint(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "stays", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "stays", testActor, nil))
 
-	mPath := filepath.Join(r.root, "work", "epics", "E-01-platform", "M-001-mile.md")
+	mPath := filepath.Join(r.root, "work", "epics", "E-0001-platform", "M-0001-mile.md")
 	raw, err := os.ReadFile(mPath)
 	if err != nil {
 		t.Fatal(err)
@@ -280,7 +280,7 @@ func TestEditBody_Bless_AcceptsBodyShapeWarnings_PrePushIsChokepoint(t *testing.
 
 	// Bless mode commits successfully — the verb does not pre-flight
 	// body-shape coherence.
-	r.must(verb.EditBody(r.ctx, r.tree(), "M-001", nil, testActor, ""))
+	r.must(verb.EditBody(r.ctx, r.tree(), "M-0001", nil, testActor, ""))
 
 	// `aiwf check` (the chokepoint) surfaces the body-shape warning
 	// for the user to act on. Caller-side responsibility, not verb-

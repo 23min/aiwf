@@ -129,7 +129,7 @@ func TestApply_LockContentionDiagnostic(t *testing.T) {
 	if err := gitops.Init(ctx, root); err != nil {
 		t.Fatal(err)
 	}
-	tracked := filepath.Join("work", "epics", "E-01-foo", "epic.md")
+	tracked := filepath.Join("work", "epics", "E-0001-foo", "epic.md")
 	full := filepath.Join(root, tracked)
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		t.Fatal(err)
@@ -156,7 +156,7 @@ func TestApply_LockContentionDiagnostic(t *testing.T) {
 		Subject: "test write under stale lock",
 		Trailers: []gitops.Trailer{
 			{Key: "aiwf-verb", Value: "test"},
-			{Key: "aiwf-entity", Value: "E-01"},
+			{Key: "aiwf-entity", Value: "E-0001"},
 			{Key: "aiwf-actor", Value: "human/peter"},
 		},
 		Ops: []FileOp{
@@ -242,7 +242,7 @@ func TestApply_LockContentionWithHolder(t *testing.T) {
 		Subject: "test write under held lock",
 		Trailers: []gitops.Trailer{
 			{Key: "aiwf-verb", Value: "test"},
-			{Key: "aiwf-entity", Value: "E-01"},
+			{Key: "aiwf-entity", Value: "E-0001"},
 			{Key: "aiwf-actor", Value: "human/peter"},
 		},
 		Ops: []FileOp{

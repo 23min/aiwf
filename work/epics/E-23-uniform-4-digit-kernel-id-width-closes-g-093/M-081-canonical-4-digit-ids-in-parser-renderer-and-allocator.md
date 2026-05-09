@@ -1,34 +1,34 @@
 ---
 id: M-081
 title: Canonical 4-digit IDs in parser, renderer, and allocator
-status: in_progress
+status: done
 parent: E-23
 tdd: required
 acs:
     - id: AC-1
       title: Allocator emits canonical 4-digit ids for every kind
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Parser tolerates both widths at every audited call site
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Every display surface emits canonical ids regardless of filename
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Pre-existing narrow-width trailers match canonical-id queries
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Test-fixture sweep canonicalizes hardcoded narrow ids in test code
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: aiwf check on this repo's pre-rename tree is green
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -163,3 +163,66 @@ Comparison: `aiwf check` finding count and codes on `main` are identical before 
 
 This AC is the load-bearing backward-compatibility assertion at the tree-load layer; it complements AC-4's trailer-layer assertion. Together they pin: existing trees continue to load, refs resolve, history queries return correct results, and `aiwf check` is silent about width concerns until the consumer voluntarily migrates via M-B's `aiwf rewidth`.
 
+## Work log
+
+Phase timeline lives in `aiwf history M-081/AC-N` for every AC; the entries below are the post-cycle outcome and the SHA of the kernel `met` commit. The production-code diff for all six ACs is bundled in this milestone's wrap commit (the kernel commits above are spec-frontmatter mutations only).
+
+### AC-1 — Allocator emits canonical 4-digit ids for every kind
+
+`internal/entity/allocate.go` replaced the per-kind `canonicalPad` map (E=2, M=3, ADR=4, others=3) with `const CanonicalPad = 4`; `AllocateID` formats with that constant. `internal/verb/import.go::canonicalPadFor` was deleted; `formatID` now reads `entity.CanonicalPad` directly — single source of truth per ADR-0008. Kernel met commit: `3d10790`. Tests: `TestAllocateID_CanonicalFourDigitForEveryKind`, `TestAllocateID_CanonicalAfterNarrowHighWater`, plus the existing `TestAllocateID_*` cases re-pinned to canonical-width expectations.
+
+### AC-2 — Parser tolerates both widths at every audited call site
+
+New `internal/entity/canonicalize.go` introduces `Canonicalize(id) string` (left-pads any recognizable id to `CanonicalPad`; composite ids recurse on the parent) and `IDGrepAlternation(id) string` (POSIX-extended regex matching both narrow and canonical-width renderings of an id, used by `git log --grep` callers reading pre-migration trailers). Lookup-seam canonicalization threaded through `internal/tree/tree.go::ByID/ByIDAll/ByPriorID/ResolveByCurrentOrPriorID/ReferencedBy/buildReverseRefs/compositeParentOrSame`, `internal/check/check.go::refsResolve/idPathConsistent/resolveCompositeRef`, `internal/check/provenance.go::RunUntrailedAudit/isEntityCoveredByLaterAudit`, `internal/contractcheck/contractcheck.go` id index, `internal/contractverify/contractverify.go::SkipIDs`, `cmd/aiwf/admin_cmd.go::readHistoryChain`, `cmd/aiwf/scopes.go` readers, and `cmd/aiwf/main.go::completeEntityIDs`. Kernel met commit: `78b5ca5`. Tests: `TestCanonicalize`, `TestIDGrepAlternation_MatchesBothWidths`, `TestIDGrepAlternation_EdgeCases`, `TestIsCompositeID_TolerantOfBothWidths`, `TestTree_ByID_AcceptsBothWidths`, `TestTree_ByPriorID_AcceptsBothWidths`.
+
+### AC-3 — Every display surface emits canonical ids regardless of filename
+
+`internal/htmlrender/default_resolver.go` (`IndexData`/`EpicData`/`MilestoneData`/`EntityData`/sidebar) and `internal/roadmap/roadmap.go::Render` canonicalize every emitted id. `cmd/aiwf/list_cmd.go::buildListRows`, `status_cmd.go::buildStatus`, `show_cmd.go::buildShowView/buildCompositeShowView/filterFindingsByID`, and `render_resolver.go` thread the same helper. Body prose stays as authored (deferred to M-082's `aiwf rewidth`); filenames stay as on disk so anchor links keep resolving. Kernel met commit: `2450691`. Tests: `TestRender_HTML_CanonicalIDsFromNarrowTree` (structural assertions via `htmlElement`/`htmlSection` per CLAUDE.md), `TestList_JSON_CanonicalIDsFromNarrowTree`, `TestStatus_JSON_CanonicalIDsFromNarrowTree`, `TestShow_JSON_CanonicalIDsFromNarrowTree`.
+
+### AC-4 — Pre-existing narrow-width trailers match canonical-id queries
+
+`cmd/aiwf/admin_cmd.go::readHistoryChain` and the scope readers under `cmd/aiwf/scopes.go` / `show_scopes.go` / `provenance.go` use `IDGrepAlternation` so `git log --grep` finds both narrow and canonical-width trailer values; canonical-output canonicalization on the read path means a `aiwf history E-22` query returns identical events to `aiwf history E-0022`. Verb-side trailer emissions (`aiwf-entity:` values) canonicalize on every mutating verb (`promote`, `add`, `rename`, `move`, `editbody`, `auditonly`, `milestone_depends_on`, `authorize`, `import`, `ac`, `contractbind`, `contractrecipe`, `reallocate`). Kernel met commit: `c51a733`. Tests: `TestHistory_NarrowTrailerMatchesCanonicalQuery` (per-kind table), `TestHistory_NewVerbsEmitCanonicalTrailers`.
+
+### AC-5 — Test-fixture sweep canonicalizes hardcoded narrow ids in test code
+
+Test fixtures that asserted *expected outputs* hardcoded at narrow width swept to canonical 4-digit form (~110 modified files). Files whose narrow ids are *parser-tolerance inputs* (AC-2 / AC-4 tests, entity-grammar tests, gitops trailer-shape tests, allocator parser-tolerance tests, contractbind round-trip, skill body-prose markers, selfcheck) are listed in `internal/policies/narrow_id_sweep_test.go`'s allowlist with one-line rationale per entry. Mechanical chokepoint: `TestPolicy_NarrowIDLiteralsAllowlisted` — greps for `"[EMGDC]-[0-9]{1,3}"` literals and fails if any match falls outside the allowlist (windows skipped). Kernel met commit: `cb5ce36`.
+
+### AC-6 — aiwf check on this repo's pre-rename tree is green
+
+`internal/policies/this_repo_tree_clean_test.go::TestPolicy_ThisRepoTreeIsClean` loads this repo's tree via `tree.Load`, runs `check.Run`, and fails on any error-severity finding whose code is in the id-width-shaped set (`refs-resolve`, `ids-unique`, `id-path-consistent`, `frontmatter-shape`). Standalone `aiwf check` on the working tree returns 0 errors and 1 unrelated warning (`provenance-untrailered-scope-undefined` — no upstream configured), confirming the parser-tolerance change is genuinely pure-additive. Kernel met commit: `d69ed24`.
+
+## Decisions made during implementation
+
+- **`Canonicalize` is below-grammar-floor-tolerant.** An input like `E-1` (below the 2-digit floor of `E-\d{2,}`) passes through verbatim rather than being padded to `E-0001`. Rationale: the grammar's per-kind floor defines the input space; `Canonicalize` tolerates legacy widths but does not invent well-formed ids from non-conforming input. Documented in the function's docstring and in the `epic-below-floor-passthrough` test case.
+- **ADR is exempt from narrow-tolerance work.** Its grammar (`ADR-\d{4,}`) was always at canonical width; the AC-5 sweep regex (`"[EMGDC]-[0-9]{1,3}"`) excludes it deliberately.
+- **Body-prose ids are not canonicalized at the kernel layer.** The renderer canonicalizes structural surfaces (headings, anchors, kicker, sidebar links) but leaves authored body content alone; that rewrite rides with M-082's `aiwf rewidth --apply`.
+- **Filenames are not canonicalized.** `idToFileName` and `idToHTMLFile` preserve the on-disk shape so links keep pointing at the actual file; M-082 is the file-rename surface.
+- **Contract-binding yaml entries preserve on-disk width verbatim.** `aiwf contract unbind` keeps remaining entries at their authored width; lookup compares canonical-to-canonical so a narrow legacy entry still matches a canonical query. Allowlisted in the AC-5 sweep test.
+- **`aiwf history` event detail/subject text is verbatim from git-log.** The chip text and structural id columns canonicalize, but pre-migration commit-subject prose carrying narrow trailers renders as narrow because that's the literal git content. Matches the spec's "no history rewrite" guarantee.
+
+No ADRs filed mid-implementation. ADR-0008 was already the policy precedent for the entire epic.
+
+## Validation
+
+- `go build -o /tmp/aiwf ./cmd/aiwf` — clean.
+- `go test -race ./...` — 25 packages, 0 failures.
+- `golangci-lint run` — 0 issues.
+- `aiwf doctor --self-check` — 30/30 steps.
+- `aiwf check` on this repo's tree — 0 errors, 1 unrelated warning (`provenance-untrailered-scope-undefined`, no upstream configured).
+- `aiwf show M-081` — all 6 ACs `met` with `phase: done`; no findings.
+- Coverage on the new helpers: `Canonicalize` 95.5% (one defensive branch marked `//coverage:ignore`), `IDGrepAlternation` 100%, `AllocateID` 93.8%.
+
+## Deferrals
+
+None. The two known follow-ons remain on the originally-planned milestones:
+
+- **Doc-tree narrow-id sweep** (`docs/`, `README.md`, `CHANGELOG.md`, ADR-0003 amendment, CLAUDE.md commitment #2 update, embedded skill content refresh, rituals-plugin coordination) — rides with **M-083** per the epic plan; out of scope here by design.
+- **Active-tree file rename to canonical width** (`work/E-22-…` → `work/E-0022-…` etc.) — rides with **M-082**'s `aiwf rewidth --apply`. The on-disk filenames remain at narrow width post-M-081; parser tolerance carries the load until M-082 lands.
+
+## Reviewer notes
+
+- **Two parallel sources of truth collapsed.** `internal/verb/import.go::canonicalPadFor` had been quietly drifting from `internal/entity/allocate.go::canonicalPad`; AC-1 deleted the verb-side duplicate and routed every caller to `entity.CanonicalPad`. The "single source of truth for pad width" constraint in the spec is now mechanical.
+- **HTML structural assertions use a hand-rolled balanced-tag walker** (`htmlElement`/`htmlSection` in `cmd/aiwf/canonicalize_render_test.go`) rather than `golang.org/x/net/html`. The walker scopes by tag+class before substring-matching, which honors CLAUDE.md's "substring assertions are not structural assertions" rule in spirit. A future improvement could swap to a real parser; not blocking.
+- **ADR-0008 still references the now-removed `internal/verb/import.go::canonicalPadFor`** at lines 8, 38, 117. These read as accurate pre-migration history of the function this ADR's policy displaced. Convention is to leave ADR bodies as authored; the reviewer can decide whether to add a post-migration footnote pointing at `entity.CanonicalPad`. Doc-lint flagged it; the milestone deliberately did not amend.
+- **Below-grammar-floor passthrough is a deliberate non-goal.** `Canonicalize("E-1")` returns `"E-1"`, not `"E-0001"`. If a future consumer needs left-padding of malformed ids, that's a new capability; this milestone's contract is "narrow legacy widths tolerated, malformed inputs passed through verbatim."
+- **18 mechanical aiwf state-transition commits** sit ahead of the wrap commit (red→green→done→met for each of 6 ACs). They modify only the milestone spec's frontmatter and STATUS.md; production code is bundled in the wrap commit only.

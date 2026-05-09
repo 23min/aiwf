@@ -42,9 +42,12 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 	}
 	var findings []check.Finding
 
+	// Index by canonical id so a narrow legacy binding entry
+	// (`id: C-001`) matches the canonical-width contract entity
+	// (`C-0001`) per AC-2 in M-081.
 	idToEntity := make(map[string]*entity.Entity)
 	for _, e := range t.ByKind(entity.KindContract) {
-		idToEntity[e.ID] = e
+		idToEntity[entity.Canonicalize(e.ID)] = e
 	}
 	boundIDs := make(map[string]bool, len(contracts.Entries))
 
@@ -52,9 +55,10 @@ func Run(t *tree.Tree, contracts *aiwfyaml.Contracts, repoRoot string) []check.F
 	findings = append(findings, escapeFindings...)
 
 	for i, e := range contracts.Entries {
-		boundIDs[e.ID] = true
+		canonE := entity.Canonicalize(e.ID)
+		boundIDs[canonE] = true
 
-		ent, ok := idToEntity[e.ID]
+		ent, ok := idToEntity[canonE]
 		if !ok {
 			findings = append(findings, check.Finding{
 				Code:     "contract-config",

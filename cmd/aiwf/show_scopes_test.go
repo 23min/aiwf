@@ -33,20 +33,20 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Cache"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Cache"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
 	if out, err := runBin(t, root, binDir, nil,
-		"promote", "M-001", "in_progress",
+		"promote", "M-0001", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("promote M-001: %v\n%s", err, out)
 	}
 
 	// JSON show on E-01: scopes block has one entry, state=active.
-	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-01")
+	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-0001")
 	if err != nil {
 		t.Fatalf("show E-01 json: %v\n%s", err, out)
 	}
@@ -66,7 +66,7 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 	if s.Principal != "human/peter" {
 		t.Errorf("scope.principal = %q, want human/peter", s.Principal)
 	}
-	if s.Entity != "E-01" {
+	if s.Entity != "E-0001" {
 		t.Errorf("scope.entity = %q, want E-01", s.Entity)
 	}
 	if s.State != "active" {
@@ -81,7 +81,7 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 
 	// JSON show on M-001: same scope surfaces (the agent acted under
 	// it). Same auth_sha, same state.
-	mout, mErr := runBin(t, root, binDir, nil, "show", "--format=json", "M-001")
+	mout, mErr := runBin(t, root, binDir, nil, "show", "--format=json", "M-0001")
 	if mErr != nil {
 		t.Fatalf("show M-001 json: %v\n%s", mErr, mout)
 	}
@@ -100,13 +100,13 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 	}
 
 	// Terminal-promote E-01 → ends the scope. Re-check JSON show.
-	if pOut, pErr := runBin(t, root, binDir, nil, "promote", "E-01", "active"); pErr != nil {
+	if pOut, pErr := runBin(t, root, binDir, nil, "promote", "E-0001", "active"); pErr != nil {
 		t.Fatalf("promote E-01 active: %v\n%s", pErr, pOut)
 	}
-	if pOut, pErr := runBin(t, root, binDir, nil, "promote", "E-01", "done"); pErr != nil {
+	if pOut, pErr := runBin(t, root, binDir, nil, "promote", "E-0001", "done"); pErr != nil {
 		t.Fatalf("promote E-01 done: %v\n%s", pErr, pOut)
 	}
-	endOut, endErr := runBin(t, root, binDir, nil, "show", "--format=json", "E-01")
+	endOut, endErr := runBin(t, root, binDir, nil, "show", "--format=json", "E-0001")
 	if endErr != nil {
 		t.Fatalf("show E-01 json post-end: %v\n%s", endErr, endOut)
 	}
@@ -151,7 +151,7 @@ func TestShow_ScopesView_NoScopes(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add: %v\n%s", err, out)
 	}
-	out, err := runBin(t, root, binDir, nil, "show", "E-01")
+	out, err := runBin(t, root, binDir, nil, "show", "E-0001")
 	if err != nil {
 		t.Fatalf("show: %v\n%s", err, out)
 	}

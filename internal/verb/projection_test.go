@@ -18,20 +18,20 @@ func TestProjectionFindings_PreExistingFiltered(t *testing.T) {
 		Entities: []*entity.Entity{
 			// Pre-existing refs-resolve error: gap points to non-existent milestone.
 			{
-				ID: "G-001", Kind: entity.KindGap, Title: "Broken", Status: "open",
-				DiscoveredIn: "M-999", Path: "g.md",
+				ID: "G-0001", Kind: entity.KindGap, Title: "Broken", Status: "open",
+				DiscoveredIn: "M-0999", Path: "g.md",
 			},
 		},
 	}
 	projected := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
-				ID: "G-001", Kind: entity.KindGap, Title: "Broken", Status: "open",
-				DiscoveredIn: "M-999", Path: "g.md",
+				ID: "G-0001", Kind: entity.KindGap, Title: "Broken", Status: "open",
+				DiscoveredIn: "M-0999", Path: "g.md",
 			},
 			// Unrelated new epic — should not be blocked.
 			{
-				ID: "E-01", Kind: entity.KindEpic, Title: "Foundations", Status: "active",
+				ID: "E-0001", Kind: entity.KindEpic, Title: "Foundations", Status: "active",
 				Path: "e.md",
 			},
 		},
@@ -49,7 +49,7 @@ func TestProjectionFindings_NewErrorIntroduced(t *testing.T) {
 	original := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
-				ID: "E-01", Kind: entity.KindEpic, Title: "OK", Status: "active",
+				ID: "E-0001", Kind: entity.KindEpic, Title: "OK", Status: "active",
 				Path: "work/epics/E-01-ok/epic.md",
 			},
 		},
@@ -57,13 +57,13 @@ func TestProjectionFindings_NewErrorIntroduced(t *testing.T) {
 	projected := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
-				ID: "E-01", Kind: entity.KindEpic, Title: "OK", Status: "active",
+				ID: "E-0001", Kind: entity.KindEpic, Title: "OK", Status: "active",
 				Path: "work/epics/E-01-ok/epic.md",
 			},
 			// New milestone with a bad parent — error introduced by the verb.
 			{
-				ID: "M-001", Kind: entity.KindMilestone, Title: "Bad ref", Status: "draft",
-				Parent: "E-99", Path: "work/epics/E-01-ok/M-001.md",
+				ID: "M-0001", Kind: entity.KindMilestone, Title: "Bad ref", Status: "draft",
+				Parent: "E-0099", Path: "work/epics/E-01-ok/M-001.md",
 			},
 		},
 	}
@@ -82,21 +82,21 @@ func TestProjectionFindings_PreExistingPlusNew(t *testing.T) {
 		Entities: []*entity.Entity{
 			// Pre-existing issue.
 			{
-				ID: "G-001", Kind: entity.KindGap, Title: "Old broken", Status: "open",
-				DiscoveredIn: "M-999", Path: "g.md",
+				ID: "G-0001", Kind: entity.KindGap, Title: "Old broken", Status: "open",
+				DiscoveredIn: "M-0999", Path: "g.md",
 			},
 		},
 	}
 	projected := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
-				ID: "G-001", Kind: entity.KindGap, Title: "Old broken", Status: "open",
-				DiscoveredIn: "M-999", Path: "g.md",
+				ID: "G-0001", Kind: entity.KindGap, Title: "Old broken", Status: "open",
+				DiscoveredIn: "M-0999", Path: "g.md",
 			},
 			// New issue: a different gap, also broken.
 			{
-				ID: "G-002", Kind: entity.KindGap, Title: "New broken", Status: "open",
-				DiscoveredIn: "M-888", Path: "g2.md",
+				ID: "G-0002", Kind: entity.KindGap, Title: "New broken", Status: "open",
+				DiscoveredIn: "M-0888", Path: "g2.md",
 			},
 		},
 	}
@@ -105,7 +105,7 @@ func TestProjectionFindings_PreExistingPlusNew(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("expected exactly one introduced finding, got %d: %+v", len(got), got)
 	}
-	if got[0].EntityID != "G-002" {
+	if got[0].EntityID != "G-0002" {
 		t.Errorf("introduced finding entity = %q, want G-002", got[0].EntityID)
 	}
 }
