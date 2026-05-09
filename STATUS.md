@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-081/AC-4 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-081/AC-3 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-081/AC-2 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-081/AC-1 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-081 draft -> in_progress |
-| 2026-05-09 | human/peter | add | aiwf add ac M-083 AC-1..AC-5 (5 criteria) |
 
