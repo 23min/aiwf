@@ -30,7 +30,7 @@ acs:
       status: met
     - id: AC-8
       title: Skill materialised by aiwf init / aiwf update via the rituals plugin
-      status: open
+      status: met
 ---
 
 # M-079 — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate

@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_197 entities · 0 errors · 9 warnings · run `aiwf check` for details_
+_197 entities · 0 errors · 10 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -41,7 +41,7 @@ _(no milestones)_
 ### E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md _(proposed)_
 
 - ✓ **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(done)_ — ACs 5/5 met — tdd: none
-- → **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(in_progress)_ — ACs 7/8 met (1 open) — tdd: advisory
+- → **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(in_progress)_ — ACs 8/8 met — tdd: advisory
 - **M-080** — Whiteboard skill fixture validation; retire critical-path.md; close E-21 _(draft)_ — ACs 0/7 met (7 open) — tdd: required
 
 ```mermaid
@@ -49,7 +49,7 @@ flowchart LR
   E_21["E-21<br/>Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md"]:::epic_proposed
   M_078["M-078 (5/5)<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_done
   E_21 --> M_078
-  M_079["M-079 (7/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_in_progress
+  M_079["M-079 (8/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_in_progress
   E_21 --> M_079
   M_080["M-080 (0/7)<br/>Whiteboard skill fixture validation; retire critical-path.md; close E-21"]:::ms_draft
   E_21 --> M_080
@@ -116,6 +116,7 @@ flowchart LR
 | acs-tdd-audit | M-079/AC-5 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-5 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-079/AC-6 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-6 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-079/AC-7 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-7 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
+| acs-tdd-audit | M-079/AC-8 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-8 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## What's missing\` is empty |
 | entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## Why it matters\` is empty |
 
