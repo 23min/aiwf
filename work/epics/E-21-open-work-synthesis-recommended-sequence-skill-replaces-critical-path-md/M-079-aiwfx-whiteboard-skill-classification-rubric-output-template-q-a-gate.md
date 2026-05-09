@@ -21,7 +21,7 @@ acs:
       status: met
     - id: AC-5
       title: Body documents the Q&A gate flow per CLAUDE.md one-at-a-time convention
-      status: open
+      status: met
     - id: AC-6
       title: 'Body documents anti-patterns: no operator override, no verb invention'
       status: open
