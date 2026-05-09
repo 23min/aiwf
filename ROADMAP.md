@@ -236,3 +236,15 @@ Ship three Tier 1 kernel-discipline fixes together before E-20 implementation be
 | M-076 | Writer surface for milestone depends_on (closes G-072) | done |
 | M-077 | aiwf retitle verb for entities and ACs (closes G-065) | done |
 
+## E-23 — Uniform 4-digit kernel ID width (closes G-093) (proposed)
+
+### Goal
+
+Land ADR-0008's policy in code and on disk. The kernel canonicalizes every id kind to 4 digits, parsers tolerate narrower legacy widths on input, the new `aiwf rewidth` verb migrates a consumer's active tree on demand, and this repo runs the verb as one of N consumers. After this epic, §07's Slice 2 ships F at canonical F-NNNN with no separate decision; downstream consumers run `aiwf rewidth` when they're ready; new consumers post-graduation are born canonical.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-081 | Canonical 4-digit IDs in parser, renderer, and allocator | done |
+| M-082 | Implement aiwf rewidth verb and apply to this repo's tree | draft |
+| M-083 | Drift check, normative-doc amendments, and skill content refresh | draft |
+
