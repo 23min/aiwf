@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_196 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_196 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -106,19 +106,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | ADR-0007 | docs/adr/ADR-0007-planning-conversation-skills-rituals-plugin-placement-pure-skill-first-kernel-verb-only-if-usage-demands-it.md | ADR-0007 body section \`## Context\` is empty |
-| entity-body-empty | ADR-0007 | docs/adr/ADR-0007-planning-conversation-skills-rituals-plugin-placement-pure-skill-first-kernel-verb-only-if-usage-demands-it.md | ADR-0007 body section \`## Decision\` is empty |
-| entity-body-empty | ADR-0007 | docs/adr/ADR-0007-planning-conversation-skills-rituals-plugin-placement-pure-skill-first-kernel-verb-only-if-usage-demands-it.md | ADR-0007 body section \`## Consequences\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | add | aiwf add adr ADR-0007 'Planning-conversation skills: rituals-plugin placement; pure-skill first, kernel verb only if usage demands it' |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078 draft -> in_progress |
 | 2026-05-08 | human/peter | retitle | aiwf retitle M-080/AC-2 -> 'Output agrees with critical-path.md on structural shape, not content' |
 | 2026-05-08 | human/peter | edit-body | aiwf edit-body E-21 |
 | 2026-05-08 | human/peter | retitle | aiwf retitle E-21 -> 'Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-082 |
 
