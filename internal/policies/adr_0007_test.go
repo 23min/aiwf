@@ -74,23 +74,19 @@ func extractMarkdownSection(body string, level int, headingPrefix string) string
 	return strings.Join(lines[start:end], "\n")
 }
 
-// TestADR0007_AC1_AllocationAndStatus asserts AC-1: the ADR is
-// allocated under docs/adr/ with frontmatter `id: ADR-0007` and
-// `status` in a legal value. The status regex originally pinned
-// `proposed` as M-078's premature-ratification chokepoint while
-// E-21 was in flight; with E-21 wrapped (2026-05-09) the gate has
-// lifted, so the regex now accepts `proposed|accepted` to permit
-// legitimate forward transitions per ADR-0007's own line-83 design.
-// The path constant pins the slug; the regexes pin the frontmatter
-// values.
-func TestADR0007_AC1_AllocationAndStatus(t *testing.T) {
+// TestADR0007_AC1_Allocation asserts AC-1's structural drift check:
+// the ADR is allocated under docs/adr/ with frontmatter `id: ADR-0007`
+// matching the path. The status check was originally part of this
+// test as M-078's premature-ratification chokepoint, but per the
+// 2026-05-09 cleanup framing, ADR ratification timing is a planning
+// concern, not a kernel-enforced gate; the FSM (proposed → accepted)
+// is the only mechanical surface that should constrain status
+// transitions, and `aiwf promote` already enforces it.
+func TestADR0007_AC1_Allocation(t *testing.T) {
 	body := loadADR0007(t)
 
 	if !regexp.MustCompile(`(?m)^id:\s*ADR-0007\s*$`).MatchString(body) {
 		t.Error("AC-1: ADR-0007 frontmatter must contain `id: ADR-0007`")
-	}
-	if !regexp.MustCompile(`(?m)^status:\s*(proposed|accepted)\s*$`).MatchString(body) {
-		t.Error("AC-1: ADR-0007 frontmatter must contain `status: proposed` or `status: accepted`")
 	}
 }
 
