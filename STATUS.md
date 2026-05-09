@@ -42,7 +42,7 @@ _(no milestones)_
 
 - ✓ **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(done)_ — ACs 5/5 met — tdd: none
 - ✓ **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(done)_ — ACs 8/8 met — tdd: advisory
-- → **M-080** — Whiteboard skill fixture validation; retire critical-path.md; close E-21 _(in_progress)_ — ACs 0/7 met (7 open) — tdd: required
+- → **M-080** — Whiteboard skill fixture validation; retire critical-path.md; close E-21 _(in_progress)_ — ACs 7/7 met — tdd: required
 
 ```mermaid
 flowchart LR
@@ -51,7 +51,7 @@ flowchart LR
   E_21 --> M_078
   M_079["M-079 (8/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_done
   E_21 --> M_079
-  M_080["M-080 (0/7)<br/>Whiteboard skill fixture validation; retire critical-path.md; close E-21"]:::ms_in_progress
+  M_080["M-080 (7/7)<br/>Whiteboard skill fixture validation; retire critical-path.md; close E-21"]:::ms_in_progress
   E_21 --> M_080
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -120,9 +120,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-09 | human/peter | promote | aiwf promote G-089 open -> addressed |
-| 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-09 | human/peter | promote | aiwf promote M-079 in_progress -> done |
-| 2026-05-09 | human/peter | add | aiwf add gap G-090 'AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs' |
-| 2026-05-09 | human/peter | add | aiwf add gap G-089 'aiwfx-whiteboard skill should write a gitignored WHITEBOARD.md cache after invocation; SKILL.md anti-pattern #3 currently forbids it but the rule is over-restrictive (STATUS.md is a counter-example of acceptable hook-regenerated persistence)' |
+| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-7 open -> met |
+| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-6 open -> met |
+| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-5 open -> met |
+| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-4 open -> met |
+| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-3 open -> met |
 
