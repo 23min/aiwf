@@ -122,9 +122,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079 in_progress -> done |
 | 2026-05-09 | human/peter | add | aiwf add gap G-090 'AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs' |
 | 2026-05-09 | human/peter | add | aiwf add gap G-089 'aiwfx-whiteboard skill should write a gitignored WHITEBOARD.md cache after invocation; SKILL.md anti-pattern #3 currently forbids it but the rule is over-restrictive (STATUS.md is a counter-example of acceptable hook-regenerated persistence)' |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-8 --phase green -> done |
-| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-8 --phase red -> green |
 
