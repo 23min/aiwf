@@ -98,9 +98,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | add | aiwf add gap G-091 'No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped' |
 | 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-09 | human/peter | promote | aiwf promote E-21 active -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote E-21 proposed -> active |
 | 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-09 | human/peter | promote | aiwf promote M-080 in_progress -> done |
 
