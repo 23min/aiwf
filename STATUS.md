@@ -60,7 +60,6 @@ _(no milestones)_
 | G-059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-069 |
 | G-060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
 | G-063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
-| G-065 | No aiwf retitle verb: scope refactors that change an entity's or AC's intent leave frontmatter title fields permanently misleading; only slug rename is supported |  |
 | G-067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-066 |
 | G-068 | Discoverability policy misses dynamic finding subcodes | M-066 |
 | G-069 | aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome | M-070 |
@@ -92,9 +91,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote G-089 addressed -> addressed |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-090 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-088 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0004 |
 | 2026-05-09 | human/peter | add | aiwf add gap G-092 'No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file' |
-| 2026-05-09 | human/peter | promote | aiwf promote ADR-0004 proposed -> accepted |
 
