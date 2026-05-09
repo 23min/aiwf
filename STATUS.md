@@ -120,9 +120,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-080 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-7 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-6 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-5 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-4 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-3 open -> met |
 

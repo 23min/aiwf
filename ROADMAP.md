@@ -222,7 +222,7 @@ Graduate the open-work synthesis pattern — the tiered landscape, recommended s
 |---|---|---|
 | M-078 | Planning-conversation skills design ADR (placement, tiering, name rationale) | done |
 | M-079 | aiwfx-whiteboard skill: classification rubric, output template, Q&A gate | done |
-| M-080 | Whiteboard skill fixture validation; retire critical-path.md; close E-21 | draft |
+| M-080 | Whiteboard skill fixture validation; retire critical-path.md; close E-21 | done |
 
 ## E-22 — Planning toolchain fixes (closes G-071, G-072, G-065) (done)
 
