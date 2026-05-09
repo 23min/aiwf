@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Pre-existing narrow-width trailers match canonical-id queries
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Test-fixture sweep canonicalizes hardcoded narrow ids in test code
