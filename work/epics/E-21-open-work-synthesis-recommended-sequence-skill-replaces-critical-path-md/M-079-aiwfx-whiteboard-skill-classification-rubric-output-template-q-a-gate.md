@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Frontmatter description carries the natural-language query phrasings
-      status: open
+      status: met
     - id: AC-3
       title: Body documents the tier-classification rubric for open-work landscape
       status: open
