@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: aiwf check shows no unexpected-tree-file warning for critical-path.md
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-7
       title: E-21 promoted to done; epic wrap commit cites the closure
