@@ -88,9 +88,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0006 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-09 | human/peter | promote | aiwf promote ADR-0003 proposed -> accepted |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-09 | human/peter | promote | aiwf promote ADR-0007 proposed -> accepted |
-| 2026-05-09 | human/peter | promote | aiwf promote ADR-0006 proposed -> accepted |
 

@@ -80,7 +80,6 @@ The rejected set is preserved here so a future planner proposing a similar synth
 - **The deferred `aiwf whiteboard` verb is on the open-work radar but not filed.** It is owned by *future* operator usage, not by E-21. If/when filed, it goes through CLAUDE.md *Designing a new verb*: *"what verb undoes this?"* must be answered (a read verb is undone by re-running it with different inputs — an easy answer, but not a free one). The verb shares the skill's name to keep the surface unified.
 - **Pure-skill-first applies beyond `aiwfx-whiteboard`.** Any future synthesis skill (e.g., a *"what's blocking what"* cross-kind dependency mapper) starts as pure-skill on top of existing read verbs. Promotion to skill+verb is justified by observed re-derivation, not by speculative ergonomics.
 - **The name worked example is the discoverable artefact for future name choices.** When a future planner proposes a name like `aiwfx-survey` or `aiwfx-landscape`, the rejected-alternatives section above is the precedent — the rationale (*"survey is academic"*, *"landscape is too geographic, not action-oriented"*) is captured here, not re-litigated.
-- **Status remains `proposed` through E-21 wrap.** Promotion to `accepted` is a separate decision after the epic closes. If M-079's implementation surfaces a constraint that revises the placement or tiering reasoning, this ADR is edit-bodied before any status change.
 
 ## References
 
