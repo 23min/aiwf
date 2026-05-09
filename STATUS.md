@@ -116,9 +116,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-8 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-8 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-8 --phase  -> red |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-7 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-7 --phase red -> green |
-| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-7 --phase  -> red |
 

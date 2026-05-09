@@ -15,7 +15,7 @@ Classify each open item by **leverage on future work**, not by chronology of whe
 
 **Criterion:** the item, once closed, removes friction from *every* future planning or implementation session. Typical shape: a kernel asymmetry, a chronic warning class, a missing-verb gap that forces a workaround at every use.
 
-**Examples (from `critical-path.md`, 2026-05-08):**
+**Examples:**
 - **G-071** — `entity-body-empty` rule lifecycle-blind; closes the standing 24-warning E-20 baseline once fixed.
 - **G-072** — no writer verb for milestone `depends_on`; every multi-milestone epic re-derives the workaround.
 - **G-065** — no `aiwf retitle` verb; every scope-change moment loses the title-correction option.
@@ -24,7 +24,7 @@ Classify each open item by **leverage on future work**, not by chronology of whe
 
 **Criterion:** the item is a `proposed`-status ADR whose ratification + implementation epic gates downstream work. Typical shape: data-shape, lifecycle, or namespace decisions whose absence forces every consumer to invent a local convention.
 
-**Examples (from `critical-path.md`):**
+**Examples:**
 - **ADR-0001** — mint entity ids at trunk integration; foundational for parallel-branch work and downstream ADRs.
 - **ADR-0004** — uniform archive convention; makes high-volume kinds tractable for read verbs.
 - **ADR-0003** — finding F-NNN as 7th kind; substrate for AC-closure chokepoints and cycle-time findings.
@@ -33,7 +33,7 @@ Classify each open item by **leverage on future work**, not by chronology of whe
 
 **Criterion:** the item is a missing or under-defined ritual that the operator currently re-derives in conversation each time. Smaller leverage than Tier 1/2, but codification removes ad-hoc thrash.
 
-**Examples (from `critical-path.md`):**
+**Examples:**
 - **G-059** — no canonical mapping from epic/milestone hierarchy to git branches.
 - **G-060** — patch ritual loosely defined; small fixes lack a canonical shape.
 - **G-063** — no `start-epic` ritual; epic activation is a deliberate sovereign act with no preflight today.
@@ -42,7 +42,7 @@ Classify each open item by **leverage on future work**, not by chronology of whe
 
 **Criterion:** small, isolated fixes that don't compound but are cheap to batch. Typical shape: a one-line `.gitignore` change, a single config nudge, a typo. Leverage is per-item, not per-session.
 
-**Examples (from `critical-path.md`):**
+**Examples:**
 - **G-056** — render `site/` not gitignored.
 - **G-057** — stray `aiwf` binary in repo root not gitignored.
 - **G-069** — `aiwf init` ritual nudge hardcodes user-scope CLI form.
@@ -51,7 +51,7 @@ Classify each open item by **leverage on future work**, not by chronology of whe
 
 **Criterion:** the item is open but no current consumer or workflow forces it. Premature work here costs design effort that will be re-derived once the forcing function lands.
 
-**Examples (from `critical-path.md`):**
+**Examples:**
 - **G-070** — `aiwf doctor --format=json`; defer until a JSON consumer appears.
 - **G-067** — `wf-tdd-cycle` advisory; couples to the agent-orchestration substrate.
 - **G-068** — discoverability policy misses dynamic finding subcodes; activates with F-NNN.
@@ -127,7 +127,7 @@ Every verb invocation in the skill body or its rendered output must resolve to a
 
 ### 3. Persisting the synthesis to a file
 
-The skill's output is on-demand by contract. **No `whiteboard.md`, no `landscape.md`, no synthesis snapshot of any kind.** Persisted artefacts go stale within hours of the next planning act and become a second source of truth that disagrees with the live tree. `critical-path.md` was retired in M-080 specifically to remove this anti-pattern; this skill must not re-introduce it.
+The skill's output is on-demand by contract. **No checked-in synthesis snapshot.** A snapshot committed to the tree goes stale within hours of the next planning act and becomes a second source of truth that disagrees with the live tree.
 
 ### 4. Scope creep beyond direction-synthesis
 
