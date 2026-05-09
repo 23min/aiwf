@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_201 entities · 0 errors · 0 warnings_
+_202 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -79,6 +79,7 @@ _(no milestones)_
 | G-090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-079 |
 | G-091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 | G-092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
+| G-093 | Mixed kernel ID widths can't survive PoC graduation; E-NN exhausts at 99 and the §07 proposal silently drifts F-NNN to F-NNNN |  |
 
 ## Warnings
 
