@@ -9,7 +9,7 @@ Kernel principle #2 says ids are stable primary keys: *"`E-NN`, `M-NNN`, `ADR-NN
 
 The companion gap [G-093](../../work/gaps/G-093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md) documents the symptoms: epics will exhaust at 99 (E-22 is the current high-water mark from PoC self-hosting); ADR-0003 declares F-NNN but the §07 TDD architecture proposal silently drifts to F-NNNN; CLAUDE.md commitment #2 enumerates the widths as historical fact, not as a rule a future kind would consult.
 
-The kernel's own self-hosting pressure plus pre-graduation timing make this the right moment to lock the policy. With no external consumers, the migration cost is bounded by this repo's tree (~100 entities + 27 narrow-width mentions in the rituals plugin). After graduation, the cost compounds with every new adopter.
+The kernel's own self-hosting pressure plus pre-graduation timing make this the right moment to lock the policy. Multiple downstream consumers have already adopted aiwf with narrow-width trees; each will need to migrate to canonical width when they upgrade past the kernel version that ships this change.
 
 ## Decision
 
@@ -39,27 +39,45 @@ This satisfies commitment #2's "stable id survives rename" — only the *display
 
 ### Renderer canonicalization
 
-Every display surface — `aiwf list`, `aiwf status`, `aiwf show`, `aiwf history`, `aiwf render --format=html`, JSON envelope output — emits canonical 4-digit form. Existing files on disk keep their birth-width filename until the one-shot migration (next subsection); the renderer's canonical form is consistent regardless.
+Every display surface — `aiwf list`, `aiwf status`, `aiwf show`, `aiwf history`, `aiwf render --format=html`, JSON envelope output — emits canonical 4-digit form. Existing files on disk keep their birth-width filename until the consumer runs the migration verb (next subsection); the renderer's canonical form is consistent regardless.
 
-### Migration
+### Migration — `aiwf rewidth` verb
 
-**No new verb.** A one-time PR in this repo renames active-tree files (`E-22-foo.md` → `E-0022-foo.md`, etc.) and rewrites in-body references. The rename is performed by an ad-hoc script under `scripts/migrate-id-widths/` (retained for the historical record) or by a careful manual `git mv` + sed pass; either is acceptable. Verification: `aiwf check` is green afterwards plus structural assertions over the post-rename tree.
+A new top-level verb sweeps a consumer's active tree from narrow to canonical width.
 
-The kernel ships parser tolerance and renderer canonicalization in the *first* milestone of the implementing epic, so old narrow widths keep working through the entire migration window — old commits validate, old references resolve, old skills don't break.
+```
+aiwf rewidth [--apply] [--root <path>]
+```
 
-New consumers (post-graduation) are born at canonical width. They never run a migration; their `aiwf init` allocator is already 4-digit.
+- **Default is dry-run.** Without `--apply`, the verb prints the planned moves and reference rewrites and exits without touching the tree. Re-run with `--apply` to commit.
+- **Single commit per `--apply` invocation.** Per kernel principle #7, one verb invocation produces one commit. The commit message body lists per-kind rename counts, reference-rewrite counts, and the canonical-width policy version. Trailer is `aiwf-verb: rewidth` (no `aiwf-entity:` trailer — multi-entity sweeps are a special case in the trailer-keys policy, same shape as `aiwf archive`).
+- **Active-tree only.** Files in `<kind>/archive/` keep their birth-width filenames per ADR-0004's forget-by-default. Archive references in body prose stay narrow; active references rewrite to canonical.
+- **Idempotent.** Running on an already-canonical tree is a no-op; the verb prints "no changes needed" and exits without commit.
+- **Rerunnable.** A consumer who runs `--apply` once, then later allocates new entities (canonical), will see no changes from a subsequent dry-run because the tree is already uniform-canonical.
+
+Concretely, `aiwf rewidth --apply` walks each kind's active directory, computes the canonical-width filename for each entity, performs the `git mv`, then sweeps in-body references (markdown links + prose mentions + composite ids) to canonical form, then produces one commit. Verification: `aiwf check` is green afterwards plus the rule's tree-state-based detection (next subsection) shows uniform-canonical active tree.
+
+### Reversal — what verb undoes rewidth?
+
+**You don't.** The change is forward-only at the allocator (always 4-digit) and structurally one-shot per consumer. The migration commit is reversible by `git revert` like any other content commit. There is no "narrow it back" verb because there is no use case — the kernel only emits canonical form going forward.
 
 ### Drift control — `entity-id-narrow-width` finding
 
-After the migration, `aiwf check` fires `entity-id-narrow-width` (warning) on any active-tree file at non-canonical width. Pre-existing files in `<kind>/archive/` keep their narrow width forever (per ADR-0004's forget-by-default principle for archives) and don't fire the rule.
+`aiwf check` includes a tree-state-based rule that distinguishes pre-migration legacy from post-migration regression without configuration or markers:
 
-The rule is sequenced last in the implementing epic — after the rename pass — so it fires against an already-canonical active tree. It never warns on pre-migration narrow files because the rename pass has already moved the active tree to canonical form.
+- **Uniform narrow active tree** → consumer hasn't run `aiwf rewidth` yet → silent.
+- **Uniform canonical active tree** → consumer has migrated cleanly → silent.
+- **Mixed active tree** (some canonical alongside some narrow) → warning fires on the narrow files. Effective message: "you've started accruing canonical entities; finish the migration."
 
-The chokepoint is `internal/check/`, not the allocator alone — defense in depth: even if a future allocator regression emitted narrow widths, the next `aiwf check` would catch it.
+Archive entries (`<kind>/archive/`) are excluded from the mixed-state computation entirely — archive width never participates in the active-tree state assessment. Pre-existing narrow files in archive stay narrow forever per ADR-0004's forget-by-default principle.
 
-### Reversal — what verb undoes canonicalization?
+The signal works for both directions:
+- A consumer who upgrades, allocates one canonical entity (via the new allocator), and then runs `aiwf check` sees the warning prompting them to run `aiwf rewidth`.
+- A consumer who has migrated, then somehow ends up with a narrow file (hand-edit, allocator regression) sees the same warning prompting investigation.
 
-**You don't.** The change is monotone-additive at the parser layer (acceptance widens) and forward-only at the allocator (always 4-digit). The migration commit is reversible by `git revert` like any other content commit. There is no "narrow it back" verb because there is no use case — the kernel only emits canonical form going forward, regardless of whether the migration has run.
+A consumer who upgrades and never allocates anything new stays uniform-narrow indefinitely. The rule is silent. That matches the on-demand framing — the kernel doesn't nag.
+
+The chokepoint is `internal/check/`, not the allocator alone — defense in depth: even if a future allocator regression emitted narrow widths into a previously-canonical tree, the next `aiwf check` would catch it.
 
 ## Consequences
 
@@ -69,29 +87,31 @@ The chokepoint is `internal/check/`, not the allocator alone — defense in dept
 - **No more visible width inconsistency** in `aiwf list`, `aiwf status`, etc. — every id reads the same width.
 - **Epic exhaustion is lifted by two orders of magnitude.** 9999 instead of 99.
 - **F-NNN/F-NNNN drift in §07 resolves itself** — F is born at canonical width when ADR-0003 implementation lands, with no separate decision needed.
-- **No new verb.** No CLI surface debt for a one-shot ritual.
+- **Tested, distributed migration path.** Every consumer gets `aiwf rewidth` via `go install`; no per-consumer ad-hoc scripts; one canonical implementation everyone shares.
 - **Parser tolerance means zero compatibility break.** Old commits, old branches, old skills with hardcoded narrow widths keep working indefinitely.
+- **No nagging on pre-migration trees.** Tree-state-based drift detection means consumers see warnings only when they're already mid-migration or have regressed; uniform-narrow consumers stay silent until they choose to migrate.
 
 **Negative:**
 
-- **Old filenames stay narrow until the migration PR runs** (transient one-shot). During that window, `ls work/epics/` shows `E-22-foo.md` while `aiwf show E-22` renders `E-0022`. Resolved by the migration milestone.
-- **The migration PR is a large content rewrite.** ~100 file renames + N reference rewrites. One careful PR; verifiable by `aiwf check` plus structural assertions; not a kernel-correctness risk; just a review-cost risk.
-- **Path-form refs in old commits permanently point at narrow filenames.** A body in an archived gap saying `[E-22](work/epics/E-22-foo.md)` still works post-migration only if the *file* keeps a narrow alias or the rename is restricted to active entities. This ADR resolves it by **not renaming files in `<kind>/archive/`** — narrow widths in archives are preserved per the forget-by-default principle, and active-tree refs only point at active-tree files (which all migrate at once). G-091's preventive check rule gives long-term protection.
+- **Old filenames stay narrow until the consumer runs `aiwf rewidth --apply`** (transient one-shot per consumer). During that window, `ls work/epics/` shows `E-22-foo.md` while `aiwf show E-22` renders `E-0022`.
+- **The `aiwf rewidth` verb adds permanent CLI surface for a one-shot ritual.** Mitigation: idempotent, self-documenting via `--help`, sunset path is "remove in a future major version once all known consumers have migrated" — cheap to keep otherwise.
+- **Path-form refs in archived bodies stay pointing at narrow filenames forever.** Resolved by **not** renaming files in `<kind>/archive/` — narrow widths in archives are preserved per the forget-by-default principle, and active-tree refs only point at active-tree files (which all migrate at once). G-091's preventive check rule gives long-term protection.
 - **One trailing minor detail to coordinate** — the rituals plugin's embedded skills mention narrow forms in 5 files (27 mentions total). The implementing epic's final milestone refreshes these and records the cross-repo SHA per CLAUDE.md "Cross-repo plugin testing".
 
 ## Alternatives considered
 
 - **Keep mixed widths; add a width per kind only when the next exhaustion looms.** The "let it bleed" answer. Rejected: every future kind would relitigate the question, and `E-NN` is already exhaustion-imminent within consumer lifetimes. The kernel has no policy declaration for the next kind to consult.
-- **New `aiwf rewidth` verb.** Adds permanent CLI surface for a one-shot operation; no good answer to "what verb undoes this?"; expands skill-coverage obligations under ADR-0006. Rejected — verbs are for repeatable operations, not one-shot rituals.
-- **Fold migration into `aiwf update --rewrite-id-widths` flag.** Acceptable fallback if a tested, repeatable migration code path is wanted. Rejected for now — `aiwf update`'s job description is "regenerate framework-owned artifacts" (skills, hooks); rewriting user-owned content (`work/`) crosses that line. Revisit if a real graduating consumer hits the same problem.
-- **Kernel-only canonicalization, no rename pass.** Files keep birth-width forever; renderer canonicalizes at display. Smallest possible work. Rejected because path-form refs in body prose break (linking `[E-0022](work/epics/E-22-foo.md)` doesn't resolve at the file level), and `ls work/epics/` shows a permanent visual mix that nags without dollar-stopping.
+- **No new verb; one-shot manual rename PR per repo.** Initially recommended on the YAGNI argument that the migration runs once for this repo, with no other consumers to support. **Rejected after the downstream-consumer population surfaced** — multiple existing consumer repos already run aiwf with narrow-width trees; each needs migration. A distributed, tested, idempotent verb beats N consumers each inventing their own ad-hoc script. The "what verb undoes this?" question is answered the same way as `aiwf init`: one-shot ritual; reversal is `git revert` if needed.
+- **Fold migration into `aiwf update`.** Acceptable but stretches the verb's job description — `aiwf update` is "regenerate framework-owned artifacts" (skills, hooks); rewriting user-owned content (`work/`) is a different category. Rejected in favor of a clearly-named single-purpose verb that consumers explicitly opt into.
+- **Kernel-only canonicalization, no rename pass.** Files keep birth-width forever; renderer canonicalizes at display. Smallest possible work. Rejected because path-form refs in body prose break (linking `[E-0022](work/epics/E-22-foo.md)` doesn't resolve at the file level), and `ls work/epics/` shows a permanent visual mix.
 - **Width 5 or 6 instead of 4.** Future-proofs further. Rejected as YAGNI — 9999 epics is enough headroom for the kernel's lifetime; ADR-0007 already established 4-digit ADR with no exhaustion concerns.
 - **Per-kind policy table (`E:4, M:5, F:5, ...`).** Closer to "right-size each kind." Rejected — a uniform width is simpler, and the marginal cost of extra padding is one character per id-render. KISS beats per-kind tuning here.
+- **Marker-based drift detection** (verb writes `aiwf.yaml: migration.id-widths-applied: true`; rule reads marker). Cleaner conceptually but adds config-surface and a piece of state the consumer doesn't directly own. Rejected in favor of tree-state-based detection, which infers the same signal from the tree's actual shape without extra state.
 
 ## References
 
 - [G-093](../../work/gaps/G-093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md) — companion gap that surfaced this work.
-- **CLAUDE.md** "What aiwf commits to" §2 — current id-width statement, updated by the implementing epic's third milestone.
+- **CLAUDE.md** "What aiwf commits to" §2 — current id-width statement, updated by the implementing epic.
 - [ADR-0003](ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN as 7th entity kind; **amended by this ADR's implementing epic** (the docs-and-drift milestone updates the ADR's id-pattern paragraph from F-NNN to F-NNNN).
 - [ADR-0004](ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) — Uniform archive convention; archive entities keep their birth-width per forget-by-default.
 - `internal/verb/import.go::canonicalPadFor` — current pad-policy site; relocated and broadened by the implementing epic's first milestone.
