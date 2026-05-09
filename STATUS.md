@@ -40,12 +40,12 @@ _(no milestones)_
 
 ### E-23 — Uniform 4-digit kernel ID width (closes G-093) _(proposed)_
 
-- **M-081** — Canonical 4-digit IDs in parser, renderer, and allocator _(draft)_ — tdd: required
+- **M-081** — Canonical 4-digit IDs in parser, renderer, and allocator _(draft)_ — ACs 0/6 met (6 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_23["E-23<br/>Uniform 4-digit kernel ID width (closes G-093)"]:::epic_proposed
-  M_081["M-081<br/>Canonical 4-digit IDs in parser, renderer, and allocator"]:::ms_draft
+  M_081["M-081 (0/6)<br/>Canonical 4-digit IDs in parser, renderer, and allocator"]:::ms_draft
   E_23 --> M_081
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -107,9 +107,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | add | aiwf add milestone M-081 'Canonical 4-digit IDs in parser, renderer, and allocator' |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body E-23 |
 | 2026-05-09 | human/peter | add | aiwf add epic E-23 'Uniform 4-digit kernel ID width (closes G-093)' |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0008 |
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-093 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-093 |
 
