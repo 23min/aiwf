@@ -101,6 +101,154 @@ func TestAiwfxWhiteboard_AC1_SkillScaffolded(t *testing.T) {
 	}
 }
 
+// TestAiwfxWhiteboard_AC3_TierRubric asserts AC-3: the body has a
+// `## Tier classification rubric` section that names all five
+// tiers (Tier 1..Tier 5), assigns each a criterion phrase, and
+// cites examples drawn from `critical-path.md` (which is in-tree
+// at the time of authoring; deletion is M-080's act).
+func TestAiwfxWhiteboard_AC3_TierRubric(t *testing.T) {
+	body := loadAiwfxWhiteboardFixture(t)
+	section := extractMarkdownSection(body, 2, "Tier classification rubric")
+	if section == "" {
+		t.Fatal("AC-3: SKILL.md must have a `## Tier classification rubric` section")
+	}
+
+	// Five tiers with their descriptive labels per critical-path.md
+	// and the spec's at-minimum list. Match the digit + the label
+	// keyword so a future reorder catches the test.
+	tierLabels := map[string]string{
+		"Tier 1": "compounding",
+		"Tier 2": "foundational",
+		"Tier 3": "ritual",
+		"Tier 4": "debris",
+		"Tier 5": "defer",
+	}
+	lower := strings.ToLower(section)
+	for tier, keyword := range tierLabels {
+		if !strings.Contains(section, tier) {
+			t.Errorf("AC-3: §Tier classification rubric must name %q", tier)
+		}
+		if !strings.Contains(lower, keyword) {
+			t.Errorf("AC-3: §Tier classification rubric must use the descriptive keyword %q (for %s)", keyword, tier)
+		}
+	}
+
+	// Spec: the rubric must cite examples drawn from
+	// critical-path.md's actual tier placements. Pick one
+	// representative from each tier and assert the id appears
+	// in the rubric body. (Per critical-path.md: Tier 1 = G-071,
+	// Tier 2 = ADR-0001, Tier 3 = G-059, Tier 4 = G-056, Tier 5
+	// = G-070.)
+	exemplars := []string{"G-071", "ADR-0001", "G-059", "G-056", "G-070"}
+	for _, id := range exemplars {
+		if !strings.Contains(section, id) {
+			t.Errorf("AC-3: §Tier classification rubric must cite exemplar %q from critical-path.md", id)
+		}
+	}
+}
+
+// TestAiwfxWhiteboard_AC4_OutputTemplate asserts AC-4: the body
+// has an `## Output template` section that names the four output
+// blocks the skill emits — tiered landscape, recommended sequence,
+// first-decision fork, pending-decisions list — with column /
+// ordering shape spelled out.
+func TestAiwfxWhiteboard_AC4_OutputTemplate(t *testing.T) {
+	body := loadAiwfxWhiteboardFixture(t)
+	section := extractMarkdownSection(body, 2, "Output template")
+	if section == "" {
+		t.Fatal("AC-4: SKILL.md must have a `## Output template` section")
+	}
+	lower := strings.ToLower(section)
+
+	// The four named output blocks per AC-4 spec text.
+	required := []string{
+		"tiered landscape",     // (a) per spec
+		"recommended sequence", // (b)
+		"first-decision",       // (c) — "first-decision fork"
+		"pending decision",     // (d) — "pending-decisions list"; match singular for table-row case
+	}
+	for _, r := range required {
+		if !strings.Contains(lower, r) {
+			t.Errorf("AC-4: §Output template must name the %q output block", r)
+		}
+	}
+
+	// Spec: landscape table specifies columns; the named columns
+	// per AC-4 are kind, cost-estimate, what-it-unblocks. Match
+	// case-insensitively because column headers may capitalise.
+	requiredColumns := []string{"kind", "cost", "unblock"}
+	for _, c := range requiredColumns {
+		if !strings.Contains(lower, c) {
+			t.Errorf("AC-4: §Output template must name the %q column for the landscape table", c)
+		}
+	}
+
+	// Spec: sequence prose uses explicit before/after/parallel framing.
+	for _, term := range []string{"before", "after", "parallel"} {
+		if !strings.Contains(lower, term) {
+			t.Errorf("AC-4: §Output template must use the %q ordering frame for the sequence section", term)
+		}
+	}
+}
+
+// TestAiwfxWhiteboard_AC5_QAGate asserts AC-5: the body has a
+// `## Q&A gate` section carrying the canonical gate prompt and the
+// one-at-a-time framing per CLAUDE.md *Working with the user*
+// §Q&A format.
+func TestAiwfxWhiteboard_AC5_QAGate(t *testing.T) {
+	body := loadAiwfxWhiteboardFixture(t)
+	section := extractMarkdownSection(body, 2, "Q&A gate")
+	if section == "" {
+		t.Fatal("AC-5: SKILL.md must have a `## Q&A gate` section")
+	}
+	lower := strings.ToLower(section)
+
+	// The exact gate-text template per spec (AC-5 quotes the
+	// phrasing verbatim).
+	gatePhrase := "walk through the pending decisions one at a time"
+	if !strings.Contains(lower, gatePhrase) {
+		t.Errorf("AC-5: §Q&A gate must include the canonical gate prompt %q", gatePhrase)
+	}
+
+	// One-at-a-time discipline (decline path → exit, opt-in →
+	// walk one at a time).
+	if !strings.Contains(lower, "one at a time") {
+		t.Error("AC-5: §Q&A gate must enforce one-at-a-time framing")
+	}
+
+	// Reference to CLAUDE.md's Q&A convention or equivalent.
+	if !regexp.MustCompile(`(?i)claude\.md|working with the user|q&a format`).MatchString(section) {
+		t.Error("AC-5: §Q&A gate must reference the CLAUDE.md Q&A convention")
+	}
+}
+
+// TestAiwfxWhiteboard_AC6_AntiPatterns asserts AC-6: the body has
+// an `## Anti-patterns` section listing the four spec-named
+// anti-patterns (no operator override, no verb invention, no
+// persisted artefact, scope locked to direction-synthesis).
+func TestAiwfxWhiteboard_AC6_AntiPatterns(t *testing.T) {
+	body := loadAiwfxWhiteboardFixture(t)
+	section := extractMarkdownSection(body, 2, "Anti-patterns")
+	if section == "" {
+		t.Fatal("AC-6: SKILL.md must have an `## Anti-patterns` section")
+	}
+	lower := strings.ToLower(section)
+
+	// AC-6 names four anti-patterns; assert each is named by a
+	// distinguishing phrase.
+	requiredPhrases := map[string]string{
+		"no-operator-override":  "operator",  // skill surfaces and gates, doesn't override operator judgement
+		"no-verb-invention":     "verb",      // doesn't invent verbs that don't exist
+		"no-persisted-artefact": "persist",   // doesn't write its output to a file (matches "persist", "persisted")
+		"scope-locked":          "direction", // scope is locked to direction-synthesis
+	}
+	for label, term := range requiredPhrases {
+		if !strings.Contains(lower, term) {
+			t.Errorf("AC-6: §Anti-patterns must name %s (keyword %q)", label, term)
+		}
+	}
+}
+
 // TestAiwfxWhiteboard_AC2_DescriptionPhrasings asserts AC-2: the
 // frontmatter `description:` carries at minimum five of the named
 // natural-language query phrasings the user might type to a
