@@ -76,16 +76,21 @@ func extractMarkdownSection(body string, level int, headingPrefix string) string
 
 // TestADR0007_AC1_AllocationAndStatus asserts AC-1: the ADR is
 // allocated under docs/adr/ with frontmatter `id: ADR-0007` and
-// `status: proposed`. The path constant pins the slug; the regexes
-// pin the frontmatter values.
+// `status` in a legal value. The status regex originally pinned
+// `proposed` as M-078's premature-ratification chokepoint while
+// E-21 was in flight; with E-21 wrapped (2026-05-09) the gate has
+// lifted, so the regex now accepts `proposed|accepted` to permit
+// legitimate forward transitions per ADR-0007's own line-83 design.
+// The path constant pins the slug; the regexes pin the frontmatter
+// values.
 func TestADR0007_AC1_AllocationAndStatus(t *testing.T) {
 	body := loadADR0007(t)
 
 	if !regexp.MustCompile(`(?m)^id:\s*ADR-0007\s*$`).MatchString(body) {
 		t.Error("AC-1: ADR-0007 frontmatter must contain `id: ADR-0007`")
 	}
-	if !regexp.MustCompile(`(?m)^status:\s*proposed\s*$`).MatchString(body) {
-		t.Error("AC-1: ADR-0007 frontmatter must contain `status: proposed`")
+	if !regexp.MustCompile(`(?m)^status:\s*(proposed|accepted)\s*$`).MatchString(body) {
+		t.Error("AC-1: ADR-0007 frontmatter must contain `status: proposed` or `status: accepted`")
 	}
 }
 
