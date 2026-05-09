@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_204 entities · 0 errors · 0 warnings_
+_205 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -40,7 +40,20 @@ _(no milestones)_
 
 ### E-23 — Uniform 4-digit kernel ID width (closes G-093) _(proposed)_
 
-_(no milestones)_
+- **M-081** — Canonical 4-digit IDs in parser, renderer, and allocator _(draft)_ — tdd: required
+
+```mermaid
+flowchart LR
+  E_23["E-23<br/>Uniform 4-digit kernel ID width (closes G-093)"]:::epic_proposed
+  M_081["M-081<br/>Canonical 4-digit IDs in parser, renderer, and allocator"]:::ms_draft
+  E_23 --> M_081
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Open decisions
 
@@ -94,9 +107,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body E-23 |
 | 2026-05-09 | human/peter | add | aiwf add epic E-23 'Uniform 4-digit kernel ID width (closes G-093)' |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0008 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-093 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-093 |
-| 2026-05-09 | human/peter | add | aiwf add adr ADR-0008 'Canonicalize kernel IDs to 4 digits; parsers tolerate narrower legacy widths on input' |
 
