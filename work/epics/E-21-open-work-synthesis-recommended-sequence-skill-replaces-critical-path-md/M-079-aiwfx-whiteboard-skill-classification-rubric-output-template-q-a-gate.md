@@ -1,10 +1,11 @@
 ---
 id: M-079
 title: 'aiwfx-whiteboard skill: classification rubric, output template, Q&A gate'
-status: draft
+status: in_progress
 parent: E-21
+depends_on:
+    - M-078
 tdd: advisory
-depends_on: [M-078]
 acs:
     - id: AC-1
       title: Skill scaffolded at aiwfx-whiteboard with frontmatter and SKILL.md
