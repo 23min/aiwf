@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-081/AC-1 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-081 draft -> in_progress |
 | 2026-05-09 | human/peter | add | aiwf add ac M-083 AC-1..AC-5 (5 criteria) |
 | 2026-05-09 | human/peter | add | aiwf add milestone M-083 'Drift check, normative-doc amendments, and skill content refresh' |
 | 2026-05-09 | human/peter | add | aiwf add gap G-094 'GitHub repo name 'ai-workflow-v2' is post-promotion historical; mismatches kernel identity 'aiwf' across go install path, internal/version proxy queries, and 155 in-repo references' |
-| 2026-05-09 | human/peter | add | aiwf add ac M-082 AC-1..AC-5 (5 criteria) |
 
