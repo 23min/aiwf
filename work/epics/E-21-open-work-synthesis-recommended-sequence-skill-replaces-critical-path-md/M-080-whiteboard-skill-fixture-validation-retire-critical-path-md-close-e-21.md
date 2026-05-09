@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: work/epics/critical-path.md deleted in this milestone's wrap commit
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: aiwf check shows no unexpected-tree-file warning for critical-path.md
       status: open
