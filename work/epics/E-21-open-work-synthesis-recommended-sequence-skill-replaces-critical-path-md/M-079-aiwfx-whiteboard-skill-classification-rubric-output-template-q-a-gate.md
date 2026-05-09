@@ -30,6 +30,7 @@ acs:
     - id: AC-6
       title: 'Body documents anti-patterns: no operator override, no verb invention'
       status: met
+      tdd_phase: red
     - id: AC-7
       title: M-074 skill-coverage policy or plugin equivalent accepts the skill
       status: met
