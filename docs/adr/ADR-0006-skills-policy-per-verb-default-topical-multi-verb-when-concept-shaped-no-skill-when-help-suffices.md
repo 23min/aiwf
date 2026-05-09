@@ -51,7 +51,7 @@ The split is justified only when the host's description-match scoring would rout
 - **New verbs:** when a verb is added to the Cobra tree, the design step "what verb undoes this?" (per CLAUDE.md *Designing a new verb*) gains a sibling step: *"which case from ADR-0006 applies, and where does this verb's skill live?"* The skill-coverage policy fails CI if the answer is "nowhere"; the ADR provides the language for the answer.
 - **Re-evaluation prompts:** if a deferred entry (currently only `show`) accumulates user friction, file a follow-up gap (the precedent: G-087 for `aiwf-show`); the gap's body explains why `--help` no longer suffices. The policy's allowlist points at that gap until the skill ships.
 - **CLAUDE.md `Skills policy` section:** points at this ADR for the *why* and at the policy file for the enforced *what*. The *What's enforced and where* table gains one row pinning the policy to its CI test chokepoint.
-- **Status:** `proposed` until the next planning cycle reviews it. The mechanical policy (M-074 AC-1..AC-7) ships independently — its enforcement does not depend on this ADR's ratification.
+- **Mechanical policy is independent of this ADR's status.** The skill-coverage policy (M-074 AC-1..AC-7) ships and enforces regardless — the policy explains *that* every verb has skill coverage; this ADR explains *which shape* the coverage takes. The two surfaces are decoupled.
 
 ## References
 
