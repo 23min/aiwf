@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -80,6 +81,27 @@ func TestFrontmatterField_BranchCoverage(t *testing.T) {
 				t.Errorf("frontmatterField(%q) = %q; want %q", tc.body, got, tc.want)
 			}
 		})
+	}
+}
+
+// TestAiwfxWhiteboard_GitignoreCarriesWhiteboardMd asserts the
+// consumer repo's `.gitignore` carries the `WHITEBOARD.md` entry,
+// closing G-089. The skill writes WHITEBOARD.md to repo root on
+// each invocation as a gitignored local cache; the gitignore
+// entry is what makes the cache safe (no merge conflicts, no
+// team-wide drift). The test fires if a future contributor
+// removes the entry without also revising the skill body.
+func TestAiwfxWhiteboard_GitignoreCarriesWhiteboardMd(t *testing.T) {
+	root := repoRoot(t)
+	data, err := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if err != nil {
+		t.Fatalf("reading .gitignore: %v", err)
+	}
+	// Match the entry as a standalone line (anchored), so a
+	// future entry like `path/to/WHITEBOARD.md.bak` doesn't pass
+	// this assertion vacuously.
+	if !regexp.MustCompile(`(?m)^WHITEBOARD\.md\s*$`).Match(data) {
+		t.Error("G-089: .gitignore must carry the `WHITEBOARD.md` entry as a standalone line so the aiwfx-whiteboard skill's local cache stays out of git history")
 	}
 }
 
@@ -316,34 +338,39 @@ func TestAiwfxWhiteboard_AC8_MaterialisationDriftCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UserHomeDir: %v", err)
 	}
-	cacheRoot := filepath.Join(home, ".claude", "plugins", "cache", "ai-workflow-rituals")
-	if _, err := os.Stat(cacheRoot); os.IsNotExist(err) {
-		t.Skipf("AC-8 skip: marketplace cache %q not present; run after plugin install to verify materialisation", cacheRoot)
+	manifestPath := filepath.Join(home, ".claude", "plugins", "installed_plugins.json")
+	manifest, err := os.ReadFile(manifestPath)
+	if os.IsNotExist(err) {
+		t.Skipf("AC-8 skip: %q not present; run after plugin install to verify materialisation", manifestPath)
 	}
-
-	// Walk down to find aiwfx-whiteboard inside the cached
-	// aiwf-extensions plugin. The cache layout is
-	// `.../ai-workflow-rituals/aiwf-extensions/<sha-prefix>/skills/aiwfx-whiteboard/SKILL.md`.
-	pluginRoot := filepath.Join(cacheRoot, "aiwf-extensions")
-	entries, err := os.ReadDir(pluginRoot)
 	if err != nil {
-		t.Skipf("AC-8 skip: aiwf-extensions plugin not cached at %q: %v", pluginRoot, err)
+		t.Fatalf("AC-8: reading %q: %v", manifestPath, err)
 	}
 
-	var skillPath string
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-		candidate := filepath.Join(pluginRoot, e.Name(), "skills", "aiwfx-whiteboard", "SKILL.md")
-		if _, err := os.Stat(candidate); err == nil {
-			skillPath = candidate
-			break
-		}
+	// Resolve the *active* install path from installed_plugins.json
+	// rather than scanning every cached version. The cache typically
+	// holds several historical sha-prefix directories (one per
+	// version that was ever active); the test must verify the
+	// currently-active install matches the fixture, not whichever
+	// stale version `os.ReadDir` happens to enumerate first.
+	var parsed struct {
+		Plugins map[string][]struct {
+			InstallPath string `json:"installPath"`
+		} `json:"plugins"`
 	}
-	if skillPath == "" {
-		t.Errorf("AC-8: aiwfx-whiteboard not materialised in plugin cache (looked under %q)", pluginRoot)
+	if jsonErr := json.Unmarshal(manifest, &parsed); jsonErr != nil {
+		t.Fatalf("AC-8: parsing %q: %v", manifestPath, jsonErr)
+	}
+	installs, ok := parsed.Plugins["aiwf-extensions@ai-workflow-rituals"]
+	if !ok || len(installs) == 0 {
+		t.Skipf("AC-8 skip: aiwf-extensions@ai-workflow-rituals not installed (no entry in %q)", manifestPath)
+	}
+	skillPath := filepath.Join(installs[0].InstallPath, "skills", "aiwfx-whiteboard", "SKILL.md")
+	if _, statErr := os.Stat(skillPath); os.IsNotExist(statErr) {
+		t.Errorf("AC-8: aiwfx-whiteboard not materialised in active install (expected at %q)", skillPath)
 		return
+	} else if statErr != nil {
+		t.Fatalf("AC-8: stat %q: %v", skillPath, statErr)
 	}
 
 	cached, err := os.ReadFile(skillPath)

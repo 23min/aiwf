@@ -99,6 +99,12 @@ The lean is named explicitly so the operator can agree, redirect, or re-weigh.
 
 Numbered list of open Q&A items implied by the synthesis. None should be blocking the next concrete action; if one is, surface it as the first-decision fork instead. Each item names what it would unlock if answered.
 
+## Output cache (WHITEBOARD.md)
+
+After rendering blocks (a)–(d) into the conversation, write the same four blocks to `WHITEBOARD.md` in the consumer repo's root. The file is **gitignored** by convention (see `.gitignore` entry; the consumer repo's `aiwf init` / `aiwf update` should add this if not present). Subsequent invocations overwrite the file in place.
+
+The cache lets the operator re-read the last synthesis without re-invoking the skill — useful when the chat-session context has scrolled past the rendered output. The cache is **not authoritative**: the live tree is the truth, and `WHITEBOARD.md` is a snapshot that drifts from the tree the moment any planning entity changes status. Treat `WHITEBOARD.md` like `STATUS.md`: a regeneratable view, not the source of truth.
+
 ## Q&A gate
 
 After rendering blocks (a)–(d), the skill emits exactly one gate prompt and waits:
@@ -125,9 +131,9 @@ The skill's job is to **surface** structure (tiers, sequence, decisions) and **g
 
 Every verb invocation in the skill body or its rendered output must resolve to a real `aiwf` command available today. If the synthesis would benefit from a verb that doesn't exist, **file a follow-up gap** (`aiwf add gap --title "..." --discovered-in M-NNN`) and surface the gap in the output — do not encode a hand-edit workaround or pretend the verb exists. The kernel surface is authoritative; the skill is advisory; the verb-invention failure mode confuses that hierarchy.
 
-### 3. Persisting the synthesis to a file
+### 3. Persisting the synthesis to a checked-in file
 
-The skill's output is on-demand by contract. **No checked-in synthesis snapshot.** A snapshot committed to the tree goes stale within hours of the next planning act and becomes a second source of truth that disagrees with the live tree.
+**No `whiteboard.md`, `landscape.md`, or any synthesis snapshot committed to the tree.** A checked-in snapshot goes stale within hours of the next planning act and becomes a second source of truth that disagrees with the live tree. **Gitignored local caches are different and OK** — they regenerate on each invocation, don't share team-wide drift, and don't tax git history. The skill writes such a cache to `WHITEBOARD.md` (see *Output cache* below); `STATUS.md` is the precedent (a persisted artefact regenerated on every commit by the pre-commit hook).
 
 ### 4. Scope creep beyond direction-synthesis
 
