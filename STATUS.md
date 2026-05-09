@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_197 entities · 0 errors · 5 warnings · run `aiwf check` for details_
+_197 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -109,7 +109,6 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| acs-tdd-audit | M-079/AC-6 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-6 status: met under tdd: advisory but tdd_phase is green (expected done) |
 | acs-tdd-audit | M-079/AC-7 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-7 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-079/AC-8 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-8 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | entity-body-empty | G-088 | work/gaps/G-088-skill-coverage-policy-walks-internal-skills-embedded-only-plugin-skills-aiwf-extensions-skills-aiwfx-are-not-policed-by-the-kernel-equivalent-invariants-must-be-re-applied-per-skill-in-test-code-as-m-079-did.md | G-088 body section \`## What's missing\` is empty |
@@ -119,9 +118,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-6 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-6 --phase  -> red |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-5 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-5 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-5 --phase  -> red |
-| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-4 --phase green -> done |
 
