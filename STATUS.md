@@ -112,9 +112,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-5 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-4 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-3 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-2 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-1 open -> met |
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0007 |
 

@@ -47,7 +47,7 @@ Trigger conditions for promotion to a skill+verb pair:
 
 Until these conditions are observed, the pure-skill form is preferred. This matches the principle "skills are advisory; the verb surface is authoritative" — extending the verb surface speculatively, in advance of a re-derivation pattern, costs both the kernel review burden and the reversibility tax (every kernel verb owes *"what verb undoes this?"* per CLAUDE.md *Designing a new verb*).
 
-The deferred follow-on for `aiwfx-whiteboard` is a `landscape`-style kernel verb (working title: `aiwf landscape`) that would return the tiered open-work structure as JSON for the skill to narrate. **It is not filed by E-21.** The trigger for filing it is the conditions above — concretely, repeated runs of `aiwfx-whiteboard` on real planning sessions where the operator can name the structured data the skill keeps re-deriving.
+The deferred follow-on for `aiwfx-whiteboard` is a backing kernel verb `aiwf whiteboard` that would return the tiered open-work structure as JSON for the skill to narrate. The verb keeps the skill's name so the surface stays unified — no `aiwf landscape` / `aiwfx-whiteboard` split between layers. **It is not filed by E-21.** The trigger for filing it is the conditions above — concretely, repeated runs of `aiwfx-whiteboard` on real planning sessions where the operator can name the structured data the skill keeps re-deriving.
 
 This rule closes E-21 success criterion #7 (*"An ADR or D-NNN captures the design choice between pure-skill (this epic) and skill+verb (the deferred follow-on), with the rationale for starting pure-skill."*).
 
@@ -64,7 +64,7 @@ The name is a worked example demonstrating the placement and tiering rules in ac
 Rejected alternatives, one-line rationale per:
 
 - **`recommend-sequence`** — PM-jargon-shaped; same critique that retired `critical-path` as a name. Implies a single right answer; the synthesis is conversational, not authoritative.
-- **`landscape`** — too geographic, not action-oriented; reads as a noun-only output, not an invitation to converse. Reserved for the deferred kernel verb (whose job *is* the landscape data).
+- **`landscape`** — too geographic, not action-oriented; reads as a noun-only output, not an invitation to converse. (Earlier drafts reserved this name for the deferred kernel verb; the verb now follows the skill's name — see Tiering above.)
 - **`paths`** — vague; many things in a planning system have "paths" (file paths, dependency paths, code paths). Not specific to direction synthesis.
 - **`focus`** — too narrow; "focus" implies prioritisation already done. The skill's job is producing the input to a focus decision, not naming the focus itself.
 - **`next`** — query-shaped, captures only the prompt (*"what's next?"*) and not the synthesis act. Loses the surfacing-and-Q&A frame.
@@ -77,9 +77,9 @@ The rejected set is preserved here so a future planner proposing a similar synth
 ## Consequences
 
 - **All future planning-conversation skills land in the rituals plugin.** The kernel surface stays bounded by verbs and verb-wrapper skills. A new planning-conversation skill that wants kernel placement must justify itself against this ADR — "it would be more discoverable" is not by itself sufficient, because the kernel-discoverability principle pulls only on *kernel capabilities*.
-- **The deferred `landscape` verb is on the open-work radar but not filed.** It is owned by *future* operator usage, not by E-21. If/when filed, it goes through CLAUDE.md *Designing a new verb*: *"what verb undoes this?"* must be answered (a read verb is undone by re-running it with different inputs — an easy answer, but not a free one).
+- **The deferred `aiwf whiteboard` verb is on the open-work radar but not filed.** It is owned by *future* operator usage, not by E-21. If/when filed, it goes through CLAUDE.md *Designing a new verb*: *"what verb undoes this?"* must be answered (a read verb is undone by re-running it with different inputs — an easy answer, but not a free one). The verb shares the skill's name to keep the surface unified.
 - **Pure-skill-first applies beyond `aiwfx-whiteboard`.** Any future synthesis skill (e.g., a *"what's blocking what"* cross-kind dependency mapper) starts as pure-skill on top of existing read verbs. Promotion to skill+verb is justified by observed re-derivation, not by speculative ergonomics.
-- **The name worked example is the discoverable artefact for future name choices.** When a future planner proposes a name like `aiwfx-survey` or `aiwfx-landscape`, the rejected-alternatives section above is the precedent — the rationale (*"survey is academic"*, *"landscape is reserved for the deferred verb"*) is captured here, not re-litigated.
+- **The name worked example is the discoverable artefact for future name choices.** When a future planner proposes a name like `aiwfx-survey` or `aiwfx-landscape`, the rejected-alternatives section above is the precedent — the rationale (*"survey is academic"*, *"landscape is too geographic, not action-oriented"*) is captured here, not re-litigated.
 - **Status remains `proposed` through E-21 wrap.** Promotion to `accepted` is a separate decision after the epic closes. If M-079's implementation surfaces a constraint that revises the placement or tiering reasoning, this ADR is edit-bodied before any status change.
 
 ## References
@@ -89,5 +89,5 @@ The rejected set is preserved here so a future planner proposing a similar synth
 - **M-079** — *aiwfx-whiteboard skill: classification rubric, output template, Q&A gate* — the implementation milestone that consumes this ADR's decisions and cites it by id.
 - **CLAUDE.md** *Engineering principles* §*"Kernel functionality must be AI-discoverable"* — primary authority for the placement reasoning. Pulls toward kernel-embedded skills *for verbs*; does not pull planning conversations into the kernel.
 - **CLAUDE.md** *Engineering principles* §*"The framework's correctness must not depend on the LLM's behavior"* — secondary authority for the pure-skill-first rule. Skills are advisory; speculative kernel verbs do not add authoritative guarantees and increase the kernel surface for no observable benefit.
-- **CLAUDE.md** *Designing a new verb* — gates any kernel verb filing on *"what verb undoes this?"*; informs the deferred-`landscape` posture above.
+- **CLAUDE.md** *Designing a new verb* — gates any kernel verb filing on *"what verb undoes this?"*; informs the deferred-`aiwf whiteboard` posture above.
 - **`work/epics/critical-path.md`** — the holding doc whose name is part of the rejected-alternatives reasoning; deleted in M-080.
