@@ -3,7 +3,7 @@ id: E-23
 title: Uniform 4-digit kernel ID width (closes G-093)
 status: proposed
 ---
-# E-NEW — Uniform 4-digit kernel ID width (closes G-093)
+# E-23 — Uniform 4-digit kernel ID width (closes G-093)
 
 ## Goal
 
