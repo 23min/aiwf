@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-4
       title: 'ADR records name worked example: aiwfx-whiteboard with rejected alternatives'
-      status: open
+      status: met
     - id: AC-5
       title: ADR cross-references M-074 skills ADR and CLAUDE.md principles
       status: open
