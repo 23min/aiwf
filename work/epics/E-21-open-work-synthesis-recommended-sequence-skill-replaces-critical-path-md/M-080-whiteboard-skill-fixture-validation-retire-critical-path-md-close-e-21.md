@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: E-21 promoted to done; epic wrap commit cites the closure
-      status: open
+      status: met
       tdd_phase: done
 ---
 
