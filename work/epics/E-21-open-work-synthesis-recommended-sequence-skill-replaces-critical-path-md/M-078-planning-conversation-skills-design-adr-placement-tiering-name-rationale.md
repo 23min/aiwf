@@ -13,7 +13,7 @@ acs:
       status: open
     - id: AC-3
       title: ADR records pure-skill-first tiering rule
-      status: met
+      status: open
     - id: AC-4
       title: 'ADR records name worked example: aiwfx-whiteboard with rejected alternatives'
       status: met
