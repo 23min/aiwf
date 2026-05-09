@@ -34,7 +34,7 @@ acs:
     - id: AC-7
       title: E-21 promoted to done; epic wrap commit cites the closure
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-080 — Whiteboard skill fixture validation; retire critical-path.md; close E-21
