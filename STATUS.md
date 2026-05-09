@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-082 draft -> in_progress |
 | 2026-05-10 | human/peter | wrap | feat(aiwf): canonicalize kernel ids to 4-digit width with parser tolerance (M-081) |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-10 | human/peter | promote | aiwf promote M-081 in_progress -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-081/AC-6 open -> met |
-| 2026-05-10 | human/peter | promote | aiwf promote M-081/AC-5 open -> met |
 
