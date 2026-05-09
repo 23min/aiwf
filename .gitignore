@@ -44,6 +44,10 @@ docs/notes/
 # from here into tracked docs.
 .scratch/
 
+# Personal triage staging — entries pulled out of Claude's auto-memory and
+# decided one-by-one (codify or drop). Not tracked.
+/rules.md
+
 # `aiwf render --format=html` output directory.
 site/
 
