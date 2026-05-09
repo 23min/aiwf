@@ -22,6 +22,7 @@ acs:
     - id: AC-4
       title: 'Body documents output template: landscape, sequence, first decision, pending'
       status: met
+      tdd_phase: red
     - id: AC-5
       title: Body documents the Q&A gate flow per CLAUDE.md one-at-a-time convention
       status: met
