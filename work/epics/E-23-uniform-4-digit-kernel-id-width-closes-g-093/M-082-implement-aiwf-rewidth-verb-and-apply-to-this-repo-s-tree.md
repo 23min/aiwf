@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: aiwf rewidth verb structure with dry-run default
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Active-tree file rename to canonical width
       status: open
