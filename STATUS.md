@@ -123,9 +123,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-7 open -> met |
 | 2026-05-09 | human/peter | add | aiwf add gap G-088 'Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-079 did' |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-6 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-5 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-4 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-3 open -> met |
 
