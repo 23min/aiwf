@@ -14,6 +14,7 @@ acs:
     - id: AC-2
       title: Frontmatter description carries the natural-language query phrasings
       status: met
+      tdd_phase: red
     - id: AC-3
       title: Body documents the tier-classification rubric for open-work landscape
       status: met
