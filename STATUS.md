@@ -109,7 +109,7 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| acs-tdd-audit | M-079/AC-1 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-1 status: met under tdd: advisory but tdd_phase is red (expected done) |
+| acs-tdd-audit | M-079/AC-1 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-1 status: met under tdd: advisory but tdd_phase is green (expected done) |
 | acs-tdd-audit | M-079/AC-2 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-2 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-079/AC-3 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-3 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | acs-tdd-audit | M-079/AC-4 | work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md | M-079/AC-4 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-1 --phase  -> red |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-8 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-7 open -> met |
 | 2026-05-09 | human/peter | add | aiwf add gap G-088 'Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-079 did' |
 | 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-6 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-079/AC-5 open -> met |
 
