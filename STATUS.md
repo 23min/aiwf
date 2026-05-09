@@ -120,9 +120,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-3 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-3 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-2 --phase green -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-2 --phase red -> green |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-1 --phase green -> done |
-| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-1 --phase red -> green |
 

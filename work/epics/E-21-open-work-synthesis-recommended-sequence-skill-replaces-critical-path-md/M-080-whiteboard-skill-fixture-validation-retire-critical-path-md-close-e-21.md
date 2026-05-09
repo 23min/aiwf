@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Three natural-language test prompts route to the skill via description-match
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: work/epics/critical-path.md deleted in this milestone's wrap commit
       status: open
