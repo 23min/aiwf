@@ -38,7 +38,7 @@ acs:
     - id: AC-8
       title: Skill materialised by aiwf init / aiwf update via the rituals plugin
       status: met
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-079 — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate
