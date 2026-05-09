@@ -10,6 +10,7 @@ acs:
     - id: AC-1
       title: Skill scaffolded at aiwfx-whiteboard with frontmatter and SKILL.md
       status: met
+      tdd_phase: red
     - id: AC-2
       title: Frontmatter description carries the natural-language query phrasings
       status: met
