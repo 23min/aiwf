@@ -31,12 +31,13 @@ Three layers, sequenced via a companion ADR and a single implementing epic:
 2. **One-shot rename pass for this repo** — files in `work/` and active `docs/adr/` rename to canonical widths; in-body references rewrite. **No new verb** — the migration runs once for this repo, with no other consumers; an ad-hoc script (or careful `git mv` + sed pass) does the work, verified by `aiwf check`. New consumers post-graduation are born canonical.
 3. **Drift-check rule** — `aiwf check` rule `entity-id-narrow-width` warns on *new* files at non-canonical width (archive entries grandfathered per ADR-0004's forget-by-default).
 
-The full plan lives in **ADR-NEW** (policy) and **E-NEW** (implementation). **E-NEW is a prerequisite of §07 TDD architecture's Slice 2** (F-kind allocation), so this work sequences ahead of any F-related milestone — F is born canonical rather than allocated narrow and rewidth'd later. This gap is the discovery framing.
+The full plan lives in [ADR-0008](../../docs/adr/ADR-0008-canonicalize-kernel-ids-to-4-digits-parsers-tolerate-narrower-legacy-widths-on-input.md) (policy) and a forthcoming implementing epic. **The implementing epic is a prerequisite of §07 TDD architecture's Slice 2** (F-kind allocation), so this work sequences ahead of any F-related milestone — F is born canonical rather than allocated narrow and rewidth'd later. This gap is the discovery framing.
 
 ## References
 
 - **CLAUDE.md** "What aiwf commits to" §2 — current id-width list (per-kind exception list).
-- **ADR-0003** — F-NNN as 7th kind; affected by this gap.
-- **ADR-0004** — uniform archive convention; archives grandfathered.
-- **`docs/explorations/07-tdd-architecture-proposal.md`** — review of this exploratory doc surfaced the gap; uses F-NNN ↔ F-NNNN inconsistently.
-- **`internal/verb/import.go::canonicalPadFor`** — current de facto policy site.
+- [ADR-0003](../../docs/adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN as 7th kind; affected by this gap.
+- [ADR-0004](../../docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) — uniform archive convention; archives grandfathered.
+- [ADR-0008](../../docs/adr/ADR-0008-canonicalize-kernel-ids-to-4-digits-parsers-tolerate-narrower-legacy-widths-on-input.md) — companion policy decision.
+- `docs/explorations/07-tdd-architecture-proposal.md` — review of this exploratory doc surfaced the gap; uses F-NNN ↔ F-NNNN inconsistently.
+- `internal/verb/import.go::canonicalPadFor` — current de facto policy site.
