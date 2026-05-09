@@ -45,7 +45,6 @@ _(no milestones)_
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 | ADR-0003 | adr | Add finding (F-NNN) as a seventh entity kind | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
-| ADR-0007 | adr | Planning-conversation skills: rituals-plugin placement; pure-skill first, kernel verb only if usage demands it | proposed |
 
 ## Open gaps
 
