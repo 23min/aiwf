@@ -40,14 +40,14 @@ _(no milestones)_
 
 ### E-23 — Uniform 4-digit kernel ID width (closes G-093) _(proposed)_
 
-- → **M-081** — Canonical 4-digit IDs in parser, renderer, and allocator _(in_progress)_ — ACs 6/6 met — tdd: required
+- ✓ **M-081** — Canonical 4-digit IDs in parser, renderer, and allocator _(done)_ — ACs 6/6 met — tdd: required
 - **M-082** — Implement aiwf rewidth verb and apply to this repo's tree _(draft)_ — ACs 0/5 met (5 open) — tdd: required
 - **M-083** — Drift check, normative-doc amendments, and skill content refresh _(draft)_ — ACs 0/5 met (5 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_23["E-23<br/>Uniform 4-digit kernel ID width (closes G-093)"]:::epic_proposed
-  M_081["M-081 (6/6)<br/>Canonical 4-digit IDs in parser, renderer, and allocator"]:::ms_in_progress
+  M_081["M-081 (6/6)<br/>Canonical 4-digit IDs in parser, renderer, and allocator"]:::ms_done
   E_23 --> M_081
   M_082["M-082 (0/5)<br/>Implement aiwf rewidth verb and apply to this repo's tree"]:::ms_draft
   E_23 --> M_082
@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-081/AC-6 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-081/AC-5 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-081/AC-4 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-081/AC-3 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-081/AC-2 open -> met |
-| 2026-05-10 | human/peter | promote | aiwf promote M-081/AC-1 open -> met |
 
