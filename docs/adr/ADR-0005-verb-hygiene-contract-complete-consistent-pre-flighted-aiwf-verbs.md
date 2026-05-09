@@ -87,10 +87,6 @@ Future verb gaps, when filed, cite this ADR by id. The audit-of-existing-verbs w
 
 A complementary policy test (`internal/policies/`) MAY be added to enforce part of the contract mechanically — e.g., a check that every non-trivial verb has a pre-flight call. This is out of scope for this ADR but compatible with it.
 
-## Status
-
-Proposed. Ratification follows the kernel's standard ADR cadence — accept after the three implementing gaps' resolution shapes prove the contract's three obligations are workable in practice. If a fourth instance of the pattern emerges before ratification, fold it in as a fourth obligation rather than re-litigating the principle.
-
 ## References
 
 - G-081 — pre-flight obligation, instance.
