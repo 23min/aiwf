@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Parser tolerates both widths at every audited call site
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Every display surface emits canonical ids regardless of filename
