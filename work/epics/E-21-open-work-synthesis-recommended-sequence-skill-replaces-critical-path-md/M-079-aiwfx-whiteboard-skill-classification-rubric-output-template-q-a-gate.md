@@ -27,7 +27,7 @@ acs:
       status: met
     - id: AC-7
       title: M-074 skill-coverage policy or plugin equivalent accepts the skill
-      status: open
+      status: met
     - id: AC-8
       title: Skill materialised by aiwf init / aiwf update via the rituals plugin
       status: open
