@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: aiwf check on this repo's pre-rename tree is green
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
