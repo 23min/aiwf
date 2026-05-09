@@ -45,7 +45,6 @@ _(no milestones)_
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 | ADR-0003 | adr | Add finding (F-NNN) as a seventh entity kind | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
-| ADR-0006 | adr | Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices | proposed |
 | ADR-0007 | adr | Planning-conversation skills: rituals-plugin placement; pure-skill first, kernel verb only if usage demands it | proposed |
 
 ## Open gaps
@@ -91,9 +90,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote G-065 open -> addressed |
 | 2026-05-09 | human/peter | promote | aiwf promote G-089 addressed -> addressed |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-090 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body G-088 |
 | 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0004 |
-| 2026-05-09 | human/peter | add | aiwf add gap G-092 'No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file' |
 
