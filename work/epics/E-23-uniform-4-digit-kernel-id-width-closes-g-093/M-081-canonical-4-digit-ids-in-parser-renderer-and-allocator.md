@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Every display surface emits canonical ids regardless of filename
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Pre-existing narrow-width trailers match canonical-id queries
