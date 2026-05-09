@@ -18,6 +18,7 @@ acs:
     - id: AC-3
       title: Body documents the tier-classification rubric for open-work landscape
       status: met
+      tdd_phase: red
     - id: AC-4
       title: 'Body documents output template: landscape, sequence, first decision, pending'
       status: met
