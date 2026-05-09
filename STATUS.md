@@ -43,7 +43,6 @@ _(no milestones)_
 | ID | Kind | Title | Status |
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
-| ADR-0003 | adr | Add finding (F-NNN) as a seventh entity kind | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
 
 ## Open gaps
@@ -89,9 +88,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-09 | human/peter | promote | aiwf promote ADR-0007 proposed -> accepted |
 | 2026-05-09 | human/peter | promote | aiwf promote ADR-0006 proposed -> accepted |
 | 2026-05-09 | human/peter | promote | aiwf promote G-065 open -> addressed |
 | 2026-05-09 | human/peter | promote | aiwf promote G-089 addressed -> addressed |
-| 2026-05-09 | human/peter | edit-body | aiwf edit-body G-090 |
 

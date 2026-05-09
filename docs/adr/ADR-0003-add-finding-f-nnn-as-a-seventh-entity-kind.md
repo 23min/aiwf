@@ -1,7 +1,7 @@
 ---
 id: ADR-0003
 title: Add finding (F-NNN) as a seventh entity kind
-status: proposed
+status: accepted
 ---
 ## Context
 
