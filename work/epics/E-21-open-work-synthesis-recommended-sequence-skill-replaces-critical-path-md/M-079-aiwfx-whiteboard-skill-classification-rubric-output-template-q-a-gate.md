@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Body documents the tier-classification rubric for open-work landscape
-      status: open
+      status: met
     - id: AC-4
       title: 'Body documents output template: landscape, sequence, first decision, pending'
       status: open
