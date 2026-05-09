@@ -1,7 +1,7 @@
 ---
 id: E-21
 title: 'Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md'
-status: proposed
+status: active
 ---
 
 # E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md

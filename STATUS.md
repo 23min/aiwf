@@ -4,7 +4,28 @@ _199 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
-_(no active epics)_
+### E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md _(active)_
+
+- ✓ **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(done)_ — ACs 5/5 met — tdd: none
+- ✓ **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(done)_ — ACs 8/8 met — tdd: advisory
+- ✓ **M-080** — Whiteboard skill fixture validation; retire critical-path.md; close E-21 _(done)_ — ACs 7/7 met — tdd: required
+
+```mermaid
+flowchart LR
+  E_21["E-21<br/>Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md"]:::epic_active
+  M_078["M-078 (5/5)<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_done
+  E_21 --> M_078
+  M_079["M-079 (8/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_done
+  E_21 --> M_079
+  M_080["M-080 (7/7)<br/>Whiteboard skill fixture validation; retire critical-path.md; close E-21"]:::ms_done
+  E_21 --> M_080
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Roadmap
 
@@ -37,29 +58,6 @@ flowchart LR
 ### E-19 — Parallel TDD subagents with finding-gated AC closure _(proposed)_
 
 _(no milestones)_
-
-### E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md _(proposed)_
-
-- ✓ **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(done)_ — ACs 5/5 met — tdd: none
-- ✓ **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(done)_ — ACs 8/8 met — tdd: advisory
-- ✓ **M-080** — Whiteboard skill fixture validation; retire critical-path.md; close E-21 _(done)_ — ACs 7/7 met — tdd: required
-
-```mermaid
-flowchart LR
-  E_21["E-21<br/>Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md"]:::epic_proposed
-  M_078["M-078 (5/5)<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_done
-  E_21 --> M_078
-  M_079["M-079 (8/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_done
-  E_21 --> M_079
-  M_080["M-080 (7/7)<br/>Whiteboard skill fixture validation; retire critical-path.md; close E-21"]:::ms_done
-  E_21 --> M_080
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
 
 ## Open decisions
 
@@ -120,9 +118,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080 in_progress -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-7 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-6 open -> met |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-5 open -> met |
-| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-4 open -> met |
 
