@@ -24,7 +24,7 @@ acs:
       status: met
     - id: AC-6
       title: 'Body documents anti-patterns: no operator override, no verb invention'
-      status: open
+      status: met
     - id: AC-7
       title: M-074 skill-coverage policy or plugin equivalent accepts the skill
       status: open
