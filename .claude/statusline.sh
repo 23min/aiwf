@@ -2,7 +2,7 @@
 # Status line for Claude Code in the ai-workflow-v2 repo.
 # Reads JSON from stdin (Claude Code's session context), prints one line.
 #
-# Layout: <ball> <model> · <repo> · <branch>[<dirty>][<sync>] · <epic?> · <milestone?> · ci:<state> · <tokens>
+# Layout: <ball> <model> · <epic?> · <milestone?> · <repo> · <branch>[<dirty>][<sync>] · ci:<state> · <tokens>
 #
 # All segments fail soft: anything that errors collapses to "?" or is dropped.
 # Network calls are cached in /tmp with a TTL so the script stays sub-100ms.
@@ -198,10 +198,11 @@ fi
 
 # --- Compose ----------------------------------------------------------------
 
-parts=("$ball $model" "$repo")
-[ -n "$branch_seg" ]    && parts+=("$branch_seg")
+parts=("$ball $model")
 [ -n "$epic_seg" ]      && parts+=("${blue}${epic_seg}${reset}")
 [ -n "$milestone_seg" ] && parts+=("${blue}${milestone_seg}${reset}")
+parts+=("$repo")
+[ -n "$branch_seg" ]    && parts+=("$branch_seg")
 parts+=("$ci_fmt" "$tokens_fmt")
 
 # Join with " · ".

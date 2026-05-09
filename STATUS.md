@@ -1,4 +1,4 @@
-# aiwf status — 2026-05-08
+# aiwf status — 2026-05-09
 
 _192 entities · 0 errors · 0 warnings_
 
@@ -92,9 +92,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | promote | aiwf promote G-087 open [audit-only] |
 | 2026-05-09 | human/peter | promote | aiwf promote G-086 open [audit-only] |
 | 2026-05-09 | human/peter | promote | aiwf promote G-085 addressed [audit-only] |
 | 2026-05-09 | human/peter | promote | aiwf promote G-078 open [audit-only] |
 | 2026-05-09 | human/peter | promote | aiwf promote G-061 addressed [audit-only] |
-| 2026-05-09 | human/peter | promote | aiwf promote M-074 in_progress -> done |
 
