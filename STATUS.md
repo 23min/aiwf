@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-09
 
-_195 entities · 0 errors · 0 warnings_
+_196 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -40,14 +40,14 @@ _(no milestones)_
 
 ### E-21 — Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md _(proposed)_
 
-- → **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(in_progress)_ — ACs 0/5 met (5 open) — tdd: none
+- ✓ **M-078** — Planning-conversation skills design ADR (placement, tiering, name rationale) _(done)_ — ACs 5/5 met — tdd: none
 - **M-079** — aiwfx-whiteboard skill: classification rubric, output template, Q&A gate _(draft)_ — ACs 0/8 met (8 open) — tdd: advisory
 - **M-080** — Whiteboard skill fixture validation; retire critical-path.md; close E-21 _(draft)_ — ACs 0/7 met (7 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_21["E-21<br/>Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md"]:::epic_proposed
-  M_078["M-078 (0/5)<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_in_progress
+  M_078["M-078 (5/5)<br/>Planning-conversation skills design ADR (placement, tiering, name rationale)"]:::ms_done
   E_21 --> M_078
   M_079["M-079 (0/8)<br/>aiwfx-whiteboard skill: classification rubric, output template, Q&A gate"]:::ms_draft
   E_21 --> M_079
@@ -70,6 +70,7 @@ flowchart LR
 | ADR-0004 | adr | Uniform archive convention for terminal-status entities | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
 | ADR-0006 | adr | Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices | proposed |
+| ADR-0007 | adr | Planning-conversation skills: rituals-plugin placement; pure-skill first, kernel verb only if usage demands it | proposed |
 
 ## Open gaps
 
@@ -111,9 +112,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-08 | human/peter | retitle | aiwf retitle M-080/AC-2 -> 'Output agrees with critical-path.md on structural shape, not content' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body E-21 |
-| 2026-05-08 | human/peter | retitle | aiwf retitle E-21 -> 'Open-work synthesis: aiwfx-whiteboard skill replaces critical-path.md' |
-| 2026-05-08 | human/peter | edit-body | aiwf edit-body G-082 |
-| 2026-05-08 | human/peter | add | aiwf add gap G-082 'Planning closure should default-merge to main before implementation begins' |
+| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-5 open -> met |
+| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-4 open -> met |
+| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-3 open -> met |
+| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-2 open -> met |
+| 2026-05-09 | human/peter | promote | aiwf promote M-078/AC-1 open -> met |
 
