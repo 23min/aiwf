@@ -1,7 +1,7 @@
 ---
 id: M-080
 title: Whiteboard skill fixture validation; retire critical-path.md; close E-21
-status: in_progress
+status: done
 parent: E-21
 depends_on:
     - M-079
