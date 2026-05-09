@@ -58,22 +58,9 @@ Classify each open item by **leverage on future work**, not by chronology of whe
 
 ## Output template
 
-The output is a single conversational message containing four named blocks, in this order:
+The output is a single conversational message containing four named blocks, in this order. The action-shaped blocks (sequence, fork, pending) lead; the tiered landscape comes last as the supporting reference data.
 
-### (a) Tiered landscape — table
-
-A markdown table, one row per open item across the relevant kinds (`epic`, `milestone`, `gap`, `adr`). Required columns:
-
-| Column | Content |
-|---|---|
-| **Item** | id + short title (e.g. `G-071 — entity-body-empty rule lifecycle-blind`) |
-| **Kind** | gap / adr / epic / milestone |
-| **Cost** | rough sizing — `tiny`, `wf-patch`, `small milestone`, `medium milestone`, `epic`, `multi-epic` |
-| **What it unblocks** | one-line description of leverage on future work |
-
-Group rows by tier (Tier 1 first, Tier 5 last). Each tier is a sub-heading above its rows.
-
-### (b) Recommended sequence — numbered prose
+### (a) Recommended sequence — numbered prose
 
 Numbered list, one entry per concrete next action. Each entry uses **explicit before / after / parallel** framing relative to the existing in-flight work, e.g.:
 
@@ -83,7 +70,7 @@ Numbered list, one entry per concrete next action. Each entry uses **explicit be
 
 Sequence is reproducible across runs given the same tree state; only the lean phrasing varies with LLM judgement.
 
-### (c) First-decision fork — option list
+### (b) First-decision fork — option list
 
 The next concrete sequencing question presented as concrete options, typically A/B/C, each with **pros / cons** and a **lean**:
 
@@ -95,9 +82,22 @@ The next concrete sequencing question presented as concrete options, typically A
 
 The lean is named explicitly so the operator can agree, redirect, or re-weigh.
 
-### (d) Pending decisions — list
+### (c) Pending decisions — list
 
 Numbered list of open Q&A items implied by the synthesis. None should be blocking the next concrete action; if one is, surface it as the first-decision fork instead. Each item names what it would unlock if answered.
+
+### (d) Tiered landscape — table
+
+A markdown table, one row per open item across the relevant kinds (`epic`, `milestone`, `gap`, `adr`). Required columns:
+
+| Column | Content |
+|---|---|
+| **Item** | id + short title (e.g. `G-071 — entity-body-empty rule lifecycle-blind`) |
+| **Kind** | gap / adr / epic / milestone |
+| **Cost** | rough sizing — `tiny`, `wf-patch`, `small milestone`, `medium milestone`, `epic`, `multi-epic` |
+| **What it unblocks** | one-line description of leverage on future work |
+
+Group rows by tier (Tier 1 first, Tier 5 last). Each tier is a sub-heading above its rows. The landscape comes last because it's the supporting reference data — the action-shaped blocks above lead with what to do; the table backs them with the full inventory.
 
 ## Output cache (WHITEBOARD.md)
 
