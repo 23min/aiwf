@@ -97,9 +97,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-09 | human/peter | promote | aiwf promote E-21 active -> done |
 | 2026-05-09 | human/peter | promote | aiwf promote E-21 proposed -> active |
 | 2026-05-09 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-09 | human/peter | promote | aiwf promote M-080 in_progress -> done |
-| 2026-05-09 | human/peter | promote | aiwf promote M-080/AC-7 open -> met |
 
