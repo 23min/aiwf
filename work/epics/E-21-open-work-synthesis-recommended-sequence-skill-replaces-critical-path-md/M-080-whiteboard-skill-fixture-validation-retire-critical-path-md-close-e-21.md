@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Fixture-validation test runs the skill against the current planning tree
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Output agrees with critical-path.md on structural shape, not content
