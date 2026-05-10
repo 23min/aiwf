@@ -43,7 +43,7 @@ _(no milestones)_
 - → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 6/6 met — tdd: required
 - → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 8/8 met — tdd: required
 - → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 7/7 met — tdd: required
-- → **M-0087** — Display surfaces for archived entities (status, show, render) _(in_progress)_ — ACs 7/9 met (2 open) — tdd: required
+- → **M-0087** — Display surfaces for archived entities (status, show, render) _(in_progress)_ — ACs 8/9 met (1 open) — tdd: required
 - **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(draft)_ — tdd: required
 
 ```mermaid
@@ -55,7 +55,7 @@ flowchart LR
   E_0024 --> M_0085
   M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
   E_0024 --> M_0086
-  M_0087["M-0087 (7/9)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_in_progress
+  M_0087["M-0087 (8/9)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_in_progress
   E_0024 --> M_0087
   M_0088["M-0088<br/>Configuration knob, embedded skill, and CLAUDE.md amendment"]:::ms_draft
   E_0024 --> M_0088
@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-5 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-7 met -> open |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-6 met -> open |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-5 met -> open |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-8 open -> met |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-8 --phase green -> done |
 
