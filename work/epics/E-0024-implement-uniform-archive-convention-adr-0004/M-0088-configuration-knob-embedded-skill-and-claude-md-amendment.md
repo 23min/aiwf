@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: archive-sweep-pending escalates to blocking past threshold
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: aiwf-archive SKILL.md exists with valid frontmatter and required sections
