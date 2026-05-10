@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_216 entities · 0 errors · 0 warnings_
+_217 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -104,6 +104,7 @@ flowchart LR
 | G-0090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-0079 |
 | G-0091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
+| G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
 
 ## Warnings
 
@@ -113,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote G-0058 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0093 addressed -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0096 open -> addressed |
 | 2026-05-10 | human/peter | add | aiwf add gap G-0096 'aiwf promote doesn't require resolver pointer on resolution-class transitions; back-fill blocked by terminal-status FSM' |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
-| 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0085 |
 
