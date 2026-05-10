@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: CLAUDE.md What-aiwf-commits-to gains archive-convention item
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: aiwf archive --help shows usage, flags, examples for dry-run, apply, kind
       status: open
