@@ -25,6 +25,10 @@ acs:
       title: aiwf history <id> walks across an archive rename via existing trailers
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: Loader cost is bounded; archive-empty trees pay no extra cost
+      status: open
+      tdd_phase: red
 ---
 
 # M-0084 — Loader and id resolver span active and archive directories
@@ -112,4 +116,6 @@ Intended landing zone (refine via `aiwf add ac M-0084 --title "..."` when the mi
 ### AC-4 — aiwf show <id> resolves an archived id without flag opt-in
 
 ### AC-5 — aiwf history <id> walks across an archive rename via existing trailers
+
+### AC-6 — Loader cost is bounded; archive-empty trees pay no extra cost
 
