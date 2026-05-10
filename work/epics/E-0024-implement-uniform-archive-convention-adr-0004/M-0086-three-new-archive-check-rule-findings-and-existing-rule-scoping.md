@@ -11,6 +11,10 @@ acs:
       title: archived-entity-not-terminal fires blocking with revert hint
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: terminal-entity-not-archived fires advisory per terminal in active dir
+      status: open
+      tdd_phase: red
 ---
 
 # M-0086 — Three new archive check-rule findings and existing-rule scoping
@@ -92,4 +96,6 @@ Intended landing zone:
 - (none)
 
 ### AC-1 — archived-entity-not-terminal fires blocking with revert hint
+
+### AC-2 — terminal-entity-not-archived fires advisory per terminal in active dir
 
