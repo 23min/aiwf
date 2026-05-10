@@ -40,7 +40,7 @@ _(no milestones)_
 
 ### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
-- → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 1/6 met (5 open) — tdd: required
+- → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 2/6 met (4 open) — tdd: required
 - **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(draft)_ — tdd: required
 - **M-0086** — Three new archive check-rule findings and existing-rule scoping _(draft)_ — tdd: required
 - **M-0087** — Display surfaces for archived entities (status, show, render) _(draft)_ — tdd: required
@@ -49,7 +49,7 @@ _(no milestones)_
 ```mermaid
 flowchart LR
   E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_proposed
-  M_0084["M-0084 (1/6)<br/>Loader and id resolver span active and archive directories"]:::ms_in_progress
+  M_0084["M-0084 (2/6)<br/>Loader and id resolver span active and archive directories"]:::ms_in_progress
   E_0024 --> M_0084
   M_0085["M-0085<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_draft
   E_0024 --> M_0085
@@ -125,9 +125,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-2 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-2 --phase red -> green |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-1 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-1 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-1 --phase red -> green |
-| 2026-05-10 | human/peter | add | aiwf add ac M-0084/AC-6 'Loader cost is bounded; archive-empty trees pay no extra cost' |
 
