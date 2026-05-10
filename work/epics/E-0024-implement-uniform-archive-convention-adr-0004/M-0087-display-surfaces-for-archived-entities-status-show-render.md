@@ -42,7 +42,7 @@ acs:
     - id: AC-9
       title: aiwf history walks across an aiwf-verb=archive sweep rename
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0087 — Display surfaces for archived entities (status, show, render)
