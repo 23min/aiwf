@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: aiwf archive --apply --kind gap scopes the sweep to one kind only
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: 'aiwf archive --apply produces one commit with aiwf-verb: archive trailer'
