@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: aiwf.yaml schema accepts archive.sweep_threshold int; default unset
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: archive-sweep-pending escalates to blocking past threshold
       status: open
