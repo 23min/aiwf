@@ -59,7 +59,13 @@ func WalkGoFiles(root string, excludeTests bool) ([]FileEntry, error) {
 		}
 		if info.IsDir() {
 			name := info.Name()
-			if name == "vendor" || name == "node_modules" || name == ".git" {
+			// `.claude` carries Claude Code's worktree directories
+			// (`.claude/worktrees/agent-*/`). Each worktree is a full
+			// kernel-source clone, so without this skip every policy
+			// re-flags the worktree's intentional definitions of
+			// trailer keys, --force references, etc. as production
+			// violations (G-0095).
+			if name == "vendor" || name == "node_modules" || name == ".git" || name == ".claude" {
 				return filepath.SkipDir
 			}
 			return nil
