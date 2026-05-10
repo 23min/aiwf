@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: archive-sweep-pending aggregates the count of pending sweeps
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Existing shape and health rules skip archive per ADR-0004
