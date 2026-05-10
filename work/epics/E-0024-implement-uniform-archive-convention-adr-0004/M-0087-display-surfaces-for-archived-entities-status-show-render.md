@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: aiwf status exposes no --archived flag and remains active-only
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: aiwf show resolves any id (active or archived) without flag opt-in
       status: open
