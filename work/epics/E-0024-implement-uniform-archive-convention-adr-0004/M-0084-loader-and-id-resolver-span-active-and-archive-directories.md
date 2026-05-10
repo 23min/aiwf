@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: refsResolve resolves id-form references targeting archived entities
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: aiwf show <id> resolves an archived id without flag opt-in
       status: open
