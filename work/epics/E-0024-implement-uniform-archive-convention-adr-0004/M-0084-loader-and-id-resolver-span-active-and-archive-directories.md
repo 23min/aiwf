@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: PathKind/IDFromPath recognize archive paths per ADR-0004 storage table
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: tree.Load walks <kind>/archive/ and yields archived entities
       status: open
