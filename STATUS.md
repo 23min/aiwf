@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_215 entities · 0 errors · 7 warnings · run `aiwf check` for details_
+_215 entities · 0 errors · 8 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -41,7 +41,7 @@ _(no milestones)_
 ### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
 - → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 6/6 met — tdd: required
-- → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 0/6 met (6 open) — tdd: required
+- → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 0/7 met (7 open) — tdd: required
 - → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 7/7 met — tdd: required
 - **M-0087** — Display surfaces for archived entities (status, show, render) _(draft)_ — tdd: required
 - **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(draft)_ — tdd: required
@@ -51,7 +51,7 @@ flowchart LR
   E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_proposed
   M_0084["M-0084 (6/6)<br/>Loader and id resolver span active and archive directories"]:::ms_in_progress
   E_0024 --> M_0084
-  M_0085["M-0085 (0/6)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_in_progress
+  M_0085["M-0085 (0/7)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_in_progress
   E_0024 --> M_0085
   M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
   E_0024 --> M_0086
@@ -116,15 +116,16 @@ flowchart LR
 | entity-body-empty | M-0085/AC-4 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-4 body under \`### AC-4\` is empty |
 | entity-body-empty | M-0085/AC-5 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-5 body under \`### AC-5\` is empty |
 | entity-body-empty | M-0085/AC-6 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-6 body under \`### AC-6\` is empty |
+| entity-body-empty | M-0085/AC-7 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-7 body under \`### AC-7\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-6 'Verb has no positional id argument; sweep is by status not by id' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-5 'Per-kind storage layout follows ADR-0004 storage table' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-4 'Re-running aiwf archive --apply on a clean tree is a no-op' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-3 'aiwf archive --apply produces one commit with aiwf-verb: archive trailer' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-2 'aiwf archive --apply --kind gap scopes the sweep to one kind only' |
-| 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-1 'aiwf archive (no flags) prints planned moves and exits without touching the tree' |
 

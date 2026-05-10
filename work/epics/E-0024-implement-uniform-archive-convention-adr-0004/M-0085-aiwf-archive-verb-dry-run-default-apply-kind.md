@@ -31,6 +31,10 @@ acs:
       title: Verb has no positional id argument; sweep is by status not by id
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: First --apply migration leaves aiwf check with 0 errors
+      status: open
+      tdd_phase: red
 ---
 
 # M-0085 — `aiwf archive` verb (dry-run default, `--apply`, `--kind`)
@@ -127,4 +131,6 @@ Intended landing zone:
 ### AC-5 — Per-kind storage layout follows ADR-0004 storage table
 
 ### AC-6 — Verb has no positional id argument; sweep is by status not by id
+
+### AC-7 — First --apply migration leaves aiwf check with 0 errors
 
