@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: aiwf archive --help shows usage, flags, examples for dry-run, apply, kind
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-8
       title: Kernel-tree migration test stays green under unset threshold
