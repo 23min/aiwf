@@ -34,7 +34,7 @@ acs:
     - id: AC-7
       title: First --apply migration leaves aiwf check with 0 errors
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-8
       title: Restore backticked aiwf archive --apply mentions in M-0086 SKILL.md
       status: open
