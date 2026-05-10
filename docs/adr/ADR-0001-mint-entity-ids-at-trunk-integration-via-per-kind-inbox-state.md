@@ -7,7 +7,7 @@ status: proposed
 
 The kernel's existing principle holds that ids are stable from creation: every `aiwf add` allocates the next id; `aiwf reallocate` resolves the rare collision after a merge. This works for one human on one branch.
 
-It breaks under parallel branches. Two branches both allocate the next id (e.g., G-47), collide at merge, and require human intervention. The collision domain spans every monotonic-id kind: gaps, milestones, ADRs, decisions, contracts, epics. Failure is silent until merge — `aiwf check` on either branch passes; trunk only learns of the collision when both pushes contend.
+It breaks under parallel branches. Two branches both allocate the next id (e.g., G-0047), collide at merge, and require human intervention. The collision domain spans every monotonic-id kind: gaps, milestones, ADRs, decisions, contracts, epics. Failure is silent until merge — `aiwf check` on either branch passes; trunk only learns of the collision when both pushes contend.
 
 This is not a future "team scale" concern; it is present today:
 

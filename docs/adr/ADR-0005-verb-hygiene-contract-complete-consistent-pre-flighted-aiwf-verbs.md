@@ -10,13 +10,13 @@ status: proposed
 
 aiwf verbs mutate the planning tree: they edit frontmatter, edit body sections, rename slugs, move directories, regenerate ROADMAP.md and STATUS.md, and emit one git commit per invocation. The kernel's existing principles cover *what* verbs do (one mutation, one commit; trailers carry provenance; validation is a separate axis) but not *how thoroughly* they preserve operator state across the mutation.
 
-Three open gaps surfaced during E-21 milestone planning on 2026-05-08, each instance of a different shape of the same underlying issue:
+Three open gaps surfaced during E-0021 milestone planning on 2026-05-08, each instance of a different shape of the same underlying issue:
 
-1. **G-081** — `aiwf rename E-NN <new-slug>` succeeds even when the rename creates an `ids-unique/trunk-collision` finding that the next `aiwf check` reports. The verb has access to the same checker rule it would later trigger, but does not consult it pre-mutation. Result: the operator is left with a tree that only the next check reveals as broken, and must revert via destructive operations like `git reset --hard`.
+1. **G-0081** — `aiwf rename E-NN <new-slug>` succeeds even when the rename creates an `ids-unique/trunk-collision` finding that the next `aiwf check` reports. The verb has access to the same checker rule it would later trigger, but does not consult it pre-mutation. Result: the operator is left with a tree that only the next check reveals as broken, and must revert via destructive operations like `git reset --hard`.
 
-2. **G-082** — `aiwfx-plan-milestones` (and `aiwfx-plan-epic` when used standalone) close their planning conversations and point the operator at the next step without recommending the merge to main that the workflow logically requires. The skill completes its own scope but does not surface the workflow follow-up — leaving settled planning data hostage on a long-lived branch.
+2. **G-0082** — `aiwfx-plan-milestones` (and `aiwfx-plan-epic` when used standalone) close their planning conversations and point the operator at the next step without recommending the merge to main that the workflow logically requires. The skill completes its own scope but does not surface the workflow follow-up — leaving settled planning data hostage on a long-lived branch.
 
-3. **G-083** — `aiwf retitle` updates an entity's frontmatter `title:` field but leaves the body's H1 stale. The frontmatter and body H1 are both surfaces that render the entity's title; mutating one without the other produces a silent divergence the next reader has to manually reconcile via a separate `aiwf edit-body` commit.
+3. **G-0083** — `aiwf retitle` updates an entity's frontmatter `title:` field but leaves the body's H1 stale. The frontmatter and body H1 are both surfaces that render the entity's title; mutating one without the other produces a silent divergence the next reader has to manually reconcile via a separate `aiwf edit-body` commit.
 
 Each gap is fixable in isolation. But the pattern across them is missing a name and a contract: **what does an aiwf verb guarantee about the consistency of operator state, beyond the narrow scope of its named mutation?** Today's verbs answer this implicitly, by what they happen to do, with no checked promise. New verbs land without the contract being applied; verb design takes the path of least resistance.
 
@@ -79,9 +79,9 @@ In all three cases, the operator can override deliberately via the documented `-
 
 The three open gaps each implement one obligation of the contract:
 
-- **G-081** implements obligation 1 (pre-flight) for `aiwf rename` against `ids-unique/trunk-collision`.
-- **G-083** implements obligation 2 (atomic completeness) for `aiwf retitle` against the frontmatter ↔ body H1 peer.
-- **G-082** implements obligation 3 (workflow follow-up) for `aiwfx-plan-epic` and `aiwfx-plan-milestones` against the merge-to-main step.
+- **G-0081** implements obligation 1 (pre-flight) for `aiwf rename` against `ids-unique/trunk-collision`.
+- **G-0083** implements obligation 2 (atomic completeness) for `aiwf retitle` against the frontmatter ↔ body H1 peer.
+- **G-0082** implements obligation 3 (workflow follow-up) for `aiwfx-plan-epic` and `aiwfx-plan-milestones` against the merge-to-main step.
 
 Future verb gaps, when filed, cite this ADR by id. The audit-of-existing-verbs work is itself a follow-up — likely an epic or a small audit milestone — that catalogues the contract's compliance status across the verb surface.
 
@@ -89,10 +89,10 @@ A complementary policy test (`internal/policies/`) MAY be added to enforce part 
 
 ## References
 
-- G-081 — pre-flight obligation, instance.
-- G-082 — workflow-follow-up obligation, instance (skill-layer).
-- G-083 — atomic-completeness obligation, instance.
-- G-084 — catalogue / umbrella of the asymmetries this ADR's contract addresses (filed alongside this ADR as the meta-gap; placeholder `G-NNN` resolved to G-084 in a 2026-05-09 editorial pass).
+- G-0081 — pre-flight obligation, instance.
+- G-0082 — workflow-follow-up obligation, instance (skill-layer).
+- G-0083 — atomic-completeness obligation, instance.
+- G-0084 — catalogue / umbrella of the asymmetries this ADR's contract addresses (filed alongside this ADR as the meta-gap; placeholder `G-NNN` resolved to G-0084 in a 2026-05-09 editorial pass).
 - CLAUDE.md *Engineering principles* §"Errors are findings, not parse failures" — informs obligation 1's opt-out structure.
 - CLAUDE.md *Engineering principles* §"Framework's correctness must not depend on the LLM's behavior" — informs obligation 3's mandate that workflow prompts live as a *strong* recommendation, with the underlying compliance moving toward kernel-level enforcement when usage demonstrates the prompt is being skipped.
 - CLAUDE.md *Engineering principles* §"Kernel functionality must be AI-discoverable" — informs the requirement that opt-out flags are documented, named, and surfaced via `--help`.
