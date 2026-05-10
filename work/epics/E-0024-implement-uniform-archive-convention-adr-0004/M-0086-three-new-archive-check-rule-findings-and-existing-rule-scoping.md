@@ -15,6 +15,10 @@ acs:
       title: terminal-entity-not-archived fires advisory per terminal in active dir
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: archive-sweep-pending aggregates the count of pending sweeps
+      status: open
+      tdd_phase: red
 ---
 
 # M-0086 — Three new archive check-rule findings and existing-rule scoping
@@ -98,4 +102,6 @@ Intended landing zone:
 ### AC-1 — archived-entity-not-terminal fires blocking with revert hint
 
 ### AC-2 — terminal-entity-not-archived fires advisory per terminal in active dir
+
+### AC-3 — archive-sweep-pending aggregates the count of pending sweeps
 
