@@ -91,9 +91,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote E-0023 active -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote E-0023 proposed -> active |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0093 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote ADR-0008 proposed -> accepted |
 | 2026-05-10 | human/peter | wrap | feat(aiwf): drift-check rule, normative-doc amendments, skill content refresh (M-0083) |
-| 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 
