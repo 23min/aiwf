@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: archive-sweep-pending aggregates the count of pending sweeps
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Existing shape and health rules skip archive per ADR-0004
       status: open
