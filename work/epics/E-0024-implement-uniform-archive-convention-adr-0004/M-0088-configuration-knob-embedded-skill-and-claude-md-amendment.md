@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: aiwf-archive SKILL.md exists with valid frontmatter and required sections
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: skill_coverage allowlist drops aiwf-archive entry
       status: open
