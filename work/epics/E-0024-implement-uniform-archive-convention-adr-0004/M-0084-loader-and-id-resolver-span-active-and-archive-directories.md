@@ -17,6 +17,10 @@ acs:
       title: refsResolve resolves id-form references targeting archived entities
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: aiwf show <id> resolves an archived id without flag opt-in
+      status: open
+      tdd_phase: red
 ---
 
 # M-0084 — Loader and id resolver span active and archive directories
@@ -100,4 +104,6 @@ Intended landing zone (refine via `aiwf add ac M-0084 --title "..."` when the mi
 ### AC-2 — tree.Load walks <kind>/archive/ and yields archived entities
 
 ### AC-3 — refsResolve resolves id-form references targeting archived entities
+
+### AC-4 — aiwf show <id> resolves an archived id without flag opt-in
 
