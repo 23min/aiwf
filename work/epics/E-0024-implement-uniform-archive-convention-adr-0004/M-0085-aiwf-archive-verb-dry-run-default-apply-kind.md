@@ -4,7 +4,7 @@ title: aiwf archive verb (dry-run default, --apply, --kind)
 status: draft
 parent: E-0024
 depends_on:
-    - M-0084
+    - M-0086
 tdd: required
 ---
 
