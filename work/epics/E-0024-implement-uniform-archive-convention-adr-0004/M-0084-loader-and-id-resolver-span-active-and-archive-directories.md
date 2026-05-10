@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: Loader cost is bounded; archive-empty trees pay no extra cost
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0084 — Loader and id resolver span active and archive directories
