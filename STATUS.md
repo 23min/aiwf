@@ -80,7 +80,6 @@ flowchart LR
 |----|-------|---------------|
 | G-0022 | Provenance model extension surface |  |
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
-| G-0056 | aiwf render output (site/) is not gitignored; pollutes consumer working tree | E-0014 |
 | G-0057 | Stray aiwf binary in repo root from local builds is not gitignored |  |
 | G-0058 | AC body sections ship empty; no chokepoint enforces prose intent | E-0016 |
 | G-0059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-0069 |
@@ -120,9 +119,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add gap G-0095 'internal/policies/ walker doesn't exclude .claude/ — false-positive flags from sibling worktree .go files' |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0088 |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0087 |
-| 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0086 |
 

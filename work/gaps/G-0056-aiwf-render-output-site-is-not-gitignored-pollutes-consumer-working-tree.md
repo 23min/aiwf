@@ -1,8 +1,10 @@
 ---
 id: G-0056
 title: aiwf render output (site/) is not gitignored; pollutes consumer working tree
-status: open
+status: addressed
 discovered_in: E-0014
+addressed_by_commit:
+    - 6ec4377
 ---
 
 ## What's left
