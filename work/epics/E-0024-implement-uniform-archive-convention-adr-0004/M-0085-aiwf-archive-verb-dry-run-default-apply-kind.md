@@ -19,6 +19,10 @@ acs:
       title: 'aiwf archive --apply produces one commit with aiwf-verb: archive trailer'
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: Re-running aiwf archive --apply on a clean tree is a no-op
+      status: open
+      tdd_phase: red
 ---
 
 # M-0085 — `aiwf archive` verb (dry-run default, `--apply`, `--kind`)
@@ -109,4 +113,6 @@ Intended landing zone:
 ### AC-2 — aiwf archive --apply --kind gap scopes the sweep to one kind only
 
 ### AC-3 — aiwf archive --apply produces one commit with aiwf-verb: archive trailer
+
+### AC-4 — Re-running aiwf archive --apply on a clean tree is a no-op
 
