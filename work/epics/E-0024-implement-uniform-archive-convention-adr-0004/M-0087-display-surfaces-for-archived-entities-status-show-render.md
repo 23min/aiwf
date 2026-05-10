@@ -35,6 +35,10 @@ acs:
       title: aiwf render emits per-kind all.html showing the full active+archived set
       status: open
       tdd_phase: red
+    - id: AC-8
+      title: aiwf render emits per-entity pages for archived entities so deep links resolve
+      status: open
+      tdd_phase: red
 ---
 
 # M-0087 — Display surfaces for archived entities (status, show, render)
@@ -128,4 +132,6 @@ Intended landing zone:
 ### AC-6 — aiwf render index page links active-default and full-set per-kind pages
 
 ### AC-7 — aiwf render emits per-kind all.html showing the full active+archived set
+
+### AC-8 — aiwf render emits per-entity pages for archived entities so deep links resolve
 

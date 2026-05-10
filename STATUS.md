@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_215 entities · 0 errors · 16 warnings · run `aiwf check` for details_
+_215 entities · 0 errors · 17 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -43,7 +43,7 @@ _(no milestones)_
 - → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 6/6 met — tdd: required
 - → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 8/8 met — tdd: required
 - → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 7/7 met — tdd: required
-- → **M-0087** — Display surfaces for archived entities (status, show, render) _(in_progress)_ — ACs 0/7 met (7 open) — tdd: required
+- → **M-0087** — Display surfaces for archived entities (status, show, render) _(in_progress)_ — ACs 0/8 met (8 open) — tdd: required
 - **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(draft)_ — tdd: required
 
 ```mermaid
@@ -55,7 +55,7 @@ flowchart LR
   E_0024 --> M_0085
   M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
   E_0024 --> M_0086
-  M_0087["M-0087 (0/7)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_in_progress
+  M_0087["M-0087 (0/8)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_in_progress
   E_0024 --> M_0087
   M_0088["M-0088<br/>Configuration knob, embedded skill, and CLAUDE.md amendment"]:::ms_draft
   E_0024 --> M_0088
@@ -125,15 +125,16 @@ flowchart LR
 | entity-body-empty | M-0087/AC-5 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-5 body under \`### AC-5\` is empty |
 | entity-body-empty | M-0087/AC-6 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-6 body under \`### AC-6\` is empty |
 | entity-body-empty | M-0087/AC-7 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-7 body under \`### AC-7\` is empty |
+| entity-body-empty | M-0087/AC-8 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-8 body under \`### AC-8\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-7 'aiwf render emits per-kind all.html showing the full active+archived set' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-6 'aiwf render index page links active-default and full-set per-kind pages' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-5 'aiwf show renders a visible archived-state indicator in text and JSON' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-4 'aiwf show resolves any id (active or archived) without flag opt-in' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-3 'aiwf status exposes no --archived flag and remains active-only' |
-| 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-2 'aiwf status hides sweep-pending line when count is zero' |
 
