@@ -117,9 +117,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add gap G-0096 'aiwf promote doesn't require resolver pointer on resolution-class transitions; back-fill blocked by terminal-status FSM' |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0085 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0086 |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0095 open -> addressed |
-| 2026-05-10 | human/peter | promote | aiwf promote G-0086 open -> addressed |
 

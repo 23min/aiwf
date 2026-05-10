@@ -76,13 +76,38 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	if !force {
+	// Back-fill carve-out (G-0096): if the requested transition is to
+	// the entity's current status, that status is a resolution-class
+	// terminal (gap addressed / ADR superseded), the entity's resolver
+	// field is currently empty, and a resolver flag is provided, treat
+	// the call as a metadata-only update — write the resolver, leave
+	// status alone, skip ValidateTransition (which would reject the
+	// same-status move). M-059's design assumed resolver pointers
+	// always rode the status-change commit; back-fill cleans up
+	// pre-enforcement strays without needing --force.
+	isBackfill := e.Status == newStatus &&
+		isResolutionClassStatus(e.Kind, newStatus) &&
+		needsResolverBackfill(e, opts)
+	if !force && !isBackfill {
 		if err := entity.ValidateTransition(e.Kind, e.Status, newStatus); err != nil {
 			return nil, err
 		}
 	}
 	if err := validateResolverFlags(e.Kind, newStatus, opts); err != nil {
 		return nil, err
+	}
+	// Require resolver pointer on resolution-class transitions
+	// (G-0096): without this, gaps and ADRs can land in the
+	// `addressed`/`superseded` terminal state with no resolver and no
+	// way back without --force. The check rules
+	// gap-resolved-has-resolver and adr-supersession-mutual surface the
+	// problem post-hoc but they are warnings, not errors, so the
+	// pre-push hook does not block. Verb-time enforcement is the
+	// chokepoint. --force bypasses for sovereign overrides.
+	if !force {
+		if err := requireResolverForResolutionClass(e.Kind, newStatus, opts); err != nil {
+			return nil, err
+		}
 	}
 
 	modified := *e
@@ -225,6 +250,62 @@ func validateResolverFlags(k entity.Kind, newStatus string, opts PromoteOptions)
 		}
 		if newStatus != entity.StatusSuperseded {
 			return fmt.Errorf("--superseded-by is only valid when promoting to %q; got %q", entity.StatusSuperseded, newStatus)
+		}
+	}
+	return nil
+}
+
+// isResolutionClassStatus reports whether (kind, status) is a
+// "resolution-class" terminal — one whose semantics require a resolver
+// pointer (gap.addressed_by[_commit], adr.superseded_by) per M-059.
+// Today there are exactly two such pairs: (gap, addressed) and
+// (adr, superseded). G-0096 introduces verb-time enforcement that
+// resolver pointers ride these transitions; the same set drives the
+// same-status back-fill carve-out.
+func isResolutionClassStatus(k entity.Kind, status string) bool {
+	return (k == entity.KindGap && status == entity.StatusAddressed) ||
+		(k == entity.KindADR && status == entity.StatusSuperseded)
+}
+
+// needsResolverBackfill reports whether e is in a resolution-class
+// terminal status with an empty resolver field AND opts provides a
+// resolver flag of the matching kind. The empty-current-resolver
+// condition is what keeps the carve-out from re-purposing this verb
+// path into a generic "rewrite the resolver" surface — once a resolver
+// is set, further changes need a deliberate verb (or --force).
+func needsResolverBackfill(e *entity.Entity, opts PromoteOptions) bool {
+	switch e.Kind {
+	case entity.KindGap:
+		currentEmpty := len(e.AddressedBy) == 0 && len(e.AddressedByCommit) == 0
+		incoming := len(opts.AddressedBy) > 0 || len(opts.AddressedByCommit) > 0
+		return currentEmpty && incoming
+	case entity.KindADR:
+		return e.SupersededBy == "" && opts.SupersededBy != ""
+	default:
+		// Other kinds have no resolver fields; back-fill is not
+		// applicable. The caller's isResolutionClassStatus check
+		// already returned false for these kinds, so this branch is
+		// unreached in practice — kept for the design-intent check.
+		return false
+	}
+}
+
+// requireResolverForResolutionClass returns an error when the target
+// (kind, newStatus) is a resolution-class terminal but opts carries no
+// matching resolver flag. M-059 made the flags possible; G-0096 makes
+// them mandatory at the verb chokepoint so the gap-resolved-has-resolver
+// and adr-supersession-mutual warnings cannot be reached via the verb.
+// --force bypasses (sovereign override path); the caller checks force
+// before invoking this.
+func requireResolverForResolutionClass(k entity.Kind, newStatus string, opts PromoteOptions) error {
+	switch {
+	case k == entity.KindGap && newStatus == entity.StatusAddressed:
+		if len(opts.AddressedBy) == 0 && len(opts.AddressedByCommit) == 0 {
+			return fmt.Errorf("promoting a gap to %q requires --by <entity-id> or --by-commit <sha> so the gap-resolved-has-resolver rule is satisfied; pass --force to override", entity.StatusAddressed)
+		}
+	case k == entity.KindADR && newStatus == entity.StatusSuperseded:
+		if opts.SupersededBy == "" {
+			return fmt.Errorf("promoting an ADR to %q requires --superseded-by <ADR-id> so the adr-supersession-mutual rule is satisfied; pass --force to override", entity.StatusSuperseded)
 		}
 	}
 	return nil
