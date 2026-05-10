@@ -31,6 +31,10 @@ acs:
       title: 'refsResolve: active-to-archive refs resolve, archive-side not linted'
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: 'Recovery: rewidth --apply runs clean on narrow archive without --skip-checks'
+      status: open
+      tdd_phase: red
 ---
 
 # M-0086 — Three new archive check-rule findings and existing-rule scoping
@@ -122,4 +126,6 @@ Intended landing zone:
 ### AC-5 — Tree-integrity rules traverse archive in full
 
 ### AC-6 — refsResolve: active-to-archive refs resolve, archive-side not linted
+
+### AC-7 — Recovery: rewidth --apply runs clean on narrow archive without --skip-checks
 
