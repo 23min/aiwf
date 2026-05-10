@@ -23,6 +23,10 @@ acs:
       title: Existing shape and health rules skip archive per ADR-0004
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Tree-integrity rules traverse archive in full
+      status: open
+      tdd_phase: red
 ---
 
 # M-0086 — Three new archive check-rule findings and existing-rule scoping
@@ -110,4 +114,6 @@ Intended landing zone:
 ### AC-3 — archive-sweep-pending aggregates the count of pending sweeps
 
 ### AC-4 — Existing shape and health rules skip archive per ADR-0004
+
+### AC-5 — Tree-integrity rules traverse archive in full
 
