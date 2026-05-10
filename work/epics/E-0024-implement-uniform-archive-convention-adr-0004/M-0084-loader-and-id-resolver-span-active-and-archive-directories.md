@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Loader cost is bounded; archive-empty trees pay no extra cost
-      status: open
+      status: met
       tdd_phase: done
 ---
 
