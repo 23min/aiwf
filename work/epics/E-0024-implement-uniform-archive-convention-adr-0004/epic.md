@@ -76,15 +76,15 @@ The first `aiwf archive --apply` invocation in this repo doubles as the historic
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Merge edge case: branch A archives `G-0018` (rename to `archive/`) while branch B edits the same file in place. | low | Standard kernel pattern of "merge, run check, fix findings" handles rename+modify conflicts mechanically. Document in the verb's skill body. |
-| Existing shape/health rules silently start ignoring archived entities — a regression-class change for any rule that should traverse archive (e.g. `ids-unique`). | medium | M-3 explicitly enumerates which rules skip and which traverse; tests cover both behaviors per rule. |
+| Existing shape/health rules silently start ignoring archived entities — a regression-class change for any rule that should traverse archive (e.g. `ids-unique`). | medium | M-0086 explicitly enumerates which rules skip and which traverse; tests cover both behaviors per rule. |
 | First `aiwf archive --apply` in this repo (the historical migration) produces a large commit that's hard to review. | low | Dry-run output is the review surface; the commit body lists per-kind counts and affected ids. Operators can scope via `--kind` to break the migration into smaller commits if desired. |
 
 ## Milestones
 
 - [M-0084](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md) — Loader and id resolver span active+archive (foundational; nothing else lands cleanly without it) · depends on: —
-- [M-0085](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md) — `aiwf archive` verb (dry-run default, `--apply`, `--kind`) with single-commit + trailer-keys exception · depends on: M-0084
-- [M-0086](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0086-three-new-archive-check-rule-findings-and-existing-rule-scoping.md) — Three new archive check-rule findings + existing shape/health rules skip `archive/` · depends on: M-0085
-- [M-0087](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md) — Display surfaces: `aiwf status` sweep-pending line, `aiwf show` archived indicator, `aiwf render` per-kind index segregation · depends on: M-0086
+- [M-0086](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0086-three-new-archive-check-rule-findings-and-existing-rule-scoping.md) — Three new archive check-rule findings + existing shape/health rules skip `archive/` (re-sequenced ahead of M-0085 — discovery in M-0084: shape rules fire on archive content the moment the loader picks it up) · depends on: M-0084
+- [M-0085](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md) — `aiwf archive` verb (dry-run default, `--apply`, `--kind`) with single-commit + trailer-keys exception · depends on: M-0086
+- [M-0087](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md) — Display surfaces: `aiwf status` sweep-pending line, `aiwf show` archived indicator, `aiwf render` per-kind index segregation · depends on: M-0085
 - [M-0088](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md) — Configuration (`archive.sweep_threshold` in `aiwf.yaml`) + embedded `aiwf-archive` skill + CLAUDE.md amendment · depends on: M-0087
 
 ## ADRs produced

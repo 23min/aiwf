@@ -116,9 +116,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0085 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0086 |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0095 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0086 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0057 open -> addressed |
-| 2026-05-10 | human/peter | promote | aiwf promote G-0056 open -> addressed |
 
