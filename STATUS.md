@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_215 entities · 0 errors · 1 warnings · run `aiwf check` for details_
+_214 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -40,7 +40,7 @@ _(no milestones)_
 
 ### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
-- **M-0084** — Loader and id resolver span active and archive directories _(draft)_ — tdd: required
+- → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — tdd: required
 - **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(draft)_ — tdd: required
 - **M-0086** — Three new archive check-rule findings and existing-rule scoping _(draft)_ — tdd: required
 - **M-0087** — Display surfaces for archived entities (status, show, render) _(draft)_ — tdd: required
@@ -49,7 +49,7 @@ _(no milestones)_
 ```mermaid
 flowchart LR
   E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_proposed
-  M_0084["M-0084<br/>Loader and id resolver span active and archive directories"]:::ms_draft
+  M_0084["M-0084<br/>Loader and id resolver span active and archive directories"]:::ms_in_progress
   E_0024 --> M_0084
   M_0085["M-0085<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_draft
   E_0024 --> M_0085
@@ -80,6 +80,8 @@ flowchart LR
 |----|-------|---------------|
 | G-0022 | Provenance model extension surface |  |
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
+| G-0056 | aiwf render output (site/) is not gitignored; pollutes consumer working tree | E-0014 |
+| G-0057 | Stray aiwf binary in repo root from local builds is not gitignored |  |
 | G-0058 | AC body sections ship empty; no chokepoint enforces prose intent | E-0016 |
 | G-0059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
@@ -100,6 +102,7 @@ flowchart LR
 | G-0082 | Planning closure should default-merge to main before implementation begins | E-0021 |
 | G-0083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-0021 |
 | G-0084 | Verb hygiene contract is undocumented; G-0081/G-0082/G-0083 lack umbrella | E-0021 |
+| G-0086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-0061/G-0085, different file | M-0072 |
 | G-0087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-0074 |
 | G-0088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-0079 did | M-0079 |
 | G-0090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-0079 |
@@ -116,9 +119,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0085 |
-| 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0086 |
-| 2026-05-10 | human/peter | promote | aiwf promote G-0095 open -> addressed |
-| 2026-05-10 | human/peter | promote | aiwf promote G-0086 open -> addressed |
-| 2026-05-10 | human/peter | promote | aiwf promote G-0057 open -> addressed |
+| 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
+| 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
+| 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0088 |
+| 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0087 |
+| 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0086 |
 

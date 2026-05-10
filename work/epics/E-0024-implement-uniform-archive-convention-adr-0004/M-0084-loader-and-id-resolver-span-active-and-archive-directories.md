@@ -1,7 +1,7 @@
 ---
 id: M-0084
 title: Loader and id resolver span active and archive directories
-status: draft
+status: in_progress
 parent: E-0024
 tdd: required
 ---
