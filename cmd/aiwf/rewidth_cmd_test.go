@@ -50,19 +50,24 @@ func seedNarrowFixture(t *testing.T, root string) {
 		}
 	}
 
-	// Epic dir narrow + one milestone narrow inside.
+	// Epic dir narrow + one milestone narrow inside. Narrow widths
+	// here are within the per-kind grammar floor (E-\d{2,}, M-\d{3,},
+	// etc.) — the typical "valid narrow legacy" shape a real consumer
+	// would carry pre-migration. Below-floor edge cases (M-77, G-9)
+	// live in internal/verb/rewidth_test.go's unit tests for the
+	// padToCanonical helper.
 	mustWrite("work/epics/E-22-mixed-widths/epic.md",
-		"---\nid: E-22\ntitle: Mixed widths\nstatus: active\n---\n## Goal\n\nDeals with M-77 and refs E-22 itself.\n")
-	mustWrite("work/epics/E-22-mixed-widths/M-77-some-milestone.md",
-		"---\nid: M-77\ntitle: Some milestone\nstatus: in_progress\nparent: E-22\n---\n## Goal\n\nLink: [parent epic](work/epics/E-22-mixed-widths/epic.md). Composite ref: M-77/AC-1.\n")
+		"---\nid: E-22\ntitle: Mixed widths\nstatus: active\n---\n## Goal\n\nDeals with M-077 and refs E-22 itself.\n")
+	mustWrite("work/epics/E-22-mixed-widths/M-077-some-milestone.md",
+		"---\nid: M-077\ntitle: Some milestone\nstatus: in_progress\nparent: E-22\n---\n## Goal\n\nLink: [parent epic](work/epics/E-22-mixed-widths/epic.md). Composite ref: M-077/AC-1.\n")
 
 	// Gap.
-	mustWrite("work/gaps/G-9-some-gap.md",
-		"---\nid: G-9\ntitle: Some gap\nstatus: open\n---\n## What's missing\n\nReferences E-22 and M-77.\n")
+	mustWrite("work/gaps/G-099-some-gap.md",
+		"---\nid: G-099\ntitle: Some gap\nstatus: open\n---\n## What's missing\n\nReferences E-22 and M-077.\n")
 
 	// Decision.
-	mustWrite("work/decisions/D-3-some-decision.md",
-		"---\nid: D-3\ntitle: Some decision\nstatus: proposed\n---\n## Question\n\nNo refs.\n## Decision\n\nNo refs.\n## Reasoning\n\nNo refs.\n")
+	mustWrite("work/decisions/D-003-some-decision.md",
+		"---\nid: D-003\ntitle: Some decision\nstatus: proposed\n---\n## Question\n\nNo refs.\n## Decision\n\nNo refs.\n## Reasoning\n\nNo refs.\n")
 }
 
 // commitFixture stages and commits whatever's currently in the
@@ -234,7 +239,7 @@ func TestRewidth_PostApply_BodyContentRewritten(t *testing.T) {
 	}
 
 	// The milestone file at the post-move path should have its prose
-	// rewritten — composite ref `M-77/AC-1` → `M-0077/AC-1`, link
+	// rewritten — composite ref `M-077/AC-1` → `M-0077/AC-1`, link
 	// `(work/epics/E-22-mixed-widths/epic.md)` → `(work/epics/E-0022-mixed-widths/epic.md)`.
 	mPath := filepath.Join(root, "work", "epics", "E-0022-mixed-widths", "M-0077-some-milestone.md")
 	body, err := os.ReadFile(mPath)
@@ -242,8 +247,8 @@ func TestRewidth_PostApply_BodyContentRewritten(t *testing.T) {
 		t.Fatalf("read milestone file post-apply: %v", err)
 	}
 	got := string(body)
-	if strings.Contains(got, "M-77/AC-1") {
-		t.Errorf("composite-id `M-77/AC-1` survived rewrite in %s:\n%s", mPath, got)
+	if strings.Contains(got, "M-077/AC-1") {
+		t.Errorf("composite-id `M-077/AC-1` survived rewrite in %s:\n%s", mPath, got)
 	}
 	if !strings.Contains(got, "M-0077/AC-1") {
 		t.Errorf("composite-id `M-0077/AC-1` not present in %s after rewrite:\n%s", mPath, got)
@@ -378,5 +383,134 @@ func TestRewidth_ArchivePreservedByteIdentical(t *testing.T) {
 	}
 	if string(got) != archiveBody {
 		t.Errorf("archive entry diverged byte-for-byte from pre-apply:\n  before: %q\n  after:  %q", archiveBody, string(got))
+	}
+}
+
+// rewidth_cmd_test.go preflight cases — fix/rewidth-preflight-checks
+// patch. The verb's --apply path runs aiwf check by default and warns
+// on missing expected kind directories before producing the commit.
+// --skip-checks bypasses both gates for power-users.
+
+// TestRewidth_PreflightApply_BailsOnAiwfCheckError seeds a narrow
+// fixture that triggers an id-path-consistent error (frontmatter id
+// disagrees with the on-disk path), then invokes `rewidth --apply`.
+// The preflight catches the error, refuses the migration, exits with
+// exitFindings, and produces no commit.
+func TestRewidth_PreflightApply_BailsOnAiwfCheckError(t *testing.T) {
+	root := setupCLITestRepo(t)
+	seedNarrowFixture(t, root)
+
+	// Inject a finding: the gap's frontmatter says id: G-099 but
+	// we rename the file so the path encodes G-999.
+	// id-path-consistent fires error-severity. Other findings may
+	// also fire (refs targeting G-099 from other entities); the
+	// preflight only needs at least one error to bail.
+	gap := filepath.Join(root, "work", "gaps", "G-099-some-gap.md")
+	gapMoved := filepath.Join(root, "work", "gaps", "G-999-some-gap.md")
+	if err := os.Rename(gap, gapMoved); err != nil {
+		t.Fatalf("rename gap to inject id/path mismatch: %v", err)
+	}
+	commitFixture(t, root, "seed narrow fixture with id/path mismatch")
+
+	before := rewidthCommitCount(t, root)
+	rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"})
+	if rc != exitFindings {
+		t.Errorf("rewidth --apply on broken tree rc = %d, want exitFindings (%d)", rc, exitFindings)
+	}
+	after := rewidthCommitCount(t, root)
+	if delta := after - before; delta != 0 {
+		t.Errorf("preflight bail produced %d commit(s), want 0", delta)
+	}
+}
+
+// TestRewidth_PreflightApply_SkipChecksBypasses replays the broken-tree
+// fixture from the test above, but adds --skip-checks. The verb runs
+// to completion and produces exactly one commit. Power-user opt-out.
+func TestRewidth_PreflightApply_SkipChecksBypasses(t *testing.T) {
+	root := setupCLITestRepo(t)
+	seedNarrowFixture(t, root)
+	gap := filepath.Join(root, "work", "gaps", "G-099-some-gap.md")
+	gapMoved := filepath.Join(root, "work", "gaps", "G-999-some-gap.md")
+	if err := os.Rename(gap, gapMoved); err != nil {
+		t.Fatalf("rename gap to inject id/path mismatch: %v", err)
+	}
+	commitFixture(t, root, "seed narrow fixture with id/path mismatch")
+
+	before := rewidthCommitCount(t, root)
+	rc := run([]string{"rewidth", "--apply", "--skip-checks", "--root", root, "--actor", "human/test"})
+	if rc != exitOK {
+		t.Fatalf("rewidth --apply --skip-checks rc = %d, want exitOK", rc)
+	}
+	after := rewidthCommitCount(t, root)
+	if delta := after - before; delta != 1 {
+		t.Errorf("--skip-checks should still produce exactly one commit, got delta=%d", delta)
+	}
+}
+
+// TestRewidth_PreflightApply_LayoutWarningButRuns asserts that a
+// missing kind directory (e.g. work/contracts) emits an advisory
+// stderr warning but does not block --apply. The seedNarrowFixture
+// already omits work/contracts and docs/adr; this confirms the verb
+// continues past those advisory warnings.
+func TestRewidth_PreflightApply_LayoutWarningButRuns(t *testing.T) {
+	root := setupCLITestRepo(t)
+	seedNarrowFixture(t, root)
+	commitFixture(t, root, "seed narrow fixture (no contracts/, no docs/adr/)")
+
+	before := rewidthCommitCount(t, root)
+	rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"})
+	if rc != exitOK {
+		t.Fatalf("rewidth --apply with missing optional dirs rc = %d, want exitOK", rc)
+	}
+	after := rewidthCommitCount(t, root)
+	if delta := after - before; delta != 1 {
+		t.Errorf("apply with layout warnings should produce exactly one commit, got delta=%d", delta)
+	}
+}
+
+// TestRewidth_PreflightApply_AllExpectedDirsMissingBails covers the
+// "operator typed `aiwf rewidth --apply` in a non-aiwf directory"
+// case. None of work/epics, work/gaps, work/decisions, work/contracts,
+// docs/adr exist; the preflight bails with a usage error rather than
+// running an empty migration or flooding stderr with check errors.
+func TestRewidth_PreflightApply_AllExpectedDirsMissingBails(t *testing.T) {
+	root := setupCLITestRepo(t)
+	// No fixture seeded — none of the expected kind directories exist.
+	if err := osExec(t, root, "git", "commit", "--allow-empty", "-q", "-m", "empty repo"); err != nil {
+		t.Fatalf("git commit --allow-empty: %v", err)
+	}
+
+	before := rewidthCommitCount(t, root)
+	rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"})
+	if rc != exitUsage {
+		t.Errorf("rewidth --apply on non-aiwf repo rc = %d, want exitUsage (%d)", rc, exitUsage)
+	}
+	after := rewidthCommitCount(t, root)
+	if delta := after - before; delta != 0 {
+		t.Errorf("non-aiwf-dir preflight produced %d commit(s), want 0", delta)
+	}
+}
+
+// TestRewidth_PreflightDryRun_NoGate confirms the preflight is gated
+// on --apply. Dry-run is a read-only preview; even on a tree with
+// aiwf-check errors it produces the plan output and exits OK.
+func TestRewidth_PreflightDryRun_NoGate(t *testing.T) {
+	root := setupCLITestRepo(t)
+	seedNarrowFixture(t, root)
+	gap := filepath.Join(root, "work", "gaps", "G-099-some-gap.md")
+	gapMoved := filepath.Join(root, "work", "gaps", "G-999-some-gap.md")
+	if err := os.Rename(gap, gapMoved); err != nil {
+		t.Fatalf("rename gap to inject id/path mismatch: %v", err)
+	}
+	commitFixture(t, root, "seed narrow fixture with id/path mismatch")
+
+	before := rewidthCommitCount(t, root)
+	rc := run([]string{"rewidth", "--root", root, "--actor", "human/test"})
+	if rc != exitOK {
+		t.Errorf("dry-run rc = %d on broken tree, want exitOK (preflight is --apply-only)", rc)
+	}
+	after := rewidthCommitCount(t, root)
+	if delta := after - before; delta != 0 {
+		t.Errorf("dry-run produced %d commit(s), want 0", delta)
 	}
 }

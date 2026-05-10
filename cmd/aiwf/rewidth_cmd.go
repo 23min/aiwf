@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/ai-workflow-v2/internal/check"
 	"github.com/23min/ai-workflow-v2/internal/gitops"
 	"github.com/23min/ai-workflow-v2/internal/render"
 	"github.com/23min/ai-workflow-v2/internal/verb"
@@ -29,10 +31,11 @@ import (
 // no-ops.
 func newRewidthCmd() *cobra.Command {
 	var (
-		actor     string
-		principal string
-		root      string
-		apply     bool
+		actor      string
+		principal  string
+		root       string
+		apply      bool
+		skipChecks bool
 	)
 	cmd := &cobra.Command{
 		Use:   "rewidth [--apply]",
@@ -45,27 +48,39 @@ trailer aiwf-verb: rewidth.
 
 Idempotent: an already-canonical or empty tree is a no-op. The
 reverse path (canonical -> narrow) is intentionally not implemented;
-revert the resulting commit with git revert if needed.`,
+revert the resulting commit with git revert if needed.
+
+Preflight (default): before --apply, the verb runs aiwf check and
+refuses to proceed if any error-severity findings exist (broken refs,
+duplicate ids, frontmatter-shape errors, id-path mismatch). Fix the
+findings or re-run with --skip-checks to bypass. The verb also warns
+when expected kind directories (work/epics, work/gaps, work/decisions,
+work/contracts, docs/adr) are missing — advisory only; the verb still
+runs.`,
 		Example: `  # Preview what rewidth would do (dry-run)
   aiwf rewidth
 
-  # Commit the canonicalization
-  aiwf rewidth --apply`,
+  # Commit the canonicalization (preflight: aiwf check must be clean)
+  aiwf rewidth --apply
+
+  # Bypass preflight (consumer accepts the risk)
+  aiwf rewidth --apply --skip-checks`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runRewidthCmd(actor, principal, root, apply))
+			return wrapExitCode(runRewidthCmd(actor, principal, root, apply, skipChecks))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&apply, "apply", false, "commit the canonicalization; without this flag the verb is dry-run")
+	cmd.Flags().BoolVar(&skipChecks, "skip-checks", false, "skip the preflight aiwf check + layout-shape warnings (--apply only; dry-run is unaffected)")
 	return cmd
 }
 
-func runRewidthCmd(actor, principal, root string, apply bool) int {
+func runRewidthCmd(actor, principal, root string, apply, skipChecks bool) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil { //coverage:ignore resolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
 		fmt.Fprintf(os.Stderr, "aiwf rewidth: %v\n", err)
@@ -101,6 +116,21 @@ func runRewidthCmd(actor, principal, root string, apply bool) int {
 	}
 
 	ctx := context.Background()
+
+	// Preflight (--apply only, unless --skip-checks is set):
+	//   - Layout-shape warning: stat the expected kind directories;
+	//     warn on each missing one (advisory; the verb still runs).
+	//   - aiwf check error-severity gate: load the tree, run check.Run,
+	//     refuse the migration if any error-severity finding fires.
+	// Dry-run skips preflight: the dry-run output is itself a preflight
+	// surface, and the operator may want to see the plan even on a
+	// less-than-clean tree to understand the migration shape.
+	if apply && !skipChecks {
+		if rc := rewidthPreflight(ctx, rootDir); rc != exitOK {
+			return rc
+		}
+	}
+
 	result, err := verb.Rewidth(ctx, rootDir, actorStr)
 	if err != nil { //coverage:ignore verb.Rewidth only errors on filesystem failures; tempdir-based tests can't reproduce
 		fmt.Fprintf(os.Stderr, "aiwf rewidth: %v\n", err)
@@ -143,6 +173,76 @@ func runRewidthCmd(actor, principal, root string, apply bool) int {
 		_ = render.Text(os.Stderr, result.Findings)
 	}
 	fmt.Println(result.Plan.Subject)
+	return exitOK
+}
+
+// rewidthExpectedDirs is the set of kind directories a typical
+// aiwf-managed consumer carries. The preflight stats each and warns
+// on misses — advisory, since a consumer might legitimately have no
+// gaps or no contracts. Helps a fresh consumer notice if they're
+// running rewidth in a directory that isn't actually aiwf-managed.
+var rewidthExpectedDirs = []string{
+	"work/epics",
+	"work/gaps",
+	"work/decisions",
+	"work/contracts",
+	"docs/adr",
+}
+
+// rewidthPreflight runs the default preflight before --apply: warn on
+// missing expected kind directories, then run aiwf check and refuse
+// the migration if any error-severity finding fires. Returns exitOK on
+// pass, exitFindings on aiwf-check errors, or exitInternal on a load
+// failure.
+//
+// Layout warnings print to stderr but never block. The verb still
+// runs even if every expected dir is missing — the operator opted in
+// by typing `aiwf rewidth --apply`.
+//
+// The check gate uses `check.Run(tr, loadErrs)` only — contracts and
+// provenance audits are out of scope for "is the tree in a known-valid
+// state for migration." A consumer who needs the full pipeline can
+// run `aiwf check` themselves; rewidth's preflight is a pragmatic
+// subset.
+func rewidthPreflight(ctx context.Context, rootDir string) int {
+	missing := []string{}
+	for _, rel := range rewidthExpectedDirs {
+		if _, statErr := os.Stat(filepath.Join(rootDir, rel)); os.IsNotExist(statErr) {
+			missing = append(missing, rel)
+		}
+	}
+	if len(missing) == len(rewidthExpectedDirs) {
+		// All expected dirs missing — almost certainly not an aiwf
+		// repo. Bail with a clear usage error rather than producing
+		// a confusing empty-plan or an `aiwf check` torrent.
+		fmt.Fprintf(os.Stderr, "aiwf rewidth: no aiwf-managed directories found under %q\n", rootDir)
+		fmt.Fprintln(os.Stderr, "aiwf rewidth:   expected at least one of: "+strings.Join(rewidthExpectedDirs, ", "))
+		fmt.Fprintln(os.Stderr, "aiwf rewidth:   if this is intentional, re-run with --skip-checks")
+		return exitUsage
+	}
+	for _, rel := range missing {
+		fmt.Fprintf(os.Stderr, "aiwf rewidth: warning: expected directory %q is missing (advisory; the verb continues)\n", rel)
+	}
+
+	tr, loadErrs, loadErr := loadTreeWithTrunk(ctx, rootDir)
+	if loadErr != nil { //coverage:ignore loadTreeWithTrunk only fails on filesystem failures; tempdir tests can't reproduce
+		fmt.Fprintf(os.Stderr, "aiwf rewidth: preflight: loading tree: %v\n", loadErr)
+		return exitInternal
+	}
+	findings := check.Run(tr, loadErrs)
+	var errs []check.Finding
+	for i := range findings {
+		if findings[i].Severity == check.SeverityError {
+			errs = append(errs, findings[i])
+		}
+	}
+	if len(errs) > 0 {
+		fmt.Fprintln(os.Stderr, "aiwf rewidth: preflight: aiwf check has error-severity findings; refusing to --apply")
+		fmt.Fprintln(os.Stderr, "aiwf rewidth:   fix the findings or re-run with --skip-checks to override")
+		fmt.Fprintln(os.Stderr)
+		_ = render.Text(os.Stderr, errs)
+		return exitFindings
+	}
 	return exitOK
 }
 
