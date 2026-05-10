@@ -1,8 +1,10 @@
 ---
 id: G-0086
 title: docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-0061/G-0085, different file
-status: open
+status: addressed
 discovered_in: M-0072
+addressed_by_commit:
+    - c3778ce
 ---
 
 ## What's missing

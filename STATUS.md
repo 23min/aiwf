@@ -100,7 +100,6 @@ flowchart LR
 | G-0082 | Planning closure should default-merge to main before implementation begins | E-0021 |
 | G-0083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-0021 |
 | G-0084 | Verb hygiene contract is undocumented; G-0081/G-0082/G-0083 lack umbrella | E-0021 |
-| G-0086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-0061/G-0085, different file | M-0072 |
 | G-0087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-0074 |
 | G-0088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-0079 did | M-0079 |
 | G-0090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-0079 |
@@ -118,9 +117,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote G-0057 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0056 open -> addressed |
 | 2026-05-10 | human/peter | add | aiwf add gap G-0095 'internal/policies/ walker doesn't exclude .claude/ — false-positive flags from sibling worktree .go files' |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
-| 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0088 |
 
