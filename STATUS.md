@@ -41,7 +41,7 @@ _(no milestones)_
 ### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
 - → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 6/6 met — tdd: required
-- → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 0/8 met (8 open) — tdd: required
+- → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 1/8 met (7 open) — tdd: required
 - → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 7/7 met — tdd: required
 - **M-0087** — Display surfaces for archived entities (status, show, render) _(draft)_ — tdd: required
 - **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(draft)_ — tdd: required
@@ -51,7 +51,7 @@ flowchart LR
   E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_proposed
   M_0084["M-0084 (6/6)<br/>Loader and id resolver span active and archive directories"]:::ms_in_progress
   E_0024 --> M_0084
-  M_0085["M-0085 (0/8)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_in_progress
+  M_0085["M-0085 (1/8)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_in_progress
   E_0024 --> M_0085
   M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
   E_0024 --> M_0086
@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0085/AC-1 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0085/AC-1 --phase red -> green |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-8 'Restore backticked aiwf archive --apply mentions in M-0086 SKILL.md' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-7 'First --apply migration leaves aiwf check with 0 errors' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-6 'Verb has no positional id argument; sweep is by status not by id' |
-| 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-5 'Per-kind storage layout follows ADR-0004 storage table' |
 
