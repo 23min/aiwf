@@ -1,0 +1,14 @@
+---
+id: M-0048
+title: 'Status report: cross-entity summaries + dashboard + time-window views'
+status: done
+parent: E-0013
+---
+
+## Summary
+
+Queued. See [`status-report-plan.md`](../../docs/pocv3/plans/status-report-plan.md) for the full plan. Currently `aiwf status` covers the canonical view; this milestone extends it.
+
+## See archive
+
+Pre-migration narrative for the parent epic (E-0013): [`docs/pocv3/archive/poc-plan-pre-migration.md`](../../docs/pocv3/archive/poc-plan-pre-migration.md).

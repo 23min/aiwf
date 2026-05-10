@@ -9,7 +9,7 @@ Kernel principle #1 enumerates **six entity kinds** — epic, milestone, ADR, ga
 
 Two emerging needs don't fit cleanly into the existing six:
 
-- **Cycle-time findings.** A planned parallel-TDD-subagent feature returns concerns from each cycle (branch-coverage gap, weak assertion, scope leak, audit skipped, scope creep). These need a durable, audited, AC-linked representation that **blocks AC closure until a human triages**. The proximate trigger is the M-066/AC-1 branch-coverage drift, where a long session lost track of TDD discipline; subagent isolation provides bounded context but only pays off if the finding surface is mechanical.
+- **Cycle-time findings.** A planned parallel-TDD-subagent feature returns concerns from each cycle (branch-coverage gap, weak assertion, scope leak, audit skipped, scope creep). These need a durable, audited, AC-linked representation that **blocks AC closure until a human triages**. The proximate trigger is the M-0066/AC-1 branch-coverage drift, where a long session lost track of TDD discipline; subagent isolation provides bounded context but only pays off if the finding surface is mechanical.
 - **Check-time findings that need triage.** `aiwf check` already produces transient findings on every run. Some of those — a contract drift that's been in the tree for five commits, a recurring shape violation — deserve to be **escalated** into something durable, with a stable id and lifecycle, rather than re-reported every check run. Today there is no such surface.
 
 Frontmatter arrays on the AC scale for the simple case but fail at the moments that matter: cross-AC findings (one finding affects multiple ACs), long-form repro/triage prose, stable references from gaps and decisions (`Resolves: F-007`), escalation from `aiwf check`. Each of those wants the standard kernel treatment — id, FSM, body, history, trailers.
@@ -33,7 +33,7 @@ Add **`finding`** as a seventh entity kind.
 `open → resolved | waived | invalid`. All three terminal. One Go function for legal transitions, hardcoded per kernel principle.
 
 - `resolved` — the underlying issue was fixed. The resolving commit references the F-NNN via the standard `aiwf-entity:` trailer. A soft check warns when a `resolved` transition has no associated fix commit nearby.
-- `waived` — sovereign accept. Requires `--force` and `--reason` (kernel's existing pattern from M-017). The existing `--force` rule means human-actor only; subagents structurally cannot waive their own findings.
+- `waived` — sovereign accept. Requires `--force` and `--reason` (kernel's existing pattern from M-0017). The existing `--force` rule means human-actor only; subagents structurally cannot waive their own findings.
 - `invalid` — false positive (subagent was wrong, rule fired incorrectly). Requires `--reason`. Human-actor only by the same convention applied to other consequential transitions.
 
 ### Frontmatter
@@ -61,7 +61,7 @@ recorded_by: ai/claude
 
 Free-form prose. What was found, why it matters, repro context. Optional `## Resolution` and `## Waiver` sections written at terminal promotion.
 
-Body-section validation (analogous to M-066's `entity-body-empty` for milestones) is **deferred** until that pattern generalizes. The initial soft check on `resolved` transitions covers the most common discipline gap.
+Body-section validation (analogous to M-0066's `entity-body-empty` for milestones) is **deferred** until that pattern generalizes. The initial soft check on `resolved` transitions covers the most common discipline gap.
 
 ### Verb surface
 
@@ -98,7 +98,7 @@ The closure-by-vocabulary remains intact; the set grows by one with explicit ADR
 **Negative:**
 
 - Every code path that switches on kind (rendering, status aggregation, `aiwf check` shape rules, schema validation, FSM dispatch, completion enumeration) gains a `case finding:` branch. The audit cost is real but bounded — each branch is straightforward by the kernel's existing patterns.
-- The body-section validator (M-066's `entity-body-empty` rule) needs `finding` added to its kind list when the validator generalizes; deferred for now but not free.
+- The body-section validator (M-0066's `entity-body-empty` rule) needs `finding` added to its kind list when the validator generalizes; deferred for now but not free.
 - New finding-code surface (`branch-coverage-gap`, `weak-assertion`, etc.) is a vocabulary that needs review and stability discipline. Codes are added as their underlying rules ship; not all need to exist on day one. Stability becomes a kernel concern once the surface stabilizes.
 - Every `aiwf check` invocation now scans the findings tree for `ac-has-open-findings`. Cost is small (the tree is small); not a measurement-driven decision yet.
 - Operationally, the discipline of "subagent emits finding → parent records F-NNN → human triages" requires the parent orchestrator (epic-level work) to be implemented before findings have a routine producer. F-NNN entities are useful even without the parallel-subagent feature (escalation from `aiwf check` works standalone).
@@ -117,4 +117,4 @@ The closure-by-vocabulary remains intact; the set grows by one with explicit ADR
 - Design synthesis: `docs/pocv3/design/parallel-tdd-subagents.md` (companion design doc; full four-fork resolution and end-to-end flow).
 - CLAUDE.md "What the PoC commits to" §1 (six entity kinds — amended by this ADR).
 - Framework_entity_vocabulary memory: deliberate omission of `story`/`task`; finding is governance, not execution.
-- M-066/AC-1 wrap context — the proximate trigger for the cycle-time-findings need.
+- M-0066/AC-1 wrap context — the proximate trigger for the cycle-time-findings need.

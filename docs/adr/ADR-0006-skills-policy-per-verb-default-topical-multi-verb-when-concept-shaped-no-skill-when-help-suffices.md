@@ -6,13 +6,13 @@ status: accepted
 
 ## Context
 
-The kernel principle *"kernel functionality must be AI-discoverable"* demands that every verb, flag, and closed-set value reach AI assistants through channels they routinely consult: `aiwf <verb> --help`, embedded skills under `.claude/skills/aiwf-*`, `CLAUDE.md`, or design docs cross-referenced from it. The mechanical companion (`internal/policies/skill_coverage.go`, M-074) enforces *that* every verb has skill coverage or an allowlist entry — but not *which* shape the coverage should take. That decision is judgment-shaped: per-verb skills, topical multi-verb skills, no skill at all, and the discoverability-priority case where a topical group should be split.
+The kernel principle *"kernel functionality must be AI-discoverable"* demands that every verb, flag, and closed-set value reach AI assistants through channels they routinely consult: `aiwf <verb> --help`, embedded skills under `.claude/skills/aiwf-*`, `CLAUDE.md`, or design docs cross-referenced from it. The mechanical companion (`internal/policies/skill_coverage.go`, M-0074) enforces *that* every verb has skill coverage or an allowlist entry — but not *which* shape the coverage should take. That decision is judgment-shaped: per-verb skills, topical multi-verb skills, no skill at all, and the discoverability-priority case where a topical group should be split.
 
-Three precedents surfaced through E-20:
+Three precedents surfaced through E-0020:
 
 - **`aiwf-contract`** is a topical multi-verb skill that documents `aiwf contract verify`, `aiwf contract recipes`, `aiwf contract recipe show`, `aiwf contract bind`, `aiwf contract unbind`, `aiwf contract recipe install`, and `aiwf contract recipe remove` together. The user reaches for "contract" as a concept; the verbs follow uniformly.
 - **`aiwf-list` and `aiwf-status`** are split despite covering closely related read verbs over the same planning tree. The split was forced by description-match scoring: status's narrative phrasings ("what's next?", "where are we?") and list's filter-shaped phrasings ("every milestone with status X", "filter by parent") attract different prompts. Folding them under one skill diluted the description that should be specific to either.
-- **`aiwf-show`** is deliberately absent and tracked by G-087: `--help` covers the surface mechanically, but body-rendering branches and composite-id discovery probably warrant a skill. The right answer isn't "papered over with --help" or "shipped as a stub"; it's "deferred with a tracked follow-up."
+- **`aiwf-show`** is deliberately absent and tracked by G-0087: `--help` covers the surface mechanically, but body-rendering branches and composite-id discovery probably warrant a skill. The right answer isn't "papered over with --help" or "shipped as a stub"; it's "deferred with a tracked follow-up."
 
 Without a written rule, every new verb relitigates the same decision. The skill-coverage policy fires when coverage is missing but offers no guidance on what shape to ship.
 
@@ -49,16 +49,16 @@ The split is justified only when the host's description-match scoring would rout
 - **Mechanical companion:** `internal/policies/skill_coverage.go` enforces that *every* verb has either a skill or an allowlist entry, and that every embedded skill carries valid frontmatter. The judgment rule above explains *which* shape the coverage takes; the policy explains *that* it must exist.
 - **Allowlist rationale comments:** every entry in `skillCoverageAllowlist` (in `internal/policies/skill_coverage.go`) carries a one-line rationale categorized by the cases above (ops verb, trivially-documented, mutation-light wrapper, kind-namespace parent, deferred). A reviewer can read the allowlist top-to-bottom and see which case justifies each absence.
 - **New verbs:** when a verb is added to the Cobra tree, the design step "what verb undoes this?" (per CLAUDE.md *Designing a new verb*) gains a sibling step: *"which case from ADR-0006 applies, and where does this verb's skill live?"* The skill-coverage policy fails CI if the answer is "nowhere"; the ADR provides the language for the answer.
-- **Re-evaluation prompts:** if a deferred entry (currently only `show`) accumulates user friction, file a follow-up gap (the precedent: G-087 for `aiwf-show`); the gap's body explains why `--help` no longer suffices. The policy's allowlist points at that gap until the skill ships.
+- **Re-evaluation prompts:** if a deferred entry (currently only `show`) accumulates user friction, file a follow-up gap (the precedent: G-0087 for `aiwf-show`); the gap's body explains why `--help` no longer suffices. The policy's allowlist points at that gap until the skill ships.
 - **CLAUDE.md `Skills policy` section:** points at this ADR for the *why* and at the policy file for the enforced *what*. The *What's enforced and where* table gains one row pinning the policy to its CI test chokepoint.
-- **Mechanical policy is independent of this ADR's status.** The skill-coverage policy (M-074 AC-1..AC-7) ships and enforces regardless — the policy explains *that* every verb has skill coverage; this ADR explains *which shape* the coverage takes. The two surfaces are decoupled.
+- **Mechanical policy is independent of this ADR's status.** The skill-coverage policy (M-0074 AC-1..AC-7) ships and enforces regardless — the policy explains *that* every verb has skill coverage; this ADR explains *which shape* the coverage takes. The two surfaces are decoupled.
 
 ## References
 
-- E-20 — *Add list verb (closes G-061)* — the epic this ADR was authored within; M-074 hosts the ADR allocation.
-- M-074 — *skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-061 closure* — the milestone whose AC-8 this ADR fulfills.
-- `internal/policies/skill_coverage.go` — the mechanical companion enforcing AC-2..AC-5 of M-074.
+- E-0020 — *Add list verb (closes G-0061)* — the epic this ADR was authored within; M-0074 hosts the ADR allocation.
+- M-0074 — *skill-coverage policy, judgment ADR, CLAUDE.md skills section, G-0061 closure* — the milestone whose AC-8 this ADR fulfills.
+- `internal/policies/skill_coverage.go` — the mechanical companion enforcing AC-2..AC-5 of M-0074.
 - `internal/skills/embedded/aiwf-contract/SKILL.md` — topical multi-verb precedent.
 - `internal/skills/embedded/aiwf-list/SKILL.md` and `internal/skills/embedded/aiwf-status/SKILL.md` — discoverability-priority-split precedent.
-- G-087 — follow-up gap for the deferred `aiwf-show` skill, allowlist-referenced.
+- G-0087 — follow-up gap for the deferred `aiwf-show` skill, allowlist-referenced.
 - CLAUDE.md kernel principles cited verbatim: *"kernel functionality must be AI-discoverable"*, *"the framework's correctness must not depend on the LLM's behavior"*.

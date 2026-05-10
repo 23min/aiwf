@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -8,25 +9,59 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-)
 
-// m080SpecPath is the canonical location of M-080's milestone spec.
-// Tests under this file are seam-tests against the wrap-side
-// Validation paste — they assert the captured fixture-validation
-// transcript has the structural shape AC-1..AC-4 require.
-const m080SpecPath = "work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-080-whiteboard-skill-fixture-validation-retire-critical-path-md-close-e-21.md"
+	"github.com/23min/ai-workflow-v2/internal/tree"
+)
 
 // criticalPathMdPath is the path AC-5 forbids and AC-6 polices.
 const criticalPathMdPath = "work/epics/critical-path.md"
 
+// loadM080Spec resolves the M-080 spec via the tree loader rather
+// than a hardcoded filename so the lookup survives the M-082
+// `aiwf rewidth` migration: pre-rewidth the on-disk filename is
+// `M-080-...md`; post-rewidth it is `M-0080-...md`. tree.ByID
+// canonicalizes on lookup (per M-081 AC-2), so the same query
+// resolves either width.
 func loadM080Spec(t *testing.T) string {
 	t.Helper()
 	root := repoRoot(t)
-	data, err := os.ReadFile(filepath.Join(root, m080SpecPath))
+	tr, _, err := tree.Load(context.Background(), root)
 	if err != nil {
-		t.Fatalf("loading %s: %v", m080SpecPath, err)
+		t.Fatalf("loading tree: %v", err)
+	}
+	e := tr.ByID("M-080")
+	if e == nil {
+		t.Fatalf("entity M-080 not found in tree")
+	}
+	data, err := os.ReadFile(filepath.Join(root, e.Path))
+	if err != nil {
+		t.Fatalf("loading %s: %v", e.Path, err)
 	}
 	return string(data)
+}
+
+// containsIDForm reports whether haystack contains an aiwf entity-id
+// reference numerically equal to id, regardless of zero-pad width.
+// Pre-rewidth the spec body uses narrow-width id forms (`E-21`);
+// post-rewidth the rewidth verb's prose-rewrite engine has rewritten
+// them to canonical (`E-0021`). The substring assertions in M-080's
+// test set must tolerate either rendering.
+//
+// The match is case-insensitive on the prefix and uses `\b` word
+// boundaries on both sides so an embedded reference (`E-21` inside
+// `E-21st-century`) does not false-positive.
+func containsIDForm(haystack, id string) bool {
+	m := regexp.MustCompile(`^(?i)(ADR|[EMGDC])-(\d+)$`).FindStringSubmatch(id)
+	if m == nil {
+		return strings.Contains(strings.ToLower(haystack), strings.ToLower(id))
+	}
+	prefix := m[1]
+	digits := strings.TrimLeft(m[2], "0")
+	if digits == "" {
+		digits = "0"
+	}
+	pat := regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(prefix) + `-0*` + digits + `\b`)
+	return pat.MatchString(haystack)
 }
 
 // TestM080_AC1_ValidationHasSkillOutput asserts AC-1: the
@@ -241,11 +276,11 @@ func TestM080_AC7_ValidationCitesE21Promote(t *testing.T) {
 	if section == "" {
 		t.Fatal("AC-7: M-080 spec must have a `## Validation` section")
 	}
-	lower := strings.ToLower(section)
-
 	// The paste must reference the AC-7 wrap-time act: E-21
 	// promote, status done. Match a few likely phrasings.
-	if !strings.Contains(lower, "e-21") {
+	// Width-tolerant — pre-rewidth the spec body says "E-21";
+	// post-rewidth (M-082) it has been canonicalized to "E-0021".
+	if !containsIDForm(section, "E-21") {
 		t.Error("AC-7: §Validation must cite E-21 in the wrap-time promote record")
 	}
 	if !regexp.MustCompile(`(?i)\bdone\b`).MatchString(section) {

@@ -1,16 +1,63 @@
 package policies
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/23min/ai-workflow-v2/internal/entity"
 )
 
 // markdownLinkPattern matches a markdown link of the form
 // [text](path) where path is a relative reference (no scheme).
 // Captures (1) text, (2) the path-and-fragment.
 var markdownLinkPattern = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
+
+// idLeadingInSegment matches the leading "<kind-prefix>-<digits>"
+// portion of a path-component basename. ADR is listed first so the
+// alternation does not match D against ADR's leading A. Used by the
+// width-tolerant path resolver — same theme as M-081's parser
+// tolerance for entity ids (ADR-0008).
+var idLeadingInSegment = regexp.MustCompile(`^(ADR|[EMGDC])-(\d+)`)
+
+// canonicalizePathIDs returns p with every path segment whose leading
+// token matches `<kind-prefix>-<digits>` rewritten so the digit run is
+// zero-padded to entity.CanonicalPad. Used as a fallback when a
+// path-form reference doesn't resolve at its authored width — narrow
+// legacy `work/epics/E-19-foo/epic.md` resolves via the canonical
+// `work/epics/E-0019-foo/epic.md` after M-082's rewidth migrates the
+// active tree, and vice versa for any reverse case.
+//
+// Returns p unchanged when no segment carries an id-shaped leading
+// token, when the digit run already meets canonical width, or when
+// the path is malformed.
+func canonicalizePathIDs(p string) string {
+	parts := strings.Split(p, "/")
+	changed := false
+	for i, part := range parts {
+		m := idLeadingInSegment.FindStringSubmatch(part)
+		if m == nil {
+			continue
+		}
+		prefix, digits := m[1], m[2]
+		if len(digits) >= entity.CanonicalPad {
+			continue
+		}
+		n, err := strconv.Atoi(digits)
+		if err != nil {
+			continue
+		}
+		parts[i] = fmt.Sprintf("%s-%0*d", prefix, entity.CanonicalPad, n) + part[len(m[0]):]
+		changed = true
+	}
+	if !changed {
+		return p
+	}
+	return strings.Join(parts, "/")
+}
 
 // PolicyDesignDocAnchors scans the docs/pocv3/ tree for relative
 // markdown links and asserts every linked file path exists. When
@@ -48,6 +95,19 @@ func PolicyDesignDocAnchors(root string) ([]Violation, error) {
 			}
 			absTarget := resolveDocPath(f.AbsPath, path)
 			info, statErr := os.Stat(absTarget)
+			if statErr != nil {
+				// Width-tolerance fallback: try the canonical-width
+				// form of the path. After M-082's `aiwf rewidth`
+				// migrates the active tree, narrow legacy references
+				// in design docs (which M-083 cleans up) still resolve
+				// to the canonical filename — same theme as M-081's
+				// parser tolerance for entity ids.
+				if canonical := canonicalizePathIDs(absTarget); canonical != absTarget {
+					if info2, statErr2 := os.Stat(canonical); statErr2 == nil {
+						info, statErr, absTarget = info2, nil, canonical
+					}
+				}
+			}
 			if statErr != nil {
 				out = append(out, Violation{
 					Policy: "design-doc-anchors-valid",

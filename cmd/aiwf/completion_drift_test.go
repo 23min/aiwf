@@ -147,6 +147,7 @@ func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 		"aiwf render roadmap":        "no positional args",
 		"aiwf render help":           "hidden help alias; no positional args",
 		"aiwf import":                "<manifest> is a filesystem path; default file completion is correct",
+		"aiwf rewidth":               "no positional args (one-shot migration; --apply is a flag)",
 		"aiwf completion":            "Cobra completion script generator; out of E-14 scope",
 		"aiwf completion bash":       "Cobra completion script generator; out of E-14 scope",
 		"aiwf completion zsh":        "Cobra completion script generator; out of E-14 scope",
