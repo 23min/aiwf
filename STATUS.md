@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_209 entities · 0 errors · 4 warnings · run `aiwf check` for details_
+_209 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -88,18 +88,15 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | E-0024 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/epic.md | E-0024 body section \`## Goal\` is empty |
-| entity-body-empty | E-0024 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/epic.md | E-0024 body section \`## Scope\` is empty |
-| entity-body-empty | E-0024 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/epic.md | E-0024 body section \`## Out of scope\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add epic E-0024 'Implement uniform archive convention (ADR-0004)' |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0094 open -> addressed |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-10 | human/peter | wrap | chore(E-0023): wrap epic — uniform 4-digit kernel ID width (closes G-0093) |
 | 2026-05-10 | human/peter | promote | aiwf promote E-0023 active -> done |
-| 2026-05-10 | human/peter | promote | aiwf promote E-0023 proposed -> active |
 
