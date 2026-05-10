@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_217 entities · 0 errors · 0 warnings_
+_218 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -67,6 +67,10 @@ flowchart LR
   classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
 ```
 
+### E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 _(proposed)_
+
+_(no milestones)_
+
 ## Open decisions
 
 | ID | Kind | Title | Status |
@@ -114,9 +118,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add gap G-0097 'Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom' |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0058 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0093 addressed -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0096 open -> addressed |
 | 2026-05-10 | human/peter | add | aiwf add gap G-0096 'aiwf promote doesn't require resolver pointer on resolution-class transitions; back-fill blocked by terminal-status FSM' |
-| 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
 
