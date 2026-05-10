@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: aiwf status hides sweep-pending line when count is zero
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: aiwf status exposes no --archived flag and remains active-only
