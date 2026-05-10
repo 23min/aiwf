@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-1 --phase red -> green |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-9 'aiwf history walks across an aiwf-verb=archive sweep rename' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-8 'aiwf render emits per-entity pages for archived entities so deep links resolve' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-7 'aiwf render emits per-kind all.html showing the full active+archived set' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-6 'aiwf render index page links active-default and full-set per-kind pages' |
-| 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-5 'aiwf show renders a visible archived-state indicator in text and JSON' |
 
