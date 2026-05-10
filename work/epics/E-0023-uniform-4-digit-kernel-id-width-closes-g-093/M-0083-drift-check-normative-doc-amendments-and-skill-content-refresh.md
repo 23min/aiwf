@@ -15,7 +15,7 @@ acs:
     - id: AC-2
       title: Normative docs amended for canonical 4-digit policy
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Doc-tree narrow-id sweep complete
       status: open
