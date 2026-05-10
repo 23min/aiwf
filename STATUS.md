@@ -42,7 +42,7 @@ _(no milestones)_
 
 - ✓ **M-0081** — Canonical 4-digit IDs in parser, renderer, and allocator _(done)_ — ACs 6/6 met — tdd: required
 - ✓ **M-0082** — Implement aiwf rewidth verb and apply to this repo's tree _(done)_ — ACs 5/5 met — tdd: required
-- → **M-0083** — Drift check, normative-doc amendments, and skill content refresh _(in_progress)_ — ACs 3/5 met (2 open) — tdd: required
+- → **M-0083** — Drift check, normative-doc amendments, and skill content refresh _(in_progress)_ — ACs 4/5 met (1 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -51,7 +51,7 @@ flowchart LR
   E_0023 --> M_0081
   M_0082["M-0082 (5/5)<br/>Implement aiwf rewidth verb and apply to this repo's tree"]:::ms_done
   E_0023 --> M_0082
-  M_0083["M-0083 (3/5)<br/>Drift check, normative-doc amendments, and skill content refresh"]:::ms_in_progress
+  M_0083["M-0083 (4/5)<br/>Drift check, normative-doc amendments, and skill content refresh"]:::ms_in_progress
   E_0023 --> M_0083
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0083/AC-5 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0083/AC-5 --phase red -> green |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0083/AC-3 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0083/AC-3 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0083/AC-3 --phase red -> green |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0083/AC-2 open -> met |
 

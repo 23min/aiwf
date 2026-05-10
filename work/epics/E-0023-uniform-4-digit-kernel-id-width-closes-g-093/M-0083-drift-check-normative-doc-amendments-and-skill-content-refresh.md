@@ -26,7 +26,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: Active-tree drift check green on this repo post-M-C
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
