@@ -1,7 +1,9 @@
 ---
 id: G-0096
 title: aiwf promote doesn't require resolver pointer on resolution-class transitions; back-fill blocked by terminal-status FSM
-status: open
+status: addressed
+addressed_by_commit:
+    - 48fbd45
 ---
 ## Problem
 
