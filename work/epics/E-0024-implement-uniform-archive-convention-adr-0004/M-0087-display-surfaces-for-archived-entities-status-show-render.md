@@ -6,6 +6,11 @@ parent: E-0024
 depends_on:
     - M-0086
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf status surfaces sweep-pending count when non-zero
+      status: open
+      tdd_phase: red
 ---
 
 # M-0087 — Display surfaces for archived entities (status, show, render)
@@ -85,3 +90,6 @@ Intended landing zone:
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — aiwf status surfaces sweep-pending count when non-zero
+
