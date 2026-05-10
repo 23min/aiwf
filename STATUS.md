@@ -67,7 +67,6 @@ flowchart LR
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
-| ADR-0008 | adr | Canonicalize kernel IDs to 4 digits; parsers tolerate narrower legacy widths on input | proposed |
 
 ## Open gaps
 

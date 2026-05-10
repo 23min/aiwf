@@ -1,7 +1,7 @@
 ---
 id: ADR-0008
 title: Canonicalize kernel IDs to 4 digits; parsers tolerate narrower legacy widths on input
-status: proposed
+status: accepted
 ---
 ## Context
 
