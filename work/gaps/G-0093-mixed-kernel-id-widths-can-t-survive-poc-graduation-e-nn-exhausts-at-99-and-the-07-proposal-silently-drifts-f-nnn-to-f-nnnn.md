@@ -2,6 +2,8 @@
 id: G-0093
 title: Mixed kernel ID widths can't survive PoC graduation; E-NN exhausts at 99 and the §07 proposal silently drifts F-NNN to F-NNNN
 status: addressed
+addressed_by:
+    - E-0023
 ---
 `internal/verb/import.go::canonicalPadFor` encodes the kernel's current id-width policy: pad 2 for `epic`, pad 4 for `ADR`, pad 3 for everything else. That choice is the source of two compounding problems.
 

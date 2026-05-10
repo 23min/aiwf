@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_216 entities · 0 errors · 1 warnings · run `aiwf check` for details_
+_216 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -108,17 +108,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote G-0096 open -> addressed |
 | 2026-05-10 | human/peter | add | aiwf add gap G-0096 'aiwf promote doesn't require resolver pointer on resolution-class transitions; back-fill blocked by terminal-status FSM' |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0085 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0086 |
-| 2026-05-10 | human/peter | promote | aiwf promote G-0095 open -> addressed |
 
