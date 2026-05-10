@@ -38,7 +38,7 @@ acs:
     - id: AC-8
       title: Restore backticked aiwf archive --apply mentions in M-0086 SKILL.md
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0085 — `aiwf archive` verb (dry-run default, `--apply`, `--kind`)
