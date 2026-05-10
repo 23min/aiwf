@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: tree.Load walks <kind>/archive/ and yields archived entities
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: refsResolve resolves id-form references targeting archived entities
       status: open

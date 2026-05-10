@@ -125,9 +125,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-1 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-1 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-1 --phase red -> green |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0084/AC-6 'Loader cost is bounded; archive-empty trees pay no extra cost' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0084/AC-5 'aiwf history <id> walks across an archive rename via existing trailers' |
-| 2026-05-10 | human/peter | add | aiwf add ac M-0084/AC-4 'aiwf show <id> resolves an archived id without flag opt-in' |
 
