@@ -27,6 +27,10 @@ acs:
       title: aiwf show renders a visible archived-state indicator in text and JSON
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: aiwf render index page links active-default and full-set per-kind pages
+      status: open
+      tdd_phase: red
 ---
 
 # M-0087 — Display surfaces for archived entities (status, show, render)
@@ -116,4 +120,6 @@ Intended landing zone:
 ### AC-4 — aiwf show resolves any id (active or archived) without flag opt-in
 
 ### AC-5 — aiwf show renders a visible archived-state indicator in text and JSON
+
+### AC-6 — aiwf render index page links active-default and full-set per-kind pages
 
