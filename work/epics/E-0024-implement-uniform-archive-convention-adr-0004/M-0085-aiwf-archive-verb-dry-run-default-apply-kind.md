@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Per-kind storage layout follows ADR-0004 storage table
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: Verb has no positional id argument; sweep is by status not by id
       status: open
