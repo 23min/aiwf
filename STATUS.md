@@ -80,7 +80,6 @@ flowchart LR
 |----|-------|---------------|
 | G-0022 | Provenance model extension surface |  |
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
-| G-0058 | AC body sections ship empty; no chokepoint enforces prose intent | E-0016 |
 | G-0059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
 | G-0063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
@@ -114,9 +113,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote G-0093 addressed -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0096 open -> addressed |
 | 2026-05-10 | human/peter | add | aiwf add gap G-0096 'aiwf promote doesn't require resolver pointer on resolution-class transitions; back-fill blocked by terminal-status FSM' |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0085 |
-| 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0086 |
 

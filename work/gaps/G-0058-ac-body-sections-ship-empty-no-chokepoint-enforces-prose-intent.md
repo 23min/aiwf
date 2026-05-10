@@ -1,8 +1,10 @@
 ---
 id: G-0058
 title: AC body sections ship empty; no chokepoint enforces prose intent
-status: open
+status: addressed
 discovered_in: E-0016
+addressed_by:
+    - E-0017
 ---
 
 ## What's missing
