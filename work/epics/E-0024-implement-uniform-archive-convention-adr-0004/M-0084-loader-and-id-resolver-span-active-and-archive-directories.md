@@ -4,6 +4,11 @@ title: Loader and id resolver span active and archive directories
 status: in_progress
 parent: E-0024
 tdd: required
+acs:
+    - id: AC-1
+      title: PathKind/IDFromPath recognize archive paths per ADR-0004 storage table
+      status: open
+      tdd_phase: red
 ---
 
 # M-0084 — Loader and id resolver span active and archive directories
@@ -81,3 +86,6 @@ Intended landing zone (refine via `aiwf add ac M-0084 --title "..."` when the mi
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — PathKind/IDFromPath recognize archive paths per ADR-0004 storage table
+
