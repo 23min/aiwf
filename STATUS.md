@@ -80,7 +80,6 @@ flowchart LR
 |----|-------|---------------|
 | G-0022 | Provenance model extension surface |  |
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
-| G-0057 | Stray aiwf binary in repo root from local builds is not gitignored |  |
 | G-0058 | AC body sections ship empty; no chokepoint enforces prose intent | E-0016 |
 | G-0059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |

@@ -1,7 +1,9 @@
 ---
 id: G-0057
 title: Stray aiwf binary in repo root from local builds is not gitignored
-status: open
+status: addressed
+addressed_by_commit:
+    - c3778ce
 ---
 
 ## What's missing
