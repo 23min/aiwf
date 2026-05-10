@@ -37,7 +37,7 @@ acs:
       tdd_phase: done
     - id: AC-8
       title: Kernel-tree migration test stays green under unset threshold
-      status: open
+      status: met
       tdd_phase: done
 ---
 

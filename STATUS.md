@@ -44,7 +44,7 @@ _(no milestones)_
 - → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 8/8 met — tdd: required
 - → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 7/7 met — tdd: required
 - → **M-0087** — Display surfaces for archived entities (status, show, render) _(in_progress)_ — ACs 9/9 met — tdd: required
-- → **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(in_progress)_ — ACs 7/8 met (1 open) — tdd: required
+- → **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(in_progress)_ — ACs 8/8 met — tdd: required
 
 ```mermaid
 flowchart LR
@@ -57,7 +57,7 @@ flowchart LR
   E_0024 --> M_0086
   M_0087["M-0087 (9/9)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_in_progress
   E_0024 --> M_0087
-  M_0088["M-0088 (7/8)<br/>Configuration knob, embedded skill, and CLAUDE.md amendment"]:::ms_in_progress
+  M_0088["M-0088 (8/8)<br/>Configuration knob, embedded skill, and CLAUDE.md amendment"]:::ms_in_progress
   E_0024 --> M_0088
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -132,9 +132,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-7 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-7 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-7 --phase red -> green |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-6 open -> met |
 
