@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: aiwf status surfaces sweep-pending count when non-zero
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: aiwf status hides sweep-pending line when count is zero
