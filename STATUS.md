@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-2 --phase red -> green |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-1 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-1 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-1 --phase red -> green |
 | 2026-05-10 | human/peter | promote | aiwf promote M-082 draft -> in_progress |
-| 2026-05-10 | human/peter | wrap | feat(aiwf): canonicalize kernel ids to 4-digit width with parser tolerance (M-081) |
 
