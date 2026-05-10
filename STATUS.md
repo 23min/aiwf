@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_214 entities · 0 errors · 11 warnings · run `aiwf check` for details_
+_214 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -113,25 +113,15 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-0084 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084 body section \`## Goal\` is empty |
-| entity-body-empty | M-0084 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084 body section \`## Acceptance criteria\` is empty |
-| entity-body-empty | M-0085 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085 body section \`## Goal\` is empty |
-| entity-body-empty | M-0085 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085 body section \`## Acceptance criteria\` is empty |
-| entity-body-empty | M-0086 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0086-three-new-archive-check-rule-findings-and-existing-rule-scoping.md | M-0086 body section \`## Goal\` is empty |
-| entity-body-empty | M-0086 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0086-three-new-archive-check-rule-findings-and-existing-rule-scoping.md | M-0086 body section \`## Acceptance criteria\` is empty |
-| entity-body-empty | M-0087 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087 body section \`## Goal\` is empty |
-| entity-body-empty | M-0087 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087 body section \`## Acceptance criteria\` is empty |
-| entity-body-empty | M-0088 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088 body section \`## Goal\` is empty |
-| entity-body-empty | M-0088 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088 body section \`## Acceptance criteria\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0088 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0087 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0086 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0085 |
 | 2026-05-10 | human/peter | add | aiwf add milestone M-0088 'Configuration knob, embedded skill, and CLAUDE.md amendment' |
-| 2026-05-10 | human/peter | add | aiwf add milestone M-0087 'Display surfaces for archived entities (status, show, render)' |
 
