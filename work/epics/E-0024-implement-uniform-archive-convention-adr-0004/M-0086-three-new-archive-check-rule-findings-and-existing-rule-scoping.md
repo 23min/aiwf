@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Existing shape and health rules skip archive per ADR-0004
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Tree-integrity rules traverse archive in full
       status: open
