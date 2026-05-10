@@ -18,7 +18,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Doc-tree narrow-id sweep complete
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Skill content refreshed in kernel and rituals plugin
