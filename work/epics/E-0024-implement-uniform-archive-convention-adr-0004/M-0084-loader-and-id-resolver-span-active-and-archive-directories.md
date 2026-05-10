@@ -21,6 +21,10 @@ acs:
       title: aiwf show <id> resolves an archived id without flag opt-in
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: aiwf history <id> walks across an archive rename via existing trailers
+      status: open
+      tdd_phase: red
 ---
 
 # M-0084 — Loader and id resolver span active and archive directories
@@ -106,4 +110,6 @@ Intended landing zone (refine via `aiwf add ac M-0084 --title "..."` when the mi
 ### AC-3 — refsResolve resolves id-form references targeting archived entities
 
 ### AC-4 — aiwf show <id> resolves an archived id without flag opt-in
+
+### AC-5 — aiwf history <id> walks across an archive rename via existing trailers
 
