@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: aiwf show renders a visible archived-state indicator in text and JSON
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: aiwf render index page links active-default and full-set per-kind pages
       status: open
