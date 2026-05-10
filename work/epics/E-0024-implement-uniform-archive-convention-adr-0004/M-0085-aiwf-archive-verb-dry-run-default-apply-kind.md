@@ -6,6 +6,11 @@ parent: E-0024
 depends_on:
     - M-0086
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf archive (no flags) prints planned moves and exits without touching the tree
+      status: open
+      tdd_phase: red
 ---
 
 # M-0085 — `aiwf archive` verb (dry-run default, `--apply`, `--kind`)
@@ -90,3 +95,6 @@ Intended landing zone:
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — aiwf archive (no flags) prints planned moves and exits without touching the tree
+
