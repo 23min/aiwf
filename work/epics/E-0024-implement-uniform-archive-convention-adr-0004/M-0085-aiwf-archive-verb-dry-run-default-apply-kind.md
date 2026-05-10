@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: Verb has no positional id argument; sweep is by status not by id
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-7
       title: First --apply migration leaves aiwf check with 0 errors
       status: open
