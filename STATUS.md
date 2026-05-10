@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_214 entities · 0 errors · 7 warnings · run `aiwf check` for details_
+_215 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -42,7 +42,7 @@ _(no milestones)_
 
 - → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 6/6 met — tdd: required
 - **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(draft)_ — tdd: required
-- **M-0086** — Three new archive check-rule findings and existing-rule scoping _(draft)_ — tdd: required
+- → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — tdd: required
 - **M-0087** — Display surfaces for archived entities (status, show, render) _(draft)_ — tdd: required
 - **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(draft)_ — tdd: required
 
@@ -53,7 +53,7 @@ flowchart LR
   E_0024 --> M_0084
   M_0085["M-0085<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_draft
   E_0024 --> M_0085
-  M_0086["M-0086<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_draft
+  M_0086["M-0086<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
   E_0024 --> M_0086
   M_0087["M-0087<br/>Display surfaces for archived entities (status, show, render)"]:::ms_draft
   E_0024 --> M_0087
@@ -80,8 +80,6 @@ flowchart LR
 |----|-------|---------------|
 | G-0022 | Provenance model extension surface |  |
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
-| G-0056 | aiwf render output (site/) is not gitignored; pollutes consumer working tree | E-0014 |
-| G-0057 | Stray aiwf binary in repo root from local builds is not gitignored |  |
 | G-0058 | AC body sections ship empty; no chokepoint enforces prose intent | E-0016 |
 | G-0059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
@@ -102,7 +100,6 @@ flowchart LR
 | G-0082 | Planning closure should default-merge to main before implementation begins | E-0021 |
 | G-0083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-0021 |
 | G-0084 | Verb hygiene contract is undocumented; G-0081/G-0082/G-0083 lack umbrella | E-0021 |
-| G-0086 | docs/pocv3/contracts.md still references non-existent aiwf list contracts (lines 98, 114-117); same drift class as G-0061/G-0085, different file | M-0072 |
 | G-0087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-0074 |
 | G-0088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-0079 did | M-0079 |
 | G-0090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-0079 |
@@ -113,21 +110,15 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-0084/AC-1 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-0084/AC-2 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-0084/AC-3 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-0084/AC-4 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-0084/AC-5 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-0084/AC-6 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084/AC-6 body under \`### AC-6\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-6 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-6 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-6 --phase red -> green |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-5 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-5 --phase green -> done |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0084/AC-5 --phase red -> green |
 

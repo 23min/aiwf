@@ -1,7 +1,7 @@
 ---
 id: M-0086
 title: Three new archive check-rule findings and existing-rule scoping
-status: draft
+status: in_progress
 parent: E-0024
 depends_on:
     - M-0084
