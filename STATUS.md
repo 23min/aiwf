@@ -90,9 +90,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote G-0094 open -> addressed |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-10 | human/peter | wrap | chore(E-0023): wrap epic — uniform 4-digit kernel ID width (closes G-0093) |
 | 2026-05-10 | human/peter | promote | aiwf promote E-0023 active -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote E-0023 proposed -> active |
-| 2026-05-10 | human/peter | promote | aiwf promote G-0093 open -> addressed |
 
