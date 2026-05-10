@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: aiwf status surfaces sweep-pending count when non-zero
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: aiwf status hides sweep-pending line when count is zero
       status: open
@@ -125,13 +125,17 @@ Intended landing zone:
 
 ### AC-1 — aiwf status surfaces sweep-pending count when non-zero
 
-When the loaded tree carries one or more entities whose status is terminal-for-kind but whose path is in the active dir (the same condition the M-0086 `archive-sweep-pending` finding fires on), `aiwf status`'s output gains a one-line tree-health entry naming the count and the remediation verb: *"Sweep pending: N terminal entities not yet archived (run `aiwf archive --dry-run` to preview)"*.
+When the loaded tree carries one or more entities whose status is terminal-for-kind but whose path is in the active dir (the same condition the M-0086 `archive-sweep-pending` finding fires on), `aiwf status`'s output gains a one-line entry inside the **Health** section naming the count and the remediation verb: *"Sweep pending: N terminal entities not yet archived (run `aiwf archive --dry-run` to preview)"*.
 
-The text and JSON renderers both expose the line — text inline in the Warnings section (already where check warnings land), JSON via the existing `warnings[]` envelope. Seam test drives `runStatusCmd` against a fixture with two terminal-in-active entities and asserts the line is present (text) and the warning is enumerated (JSON).
+The aggregate is lifted out of the general `warnings[]` list into a dedicated `sweep_pending` field on the status report — per ADR-0004 §"Display surfaces", the one-liner belongs in the tree-health section. The text renderer prints it inside `Health\n`; the JSON envelope exposes it as a top-level field with `count` and the formatted `message`. Per-file `terminal-entity-not-archived` warnings remain in the warnings stream alongside other findings.
+
+Seam test drives `runStatusCmd` against a fixture with one terminal-in-active gap and asserts `"Sweep pending: 1"` appears inside the Health section. Structural assertion: the substring search is scoped to the post-`Health\n` portion of the output, not flat over the full text — a plain match would not distinguish "line in Health" from "line in Warnings."
 
 ### AC-2 — aiwf status hides sweep-pending line when count is zero
 
-When no entity is terminal-in-active, the sweep-pending line is omitted entirely — not "Sweep pending: 0", just absent. The existing `archive-sweep-pending` finding rule returns nil at zero, so the warning never enters `statusReport.Warnings`; no extra code path is needed in the renderer, but the AC pins the behavior as a coverage-branch test against a fixture with only active-status entities.
+When no entity is terminal-in-active, the sweep-pending entry is omitted entirely — not "Sweep pending: 0", just absent. The existing `archive-sweep-pending` finding rule returns nil at zero, so `statusReport.SweepPending` stays nil and the renderer's `if r.SweepPending != nil` guard skips the line.
+
+Two coverage branches pinned: a unit test that asserts `r.SweepPending == nil` against a fixture with only active-status entities (and an already-archived terminal, to exercise the path-filter exclusion), and a render-side test that asserts `"Sweep pending"` does not appear anywhere in the output when the field is nil.
 
 ### AC-3 — aiwf status exposes no --archived flag and remains active-only
 
