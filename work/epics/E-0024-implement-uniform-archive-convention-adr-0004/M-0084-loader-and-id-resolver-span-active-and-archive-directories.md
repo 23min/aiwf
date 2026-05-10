@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: aiwf show <id> resolves an archived id without flag opt-in
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: aiwf history <id> walks across an archive rename via existing trailers
       status: open
