@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Re-running aiwf archive --apply on a clean tree is a no-op
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Per-kind storage layout follows ADR-0004 storage table
