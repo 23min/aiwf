@@ -104,6 +104,21 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// narrow legacy id inputs by design (exercises AC-2 parser
 		// tolerance end-to-end through the binary).
 		"cmd/aiwf/selfcheck.go": "self-check drives verbs with narrow inputs to exercise parser tolerance",
+
+		// M-082: aiwf rewidth verb's tests fixture narrow inputs by
+		// design — that's the verb's input space (the very migration
+		// from narrow to canonical that the verb performs).
+		"cmd/aiwf/rewidth_cmd_test.go":  "M-082 rewidth verb tests; narrow ids are the verb's input space",
+		"internal/verb/rewidth_test.go": "M-082 rewidth verb unit tests; narrow ids are the input space",
+		"internal/verb/rewidth.go":      "M-082 rewidth verb; narrow ids in regex source documentation are part of the spec citation",
+
+		// M-082 prep: M-080 fixture-validation tests use the M-080
+		// narrow id as the canonical entity-id query (resolved via
+		// tree.ByID's width-tolerant lookup) and the E-21 narrow-form
+		// reference whose either-width rendering must satisfy the
+		// AC-7 substring assertion. Both narrow-input cases by
+		// design — same shape as AC-2 parser-tolerance tests.
+		"internal/policies/m080_test.go": "M-082 prep: M-080 spec lookup + AC-7 substring assertion via width-tolerant helpers",
 	}
 
 	// Run grep from the repo root. Pipe stderr alongside stdout so

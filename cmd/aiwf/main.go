@@ -268,6 +268,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newEditBodyCmd())
 	cmd.AddCommand(newMoveCmd())
 	cmd.AddCommand(newReallocateCmd())
+	cmd.AddCommand(newRewidthCmd())
 	cmd.AddCommand(newInitCmd())
 	cmd.AddCommand(newUpdateCmd())
 	cmd.AddCommand(newUpgradeCmd())
