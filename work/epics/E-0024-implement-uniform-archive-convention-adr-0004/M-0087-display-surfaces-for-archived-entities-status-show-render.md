@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: aiwf show resolves any id (active or archived) without flag opt-in
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: aiwf show renders a visible archived-state indicator in text and JSON
       status: open
