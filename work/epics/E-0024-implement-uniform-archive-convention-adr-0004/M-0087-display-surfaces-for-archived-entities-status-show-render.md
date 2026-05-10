@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: aiwf render emits per-kind all.html showing the full active+archived set
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-8
       title: aiwf render emits per-entity pages for archived entities so deep links resolve
