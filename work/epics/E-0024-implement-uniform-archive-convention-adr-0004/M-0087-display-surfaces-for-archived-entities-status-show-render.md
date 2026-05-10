@@ -15,6 +15,10 @@ acs:
       title: aiwf status hides sweep-pending line when count is zero
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: aiwf status exposes no --archived flag and remains active-only
+      status: open
+      tdd_phase: red
 ---
 
 # M-0087 — Display surfaces for archived entities (status, show, render)
@@ -98,4 +102,6 @@ Intended landing zone:
 ### AC-1 — aiwf status surfaces sweep-pending count when non-zero
 
 ### AC-2 — aiwf status hides sweep-pending line when count is zero
+
+### AC-3 — aiwf status exposes no --archived flag and remains active-only
 
