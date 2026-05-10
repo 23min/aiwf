@@ -119,9 +119,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0084 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0088 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0087 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0086 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0085 |
-| 2026-05-10 | human/peter | add | aiwf add milestone M-0088 'Configuration knob, embedded skill, and CLAUDE.md amendment' |
 
