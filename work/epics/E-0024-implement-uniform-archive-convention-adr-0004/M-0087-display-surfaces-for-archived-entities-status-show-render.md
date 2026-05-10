@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: aiwf status exposes no --archived flag and remains active-only
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: aiwf show resolves any id (active or archived) without flag opt-in
