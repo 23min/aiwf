@@ -9,6 +9,10 @@ acs:
       title: PathKind/IDFromPath recognize archive paths per ADR-0004 storage table
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: tree.Load walks <kind>/archive/ and yields archived entities
+      status: open
+      tdd_phase: red
 ---
 
 # M-0084 — Loader and id resolver span active and archive directories
@@ -88,4 +92,6 @@ Intended landing zone (refine via `aiwf add ac M-0084 --title "..."` when the mi
 - (none)
 
 ### AC-1 — PathKind/IDFromPath recognize archive paths per ADR-0004 storage table
+
+### AC-2 — tree.Load walks <kind>/archive/ and yields archived entities
 
