@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: 'refsResolve: active-to-archive refs resolve, archive-side not linted'
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: 'Recovery: rewidth --apply runs clean on narrow archive without --skip-checks'
       status: open
