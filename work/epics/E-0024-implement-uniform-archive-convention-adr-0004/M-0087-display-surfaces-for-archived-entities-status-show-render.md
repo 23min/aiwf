@@ -23,6 +23,10 @@ acs:
       title: aiwf show resolves any id (active or archived) without flag opt-in
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: aiwf show renders a visible archived-state indicator in text and JSON
+      status: open
+      tdd_phase: red
 ---
 
 # M-0087 — Display surfaces for archived entities (status, show, render)
@@ -110,4 +114,6 @@ Intended landing zone:
 ### AC-3 — aiwf status exposes no --archived flag and remains active-only
 
 ### AC-4 — aiwf show resolves any id (active or archived) without flag opt-in
+
+### AC-5 — aiwf show renders a visible archived-state indicator in text and JSON
 
