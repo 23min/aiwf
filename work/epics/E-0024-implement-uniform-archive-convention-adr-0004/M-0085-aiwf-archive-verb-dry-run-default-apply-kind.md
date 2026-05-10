@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: 'aiwf archive --apply produces one commit with aiwf-verb: archive trailer'
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Re-running aiwf archive --apply on a clean tree is a no-op
       status: open
