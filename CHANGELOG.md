@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-05-10
+
 ### Changed (breaking) — Module path rename `github.com/23min/ai-workflow-v2` → `github.com/23min/aiwf` (closes G-0094)
 
 The kernel's Go module path now matches its binary name. The GitHub repo is renamed from `23min/ai-workflow-v2` to `23min/aiwf`; the old repo is archived under the same owner and remains accessible as a historical record. Pre-rename tags (`v0.1.x` and earlier) continue to resolve at the old path until the Go module proxy expires them; post-rename releases ship at the new path only.
@@ -94,16 +96,6 @@ Three milestones (M-066, M-067, M-068) make non-empty body prose a kernel-enforc
 - **M-068 — `aiwf-add` skill names "fill in the body" as required next step.** The embedded skill cross-references M-066 and M-067 so operators reading the skill alone get the full non-empty-body picture — rule, verb, workflow — without grepping source.
 
 Two follow-up gaps survive the wrap: **G-067** (wf-tdd-cycle is LLM-honor-system advisory under load) and **G-068** (discoverability policy misses dynamic finding subcodes).
-
-### Added — E-15: Reduce planning-verb commit cardinality
-
-Five milestones (M-056 through M-060) cumulatively cut a planning session's commit count by ~75% and remove the last skill/check policy contradictions around body editing. Closes **G-051**, **G-052**, **G-053**, and **G-054**.
-
-- **M-056 — `--body-file` flag on `aiwf add` for all six kinds.** Pass `aiwf add <kind> --title "..." --body-file <path>` (or `--body-file -` for stdin) to land body prose in the same atomic commit as the new frontmatter, replacing the per-kind default template. Eliminates the create-then-hand-edit pattern that previously triggered `provenance-untrailered-entity-commit` warnings on the body-edit commit. The file must contain body content only — leading `---` (frontmatter delimiter) is refused so the create commit can't accidentally produce a double-frontmatter file.
-- **M-057 — Batched `--title` on `aiwf add ac`.** `aiwf add ac M-NNN --title "..." --title "..." --title "..."` creates N acceptance criteria in one atomic commit instead of one commit per AC. The commit emits one `aiwf-entity:` trailer per created composite id (allocation order), so `aiwf history M-NNN/AC-X` finds the batch commit for any AC in the batch. Whole-batch validation: if any title is empty or prosey, the entire batch aborts before disk work. `--tests` is rejected when N>1. Single-`--title` invocation continues to work unchanged.
-- **M-058 — `aiwf edit-body` verb + skill reconciliation.** New verb `aiwf edit-body <id> --body-file <path>` replaces the markdown body of an existing entity in a single atomic trailered commit. Frontmatter is left untouched — that stays the domain of `promote` / `rename` / `cancel` / `reallocate`. The aiwf-add skill no longer carves out plain-git body edits; every entity-file mutation now goes through a verb route, and `provenance-untrailered-entity-commit` only fires on accidental hand-edits as designed.
-- **M-059 — Resolver-pointer flags on `aiwf promote`.** New `--by`, `--by-commit`, and `--superseded-by` flags write the matching frontmatter field atomically with the status change, so `aiwf promote G-NNN addressed --by M-007` and `aiwf promote ADR-NNNN superseded --superseded-by ADR-MMMM` no longer require a follow-up hand-edit to satisfy the `gap-resolved-has-resolver` and `adr-supersession-mutual` checks.
-- **M-060 — Bless-current-edits mode for `aiwf edit-body`.** Running `aiwf edit-body <id>` with no `--body-file` flag commits whatever the user has edited in the working copy of the entity file, with the standard `edit-body` trailer set. Refuses cleanly when there is no diff, when the diff includes frontmatter changes (pointer at `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`), or when the file has no HEAD version (pointer at `aiwf add`). AC body sub-section edits work for free via bless mode on the parent milestone.
 
 ### Added — E-14: Cobra and completion
 
