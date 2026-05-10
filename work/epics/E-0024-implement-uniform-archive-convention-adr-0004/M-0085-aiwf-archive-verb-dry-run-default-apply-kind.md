@@ -35,6 +35,10 @@ acs:
       title: First --apply migration leaves aiwf check with 0 errors
       status: open
       tdd_phase: red
+    - id: AC-8
+      title: Restore backticked aiwf archive --apply mentions in M-0086 SKILL.md
+      status: open
+      tdd_phase: red
 ---
 
 # M-0085 — `aiwf archive` verb (dry-run default, `--apply`, `--kind`)
@@ -133,4 +137,6 @@ Intended landing zone:
 ### AC-6 — Verb has no positional id argument; sweep is by status not by id
 
 ### AC-7 — First --apply migration leaves aiwf check with 0 errors
+
+### AC-8 — Restore backticked aiwf archive --apply mentions in M-0086 SKILL.md
 
