@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0083 draft -> in_progress |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0082 in_progress -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-5 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-5 --phase green -> done |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-5 --phase red -> green |
 
