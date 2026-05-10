@@ -52,19 +52,31 @@ func Render(t *tree.Tree) []byte {
 		return buf.Bytes()
 	}
 
+	// Index parents by canonical id so a tree mid-migration (some
+	// narrow, some canonical) still groups milestones under their
+	// epic correctly (AC-2 in M-081).
 	knownEpic := make(map[string]bool, len(epics))
 	for _, e := range epics {
-		knownEpic[e.ID] = true
+		knownEpic[entity.Canonicalize(e.ID)] = true
 	}
 
 	for _, e := range epics {
-		fmt.Fprintf(&buf, "## %s — %s (%s)\n\n", e.ID, escape(e.Title), e.Status)
+		canonE := entity.Canonicalize(e.ID)
+		fmt.Fprintf(&buf, "## %s — %s (%s)\n\n", canonE, escape(e.Title), e.Status)
 		if goal := readEpicGoal(t.Root, e.Path); goal != nil {
 			buf.WriteString("### Goal\n\n")
 			buf.Write(goal)
 			buf.WriteString("\n\n")
 		}
-		ms := byParent[e.ID]
+		// byParent is keyed by the milestone's on-disk Parent; collect
+		// milestones whose canonicalized parent matches this epic.
+		var ms []*entity.Entity
+		for _, m := range t.ByKind(entity.KindMilestone) {
+			if entity.Canonicalize(m.Parent) == canonE {
+				ms = append(ms, m)
+			}
+		}
+		sort.SliceStable(ms, func(i, j int) bool { return ms[i].ID < ms[j].ID })
 		if len(ms) == 0 {
 			buf.WriteString("_No milestones yet._\n\n")
 			continue
@@ -72,14 +84,14 @@ func Render(t *tree.Tree) []byte {
 		buf.WriteString("| Milestone | Title | Status |\n")
 		buf.WriteString("|---|---|---|\n")
 		for _, m := range ms {
-			fmt.Fprintf(&buf, "| %s | %s | %s |\n", m.ID, escape(m.Title), m.Status)
+			fmt.Fprintf(&buf, "| %s | %s | %s |\n", entity.Canonicalize(m.ID), escape(m.Title), m.Status)
 		}
 		buf.WriteString("\n")
 	}
 
 	var orphans []*entity.Entity
 	for parent, ms := range byParent {
-		if knownEpic[parent] {
+		if knownEpic[entity.Canonicalize(parent)] {
 			continue
 		}
 		orphans = append(orphans, ms...)
@@ -93,7 +105,8 @@ func Render(t *tree.Tree) []byte {
 	buf.WriteString("| Milestone | Title | Parent | Status |\n")
 	buf.WriteString("|---|---|---|---|\n")
 	for _, m := range orphans {
-		fmt.Fprintf(&buf, "| %s | %s | %s | %s |\n", m.ID, escape(m.Title), escape(m.Parent), m.Status)
+		fmt.Fprintf(&buf, "| %s | %s | %s | %s |\n",
+			entity.Canonicalize(m.ID), escape(m.Title), escape(entity.Canonicalize(m.Parent)), m.Status)
 	}
 	buf.WriteString("\n")
 	return buf.Bytes()

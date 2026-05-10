@@ -263,23 +263,28 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	// (M-072 AC-6).
 	epics := tr.FilterByKindStatuses(entity.KindEpic, entity.StatusActive, entity.StatusProposed)
 
+	// Group milestones by canonicalized parent so a narrow parent ref
+	// (E-22) and a canonical parent ref (E-0022) bucket together — AC-2
+	// in M-081.
 	milestonesByParent := map[string][]*entity.Entity{}
 	for _, m := range tr.ByKind(entity.KindMilestone) {
-		milestonesByParent[m.Parent] = append(milestonesByParent[m.Parent], m)
+		key := entity.Canonicalize(m.Parent)
+		milestonesByParent[key] = append(milestonesByParent[key], m)
 	}
 	for _, ms := range milestonesByParent {
 		sort.SliceStable(ms, func(i, j int) bool { return ms[i].ID < ms[j].ID })
 	}
 
 	for _, e := range epics {
+		canonEpic := entity.Canonicalize(e.ID)
 		se := statusEpic{
-			ID:     e.ID,
+			ID:     canonEpic,
 			Title:  e.Title,
 			Status: e.Status,
 		}
-		for _, m := range milestonesByParent[e.ID] {
+		for _, m := range milestonesByParent[canonEpic] {
 			se.Milestones = append(se.Milestones, statusMilestone{
-				ID:     m.ID,
+				ID:     entity.Canonicalize(m.ID),
 				Title:  m.Title,
 				Status: m.Status,
 				TDD:    m.TDD,
@@ -299,7 +304,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	// interleave the two id namespaces deterministically.
 	for _, e := range tr.FilterByKindStatuses(entity.KindADR, entity.StatusProposed) {
 		r.OpenDecisions = append(r.OpenDecisions, statusEntity{
-			ID:     e.ID,
+			ID:     entity.Canonicalize(e.ID),
 			Title:  e.Title,
 			Status: e.Status,
 			Kind:   string(entity.KindADR),
@@ -307,7 +312,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	}
 	for _, e := range tr.FilterByKindStatuses(entity.KindDecision, entity.StatusProposed) {
 		r.OpenDecisions = append(r.OpenDecisions, statusEntity{
-			ID:     e.ID,
+			ID:     entity.Canonicalize(e.ID),
 			Title:  e.Title,
 			Status: e.Status,
 			Kind:   string(entity.KindDecision),
@@ -319,9 +324,9 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	// sort needed.
 	for _, e := range tr.FilterByKindStatuses(entity.KindGap, entity.StatusOpen) {
 		r.OpenGaps = append(r.OpenGaps, statusGap{
-			ID:           e.ID,
+			ID:           entity.Canonicalize(e.ID),
 			Title:        e.Title,
-			DiscoveredIn: e.DiscoveredIn,
+			DiscoveredIn: entity.Canonicalize(e.DiscoveredIn),
 		})
 	}
 
@@ -337,7 +342,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 			r.Health.Warnings++
 			r.Warnings = append(r.Warnings, statusFinding{
 				Code:     findings[i].Code,
-				EntityID: findings[i].EntityID,
+				EntityID: entity.Canonicalize(findings[i].EntityID),
 				Path:     findings[i].Path,
 				Message:  findings[i].Message,
 			})

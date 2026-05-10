@@ -91,7 +91,7 @@ func TestRun_CheckBadFormat_UsageError(t *testing.T) {
 func TestRun_CheckFindsErrors(t *testing.T) {
 	root := t.TempDir()
 	// Create a milestone with a bad parent reference and a bad status.
-	dir := filepath.Join(root, "work", "epics", "E-01-foo")
+	dir := filepath.Join(root, "work", "epics", "E-0001-foo")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ status: active
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "M-001-bar.md"), []byte(`---
+	if err := os.WriteFile(filepath.Join(dir, "M-0001-bar.md"), []byte(`---
 id: M-001
 title: Bar
 status: bogus
@@ -212,7 +212,7 @@ func TestRun_AddVerbThroughDispatcher(t *testing.T) {
 	if got != exitOK {
 		t.Fatalf("run(add epic) = %d, want %d", got, exitOK)
 	}
-	if _, err := os.Stat(filepath.Join(root, "work", "epics", "E-01-foundations", "epic.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, "work", "epics", "E-0001-foundations", "epic.md")); err != nil {
 		t.Errorf("epic.md missing after add: %v", err)
 	}
 	if got := run([]string{"check", "--root", root}); got != exitOK {
@@ -228,10 +228,10 @@ func TestRun_AddThenPromoteThenCancel(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
 		t.Fatalf("promote: %d", rc)
 	}
-	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "E-01"}); rc != exitOK {
+	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "E-0001"}); rc != exitOK {
 		t.Fatalf("cancel: %d", rc)
 	}
 	if rc := run([]string{"check", "--root", root}); rc != exitOK {
@@ -250,7 +250,7 @@ func TestRun_AddBadKind(t *testing.T) {
 // TestRun_PromoteMissingArgs reports a usage error.
 func TestRun_PromoteMissingArgs(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if got := run([]string{"promote", "--root", root, "M-001"}); got != exitUsage {
+	if got := run([]string{"promote", "--root", root, "M-0001"}); got != exitUsage {
 		t.Errorf("got %d, want %d (missing new-status)", got, exitUsage)
 	}
 }

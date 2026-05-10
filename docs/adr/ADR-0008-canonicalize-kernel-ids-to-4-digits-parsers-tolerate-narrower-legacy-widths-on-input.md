@@ -1,13 +1,13 @@
 ---
 id: ADR-0008
 title: Canonicalize kernel IDs to 4 digits; parsers tolerate narrower legacy widths on input
-status: proposed
+status: accepted
 ---
 ## Context
 
 Kernel principle #2 says ids are stable primary keys: *"`E-NN`, `M-NNN`, `ADR-NNNN`, `G-NNN`, `D-NNN`, `C-NNN`. The id is the primary key; the slug is just display."* The widths are mixed by kind — 2-digit for epic, 3-digit for milestone/gap/decision/contract, 4-digit for ADR — encoded in `internal/verb/import.go::canonicalPadFor`. There is no declared policy; the function is the de facto authority.
 
-The companion gap [G-093](../../work/gaps/G-093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md) documents the symptoms: epics will exhaust at 99 (E-22 is the current high-water mark from PoC self-hosting); ADR-0003 declares F-NNN but the §07 TDD architecture proposal silently drifts to F-NNNN; CLAUDE.md commitment #2 enumerates the widths as historical fact, not as a rule a future kind would consult.
+The companion gap [G-0093](../../work/gaps/G-093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md) documents the symptoms: epics will exhaust at 99 (E-0022 is the current high-water mark from PoC self-hosting); ADR-0003 declares F-NNN but the §07 TDD architecture proposal silently drifts to F-NNNN; CLAUDE.md commitment #2 enumerates the widths as historical fact, not as a rule a future kind would consult.
 
 The kernel's own self-hosting pressure plus pre-graduation timing make this the right moment to lock the policy. Multiple downstream consumers have already adopted aiwf with narrow-width trees; each will need to migrate to canonical width when they upgrade past the kernel version that ships this change.
 
@@ -35,7 +35,7 @@ This satisfies commitment #2's "stable id survives rename" — only the *display
 
 ### Allocator behavior
 
-`canonicalPadFor(kind)` returns 4 for every kind. New ids are always allocated and rendered at 4-digit form. The next epic after E-22 is E-0023, not E-23.
+`canonicalPadFor(kind)` returns 4 for every kind. New ids are always allocated and rendered at 4-digit form. The next epic after E-0022 is E-0023, not E-0023.
 
 ### Renderer canonicalization
 
@@ -95,7 +95,7 @@ The chokepoint is `internal/check/`, not the allocator alone — defense in dept
 
 - **Old filenames stay narrow until the consumer runs `aiwf rewidth --apply`** (transient one-shot per consumer). During that window, `ls work/epics/` shows `E-22-foo.md` while `aiwf show E-22` renders `E-0022`.
 - **The `aiwf rewidth` verb adds permanent CLI surface for a one-shot ritual.** Mitigation: idempotent, self-documenting via `--help`, sunset path is "remove in a future major version once all known consumers have migrated" — cheap to keep otherwise.
-- **Path-form refs in archived bodies stay pointing at narrow filenames forever.** Resolved by **not** renaming files in `<kind>/archive/` — narrow widths in archives are preserved per the forget-by-default principle, and active-tree refs only point at active-tree files (which all migrate at once). G-091's preventive check rule gives long-term protection.
+- **Path-form refs in archived bodies stay pointing at narrow filenames forever.** Resolved by **not** renaming files in `<kind>/archive/` — narrow widths in archives are preserved per the forget-by-default principle, and active-tree refs only point at active-tree files (which all migrate at once). G-0091's preventive check rule gives long-term protection.
 - **One trailing minor detail to coordinate** — the rituals plugin's embedded skills mention narrow forms in 5 files (27 mentions total). The implementing epic's final milestone refreshes these and records the cross-repo SHA per CLAUDE.md "Cross-repo plugin testing".
 
 ## Alternatives considered
@@ -110,10 +110,10 @@ The chokepoint is `internal/check/`, not the allocator alone — defense in dept
 
 ## References
 
-- [G-093](../../work/gaps/G-093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md) — companion gap that surfaced this work.
+- [G-0093](../../work/gaps/G-093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md) — companion gap that surfaced this work.
 - **CLAUDE.md** "What aiwf commits to" §2 — current id-width statement, updated by the implementing epic.
 - [ADR-0003](ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN as 7th entity kind; **amended by this ADR's implementing epic** (the docs-and-drift milestone updates the ADR's id-pattern paragraph from F-NNN to F-NNNN).
 - [ADR-0004](ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) — Uniform archive convention; archive entities keep their birth-width per forget-by-default.
 - `internal/verb/import.go::canonicalPadFor` — current pad-policy site; relocated and broadened by the implementing epic's first milestone.
 - `docs/explorations/07-tdd-architecture-proposal.md` — exploratory doc whose review surfaced this; F-NNN ↔ F-NNNN drift resolved by this ADR.
-- **G-091** — body-prose path-form refs have no preventive check (related; not blocking; long-term protection layer).
+- **G-0091** — body-prose path-form refs have no preventive check (related; not blocking; long-term protection layer).

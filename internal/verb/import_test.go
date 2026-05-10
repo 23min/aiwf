@@ -48,7 +48,7 @@ func TestImport_SingleEpicAndMilestone_RoundTrip(t *testing.T) {
 	src := `version: 1
 entities:
   - kind: epic
-    id: E-01
+    id: E-0001
     frontmatter:
       title: "Foundations"
       status: active
@@ -56,11 +56,11 @@ entities:
       ## Goal
       Build a core.
   - kind: milestone
-    id: M-001
+    id: M-0001
     frontmatter:
       title: "Bootstrap"
       status: draft
-      parent: E-01
+      parent: E-0001
     body: "## Goal\nStart things.\n"
 `
 	m := loadManifest(t, src)
@@ -78,8 +78,8 @@ entities:
 
 	// Files exist.
 	for _, p := range []string{
-		filepath.Join("work", "epics", "E-01-foundations", "epic.md"),
-		filepath.Join("work", "epics", "E-01-foundations", "M-001-bootstrap.md"),
+		filepath.Join("work", "epics", "E-0001-foundations", "epic.md"),
+		filepath.Join("work", "epics", "E-0001-foundations", "M-0001-bootstrap.md"),
 	} {
 		if _, sErr := os.Stat(filepath.Join(r.root, p)); sErr != nil {
 			t.Errorf("expected %s, stat err=%v", p, sErr)
@@ -131,7 +131,7 @@ entities:
 	applyImport(t, r, res.Plans)
 
 	tr := r.tree()
-	for _, want := range []string{"E-01", "E-02", "E-03"} {
+	for _, want := range []string{"E-0001", "E-0002", "E-0003"} {
 		if tr.ByID(want) == nil {
 			t.Errorf("missing id %s; tree has: %+v", want, idsOf(tr))
 		}
@@ -161,7 +161,7 @@ entities:
 	}
 	applyImport(t, r, res.Plans)
 
-	if r.tree().ByID("E-02") == nil {
+	if r.tree().ByID("E-0002") == nil {
 		t.Errorf("E-02 not allocated; tree: %+v", idsOf(r.tree()))
 	}
 }
@@ -193,7 +193,7 @@ entities:
 		t.Fatalf("expected collision findings, got Plans=%v", res2.Plans)
 	}
 	got := res2.Findings[0]
-	if got.Code != "import-collision" || got.EntityID != "E-01" {
+	if got.Code != "import-collision" || got.EntityID != "E-0001" {
 		t.Errorf("finding = %+v", got)
 	}
 }
@@ -224,11 +224,11 @@ entities:
 	applyImport(t, r, res.Plans)
 
 	tr := r.tree()
-	if tr.ByID("E-02") == nil {
+	if tr.ByID("E-0002") == nil {
 		t.Errorf("E-02 should have landed")
 	}
 	// The original E-01 (title "First") is still there, not "Skipped".
-	if e := tr.ByID("E-01"); e == nil || e.Title != "First" {
+	if e := tr.ByID("E-0001"); e == nil || e.Title != "First" {
 		t.Errorf("E-01 should be preserved, got %+v", e)
 	}
 }
@@ -259,7 +259,7 @@ entities:
 	}
 	applyImport(t, r, res.Plans)
 
-	got, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-01-first", "epic.md"))
+	got, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-0001-first", "epic.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,10 +303,10 @@ commit:
   mode: per-entity
 entities:
   - kind: epic
-    id: E-01
+    id: E-0001
     frontmatter: {title: "A", status: active}
   - kind: epic
-    id: E-02
+    id: E-0002
     frontmatter: {title: "B", status: active}
 `
 	m := loadManifest(t, src)
@@ -324,7 +324,7 @@ entities:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out, "E-02") {
+	if !strings.Contains(out, "E-0002") {
 		t.Errorf("HEAD commit missing aiwf-entity: E-02 trailer; got %q", out)
 	}
 }
@@ -388,10 +388,10 @@ entities:
 	applyImport(t, r, res.Plans)
 
 	tr := r.tree()
-	if tr.ByID("E-01") == nil {
+	if tr.ByID("E-0001") == nil {
 		t.Errorf("E-01 missing")
 	}
-	if tr.ByID("M-001") == nil {
+	if tr.ByID("M-0001") == nil {
 		t.Errorf("M-001 missing")
 	}
 }

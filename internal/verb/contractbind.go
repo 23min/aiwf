@@ -76,16 +76,29 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 		Fixtures:  opts.Fixtures,
 	}
 
+	// Compare canonical ids so a narrow legacy binding (`id: C-001`)
+	// is recognized as the same entry as a canonical query (`C-0001`)
+	// per AC-2 in M-081.
+	canonID := entity.Canonicalize(id)
 	existingIdx := -1
 	for i, en := range next.Entries {
-		if en.ID == id {
+		if entity.Canonicalize(en.ID) == canonID {
 			existingIdx = i
 			break
 		}
 	}
 
+	// Compare entries by canonicalized id so a narrow legacy entry
+	// matches a canonical query as "unchanged" (rather than "different
+	// values"). Other field equality is verbatim.
+	entriesEquivalent := func(a, b aiwfyaml.Entry) bool {
+		return entity.Canonicalize(a.ID) == entity.Canonicalize(b.ID) &&
+			a.Validator == b.Validator &&
+			a.Schema == b.Schema &&
+			a.Fixtures == b.Fixtures
+	}
 	switch {
-	case existingIdx >= 0 && next.Entries[existingIdx] == desired:
+	case existingIdx >= 0 && entriesEquivalent(next.Entries[existingIdx], desired):
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("binding for %s unchanged", id)}, nil
 	case existingIdx >= 0 && !opts.Force:
 		return nil, fmt.Errorf("binding for %s already exists with different values; pass --force to replace", id)
@@ -149,8 +162,9 @@ func ContractUnbind(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Co
 	next := cloneContracts(current)
 	out := next.Entries[:0]
 	found := false
+	canonID := entity.Canonicalize(id)
 	for _, en := range next.Entries {
-		if en.ID == id {
+		if entity.Canonicalize(en.ID) == canonID {
 			found = true
 			continue
 		}

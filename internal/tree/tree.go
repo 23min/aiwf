@@ -238,6 +238,13 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 func buildReverseRefs(entities []*entity.Entity) map[string][]string {
 	rev := make(map[string]map[string]struct{})
 	add := func(target, referrer string) {
+		// Canonicalize both sides so a narrow `addressed_by: M-007`
+		// referring to a tree storing `M-0007` (or vice versa) lands
+		// on the same key — see the AC-2 lookup-seam rule. The
+		// referrer's id is also canonicalized so the value-slice is
+		// uniform regardless of on-disk width.
+		target = entity.Canonicalize(target)
+		referrer = entity.Canonicalize(referrer)
 		if rev[target] == nil {
 			rev[target] = make(map[string]struct{})
 		}
@@ -265,8 +272,13 @@ func buildReverseRefs(entities []*entity.Entity) map[string][]string {
 
 // ReferencedBy returns the ids of entities that reference id, in
 // sorted order. Returns nil when no entity references id.
+//
+// The lookup canonicalizes id first so a narrow query resolves to
+// referrers of the canonical form (the AC-2 lookup-seam rule); the
+// reverse-ref map itself is keyed by canonical id (see
+// buildReverseRefs).
 func (t *Tree) ReferencedBy(id string) []string {
-	return t.ReverseRefs[id]
+	return t.ReverseRefs[entity.Canonicalize(id)]
 }
 
 // Reaches reports whether `from` can reach `to` by walking forward
@@ -328,12 +340,15 @@ func (t *Tree) ReachesAny(froms []string, to string) bool {
 
 // compositeParentOrSame returns the parent id of a composite (e.g.
 // "M-007/AC-1" → "M-007"); returns the input unchanged when it isn't
-// a composite. The shared trim used by Reaches / ReachesAny.
+// a composite. The result is also passed through entity.Canonicalize
+// so callers comparing two ids in the reach graph never compare a
+// narrow form against a canonical form. The shared trim used by
+// Reaches / ReachesAny.
 func compositeParentOrSame(id string) string {
 	if parent, _, ok := entity.ParseCompositeID(id); ok {
-		return parent
+		return entity.Canonicalize(parent)
 	}
-	return id
+	return entity.Canonicalize(id)
 }
 
 // registerStub appends a path-derived stub entity to tree.Stubs so that
@@ -355,9 +370,17 @@ func registerStub(t *Tree, relPath string, kind entity.Kind) {
 // ByID returns the first entity matching the id, or nil if absent.
 // In a tree with duplicate ids (which the ids-unique check reports),
 // ByID returns one; iterate Entities to enumerate all.
+//
+// Both the query id and each candidate entity's id are run through
+// entity.Canonicalize before comparison, so a narrow legacy query
+// (`E-22`) resolves the same canonical entity as `E-0022`. This is
+// the AC-2 lookup-seam canonicalization: the grammar accepts both
+// widths, the loader stores whatever shape was on disk, and the
+// lookup compares canonical form.
 func (t *Tree) ByID(id string) *entity.Entity {
+	canon := entity.Canonicalize(id)
 	for _, e := range t.Entities {
-		if e.ID == id {
+		if entity.Canonicalize(e.ID) == canon {
 			return e
 		}
 	}
@@ -368,10 +391,14 @@ func (t *Tree) ByID(id string) *entity.Entity {
 // Used by `aiwf reallocate` to detect the duplicate-id case so the
 // trunk-ancestry tiebreaker can run; ByID alone would silently pick
 // one and obscure that there's a choice to make.
+//
+// Comparison goes through entity.Canonicalize on both sides — see
+// the docstring on ByID for the AC-2 width-tolerance rule.
 func (t *Tree) ByIDAll(id string) []*entity.Entity {
+	canon := entity.Canonicalize(id)
 	var out []*entity.Entity
 	for _, e := range t.Entities {
-		if e.ID == id {
+		if entity.Canonicalize(e.ID) == canon {
 			out = append(out, e)
 		}
 	}
@@ -383,10 +410,14 @@ func (t *Tree) ByIDAll(id string) []*entity.Entity {
 // multiple entities claim the same prior id (a hand-edit accident or
 // the rare lineage-broken case), ByPriorID returns the first match
 // in tree-walk order; iterate Entities to enumerate all.
+//
+// Comparison goes through entity.Canonicalize on both sides — see
+// the docstring on ByID for the AC-2 width-tolerance rule.
 func (t *Tree) ByPriorID(id string) *entity.Entity {
+	canon := entity.Canonicalize(id)
 	for _, e := range t.Entities {
 		for _, p := range e.PriorIDs {
-			if p == id {
+			if entity.Canonicalize(p) == canon {
 				return e
 			}
 		}

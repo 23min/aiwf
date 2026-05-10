@@ -31,7 +31,7 @@ func TestRun_MissingEntity(t *testing.T) {
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue", Args: []string{}}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -49,13 +49,13 @@ func TestRun_MissingSchemaPath(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "missing.cue", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "cue", Schema: "missing.cue", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -71,13 +71,13 @@ func TestRun_MissingFixturesPath(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -96,13 +96,13 @@ func TestRun_FixturesIsAFile_NotDirectory(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -117,7 +117,7 @@ func TestRun_NoBindingForActiveEntity(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
@@ -143,7 +143,7 @@ func TestRun_TerminalEntityNoBinding_NoFinding(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Old", Status: "retired", Path: "work/contracts/C-001-old/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Old", Status: "retired", Path: "work/contracts/C-001-old/contract.md"},
 		},
 	}
 	got := Run(tr, &aiwfyaml.Contracts{}, repo)
@@ -163,13 +163,13 @@ func TestRun_CleanRepoNoFindings(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -220,7 +220,7 @@ func TestRun_AllThreeProblemsAtOnce(t *testing.T) {
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "ghost.cue", Fixtures: "ghost-dir",
+			ID: "C-0001", Validator: "cue", Schema: "ghost.cue", Fixtures: "ghost-dir",
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -247,13 +247,13 @@ func TestRun_TerminalEntityWithBindingStillReportsConfig(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Old", Status: "retired", Path: "work/contracts/C-001-old/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Old", Status: "retired", Path: "work/contracts/C-001-old/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "ghost.cue", Fixtures: "ghost",
+			ID: "C-0001", Validator: "cue", Schema: "ghost.cue", Fixtures: "ghost",
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -278,13 +278,13 @@ func TestRun_DotDotEscape_Schema(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "../../etc/passwd", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "cue", Schema: "../../etc/passwd", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -319,13 +319,13 @@ func TestRun_AbsoluteEscape_Fixtures(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "schema.cue", Fixtures: outside,
+			ID: "C-0001", Validator: "cue", Schema: "schema.cue", Fixtures: outside,
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -364,13 +364,13 @@ func TestRun_SymlinkOutside_Fixtures(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: "accepted", Path: "work/contracts/C-001-foo/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(tr, contracts, repo)
@@ -392,22 +392,22 @@ func TestRun_MultipleBindings_FindingsCarryEntityID(t *testing.T) {
 	tr := &tree.Tree{
 		Root: repo,
 		Entities: []*entity.Entity{
-			{ID: "C-001", Kind: entity.KindContract, Title: "Good", Status: "accepted", Path: "work/contracts/C-001-good/contract.md"},
-			{ID: "C-002", Kind: entity.KindContract, Title: "Bad", Status: "accepted", Path: "work/contracts/C-002-bad/contract.md"},
+			{ID: "C-0001", Kind: entity.KindContract, Title: "Good", Status: "accepted", Path: "work/contracts/C-001-good/contract.md"},
+			{ID: "C-0002", Kind: entity.KindContract, Title: "Bad", Status: "accepted", Path: "work/contracts/C-002-bad/contract.md"},
 		},
 	}
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
 		Entries: []aiwfyaml.Entry{
-			{ID: "C-001", Validator: "cue", Schema: "good.cue", Fixtures: "good-fixtures"},
-			{ID: "C-002", Validator: "cue", Schema: "ghost.cue", Fixtures: "good-fixtures"},
+			{ID: "C-0001", Validator: "cue", Schema: "good.cue", Fixtures: "good-fixtures"},
+			{ID: "C-0002", Validator: "cue", Schema: "ghost.cue", Fixtures: "good-fixtures"},
 		},
 	}
 	got := Run(tr, contracts, repo)
 	if len(got) != 1 {
 		t.Fatalf("expected one finding (C-002 missing-schema); got %d: %+v", len(got), got)
 	}
-	if got[0].EntityID != "C-002" {
+	if got[0].EntityID != "C-0002" {
 		t.Errorf("entity id = %q, want C-002", got[0].EntityID)
 	}
 }

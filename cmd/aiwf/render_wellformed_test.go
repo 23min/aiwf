@@ -25,22 +25,22 @@ func TestRender_AllPagesAreWellFormed(t *testing.T) {
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "epic", "--title", "Adoption", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Schema parser", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Tree loader", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Parses YAML")
-	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-001", "--title", "Reports errors")
-	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-1", "met")
-	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-2", "--phase", "red")
-	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-2", "--phase", "green",
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema parser", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Tree loader", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-0001", "--title", "Parses YAML")
+	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-0001", "--title", "Reports errors")
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001/AC-1", "met")
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001/AC-2", "--phase", "red")
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001/AC-2", "--phase", "green",
 		"--tests", "pass=8 fail=0 skip=1")
-	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001/AC-2", "--phase", "done")
-	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-001", "in_progress")
-	mustRun(t, "authorize", "--root", root, "--actor", "human/test", "M-002", "--to", "ai/claude")
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001/AC-2", "--phase", "done")
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
+	mustRun(t, "authorize", "--root", root, "--actor", "human/test", "M-0002", "--to", "ai/claude")
 
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
 
-	for _, name := range []string{"index.html", "E-01.html", "E-02.html", "M-001.html", "M-002.html"} {
+	for _, name := range []string{"index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"} {
 		t.Run(name, func(t *testing.T) {
 			body := readFileT(t, filepath.Join(out, name))
 			if err := assertWellFormed(body); err != nil {

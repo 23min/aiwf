@@ -81,10 +81,10 @@ func TestEnvelopeSchemaConformance_AllJSONVerbs(t *testing.T) {
 		if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 			t.Fatalf("add epic: %d", rc)
 		}
-		if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+		if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 			t.Fatalf("add milestone: %d", rc)
 		}
-		if rc := run([]string{"add", "ac", "M-001", "--title", "AC sample", "--actor", "human/test", "--root", root}); rc != exitOK {
+		if rc := run([]string{"add", "ac", "M-0001", "--title", "AC sample", "--actor", "human/test", "--root", root}); rc != exitOK {
 			t.Fatalf("add ac: %d", rc)
 		}
 	}
@@ -108,20 +108,20 @@ func TestEnvelopeSchemaConformance_AllJSONVerbs(t *testing.T) {
 		{
 			name:           "show entity",
 			setup:          standardSetup,
-			args:           []string{"show", "--root", "<root>", "--format=json", "E-01"},
+			args:           []string{"show", "--root", "<root>", "--format=json", "E-0001"},
 			wantResultKind: resultObject,
 		},
 		{
 			name:           "show composite AC",
 			setup:          standardSetup,
-			args:           []string{"show", "--root", "<root>", "--format=json", "M-001/AC-1"},
+			args:           []string{"show", "--root", "<root>", "--format=json", "M-0001/AC-1"},
 			wantResultKind: resultObject,
 		},
 		// `history <id>` — events list lives under result.events but result is an object.
 		{
 			name:           "history",
 			setup:          standardSetup,
-			args:           []string{"history", "--root", "<root>", "--format=json", "E-01"},
+			args:           []string{"history", "--root", "<root>", "--format=json", "E-0001"},
 			wantResultKind: resultObject,
 		},
 		// `status` — project snapshot under result.

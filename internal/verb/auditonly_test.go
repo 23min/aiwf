@@ -17,9 +17,9 @@ import (
 func TestPromoteAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(context.Background(), r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-01", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 	// E-01 is now `active`. Audit-only against `active` should pass.
-	res, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-01", "active", testActor, "manual fixup, recovering trail")
+	res, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-0001", "active", testActor, "manual fixup, recovering trail")
 	if err != nil {
 		t.Fatalf("PromoteAuditOnly: %v", err)
 	}
@@ -37,7 +37,7 @@ func TestPromoteAuditOnly_HappyPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	mustHaveTrailer(t, tr, "aiwf-verb", "promote")
-	mustHaveTrailer(t, tr, "aiwf-entity", "E-01")
+	mustHaveTrailer(t, tr, "aiwf-entity", "E-0001")
 	mustHaveTrailer(t, tr, "aiwf-actor", testActor)
 	mustHaveTrailer(t, tr, "aiwf-to", "active")
 	mustHaveTrailer(t, tr, "aiwf-audit-only", "manual fixup, recovering trail")
@@ -56,7 +56,7 @@ func TestPromoteAuditOnly_RefusesWhenStateMismatch(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	// E-01 is `proposed`. Audit-only to `done` (which the entity has
 	// not reached) must refuse.
-	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-01", "done", testActor, "trying to skip ahead")
+	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-0001", "done", testActor, "trying to skip ahead")
 	if err == nil || !strings.Contains(err.Error(), "audit-only records what's already true") {
 		t.Errorf("expected state-mismatch refusal; got %v", err)
 	}
@@ -67,7 +67,7 @@ func TestPromoteAuditOnly_RefusesWhenStateMismatch(t *testing.T) {
 func TestPromoteAuditOnly_RequiresReason(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-01", "proposed", testActor, "   ")
+	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-0001", "proposed", testActor, "   ")
 	if err == nil || !strings.Contains(err.Error(), "non-empty --reason") {
 		t.Errorf("expected non-empty-reason refusal; got %v", err)
 	}
@@ -83,7 +83,7 @@ func TestPromoteAuditOnly_RequiresReason(t *testing.T) {
 func TestPromoteAuditOnly_RefusesNonHumanActor(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-01", "proposed", "ai/claude", "trying to backfill from a bot")
+	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-0001", "proposed", "ai/claude", "trying to backfill from a bot")
 	if err == nil {
 		t.Fatal("expected refusal for non-human actor")
 	}
@@ -105,7 +105,7 @@ func TestPromoteAuditOnly_RefusesNonHumanActor(t *testing.T) {
 func TestPromoteAuditOnly_RejectsUnknownStatus(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-01", "Done", testActor, "wrong case")
+	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-0001", "Done", testActor, "wrong case")
 	if err == nil || !strings.Contains(err.Error(), "not a recognized") {
 		t.Errorf("expected unknown-status refusal; got %v", err)
 	}
@@ -121,9 +121,9 @@ func TestCancelAuditOnly_HappyPath(t *testing.T) {
 	}))
 	// Move the gap to `wontfix` via the normal path so the test's
 	// fixture ends in a state where audit-only is the meaningful op.
-	r.must(verb.Cancel(r.ctx, r.tree(), "G-001", testActor, "decided not to fix", false))
+	r.must(verb.Cancel(r.ctx, r.tree(), "G-0001", testActor, "decided not to fix", false))
 	// Now run audit-only on top: the entity is already at wontfix.
-	res, err := verb.CancelAuditOnly(r.ctx, r.tree(), "G-001", testActor, "backfilling earlier manual flip")
+	res, err := verb.CancelAuditOnly(r.ctx, r.tree(), "G-0001", testActor, "backfilling earlier manual flip")
 	if err != nil {
 		t.Fatalf("CancelAuditOnly: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestCancelAuditOnly_HappyPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	mustHaveTrailer(t, tr, "aiwf-verb", "cancel")
-	mustHaveTrailer(t, tr, "aiwf-entity", "G-001")
+	mustHaveTrailer(t, tr, "aiwf-entity", "G-0001")
 	mustHaveTrailer(t, tr, "aiwf-audit-only", "backfilling earlier manual flip")
 	// Cancel does not emit aiwf-to: (target is implicit per kind).
 	for _, x := range tr {
@@ -151,7 +151,7 @@ func TestCancelAuditOnly_HappyPath(t *testing.T) {
 func TestCancelAuditOnly_RefusesWhenNotAtTerminal(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Untriaged gap", testActor, verb.AddOptions{}))
-	_, err := verb.CancelAuditOnly(r.ctx, r.tree(), "G-001", testActor, "no")
+	_, err := verb.CancelAuditOnly(r.ctx, r.tree(), "G-0001", testActor, "no")
 	if err == nil || !strings.Contains(err.Error(), "audit-only records what's already true") {
 		t.Errorf("expected refusal; got %v", err)
 	}
@@ -162,11 +162,11 @@ func TestCancelAuditOnly_RefusesWhenNotAtTerminal(t *testing.T) {
 func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
-	r.must(verb.Promote(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "actually done", false, verb.PromoteOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "actually done", false, verb.PromoteOptions{}))
 
-	res, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "M-001/AC-1", "met", testActor, "backfill")
+	res, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "backfill")
 	if err != nil {
 		t.Fatalf("PromoteAuditOnly composite: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mustHaveTrailer(t, tr, "aiwf-entity", "M-001/AC-1")
+	mustHaveTrailer(t, tr, "aiwf-entity", "M-0001/AC-1")
 	mustHaveTrailer(t, tr, "aiwf-audit-only", "backfill")
 }
 
@@ -187,14 +187,14 @@ func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
 	// AC starts with tdd_phase="" (the milestone is not tdd: required).
 	// Phase audit-only against "" isn't allowed (entry state); flip
 	// to red via normal promote first, then audit-only against red.
-	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "begin", false, nil))
+	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "red", testActor, "begin", false, nil))
 
-	res, err := verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-001/AC-1", "red", testActor, "backfill")
+	res, err := verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-0001/AC-1", "red", testActor, "backfill")
 	if err != nil {
 		t.Fatalf("PromoteACPhaseAuditOnly: %v", err)
 	}
@@ -208,10 +208,10 @@ func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
 func TestPromoteACPhaseAuditOnly_RefusesUnknownPhase(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-01", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-001", "First criterion", testActor, nil))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
 
-	_, err := verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-001/AC-1", "Refactoring", testActor, "wrong case")
+	_, err := verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-0001/AC-1", "Refactoring", testActor, "wrong case")
 	if err == nil || !strings.Contains(err.Error(), "not a recognized tdd_phase") {
 		t.Errorf("expected unknown-phase refusal; got %v", err)
 	}

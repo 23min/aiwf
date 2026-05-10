@@ -38,6 +38,7 @@ import (
 
 	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
 	"github.com/23min/ai-workflow-v2/internal/contractconfig"
+	"github.com/23min/ai-workflow-v2/internal/entity"
 )
 
 // Result is one verdict produced by the verify or evolve pass.
@@ -113,7 +114,10 @@ func Run(ctx context.Context, opts Options) []Result {
 	// out-of-repo content.
 	resolved, _ := contractconfig.Resolve(opts.RepoRoot, opts.Contracts.Entries)
 	for i, e := range opts.Contracts.Entries {
-		if opts.SkipIDs[e.ID] {
+		// Canonicalize for the skip-set lookup — callers (cmd/aiwf)
+		// build SkipIDs keyed by canonical id so a narrow legacy
+		// binding still maps to a terminal-state entity (AC-2 in M-081).
+		if opts.SkipIDs[entity.Canonicalize(e.ID)] {
 			continue
 		}
 		if resolved[i].Skip {

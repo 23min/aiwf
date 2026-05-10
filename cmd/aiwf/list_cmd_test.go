@@ -38,13 +38,13 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Planned epic", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic E-02: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
 		t.Fatalf("promote E-01 active: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "M one", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "M one", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone M-001: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-02", "--title", "M two", "--tdd", "advisory", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0002", "--title", "M two", "--tdd", "advisory", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone M-002: %d", rc)
 	}
 
@@ -86,7 +86,7 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 			t.Fatalf("rc = %d, want exitOK", rc)
 		}
 		s := string(out)
-		if !strings.Contains(s, "M-001") || !strings.Contains(s, "M-002") {
+		if !strings.Contains(s, "M-0001") || !strings.Contains(s, "M-0002") {
 			t.Errorf("--kind milestone missing M-001 or M-002:\n%s", s)
 		}
 		// Epic titles must not leak — they would only appear if epic
@@ -107,10 +107,10 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 			t.Fatalf("rc = %d, want exitOK", rc)
 		}
 		s := string(out)
-		if !strings.Contains(s, "E-01") {
+		if !strings.Contains(s, "E-0001") {
 			t.Errorf("--status active missing E-01 (the only active epic):\n%s", s)
 		}
-		if strings.Contains(s, "E-02") {
+		if strings.Contains(s, "E-0002") {
 			t.Errorf("--status active leaked the proposed epic E-02:\n%s", s)
 		}
 	})
@@ -118,16 +118,16 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 	t.Run("--parent scopes to children of an epic", func(t *testing.T) {
 		var rc int
 		out := captureStdout(t, func() {
-			rc = run([]string{"list", "--kind", "milestone", "--parent", "E-01", "--root", root})
+			rc = run([]string{"list", "--kind", "milestone", "--parent", "E-0001", "--root", root})
 		})
 		if rc != exitOK {
 			t.Fatalf("rc = %d, want exitOK", rc)
 		}
 		s := string(out)
-		if !strings.Contains(s, "M-001") {
+		if !strings.Contains(s, "M-0001") {
 			t.Errorf("--parent E-01 missing M-001:\n%s", s)
 		}
-		if strings.Contains(s, "M-002") {
+		if strings.Contains(s, "M-0002") {
 			t.Errorf("--parent E-01 leaked M-002 (whose parent is E-02):\n%s", s)
 		}
 	})
@@ -162,10 +162,10 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 			t.Fatalf("envelope.result length = %d, want 2 (M-001 and M-002):\n%s", len(envelope.Result), out)
 		}
 		ids := []string{envelope.Result[0].ID, envelope.Result[1].ID}
-		if ids[0] != "M-001" || ids[1] != "M-002" {
+		if ids[0] != "M-0001" || ids[1] != "M-0002" {
 			t.Errorf("envelope.result ids (id-ascending) = %v, want [M-001 M-002]", ids)
 		}
-		if envelope.Result[0].Parent != "E-01" || envelope.Result[1].Parent != "E-02" {
+		if envelope.Result[0].Parent != "E-0001" || envelope.Result[1].Parent != "E-0002" {
 			t.Errorf("envelope.result parents = [%q %q], want [E-01 E-02]",
 				envelope.Result[0].Parent, envelope.Result[1].Parent)
 		}
@@ -188,10 +188,10 @@ func TestRun_List_JSONResultIsArrayOfSummaryObjects(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic E-01: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
 		t.Fatalf("promote E-01: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "M one", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "M one", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 
@@ -218,10 +218,10 @@ func TestRun_List_JSONResultIsArrayOfSummaryObjects(t *testing.T) {
 	// parent) and assert non-emptiness for the descriptive ones (title,
 	// path) so a future renumbering of the slug doesn't churn the test.
 	wantStrings := map[string]string{
-		"id":     "M-001",
+		"id":     "M-0001",
 		"kind":   "milestone",
 		"status": "draft",
-		"parent": "E-01",
+		"parent": "E-0001",
 	}
 	for k, want := range wantStrings {
 		got, ok := row[k].(string)
@@ -245,7 +245,7 @@ func TestRun_List_JSONResultIsArrayOfSummaryObjects(t *testing.T) {
 	if path, _ := row["path"].(string); !strings.HasSuffix(path, ".md") {
 		t.Errorf("path %q does not end in .md", path)
 	}
-	if path, _ := row["path"].(string); !strings.Contains(path, "M-001") {
+	if path, _ := row["path"].(string); !strings.Contains(path, "M-0001") {
 		t.Errorf("path %q does not name M-001", path)
 	}
 }
@@ -264,19 +264,19 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
 		t.Fatalf("promote epic active: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Live", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Live", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add M-001: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-01", "--title", "Doomed", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Doomed", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add M-002: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-001", "in_progress"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001", "in_progress"}); rc != exitOK {
 		t.Fatalf("promote M-001 in_progress: %d", rc)
 	}
-	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "M-002"}); rc != exitOK {
+	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "M-0002"}); rc != exitOK {
 		t.Fatalf("cancel M-002: %d", rc)
 	}
 
@@ -287,10 +287,10 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 			}
 		})
 		s := string(out)
-		if !strings.Contains(s, "M-001") {
+		if !strings.Contains(s, "M-0001") {
 			t.Errorf("default list missing in_progress milestone M-001:\n%s", s)
 		}
-		if strings.Contains(s, "M-002") {
+		if strings.Contains(s, "M-0002") {
 			t.Errorf("default list leaked cancelled milestone M-002:\n%s", s)
 		}
 	})
@@ -302,10 +302,10 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 			}
 		})
 		s := string(out)
-		if !strings.Contains(s, "M-001") {
+		if !strings.Contains(s, "M-0001") {
 			t.Errorf("--archived list missing M-001:\n%s", s)
 		}
-		if !strings.Contains(s, "M-002") {
+		if !strings.Contains(s, "M-0002") {
 			t.Errorf("--archived list missing the cancelled M-002 (the entire point of the flag):\n%s", s)
 		}
 	})
@@ -353,13 +353,13 @@ func TestRun_List_BadKind(t *testing.T) {
 // breaks here even when each verb's own tests still pass.
 func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
 	tr := &tree.Tree{Entities: []*entity.Entity{
-		{Kind: entity.KindGap, ID: "G-001", Status: "open", Title: "open one"},
-		{Kind: entity.KindGap, ID: "G-002", Status: "addressed", Title: "addressed (terminal)"},
-		{Kind: entity.KindGap, ID: "G-003", Status: "open", Title: "open two", DiscoveredIn: "M-007"},
-		{Kind: entity.KindGap, ID: "G-004", Status: "wontfix", Title: "wontfix (terminal)"},
+		{Kind: entity.KindGap, ID: "G-0001", Status: "open", Title: "open one"},
+		{Kind: entity.KindGap, ID: "G-0002", Status: "addressed", Title: "addressed (terminal)"},
+		{Kind: entity.KindGap, ID: "G-0003", Status: "open", Title: "open two", DiscoveredIn: "M-0007"},
+		{Kind: entity.KindGap, ID: "G-0004", Status: "wontfix", Title: "wontfix (terminal)"},
 		// Non-gap noise that must not leak into either result.
-		{Kind: entity.KindEpic, ID: "E-01", Status: "active"},
-		{Kind: entity.KindMilestone, ID: "M-001", Status: "draft", Parent: "E-01"},
+		{Kind: entity.KindEpic, ID: "E-0001", Status: "active"},
+		{Kind: entity.KindMilestone, ID: "M-0001", Status: "draft", Parent: "E-0001"},
 	}}
 
 	listIDs := make([]string, 0)
@@ -379,7 +379,7 @@ func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
 	}
 	// And both must equal the documented expected set; otherwise both
 	// could agree on the wrong answer.
-	want := []string{"G-001", "G-003"}
+	want := []string{"G-0001", "G-0003"}
 	if diff := cmp.Diff(want, listIDs); diff != "" {
 		t.Errorf("agreed result is wrong (-want +got):\n%s", diff)
 	}

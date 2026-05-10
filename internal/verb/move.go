@@ -69,13 +69,17 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 		return findings(fs), nil
 	}
 
-	subject := fmt.Sprintf("aiwf move %s %s -> %s", id, priorParent, newEpicID)
+	// Canonical width per AC-1 in M-081.
+	canonID := entity.Canonicalize(id)
+	canonPrior := entity.Canonicalize(priorParent)
+	canonNew := entity.Canonicalize(newEpicID)
+	subject := fmt.Sprintf("aiwf move %s %s -> %s", canonID, canonPrior, canonNew)
 	return plan(&Plan{
 		Subject: subject,
 		Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "move"},
-			{Key: gitops.TrailerEntity, Value: id},
-			{Key: gitops.TrailerPriorParent, Value: priorParent},
+			{Key: gitops.TrailerEntity, Value: canonID},
+			{Key: gitops.TrailerPriorParent, Value: canonPrior},
 			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: []FileOp{

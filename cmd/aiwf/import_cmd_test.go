@@ -30,11 +30,11 @@ func TestRun_ImportThroughDispatcher(t *testing.T) {
 	manifest := writeManifest(t, root, `version: 1
 entities:
   - kind: epic
-    id: E-01
+    id: E-0001
     frontmatter: {title: "Cake", status: active}
   - kind: milestone
-    id: M-001
-    frontmatter: {title: "Bake", status: draft, parent: E-01}
+    id: M-0001
+    frontmatter: {title: "Bake", status: draft, parent: E-0001}
 `)
 
 	captured := captureStdout(t, func() {
@@ -47,8 +47,8 @@ entities:
 	}
 
 	for _, p := range []string{
-		filepath.Join("work", "epics", "E-01-cake", "epic.md"),
-		filepath.Join("work", "epics", "E-01-cake", "M-001-bake.md"),
+		filepath.Join("work", "epics", "E-0001-cake", "epic.md"),
+		filepath.Join("work", "epics", "E-0001-cake", "M-0001-bake.md"),
 	} {
 		if _, err := os.Stat(filepath.Join(root, p)); err != nil {
 			t.Errorf("missing %s: %v", p, err)
@@ -69,7 +69,7 @@ func TestRun_ImportDryRun(t *testing.T) {
 	manifest := writeManifest(t, root, `version: 1
 entities:
   - kind: epic
-    id: E-01
+    id: E-0001
     frontmatter: {title: "Cake", status: active}
 `)
 
@@ -80,12 +80,12 @@ entities:
 	})
 	out := string(captured)
 
-	for _, want := range []string{"dry-run", "would land", "write work/epics/E-01-cake/epic.md"} {
+	for _, want := range []string{"dry-run", "would land", "write work/epics/E-0001-cake/epic.md"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q\nfull:\n%s", want, out)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(root, "work", "epics", "E-01-cake", "epic.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, "work", "epics", "E-0001-cake", "epic.md")); !os.IsNotExist(err) {
 		t.Errorf("dry-run wrote epic.md (stat err=%v)", err)
 	}
 }
@@ -100,7 +100,7 @@ func TestRun_ImportCollisionFail(t *testing.T) {
 	manifest := writeManifest(t, root, `version: 1
 entities:
   - kind: epic
-    id: E-01
+    id: E-0001
     frontmatter: {title: "Cake", status: active}
 `)
 	if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != exitOK {
@@ -127,10 +127,10 @@ commit:
   mode: per-entity
 entities:
   - kind: epic
-    id: E-02
+    id: E-0002
     frontmatter: {title: "B", status: active}
   - kind: epic
-    id: E-03
+    id: E-0003
     frontmatter: {title: "C", status: active}
 `)
 	if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != exitOK {

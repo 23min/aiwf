@@ -23,14 +23,14 @@ func TestStatusesForID(t *testing.T) {
 		id   string
 		want []string
 	}{
-		{"epic", "E-01", entity.AllowedStatuses(entity.KindEpic)},
-		{"milestone", "M-007", entity.AllowedStatuses(entity.KindMilestone)},
+		{"epic", "E-0001", entity.AllowedStatuses(entity.KindEpic)},
+		{"milestone", "M-0007", entity.AllowedStatuses(entity.KindMilestone)},
 		{"adr", "ADR-0001", entity.AllowedStatuses(entity.KindADR)},
-		{"gap", "G-042", entity.AllowedStatuses(entity.KindGap)},
-		{"decision", "D-013", entity.AllowedStatuses(entity.KindDecision)},
-		{"contract", "C-005", entity.AllowedStatuses(entity.KindContract)},
+		{"gap", "G-0042", entity.AllowedStatuses(entity.KindGap)},
+		{"decision", "D-0013", entity.AllowedStatuses(entity.KindDecision)},
+		{"contract", "C-0005", entity.AllowedStatuses(entity.KindContract)},
 		{"empty", "", nil},
-		{"composite", "M-007/AC-1", nil},
+		{"composite", "M-0007/AC-1", nil},
 		{"unknown_prefix", "X-01", nil},
 		{"no_prefix", "epic", nil},
 	}
@@ -95,7 +95,7 @@ func TestCompleteEntityIDs_FromTree(t *testing.T) {
 		}
 		got := append([]string{}, ids...)
 		sort.Strings(got)
-		want := []string{"E-01", "M-001", "M-002"}
+		want := []string{"E-0001", "M-0001", "M-0002"}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("ids mismatch (-want +got):\n%s", diff)
 		}
@@ -103,7 +103,7 @@ func TestCompleteEntityIDs_FromTree(t *testing.T) {
 
 	t.Run("filter_epic", func(t *testing.T) {
 		ids, _ := completeEntityIDs(entity.KindEpic)
-		if diff := cmp.Diff([]string{"E-01"}, ids); diff != "" {
+		if diff := cmp.Diff([]string{"E-0001"}, ids); diff != "" {
 			t.Errorf("epic-filtered ids mismatch (-want +got):\n%s", diff)
 		}
 	})
@@ -112,7 +112,7 @@ func TestCompleteEntityIDs_FromTree(t *testing.T) {
 		ids, _ := completeEntityIDs(entity.KindMilestone)
 		got := append([]string{}, ids...)
 		sort.Strings(got)
-		want := []string{"M-001", "M-002"}
+		want := []string{"M-0001", "M-0002"}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("milestone-filtered ids mismatch (-want +got):\n%s", diff)
 		}
@@ -178,7 +178,7 @@ func TestCompleteEntityIDArg_RespectsPosition(t *testing.T) {
 	})
 
 	t.Run("second_positional_returns_empty", func(t *testing.T) {
-		ids, dir := fn(nil, []string{"E-01"}, "")
+		ids, dir := fn(nil, []string{"E-0001"}, "")
 		if len(ids) != 0 {
 			t.Errorf("expected no ids for second positional, got %v", ids)
 		}
@@ -202,7 +202,7 @@ func TestCompleteEntityIDFlag_KindFilter(t *testing.T) {
 	}
 	got := append([]string{}, ids...)
 	sort.Strings(got)
-	want := []string{"M-001", "M-002"}
+	want := []string{"M-0001", "M-0002"}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("milestone-filtered flag completion mismatch (-want +got):\n%s", diff)
 	}
@@ -240,7 +240,7 @@ func newCompletionFixtureRepo(t *testing.T) string {
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("schema_version: 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	epicDir := filepath.Join(root, "work", "epics", "E-01-fixture-epic")
+	epicDir := filepath.Join(root, "work", "epics", "E-0001-fixture-epic")
 	if err := os.MkdirAll(epicDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ status: active
 	}
 	for i, slug := range []string{"first-fixture-milestone", "second-fixture-milestone"} {
 		body := []byte("---\nid: M-00" + intToStr(i+1) + "\ntitle: Fixture milestone " + intToStr(i+1) + "\nstatus: draft\nparent: E-01\n---\n")
-		path := filepath.Join(epicDir, "M-00"+intToStr(i+1)+"-"+slug+".md")
+		path := filepath.Join(epicDir, "M-0000"+intToStr(i+1)+"-"+slug+".md")
 		if err := os.WriteFile(path, body, 0o644); err != nil {
 			t.Fatal(err)
 		}

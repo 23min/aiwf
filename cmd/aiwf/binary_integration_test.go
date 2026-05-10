@@ -133,21 +133,21 @@ func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 	runVerb("add epic",
 		append([]string{"add", "epic", "--title", "Foundations"}, rootArgs...)...)
 	runVerb("add milestone",
-		append([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First milestone"}, rootArgs...)...)
+		append([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First milestone"}, rootArgs...)...)
 	runVerb("add ac",
-		append([]string{"add", "ac", "M-001", "--title", "AC-1: trees stay green"}, rootArgs...)...)
+		append([]string{"add", "ac", "M-0001", "--title", "AC-1: trees stay green"}, rootArgs...)...)
 
 	// rename preserves the id; verb's slug-only mutation surface.
 	runVerb("rename",
-		append([]string{"rename", "M-001", "renamed-first"}, rootArgs...)...)
+		append([]string{"rename", "M-0001", "renamed-first"}, rootArgs...)...)
 
 	// promote: entity status, then AC status.
 	runVerb("promote E-01",
-		append([]string{"promote", "E-01", "active"}, rootArgs...)...)
+		append([]string{"promote", "E-0001", "active"}, rootArgs...)...)
 	runVerb("promote M-001 in_progress",
-		append([]string{"promote", "M-001", "in_progress"}, rootArgs...)...)
+		append([]string{"promote", "M-0001", "in_progress"}, rootArgs...)...)
 	runVerb("promote AC met",
-		append([]string{"promote", "M-001/AC-1", "met"}, rootArgs...)...)
+		append([]string{"promote", "M-0001/AC-1", "met"}, rootArgs...)...)
 
 	// edit-body: explicit-mode (--body-file) so the verb has something
 	// concrete to commit. Bless mode would error here because nothing
@@ -157,13 +157,13 @@ func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 		t.Fatalf("write body file: %v", err)
 	}
 	runVerb("edit-body",
-		append([]string{"edit-body", "M-001", "--body-file", bodyFile, "--reason", "subprocess test"}, rootArgs...)...)
+		append([]string{"edit-body", "M-0001", "--body-file", bodyFile, "--reason", "subprocess test"}, rootArgs...)...)
 
 	// move: reparent to a fresh second epic.
 	runVerb("add second epic",
 		append([]string{"add", "epic", "--title", "Second"}, rootArgs...)...)
 	runVerb("move",
-		append([]string{"move", "M-001", "--epic", "E-02"}, rootArgs...)...)
+		append([]string{"move", "M-0001", "--epic", "E-0002"}, rootArgs...)...)
 
 	// import (dry-run): a tiny manifest with one explicit-id epic; the
 	// dry-run path doesn't touch disk so we don't need a clean stash.
@@ -185,7 +185,7 @@ entities:
 	// cancel: terminate the milestone (its AC is already met, so the
 	// milestone is finalizable without finishing the FSM).
 	runVerb("cancel",
-		append([]string{"cancel", "M-001", "--reason", "test cleanup"}, rootArgs...)...)
+		append([]string{"cancel", "M-0001", "--reason", "test cleanup"}, rootArgs...)...)
 
 	// Final invariant: the planning tree is consistent end-to-end.
 	runVerb("check", "check", "--root", repo)
@@ -275,14 +275,14 @@ func TestBinary_ContractFamily_Subprocess(t *testing.T) {
 
 	runVerb("contract bind",
 		append([]string{
-			"contract", "bind", "C-001",
+			"contract", "bind", "C-0001",
 			"--validator", "jsonschema",
 			"--schema", "fixtures-contract-schema.json",
 			"--fixtures", "fixtures-contract-data",
 		}, rootArgs...)...)
 
 	runVerb("contract unbind",
-		append([]string{"contract", "unbind", "C-001"}, rootArgs...)...)
+		append([]string{"contract", "unbind", "C-0001"}, rootArgs...)...)
 
 	runVerb("contract recipe remove",
 		append([]string{"contract", "recipe", "remove", "jsonschema"}, rootArgs...)...)
@@ -334,7 +334,7 @@ func TestBinary_ReadOnlyVerbs_ExitOK(t *testing.T) {
 		want int // expected exit code
 	}{
 		{"check_empty", []string{"check", "--root", emptyRepo}, 0},
-		{"history_unknown_id", []string{"history", "E-99", "--root", emptyRepo}, 0},
+		{"history_unknown_id", []string{"history", "E-0099", "--root", emptyRepo}, 0},
 		{"doctor_empty", []string{"doctor", "--root", emptyRepo}, 1},
 		{"schema_all", []string{"schema"}, 0},
 		{"schema_one", []string{"schema", "epic"}, 0},
@@ -502,14 +502,14 @@ func TestBinary_RenderHTML_EndToEnd(t *testing.T) {
 	for _, args := range [][]string{
 		{"init", "--root", repo, "--actor", "human/test"},
 		{"add", "epic", "--root", repo, "--actor", "human/test", "--title", "Foundations"},
-		{"add", "milestone", "--tdd", "none", "--root", repo, "--actor", "human/test", "--epic", "E-01", "--title", "Schema parser"},
-		{"add", "ac", "--root", repo, "--actor", "human/test", "M-001", "--title", "Engine starts"},
-		{"promote", "--root", repo, "--actor", "human/test", "M-001/AC-1", "--phase", "red"},
+		{"add", "milestone", "--tdd", "none", "--root", repo, "--actor", "human/test", "--epic", "E-0001", "--title", "Schema parser"},
+		{"add", "ac", "--root", repo, "--actor", "human/test", "M-0001", "--title", "Engine starts"},
+		{"promote", "--root", repo, "--actor", "human/test", "M-0001/AC-1", "--phase", "red"},
 		{
-			"promote", "--root", repo, "--actor", "human/test", "M-001/AC-1", "--phase", "green",
+			"promote", "--root", repo, "--actor", "human/test", "M-0001/AC-1", "--phase", "green",
 			"--tests", "pass=12 fail=0 skip=1",
 		},
-		{"authorize", "--root", repo, "--actor", "human/test", "M-001", "--to", "ai/claude"},
+		{"authorize", "--root", repo, "--actor", "human/test", "M-0001", "--to", "ai/claude"},
 	} {
 		if out, err := runBinary(bin, args...); err != nil {
 			t.Fatalf("aiwf %s: %v\n%s", strings.Join(args, " "), err, out)
@@ -531,14 +531,14 @@ func TestBinary_RenderHTML_EndToEnd(t *testing.T) {
 	// Page-level assertions through the binary — the templates
 	// must produce the same content via the cmd binary as via
 	// in-process run(), pinning the embed.FS resolution path.
-	for _, name := range []string{"index.html", "E-01.html", "M-001.html", "assets/style.css"} {
+	for _, name := range []string{"index.html", "E-0001.html", "M-0001.html", "assets/style.css"} {
 		path := filepath.Join(siteDir, name)
 		if _, statErr := exec.Command("test", "-f", path).Output(); statErr != nil {
 			t.Errorf("expected %s in site dir; %v", name, statErr)
 		}
 	}
 
-	mHTML := readFileT(t, filepath.Join(siteDir, "M-001.html"))
+	mHTML := readFileT(t, filepath.Join(siteDir, "M-0001.html"))
 	if err := assertWellFormed(mHTML); err != nil {
 		t.Errorf("M-001.html (binary render) is not well-formed: %v", err)
 	}

@@ -71,7 +71,7 @@ func trailerSet(verb, entity, actor, scope, reason, to string, scopeEnds ...stri
 func TestLoadScope_OpenerOnlyIsActive(t *testing.T) {
 	auth := "4b13a0f"
 	history := []Commit{
-		{SHA: auth, Trailers: trailerSet("authorize", "E-03", "human/peter", "opened", "implement the engine", "ai/claude")},
+		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "implement the engine", "ai/claude")},
 	}
 	s, err := LoadScope(auth, history)
 	if err != nil {
@@ -80,7 +80,7 @@ func TestLoadScope_OpenerOnlyIsActive(t *testing.T) {
 	if s.State != StateActive {
 		t.Errorf("State = %s, want %s", s.State, StateActive)
 	}
-	if s.Entity != "E-03" || s.Agent != "ai/claude" || s.Principal != "human/peter" {
+	if s.Entity != "E-0003" || s.Agent != "ai/claude" || s.Principal != "human/peter" {
 		t.Errorf("scope envelope mismatch: entity=%q agent=%q principal=%q", s.Entity, s.Agent, s.Principal)
 	}
 	if len(s.Events) != 1 {
@@ -99,11 +99,11 @@ func TestLoadScope_OpenerOnlyIsActive(t *testing.T) {
 func TestLoadScope_PauseResumeCycle(t *testing.T) {
 	auth := "4b13a0f"
 	history := []Commit{
-		{SHA: auth, Trailers: trailerSet("authorize", "E-03", "human/peter", "opened", "", "ai/claude")},
-		{SHA: "aaa1111", Trailers: trailerSet("authorize", "E-03", "human/peter", "paused", "blocked by E-09", "")},
-		{SHA: "bbb2222", Trailers: trailerSet("authorize", "E-03", "human/peter", "resumed", "back to E-03", "")},
-		{SHA: "ccc3333", Trailers: trailerSet("authorize", "E-03", "human/peter", "paused", "stuck again", "")},
-		{SHA: "ddd4444", Trailers: trailerSet("authorize", "E-03", "human/peter", "resumed", "good now", "")},
+		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
+		{SHA: "aaa1111", Trailers: trailerSet("authorize", "E-0003", "human/peter", "paused", "blocked by E-09", "")},
+		{SHA: "bbb2222", Trailers: trailerSet("authorize", "E-0003", "human/peter", "resumed", "back to E-03", "")},
+		{SHA: "ccc3333", Trailers: trailerSet("authorize", "E-0003", "human/peter", "paused", "stuck again", "")},
+		{SHA: "ddd4444", Trailers: trailerSet("authorize", "E-0003", "human/peter", "resumed", "good now", "")},
 	}
 	s, err := LoadScope(auth, history)
 	if err != nil {
@@ -129,11 +129,11 @@ func TestLoadScope_PauseResumeCycle(t *testing.T) {
 func TestLoadScope_AutoEndOnTerminalPromote(t *testing.T) {
 	auth := "4b13a0f"
 	history := []Commit{
-		{SHA: auth, Trailers: trailerSet("authorize", "E-03", "human/peter", "opened", "", "ai/claude")},
+		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
 		// Agent acts under the scope (no transition).
 		{SHA: "work111", Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "promote"},
-			{Key: gitops.TrailerEntity, Value: "M-007"},
+			{Key: gitops.TrailerEntity, Value: "M-0007"},
 			{Key: gitops.TrailerActor, Value: "ai/claude"},
 			{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 			{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
@@ -142,7 +142,7 @@ func TestLoadScope_AutoEndOnTerminalPromote(t *testing.T) {
 		// Terminal-promote of the scope-entity, with auto-end trailer.
 		{SHA: "endcom1", Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "promote"},
-			{Key: gitops.TrailerEntity, Value: "E-03"},
+			{Key: gitops.TrailerEntity, Value: "E-0003"},
 			{Key: gitops.TrailerActor, Value: "ai/claude"},
 			{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 			{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
@@ -174,11 +174,11 @@ func TestLoadScope_AutoEndOnTerminalPromote(t *testing.T) {
 func TestLoadScope_UnCancelDoesNotResurrect(t *testing.T) {
 	auth := "4b13a0f"
 	history := []Commit{
-		{SHA: auth, Trailers: trailerSet("authorize", "E-03", "human/peter", "opened", "", "ai/claude")},
+		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
 		// End via terminal-promote.
 		{SHA: "endcom1", Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "promote"},
-			{Key: gitops.TrailerEntity, Value: "E-03"},
+			{Key: gitops.TrailerEntity, Value: "E-0003"},
 			{Key: gitops.TrailerActor, Value: "human/peter"},
 			{Key: gitops.TrailerTo, Value: "cancelled"},
 			{Key: gitops.TrailerScopeEnds, Value: auth},
@@ -186,13 +186,13 @@ func TestLoadScope_UnCancelDoesNotResurrect(t *testing.T) {
 		// Human un-cancels later — but the scope stays ended.
 		{SHA: "rev0001", Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "promote"},
-			{Key: gitops.TrailerEntity, Value: "E-03"},
+			{Key: gitops.TrailerEntity, Value: "E-0003"},
 			{Key: gitops.TrailerActor, Value: "human/peter"},
 			{Key: gitops.TrailerTo, Value: "active"},
 		}},
 		// And someone tries a pause on the original auth SHA — must
 		// not be applied (the walker stops at ended).
-		{SHA: "pause11", Trailers: trailerSet("authorize", "E-03", "human/peter", "paused", "after-the-fact", "")},
+		{SHA: "pause11", Trailers: trailerSet("authorize", "E-0003", "human/peter", "paused", "after-the-fact", "")},
 	}
 	s, err := LoadScope(auth, history)
 	if err != nil {
@@ -226,7 +226,7 @@ func TestLoadScope_RejectsBadOpener(t *testing.T) {
 			name:    "history[0] SHA mismatch",
 			authSHA: "4b13a0f",
 			history: []Commit{
-				{SHA: "different", Trailers: trailerSet("authorize", "E-03", "human/peter", "opened", "", "ai/claude")},
+				{SHA: "different", Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
 			},
 			wantError: "does not match authSHA",
 		},
@@ -234,7 +234,7 @@ func TestLoadScope_RejectsBadOpener(t *testing.T) {
 			name:    "opener verb is not authorize",
 			authSHA: "4b13a0f",
 			history: []Commit{
-				{SHA: "4b13a0f", Trailers: trailerSet("promote", "E-03", "human/peter", "", "", "")},
+				{SHA: "4b13a0f", Trailers: trailerSet("promote", "E-0003", "human/peter", "", "", "")},
 			},
 			wantError: "not an authorize commit",
 		},
@@ -242,7 +242,7 @@ func TestLoadScope_RejectsBadOpener(t *testing.T) {
 			name:    "opener missing aiwf-scope: opened",
 			authSHA: "4b13a0f",
 			history: []Commit{
-				{SHA: "4b13a0f", Trailers: trailerSet("authorize", "E-03", "human/peter", "paused", "", "ai/claude")},
+				{SHA: "4b13a0f", Trailers: trailerSet("authorize", "E-0003", "human/peter", "paused", "", "ai/claude")},
 			},
 			wantError: "aiwf-scope: opened",
 		},
@@ -266,9 +266,9 @@ func TestLoadScope_RejectsBadOpener(t *testing.T) {
 func TestLoadScope_RejectsIllegalTransition(t *testing.T) {
 	auth := "4b13a0f"
 	history := []Commit{
-		{SHA: auth, Trailers: trailerSet("authorize", "E-03", "human/peter", "opened", "", "ai/claude")},
+		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
 		// Resume while still active — no pause before this.
-		{SHA: "bad0001", Trailers: trailerSet("authorize", "E-03", "human/peter", "resumed", "wrong", "")},
+		{SHA: "bad0001", Trailers: trailerSet("authorize", "E-0003", "human/peter", "resumed", "wrong", "")},
 	}
 	_, err := LoadScope(auth, history)
 	if err == nil {
@@ -287,21 +287,21 @@ func TestLoadScope_IgnoresUnrelatedCommits(t *testing.T) {
 	auth := "4b13a0f"
 	other := "9999999"
 	history := []Commit{
-		{SHA: auth, Trailers: trailerSet("authorize", "E-03", "human/peter", "opened", "", "ai/claude")},
+		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
 		// Work commit under the scope.
 		{SHA: "work111", Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "promote"},
-			{Key: gitops.TrailerEntity, Value: "M-007"},
+			{Key: gitops.TrailerEntity, Value: "M-0007"},
 			{Key: gitops.TrailerActor, Value: "ai/claude"},
 		}},
 		// scope-ends for an entirely different scope.
 		{SHA: "other11", Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "promote"},
-			{Key: gitops.TrailerEntity, Value: "E-09"},
+			{Key: gitops.TrailerEntity, Value: "E-0009"},
 			{Key: gitops.TrailerScopeEnds, Value: other},
 		}},
 		// Now actually pause.
-		{SHA: "pause11", Trailers: trailerSet("authorize", "E-03", "human/peter", "paused", "thinking", "")},
+		{SHA: "pause11", Trailers: trailerSet("authorize", "E-0003", "human/peter", "paused", "thinking", "")},
 	}
 	s, err := LoadScope(auth, history)
 	if err != nil {
@@ -320,12 +320,12 @@ func TestLoadScope_IgnoresUnrelatedCommits(t *testing.T) {
 func TestLoadScope_AutoEndDuringPaused(t *testing.T) {
 	auth := "4b13a0f"
 	history := []Commit{
-		{SHA: auth, Trailers: trailerSet("authorize", "E-03", "human/peter", "opened", "", "ai/claude")},
-		{SHA: "pause11", Trailers: trailerSet("authorize", "E-03", "human/peter", "paused", "blocked", "")},
+		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
+		{SHA: "pause11", Trailers: trailerSet("authorize", "E-0003", "human/peter", "paused", "blocked", "")},
 		// Human cancels the scope-entity while the scope is paused.
 		{SHA: "endcom1", Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "promote"},
-			{Key: gitops.TrailerEntity, Value: "E-03"},
+			{Key: gitops.TrailerEntity, Value: "E-0003"},
 			{Key: gitops.TrailerActor, Value: "human/peter"},
 			{Key: gitops.TrailerTo, Value: "cancelled"},
 			{Key: gitops.TrailerScopeEnds, Value: auth},
@@ -350,11 +350,11 @@ func TestLoadScope_AutoEndDuringPaused(t *testing.T) {
 func TestLoadScope_MultipleScopeEndsOnSameCommit(t *testing.T) {
 	auth := "4b13a0f"
 	history := []Commit{
-		{SHA: auth, Trailers: trailerSet("authorize", "E-03", "human/peter", "opened", "", "ai/claude")},
+		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
 		// Terminal-promote ending two scopes at once.
 		{SHA: "endcom1", Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "promote"},
-			{Key: gitops.TrailerEntity, Value: "E-03"},
+			{Key: gitops.TrailerEntity, Value: "E-0003"},
 			{Key: gitops.TrailerActor, Value: "human/peter"},
 			{Key: gitops.TrailerTo, Value: "done"},
 			{Key: gitops.TrailerScopeEnds, Value: "9999999"}, // someone else's scope

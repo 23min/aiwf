@@ -17,6 +17,7 @@ import (
 	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
 	"github.com/23min/ai-workflow-v2/internal/check"
 	"github.com/23min/ai-workflow-v2/internal/config"
+	"github.com/23min/ai-workflow-v2/internal/entity"
 	"github.com/23min/ai-workflow-v2/internal/gitops"
 	"github.com/23min/ai-workflow-v2/internal/initrepo"
 	"github.com/23min/ai-workflow-v2/internal/pluginstate"
@@ -440,17 +441,22 @@ func readHistoryChain(ctx context.Context, root string, chain []string) ([]Histo
 		"-E",
 	}
 	for _, id := range chain {
+		// Width-tolerant per AC-2/AC-4 in M-081: a query for E-22
+		// matches both legacy `E-22` trailers and canonical `E-0022`
+		// trailers (and vice versa) via entity.IDGrepAlternation.
+		alt := entity.IDGrepAlternation(id)
 		args = append(args,
-			"--grep", "^aiwf-entity: "+regexp.QuoteMeta(id)+"$",
-			"--grep", "^aiwf-prior-entity: "+regexp.QuoteMeta(id)+"$",
+			"--grep", "^aiwf-entity: "+alt+"$",
+			"--grep", "^aiwf-prior-entity: "+alt+"$",
 		)
 		if isBareMilestoneID(id) {
 			// Path-prefix match anchored on the literal `/` boundary
 			// so M-007/ cannot match M-070/. Includes M-NNN/AC-N
-			// events.
+			// events. The bare-id alternation handles width tolerance;
+			// the AC-N portion stays free-form (any digits).
 			args = append(args,
-				"--grep", "^aiwf-entity: "+regexp.QuoteMeta(id)+"/AC-[0-9]+$",
-				"--grep", "^aiwf-prior-entity: "+regexp.QuoteMeta(id)+"/AC-[0-9]+$",
+				"--grep", "^aiwf-entity: "+alt+"/AC-[0-9]+$",
+				"--grep", "^aiwf-prior-entity: "+alt+"/AC-[0-9]+$",
 			)
 		}
 	}
@@ -725,11 +731,13 @@ func buildScopeEntityMap(ctx context.Context, root string, events []HistoryEvent
 			continue
 		}
 		sha := strings.TrimSpace(parts[0])
-		entity := strings.TrimSpace(parts[1])
-		if sha == "" || entity == "" {
+		entID := strings.TrimSpace(parts[1])
+		if sha == "" || entID == "" {
 			continue
 		}
-		out[sha] = entity
+		// Canonicalize per AC-2 in M-081 so consumers can compare
+		// against tree-loaded ids without re-disambiguating widths.
+		out[sha] = entity.Canonicalize(entID)
 	}
 	return out
 }

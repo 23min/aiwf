@@ -7,17 +7,17 @@
     "date": "2026-05-09",
     "in_flight_epics": [
       {
-        "id": "E-99",
+        "id": "E-0099",
         "title": "Goldenfix epic for refactor parity",
         "status": "active",
         "milestones": [
           {
-            "id": "M-901",
+            "id": "M-0901",
             "title": "Lay foundations",
             "status": "done"
           },
           {
-            "id": "M-902",
+            "id": "M-0902",
             "title": "Wire the seam",
             "status": "in_progress",
             "tdd": "required",
@@ -31,7 +31,7 @@
             }
           },
           {
-            "id": "M-903",
+            "id": "M-0903",
             "title": "Polish edges",
             "status": "draft"
           }
@@ -40,12 +40,12 @@
     ],
     "planned_epics": [
       {
-        "id": "E-100",
+        "id": "E-0100",
         "title": "Future work that hasn't started",
         "status": "proposed",
         "milestones": [
           {
-            "id": "M-910",
+            "id": "M-0910",
             "title": "First plan step",
             "status": "draft"
           }
@@ -60,7 +60,7 @@
         "kind": "adr"
       },
       {
-        "id": "D-901",
+        "id": "D-0901",
         "title": "Pick approach A or B",
         "status": "proposed",
         "kind": "decision"
@@ -68,15 +68,15 @@
     ],
     "open_gaps": [
       {
-        "id": "G-901",
+        "id": "G-0901",
         "title": "Refactor leaves a seam",
-        "discovered_in": "M-902"
+        "discovered_in": "M-0902"
       }
     ],
     "warnings": [
       {
         "code": "gap-resolved-has-resolver",
-        "entity_id": "G-902",
+        "entity_id": "G-0902",
         "path": "work/gaps/G-902-fictional-fix.md",
         "message": "gap is marked addressed but addressed_by is empty"
       }

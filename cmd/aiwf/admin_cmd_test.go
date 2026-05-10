@@ -311,14 +311,14 @@ func TestRun_HistoryShowsAddPromoteCancel(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
 		t.Fatalf("promote: %d", rc)
 	}
-	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "E-01"}); rc != exitOK {
+	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "E-0001"}); rc != exitOK {
 		t.Fatalf("cancel: %d", rc)
 	}
 
-	events, err := readHistory(context.Background(), root, "E-01")
+	events, err := readHistory(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatalf("readHistory: %v", err)
 	}
@@ -347,12 +347,12 @@ func TestRun_HistoryJSON(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
 		t.Fatalf("promote: %d", rc)
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"history", "--root", root, "--format=json", "E-01"}); rc != exitOK {
+		if rc := run([]string{"history", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
 			t.Fatalf("history: %d", rc)
 		}
 	})
@@ -375,7 +375,7 @@ func TestRun_HistoryJSON(t *testing.T) {
 	if env.Status != "ok" {
 		t.Errorf("status = %q", env.Status)
 	}
-	if env.Result.ID != "E-01" {
+	if env.Result.ID != "E-0001" {
 		t.Errorf("result.id = %q", env.Result.ID)
 	}
 	if len(env.Result.Events) != 2 {
@@ -428,18 +428,18 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-001", "--title", "AC one"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC one"}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-001/AC-1", "met"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "met"}); rc != exitOK {
 		t.Fatalf("promote AC: %d", rc)
 	}
 
 	// Bare milestone query matches both milestone and AC events.
-	events, err := readHistory(context.Background(), root, "M-001")
+	events, err := readHistory(context.Background(), root, "M-0001")
 	if err != nil {
 		t.Fatalf("readHistory M-001: %v", err)
 	}
@@ -450,12 +450,12 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 	}
 
 	// Composite query matches only the AC events.
-	events, err = readHistory(context.Background(), root, "M-001/AC-1")
+	events, err = readHistory(context.Background(), root, "M-0001/AC-1")
 	if err != nil {
 		t.Fatalf("readHistory M-001/AC-1: %v", err)
 	}
 	if len(events) != 2 {
-		t.Errorf("M-001/AC-1 history len = %d, want 2 (add + promote):\n%+v", len(events), events)
+		t.Errorf("M-0001/AC-1 history len = %d, want 2 (add + promote):\n%+v", len(events), events)
 	}
 }
 
@@ -473,7 +473,7 @@ func TestRun_HistoryReadsAiwfToAndForce(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
 		t.Fatalf("promote 1: %d", rc)
 	}
 	// Force-jump from active straight to cancelled — illegal for epics
@@ -483,12 +483,12 @@ func TestRun_HistoryReadsAiwfToAndForce(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Bar", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add 2: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-02", "done", "--force", "--reason", "sandbox emergency"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0002", "done", "--force", "--reason", "sandbox emergency"}); rc != exitOK {
 		t.Fatalf("forced promote: %d", rc)
 	}
 
 	// E-01: add (no to/force), promote → active (to=active, no force).
-	events, err := readHistory(context.Background(), root, "E-01")
+	events, err := readHistory(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatalf("readHistory E-01: %v", err)
 	}
@@ -506,7 +506,7 @@ func TestRun_HistoryReadsAiwfToAndForce(t *testing.T) {
 	}
 
 	// E-02: add (no to/force), forced promote → done (to=done, force=reason).
-	events, err = readHistory(context.Background(), root, "E-02")
+	events, err = readHistory(context.Background(), root, "E-0002")
 	if err != nil {
 		t.Fatalf("readHistory E-02: %v", err)
 	}
@@ -555,12 +555,12 @@ func TestRun_HistoryTextOutputIncludesForceLine(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-01", "done", "--force", "--reason", "policy override"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "done", "--force", "--reason", "policy override"}); rc != exitOK {
 		t.Fatalf("forced promote: %d", rc)
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"history", "--root", root, "E-01"}); rc != exitOK {
+		if rc := run([]string{"history", "--root", root, "E-0001"}); rc != exitOK {
 			t.Fatalf("history: %d", rc)
 		}
 	})
@@ -584,7 +584,7 @@ func TestRun_HistoryUnknownIDIsEmpty(t *testing.T) {
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"history", "--root", root, "E-99"}); rc != exitOK {
+	if rc := run([]string{"history", "--root", root, "E-0099"}); rc != exitOK {
 		t.Errorf("got %d, want %d", rc, exitOK)
 	}
 }
@@ -600,12 +600,12 @@ func TestRun_HistoryReallocateBridgesBothIDs(t *testing.T) {
 	if rc := run([]string{"add", "epic", "--title", "Bar", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"reallocate", "--actor", "human/test", "--root", root, "E-01"}); rc != exitOK {
+	if rc := run([]string{"reallocate", "--actor", "human/test", "--root", root, "E-0001"}); rc != exitOK {
 		t.Fatalf("reallocate: %d", rc)
 	}
 
 	// Old id sees the reallocate via aiwf-prior-entity.
-	old, err := readHistory(context.Background(), root, "E-01")
+	old, err := readHistory(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -617,7 +617,7 @@ func TestRun_HistoryReallocateBridgesBothIDs(t *testing.T) {
 	}
 
 	// New id sees the reallocate via aiwf-entity.
-	newH, err := readHistory(context.Background(), root, "E-02")
+	newH, err := readHistory(context.Background(), root, "E-0002")
 	if err != nil {
 		t.Fatal(err)
 	}

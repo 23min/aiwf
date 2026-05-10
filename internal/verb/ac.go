@@ -103,6 +103,8 @@ func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []str
 	base := len(parent.ACs)
 	newACs := make([]entity.AcceptanceCriterion, 0, len(titles))
 	compositeIDs := make([]string, 0, len(titles))
+	// Emit composite ids at canonical parent width per AC-1 in M-081.
+	canonParent := entity.Canonicalize(parent.ID)
 	for i, title := range titles {
 		nextID := fmt.Sprintf("AC-%d", base+i+1)
 		ac := entity.AcceptanceCriterion{
@@ -114,7 +116,7 @@ func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []str
 			ac.TDDPhase = entity.TDDPhaseRed
 		}
 		newACs = append(newACs, ac)
-		compositeIDs = append(compositeIDs, parent.ID+"/"+nextID)
+		compositeIDs = append(compositeIDs, canonParent+"/"+nextID)
 	}
 
 	modified := *parent
@@ -396,10 +398,13 @@ func appendTestsTrailer(trailers []gitops.Trailer, tests *gitops.TestMetrics) []
 // standardTrailers builds the verb/entity/actor trailer triple for
 // non-transition verbs (add, rename). Used by AC verbs that don't
 // participate in the aiwf-to: / aiwf-force: schema.
+//
+// The id is canonicalized per AC-1 in M-081 — kernel commits never
+// re-emit narrow legacy widths.
 func standardTrailers(verbName, id, actor string) []gitops.Trailer {
 	return []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: verbName},
-		{Key: gitops.TrailerEntity, Value: id},
+		{Key: gitops.TrailerEntity, Value: entity.Canonicalize(id)},
 		{Key: gitops.TrailerActor, Value: actor},
 	}
 }

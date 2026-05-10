@@ -178,7 +178,7 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 	// 4. Break the tree by introducing a milestone with an unresolved
 	// parent reference. The hook should fail, again with no PATH help.
 	bad := []byte("---\nid: M-001\ntitle: Broken\nstatus: draft\nparent: E-99\n---\n")
-	if wErr := os.WriteFile(filepath.Join(root, "work", "epics", "E-01-foundations", "M-001-bad.md"), bad, 0o644); wErr != nil {
+	if wErr := os.WriteFile(filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-bad.md"), bad, 0o644); wErr != nil {
 		t.Fatal(wErr)
 	}
 	out, hookErr := runHook(t, root, "")

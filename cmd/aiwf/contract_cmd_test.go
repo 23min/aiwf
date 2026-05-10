@@ -181,7 +181,7 @@ func TestRun_CheckSkipsTerminalContracts(t *testing.T) {
 	if rc := run([]string{"add", "contract", "--title", "Old API", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
-	if rc := run([]string{"cancel", "--root", root, "--actor", "human/test", "C-001"}); rc != exitOK {
+	if rc := run([]string{"cancel", "--root", root, "--actor", "human/test", "C-0001"}); rc != exitOK {
 		t.Fatalf("cancel C-001: %d", rc)
 	}
 
@@ -404,14 +404,14 @@ args:
 	}); rc != exitOK {
 		t.Fatalf("add contract atomic: %d", rc)
 	}
-	if _, err := os.Stat(filepath.Join(root, "work", "contracts", "C-001-public-api", "contract.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, "work", "contracts", "C-0001-public-api", "contract.md")); err != nil {
 		t.Errorf("contract entity file missing: %v", err)
 	}
 	yamlBytes, err := os.ReadFile(filepath.Join(root, "aiwf.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(yamlBytes), "C-001") {
+	if !strings.Contains(string(yamlBytes), "C-0001") {
 		t.Errorf("aiwf.yaml does not carry the new binding:\n%s", yamlBytes)
 	}
 
@@ -434,7 +434,7 @@ args:
 	}
 
 	// --- Step: unbind. The contract entity stays; verification stops. ---
-	if rc := run([]string{"contract", "unbind", "--root", root, "--actor", "human/test", "C-001"}); rc != exitOK {
+	if rc := run([]string{"contract", "unbind", "--root", root, "--actor", "human/test", "C-0001"}); rc != exitOK {
 		t.Fatalf("unbind: %d", rc)
 	}
 	if rc := run([]string{"contract", "verify", "--root", root}); rc != exitOK {
@@ -503,7 +503,7 @@ args: ["{{fixture}}"]
 	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
 	writeFixtureFile(t, root, "fixtures/v1/valid/a.json", "PASS")
 	if rc := run([]string{
-		"contract", "bind", "--root", root, "--actor", "human/test", "C-001",
+		"contract", "bind", "--root", root, "--actor", "human/test", "C-0001",
 		"--validator", "fake", "--schema", "schema.cue", "--fixtures", "fixtures",
 	}); rc != exitOK {
 		t.Fatalf("bind: %d", rc)
@@ -515,7 +515,7 @@ args: ["{{fixture}}"]
 			t.Errorf("recipe remove with binding: rc=%d, want %d", rc, exitUsage)
 		}
 	})
-	if !strings.Contains(string(captured), "C-001") {
+	if !strings.Contains(string(captured), "C-0001") {
 		t.Errorf("remove error did not name the binding:\n%s", captured)
 	}
 }
@@ -546,7 +546,7 @@ args: ["{{fixture}}"]
 		t.Errorf("partial-triplet add: rc=%d, want %d", rc, exitUsage)
 	}
 	// Confirm no entity was created.
-	if _, err := os.Stat(filepath.Join(root, "work", "contracts", "C-001-api", "contract.md")); err == nil {
+	if _, err := os.Stat(filepath.Join(root, "work", "contracts", "C-0001-api", "contract.md")); err == nil {
 		t.Errorf("contract entity created despite usage error")
 	}
 }

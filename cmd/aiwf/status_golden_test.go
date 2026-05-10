@@ -29,13 +29,13 @@ func canonicalStatusReport() statusReport {
 	return statusReport{
 		Date: "2026-05-09",
 		InFlightEpics: []statusEpic{{
-			ID:     "E-99",
+			ID:     "E-0099",
 			Title:  "Goldenfix epic for refactor parity",
 			Status: "active",
 			Milestones: []statusMilestone{
-				{ID: "M-901", Title: "Lay foundations", Status: "done"},
+				{ID: "M-0901", Title: "Lay foundations", Status: "done"},
 				{
-					ID:     "M-902",
+					ID:     "M-0902",
 					Title:  "Wire the seam",
 					Status: "in_progress",
 					TDD:    "required",
@@ -43,28 +43,28 @@ func canonicalStatusReport() statusReport {
 						Total: 3, InScope: 3, Open: 1, Met: 2,
 					},
 				},
-				{ID: "M-903", Title: "Polish edges", Status: "draft"},
+				{ID: "M-0903", Title: "Polish edges", Status: "draft"},
 			},
 		}},
 		PlannedEpics: []statusEpic{{
-			ID:     "E-100",
+			ID:     "E-0100",
 			Title:  "Future work that hasn't started",
 			Status: "proposed",
 			Milestones: []statusMilestone{
-				{ID: "M-910", Title: "First plan step", Status: "draft"},
+				{ID: "M-0910", Title: "First plan step", Status: "draft"},
 			},
 		}},
 		OpenDecisions: []statusEntity{
 			{ID: "ADR-0901", Title: "Adopt fictional convention", Status: "proposed", Kind: "adr"},
-			{ID: "D-901", Title: "Pick approach A or B", Status: "proposed", Kind: "decision"},
+			{ID: "D-0901", Title: "Pick approach A or B", Status: "proposed", Kind: "decision"},
 		},
 		OpenGaps: []statusGap{
-			{ID: "G-901", Title: "Refactor leaves a seam", DiscoveredIn: "M-902"},
+			{ID: "G-0901", Title: "Refactor leaves a seam", DiscoveredIn: "M-0902"},
 		},
 		Warnings: []statusFinding{
 			{
 				Code:     "gap-resolved-has-resolver",
-				EntityID: "G-902",
+				EntityID: "G-0902",
 				Path:     "work/gaps/G-902-fictional-fix.md",
 				Message:  "gap is marked addressed but addressed_by is empty",
 			},

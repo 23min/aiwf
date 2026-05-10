@@ -291,6 +291,70 @@ func TestTree_ByID(t *testing.T) {
 	}
 }
 
+// TestTree_ByID_AcceptsBothWidths is the AC-2 seam test: a tree
+// storing an entity at narrow width is found by a canonical-width
+// query, and a tree storing at canonical width is found by a
+// narrow-width query. The lookup canonicalizes both sides per
+// internal/entity/canonicalize.go::Canonicalize.
+//
+// Inputs intentionally use narrow forms (E-22, M-007, G-093, etc.):
+// these are the parser-tolerance cases by design — the tree-load
+// layer accepts the on-disk shape verbatim and the lookup canonicalizes.
+func TestTree_ByID_AcceptsBothWidths(t *testing.T) {
+	tests := []struct {
+		name   string
+		stored string
+		query  string
+	}{
+		{"narrow-stored-canonical-query-epic", "E-22", "E-0022"},
+		{"canonical-stored-narrow-query-epic", "E-0022", "E-22"},
+		{"narrow-stored-canonical-query-milestone", "M-007", "M-0007"},
+		{"canonical-stored-narrow-query-milestone", "M-0007", "M-007"},
+		{"narrow-stored-canonical-query-gap", "G-093", "G-0093"},
+		{"narrow-stored-canonical-query-decision", "D-005", "D-0005"},
+		{"narrow-stored-canonical-query-contract", "C-009", "C-0009"},
+		{"adr-already-canonical-both-sides", "ADR-0001", "ADR-0001"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kind, ok := entity.KindFromID(tt.stored)
+			if !ok {
+				t.Fatalf("KindFromID(%q) ok=false", tt.stored)
+			}
+			tr := &Tree{Entities: []*entity.Entity{{ID: tt.stored, Kind: kind}}}
+			got := tr.ByID(tt.query)
+			if got == nil || got.ID != tt.stored {
+				t.Errorf("ByID(%q) on tree storing %q = %v, want match", tt.query, tt.stored, got)
+			}
+			all := tr.ByIDAll(tt.query)
+			if len(all) != 1 || all[0].ID != tt.stored {
+				t.Errorf("ByIDAll(%q) = %v, want one match for %q", tt.query, all, tt.stored)
+			}
+		})
+	}
+}
+
+// TestTree_ByPriorID_AcceptsBothWidths exercises the prior-id lookup's
+// width tolerance — a query for the canonical form of a narrow legacy
+// id finds the entity that carries the narrow id in PriorIDs (and
+// vice versa).
+func TestTree_ByPriorID_AcceptsBothWidths(t *testing.T) {
+	g := &entity.Entity{
+		ID:       "G-0094",
+		Kind:     entity.KindGap,
+		PriorIDs: []string{"G-093"}, // narrow legacy lineage
+	}
+	tr := &Tree{Entities: []*entity.Entity{g}}
+	for _, q := range []string{"G-093", "G-0093"} {
+		if got := tr.ByPriorID(q); got != g {
+			t.Errorf("ByPriorID(%q) = %v, want G-0094", q, got)
+		}
+		if got := tr.ResolveByCurrentOrPriorID(q); got != g {
+			t.Errorf("ResolveByCurrentOrPriorID(%q) = %v, want G-0094", q, got)
+		}
+	}
+}
+
 func TestTree_ByPriorIDAndResolve(t *testing.T) {
 	// G-003 carries lineage [G-001, G-002] — two prior reallocations.
 	// Queries for any of the three should resolve to G-003 via
@@ -412,24 +476,31 @@ linked_adrs:
 		t.Fatal("ReverseRefs is nil; want non-nil map")
 	}
 
+	// On-disk fixtures use narrow widths (E-01, M-001, …) — that's
+	// the legacy shape the parser still tolerates. Per AC-2's
+	// lookup-seam rule, the reverse-ref map is keyed by canonical id
+	// and its value-slices carry canonical referrer ids regardless of
+	// on-disk width; ReferencedBy canonicalizes the query.
 	cases := []struct {
 		target string
 		want   []string
 	}{
 		// E-01 is referenced by both milestones (parent) AND by D-001 (relates_to).
-		{"E-01", []string{"D-001", "M-001", "M-002"}},
+		{"E-01", []string{"D-0001", "M-0001", "M-0002"}},
+		{"E-0001", []string{"D-0001", "M-0001", "M-0002"}}, // canonical query: same answer
 		// M-001 is referenced by M-002 (depends_on), G-001 (discovered_in),
 		// AND G-001 again via the composite-id rollup from G-001.addressed_by:M-001/AC-1.
 		// Dedup must collapse the two G-001 mentions into one entry.
-		{"M-001", []string{"G-001", "M-002"}},
+		{"M-001", []string{"G-0001", "M-0002"}},
 		// Composite key resolves to just G-001 (the addressed_by referrer).
-		{"M-001/AC-1", []string{"G-001"}},
+		{"M-001/AC-1", []string{"G-0001"}},
+		{"M-0001/AC-1", []string{"G-0001"}}, // canonical query: same answer
 		// M-002 is unreferenced.
 		{"M-002", nil},
 		// ADR-0001 is referenced by ADR-0002.supersedes.
 		{"ADR-0001", []string{"ADR-0002"}},
 		// ADR-0002 is referenced by ADR-0001.superseded_by AND C-001.linked_adrs.
-		{"ADR-0002", []string{"ADR-0001", "C-001"}},
+		{"ADR-0002", []string{"ADR-0001", "C-0001"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.target, func(t *testing.T) {

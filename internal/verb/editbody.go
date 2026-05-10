@@ -159,7 +159,8 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 func editBodyTrailers(id, actor string) []gitops.Trailer {
 	return []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "edit-body"},
-		{Key: gitops.TrailerEntity, Value: id},
+		// Canonical width per AC-1 in M-081.
+		{Key: gitops.TrailerEntity, Value: entity.Canonicalize(id)},
 		{Key: gitops.TrailerActor, Value: actor},
 	}
 }

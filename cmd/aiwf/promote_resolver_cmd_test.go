@@ -41,14 +41,14 @@ func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Platform"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Resolver"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Resolver"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
 	if out, err := runBin(t, root, binDir, nil, "add", "gap", "--title", "Hand-edit gap"); err != nil {
 		t.Fatalf("aiwf add gap: %v\n%s", err, out)
 	}
 
-	out, err := runBin(t, root, binDir, nil, "promote", "G-001", "addressed", "--by", "M-001")
+	out, err := runBin(t, root, binDir, nil, "promote", "G-0001", "addressed", "--by", "M-0001")
 	if err != nil {
 		t.Fatalf("aiwf promote --by: %v\n%s", err, out)
 	}
@@ -58,7 +58,7 @@ func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	hasTrailer(t, tr, "aiwf-verb", "promote")
-	hasTrailer(t, tr, "aiwf-entity", "G-001")
+	hasTrailer(t, tr, "aiwf-entity", "G-0001")
 	hasTrailer(t, tr, "aiwf-to", "addressed")
 
 	// Post-promote tree validates clean — the resolver write happened
@@ -148,8 +148,8 @@ func TestPromote_ByFlag_RejectsAuditOnlyCombination(t *testing.T) {
 	}
 
 	out, err := runBin(t, root, binDir, nil,
-		"promote", "G-001", "addressed",
-		"--by", "M-001",
+		"promote", "G-0001", "addressed",
+		"--by", "M-0001",
 		"--audit-only", "--reason", "should never get here")
 	if err == nil {
 		t.Fatalf("expected mutex refusal; got:\n%s", out)

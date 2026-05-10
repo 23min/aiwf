@@ -77,16 +77,16 @@ func TestScenario_TerminalPromoteEndsMultipleParallelScopes(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize 1: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "bot/ci"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "bot/ci"); err != nil {
 		t.Fatalf("authorize 2: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "active"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("promote active: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "promote", "E-01", "done"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "promote", "E-0001", "done"); err != nil {
 		t.Fatalf("promote done: %v\n%s", err, out)
 	}
 	tr, err := gitops.HeadTrailers(context.Background(), root)
@@ -97,7 +97,7 @@ func TestScenario_TerminalPromoteEndsMultipleParallelScopes(t *testing.T) {
 	openersOut, err := runGit(root, "log", "--reverse", "-E",
 		"--grep", "^aiwf-verb: authorize$",
 		"--grep", "^aiwf-scope: opened$",
-		"--grep", "^aiwf-entity: E-01$",
+		"--grep", "^aiwf-entity: E-0001$",
 		"--all-match",
 		"--pretty=tformat:%H")
 	if err != nil {
@@ -123,7 +123,7 @@ func TestScenario_TerminalPromoteEndsMultipleParallelScopes(t *testing.T) {
 	}
 
 	// `aiwf show E-01` reflects both scopes ended.
-	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-01")
+	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-0001")
 	if err != nil {
 		t.Fatalf("show E-01: %v\n%s", err, out)
 	}
@@ -154,21 +154,21 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 	for _, args := range [][]string{
 		{"add", "epic", "--title", "Engine"},
 		{"add", "epic", "--title", "Pipeline"},
-		{"add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Cache"},
-		{"add", "milestone", "--tdd", "none", "--epic", "E-02", "--title", "Sink"},
+		{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Cache"},
+		{"add", "milestone", "--tdd", "none", "--epic", "E-0002", "--title", "Sink"},
 	} {
 		if out, err := runBin(t, root, binDir, nil, args...); err != nil {
 			t.Fatalf("setup %v: %v\n%s", args, err, out)
 		}
 	}
 	// Open scope on E-01 and capture its SHA before any pivot.
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize E-01: %v\n%s", err, out)
 	}
 	e01AuthSHA := mustHeadSHA(t, root)
 	// Agent acts under E-01 scope.
 	if out, err := runBin(t, root, binDir, nil,
-		"promote", "M-001", "in_progress",
+		"promote", "M-0001", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("agent on M-001 (under E-01): %v\n%s", err, out)
 	}
@@ -176,16 +176,16 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 		t.Errorf("M-001 promote (under E-01) aiwf-authorized-by = %s, want %s", got, e01AuthSHA)
 	}
 	// Pause E-01, open E-02 (capture E-02's auth SHA before agent acts).
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--pause", "switching focus"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--pause", "switching focus"); err != nil {
 		t.Fatalf("pause E-01: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-02", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0002", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize E-02: %v\n%s", err, out)
 	}
 	e02AuthSHA := mustHeadSHA(t, root)
 	// Agent acts under E-02 scope; the commit must reference E-02's SHA.
 	if out, err := runBin(t, root, binDir, nil,
-		"promote", "M-002", "in_progress",
+		"promote", "M-0002", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("agent on M-002 (under E-02): %v\n%s", err, out)
 	}
@@ -193,15 +193,15 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 		t.Errorf("M-002 promote (under E-02) aiwf-authorized-by = %s, want %s", got, e02AuthSHA)
 	}
 	// Pause E-02, resume E-01.
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-02", "--pause", "back to E-01"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0002", "--pause", "back to E-01"); err != nil {
 		t.Fatalf("pause E-02: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--resume", "continuing E-01 work"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--resume", "continuing E-01 work"); err != nil {
 		t.Fatalf("resume E-01: %v\n%s", err, out)
 	}
 	// Cancel M-001 under the resumed E-01 scope; commit must reference E-01's SHA again.
 	if out, err := runBin(t, root, binDir, nil,
-		"cancel", "M-001",
+		"cancel", "M-0001",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("cancel M-001 under resumed E-01: %v\n%s", err, out)
 	}
@@ -244,7 +244,7 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 	for _, args := range [][]string{
 		{"add", "epic", "--title", "Decoy"},  // burn E-01 so reallocate has a target
 		{"add", "epic", "--title", "Engine"}, // E-02 — the one we'll reallocate
-		{"add", "milestone", "--tdd", "none", "--epic", "E-02", "--title", "Cache"},
+		{"add", "milestone", "--tdd", "none", "--epic", "E-0002", "--title", "Cache"},
 	} {
 		if out, err := runBin(t, root, binDir, nil, args...); err != nil {
 			t.Fatalf("setup %v: %v\n%s", args, err, out)
@@ -253,12 +253,12 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 	// Open scope on E-02 (the soon-to-be-reallocated epic) and capture
 	// the auth SHA so we can later verify the post-reallocate commit
 	// continues to reference it.
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-02", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0002", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
 	authSHA := mustHeadSHA(t, root)
 	// Reallocate E-02 — the kernel picks the next free id.
-	if out, err := runBin(t, root, binDir, nil, "reallocate", "E-02"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "reallocate", "E-0002"); err != nil {
 		t.Fatalf("reallocate: %v\n%s", err, out)
 	}
 	// Find what E-02 became. List epic dirs.
@@ -269,7 +269,7 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 	var newEpicID string
 	for _, e := range entries {
 		name := e.Name()
-		if strings.HasSuffix(name, "-engine") && !strings.HasPrefix(name, "E-02-") {
+		if strings.HasSuffix(name, "-engine") && !strings.HasPrefix(name, "E-0002-") {
 			parts := strings.SplitN(name, "-", 2)
 			newEpicID = parts[0]
 			break
@@ -278,14 +278,14 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 	if newEpicID == "" {
 		t.Fatalf("could not find renamed Engine epic in %v", entries)
 	}
-	if newEpicID == "E-02" {
+	if newEpicID == "E-0002" {
 		t.Fatalf("reallocate produced same id %s", newEpicID)
 	}
 
 	// Agent acts on M-001 (still its child). The chain E-02 → newEpicID
 	// must resolve so the act is allowed.
 	if out, err := runBin(t, root, binDir, nil,
-		"promote", "M-001", "in_progress",
+		"promote", "M-0001", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("agent verb after reallocate failed: %v\n%s", err, out)
 	}
@@ -361,7 +361,7 @@ func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
 	if err := os.WriteFile(lockPath, []byte("synthetic"), 0o644); err != nil {
 		t.Fatalf("create lock: %v", err)
 	}
-	out, lockErr := runBin(t, root, binDir, nil, "cancel", "G-001", "--reason", "test under lock")
+	out, lockErr := runBin(t, root, binDir, nil, "cancel", "G-0001", "--reason", "test under lock")
 	if lockErr == nil {
 		t.Fatalf("expected aiwf cancel to fail under lock contention; got success:\n%s", out)
 	}
@@ -376,7 +376,7 @@ func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
 	if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("remove lock: %v", err)
 	}
-	gapRel := mustFindFile(t, root, "G-001-")
+	gapRel := mustFindFile(t, root, "G-0001-")
 	if out, err := runGit(root, "add", gapRel); err != nil {
 		t.Fatalf("git add: %v\n%s", err, out)
 	}
@@ -392,10 +392,10 @@ func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
 	}
 	// Audit-only recovery records the audit trail.
 	if out, err := runBin(t, root, binDir, nil,
-		"cancel", "G-001", "--audit-only", "--reason", "lock contention recovery"); err != nil {
+		"cancel", "G-0001", "--audit-only", "--reason", "lock contention recovery"); err != nil {
 		t.Fatalf("aiwf cancel --audit-only: %v\n%s", err, out)
 	}
-	historyOut, err := runBin(t, root, binDir, nil, "history", "G-001")
+	historyOut, err := runBin(t, root, binDir, nil, "history", "G-0001")
 	if err != nil {
 		t.Fatalf("history: %v\n%s", err, historyOut)
 	}
@@ -420,20 +420,20 @@ func TestScenario_RepeatedPauseResumeCycle(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
 	for i, args := range [][]string{
-		{"authorize", "E-01", "--pause", "first pause"},
-		{"authorize", "E-01", "--resume", "first resume"},
-		{"authorize", "E-01", "--pause", "second pause"},
-		{"authorize", "E-01", "--resume", "second resume"},
+		{"authorize", "E-0001", "--pause", "first pause"},
+		{"authorize", "E-0001", "--resume", "first resume"},
+		{"authorize", "E-0001", "--pause", "second pause"},
+		{"authorize", "E-0001", "--resume", "second resume"},
 	} {
 		if out, err := runBin(t, root, binDir, nil, args...); err != nil {
 			t.Fatalf("step %d %v: %v\n%s", i, args, err, out)
 		}
 	}
-	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-01")
+	out, err := runBin(t, root, binDir, nil, "show", "--format=json", "E-0001")
 	if err != nil {
 		t.Fatalf("show: %v\n%s", err, out)
 	}
@@ -471,7 +471,7 @@ func TestScenario_AuthorizeWithOnBehalfOfNeutralAtCheck(t *testing.T) {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
 	// Open a real authorize commit so its SHA can be referenced.
-	if out, err := runBin(t, root, binDir, nil, "authorize", "E-01", "--to", "ai/claude"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
 	authSHAout, err := runGit(root, "rev-parse", "HEAD")

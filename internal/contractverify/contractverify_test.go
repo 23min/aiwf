@@ -61,12 +61,12 @@ func TestSubstitute_AppliesAllFourVariables(t *testing.T) {
 		"plain",
 	}
 	got := substitute(args,
-		aiwfyaml.Entry{ID: "C-001", Schema: "s.cue"},
+		aiwfyaml.Entry{ID: "C-0001", Schema: "s.cue"},
 		"v3", "fix.json")
 	want := []string{
 		"--schema=s.cue",
 		"--fixture=fix.json",
-		"--id=C-001",
+		"--id=C-0001",
 		"--version=v3",
 		"plain",
 	}
@@ -137,7 +137,7 @@ func TestRun_VerifyPassClean(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -158,7 +158,7 @@ func TestRun_FixtureRejected_OneFailingValid(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -188,7 +188,7 @@ func TestRun_FixtureAccepted_OneInvalidPasses(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -213,7 +213,7 @@ func TestRun_ValidatorError_AllValidsFail(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -243,7 +243,7 @@ func TestRun_EvolutionRegression(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -270,7 +270,7 @@ func TestRun_ValidatorUnavailable(t *testing.T) {
 			"fake": {Command: "/nonexistent/path/to/validator-binary", Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -280,7 +280,7 @@ func TestRun_ValidatorUnavailable(t *testing.T) {
 	if got[0].Code != CodeValidatorUnavailable {
 		t.Errorf("code = %q, want %q", got[0].Code, CodeValidatorUnavailable)
 	}
-	if got[0].EntityID != "C-001" {
+	if got[0].EntityID != "C-0001" {
 		t.Errorf("entity id = %q, want C-001", got[0].EntityID)
 	}
 	if !strings.Contains(got[0].Message, "fake") {
@@ -301,14 +301,14 @@ func TestRun_SkipsTerminalContracts(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{
-			{ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "f1"},
-			{ID: "C-002", Validator: "fake", Schema: "s", Fixtures: "f2"},
+			{ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "f1"},
+			{ID: "C-0002", Validator: "fake", Schema: "s", Fixtures: "f2"},
 		},
 	}
 	got := Run(context.Background(), Options{
 		RepoRoot:  repo,
 		Contracts: contracts,
-		SkipIDs:   map[string]bool{"C-001": true},
+		SkipIDs:   map[string]bool{"C-0001": true},
 	})
 	if len(got) != 0 {
 		t.Errorf("expected no findings (C-001 skipped, C-002 clean); got %+v", got)
@@ -328,7 +328,7 @@ func TestRun_EmptyFixturesDirSkippedSilently(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -348,7 +348,7 @@ func TestRun_NilContractsReturnsEmpty(t *testing.T) {
 
 func TestSubstitute_TokenAlone(t *testing.T) {
 	got := substitute([]string{"{{schema}}"},
-		aiwfyaml.Entry{ID: "C-001", Schema: "s.cue"}, "v1", "fix.json")
+		aiwfyaml.Entry{ID: "C-0001", Schema: "s.cue"}, "v1", "fix.json")
 	if got[0] != "s.cue" {
 		t.Errorf("token-alone substitution = %q, want %q", got[0], "s.cue")
 	}
@@ -362,12 +362,12 @@ func TestSubstitute_ConcatenatedAndRepeated(t *testing.T) {
 		"--id={{contract_id}}-v={{version}}",
 	}
 	got := substitute(args,
-		aiwfyaml.Entry{ID: "C-001", Schema: "s"}, "v1", "f")
+		aiwfyaml.Entry{ID: "C-0001", Schema: "s"}, "v1", "f")
 	want := []string{
 		"prefix=s.suffix",
 		"--schema=s --fixture=f",
 		"sf",
-		"--id=C-001-v=v1",
+		"--id=C-0001-v=v1",
 	}
 	for i := range want {
 		if got[i] != want[i] {
@@ -382,14 +382,14 @@ func TestSubstitute_LiteralBracesAreNotPlaceholders(t *testing.T) {
 	// this is essentially testing the replacer doesn't get confused
 	// by adjacent braces.)
 	got := substitute([]string{"echo {{}}"},
-		aiwfyaml.Entry{ID: "C-001", Schema: "s"}, "v1", "f")
+		aiwfyaml.Entry{ID: "C-0001", Schema: "s"}, "v1", "f")
 	if got[0] != "echo {{}}" {
 		t.Errorf("literal `{{}}` mutated to %q", got[0])
 	}
 }
 
 func TestSubstitute_EmptyArgsSlice(t *testing.T) {
-	got := substitute(nil, aiwfyaml.Entry{ID: "C-001"}, "v1", "f")
+	got := substitute(nil, aiwfyaml.Entry{ID: "C-0001"}, "v1", "f")
 	if got == nil || len(got) != 0 {
 		t.Errorf("substitute(nil) = %v, want empty slice", got)
 	}
@@ -408,7 +408,7 @@ func TestRun_NoReclassificationWhenZeroValidFixtures(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -430,7 +430,7 @@ func TestRun_NoReclassificationWhenSomeValidsPass(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -459,7 +459,7 @@ func TestRun_MultipleVersions_VerifyAndEvolve(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -499,7 +499,7 @@ exit 0
 			"fake": {Command: script, Args: []string{"{{fixture}}", "{{version}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	_ = Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -522,7 +522,7 @@ func TestRun_NonexistentFixturesDirSilent(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "ghost",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "ghost",
 		}},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -551,7 +551,7 @@ sleep 5
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "s", Fixtures: "fixtures",
 		}},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -601,7 +601,7 @@ func TestRun_DoesNotInvokeValidator_ForEscapedSchema(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "../../etc/passwd", Fixtures: "fixtures",
+			ID: "C-0001", Validator: "fake", Schema: "../../etc/passwd", Fixtures: "fixtures",
 		}},
 	}
 	_ = Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -640,7 +640,7 @@ func TestRun_DoesNotInvokeValidator_ForEscapedFixtures(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{{
-			ID: "C-001", Validator: "fake", Schema: "schema.cue", Fixtures: outside,
+			ID: "C-0001", Validator: "fake", Schema: "schema.cue", Fixtures: outside,
 		}},
 	}
 	_ = Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
@@ -666,26 +666,26 @@ func TestRun_MixedEntries_OnlyCleanOneVerifies(t *testing.T) {
 			"fake": {Command: script, Args: []string{"{{fixture}}"}},
 		},
 		Entries: []aiwfyaml.Entry{
-			{ID: "C-001", Validator: "fake", Schema: "../escape.cue", Fixtures: "fixtures"},
-			{ID: "C-002", Validator: "fake", Schema: "schema.cue", Fixtures: "fixtures"},
-			{ID: "C-003", Validator: "fake", Schema: "schema.cue", Fixtures: "../escape-fix"},
+			{ID: "C-0001", Validator: "fake", Schema: "../escape.cue", Fixtures: "fixtures"},
+			{ID: "C-0002", Validator: "fake", Schema: "schema.cue", Fixtures: "fixtures"},
+			{ID: "C-0003", Validator: "fake", Schema: "schema.cue", Fixtures: "../escape-fix"},
 		},
 	}
 	got := Run(context.Background(), Options{RepoRoot: repo, Contracts: contracts})
 	for _, r := range got {
-		if r.EntityID != "C-002" {
+		if r.EntityID != "C-0002" {
 			t.Errorf("only C-002 should produce findings; got %+v", r)
 		}
 	}
 	// And C-002 should produce its expected fixture-rejected for b.json.
 	found := false
 	for _, r := range got {
-		if r.EntityID == "C-002" && r.Code == CodeFixtureRejected {
+		if r.EntityID == "C-0002" && r.Code == CodeFixtureRejected {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("C-002's fixture-rejected finding missing; got %+v", got)
+		t.Errorf("C-0002's fixture-rejected finding missing; got %+v", got)
 	}
 }
 

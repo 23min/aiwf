@@ -38,7 +38,7 @@ func TestAddAC_BodyFile_BinaryEndToEnd(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Body milestone"); err != nil {
 		t.Fatalf("add milestone: %v\n%s", err, out)
 	}
 
@@ -55,7 +55,7 @@ func TestAddAC_BodyFile_BinaryEndToEnd(t *testing.T) {
 	}
 
 	out, err := runBin(t, root, binDir, nil,
-		"add", "ac", "M-001",
+		"add", "ac", "M-0001",
 		"--title", "First AC",
 		"--body-file", bodyPath)
 	if err != nil {
@@ -86,7 +86,7 @@ func TestAddAC_BodyFile_BinaryEndToEnd(t *testing.T) {
 	}
 	var sawEntity bool
 	for _, trailer := range tr {
-		if trailer.Key == "aiwf-entity" && trailer.Value == "M-001/AC-1" {
+		if trailer.Key == "aiwf-entity" && trailer.Value == "M-0001/AC-1" {
 			sawEntity = true
 		}
 	}
@@ -95,7 +95,7 @@ func TestAddAC_BodyFile_BinaryEndToEnd(t *testing.T) {
 	}
 
 	// Milestone file contains the AC heading and body content beneath it.
-	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-0001-*", "M-0001-*.md"))
 	if err != nil || len(matches) != 1 {
 		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
 	}
@@ -158,7 +158,7 @@ func TestAddAC_BodyFile_MultiAC_PositionalPairing(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Body milestone"); err != nil {
 		t.Fatalf("add milestone: %v\n%s", err, out)
 	}
 
@@ -185,7 +185,7 @@ func TestAddAC_BodyFile_MultiAC_PositionalPairing(t *testing.T) {
 	}
 
 	out, err := runBin(t, root, binDir, nil,
-		"add", "ac", "M-001",
+		"add", "ac", "M-0001",
 		"--title", "First AC",
 		"--body-file", body1Path,
 		"--title", "Second AC",
@@ -223,7 +223,7 @@ func TestAddAC_BodyFile_MultiAC_PositionalPairing(t *testing.T) {
 			entityTrailers = append(entityTrailers, trailer.Value)
 		}
 	}
-	wantEntities := []string{"M-001/AC-1", "M-001/AC-2"}
+	wantEntities := []string{"M-0001/AC-1", "M-0001/AC-2"}
 	if len(entityTrailers) != len(wantEntities) {
 		t.Fatalf("aiwf-entity trailers = %v, want %v", entityTrailers, wantEntities)
 	}
@@ -237,7 +237,7 @@ func TestAddAC_BodyFile_MultiAC_PositionalPairing(t *testing.T) {
 	// body content from the matching --body-file. Crucially: AC-1's
 	// section contains body1Text and not body2Text (and vice versa),
 	// so a swap of the pairing would be caught.
-	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-0001-*", "M-0001-*.md"))
 	if err != nil || len(matches) != 1 {
 		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
 	}
@@ -311,7 +311,7 @@ func TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Body milestone"); err != nil {
 		t.Fatalf("add milestone: %v\n%s", err, out)
 	}
 
@@ -340,7 +340,7 @@ func TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation(t *testing.T) {
 		{
 			name: "more titles than body files",
 			args: []string{
-				"add", "ac", "M-001",
+				"add", "ac", "M-0001",
 				"--title", "T1", "--title", "T2", "--title", "T3",
 				"--body-file", body1, "--body-file", body2,
 			},
@@ -350,7 +350,7 @@ func TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation(t *testing.T) {
 		{
 			name: "more body files than titles",
 			args: []string{
-				"add", "ac", "M-001",
+				"add", "ac", "M-0001",
 				"--title", "T1", "--title", "T2",
 				"--body-file", body1, "--body-file", body2, "--body-file", body1,
 			},
@@ -394,7 +394,7 @@ func TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation(t *testing.T) {
 		t.Errorf("commit count changed across refusal cases (%s -> %s); refusal must precede commit",
 			strings.TrimSpace(headBefore), strings.TrimSpace(headAfter))
 	}
-	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-0001-*", "M-0001-*.md"))
 	if err != nil || len(matches) != 1 {
 		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
 	}
@@ -436,7 +436,7 @@ func TestAddAC_BodyFile_LeadingFrontmatter_Refused(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Body milestone"); err != nil {
 		t.Fatalf("add milestone: %v\n%s", err, out)
 	}
 
@@ -472,7 +472,7 @@ func TestAddAC_BodyFile_LeadingFrontmatter_Refused(t *testing.T) {
 				t.Fatalf("write %s: %v", bodyPath, writeErr)
 			}
 			out, runErr := runBin(t, root, binDir, nil,
-				"add", "ac", "M-001",
+				"add", "ac", "M-0001",
 				"--title", "T",
 				"--body-file", bodyPath)
 			if runErr == nil {
@@ -502,7 +502,7 @@ func TestAddAC_BodyFile_LeadingFrontmatter_Refused(t *testing.T) {
 		t.Errorf("commit count changed across refusal cases (%s -> %s); refusal must precede commit",
 			strings.TrimSpace(headBefore), strings.TrimSpace(headAfter))
 	}
-	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-0001-*", "M-0001-*.md"))
 	if err != nil || len(matches) != 1 {
 		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
 	}
@@ -538,21 +538,21 @@ func TestAddAC_BodyFile_Stdin_SingleTitle_Succeeds(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Body milestone"); err != nil {
 		t.Fatalf("add milestone: %v\n%s", err, out)
 	}
 
 	stdinText := "Body piped from stdin.\n\nSpecific to AC-1.\n"
 
 	out, err := runBinStdin(t, root, binDir, strings.NewReader(stdinText),
-		"add", "ac", "M-001",
+		"add", "ac", "M-0001",
 		"--title", "Stdin AC",
 		"--body-file", "-")
 	if err != nil {
 		t.Fatalf("aiwf add ac --body-file -: %v\n%s", err, out)
 	}
 
-	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-0001-*", "M-0001-*.md"))
 	if err != nil || len(matches) != 1 {
 		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
 	}
@@ -602,7 +602,7 @@ func TestAddAC_BodyFile_Stdin_MultiTitle_Refused(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Body milestone"); err != nil {
 		t.Fatalf("add milestone: %v\n%s", err, out)
 	}
 
@@ -623,7 +623,7 @@ func TestAddAC_BodyFile_Stdin_MultiTitle_Refused(t *testing.T) {
 		{
 			name: "stdin used for every AC",
 			args: []string{
-				"add", "ac", "M-001",
+				"add", "ac", "M-0001",
 				"--title", "T1", "--title", "T2",
 				"--body-file", "-", "--body-file", "-",
 			},
@@ -634,7 +634,7 @@ func TestAddAC_BodyFile_Stdin_MultiTitle_Refused(t *testing.T) {
 			// "skip non-stdin path" arm of the inner check too.
 			name: "stdin mixed with a real file (stdin second)",
 			args: []string{
-				"add", "ac", "M-001",
+				"add", "ac", "M-0001",
 				"--title", "T1", "--title", "T2",
 				"--body-file", realFile, "--body-file", "-",
 			},
@@ -670,7 +670,7 @@ func TestAddAC_BodyFile_Stdin_MultiTitle_Refused(t *testing.T) {
 		t.Errorf("commit count changed across refusal cases (%s -> %s); refusal must precede commit",
 			strings.TrimSpace(headBefore), strings.TrimSpace(headAfter))
 	}
-	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-0001-*", "M-0001-*.md"))
 	if err != nil || len(matches) != 1 {
 		t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
 	}
@@ -704,13 +704,13 @@ func TestAddAC_NoBodyFile_LeavesBodyEmpty(t *testing.T) {
 	}{
 		{
 			name:    "single AC, no --body-file",
-			args:    []string{"add", "ac", "M-001", "--title", "Quick scaffold"},
+			args:    []string{"add", "ac", "M-0001", "--title", "Quick scaffold"},
 			wantACs: []string{"AC-1 — Quick scaffold"},
 		},
 		{
 			name: "multi AC, no --body-file",
 			args: []string{
-				"add", "ac", "M-001",
+				"add", "ac", "M-0001",
 				"--title", "First quick AC",
 				"--title", "Second quick AC",
 				"--title", "Third quick AC",
@@ -743,7 +743,7 @@ func TestAddAC_NoBodyFile_LeavesBodyEmpty(t *testing.T) {
 			if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
 				t.Fatalf("add epic: %v\n%s", err, out)
 			}
-			if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+			if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Body milestone"); err != nil {
 				t.Fatalf("add milestone: %v\n%s", err, out)
 			}
 
@@ -752,7 +752,7 @@ func TestAddAC_NoBodyFile_LeavesBodyEmpty(t *testing.T) {
 				t.Fatalf("aiwf add ac (no --body-file): %v\n%s", err, out)
 			}
 
-			matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+			matches, err := filepath.Glob(filepath.Join(root, "work", "epics", "E-0001-*", "M-0001-*.md"))
 			if err != nil || len(matches) != 1 {
 				t.Fatalf("glob milestone: matches=%v err=%v", matches, err)
 			}
@@ -823,12 +823,12 @@ func TestAddAC_BodyFile_MissingFile_ExitsUsage(t *testing.T) {
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Body epic"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-01", "--title", "Body milestone"); err != nil {
+	if out, err := runBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Body milestone"); err != nil {
 		t.Fatalf("add milestone: %v\n%s", err, out)
 	}
 
 	out, err := runBin(t, root, binDir, nil,
-		"add", "ac", "M-001",
+		"add", "ac", "M-0001",
 		"--title", "First AC",
 		"--body-file", filepath.Join(root, "definitely-not-a-file.md"))
 	if err == nil {
@@ -841,7 +841,7 @@ func TestAddAC_BodyFile_MissingFile_ExitsUsage(t *testing.T) {
 	}
 
 	// No AC was added — milestone should still have len(acs) == 0.
-	matches, _ := filepath.Glob(filepath.Join(root, "work", "epics", "E-01-*", "M-001-*.md"))
+	matches, _ := filepath.Glob(filepath.Join(root, "work", "epics", "E-0001-*", "M-0001-*.md"))
 	if len(matches) != 1 {
 		t.Fatalf("milestone glob: %v", matches)
 	}

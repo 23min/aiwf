@@ -137,8 +137,8 @@ No path overlaps. Both verbs can coexist in the same commit if needed (rare but 
 
 - **Tree is never strictly in convergence.** Between promotion and the next sweep, location and status diverge. Drift is bounded by the advisory finding + optional threshold; consumers who want strict convergence configure the threshold low.
 - **One more verb to learn** (`aiwf archive`). Marginal cognitive cost; the verb's semantics are obvious from the name and the dry-run-default discipline gives it natural safety.
-- **Merge edge cases.** Branch A archives G-018 (rename to `archive/`) while branch B edits G-018 in place. Git's rename detection usually handles this; occasionally produces a rename+modify conflict. Resolution is mechanical (take the rename, take the edit) but not zero-cost. Standard kernel pattern of "merge, run check, fix findings" handles this.
-- **Cross-references in body prose that use file paths (rather than ids) become stale when the target archives.** Standard kernel discipline already prefers id-form references; this ADR makes path-form references unambiguously brittle. **G-091** captures the work item for a preventive check rule; the existing post-hoc lychee CI workflow is the safety net in the meantime.
+- **Merge edge cases.** Branch A archives G-0018 (rename to `archive/`) while branch B edits G-0018 in place. Git's rename detection usually handles this; occasionally produces a rename+modify conflict. Resolution is mechanical (take the rename, take the edit) but not zero-cost. Standard kernel pattern of "merge, run check, fix findings" handles this.
+- **Cross-references in body prose that use file paths (rather than ids) become stale when the target archives.** Standard kernel discipline already prefers id-form references; this ADR makes path-form references unambiguously brittle. **G-0091** captures the work item for a preventive check rule; the existing post-hoc lychee CI workflow is the safety net in the meantime.
 - **Hand-edit drift in the wrong direction is a finding the operator must clean up by reverting status, not by re-locating.** A small UX friction the first time someone tries to "un-archive" an entity by editing frontmatter; documented in the Reversal section so the recovery is unambiguous.
 
 ## Alternatives considered
@@ -161,7 +161,7 @@ No path overlaps. Both verbs can coexist in the same commit if needed (rare but 
 - `internal/entity/transition.go::IsTerminal` — source of truth for terminal statuses per kind.
 - `internal/check/check.go::refsResolve`, `internal/entity/refs.go::ForwardRefs` — id-form ref resolution (archive-safe by id-resolution scope spanning active+archive).
 - Companion **ADR-0003** — `finding` (F-NNN) as a seventh entity kind; co-evolved alongside this ADR because findings are the highest-volume archive consumer.
-- Related **G-071** — `entity-body-empty` lifecycle-blindness; **closed by M-075** via status-gating (rule skips terminal-status entities and draft-milestone ACs). This ADR's location-gating (shape rules skip `archive/`) is an orthogonal defense-in-depth layer; once M-075 ships, terminal entities are skipped on status grounds before they're ever swept into archive.
-- Related **G-091** — body-prose path-form refs to entity files have no preventive check (filed as the natural follow-up to this ADR).
-- Related **G-092** — no documented hierarchy of doc authority across `docs/` (filed as the natural follow-up to this ADR's doc-archive-scope clarification).
+- Related **G-0071** — `entity-body-empty` lifecycle-blindness; **closed by M-0075** via status-gating (rule skips terminal-status entities and draft-milestone ACs). This ADR's location-gating (shape rules skip `archive/`) is an orthogonal defense-in-depth layer; once M-0075 ships, terminal entities are skipped on status grounds before they're ever swept into archive.
+- Related **G-0091** — body-prose path-form refs to entity files have no preventive check (filed as the natural follow-up to this ADR).
+- Related **G-0092** — no documented hierarchy of doc authority across `docs/` (filed as the natural follow-up to this ADR's doc-archive-scope clarification).
 - Precedent: `docs/pocv3/archive/gaps-pre-migration.md` — existing pre-migration text record archived under an explicit `archive/` folder.

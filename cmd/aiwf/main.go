@@ -141,7 +141,11 @@ func completeEntityIDs(filter entity.Kind) ([]string, cobra.ShellCompDirective) 
 		if filter != "" && e.Kind != filter {
 			continue
 		}
-		ids = append(ids, e.ID)
+		// Emit canonical ids so completion always offers the canonical
+		// width, regardless of on-disk filename width (AC-3 in M-081).
+		// Inputs at narrow width are still accepted everywhere
+		// downstream via tree.ByID's lookup-side canonicalization.
+		ids = append(ids, entity.Canonicalize(e.ID))
 	}
 	return ids, cobra.ShellCompDirectiveNoFileComp
 }
@@ -264,6 +268,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newEditBodyCmd())
 	cmd.AddCommand(newMoveCmd())
 	cmd.AddCommand(newReallocateCmd())
+	cmd.AddCommand(newRewidthCmd())
 	cmd.AddCommand(newInitCmd())
 	cmd.AddCommand(newUpdateCmd())
 	cmd.AddCommand(newUpgradeCmd())

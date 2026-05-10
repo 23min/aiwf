@@ -208,21 +208,24 @@ func buildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []
 		statuses = []string{status}
 	}
 	matched := tr.FilterByKindStatuses(entity.Kind(kind), statuses...)
+	canonParent := entity.Canonicalize(parent)
 
 	rows := make([]listSummary, 0, len(matched))
 	for _, e := range matched {
-		if parent != "" && e.Parent != parent {
+		if parent != "" && entity.Canonicalize(e.Parent) != canonParent {
 			continue
 		}
 		if !archived && entity.IsTerminal(e.Kind, e.Status) {
 			continue
 		}
+		// Emitted ids are canonical per AC-3 in M-081 — display
+		// surfaces are uniform-width regardless of on-disk filename.
 		rows = append(rows, listSummary{
-			ID:     e.ID,
+			ID:     entity.Canonicalize(e.ID),
 			Kind:   string(e.Kind),
 			Status: e.Status,
 			Title:  e.Title,
-			Parent: e.Parent,
+			Parent: entity.Canonicalize(e.Parent),
 			Path:   e.Path,
 		})
 	}

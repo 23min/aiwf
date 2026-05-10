@@ -21,7 +21,7 @@ func TestAdd_BodyFile_Epic(t *testing.T) {
 		BodyOverride: []byte(bodyText),
 	}))
 
-	got, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-01-body-file-epic", "epic.md"))
+	got, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-0001-body-file-epic", "epic.md"))
 	if err != nil {
 		t.Fatalf("read epic file: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestAdd_BodyFile_AllKinds(t *testing.T) {
 		glob string
 	}{
 		{"epic", entity.KindEpic, verb.AddOptions{}, "work/epics/E-*/epic.md"},
-		{"milestone", entity.KindMilestone, verb.AddOptions{EpicID: "E-01", TDD: "none"}, "work/epics/E-*/M-*.md"},
+		{"milestone", entity.KindMilestone, verb.AddOptions{EpicID: "E-0001", TDD: "none"}, "work/epics/E-*/M-*.md"},
 		{"adr", entity.KindADR, verb.AddOptions{}, "docs/adr/ADR-*.md"},
 		{"gap", entity.KindGap, verb.AddOptions{}, "work/gaps/G-*.md"},
 		{"decision", entity.KindDecision, verb.AddOptions{}, "work/decisions/D-*.md"},
@@ -105,7 +105,7 @@ func TestAdd_BodyFile_AbsencePreservesTemplate(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Default body", testActor, verb.AddOptions{}))
 
-	got, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-01-default-body", "epic.md"))
+	got, err := os.ReadFile(filepath.Join(r.root, "work", "epics", "E-0001-default-body", "epic.md"))
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}

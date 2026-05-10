@@ -194,8 +194,9 @@ var skillCoverageAllowlist = map[string]string{
 	"template": "trivial read-only; prints body-section template, --help suffices",
 
 	// Mutation-light verbs whose closed-set semantics are obvious from --help.
-	"cancel": "convenience wrapper over promote (cancel = promote-to-terminal); aiwf-promote skill covers the lifecycle",
-	"move":   "rare cross-epic milestone move; --help + the `aiwf-promote`/`aiwf-add` skills cover the surrounding flow",
+	"cancel":  "convenience wrapper over promote (cancel = promote-to-terminal); aiwf-promote skill covers the lifecycle",
+	"move":    "rare cross-epic milestone move; --help + the `aiwf-promote`/`aiwf-add` skills cover the surrounding flow",
+	"rewidth": "one-shot migration ritual per ADR-0008; --help is sufficient discovery surface (ADR-0006 'no skill when --help suffices' case)",
 
 	// Kind-namespace parent commands — non-Runnable; subverbs are documented elsewhere.
 	"milestone": "kind-namespace parent (subverb `depends-on` for cross-milestone deps); the surrounding `aiwf-add` and `aiwf-promote` skills cover the flow",

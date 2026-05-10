@@ -189,13 +189,15 @@ func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		return ShowView{}, false
 	}
 	body := readEntityBody(root, e.Path)
+	// Emit canonical ids per AC-3 in M-081 — display surfaces are
+	// uniform-width regardless of on-disk filename.
 	view := ShowView{
-		ID:           e.ID,
+		ID:           entity.Canonicalize(e.ID),
 		Kind:         string(e.Kind),
 		Title:        e.Title,
 		Status:       e.Status,
 		Path:         e.Path,
-		Parent:       e.Parent,
+		Parent:       entity.Canonicalize(e.Parent),
 		TDD:          e.TDD,
 		Body:         entity.ParseBodySections(body),
 		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
@@ -258,13 +260,14 @@ func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 		return ShowView{}, false
 	}
 	desc := entity.ParseACSections(readEntityBody(root, parent.Path))[found.ID]
+	// Emit canonical ids per AC-3 in M-081.
 	view := ShowView{
-		ID:       id,
+		ID:       entity.Canonicalize(id),
 		Kind:     "ac",
 		Title:    found.Title,
 		Status:   found.Status,
 		Path:     parent.Path,
-		ParentID: parentID,
+		ParentID: entity.Canonicalize(parentID),
 		AC: &ShowAC{
 			ID:          found.ID,
 			Title:       found.Title,
@@ -310,10 +313,11 @@ func limitEvents(events []HistoryEvent, limit int) []HistoryEvent {
 // the id OR whose Path matches the entity's path. For composite ids,
 // findings whose EntityID equals the composite id.
 func filterFindingsByID(all []check.Finding, id string, parent *entity.Entity) []check.Finding {
+	canon := entity.Canonicalize(id)
 	var out []check.Finding
 	for i := range all {
 		f := all[i]
-		if f.EntityID == id {
+		if entity.Canonicalize(f.EntityID) == canon {
 			out = append(out, f)
 			continue
 		}

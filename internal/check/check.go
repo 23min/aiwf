@@ -89,6 +89,11 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, acsTitleProse(t)...)
 	findings = append(findings, milestoneDoneIncompleteACs(t)...)
 	findings = append(findings, entityBodyEmpty(t)...)
+	// M-083 AC-1: drift-check rule for narrow-width ids in a mixed-
+	// state active tree. Per ADR-0008 §"Drift control", uniform trees
+	// (either all-narrow or all-canonical) are silent; only the mixed
+	// state fires.
+	findings = append(findings, entityIDNarrowWidth(t)...)
 	resolveLines(t.Root, findings)
 	applyHints(findings)
 	sortFindings(findings)
@@ -316,14 +321,23 @@ func idPathConsistent(t *tree.Tree) []Finding {
 		if !ok {
 			continue
 		}
-		if pathID == e.ID {
+		// Compare canonical forms so a tree mid-migration (path-name
+		// at narrow legacy width while frontmatter id lives at
+		// canonical width, or vice versa) is not flagged as a
+		// mismatch — per AC-2 in M-081 the parser tolerates both
+		// widths. M-082's `aiwf rewidth` realigns paths and ids
+		// once the consumer migrates.
+		if entity.Canonicalize(pathID) == entity.Canonicalize(e.ID) {
 			continue
 		}
 		findings = append(findings, Finding{
 			Code:     "id-path-consistent",
 			Severity: SeverityError,
+			// Render canonical ids in the user-facing message so
+			// the comparison is unambiguous regardless of on-disk
+			// width — AC-3 display canonicalization.
 			Message: fmt.Sprintf("frontmatter id %q does not match path-encoded id %q",
-				e.ID, pathID),
+				entity.Canonicalize(e.ID), entity.Canonicalize(pathID)),
 			Path:     e.Path,
 			EntityID: e.ID,
 			Field:    "id",
@@ -375,18 +389,24 @@ func statusValid(t *tree.Tree) []Finding {
 // path because composites aren't in the index — that's the intended
 // signal that composites aren't allowed there.
 func refsResolve(t *tree.Tree) []Finding {
+	// Index by canonical id so a narrow legacy reference (E-22) and a
+	// canonical reference (E-0022) both resolve to the same entity per
+	// AC-2's parser-tolerance rule. The stored ID on the entity stays
+	// as authored on disk; only the lookup key is canonicalized.
 	idx := make(map[string]*entity.Entity, len(t.Entities)+len(t.Stubs))
 	for _, e := range t.Entities {
-		if _, exists := idx[e.ID]; exists {
+		key := entity.Canonicalize(e.ID)
+		if _, exists := idx[key]; exists {
 			continue
 		}
-		idx[e.ID] = e
+		idx[key] = e
 	}
 	for _, e := range t.Stubs {
-		if _, exists := idx[e.ID]; exists {
+		key := entity.Canonicalize(e.ID)
+		if _, exists := idx[key]; exists {
 			continue
 		}
-		idx[e.ID] = e
+		idx[key] = e
 	}
 
 	var findings []Finding
@@ -399,7 +419,7 @@ func refsResolve(t *tree.Tree) []Finding {
 				}
 				continue
 			}
-			target, ok := idx[ref.Target]
+			target, ok := idx[entity.Canonicalize(ref.Target)]
 			if !ok {
 				findings = append(findings, Finding{
 					Code:     "refs-resolve",
@@ -446,7 +466,7 @@ func refsResolve(t *tree.Tree) []Finding {
 // confirmed entity.IsCompositeID(ref.Target) and len(ref.AllowedKinds) == 0.
 func resolveCompositeRef(e *entity.Entity, ref entity.ForwardRef, idx map[string]*entity.Entity) (Finding, bool) {
 	parent, sub, _ := entity.ParseCompositeID(ref.Target)
-	parentEntity, parentOK := idx[parent]
+	parentEntity, parentOK := idx[entity.Canonicalize(parent)]
 	if !parentOK {
 		return Finding{
 			Code:     "refs-resolve",

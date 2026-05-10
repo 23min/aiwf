@@ -26,7 +26,7 @@ func findingByCode(fs []Finding, code, subcode string) *Finding {
 
 func TestAcsShape_CleanMilestoneNoFindings(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo", Status: "in_progress", Parent: "E-01",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo", Status: "in_progress", Parent: "E-0001",
 		TDD: "required",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "First", Status: "open", TDDPhase: "red"},
@@ -42,7 +42,7 @@ func TestAcsShape_AbsentACsAndTDD(t *testing.T) {
 	// A pre-I2 milestone with no acs[] and no tdd: must produce no
 	// findings. This is the load-bearing backwards-compat assertion.
 	tr := makeTree(&entity.Entity{
-		ID: "M-001", Kind: entity.KindMilestone, Title: "Pre-I2", Status: "in_progress", Parent: "E-01",
+		ID: "M-0001", Kind: entity.KindMilestone, Title: "Pre-I2", Status: "in_progress", Parent: "E-0001",
 	})
 	if got := acsShape(tr); len(got) != 0 {
 		t.Errorf("absent acs/tdd should produce no findings, got: %+v", got)
@@ -88,8 +88,8 @@ func TestAcsShape_IDProblems(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := makeTree(&entity.Entity{
-				ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-				Status: "in_progress", Parent: "E-01", ACs: tt.acs,
+				ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+				Status: "in_progress", Parent: "E-0001", ACs: tt.acs,
 			})
 			got := acsShape(tr)
 			if findingByCode(got, "acs-shape", tt.wantSub) == nil {
@@ -142,8 +142,8 @@ func TestAcsShape_TitleStatusTDDPhaseAndPolicy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := makeTree(&entity.Entity{
-				ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-				Status: "in_progress", Parent: "E-01", TDD: tt.tdd,
+				ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+				Status: "in_progress", Parent: "E-0001", TDD: tt.tdd,
 				ACs: []entity.AcceptanceCriterion{tt.ac},
 			})
 			got := acsShape(tr)
@@ -156,8 +156,8 @@ func TestAcsShape_TitleStatusTDDPhaseAndPolicy(t *testing.T) {
 
 func TestAcsShape_TDDPolicyInvalid(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01", TDD: "strict",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001", TDD: "strict",
 	})
 	got := acsShape(tr)
 	if findingByCode(got, "acs-shape", "tdd-policy") == nil {
@@ -169,7 +169,7 @@ func TestAcsShape_NonMilestoneSkipped(t *testing.T) {
 	// Other kinds shouldn't produce AC findings even if their fields
 	// are populated (which the schema disallows but the struct permits).
 	tr := makeTree(&entity.Entity{
-		ID: "E-01", Kind: entity.KindEpic, Title: "Foo", Status: "active",
+		ID: "E-0001", Kind: entity.KindEpic, Title: "Foo", Status: "active",
 		ACs: []entity.AcceptanceCriterion{{ID: "AC-1", Title: "x", Status: "open"}},
 	})
 	if got := acsShape(tr); len(got) != 0 {
@@ -182,8 +182,8 @@ func TestAcsShape_PositionStableAcrossCancellation(t *testing.T) {
 	// be AC-3 (max+1, not gap-fill). This is the load-bearing
 	// position-stability assertion.
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "ok", Status: "met"},
 			{ID: "AC-2", Title: "cancelled", Status: "cancelled"},
@@ -198,8 +198,8 @@ func TestAcsShape_PositionStableAcrossCancellation(t *testing.T) {
 	// flagged as a position error because the position rule counts
 	// cancelled entries.
 	bad := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "ok", Status: "met"},
 			{ID: "AC-2", Title: "cancelled", Status: "cancelled"},
@@ -217,8 +217,8 @@ func TestAcsShape_PositionStableAcrossCancellation(t *testing.T) {
 // prose-y title surfaces as a warning so the human knows to refactor.
 func TestAcsTitleProse_FlagsLongTitle(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "**Full embedment inventory.** A machine-reviewable table enumerates every rule.", Status: "open"},
 		},
@@ -231,7 +231,7 @@ func TestAcsTitleProse_FlagsLongTitle(t *testing.T) {
 	if f.Severity != SeverityWarning {
 		t.Errorf("severity = %q, want warning", f.Severity)
 	}
-	if f.EntityID != "M-007/AC-1" {
+	if f.EntityID != "M-0007/AC-1" {
 		t.Errorf("entityID = %q, want M-007/AC-1", f.EntityID)
 	}
 }
@@ -241,8 +241,8 @@ func TestAcsTitleProse_FlagsLongTitle(t *testing.T) {
 // pass.
 func TestAcsTitleProse_ShortTitleClean(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "Engine emits warning on bad input", Status: "open"},
 		},
@@ -254,8 +254,8 @@ func TestAcsTitleProse_ShortTitleClean(t *testing.T) {
 
 func TestAcsTDDAudit_RequiredFiresAsError(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01", TDD: "required",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001", TDD: "required",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "x", Status: "met", TDDPhase: "green"},
 		},
@@ -270,15 +270,15 @@ func TestAcsTDDAudit_RequiredFiresAsError(t *testing.T) {
 	if got[0].Severity != SeverityError {
 		t.Errorf("severity = %q, want error", got[0].Severity)
 	}
-	if got[0].EntityID != "M-007/AC-1" {
+	if got[0].EntityID != "M-0007/AC-1" {
 		t.Errorf("entityID = %q, want M-007/AC-1", got[0].EntityID)
 	}
 }
 
 func TestAcsTDDAudit_AdvisoryFiresAsWarning(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01", TDD: "advisory",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001", TDD: "advisory",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "x", Status: "met", TDDPhase: "refactor"},
 		},
@@ -291,8 +291,8 @@ func TestAcsTDDAudit_AdvisoryFiresAsWarning(t *testing.T) {
 
 func TestAcsTDDAudit_NoneSkipped(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01", TDD: "none",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001", TDD: "none",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "x", Status: "met", TDDPhase: "green"},
 		},
@@ -302,8 +302,8 @@ func TestAcsTDDAudit_NoneSkipped(t *testing.T) {
 	}
 	// Same when tdd is absent.
 	tr2 := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "x", Status: "met", TDDPhase: "red"},
 		},
@@ -315,8 +315,8 @@ func TestAcsTDDAudit_NoneSkipped(t *testing.T) {
 
 func TestAcsTDDAudit_DonePassesUnderRequired(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01", TDD: "required",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001", TDD: "required",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "x", Status: "met", TDDPhase: "done"},
 		},
@@ -328,8 +328,8 @@ func TestAcsTDDAudit_DonePassesUnderRequired(t *testing.T) {
 
 func TestAcsTDDAudit_NonMetIgnored(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01", TDD: "required",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001", TDD: "required",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "x", Status: "open", TDDPhase: "red"},
 			{ID: "AC-2", Title: "x", Status: "deferred", TDDPhase: "green"},
@@ -342,8 +342,8 @@ func TestAcsTDDAudit_NonMetIgnored(t *testing.T) {
 
 func TestMilestoneDoneIncompleteACs_FiresOnOpen(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "done", Parent: "E-01",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "x", Status: "met"},
 			{ID: "AC-2", Title: "y", Status: "open"},
@@ -354,7 +354,7 @@ func TestMilestoneDoneIncompleteACs_FiresOnOpen(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}
-	if got[0].EntityID != "M-007" {
+	if got[0].EntityID != "M-0007" {
 		t.Errorf("entityID = %q, want M-007", got[0].EntityID)
 	}
 	// Message should list both open AC ids.
@@ -365,8 +365,8 @@ func TestMilestoneDoneIncompleteACs_FiresOnOpen(t *testing.T) {
 
 func TestMilestoneDoneIncompleteACs_TerminalACsAccepted(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "done", Parent: "E-01",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "x", Status: "met"},
 			{ID: "AC-2", Title: "y", Status: "deferred"},
@@ -380,8 +380,8 @@ func TestMilestoneDoneIncompleteACs_TerminalACsAccepted(t *testing.T) {
 
 func TestMilestoneDoneIncompleteACs_NotDoneSkipped(t *testing.T) {
 	tr := makeTree(&entity.Entity{
-		ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-		Status: "in_progress", Parent: "E-01",
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
 		ACs: []entity.AcceptanceCriterion{
 			{ID: "AC-1", Title: "x", Status: "open"},
 		},
@@ -431,8 +431,8 @@ prose
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-007", Kind: entity.KindMilestone, Title: "Engine",
-			Status: "in_progress", Parent: "E-03", TDD: "required",
+			ID: "M-0007", Kind: entity.KindMilestone, Title: "Engine",
+			Status: "in_progress", Parent: "E-0003", TDD: "required",
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "First", Status: "open", TDDPhase: "red"},
 				{ID: "AC-2", Title: "Second", Status: "open", TDDPhase: "red"},
@@ -474,8 +474,8 @@ only AC-1 has a body heading
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-			Status: "in_progress", Parent: "E-01",
+			ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+			Status: "in_progress", Parent: "E-0001",
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "First", Status: "open"},
 				{ID: "AC-2", Title: "Second", Status: "open"},
@@ -488,7 +488,7 @@ only AC-1 has a body heading
 	if f == nil {
 		t.Fatalf("expected acs-body-coherence/missing-heading; got: %+v", got)
 	}
-	if f.EntityID != "M-007/AC-2" {
+	if f.EntityID != "M-0007/AC-2" {
 		t.Errorf("entityID = %q, want M-007/AC-2", f.EntityID)
 	}
 }
@@ -521,8 +521,8 @@ no frontmatter entry for this one
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-			Status: "in_progress", Parent: "E-01",
+			ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+			Status: "in_progress", Parent: "E-0001",
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "First", Status: "open"},
 			},
@@ -572,8 +572,8 @@ acs:
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-			Status: "in_progress", Parent: "E-01",
+			ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+			Status: "in_progress", Parent: "E-0001",
 			ACs: []entity.AcceptanceCriterion{
 				{ID: "AC-1", Title: "emdash", Status: "open"},
 				{ID: "AC-2", Title: "hyphen", Status: "open"},
@@ -614,8 +614,8 @@ prose
 	tr := &tree.Tree{
 		Root: root,
 		Entities: []*entity.Entity{{
-			ID: "M-007", Kind: entity.KindMilestone, Title: "Foo",
-			Status: "in_progress", Parent: "E-01",
+			ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+			Status: "in_progress", Parent: "E-0001",
 			ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "Frontmatter title", Status: "open"}},
 			Path: mPath,
 		}},
@@ -627,15 +627,15 @@ prose
 
 func TestRefsResolve_CompositeIDInAddressedBy(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Status: "active", Path: "epic.md"},
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Status: "active", Path: "epic.md"},
 		&entity.Entity{
-			ID: "M-007", Kind: entity.KindMilestone, Status: "in_progress", Parent: "E-01", Path: "m.md",
+			ID: "M-0007", Kind: entity.KindMilestone, Status: "in_progress", Parent: "E-0001", Path: "m.md",
 			ACs: []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
 		},
 		// Gap addressing AC-1 via the composite id.
 		&entity.Entity{
-			ID: "G-001", Kind: entity.KindGap, Status: "open",
-			AddressedBy: []string{"M-007/AC-1"},
+			ID: "G-0001", Kind: entity.KindGap, Status: "open",
+			AddressedBy: []string{"M-0007/AC-1"},
 			Path:        "gap.md",
 		},
 	)
@@ -647,8 +647,8 @@ func TestRefsResolve_CompositeIDInAddressedBy(t *testing.T) {
 func TestRefsResolve_CompositeUnresolvedMilestone(t *testing.T) {
 	tr := makeTree(
 		&entity.Entity{
-			ID: "G-001", Kind: entity.KindGap, Status: "open",
-			AddressedBy: []string{"M-007/AC-1"},
+			ID: "G-0001", Kind: entity.KindGap, Status: "open",
+			AddressedBy: []string{"M-0007/AC-1"},
 			Path:        "gap.md",
 		},
 	)
@@ -660,14 +660,14 @@ func TestRefsResolve_CompositeUnresolvedMilestone(t *testing.T) {
 
 func TestRefsResolve_CompositeUnresolvedAC(t *testing.T) {
 	tr := makeTree(
-		&entity.Entity{ID: "E-01", Kind: entity.KindEpic, Status: "active", Path: "epic.md"},
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Status: "active", Path: "epic.md"},
 		&entity.Entity{
-			ID: "M-007", Kind: entity.KindMilestone, Status: "in_progress", Parent: "E-01", Path: "m.md",
+			ID: "M-0007", Kind: entity.KindMilestone, Status: "in_progress", Parent: "E-0001", Path: "m.md",
 			ACs: []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
 		},
 		&entity.Entity{
-			ID: "D-001", Kind: entity.KindDecision, Status: "accepted",
-			RelatesTo: []string{"M-007/AC-99"},
+			ID: "D-0001", Kind: entity.KindDecision, Status: "accepted",
+			RelatesTo: []string{"M-0007/AC-99"},
 			Path:      "d.md",
 		},
 	)
@@ -683,8 +683,8 @@ func TestRefsResolve_CompositeRejectedOnClosedTargetField(t *testing.T) {
 	// finding (the composite isn't in the index), not a special path.
 	tr := makeTree(
 		&entity.Entity{
-			ID: "M-007", Kind: entity.KindMilestone, Status: "in_progress",
-			Parent: "M-001/AC-1", // composite — not allowed for parent
+			ID: "M-0007", Kind: entity.KindMilestone, Status: "in_progress",
+			Parent: "M-0001/AC-1", // composite — not allowed for parent
 			Path:   "m.md",
 		},
 	)
