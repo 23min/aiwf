@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Idempotent and deterministic on canonical tree
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Apply aiwf rewidth to this repo at wrap
