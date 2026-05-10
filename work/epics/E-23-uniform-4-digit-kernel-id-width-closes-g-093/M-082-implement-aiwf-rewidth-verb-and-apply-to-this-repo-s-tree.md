@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Active-tree file rename to canonical width
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: In-body reference rewrite for narrow ids
