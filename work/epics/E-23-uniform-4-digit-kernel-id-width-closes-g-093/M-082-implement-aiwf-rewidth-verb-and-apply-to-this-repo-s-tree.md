@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Active-tree file rename to canonical width
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: In-body reference rewrite for narrow ids
       status: open
