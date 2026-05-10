@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Re-running aiwf archive --apply on a clean tree is a no-op
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Per-kind storage layout follows ADR-0004 storage table
       status: open
