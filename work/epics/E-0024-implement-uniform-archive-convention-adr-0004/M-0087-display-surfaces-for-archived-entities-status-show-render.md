@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: aiwf render index page links active-default and full-set per-kind pages
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-7
       title: aiwf render emits per-kind all.html showing the full active+archived set
       status: open
