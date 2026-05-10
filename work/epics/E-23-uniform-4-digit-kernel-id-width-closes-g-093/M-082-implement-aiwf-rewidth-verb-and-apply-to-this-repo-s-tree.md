@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: In-body reference rewrite for narrow ids
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Idempotent and deterministic on canonical tree
       status: open
