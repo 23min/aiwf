@@ -38,7 +38,7 @@ acs:
     - id: AC-8
       title: aiwf render emits per-entity pages for archived entities so deep links resolve
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-9
       title: aiwf history walks across an aiwf-verb=archive sweep rename
       status: met
