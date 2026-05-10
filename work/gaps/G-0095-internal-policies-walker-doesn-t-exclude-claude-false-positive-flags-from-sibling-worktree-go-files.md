@@ -1,7 +1,9 @@
 ---
 id: G-0095
 title: internal/policies/ walker doesn't exclude .claude/ — false-positive flags from sibling worktree .go files
-status: open
+status: addressed
+addressed_by_commit:
+    - f3810cb
 ---
 ## Problem
 
