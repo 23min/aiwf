@@ -10,7 +10,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Drift-check rule entity-id-narrow-width with tree-state detection
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Normative docs amended for canonical 4-digit policy
