@@ -15,6 +15,10 @@ acs:
       title: aiwf archive --apply --kind gap scopes the sweep to one kind only
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: 'aiwf archive --apply produces one commit with aiwf-verb: archive trailer'
+      status: open
+      tdd_phase: red
 ---
 
 # M-0085 — `aiwf archive` verb (dry-run default, `--apply`, `--kind`)
@@ -103,4 +107,6 @@ Intended landing zone:
 ### AC-1 — aiwf archive (no flags) prints planned moves and exits without touching the tree
 
 ### AC-2 — aiwf archive --apply --kind gap scopes the sweep to one kind only
+
+### AC-3 — aiwf archive --apply produces one commit with aiwf-verb: archive trailer
 
