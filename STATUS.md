@@ -4,7 +4,28 @@ _208 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
-_(no active epics)_
+### E-0023 — Uniform 4-digit kernel ID width (closes G-0093) _(active)_
+
+- ✓ **M-0081** — Canonical 4-digit IDs in parser, renderer, and allocator _(done)_ — ACs 6/6 met — tdd: required
+- ✓ **M-0082** — Implement aiwf rewidth verb and apply to this repo's tree _(done)_ — ACs 5/5 met — tdd: required
+- ✓ **M-0083** — Drift check, normative-doc amendments, and skill content refresh _(done)_ — ACs 5/5 met — tdd: required
+
+```mermaid
+flowchart LR
+  E_0023["E-0023<br/>Uniform 4-digit kernel ID width (closes G-0093)"]:::epic_active
+  M_0081["M-0081 (6/6)<br/>Canonical 4-digit IDs in parser, renderer, and allocator"]:::ms_done
+  E_0023 --> M_0081
+  M_0082["M-0082 (5/5)<br/>Implement aiwf rewidth verb and apply to this repo's tree"]:::ms_done
+  E_0023 --> M_0082
+  M_0083["M-0083 (5/5)<br/>Drift check, normative-doc amendments, and skill content refresh"]:::ms_done
+  E_0023 --> M_0083
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Roadmap
 
@@ -37,29 +58,6 @@ flowchart LR
 ### E-0019 — Parallel TDD subagents with finding-gated AC closure _(proposed)_
 
 _(no milestones)_
-
-### E-0023 — Uniform 4-digit kernel ID width (closes G-0093) _(proposed)_
-
-- ✓ **M-0081** — Canonical 4-digit IDs in parser, renderer, and allocator _(done)_ — ACs 6/6 met — tdd: required
-- ✓ **M-0082** — Implement aiwf rewidth verb and apply to this repo's tree _(done)_ — ACs 5/5 met — tdd: required
-- ✓ **M-0083** — Drift check, normative-doc amendments, and skill content refresh _(done)_ — ACs 5/5 met — tdd: required
-
-```mermaid
-flowchart LR
-  E_0023["E-0023<br/>Uniform 4-digit kernel ID width (closes G-0093)"]:::epic_proposed
-  M_0081["M-0081 (6/6)<br/>Canonical 4-digit IDs in parser, renderer, and allocator"]:::ms_done
-  E_0023 --> M_0081
-  M_0082["M-0082 (5/5)<br/>Implement aiwf rewidth verb and apply to this repo's tree"]:::ms_done
-  E_0023 --> M_0082
-  M_0083["M-0083 (5/5)<br/>Drift check, normative-doc amendments, and skill content refresh"]:::ms_done
-  E_0023 --> M_0083
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
 
 ## Open decisions
 
@@ -114,9 +112,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote G-0093 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote ADR-0008 proposed -> accepted |
 | 2026-05-10 | human/peter | wrap | feat(aiwf): drift-check rule, normative-doc amendments, skill content refresh (M-0083) |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0083 in_progress -> done |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0083/AC-4 open -> met |
 
