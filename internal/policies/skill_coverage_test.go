@@ -397,10 +397,12 @@ func mustHaveViolation(t *testing.T, vs []Violation, needle string) {
 // docs/pocv3/plans/contracts-plan.md and aiwf-contract/SKILL.md
 // specifically. This test pins the fix.
 //
-// Scoped narrowly: only the two files M-072 AC-8 sweeps. Other files
-// where this form might appear are out-of-scope (G-086 tracks
-// docs/pocv3/contracts.md separately). When G-086 closes, extend the
-// site list here rather than diluting the scoping.
+// G-086 extended the watched set to docs/pocv3/contracts.md (a third
+// drift-class file M-072 AC-8 didn't reach). The flag-form mentions
+// (`aiwf list contracts --drifted` etc.) were deleted outright in the
+// same sweep — they were speculative future axes, not today's V1
+// surface (M-072 ships `--kind`, `--status`, `--parent`, `--archived`,
+// `--format`, `--pretty`).
 func TestNoReintroducedDeadVerbForms_ContractsAndSkill(t *testing.T) {
 	root := repoRootForFile(t)
 
@@ -418,6 +420,7 @@ func TestNoReintroducedDeadVerbForms_ContractsAndSkill(t *testing.T) {
 	sites := []string{
 		"docs/pocv3/plans/contracts-plan.md",
 		"internal/skills/embedded/aiwf-contract/SKILL.md",
+		"docs/pocv3/contracts.md",
 	}
 
 	for _, site := range sites {

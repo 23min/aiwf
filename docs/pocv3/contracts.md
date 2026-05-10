@@ -36,7 +36,6 @@ A third term is reserved for engine internals: **boundary contracts** are the YA
 - Lifecycle events: `contract.proposed`, `contract.ratified`, `contract.evolved`, `contract.deprecated`, `contract.retired`, `contract.verified`, `contract.drift_detected`.
 - The contract registry projection — a derived index. Auto-rendered from events on demand.
 - One new verb: `aiwf contract verify [<id>]`.
-- Filter flags on the generic `list` verb (`--drifted`, `--verified-status`, `--linked-adr`, `--untouched-since`).
 - Structured `## Contract matrix changes` milestone-spec section (closed-set keys: `added`, `updated`, `retired`).
 - A wrap-hook surface for repo-supplied verifiers — documented input event, documented output finding shape, exit-code semantics. The engine invokes; it does not validate.
 - Live-source path drift detection (file-level in this plan; symbol-level once the read-side reference-resolution lens lands).
@@ -95,7 +94,7 @@ The recipes below are the unit of choice the user presents to an LLM: "follow re
 Generic verbs (already in the engine's design — contracts come along for free):
 
 ```
-aiwf list contracts [--filter ...]   # registry view
+aiwf list --kind contract             # registry view
 aiwf show C-0042                      # full record + lifecycle
 aiwf history C-0042                   # events filtered to this entity
 aiwf render contracts                 # auto-derived contract matrix → CONTRACTS.md
@@ -108,14 +107,7 @@ aiwf contract verify [<C-id>]         # dispatches to the registered hook(s);
                                       # without an id, runs every contract that has one
 ```
 
-That's it. Status, filtering, and matrix rendering all flow through generic verbs. Filter flags do the slicing:
-
-```
-aiwf list contracts --drifted               # live_source missing or stale
-aiwf list contracts --verified-status fail  # last verify failed
-aiwf list contracts --linked-adr ADR-0042   # everything that ADR created
-aiwf list contracts --untouched-since 30d   # candidates for review
-```
+That's it. Status and matrix rendering flow through generic verbs.
 
 Don't add `aiwf contract status`, `aiwf contract list`, or `aiwf contract matrix`. They duplicate generic verbs and break symmetry across kinds.
 
@@ -123,7 +115,7 @@ Don't add `aiwf contract status`, `aiwf contract list`, or `aiwf contract matrix
 
 ## 6. Projection columns
 
-`aiwf list contracts` shows these by default:
+`aiwf list --kind contract` shows these by default:
 
 | Column | Source |
 |---|---|
@@ -171,15 +163,14 @@ Do not wire validation yet.
 **Steps:**
 1. Identify the live-source path — the single file that is the authoritative shape of this contract.
 2. Update the contract entity to set `live_source: <path>`.
-3. Confirm: `aiwf list contracts --drifted` returns nothing if the path exists.
+3. Confirm with `aiwf show C-NNNN` that `live_source` is set to the expected path.
 
 **LLM prompt:**
 ```
 For contract C-NNNN, the authoritative source is <path>.
 Please:
 1. Set live_source on the contract entity to that path.
-2. Run `aiwf list contracts --drifted` and show me the output.
-3. If the contract appears as drifted, explain why before fixing.
+2. Run `aiwf show C-NNNN` and show me the live_source field.
 ```
 
 ### Recipe C — Add matrix discipline to milestones
@@ -293,7 +284,7 @@ description: |
 ---
 
 ## When invoked with no arguments
-Run `aiwf list contracts` and ask the user what they want to do:
+Run `aiwf list --kind contract` and ask the user what they want to do:
 - Track a new contract (Recipe A)
 - Add drift detection to an existing one (Recipe B)
 - Add matrix discipline (Recipe C)
@@ -326,7 +317,7 @@ Each increment is independently shippable and independently useful. They have a 
 
 | Increment | Scope | Depends on |
 |---|---|---|
-| **I1 — Capabilities Track + Drift** | Contract entity gets `live_source` field. List columns (`live_source_exists`, `drift`). `--drifted` filter. Recipes A, B, F + `contract` skill (initial form). C- prefix locked in `architecture.md`. | PoC `contract` entity exists |
+| **I1 — Capabilities Track + Drift** | Contract entity gets `live_source` field. List columns (`live_source_exists`, `drift`). Recipes A, B, F + `contract` skill (initial form). C- prefix locked in `architecture.md`. | PoC `contract` entity exists |
 | **I2 — Matrix discipline** | Structured `## Contract matrix changes` milestone-spec section. Plan-time validator. Wrap-time registry-presence check. `aiwf render contracts` for matrix output. Recipe C. | I1 |
 | **I3 — Verifier hook surface** | `.aiwf/hooks.yaml` with `contract_verifiers` section. `aiwf contract verify [<id>]` verb. `verifier` block on entity. `contract.verified` events. Documented hook input/output contract. Recipes D and E. | I1 |
 | **I4 — Symbol-level live source** | Once the read-side reference-resolution lens lands, `live_source` accepts symbol UIDs (e.g. `tools/internal/eventlog.go#Append`). Drift detection extends to symbol renames. | I1 + read-side reference-resolution |

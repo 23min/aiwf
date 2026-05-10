@@ -755,19 +755,22 @@ func TestMaterialize_PreservesNonAiwfDirs(t *testing.T) {
 
 func TestGitignorePatterns(t *testing.T) {
 	got := GitignorePatterns()
-	if len(got) != 2 {
-		t.Fatalf("got %d patterns, want 2 (wildcard + manifest); got %v", len(got), got)
+	if len(got) != 3 {
+		t.Fatalf("got %d patterns, want 3 (wildcard + manifest + binary); got %v", len(got), got)
 	}
 	wantWildcard := SkillsDir + "/aiwf-*/"
 	wantManifest := SkillsDir + "/" + ManifestFile
+	wantBinary := "/aiwf"
 
-	var sawWildcard, sawManifest bool
+	var sawWildcard, sawManifest, sawBinary bool
 	for _, p := range got {
 		switch p {
 		case wantWildcard:
 			sawWildcard = true
 		case wantManifest:
 			sawManifest = true
+		case wantBinary:
+			sawBinary = true
 		default:
 			t.Errorf("unexpected pattern %q", p)
 		}
@@ -778,7 +781,33 @@ func TestGitignorePatterns(t *testing.T) {
 	if !sawManifest {
 		t.Errorf("missing manifest entry %q (otherwise .aiwf-owned would land in git commits)", wantManifest)
 	}
+	if !sawBinary {
+		t.Errorf("missing binary entry %q (G-0057: bare `go build ./cmd/aiwf` drops a binary at repo root that must not land in commits)", wantBinary)
+	}
 	if !strings.HasSuffix(wantWildcard, "/") {
 		t.Errorf("wildcard %q should end with / so it only matches directories", wantWildcard)
 	}
+	if !strings.HasPrefix(wantBinary, "/") {
+		t.Errorf("binary entry %q should start with / so it only anchors to repo root (cmd/aiwf/ stays trackable)", wantBinary)
+	}
+}
+
+// TestGitignorePatterns_BinaryWrittenByInit pins G-0057's load-bearing
+// claim: a fresh `aiwf init` writes `/aiwf` into the consumer's
+// .gitignore. The unit test on GitignorePatterns above asserts the
+// helper returns the pattern; this test asserts the seam to
+// ensureGitignore actually writes it. Without the seam test, a future
+// refactor could drop the pattern from the iteration without breaking
+// the helper-level test.
+//
+// Lives next to TestGitignorePatterns rather than in initrepo_test.go
+// because the assertion is about what skills.GitignorePatterns()
+// promises to its caller, not about ensureGitignore's other branches.
+func TestGitignorePatterns_BinaryEntryListed(t *testing.T) {
+	for _, p := range GitignorePatterns() {
+		if p == "/aiwf" {
+			return
+		}
+	}
+	t.Errorf("/aiwf missing from GitignorePatterns(); ensureGitignore won't reconcile it on aiwf init / aiwf update (G-0057)")
 }

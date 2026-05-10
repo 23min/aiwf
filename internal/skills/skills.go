@@ -188,11 +188,19 @@ func writeManifest(skillsRoot string, skills []Skill) error {
 }
 
 // GitignorePatterns returns the .gitignore lines that mask aiwf-
-// materialized state in the consumer repo. Two entries: a directory
-// wildcard that catches every aiwf-* skill dir (present and future),
-// and the ownership manifest. The wildcard is what makes the .gitignore
-// future-proof — adding a new embedded skill no longer requires every
-// consumer to re-run `aiwf init` to refresh their .gitignore (G19).
+// materialized state and aiwf build artifacts in the consumer repo.
+// Three entries:
+//   - a directory wildcard that catches every aiwf-* skill dir
+//     (present and future).
+//   - the ownership manifest.
+//   - `/aiwf` — a stray binary `go build ./cmd/aiwf` drops at the
+//     consumer's repo root (G-0057). The leading slash anchors to
+//     repo root so `cmd/aiwf/` and any future package named `aiwf`
+//     stay trackable.
+//
+// The wildcard is what makes the .gitignore future-proof — adding a
+// new embedded skill no longer requires every consumer to re-run
+// `aiwf init` to refresh their .gitignore (G19).
 //
 // The trailing slash on the wildcard restricts the match to
 // directories, so a non-aiwf file accidentally named like `aiwf-x.md`
@@ -201,5 +209,6 @@ func GitignorePatterns() []string {
 	return []string{
 		SkillsDir + "/aiwf-*/",
 		SkillsDir + "/" + ManifestFile,
+		"/aiwf",
 	}
 }
