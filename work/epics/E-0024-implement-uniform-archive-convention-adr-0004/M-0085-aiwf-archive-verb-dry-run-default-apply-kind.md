@@ -23,6 +23,10 @@ acs:
       title: Re-running aiwf archive --apply on a clean tree is a no-op
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Per-kind storage layout follows ADR-0004 storage table
+      status: open
+      tdd_phase: red
 ---
 
 # M-0085 — `aiwf archive` verb (dry-run default, `--apply`, `--kind`)
@@ -115,4 +119,6 @@ Intended landing zone:
 ### AC-3 — aiwf archive --apply produces one commit with aiwf-verb: archive trailer
 
 ### AC-4 — Re-running aiwf archive --apply on a clean tree is a no-op
+
+### AC-5 — Per-kind storage layout follows ADR-0004 storage table
 
