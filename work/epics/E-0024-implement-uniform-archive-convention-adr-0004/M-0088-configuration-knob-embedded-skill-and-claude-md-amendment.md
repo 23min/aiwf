@@ -6,6 +6,39 @@ parent: E-0024
 depends_on:
     - M-0087
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf.yaml schema accepts archive.sweep_threshold int; default unset
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: archive-sweep-pending escalates to blocking past threshold
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: aiwf-archive SKILL.md exists with valid frontmatter and required sections
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: skill_coverage allowlist drops aiwf-archive entry
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: skill-coverage policy green and SKILL.md sections structurally pinned
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: CLAUDE.md What-aiwf-commits-to gains archive-convention item
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: aiwf archive --help shows usage, flags, examples for dry-run, apply, kind
+      status: open
+      tdd_phase: red
+    - id: AC-8
+      title: Kernel-tree migration test stays green under unset threshold
+      status: open
+      tdd_phase: red
 ---
 
 # M-0088 — Configuration knob, embedded skill, and CLAUDE.md amendment
@@ -88,3 +121,20 @@ Intended landing zone:
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — aiwf.yaml schema accepts archive.sweep_threshold int; default unset
+
+### AC-2 — archive-sweep-pending escalates to blocking past threshold
+
+### AC-3 — aiwf-archive SKILL.md exists with valid frontmatter and required sections
+
+### AC-4 — skill_coverage allowlist drops aiwf-archive entry
+
+### AC-5 — skill-coverage policy green and SKILL.md sections structurally pinned
+
+### AC-6 — CLAUDE.md What-aiwf-commits-to gains archive-convention item
+
+### AC-7 — aiwf archive --help shows usage, flags, examples for dry-run, apply, kind
+
+### AC-8 — Kernel-tree migration test stays green under unset threshold
+
