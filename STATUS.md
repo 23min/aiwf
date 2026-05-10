@@ -132,9 +132,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add ac M-0088 AC-1..AC-8 (8 criteria) |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088 draft -> in_progress |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-7 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-6 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-5 open -> met |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0087/AC-7 met -> open |
 
