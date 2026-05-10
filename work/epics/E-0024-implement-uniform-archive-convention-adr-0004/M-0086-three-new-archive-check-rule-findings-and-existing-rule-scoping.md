@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: terminal-entity-not-archived fires advisory per terminal in active dir
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: archive-sweep-pending aggregates the count of pending sweeps
