@@ -11,6 +11,10 @@ acs:
       title: aiwf archive (no flags) prints planned moves and exits without touching the tree
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: aiwf archive --apply --kind gap scopes the sweep to one kind only
+      status: open
+      tdd_phase: red
 ---
 
 # M-0085 — `aiwf archive` verb (dry-run default, `--apply`, `--kind`)
@@ -97,4 +101,6 @@ Intended landing zone:
 - (none)
 
 ### AC-1 — aiwf archive (no flags) prints planned moves and exits without touching the tree
+
+### AC-2 — aiwf archive --apply --kind gap scopes the sweep to one kind only
 
