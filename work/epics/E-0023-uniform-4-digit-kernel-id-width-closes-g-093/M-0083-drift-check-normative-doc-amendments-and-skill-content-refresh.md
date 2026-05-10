@@ -1,7 +1,7 @@
 ---
 id: M-0083
 title: Drift check, normative-doc amendments, and skill content refresh
-status: draft
+status: in_progress
 parent: E-0023
 depends_on:
     - M-0081
