@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Apply aiwf rewidth to this repo at wrap
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
