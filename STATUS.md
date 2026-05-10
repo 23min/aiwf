@@ -79,7 +79,6 @@ _(no milestones)_
 | G-0090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-0079 |
 | G-0091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
-| G-0094 | GitHub repo name 'ai-workflow-v2' is post-promotion historical; mismatches kernel identity 'aiwf' across go install path, internal/version proxy queries, and 155 in-repo references |  |
 
 ## Warnings
 

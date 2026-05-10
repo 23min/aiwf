@@ -1,7 +1,9 @@
 ---
 id: G-0094
 title: GitHub repo name 'ai-workflow-v2' is post-promotion historical; mismatches kernel identity 'aiwf' across go install path, internal/version proxy queries, and 155 in-repo references
-status: open
+status: addressed
+addressed_by_commit:
+    - 79a1432
 ---
 The GitHub repo at `github.com/23min/ai-workflow-v2` carries a historical name. The "v2" suffix dates to the framework's pre-promotion history (PoC v1 → v2 → v3, with v3 becoming the canonical aiwf kernel as documented in CLAUDE.md and `docs/pocv3/archive/poc-plan-pre-migration.md`). Post-promotion, the repo's content *is* aiwf — the kernel binary, its tests, its planning tree, its documentation. The `-v2` suffix is now misleading: it suggests a current-state versioning concept that doesn't exist.
 
