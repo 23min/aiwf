@@ -119,9 +119,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0088 |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0087 |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0086 |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0085 |
-| 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0084 |
 
