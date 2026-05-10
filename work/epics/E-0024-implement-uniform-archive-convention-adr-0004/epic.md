@@ -81,11 +81,11 @@ The first `aiwf archive --apply` invocation in this repo doubles as the historic
 
 ## Milestones
 
-- [M-NNNN](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-NNNN-loader-and-id-resolver-span-active-and-archive.md) — Loader and id resolver span active+archive (foundational; nothing else lands cleanly without it) · depends on: —
-- [M-NNNN](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-NNNN-aiwf-archive-verb-dry-run-default-apply-kind.md) — `aiwf archive` verb (dry-run default, `--apply`, `--kind`) with single-commit + trailer-keys exception · depends on: prior M-NNNN
-- [M-NNNN](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-NNNN-three-archive-check-findings-and-existing-rule-scoping.md) — Three new archive check-rule findings + existing shape/health rules skip `archive/` · depends on: prior M-NNNN
-- [M-NNNN](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-NNNN-display-surfaces-status-show-render.md) — Display surfaces: `aiwf status` sweep-pending line, `aiwf show` archived indicator, `aiwf render` per-kind index segregation · depends on: prior M-NNNN
-- [M-NNNN](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-NNNN-configuration-skill-and-discoverability.md) — Configuration (`archive.sweep_threshold` in `aiwf.yaml`) + embedded `aiwf-archive` skill + CLAUDE.md amendment · depends on: prior M-NNNN
+- [M-0084](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md) — Loader and id resolver span active+archive (foundational; nothing else lands cleanly without it) · depends on: —
+- [M-0085](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md) — `aiwf archive` verb (dry-run default, `--apply`, `--kind`) with single-commit + trailer-keys exception · depends on: M-0084
+- [M-0086](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0086-three-new-archive-check-rule-findings-and-existing-rule-scoping.md) — Three new archive check-rule findings + existing shape/health rules skip `archive/` · depends on: M-0085
+- [M-0087](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md) — Display surfaces: `aiwf status` sweep-pending line, `aiwf show` archived indicator, `aiwf render` per-kind index segregation · depends on: M-0086
+- [M-0088](work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md) — Configuration (`archive.sweep_threshold` in `aiwf.yaml`) + embedded `aiwf-archive` skill + CLAUDE.md amendment · depends on: M-0087
 
 ## ADRs produced
 
