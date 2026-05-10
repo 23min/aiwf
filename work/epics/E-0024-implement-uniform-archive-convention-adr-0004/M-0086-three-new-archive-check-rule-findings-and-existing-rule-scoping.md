@@ -34,7 +34,7 @@ acs:
     - id: AC-7
       title: 'Recovery: rewidth --apply runs clean on narrow archive without --skip-checks'
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0086 — Three new archive check-rule findings and existing-rule scoping
