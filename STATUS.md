@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-8 'Restore backticked aiwf archive --apply mentions in M-0086 SKILL.md' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-7 'First --apply migration leaves aiwf check with 0 errors' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-6 'Verb has no positional id argument; sweep is by status not by id' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-5 'Per-kind storage layout follows ADR-0004 storage table' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-4 'Re-running aiwf archive --apply on a clean tree is a no-op' |
-| 2026-05-10 | human/peter | add | aiwf add ac M-0085/AC-3 'aiwf archive --apply produces one commit with aiwf-verb: archive trailer' |
 
