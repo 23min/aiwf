@@ -6,6 +6,11 @@ parent: E-0024
 depends_on:
     - M-0084
 tdd: required
+acs:
+    - id: AC-1
+      title: archived-entity-not-terminal fires blocking with revert hint
+      status: open
+      tdd_phase: red
 ---
 
 # M-0086 — Three new archive check-rule findings and existing-rule scoping
@@ -85,3 +90,6 @@ Intended landing zone:
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — archived-entity-not-terminal fires blocking with revert hint
+
