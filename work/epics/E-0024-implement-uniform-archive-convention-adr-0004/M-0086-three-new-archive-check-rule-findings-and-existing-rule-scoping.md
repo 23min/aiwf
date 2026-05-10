@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: archived-entity-not-terminal fires blocking with revert hint
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: terminal-entity-not-archived fires advisory per terminal in active dir
       status: open

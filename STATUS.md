@@ -123,9 +123,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-7 'Recovery: rewidth --apply runs clean on narrow archive without --skip-checks' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-6 'refsResolve: active-to-archive refs resolve, archive-side not linted' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-5 'Tree-integrity rules traverse archive in full' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-4 'Existing shape and health rules skip archive per ADR-0004' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-3 'archive-sweep-pending aggregates the count of pending sweeps' |
-| 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-2 'terminal-entity-not-archived fires advisory per terminal in active dir' |
 
