@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: aiwf history <id> walks across an archive rename via existing trailers
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Loader cost is bounded; archive-empty trees pay no extra cost
