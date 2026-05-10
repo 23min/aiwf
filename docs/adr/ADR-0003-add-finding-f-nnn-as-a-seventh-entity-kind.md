@@ -24,9 +24,9 @@ Add **`finding`** as a seventh entity kind.
 
 ### Id and storage
 
-- Id pattern: **F-NNN** (zero-padded; same family as G-NNN, D-NNN).
-- Allocated via the kernel's standard allocator. If [ADR-0001](ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) is accepted, F-NNN inherits the inbox/mint model uniformly with the other monotonic-id kinds — no special case.
-- Stored at `work/findings/F-NNN-<slug>.md`. Terminal-status entries move to `work/findings/archive/` per the companion archive ADR.
+- Id pattern: **F-NNNN** (zero-padded to 4 digits; same family as G-NNNN, D-NNNN). Per [ADR-0008](ADR-0008-canonicalize-kernel-ids-to-4-digits-parsers-tolerate-narrower-legacy-widths-on-input.md), every kernel id kind canonicalizes to a uniform 4-digit width on emission and display; parsers accept narrower legacy widths on input. Finding inherits this policy by default — F is born at canonical width when this ADR's implementing epic lands, with no separate width decision needed.
+- Allocated via the kernel's standard allocator. If [ADR-0001](ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) is accepted, F-NNNN inherits the inbox/mint model uniformly with the other monotonic-id kinds — no special case.
+- Stored at `work/findings/F-NNNN-<slug>.md`. Terminal-status entries move to `work/findings/archive/` per the companion archive ADR.
 
 ### Status FSM
 

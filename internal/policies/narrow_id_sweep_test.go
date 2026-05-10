@@ -119,6 +119,12 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// AC-7 substring assertion. Both narrow-input cases by
 		// design — same shape as AC-2 parser-tolerance tests.
 		"internal/policies/m080_test.go": "M-082 prep: M-080 spec lookup + AC-7 substring assertion via width-tolerant helpers",
+
+		// M-083 AC-1: drift-check rule's table-driven fixture tests
+		// classify trees by id width — narrow ids are the input space
+		// the rule is built to recognise. Same shape as the M-082
+		// rewidth-verb tests.
+		"internal/check/entity_id_narrow_width_test.go": "M-083 AC-1 drift-check rule: narrow ids are the rule's classification input space",
 	}
 
 	// Run grep from the repo root. Pipe stderr alongside stdout so

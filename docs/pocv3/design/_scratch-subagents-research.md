@@ -31,20 +31,20 @@ Synthesis doc name: `agent-orchestration.md` — neutral on the cycle/loop/workf
   - **Read-only / additive roles** (reviewer, planner-as-auditor, doc-gardener, test-additive): substrate denies out-of-surface writes. For Claude Code host: gitignored hook under `.claude/` denies Edit/Write tool calls outside the role's write surface. Enforcement is binary (allowed / denied), not negotiated.
   - **Builder role**: deviation-detection check rule (`scope-expanded`) compares the worktree diff against the cycle's *coarse* scope hint and emits a finding. The finding is *blocking* per the F-NNN AC-closure rule (`findings-block-met`), so surface is mechanical even if the prompt drifts. Not a hard merge block — an AC-closure block.
   - **Verb gate (L2)** applies regardless of role: subagents can't run `cancel`, `reallocate`, `authorize`, `--force`. Cheap, universal.
-- Status: **resolved (frame); implementation details ride E-19**
+- Status: **resolved (frame); implementation details ride E-0019**
 
 ## 2. Sub-agent delegation is reserved by G22 but the design assumes it works
 - `provenance-model.md:93` reserves whether an authorize scope can spawn a sub-scope.
 - `design-decisions.md:174` files sub-agent delegation under G22 / deferred.
 - Design hand-waves provenance (`parallel-tdd-subagents.md:170-175`): both parent and subagent commit as `ai/claude`, flattening two levels of agency.
 - **Resolution (D2):** hybrid — role-tagged actor for everything; sub-scope FSM only on builder-parallel dispatch. BYO-agent supported via capability/name split.
-- Status: **resolved (frame); registry schema + scope-nesting details ride E-19**
+- Status: **resolved (frame); registry schema + scope-nesting details ride E-0019**
 
 ## 3. Failure recovery is missing
 - End-to-end flow assumes successful return + clean worktree + valid JSON.
 - Unspecified: subagent runs out of context mid-cycle; commits code but never promotes; returns malformed JSON; claims pass but tests fail when re-run in parent; leaves dirty worktree.
 - **Resolution (D4 + D5):** layered recovery — orchestrator-driven reap (primary) + kernel-side stale-cycle GC (safety net) + quarantine for forensics (preserves bundle); per-capability differentiation; sub-scope FSM extended to `ended-success | ended-failure | ended-discarded`; A2A-shaped cycle envelope (concepts borrowed, transport rejected); permanent provenance via trailers + ephemeral forensic bundles; harvestable export surface as public contract. **D5 clarifies scope boundary:** kernel guarantees metadata permanence + export tool; content delivery to durable storage is consumer responsibility (aspirational hook idea noted but not planned).
-- Status: **resolved (frame); cycle envelope schema + reap verbs + export verb ride E-19**
+- Status: **resolved (frame); cycle envelope schema + reap verbs + export verb ride E-0019**
 
 ## 4. Disjoint-fileset declaration mechanism is deferred but load-bearing
 - `parallel-tdd-subagents.md:185` defers "parent's parallelization heuristic" to dogfooding.
@@ -57,14 +57,14 @@ Synthesis doc name: `agent-orchestration.md` — neutral on the cycle/loop/workf
   - Deployer: sequential by definition.
 - **Where the policy lives:** kernel default per role; project override in `aiwf.yaml.subagents.roles[]` (or similar). New roles must declare a concurrency policy at definition time, or default to sequential.
 - **Where the coarse-scope hint lives** (builder-parallel only): dispatch-time argument from the human (or the parent's heuristic when one ships). Form: glob/path list. Granularity: package or directory (not file).
-- Status: **resolved (frame); aiwf.yaml schema + check rule code ride E-19**
+- Status: **resolved (frame); aiwf.yaml schema + check rule code ride E-0019**
 
 ## 5. The parent orchestrator is unnamed
 - "Parent" appears 23 times in the doc; never assigned. Is it `aiwf` itself growing a `cycle` verb? A skill calling Claude Code's `Agent` tool? An external script?
 - Implementation epics 3-5 size at "~1 milestone each"; orchestrator isn't on the list.
 - Decisions ride on this: host-coupling, testability, the scope-FSM question from #2.
 - **Resolution (D3):** strict-lane principle — aiwf primitives only, orchestration external. Driver-config picks LLM-skill or future deterministic sidekick (`aiwfdo`). Per-epic declarative work-shape declarations (terminology undecided: `cycle` / `loop` / `workflow` / `pipeline` / `orchestration`) live in epic body; reconciliation is the determinism mechanism.
-- Status: **resolved (frame); LLM-skill driver implementation rides E-19; aiwfdo deferred**
+- Status: **resolved (frame); LLM-skill driver implementation rides E-0019; aiwfdo deferred**
 
 ## 6. Smaller seams
 - `waived` requires `--force`; `invalid` doesn't, but is also human-only. Convention is inconsistent — either both need `--force` or the rule is "force only for accept-without-fix".
@@ -82,7 +82,7 @@ Synthesis doc name: `agent-orchestration.md` — neutral on the cycle/loop/workf
 
 Two orthogonal axes; the original design tangled them:
 
-- **Lifetime — always bounded.** One subagent per work unit, fresh context. This is the drift fix from M-066/AC-1 and is the load-bearing primitive. Universal.
+- **Lifetime — always bounded.** One subagent per work unit, fresh context. This is the drift fix from M-0066/AC-0001 and is the load-bearing primitive. Universal.
 - **Concurrency — role-determined.**
   - *Read-only roles* (reviewer / audit / lint): parallel by default. Substrate denies writes.
   - *Additive-write roles* (test-additive / doc-gardener): parallel by default. Substrate restricts writes to a bounded surface; parent assigns a partition.
@@ -238,7 +238,7 @@ This keeps BYO agents *config + markdown only* — no kernel recompile, no kerne
 | `read-only` | No diff to preserve; substrate-deny becomes a `scope-leak` finding + `ended-failure`. Bundle wiped (only logs+envelope kept). |
 | `additive-tests` / `additive-docs` | Partial writes within surface preserved in quarantine bundle. |
 | `full-builder` | Quarantine bundle preserves diff + logs + prompt; `partial-state-in-worktree` finding pointing human at the bundle. |
-| `sequential-only` (deployer) | Sub-scope failure has its own gravity; out of scope for E-19 (deployer doesn't get parallelized anyway). |
+| `sequential-only` (deployer) | Sub-scope failure has its own gravity; out of scope for E-0019 (deployer doesn't get parallelized anyway). |
 
 **Cycle envelope (A2A-shaped, custom transport).**
 
@@ -365,7 +365,7 @@ Aiwf does **not guarantee**:
 
 **6a — `--force` on both `waived` and `invalid` (single sovereignty rule).**
 
-Closing a finding to *any* terminal status without code change requires `--force` and `--reason`, regardless of which terminal status. Aligns with M-017's existing pattern for sovereign terminal acts. Single rule, no exceptions: "every finding-terminal transition by a human-actor without a code fix requires `--force --reason`."
+Closing a finding to *any* terminal status without code change requires `--force` and `--reason`, regardless of which terminal status. Aligns with M-0017's existing pattern for sovereign terminal acts. Single rule, no exceptions: "every finding-terminal transition by a human-actor without a code fix requires `--force --reason`."
 
 The semantic-purity argument for distinguishing `waived` (sovereign override of a real concern) from `invalid` (declaration that the concern wasn't real) was considered and rejected for the PoC. Reading 1 wins on simplicity: one rule to remember, slight extra friction on `invalid` is acceptable because both transitions are equally consequential — both flip a finding to terminal without any code change.
 
@@ -413,7 +413,7 @@ Stricter alternatives rejected: same-commit (α) conflicts with fix-then-promote
 Defensive cycle-detection in the `linked_entities` graph (e.g., F-007 → F-008 → F-007) was considered and rejected as YAGNI — link cycles aren't a real failure mode (semantically odd, but break nothing) and adding a check rule for a hypothetical case violates "ship what's used."
 
 **Aligns with:**
-- M-017's existing sovereignty pattern (force-flag for consequential terminal acts).
+- M-0017's existing sovereignty pattern (force-flag for consequential terminal acts).
 - Kernel "single rule, no exceptions" preference where the cost is only ergonomic.
 - D2's PoC subagent-spawn bound.
 - "Errors are findings, not parse failures" — soft check warns rather than blocks; humans triage.

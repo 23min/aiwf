@@ -24,6 +24,11 @@ var hintTable = map[string]string{
 	"adr-supersession-mutual":           "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
 	"gap-resolved-has-resolver":         "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
 
+	// M-083 AC-1: tree mid-migration warning. Fires only on the
+	// mixed-active-tree case; uniform-narrow and uniform-canonical
+	// stay silent per ADR-0008's "Drift control" subsection.
+	"entity-id-narrow-width": "the active tree mixes narrow and canonical id widths; run `aiwf rewidth --apply` to complete the canonical-width migration (no commit until you re-invoke with `--apply`)",
+
 	"acs-shape/id":                       "fix the AC's id to match `AC-N` and equal its position+1 (cancelled entries count toward position)",
 	"acs-shape/title":                    "set a non-empty `title:` on the AC entry",
 	"acs-shape/status":                   "use one of the allowed AC statuses listed above",

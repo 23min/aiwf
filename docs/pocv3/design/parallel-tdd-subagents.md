@@ -1,6 +1,6 @@
 # Parallel TDD subagents with finding-gated AC closure
 
-This is the design synthesis for [E-19](../../../work/epics/E-19-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md). It captures the conversation that produced the epic and its dependent ADRs ([ADR-0003](../../adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md), [ADR-0004](../../adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md)).
+This is the design synthesis for [E-0019](../../../work/epics/E-0019-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md). It captures the conversation that produced the epic and its dependent ADRs ([ADR-0003](../../adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md), [ADR-0004](../../adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md)).
 
 The intent: future readers (human or LLM) auditing the epic don't have to reverse-engineer the design from commit messages and ADR prose. The forks the design considered, the tradeoffs of the rejected paths, and the kernel principles each choice rested on are written down once, here.
 
@@ -8,7 +8,7 @@ The intent: future readers (human or LLM) auditing the epic don't have to revers
 
 ## Motivation
 
-The proximate trigger is **M-066/AC-1**, where a long implementation session lost track of branch-coverage discipline mid-cycle. The TDD-cycle skill (`wf-tdd-cycle`) was advisory text — easy to drift through under the pressure of a long conversation. The retrospective finding: the framework's correctness can't depend on the LLM remembering rules over many turns. That's exactly the kernel principle from CLAUDE.md ("framework correctness must not depend on LLM behavior") applied to the TDD cycle itself.
+The proximate trigger is **M-0066/AC-0001**, where a long implementation session lost track of branch-coverage discipline mid-cycle. The TDD-cycle skill (`wf-tdd-cycle`) was advisory text — easy to drift through under the pressure of a long conversation. The retrospective finding: the framework's correctness can't depend on the LLM remembering rules over many turns. That's exactly the kernel principle from CLAUDE.md ("framework correctness must not depend on LLM behavior") applied to the TDD cycle itself.
 
 The proposed fix isn't a stricter skill prompt; it's a **structural** one: bound the cycle's lifetime to a subagent invocation. A subagent that starts fresh, sees only the AC contract + the relevant code, and returns when done can't drift the way a long conversation can. The protocol *is* the lifetime of the agent.
 
@@ -60,11 +60,11 @@ This resolution settles Fork 4 implicitly: with parent owning F-NNN allocation, 
 
 **Resolution: Generic `aiwf promote` with `--force --reason`; soft check on missing fix link.**
 
-The kernel already invested in `aiwf promote --force --reason` as the universal terminal-transition pattern (M-017). Findings using the same pattern is consonant; not using it is novel-for-no-reason. F-NNN's whole point (per Fork 1) was to get the standard kernel treatment — status FSM, history, archive. Bare `aiwf promote` is what "standard kernel treatment" looks like.
+The kernel already invested in `aiwf promote --force --reason` as the universal terminal-transition pattern (M-0017). Findings using the same pattern is consonant; not using it is novel-for-no-reason. F-NNN's whole point (per Fork 1) was to get the standard kernel treatment — status FSM, history, archive. Bare `aiwf promote` is what "standard kernel treatment" looks like.
 
 A dedicated `aiwf finding {resolve,waive,invalidate}` verb family would duplicate `aiwf promote` and set a precedent for verb-family-per-kind that violates the kernel's minimum-verb-surface posture. The metadata-capture concern (how do humans see what fixed F-007?) is already solved by the trailer convention: `git log --grep "aiwf-entity: F-007"` shows the fix commit by definition; `aiwf history F-007` walks it for you.
 
-A body-section validator (`aiwf check` requires `## Resolution` section on `resolved` transitions, analogous to M-066's `entity-body-empty` rule) is the rigorous version of Fork 3. It's deferred — wait for M-066's pattern to generalize across kinds before adding finding-specific body validation. The soft check on "resolved without an associated fix commit nearby" covers the most common discipline gap until then.
+A body-section validator (`aiwf check` requires `## Resolution` section on `resolved` transitions, analogous to M-0066's `entity-body-empty` rule) is the rigorous version of Fork 3. It's deferred — wait for M-0066's pattern to generalize across kinds before adding finding-specific body validation. The soft check on "resolved without an associated fix commit nearby" covers the most common discipline gap until then.
 
 ### Fork 4: Where findings get recorded
 
@@ -178,12 +178,12 @@ Falls out cleanly from the existing principal × agent × scope model in [`prove
 
 ## Open / deferred items
 
-These are real design questions that don't have to be answered before E-19's dependent ADRs are accepted and the implementation epics start landing:
+These are real design questions that don't have to be answered before E-0019's dependent ADRs are accepted and the implementation epics start landing:
 
 1. **Finding-code enumeration finalization.** Initial set is enumerated above; the full set settles when each producer (cycle protocol, escalated check rules) ships. New codes are kernel-pinned at the same time as their producing rules.
-2. **Subagent agent definition (system prompt).** The protocol contract the subagent must follow. Lives under `.claude/agents/tdd-cycle.md` (or the host's equivalent). Detailed authoring deferred to E-19's first milestone.
+2. **Subagent agent definition (system prompt).** The protocol contract the subagent must follow. Lives under `.claude/agents/tdd-cycle.md` (or the host's equivalent). Detailed authoring deferred to E-0019's first milestone.
 3. **Parent's parallelization heuristic.** When does the parent choose to parallelize? "When ACs declare disjoint filesets" is the conservative answer. Whether the parent infers this or the milestone spec declares it explicitly is open until dogfooding shows what's needed.
-4. **Body-section validator generalization.** Eventually F-NNN bodies should require `## Resolution` / `## Waiver` sections on terminal promotions (the rigorous version of Fork 3). Wait for M-066's body-section pattern to settle and generalize first.
+4. **Body-section validator generalization.** Eventually F-NNN bodies should require `## Resolution` / `## Waiver` sections on terminal promotions (the rigorous version of Fork 3). Wait for M-0066's body-section pattern to settle and generalize first.
 5. **`aiwf reframe F-007 --as-gap` verb.** "This finding really wants to be a gap" — would resolve F-007 and pre-fill a G-NNN with linked context. Nice-to-have, not required. Cross-references already work via `linked_entities` without a dedicated verb.
 6. **Cross-cycle findings.** A finding that pertains to no specific AC but to the milestone or epic as a whole. Data model supports this (empty `linked_acs` + non-empty `linked_entities`); no current producer emits them. Dogfooding will surface what's needed.
 
@@ -198,7 +198,7 @@ Items 1-2 are pure design (ADRs already filed). Items 3-5 are kernel work, each 
 3. **Implementation epic for archive convention** (filed once ADR-0004 is accepted) — kernel-wide change; lower-risk if landed before F-NNN, since findings ride the existing pattern.
 4. **Implementation epic for F-NNN entity kind** (filed once ADR-0003 is accepted) — adds the kind enum, FSM, status set; `aiwf add finding` subverb; `aiwf show F-NNN` rendering; `aiwf history F-NNN` works for free.
 5. **Implementation epic for findings-gated AC closure** (filed alongside item 4) — adds the `aiwf promote AC met` chokepoint; new check finding code `ac-has-open-findings`.
-6. **[E-19](../../../work/epics/E-19-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md)** — Parallel TDD subagents with finding-gated AC closure. **Filed as draft.** The user-visible payoff; depends on items 3-5.
+6. **[E-0019](../../../work/epics/E-0019-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md)** — Parallel TDD subagents with finding-gated AC closure. **Filed as draft.** The user-visible payoff; depends on items 3-5.
 
 ---
 
@@ -207,10 +207,10 @@ Items 1-2 are pure design (ADRs already filed). Items 3-5 are kernel work, each 
 - [ADR-0003](../../adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — Add finding (F-NNN) as a seventh entity kind.
 - [ADR-0004](../../adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) — Uniform archive convention for terminal-status entities.
 - [ADR-0001](../../adr/ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) — Mint entity ids at trunk integration via per-kind inbox state. Compatible with this design; F-NNN inherits whichever id-allocation model the framework adopts.
-- [E-19](../../../work/epics/E-19-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md) — Parallel TDD subagents epic (depends on the ADRs above).
+- [E-0019](../../../work/epics/E-0019-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md) — Parallel TDD subagents epic (depends on the ADRs above).
 - [`design-decisions.md`](design-decisions.md) — kernel principles, including #1 (entity kinds) which ADR-0003 amends.
 - [`provenance-model.md`](provenance-model.md) — principal × agent × scope; the sovereignty rules this design relies on.
 - [`tree-discipline.md`](tree-discipline.md) — existing tree-shape rules; ADR-0004 adds a sub-rule.
 - [`id-allocation.md`](id-allocation.md) — existing id allocation and lineage model; F-NNN slots into it directly.
 - CLAUDE.md "What the PoC commits to" §1 (six entity kinds — amended by ADR-0003).
-- M-066/AC-1 — the proximate trigger; cycle drift case study.
+- M-0066/AC-0001 — the proximate trigger; cycle drift case study.

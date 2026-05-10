@@ -16,9 +16,9 @@ Classify each open item by **leverage on future work**, not by chronology of whe
 **Criterion:** the item, once closed, removes friction from *every* future planning or implementation session. Typical shape: a kernel asymmetry, a chronic warning class, a missing-verb gap that forces a workaround at every use.
 
 **Examples:**
-- **G-071** — `entity-body-empty` rule lifecycle-blind; closes the standing 24-warning E-20 baseline once fixed.
-- **G-072** — no writer verb for milestone `depends_on`; every multi-milestone epic re-derives the workaround.
-- **G-065** — no `aiwf retitle` verb; every scope-change moment loses the title-correction option.
+- **G-0071** — `entity-body-empty` rule lifecycle-blind; closes the standing 24-warning E-0020 baseline once fixed.
+- **G-0072** — no writer verb for milestone `depends_on`; every multi-milestone epic re-derives the workaround.
+- **G-0065** — no `aiwf retitle` verb; every scope-change moment loses the title-correction option.
 
 ### Tier 2 — architecturally foundational
 
@@ -27,34 +27,34 @@ Classify each open item by **leverage on future work**, not by chronology of whe
 **Examples:**
 - **ADR-0001** — mint entity ids at trunk integration; foundational for parallel-branch work and downstream ADRs.
 - **ADR-0004** — uniform archive convention; makes high-volume kinds tractable for read verbs.
-- **ADR-0003** — finding F-NNN as 7th kind; substrate for AC-closure chokepoints and cycle-time findings.
+- **ADR-0003** — finding F-NNNN as 7th kind; substrate for AC-closure chokepoints and cycle-time findings.
 
 ### Tier 3 — workflow rituals
 
 **Criterion:** the item is a missing or under-defined ritual that the operator currently re-derives in conversation each time. Smaller leverage than Tier 1/2, but codification removes ad-hoc thrash.
 
 **Examples:**
-- **G-059** — no canonical mapping from epic/milestone hierarchy to git branches.
-- **G-060** — patch ritual loosely defined; small fixes lack a canonical shape.
-- **G-063** — no `start-epic` ritual; epic activation is a deliberate sovereign act with no preflight today.
+- **G-0059** — no canonical mapping from epic/milestone hierarchy to git branches.
+- **G-0060** — patch ritual loosely defined; small fixes lack a canonical shape.
+- **G-0063** — no `start-epic` ritual; epic activation is a deliberate sovereign act with no preflight today.
 
 ### Tier 4 — operational debris
 
 **Criterion:** small, isolated fixes that don't compound but are cheap to batch. Typical shape: a one-line `.gitignore` change, a single config nudge, a typo. Leverage is per-item, not per-session.
 
 **Examples:**
-- **G-056** — render `site/` not gitignored.
-- **G-057** — stray `aiwf` binary in repo root not gitignored.
-- **G-069** — `aiwf init` ritual nudge hardcodes user-scope CLI form.
+- **G-0056** — render `site/` not gitignored.
+- **G-0057** — stray `aiwf` binary in repo root not gitignored.
+- **G-0069** — `aiwf init` ritual nudge hardcodes user-scope CLI form.
 
 ### Tier 5 — defer until a forcing function shows up
 
 **Criterion:** the item is open but no current consumer or workflow forces it. Premature work here costs design effort that will be re-derived once the forcing function lands.
 
 **Examples:**
-- **G-070** — `aiwf doctor --format=json`; defer until a JSON consumer appears.
-- **G-067** — `wf-tdd-cycle` advisory; couples to the agent-orchestration substrate.
-- **G-068** — discoverability policy misses dynamic finding subcodes; activates with F-NNN.
+- **G-0070** — `aiwf doctor --format=json`; defer until a JSON consumer appears.
+- **G-0067** — `wf-tdd-cycle` advisory; couples to the agent-orchestration substrate.
+- **G-0068** — discoverability policy misses dynamic finding subcodes; activates with F-NNNN.
 
 ## Output template
 
@@ -64,8 +64,8 @@ The output is a single conversational message containing four named blocks, in t
 
 Numbered list, one entry per concrete next action. Each entry uses **explicit before / after / parallel** framing relative to the existing in-flight work, e.g.:
 
-1. **Before E-NN's M-NNN starts** — fix G-XYZ; closes the warning baseline. *(Cost: wf-patch.)*
-2. **After M-NNN wraps** — ratify ADR-WXYZ.
+1. **Before E-NNNN's M-NNNN starts** — fix G-XYZ; closes the warning baseline. *(Cost: wf-patch.)*
+2. **After M-NNNN wraps** — ratify ADR-WXYZ.
 3. **Parallel low-priority track** — Tier 4 operational debris as a single wf-patch, any time.
 
 Sequence is reproducible across runs given the same tree state; only the lean phrasing varies with LLM judgement.
@@ -92,7 +92,7 @@ A markdown table, one row per open item across the relevant kinds (`epic`, `mile
 
 | Column | Content |
 |---|---|
-| **Item** | id + short title (e.g. `G-071 — entity-body-empty rule lifecycle-blind`) |
+| **Item** | id + short title (e.g. `G-0071 — entity-body-empty rule lifecycle-blind`) |
 | **Kind** | gap / adr / epic / milestone |
 | **Cost** | rough sizing — `tiny`, `wf-patch`, `small milestone`, `medium milestone`, `epic`, `multi-epic` |
 | **What it unblocks** | one-line description of leverage on future work |
@@ -129,7 +129,7 @@ The skill's job is to **surface** structure (tiers, sequence, decisions) and **g
 
 ### 2. Inventing verbs that don't exist on the kernel surface
 
-Every verb invocation in the skill body or its rendered output must resolve to a real `aiwf` command available today. If the synthesis would benefit from a verb that doesn't exist, **file a follow-up gap** (`aiwf add gap --title "..." --discovered-in M-NNN`) and surface the gap in the output — do not encode a hand-edit workaround or pretend the verb exists. The kernel surface is authoritative; the skill is advisory; the verb-invention failure mode confuses that hierarchy.
+Every verb invocation in the skill body or its rendered output must resolve to a real `aiwf` command available today. If the synthesis would benefit from a verb that doesn't exist, **file a follow-up gap** (`aiwf add gap --title "..." --discovered-in M-NNNN`) and surface the gap in the output — do not encode a hand-edit workaround or pretend the verb exists. The kernel surface is authoritative; the skill is advisory; the verb-invention failure mode confuses that hierarchy.
 
 ### 3. Persisting the synthesis to a checked-in file
 

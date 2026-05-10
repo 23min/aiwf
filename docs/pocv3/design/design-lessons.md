@@ -16,11 +16,11 @@ The principles are deliberately framed in their own terms — not in terms of an
 
 | Question | Query shape |
 |---|---|
-| What does E-001 look like now? | (E-001, HEAD) |
-| What did E-001 look like before yesterday's hotfix? | (E-001, timestamp) |
-| What changed in E-001 between two points? | (E-001, hash-A) vs. (E-001, hash-B) |
+| What does E-0001 look like now? | (E-0001, HEAD) |
+| What did E-0001 look like before yesterday's hotfix? | (E-0001, timestamp) |
+| What changed in E-0001 between two points? | (E-0001, hash-A) vs. (E-0001, hash-B) |
 | What was the state of everything when commit abc landed? | (*, hash-abc) |
-| Show E-001's full history | (E-001, ∅) |
+| Show E-0001's full history | (E-0001, ∅) |
 
 The simplest mental check: if you removed the identity from the query and only kept the coordinate, would the query still mean what you wanted? If yes, the coordinate is correctly playing time-anchor. If no, the coordinate has slipped into doing identity's job.
 
