@@ -19,6 +19,10 @@ acs:
       title: aiwf status exposes no --archived flag and remains active-only
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: aiwf show resolves any id (active or archived) without flag opt-in
+      status: open
+      tdd_phase: red
 ---
 
 # M-0087 — Display surfaces for archived entities (status, show, render)
@@ -104,4 +108,6 @@ Intended landing zone:
 ### AC-2 — aiwf status hides sweep-pending line when count is zero
 
 ### AC-3 — aiwf status exposes no --archived flag and remains active-only
+
+### AC-4 — aiwf show resolves any id (active or archived) without flag opt-in
 
