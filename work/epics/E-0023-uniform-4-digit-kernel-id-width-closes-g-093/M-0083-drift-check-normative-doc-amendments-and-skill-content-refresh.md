@@ -23,7 +23,7 @@ acs:
     - id: AC-4
       title: Skill content refreshed in kernel and rituals plugin
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Active-tree drift check green on this repo post-M-C
       status: met
