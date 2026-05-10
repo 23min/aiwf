@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: skill_coverage allowlist drops aiwf-archive entry
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: skill-coverage policy green and SKILL.md sections structurally pinned
