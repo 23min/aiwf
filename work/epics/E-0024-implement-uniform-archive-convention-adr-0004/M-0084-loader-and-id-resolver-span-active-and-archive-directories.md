@@ -13,6 +13,10 @@ acs:
       title: tree.Load walks <kind>/archive/ and yields archived entities
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: refsResolve resolves id-form references targeting archived entities
+      status: open
+      tdd_phase: red
 ---
 
 # M-0084 — Loader and id resolver span active and archive directories
@@ -94,4 +98,6 @@ Intended landing zone (refine via `aiwf add ac M-0084 --title "..."` when the mi
 ### AC-1 — PathKind/IDFromPath recognize archive paths per ADR-0004 storage table
 
 ### AC-2 — tree.Load walks <kind>/archive/ and yields archived entities
+
+### AC-3 — refsResolve resolves id-form references targeting archived entities
 

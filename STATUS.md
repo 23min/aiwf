@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_214 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_214 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -40,7 +40,7 @@ _(no milestones)_
 
 ### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
-- → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 0/2 met (2 open) — tdd: required
+- → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 0/3 met (3 open) — tdd: required
 - **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(draft)_ — tdd: required
 - **M-0086** — Three new archive check-rule findings and existing-rule scoping _(draft)_ — tdd: required
 - **M-0087** — Display surfaces for archived entities (status, show, render) _(draft)_ — tdd: required
@@ -49,7 +49,7 @@ _(no milestones)_
 ```mermaid
 flowchart LR
   E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_proposed
-  M_0084["M-0084 (0/2)<br/>Loader and id resolver span active and archive directories"]:::ms_in_progress
+  M_0084["M-0084 (0/3)<br/>Loader and id resolver span active and archive directories"]:::ms_in_progress
   E_0024 --> M_0084
   M_0085["M-0085<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_draft
   E_0024 --> M_0085
@@ -115,15 +115,16 @@ flowchart LR
 |------|--------|------|---------|
 | entity-body-empty | M-0084/AC-1 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084/AC-1 body under \`### AC-1\` is empty |
 | entity-body-empty | M-0084/AC-2 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084/AC-2 body under \`### AC-2\` is empty |
+| entity-body-empty | M-0084/AC-3 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084/AC-3 body under \`### AC-3\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add ac M-0084/AC-2 'tree.Load walks <kind>/archive/ and yields archived entities' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0084/AC-1 'PathKind/IDFromPath recognize archive paths per ADR-0004 storage table' |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0084 draft -> in_progress |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
-| 2026-05-10 | human/peter | edit-body | aiwf edit-body M-0088 |
 
