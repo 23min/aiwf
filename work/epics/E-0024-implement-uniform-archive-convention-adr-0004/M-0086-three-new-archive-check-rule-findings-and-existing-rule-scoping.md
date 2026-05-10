@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Tree-integrity rules traverse archive in full
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: 'refsResolve: active-to-archive refs resolve, archive-side not linted'
       status: open
