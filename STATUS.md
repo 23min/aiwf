@@ -42,7 +42,7 @@ _(no milestones)_
 
 - → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 6/6 met — tdd: required
 - **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(draft)_ — tdd: required
-- → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 6/7 met (1 open) — tdd: required
+- → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 7/7 met — tdd: required
 - **M-0087** — Display surfaces for archived entities (status, show, render) _(draft)_ — tdd: required
 - **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(draft)_ — tdd: required
 
@@ -53,7 +53,7 @@ flowchart LR
   E_0024 --> M_0084
   M_0085["M-0085<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_draft
   E_0024 --> M_0085
-  M_0086["M-0086 (6/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
+  M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
   E_0024 --> M_0086
   M_0087["M-0087<br/>Display surfaces for archived entities (status, show, render)"]:::ms_draft
   E_0024 --> M_0087
@@ -123,9 +123,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0086/AC-7 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0086/AC-7 --phase red -> green |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0086/AC-6 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0086/AC-6 --phase green -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0086/AC-6 --phase red -> green |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0086/AC-5 open -> met |
 

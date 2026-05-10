@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: 'Recovery: rewidth --apply runs clean on narrow archive without --skip-checks'
-      status: open
+      status: met
       tdd_phase: done
 ---
 
