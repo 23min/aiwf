@@ -160,10 +160,12 @@ func TestAiwfxWhiteboard_AC3_TierRubric(t *testing.T) {
 	// representative from each tier and assert the id appears
 	// in the rubric body. (Per critical-path.md: Tier 1 = G-071,
 	// Tier 2 = ADR-0001, Tier 3 = G-059, Tier 4 = G-056, Tier 5
-	// = G-070.)
+	// = G-070.) Width-tolerant per ADR-0008: post-M-0083 the skill
+	// body cites canonical 4-digit form (G-0071 etc.); the
+	// containsIDForm helper matches either width.
 	exemplars := []string{"G-071", "ADR-0001", "G-059", "G-056", "G-070"}
 	for _, id := range exemplars {
-		if !strings.Contains(section, id) {
+		if !containsIDForm(section, id) {
 			t.Errorf("AC-3: §Tier classification rubric must cite exemplar %q from critical-path.md", id)
 		}
 	}

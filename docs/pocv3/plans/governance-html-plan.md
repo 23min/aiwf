@@ -74,7 +74,7 @@ Standard static-site-generator convention (Hugo, Jekyll, Astro, mdBook, Docusaur
 ### Why not `work/html/`
 
 - aiwf's `work/` directory is canonical planning state; mixing source and generated artifacts is the same anti-pattern as committing `node_modules/` or `dist/`.
-- Every regeneration produces diff churn that obscures real changes in PRs ("M-007.html: 3,012 changes" tells a reviewer nothing).
+- Every regeneration produces diff churn that obscures real changes in PRs ("M-0007.html: 3,012 changes" tells a reviewer nothing).
 - Merge conflicts in generated HTML are pure noise — they always exist when two branches both regenerate, and resolving them is busywork.
 - Forces a render step on every commit to keep them current, or you accept staleness.
 

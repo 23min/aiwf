@@ -13,7 +13,7 @@ Companion artifacts:
 
 ## 1. Motivation
 
-The proximate trigger is **M-066/AC-1**, where a long implementation session lost track of branch-coverage discipline mid-cycle. The TDD-cycle skill (`wf-tdd-cycle`) was advisory text — easy to drift through under the pressure of a long conversation. The retrospective finding: the framework's correctness can't depend on the LLM remembering rules over many turns. That's the kernel principle from `CLAUDE.md` ("framework correctness must not depend on LLM behavior") applied to the TDD cycle itself.
+The proximate trigger is **M-0066/AC-0001**, where a long implementation session lost track of branch-coverage discipline mid-cycle. The TDD-cycle skill (`wf-tdd-cycle`) was advisory text — easy to drift through under the pressure of a long conversation. The retrospective finding: the framework's correctness can't depend on the LLM remembering rules over many turns. That's the kernel principle from `CLAUDE.md` ("framework correctness must not depend on LLM behavior") applied to the TDD cycle itself.
 
 The proposed fix isn't a stricter skill prompt; it's a **structural** one: bound the cycle's lifetime to a subagent invocation. A subagent that starts fresh, sees only the task contract + the relevant code, and returns when done can't drift the way a long conversation can. The protocol *is* the lifetime of the agent.
 
@@ -575,7 +575,7 @@ Defensive cycle-detection in the `linked_entities` graph (F-007 → F-008 → F-
 
 ## 12. Implementation surface
 
-The substrate decomposes into independently-shippable kernel changes. Each is small enough to be one or two milestones; together they form the substrate underneath specific consumer features (E-19, future doc-gardening epics, security-audit epics).
+The substrate decomposes into independently-shippable kernel changes. Each is small enough to be one or two milestones; together they form the substrate underneath specific consumer features (E-0019, future doc-gardening epics, security-audit epics).
 
 ### 12.1 Kernel changes
 
@@ -651,7 +651,7 @@ The substrate decomposes into independently-shippable kernel changes. Each is sm
 
 ## 13. Sequencing
 
-This synthesis is the design source; downstream work decomposes into landing the substrate before specific consumers (E-19) are picked up. Suggested order:
+This synthesis is the design source; downstream work decomposes into landing the substrate before specific consumers (E-0019) are picked up. Suggested order:
 
 1. **Synthesis lands** (this document).
 2. **Canonical doc updates** (separate session): folds the synthesis into `CLAUDE.md`, `design-decisions.md`, `ADR-0003`, `ADR-0004`, `parallel-tdd-subagents.md`.
@@ -661,11 +661,11 @@ This synthesis is the design source; downstream work decomposes into landing the
    - Pipeline schema parser + reconciliation check + finding codes (CUE spec + Go parser + CI agreement test).
    - Cycle envelope schema + forensic bundle layout + reap verbs (CUE spec + Go parser + CI agreement test).
    - Export verb + schema-stability drift tests.
-   - F-NNN entity kind (existing dependency from E-19, ADR-0003).
-   - Uniform archive convention (existing dependency from E-19, ADR-0004).
-   - Findings-gated AC closure (existing dependency from E-19).
-4. **E-19 rewritten** to consume the substrate. Expected to shrink substantially — the TDD-cycle agent definition + cycle skill driver integration + dogfooding milestone become the core scope, while substrate decisions move out to step 3.
-5. **E-19 implementation.**
+   - F-NNN entity kind (existing dependency from E-0019, ADR-0003).
+   - Uniform archive convention (existing dependency from E-0019, ADR-0004).
+   - Findings-gated AC closure (existing dependency from E-0019).
+4. **E-0019 rewritten** to consume the substrate. Expected to shrink substantially — the TDD-cycle agent definition + cycle skill driver integration + dogfooding milestone become the core scope, while substrate decisions move out to step 3.
+5. **E-0019 implementation.**
 
 Steps 1-2 are documentation. Step 3 is the bulk of the implementation work and is where most engineering attention goes. Steps 4-5 are smaller because the substrate already exists.
 
@@ -680,7 +680,7 @@ Items considered and deferred. Each can be added later when real friction shows 
 - **Pre-push harvest hook.** Closes the discipline gap structurally for compliance-grade consumers. Aspirational; not on the roadmap.
 - **N>2 sub-scope nesting.** Subagents cannot spawn subagents in the PoC. Future extension is G22 territory; not needed for any current use case.
 - **`aiwf cycle-stats` query verb.** In-repo aggregation over cycle trailers. Trailer schema enables it; implementation deferred until dogfooding shows demand.
-- **Body-section validators for finding bodies** (analogous to M-066's `entity-body-empty` for milestones). Findings will eventually require structured `## Resolution` / `## Waiver` sections on terminal promotion. Wait for the body-section pattern to settle on the existing kinds before generalizing.
+- **Body-section validators for finding bodies** (analogous to M-0066's `entity-body-empty` for milestones). Findings will eventually require structured `## Resolution` / `## Waiver` sections on terminal promotion. Wait for the body-section pattern to settle on the existing kinds before generalizing.
 - **`aiwf reframe F-007 --as-gap` verb.** Cross-references between F-NNN and G-NNN already work via `linked_entities`; a dedicated verb is convenience, not necessary.
 - **Subagent observability beyond the JSON return.** When a subagent does the wrong thing, the parent currently sees the result, not the reasoning. Richer introspection (full subagent transcripts surfaced into `aiwf history`) is deferred until real friction shows up.
 - **Heuristic auto-detection of independent ACs.** Builder-parallel dispatch relies on the human declaring disjoint coarse scopes. Inferring independence from AC body prose is a future optimization.
@@ -734,4 +734,4 @@ Items still open at the synthesis level. Each needs to be pinned at implementati
 - [`provenance-model.md`](provenance-model.md) — principal × agent × scope. Sub-scope FSM extension (§4.2) layers on this model.
 - [`tree-discipline.md`](tree-discipline.md) — existing tree-shape rules. Forensic bundle layout (§7.2) and quarantine (§7.3) add a sub-rule.
 - [`CLAUDE.md`](../../../CLAUDE.md) — project instructions. Strict-lane principle (§2.1) pending canonical addition.
-- [E-19](../../../work/epics/E-19-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md) — the first consumer of this substrate. Currently `proposed`; will be rewritten after substrate epics land to consume the substrate rather than re-invent pieces of it.
+- [E-0019](../../../work/epics/E-0019-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md) — the first consumer of this substrate. Currently `proposed`; will be rewritten after substrate epics land to consume the substrate rather than re-invent pieces of it.

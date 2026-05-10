@@ -246,5 +246,5 @@ Land ADR-0008's policy in code and on disk. The kernel canonicalizes every id ki
 |---|---|---|
 | M-0081 | Canonical 4-digit IDs in parser, renderer, and allocator | done |
 | M-0082 | Implement aiwf rewidth verb and apply to this repo's tree | done |
-| M-0083 | Drift check, normative-doc amendments, and skill content refresh | draft |
+| M-0083 | Drift check, normative-doc amendments, and skill content refresh | done |
 

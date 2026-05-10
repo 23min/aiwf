@@ -2,7 +2,7 @@
 
 This is the canonical writeup of aiwf's provenance model: who acts, on whose authority, within what scope. It is the design context that the `provenance-model-plan.md` build plan implements.
 
-The model is added in iteration **I2.5**, which sits between I2 (acceptance criteria + TDD) and I3 (governance HTML render). The I3 render's Provenance tab consumes this model directly; without it, the tab can render only single-actor history and loses the "implement E-03" autonomous-scope use case entirely.
+The model is added in iteration **I2.5**, which sits between I2 (acceptance criteria + TDD) and I3 (governance HTML render). The I3 render's Provenance tab consumes this model directly; without it, the tab can render only single-actor history and loses the "implement E-0003" autonomous-scope use case entirely.
 
 If a proposed change conflicts with anything below, treat it as a kernel-level decision and surface it explicitly.
 
@@ -14,8 +14,8 @@ Today's aiwf records a single `aiwf-actor:` trailer per commit. That works for d
 
 - **Human directs LLM to run a verb.** The trailer says `ai/claude` (the operator). The human (the accountability-bearer) is invisible.
 - **Bulk import.** One commit, N entities, one actor. Per-entity authorship is collapsed.
-- **Authorized autonomous work.** A human says "implement E-03 end-to-end"; the LLM runs many verbs without per-verb approval. The authorization itself isn't recorded; subsequent commits can't be distinguished from interactive ones.
-- **Pivots and pauses.** Mid-implementation the human pauses E-03 to address a blocker on E-09; later they resume. The pivot is invisible in trailers.
+- **Authorized autonomous work.** A human says "implement E-0003 end-to-end"; the LLM runs many verbs without per-verb approval. The authorization itself isn't recorded; subsequent commits can't be distinguished from interactive ones.
+- **Pivots and pauses.** Mid-implementation the human pauses E-0003 to address a blocker on E-0009; later they resume. The pivot is invisible in trailers.
 
 The model below addresses all four. It is not a generalization of "actor" into a richer field — it is an **accountability layer** layered on top of operator identity, plus a **scope FSM** with explicit authorization commits. The two components are orthogonal but compose cleanly.
 
@@ -348,7 +348,7 @@ The two scopes are independent. Each pause/resume is a distinct commit, recovera
 ```
 After this commit, scope `4b13a0f` is `ended`. Subsequent agent verbs referencing it as `aiwf-authorized-by: 4b13a0f` produce `provenance-authorization-ended` findings.
 
-The agent can close its own scope by design: scopes constrain *what* an agent can do, not *which step within scope* requires synchronous human ratification. The auto-end is mechanical and recoverable from `aiwf history`; the human's ratification opportunity moves from synchronous-at-close to post-hoc via the audit trail. If the human wants a synchronous handoff at the close, the path is to authorize a narrower scope (e.g., the milestones inside E-03 individually) and invoke the epic-level `done` directly.
+The agent can close its own scope by design: scopes constrain *what* an agent can do, not *which step within scope* requires synchronous human ratification. The auto-end is mechanical and recoverable from `aiwf history`; the human's ratification opportunity moves from synchronous-at-close to post-hoc via the audit trail. If the human wants a synchronous handoff at the close, the path is to authorize a narrower scope (e.g., the milestones inside E-0003 individually) and invoke the epic-level `done` directly.
 
 **Example 6: Forced override by the human.**
 ```
