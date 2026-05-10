@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_210 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_211 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -41,12 +41,15 @@ _(no milestones)_
 ### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
 - **M-0084** — Loader and id resolver span active and archive directories _(draft)_ — tdd: required
+- **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_proposed
   M_0084["M-0084<br/>Loader and id resolver span active and archive directories"]:::ms_draft
   E_0024 --> M_0084
+  M_0085["M-0085<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_draft
+  E_0024 --> M_0085
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -103,15 +106,17 @@ flowchart LR
 |------|--------|------|---------|
 | entity-body-empty | M-0084 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084 body section \`## Goal\` is empty |
 | entity-body-empty | M-0084 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0084-loader-and-id-resolver-span-active-and-archive-directories.md | M-0084 body section \`## Acceptance criteria\` is empty |
+| entity-body-empty | M-0085 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085 body section \`## Goal\` is empty |
+| entity-body-empty | M-0085 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085 body section \`## Acceptance criteria\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add milestone M-0084 'Loader and id resolver span active and archive directories' |
 | 2026-05-10 | human/peter | edit-body | aiwf edit-body E-0024 |
 | 2026-05-10 | human/peter | add | aiwf add epic E-0024 'Implement uniform archive convention (ADR-0004)' |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0094 open -> addressed |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-10 | human/peter | wrap | chore(E-0023): wrap epic — uniform 4-digit kernel ID width (closes G-0093) |
 
