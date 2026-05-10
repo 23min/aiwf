@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_215 entities · 0 errors · 18 warnings · run `aiwf check` for details_
+_215 entities · 0 errors · 9 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -118,24 +118,15 @@ flowchart LR
 | entity-body-empty | M-0085/AC-6 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-6 body under \`### AC-6\` is empty |
 | entity-body-empty | M-0085/AC-7 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-7 body under \`### AC-7\` is empty |
 | entity-body-empty | M-0085/AC-8 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-8 body under \`### AC-8\` is empty |
-| entity-body-empty | M-0087/AC-1 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-0087/AC-2 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-0087/AC-3 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-0087/AC-4 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-0087/AC-5 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-0087/AC-6 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-0087/AC-7 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-7 body under \`### AC-7\` is empty |
-| entity-body-empty | M-0087/AC-8 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-8 body under \`### AC-8\` is empty |
-| entity-body-empty | M-0087/AC-9 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | M-0087/AC-9 body under \`### AC-9\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-9 'aiwf history walks across an aiwf-verb=archive sweep rename' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-8 'aiwf render emits per-entity pages for archived entities so deep links resolve' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-7 'aiwf render emits per-kind all.html showing the full active+archived set' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-6 'aiwf render index page links active-default and full-set per-kind pages' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-5 'aiwf show renders a visible archived-state indicator in text and JSON' |
-| 2026-05-10 | human/peter | add | aiwf add ac M-0087/AC-4 'aiwf show resolves any id (active or archived) without flag opt-in' |
 
