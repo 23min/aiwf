@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_208 entities · 0 errors · 0 warnings_
+_208 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -102,20 +102,21 @@ flowchart LR
 | G-0090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-0079 |
 | G-0091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
-| G-0093 | Mixed kernel ID widths can't survive PoC graduation; E-NN exhausts at 99 and the §07 proposal silently drifts F-NNN to F-NNNN |  |
 | G-0094 | GitHub repo name 'ai-workflow-v2' is post-promotion historical; mismatches kernel identity 'aiwf' across go install path, internal/version proxy queries, and 155 in-repo references |  |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote ADR-0008 proposed -> accepted |
 | 2026-05-10 | human/peter | wrap | feat(aiwf): drift-check rule, normative-doc amendments, skill content refresh (M-0083) |
 | 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0083 in_progress -> done |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0083/AC-4 open -> met |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0083/AC-4 --phase green -> done |
 
