@@ -236,7 +236,7 @@ Ship three Tier 1 kernel-discipline fixes together before E-0020 implementation 
 | M-0076 | Writer surface for milestone depends_on (closes G-0072) | done |
 | M-0077 | aiwf retitle verb for entities and ACs (closes G-0065) | done |
 
-## E-0023 — Uniform 4-digit kernel ID width (closes G-0093) (proposed)
+## E-0023 — Uniform 4-digit kernel ID width (closes G-0093) (done)
 
 ### Goal
 
