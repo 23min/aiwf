@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // entityIDNarrowWidth implements the M-083 AC-1 drift-check rule.

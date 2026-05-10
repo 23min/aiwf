@@ -98,7 +98,7 @@ formatters:
       extra-rules: true
     goimports:
       local-prefixes:
-        - github.com/23min/ai-workflow-v2
+        - github.com/23min/aiwf
   exclusions:
     generated: lax
     paths:

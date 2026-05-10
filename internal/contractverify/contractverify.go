@@ -36,9 +36,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
-	"github.com/23min/ai-workflow-v2/internal/contractconfig"
-	"github.com/23min/ai-workflow-v2/internal/entity"
+	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/contractconfig"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // Result is one verdict produced by the verify or evolve pass.

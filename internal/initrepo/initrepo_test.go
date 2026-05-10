@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/config"
+	"github.com/23min/aiwf/internal/config"
 )
 
 // freshGitRepo gives each test an isolated repo with a deterministic

@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/tree"
-	"github.com/23min/ai-workflow-v2/internal/trunk"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 )
 
 // makeTree constructs a non-filesystem tree from inline entities.

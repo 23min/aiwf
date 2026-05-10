@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // bindRepo returns a tmpdir containing the schema/fixtures pairs

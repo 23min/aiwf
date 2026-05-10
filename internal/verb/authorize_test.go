@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
-	"github.com/23min/ai-workflow-v2/internal/scope"
-	"github.com/23min/ai-workflow-v2/internal/verb"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/scope"
+	"github.com/23min/aiwf/internal/verb"
 )
 
 // TestAuthorize_Open_HappyPath: a human authorizes an agent to operate

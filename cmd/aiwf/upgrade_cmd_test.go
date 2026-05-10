@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/version"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // TestRunUpgrade_CheckOnly_NoNetworkRequired covers the
@@ -229,7 +229,7 @@ func TestGoBinDir_Matrix(t *testing.T) {
 // fails. The home-fallback branch is exercised through GOPATH=""
 // with HOME set.
 func TestInstallLocationHint(t *testing.T) {
-	const pkg = "github.com/23min/ai-workflow-v2/cmd/aiwf"
+	const pkg = "github.com/23min/aiwf/cmd/aiwf"
 
 	cases := []struct {
 		name   string
@@ -270,8 +270,8 @@ func TestPathChangedFromStderr(t *testing.T) {
 	}{
 		{
 			name:   "v0.4.0 reorg case (real reproducer)",
-			stderr: "go: github.com/23min/ai-workflow-v2/tools/cmd/aiwf@latest: module github.com/23min/ai-workflow-v2@latest found (v0.4.0), but does not contain package github.com/23min/ai-workflow-v2/tools/cmd/aiwf",
-			want:   "github.com/23min/ai-workflow-v2/tools/cmd/aiwf",
+			stderr: "go: github.com/23min/aiwf/tools/cmd/aiwf@latest: module github.com/23min/aiwf@latest found (v0.4.0), but does not contain package github.com/23min/aiwf/tools/cmd/aiwf",
+			want:   "github.com/23min/aiwf/tools/cmd/aiwf",
 			ok:     true,
 		},
 		{
@@ -330,7 +330,7 @@ func TestRunUpgrade_PathChangedHint(t *testing.T) {
 	body := `#!/bin/sh
 case "$1" in
   install)
-    echo "go: github.com/23min/ai-workflow-v2/tools/cmd/aiwf@latest: module github.com/23min/ai-workflow-v2@latest found (v0.4.0), but does not contain package github.com/23min/ai-workflow-v2/tools/cmd/aiwf" >&2
+    echo "go: github.com/23min/aiwf/tools/cmd/aiwf@latest: module github.com/23min/aiwf@latest found (v0.4.0), but does not contain package github.com/23min/aiwf/tools/cmd/aiwf" >&2
     exit 1
     ;;
 esac

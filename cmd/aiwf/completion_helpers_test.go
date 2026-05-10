@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/cobra"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // TestStatusesForID covers the closed-set lookup behind

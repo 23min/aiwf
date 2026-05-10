@@ -15,7 +15,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/ai-workflow-v2/internal/version"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // newUpgradeCmd builds `aiwf upgrade`: a one-command flow that fetches
@@ -249,7 +249,7 @@ func printPackagePathChangedHint(pkg, target, missingPkg string) {
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "  Recovery:")
 	fmt.Fprintln(os.Stderr, "    1. Find the new install path in the target release's CHANGELOG.")
-	fmt.Fprintln(os.Stderr, "       https://github.com/23min/ai-workflow-v2/blob/main/CHANGELOG.md")
+	fmt.Fprintln(os.Stderr, "       https://github.com/23min/aiwf/blob/main/CHANGELOG.md")
 	fmt.Fprintf(os.Stderr, "    2. Run `go install <new-path>@%s` manually.\n", target)
 	fmt.Fprintln(os.Stderr, "    3. Run `aiwf update` in your consumer repo to refresh artifacts.")
 	fmt.Fprintln(os.Stderr)

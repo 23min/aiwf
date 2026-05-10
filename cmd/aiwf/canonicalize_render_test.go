@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/render"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // AC-3 in M-081: every display surface emits canonical ids regardless

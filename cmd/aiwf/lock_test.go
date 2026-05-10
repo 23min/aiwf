@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/23min/ai-workflow-v2/internal/repolock"
+	"github.com/23min/aiwf/internal/repolock"
 )
 
 // TestRun_ConcurrentMutations_OneWinsOneBusy is the load-bearing

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // RecipeInstallOptions carries the recipe-install arguments shared

@@ -7,10 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // EditBody replaces the markdown body of an existing entity file. The

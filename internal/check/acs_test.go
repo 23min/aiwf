@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // findingByCode returns the first finding with the given code+subcode.

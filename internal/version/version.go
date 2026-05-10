@@ -122,7 +122,7 @@ func Current() Info {
 // is unavailable. Used by Latest to construct the proxy lookup URL.
 //
 // The module path is the value declared in go.mod
-// (e.g., "github.com/23min/ai-workflow-v2"). For the go-install
+// (e.g., "github.com/23min/aiwf"). For the go-install
 // invocation that wants the cmd's package path (one level deeper),
 // use PackagePath instead.
 func ModulePath() string {
@@ -138,7 +138,7 @@ func ModulePath() string {
 // when build info is unavailable.
 //
 // The package path is what `go install` accepts as its module-aware
-// argument: e.g., "github.com/23min/ai-workflow-v2/cmd/aiwf".
+// argument: e.g., "github.com/23min/aiwf/cmd/aiwf".
 // Always equal to or below ModulePath in the import-path tree.
 func PackagePath() string {
 	if bi, ok := debug.ReadBuildInfo(); ok {

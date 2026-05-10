@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // CoherenceError is the typed error CheckTrailerCoherence returns when

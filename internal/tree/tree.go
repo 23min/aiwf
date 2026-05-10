@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/trunk"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/trunk"
 )
 
 // Tree is the in-memory representation of every aiwf entity discovered

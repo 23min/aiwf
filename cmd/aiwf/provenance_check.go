@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/scope"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/scope"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // runProvenanceCheck walks every commit reachable from HEAD that

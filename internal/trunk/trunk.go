@@ -37,9 +37,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // ID names one entity that exists in the trunk ref's tree, by kind,

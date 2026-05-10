@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // Apply executes a verb's Plan against the consumer repo at root: it

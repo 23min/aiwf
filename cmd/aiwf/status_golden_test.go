@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/render"
+	"github.com/23min/aiwf/internal/render"
 )
 
 // updateGolden lets a developer refresh the golden files via

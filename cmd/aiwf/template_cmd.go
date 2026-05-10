@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/render"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/render"
 )
 
 // templateOut is the per-kind payload `aiwf template` emits in both

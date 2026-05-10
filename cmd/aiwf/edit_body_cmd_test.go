@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // TestEditBody_BinaryEndToEnd is the M-058 dispatcher-seam closure:

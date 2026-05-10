@@ -38,7 +38,7 @@ func aiwfBinary(t *testing.T) string {
 		// dir to where go.mod lives. cmd/aiwf -> .. -> ..
 		// The test binary's working dir is the package dir, so
 		// `./...` is wrong; pass an absolute module path.
-		cmd := exec.Command("go", "build", "-o", bin, "github.com/23min/ai-workflow-v2/cmd/aiwf")
+		cmd := exec.Command("go", "build", "-o", bin, "github.com/23min/aiwf/cmd/aiwf")
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			buildErr = &buildError{err: err, output: string(out)}

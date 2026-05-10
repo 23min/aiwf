@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Status line for Claude Code in the ai-workflow-v2 repo.
+# Status line for Claude Code in the aiwf repo.
 # Reads JSON from stdin (Claude Code's session context), prints one line.
 #
 # Layout: <ball> <model> · <epic?> · <milestone?> · <repo> · <branch>[<dirty>][<sync>] · ci:<state> · <tokens>

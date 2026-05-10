@@ -39,10 +39,10 @@ exclude = [
   "^https?://example\\.org",
   # The install.sh raw URL is referenced in the README but the file
   # doesn't exist yet; install.sh ships in Stage 3.
-  "^https?://raw\\.githubusercontent\\.com/23min/ai-workflow-v2/.*/install\\.sh$",
+  "^https?://raw\\.githubusercontent\\.com/23min/aiwf/.*/install\\.sh$",
   # GitHub Discussions URLs 404 until the feature is enabled with the
   # referenced category. Re-evaluate after enabling Discussions.
-  "^https?://github\\.com/23min/ai-workflow-v2/discussions",
+  "^https?://github\\.com/23min/aiwf/discussions",
 ]
 
 # Cache results between runs to keep CI fast.

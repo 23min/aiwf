@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/23min/ai-workflow-v2/internal/repolock"
+	"github.com/23min/aiwf/internal/repolock"
 )
 
 // lockTimeout is how long a mutating verb waits for the repo lock

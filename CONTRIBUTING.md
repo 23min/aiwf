@@ -12,7 +12,7 @@ The project uses both Issues and Discussions, with a clear split.
 
 ### Discussions
 
-Use **[Discussions](https://github.com/23min/ai-workflow-v2/discussions)** for:
+Use **[Discussions](https://github.com/23min/aiwf/discussions)** for:
 
 - "Should we add X?" — feature ideas, scope debates.
 - "How does Y work?" — usage Q&A.
@@ -23,7 +23,7 @@ Discussions are the right place to start when you're not sure whether something 
 
 ### Issues
 
-Use **[Issues](https://github.com/23min/ai-workflow-v2/issues)** for **trackable work** with a clear close condition. Two templates ship:
+Use **[Issues](https://github.com/23min/aiwf/issues)** for **trackable work** with a clear close condition. Two templates ship:
 
 - **Bug** — file when shipped behavior diverges from documented behavior. Requires version, reproduction, expected vs. actual.
 - **Design question** — file when the architecture doc is unclear or seems internally inconsistent. Reference the section in question.

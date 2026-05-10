@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed (breaking) — Module path rename `github.com/23min/ai-workflow-v2` → `github.com/23min/aiwf` (closes G-0094)
+
+The kernel's Go module path now matches its binary name. The GitHub repo is renamed from `23min/ai-workflow-v2` to `23min/aiwf`; the old repo is archived under the same owner and remains accessible as a historical record. Pre-rename tags (`v0.1.x` and earlier) continue to resolve at the old path until the Go module proxy expires them; post-rename releases ship at the new path only.
+
+**Existing installs require manual reinstall.** `aiwf upgrade` from a binary built before this rename will keep querying the old proxy path and silently keep returning pre-rename tags. To migrate:
+
+```bash
+go install github.com/23min/aiwf/cmd/aiwf@latest
+```
+
+Clones of the repo: `git remote set-url origin git@github.com:23min/aiwf.git` (or HTTPS equivalent). GitHub's auto-redirect handles the URL change for already-cloned trees, but the new origin is the durable one.
+
 ### Changed — E-0023: Uniform 4-digit kernel ID width (closes G-0093)
 
 Three milestones (M-0081, M-0082, M-0083) collapse the per-kind id-width policy (E-NN, M-NNN, ADR-NNNN, G-NNN, D-NNN, C-NNN) to a single canonical 4-digit form across every kernel id kind. Parsers tolerate narrower legacy widths on input so existing trees, branches, and commit trailers continue to validate without history rewrite; renderers and allocators always emit canonical width. Files **ADR-0008** (policy precedent for the entire epic; promoted from `proposed` to `accepted` at wrap). Closes **G-0093**.
@@ -158,7 +170,7 @@ Five milestones cumulatively cut a planning session's commit count by ~75% and r
 ## [0.4.0] — 2026-05-05
 
 ### Changed (breaking)
-- **Repo reorg to Go-standard layout.** `tools/cmd/aiwf` → `cmd/aiwf`, `tools/internal/...` → `internal/...`, `tools/e2e` → `e2e`. Module path unchanged at `github.com/23min/ai-workflow-v2`. **Install path changed:** `go install github.com/23min/ai-workflow-v2/cmd/aiwf@latest` (previously `.../tools/cmd/aiwf@latest`). Existing tags resolve via the old path; new releases via the new path. `tools/CLAUDE.md` merged into root `CLAUDE.md` as a new "Go conventions" section so discovery semantics work post-reorg. (`a137132`)
+- **Repo reorg to Go-standard layout.** `tools/cmd/aiwf` → `cmd/aiwf`, `tools/internal/...` → `internal/...`, `tools/e2e` → `e2e`. Module path unchanged at `github.com/23min/ai-workflow-v2` *(at the time of this release; subsequently renamed — see Unreleased)*. **Install path changed:** `go install github.com/23min/ai-workflow-v2/cmd/aiwf@latest` (previously `.../tools/cmd/aiwf@latest`). Existing tags resolve via the old path; new releases via the new path. `tools/CLAUDE.md` merged into root `CLAUDE.md` as a new "Go conventions" section so discovery semantics work post-reorg. (`a137132`)
 
 ### Added
 - **G45 — Hook chaining via `.local` siblings.** aiwf-managed `pre-push` and `pre-commit` hooks now invoke `<hook-name>.local` (if present and executable) before running aiwf's own check. `aiwf init` auto-migrates a pre-existing non-marker hook to its `.local` sibling, preserving content byte-for-byte and exec bit. Non-executable `.local` fails loud (both at hook runtime and via `aiwf doctor`). New `ActionMigrated` step result; `HookConflict` now signals only the rare `.local`-already-exists collision. `aiwf doctor` reports chain shape per hook. Unblocks consumers with pre-existing hooks (husky, lefthook, hand-written) from `aiwf init` friction. (`49e7764`)

@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // TestFixture_Clean asserts that the synthetic clean tree produces no

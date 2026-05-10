@@ -10,12 +10,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
-	"github.com/23min/ai-workflow-v2/internal/render"
-	"github.com/23min/ai-workflow-v2/internal/tree"
-	"github.com/23min/ai-workflow-v2/internal/verb"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/verb"
 )
 
 // newAddCmd builds `aiwf add <kind> --title "..." [kind-specific flags]`

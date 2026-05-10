@@ -180,7 +180,7 @@ func TestModulePath_TestBinary(t *testing.T) {
 	// Under `go test`, ModulePath returns the module of the test
 	// binary, which is this repo's go.mod path.
 	got := ModulePath()
-	const want = "github.com/23min/ai-workflow-v2"
+	const want = "github.com/23min/aiwf"
 	if got != want {
 		t.Errorf("ModulePath() = %q, want %q", got, want)
 	}

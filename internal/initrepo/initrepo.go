@@ -20,9 +20,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
-	"github.com/23min/ai-workflow-v2/internal/skills"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/skills"
 )
 
 // preHookMarker is the exact comment line `aiwf init` writes inside its
@@ -50,7 +50,7 @@ func shellQuoteSingle(s string) string {
 // exists. Short by design — consumers customize it freely.
 const CLAUDETemplate = `# CLAUDE.md
 
-This repository uses [aiwf](https://github.com/23min/ai-workflow-v2) to track planning state.
+This repository uses [aiwf](https://github.com/23min/aiwf) to track planning state.
 
 ## Quick reference
 

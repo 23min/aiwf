@@ -33,7 +33,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/aiwfyaml"
 )
 
 //go:embed embedded

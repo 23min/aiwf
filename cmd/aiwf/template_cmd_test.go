@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 func TestRunTemplate_OneKindRaw(t *testing.T) {

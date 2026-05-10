@@ -8,16 +8,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/contractcheck"
-	"github.com/23min/ai-workflow-v2/internal/contractverify"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/recipe"
-	"github.com/23min/ai-workflow-v2/internal/render"
-	"github.com/23min/ai-workflow-v2/internal/tree"
-	"github.com/23min/ai-workflow-v2/internal/verb"
+	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/contractcheck"
+	"github.com/23min/aiwf/internal/contractverify"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/recipe"
+	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/verb"
 )
 
 // newContractCmd builds the `aiwf contract` parent command. Five direct

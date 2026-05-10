@@ -12,13 +12,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
-	"github.com/23min/ai-workflow-v2/internal/htmlrender"
-	"github.com/23min/ai-workflow-v2/internal/render"
-	"github.com/23min/ai-workflow-v2/internal/roadmap"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/htmlrender"
+	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/roadmap"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // newRenderCmd builds `aiwf render`. Two surfaces:

@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/render"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/render"
 )
 
 // newSchemaCmd builds `aiwf schema [kind]`: prints the frontmatter

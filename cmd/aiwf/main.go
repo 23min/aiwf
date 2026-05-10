@@ -18,12 +18,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/render"
-	"github.com/23min/ai-workflow-v2/internal/tree"
-	"github.com/23min/ai-workflow-v2/internal/version"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // Version is the binary's reported version. The ldflags-stamped value

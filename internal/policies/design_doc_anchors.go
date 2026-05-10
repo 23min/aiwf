@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // markdownLinkPattern matches a markdown link of the form

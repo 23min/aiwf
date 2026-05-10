@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
-	"github.com/23min/ai-workflow-v2/internal/verb"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/verb"
 )
 
 // TestPromoteAuditOnly_HappyPath: an entity is already at the named

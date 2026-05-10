@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/htmlrender"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/htmlrender"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // renderResolver implements htmlrender.PageDataResolver against a

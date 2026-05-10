@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty pins M-066/AC-1:

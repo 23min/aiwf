@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/aiwfyaml"
 )
 
 // fakeValidatorScript writes a small shell script to dir that exits

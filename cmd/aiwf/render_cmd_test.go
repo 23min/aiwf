@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // TestRun_RenderRoadmap_Stdout: a freshly-init'd repo with one epic

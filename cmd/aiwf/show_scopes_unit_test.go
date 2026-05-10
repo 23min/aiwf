@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/scope"
+	"github.com/23min/aiwf/internal/scope"
 )
 
 // TestLastEventSHA covers every branch:

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // TestRollback_RestoreError: when git restore fails for a non-"did

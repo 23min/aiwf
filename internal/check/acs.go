@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // acsShape validates the structure of every milestone's acs[] list and

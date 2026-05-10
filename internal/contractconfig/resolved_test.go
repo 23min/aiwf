@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
-	"github.com/23min/ai-workflow-v2/internal/check"
+	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/check"
 )
 
 // realRoot returns repoRoot with symlinks evaluated. Tests use this so

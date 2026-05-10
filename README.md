@@ -50,7 +50,7 @@ A live snapshot of the entity tree (in flight, roadmap, open decisions, open gap
 The fastest path is to let the Go toolchain fetch and build directly from the repo — no clone, no rebuild of any container, just one command:
 
 ```bash
-go install github.com/23min/ai-workflow-v2/cmd/aiwf@latest
+go install github.com/23min/aiwf/cmd/aiwf@latest
 ```
 
 The binary lands in `$GOBIN` (defaults to `$GOPATH/bin`, typically `~/go/bin`). Make sure that directory is on `$PATH`.
@@ -58,13 +58,13 @@ The binary lands in `$GOBIN` (defaults to `$GOPATH/bin`, typically `~/go/bin`). 
 `@latest` resolves to the highest published semver tag via the Go module proxy. Pin to a specific release for reproducible installs (e.g. in CI):
 
 ```bash
-go install github.com/23min/ai-workflow-v2/cmd/aiwf@v0.1.0
+go install github.com/23min/aiwf/cmd/aiwf@v0.1.0
 ```
 
 Or to a specific commit SHA when running from an unreleased branch:
 
 ```bash
-go install github.com/23min/ai-workflow-v2/cmd/aiwf@<sha>
+go install github.com/23min/aiwf/cmd/aiwf@<sha>
 ```
 
 ### Prerequisites
@@ -78,7 +78,7 @@ go install github.com/23min/ai-workflow-v2/cmd/aiwf@<sha>
 If you want a local checkout to read or modify the source:
 
 ```bash
-git clone https://github.com/23min/ai-workflow-v2 && cd ai-workflow-v2
+git clone https://github.com/23min/aiwf && cd aiwf
 make install                                                # embeds branch + short SHA in --version
 ```
 
@@ -117,7 +117,7 @@ This runs `go install <pkg>@latest` and re-execs the new binary into `aiwf updat
 The `aiwf upgrade` verb shipped in `v0.1.0`. If your installed binary predates that — installed via `go install …@poc/aiwf-v3` or pinned to a pre-release SHA — you don't have `aiwf upgrade` yet. One-time bootstrap:
 
 ```bash
-go install github.com/23min/ai-workflow-v2/cmd/aiwf@latest
+go install github.com/23min/aiwf/cmd/aiwf@latest
 aiwf update                                             # in each consumer repo
 ```
 

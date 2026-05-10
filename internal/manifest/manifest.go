@@ -19,7 +19,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // AutoID is the literal id value that requests auto-allocation. Used

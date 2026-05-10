@@ -14,17 +14,17 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
-	"github.com/23min/ai-workflow-v2/internal/initrepo"
-	"github.com/23min/ai-workflow-v2/internal/pluginstate"
-	"github.com/23min/ai-workflow-v2/internal/render"
-	"github.com/23min/ai-workflow-v2/internal/skills"
-	"github.com/23min/ai-workflow-v2/internal/tree"
-	"github.com/23min/ai-workflow-v2/internal/version"
+	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/pluginstate"
+	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // newInitCmd builds `aiwf init`: writes aiwf.yaml, scaffolds entity

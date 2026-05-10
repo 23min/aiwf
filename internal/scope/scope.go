@@ -27,7 +27,7 @@ package scope
 import (
 	"fmt"
 
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // State is the closed set of scope lifecycle states. A scope is

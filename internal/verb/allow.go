@@ -23,8 +23,8 @@ package verb
 import (
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/scope"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/scope"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // VerbKind discriminates the act being gated. Different kinds use

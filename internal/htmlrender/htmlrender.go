@@ -29,8 +29,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // Options is the input to Render. OutDir is the absolute directory

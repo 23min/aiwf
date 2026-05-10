@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // Rewidth sweeps a consumer's active planning tree from narrow legacy

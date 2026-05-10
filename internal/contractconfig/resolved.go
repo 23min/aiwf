@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/pathutil"
+	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/pathutil"
 )
 
 // Resolved is the post-validation view of one contracts.entries[]

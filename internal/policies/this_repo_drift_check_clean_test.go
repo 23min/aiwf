@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // TestPolicy_ThisRepoDriftCheckClean is the M-083 AC-5 chokepoint:

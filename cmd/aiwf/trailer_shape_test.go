@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // M-069 AC-3 — Trailer-key shape asserted per mutating verb.

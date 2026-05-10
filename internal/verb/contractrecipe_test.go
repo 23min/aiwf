@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/aiwfyaml"
 )
 
 const recipeBaseYAML = `aiwf_version: 0.1.0

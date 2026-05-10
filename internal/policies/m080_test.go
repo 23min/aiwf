@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // criticalPathMdPath is the path AC-5 forbids and AC-6 polices.

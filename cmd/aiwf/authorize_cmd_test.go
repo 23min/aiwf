@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/gitops"
-	"github.com/23min/ai-workflow-v2/internal/scope"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/scope"
 )
 
 // TestRunAuthorize_OpenPauseResumeRoundTrip drives `aiwf authorize`

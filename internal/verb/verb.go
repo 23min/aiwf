@@ -11,8 +11,8 @@
 package verb
 
 import (
-	"github.com/23min/ai-workflow-v2/internal/check"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // Result is what every verb returns. Exactly one of Findings, Plan,

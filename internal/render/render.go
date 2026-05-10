@@ -33,7 +33,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/23min/ai-workflow-v2/internal/check"
+	"github.com/23min/aiwf/internal/check"
 )
 
 // Envelope is the JSON shape every aiwf invocation writes when invoked

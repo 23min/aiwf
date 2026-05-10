@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/tree"
-	"github.com/23min/ai-workflow-v2/internal/trunk"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 )
 
 // loadTreeWithTrunk loads the consumer repo's entity tree and stamps

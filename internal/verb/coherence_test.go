@@ -3,7 +3,7 @@ package verb
 import (
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // TestCheckTrailerCoherence_Rules table-drives every required-together

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/tree"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // TestRun_ShowMilestoneAggregatesACsHistoryFindings exercises the

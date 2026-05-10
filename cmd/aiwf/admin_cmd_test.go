@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/ai-workflow-v2/internal/initrepo"
+	"github.com/23min/aiwf/internal/initrepo"
 )
 
 // TestRun_InitThroughDispatcher confirms `aiwf init` wires through the

@@ -1,4 +1,4 @@
-module github.com/23min/ai-workflow-v2
+module github.com/23min/aiwf
 
 go 1.24
 

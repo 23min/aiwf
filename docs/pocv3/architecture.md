@@ -13,7 +13,7 @@ aiwf has four distinct layers, each living where its constraints are best served
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Layer 1 — Engine binary (machine-installed, external to repo)      │
-│  ─ go install github.com/23min/ai-workflow-v2/cmd/aiwf        │
+│  ─ go install github.com/23min/aiwf/cmd/aiwf        │
 │  ─ Single binary; no plugins; no per-project install                │
 │  ─ Hardcodes the six entity kinds and their statuses                │
 └─────────────────────────────────────────────────────────────────────┘

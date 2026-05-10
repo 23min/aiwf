@@ -9,11 +9,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
-	"github.com/23min/ai-workflow-v2/internal/scope"
-	"github.com/23min/ai-workflow-v2/internal/tree"
-	"github.com/23min/ai-workflow-v2/internal/verb"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/scope"
+	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/verb"
 )
 
 // provenanceContext carries the inputs the cmd dispatcher feeds into

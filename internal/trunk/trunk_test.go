@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/23min/ai-workflow-v2/internal/config"
-	"github.com/23min/ai-workflow-v2/internal/entity"
-	"github.com/23min/ai-workflow-v2/internal/gitops"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 func TestRead_NoRemotes_Skips(t *testing.T) {
