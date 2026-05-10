@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_215 entities · 0 errors · 6 warnings · run `aiwf check` for details_
+_215 entities · 0 errors · 7 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -42,7 +42,7 @@ _(no milestones)_
 
 - → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 6/6 met — tdd: required
 - **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(draft)_ — tdd: required
-- → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 0/5 met (5 open) — tdd: required
+- → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 0/6 met (6 open) — tdd: required
 - **M-0087** — Display surfaces for archived entities (status, show, render) _(draft)_ — tdd: required
 - **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(draft)_ — tdd: required
 
@@ -53,7 +53,7 @@ flowchart LR
   E_0024 --> M_0084
   M_0085["M-0085<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_draft
   E_0024 --> M_0085
-  M_0086["M-0086 (0/5)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
+  M_0086["M-0086 (0/6)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
   E_0024 --> M_0086
   M_0087["M-0087<br/>Display surfaces for archived entities (status, show, render)"]:::ms_draft
   E_0024 --> M_0087
@@ -115,15 +115,16 @@ flowchart LR
 | entity-body-empty | M-0086/AC-3 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0086-three-new-archive-check-rule-findings-and-existing-rule-scoping.md | M-0086/AC-3 body under \`### AC-3\` is empty |
 | entity-body-empty | M-0086/AC-4 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0086-three-new-archive-check-rule-findings-and-existing-rule-scoping.md | M-0086/AC-4 body under \`### AC-4\` is empty |
 | entity-body-empty | M-0086/AC-5 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0086-three-new-archive-check-rule-findings-and-existing-rule-scoping.md | M-0086/AC-5 body under \`### AC-5\` is empty |
+| entity-body-empty | M-0086/AC-6 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0086-three-new-archive-check-rule-findings-and-existing-rule-scoping.md | M-0086/AC-6 body under \`### AC-6\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-5 'Tree-integrity rules traverse archive in full' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-4 'Existing shape and health rules skip archive per ADR-0004' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-3 'archive-sweep-pending aggregates the count of pending sweeps' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-2 'terminal-entity-not-archived fires advisory per terminal in active dir' |
 | 2026-05-10 | human/peter | add | aiwf add ac M-0086/AC-1 'archived-entity-not-terminal fires blocking with revert hint' |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0086 draft -> in_progress |
 
