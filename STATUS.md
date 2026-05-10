@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-5 --phase red -> green |
 | 2026-05-10 | human/peter | rewidth | aiwf rewidth: 200 rename(s), 212 body rewrite(s) |
 | 2026-05-10 | human/peter | wrap-prep | feat(aiwf): aiwf rewidth verb + width-tolerance prep (M-082) |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-4 open -> met |
 | 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-4 --phase green -> done |
-| 2026-05-10 | human/peter | promote | aiwf promote M-0082/AC-4 --phase red -> green |
 
