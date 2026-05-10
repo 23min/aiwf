@@ -129,9 +129,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0086 |
 | 2026-05-10 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0085 |
 | 2026-05-10 | human/peter | add | aiwf add milestone M-0088 'Configuration knob, embedded skill, and CLAUDE.md amendment' |
 | 2026-05-10 | human/peter | add | aiwf add milestone M-0087 'Display surfaces for archived entities (status, show, render)' |
 | 2026-05-10 | human/peter | add | aiwf add milestone M-0086 'Three new archive check-rule findings and existing-rule scoping' |
-| 2026-05-10 | human/peter | add | aiwf add milestone M-0085 'aiwf archive verb (dry-run default, --apply, --kind)' |
 
