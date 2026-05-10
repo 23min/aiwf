@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-10
 
-_208 entities · 0 errors · 1 warnings · run `aiwf check` for details_
+_209 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -35,6 +35,10 @@ flowchart LR
 ```
 
 ### E-0019 — Parallel TDD subagents with finding-gated AC closure _(proposed)_
+
+_(no milestones)_
+
+### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
 _(no milestones)_
 
@@ -84,6 +88,9 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| entity-body-empty | E-0024 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/epic.md | E-0024 body section \`## Goal\` is empty |
+| entity-body-empty | E-0024 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/epic.md | E-0024 body section \`## Scope\` is empty |
+| entity-body-empty | E-0024 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/epic.md | E-0024 body section \`## Out of scope\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
