@@ -1,7 +1,7 @@
 ---
 id: E-0023
 title: Uniform 4-digit kernel ID width (closes G-0093)
-status: active
+status: done
 ---
 # E-0023 — Uniform 4-digit kernel ID width (closes G-0093)
 
