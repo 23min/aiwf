@@ -1,7 +1,7 @@
 ---
 id: M-0082
 title: Implement aiwf rewidth verb and apply to this repo's tree
-status: in_progress
+status: done
 parent: E-0023
 depends_on:
     - M-0081
@@ -165,4 +165,64 @@ Verified at wrap by structural assertions over the resulting tree:
 - Lychee CI: green (no broken path-form links).
 
 Manual diff review checkpoint named in M-B's wrap commit body before the rename PR is approved by a human. The diff is large (~100 file renames + N reference rewrites) and warrants explicit human review even though every assertion above is mechanical.
+
+## Work log
+
+Phase timeline lives in `aiwf history M-0082/AC-N` for every AC; the entries below are the post-cycle outcome and the SHA of the kernel `met` commit. The verb's source-code diff is bundled in commit `6190f3d` (the prep commit, alongside the width-tolerance helpers); the rename + body-rewrite diff is the rewidth verb's own commit `f937288`.
+
+### AC-1 — `aiwf rewidth` verb structure with dry-run default
+
+`cmd/aiwf/rewidth_cmd.go` defines the Cobra command with `--apply` flag (default dry-run); `internal/verb/rewidth.go` implements the plan-then-apply pipeline. Wired into `newRootCmd`, completion drift + skill-coverage allowlist + help-quality drift all pass. Trailer is `aiwf-verb: rewidth` with no `aiwf-entity:` (multi-entity sweep, allowlisted in `internal/policies/trailer_keys.go` alongside `archive`/`import`). Kernel met commit: `3a30957`. Tests: `cmd/aiwf/rewidth_cmd_test.go` (12 dispatcher-level cases including dry-run, single-commit-per-apply, trailer shape, help, post-apply tree assertions, idempotence, archive byte-preservation, principal-coherence guards).
+
+### AC-2 — Active-tree file rename to canonical width
+
+The verb walks each kind's active directory in fixed sequence (epic, milestone, gap, decision, contract, adr) and within a kind in alphabetical order. Composite cases handled: epic-narrow + milestones-inside-narrow (both rename); epic-canonical + milestones-narrow (milestones rename in place); epic-narrow + milestones-canonical (epic dir renames, milestone names unchanged inside). Archive entries (`<kind>/archive/...`) skipped entirely per ADR-0004's forget-by-default. Kernel met commit: `6fb9ce8`. Tests in `internal/verb/rewidth_test.go` cover each composite case with separate fixtures.
+
+### AC-3 — In-body reference rewrite for narrow ids
+
+Three patterns rewritten in active-tree markdown bodies: bare ids (`E-22` → `E-0022`), composite ids (`M-22/AC-1` → `M-0022/AC-1`), and markdown links to active-tree paths (`(work/epics/E-22-foo)` → `(work/epics/E-0022-foo)`). Excludes inline-code spans (`` `E-22` `` stays — typically denotes literal id text), code fences (`` ``` `` blocks preserved), URL tokens (`E-22` inside `https://...` left alone), and archive paths (`work/<kind>/archive/...` not rewritten). The `F` prefix is included in the regex for forward compatibility with §07's planned 7th kind (currently a no-op since no F entities exist yet). Kernel met commit: `8c7fbe8`. Tests: 21 cases including code-fence preservation, URL-fragment exclusion, archive-path exclusion, post-move pathing for milestone-inside-renamed-epic.
+
+### AC-4 — Idempotent and deterministic on canonical tree
+
+Already-canonical and empty trees are no-ops (NoOp result, no commit, exit 0 with "no changes needed"). Mixed-state trees migrate only narrow files; originally-canonical files byte-identical pre/post. Subsequent invocations after first `--apply` are no-ops. Walk order pinned by tests for determinism. Kernel met commit: `7437321`. Tests verify each scenario in `internal/verb/rewidth_test.go` and the dispatcher tests.
+
+### AC-5 — Apply `aiwf rewidth` to this repo
+
+Ran against this repo's tree at wrap; produced commit `f937288` with 200 file renames (23 epics, 83 milestones, 93 gaps, 1 decision; ADRs already canonical) + 212 body rewrites in active-tree markdown. Trailer correctly shaped: `aiwf-verb: rewidth` with no `aiwf-entity:`. Post-rewidth verifications: `find` returned empty for narrow-width active filenames; `aiwf check` returned 0 errors and 1 unrelated provenance warning; `golangci-lint` 0 issues; `aiwf doctor --self-check` 30/30. Inline-backtick narrow-id mentions remain by design per AC-3 spec ("typically denotes literal id text in documentation"). A first apply attempt was blocked by the pre-commit hook because `design-doc-anchors-valid` fired on `docs/pocv3/design/parallel-tdd-subagents.md` and `agent-orchestration.md` (4 markdown links to `work/epics/E-19-...` paths the rewidth verb didn't sweep — those docs are outside the verb's active-tree scope by spec). The fix was the prep work in commit `6190f3d` (decision recorded below). Kernel met commit: `bfa9348`.
+
+## Decisions made during implementation
+
+- **Width-tolerance fallback in `design-doc-anchors-valid` policy.** When a path-form reference doesn't resolve at its authored width, the policy retries the canonicalized form via `entity.CanonicalPad`-padding of the leading id segment in each path component. Same theme as M-0081's parser tolerance for entity ids (ADR-0008): pre-rewidth narrow paths and post-rewidth canonical paths both resolve, so docs/pocv3/ references survive the migration window until M-0083's narrative sweep updates the prose. Mild scope creep for M-0082 — strictly necessary to unblock AC-5's apply step. Lives in `internal/policies/design_doc_anchors.go::canonicalizePathIDs`.
+
+- **`m080_test.go` refactored to width-agnostic path resolution.** The test previously hardcoded `work/epics/E-21-.../M-080-...md` as a constant; post-rewidth the on-disk filename is `M-0080-...md` and the parent directory is `E-0021-...`. Refactored `loadM080Spec` to use `tree.Load + ByID("M-080")` (canonicalize-on-lookup per M-0081 AC-2). The AC-7 substring assertion for `e-21` was replaced with a new `containsIDForm` helper that uses a regex matching either width — the M-080 spec body's prose was rewritten to `E-0021` by rewidth's body-rewrite engine, but the assertion's intent (cite the parent epic) holds regardless of width.
+
+- **Below-grammar-floor passthrough in `padToCanonical`.** `entity.Canonicalize` rejects narrow legacy ids below per-kind grammar minima (`E-1` doesn't match `^E-\d{2,}$`); the rewidth verb's body-rewrite engine needs a pad-only helper that bypasses grammar validation to handle the regex-extracted match groups. Solution: package-private `padToCanonical(prefix, digits)` consumed only by the body-rewrite engine. Documented in `rewriteProseChunk` and `padToCanonical` godocs.
+
+No ADRs filed mid-implementation. ADR-0008 was already the policy precedent for the entire epic.
+
+## Validation
+
+- `go build -o /tmp/aiwf ./cmd/aiwf` — clean.
+- `go test -race ./...` — 25 packages, 0 failures.
+- `golangci-lint run` — 0 issues.
+- `aiwf doctor --self-check` — 30/30 steps.
+- `aiwf check` on this repo's post-rewidth tree — 0 errors, 1 unrelated warning (`provenance-untrailered-scope-undefined`, no upstream configured).
+- `aiwf show M-0082` — all 5 ACs `met` with `phase: done`; no findings.
+- Trailer shape on `f937288`: `aiwf-verb: rewidth`, no `aiwf-entity:`, single multi-entity-sweep commit per kernel principle #7.
+- Coverage on the new code: `internal/verb/rewidth.go` exercised by 21 unit tests + 12 dispatcher tests; uncovered lines are defensive paths marked `//coverage:ignore` per the branch-coverage audit.
+
+## Deferrals
+
+None for M-0082 itself. Two epic-scope follow-ons remain on their planned milestones:
+
+- **Doc-tree narrative-prose canonicalization** (`docs/`, `README.md`, `CHANGELOG.md`, ADR-0003 amendment, CLAUDE.md commitment #2 update, embedded skill content refresh, rituals-plugin coordination) — rides with **M-0083**. The width-tolerance fallback added in this milestone keeps path-form references resolving during the migration window; M-0083's narrative sweep canonicalizes the prose.
+- **Drift-check rule `entity-id-narrow-width`** — also M-0083. The rule will fire on mixed-state active trees but stay silent on uniform-canonical (this repo's post-rewidth state) and uniform-narrow (pre-migration consumer trees).
+
+## Reviewer notes
+
+- **Width-tolerance for path resolution is a real kernel improvement, not a hack.** It mirrors M-0081 AC-2's parser tolerance for entity ids: same theme, same justification ("pure-additive — the resolver's accept set widens, no existing valid input becomes invalid"). The per-segment pad-to-canonical helper lives in `internal/policies/design_doc_anchors.go` because that's the only consumer today; if a second consumer surfaces (e.g., a future `aiwf check` rule), promote it to a shared helper in `internal/entity/`.
+- **The wrap commit produced by `aiwf rewidth --apply` is itself the milestone's load-bearing deliverable.** Unlike M-0081's "wrap commit bundles all production code" pattern, M-0082 has two distinct production commits: the verb's source code (`6190f3d`) and the verb's own running output (`f937288`). The wrap commit (this one) is just the spec finalization. Three commits is the right shape — folding them would obscure the verb's "single commit per `--apply`" contract.
+- **Inline-backtick narrow-id mentions are preserved by design.** A grep for `[EMGDC]-[0-9]{1,3}` over active markdown still finds matches inside backtick spans (`` `E-22` ``, `` `M-22/AC-1` ``, `work/epics/E-21-*/epic.md` glob patterns). These are literal prose examples and wildcard patterns, not real path-form references. The AC-3 spec explicitly excludes them; the AC-5 verification grep over file content is a coarse approximation, and the actual chokepoint is `design-doc-anchors-valid` which only fires on real markdown links.
+- **The post-rewidth identity `M-082 → M-0082` happens at the spec's frontmatter `id` field too.** The verb rewrites the on-disk filename AND the frontmatter `id:` value. After `aiwf rewidth --apply` ran, queries via `aiwf show M-082` failed; the canonical query is `aiwf show M-0082`. Pre-existing tooling that hardcoded narrow-form ids needs the canonicalize-on-lookup helper (already threaded through `tree.ByID` per M-0081 AC-2).
+- **18 mechanical aiwf state-transition commits** sit between the prep commit and the wrap commit — phase + met ladders for AC-1..AC-5. They modify only the milestone spec's frontmatter and STATUS.md.
 
