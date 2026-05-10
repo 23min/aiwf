@@ -19,7 +19,7 @@ acs:
     - id: AC-3
       title: Doc-tree narrow-id sweep complete
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Skill content refreshed in kernel and rituals plugin
       status: open
