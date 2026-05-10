@@ -38,7 +38,7 @@ acs:
     - id: AC-8
       title: Kernel-tree migration test stays green under unset threshold
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0088 — Configuration knob, embedded skill, and CLAUDE.md amendment
