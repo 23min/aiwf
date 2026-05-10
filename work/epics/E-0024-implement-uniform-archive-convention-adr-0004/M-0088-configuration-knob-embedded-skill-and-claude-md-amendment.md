@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: skill-coverage policy green and SKILL.md sections structurally pinned
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: CLAUDE.md What-aiwf-commits-to gains archive-convention item
       status: open
