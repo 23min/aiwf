@@ -116,9 +116,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | promote | aiwf promote G-0095 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0086 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0057 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0056 open -> addressed |
 | 2026-05-10 | human/peter | add | aiwf add gap G-0095 'internal/policies/ walker doesn't exclude .claude/ — false-positive flags from sibling worktree .go files' |
-| 2026-05-10 | human/peter | render-roadmap | aiwf render roadmap |
 
