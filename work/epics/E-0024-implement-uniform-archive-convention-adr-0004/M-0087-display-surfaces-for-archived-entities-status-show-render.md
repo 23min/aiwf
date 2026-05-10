@@ -41,7 +41,7 @@ acs:
       tdd_phase: red
     - id: AC-9
       title: aiwf history walks across an aiwf-verb=archive sweep rename
-      status: open
+      status: met
       tdd_phase: done
 ---
 
