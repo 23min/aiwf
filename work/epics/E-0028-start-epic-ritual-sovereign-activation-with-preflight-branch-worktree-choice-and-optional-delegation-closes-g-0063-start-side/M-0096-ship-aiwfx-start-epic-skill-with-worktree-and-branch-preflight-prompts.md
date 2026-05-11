@@ -12,6 +12,10 @@ acs:
       title: Fixture exists with valid skill frontmatter and 10-step Workflow section
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Worktree-placement prompt is heading-scoped Q&A with three named options
+      status: open
+      tdd_phase: red
 ---
 
 # M-0096 — Ship `aiwfx-start-epic` skill with worktree and branch preflight prompts
@@ -52,4 +56,6 @@ The worktree-placement prompt and the branch prompt are deliberately separate Q&
 - CLAUDE.md *AC promotion requires mechanical evidence* — structural assertions over fixture content.
 
 ### AC-1 — Fixture exists with valid skill frontmatter and 10-step Workflow section
+
+### AC-2 — Worktree-placement prompt is heading-scoped Q&A with three named options
 
