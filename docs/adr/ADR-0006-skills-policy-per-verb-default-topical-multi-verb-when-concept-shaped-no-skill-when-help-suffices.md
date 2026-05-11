@@ -1,6 +1,6 @@
 ---
 id: ADR-0006
-title: 'Skills policy: per-verb default; topical multi-verb when concept-shaped; no skill when --help suffices'
+title: 'Skills policy: per-verb default; topical for concepts; no skill if --help OK'
 status: accepted
 ---
 
