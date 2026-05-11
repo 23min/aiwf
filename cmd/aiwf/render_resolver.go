@@ -364,6 +364,12 @@ func (r *renderResolver) sidebarWithStatus(activeEpicID, activeMilestoneID strin
 		}
 		s.Epics = append(s.Epics, entry)
 	}
+	// M-0100/AC-1: surface non-archived gap count in the sidebar.
+	for _, g := range r.tree.ByKind(entity.KindGap) {
+		if !entity.IsArchivedPath(g.Path) {
+			s.GapCount++
+		}
+	}
 	return s
 }
 

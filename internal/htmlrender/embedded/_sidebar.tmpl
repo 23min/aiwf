@@ -32,6 +32,13 @@
 <a href="index.html">Overview</a>
 {{- end}}
 </li>
+<li>
+{{- if .IsCurrentGaps}}
+<a href="gaps.html" aria-current="page">Gaps ({{.GapCount}})</a>
+{{- else}}
+<a href="gaps.html">Gaps ({{.GapCount}})</a>
+{{- end}}
+</li>
 </ul>
 {{- range .Epics}}
 <details class="sidebar-epic"{{if .IsActive}} open{{end}}>

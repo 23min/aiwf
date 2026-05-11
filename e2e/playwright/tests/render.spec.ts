@@ -263,13 +263,19 @@ test.describe("sidebar — left-nav tree", () => {
     }
   });
 
-  test("sidebar top order: Project status precedes Overview", async ({ page }) => {
+  test("sidebar top order: Project status precedes Overview precedes Gaps", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "M-0001.html", "status.html"]) {
       await page.goto(fileURL(path));
       const labels = await page
         .locator("aside.sidebar ul.sidebar-top > li a")
         .allTextContents();
-      expect(labels, `top-link order on ${path}`).toEqual(["Project status", "Overview"]);
+      expect(labels.length, `top-link count on ${path}`).toBe(3);
+      expect(labels[0]).toBe("Project status");
+      expect(labels[1]).toBe("Overview");
+      // Third entry is "Gaps (N)" — M-0100/AC-1; N is fixture-
+      // dependent so we match the prefix rather than the exact
+      // string.
+      expect(labels[2], `top-link[2] on ${path}`).toMatch(/^Gaps \(\d+\)$/);
     }
   });
 
@@ -781,6 +787,32 @@ test.describe("kind-index — home page nav (M-0099/AC-4)", () => {
       const href = await primaryLinks.nth(i).getAttribute("href");
       expect(href, `primary link ${i} should not point at *-all.html`).not.toMatch(/-all\.html$/);
     }
+  });
+});
+
+test.describe("sidebar — gap entry (M-0100/AC-1)", () => {
+  // The sidebar's top section gains a "Gaps (N)" entry on every
+  // rendered page. N is the count of non-archived gaps; the
+  // fixture has G-0001 (active) + G-0002 (archived) so the count
+  // is 1.
+
+  const PAGES = ["index.html", "E-0001.html", "M-0001.html", "gaps.html"];
+
+  test("sidebar shows Gaps (N) entry on every page kind", async ({ page }) => {
+    for (const pagePath of PAGES) {
+      await page.goto(fileURL(pagePath));
+      const entry = page.locator("aside.sidebar .sidebar-top a").filter({ hasText: /^Gaps \(\d+\)/ });
+      await expect(entry, `${pagePath}: sidebar should have a Gaps (N) entry`).toHaveCount(1);
+      const text = await entry.textContent();
+      expect(text, `${pagePath}: Gaps entry should display count 1 (one active gap in fixture)`).toContain("Gaps (1)");
+    }
+  });
+
+  test("clicking sidebar Gaps entry navigates to gaps.html", async ({ page }) => {
+    await page.goto(fileURL("index.html"));
+    const entry = page.locator("aside.sidebar .sidebar-top a").filter({ hasText: /^Gaps \(\d+\)/ });
+    await entry.click();
+    await expect(page).toHaveURL(/gaps\.html$/);
   });
 });
 
