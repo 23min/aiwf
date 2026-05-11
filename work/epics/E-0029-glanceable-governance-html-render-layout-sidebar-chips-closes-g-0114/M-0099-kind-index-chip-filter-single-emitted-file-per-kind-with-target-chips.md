@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Default kind-index view shows only non-archived rows
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Home page Browse-by-kind has one link per kind
       status: open
