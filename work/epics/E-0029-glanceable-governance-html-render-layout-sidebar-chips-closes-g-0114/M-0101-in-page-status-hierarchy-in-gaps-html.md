@@ -1,7 +1,7 @@
 ---
 id: M-0101
 title: In-page status hierarchy in gaps.html
-status: draft
+status: cancelled
 parent: E-0029
 depends_on:
     - M-0099
