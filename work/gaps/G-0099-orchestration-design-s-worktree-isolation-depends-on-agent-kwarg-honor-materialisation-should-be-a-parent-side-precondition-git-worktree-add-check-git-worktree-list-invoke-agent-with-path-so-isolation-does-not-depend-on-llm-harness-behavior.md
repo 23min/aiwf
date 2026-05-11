@@ -5,7 +5,7 @@ status: open
 ---
 ## What's missing
 
-The orchestration design ([`docs/pocv3/design/agent-orchestration.md`](../../docs/pocv3/design/agent-orchestration.md) §6.2) specifies the LLM driver as dispatching subagents "via Claude Code's `Agent` tool with `isolation: \"worktree\"`". That puts worktree materialisation on a kwarg passed into the Agent invocation — i.e., a request to the harness — with no parent-side check that the kwarg was honored.
+The orchestration design ([`docs/pocv3/design/agent-orchestration.md`](../../docs/pocv3/design/agent-orchestration.md) §6.2, as originally written) specified the LLM driver as dispatching subagents "via Claude Code's `Agent` tool with `isolation: \"worktree\"`". That put worktree materialisation on a kwarg passed into the Agent invocation — i.e., a request to the harness — with no parent-side check that the kwarg was honored.
 
 Real-session evidence: in a recent session the operator explicitly asked for a worktree-isolated subagent; the worktree was not created; the work landed in the live tree. Failure was silent — there was no parent-side precondition that would have caught the missing isolation.
 
@@ -24,11 +24,19 @@ Same kernel principle as the pre-push `aiwf check` hook, the `internal/policies/
 
 > **The framework's correctness must not depend on the LLM's behavior.** Skills are advisory; the pre-push git hook and `aiwf check` are authoritative. If a guarantee depends on the LLM remembering to invoke a skill, it is not a guarantee.
 
-Today, `isolation: "worktree"` as an Agent kwarg is exactly a remember-to-do-it contract — the same class as G-0067 ("`wf-tdd-cycle` is LLM-honor-system advisory") and the same class as every kernel surface we've already hardened. When the orchestration design ships as written, every parallel-TDD cycle that depends on worktree isolation inherits this softness; the substrate's correctness silently depends on the LLM driver having passed the right kwarg and the harness having honored it.
+`isolation: "worktree"` as an Agent kwarg was exactly a remember-to-do-it contract — the same class as G-0067 ("`wf-tdd-cycle` is LLM-honor-system advisory") and the same class as every kernel surface we've already hardened. When the orchestration design shipped as originally written, every parallel-TDD cycle that depended on worktree isolation inherited this softness; the substrate's correctness silently depended on the LLM driver having passed the right kwarg and the harness having honored it.
 
-Surface area:
+## Resolution shape
 
-- **`docs/pocv3/design/agent-orchestration.md` §6.2** (the LLM driver) — should specify the two-step pattern (`worktree add` → check → invoke with path) and de-emphasise `isolation: "worktree"` as the mechanism.
-- **`docs/pocv3/design/agent-orchestration.md` §7** (failure-mode taxonomy / quarantine) — should add an isolation-escape entry: post-cycle reconciliation verifies commits live on the worktree branch and the diff is rooted in the worktree path; mismatch fires a finding.
-- **Possible kernel finding rule** — `worktree-isolation-mismatch` or similar, fired by the orchestrator's reconciliation step, AC-closure-gated like other findings.
-- **ADR follow-up** — the orchestration substrate decisions (substrate-vs-driver split §6.1, trailer-only event recording §6.3, this isolation-as-precondition rule) currently live only in an exploratory design doc; lifting the load-bearing choices into a ratified ADR is the natural companion to closing this gap.
+[ADR-0009](../../docs/adr/ADR-0009-orchestration-substrate-substrate-vs-driver-split-trailer-only-cycle-events-isolation-as-parent-side-precondition.md) **Decision 3** captures the isolation-as-precondition rule in `proposed` form. The design doc has been amended accordingly:
+
+- **`docs/pocv3/design/agent-orchestration.md` §6.2** — now specifies the precondition pattern (`git worktree add` → `git worktree list` presence check → invoke agent with path); explicitly demotes `isolation: "worktree"` to a hint.
+- **`docs/pocv3/design/agent-orchestration.md` §7.7** — new section "Isolation as parent-side precondition (closes G-0099)" with the post-cycle reconciliation rule and the `isolation-escape` finding.
+- **`docs/pocv3/design/agent-orchestration.md` §8** — adds an L4 row to the scope-enforcement summary for isolation reconciliation.
+
+This gap closes when:
+
+1. ADR-0009 ratifies (`proposed → accepted`), AND
+2. The implementing milestone under E-0019 lands the kernel/driver code for the precondition + reconciliation pair (kernel finding `isolation-escape`, driver-side dispatch sequence per §6.2 steps 3 and 4 and 7, cycle-id trailer schema sufficient for kernel-checkable reconciliation per Decision 3's check-site question).
+
+The exact check site for step 4 of the resolution above — kernel `aiwf check` rule, orchestrator-side code, or both — is still being shaped under ADR-0009's `proposed` window and will be pinned when that ADR ratifies.
