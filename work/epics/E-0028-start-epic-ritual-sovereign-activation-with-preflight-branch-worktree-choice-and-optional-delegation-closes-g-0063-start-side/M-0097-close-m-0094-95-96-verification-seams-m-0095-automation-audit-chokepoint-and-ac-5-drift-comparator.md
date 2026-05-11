@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Drift comparator helper has synthetic two-arm test (match + drift)
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0097 — Close M-0094/95/96 verification seams
