@@ -1,8 +1,6 @@
 # aiwf status — 2026-05-11
 
-_228 entities · 0 errors · 2 warnings · run `aiwf check` for details_
-
-> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
+_228 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -106,17 +104,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| terminal-entity-not-archived | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | entity G-0101 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0102 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0102 'Entity titles uncapped; long titles break filesystem paths, status HTML layout, and CLI table columns' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0101 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0101 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0009 |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 
