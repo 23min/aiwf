@@ -352,6 +352,7 @@ func (r *renderResolver) sidebarWithStatus(activeEpicID, activeMilestoneID strin
 			FileName:  idToHTMLFile(e.ID),
 			IsActive:  canonEpic == canonActiveEpic,
 			IsCurrent: canonEpic == canonActiveEpic && activeMilestoneID == "",
+			Archived:  entity.IsArchivedPath(e.Path),
 		}
 		for _, m := range r.milestonesUnder(e.ID) {
 			canonM := entity.Canonicalize(m.ID)

@@ -92,13 +92,16 @@ type SidebarData struct {
 
 // SidebarEpic is one epic row in the sidebar. IsActive is true when
 // this epic is the page's own (epic page) or its parent (milestone
-// page).
+// page). Archived is true when the epic's filesystem path is under
+// `work/epics/archive/` (per ADR-0004); the chip filter from
+// M-0100/AC-3 hides archived epics by default.
 type SidebarEpic struct {
 	ID         string
 	Title      string
 	FileName   string
 	IsActive   bool
 	IsCurrent  bool // true on the epic page itself (drives aria-current)
+	Archived   bool
 	Milestones []SidebarMilestone
 }
 

@@ -105,6 +105,7 @@ func (r defaultResolver) sidebar(activeEpicID, activeMilestoneID string) Sidebar
 			FileName:  idToFileName(e.ID),
 			IsActive:  canonEpic == canonActiveEpic,
 			IsCurrent: canonEpic == canonActiveEpic && activeMilestoneID == "",
+			Archived:  entity.IsArchivedPath(e.Path),
 		}
 		for _, m := range sortedByID(r.tree.ByKind(entity.KindMilestone)) {
 			if entity.Canonicalize(m.Parent) != canonEpic {

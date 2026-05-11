@@ -45,7 +45,7 @@
 <a class="chip" href="#sidebar-all" id="sidebar-all">All</a>
 </nav>
 {{- range .Epics}}
-<details class="sidebar-epic"{{if .IsActive}} open{{end}}>
+<details class="sidebar-epic" data-archived="{{if .Archived}}true{{else}}false{{end}}"{{if .IsActive}} open{{end}}>
 <summary>
 {{- if .IsCurrent}}
 <a href="{{.FileName}}" aria-current="page">{{.ID}} · {{.Title}}</a>

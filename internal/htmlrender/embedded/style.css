@@ -410,6 +410,12 @@ li { margin: 0.2rem 0; }
 .kind-index tbody tr[data-archived="true"] { display: none; }
 body:has(#all:target) .kind-index tbody tr[data-archived="true"] { display: table-row; }
 
+/* Sidebar archive chip filter (M-0100/AC-3): the sidebar's epic
+ * list hides archived epics by default; #sidebar-all reveals
+ * them via :target. Independent of the kind-index #all filter. */
+aside.sidebar details.sidebar-epic[data-archived="true"] { display: none; }
+body:has(#sidebar-all:target) aside.sidebar details.sidebar-epic[data-archived="true"] { display: block; }
+
 /* ---------- Tabs ---------- */
 
 .tabs {

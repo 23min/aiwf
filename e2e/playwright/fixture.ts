@@ -130,6 +130,13 @@ export function renderRichFixture(): string {
     ["add", "gap", "--title", "active gap fixture", "--actor", "human/peter"],
     ["add", "gap", "--title", "archived gap fixture", "--actor", "human/peter"],
     ["promote", "G-0002", "addressed", "--force", "--reason", "fixture: archive sweep target", "--actor", "human/peter"],
+    // M-0100/AC-3 chip-filter fixture: add a third epic, promote
+    // it through active → done, then archive sweeps it so the
+    // sidebar's archive chip filter has an archived epic to
+    // hide/reveal. E-0001 and E-0002 stay active; E-0003 archives.
+    ["add", "epic", "--title", "Archived epic fixture", "--actor", "human/peter"],
+    ["promote", "E-0003", "active", "--actor", "human/peter"],
+    ["promote", "E-0003", "done", "--actor", "human/peter"],
     ["archive", "--apply", "--actor", "human/peter"],
   ];
   for (const args of verbs) {

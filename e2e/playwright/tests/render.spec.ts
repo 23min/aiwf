@@ -846,6 +846,50 @@ test.describe("sidebar — chip strip markup (M-0100/AC-2)", () => {
   });
 });
 
+test.describe("sidebar — archive chip filter (M-0100/AC-3)", () => {
+  // The sidebar's epic list hides archived epics by default;
+  // #sidebar-all reveals them. Each <details class="sidebar-epic">
+  // carries data-archived so the CSS filter can target archived
+  // epics specifically. Fixture has E-0001 + E-0002 active and
+  // E-0003 archived.
+
+  test("archived epic hidden by default; #sidebar-all reveals", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(fileURL("index.html"));
+
+    // Each sidebar epic carries data-archived.
+    const allEpics = page.locator("aside.sidebar details.sidebar-epic");
+    const epicCount = await allEpics.count();
+    expect(epicCount, "sidebar should have all 3 epics in markup").toBe(3);
+    for (let i = 0; i < epicCount; i++) {
+      const attr = await allEpics.nth(i).getAttribute("data-archived");
+      expect(attr, `sidebar epic ${i} should have data-archived attribute`).toMatch(/^(true|false)$/);
+    }
+
+    // Default view — archived epic hidden.
+    const archived = page.locator('aside.sidebar details.sidebar-epic[data-archived="true"]');
+    await expect(archived, "fixture should have one archived sidebar epic").toHaveCount(1);
+    const archivedDisplay = await archived.evaluate(
+      (el) => getComputedStyle(el).display,
+    );
+    expect(archivedDisplay, "archived sidebar epic should be display:none by default").toBe("none");
+
+    // Active epics visible.
+    const activeEpics = page.locator('aside.sidebar details.sidebar-epic[data-archived="false"]');
+    const activeDisplay = await activeEpics.first().evaluate(
+      (el) => getComputedStyle(el).display,
+    );
+    expect(activeDisplay, "active sidebar epic should be visible by default").not.toBe("none");
+
+    // #sidebar-all view — archived epic visible.
+    await page.goto(fileURL("index.html") + "#sidebar-all");
+    const archivedDisplayAll = await page
+      .locator('aside.sidebar details.sidebar-epic[data-archived="true"]')
+      .evaluate((el) => getComputedStyle(el).display);
+    expect(archivedDisplayAll, "archived sidebar epic should be visible under #sidebar-all").not.toBe("none");
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {
