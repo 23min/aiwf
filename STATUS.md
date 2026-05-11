@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_249 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_249 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -111,19 +111,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | E-0029 body section \`## Goal\` is empty |
-| entity-body-empty | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | E-0029 body section \`## Scope\` is empty |
-| entity-body-empty | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | E-0029 body section \`## Out of scope\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add epic E-0029 'Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 6 entities into archive/ (1 epic, 1 adr, 4 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0081 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0081 |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0084 open -> wontfix |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0084 |
 
