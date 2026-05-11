@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_225 entities · 0 errors · 4 warnings · run `aiwf check` for details_
+_225 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -89,8 +89,6 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | G-0100 | work/gaps/G-0100-provenance-untrailered-entity-commit-fires-on-git-merge-commits-that-touch-entity-files-rule-should-skip-merge-commits-parent-count-1-so-every-epic-wrap-merge-doesn-t-inflate-the-warning-count.md | G-0100 body section \`## What's missing\` is empty |
-| entity-body-empty | G-0100 | work/gaps/G-0100-provenance-untrailered-entity-commit-fires-on-git-merge-commits-that-touch-entity-files-rule-should-skip-merge-commits-parent-count-1-so-every-epic-wrap-merge-doesn-t-inflate-the-warning-count.md | G-0100 body section \`## Why it matters\` is empty |
 | entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## What's missing\` is empty |
 | entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## Why it matters\` is empty |
 
@@ -98,9 +96,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0100 -> 'aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
 | 2026-05-11 | human/peter | add | aiwf add adr ADR-0009 'Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition' |
 | 2026-05-11 | human/peter | fix | fix(aiwf): trunk-collision rule is archive-aware (closes G-0101) |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0101 'ids-unique trunk-collision rule is not archive-aware; first aiwf archive --apply triggers 176 false-positive errors that block the pre-push hook' |
-| 2026-05-11 | human/peter | archive | aiwf archive: sweep 94 entities into archive/ (23 epic, 1 adr, 70 gap) |
 
