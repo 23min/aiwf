@@ -110,16 +110,16 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| acs-body-coherence | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | milestone body has \`### AC-3\` heading but acs[] has no matching entry |
-| acs-body-coherence | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | milestone body has \`### AC-4\` heading but acs[] has no matching entry |
-| acs-body-coherence | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | milestone body has \`### AC-5\` heading but acs[] has no matching entry |
 | acs-body-coherence | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | milestone body has \`### AC-6\` heading but acs[] has no matching entry |
 | acs-body-coherence | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | milestone body has \`### AC-1\` heading but acs[] has no matching entry |
 | acs-body-coherence | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | milestone body has \`### AC-2\` heading but acs[] has no matching entry |
-| acs-body-coherence | M-0092 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0092-roll-out-testmain-t-parallel-no-ldflags-dedup-to-cmd-aiwf.md | milestone body has \`### AC-1\` heading but acs[] has no matching entry |
-| acs-body-coherence | M-0092 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0092-roll-out-testmain-t-parallel-no-ldflags-dedup-to-cmd-aiwf.md | milestone body has \`### AC-2\` heading but acs[] has no matching entry |
+| acs-body-coherence | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | milestone body has \`### AC-3\` heading but acs[] has no matching entry |
+| acs-body-coherence | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | milestone body has \`### AC-4\` heading but acs[] has no matching entry |
+| acs-body-coherence | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | milestone body has \`### AC-5\` heading but acs[] has no matching entry |
 | acs-body-coherence | M-0092 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0092-roll-out-testmain-t-parallel-no-ldflags-dedup-to-cmd-aiwf.md | milestone body has \`### AC-3\` heading but acs[] has no matching entry |
 | acs-body-coherence | M-0092 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0092-roll-out-testmain-t-parallel-no-ldflags-dedup-to-cmd-aiwf.md | milestone body has \`### AC-4\` heading but acs[] has no matching entry |
+| acs-body-coherence | M-0092 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0092-roll-out-testmain-t-parallel-no-ldflags-dedup-to-cmd-aiwf.md | milestone body has \`### AC-1\` heading but acs[] has no matching entry |
+| acs-body-coherence | M-0092 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0092-roll-out-testmain-t-parallel-no-ldflags-dedup-to-cmd-aiwf.md | milestone body has \`### AC-2\` heading but acs[] has no matching entry |
 | acs-body-coherence | M-0093 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0093-document-test-discipline-convention-and-lock-its-chokepoint.md | milestone body has \`### AC-1\` heading but acs[] has no matching entry |
 | acs-body-coherence | M-0093 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0093-document-test-discipline-convention-and-lock-its-chokepoint.md | milestone body has \`### AC-2\` heading but acs[] has no matching entry |
 | acs-body-coherence | M-0093 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0093-document-test-discipline-convention-and-lock-its-chokepoint.md | milestone body has \`### AC-3\` heading but acs[] has no matching entry |
@@ -128,9 +128,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0091 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0093 'Document test-discipline convention and lock its chokepoint' |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0092 'Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/' |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0091 'Roll out TestMain + t.Parallel across internal/* test packages' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 2 entities into archive/ (2 gap) |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0106 open -> addressed |
 
