@@ -32,7 +32,7 @@ ACs added via `aiwf add ac M-<id>` at start-milestone time. The observable-behav
 - The entry uses the sidebar's existing aria-current pattern: when the current page is `gaps.html`, the entry carries `aria-current="page"` and renders with the active-link styling.
 - The `SidebarData` struct gains a `GapCount` field (or equivalent — final field naming decided in implementation); the default resolver populates it; the sidebar template reads it.
 - The entry renders even when the count is zero (consistent surface), displaying "Gaps (0)" rather than disappearing.
-- All existing sidebar tests pass; new tests assert the sidebar entry's presence on every page kind (index, epic, milestone, entity, kind-index, status) via parsed-HTML structural assertions, and assert the count value matches a fixture tree's actual gap count.
+- All existing sidebar tests pass; new **Playwright** tests in `e2e/playwright/tests/` verify the gap-entry presence across page kinds (index, epic, milestone, entity, kind-index, status) and assert the count value matches the fixture tree's active-gap count. Clicking the sidebar entry navigates to `gaps.html` and the resulting page shows the active subset. Parsed-HTML assertions in Go remain for emit-shape (sidebar entry is present in every rendered page's markup) but the user-visible navigation behavior is browser-verified. CI integration deferred per the epic Constraints; Playwright runs locally.
 
 A render-against-real-fixture human-verification pass closes the milestone per CLAUDE.md *Render output must be human-verified before the iteration closes* — open multiple page kinds, verify the sidebar entry appears with the correct count, verify clicking it lands on `gaps.html` with the active subset visible.
 
@@ -55,8 +55,9 @@ A render-against-real-fixture human-verification pass closes the milestone per C
 - `internal/htmlrender/pagedata.go` (add `GapCount` to `SidebarData`)
 - `internal/htmlrender/default_resolver.go` (populate `GapCount` in `sidebar()` helper)
 - `cmd/aiwf/render_resolver.go` (cmd-side resolver — same)
-- `internal/htmlrender/htmlrender_test.go` (sidebar gap-entry structural test across page kinds)
-- `cmd/aiwf/render_archive_visibility_test.go` (sidebar count reflects archive state)
+- `e2e/playwright/tests/` (primary test surface — extend `render.spec.ts` with sidebar gap-entry presence + count + click-through tests)
+- `internal/htmlrender/htmlrender_test.go` (sidebar gap-entry emit-shape; complementary)
+- `cmd/aiwf/render_archive_visibility_test.go` (sidebar count reflects archive state; complementary)
 
 ## Out of scope
 
