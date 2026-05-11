@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(proposed)_
 
-- **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(draft)_ — tdd: required
+- → **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(in_progress)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_0027["E-0027<br/>Trailered merge commits from aiwfx-wrap-epic (closes G-0100)"]:::epic_proposed
-  M_0090["M-0090<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_draft
+  M_0090["M-0090<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_in_progress
   E_0027 --> M_0090
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -113,9 +113,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0101 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0101 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0009 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0027 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0090 |
 
