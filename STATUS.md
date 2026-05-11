@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_236 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_236 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -112,19 +112,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | E-0028 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/epic.md | E-0028 body section \`## Goal\` is empty |
-| entity-body-empty | E-0028 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/epic.md | E-0028 body section \`## Scope\` is empty |
-| entity-body-empty | E-0028 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/epic.md | E-0028 body section \`## Out of scope\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add epic E-0028 'Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side)' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0093 AC-1..AC-3 (3 criteria) |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0092 AC-1..AC-4 (4 criteria) |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0091 AC-1..AC-6 (6 criteria) |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0093 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0092 |
 
