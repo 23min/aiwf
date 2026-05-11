@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Default text output is per-code-summarized for warnings
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Errors still print per-instance in default text
       status: open
