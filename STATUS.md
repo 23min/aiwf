@@ -116,9 +116,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0088 in_progress -> done |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0087 in_progress -> done |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0085 in_progress -> done |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 
