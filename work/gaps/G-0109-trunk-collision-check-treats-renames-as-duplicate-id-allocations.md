@@ -1,7 +1,9 @@
 ---
-id: G-0107
+id: G-0109
 title: trunk-collision check treats renames as duplicate id allocations
 status: open
+prior_ids:
+    - G-0107
 ---
 # Problem
 

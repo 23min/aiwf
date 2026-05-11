@@ -1,6 +1,8 @@
 # aiwf status — 2026-05-11
 
-_240 entities · 0 errors · 0 warnings_
+_242 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+
+> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -124,22 +126,25 @@ flowchart LR
 | G-0092 | No documented hierarchy of doc authority across docs/ |  |
 | G-0097 | Test-suite wall time dominated by serial execution and per-test setup |  |
 | G-0099 | Worktree isolation must be a parent-side precondition, not an Agent kwarg honor |  |
-| G-0100 | aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing | M-0089 |
 | G-0103 | absolute-path leak lint | M-0089 |
-| G-0104 | Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy | E-0025 |
+| G-0104 | Test-parallelism discipline: ship to consumers via wf-rituals or BYO? | E-0025 |
 | G-0107 | reorganize cmd/aiwf into idiomatic per-verb packages |  |
+| G-0108 | aiwf retitle should sync the on-disk slug, not just frontmatter title |  |
+| G-0109 | trunk-collision check treats renames as duplicate id allocations |  |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| terminal-entity-not-archived | G-0100 | work/gaps/G-0100-provenance-untrailered-entity-commit-fires-on-git-merge-commits-that-touch-entity-files-rule-should-skip-merge-commits-parent-count-1-so-every-epic-wrap-merge-doesn-t-inflate-the-warning-count.md | entity G-0100 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-11 | human/peter | retitle | aiwf retitle ADR-0007 -> 'Planning-conversation skills: rituals-plugin placement, pure-skill default' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle D-0001 -> 'entity-body-empty treats sub-headings as content under top-level sections' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0097 -> 'Test-suite wall time dominated by serial execution and per-test setup' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle ADR-0009 -> 'Orchestration substrate: substrate-vs-driver split with trailer-only events' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0073 -> 'depends_on restricted to milestone→milestone; cross-kind blocking via body prose' |
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0108 |
+| 2026-05-11 | human/peter | add | aiwf add gap G-0108 'aiwf retitle should sync the on-disk slug, not just frontmatter title' |
+| 2026-05-11 | human/peter | add | aiwf add gap G-0107 'trunk-collision check treats renames as duplicate id allocations' |
+| 2026-05-11 | human/peter | promote | aiwf promote G-0100 open -> addressed |
+| 2026-05-11 | human/peter | retitle | aiwf retitle ADR-0006 -> 'Skills policy: per-verb default; topical for concepts; no skill if --help OK' |
 
