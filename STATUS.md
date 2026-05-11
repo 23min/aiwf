@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_215 entities · 0 errors · 9 warnings · run `aiwf check` for details_
+_215 entities · 0 errors · 1 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -41,7 +41,7 @@ _(no milestones)_
 ### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
 - ✓ **M-0084** — Loader and id resolver span active and archive directories _(done)_ — ACs 6/6 met — tdd: required
-- → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 8/8 met — tdd: required
+- ✓ **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(done)_ — ACs 8/8 met — tdd: required
 - ✓ **M-0086** — Three new archive check-rule findings and existing-rule scoping _(done)_ — ACs 7/7 met — tdd: required
 - → **M-0087** — Display surfaces for archived entities (status, show, render) _(in_progress)_ — ACs 9/9 met — tdd: required
 - → **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(in_progress)_ — ACs 8/8 met — tdd: required
@@ -51,7 +51,7 @@ flowchart LR
   E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_proposed
   M_0084["M-0084 (6/6)<br/>Loader and id resolver span active and archive directories"]:::ms_done
   E_0024 --> M_0084
-  M_0085["M-0085 (8/8)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_in_progress
+  M_0085["M-0085 (8/8)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_done
   E_0024 --> M_0085
   M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_done
   E_0024 --> M_0086
@@ -110,23 +110,15 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-0085/AC-1 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-0085/AC-2 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-0085/AC-3 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-0085/AC-4 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-0085/AC-5 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-0085/AC-6 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-0085/AC-7 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-7 body under \`### AC-7\` is empty |
-| entity-body-empty | M-0085/AC-8 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-8 body under \`### AC-8\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0086 in_progress -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0084 in_progress -> done |
 | 2026-05-11 | human/peter | implement | feat(aiwf): archive sweep threshold, embedded skill, CLAUDE.md item 10 (M-0088) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): display surfaces for archived entities — status, show, render (M-0087) |
-| 2026-05-11 | human/peter | implement | feat(aiwf): aiwf archive verb (dry-run default, --apply, --kind) (M-0085) |
 
