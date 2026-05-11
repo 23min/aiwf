@@ -286,9 +286,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-2 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-1 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-1 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-1 --phase red -> green |
 | 2026-05-11 | human/peter | implement | feat(aiwf): aiwf check per-code text summary + --verbose flag (M-0089) |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0098 |
 
