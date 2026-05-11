@@ -130,6 +130,23 @@ The chokepoint is the AC-promote command. Discipline is the chokepoint until a k
 
 ---
 
+## Subagent worktree isolation
+
+When dispatching a subagent that must work in an isolated git worktree, **the parent session bootstraps the worktree before invoking `Agent`** — never relies on the `isolation: "worktree"` kwarg as the load-bearing mechanism. The kwarg has been observed to silently drop, leaving the subagent's work in the live tree with no detection (aiwf gap [G-0099](work/gaps/G-0099-worktree-isolation-parent-side-precondition.md)).
+
+The pattern:
+
+1. **Parent runs `git worktree add <path> -b <branch> <base>`** in its own checkout. Sibling-path convention for session-scope work (e.g. `/Users/.../aiwf-<topic>`); `.claude/worktrees/<name>` for transient agent worktrees.
+2. **Parent verifies via `git worktree list`** that the expected path appears.
+3. **Parent invokes `Agent` *without* the `isolation: "worktree"` kwarg.** The prompt names the worktree path explicitly so the subagent operates against it via absolute paths or `git -C <path>` for git ops.
+4. **On return, parent verifies** the subagent's commits live on the worktree branch and the diff is rooted in that path. Mismatch indicates the agent escaped its scope.
+
+The chokepoint is [`.claude/hooks/validate-agent-isolation.sh`](.claude/hooks/validate-agent-isolation.sh), registered as a `PreToolUse` hook on the `Agent` tool in [`.claude/settings.json`](.claude/settings.json). Any `Agent` invocation that passes `isolation: "worktree"` is denied with a message pointing at the precondition pattern. The hook script's contract is pinned by `TestAgentIsolationHook_*` under `internal/policies/`.
+
+This is the session-layer guard (tier 3, partial-closes G-0099). The full kernel-side `isolation-escape` finding — which catches the post-hoc *"commits landed in the wrong place"* failure mode regardless of how the dispatch was set up — is tracked under E-0019 and remains open.
+
+---
+
 ## Cross-repo plugin testing
 
 When a milestone's deliverable is a `SKILL.md` (or other content) that lives in the rituals plugin repo at `/Users/peterbru/Projects/ai-workflow-rituals/` (distributed via the Claude Code marketplace), the **canonical authoring location during the milestone is a fixture in this repo** at `internal/policies/testdata/<skill-name>/SKILL.md`. AC tests under `internal/policies/` assert content claims against the fixture; red→green TDD iteration happens against it.

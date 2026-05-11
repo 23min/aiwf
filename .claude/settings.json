@@ -6,5 +6,18 @@
   "enabledPlugins": {
     "wf-rituals@ai-workflow-rituals": true,
     "aiwf-extensions@ai-workflow-rituals": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/validate-agent-isolation.sh"
+          }
+        ]
+      }
+    ]
   }
 }

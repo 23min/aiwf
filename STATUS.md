@@ -1,8 +1,6 @@
 # aiwf status — 2026-05-11
 
-_255 entities · 0 errors · 6 warnings · run `aiwf check` for details_
-
-> Sweep pending: 5 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+_255 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -130,21 +128,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| terminal-entity-not-archived | G-0069 | work/gaps/G-0069-init-plugins-nudge-hardcodes-user-scope.md | entity G-0069 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0076 | work/gaps/G-0076-contributing-md-pr-vs-trunk-mismatch.md | entity G-0076 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0079 | work/gaps/G-0079-plan-milestones-skill-needs-depends-on-docs.md | entity G-0079 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0082 | work/gaps/G-0082-planning-closure-default-merges-to-main.md | entity G-0082 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0083 | work/gaps/G-0083-aiwf-retitle-does-not-sync-entity-body-h1-with-frontmatter-title.md | entity G-0083 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | archive | aiwf archive: sweep 5 entities into archive/ (5 gap) |
+| 2026-05-11 | human/peter | promote | aiwf promote G-0079 open -> addressed |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0076 open -> addressed |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0069 open -> addressed |
 | 2026-05-11 | human/peter | authorize | aiwf authorize E-0029 --to ai/claude |
-| 2026-05-11 | human/peter | promote | aiwf promote E-0029 proposed -> active |
-| 2026-05-11 | human/peter | add | aiwf add gap G-0116 'aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos' |
 

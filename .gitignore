@@ -29,11 +29,13 @@ node_modules/
 .ai-repo/
 .github/skills/
 
-# .claude/ is gitignored except the shared project config: the status line
-# script and the project-level settings.json. Per-user files stay local.
+# .claude/ is gitignored except shared project config and chokepoint hooks:
+# the status line script, the project-level settings.json, and any tracked
+# hook scripts under .claude/hooks/. Per-user files stay local.
 .claude/*
 !.claude/settings.json
 !.claude/statusline.sh
+!.claude/hooks/
 
 # Drafts that ship to proliminal.net/notes are written and revised locally,
 # not tracked in this repo. They face publicly via proliminal, not via git.
