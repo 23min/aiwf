@@ -755,6 +755,35 @@ test.describe("kind-index — chip filter behavior (M-0099/AC-3)", () => {
   });
 });
 
+test.describe("kind-index — home page nav (M-0099/AC-4)", () => {
+  // The home page's Browse-by-kind block has one link per kind
+  // (gaps, decisions, adrs, contracts) — the pre-migration `all`
+  // sub-link is gone since the chip filter handles the active-vs-all
+  // toggle from the kind page itself. This is a regression check;
+  // the link was already removed in AC-1's green commit.
+
+  test("home page kind-index has one link per kind, no all-link sub-link", async ({ page }) => {
+    await page.goto(fileURL("index.html"));
+
+    const kindNav = page.locator("ul.kind-index");
+    await expect(kindNav).toHaveCount(1);
+
+    // No .all-link sub-links anywhere in the block.
+    const allSubLinks = kindNav.locator("a.all-link");
+    await expect(allSubLinks, "kind-index block should have no .all-link sub-links").toHaveCount(0);
+
+    // One primary <a> per kind list-item, pointing at the canonical
+    // <kind>.html (not <kind>-all.html).
+    const primaryLinks = kindNav.locator("> li > a");
+    const linkCount = await primaryLinks.count();
+    expect(linkCount, "expected one primary link per kind in nav block").toBeGreaterThanOrEqual(4);
+    for (let i = 0; i < linkCount; i++) {
+      const href = await primaryLinks.nth(i).getAttribute("href");
+      expect(href, `primary link ${i} should not point at *-all.html`).not.toMatch(/-all\.html$/);
+    }
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {

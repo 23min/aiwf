@@ -149,9 +149,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-3 open -> met |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-3 --phase green -> done |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-3 --phase red -> green |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0099/AC-2 open -> met |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0099/AC-2 --phase green -> done |
-| 2026-05-11 | ai/claude | promote | aiwf promote M-0099/AC-2 --phase red -> green |
 
