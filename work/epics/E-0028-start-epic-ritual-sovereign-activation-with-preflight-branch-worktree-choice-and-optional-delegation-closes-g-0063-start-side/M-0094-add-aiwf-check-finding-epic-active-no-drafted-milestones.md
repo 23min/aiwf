@@ -72,3 +72,51 @@ Table-driven test across each non-`active` epic status — `proposed`, `done`, `
 
 The finding's hint surface mentions G-0063 (gap framing) and the start-epic preflight role (so a reader who lands on the finding via `aiwf check` can navigate to the framing without re-deriving it). Structural assertion on the hint string (substring grep is acceptable here per CLAUDE.md *Substring assertions are not structural assertions* — the hint surface is a single short string, not a structured document where placement matters).
 
+## Work log
+
+<!-- Phase timeline lives in `aiwf history M-0094/AC-<N>`; the entries here capture
+     one-line outcomes + the implementing commit's SHA (filled at wrap when the
+     implementation lands as a single commit). -->
+
+### AC-1 — rule fires warning when active epic has zero drafted milestones
+
+Rule implemented in `internal/check/epic_active_drafts.go` as `epicActiveNoDraftedMilestones(*tree.Tree) []Finding`; wired into `check.Run` between `gapResolvedHasResolver` and the I2 AC checks. Seam-level test in `internal/check/epic_active_drafts_test.go` drives `check.Run` against an in-memory tree with one active epic and zero milestones, asserting the finding's code, severity (warning), and entity-id. · commit <wrap> · tests 1/1.
+
+### AC-2 — rule does not fire when active epic has at least one drafted milestone
+
+Negative-case test in the same file: tree has E-0001 active + M-0001 (in_progress, parent E-0001) + M-0002 (draft, parent E-0001). Drives through `check.Run`; asserts no finding with the new code. Covers branch C (`m.Status == StatusDraft → hasDraft = true`) and branch D-true (hasDraft → continue to next epic). · commit <wrap> · tests 1/1.
+
+### AC-3 — rule does not fire when epic is at status proposed, done, or cancelled
+
+Table-driven test across the three non-active statuses; each subcase has zero drafted milestones (the firing condition under reading A). Asserts no finding fires. Covers branch A (epic status guard — `Status != StatusActive → continue`). · commit <wrap> · tests 3/3.
+
+### AC-4 — finding hint text references the start-epic preflight role and G-0063
+
+Hint added to `internal/check/hint.go`'s `hintTable` under key `epic-active-no-drafted-milestones`. Test asserts (via substring grep on the hint string, justified per CLAUDE.md since the hint is a short single string) that "G-0063" and "start-epic" both appear. · commit <wrap> · tests 1/1.
+
+### Branch-coverage extra — ignores milestones under other epics
+
+Added `TestEpicActiveNoDraftedMilestones_IgnoresMilestonesUnderOtherEpics` covering branch B's skip arm (a draft milestone whose parent differs from the epic under consideration must not satisfy that epic's "has draft" check). Closes the last reachable conditional branch in the rule. · commit <wrap> · tests 1/1.
+
+### Sibling artefact updates
+
+- `internal/skills/embedded/aiwf-check/SKILL.md` — new row in the warnings table for `epic-active-no-drafted-milestones`. Required by the discoverability policy (`TestPolicy_FindingCodesAreDiscoverable`) which fires whenever a kernel finding code is undocumented in an AI-discoverable channel.
+- `internal/check/testdata/messy/work/epics/E-02-no-drafts/epic.md` — new fixture entity so the messy fixture's expected-codes assertion exercises the rule (the existing E-01 collision shared an id and cross-pollinated milestones).
+- `internal/check/fixtures_test.go` — `epic-active-no-drafted-milestones` added to the `expected` list documenting messy-fixture coverage.
+- `internal/verb/projection_test.go` — `TestProjectionFindings_PreExistingFiltered`'s fixture extended with a drafted milestone so the verb-projection test's premise (an unrelated active epic is benign) survives the new rule.
+
+## Decisions made during implementation
+
+- Reading A (strict-literal: "fires whenever active epic has zero `draft` milestones") chosen over reading B ("no forward motion") and reading C ("activation-moment only, skill enforces"). Rationale and tradeoffs in the conversation; the rule's name and the kernel chokepoint principle both favor A.
+
+## Validation
+
+(pasted at wrap)
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none yet)
