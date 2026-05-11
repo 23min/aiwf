@@ -1,7 +1,9 @@
 ---
 id: G-0076
 title: CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main
-status: open
+status: addressed
+addressed_by_commit:
+    - e077f6aa2a744d3f846aaff17da7b0d1c709657f
 ---
 
 `CONTRIBUTING.md` describes a PR-based contribution flow (Issues + Discussions + PRs + templates + a `pr-conventions` CI check). The supporting machinery sits in `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md`, and `.github/workflows/pr-conventions.yml` — all carried into the trunk by the pre-promotion merge.
