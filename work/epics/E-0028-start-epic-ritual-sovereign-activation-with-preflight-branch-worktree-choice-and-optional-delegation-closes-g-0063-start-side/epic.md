@@ -85,9 +85,9 @@ Prior work in E-0017 already shipped the kind-generalized `entity-body-empty` fi
 <!-- Refined in aiwfx-plan-milestones. Sequence: kernel chokepoints first so the skill's
      preflight relies on real findings; skill ships last. -->
 
-- M-NNNN — `epic-active-no-drafted-milestones` check rule (kernel). · depends on: —
-- M-NNNN — Sovereign-act enforcement on `aiwf promote E-NN active`. · depends on: —
-- M-NNNN — `aiwfx-start-epic` skill (fixture + drift-check + ACs). · depends on: prior two
+- [M-0094](M-0094-add-aiwf-check-finding-epic-active-no-drafted-milestones.md) — `epic-active-no-drafted-milestones` check rule (kernel). · depends on: —
+- [M-0095](M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md) — Sovereign-act enforcement on `aiwf promote E-NN active`. · depends on: —
+- [M-0096](M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md) — `aiwfx-start-epic` skill (fixture + drift-check + ACs). · depends on: M-0094, M-0095
 
 ## ADRs produced (optional)
 
