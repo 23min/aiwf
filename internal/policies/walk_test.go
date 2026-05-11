@@ -19,9 +19,9 @@ func TestWalkGoFiles_SkipsExcludedDirs(t *testing.T) {
 
 	// Files that should be picked up.
 	want := map[string]bool{
-		"main.go":           true,
-		"internal/foo.go":   true,
-		"cmd/bar/bar.go":    true,
+		"main.go":             true,
+		"internal/foo.go":     true,
+		"cmd/bar/bar.go":      true,
 		"cmd/bar/bar_test.go": true,
 	}
 	// Files that must NOT be picked up — each lives under an

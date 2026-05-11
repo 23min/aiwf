@@ -101,6 +101,17 @@ func ApplyTDDStrict(findings []Finding, strict bool) {
 func entityBodyEmpty(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// entity-body-empty is in the shape-and-health group;
+		// archived entities are out of scope for active body
+		// linting (forget-by-default). Note: the lifecycle gate
+		// below already covers most archive cases (terminal status),
+		// but a hand-edit-drift archive entity (non-terminal status,
+		// archive location) is covered by archived-entity-not-
+		// terminal — entity-body-empty should not pile on.
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
 		fullPath := filepath.Join(t.Root, e.Path)
 		raw, err := os.ReadFile(fullPath)
 		if err != nil {

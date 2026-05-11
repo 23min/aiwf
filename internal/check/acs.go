@@ -40,6 +40,12 @@ func acsShape(t *tree.Tree) []Finding {
 		if e.Kind != entity.KindMilestone {
 			continue
 		}
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// acs-shape is in the shape-and-health group; archived
+		// milestones' AC structure is out of scope for active linting.
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
 		// Validate the milestone's own tdd: policy when present.
 		if e.TDD != "" && !entity.IsAllowedTDDPolicy(e.TDD) {
 			findings = append(findings, Finding{
@@ -232,6 +238,12 @@ func acsTDDAudit(t *tree.Tree) []Finding {
 		if e.Kind != entity.KindMilestone {
 			continue
 		}
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// acs-tdd-audit is in the shape-and-health group; archived
+		// milestones' TDD audit is out of scope for active linting.
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
 		var sev Severity
 		switch e.TDD {
 		case "required":
@@ -284,6 +296,13 @@ func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
 		if e.Kind != entity.KindMilestone {
 			continue
 		}
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// milestone-done-incomplete-acs is in the shape-and-health
+		// group; archived done milestones whose ACs aren't all met
+		// represent historical state, not active drift.
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
 		if e.Status != entity.StatusDone {
 			continue
 		}
@@ -328,6 +347,13 @@ func acsBodyCoherence(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
 		if e.Kind != entity.KindMilestone {
+			continue
+		}
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// acs-body-coherence is in the shape-and-health group;
+		// archived milestone body/frontmatter coherence is out of
+		// scope for active linting.
+		if entity.IsArchivedPath(e.Path) {
 			continue
 		}
 		// Read the body once per milestone; failures (missing file,

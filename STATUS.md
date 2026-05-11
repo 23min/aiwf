@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | implement | feat(aiwf): loader and id resolver span active+archive directories (M-0084) |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-7 open -> met |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-7 --phase green -> done |
 

@@ -585,3 +585,47 @@ func TestIDFromPath_Archive(t *testing.T) {
 		})
 	}
 }
+
+// TestIsArchivedPath — M-0086. The helper recognizes ADR-0004's
+// per-kind archive subdirectory at every legal kind position, and
+// returns false for active paths and unclassified paths. Cases are
+// drawn from ADR-0004 §"Storage — per-kind layout" (the archive
+// column).
+func TestIsArchivedPath(t *testing.T) {
+	tests := []struct {
+		path string
+		want bool
+	}{
+		// Archive — every per-kind position from ADR-0004.
+		{"work/epics/archive/E-01-platform/epic.md", true},
+		{"work/epics/archive/E-01-platform/M-001-cache.md", true},
+		{"work/gaps/archive/G-001-noise.md", true},
+		{"work/decisions/archive/D-001-format.md", true},
+		{"work/contracts/archive/C-001-orders/contract.md", true},
+		{"docs/adr/archive/ADR-0001-format.md", true},
+
+		// Active counterparts.
+		{"work/epics/E-01-platform/epic.md", false},
+		{"work/gaps/G-001-noise.md", false},
+		{"work/decisions/D-001-format.md", false},
+		{"work/contracts/C-001-orders/contract.md", false},
+		{"docs/adr/ADR-0001-format.md", false},
+
+		// Edge: an `archive` segment in a position the storage table
+		// doesn't recognize is NOT archive (ADR-0004 only legalizes
+		// the per-kind position).
+		{"work/notes/archive/something.md", false},
+		{"random/path/archive/x.md", false},
+
+		// Empty / nonsensical.
+		{"", false},
+		{"archive/x.md", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			if got := IsArchivedPath(tt.path); got != tt.want {
+				t.Errorf("IsArchivedPath(%q) = %v, want %v", tt.path, got, tt.want)
+			}
+		})
+	}
+}

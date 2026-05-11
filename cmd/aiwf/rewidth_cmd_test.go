@@ -373,6 +373,13 @@ func TestRewidth_ArchivePreservedByteIdentical(t *testing.T) {
 	}
 	commitFixture(t, root, "seed narrow fixture + archive entry")
 
+	// M-0086 AC-7 recovery test: the M-0084 work surfaced a
+	// frontmatter-shape finding on narrow archive ids (the
+	// loader now walks active+archive). M-0086 scoped
+	// frontmatter-shape (and the other shape/health rules) to
+	// skip archive per ADR-0004, so this test runs without the
+	// `--skip-checks` workaround. If this test starts failing
+	// again, the archive scoping has regressed.
 	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("rewidth --apply rc = %d, want exitOK", rc)
 	}

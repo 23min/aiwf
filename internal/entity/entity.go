@@ -681,3 +681,23 @@ func removeAt(parts []string, i int) []string {
 	out = append(out, parts[i+1:]...)
 	return out
 }
+
+// IsArchivedPath reports whether relPath sits under a per-kind
+// `archive/` subdirectory recognized by ADR-0004's storage table.
+// Returns false for active paths and for paths that don't classify
+// as any kind. The argument is a forward-slash, repo-relative path
+// (the same shape stored on Entity.Path by tree.Load).
+//
+// The archive marker is the presence of an `archive` segment at the
+// per-kind position (immediately after `work/<kind>/` or `docs/adr/`).
+// `stripArchiveSegment` carries the canonical recognition logic;
+// IsArchivedPath compares before-vs-after to decide.
+//
+// Used by the M-0086 archive-aware check rules to decide whether an
+// entity should be linted under the active-set health rules or under
+// the archive-specific drift rules.
+func IsArchivedPath(relPath string) bool {
+	parts := strings.Split(filepath.ToSlash(relPath), "/")
+	stripped := stripArchiveSegment(parts, "")
+	return len(stripped) != len(parts)
+}

@@ -154,13 +154,18 @@ func TestRenderStatusText_MarksInProgress(t *testing.T) {
 // TestBuildStatus_Warnings: a tree that trips a known warning rule
 // (gap-resolved-has-resolver) populates the Warnings slice with the
 // relevant fields, and Health.Warnings is incremented in lockstep.
+//
+// Path is under archive/ so the M-0086 terminal-entity-not-archived
+// and archive-sweep-pending rules do not pile on — gap-resolved-
+// has-resolver is not in AC-4's archive-skip list and still fires
+// on archive entities.
 func TestBuildStatus_Warnings(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
 				Kind: entity.KindGap, ID: "G-0001",
 				Title: "Half-resolved", Status: "addressed",
-				Path: "work/gaps/G-001-half-resolved.md",
+				Path: "work/gaps/archive/G-0001-half-resolved.md",
 			},
 		},
 	}
@@ -177,7 +182,7 @@ func TestBuildStatus_Warnings(t *testing.T) {
 		t.Errorf("Warnings[0].Code = %q, want %q", w.Code, "gap-resolved-has-resolver")
 	}
 	if w.EntityID != "G-0001" {
-		t.Errorf("Warnings[0].EntityID = %q, want G-001", w.EntityID)
+		t.Errorf("Warnings[0].EntityID = %q, want G-0001", w.EntityID)
 	}
 	if w.Message == "" {
 		t.Error("Warnings[0].Message is empty")
