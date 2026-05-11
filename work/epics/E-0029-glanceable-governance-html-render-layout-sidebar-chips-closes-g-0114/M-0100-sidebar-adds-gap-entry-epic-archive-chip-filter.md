@@ -6,6 +6,19 @@ parent: E-0029
 depends_on:
     - M-0099
 tdd: required
+acs:
+    - id: AC-1
+      title: Sidebar shows Gaps (N) entry with active count
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Chip strip with Active/All renders in sidebar
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Sidebar archive chip filter toggles epic visibility
+      status: open
+      tdd_phase: red
 ---
 # M-0100 — Sidebar adds gap entry + epic archive chip filter
 
@@ -115,3 +128,28 @@ A render-against-real-fixture human-verification pass closes the milestone per C
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — Sidebar shows Gaps (N) entry with active count
+
+**Pass criterion**: Every rendered page's sidebar (`<aside class="sidebar">`) includes a "Gaps (N)" link in its `.sidebar-top` section, where N is the count of non-archived gaps in the planning tree. Verified via Playwright on multiple page kinds (index.html, an epic page, a milestone page, an entity page, a kind-index page) — `aside.sidebar .sidebar-top a` matching text `/Gaps \(\d+\)/` exists. The count value matches the fixture tree's count of files under `work/gaps/` (not `work/gaps/archive/`). Clicking the link navigates to `gaps.html` (verified via `page.url()` after `.click()`).
+
+**Edge cases**: A planning tree with zero non-archived gaps renders the entry as "Gaps (0)" — the entry is not suppressed. The count is recomputed on every render; no caching. When the current page is `gaps.html`, the entry carries `aria-current="page"` and renders with the active-link styling (`.sidebar a[aria-current="page"]` rule already in `style.css`). The entry sits below "Overview" in `.sidebar-top` and above the epic `<details>` list — visual position matches the existing top-section pattern.
+
+**Code references**: `internal/htmlrender/embedded/_sidebar.tmpl` — new `<li>` in `.sidebar-top` between "Overview" and the epic loop; uses the existing aria-current pattern. `internal/htmlrender/pagedata.go` — `SidebarData` gains a `GapCount int` field. `internal/htmlrender/default_resolver.go` — `sidebar()` helper populates `GapCount` by counting `r.tree.ByKind(entity.KindGap)` entries whose path doesn't include `/archive/`. `cmd/aiwf/render_resolver.go` — cmd-side resolver mirrors. Test in `e2e/playwright/tests/render.spec.ts` under a new `sidebar — gap entry (M-0100/AC-1)` describe.
+
+### AC-2 — Chip strip with Active/All renders in sidebar
+
+**Pass criterion**: Every rendered page's sidebar contains a `<nav class="chip-strip">` with two chips: Active and All. Markup mirrors M-0099's kind-index chip strip: each chip is an `<a class="chip">` with matching `id` and `href` so `:target` CSS drives both the active-chip visual state and AC-3's epic filter. The chip strip uses the **`#sidebar-active`** and **`#sidebar-all`** fragments — distinct from M-0099's `#active`/`#all` so the sidebar archive filter and the kind-index page filter toggle independently. Asserted via Playwright: `aside.sidebar nav.chip-strip` exists; contains exactly two `a.chip` children; first has text "Active", id "sidebar-active", href "#sidebar-active"; second has text "All", id "sidebar-all", href "#sidebar-all".
+
+**Edge cases**: The chip strip renders unconditionally — even in a tree with zero archived epics the strip appears. Position: between the top section (`Project status` / `Overview` / `Gaps (N)`) and the epic `<details>` list. The strip uses M-0099's existing `.chip-strip` and `.chip` CSS classes for visual styling — no new styling rules in this AC; the rules from M-0099 already handle pill shape, hover state, :target highlight, and default Active highlight via `:not(:has(.chip:target))`. Note: M-0099's default-highlight CSS uses `#active` — for the sidebar chip the rule's selector needs broadening (or a parallel rule for `#sidebar-active`) so the sidebar's Active chip highlights too. That's a small CSS adjustment landing in this AC.
+
+**Code references**: `internal/htmlrender/embedded/_sidebar.tmpl` — chip strip markup added between `.sidebar-top` and the `{{range .Epics}}` loop. `internal/htmlrender/embedded/style.css` — broaden M-0099's default-highlight rule to cover both `#active` and `#sidebar-active`, or add a parallel rule. Test in `e2e/playwright/tests/render.spec.ts` under a new `sidebar — chip strip markup (M-0100/AC-2)` describe.
+
+### AC-3 — Sidebar archive chip filter toggles epic visibility
+
+**Pass criterion**: On any rendered page with no URL fragment, sidebar epics whose paths are under `work/epics/archive/` have `display: none` (verified via Playwright `getComputedStyle(epicElement).display`); non-archived epics are visible. Loading the same page with `#sidebar-all` reveals all sidebar epics (including archived) — no `display: none`. Every `<details class="sidebar-epic">` element carries `data-archived="true"` or `data-archived="false"` so the CSS filter can target archived epics specifically.
+
+**Edge cases**: The active-vs-archived determination is path-based, not status-based — epics under `work/epics/archive/` are archived; epics outside that subtree are active (regardless of frontmatter status). Aligns with ADR-0004's archive convention. The CSS rule keys off `body:has(#sidebar-all:target)` to be specific — does not fire when the kind-index page's `#all` is targeted, so the two chip filters remain independent. Milestones nested inside archived epics ride with their parent's visibility (the `<details>` collapses; nested `<ul>` follows DOM hierarchy). When the current page is itself inside an archived epic, the epic's `<details>` would normally have `open` (per existing `IsActive` logic), but the filter rule hides the whole `<details>` regardless — the user has to switch to `#sidebar-all` to see the current page's parent epic in the sidebar.
+
+**Code references**: `internal/htmlrender/embedded/_sidebar.tmpl` — each `<details class="sidebar-epic">` gains `data-archived="{{if .Archived}}true{{else}}false{{end}}"`. `internal/htmlrender/embedded/style.css` — new CSS rule `aside.sidebar .sidebar-epic[data-archived="true"] { display: none; }` and `body:has(#sidebar-all:target) aside.sidebar .sidebar-epic[data-archived="true"] { display: block; }` (or equivalent display value for `<details>`). `internal/htmlrender/pagedata.go` — `SidebarEpic` gains `Archived bool` field. `internal/htmlrender/default_resolver.go` and `cmd/aiwf/render_resolver.go` — populate `Archived` from `entity.IsArchivedPath(e.Path)`. Test in `e2e/playwright/tests/render.spec.ts` under a new `sidebar — archive chip filter (M-0100/AC-3)` describe; fixture needs at least one archived epic (the existing renderRichFixture has none — enrich similarly to M-0099/AC-3's gap-archive setup).
+
