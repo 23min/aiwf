@@ -1,6 +1,6 @@
 ---
 id: G-0090
-title: AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs
+title: M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests
 status: open
 discovered_in: M-0079
 ---

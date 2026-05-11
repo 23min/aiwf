@@ -119,7 +119,7 @@ flowchart LR
 | G-0084 | Verb hygiene contract is undocumented; G-0081/G-0082/G-0083 lack umbrella | E-0021 |
 | G-0087 | No aiwf-show embedded skill | M-0074 |
 | G-0088 | Skill-coverage policy doesn't police plugin skills under aiwf-extensions/ | M-0079 |
-| G-0090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-0079 |
+| G-0090 | M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests | M-0079 |
 | G-0091 | No preventive check for body-prose path-form refs to archive-moved entities |  |
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
 | G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0087 -> 'No aiwf-show embedded skill' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0091 -> 'No preventive check for body-prose path-form refs to archive-moved entities' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0070 -> 'aiwf doctor lacks --format=json envelope' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0069 -> 'aiwf init's plugins nudge hardcodes user-scope CLI install form' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0088 -> 'Skill-coverage policy doesn't police plugin skills under aiwf-extensions/' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0067 -> 'wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard' |
 
