@@ -126,9 +126,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0114 'HTML render gap surface: status and archive state not glanceable from sidebar' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0091 open -> addressed |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0113 'rendered HTML site has no publish path; only viewable via local aiwf render' |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0112 'STATUS.md pre-commit regen produces merge conflicts on a derived artifact' |
 | 2026-05-11 | human/peter | wrap-epic | chore(E-0028): wrap epic — start-epic ritual + verification seams closed |
-| 2026-05-11 | human/peter | wrap-epic | chore(epic): wrap E-0028 — start-epic ritual: sovereign activation with preflight + delegation |
 

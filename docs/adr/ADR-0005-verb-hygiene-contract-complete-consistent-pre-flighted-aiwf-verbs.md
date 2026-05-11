@@ -87,6 +87,25 @@ Future verb gaps, when filed, cite this ADR by id. The audit-of-existing-verbs w
 
 A complementary policy test (`internal/policies/`) MAY be added to enforce part of the contract mechanically — e.g., a check that every non-trivial verb has a pre-flight call. This is out of scope for this ADR but compatible with it.
 
+## Rejected (2026-05-11)
+
+This ADR is rejected. The three obligations it bundles are structurally heterogeneous, and packaging them as one decision dilutes each.
+
+**Obligation 1 — pre-flight against finding rules.** Its enforceable core is already implemented via `internal/verb/common.go`'s `projectionFindings`, which every mutating verb consults pre-commit. Pushed any further, the obligation has a structural flaw: it assumes finding rules are oracles. They are not. G-0081 — the case that motivated this obligation — turned out to be a checker false positive: the `ids-unique/trunk-collision` rule was wrongly flagging routine branch-side slug renames as collisions. G-0109 fixed the rule by teaching it to consult `git diff -M` rename detection. Had this ADR been ratified and G-0081 implemented per its body, the verb would have inherited the false positive and refused renames that today succeed cleanly. The correct pattern is per-verb judgment about which check rules produce *correct* findings for that verb's mutation shape — which the existing code already does.
+
+**Obligation 2 — atomic completeness over consistent surfaces.** G-0083 (`aiwf retitle` should sync the body H1 with the frontmatter title) is a real instance of this pattern. But it is *one* instance. Codifying a principle on one example is the "premature abstraction" the kernel's engineering principles warn against. G-0083 ships as a one-off fix; if a third or fourth similar case shows up, *that* is when the principle gets named.
+
+**Obligation 3 — surface follow-up actions in skills.** This obligation lives at the skill layer, which CLAUDE.md explicitly says is advisory: *"Skills are advisory; the pre-push git hook and `aiwf check` are authoritative. If a guarantee depends on the LLM remembering to invoke a skill, it is not a guarantee."* A binding obligation that does not bind does not belong in an ADR. G-0082 (planning skills should prompt merge-to-main) ships as a skill prompt edit, not as a kernel contract.
+
+The implementing gaps are addressed individually:
+
+- **G-0081** — closed `addressed`; symptom resolved by G-0109's checker fix; the verb-hygiene preflight framing was a misdiagnosis.
+- **G-0083** — to be addressed as a `wf-patch`.
+- **G-0082** — to be addressed as a skill prompt edit in the rituals plugin.
+- **G-0084** — closed `wontfix`; the umbrella ADR was rejected, so there is no umbrella to anchor.
+
+The broader lesson — *do not write contracts ahead of evidence* — is consistent with the kernel's "three similar lines beats a premature abstraction." A future ADR on this topic can be authored if and when a generalizable verb-hygiene pattern accumulates three or more real instances. As of this rejection, it has not.
+
 ## References
 
 - G-0081 — pre-flight obligation, instance.
