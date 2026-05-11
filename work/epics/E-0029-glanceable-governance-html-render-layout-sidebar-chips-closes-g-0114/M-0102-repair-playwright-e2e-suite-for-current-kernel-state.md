@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Fixture builds and runs against current kernel
-      status: open
+      status: met
     - id: AC-2
       title: All Playwright assertions match current rendered output
       status: open
