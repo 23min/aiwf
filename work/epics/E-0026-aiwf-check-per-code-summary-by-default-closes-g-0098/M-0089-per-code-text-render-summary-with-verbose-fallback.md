@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Errors still print per-instance in default text
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: --verbose flag restores full per-instance output
