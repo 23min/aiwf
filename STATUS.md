@@ -6,14 +6,14 @@ _239 entities · 0 errors · 0 warnings_
 
 ### E-0028 — Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side) _(active)_
 
-- **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(draft)_ — tdd: required
+- **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(draft)_ — ACs 0/4 met (4 open) — tdd: required
 - **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(draft)_ — tdd: required
 - **M-0096** — Ship aiwfx-start-epic skill with worktree and branch preflight prompts _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_0028["E-0028<br/>Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side)"]:::epic_active
-  M_0094["M-0094<br/>Add aiwf check finding epic-active-no-drafted-milestones"]:::ms_draft
+  M_0094["M-0094 (0/4)<br/>Add aiwf check finding epic-active-no-drafted-milestones"]:::ms_draft
   E_0028 --> M_0094
   M_0095["M-0095<br/>Enforce human-only actor on aiwf promote E-NN active"]:::ms_draft
   E_0028 --> M_0095
@@ -135,9 +135,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote E-0028 proposed -> active |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0096 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0095 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0094 |
 
