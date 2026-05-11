@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_256 entities · 0 errors · 8 warnings · run `aiwf check` for details_
+_256 entities · 0 errors · 9 warnings · run `aiwf check` for details_
 
-> Sweep pending: 5 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 6 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -10,7 +10,7 @@ _256 entities · 0 errors · 8 warnings · run `aiwf check` for details_
 
 - ✓ **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(done)_ — ACs 5/5 met — tdd: required
 - ✓ **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(done)_ — ACs 4/4 met — tdd: required
-- → **M-0100** — Sidebar adds gap entry + epic archive chip filter _(in_progress)_ — ACs 4/4 met — tdd: required
+- ✓ **M-0100** — Sidebar adds gap entry + epic archive chip filter _(done)_ — ACs 4/4 met — tdd: required
 - **M-0101** — In-page status hierarchy in gaps.html _(draft)_ — tdd: required
 - ✓ **M-0102** — Repair Playwright e2e suite for current kernel state _(done)_ — ACs 2/2 met — tdd: advisory
 
@@ -21,7 +21,7 @@ flowchart LR
   E_0029 --> M_0098
   M_0099["M-0099 (4/4)<br/>Kind-index chip filter: single emitted file per kind with :target chips"]:::ms_done
   E_0029 --> M_0099
-  M_0100["M-0100 (4/4)<br/>Sidebar adds gap entry + epic archive chip filter"]:::ms_in_progress
+  M_0100["M-0100 (4/4)<br/>Sidebar adds gap entry + epic archive chip filter"]:::ms_done
   E_0029 --> M_0100
   M_0101["M-0101<br/>In-page status hierarchy in gaps.html"]:::ms_draft
   E_0029 --> M_0101
@@ -142,6 +142,7 @@ flowchart LR
 | acs-tdd-audit | M-0102/AC-2 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0102-repair-playwright-e2e-suite-for-current-kernel-state.md | M-0102/AC-2 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | terminal-entity-not-archived | M-0098 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0098-render-site-layout-overhaul-viewport-fill-body-flush-left-sidebar-prose-cap.md | entity M-0098 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0099 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0099-kind-index-chip-filter-single-emitted-file-per-kind-with-target-chips.md | entity M-0099 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | M-0100 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0100-sidebar-adds-gap-entry-epic-archive-chip-filter.md | entity M-0100 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0102 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0102-repair-playwright-e2e-suite-for-current-kernel-state.md | entity M-0102 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0082 | work/gaps/G-0082-planning-closure-default-merges-to-main.md | entity G-0082 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0083 | work/gaps/G-0083-aiwf-retitle-does-not-sync-entity-body-h1-with-frontmatter-title.md | entity G-0083 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -150,9 +151,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | ai/claude | edit-body | aiwf edit-body M-0100 |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0100/AC-4 open -> met |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0100/AC-4 --phase green -> done |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0100/AC-4 --phase red -> green |
 | 2026-05-12 | ai/claude | add | aiwf add ac M-0100/AC-4 'Chip clicks do not scroll the page' |
-| 2026-05-12 | ai/claude | promote | aiwf promote M-0100/AC-3 open -> met |
 

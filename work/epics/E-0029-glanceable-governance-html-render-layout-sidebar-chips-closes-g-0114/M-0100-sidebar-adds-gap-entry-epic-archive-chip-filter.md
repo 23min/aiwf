@@ -1,7 +1,7 @@
 ---
 id: M-0100
 title: Sidebar adds gap entry + epic archive chip filter
-status: in_progress
+status: done
 parent: E-0029
 depends_on:
     - M-0099
