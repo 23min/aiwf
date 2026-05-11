@@ -40,7 +40,7 @@ _(no milestones)_
 
 ### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
-- → **M-0084** — Loader and id resolver span active and archive directories _(in_progress)_ — ACs 6/6 met — tdd: required
+- ✓ **M-0084** — Loader and id resolver span active and archive directories _(done)_ — ACs 6/6 met — tdd: required
 - → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 8/8 met — tdd: required
 - → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 7/7 met — tdd: required
 - → **M-0087** — Display surfaces for archived entities (status, show, render) _(in_progress)_ — ACs 9/9 met — tdd: required
@@ -49,7 +49,7 @@ _(no milestones)_
 ```mermaid
 flowchart LR
   E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_proposed
-  M_0084["M-0084 (6/6)<br/>Loader and id resolver span active and archive directories"]:::ms_in_progress
+  M_0084["M-0084 (6/6)<br/>Loader and id resolver span active and archive directories"]:::ms_done
   E_0024 --> M_0084
   M_0085["M-0085 (8/8)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_in_progress
   E_0024 --> M_0085
@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | implement | feat(aiwf): archive sweep threshold, embedded skill, CLAUDE.md item 10 (M-0088) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): display surfaces for archived entities — status, show, render (M-0087) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): aiwf archive verb (dry-run default, --apply, --kind) (M-0085) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): archive check rules and per-rule scoping (M-0086) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): loader and id resolver span active+archive directories (M-0084) |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 open -> met |
 
