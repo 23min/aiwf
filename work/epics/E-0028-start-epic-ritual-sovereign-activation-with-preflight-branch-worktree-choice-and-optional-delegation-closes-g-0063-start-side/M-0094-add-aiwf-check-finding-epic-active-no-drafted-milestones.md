@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: rule does not fire when epic is at status proposed, done, or cancelled
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: finding hint text references the start-epic preflight role and G-0063
       status: open
