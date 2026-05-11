@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Drift-check test compares the fixture vs. local marketplace cache.
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Rituals-repo SHA recorded at wrap.
