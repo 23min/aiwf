@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_256 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_256 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -129,19 +129,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | ADR-0010 | docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md | ADR-0010 body section \`## Context\` is empty |
-| entity-body-empty | ADR-0010 | docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md | ADR-0010 body section \`## Decision\` is empty |
-| entity-body-empty | ADR-0010 | docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md | ADR-0010 body section \`## Consequences\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add adr ADR-0010 'Branch model: ritualized work on branches, author iteration on main' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 5 entities into archive/ (5 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0079 open -> addressed |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0076 open -> addressed |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0069 open -> addressed |
 
