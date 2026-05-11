@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Fixture SKILL.md exists at the canonical authoring location.
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Fixture body prescribes the trailered-merge sequence.
