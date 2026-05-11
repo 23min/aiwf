@@ -7,6 +7,11 @@ depends_on:
     - M-0094
     - M-0095
 tdd: required
+acs:
+    - id: AC-1
+      title: Fixture exists with valid skill frontmatter and 10-step Workflow section
+      status: open
+      tdd_phase: red
 ---
 
 # M-0096 — Ship `aiwfx-start-epic` skill with worktree and branch preflight prompts
@@ -45,3 +50,6 @@ The worktree-placement prompt and the branch prompt are deliberately separate Q&
 - M-0090 — precedent for cross-repo SKILL.md fixture + drift-check + wrap-time SHA recording.
 - CLAUDE.md *Cross-repo plugin testing* — convention for SKILL.md authoring location.
 - CLAUDE.md *AC promotion requires mechanical evidence* — structural assertions over fixture content.
+
+### AC-1 — Fixture exists with valid skill frontmatter and 10-step Workflow section
+
