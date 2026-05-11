@@ -23,6 +23,10 @@ acs:
       title: Mobile collapse stacks sidebar below main below 768px
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Tab clicks do not scroll the page
+      status: open
+      tdd_phase: red
 ---
 # Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap
 
@@ -140,4 +144,14 @@ Red-phase test-authoring began against the existing Playwright suite; running `n
 **Edge cases**: At exactly 768px the rule fires (per the existing `max-width: 768px` definition); just above (e.g. 769px) it does not — verify both sides of the boundary so future tweaks to the breakpoint don't silently regress. Sidebar links still navigate when clicked in the collapsed layout (no overlap with main blocking the click target). The main panel's prose cap from AC-3 still applies in the collapsed view but never exceeds viewport width — main fills the available column. The brand mark + wordmark in the sidebar header don't overflow at 375px width.
 
 **Code references**: Existing `@media (max-width: 768px)` block in `internal/htmlrender/embedded/style.css` (around line 101 today) — verify intact post-overhaul; may need a one-line tweak if the new layout's sticky/flush-left rules need explicit reset at the breakpoint. Test in `e2e/playwright/tests/render.spec.ts` under "layout — mobile collapse" — use `page.setViewportSize({ width: 600, height: 800 })` (and the other widths) to drive the assertion.
+
+### AC-5 — Tab clicks do not scroll the page
+
+**Pass criterion**: Clicking a tab link in a milestone page's `nav.tabs` (Overview, Manifest, Build, Tests, Commits, Provenance) does not scroll the page. After the click, `window.scrollY === 0` — the page is pinned at the top, regardless of which tab was clicked. Verified via Playwright by loading a milestone page, asserting `scrollY === 0` initially, clicking each tab in turn, and asserting `scrollY === 0` remains true after each click.
+
+**Edge cases**: The behavior must hold at multiple viewport heights (tested at 1080 and 720 — both common laptop heights). The pin-to-top semantics apply even when a section is taller than the viewport (e.g. the Manifest tab with many ACs) — the scroll position stays at 0; the user can manually scroll within the section. The `:target`-driven CSS show/hide of sections remains intact (this AC is about scroll position, not visibility). Tab navigation via direct URL load (e.g. `M-0001.html#tab-build`) is also expected to land at scroll y=0, not scrolled-into-view of `#tab-build`.
+
+**Code references**: The fix lives in `internal/htmlrender/embedded/style.css` — add `scroll-margin-top: 100vh` (or equivalent large value) to the `section[data-tab]` selector. The browser's "scroll the target into view" behavior on hash-change respects `scroll-margin-top`, treating it as a phantom top-margin; a value larger than the document height effectively means "the target is so far above the top that scrolling to it clamps at y=0." The existing `:target + :has()` show/hide rule at `style.css:359` is unchanged. Tests in `e2e/playwright/tests/render.spec.ts` extend the existing `milestone page — :target tab show/hide` describe or add a sibling layout describe.
+
+**Why this surfaced now**: AC-1's body-padding refinement removed the original `margin: 2rem auto` from `body`, which had provided a 2rem buffer at the top of the page. The scroll-into-view jump on tab clicks was always present but visually buffered; without the top margin, the jump is more pronounced and the bug became user-visible during AC-1/AC-2 review.
 
