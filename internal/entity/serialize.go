@@ -117,6 +117,59 @@ func isMeaningfulNonASCII(r rune) bool {
 	return r > 127
 }
 
+// ValidateTitle reports whether title is within the consumer's
+// configured length cap (`entities.title_max_length` in aiwf.yaml;
+// kernel default 80, per G-0102). Returns nil when title is
+// acceptable, or a typed error explaining the cap and pointing the
+// operator at `--body-file` for elaboration that doesn't belong in
+// the title.
+//
+// A non-positive maxLength is a no-op (validation always passes), so
+// callers in tests or paths that don't thread a config can pass 0.
+//
+// The same cap also applies to slugs (see ValidateSlug) — title and
+// slug share a length budget so on-disk filenames and frontmatter
+// titles stay in sync. This is what makes the kernel surfaces
+// (CLI tables, HTML render, git-log subjects, `aiwf history`,
+// filesystem) all degrade uniformly rather than diverging.
+func ValidateTitle(title string, maxLength int) error {
+	if maxLength <= 0 {
+		return nil
+	}
+	if len(title) <= maxLength {
+		return nil
+	}
+	return fmt.Errorf(
+		"title length %d exceeds the configured cap of %d (entities.title_max_length); "+
+			"shorten the title and put elaboration in the entity body (`--body-file` at create time, or `aiwf edit-body` after)",
+		len(title), maxLength,
+	)
+}
+
+// ValidateSlug reports whether slug is within the configured length
+// cap. Same cap as ValidateTitle — title and slug share a budget so
+// filenames and frontmatter stay in sync (G-0102). Used by
+// `aiwf rename`, where the operator supplies a slug directly with no
+// title context.
+//
+// A non-positive maxLength is a no-op. Validation runs on the
+// post-slugify form (after `SlugifyDetailed`) because that's what
+// ends up on disk; pre-slugify length may include characters
+// (whitespace, punctuation) that get dropped.
+func ValidateSlug(slug string, maxLength int) error {
+	if maxLength <= 0 {
+		return nil
+	}
+	if len(slug) <= maxLength {
+		return nil
+	}
+	return fmt.Errorf(
+		"slug length %d exceeds the configured cap of %d (entities.title_max_length); "+
+			"choose a shorter slug",
+		len(slug), maxLength,
+	)
+}
+
 // BodyTemplate returns the per-kind starter body that `aiwf add`
 // writes after the frontmatter. Sections are scaffolds; bodies are
 // not validated by `aiwf check`.

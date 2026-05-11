@@ -254,7 +254,7 @@ func TestRename_FilePath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.Rename(r.ctx, r.tree(), "M-0001", "warm-the-cache", testActor))
+	r.must(verb.Rename(r.ctx, r.tree(), "M-0001", "warm-the-cache", testActor, 0))
 
 	wantPath := filepath.Join(r.root, "work", "epics", "E-0001-platform", "M-0001-warm-the-cache.md")
 	if _, err := os.Stat(wantPath); err != nil {
@@ -265,7 +265,7 @@ func TestRename_FilePath(t *testing.T) {
 func TestRename_DirectoryKind(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Old name", testActor, verb.AddOptions{}))
-	r.must(verb.Rename(r.ctx, r.tree(), "E-0001", "new-name", testActor))
+	r.must(verb.Rename(r.ctx, r.tree(), "E-0001", "new-name", testActor, 0))
 
 	wantPath := filepath.Join(r.root, "work", "epics", "E-0001-new-name", "epic.md")
 	if _, err := os.Stat(wantPath); err != nil {
@@ -433,7 +433,7 @@ func TestRename_NonASCIINewSlug_SurfacesSlugWarning(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 
-	res, err := verb.Rename(r.ctx, r.tree(), "E-0001", "Café-Bar", testActor)
+	res, err := verb.Rename(r.ctx, r.tree(), "E-0001", "Café-Bar", testActor, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1024,7 +1024,7 @@ func TestCancel_NonExistentID(t *testing.T) {
 // TestRename_NonExistentID covers the same path for rename.
 func TestRename_NonExistentID(t *testing.T) {
 	r := newRunner(t)
-	_, err := verb.Rename(r.ctx, r.tree(), "E-0099", "new-slug", testActor)
+	_, err := verb.Rename(r.ctx, r.tree(), "E-0099", "new-slug", testActor, 0)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected not-found error, got %v", err)
 	}
@@ -1057,7 +1057,7 @@ func TestCancel_AlreadyTerminal(t *testing.T) {
 func TestRename_SameSlug(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Same name", testActor, verb.AddOptions{}))
-	_, err := verb.Rename(r.ctx, r.tree(), "E-0001", "same-name", testActor)
+	_, err := verb.Rename(r.ctx, r.tree(), "E-0001", "same-name", testActor, 0)
 	if err == nil || !strings.Contains(err.Error(), "matches the current slug") {
 		t.Errorf("expected same-slug error, got %v", err)
 	}

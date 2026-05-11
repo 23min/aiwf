@@ -226,7 +226,7 @@ func TestRename_CompositeUpdatesTitleAndHeading(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Old title", testActor, nil))
-	r.must(verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", "New title", testActor))
+	r.must(verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", "New title", testActor, 0))
 
 	m := r.tree().ByID("M-0001")
 	if m.ACs[0].Title != "New title" {
@@ -252,7 +252,7 @@ func TestRename_CompositeNoOp(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Same title", testActor, nil))
 
-	_, err := verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", "Same title", testActor)
+	_, err := verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", "Same title", testActor, 0)
 	if err == nil || !strings.Contains(err.Error(), "already") {
 		t.Errorf("expected no-op error, got %v", err)
 	}

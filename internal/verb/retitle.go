@@ -28,10 +28,18 @@ import (
 // new title (after trimming), no-op (current title equals new title).
 // Tree-level findings caused by the projection are returned in
 // Result.Findings.
-func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason string) (*Result, error) {
+// titleMaxLength caps the new title per `entities.title_max_length`
+// (G-0102, kernel default 80). Title and slug share the same budget;
+// retitle is also the natural verb to migrate existing entities
+// whose pre-cap titles are over the cap (the operator picks the
+// shorter form). Pass 0 from tests that don't care about cap policy.
+func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason string, titleMaxLength int) (*Result, error) {
 	_ = ctx
 	if strings.TrimSpace(newTitle) == "" {
 		return nil, fmt.Errorf("retitle: new title is empty")
+	}
+	if err := entity.ValidateTitle(newTitle, titleMaxLength); err != nil {
+		return nil, err
 	}
 	if entity.IsCompositeID(id) {
 		return retitleAC(t, id, newTitle, actor, reason)

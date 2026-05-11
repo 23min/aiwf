@@ -65,6 +65,13 @@ type AddOptions struct {
 	// must not begin with a YAML frontmatter delimiter (`---\n`);
 	// callers pass body content only, not a full markdown document.
 	BodyOverride []byte
+	// TitleMaxLength caps the length of --title. The CLI dispatcher
+	// sets it from `aiwf.yaml`'s `entities.title_max_length` (default
+	// 80 per G-0102). Zero or negative means "uncapped" — used by
+	// tests that don't thread a config and don't care about cap
+	// policy. Verbs reject titles over this length so the on-disk
+	// slug, frontmatter title, and rendered surfaces stay in sync.
+	TitleMaxLength int
 }
 
 // Add creates a new entity of the given kind. Allocates the next free
@@ -85,6 +92,9 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 	_ = ctx // reserved for future IO; verbs are currently pure-projection and IO happens in Apply
 	if title == "" {
 		return nil, fmt.Errorf("--title is required")
+	}
+	if err := entity.ValidateTitle(title, opts.TitleMaxLength); err != nil {
+		return nil, err
 	}
 	if err := validateAddOptsForKind(kind, opts); err != nil {
 		return nil, err

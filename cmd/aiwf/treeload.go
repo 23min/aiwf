@@ -42,3 +42,17 @@ func loadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	}
 	return tr, loadErrs, nil
 }
+
+// configuredTitleMaxLength returns the consumer's
+// `entities.title_max_length` from aiwf.yaml, or the kernel default
+// when absent (G-0102). Tolerant of a missing aiwf.yaml — the kernel
+// default applies in that case too, so the verb dispatchers in
+// cmd/aiwf can call this unconditionally without a precondition
+// check.
+func configuredTitleMaxLength(rootDir string) int {
+	cfg, err := config.Load(rootDir)
+	if err != nil || cfg == nil {
+		return config.DefaultEntityTitleMaxLength
+	}
+	return cfg.EntityTitleMaxLength()
+}

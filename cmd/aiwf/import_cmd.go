@@ -120,7 +120,10 @@ func runImportCmd(manifestPath, root, actor, principal, onCollision string, dryR
 		return exitUsage
 	}
 
-	res, err := verb.Import(ctx, tr, m, actorStr, verb.ImportOptions{OnCollision: onCollision})
+	res, err := verb.Import(ctx, tr, m, actorStr, verb.ImportOptions{
+		OnCollision:    onCollision,
+		TitleMaxLength: configuredTitleMaxLength(rootDir),
+	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
 		return exitUsage

@@ -77,7 +77,7 @@ func runRetitleCmd(id, newTitle, actor, principal, root, reason string) int {
 		fmt.Fprintf(os.Stderr, "aiwf retitle: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, vErr := verb.Retitle(ctx, tr, id, newTitle, actorStr, reason)
+	result, vErr := verb.Retitle(ctx, tr, id, newTitle, actorStr, reason, configuredTitleMaxLength(rootDir))
 	pctx := provenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),
