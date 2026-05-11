@@ -141,9 +141,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | rename | aiwf rename ADR-0006 slug -> skills-policy-per-verb-default-or-help-only |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0109 open -> addressed |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | reallocate | aiwf reallocate G-0107 -> G-0109 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0108 |
-| 2026-05-11 | human/peter | add | aiwf add gap G-0108 'aiwf retitle should sync the on-disk slug, not just frontmatter title' |
 
