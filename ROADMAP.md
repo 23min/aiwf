@@ -304,5 +304,5 @@ Ship the `aiwfx-start-epic` ritual plus its supporting kernel chokepoints so epi
 |---|---|---|
 | M-0094 | Add aiwf check finding epic-active-no-drafted-milestones | done |
 | M-0095 | Enforce human-only actor on aiwf promote E-NN active | done |
-| M-0096 | Ship aiwfx-start-epic skill with worktree and branch preflight prompts | draft |
+| M-0096 | Ship aiwfx-start-epic skill with worktree and branch preflight prompts | done |
 
