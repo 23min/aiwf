@@ -10,7 +10,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Fixture exists with valid skill frontmatter and 10-step Workflow section
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Worktree-placement prompt is heading-scoped Q&A with three named options

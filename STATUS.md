@@ -10,7 +10,7 @@ _239 entities · 0 errors · 8 warnings · run `aiwf check` for details_
 
 - ✓ **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(done)_ — ACs 4/4 met — tdd: required
 - ✓ **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(done)_ — ACs 4/4 met — tdd: required
-- → **M-0096** — Ship aiwfx-start-epic skill with worktree and branch preflight prompts _(in_progress)_ — ACs 0/5 met (5 open) — tdd: required
+- → **M-0096** — Ship aiwfx-start-epic skill with worktree and branch preflight prompts _(in_progress)_ — ACs 1/5 met (4 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -19,7 +19,7 @@ flowchart LR
   E_0028 --> M_0094
   M_0095["M-0095 (4/4)<br/>Enforce human-only actor on aiwf promote E-NN active"]:::ms_done
   E_0028 --> M_0095
-  M_0096["M-0096 (0/5)<br/>Ship aiwfx-start-epic skill with worktree and branch preflight prompts"]:::ms_in_progress
+  M_0096["M-0096 (1/5)<br/>Ship aiwfx-start-epic skill with worktree and branch preflight prompts"]:::ms_in_progress
   E_0028 --> M_0096
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -145,9 +145,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-1 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-1 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096 draft -> in_progress |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0096/AC-5 'Drift-check test compares fixture to cache; skips cleanly when absent' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0096/AC-4 'Branch prompt is heading-scoped Q&A with G-0059 deferral note' |
-| 2026-05-11 | human/peter | add | aiwf add ac M-0096/AC-3 'Sovereign-promotion step names the M-0095 rule and the override path' |
 
