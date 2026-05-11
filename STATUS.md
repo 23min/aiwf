@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_221 entities · 0 errors · 187 warnings · run `aiwf check` for details_
+_221 entities · 0 errors · 177 warnings · run `aiwf check` for details_
 
 > Sweep pending: 176 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -105,16 +105,6 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-0089/AC-1 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-0089/AC-2 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-0089/AC-3 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-0089/AC-4 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-0089/AC-5 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-0089/AC-6 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-0089/AC-7 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-7 body under \`### AC-7\` is empty |
-| entity-body-empty | M-0089/AC-8 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-8 body under \`### AC-8\` is empty |
-| entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## What's missing\` is empty |
-| entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | entity ADR-0002 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0001 | work/epics/E-0001-foundations-and-aiwf-check/M-0001-session-1-deliverable-aiwf-check-end-to-end.md | entity M-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0001 | work/epics/E-0001-foundations-and-aiwf-check/epic.md | entity E-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -296,9 +286,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-8 'Summary lines name the code structurally, not by substring grep' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-7 'Kernel-tree integration test — default output is short' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-6 'cmd/aiwf/completion_drift_test.go passes' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-5 'aiwf check --help documents --verbose' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-4 'JSON envelope is unchanged' |
-| 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-3 '--verbose flag restores full per-instance output' |
 
