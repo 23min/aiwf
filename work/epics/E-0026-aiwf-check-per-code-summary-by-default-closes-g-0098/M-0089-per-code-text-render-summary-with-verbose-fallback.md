@@ -31,7 +31,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: Kernel-tree integration test — default output is short
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-8
       title: Summary lines name the code structurally, not by substring grep
