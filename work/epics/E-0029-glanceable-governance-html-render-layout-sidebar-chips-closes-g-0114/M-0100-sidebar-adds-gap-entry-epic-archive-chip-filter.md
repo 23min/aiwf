@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Sidebar shows Gaps (N) entry with active count
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Chip strip with Active/All renders in sidebar
       status: open
