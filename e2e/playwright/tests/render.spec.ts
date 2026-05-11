@@ -7,6 +7,7 @@
 import { test, expect } from "@playwright/test";
 import { pathToFileURL } from "node:url";
 import { join } from "node:path";
+import { existsSync } from "node:fs";
 import { renderRichFixture } from "../fixture";
 
 let outDir: string;
@@ -641,6 +642,28 @@ test.describe("layout — mobile collapse (M-0098/AC-4)", () => {
         () => document.documentElement.scrollWidth - window.innerWidth,
       );
       expect(overflow, `no horizontal scroll at viewport ${width}px`).toBeLessThanOrEqual(0);
+    }
+  });
+});
+
+test.describe("kind-index — file emission (M-0099/AC-1)", () => {
+  // The renderer collapses from active/all-pair to a single emitted
+  // file per archive-segregating kind. The `*-all.html` cousin files
+  // are no longer emitted; chip filtering (AC-3) handles the
+  // active-vs-all toggle client-side.
+
+  const KINDS = ["gaps", "decisions", "adrs", "contracts"];
+
+  test("emits canonical kind file, no *-all.html cousin", async () => {
+    for (const kind of KINDS) {
+      expect(
+        existsSync(join(outDir, `${kind}.html`)),
+        `${kind}.html should be emitted`,
+      ).toBe(true);
+      expect(
+        existsSync(join(outDir, `${kind}-all.html`)),
+        `${kind}-all.html should NOT be emitted (chip filter replaces the all-view)`,
+      ).toBe(false);
     }
   });
 });
