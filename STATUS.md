@@ -123,9 +123,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | wrap-epic | chore(epic): wrap E-0028 — start-epic ritual: sovereign activation with preflight + delegation |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0108 open -> addressed |
-| 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
-| 2026-05-11 | human/peter | rename | aiwf rename G-0099 slug -> worktree-isolation-parent-side-precondition |
-| 2026-05-11 | human/peter | rename | aiwf rename D-0001 slug -> entity-body-empty-sub-headings-as-content |
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
+| 2026-05-11 | human/peter | promote | aiwf promote E-0028 active -> done |
 
