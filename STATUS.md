@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_219 entities · 0 errors · 179 warnings · run `aiwf check` for details_
+_220 entities · 0 errors · 182 warnings · run `aiwf check` for details_
 
 > Sweep pending: 176 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -41,6 +41,10 @@ flowchart LR
 _(no milestones)_
 
 ### E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 _(proposed)_
+
+_(no milestones)_
+
+### E-0026 — aiwf check per-code summary by default (closes G-0098) _(proposed)_
 
 _(no milestones)_
 
@@ -88,6 +92,9 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| entity-body-empty | E-0026 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/epic.md | E-0026 body section \`## Goal\` is empty |
+| entity-body-empty | E-0026 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/epic.md | E-0026 body section \`## Scope\` is empty |
+| entity-body-empty | E-0026 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/epic.md | E-0026 body section \`## Out of scope\` is empty |
 | entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## What's missing\` is empty |
 | entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | entity ADR-0002 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -271,9 +278,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0098 'aiwf check default output dumps every leaf finding; per-code summary + --verbose would make the surface scannable, especially when an aggregate finding (e.g. archive-sweep-pending) already covers N leaves' |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0024 active -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0024 proposed -> active |
 | 2026-05-11 | human/peter | merge | Merge worktree-agent-ae85cfc7baf987101: E-0024 — uniform archive convention (ADR-0004) |
-| 2026-05-11 | human/peter | wrap | chore(E-0024): wrap epic — uniform archive convention (ADR-0004) |
 
