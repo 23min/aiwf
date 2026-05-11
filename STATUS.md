@@ -42,7 +42,7 @@ _(no milestones)_
 
 - **M-0091** — Roll out TestMain + t.Parallel across internal/* test packages _(draft)_ — ACs 0/6 met (6 open) — tdd: none
 - **M-0092** — Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/ _(draft)_ — ACs 0/4 met (4 open) — tdd: none
-- **M-0093** — Document test-discipline convention and lock its chokepoint _(draft)_ — tdd: none
+- **M-0093** — Document test-discipline convention and lock its chokepoint _(draft)_ — ACs 0/3 met (3 open) — tdd: none
 
 ```mermaid
 flowchart LR
@@ -51,7 +51,7 @@ flowchart LR
   E_0025 --> M_0091
   M_0092["M-0092 (0/4)<br/>Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/"]:::ms_draft
   E_0025 --> M_0092
-  M_0093["M-0093<br/>Document test-discipline convention and lock its chokepoint"]:::ms_draft
+  M_0093["M-0093 (0/3)<br/>Document test-discipline convention and lock its chokepoint"]:::ms_draft
   E_0025 --> M_0093
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add ac M-0092 AC-1..AC-4 (4 criteria) |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0091 AC-1..AC-6 (6 criteria) |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0093 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0092 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0091 |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 

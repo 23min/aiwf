@@ -7,6 +7,16 @@ depends_on:
     - M-0091
     - M-0092
 tdd: none
+acs:
+    - id: AC-1
+      title: CLAUDE.md gains a Test discipline section under Go conventions
+      status: open
+    - id: AC-2
+      title: policy test asserts each internal/* test pkg has setup_test.go and TestMain
+      status: open
+    - id: AC-3
+      title: G-0097 promoted to addressed and the closing trailer cites E-0025
+      status: open
 ---
 
 # M-0093 — Document test-discipline convention and lock its chokepoint
@@ -80,3 +90,30 @@ This milestone is single-commit: the documentation change and the policy test sh
 ## Reviewer notes
 
 - (none yet)
+
+### AC-1 — CLAUDE.md gains a Test discipline section under Go conventions
+
+The new section documents:
+- `TestMain` per package, `os.Setenv` for the GIT identity (immutable; never `t.Setenv` under `t.Parallel`).
+- `t.Parallel()` first-line on every test that does not legitimately need serial execution; the skip-list rationale lives as a comment in the package's `setup_test.go`.
+- `sync.Once` for shared expensive fixtures (the live-repo `*Tree` is the canonical example); `// do not mutate` comment at the loader site.
+- `-race -parallel 8` cap in `Makefile` and the GitHub workflows; rationale (macOS git-fan-out flake at higher parallelism); the cap lives in three files and changes uniformly.
+- `setup_test.go` is the filename. Conventional, mechanical, AI-discoverable.
+
+A contributor reading this section can write a new test file in the right shape without prior knowledge of the spike or M-0091/M-0092. The section cross-references the policy test by code-path (`internal/policies/test_setup_presence.go` or equivalent).
+
+### AC-2 — policy test asserts each internal/* test pkg has setup_test.go and TestMain
+
+The policy is a Go test under `internal/policies/` that:
+
+1. Walks every directory under `internal/` containing at least one `*_test.go` file.
+2. For each such directory, parses files with `go/parser` and asserts that `setup_test.go` exists and contains a top-level `func TestMain(m *testing.M)` declaration.
+3. AST-level check (per the epic's design decisions table — "presence of `setup_test.go` is a reasonable proxy"). Substring assertions over flat source are explicitly rejected per CLAUDE.md *Substring assertions are not structural assertions*.
+4. Fails CI with a finding pointing at the offending package directory and citing the `## Test discipline` section.
+
+Scope is `internal/*`; `cmd/aiwf/` is intentionally excluded because the per-file audit shape there is different (single package, mixed parallelism). If future evidence shows `cmd/aiwf/` should also be guarded, that's a follow-up gap; this milestone leaves it alone.
+
+### AC-3 — G-0097 promoted to addressed and the closing trailer cites E-0025
+
+After AC-1 and AC-2 land and the epic's success criteria are met at wrap, `aiwf promote G-0097 addressed` runs and the trailer references E-0025. This AC is mechanical — the promote happens as part of the wrap ritual for the epic, not this milestone — but recording it here keeps the closing thread visible.
+
