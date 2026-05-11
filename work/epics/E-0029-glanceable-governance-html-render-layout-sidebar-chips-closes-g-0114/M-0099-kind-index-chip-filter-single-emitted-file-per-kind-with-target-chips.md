@@ -33,7 +33,7 @@ ACs added via `aiwf add ac M-<id>` at start-milestone time. The observable-behav
 - The page emits the **full row set** (active + archived) regardless of the chip state — the chip filter is CSS-driven, not server-side, so the rendered markup is one source of truth.
 - The chip strip renders unconditionally on every kind-index page, even for kinds with zero archived entries (consistent shape across pages).
 - The `KindIndexData` struct loses `IncludeArchived`, `ActiveFileName`, `AllFileName`; the `KindIndexLink` struct loses `AllFileName`. The default resolver's `KindIndexData` method no longer takes an `includeArchived` boolean (single signature, single emit).
-- All existing render tests pass after the migration; new tests assert chip-strip markup structure (via parsed HTML, not substring grep), the `:target` CSS rule's presence, and the `data-archived` attribute on every emitted row.
+- All existing render tests pass after the migration; new **Playwright** tests in `e2e/playwright/tests/` exercise the chip filter end-to-end — clicking `[All]` flips the fragment to `#all`, archived rows become visible via computed style, the active-chip visual state mirrors the URL fragment. Parsed-HTML / parsed-CSS checks in Go remain for emit-shape assertions (chip-strip presence, `data-archived` attribute on rows, `:target` rule in `style.css`) but the `:target`-driven behavior is verified in a real browser, paralleling the existing tabs tests in `render.spec.ts`. CI integration is deferred per the epic Constraints; Playwright runs locally.
 
 A render-against-real-fixture human-verification pass closes the milestone per CLAUDE.md *Render output must be human-verified before the iteration closes* — exercise each kind-index page, click the chip, verify URL fragment, verify archived rows appear/disappear.
 
@@ -61,8 +61,9 @@ A render-against-real-fixture human-verification pass closes the milestone per C
 - `internal/htmlrender/pagedata.go` (remove `IncludeArchived` / `ActiveFileName` / `AllFileName` from `KindIndexData`; remove `AllFileName` from `KindIndexLink`)
 - `internal/htmlrender/htmlrender.go` (whichever caller dispatches the two-file emit per kind)
 - `cmd/aiwf/render_resolver.go` (cmd-side resolver — same shape changes)
-- `cmd/aiwf/render_archive_visibility_test.go`, `cmd/aiwf/render_archive_test.go` (drop the `*-all.html` assertions, replace with chip / data-archived assertions)
-- `internal/htmlrender/htmlrender_test.go` (chip-strip structural test)
+- `e2e/playwright/tests/` (primary test surface — extend `render.spec.ts` with chip-filter scenarios alongside the existing tabs tests)
+- `cmd/aiwf/render_archive_visibility_test.go`, `cmd/aiwf/render_archive_test.go` (drop the `*-all.html` assertions, replace with chip / data-archived emit-shape assertions; complementary)
+- `internal/htmlrender/htmlrender_test.go` (chip-strip markup structural test; complementary)
 
 ## Out of scope
 

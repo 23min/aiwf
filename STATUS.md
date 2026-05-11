@@ -142,9 +142,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0098 |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body E-0029 |
 | 2026-05-11 | human/peter | authorize | aiwf authorize E-0029 --to ai/claude |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0029 proposed -> active |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0116 'aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos' |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0082 open -> addressed |
 
