@@ -6,7 +6,22 @@ _227 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
-_(no active epics)_
+### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(active)_
+
+- ✓ **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(done)_ — ACs 6/6 met — tdd: required
+
+```mermaid
+flowchart LR
+  E_0027["E-0027<br/>Trailered merge commits from aiwfx-wrap-epic (closes G-0100)"]:::epic_active
+  M_0090["M-0090 (6/6)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_done
+  E_0027 --> M_0090
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Roadmap
 
@@ -43,23 +58,6 @@ _(no milestones)_
 ### E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 _(proposed)_
 
 _(no milestones)_
-
-### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(proposed)_
-
-- ✓ **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(done)_ — ACs 6/6 met — tdd: required
-
-```mermaid
-flowchart LR
-  E_0027["E-0027<br/>Trailered merge commits from aiwfx-wrap-epic (closes G-0100)"]:::epic_proposed
-  M_0090["M-0090 (6/6)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_done
-  E_0027 --> M_0090
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
 
 ## Open decisions
 
@@ -114,9 +112,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0090 in_progress -> done |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0090 |
 | 2026-05-11 | human/peter | implement | feat(aiwf): aiwfx-wrap-epic fixture emits trailered merge commits (M-0090) |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-6 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-5 open -> met |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-4 open -> met |
 
