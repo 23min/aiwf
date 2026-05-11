@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0026 — aiwf check per-code summary by default (closes G-0098) _(proposed)_
 
-- → **M-0089** — Per-code text-render summary with --verbose fallback _(in_progress)_ — ACs 0/8 met (8 open) — tdd: required
+- → **M-0089** — Per-code text-render summary with --verbose fallback _(in_progress)_ — ACs 1/8 met (7 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_0026["E-0026<br/>aiwf check per-code summary by default (closes G-0098)"]:::epic_proposed
-  M_0089["M-0089 (0/8)<br/>Per-code text-render summary with --verbose fallback"]:::ms_in_progress
+  M_0089["M-0089 (1/8)<br/>Per-code text-render summary with --verbose fallback"]:::ms_in_progress
   E_0026 --> M_0089
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -286,9 +286,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-1 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-1 --phase red -> green |
 | 2026-05-11 | human/peter | implement | feat(aiwf): aiwf check per-code text summary + --verbose flag (M-0089) |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0098 |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-8 'Summary lines name the code structurally, not by substring grep' |
-| 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-7 'Kernel-tree integration test — default output is short' |
 
