@@ -1,7 +1,7 @@
 ---
 id: ADR-0010
 title: 'Branch model: ritualized work on branches, author iteration on main'
-status: proposed
+status: accepted
 ---
 
 # ADR-0010 — Branch model: ritualized work on branches, author iteration on main
