@@ -96,9 +96,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0105 'TestProvenanceCheck_UntrailedEntityCommit asserts obsolete warning-severity substring format' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 epic) |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0104 'Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0025 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | wrap-epic | chore(E-0027): wrap epic — trailered merge commits ritual + CHANGELOG entry |
 

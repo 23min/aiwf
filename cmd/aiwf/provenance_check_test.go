@@ -96,8 +96,10 @@ func TestProvenanceCheck_UntrailedEntityCommit(t *testing.T) {
 		t.Fatalf("expected provenance-untrailered-entity-commit; got:\n%s", out)
 	}
 	// Severity is warning, not error — the exit code stays 0 unless
-	// other rules fired errors. The render line includes "warning".
-	if !strings.Contains(out, "warning provenance-untrailered-entity-commit") {
+	// other rules fired errors. The render line is shaped
+	// `<code> (<severity>) × N — <detail>`, so the severity
+	// follows the code in parens.
+	if !strings.Contains(out, "provenance-untrailered-entity-commit (warning)") {
 		t.Errorf("expected warning severity; got:\n%s", out)
 	}
 }
