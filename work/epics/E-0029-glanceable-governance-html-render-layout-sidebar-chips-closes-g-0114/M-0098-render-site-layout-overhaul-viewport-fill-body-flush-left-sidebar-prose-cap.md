@@ -25,7 +25,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: Tab clicks do not scroll the page
-      status: open
+      status: met
       tdd_phase: done
 ---
 # Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap
