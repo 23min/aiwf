@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: Drift-check structurally asserts merge-step trailered-commit instructions.
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0090 — `aiwfx-wrap-epic` emits trailered merge commits; fixture + drift-check tests
