@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: non-human actor promoting epic to active is refused with override-hint error
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: human actor promoting epic to active succeeds without override
       status: open
