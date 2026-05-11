@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: CI/script audit chokepoint fires on non-forced epic-activation invocations
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Drift comparator helper has synthetic two-arm test (match + drift)

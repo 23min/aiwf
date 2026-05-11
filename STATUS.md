@@ -11,7 +11,7 @@ _240 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 - ✓ **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(done)_ — ACs 4/4 met — tdd: required
 - ✓ **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(done)_ — ACs 4/4 met — tdd: required
 - ✓ **M-0096** — Ship aiwfx-start-epic skill with worktree and branch preflight prompts _(done)_ — ACs 5/5 met — tdd: required
-- → **M-0097** — Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator _(in_progress)_ — ACs 0/2 met (2 open) — tdd: required
+- → **M-0097** — Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator _(in_progress)_ — ACs 1/2 met (1 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -22,7 +22,7 @@ flowchart LR
   E_0028 --> M_0095
   M_0096["M-0096 (5/5)<br/>Ship aiwfx-start-epic skill with worktree and branch preflight prompts"]:::ms_done
   E_0028 --> M_0096
-  M_0097["M-0097 (0/2)<br/>Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator"]:::ms_in_progress
+  M_0097["M-0097 (1/2)<br/>Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator"]:::ms_in_progress
   E_0028 --> M_0097
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -146,9 +146,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0097/AC-1 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0097/AC-1 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0097 draft -> in_progress |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0097/AC-2 'Drift comparator helper has synthetic two-arm test (match + drift)' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0097/AC-1 'CI/script audit chokepoint fires on non-forced epic-activation invocations' |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 
