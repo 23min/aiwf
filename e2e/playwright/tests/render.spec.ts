@@ -457,6 +457,54 @@ test.describe("polish — kicker + dark mode + accent bar", () => {
   });
 });
 
+test.describe("layout — viewport-fill (M-0098/AC-1)", () => {
+  // The body's `max-width: 78rem; margin: 2rem auto` cap is going
+  // away; the layout must fill the viewport edge-to-edge at any
+  // width above the existing <768px mobile collapse breakpoint.
+  // The sidebar's left edge sits at viewport x=0; the main panel's
+  // right edge meets the viewport's right edge; and the body has
+  // no max-width cap that would re-introduce centering on wide
+  // viewports.
+  //
+  // 1920×1080 is a common laptop/external-monitor width that puts
+  // any 78rem (~1248px) cap into visible play — at this viewport
+  // the current CSS centers everything with ~336px of slack on
+  // each side, which is exactly the failure mode this test pins.
+
+  test("body has no max-width; layout fills viewport at 1920px width", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto(fileURL("index.html"));
+
+    // Body must have no max-width cap. `getComputedStyle` reports
+    // resolved CSS values; "none" means no cap.
+    const bodyMaxWidth = await page.locator("body").evaluate(
+      (el) => getComputedStyle(el).maxWidth,
+    );
+    expect(bodyMaxWidth, "body.maxWidth should be 'none' (no cap)").toBe("none");
+
+    // Sidebar's left edge sits at viewport x=0 (flush-left).
+    const sidebarBox = await page.locator(".sidebar").boundingBox();
+    expect(sidebarBox, ".sidebar must be in the layout").not.toBeNull();
+    expect(sidebarBox!.x, ".sidebar left edge should be at viewport x=0 (flush-left)").toBe(0);
+
+    // Main panel's right edge meets the viewport's right edge.
+    // Allow a 1px tolerance for sub-pixel rendering on retina-class
+    // displays; anything beyond that means a centering margin is
+    // still in play.
+    const mainBox = await page.locator("main").boundingBox();
+    expect(mainBox, "main must be in the layout").not.toBeNull();
+    const mainRight = mainBox!.x + mainBox!.width;
+    expect(mainRight, "main right edge should reach viewport width (1920)").toBeGreaterThanOrEqual(1919);
+
+    // No horizontal overflow — the layout fits the viewport
+    // exactly, not slightly over.
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow, "no horizontal scroll (scrollWidth === innerWidth)").toBeLessThanOrEqual(0);
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {
