@@ -113,9 +113,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0027 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0090 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0090 'aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0027 |
-| 2026-05-11 | human/peter | add | aiwf add epic E-0027 'Trailered merge commits from aiwfx-wrap-epic (closes G-0100)' |
 

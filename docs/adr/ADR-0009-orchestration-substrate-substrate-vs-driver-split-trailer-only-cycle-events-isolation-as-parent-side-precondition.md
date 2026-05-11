@@ -23,7 +23,7 @@ aiwf provides the **substrate** for orchestration:
 - **Pipeline schema** — data describing cycle structure for an epic's work-shape.
 - **Trailer schema for cycle events** — audit primitives, per Decision 2.
 - **Verb gate for subagent contexts** — the kernel dispatcher refuses subagent-forbidden verbs (`cancel`, `reallocate`, `authorize`, any `--force` invocation) regardless of role.
-- **Reconciliation check rules** — post-cycle kernel-side validation (`scope-expanded`, `cycle-trailer-incomplete`, isolation-mismatch per Decision 3) that catches subagent misbehavior mechanically.
+- **Reconciliation check rules** — post-cycle kernel-side validation (`scope-expanded`, `cycle-trailer-incomplete`, `isolation-escape` per Decision 3) that catches subagent misbehavior mechanically.
 
 aiwf does **not**:
 
@@ -44,6 +44,7 @@ Cycle events (begin, end, finding allocation, AC promotion within a cycle) are r
 - `aiwf-cycle-status` — `ended-success | ended-failure | ended-discarded`.
 - `aiwf-cycle-role`, `aiwf-cycle-agent`, `aiwf-cycle-model`, `aiwf-cycle-host` — provenance.
 - `aiwf-cycle-pipeline-step` — position in the cycle's pipeline.
+- `aiwf-cycle-worktree-branch` — git ref where the cycle's commits MUST live; recorded on every cycle commit (one trailer per commit, not just at cycle-begin) and consumed by the `isolation-escape` reconciliation rule (Decision 3). The redundancy across commits is deliberate: the check is decidable from any single cycle commit without traversing to find a cycle-begin marker.
 - `aiwf-cycle-scope-hint` — coarse partition declared at cycle start, consumed by the `scope-expanded` reconciliation rule.
 - `aiwf-cycle-prompt-hash`, `aiwf-cycle-duration-ms`, `aiwf-cycle-files-touched`, `aiwf-cycle-lines-added`, `aiwf-cycle-lines-removed`, `aiwf-cycle-tests-added`, `aiwf-cycle-findings-count`, `aiwf-cycle-findings` — observability.
 
@@ -58,11 +59,13 @@ Subagent isolation — the guarantee that a builder subagent's writes land in an
 1. Parent calls `git worktree add <path> <branch>`.
 2. Parent verifies via `git worktree list` (or equivalent observable check) that the worktree exists at the expected path. If absent, parent refuses dispatch.
 3. Parent invokes the agent-dispatch tool, passing the worktree path explicitly as the working directory.
-4. Post-cycle, mechanical reconciliation MUST verify that the cycle's commits (identified by `aiwf-cycle-id`) live on the cycle's declared worktree branch and the diff is rooted inside the worktree path. A mismatch is a finding.
+4. Post-cycle reconciliation is a kernel `aiwf check` rule named **`isolation-escape`**. The rule walks every commit carrying an `aiwf-cycle-id` trailer, reads the `aiwf-cycle-worktree-branch` trailer (Decision 2) from the same commit, and asserts every such commit is reachable from that branch ref. A mismatch — commit not reachable from the declared worktree branch — fires the `isolation-escape` finding and the cycle ends as `ended-failure` regardless of the subagent's envelope status.
 
 The `isolation: "worktree"` kwarg supported by some agent-dispatch tools (e.g., Claude Code's `Agent`) is a hint, not the load-bearing mechanism. Materialisation that depends on the kwarg being honored is structurally the same LLM-honor-system shape the framework's "correctness must not depend on LLM behavior" principle is designed to refuse — and the failure mode G-0099 documents (real session, isolation silently degraded to "we asked nicely") is the concrete evidence.
 
-Step 4 commits to the requirement that reconciliation is **mechanical**, not advisory. The exact check site — kernel `aiwf check` finding rule, driver-side code path, or both — is implementation detail for the milestone that lands this rule, scoped under E-0019.
+**Why kernel-side over driver-side.** A driver-side check ("orchestrator runs reconciliation post-cycle") would be one more layer of LLM-honor-system shape: a different driver implementation could skip the check, ship it as a non-blocking warning, or refactor it away — and the substrate's isolation guarantee would silently weaken to "whatever the current driver enforces." Putting the check in `aiwf check` makes isolation a kernel invariant that every driver (current Claude Code skill, hypothetical `aiwfdo` sidekick per §6.4 of the design doc, third-party drivers) inherits for free, validated at pre-push and in CI the same way every other `aiwf check` rule is. The check is decidable from `git log` alone — no filesystem inspection at validation time — so it composes cleanly with the rest of the kernel's tolerant-by-design loader.
+
+**Driver responsibility under this rule.** The driver still owns steps 1-3 (materialise the worktree, verify presence via `git worktree list`, dispatch with the worktree path); this is parent-side by definition because it must happen before the agent is invoked. The driver also records `aiwf-cycle-worktree-branch` on every cycle commit so the kernel rule has the data it needs. The driver does **not** own the reconciliation decision; the kernel does.
 
 ### Sovereign override
 
@@ -87,13 +90,14 @@ Human operators retain the sovereign override surface that already exists — `a
 ### Negative
 
 - **The driver layer is host-specific by design.** Different LLM hosts get different drivers. Today only Claude Code is in scope; a second host means a second skill set. The trade-off is intentional (kernel is host-agnostic, driver is host-specific) but it ships an unavoidable per-host cost.
-- **Trailer surface grows.** ~16 cycle-related trailer keys (Decision 2) are pinned in `internal/policies/trailer_keys.go`. Drift-test cost is small but real; trailer-schema migrations are a kernel concern.
-- **Reconciliation check rules are kernel work.** The substrate-vs-driver split puts these on aiwf, which means new `aiwf check` rules (`scope-expanded`, isolation-mismatch, `cycle-trailer-incomplete`) ship as kernel code. Worth the cost — the alternative (driver-side checks) re-introduces the LLM-honor-system shape this ADR exists to refuse — but worth naming.
+- **Trailer surface grows.** ~17 cycle-related trailer keys (Decision 2, including `aiwf-cycle-worktree-branch`) are pinned in `internal/policies/trailer_keys.go`. Drift-test cost is small but real; trailer-schema migrations are a kernel concern.
+- **Reconciliation check rules are kernel work.** The substrate-vs-driver split puts these on aiwf, which means new `aiwf check` rules (`scope-expanded`, `isolation-escape`, `cycle-trailer-incomplete`) ship as kernel code. Worth the cost — the alternative (driver-side checks) re-introduces the LLM-honor-system shape this ADR exists to refuse — but worth naming.
+- **Kernel grows a worktree-aware check rule.** `isolation-escape` is the first `aiwf check` rule that reads git branch structure (via `git log --branches` / equivalent) rather than just the planning tree. Modest expansion of what `aiwf check` does; bounded to one rule.
 
 ### Implementation
 
-- **E-0019** (Parallel TDD subagents with finding-gated AC closure) is the implementing epic; its milestones decompose the three decisions into kernel and driver-side work.
-- **G-0099** closes when Decision 3's reconciliation rule lands as a kernel finding plus the precondition-pattern landing in the driver-side dispatch skill.
+- **E-0019** (Parallel TDD subagents with finding-gated AC closure) is the implementing epic; its milestones decompose the three decisions into kernel and driver-side work. Kernel-side work includes the `isolation-escape` `aiwf check` rule (Decision 3), the `aiwf-cycle-worktree-branch` trailer addition (Decision 2), and the existing-rule wiring for `scope-expanded` and `cycle-trailer-incomplete`. Driver-side work includes the precondition dispatch sequence (steps 1-3) and the trailer-recording at cycle-begin/end.
+- **G-0099** closes when the `isolation-escape` kernel rule lands plus the precondition-pattern lands in the driver-side dispatch skill.
 - **Design doc** [`agent-orchestration.md`](../pocv3/design/agent-orchestration.md) carries the long-form rationale, sequence diagrams, and worked examples; this ADR carries the load-bearing claims. The two are intended to be read together — design doc for "why and how," ADR for "what we committed to."
 
 ## References
