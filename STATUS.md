@@ -98,7 +98,7 @@ flowchart LR
 |----|-------|---------------|
 | G-0022 | Provenance model extension surface |  |
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
-| G-0059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-0069 |
+| G-0059 | Branch model: no canonical entity-hierarchy-to-git-branches mapping | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
 | G-0063 | No defined start-epic ritual; activation is bare FSM flip today |  |
 | G-0067 | wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard | M-0066 |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0079 -> 'aiwfx-plan-milestones plugin skill needs --depends-on documentation' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0092 -> 'No documented hierarchy of doc authority across docs/' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0063 -> 'No defined start-epic ritual; activation is bare FSM flip today' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0090 -> 'M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0087 -> 'No aiwf-show embedded skill' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0091 -> 'No preventive check for body-prose path-form refs to archive-moved entities' |
 

@@ -1,6 +1,6 @@
 ---
 id: G-0059
-title: 'Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current'
+title: 'Branch model: no canonical entity-hierarchy-to-git-branches mapping'
 status: open
 discovered_in: M-0069
 ---
