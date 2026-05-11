@@ -6,7 +6,22 @@ _222 entities · 0 errors · 178 warnings · run `aiwf check` for details_
 
 ## In flight
 
-_(no active epics)_
+### E-0026 — aiwf check per-code summary by default (closes G-0098) _(active)_
+
+- ✓ **M-0089** — Per-code text-render summary with --verbose fallback _(done)_ — ACs 8/8 met — tdd: required
+
+```mermaid
+flowchart LR
+  E_0026["E-0026<br/>aiwf check per-code summary by default (closes G-0098)"]:::epic_active
+  M_0089["M-0089 (8/8)<br/>Per-code text-render summary with --verbose fallback"]:::ms_done
+  E_0026 --> M_0089
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Roadmap
 
@@ -43,23 +58,6 @@ _(no milestones)_
 ### E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 _(proposed)_
 
 _(no milestones)_
-
-### E-0026 — aiwf check per-code summary by default (closes G-0098) _(proposed)_
-
-- ✓ **M-0089** — Per-code text-render summary with --verbose fallback _(done)_ — ACs 8/8 met — tdd: required
-
-```mermaid
-flowchart LR
-  E_0026["E-0026<br/>aiwf check per-code summary by default (closes G-0098)"]:::epic_proposed
-  M_0089["M-0089 (8/8)<br/>Per-code text-render summary with --verbose fallback"]:::ms_done
-  E_0026 --> M_0089
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
 
 ## Open decisions
 
@@ -288,9 +286,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089 in_progress -> done |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0099 'Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior' |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 open -> met |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 --phase green -> done |
 
