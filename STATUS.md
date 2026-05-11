@@ -111,13 +111,13 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| acs-tdd-audit | M-0102/AC-1 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0102-repair-playwright-e2e-suite-for-current-kernel-state.md | M-0102/AC-1 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
-| acs-tdd-audit | M-0102/AC-2 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0102-repair-playwright-e2e-suite-for-current-kernel-state.md | M-0102/AC-2 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
+| acs-tdd-audit | M-0107/AC-1 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md | M-0107/AC-1 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
+| acs-tdd-audit | M-0107/AC-2 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md | M-0107/AC-2 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | terminal-entity-not-archived | M-0098 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0098-render-site-layout-overhaul-viewport-fill-body-flush-left-sidebar-prose-cap.md | entity M-0098 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0099 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0099-kind-index-chip-filter-single-emitted-file-per-kind-with-target-chips.md | entity M-0099 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0100 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0100-sidebar-adds-gap-entry-epic-archive-chip-filter.md | entity M-0100 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0101 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0101-in-page-status-hierarchy-in-gaps-html.md | entity M-0101 has terminal status 'cancelled' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | M-0102 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0102-repair-playwright-e2e-suite-for-current-kernel-state.md | entity M-0102 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | M-0107 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md | entity M-0107 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | entity E-0029 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0082 | work/gaps/G-0082-planning-closure-default-merges-to-main.md | entity G-0082 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0083 | work/gaps/G-0083-aiwf-retitle-does-not-sync-entity-body-h1-with-frontmatter-title.md | entity G-0083 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -126,9 +126,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | ai/claude | wrap-epic | chore(E-0029): wrap artefact |
 | 2026-05-12 | ai/claude | promote | aiwf promote E-0029 active -> done |
 | 2026-05-12 | ai/claude | cancel | aiwf cancel M-0101 -> cancelled |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0100 in_progress -> done |
 | 2026-05-12 | ai/claude | edit-body | aiwf edit-body M-0100 |
-| 2026-05-12 | ai/claude | promote | aiwf promote M-0100/AC-4 open -> met |
 

@@ -4,7 +4,7 @@ title: 'Render-site layout overhaul: viewport-fill body, flush-left sidebar, pro
 status: done
 parent: E-0029
 depends_on:
-    - M-0102
+    - M-0107
 tdd: required
 acs:
     - id: AC-1
@@ -84,7 +84,7 @@ Each AC is asserted via **Playwright browser tests** in `e2e/playwright/tests/` 
 
 ## Dependencies
 
-- **M-0102** (Repair Playwright e2e suite for current kernel state) — added mid-flight after AC-1's red phase surfaced that the Playwright suite had rotted across multiple kernel changes since E-0009 (repo reorg, ID width migration, `aiwf init` hook-write behavior). M-0098 cannot have its layout / CSS / viewport ACs tested via Playwright until M-0102 lands the suite green.
+- **M-0107** (Repair Playwright e2e suite for current kernel state) — added mid-flight after AC-1's red phase surfaced that the Playwright suite had rotted across multiple kernel changes since E-0009 (repo reorg, ID width migration, `aiwf init` hook-write behavior). M-0098 cannot have its layout / CSS / viewport ACs tested via Playwright until M-0107 lands the suite green.
 
 ## References
 
@@ -97,7 +97,7 @@ Each AC is asserted via **Playwright browser tests** in `e2e/playwright/tests/` 
 
 ### AC-1 — Layout fills viewport (with modest padding) at widths above 768px
 
-Body cap removed; layout fills the viewport horizontally · commit `3fb8203` (green) + `ce7245a` (refinement) · tests 44/45 green pre-refinement, 44/44 green post-refinement. Red-phase test-authoring initially hit Playwright suite rot — surfaced as M-0102 prerequisite milestone (paths, hooks, ID width drift). After M-0102 wrapped, red phase landed cleanly with `3fb8203` removing body's `max-width: 78rem`, `margin: 2rem auto`, `padding: 0 1rem`. User visual review requested "some padding around everything"; AC-1 refined in `ce7245a` to add `padding: 1rem` on body and relax test threshold from strict `=== 0` to `<= 32px` (allowing 1rem padding + sub-pixel). AC body in this spec updated to reflect refined pass criterion ("modest uniform edge padding, no centering gutter").
+Body cap removed; layout fills the viewport horizontally · commit `3fb8203` (green) + `ce7245a` (refinement) · tests 44/45 green pre-refinement, 44/44 green post-refinement. Red-phase test-authoring initially hit Playwright suite rot — surfaced as M-0107 prerequisite milestone (paths, hooks, ID width drift). After M-0107 wrapped, red phase landed cleanly with `3fb8203` removing body's `max-width: 78rem`, `margin: 2rem auto`, `padding: 0 1rem`. User visual review requested "some padding around everything"; AC-1 refined in `ce7245a` to add `padding: 1rem` on body and relax test threshold from strict `=== 0` to `<= 32px` (allowing 1rem padding + sub-pixel). AC body in this spec updated to reflect refined pass criterion ("modest uniform edge padding, no centering gutter").
 
 ### AC-2 — Sidebar width 285px
 

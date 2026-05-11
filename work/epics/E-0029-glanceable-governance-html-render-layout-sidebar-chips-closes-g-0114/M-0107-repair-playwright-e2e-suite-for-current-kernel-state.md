@@ -1,7 +1,9 @@
 ---
-id: M-0102
+id: M-0107
 title: Repair Playwright e2e suite for current kernel state
 status: done
+prior_ids:
+    - M-0102
 parent: E-0029
 tdd: advisory
 acs:
@@ -28,11 +30,11 @@ Discovered mid-red-phase on M-0098/AC-1 (Layout fills viewport at widths above 7
 
 Without this repair the epic's Playwright-as-chokepoint constraint is "operator promises" — exactly the failure mode the kernel rule *"correctness must not depend on LLM behavior"* forbids. CI gating of Playwright is **still deferred** per the epic Constraints (no gap filed; trade-off accepted), but the local suite needs to actually run.
 
-This milestone is the precursor to all downstream E-0029 work. M-0098 stays at `in_progress` (it began work — added ACs, started the red phase) but is blocked pending M-0102; the M-0098 *Work log* records the pivot.
+This milestone is the precursor to all downstream E-0029 work. M-0098 stays at `in_progress` (it began work — added ACs, started the red phase) but is blocked pending M-0107; the M-0098 *Work log* records the pivot.
 
 ## Acceptance criteria
 
-ACs added via `aiwf add ac M-0102` at start-milestone time. The observable-behavior space:
+ACs added via `aiwf add ac M-0107` at start-milestone time. The observable-behavior space:
 
 - Path-rot fixed: `fixture.ts`'s `repoRoot` resolves to the actual repo root; the `go build` target is `./cmd/aiwf`; the existing comment block is updated to reflect the post-reorg layout.
 - Hook-disable strategy works against current `aiwf init` — the fixture either uses a writable empty hooks dir (mkdtemp + setting `hooksPath` to it), runs the `hooksPath` config *after* `aiwf init`, or another mechanism that doesn't trigger the `/var/empty` write failure. The chosen mechanism is documented at the call site so future kernel changes signal the right surface to revisit.
@@ -99,7 +101,7 @@ Full suite green · commit `c5a80e6` · tests 40/40. Eight find-replace sweeps c
 ## Validation
 
 - `npx playwright test` from `e2e/playwright/` — **40 passed (24.7s)**, chromium-only, headless. No flakes, no skips.
-- `aiwf check` — 0 errors, 2 `acs-tdd-audit` warnings on M-0102/AC-1 and AC-2 (expected; under tdd: advisory, met-without-phase-done is advisory-by-design, not a regression). Other warnings (G-0082, G-0083 archive-pending; provenance-untrailered-scope-undefined on the worktree branch's no-upstream) are pre-existing and unrelated to this milestone.
+- `aiwf check` — 0 errors, 2 `acs-tdd-audit` warnings on M-0107/AC-1 and AC-2 (expected; under tdd: advisory, met-without-phase-done is advisory-by-design, not a regression). Other warnings (G-0082, G-0083 archive-pending; provenance-untrailered-scope-undefined on the worktree branch's no-upstream) are pre-existing and unrelated to this milestone.
 - `go test -race ./...` — clean (pre-wrap run from the worktree).
 - Spot-check coverage: the existing `:target + :has()` tabs tests at `render.spec.ts:104..138` exercise CSS-driven computed-style behavior end-to-end; passing means the suite remains usable as the test surface for the upcoming layout / chip / sidebar / hierarchy milestones.
 
@@ -128,5 +130,5 @@ Full suite green · commit `c5a80e6` · tests 40/40. Eight find-replace sweeps c
 
 **Edge cases**: Tests that locate entities by literal ID name (`getByRole("link", { name: "E-01" })`, `name: "M-001"`, etc.) need their assertion targets updated to canonical 4-digit form (`"E-0001"`, `"M-0001"`). This applies to every kind the kernel canonicalizes: epics, milestones, gaps, decisions, contracts, ADRs, ACs. The fixture's verb-invocation side (`["add", "milestone", "--epic", "E-01", ...]`) can stay (kernel parsers tolerate narrow input per ADR-0008) or be updated for consistency — either choice is valid; pick the one that yields the cleanest diff. Tests asserting URL fragments / anchors (e.g. `#tab-build`, `#ac-2`) are kind-independent and should still pass — verify they do. Tests asserting CSS classes (`.status-met`, `.scope-active`) are kind-independent and should still pass. The `console.error` collector in `beforeEach` must remain green — no template / asset 404s introduced by canonical IDs (e.g. `M-0001.html` is the new filename, the fixture's directory layout must produce that).
 
-**Code references**: `e2e/playwright/tests/render.spec.ts` — every `getByRole`, `getByText`, `locator(..., { hasText: "..." })`, `toHaveAttribute("href", "...")` assertion that targets an entity ID name. Approximate count via `grep -c "E-01\|M-001\|AC-1\|AC-2" e2e/playwright/tests/render.spec.ts`; each match site gets its narrow-ID target replaced with the canonical form. The `playwright-report/` directory shows per-test trace.zip files for any remaining red — useful for diagnosing assertions that fail for *other* reasons (template structure changes from E-0017's body-prose chokepoint, M-074's milestone tabs layout, etc. — out of scope for M-0102 but flagged if encountered).
+**Code references**: `e2e/playwright/tests/render.spec.ts` — every `getByRole`, `getByText`, `locator(..., { hasText: "..." })`, `toHaveAttribute("href", "...")` assertion that targets an entity ID name. Approximate count via `grep -c "E-01\|M-001\|AC-1\|AC-2" e2e/playwright/tests/render.spec.ts`; each match site gets its narrow-ID target replaced with the canonical form. The `playwright-report/` directory shows per-test trace.zip files for any remaining red — useful for diagnosing assertions that fail for *other* reasons (template structure changes from E-0017's body-prose chokepoint, M-074's milestone tabs layout, etc. — out of scope for M-0107 but flagged if encountered).
 

@@ -75,8 +75,8 @@ Closes G-0114.
 
 <!-- Bulleted list, ordered by execution sequence. Status is NOT carried here. -->
 
-- [M-0102](M-0102-repair-playwright-e2e-suite-for-current-kernel-state.md) — Repair Playwright e2e suite for current kernel state · depends on: — *(prerequisite — added mid-flight after M-0098/AC-1 red phase surfaced suite rot from a137132 reorg + E-0023 ID width migration + `aiwf init` hook-write behavior change)*
-- [M-0098](M-0098-render-site-layout-overhaul-viewport-fill-body-flush-left-sidebar-prose-cap.md) — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap · depends on: M-0102
+- [M-0107](M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md) — Repair Playwright e2e suite for current kernel state · depends on: — *(prerequisite — added mid-flight after M-0098/AC-1 red phase surfaced suite rot from a137132 reorg + E-0023 ID width migration + `aiwf init` hook-write behavior change)*
+- [M-0098](M-0098-render-site-layout-overhaul-viewport-fill-body-flush-left-sidebar-prose-cap.md) — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap · depends on: M-0107
 - [M-0099](M-0099-kind-index-chip-filter-single-emitted-file-per-kind-with-target-chips.md) — Kind-index chip filter: single emitted file per kind with `:target` chips · depends on: M-0098
 - [M-0100](M-0100-sidebar-adds-gap-entry-epic-archive-chip-filter.md) — Sidebar adds gap entry + epic archive chip filter · depends on: M-0099 · *(broadened mid-flight after M-0099 visual review surfaced that the sidebar's epic list shows archived epics by default, drowning in-flight ones)*
 - [M-0101](M-0101-in-page-status-hierarchy-in-gaps-html.md) — In-page status hierarchy in `gaps.html` · depends on: M-0099 (parallelizable with M-0100)
