@@ -1,8 +1,6 @@
 # aiwf status — 2026-05-11
 
-_239 entities · 0 errors · 2 warnings · run `aiwf check` for details_
-
-> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
+_239 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -132,17 +130,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| terminal-entity-not-archived | G-0102 | work/gaps/G-0102-entity-titles-uncapped-long-titles-break-filesystem-paths-status-html-layout-and-cli-table-columns.md | entity G-0102 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0102 open -> addressed |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0096 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0095 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0094 |
 
