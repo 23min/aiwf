@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_225 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_226 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -39,6 +39,10 @@ flowchart LR
 _(no milestones)_
 
 ### E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 _(proposed)_
+
+_(no milestones)_
+
+### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(proposed)_
 
 _(no milestones)_
 
@@ -89,6 +93,9 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| entity-body-empty | E-0027 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/epic.md | E-0027 body section \`## Goal\` is empty |
+| entity-body-empty | E-0027 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/epic.md | E-0027 body section \`## Scope\` is empty |
+| entity-body-empty | E-0027 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/epic.md | E-0027 body section \`## Out of scope\` is empty |
 | entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## What's missing\` is empty |
 | entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## Why it matters\` is empty |
 
@@ -96,9 +103,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0100 |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0100 -> 'aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
 | 2026-05-11 | human/peter | add | aiwf add adr ADR-0009 'Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition' |
 | 2026-05-11 | human/peter | fix | fix(aiwf): trunk-collision rule is archive-aware (closes G-0101) |
-| 2026-05-11 | human/peter | add | aiwf add gap G-0101 'ids-unique trunk-collision rule is not archive-aware; first aiwf archive --apply triggers 176 false-positive errors that block the pre-push hook' |
 
