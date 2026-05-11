@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Kernel rule unchanged.
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: Drift-check structurally asserts merge-step trailered-commit instructions.
       status: open
