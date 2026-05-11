@@ -80,13 +80,13 @@ This epic ships the three surfaces in dependency order. [E-0019](../E-0019-paral
 
 ## Milestones
 
-<!-- Sequenced; ids allocated by `aiwfx-plan-milestones` (next ritual after this epic spec lands). -->
+<!-- Sequenced. M-0104 and M-0105 are siblings and can be parallelized after M-0103. M-0106 also depends only on M-0102 + M-0103, so it can run in parallel with the rituals work. -->
 
-- M-NNN — `aiwf authorize --branch` flag + scope-branch trailer coupling · depends on: —
-- M-NNN — AI-side preflight: refuse AI-actor scope opening without ritual branch context · depends on: M-1
-- M-NNN — `aiwfx-start-epic` sequencing fix (closes G-0116) · depends on: M-1, M-2
-- M-NNN — `aiwfx-start-milestone` sequencing alignment · depends on: M-1, M-2
-- M-NNN — Kernel finding `isolation-escape` (closes G-0099 fully) · depends on: M-1, M-2
+- [M-0102](M-0102-aiwf-authorize-branch-flag-scope-branch-trailer-coupling.md) — `aiwf authorize --branch` flag + scope-branch trailer coupling · depends on: —
+- [M-0103](M-0103-ai-side-preflight-aiwf-authorize-refuses-without-ritual-branch-context.md) — AI-side preflight: refuse AI-actor scope opening without ritual branch context · depends on: M-0102
+- [M-0104](M-0104-aiwfx-start-epic-sequencing-fix-closes-g-0116.md) — `aiwfx-start-epic` sequencing fix (closes G-0116) · depends on: M-0102, M-0103
+- [M-0105](M-0105-aiwfx-start-milestone-sequencing-alignment.md) — `aiwfx-start-milestone` sequencing alignment · depends on: M-0102, M-0103
+- [M-0106](M-0106-kernel-finding-isolation-escape-closes-g-0099.md) — Kernel finding `isolation-escape` (closes G-0099 fully) · depends on: M-0102, M-0103
 
 ## ADRs produced
 
