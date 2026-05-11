@@ -45,12 +45,12 @@ test.describe("index.html", () => {
 
     await expect(page.locator("h1")).toHaveText("Overview");
 
-    const e01Row = page.locator("table.epics tr", { has: page.getByRole("link", { name: "E-01" }) });
+    const e01Row = page.locator("table.epics tr", { has: page.getByRole("link", { name: "E-0001" }) });
     await expect(e01Row).toBeVisible();
     // 1 met / 2 total (cancelled excluded; M-001/AC-1 met, AC-2 not met yet)
     await expect(e01Row).toContainText("1/2");
 
-    const e02Row = page.locator("table.epics tr", { has: page.getByRole("link", { name: "E-02" }) });
+    const e02Row = page.locator("table.epics tr", { has: page.getByRole("link", { name: "E-0002" }) });
     await expect(e02Row).toBeVisible();
     await expect(e02Row).toContainText("0/0");
   });
@@ -59,8 +59,8 @@ test.describe("index.html", () => {
     await page.goto(fileURL("index.html"));
     // Sidebar repeats the epic links; scope the click to the
     // main epics table to keep the assertion unambiguous.
-    await page.locator("table.epics").getByRole("link", { name: "E-01" }).click();
-    await expect(page).toHaveURL(fileURL("E-01.html"));
+    await page.locator("table.epics").getByRole("link", { name: "E-0001" }).click();
+    await expect(page).toHaveURL(fileURL("E-0001.html"));
     await expect(page.locator("h1")).toContainText("Foundations");
   });
 
@@ -83,26 +83,26 @@ test.describe("index.html", () => {
 
 test.describe("epic page", () => {
   test("shows milestones table with AC rollup per milestone", async ({ page }) => {
-    await page.goto(fileURL("E-01.html"));
+    await page.goto(fileURL("E-0001.html"));
 
-    const m001 = page.locator("table.milestones tr", { has: page.getByRole("link", { name: "M-001" }) });
+    const m001 = page.locator("table.milestones tr", { has: page.getByRole("link", { name: "M-0001" }) });
     await expect(m001).toContainText("1/2");
     await expect(m001).toContainText("in_progress");
 
-    const m002 = page.locator("table.milestones tr", { has: page.getByRole("link", { name: "M-002" }) });
+    const m002 = page.locator("table.milestones tr", { has: page.getByRole("link", { name: "M-0002" }) });
     await expect(m002).toContainText("0/0");
   });
 
   test("milestone link navigates to milestone page", async ({ page }) => {
-    await page.goto(fileURL("E-01.html"));
-    await page.getByRole("link", { name: "M-001" }).first().click();
-    await expect(page).toHaveURL(fileURL("M-001.html"));
+    await page.goto(fileURL("E-0001.html"));
+    await page.getByRole("link", { name: "M-0001" }).first().click();
+    await expect(page).toHaveURL(fileURL("M-0001.html"));
   });
 });
 
 test.describe("milestone page — :target tab show/hide (CSS-only)", () => {
   test("bare URL shows Overview, hides Build", async ({ page }) => {
-    await page.goto(fileURL("M-001.html"));
+    await page.goto(fileURL("M-0001.html"));
     await expect(page.locator('section[data-tab="overview"]')).toBeVisible();
     await expect(page.locator('section[data-tab="build"]')).toBeHidden();
     await expect(page.locator('section[data-tab="manifest"]')).toBeHidden();
@@ -112,22 +112,22 @@ test.describe("milestone page — :target tab show/hide (CSS-only)", () => {
   });
 
   test("#tab-build shows Build, hides Overview", async ({ page }) => {
-    await page.goto(fileURL("M-001.html") + "#tab-build");
+    await page.goto(fileURL("M-0001.html") + "#tab-build");
     await expect(page.locator('section[data-tab="build"]')).toBeVisible();
     await expect(page.locator('section[data-tab="overview"]')).toBeHidden();
   });
 
   test("clicking Manifest tab nav link switches to Manifest", async ({ page }) => {
-    await page.goto(fileURL("M-001.html"));
+    await page.goto(fileURL("M-0001.html"));
     await page.locator('a.tab[href="#tab-manifest"]').click();
-    await expect(page).toHaveURL(fileURL("M-001.html") + "#tab-manifest");
+    await expect(page).toHaveURL(fileURL("M-0001.html") + "#tab-manifest");
     await expect(page.locator('section[data-tab="manifest"]')).toBeVisible();
     await expect(page.locator('section[data-tab="overview"]')).toBeHidden();
   });
 
   test("each tab has exactly one visible section", async ({ page }) => {
     for (const tab of ["overview", "manifest", "build", "tests", "commits", "provenance"]) {
-      const url = tab === "overview" ? fileURL("M-001.html") : fileURL("M-001.html") + `#tab-${tab}`;
+      const url = tab === "overview" ? fileURL("M-0001.html") : fileURL("M-0001.html") + `#tab-${tab}`;
       await page.goto(url);
       const visible = await page
         .locator("section[data-tab]")
@@ -139,7 +139,7 @@ test.describe("milestone page — :target tab show/hide (CSS-only)", () => {
 
 test.describe("milestone page — Manifest tab", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(fileURL("M-001.html") + "#tab-manifest");
+    await page.goto(fileURL("M-0001.html") + "#tab-manifest");
   });
 
   test("renders an AC card per AC with anchor id", async ({ page }) => {
@@ -171,7 +171,7 @@ test.describe("milestone page — Manifest tab", () => {
 
 test.describe("milestone page — Build tab", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(fileURL("M-001.html") + "#tab-build");
+    await page.goto(fileURL("M-0001.html") + "#tab-build");
   });
 
   test("AC-2 timeline shows red, green, done in order", async ({ page }) => {
@@ -199,7 +199,7 @@ test.describe("milestone page — Build tab", () => {
   test("clicking the AC link inside Build tab jumps to Manifest anchor", async ({ page }) => {
     const ac2Link = page.locator('section.build-ac h3', { hasText: "AC-2" }).getByRole("link", { name: "AC-2" });
     await ac2Link.click();
-    await expect(page).toHaveURL(fileURL("M-001.html") + "#ac-2");
+    await expect(page).toHaveURL(fileURL("M-0001.html") + "#ac-2");
     // Browser should now expose the AC-2 manifest card; the
     // :target chain hides Build and shows… nothing tab-tagged
     // (#ac-2 doesn't match any data-tab section), so the
@@ -213,12 +213,12 @@ test.describe("milestone page — Build tab", () => {
 
 test.describe("milestone page — Tests tab", () => {
   test("policy badge reads 'advisory' by default", async ({ page }) => {
-    await page.goto(fileURL("M-001.html") + "#tab-tests");
+    await page.goto(fileURL("M-0001.html") + "#tab-tests");
     await expect(page.locator(".policy.policy-advisory")).toHaveText("advisory");
   });
 
   test("AC-2's test counts surface in the table cell", async ({ page }) => {
-    await page.goto(fileURL("M-001.html") + "#tab-tests");
+    await page.goto(fileURL("M-0001.html") + "#tab-tests");
     const ac2Row = page.locator("table.tests-table tr", { has: page.getByRole("link", { name: "AC-2" }) });
     await expect(ac2Row).toContainText("12");
     await expect(ac2Row).toContainText("0");
@@ -226,7 +226,7 @@ test.describe("milestone page — Tests tab", () => {
   });
 
   test("AC-1 (no metrics) shows the dash placeholder in the metrics columns", async ({ page }) => {
-    await page.goto(fileURL("M-001.html") + "#tab-tests");
+    await page.goto(fileURL("M-0001.html") + "#tab-tests");
     const ac1Row = page.locator("table.tests-table tr", { has: page.getByRole("link", { name: "AC-1" }) });
     // Either the empty-state '—' (no phase) or the missing-metrics
     // cell. The fixture's AC-1 went status:met without a phase, so
@@ -237,7 +237,7 @@ test.describe("milestone page — Tests tab", () => {
 
 test.describe("milestone page — Provenance tab", () => {
   test("M-002 shows an active scope row", async ({ page }) => {
-    await page.goto(fileURL("M-002.html") + "#tab-provenance");
+    await page.goto(fileURL("M-0002.html") + "#tab-provenance");
     const scopeRow = page.locator("table.scopes tbody tr").first();
     await expect(scopeRow).toContainText("ai/claude");
     await expect(scopeRow).toContainText("human/peter");
@@ -245,25 +245,25 @@ test.describe("milestone page — Provenance tab", () => {
   });
 
   test("M-001 (no scopes) shows the empty-state line", async ({ page }) => {
-    await page.goto(fileURL("M-001.html") + "#tab-provenance");
+    await page.goto(fileURL("M-0001.html") + "#tab-provenance");
     await expect(page.locator('section[data-tab="provenance"]')).toContainText("No authorized scopes");
   });
 });
 
 test.describe("sidebar — left-nav tree", () => {
   test("renders on every page", async ({ page }) => {
-    for (const path of ["index.html", "E-01.html", "E-02.html", "M-001.html", "M-002.html"]) {
+    for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {
       await page.goto(fileURL(path));
       await expect(page.locator("aside.sidebar")).toBeVisible();
       await expect(page.locator("aside.sidebar nav")).toBeVisible();
       // Every sidebar lists every epic.
-      await expect(page.locator("aside.sidebar a", { hasText: "E-01" })).toBeVisible();
-      await expect(page.locator("aside.sidebar a", { hasText: "E-02" })).toBeVisible();
+      await expect(page.locator("aside.sidebar a", { hasText: "E-0001" })).toBeVisible();
+      await expect(page.locator("aside.sidebar a", { hasText: "E-0002" })).toBeVisible();
     }
   });
 
   test("sidebar top order: Project status precedes Overview", async ({ page }) => {
-    for (const path of ["index.html", "E-01.html", "M-001.html", "status.html"]) {
+    for (const path of ["index.html", "E-0001.html", "M-0001.html", "status.html"]) {
       await page.goto(fileURL(path));
       const labels = await page
         .locator("aside.sidebar ul.sidebar-top > li a")
@@ -273,7 +273,7 @@ test.describe("sidebar — left-nav tree", () => {
   });
 
   test("no GOVERNANCE label above the sidebar nav", async ({ page }) => {
-    for (const path of ["index.html", "E-01.html", "M-001.html"]) {
+    for (const path of ["index.html", "E-0001.html", "M-0001.html"]) {
       await page.goto(fileURL(path));
       // The legacy <p class="sidebar-title">Governance</p> was
       // removed in v0.2.0. Brand mark + wordmark are the only
@@ -283,7 +283,7 @@ test.describe("sidebar — left-nav tree", () => {
   });
 
   test("brand mark + wordmark render on every page", async ({ page }) => {
-    for (const path of ["index.html", "E-01.html", "M-001.html"]) {
+    for (const path of ["index.html", "E-0001.html", "M-0001.html"]) {
       await page.goto(fileURL(path));
       const brand = page.locator(".sidebar-brand");
       await expect(brand).toBeVisible();
@@ -312,19 +312,19 @@ test.describe("sidebar — left-nav tree", () => {
   });
 
   test("milestone page pre-expands its parent epic; others closed", async ({ page }) => {
-    await page.goto(fileURL("M-001.html"));
-    const e01 = page.locator(`aside.sidebar details:has(a[href="E-01.html"])`);
-    const e02 = page.locator(`aside.sidebar details:has(a[href="E-02.html"])`);
+    await page.goto(fileURL("M-0001.html"));
+    const e01 = page.locator(`aside.sidebar details:has(a[href="E-0001.html"])`);
+    const e02 = page.locator(`aside.sidebar details:has(a[href="E-0002.html"])`);
     await expect(e01).toHaveAttribute("open", "");
     // E-02 has no `open` attribute on a clean fixture render.
     expect(await e02.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
     // The milestone link is visible inside the open E-01 details.
-    await expect(e01.locator(`a[href="M-001.html"]`)).toBeVisible();
+    await expect(e01.locator(`a[href="M-0001.html"]`)).toBeVisible();
   });
 
   test("epic page pre-expands itself", async ({ page }) => {
-    await page.goto(fileURL("E-01.html"));
-    const e01 = page.locator(`aside.sidebar details:has(a[href="E-01.html"])`);
+    await page.goto(fileURL("E-0001.html"));
+    const e01 = page.locator(`aside.sidebar details:has(a[href="E-0001.html"])`);
     await expect(e01).toHaveAttribute("open", "");
   });
 
@@ -337,15 +337,15 @@ test.describe("sidebar — left-nav tree", () => {
   });
 
   test("current page link carries aria-current=page", async ({ page }) => {
-    await page.goto(fileURL("M-001.html"));
+    await page.goto(fileURL("M-0001.html"));
     const current = page.locator(`aside.sidebar a[aria-current="page"]`);
     await expect(current).toHaveCount(1);
-    await expect(current).toHaveAttribute("href", "M-001.html");
+    await expect(current).toHaveAttribute("href", "M-0001.html");
 
-    await page.goto(fileURL("E-01.html"));
+    await page.goto(fileURL("E-0001.html"));
     const epicCurrent = page.locator(`aside.sidebar a[aria-current="page"]`);
     await expect(epicCurrent).toHaveCount(1);
-    await expect(epicCurrent).toHaveAttribute("href", "E-01.html");
+    await expect(epicCurrent).toHaveAttribute("href", "E-0001.html");
 
     await page.goto(fileURL("index.html"));
     // Index page is the Overview page; the top "Overview" link is
@@ -357,18 +357,18 @@ test.describe("sidebar — left-nav tree", () => {
 
   test("clicking an epic summary expands its milestone list", async ({ page }) => {
     await page.goto(fileURL("index.html"));
-    const e01Details = page.locator(`aside.sidebar details:has(a[href="E-01.html"])`);
+    const e01Details = page.locator(`aside.sidebar details:has(a[href="E-0001.html"])`);
     expect(await e01Details.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
     await e01Details.locator("summary").click();
     expect(await e01Details.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
-    await expect(e01Details.locator(`a[href="M-001.html"]`)).toBeVisible();
+    await expect(e01Details.locator(`a[href="M-0001.html"]`)).toBeVisible();
   });
 
   test("sidebar link navigates to the target page", async ({ page }) => {
-    await page.goto(fileURL("M-001.html"));
-    const sidebarLink = page.locator(`aside.sidebar a[href="M-002.html"]`);
+    await page.goto(fileURL("M-0001.html"));
+    const sidebarLink = page.locator(`aside.sidebar a[href="M-0002.html"]`);
     await sidebarLink.click();
-    await expect(page).toHaveURL(fileURL("M-002.html"));
+    await expect(page).toHaveURL(fileURL("M-0002.html"));
   });
 });
 
@@ -384,7 +384,7 @@ test.describe("status page", () => {
   });
 
   test("non-status pages link to status.html in the sidebar top section", async ({ page }) => {
-    for (const path of ["index.html", "E-01.html", "M-001.html"]) {
+    for (const path of ["index.html", "E-0001.html", "M-0001.html"]) {
       await page.goto(fileURL(path));
       const link = page.locator('aside.sidebar .sidebar-top a[href="status.html"]');
       await expect(link).toBeVisible();
@@ -397,9 +397,9 @@ test.describe("status page", () => {
     await page.goto(fileURL("status.html"));
     // M-001 is in_progress in the fixture; it should appear in the
     // in-flight block under E-01.
-    const inflight = page.locator('section.status-epic', { has: page.getByRole("link", { name: "E-01" }) });
+    const inflight = page.locator('section.status-epic', { has: page.getByRole("link", { name: "E-0001" }) });
     await expect(inflight).toBeVisible();
-    await expect(inflight).toContainText("M-001");
+    await expect(inflight).toContainText("M-0001");
     await expect(inflight).toContainText("in_progress");
   });
 
@@ -412,7 +412,7 @@ test.describe("status page", () => {
 
 test.describe("polish — kicker + dark mode + accent bar", () => {
   test("every page emits a kicker line above its H1", async ({ page }) => {
-    for (const path of ["index.html", "E-01.html", "M-001.html"]) {
+    for (const path of ["index.html", "E-0001.html", "M-0001.html"]) {
       await page.goto(fileURL(path));
       const kicker = page.locator("p.kicker").first();
       await expect(kicker).toBeVisible();
@@ -423,11 +423,11 @@ test.describe("polish — kicker + dark mode + accent bar", () => {
   });
 
   test("milestone kicker carries kind + id + parent epic", async ({ page }) => {
-    await page.goto(fileURL("M-001.html"));
+    await page.goto(fileURL("M-0001.html"));
     const kicker = page.locator("p.kicker").first();
     await expect(kicker).toContainText("milestone");
-    await expect(kicker).toContainText("M-001");
-    await expect(kicker).toContainText("E-01");
+    await expect(kicker).toContainText("M-0001");
+    await expect(kicker).toContainText("E-0001");
   });
 
   test("accent bar pseudo-element renders on main", async ({ page }) => {
@@ -459,7 +459,7 @@ test.describe("polish — kicker + dark mode + accent bar", () => {
 
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
-    for (const path of ["index.html", "E-01.html", "E-02.html", "M-001.html", "M-002.html"]) {
+    for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {
       await page.goto(fileURL(path));
       const hrefs = await page.locator("a[href]").evaluateAll((els) =>
         els.map((e) => (e as HTMLAnchorElement).getAttribute("href") ?? ""),
