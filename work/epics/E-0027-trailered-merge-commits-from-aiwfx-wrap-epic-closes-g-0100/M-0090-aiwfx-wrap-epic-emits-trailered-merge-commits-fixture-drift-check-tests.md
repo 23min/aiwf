@@ -130,7 +130,10 @@ Intended landing zone:
 
 ## Validation
 
-(pending: rituals-repo commit SHA will be recorded here at wrap time per AC-5, after the fixture is copied to `/Users/peterbru/Projects/ai-workflow-rituals/plugins/aiwf-extensions/skills/aiwfx-wrap-epic/SKILL.md`)
+- **Build & lint.** `go build -o /tmp/aiwf-m0090 ./cmd/aiwf` clean. `golangci-lint run` reports 0 issues. `go test` skipped per G-0097; the pre-commit hook runs `go test -count=1 ./internal/policies/...` and lands green on every promote commit, so the AC tests' green state is preserved by the kernel chokepoint.
+- **`aiwf check`.** 0 errors, 9 warnings. The warnings are pre-existing advisory findings (`entity-body-empty × 6` on the M-0090 AC body stubs, `archive-sweep-pending`, `terminal-entity-not-archived` for G-0101, `provenance-untrailered-scope-undefined` — no upstream configured for the worktree). None block wrap.
+- **AC status.** All six ACs at `status: met` / `tdd_phase: done`.
+- **Rituals-repo cross-repo copy.** Fixture content at `internal/policies/testdata/aiwfx-wrap-epic/SKILL.md` was copied to `/Users/peterbru/Projects/ai-workflow-rituals/plugins/aiwf-extensions/skills/aiwfx-wrap-epic/SKILL.md` and committed there as `3faae399a1de2a3e5d316e013dd2d351a4493eb4` (short SHA `3faae39`) on the `ai-workflow-rituals` repo's `main` branch, with subject `feat(aiwfx): wrap-epic emits trailered merge commits (closes aiwf G-0100 via M-0090)`. After the user runs `/reload-plugins` post-push, the local marketplace cache refreshes from this commit and AC-3's drift-check remains green from the rituals-repo upstream rather than from the pre-populated cache copy.
 
 ## Deferrals
 
