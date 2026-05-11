@@ -35,7 +35,7 @@ acs:
       tdd_phase: done
     - id: AC-8
       title: Summary lines name the code structurally, not by substring grep
-      status: open
+      status: met
       tdd_phase: done
 ---
 
