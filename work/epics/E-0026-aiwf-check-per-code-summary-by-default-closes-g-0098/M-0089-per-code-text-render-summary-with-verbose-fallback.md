@@ -21,6 +21,10 @@ acs:
       title: JSON envelope is unchanged
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: aiwf check --help documents --verbose
+      status: open
+      tdd_phase: red
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
@@ -124,4 +128,6 @@ Intended landing zone:
 ### AC-3 — --verbose flag restores full per-instance output
 
 ### AC-4 — JSON envelope is unchanged
+
+### AC-5 — aiwf check --help documents --verbose
 
