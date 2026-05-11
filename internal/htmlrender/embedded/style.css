@@ -243,6 +243,13 @@ h3 { font-size: 0.98rem; margin: 1.1rem 0 0.3rem; }
 }
 
 p { margin: 0.5rem 0; }
+
+/* Prose-cap inside main: paragraphs cap at 50rem (~800px) for
+ * readability on wide viewports. Tables, code blocks, AC card
+ * containers, the dependency DAG, and other wide-content
+ * elements are unaffected — they fill the panel width.
+ * M-0098/AC-3. */
+main p { max-width: 50rem; }
 nav a { color: var(--link); text-decoration: none; }
 nav a:hover { text-decoration: underline; }
 a { color: var(--link); }
