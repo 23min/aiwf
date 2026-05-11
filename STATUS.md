@@ -101,7 +101,7 @@ flowchart LR
 | G-0059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
 | G-0063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
-| G-0067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-0066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-0066 |
+| G-0067 | wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard | M-0066 |
 | G-0068 | Discoverability policy misses dynamic finding subcodes | M-0066 |
 | G-0069 | aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome | M-0070 |
 | G-0070 | aiwf doctor has no --format=json envelope; M-0070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears | M-0070 |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0099 -> 'Worktree isolation must be a parent-side precondition, not an Agent kwarg honor' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0102 open -> addressed |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0096 |
 

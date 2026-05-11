@@ -1,6 +1,6 @@
 ---
 id: G-0067
-title: wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-0066/AC-1 cycle wrote ~165 lines of impl before any test existed)
+title: wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard
 status: open
 discovered_in: M-0066
 ---
