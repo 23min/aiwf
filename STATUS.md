@@ -89,9 +89,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote E-0024 active -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0024 proposed -> active |
 | 2026-05-11 | human/peter | merge | Merge worktree-agent-ae85cfc7baf987101: E-0024 — uniform archive convention (ADR-0004) |
 | 2026-05-11 | human/peter | wrap | chore(E-0024): wrap epic — uniform archive convention (ADR-0004) |
 | 2026-05-11 | human/peter | chore | chore(aiwf): drop vestigial v1 tracking docs + gitignore .aiwf.lock |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 
