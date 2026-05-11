@@ -523,9 +523,12 @@ func TestBinary_RenderHTML_EndToEnd(t *testing.T) {
 	}
 	// Envelope reports out_dir + files_written + elapsed_ms.
 	// Fixture via cmd-side resolver:
-	//   1 index + 1 status + 1 epic (E-01) + 1 milestone (M-001) = 4
-	if !strings.Contains(out, `"files_written":4`) {
-		t.Errorf("envelope did not report files_written=4 (index + status + epic + milestone): %s", out)
+	//   1 index + 1 status + 1 epic (E-01) + 1 milestone (M-001)
+	// + 5×2 per-kind index pages (epics/gaps/decisions/adrs/
+	//   contracts × active/all) = 14
+	// M-0087/AC-6 + AC-7 added per-kind active/all pages.
+	if !strings.Contains(out, `"files_written":14`) {
+		t.Errorf("envelope did not report files_written=14 (index + status + epic + milestone + per-kind pages): %s", out)
 	}
 
 	// Page-level assertions through the binary — the templates

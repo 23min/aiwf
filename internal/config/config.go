@@ -71,6 +71,7 @@ type Config struct {
 	Allocate          Allocate `yaml:"allocate,omitempty"`
 	Tree              Tree     `yaml:"tree,omitempty"`
 	Doctor            Doctor   `yaml:"doctor,omitempty"`
+	Archive           Archive  `yaml:"archive,omitempty"`
 }
 
 // Doctor carries opt-in configuration consumed by `aiwf doctor`.
@@ -198,6 +199,36 @@ type TDD struct {
 // so callers don't have to repeat the default.
 type StatusMd struct {
 	AutoUpdate *bool `yaml:"auto_update,omitempty"`
+}
+
+// Archive carries the consumer's drift-control configuration for the
+// per-kind archive convention (ADR-0004). SweepThreshold is a tristate
+// via *int: nil means "not specified, take the default (no threshold —
+// `archive-sweep-pending` stays advisory)", &N is an explicit hard
+// threshold past which the aggregate finding escalates from warning
+// to error. Mirrors the StatusMd.AutoUpdate tristate so "unset" is
+// always distinguishable from a meaningful zero. Use the getter
+// Config.ArchiveSweepThreshold rather than reading the pointer
+// directly so callers don't have to repeat the default.
+//
+// Default behavior (empty Archive block, or absent archive.sweep_threshold):
+// `archive-sweep-pending` stays advisory regardless of count. Teams
+// choose their own discipline; the kernel does not nag.
+type Archive struct {
+	SweepThreshold *int `yaml:"sweep_threshold,omitempty"`
+}
+
+// ArchiveSweepThreshold returns the configured threshold and a bool
+// indicating whether the consumer explicitly set one. When set=false,
+// `aiwf check` does not escalate `archive-sweep-pending` regardless
+// of count (the default-permissive behavior per ADR-0004 §"Drift
+// control" layer 2). Tolerant of a nil receiver so callers in
+// `cmd/aiwf/main.go` can invoke before / without a loaded Config.
+func (c *Config) ArchiveSweepThreshold() (n int, set bool) {
+	if c == nil || c.Archive.SweepThreshold == nil {
+		return 0, false
+	}
+	return *c.Archive.SweepThreshold, true
 }
 
 // StatusMdAutoUpdate returns whether the consumer wants the

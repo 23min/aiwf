@@ -55,6 +55,16 @@ func TreeDiscipline(t *tree.Tree, allow []string, strict bool) []Finding {
 		if isInsideContractDir(p, contractDirs) {
 			continue
 		}
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// unexpected-tree-file is in the shape-and-health group;
+		// strays under archive/ are historical artifacts and out of
+		// scope for active tree-discipline linting. Tree-integrity
+		// rules (ids-unique, parse-level errors) still traverse
+		// archive in full — a malformed frontmatter under archive
+		// is still a problem the loader surfaces as a load-error.
+		if entity.IsArchivedPath(p) {
+			continue
+		}
 		if matchesAny(p, allow) {
 			continue
 		}

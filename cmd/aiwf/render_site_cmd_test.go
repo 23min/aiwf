@@ -42,9 +42,13 @@ func TestRun_RenderHTML_DispatchesToSite(t *testing.T) {
 	if env.Result.OutDir != out {
 		t.Errorf("result.out_dir = %q, want %q", env.Result.OutDir, out)
 	}
-	// 1 index + 1 status + 1 epic + 1 milestone.
-	if env.Result.FilesWritten != 4 {
-		t.Errorf("result.files_written = %d, want 4", env.Result.FilesWritten)
+	// 1 index + 1 status + 1 epic + 1 milestone + 5×2 per-kind
+	// index pages (epics, gaps, decisions, adrs, contracts ×
+	// active/all). Per-kind pages emit unconditionally (even when
+	// the kind is empty) so the home-page nav links never 404.
+	// M-0087/AC-6 + AC-7.
+	if env.Result.FilesWritten != 14 {
+		t.Errorf("result.files_written = %d, want 14", env.Result.FilesWritten)
 	}
 
 	for _, name := range []string{"index.html", "status.html", "E-0001.html", "M-0001.html", "assets/style.css"} {

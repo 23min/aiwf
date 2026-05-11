@@ -540,8 +540,14 @@ var idLeadingPattern = regexp.MustCompile(`^(?:ADR|[EMGDC])-\d+`)
 // Returns false if the path does not match the kind's expected shape
 // or the extracted id does not validate. Used by the tree loader to
 // register stub entities for files that fail to parse.
+//
+// Archive paths under the per-kind `archive/` subdirectory (per
+// ADR-0004's storage table) are accepted alongside their active
+// counterparts. The id-extraction shape is identical — only the path
+// prefix differs — so consumers downstream of this function (loader,
+// trunk reader, allocator) treat archived entities uniformly.
 func IDFromPath(relPath string, k Kind) (string, bool) {
-	parts := strings.Split(filepath.ToSlash(relPath), "/")
+	parts := stripArchiveSegment(strings.Split(filepath.ToSlash(relPath), "/"), k)
 	var basename string
 	switch k {
 	case KindEpic:
@@ -576,7 +582,7 @@ func IDFromPath(relPath string, k Kind) (string, bool) {
 // consumer repo root. The second return is false if the path doesn't
 // match any entity-bearing pattern; such files are skipped by the loader.
 //
-// Recognized patterns:
+// Recognized active patterns:
 //
 //	work/epics/<dir>/epic.md            -> epic
 //	work/epics/<dir>/M-*.md             -> milestone
@@ -584,8 +590,27 @@ func IDFromPath(relPath string, k Kind) (string, bool) {
 //	work/decisions/D-*.md               -> decision
 //	work/contracts/<dir>/contract.md    -> contract
 //	docs/adr/ADR-*.md                   -> adr
+//
+// Recognized archive patterns (per ADR-0004's storage table — terminal-
+// status entities live in a per-kind `archive/` subdirectory). Path
+// shape is uniform with active aside from the inserted `archive/`
+// segment; downstream callers (tree loader, trunk reader, id resolver)
+// treat both locations identically.
+//
+//	work/epics/archive/<dir>/epic.md          -> epic
+//	work/epics/archive/<dir>/M-*.md           -> milestone
+//	work/gaps/archive/G-*.md                  -> gap
+//	work/decisions/archive/D-*.md             -> decision
+//	work/contracts/archive/<dir>/contract.md  -> contract
+//	docs/adr/archive/ADR-*.md                 -> adr
 func PathKind(relPath string) (Kind, bool) {
 	parts := strings.Split(filepath.ToSlash(relPath), "/")
+	// Archive shapes: a single `archive` segment is allowed at the
+	// per-kind level (after `work/<kind>` or `docs/adr`). Strip it so
+	// the active-shape switch below classifies uniformly. Anything
+	// deeper than one archive level is rejected, matching the ADR-0004
+	// "one level deep `archive/` subdirectory" rule.
+	parts = stripArchiveSegment(parts, "")
 	switch {
 	case len(parts) == 4 && parts[0] == "work" && parts[1] == "epics" && parts[3] == "epic.md":
 		return KindEpic, true
@@ -601,4 +626,78 @@ func PathKind(relPath string) (Kind, bool) {
 		return KindADR, true
 	}
 	return "", false
+}
+
+// stripArchiveSegment removes the single `archive` segment that
+// ADR-0004 inserts between the per-kind root and the active-shape
+// path components. Returns parts unchanged when no archive segment is
+// present at the expected position. Only one archive level is
+// stripped — nested `archive/.../archive/...` is not legal under
+// ADR-0004 and falls through to the path-shape mismatch in the
+// caller.
+//
+// The kind argument is advisory: when empty, the function strips the
+// archive segment for any recognized per-kind position (PathKind's
+// caller); when set, it strips only at the kind-specific position
+// (IDFromPath's caller, which already knows the target kind). Either
+// way the result is the active-shape parts list, so downstream
+// classification logic stays uniform.
+func stripArchiveSegment(parts []string, k Kind) []string {
+	// work/<kind>/archive/...
+	if len(parts) >= 3 && parts[0] == "work" && parts[2] == "archive" {
+		switch parts[1] {
+		case "epics":
+			if k == "" || k == KindEpic || k == KindMilestone {
+				return removeAt(parts, 2)
+			}
+		case "gaps":
+			if k == "" || k == KindGap {
+				return removeAt(parts, 2)
+			}
+		case "decisions":
+			if k == "" || k == KindDecision {
+				return removeAt(parts, 2)
+			}
+		case "contracts":
+			if k == "" || k == KindContract {
+				return removeAt(parts, 2)
+			}
+		}
+	}
+	// docs/adr/archive/...
+	if len(parts) >= 3 && parts[0] == "docs" && parts[1] == "adr" && parts[2] == "archive" {
+		if k == "" || k == KindADR {
+			return removeAt(parts, 2)
+		}
+	}
+	return parts
+}
+
+// removeAt returns parts with the element at index i removed. The
+// caller has already bounds-checked i.
+func removeAt(parts []string, i int) []string {
+	out := make([]string, 0, len(parts)-1)
+	out = append(out, parts[:i]...)
+	out = append(out, parts[i+1:]...)
+	return out
+}
+
+// IsArchivedPath reports whether relPath sits under a per-kind
+// `archive/` subdirectory recognized by ADR-0004's storage table.
+// Returns false for active paths and for paths that don't classify
+// as any kind. The argument is a forward-slash, repo-relative path
+// (the same shape stored on Entity.Path by tree.Load).
+//
+// The archive marker is the presence of an `archive` segment at the
+// per-kind position (immediately after `work/<kind>/` or `docs/adr/`).
+// `stripArchiveSegment` carries the canonical recognition logic;
+// IsArchivedPath compares before-vs-after to decide.
+//
+// Used by the M-0086 archive-aware check rules to decide whether an
+// entity should be linted under the active-set health rules or under
+// the archive-specific drift rules.
+func IsArchivedPath(relPath string) bool {
+	parts := strings.Split(filepath.ToSlash(relPath), "/")
+	stripped := stripArchiveSegment(parts, "")
+	return len(stripped) != len(parts)
 }

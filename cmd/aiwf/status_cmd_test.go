@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -151,16 +152,238 @@ func TestRenderStatusText_MarksInProgress(t *testing.T) {
 	}
 }
 
+// TestStatusCmd_NoArchivedFlag — M-0087/AC-3: `aiwf status` exposes
+// no `--archived` flag. ADR-0004 §"Display surfaces" pins this: "The
+// narrative view is forward-looking; archive inspection lives in
+// `aiwf list --archived`."
+//
+// The completion-drift test (cmd/aiwf/completion_drift_test.go)
+// already enumerates every flag of every verb at CI time — that's the
+// chokepoint. This AC-level test is the direct mechanical assertion
+// on `newStatusCmd()`'s flag set, scoped to the one flag name the
+// AC forbids, so a future change that adds `--archived` to status
+// fails this test specifically and not just the drift summary.
+func TestStatusCmd_NoArchivedFlag(t *testing.T) {
+	cmd := newStatusCmd()
+	if cmd.Flags().Lookup("archived") != nil {
+		t.Errorf("status has --archived flag; ADR-0004 §\"Display surfaces\" forbids it on the status verb (archive inspection lives in `aiwf list --archived`)")
+	}
+}
+
+// TestBuildStatus_SweepPendingPopulatedWhenTerminalsLiveInActive
+// — M-0087/AC-1: when the loaded tree carries terminal-status
+// entities still in active dirs, buildStatus populates a dedicated
+// SweepPending field on the report. The field carries the count and
+// the operator-facing message naming the remediation verb.
+//
+// Decoupled from r.Warnings on purpose: per ADR-0004 §"Display
+// surfaces", the sweep-pending one-liner lives in the tree-health
+// section of `aiwf status`, not in the general warnings list. The
+// per-file `terminal-entity-not-archived` warnings can still appear
+// alongside, but the aggregate count is reported separately so the
+// reader sees "Sweep pending: N" inline with health rather than
+// mixed in with body-empty / resolver-missing warnings.
+func TestBuildStatus_SweepPendingPopulatedWhenTerminalsLiveInActive(t *testing.T) {
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			// Two terminal-status gaps, both in the active dir.
+			// `addressed` is terminal-for-kind gap (entity.IsTerminal).
+			{
+				Kind: entity.KindGap, ID: "G-0001",
+				Title: "Closed-but-active", Status: "addressed",
+				Path:        "work/gaps/G-0001-closed-but-active.md",
+				AddressedBy: []string{"M-0001"},
+			},
+			{
+				Kind: entity.KindGap, ID: "G-0002",
+				Title: "Also-closed-but-active", Status: "addressed",
+				Path:        "work/gaps/G-0002-also-closed-but-active.md",
+				AddressedBy: []string{"M-0001"},
+			},
+		},
+	}
+	r := buildStatus(tr, nil)
+
+	if r.SweepPending == nil {
+		t.Fatalf("SweepPending = nil, want non-nil (2 terminal entities in active dirs)")
+	}
+	if r.SweepPending.Count != 2 {
+		t.Errorf("SweepPending.Count = %d, want 2", r.SweepPending.Count)
+	}
+	if r.SweepPending.Message == "" {
+		t.Errorf("SweepPending.Message is empty; want operator-facing one-liner")
+	}
+	if !strings.Contains(r.SweepPending.Message, "aiwf archive") {
+		t.Errorf("SweepPending.Message missing the remediation verb name: %q", r.SweepPending.Message)
+	}
+}
+
+// TestBuildStatus_SweepPendingNilWhenNoTerminalsInActive — M-0087/
+// AC-2: when no entity is terminal-in-active, SweepPending is nil
+// (not a zero-count struct), so the text renderer can skip the
+// section entirely with a single nil-check. The branch is exercised
+// here as the explicit zero-case partner to AC-1's non-zero case.
+//
+// Active-only entities + an already-archived terminal both stay
+// silent: the archive-sweep-pending rule only counts terminals in
+// the active dir.
+func TestBuildStatus_SweepPendingNilWhenNoTerminalsInActive(t *testing.T) {
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindGap, ID: "G-0001", Title: "Active", Status: "open", Path: "work/gaps/G-0001-active.md"},
+			// Already-archived terminal: under archive/, so the
+			// finding-rule's path filter skips it.
+			{Kind: entity.KindGap, ID: "G-0002", Title: "Done", Status: "addressed", Path: "work/gaps/archive/G-0002-done.md", AddressedBy: []string{"M-0001"}},
+		},
+	}
+	r := buildStatus(tr, nil)
+
+	if r.SweepPending != nil {
+		t.Fatalf("SweepPending = %+v, want nil (no terminals in active dirs)", r.SweepPending)
+	}
+}
+
+// TestRenderStatusText_SweepPendingLineAppearsInHealthSection —
+// M-0087/AC-1 render-side: when SweepPending is non-nil, the text
+// renderer emits the one-liner inside the Health section,
+// positioned so the reader sees it inline with the entity / errors
+// / warnings count summary rather than buried in the Warnings list.
+//
+// Per CLAUDE.md "Substring assertions are not structural
+// assertions": the assertion scopes the substring match to the
+// Health section by splitting the output on the "Health\n" header
+// and asserting the message appears after that split. A plain
+// flat-substring match would not distinguish "line lands in Health"
+// from "line lands in Warnings."
+func TestRenderStatusText_SweepPendingLineAppearsInHealthSection(t *testing.T) {
+	r := statusReport{
+		Date: "2026-05-10",
+		SweepPending: &statusSweepPending{
+			Count:   3,
+			Message: "Sweep pending: 3 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)",
+		},
+		Health: statusHealthCounts{Entities: 5},
+	}
+	out := captureStdout(t, func() {
+		if err := renderStatusText(os.Stdout, &r); err != nil {
+			t.Fatalf("renderStatusText: %v", err)
+		}
+	})
+	got := string(out)
+
+	const healthHeader = "Health\n"
+	idx := strings.Index(got, healthHeader)
+	if idx < 0 {
+		t.Fatalf("output missing %q header:\n%s", healthHeader, got)
+	}
+	healthBody := got[idx+len(healthHeader):]
+	if !strings.Contains(healthBody, "Sweep pending: 3") {
+		t.Errorf("Health section missing sweep-pending one-liner:\n--- Health body ---\n%s\n--- full output ---\n%s", healthBody, got)
+	}
+	if !strings.Contains(healthBody, "aiwf archive --dry-run") {
+		t.Errorf("Health section missing remediation verb name:\n%s", healthBody)
+	}
+}
+
+// TestRenderStatusText_SweepPendingLineHiddenWhenNil —
+// M-0087/AC-2 render-side: when SweepPending is nil, the renderer
+// emits no "Sweep pending:" line anywhere in the output. Zero-count
+// stays silent; the operator should not see "Sweep pending: 0".
+func TestRenderStatusText_SweepPendingLineHiddenWhenNil(t *testing.T) {
+	r := statusReport{
+		Date:         "2026-05-10",
+		SweepPending: nil,
+		Health:       statusHealthCounts{Entities: 5},
+	}
+	out := captureStdout(t, func() {
+		if err := renderStatusText(os.Stdout, &r); err != nil {
+			t.Fatalf("renderStatusText: %v", err)
+		}
+	})
+	got := string(out)
+
+	if strings.Contains(got, "Sweep pending") {
+		t.Errorf("output contains \"Sweep pending\" when SweepPending is nil:\n%s", got)
+	}
+}
+
+// TestRunStatusCmd_SweepPendingSeam — M-0087/AC-1 seam: drives the
+// dispatcher end-to-end (resolveRoot → tree.Load → buildStatus →
+// renderStatusText), so an integration regression in the wiring
+// would fail this test. Fixture: a synthetic on-disk tree carrying
+// one active gap and one terminal-in-active gap. The text output
+// must show "Sweep pending: 1" inside the Health section.
+//
+// Per CLAUDE.md "Test the seam, not just the layer." Unit coverage
+// of buildStatus + renderStatusText is necessary but not sufficient
+// — this test pins that the verb dispatcher actually routes through
+// the new field.
+func TestRunStatusCmd_SweepPendingSeam(t *testing.T) {
+	root := setupCLITestRepo(t)
+
+	// One active gap to keep the tree non-empty.
+	if err := os.MkdirAll(filepath.Join(root, "work", "gaps"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "work", "gaps", "G-0001-active.md"), []byte(`---
+id: G-0001
+title: Active gap
+status: open
+---
+## What's missing
+
+Active gap body.
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// One terminal gap still in active dir (pending sweep).
+	if err := os.WriteFile(filepath.Join(root, "work", "gaps", "G-0002-closed.md"), []byte(`---
+id: G-0002
+title: Closed-but-active gap
+status: addressed
+addressed_by:
+    - M-0001
+---
+## What's missing
+
+Closed-but-active gap body.
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	out := captureStdout(t, func() {
+		if rc := run([]string{"status", "--root", root}); rc != exitOK {
+			t.Fatalf("status: rc = %d", rc)
+		}
+	})
+
+	got := string(out)
+	const healthHeader = "Health\n"
+	idx := strings.Index(got, healthHeader)
+	if idx < 0 {
+		t.Fatalf("output missing %q header:\n%s", healthHeader, got)
+	}
+	healthBody := got[idx+len(healthHeader):]
+	if !strings.Contains(healthBody, "Sweep pending: 1") {
+		t.Errorf("Health section missing \"Sweep pending: 1\":\n--- Health body ---\n%s\n--- full output ---\n%s", healthBody, got)
+	}
+}
+
 // TestBuildStatus_Warnings: a tree that trips a known warning rule
 // (gap-resolved-has-resolver) populates the Warnings slice with the
 // relevant fields, and Health.Warnings is incremented in lockstep.
+//
+// Path is under archive/ so the M-0086 terminal-entity-not-archived
+// and archive-sweep-pending rules do not pile on — gap-resolved-
+// has-resolver is not in AC-4's archive-skip list and still fires
+// on archive entities.
 func TestBuildStatus_Warnings(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
 				Kind: entity.KindGap, ID: "G-0001",
 				Title: "Half-resolved", Status: "addressed",
-				Path: "work/gaps/G-001-half-resolved.md",
+				Path: "work/gaps/archive/G-0001-half-resolved.md",
 			},
 		},
 	}
@@ -177,7 +400,7 @@ func TestBuildStatus_Warnings(t *testing.T) {
 		t.Errorf("Warnings[0].Code = %q, want %q", w.Code, "gap-resolved-has-resolver")
 	}
 	if w.EntityID != "G-0001" {
-		t.Errorf("Warnings[0].EntityID = %q, want G-001", w.EntityID)
+		t.Errorf("Warnings[0].EntityID = %q, want G-0001", w.EntityID)
 	}
 	if w.Message == "" {
 		t.Error("Warnings[0].Message is empty")

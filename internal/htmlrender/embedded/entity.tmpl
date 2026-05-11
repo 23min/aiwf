@@ -14,6 +14,9 @@
 <h1>{{.Entity.Title}}</h1>
 <p>
 <span class="status status-{{.Entity.Status}}">{{.Entity.Status}}</span>
+{{- if .Entity.Archived}}
+<span class="archived-marker">archived</span>
+{{- end}}
 </p>
 
 {{- range .Sections}}

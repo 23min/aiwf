@@ -1,4 +1,4 @@
-# aiwf status — 2026-05-10
+# aiwf status — 2026-05-11
 
 _218 entities · 0 errors · 0 warnings_
 
@@ -40,24 +40,24 @@ _(no milestones)_
 
 ### E-0024 — Implement uniform archive convention (ADR-0004) _(proposed)_
 
-- **M-0084** — Loader and id resolver span active and archive directories _(draft)_ — tdd: required
-- **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(draft)_ — tdd: required
-- **M-0086** — Three new archive check-rule findings and existing-rule scoping _(draft)_ — tdd: required
-- **M-0087** — Display surfaces for archived entities (status, show, render) _(draft)_ — tdd: required
-- **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(draft)_ — tdd: required
+- ✓ **M-0084** — Loader and id resolver span active and archive directories _(done)_ — ACs 6/6 met — tdd: required
+- ✓ **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(done)_ — ACs 8/8 met — tdd: required
+- ✓ **M-0086** — Three new archive check-rule findings and existing-rule scoping _(done)_ — ACs 7/7 met — tdd: required
+- ✓ **M-0087** — Display surfaces for archived entities (status, show, render) _(done)_ — ACs 9/9 met — tdd: required
+- ✓ **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(done)_ — ACs 8/8 met — tdd: required
 
 ```mermaid
 flowchart LR
   E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_proposed
-  M_0084["M-0084<br/>Loader and id resolver span active and archive directories"]:::ms_draft
+  M_0084["M-0084 (6/6)<br/>Loader and id resolver span active and archive directories"]:::ms_done
   E_0024 --> M_0084
-  M_0085["M-0085<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_draft
+  M_0085["M-0085 (8/8)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_done
   E_0024 --> M_0085
-  M_0086["M-0086<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_draft
+  M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_done
   E_0024 --> M_0086
-  M_0087["M-0087<br/>Display surfaces for archived entities (status, show, render)"]:::ms_draft
+  M_0087["M-0087 (9/9)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_done
   E_0024 --> M_0087
-  M_0088["M-0088<br/>Configuration knob, embedded skill, and CLAUDE.md amendment"]:::ms_draft
+  M_0088["M-0088 (8/8)<br/>Configuration knob, embedded skill, and CLAUDE.md amendment"]:::ms_done
   E_0024 --> M_0088
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -118,9 +118,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-10 | human/peter | add | aiwf add epic E-0025 'Test-suite parallelism and fixture-sharing pass — closes G-0097' |
 | 2026-05-10 | human/peter | add | aiwf add gap G-0097 'Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom' |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0058 open -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0093 addressed -> addressed |
 | 2026-05-10 | human/peter | promote | aiwf promote G-0096 open -> addressed |
-| 2026-05-10 | human/peter | add | aiwf add gap G-0096 'aiwf promote doesn't require resolver pointer on resolution-class transitions; back-fill blocked by terminal-status FSM' |
 

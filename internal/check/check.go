@@ -94,6 +94,13 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	// (either all-narrow or all-canonical) are silent; only the mixed
 	// state fires.
 	findings = append(findings, entityIDNarrowWidth(t)...)
+	// M-0086: archive-aware findings per ADR-0004 §"Check shape rules".
+	// archivedEntityNotTerminal fires (blocking) on hand-edit drift.
+	// terminalEntityNotArchived fires (advisory) per pending sweep.
+	// archiveSweepPending is the per-tree aggregate (hidden when 0).
+	findings = append(findings, archivedEntityNotTerminal(t)...)
+	findings = append(findings, terminalEntityNotArchived(t)...)
+	findings = append(findings, archiveSweepPending(t)...)
 	resolveLines(t.Root, findings)
 	applyHints(findings)
 	sortFindings(findings)
@@ -253,6 +260,15 @@ func idsUnique(t *tree.Tree) []Finding {
 func frontmatterShape(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// frontmatter-shape is a shape-and-health rule; archived
+		// entities are out of scope for active linting (forget-by-
+		// default). The M-0084 rewidth-archive seam discovery
+		// (narrow-width archive id) was the proximate trigger for
+		// landing this scoping.
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
 		if e.ID == "" {
 			findings = append(findings, Finding{
 				Code:     "frontmatter-shape",
@@ -411,6 +427,15 @@ func refsResolve(t *tree.Tree) []Finding {
 
 	var findings []Finding
 	for _, e := range t.Entities {
+		// M-0086 AC-6: archive scoping per ADR-0004 §"Check shape
+		// rules". Archive-side references are out of scope for
+		// active-set health linting. Active → archive refs still
+		// resolve cleanly because the canonicalized index above
+		// includes archive entities; only the leaf-loop here skips
+		// archive entities as the *source* of refs.
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
 		for _, ref := range entity.ForwardRefs(e) {
 			// Composite-id resolution on open-target fields.
 			if entity.IsCompositeID(ref.Target) && len(ref.AllowedKinds) == 0 {

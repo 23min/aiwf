@@ -16,11 +16,22 @@ type defaultResolver struct {
 
 // IndexData implements PageDataResolver. Walks every epic and counts
 // AC met / total per milestone, rolling them up to the epic line.
+//
+// Active-default: archived epics (whose path is under
+// work/epics/archive/) are filtered out; the full set is reachable
+// via epics-all.html. M-0087/AC-6.
+//
+// KindIndexLinks populates the home page's "Browse by kind" nav
+// block — one entry per kind that participates in the per-kind
+// active+all page family.
 func (r defaultResolver) IndexData() (*IndexData, error) {
 	sidebar := r.sidebar("", "")
 	sidebar.IsCurrentIndex = true
 	out := &IndexData{Title: "Overview", Sidebar: sidebar}
 	for _, e := range sortedByID(r.tree.ByKind(entity.KindEpic)) {
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
 		canonEpic := entity.Canonicalize(e.ID)
 		summary := EpicSummary{
 			ID:       canonEpic,
@@ -39,7 +50,33 @@ func (r defaultResolver) IndexData() (*IndexData, error) {
 		}
 		out.Epics = append(out.Epics, summary)
 	}
+	out.KindIndexLinks = r.buildKindIndexLinks()
 	return out, nil
+}
+
+// buildKindIndexLinks enumerates the per-kind nav entries displayed
+// on the home page's "Browse by kind" block. Counts are split into
+// active and archived so the user sees at a glance how much of the
+// kind is reachable from the active-default page vs. only from the
+// all-set page. M-0087/AC-6.
+func (r defaultResolver) buildKindIndexLinks() []KindIndexLink {
+	links := []KindIndexLink{
+		{Kind: "gaps", FileName: "gaps.html", AllFileName: "gaps-all.html"},
+		{Kind: "decisions", FileName: "decisions.html", AllFileName: "decisions-all.html"},
+		{Kind: "adrs", FileName: "adrs.html", AllFileName: "adrs-all.html"},
+		{Kind: "contracts", FileName: "contracts.html", AllFileName: "contracts-all.html"},
+	}
+	for i := range links {
+		k, _ := kindPluralToKind(links[i].Kind)
+		for _, e := range r.tree.ByKind(k) {
+			if entity.IsArchivedPath(e.Path) {
+				links[i].ArchivedCount++
+			} else {
+				links[i].ActiveCount++
+			}
+		}
+	}
+	return links
 }
 
 // StatusData implements PageDataResolver. The default resolver
@@ -163,9 +200,85 @@ func (r defaultResolver) EntityData(id string) (*EntityData, error) {
 			Kind:     string(e.Kind),
 			Path:     e.Path,
 			FileName: idToFileName(e.ID),
+			Archived: entity.IsArchivedPath(e.Path),
 		},
 		Sidebar: r.sidebar("", ""),
 	}, nil
+}
+
+// KindIndexData implements PageDataResolver. Builds the per-kind
+// listing payload for the active-default (`<kind>.html`) and all-set
+// (`<kind>-all.html`) pages. Returns nil for unrecognized kind slugs
+// so the renderer skips emission cleanly.
+//
+// Filtering: when includeArchived is false, entries whose path lives
+// under `<kind>/archive/` are excluded. Sorting is by canonical id.
+//
+// M-0087/AC-6 + AC-7.
+func (r defaultResolver) KindIndexData(kind string, includeArchived bool) (*KindIndexData, error) {
+	resolved, ok := kindPluralToKind(kind)
+	if !ok {
+		return nil, nil
+	}
+	title := titleForKindIndex(kind, includeArchived)
+	data := &KindIndexData{
+		Sidebar:         r.sidebar("", ""),
+		Title:           title,
+		Kind:            kind,
+		IncludeArchived: includeArchived,
+		ActiveFileName:  kind + ".html",
+		AllFileName:     kind + "-all.html",
+	}
+	for _, e := range sortedByID(r.tree.ByKind(resolved)) {
+		isArchived := entity.IsArchivedPath(e.Path)
+		if isArchived && !includeArchived {
+			continue
+		}
+		data.Entries = append(data.Entries, KindIndexEntry{
+			ID:       entity.Canonicalize(e.ID),
+			Title:    e.Title,
+			Status:   e.Status,
+			FileName: idToFileName(e.ID),
+			Archived: isArchived,
+		})
+	}
+	return data, nil
+}
+
+// kindPluralToKind maps the URL-facing plural slug back to the
+// closed-set Kind value. Single source of truth for the active+all
+// page family — the slug also drives the filename and the
+// kind-index nav link.
+func kindPluralToKind(plural string) (entity.Kind, bool) {
+	switch plural {
+	case "epics":
+		return entity.KindEpic, true
+	case "gaps":
+		return entity.KindGap, true
+	case "decisions":
+		return entity.KindDecision, true
+	case "adrs":
+		return entity.KindADR, true
+	case "contracts":
+		return entity.KindContract, true
+	}
+	return "", false
+}
+
+// titleForKindIndex returns the page title for a per-kind index.
+// Format: "Gaps" / "All gaps" so the title plus the page's filename
+// together make the active/all distinction unambiguous.
+func titleForKindIndex(plural string, includeArchived bool) string {
+	if includeArchived {
+		return "All " + plural
+	}
+	// Capitalize the first ASCII byte; the closed plural set is
+	// known-ASCII so no Unicode upper-case handling is needed.
+	title := plural
+	if title != "" && title[0] >= 'a' && title[0] <= 'z' {
+		title = string(rune(title[0])-32) + title[1:]
+	}
+	return title
 }
 
 // MilestoneData implements PageDataResolver. No body / history /

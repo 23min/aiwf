@@ -747,3 +747,184 @@ func TestActorPattern(t *testing.T) {
 		}
 	}
 }
+
+// M-0088 AC-1 — archive.sweep_threshold schema.
+//
+// The knob is the consumer-controlled drift escalation per ADR-0004
+// §"Drift control" layer (2). The default is **unset** (permissive);
+// when set, exceeding the count flips the `archive-sweep-pending`
+// finding to blocking. A tristate `*int` distinguishes "no threshold"
+// (nil) from "threshold of 0" (every pending sweep blocks). Mirrors
+// the `StatusMd.AutoUpdate *bool` precedent.
+
+// TestArchiveSweepThreshold_DefaultUnset: no `archive:` block in the
+// file. The Archive struct field is zero-value; the threshold pointer
+// is nil; ArchiveSweepThreshold() returns 0, false (the "unset"
+// signal a check rule reads to skip the escalation).
+func TestArchiveSweepThreshold_DefaultUnset(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("hosts: [claude-code]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Archive.SweepThreshold != nil {
+		t.Errorf("Archive.SweepThreshold = %v, want nil (absent)", *cfg.Archive.SweepThreshold)
+	}
+	if n, set := cfg.ArchiveSweepThreshold(); set || n != 0 {
+		t.Errorf("ArchiveSweepThreshold() = (%d, %v), want (0, false)", n, set)
+	}
+}
+
+// TestArchiveSweepThreshold_ExplicitZero: `archive.sweep_threshold: 0`
+// is a legitimate value — the consumer wants every pending sweep to
+// block. Distinguished from "unset" via the *int tristate and the
+// "set" return of the getter.
+func TestArchiveSweepThreshold_ExplicitZero(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("archive:\n  sweep_threshold: 0\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Archive.SweepThreshold == nil {
+		t.Fatal("Archive.SweepThreshold = nil, want &0")
+	}
+	if *cfg.Archive.SweepThreshold != 0 {
+		t.Errorf("*Archive.SweepThreshold = %d, want 0", *cfg.Archive.SweepThreshold)
+	}
+	n, set := cfg.ArchiveSweepThreshold()
+	if !set {
+		t.Error("ArchiveSweepThreshold() set = false, want true")
+	}
+	if n != 0 {
+		t.Errorf("ArchiveSweepThreshold() n = %d, want 0", n)
+	}
+}
+
+// TestArchiveSweepThreshold_ExplicitPositive: the load-bearing
+// consumer-tuning case. `archive.sweep_threshold: 5` is set; the
+// getter returns (5, true); a check rule reading the value will
+// escalate the aggregate finding when count > 5.
+func TestArchiveSweepThreshold_ExplicitPositive(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("archive:\n  sweep_threshold: 5\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Archive.SweepThreshold == nil {
+		t.Fatal("Archive.SweepThreshold = nil, want &5")
+	}
+	if *cfg.Archive.SweepThreshold != 5 {
+		t.Errorf("*Archive.SweepThreshold = %d, want 5", *cfg.Archive.SweepThreshold)
+	}
+	n, set := cfg.ArchiveSweepThreshold()
+	if !set {
+		t.Error("ArchiveSweepThreshold() set = false, want true")
+	}
+	if n != 5 {
+		t.Errorf("ArchiveSweepThreshold() n = %d, want 5", n)
+	}
+}
+
+// TestArchiveSweepThreshold_NilReceiver: getter on a nil Config
+// returns the "unset" signal. Mirrors AllocateTrunkRef's
+// nil-tolerance — callers in `cmd/aiwf/main.go::runCheckCmd` may
+// reach the getter before cfg is loaded (or when Load returned
+// ErrNotFound), and the getter must not panic.
+func TestArchiveSweepThreshold_NilReceiver(t *testing.T) {
+	var cfg *Config
+	n, set := cfg.ArchiveSweepThreshold()
+	if set || n != 0 {
+		t.Errorf("nil-receiver ArchiveSweepThreshold() = (%d, %v), want (0, false)", n, set)
+	}
+}
+
+// TestArchiveSweepThreshold_BlockEmpty: `archive:` block present but
+// carries no `sweep_threshold:`. Mirrors TestStatusMdAutoUpdate_BlockEmpty:
+// the block-empty case must still resolve to the default.
+func TestArchiveSweepThreshold_BlockEmpty(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("archive: {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Archive.SweepThreshold != nil {
+		t.Errorf("Archive.SweepThreshold = %v, want nil (block-empty)", *cfg.Archive.SweepThreshold)
+	}
+	if n, set := cfg.ArchiveSweepThreshold(); set || n != 0 {
+		t.Errorf("block-empty ArchiveSweepThreshold() = (%d, %v), want (0, false)", n, set)
+	}
+}
+
+// TestArchive_BlockRoundTrip: parse → marshal → parse holds the
+// `archive.sweep_threshold` value through the full Config life-
+// cycle. Mirrors the existing TestLoad_TreeBlockRoundTrip pattern.
+func TestArchive_BlockRoundTrip(t *testing.T) {
+	root1 := t.TempDir()
+	contents := []byte("archive:\n  sweep_threshold: 12\n")
+	if err := os.WriteFile(filepath.Join(root1, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root1)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Archive.SweepThreshold == nil || *cfg.Archive.SweepThreshold != 12 {
+		t.Fatalf("parse: SweepThreshold = %v, want &12", cfg.Archive.SweepThreshold)
+	}
+
+	// Marshal → Write to a fresh dir → Load again. The second Load
+	// is the round-trip pin.
+	root2 := t.TempDir()
+	if wErr := Write(root2, cfg); wErr != nil {
+		t.Fatalf("Write: %v", wErr)
+	}
+	written, err := os.ReadFile(filepath.Join(root2, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(written, []byte("sweep_threshold")) {
+		t.Errorf("Write output missing sweep_threshold:\n%s", written)
+	}
+	cfg2, err := Load(root2)
+	if err != nil {
+		t.Fatalf("Load (round-trip): %v", err)
+	}
+	if cfg2.Archive.SweepThreshold == nil || *cfg2.Archive.SweepThreshold != 12 {
+		t.Errorf("round-trip: SweepThreshold = %v, want &12", cfg2.Archive.SweepThreshold)
+	}
+}
+
+// TestWrite_OmitsArchiveByDefault: a default Config must not emit
+// an `archive:` block on Write — mirrors the StatusMd default-shape
+// guarantee. Otherwise `aiwf init` would surprise the operator
+// with a knob they didn't set.
+func TestWrite_OmitsArchiveByDefault(t *testing.T) {
+	root := t.TempDir()
+	cfg := &Config{}
+	if err := Write(root, cfg); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(got), "archive") {
+		t.Errorf("archive present in default-Write output: %q", got)
+	}
+}

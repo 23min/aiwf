@@ -118,12 +118,15 @@ status: done
 completed: 2026-04-30
 ---
 `)
-	// 5 milestones under E-01.
+	// 5 milestones under E-01. Status is non-terminal so the
+	// M-0086 terminal-entity-not-archived rule doesn't fire on
+	// them — this fixture's narrative is the refs-resolve cascade,
+	// not archive sweep state.
 	for i := 1; i <= 5; i++ {
 		writeFile(t, root, fmt.Sprintf("work/epics/E-01-platform/M-%03d.md", i), fmt.Sprintf(`---
 id: M-%03d
 title: Milestone %d
-status: done
+status: in_progress
 parent: E-01
 ---
 `, i, i))

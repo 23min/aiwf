@@ -29,6 +29,20 @@ var hintTable = map[string]string{
 	// stay silent per ADR-0008's "Drift control" subsection.
 	"entity-id-narrow-width": "the active tree mixes narrow and canonical id widths; run `aiwf rewidth --apply` to complete the canonical-width migration (no commit until you re-invoke with `--apply`)",
 
+	// M-0086: ADR-0004 §"Reversal" forbids relocation as the
+	// remediation. The remediation is to revert the hand-edit, not
+	// to move the file out of archive. There is no reverse-archive verb.
+	"archived-entity-not-terminal": "revert the hand-edit so the status returns to a terminal value; if the entity genuinely needs revisiting, file a new entity that references the archived one (ADR-0004 §Reversal)",
+	// M-0086: terminal-entity-not-archived is the pending-sweep
+	// finding. Advisory by default; the M-0088 threshold knob will
+	// promote it to blocking past N for opted-in consumers.
+	"terminal-entity-not-archived": "run `aiwf archive --dry-run` to preview the sweep, then `aiwf archive --apply` to commit the move; advisory until `archive.sweep_threshold` is set in aiwf.yaml",
+	// M-0086: archive-sweep-pending is the per-tree aggregate.
+	// Hidden when the count is zero. The hint matches its leaf
+	// counterpart so an operator reading either reaches the same
+	// remediation.
+	"archive-sweep-pending": "run `aiwf archive --dry-run` to preview the sweep, then `aiwf archive --apply` to commit; the aggregate's count comes from the per-file `terminal-entity-not-archived` findings",
+
 	"acs-shape/id":                       "fix the AC's id to match `AC-N` and equal its position+1 (cancelled entries count toward position)",
 	"acs-shape/title":                    "set a non-empty `title:` on the AC entry",
 	"acs-shape/status":                   "use one of the allowed AC statuses listed above",

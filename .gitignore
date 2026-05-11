@@ -59,6 +59,9 @@ site/
 .claude/skills/.aiwf-owned
 .claude/skills/aiwf-*/
 
+# aiwf: transient runtime lock file (held during mutating verbs)
+.aiwf.lock
+
 # aiwfx-whiteboard: gitignored local cache of the last open-work
 # synthesis output (regenerated on each skill invocation; see the
 # aiwfx-whiteboard skill body §"Output cache").

@@ -1,11 +1,48 @@
 ---
 id: M-0087
 title: Display surfaces for archived entities (status, show, render)
-status: draft
+status: done
 parent: E-0024
 depends_on:
     - M-0086
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf status surfaces sweep-pending count when non-zero
+      status: met
+      tdd_phase: done
+    - id: AC-2
+      title: aiwf status hides sweep-pending line when count is zero
+      status: met
+      tdd_phase: done
+    - id: AC-3
+      title: aiwf status exposes no --archived flag and remains active-only
+      status: met
+      tdd_phase: done
+    - id: AC-4
+      title: aiwf show resolves any id (active or archived) without flag opt-in
+      status: met
+      tdd_phase: done
+    - id: AC-5
+      title: aiwf show renders a visible archived-state indicator in text and JSON
+      status: met
+      tdd_phase: done
+    - id: AC-6
+      title: aiwf render index page links active-default and full-set per-kind pages
+      status: met
+      tdd_phase: done
+    - id: AC-7
+      title: aiwf render emits per-kind all.html showing the full active+archived set
+      status: met
+      tdd_phase: done
+    - id: AC-8
+      title: aiwf render emits per-entity pages for archived entities so deep links resolve
+      status: met
+      tdd_phase: done
+    - id: AC-9
+      title: aiwf history walks across an aiwf-verb=archive sweep rename
+      status: met
+      tdd_phase: done
 ---
 
 # M-0087 — Display surfaces for archived entities (status, show, render)
@@ -72,7 +109,7 @@ Intended landing zone:
 
 ## Decisions made during implementation
 
-- (none)
+- **Visibility regression caught in human verification (AC-6, AC-7).** The first-pass render templates wrapped the home page's "Browse by kind" nav block in `<section data-tab="kind-index">` and every per-kind index page's main body in `<section data-tab="kind-listing">`. The embedded stylesheet hides every `section[data-tab]` by default (only `data-tab="overview"` and `:target` sections are revealed). Neither block had a tab-nav control, so the rendered pages displayed empty in a browser even though the structural HTML and tests looked correct. **Fix:** `index.tmpl` uses `<nav class="kind-index">` for the nav block; `kind_index.tmpl` drops the outer wrapper entirely (the listing lives directly under `<main>`). **Strengthened test:** `render_archive_visibility_test.go` walks the `<section>` ancestor chain at a content marker's position and fails if any enclosing `<section data-tab="X">` (X ≠ `overview`) would hide it per the page's CSS — the prior tests asserted the section *existed* but never asked whether it was *visible*. Per CLAUDE.md *Substring assertions are not structural assertions*. AC-5 was reopened alongside AC-6/7 per task brief, even though AC-5's surface (`aiwf show` text/JSON indicator) was unaffected by the wrapper regression.
 
 ## Validation
 
@@ -85,3 +122,59 @@ Intended landing zone:
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — aiwf status surfaces sweep-pending count when non-zero
+
+When the loaded tree carries one or more entities whose status is terminal-for-kind but whose path is in the active dir (the same condition the M-0086 `archive-sweep-pending` finding fires on), `aiwf status`'s output gains a one-line entry inside the **Health** section naming the count and the remediation verb: *"Sweep pending: N terminal entities not yet archived (run `aiwf archive --dry-run` to preview)"*.
+
+The aggregate is lifted out of the general `warnings[]` list into a dedicated `sweep_pending` field on the status report — per ADR-0004 §"Display surfaces", the one-liner belongs in the tree-health section. The text renderer prints it inside `Health\n`; the JSON envelope exposes it as a top-level field with `count` and the formatted `message`. Per-file `terminal-entity-not-archived` warnings remain in the warnings stream alongside other findings.
+
+Seam test drives `runStatusCmd` against a fixture with one terminal-in-active gap and asserts `"Sweep pending: 1"` appears inside the Health section. Structural assertion: the substring search is scoped to the post-`Health\n` portion of the output, not flat over the full text — a plain match would not distinguish "line in Health" from "line in Warnings."
+
+### AC-2 — aiwf status hides sweep-pending line when count is zero
+
+When no entity is terminal-in-active, the sweep-pending entry is omitted entirely — not "Sweep pending: 0", just absent. The existing `archive-sweep-pending` finding rule returns nil at zero, so `statusReport.SweepPending` stays nil and the renderer's `if r.SweepPending != nil` guard skips the line.
+
+Two coverage branches pinned: a unit test that asserts `r.SweepPending == nil` against a fixture with only active-status entities (and an already-archived terminal, to exercise the path-filter exclusion), and a render-side test that asserts `"Sweep pending"` does not appear anywhere in the output when the field is nil.
+
+### AC-3 — aiwf status exposes no --archived flag and remains active-only
+
+`aiwf status --help` and the Cobra flag-set list **no** `--archived` flag. The verb's snapshot is forward-looking; archived inspection lives in `aiwf list --archived`. Verified via the completion-drift test (which enumerates every flag of every verb) plus a direct assertion on `newStatusCmd()`'s flag set.
+
+### AC-4 — aiwf show resolves any id (active or archived) without flag opt-in
+
+`aiwf show G-0099` resolves an archived entity identically to an active one — same JSON envelope shape, same text layout, no `--archived` flag required. M-0084/AC-4 already pinned the loader and dispatcher seam through `TestRun_ShowResolvesArchivedID`; this AC re-pins the contract specifically as a milestone-level acceptance check and ensures the assertion remains green after the indicator change in AC-5.
+
+### AC-5 — aiwf show renders a visible archived-state indicator in text and JSON
+
+When the resolved entity's path is under `<kind>/archive/`, the rendered output indicates that visibly:
+
+- **JSON envelope:** a top-level `archived: true` field on `ShowView` (boolean; omitted on active entities via `omitempty`).
+- **Text:** a terse `· archived` marker appended to the existing header line (no separate row, no badge — one word on the line the operator already reads). Active entities render unchanged.
+
+Test the seam: JSON structural assertion on `archived == true` for an archived id and absence (or `archived == false`) for an active id; text structural assertion that scopes the substring match to the header line (first line of show output), not flat over the full body, so the marker can't accidentally pass by appearing elsewhere.
+
+### AC-6 — aiwf render index page links active-default and full-set per-kind pages
+
+`aiwf render --format=html` writes per-kind index pages keyed on the active set by default. The index references each per-kind page from the sidebar / home nav. For the four high-volume kinds (epic, gap, decision, ADR), the per-kind index renders only entities whose path is **not** archived. Each per-kind index page carries a plain `<a href="<kind>/all.html">` link to the full-set view (AC-7) so the navigation between active-default and full-set is reachable.
+
+Structural assertion: parse the rendered index / per-kind pages, walk the DOM, and assert (a) the active-default page lists only non-archived entities, (b) the page contains an anchor whose `href` resolves to the all-set page. No JavaScript / no view-switching.
+
+### AC-7 — aiwf render emits per-kind all.html showing the full active+archived set
+
+For each kind that participates in archive segregation, `aiwf render` writes an additional `<kind>-all.html` page that lists the **full set** — active and archived entities together. The all-set page is reachable from the per-kind active-default page (AC-6) and links back to it via a `<a href="<kind>.html">` nav. Plain static `<a>` between the two views — no JS, no filter chips.
+
+Structural assertion: parse all.html, walk the listed entities, and assert it contains both an active id (only listed in the active set) and an archived id (would otherwise not appear). Plus a back-link to the active-default page.
+
+### AC-8 — aiwf render emits per-entity pages for archived entities so deep links resolve
+
+A per-entity HTML page is written for every entity in the tree regardless of status — active or archived. External deep links to `G-0018.html` resolve whether the target is active or in `<kind>/archive/`. The page surface is identical except for a small archived-state marker (paralleling AC-5's `show` indicator) so the reader can see the entity is archived.
+
+Test: render against a fixture carrying both an active and an archived gap, assert both `<active-id>.html` and `<archived-id>.html` exist on disk, and assert the archived page carries the archived-state marker via structural assertion.
+
+### AC-9 — aiwf history walks across an aiwf-verb=archive sweep rename
+
+After an `aiwf archive --apply` sweep produces a single commit trailered `aiwf-verb: archive` with the swept ids, `aiwf history <id>` returns a continuous timeline that includes events from before the move (the entity's add/promote commits in the active path) and the archive sweep commit itself. M-0084/AC-5 already exercised the trailer-based cross-rename walk; this AC re-pins the regression specifically with the `aiwf-verb: archive` trailer (rather than the synthetic shape M-0084 used) so the M-0085 verb's trailer keys are honored.
+
+Test: synthesize the commit sequence (add → archive sweep) in a fixture, drive `aiwf history --format=json <id>`, assert the events array contains both the add event and the archive event in chronological order, with both events bearing the same entity id.
+

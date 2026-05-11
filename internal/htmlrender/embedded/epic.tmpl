@@ -14,6 +14,9 @@
 <h1>{{.Epic.Title}}</h1>
 <p>
 <span class="status status-{{.Epic.Status}}">{{.Epic.Status}}</span>
+{{- if .Epic.Archived}}
+<span class="archived-marker">archived</span>
+{{- end}}
  · <span class="ac-rollup">ACs: {{.ACMet}}/{{.ACTotal}}</span>
 </p>
 
