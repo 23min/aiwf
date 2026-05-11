@@ -668,6 +668,46 @@ test.describe("kind-index — file emission (M-0099/AC-1)", () => {
   });
 });
 
+test.describe("kind-index — chip strip markup (M-0099/AC-2)", () => {
+  // Each kind-index page renders a chip strip at the top of <main>
+  // with two chips: Active (default view) and All (archived
+  // included). Each chip is a styled <a> with both id and href
+  // pointing at a matching fragment, so `:target` on the chip
+  // itself can drive both the active-chip visual state (AC-2
+  // styling) and the row-filter behavior (AC-3 CSS rule).
+  //
+  // The chip strip renders unconditionally — even on a kind page
+  // with zero archived entries the strip appears, so the surface
+  // shape is consistent across kinds and over time.
+
+  const KINDS = ["gaps", "decisions", "adrs", "contracts"];
+
+  test("chip strip with Active and All renders on every kind-index page", async ({ page }) => {
+    for (const kind of KINDS) {
+      await page.goto(fileURL(`${kind}.html`));
+
+      // Chip strip is inside <main>, at the top of the kind-index
+      // content (before the table).
+      const chipStrip = page.locator("main > nav.chip-strip");
+      await expect(chipStrip, `${kind}.html should have main > nav.chip-strip`).toHaveCount(1);
+
+      // Exactly two chips: Active first, All second.
+      const chips = chipStrip.locator("a.chip");
+      await expect(chips).toHaveCount(2);
+
+      const active = chips.nth(0);
+      await expect(active).toHaveText("Active");
+      await expect(active).toHaveAttribute("href", "#active");
+      await expect(active).toHaveAttribute("id", "active");
+
+      const all = chips.nth(1);
+      await expect(all).toHaveText("All");
+      await expect(all).toHaveAttribute("href", "#all");
+      await expect(all).toHaveAttribute("id", "all");
+    }
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {
