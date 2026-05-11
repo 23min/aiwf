@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Drift-check structurally asserts merge-step trailered-commit instructions.
-      status: open
+      status: met
       tdd_phase: done
 ---
 
