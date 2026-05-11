@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0096 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0095 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0094 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0096 'Ship aiwfx-start-epic skill with worktree and branch preflight prompts' |
-| 2026-05-11 | human/peter | add | aiwf add milestone M-0095 'Enforce human-only actor on aiwf promote E-NN active' |
 

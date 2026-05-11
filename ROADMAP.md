@@ -300,5 +300,9 @@ Change `aiwfx-wrap-epic`'s merge step so the merge commit it produces carries `a
 
 Ship the `aiwfx-start-epic` ritual plus its supporting kernel chokepoints so epic activation becomes a deliberate sovereign act with preflight checks, an explicit branch/worktree choice, and an optional principal-to-agent delegation hand-off. Closes the start-side scope of G-0063; the wrap-side concerns spawn a follow-up gap at this epic's wrap.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0094 | Add aiwf check finding epic-active-no-drafted-milestones | draft |
+| M-0095 | Enforce human-only actor on aiwf promote E-NN active | draft |
+| M-0096 | Ship aiwfx-start-epic skill with worktree and branch preflight prompts | draft |
 
