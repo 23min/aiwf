@@ -294,3 +294,11 @@ Change `aiwfx-wrap-epic`'s merge step so the merge commit it produces carries `a
 |---|---|---|
 | M-0090 | aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests | done |
 
+## E-0028 — Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side) (proposed)
+
+### Goal
+
+Ship the `aiwfx-start-epic` ritual plus its supporting kernel chokepoints so epic activation becomes a deliberate sovereign act with preflight checks, an explicit branch/worktree choice, and an optional principal-to-agent delegation hand-off. Closes the start-side scope of G-0063; the wrap-side concerns spawn a follow-up gap at this epic's wrap.
+
+_No milestones yet._
+

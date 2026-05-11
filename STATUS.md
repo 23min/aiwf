@@ -118,9 +118,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
 | 2026-05-11 | human/peter | add | aiwf add epic E-0028 'Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side)' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0093 AC-1..AC-3 (3 criteria) |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0092 AC-1..AC-4 (4 criteria) |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0091 AC-1..AC-6 (6 criteria) |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0093 |
 
