@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote E-0028 active -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0063 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0111 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0111 'Wrap-side ritual: scope ends before done, human-only on done, wrap-epic update' |
 | 2026-05-11 | human/peter | implement | feat(aiwfx): close M-0094/95/96 verification seams — audit chokepoint and drift comparator (M-0097) |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 
