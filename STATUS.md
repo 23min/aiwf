@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(proposed)_
 
-- → **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(in_progress)_ — ACs 4/6 met (2 open) — tdd: required
+- → **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(in_progress)_ — ACs 5/6 met (1 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_0027["E-0027<br/>Trailered merge commits from aiwfx-wrap-epic (closes G-0100)"]:::epic_proposed
-  M_0090["M-0090 (4/6)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_in_progress
+  M_0090["M-0090 (5/6)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_in_progress
   E_0027 --> M_0090
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -119,9 +119,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-4 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-3 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-2 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-1 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-6 --phase green -> done |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-5 --phase green -> done |
 
