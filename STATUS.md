@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_229 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_230 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 > Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -87,6 +87,7 @@ _(no milestones)_
 | G-0100 | aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing | M-0089 |
 | G-0102 | Entity titles uncapped; long titles break filesystem paths, status HTML layout, and CLI table columns |  |
 | G-0103 | absolute-path leak lint | M-0089 |
+| G-0104 | Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy | E-0025 |
 
 ## Warnings
 
@@ -99,9 +100,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0025 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | wrap-epic | chore(E-0027): wrap epic — trailered merge commits ritual + CHANGELOG entry |
 | 2026-05-11 | human/peter | wrap-epic | chore(epic): wrap E-0027 — trailered merge commits from aiwfx-wrap-epic (closes G-0100) |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0027 active -> done |
-| 2026-05-11 | human/peter | promote | aiwf promote E-0027 proposed -> active |
 
