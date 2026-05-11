@@ -1,6 +1,6 @@
 ---
 id: ADR-0009
-title: 'Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition'
+title: 'Orchestration substrate: substrate-vs-driver split with trailer-only events'
 status: proposed
 ---
 # ADR-0009 — Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition

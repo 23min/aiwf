@@ -90,7 +90,7 @@ flowchart LR
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
-| ADR-0009 | adr | Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition | proposed |
+| ADR-0009 | adr | Orchestration substrate: substrate-vs-driver split with trailer-only events | proposed |
 
 ## Open gaps
 
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0073 -> 'depends_on restricted to milestone→milestone; cross-kind blocking via body prose' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle E-0028 -> 'Start-epic ritual: sovereign activation with preflight + delegation' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0059 -> 'Branch model: no canonical entity-hierarchy-to-git-branches mapping' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0079 -> 'aiwfx-plan-milestones plugin skill needs --depends-on documentation' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0092 -> 'No documented hierarchy of doc authority across docs/' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0063 -> 'No defined start-epic ritual; activation is bare FSM flip today' |
 
