@@ -609,6 +609,42 @@ test.describe("layout — prose-cap (M-0098/AC-3)", () => {
   });
 });
 
+test.describe("layout — mobile collapse (M-0098/AC-4)", () => {
+  // At viewport widths below 768px the existing
+  // `@media (max-width: 768px)` rule flips .layout's grid to
+  // single-column and sets sidebar to `order: 2`, so the sidebar
+  // renders below main instead of beside it. This is a regression
+  // check on that behavior after AC-1's body-padding change and
+  // AC-2's sidebar widening — both should leave the mobile collapse
+  // intact.
+
+  test("sidebar renders below main at <768px viewports", async ({ page }) => {
+    for (const width of [375, 600, 767]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(fileURL("index.html"));
+
+      const sidebarBox = await page.locator(".sidebar").boundingBox();
+      const mainBox = await page.locator("main").boundingBox();
+      expect(sidebarBox, ".sidebar must be in the layout").not.toBeNull();
+      expect(mainBox, "main must be in the layout").not.toBeNull();
+
+      // Sidebar's top edge sits below main's bottom edge — single-
+      // column stack with main first.
+      expect(
+        sidebarBox!.y,
+        `sidebar.y should be > main.y + main.height at viewport ${width}px (collapsed)`,
+      ).toBeGreaterThan(mainBox!.y + mainBox!.height - 1);
+
+      // No horizontal scrollbar — the layout fits the narrow
+      // viewport.
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(overflow, `no horizontal scroll at viewport ${width}px`).toBeLessThanOrEqual(0);
+    }
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {
