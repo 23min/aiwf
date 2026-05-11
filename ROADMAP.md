@@ -278,5 +278,5 @@ Change the default text output of `aiwf check` from one line per finding to one 
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0089 | Per-code text-render summary with --verbose fallback | draft |
+| M-0089 | Per-code text-render summary with --verbose fallback | done |
 

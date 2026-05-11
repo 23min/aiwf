@@ -290,9 +290,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0089 in_progress -> done |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0099 'Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior' |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 --phase red -> green |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-7 open -> met |
 
