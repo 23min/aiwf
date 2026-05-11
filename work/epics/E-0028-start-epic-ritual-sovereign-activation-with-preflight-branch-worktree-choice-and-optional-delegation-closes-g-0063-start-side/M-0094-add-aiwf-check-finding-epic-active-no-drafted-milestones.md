@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: rule fires warning when active epic has zero drafted milestones
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: rule does not fire when active epic has at least one drafted milestone
       status: open

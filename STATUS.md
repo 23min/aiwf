@@ -135,9 +135,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0094 draft -> in_progress |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0094 AC-1..AC-4 (4 criteria) |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0028 proposed -> active |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0096 |
 
