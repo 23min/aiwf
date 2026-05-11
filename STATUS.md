@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_226 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_227 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -44,7 +44,20 @@ _(no milestones)_
 
 ### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(proposed)_
 
-_(no milestones)_
+- **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(draft)_ — tdd: required
+
+```mermaid
+flowchart LR
+  E_0027["E-0027<br/>Trailered merge commits from aiwfx-wrap-epic (closes G-0100)"]:::epic_proposed
+  M_0090["M-0090<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_draft
+  E_0027 --> M_0090
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Open decisions
 
@@ -93,6 +106,8 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| entity-body-empty | M-0090 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090 body section \`## Goal\` is empty |
+| entity-body-empty | M-0090 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## What's missing\` is empty |
 | entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## Why it matters\` is empty |
 
@@ -100,9 +115,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0027 |
 | 2026-05-11 | human/peter | add | aiwf add epic E-0027 'Trailered merge commits from aiwfx-wrap-epic (closes G-0100)' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0100 |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0100 -> 'aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
-| 2026-05-11 | human/peter | add | aiwf add adr ADR-0009 'Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition' |
 
