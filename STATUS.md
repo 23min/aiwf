@@ -99,9 +99,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0103 |
-| 2026-05-11 | human/peter | add | aiwf add gap G-0103 'absolute-path leak lint' |
-| 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0102 |
-| 2026-05-11 | human/peter | add | aiwf add gap G-0102 'Entity titles uncapped; long titles break filesystem paths, status HTML layout, and CLI table columns' |
+| 2026-05-11 | human/peter | wrap-epic | chore(epic): wrap E-0027 — trailered merge commits from aiwfx-wrap-epic (closes G-0100) |
+| 2026-05-11 | human/peter | promote | aiwf promote E-0027 active -> done |
+| 2026-05-11 | human/peter | promote | aiwf promote E-0027 proposed -> active |
+| 2026-05-11 | human/peter | promote | aiwf promote M-0090 in_progress -> done |
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0090 |
 
