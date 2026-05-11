@@ -66,7 +66,7 @@ The original gap (G-0100) framed this as "rule should skip merge commits." On re
 
 ## Milestones
 
-- [M-NNNN](work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-NNNN-...md) — `aiwfx-wrap-epic` SKILL.md fixture emits trailered-merge instructions; drift-check tests · depends on: —
+- [M-0090](work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md) — `aiwfx-wrap-epic` SKILL.md fixture emits trailered-merge instructions; drift-check tests · depends on: —
 
 ## References
 
