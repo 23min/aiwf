@@ -1,8 +1,6 @@
 # aiwf status — 2026-05-11
 
-_232 entities · 0 errors · 3 warnings · run `aiwf check` for details_
-
-> Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+_232 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -91,18 +89,15 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| terminal-entity-not-archived | G-0105 | work/gaps/G-0105-testprovenancecheck-untrailedentitycommit-asserts-obsolete-warning-severity-substring-format.md | entity G-0105 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0106 | work/gaps/G-0106-testbinary-archivekernelmigration-leavescheckclean-assertion-depends-on-transient-kernel-tree-housekeeping-state.md | entity G-0106 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0106 open -> addressed |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0106 'TestBinary_ArchiveKernelMigration_LeavesCheckClean assertion depends on transient kernel-tree housekeeping state' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0105 open -> addressed |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0105 'TestProvenanceCheck_UntrailedEntityCommit asserts obsolete warning-severity substring format' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 epic) |
-| 2026-05-11 | human/peter | add | aiwf add gap G-0104 'Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy' |
 
