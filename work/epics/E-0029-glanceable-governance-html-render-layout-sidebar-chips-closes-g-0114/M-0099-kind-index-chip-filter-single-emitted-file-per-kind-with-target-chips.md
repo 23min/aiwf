@@ -1,7 +1,7 @@
 ---
 id: M-0099
 title: 'Kind-index chip filter: single emitted file per kind with :target chips'
-status: draft
+status: in_progress
 parent: E-0029
 depends_on:
     - M-0098
