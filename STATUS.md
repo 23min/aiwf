@@ -42,7 +42,7 @@ _(no milestones)_
 
 - ✓ **M-0084** — Loader and id resolver span active and archive directories _(done)_ — ACs 6/6 met — tdd: required
 - → **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(in_progress)_ — ACs 8/8 met — tdd: required
-- → **M-0086** — Three new archive check-rule findings and existing-rule scoping _(in_progress)_ — ACs 7/7 met — tdd: required
+- ✓ **M-0086** — Three new archive check-rule findings and existing-rule scoping _(done)_ — ACs 7/7 met — tdd: required
 - → **M-0087** — Display surfaces for archived entities (status, show, render) _(in_progress)_ — ACs 9/9 met — tdd: required
 - → **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(in_progress)_ — ACs 8/8 met — tdd: required
 
@@ -53,7 +53,7 @@ flowchart LR
   E_0024 --> M_0084
   M_0085["M-0085 (8/8)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_in_progress
   E_0024 --> M_0085
-  M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_in_progress
+  M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_done
   E_0024 --> M_0086
   M_0087["M-0087 (9/9)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_in_progress
   E_0024 --> M_0087
@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0084 in_progress -> done |
 | 2026-05-11 | human/peter | implement | feat(aiwf): archive sweep threshold, embedded skill, CLAUDE.md item 10 (M-0088) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): display surfaces for archived entities — status, show, render (M-0087) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): aiwf archive verb (dry-run default, --apply, --kind) (M-0085) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): archive check rules and per-rule scoping (M-0086) |
-| 2026-05-11 | human/peter | implement | feat(aiwf): loader and id resolver span active+archive directories (M-0084) |
 
