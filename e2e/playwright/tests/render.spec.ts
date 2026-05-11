@@ -544,6 +544,39 @@ test.describe("layout — sidebar width (M-0098/AC-2)", () => {
   });
 });
 
+test.describe("layout — tab clicks don't scroll (M-0098/AC-5)", () => {
+  // Tabs use `:target`-driven CSS show/hide — clicking
+  // <a href="#tab-build"> updates the URL fragment, which triggers
+  // the browser's "scroll target into view" behavior. AC-1's body-
+  // padding change removed the 2rem top margin that previously
+  // buffered the visible jump; the scroll is now user-visible.
+  // The fix is `scroll-margin-top: 100vh` on `section[data-tab]`,
+  // which makes the browser's scroll-clamp keep the page at y=0.
+  //
+  // The test loads a milestone page, then clicks each tab and
+  // asserts the scroll position stays at the top after every click.
+
+  test("clicking each tab keeps scrollY === 0", async ({ page }) => {
+    // Use a deliberately short viewport so the milestone page's
+    // content overflows vertically — that's the scenario where the
+    // scroll-to-fragment jump is user-visible. At a tall viewport
+    // (e.g. 1280×800) the small fixture milestone fits entirely on
+    // screen and the browser has no need to scroll, masking the bug.
+    await page.setViewportSize({ width: 1280, height: 400 });
+    await page.goto(fileURL("M-0001.html"));
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    // Click each tab in the nav strip and verify scroll stays put.
+    for (const tab of ["overview", "manifest", "build", "tests", "commits", "provenance"]) {
+      await page.locator(`nav.tabs a[href="#tab-${tab}"]`).click();
+      // Allow the browser to settle on the scroll-to-fragment.
+      await page.waitForFunction((t) => location.hash === `#tab-${t}`, tab);
+      const scrollY = await page.evaluate(() => window.scrollY);
+      expect(scrollY, `scrollY after clicking ${tab} tab should be 0`).toBe(0);
+    }
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {

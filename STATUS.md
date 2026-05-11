@@ -148,9 +148,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | ai/claude | add | aiwf add ac M-0098/AC-5 'Tab clicks do not scroll the page' |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0098/AC-2 open -> met |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0098/AC-2 --phase green -> done |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0098/AC-2 --phase red -> green |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0098 |
-| 2026-05-11 | ai/claude | promote | aiwf promote M-0098/AC-1 open -> met |
 
