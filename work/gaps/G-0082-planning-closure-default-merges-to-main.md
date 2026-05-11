@@ -1,8 +1,10 @@
 ---
 id: G-0082
 title: Planning closure should default-merge to main before implementation begins
-status: open
+status: addressed
 discovered_in: E-0021
+addressed_by_commit:
+    - f1c0946
 ---
 
 # G-0082 — Planning closure should default-merge to main before implementation begins

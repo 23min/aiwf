@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_254 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_254 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
-> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -116,7 +116,6 @@ flowchart LR
 | G-0078 | No priority field on entities; backlog isn't filterable or sortable by importance |  |
 | G-0079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation | M-0076 |
 | G-0080 | Wide-table verbs wrap mid-row; no TTY-aware sizing or truncation | M-0076 |
-| G-0082 | Planning closure should default-merge to main before implementation begins | E-0021 |
 | G-0087 | No aiwf-show embedded skill | M-0074 |
 | G-0088 | Skill-coverage policy doesn't police plugin skills under aiwf-extensions/ | M-0079 |
 | G-0090 | M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests | M-0079 |
@@ -137,15 +136,16 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| terminal-entity-not-archived | G-0082 | work/gaps/G-0082-planning-closure-default-merges-to-main.md | entity G-0082 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0083 | work/gaps/G-0083-aiwf-retitle-does-not-sync-entity-body-h1-with-frontmatter-title.md | entity G-0083 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0083 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0029 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0101 'In-page status hierarchy in gaps.html' |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0100 'Sidebar surfaces gaps with active count' |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0099 'Kind-index chip filter: single emitted file per kind with :target chips' |
-| 2026-05-11 | human/peter | add | aiwf add milestone M-0098 'Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap' |
 
