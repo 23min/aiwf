@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0099 slug -> worktree-isolation-parent-side-precondition |
 | 2026-05-11 | human/peter | rename | aiwf rename D-0001 slug -> entity-body-empty-sub-headings-as-content |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0104 slug -> test-parallelism-discipline-rituals-or-byo |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0097 slug -> test-suite-wall-time-serial-execution |
-| 2026-05-11 | human/peter | rename | aiwf rename G-0092 slug -> no-documented-doc-authority-hierarchy |
 

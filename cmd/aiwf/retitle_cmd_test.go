@@ -9,8 +9,9 @@ import (
 
 // M-077/AC-1: `aiwf retitle <id> "<new-title>" [--reason ...]` updates
 // the entity's frontmatter `title:` field for any of the six top-level
-// kinds. Title only — no body changes, no slug renames. Closes the
-// top-level half of G-065.
+// kinds. Per G-0108, the on-disk slug is also re-derived from the new
+// title in the same commit, so frontmatter and filesystem stay in sync.
+// Closes the top-level half of G-065 + G-0108.
 
 // retitleSetup gives every test in this file a freshly-init'd repo
 // with one entity per top-level kind so the verb has live targets to
@@ -40,20 +41,23 @@ func retitleSetup(t *testing.T) string {
 }
 
 // TestRetitle_AllKinds pins AC-1: retitle works for every top-level
-// kind, updating the frontmatter `title:` field in one commit.
+// kind, updating the frontmatter `title:` field AND the on-disk slug
+// in one commit. The `wantPath` reflects the post-rename location
+// (G-0108) — the slug is re-derived from the new title.
 func TestRetitle_AllKinds(t *testing.T) {
 	cases := []struct {
-		name     string
-		id       string
-		newTitle string
-		path     string
+		name        string
+		id          string
+		newTitle    string
+		wantPath    string
+		oldPathGone string
 	}{
-		{"epic", "E-0001", "Refocused Foundations", "work/epics/E-0001-foundations/epic.md"},
-		{"milestone", "M-0001", "Refocused First Milestone", "work/epics/E-0001-foundations/M-0001-first-milestone.md"},
-		{"adr", "ADR-0001", "Refocused First ADR", "docs/adr/ADR-0001-first-adr.md"},
-		{"gap", "G-0001", "Refocused First Gap", "work/gaps/G-0001-first-gap.md"},
-		{"decision", "D-0001", "Refocused First Decision", "work/decisions/D-0001-first-decision.md"},
-		{"contract", "C-0001", "Refocused First Contract", "work/contracts/C-0001-first-contract/contract.md"},
+		{"epic", "E-0001", "Refocused Foundations", "work/epics/E-0001-refocused-foundations/epic.md", "work/epics/E-0001-foundations/epic.md"},
+		{"milestone", "M-0001", "Refocused First Milestone", "work/epics/E-0001-foundations/M-0001-refocused-first-milestone.md", "work/epics/E-0001-foundations/M-0001-first-milestone.md"},
+		{"adr", "ADR-0001", "Refocused First ADR", "docs/adr/ADR-0001-refocused-first-adr.md", "docs/adr/ADR-0001-first-adr.md"},
+		{"gap", "G-0001", "Refocused First Gap", "work/gaps/G-0001-refocused-first-gap.md", "work/gaps/G-0001-first-gap.md"},
+		{"decision", "D-0001", "Refocused First Decision", "work/decisions/D-0001-refocused-first-decision.md", "work/decisions/D-0001-first-decision.md"},
+		{"contract", "C-0001", "Refocused First Contract", "work/contracts/C-0001-refocused-first-contract/contract.md", "work/contracts/C-0001-first-contract/contract.md"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -68,13 +72,18 @@ func TestRetitle_AllKinds(t *testing.T) {
 				t.Fatalf("retitle %s: %d", tc.id, rc)
 			}
 
-			body, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(tc.path)))
+			body, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(tc.wantPath)))
 			if err != nil {
-				t.Fatalf("read %s: %v", tc.path, err)
+				t.Fatalf("read %s: %v", tc.wantPath, err)
 			}
 			want := "title: " + tc.newTitle
 			if !strings.Contains(string(body), want) {
 				t.Errorf("frontmatter missing %q after retitle:\n%s", want, body)
+			}
+			// G-0108: the OLD path must no longer exist; retitle moved
+			// the file as part of the same commit, not left a copy.
+			if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(tc.oldPathGone))); !os.IsNotExist(err) {
+				t.Errorf("old path %q still exists after retitle (slug should have moved); stat err = %v", tc.oldPathGone, err)
 			}
 		})
 	}
@@ -211,15 +220,105 @@ func TestRetitle_DispatcherSeam_TopLevel(t *testing.T) {
 		t.Fatalf("retitle (seam top-level): %d", rc)
 	}
 
-	body, err := os.ReadFile(filepath.Join(root, "work", "epics", "E-0001-foundations", "epic.md"))
+	body, err := os.ReadFile(filepath.Join(root, "work", "epics", "E-0001-seam-tested-foundations", "epic.md"))
 	if err != nil {
-		t.Fatalf("read epic: %v", err)
+		t.Fatalf("read epic at new slug: %v", err)
 	}
 	if !strings.Contains(string(body), "title: Seam-tested Foundations") {
 		t.Errorf("epic frontmatter missing new title (seam):\n%s", body)
 	}
 	if rc := run([]string{"history", "E-0001", "--root", root}); rc != exitOK {
 		t.Errorf("aiwf history E-01 (seam): %d", rc)
+	}
+}
+
+// TestRetitle_SlugSyncedToTitle is the focused G-0108 pin: after
+// retitle the on-disk slug matches the slugified new title; both the
+// frontmatter title change and the file rename land in the same commit
+// (one `aiwf-verb: retitle` trailer, one rename + modify diff). Without
+// this behavior the operator has to follow every retitle with a manual
+// `aiwf rename` and the two-step workflow leaks back in.
+func TestRetitle_SlugSyncedToTitle(t *testing.T) {
+	root := retitleSetup(t)
+
+	rc := run([]string{
+		"retitle", "G-0001", "Sync the slug too",
+		"--actor", "human/test",
+		"--root", root,
+	})
+	if rc != exitOK {
+		t.Fatalf("retitle G-0001: %d", rc)
+	}
+
+	// New path exists.
+	newPath := filepath.Join(root, "work", "gaps", "G-0001-sync-the-slug-too.md")
+	body, err := os.ReadFile(newPath)
+	if err != nil {
+		t.Fatalf("expected gap at new slug %s: %v", newPath, err)
+	}
+	if !strings.Contains(string(body), "title: Sync the slug too") {
+		t.Errorf("frontmatter title not synced at new path:\n%s", body)
+	}
+
+	// Old path is gone.
+	oldPath := filepath.Join(root, "work", "gaps", "G-0001-first-gap.md")
+	if _, err := os.Stat(oldPath); !os.IsNotExist(err) {
+		t.Errorf("old slug path still exists after retitle: %v", err)
+	}
+
+	// History should show one retitle commit covering this id; the
+	// rename + frontmatter change land together.
+	if rc := run([]string{"history", "G-0001", "--root", root}); rc != exitOK {
+		t.Errorf("aiwf history G-0001: %d", rc)
+	}
+}
+
+// TestRetitle_TitleChangeButSameSlug pins the edge case where the new
+// title slugifies to the same slug as the current path — e.g., a
+// punctuation-only or capitalization-only tweak. The frontmatter
+// updates, but no rename happens (source == dest, OpMove skipped).
+func TestRetitle_TitleChangeButSameSlug(t *testing.T) {
+	root := retitleSetup(t)
+
+	// "First Gap" slugifies to "first-gap"; "first gap!" slugifies to
+	// the same thing. Title change only, no rename.
+	rc := run([]string{
+		"retitle", "G-0001", "first gap!",
+		"--actor", "human/test",
+		"--root", root,
+	})
+	if rc != exitOK {
+		t.Fatalf("retitle G-0001 same-slug: %d", rc)
+	}
+
+	body, err := os.ReadFile(filepath.Join(root, "work", "gaps", "G-0001-first-gap.md"))
+	if err != nil {
+		t.Fatalf("read gap: %v", err)
+	}
+	if !strings.Contains(string(body), "title: first gap!") {
+		t.Errorf("frontmatter title not updated when slug stays:\n%s", body)
+	}
+}
+
+// TestRetitle_EmptySlugRejected pins the punctuation-only-title guard
+// (G-0108). A title that slugifies to the empty string would orphan
+// the file at a path with no slug body; retitle errors with a clear
+// pointer at `aiwf rename` for the operator who genuinely needs that
+// shape.
+func TestRetitle_EmptySlugRejected(t *testing.T) {
+	root := retitleSetup(t)
+
+	rc := run([]string{
+		"retitle", "G-0001", "!!!",
+		"--actor", "human/test",
+		"--root", root,
+	})
+	if rc != exitUsage {
+		t.Errorf("retitle with punctuation-only title = %d, want %d (slug would be empty)", rc, exitUsage)
+	}
+	// Old path is still there — retitle aborted cleanly.
+	if _, err := os.Stat(filepath.Join(root, "work", "gaps", "G-0001-first-gap.md")); err != nil {
+		t.Errorf("original gap path lost after rejected retitle: %v", err)
 	}
 }
 
