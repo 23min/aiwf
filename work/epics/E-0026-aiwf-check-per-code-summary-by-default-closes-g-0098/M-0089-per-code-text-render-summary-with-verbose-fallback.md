@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: aiwf check --help documents --verbose
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: cmd/aiwf/completion_drift_test.go passes
       status: open
