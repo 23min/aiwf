@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_222 entities · 0 errors · 180 warnings · run `aiwf check` for details_
+_222 entities · 0 errors · 178 warnings · run `aiwf check` for details_
 
 > Sweep pending: 177 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -106,8 +106,6 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | G-0099 | work/gaps/G-0099-orchestration-design-s-worktree-isolation-depends-on-agent-kwarg-honor-materialisation-should-be-a-parent-side-precondition-git-worktree-add-check-git-worktree-list-invoke-agent-with-path-so-isolation-does-not-depend-on-llm-harness-behavior.md | G-0099 body section \`## What's missing\` is empty |
-| entity-body-empty | G-0099 | work/gaps/G-0099-orchestration-design-s-worktree-isolation-depends-on-agent-kwarg-honor-materialisation-should-be-a-parent-side-precondition-git-worktree-add-check-git-worktree-list-invoke-agent-with-path-so-isolation-does-not-depend-on-llm-harness-behavior.md | G-0099 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | entity ADR-0002 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0001 | work/epics/E-0001-foundations-and-aiwf-check/M-0001-session-1-deliverable-aiwf-check-end-to-end.md | entity M-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0001 | work/epics/E-0001-foundations-and-aiwf-check/epic.md | entity E-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -290,9 +288,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089 in_progress -> done |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0099 'Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior' |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 --phase green -> done |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 --phase red -> green |
 
