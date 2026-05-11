@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle D-0001 -> 'entity-body-empty treats sub-headings as content under top-level sections' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0097 -> 'Test-suite wall time dominated by serial execution and per-test setup' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle ADR-0009 -> 'Orchestration substrate: substrate-vs-driver split with trailer-only events' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0073 -> 'depends_on restricted to milestone→milestone; cross-kind blocking via body prose' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle E-0028 -> 'Start-epic ritual: sovereign activation with preflight + delegation' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0059 -> 'Branch model: no canonical entity-hierarchy-to-git-branches mapping' |
 
