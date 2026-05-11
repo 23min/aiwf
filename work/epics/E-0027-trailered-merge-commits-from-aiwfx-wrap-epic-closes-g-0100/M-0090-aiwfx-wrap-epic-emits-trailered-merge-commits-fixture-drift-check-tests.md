@@ -13,6 +13,10 @@ acs:
       title: Fixture body prescribes the trailered-merge sequence.
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: Drift-check test compares the fixture vs. local marketplace cache.
+      status: open
+      tdd_phase: red
 ---
 
 # M-0090 — `aiwfx-wrap-epic` emits trailered merge commits; fixture + drift-check tests
@@ -115,4 +119,6 @@ Intended landing zone:
 ### AC-1 — Fixture SKILL.md exists at the canonical authoring location.
 
 ### AC-2 — Fixture body prescribes the trailered-merge sequence.
+
+### AC-3 — Drift-check test compares the fixture vs. local marketplace cache.
 
