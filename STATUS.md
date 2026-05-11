@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_247 entities · 0 errors · 7 warnings · run `aiwf check` for details_
+_247 entities · 0 errors · 8 warnings · run `aiwf check` for details_
 
-> Sweep pending: 6 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 7 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -98,7 +98,6 @@ flowchart LR
 | G-0087 | No aiwf-show embedded skill | M-0074 |
 | G-0088 | Skill-coverage policy doesn't police plugin skills under aiwf-extensions/ | M-0079 |
 | G-0090 | M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests | M-0079 |
-| G-0091 | No preventive check for body-prose path-form refs to archive-moved entities |  |
 | G-0092 | No documented hierarchy of doc authority across docs/ |  |
 | G-0097 | Test-suite wall time dominated by serial execution and per-test setup |  |
 | G-0099 | Worktree isolation must be a parent-side precondition, not an Agent kwarg honor |  |
@@ -120,6 +119,7 @@ flowchart LR
 | terminal-entity-not-archived | M-0097 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0097-close-m-0094-95-96-verification-seams-m-0095-automation-audit-chokepoint-and-ac-5-drift-comparator.md | entity M-0097 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0028 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/epic.md | entity E-0028 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0063 | work/gaps/G-0063-no-start-epic-ritual.md | entity G-0063 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | G-0091 | work/gaps/G-0091-no-preventive-check-body-path-refs-to-archive.md | entity G-0091 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 

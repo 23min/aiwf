@@ -1,7 +1,9 @@
 ---
 id: G-0091
 title: No preventive check for body-prose path-form refs to archive-moved entities
-status: open
+status: addressed
+addressed_by_commit:
+    - abf788f
 ---
 Body-prose markdown links that target entity files by path (e.g., `[ADR-0004](../adr/ADR-0004-uniform-archive-…md)` rather than the id-form `ADR-0004`) are brittle. When the target archives — moves from `work/<kind>/` to `work/<kind>/archive/` per ADR-0004 — the link breaks. There is no `aiwf check` rule that catches this preventively; the failure surfaces only when CI runs `link-check.yml` (lychee) on the next push, after the break has already shipped.
 
