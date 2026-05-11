@@ -111,7 +111,7 @@ flowchart LR
 | G-0076 | CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main |  |
 | G-0077 | Post-promotion working paper (aiwf's thesis) not yet written |  |
 | G-0078 | No priority field on entities; backlog isn't filterable or sortable by importance |  |
-| G-0079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation; M-0076 added the verb but the plugin lives in ai-workflow-rituals upstream | M-0076 |
+| G-0079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation | M-0076 |
 | G-0080 | Wide-table verbs wrap mid-row and break column scan; no TTY-aware sizing, glyph palette, or truncation surface | M-0076 |
 | G-0081 | aiwf rename does not pre-flight trunk-collision check | E-0021 |
 | G-0082 | Planning closure should default-merge to main before implementation begins | E-0021 |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0092 -> 'No documented hierarchy of doc authority across docs/' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0063 -> 'No defined start-epic ritual; activation is bare FSM flip today' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0090 -> 'M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0087 -> 'No aiwf-show embedded skill' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0091 -> 'No preventive check for body-prose path-form refs to archive-moved entities' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0070 -> 'aiwf doctor lacks --format=json envelope' |
 
