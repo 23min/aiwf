@@ -72,3 +72,42 @@ The rule fires only on the `epic / proposed → active` edge. Other epic transit
 
 The rule is scoped to `entity.KindEpic`. Non-human actors invoking promote on other kinds — milestone (`draft → in_progress`), contract (`proposed → active`), gap (`open → addressed`), ADR (`proposed → accepted`), decision — are not blocked by this rule. Table-driven test covering each non-epic kind reaching its respective active/accepted/in_progress/addressed state with a non-human actor; asserts no rule-fired error (other unrelated errors are tolerated; we assert the absence of the sovereign-act message).
 
+## Work log
+
+<!-- Phase timeline lives in `aiwf history M-0095/AC-<N>`; the entries here capture
+     one-line outcomes + the implementing commit's SHA (filled at wrap when the
+     implementation lands as a single commit). -->
+
+### AC-1 — non-human actor promoting epic to active is refused with override-hint error
+
+Rule implemented as the `requireHumanActorForEpicActivation(kind, newStatus, actor)` helper in `internal/verb/promote_sovereign_epic_active.go`; wired into `verb.Promote`'s `!force` block alongside the existing `requireResolverForResolutionClass` check. Error message names the act as "sovereign", references the `human/` requirement, and points at the `--force --reason "..."` override — substring assertions cover each on the test side. · commit <wrap> · tests 1/1.
+
+### AC-2 — human actor promoting epic to active succeeds without override
+
+End-to-end test (`r.must(verb.Promote(...))`) confirms the happy default path: human actor + `proposed → active` lands cleanly with no flags. The runner's `must` helper applies the plan, so trailer well-formedness rides through `verb.Apply` and is implicitly asserted by the absence of errors there. · commit <wrap> · tests 1/1.
+
+### AC-3 — rule scoped to proposed-to-active edge; other epic transitions unaffected
+
+Table-driven test across three non-`proposed → active` epic transitions (`proposed → cancelled`, `active → done`, `active → cancelled`), each driven by a non-human actor. Asserts the rule's tell-tale "sovereign" substring is absent from any returned error. Covers the `kind == epic && newStatus == active` guard's false arm. · commit <wrap> · tests 3/3.
+
+### AC-4 — rule scoped to epic kind; other kinds unaffected by sovereign-act rule
+
+Table-driven test across four non-epic kinds — milestone, contract, gap, ADR — each invoked by a non-human actor on their kind-appropriate transition. The contract case is the most adjacent (contract also has `proposed → active`), so it's a load-bearing assertion that the rule's kind guard is correct. · commit <wrap> · tests 4/4.
+
+## Decisions made during implementation
+
+- **No new flag.** The rule reuses the existing `actor` parameter on `verb.Promote` (already derived from `git config user.email` per the kernel's identity convention). No new CLI flag, no new `verb.PromoteOptions` field. The override path is the existing `--force --reason "..."` machinery, which already requires `human/` actors via provenance coherence — so non-human + `--force` continues to fail at the coherence chokepoint, and humans + `--force` continue to work. This means the rule's chokepoint composes cleanly with the existing sovereign-act surface (`--force`, `--audit-only`) rather than inventing a parallel mechanism.
+- **Helper file, not inline.** The check could have inlined in `promote.go` as three lines, but a separate file (`promote_sovereign_epic_active.go`) keeps the rule's documentation (G-0063 reference, scope conditions, override semantics) co-located with the implementation and matches the existing pattern (`promote_resolver_enforcement_test.go`, `auditonly.go`, etc. — verb-package files scoped to one concern).
+
+## Validation
+
+(pasted at wrap)
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (filled at wrap)
+
