@@ -98,6 +98,93 @@ func TestIDsUnique_TrunkSamePath_NoFinding(t *testing.T) {
 	}
 }
 
+// TestIDsUnique_ArchiveSweepNotCollision pins G-0101: the
+// trunk-collision arm must not fire when the branch path is the
+// archive form and the trunk path is the active form of the same id.
+// That divergence is the legitimate shape produced by a first
+// `aiwf archive --apply` (ADR-0004 historical migration) — the
+// branch carries the swept paths, trunk has the pre-sweep active
+// paths, and the rule must treat the pair as a rename, not a
+// duplicate. Otherwise every consumer running the migration produces
+// N false-positive errors and the pre-push hook rejects the
+// otherwise-legal sweep commit.
+//
+// One case per ADR-0004 storage-table row (flat-file kinds and the
+// directory-shaped epic), plus the symmetric reverse (active branch,
+// archive trunk — unlikely under the no-reverse-sweep design but the
+// normalization is symmetric and worth pinning).
+func TestIDsUnique_ArchiveSweepNotCollision(t *testing.T) {
+	cases := []struct {
+		desc      string
+		entity    *entity.Entity
+		trunkPath string
+	}{
+		{
+			desc:      "gap: branch is archived, trunk is active",
+			entity:    &entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/archive/G-0001-foo.md"},
+			trunkPath: "work/gaps/G-0001-foo.md",
+		},
+		{
+			desc:      "decision: branch is archived, trunk is active",
+			entity:    &entity.Entity{ID: "D-0007", Kind: entity.KindDecision, Path: "work/decisions/archive/D-0007-bar.md"},
+			trunkPath: "work/decisions/D-0007-bar.md",
+		},
+		{
+			desc:      "ADR: branch is archived, trunk is active",
+			entity:    &entity.Entity{ID: "ADR-0002", Kind: entity.KindADR, Path: "docs/adr/archive/ADR-0002-baz.md"},
+			trunkPath: "docs/adr/ADR-0002-baz.md",
+		},
+		{
+			desc:      "epic (directory): branch is archived, trunk is active",
+			entity:    &entity.Entity{ID: "E-0010", Kind: entity.KindEpic, Path: "work/epics/archive/E-0010-done/epic.md"},
+			trunkPath: "work/epics/E-0010-done/epic.md",
+		},
+		{
+			desc:      "milestone-rides-with-epic: branch is archived, trunk is active",
+			entity:    &entity.Entity{ID: "M-0020", Kind: entity.KindMilestone, Path: "work/epics/archive/E-0010-done/M-0020-foo.md"},
+			trunkPath: "work/epics/E-0010-done/M-0020-foo.md",
+		},
+		{
+			desc:      "symmetric reverse: branch is active, trunk is archived (unusual but supported by normalization)",
+			entity:    &entity.Entity{ID: "G-0050", Kind: entity.KindGap, Path: "work/gaps/G-0050-reactivated.md"},
+			trunkPath: "work/gaps/archive/G-0050-reactivated.md",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+			tr := makeTree(tc.entity)
+			tr.TrunkIDs = []trunk.ID{
+				{Kind: tc.entity.Kind, ID: tc.entity.ID, Path: tc.trunkPath},
+			}
+			got := idsUnique(tr)
+			if len(got) != 0 {
+				t.Errorf("expected no findings (archive sweep rename, not collision), got %+v", got)
+			}
+		})
+	}
+}
+
+// TestIDsUnique_NonArchivePathDivergenceStillFires pins the negative
+// case: when the path divergence is NOT a recognized archive shape
+// (e.g., two entities with the same id at unrelated paths), the rule
+// must still fire. Otherwise G-0101's fix would mask the original
+// G37 trunk-collision case it was designed to catch.
+func TestIDsUnique_NonArchivePathDivergenceStillFires(t *testing.T) {
+	tr := makeTree(
+		&entity.Entity{ID: "G-0035", Kind: entity.KindGap, Path: "work/gaps/G-0035-renamed-slug.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-0035", Path: "work/gaps/G-0035-original-slug.md"},
+	}
+	got := idsUnique(tr)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 finding (non-archive path divergence is still a collision), got %d: %+v", len(got), got)
+	}
+	if got[0].Subcode != "trunk-collision" {
+		t.Errorf("Subcode = %q, want trunk-collision", got[0].Subcode)
+	}
+}
+
 func TestIDsUnique_TrunkOnlyID_NoFinding(t *testing.T) {
 	// Trunk has G-007; the working tree doesn't. That is not a
 	// collision — the working tree just hasn't pulled, or has elected

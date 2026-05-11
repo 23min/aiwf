@@ -629,3 +629,41 @@ func TestIsArchivedPath(t *testing.T) {
 		})
 	}
 }
+
+// TestActiveFormOf pins G-0101's path-normalization helper. The
+// helper strips a recognized per-kind `archive/` segment so callers
+// can compare branch and trunk paths across a sweep rename.
+func TestActiveFormOf(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   string
+		want string
+	}{
+		// Archive → active for every ADR-0004 storage-table row.
+		{"epic dir", "work/epics/archive/E-0001-foo/epic.md", "work/epics/E-0001-foo/epic.md"},
+		{"milestone rides with epic", "work/epics/archive/E-0001-foo/M-0001-bar.md", "work/epics/E-0001-foo/M-0001-bar.md"},
+		{"gap flat-file", "work/gaps/archive/G-0001-baz.md", "work/gaps/G-0001-baz.md"},
+		{"decision flat-file", "work/decisions/archive/D-0001-qux.md", "work/decisions/D-0001-qux.md"},
+		{"contract dir", "work/contracts/archive/C-0001-orders/contract.md", "work/contracts/C-0001-orders/contract.md"},
+		{"ADR flat-file", "docs/adr/archive/ADR-0001-fmt.md", "docs/adr/ADR-0001-fmt.md"},
+
+		// Idempotent: already-active paths unchanged.
+		{"already active epic", "work/epics/E-0001-foo/epic.md", "work/epics/E-0001-foo/epic.md"},
+		{"already active gap", "work/gaps/G-0001-baz.md", "work/gaps/G-0001-baz.md"},
+		{"already active ADR", "docs/adr/ADR-0001-fmt.md", "docs/adr/ADR-0001-fmt.md"},
+
+		// Non-recognized `archive` segment — pass through unchanged.
+		{"archive in unrelated parent", "work/notes/archive/x.md", "work/notes/archive/x.md"},
+		{"archive at root", "archive/x.md", "archive/x.md"},
+
+		// Empty.
+		{"empty", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := ActiveFormOf(tt.in); got != tt.want {
+				t.Errorf("ActiveFormOf(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
+	}
+}

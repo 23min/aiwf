@@ -701,3 +701,24 @@ func IsArchivedPath(relPath string) bool {
 	stripped := stripArchiveSegment(parts, "")
 	return len(stripped) != len(parts)
 }
+
+// ActiveFormOf returns the active-shape repo-relative path for
+// relPath, stripping a recognized per-kind `archive/` segment when
+// present. Returns relPath unchanged when it is already active-shape
+// (or doesn't classify as any ADR-0004 archive form). Idempotent.
+//
+// Use this when comparing a branch path to a trunk path across a
+// potential archive sweep: an entity at `work/gaps/archive/G-0010.md`
+// on branch and `work/gaps/G-0010.md` on trunk shares the same active
+// form, so the path divergence is a sweep rename, not a collision.
+//
+// The path is forward-slash, repo-relative — the same shape stored on
+// Entity.Path by tree.Load and emitted by tree.TrunkIDs.
+func ActiveFormOf(relPath string) string {
+	parts := strings.Split(filepath.ToSlash(relPath), "/")
+	stripped := stripArchiveSegment(parts, "")
+	if len(stripped) == len(parts) {
+		return relPath
+	}
+	return strings.Join(stripped, "/")
+}

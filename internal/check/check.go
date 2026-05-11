@@ -237,7 +237,16 @@ func idsUnique(t *tree.Tree) []Finding {
 		if !ok {
 			continue
 		}
-		if filepath.ToSlash(existing.Path) == tid.Path {
+		branchPath := filepath.ToSlash(existing.Path)
+		if branchPath == tid.Path {
+			continue
+		}
+		// G-0101: an archive sweep (ADR-0004) renames an entity from
+		// `<kind>/<id>.md` on trunk to `<kind>/archive/<id>.md` on the
+		// branch carrying the sweep. The paths differ, but they're the
+		// same entity — not a collision. Normalize both sides to active
+		// form and re-compare; equal active forms = sweep rename.
+		if entity.ActiveFormOf(branchPath) == entity.ActiveFormOf(tid.Path) {
 			continue
 		}
 		findings = append(findings, Finding{
