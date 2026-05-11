@@ -25,6 +25,10 @@ acs:
       title: aiwf check --help documents --verbose
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: cmd/aiwf/completion_drift_test.go passes
+      status: open
+      tdd_phase: red
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
@@ -130,4 +134,6 @@ Intended landing zone:
 ### AC-4 — JSON envelope is unchanged
 
 ### AC-5 — aiwf check --help documents --verbose
+
+### AC-6 — cmd/aiwf/completion_drift_test.go passes
 
