@@ -257,7 +257,7 @@ Land the `aiwf archive` verb and the convergence machinery so terminal-status en
 | Milestone | Title | Status |
 |---|---|---|
 | M-0084 | Loader and id resolver span active and archive directories | done |
-| M-0085 | aiwf archive verb (dry-run default, --apply, --kind) | in_progress |
+| M-0085 | aiwf archive verb (dry-run default, --apply, --kind) | done |
 | M-0086 | Three new archive check-rule findings and existing-rule scoping | done |
 | M-0087 | Display surfaces for archived entities (status, show, render) | in_progress |
 | M-0088 | Configuration knob, embedded skill, and CLAUDE.md amendment | in_progress |
