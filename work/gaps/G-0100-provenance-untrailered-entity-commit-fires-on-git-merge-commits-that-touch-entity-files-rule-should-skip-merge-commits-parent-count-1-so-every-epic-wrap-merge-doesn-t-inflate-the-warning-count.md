@@ -1,6 +1,6 @@
 ---
 id: G-0100
-title: provenance-untrailered-entity-commit fires on git merge commits that touch entity files; rule should skip merge commits (parent count > 1) so every epic-wrap merge doesn't inflate the warning count
+title: aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing
 status: open
 discovered_in: M-0089
 ---
