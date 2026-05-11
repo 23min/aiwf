@@ -174,20 +174,16 @@ func Render(opts Options) (Result, error) {
 		}
 	}
 
-	// Per-kind index pages: active-default and all-set. M-0087/AC-6
-	// (active page reachable from home nav) and AC-7 (all.html with
-	// nav back to active-default). One iteration emits both pages
-	// per kind; the resolver branches on includeArchived to filter
-	// entries. Epics participate via the existing index.html / a
-	// dedicated epics-all.html page since epics are listed inline
-	// on the overview today.
+	// Per-kind index pages: one canonical file per kind. The
+	// pre-migration active/all-pair design (M-0087/AC-6 + AC-7)
+	// collapses to a single emit under M-0099/AC-1; the chip strip
+	// added in M-0099/AC-2 + AC-3 handles the active-vs-all view
+	// toggle via :target-driven CSS, no second file needed.
 	for _, kindPair := range kindIndexKinds() {
-		for _, includeArchived := range []bool{false, true} {
-			if err := renderKindIndex(opts, tmpls, resolver, kindPair.plural, includeArchived); err != nil {
-				return Result{}, err
-			}
-			count++
+		if err := renderKindIndex(opts, tmpls, resolver, kindPair.plural, false); err != nil {
+			return Result{}, err
 		}
+		count++
 	}
 
 	return Result{

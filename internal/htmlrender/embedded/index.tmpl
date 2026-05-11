@@ -40,7 +40,6 @@
 {{- if or .ActiveCount .ArchivedCount}}
 <span class="count">({{.ActiveCount}} active{{if .ArchivedCount}}, {{.ArchivedCount}} archived{{end}})</span>
 {{- end}}
-<a class="all-link" href="{{.AllFileName}}">all</a>
 </li>
 {{- end}}
 </ul>

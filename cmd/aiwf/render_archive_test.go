@@ -88,67 +88,19 @@ func TestRender_PerKindIndexShowsActiveOnly(t *testing.T) {
 	}
 }
 
-// TestRender_PerKindIndexLinksToAllPage — M-0087/AC-6: the per-kind
-// active-default index page carries a plain static <a href> link to
-// the corresponding all-set page. Structural assertion: parse the
-// page, scope to <main>, find an anchor with href=gaps-all.html.
-func TestRender_PerKindIndexLinksToAllPage(t *testing.T) {
-	root := setupArchiveRenderFixture(t)
-	out := filepath.Join(t.TempDir(), "site")
-	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
-
-	gapsHTML := readFileT(t, filepath.Join(out, "gaps.html"))
-	// The all-set escape-hatch link lives near the page's H1 in
-	// the <main> body so the user finds it at the top of the
-	// listing.
-	listing := htmlMain(gapsHTML)
-	if listing == "" {
-		t.Fatalf("gaps.html missing <main> body:\n%s", gapsHTML)
-	}
-	if !strings.Contains(listing, `href="gaps-all.html"`) {
-		t.Errorf("gaps.html <main> missing all-set escape-hatch link `href=\"gaps-all.html\"`:\n%s", listing)
-	}
-}
-
-// TestRender_KindAllPageShowsActiveAndArchived — M-0087/AC-7: the
-// gaps-all.html page lists both active and archived gaps in one
-// scope. Structural assertion: parse the page, scope to <main>,
-// assert both ids appear together.
-func TestRender_KindAllPageShowsActiveAndArchived(t *testing.T) {
-	root := setupArchiveRenderFixture(t)
-	out := filepath.Join(t.TempDir(), "site")
-	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
-
-	allHTML := readFileT(t, filepath.Join(out, "gaps-all.html"))
-	listing := htmlMain(allHTML)
-	if listing == "" {
-		t.Fatalf("gaps-all.html missing <main> body:\n%s", allHTML)
-	}
-	for _, id := range []string{"G-0001", "G-0099"} {
-		if !strings.Contains(listing, id) {
-			t.Errorf("gaps-all.html <main> missing id %s:\n%s", id, listing)
-		}
-	}
-}
-
-// TestRender_KindAllPageLinksBackToActiveDefault — M-0087/AC-7: the
-// all-set page links back to the active-default per-kind page so
-// the navigation between the two views is reachable in both
-// directions. Structural assertion on the <main> region's anchor.
-func TestRender_KindAllPageLinksBackToActiveDefault(t *testing.T) {
-	root := setupArchiveRenderFixture(t)
-	out := filepath.Join(t.TempDir(), "site")
-	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
-
-	allHTML := readFileT(t, filepath.Join(out, "gaps-all.html"))
-	listing := htmlMain(allHTML)
-	if listing == "" {
-		t.Fatalf("gaps-all.html missing <main> body:\n%s", allHTML)
-	}
-	if !strings.Contains(listing, `href="gaps.html"`) {
-		t.Errorf("gaps-all.html <main> missing back-link `href=\"gaps.html\"`:\n%s", listing)
-	}
-}
+// (Removed under M-0099/AC-1: TestRender_PerKindIndexLinksToAllPage,
+//  TestRender_KindAllPageShowsActiveAndArchived,
+//  TestRender_KindAllPageLinksBackToActiveDefault — these pinned the
+//  pre-migration active/all-pair design where `gaps-all.html` was a
+//  separate file with an escape-hatch link between the two pages.
+//  E-0029/M-0099 collapses that to a single emitted file per kind
+//  with a :target-driven chip filter handling the active-vs-all
+//  toggle client-side; the new behavior is asserted in
+//  e2e/playwright/tests/render.spec.ts under the
+//  `kind-index — file emission` and `kind-index — chip filter`
+//  describes. The branch-coverage of the resolver's KindIndexData
+//  with includeArchived=true is preserved by AC-3's behavior tests
+//  once they land.)
 
 // TestRender_PerEntityPageRendersForArchivedEntity — M-0087/AC-8:
 // per-entity HTML pages render regardless of status — deep links
