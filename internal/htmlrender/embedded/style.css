@@ -98,7 +98,11 @@ body {
  * main (no JS hamburger needed). */
 .layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  /* Sidebar column: 285px (~30% wider than the original 220px;
+   * M-0098/AC-2). Wide enough to host the brand mark, top-section
+   * entries, and the planned gaps-block with active count from
+   * M-0100 without text-overflow on the longest epic titles. */
+  grid-template-columns: 285px 1fr;
   gap: 1.5rem;
   align-items: start;
 }
