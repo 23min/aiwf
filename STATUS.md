@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_239 entities · 0 errors · 8 warnings · run `aiwf check` for details_
+_239 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 > Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -133,11 +133,6 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-0096/AC-1 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | M-0096/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-0096/AC-2 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | M-0096/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-0096/AC-3 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | M-0096/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-0096/AC-4 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | M-0096/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-0096/AC-5 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | M-0096/AC-5 body under \`### AC-5\` is empty |
 | terminal-entity-not-archived | M-0094 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0094-add-aiwf-check-finding-epic-active-no-drafted-milestones.md | entity M-0094 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0095 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md | entity M-0095 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
@@ -145,9 +140,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-5 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-5 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-5 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-4 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-4 --phase green -> done |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-4 --phase red -> green |
 
