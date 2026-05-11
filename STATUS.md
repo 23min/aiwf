@@ -150,9 +150,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | ai/claude | edit-body | aiwf edit-body M-0100 |
 | 2026-05-12 | ai/claude | retitle | aiwf retitle M-0100 -> 'Sidebar adds gap entry + epic archive chip filter' |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0099 in_progress -> done |
 | 2026-05-12 | ai/claude | edit-body | aiwf edit-body M-0099 |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-4 open -> met |
-| 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-4 --phase green -> done |
 
