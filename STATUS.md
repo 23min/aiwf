@@ -141,9 +141,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | rename | aiwf rename G-0073 slug -> depends-on-milestone-only-no-cross-kind |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0070 slug -> doctor-no-format-json |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0069 slug -> init-plugins-nudge-hardcodes-user-scope |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0067 slug -> wf-tdd-cycle-llm-honor-system-advisory |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0063 slug -> no-start-epic-ritual |
-| 2026-05-11 | human/peter | rename | aiwf rename G-0060 slug -> patch-ritual-loosely-defined |
 
