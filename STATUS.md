@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_262 entities · 0 errors · 7 warnings · run `aiwf check` for details_
+_262 entities · 0 errors · 8 warnings · run `aiwf check` for details_
 
-> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -153,7 +153,6 @@ flowchart LR
 | G-0112 | STATUS.md pre-commit regen produces merge conflicts on a derived artifact |  |
 | G-0113 | rendered HTML site has no publish path; only viewable via local aiwf render |  |
 | G-0114 | HTML render gap surface: status and archive state not glanceable from sidebar |  |
-| G-0115 | aiwf render roadmap --write rewrites entity refs in epic prose to broken paths |  |
 | G-0116 | aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos | E-0029 |
 
 ## Warnings
@@ -166,14 +165,15 @@ flowchart LR
 | entity-body-empty | M-0105 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0105-aiwfx-start-milestone-sequencing-alignment.md | M-0105 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-0106 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0106-kernel-finding-isolation-escape-closes-g-0099.md | M-0106 body section \`## Acceptance criteria\` is empty |
 | terminal-entity-not-archived | G-0059 | work/gaps/G-0059-branch-model-no-canonical-hierarchy-mapping.md | entity G-0059 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | G-0115 | work/gaps/G-0115-aiwf-render-roadmap-write-rewrites-entity-refs-in-epic-prose-to-broken-paths.md | entity G-0115 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body E-0030 |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0106 |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0105 |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0104 |
-| 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0103 |
 

@@ -1,7 +1,9 @@
 ---
 id: G-0115
 title: aiwf render roadmap --write rewrites entity refs in epic prose to broken paths
-status: open
+status: addressed
+addressed_by_commit:
+    - b285d34
 ---
 ## What's missing
 
