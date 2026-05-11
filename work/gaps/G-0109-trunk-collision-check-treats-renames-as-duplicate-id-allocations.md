@@ -1,9 +1,11 @@
 ---
 id: G-0109
 title: trunk-collision check treats renames as duplicate id allocations
-status: open
+status: addressed
 prior_ids:
     - G-0107
+addressed_by_commit:
+    - 3361c5e
 ---
 # Problem
 
