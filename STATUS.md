@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_228 entities · 0 errors · 4 warnings · run `aiwf check` for details_
+_228 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 > Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -108,17 +108,15 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | G-0102 | work/gaps/G-0102-entity-titles-uncapped-long-titles-break-filesystem-paths-status-html-layout-and-cli-table-columns.md | G-0102 body section \`## What's missing\` is empty |
-| entity-body-empty | G-0102 | work/gaps/G-0102-entity-titles-uncapped-long-titles-break-filesystem-paths-status-html-layout-and-cli-table-columns.md | G-0102 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | entity G-0101 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0102 'Entity titles uncapped; long titles break filesystem paths, status HTML layout, and CLI table columns' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0101 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0101 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0009 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0027 |
 
