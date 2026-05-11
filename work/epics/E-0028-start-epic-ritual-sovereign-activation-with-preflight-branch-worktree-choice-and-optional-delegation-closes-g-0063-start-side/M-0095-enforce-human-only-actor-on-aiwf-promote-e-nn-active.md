@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: human actor promoting epic to active succeeds without override
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: rule scoped to proposed-to-active edge; other epic transitions unaffected
