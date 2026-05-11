@@ -135,9 +135,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0010 |
 | 2026-05-11 | human/peter | add | aiwf add adr ADR-0010 'Branch model: ritualized work on branches, author iteration on main' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 5 entities into archive/ (5 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0079 open -> addressed |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0076 open -> addressed |
 

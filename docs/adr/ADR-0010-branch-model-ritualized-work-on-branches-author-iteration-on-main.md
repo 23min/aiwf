@@ -37,9 +37,9 @@ We adopt a **two-tier branch model with author override**:
 
 ### Tier 1 — Main (default surface)
 
-The following land directly on `main`:
+The following land on `main` by default, when no ritual branch context is active (Tier 2's umbrella rule supersedes when one is):
 
-- **Initial entity creation** when no ritual branch is active: `aiwf add epic`, `aiwf add milestone`, `aiwf add gap`, `aiwf add decision`, `aiwf add contract`, `aiwf add adr`, `aiwf add ac` (when not under an active milestone branch).
+- **Initial entity creation:** `aiwf add epic`, `aiwf add milestone`, `aiwf add gap`, `aiwf add decision`, `aiwf add contract`, `aiwf add adr`, `aiwf add ac`.
 - **State-announcement transitions that *open* a scope:** `aiwf promote E-NN proposed → active`, `aiwf authorize E-NN --to ai/<agent>`. These commits announce to every operator and every parallel session that the project's state has changed; they must be visible from main *before* any ritual branch is cut against the entity.
 - **Author iteration:** the human author can commit anything on `main` — typing, focused fixes, one-off mutations they choose not to ritualize. The author's discretion governs per-case whether to elevate a change to a ritual (`wf-patch`) or land it directly. This is the sovereign-override surface and is self-policed (no mechanical detection of *"this should have been a branch"*).
 
@@ -70,7 +70,7 @@ This sequencing is exactly what G-0116 names as broken in today's `aiwfx-start-e
 
 ### AI chokepoint
 
-AI-actor multi-commit work **requires** a ritual branch context. The kernel enforces this at the `aiwf authorize` surface: opening an autonomous scope on an AI agent requires a named branch (or auto-derives one), and the scope-branch coupling is recorded in the commit trailer. The exact mechanism (verb-level `--branch` flag, auto-creation, kernel finding) is a planning question downstream of this ADR — see G-0059's ladder (steps 2–5) for the surfaces under consideration.
+AI-actor multi-commit work **requires** a ritual branch context. The kernel will enforce this at the `aiwf authorize` surface: opening an autonomous scope on an AI agent will require a named branch context, with the scope-branch coupling recorded in the commit trailer. The exact mechanism (verb-level `--branch` flag, auto-creation, kernel finding) is a planning question downstream of this ADR — see G-0059's ladder (steps 2–5) for the surfaces under consideration.
 
 ### Human override
 
