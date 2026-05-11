@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0026 — aiwf check per-code summary by default (closes G-0098) _(proposed)_
 
-- **M-0089** — Per-code text-render summary with --verbose fallback _(draft)_ — tdd: required
+- → **M-0089** — Per-code text-render summary with --verbose fallback _(in_progress)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_0026["E-0026<br/>aiwf check per-code summary by default (closes G-0098)"]:::epic_proposed
-  M_0089["M-0089<br/>Per-code text-render summary with --verbose fallback"]:::ms_draft
+  M_0089["M-0089<br/>Per-code text-render summary with --verbose fallback"]:::ms_in_progress
   E_0026 --> M_0089
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -288,9 +288,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0026 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0089 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0089 'Per-code text-render summary with --verbose fallback' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0026 |
-| 2026-05-11 | human/peter | add | aiwf add epic E-0026 'aiwf check per-code summary by default (closes G-0098)' |
 
