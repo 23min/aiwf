@@ -1,7 +1,9 @@
 ---
 id: G-0105
 title: TestProvenanceCheck_UntrailedEntityCommit asserts obsolete warning-severity substring format
-status: open
+status: addressed
+addressed_by_commit:
+    - 9c58b5a
 ---
 # Problem
 
