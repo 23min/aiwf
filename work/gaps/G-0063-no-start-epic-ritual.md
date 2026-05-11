@@ -1,7 +1,9 @@
 ---
 id: G-0063
 title: No defined start-epic ritual; activation is bare FSM flip today
-status: open
+status: addressed
+addressed_by:
+    - E-0028
 ---
 
 ## What's missing

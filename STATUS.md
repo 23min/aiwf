@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_245 entities · 0 errors · 5 warnings · run `aiwf check` for details_
+_245 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
-> Sweep pending: 4 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 5 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -103,7 +103,6 @@ flowchart LR
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
 | G-0059 | Branch model: no canonical entity-hierarchy-to-git-branches mapping | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
-| G-0063 | No defined start-epic ritual; activation is bare FSM flip today |  |
 | G-0067 | wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard | M-0066 |
 | G-0068 | Discoverability policy misses dynamic finding subcodes | M-0066 |
 | G-0069 | aiwf init's plugins nudge hardcodes user-scope CLI install form | M-0070 |
@@ -142,14 +141,15 @@ flowchart LR
 | terminal-entity-not-archived | M-0095 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md | entity M-0095 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0096 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | entity M-0096 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0097 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0097-close-m-0094-95-96-verification-seams-m-0095-automation-audit-chokepoint-and-ac-5-drift-comparator.md | entity M-0097 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | G-0063 | work/gaps/G-0063-no-start-epic-ritual.md | entity G-0063 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0111 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0111 'Wrap-side ritual: scope ends before done, human-only on done, wrap-epic update' |
 | 2026-05-11 | human/peter | implement | feat(aiwfx): close M-0094/95/96 verification seams — audit chokepoint and drift comparator (M-0097) |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0097 in_progress -> done |
-| 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 
