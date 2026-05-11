@@ -71,7 +71,10 @@ func TestRitualsPluginInstalled_OtherPluginsOnly(t *testing.T) {
 }
 
 // TestPrintRitualsSuggestion_ContainsKeyLines: the suggestion output
-// names both plugins and the marketplace add command.
+// names the marketplace add command, both recommended plugins, and
+// steers the operator to the interactive `/plugin` menu at PROJECT
+// scope (per G-0069 — the CLI install form defaults to user scope and
+// doesn't satisfy `aiwf doctor`'s recommended-plugins check).
 func TestPrintRitualsSuggestion_ContainsKeyLines(t *testing.T) {
 	out := captureStdout(t, func() {
 		printRitualsSuggestion()
@@ -80,13 +83,37 @@ func TestPrintRitualsSuggestion_ContainsKeyLines(t *testing.T) {
 
 	for _, want := range []string{
 		"/plugin marketplace add 23min/ai-workflow-rituals",
-		"/plugin install aiwf-extensions@ai-workflow-rituals",
-		"/plugin install wf-rituals@ai-workflow-rituals",
+		"aiwf-extensions@ai-workflow-rituals",
+		"wf-rituals@ai-workflow-rituals",
 		"Recommended next step",
-		"Optional",
+		"Discover tab",
+		"PROJECT scope",
+		"aiwf doctor",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("output missing %q:\n%s", want, got)
+		}
+	}
+}
+
+// TestPrintRitualsSuggestion_DoesNotRecommendCLIInstallForm pins
+// G-0069's fix: the nudge must not direct operators to the CLI install
+// form `/plugin install <name>@<marketplace>` because that form
+// defaults to user scope and leaves the recommended-plugins check
+// stuck warning. The fix is to steer operators to the interactive
+// menu instead.
+func TestPrintRitualsSuggestion_DoesNotRecommendCLIInstallForm(t *testing.T) {
+	out := captureStdout(t, func() {
+		printRitualsSuggestion()
+	})
+	got := string(out)
+
+	for _, forbidden := range []string{
+		"/plugin install aiwf-extensions@ai-workflow-rituals",
+		"/plugin install wf-rituals@ai-workflow-rituals",
+	} {
+		if strings.Contains(got, forbidden) {
+			t.Errorf("nudge still recommends user-scope CLI form %q (G-0069):\n%s", forbidden, got)
 		}
 	}
 }

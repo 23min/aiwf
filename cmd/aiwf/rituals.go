@@ -20,30 +20,45 @@ const ritualsMarketplaceName = "ai-workflow-rituals"
 
 // printRitualsSuggestion writes the "recommended next steps" block to
 // stdout. Used by `aiwf init` after a successful run, and by `aiwf
-// doctor` when no rituals plugin is detected. Two-tier: aiwf-extensions
-// is recommended (aiwf without it is a planning data store, not a
-// workflow); wf-rituals is optional (opinionated TDD/review/lint
-// rituals — bring your own if you prefer).
+// doctor` when no rituals plugin is detected.
+//
+// The nudge steers operators to the interactive `/plugin` menu (no
+// args) and asks them to install at PROJECT scope via the Discover
+// tab. The CLI form `claude /plugin install <name>@<marketplace>`
+// defaults to *user* scope, which does not satisfy `aiwf doctor`'s
+// `doctor.recommended_plugins` check (that check polls project-scope
+// installs only). Sending fresh operators down the CLI path leaves
+// them in a state where doctor keeps warning silently — closes
+// G-0069. The canonical procedure lives in CLAUDE.md's "Operator
+// setup" section.
 func printRitualsSuggestion() {
 	lines := []string{
 		"",
 		"→ Recommended next step",
 		"",
-		"In a Claude Code session, install the companion rituals plugin:",
+		"In a Claude Code session at this repo's root, add the marketplace and",
+		"then open the interactive plugin menu:",
 		"",
 		"  /plugin marketplace add " + ritualsMarketplaceSlug,
-		"  /plugin install aiwf-extensions@" + ritualsMarketplaceName,
+		"  /plugin                     (no args — opens the menu)",
 		"",
-		"This adds milestone-lifecycle skills and four role agents (planner, builder,",
-		"reviewer, deployer) that compose with aiwf for an end-to-end workflow.",
-		"Without it, aiwf is just the planning data layer — useful but bare.",
+		"In the menu, go to the Discover tab and install BOTH plugins at",
+		"PROJECT scope (not user scope — only project scope satisfies",
+		"`aiwf doctor`'s recommended-plugins check):",
 		"",
-		"→ Optional",
+		"  - aiwf-extensions@" + ritualsMarketplaceName,
+		"  - wf-rituals@" + ritualsMarketplaceName,
 		"",
-		"  /plugin install wf-rituals@" + ritualsMarketplaceName,
+		"Then verify with:",
 		"",
-		"Generic engineering rituals (TDD cycle, code review, doc-lint). Repo-agnostic.",
-		"Skip if you have your own.",
+		"  aiwf doctor",
+		"",
+		"Once both plugins are project-scope installed, the",
+		"`recommended-plugin-not-installed` warnings go silent.",
+		"",
+		"Note: the CLI form `claude /plugin install <name>@<marketplace>`",
+		"defaults to user scope and will not silence the doctor warnings —",
+		"use the interactive `/plugin` menu instead.",
 	}
 	for _, line := range lines {
 		// stdout, not stderr — these are user-facing recommendations.
