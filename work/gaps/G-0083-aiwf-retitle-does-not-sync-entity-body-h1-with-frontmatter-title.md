@@ -1,8 +1,10 @@
 ---
 id: G-0083
 title: aiwf retitle does not sync entity body H1 with frontmatter title
-status: open
+status: addressed
 discovered_in: E-0021
+addressed_by_commit:
+    - 20e40b7
 ---
 
 # G-0083 — aiwf retitle does not sync entity body H1 with frontmatter title

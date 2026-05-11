@@ -1,6 +1,8 @@
 # aiwf status — 2026-05-11
 
-_254 entities · 0 errors · 0 warnings_
+_254 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+
+> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -115,7 +117,6 @@ flowchart LR
 | G-0079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation | M-0076 |
 | G-0080 | Wide-table verbs wrap mid-row; no TTY-aware sizing or truncation | M-0076 |
 | G-0082 | Planning closure should default-merge to main before implementation begins | E-0021 |
-| G-0083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-0021 |
 | G-0087 | No aiwf-show embedded skill | M-0074 |
 | G-0088 | Skill-coverage policy doesn't police plugin skills under aiwf-extensions/ | M-0079 |
 | G-0090 | M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests | M-0079 |
@@ -134,7 +135,9 @@ flowchart LR
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| terminal-entity-not-archived | G-0083 | work/gaps/G-0083-aiwf-retitle-does-not-sync-entity-body-h1-with-frontmatter-title.md | entity G-0083 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
