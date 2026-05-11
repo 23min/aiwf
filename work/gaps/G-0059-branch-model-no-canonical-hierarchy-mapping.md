@@ -1,8 +1,10 @@
 ---
 id: G-0059
 title: 'Branch model: no canonical entity-hierarchy-to-git-branches mapping'
-status: open
+status: addressed
 discovered_in: M-0069
+addressed_by_commit:
+    - c0c8e18
 ---
 ## What's missing
 

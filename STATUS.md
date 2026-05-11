@@ -1,6 +1,8 @@
 # aiwf status — 2026-05-11
 
-_256 entities · 0 errors · 0 warnings_
+_256 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+
+> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -98,7 +100,6 @@ flowchart LR
 |----|-------|---------------|
 | G-0022 | Provenance model extension surface |  |
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
-| G-0059 | Branch model: no canonical entity-hierarchy-to-git-branches mapping | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
 | G-0067 | wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard | M-0066 |
 | G-0068 | Discoverability policy misses dynamic finding subcodes | M-0066 |
@@ -128,15 +129,17 @@ flowchart LR
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| terminal-entity-not-archived | G-0059 | work/gaps/G-0059-branch-model-no-canonical-hierarchy-mapping.md | entity G-0059 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | promote | aiwf promote ADR-0010 proposed -> accepted |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body ADR-0010 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0010 |
 | 2026-05-11 | human/peter | add | aiwf add adr ADR-0010 'Branch model: ritualized work on branches, author iteration on main' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
-| 2026-05-11 | human/peter | archive | aiwf archive: sweep 5 entities into archive/ (5 gap) |
 
