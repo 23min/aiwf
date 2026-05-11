@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_251 entities · 0 errors · 0 warnings_
+_252 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -64,12 +64,15 @@ flowchart LR
 ### E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) _(proposed)_
 
 - **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(draft)_ — tdd: required
+- **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_0029["E-0029<br/>Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)"]:::epic_proposed
   M_0098["M-0098<br/>Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap"]:::ms_draft
   E_0029 --> M_0098
+  M_0099["M-0099<br/>Kind-index chip filter: single emitted file per kind with :target chips"]:::ms_draft
+  E_0029 --> M_0099
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -131,9 +134,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add milestone M-0098 'Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap' |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0115 'aiwf render roadmap --write rewrites entity refs in epic prose to broken paths' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0029 |
 | 2026-05-11 | human/peter | add | aiwf add epic E-0029 'Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 6 entities into archive/ (1 epic, 1 adr, 4 gap) |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0081 open -> addressed |
 
