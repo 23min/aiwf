@@ -101,7 +101,12 @@ Table-driven test across four non-epic kinds — milestone, contract, gap, ADR �
 
 ## Validation
 
-(pasted at wrap)
+- `go test -race -count=1 ./...` — 25 packages, 0 FAIL lines, exit 0.
+- `golangci-lint run ./internal/verb/` — 0 issues.
+- `go test -coverprofile=… ./internal/verb/` — `requireHumanActorForEpicActivation` at 100.0% statement coverage; branch-coverage audit walked the two early-return arms (kind/status guard, human/-prefix actor) and the fall-through error path, each matched to a named test.
+- Pre-implementation automation audit — no `aiwf promote` invocations found in `.github/`, `Makefile`, or `scripts/`. No automation paths need migration to `--force` or a human actor.
+- Doc-lint sweep against the change-set — no broken references, no removed-feature docs. The one workflow doc example (`docs/pocv3/workflows.md:64`) continues to work for the canonical human-actor case.
+- `aiwf check` (kernel planning tree from the worktree) — clean modulo the expected post-M-0094 advisory warnings (`archive-sweep-pending`, `terminal-entity-not-archived` for M-0094 awaiting sweep, and the benign `provenance-untrailered-scope-undefined` no-upstream warning).
 
 ## Deferrals
 
@@ -109,5 +114,8 @@ Table-driven test across four non-epic kinds — milestone, contract, gap, ADR �
 
 ## Reviewer notes
 
-- (filled at wrap)
+- **Composition with existing sovereign machinery.** The rule reuses the existing `actor` parameter on `verb.Promote` rather than inventing a new flag, and reuses the existing `--force --reason` machinery as the override. Non-human + `--force` continues to fail at the provenance coherence chokepoint (`aiwf-force requires a human/ actor`), so the override path is human-only by construction — no parallel mechanism, no new combinatorial surface to test.
+- **Scope is intentionally narrow.** The rule fires only on `kind == epic && newStatus == active`. Generalizing to `contract-active`, `ADR-accepted`, or other sovereign-shaped transitions is out per the epic's design (Open Questions, downstream-question #2 in G-0063). If real friction surfaces — e.g., an `ai/...` actor mistakenly ratifying an ADR — that's a separate sovereign-act rule with its own milestone, not a quiet generalization of this one.
+- **Why before ValidateTransition matters for ordering.** The check sits inside the `!force` block alongside `requireResolverForResolutionClass` (G-0096 precedent), AFTER `ValidateTransition`. Order rationale: if the transition is illegal at the FSM level (e.g., `done → active` without `--force`), the FSM error is the more fundamental signal and should fire first. If the transition is legal (`proposed → active`), my rule fires next on actor. This means an `ai/...` actor attempting an illegal-and-non-human transition gets the FSM error, not the sovereign-act error — that's the right shape (they need to fix the target status first; actor comes second).
+- **Trailer convention for the wrap commit** — same as M-0094 (`aiwf-verb: implement`, `aiwf-entity: M-0095`, `aiwf-actor: human/peter`).
 
