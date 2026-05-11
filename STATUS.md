@@ -141,9 +141,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | rename | aiwf rename G-0087 slug -> no-aiwf-show-embedded-skill |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0082 slug -> planning-closure-default-merges-to-main |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0080 slug -> wide-table-wraps-no-tty-sizing |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0079 slug -> plan-milestones-skill-needs-depends-on-docs |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0078 slug -> no-priority-field-on-entities |
-| 2026-05-11 | human/peter | rename | aiwf rename G-0076 slug -> contributing-md-pr-vs-trunk-mismatch |
 
