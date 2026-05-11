@@ -270,3 +270,13 @@ Convert the Go test suite from serial-with-per-test-setup to parallel-with-share
 
 _No milestones yet._
 
+## E-0026 — aiwf check per-code summary by default (closes G-0098) (proposed)
+
+### Goal
+
+Change the default text output of `aiwf check` from one line per finding to one line per finding-code with a count and a sample message. Errors continue to print per-instance (each is actionable); warnings collapse to per-code summaries; `--verbose` prints the full unaggregated detail. JSON envelope output is unchanged — machines still get every finding.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0089 | Per-code text-render summary with --verbose fallback | draft |
+
