@@ -1,8 +1,6 @@
 # aiwf status — 2026-05-11
 
-_230 entities · 0 errors · 3 warnings · run `aiwf check` for details_
-
-> Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+_230 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -91,10 +89,7 @@ _(no milestones)_
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| terminal-entity-not-archived | M-0090 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | entity M-0090 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | E-0027 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/epic.md | entity E-0027 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+_(none)_
 
 ## Recent activity
 
