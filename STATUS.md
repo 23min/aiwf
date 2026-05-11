@@ -146,9 +146,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0097 draft -> in_progress |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0097/AC-2 'Drift comparator helper has synthetic two-arm test (match + drift)' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0097/AC-1 'CI/script audit chokepoint fires on non-forced epic-activation invocations' |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0097 |
 
