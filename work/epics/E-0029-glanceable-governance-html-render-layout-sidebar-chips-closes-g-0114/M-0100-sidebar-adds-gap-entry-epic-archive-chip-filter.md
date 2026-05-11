@@ -19,6 +19,10 @@ acs:
       title: Sidebar archive chip filter toggles epic visibility
       status: met
       tdd_phase: done
+    - id: AC-4
+      title: Chip clicks do not scroll the page
+      status: open
+      tdd_phase: red
 ---
 # M-0100 — Sidebar adds gap entry + epic archive chip filter
 
@@ -152,4 +156,12 @@ A render-against-real-fixture human-verification pass closes the milestone per C
 **Edge cases**: The active-vs-archived determination is path-based, not status-based — epics under `work/epics/archive/` are archived; epics outside that subtree are active (regardless of frontmatter status). Aligns with ADR-0004's archive convention. The CSS rule keys off `body:has(#sidebar-all:target)` to be specific — does not fire when the kind-index page's `#all` is targeted, so the two chip filters remain independent. Milestones nested inside archived epics ride with their parent's visibility (the `<details>` collapses; nested `<ul>` follows DOM hierarchy). When the current page is itself inside an archived epic, the epic's `<details>` would normally have `open` (per existing `IsActive` logic), but the filter rule hides the whole `<details>` regardless — the user has to switch to `#sidebar-all` to see the current page's parent epic in the sidebar.
 
 **Code references**: `internal/htmlrender/embedded/_sidebar.tmpl` — each `<details class="sidebar-epic">` gains `data-archived="{{if .Archived}}true{{else}}false{{end}}"`. `internal/htmlrender/embedded/style.css` — new CSS rule `aside.sidebar .sidebar-epic[data-archived="true"] { display: none; }` and `body:has(#sidebar-all:target) aside.sidebar .sidebar-epic[data-archived="true"] { display: block; }` (or equivalent display value for `<details>`). `internal/htmlrender/pagedata.go` — `SidebarEpic` gains `Archived bool` field. `internal/htmlrender/default_resolver.go` and `cmd/aiwf/render_resolver.go` — populate `Archived` from `entity.IsArchivedPath(e.Path)`. Test in `e2e/playwright/tests/render.spec.ts` under a new `sidebar — archive chip filter (M-0100/AC-3)` describe; fixture needs at least one archived epic (the existing renderRichFixture has none — enrich similarly to M-0099/AC-3's gap-archive setup).
+
+### AC-4 — Chip clicks do not scroll the page
+
+**Pass criterion**: Clicking any chip (in either the kind-index page chip strip or the sidebar chip strip) does not change the page's scroll position. After clicking, `window.scrollY === 0`. Verified via Playwright at a deliberately short viewport (1280×400) so vertical overflow exists; clicks tested against `#all`, `#active`, `#sidebar-all`, `#sidebar-active`.
+
+**Edge cases**: Same bug class as M-0098/AC-5 (tab clicks). Browser's "scroll target into view on hash change" treats the chip element as the scroll target since each chip has `id` matching its `href` fragment. The fix is `scroll-margin-top: 100vh` on `.chip` (same mechanism as M-0098/AC-5's fix on `section[data-tab]`); the browser's scroll-clamp keeps scrollY at 0 when the chip is targeted. Behavior must hold for both chip surfaces — kind-index pages and sidebar.
+
+**Code references**: `internal/htmlrender/embedded/style.css` — add `scroll-margin-top: 100vh` to `.chip` (or `.chip-strip .chip`) so the fix applies to every chip on every page. The existing `:target`-driven highlight rule from M-0099 keeps working since :target is about element identity, not scroll position. Test in `e2e/playwright/tests/render.spec.ts` under a new `chips — no-scroll-on-click (M-0100/AC-4)` describe — analogous to the existing M-0098/AC-5 tab-scroll test.
 
