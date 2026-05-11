@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_254 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_255 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 > Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -131,6 +131,7 @@ flowchart LR
 | G-0113 | rendered HTML site has no publish path; only viewable via local aiwf render |  |
 | G-0114 | HTML render gap surface: status and archive state not glanceable from sidebar |  |
 | G-0115 | aiwf render roadmap --write rewrites entity refs in epic prose to broken paths |  |
+| G-0116 | aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos | E-0029 |
 
 ## Warnings
 
@@ -143,9 +144,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0082 open -> addressed |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0083 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0029 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0101 'In-page status hierarchy in gaps.html' |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0100 'Sidebar surfaces gaps with active count' |
-| 2026-05-11 | human/peter | add | aiwf add milestone M-0099 'Kind-index chip filter: single emitted file per kind with :target chips' |
 
