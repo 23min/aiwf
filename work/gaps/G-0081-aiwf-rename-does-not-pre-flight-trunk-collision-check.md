@@ -46,6 +46,18 @@ The collision exists because trunk's tree still has `E-NN-old/`; the branch now 
 - Detecting per-branch slug divergence as a kernel feature — that's the opt-out flag's job, not this gap's.
 - Auto-applying the rename to trunk from the branch, or cherry-picking the rename commit. Workflow choice; not the verb's responsibility.
 
+## Resolution (2026-05-11)
+
+This gap was a **misdiagnosis**. The reproducer's symptom — `aiwf check` surfacing `ids-unique/trunk-collision` after `aiwf rename` on a feature branch — was a false positive in the checker rule, not a verb-hygiene issue.
+
+A routine feature-branch slug rename produces a tree state where the same id appears at different paths on trunk and on the branch. From git's perspective this is just "the file moved"; the entity is still uniquely identified. The pre-G-0109 rule treated the path difference as a duplicate-id collision without consulting git's rename detection.
+
+**G-0109** ("trunk-collision recognizes branch renames since merge-base", merged 2026-05-11) addressed the root cause: the `ids-unique/trunk-collision` rule now consults `git diff -M` since merge-base and suppresses the finding when the trunk-side and branch-side paths represent the same entity moved. Verified empirically against current main — the reproducer above no longer fires; `aiwf check` returns clean.
+
+Had this gap been implemented per its body — adding pre-flight refusal to `aiwf rename` against the (then-buggy) rule — the verb would have inherited the false positive and refused renames that today succeed cleanly. The right fix was at the rule layer, not the verb layer.
+
+This realization is also the reason ADR-0005 (the umbrella this gap aligned to) is rejected: codifying preflight assumes finding rules are oracles, but rules can be wrong. See ADR-0005's rejection note for the full reasoning.
+
 ## References
 
 - **ADR-0005** — *"Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs"*. This gap implements obligation 1 (**pre-flight against known finding rules**); filed under umbrella gap G-0084.
