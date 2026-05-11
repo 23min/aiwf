@@ -145,9 +145,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0096 draft -> in_progress |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0096/AC-5 'Drift-check test compares fixture to cache; skips cleanly when absent' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0096/AC-4 'Branch prompt is heading-scoped Q&A with G-0059 deferral note' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0096/AC-3 'Sovereign-promotion step names the M-0095 rule and the override path' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0096/AC-2 'Worktree-placement prompt is heading-scoped Q&A with three named options' |
-| 2026-05-11 | human/peter | add | aiwf add ac M-0096/AC-1 'Fixture exists with valid skill frontmatter and 10-step Workflow section' |
 
