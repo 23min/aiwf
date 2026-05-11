@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: aiwf check --help documents --verbose
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: cmd/aiwf/completion_drift_test.go passes
