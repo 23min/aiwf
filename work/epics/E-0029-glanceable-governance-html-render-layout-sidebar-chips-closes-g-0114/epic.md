@@ -1,7 +1,7 @@
 ---
 id: E-0029
 title: 'Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)'
-status: active
+status: done
 ---
 # E-0029 — Glanceable governance HTML render: layout, sidebar, chips
 
@@ -50,6 +50,7 @@ Closes G-0114.
 - **Single canonical emitted file per kind.** The `-all.html` filenames go away as part of the chip migration. Existing URLs that pointed at `gaps-all.html` break; the kernel's render output is not a stable URL contract (the rendered site is regenerated on every `aiwf render` run), so this is acceptable. The change is mechanical and one-shot, not a deprecation window.
 - **Sidebar gaps entry shows active count, not total count.** "Gaps (33)" means 33 non-archived gaps — matches what the chip's default view will show. The all-count (112) is only visible after the user toggles the `[All]` chip.
 - **In-page status hierarchy preserves all rows visible by default.** No collapse of addressed rows behind a toggle; the goal is "open pops," not "addressed hides." A reader scanning `gaps.html` should still see addressed rows in their peripheral vision.
+- **Playwright is the chokepoint for layout / CSS / browser-state acceptance criteria.** The `e2e/playwright/` suite — already wired into this repo with 40 existing tests in `render.spec.ts` — is the verification surface for computed-style and viewport-dependent behaviors (layout fills, fluid columns, `clamp()`-resolved widths, prose-cap selector scope, `:target`-driven chip filter state, mobile collapse at <768px). Parsed-CSS and parsed-HTML checks in Go remain useful for structural shape but are not load-bearing for layout/CSS ACs in this epic — computed-style verification needs a real browser, per the rationale at the head of `render.spec.ts`. CI integration is **deferred for this epic** (the workflow files under `.github/workflows/` do not currently run Playwright); operator discipline is the chokepoint locally until a follow-up wires the suite into CI. The epic-wrap *Validation* section records the local Playwright run.
 
 ## Success criteria
 
@@ -74,9 +75,10 @@ Closes G-0114.
 
 <!-- Bulleted list, ordered by execution sequence. Status is NOT carried here. -->
 
-- [M-0098](M-0098-render-site-layout-overhaul-viewport-fill-body-flush-left-sidebar-prose-cap.md) — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap · depends on: —
+- [M-0107](M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md) — Repair Playwright e2e suite for current kernel state · depends on: — *(prerequisite — added mid-flight after M-0098/AC-1 red phase surfaced suite rot from a137132 reorg + E-0023 ID width migration + `aiwf init` hook-write behavior change)*
+- [M-0098](M-0098-render-site-layout-overhaul-viewport-fill-body-flush-left-sidebar-prose-cap.md) — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap · depends on: M-0107
 - [M-0099](M-0099-kind-index-chip-filter-single-emitted-file-per-kind-with-target-chips.md) — Kind-index chip filter: single emitted file per kind with `:target` chips · depends on: M-0098
-- [M-0100](M-0100-sidebar-surfaces-gaps-with-active-count.md) — Sidebar surfaces gaps with active count · depends on: M-0099
+- [M-0100](M-0100-sidebar-adds-gap-entry-epic-archive-chip-filter.md) — Sidebar adds gap entry + epic archive chip filter · depends on: M-0099 · *(broadened mid-flight after M-0099 visual review surfaced that the sidebar's epic list shows archived epics by default, drowning in-flight ones)*
 - [M-0101](M-0101-in-page-status-hierarchy-in-gaps-html.md) — In-page status hierarchy in `gaps.html` · depends on: M-0099 (parallelizable with M-0100)
 
 ## References

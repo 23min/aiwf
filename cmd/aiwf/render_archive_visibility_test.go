@@ -185,12 +185,13 @@ func TestRender_PerKindIndexListingIsVisible(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
 
+	// Post-M-0099/AC-1: the gaps-all.html cousin is no longer
+	// emitted; the chip filter handles the all-set view client-side.
 	cases := []struct {
 		file   string
 		marker string
 	}{
 		{"gaps.html", `<table class="kind-index">`},
-		{"gaps-all.html", `<table class="kind-index">`},
 	}
 	for _, c := range cases {
 		t.Run(c.file, func(t *testing.T) {

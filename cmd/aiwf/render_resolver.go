@@ -352,6 +352,7 @@ func (r *renderResolver) sidebarWithStatus(activeEpicID, activeMilestoneID strin
 			FileName:  idToHTMLFile(e.ID),
 			IsActive:  canonEpic == canonActiveEpic,
 			IsCurrent: canonEpic == canonActiveEpic && activeMilestoneID == "",
+			Archived:  entity.IsArchivedPath(e.Path),
 		}
 		for _, m := range r.milestonesUnder(e.ID) {
 			canonM := entity.Canonicalize(m.ID)
@@ -363,6 +364,12 @@ func (r *renderResolver) sidebarWithStatus(activeEpicID, activeMilestoneID strin
 			})
 		}
 		s.Epics = append(s.Epics, entry)
+	}
+	// M-0100/AC-1: surface non-archived gap count in the sidebar.
+	for _, g := range r.tree.ByKind(entity.KindGap) {
+		if !entity.IsArchivedPath(g.Path) {
+			s.GapCount++
+		}
 	}
 	return s
 }

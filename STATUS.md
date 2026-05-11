@@ -1,34 +1,12 @@
 # aiwf status — 2026-05-11
 
-_263 entities · 0 errors · 5 warnings · run `aiwf check` for details_
+_264 entities · 0 errors · 14 warnings · run `aiwf check` for details_
+
+> Sweep pending: 6 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
-### E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) _(active)_
-
-- **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(draft)_ — tdd: required
-- **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(draft)_ — tdd: required
-- **M-0100** — Sidebar surfaces gaps with active count _(draft)_ — tdd: required
-- **M-0101** — In-page status hierarchy in gaps.html _(draft)_ — tdd: required
-
-```mermaid
-flowchart LR
-  E_0029["E-0029<br/>Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)"]:::epic_active
-  M_0098["M-0098<br/>Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap"]:::ms_draft
-  E_0029 --> M_0098
-  M_0099["M-0099<br/>Kind-index chip filter: single emitted file per kind with :target chips"]:::ms_draft
-  E_0029 --> M_0099
-  M_0100["M-0100<br/>Sidebar surfaces gaps with active count"]:::ms_draft
-  E_0029 --> M_0100
-  M_0101["M-0101<br/>In-page status hierarchy in gaps.html"]:::ms_draft
-  E_0029 --> M_0101
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
+_(no active epics)_
 
 ## Roadmap
 
@@ -158,19 +136,27 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| acs-tdd-audit | M-0107/AC-1 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md | M-0107/AC-1 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
+| acs-tdd-audit | M-0107/AC-2 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md | M-0107/AC-2 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | entity-body-empty | M-0102 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0102-aiwf-authorize-branch-flag-scope-branch-trailer-coupling.md | M-0102 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-0103 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0103-ai-side-preflight-aiwf-authorize-refuses-without-ritual-branch-context.md | M-0103 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-0104 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0104-aiwfx-start-epic-sequencing-fix-closes-g-0116.md | M-0104 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-0105 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0105-aiwfx-start-milestone-sequencing-alignment.md | M-0105 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-0106 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0106-kernel-finding-isolation-escape-closes-g-0099.md | M-0106 body section \`## Acceptance criteria\` is empty |
+| terminal-entity-not-archived | M-0098 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0098-render-site-layout-overhaul-viewport-fill-body-flush-left-sidebar-prose-cap.md | entity M-0098 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | M-0099 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0099-kind-index-chip-filter-single-emitted-file-per-kind-with-target-chips.md | entity M-0099 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | M-0100 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0100-sidebar-adds-gap-entry-epic-archive-chip-filter.md | entity M-0100 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | M-0101 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0101-in-page-status-hierarchy-in-gaps-html.md | entity M-0101 has terminal status 'cancelled' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | M-0107 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md | entity M-0107 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | entity E-0029 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | add | aiwf add gap G-0117 'aiwf render html: project tree once, render via SPA instead of N files' |
 | 2026-05-12 | human/peter | archive | aiwf archive: sweep 2 entities into archive/ (2 gap) |
 | 2026-05-12 | human/peter | promote | aiwf promote G-0115 open -> addressed |
 | 2026-05-12 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body E-0030 |
-| 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0106 |
 

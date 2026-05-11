@@ -32,9 +32,20 @@
 <a href="index.html">Overview</a>
 {{- end}}
 </li>
+<li>
+{{- if .IsCurrentGaps}}
+<a href="gaps.html" aria-current="page">Gaps ({{.GapCount}})</a>
+{{- else}}
+<a href="gaps.html">Gaps ({{.GapCount}})</a>
+{{- end}}
+</li>
 </ul>
+<nav class="chip-strip sidebar-chip-strip">
+<a class="chip" href="#sidebar-active" id="sidebar-active">Active</a>
+<a class="chip" href="#sidebar-all" id="sidebar-all">All</a>
+</nav>
 {{- range .Epics}}
-<details class="sidebar-epic"{{if .IsActive}} open{{end}}>
+<details class="sidebar-epic" data-archived="{{if .Archived}}true{{else}}false{{end}}"{{if .IsActive}} open{{end}}>
 <summary>
 {{- if .IsCurrent}}
 <a href="{{.FileName}}" aria-current="page">{{.ID}} · {{.Title}}</a>

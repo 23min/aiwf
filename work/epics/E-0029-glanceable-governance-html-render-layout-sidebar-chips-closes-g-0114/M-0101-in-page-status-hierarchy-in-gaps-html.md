@@ -1,7 +1,7 @@
 ---
 id: M-0101
 title: In-page status hierarchy in gaps.html
-status: draft
+status: cancelled
 parent: E-0029
 depends_on:
     - M-0099
@@ -30,7 +30,7 @@ ACs added via `aiwf add ac M-<id>` at start-milestone time. The observable-behav
 - Each row carries a `data-status` attribute (or equivalent structural marker) so the CSS rule providing the hierarchy can target rows by status, and tests can assert hierarchy structurally.
 - The treatment applies specifically to the gaps kind-index page. Other kind-index pages (decisions, ADRs, contracts) are unchanged in this milestone — the gap surface is the high-value current-state target per G-0114; extension to other kinds is deferred.
 - A render-against-real-fixture human-verification pass closes the milestone per CLAUDE.md *Render output must be human-verified before the iteration closes*: open `gaps.html` against the kernel's own planning tree (33 open + 2 addressed at planning time), confirm open rows pop on first scan, confirm addressed rows still visible peripherally.
-- Tests assert the hierarchy structurally — at minimum a parsed-HTML check that open rows render with the distinguishing markup/class and addressed rows render with the de-emphasized variant. Not a substring-grep test.
+- Tests assert the hierarchy via **Playwright** in `e2e/playwright/tests/` — open `gaps.html`, verify open rows render with the distinguishing computed-style (and/or earlier in DOM order, if the chosen mechanism reorders), addressed rows render with the de-emphasized computed-style. Parsed-HTML / parsed-CSS checks in Go remain for emit-shape (the `data-status` attribute on rows, the gap-hierarchy CSS rule's presence in `style.css`) but the visual hierarchy is browser-verified, since opacity / order / color decisions only become observable after browser layout. CI integration deferred per the epic Constraints.
 
 The specific mechanism (grouped sections under `### Open` / `### Addressed` headings; CSS-driven row reordering via `order:` on flex/grid rows; per-row opacity / muted color for addressed; or a hybrid) is decided at start-milestone time. The milestone's *Design notes* section (in this spec, below) is filled in at start-milestone time with the chosen approach; the wrap *Validation* records what was visually verified.
 
@@ -57,8 +57,9 @@ The specific mechanism (grouped sections under `### Open` / `### Addressed` head
 - `internal/htmlrender/embedded/style.css` (status-hierarchy CSS rule for the gaps page)
 - `internal/htmlrender/pagedata.go` (if option (a): add status grouping shape to `KindIndexData`)
 - `internal/htmlrender/default_resolver.go` and `cmd/aiwf/render_resolver.go` (if option (a): bucket entries by status)
-- `internal/htmlrender/htmlrender_test.go` (structural test asserting hierarchy)
-- `cmd/aiwf/render_archive_visibility_test.go` or a new `cmd/aiwf/render_gaps_hierarchy_test.go` (gaps-specific structural assertions)
+- `e2e/playwright/tests/` (primary test surface — extend `render.spec.ts` with gap-page hierarchy visual-state assertions, or add a sibling spec)
+- `internal/htmlrender/htmlrender_test.go` (emit-shape test for `data-status` attribute and rule presence; complementary)
+- `cmd/aiwf/render_archive_visibility_test.go` or a new `cmd/aiwf/render_gaps_hierarchy_test.go` (gaps-specific emit-shape assertions; complementary)
 
 ## Out of scope
 

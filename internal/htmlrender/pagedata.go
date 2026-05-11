@@ -83,17 +83,25 @@ type SidebarData struct {
 	HasStatus       bool
 	IsCurrentStatus bool
 	IsCurrentIndex  bool
+	// GapCount is the count of non-archived gaps in the planning
+	// tree, surfaced in the sidebar's top section as "Gaps (N)".
+	// M-0100/AC-1.
+	GapCount       int
+	IsCurrentGaps  bool // true when the rendered page is gaps.html
 }
 
 // SidebarEpic is one epic row in the sidebar. IsActive is true when
 // this epic is the page's own (epic page) or its parent (milestone
-// page).
+// page). Archived is true when the epic's filesystem path is under
+// `work/epics/archive/` (per ADR-0004); the chip filter from
+// M-0100/AC-3 hides archived epics by default.
 type SidebarEpic struct {
 	ID         string
 	Title      string
 	FileName   string
 	IsActive   bool
 	IsCurrent  bool // true on the epic page itself (drives aria-current)
+	Archived   bool
 	Milestones []SidebarMilestone
 }
 

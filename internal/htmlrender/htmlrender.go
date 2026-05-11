@@ -174,20 +174,19 @@ func Render(opts Options) (Result, error) {
 		}
 	}
 
-	// Per-kind index pages: active-default and all-set. M-0087/AC-6
-	// (active page reachable from home nav) and AC-7 (all.html with
-	// nav back to active-default). One iteration emits both pages
-	// per kind; the resolver branches on includeArchived to filter
-	// entries. Epics participate via the existing index.html / a
-	// dedicated epics-all.html page since epics are listed inline
-	// on the overview today.
+	// Per-kind index pages: one canonical file per kind. The
+	// pre-migration active/all-pair design (M-0087/AC-6 + AC-7)
+	// collapses to a single emit under M-0099/AC-1; the chip strip
+	// added in M-0099/AC-2 + AC-3 handles the active-vs-all view
+	// toggle via :target-driven CSS, no second file needed.
 	for _, kindPair := range kindIndexKinds() {
-		for _, includeArchived := range []bool{false, true} {
-			if err := renderKindIndex(opts, tmpls, resolver, kindPair.plural, includeArchived); err != nil {
-				return Result{}, err
-			}
-			count++
+		// Pass includeArchived=true so the resolver returns every
+		// entry (active + archived); M-0099/AC-3's CSS chip filter
+		// handles the active-vs-all visibility toggle client-side.
+		if err := renderKindIndex(opts, tmpls, resolver, kindPair.plural, true); err != nil {
+			return Result{}, err
 		}
+		count++
 	}
 
 	return Result{
@@ -219,12 +218,14 @@ func kindIndexKinds() []kindIndexKindPair {
 	}
 }
 
-// renderKindIndex writes one per-kind index page. The output
-// filename is `<kind>.html` for the active-default page and
-// `<kind>-all.html` for the all-set page. Resolver returns nil to
-// skip emission for unrecognized kinds; absent that, every
-// recognized kind always emits both pages so the AC-6 escape-hatch
-// link never points to a missing file.
+// renderKindIndex writes the per-kind index page. Post-M-0099/AC-1
+// the output is always `<kind>.html` — the active/all-pair design
+// collapsed to one file per kind, with the :target-driven chip
+// filter (M-0099/AC-3) handling the active-vs-all view toggle
+// client-side. The `includeArchived` param is preserved at the
+// interface boundary so the resolver knows to return every entry
+// (active + archived) for the chip filter's row set; it no longer
+// drives the output filename.
 func renderKindIndex(opts Options, tmpls *template.Template, resolver PageDataResolver, kind string, includeArchived bool) error {
 	data, err := resolver.KindIndexData(kind, includeArchived)
 	if err != nil {
@@ -233,11 +234,7 @@ func renderKindIndex(opts Options, tmpls *template.Template, resolver PageDataRe
 	if data == nil {
 		return nil
 	}
-	fileName := kind + ".html"
-	if includeArchived {
-		fileName = kind + "-all.html"
-	}
-	return executeToFile(tmpls, "kind_index.tmpl", filepath.Join(opts.OutDir, fileName), data)
+	return executeToFile(tmpls, "kind_index.tmpl", filepath.Join(opts.OutDir, kind+".html"), data)
 }
 
 // renderIndex writes the top-level index.html. Pulls IndexData from

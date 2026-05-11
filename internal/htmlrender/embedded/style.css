@@ -76,11 +76,16 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Viewport-fill: body has no max-width cap and no auto-centering
+ * margin; the .layout grid spans the full viewport width with
+ * modest uniform 1rem padding around the layout for visible
+ * breathing room from the browser frame. The padding is the body's
+ * own; main and sidebar contribute their own internal padding on
+ * top. (M-0098/AC-1) */
 body {
   font: 15px/1.45 -apple-system, system-ui, "Segoe UI", sans-serif;
-  margin: 2rem auto;
-  max-width: 78rem;
-  padding: 0 1rem;
+  margin: 0;
+  padding: 1rem;
   color: var(--fg);
   background: var(--bg);
   font-feature-settings: "ss01", "cv11";
@@ -93,7 +98,11 @@ body {
  * main (no JS hamburger needed). */
 .layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  /* Sidebar column: 285px (~30% wider than the original 220px;
+   * M-0098/AC-2). Wide enough to host the brand mark, top-section
+   * entries, and the planned gaps-block with active count from
+   * M-0100 without text-overflow on the longest epic titles. */
+  grid-template-columns: 285px 1fr;
   gap: 1.5rem;
   align-items: start;
 }
@@ -234,6 +243,13 @@ h3 { font-size: 0.98rem; margin: 1.1rem 0 0.3rem; }
 }
 
 p { margin: 0.5rem 0; }
+
+/* Prose-cap inside main: paragraphs cap at 50rem (~800px) for
+ * readability on wide viewports. Tables, code blocks, AC card
+ * containers, the dependency DAG, and other wide-content
+ * elements are unaffected — they fill the panel width.
+ * M-0098/AC-3. */
+main p { max-width: 50rem; }
 nav a { color: var(--link); text-decoration: none; }
 nav a:hover { text-decoration: underline; }
 a { color: var(--link); }
@@ -330,6 +346,80 @@ li { margin: 0.2rem 0; }
 .findings { color: var(--fg-muted); }
 .dir, .kind { color: var(--fg-muted); font-size: 0.82em; margin-left: 0.4rem; }
 
+/* ---------- Chip strip (kind-index filter) ----------
+ *
+ * Per-kind index pages (gaps.html, decisions.html, etc.) host a
+ * chip strip at the top of main: [Active] [All]. Clicking [All]
+ * sets URL fragment #all → :target activates → AC-3's filter rule
+ * reveals archived rows. Active is the default; clicking it
+ * returns to the bare URL (no fragment). Each chip's `id` matches
+ * its `href` fragment so :target lights up the clicked chip for
+ * visual feedback. M-0099/AC-2. */
+
+.chip-strip {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.75rem 0 1.25rem;
+}
+.chip-strip .chip {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--fg-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  line-height: 1.4;
+  /* Pin the page at y=0 when this chip is targeted via #fragment.
+   * Same mechanism as section[data-tab]'s tab-no-scroll rule —
+   * browser scroll-clamp keeps the page from jumping. M-0100/AC-4. */
+  scroll-margin-top: 100vh;
+}
+.chip-strip .chip:hover {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
+}
+.chip-strip .chip:target {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
+}
+/* When no chip is :target (bare page URL), highlight Active by
+ * default. Two parallel rules cover both chip surfaces: the
+ * kind-index strip's #active and the sidebar strip's
+ * #sidebar-active (M-0100/AC-2). */
+.chip-strip:not(:has(.chip:target)) #active,
+.chip-strip:not(:has(.chip:target)) #sidebar-active {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
+}
+
+/* Sidebar chip strip: scale down vs the main-area version so the
+ * narrow sidebar column doesn't feel cramped. */
+.sidebar-chip-strip {
+  margin: 0.5rem 0 0.4rem;
+  padding: 0 0.5rem;
+}
+.sidebar-chip-strip .chip {
+  padding: 0.2rem 0.65rem;
+  font-size: 0.82rem;
+}
+
+/* Chip filter behavior (M-0099/AC-3): rows in the kind-index
+ * table carry data-archived="true|false". Default view hides
+ * archived rows; the #all chip toggles them on via :target. */
+.kind-index tbody tr[data-archived="true"] { display: none; }
+body:has(#all:target) .kind-index tbody tr[data-archived="true"] { display: table-row; }
+
+/* Sidebar archive chip filter (M-0100/AC-3): the sidebar's epic
+ * list hides archived epics by default; #sidebar-all reveals
+ * them via :target. Independent of the kind-index #all filter. */
+aside.sidebar details.sidebar-epic[data-archived="true"] { display: none; }
+body:has(#sidebar-all:target) aside.sidebar details.sidebar-epic[data-archived="true"] { display: block; }
+
 /* ---------- Tabs ---------- */
 
 .tabs {
@@ -356,7 +446,12 @@ li { margin: 0.2rem 0; }
  * overview. The `~` general-sibling combinator only matches
  * following siblings, which is why we need :has() here — overview
  * is first in DOM order so a sibling-only rule can't reach it. */
-section[data-tab] { display: none; padding: 0.5rem 0; }
+/* `scroll-margin-top: 100vh` keeps the page pinned at y=0 when a
+ * tab is clicked. The browser's "scroll target into view on hash
+ * change" behavior respects scroll-margin-top as a phantom top
+ * margin; with a value larger than any reasonable document height,
+ * the scroll-clamp keeps scrollY at 0. M-0098/AC-5. */
+section[data-tab] { display: none; padding: 0.5rem 0; scroll-margin-top: 100vh; }
 section[data-tab="overview"] { display: block; }
 section[data-tab]:target { display: block; }
 main:has(section[data-tab]:target:not([data-tab="overview"])) section[data-tab="overview"] { display: none; }

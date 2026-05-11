@@ -105,6 +105,7 @@ func (r defaultResolver) sidebar(activeEpicID, activeMilestoneID string) Sidebar
 			FileName:  idToFileName(e.ID),
 			IsActive:  canonEpic == canonActiveEpic,
 			IsCurrent: canonEpic == canonActiveEpic && activeMilestoneID == "",
+			Archived:  entity.IsArchivedPath(e.Path),
 		}
 		for _, m := range sortedByID(r.tree.ByKind(entity.KindMilestone)) {
 			if entity.Canonicalize(m.Parent) != canonEpic {
@@ -119,6 +120,14 @@ func (r defaultResolver) sidebar(activeEpicID, activeMilestoneID string) Sidebar
 			})
 		}
 		s.Epics = append(s.Epics, entry)
+	}
+	// M-0100/AC-1: GapCount surfaces the non-archived gap count in
+	// the sidebar's top section. Path-based archived determination
+	// (per ADR-0004) keeps this independent of frontmatter status.
+	for _, g := range r.tree.ByKind(entity.KindGap) {
+		if !entity.IsArchivedPath(g.Path) {
+			s.GapCount++
+		}
 	}
 	return s
 }
