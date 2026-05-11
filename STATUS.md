@@ -100,9 +100,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0106 'TestBinary_ArchiveKernelMigration_LeavesCheckClean assertion depends on transient kernel-tree housekeeping state' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0105 open -> addressed |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0105 'TestProvenanceCheck_UntrailedEntityCommit asserts obsolete warning-severity substring format' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 epic) |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0104 'Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy' |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0025 |
 

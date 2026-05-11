@@ -56,18 +56,38 @@ func TestBinary_ArchiveKernelMigration_LeavesCheckClean(t *testing.T) {
 	mustExec(t, repo, "git", "add", "-A")
 	mustExec(t, repo, "git", "commit", "-q", "-m", "seed kernel-tree copy for AC-7 migration test")
 
-	// Pre-sweep: confirm aiwf check finds the expected drift —
-	// terminal-entity-not-archived warnings + the aggregate. This
-	// is the load-bearing input invariant of AC-7: the test asserts
-	// the migration's effect, not just that the verb runs. `aiwf
-	// check` exits 0 when only warnings fire (per cmd/aiwf/main.go:
-	// HasErrors gates the exit code), so we don't gate on the exit
-	// status — the output content is the assertion.
-	preOut, _ := runBinary(bin, "check", "--root", repo)
-	if !strings.Contains(preOut, "archive-sweep-pending") &&
-		!strings.Contains(preOut, "terminal-entity-not-archived") {
-		t.Fatalf("pre-sweep aiwf check did not surface terminal-entity-not-archived or archive-sweep-pending — fixture not in expected pre-sweep state\noutput:\n%s", preOut)
+	// Synthesize a terminal-active gap inside the tempdir so the
+	// test's premise (the tree has something to sweep) is
+	// guaranteed regardless of the live kernel tree's housekeeping
+	// state. See G-0106 for the design discussion — without this,
+	// the test silently became a no-op every time `aiwf archive
+	// --apply` was run against the kernel tree, and noisily failed
+	// when it sat clean. The synthetic gap uses a high-numbered
+	// sentinel id (G-9999) that's far above current allocation and
+	// only lives inside this tempdir, so there's no collision risk
+	// with the live kernel tree.
+	synthGapRel := writeSyntheticTerminalGap(t, repo)
+	mustExec(t, repo, "git", "add", "-A")
+	mustExec(t, repo, "git", "commit", "-q", "-m", "AC-7 test: seed synthetic terminal-active gap (G-9999)")
+
+	// Structural pre-sweep assertion: the synthesized file exists
+	// at the active-tree path. Stronger than substring-matching
+	// `aiwf check` output (which rolls up findings per code, so a
+	// specific entity's id may not appear in the rendered detail
+	// when multiple entities fire the same rule) and survives
+	// future renderer-format changes. The verb's effect is verified
+	// structurally post-sweep below.
+	syntheticActivePath := filepath.Join(repo, synthGapRel)
+	if _, err := os.Stat(syntheticActivePath); err != nil {
+		t.Fatalf("pre-sweep: synthetic G-9999 not found at %s — synthesis failed: %v", synthGapRel, err)
 	}
+
+	// Capture commit count immediately before the verb so the
+	// "exactly one commit per invocation" assertion is robust to
+	// any preparatory commits the test makes upstream (the seed
+	// commit + the synthesis commit today; possibly more in the
+	// future).
+	commitCountBefore := commitCountInRepo(t, repo)
 
 	// Run the archive verb.
 	archOut, archErr := runBinary(bin, "archive", "--apply", "--root", repo, "--actor", "human/test")
@@ -77,10 +97,21 @@ func TestBinary_ArchiveKernelMigration_LeavesCheckClean(t *testing.T) {
 
 	// Single commit produced. ADR-0004 §"`aiwf archive` verb" + kernel
 	// principle #7: one verb invocation = one commit.
-	commitCountBefore := 1 // the seed commit we made above
 	commitCountAfter := commitCountInRepo(t, repo)
 	if delta := commitCountAfter - commitCountBefore; delta != 1 {
 		t.Errorf("archive --apply produced %d commit(s), want exactly 1\narchive output:\n%s", delta, archOut)
+	}
+
+	// Post-sweep: the synthesized G-9999 should have moved into
+	// work/gaps/archive/. Assert structurally rather than via the
+	// check output, so the assertion doesn't drift when the
+	// renderer's format changes.
+	if _, err := os.Stat(syntheticActivePath); !os.IsNotExist(err) {
+		t.Errorf("post-sweep: synthetic G-9999 still present at active-tree path %s — archive verb did not sweep it", synthGapRel)
+	}
+	archivedSyntheticPath := filepath.Join(repo, "work", "gaps", "archive", filepath.Base(synthGapRel))
+	if _, err := os.Stat(archivedSyntheticPath); err != nil {
+		t.Errorf("post-sweep: synthetic G-9999 not found at archive path %s — archive verb's move target diverged from work/gaps/archive/: %v", archivedSyntheticPath, err)
 	}
 
 	// Post-sweep: aiwf check has 0 error-severity findings. Warnings
@@ -194,6 +225,48 @@ func commitCountInRepo(t *testing.T, repo string) int {
 		}
 	}
 	return n
+}
+
+// writeSyntheticTerminalGap plants a freshly-authored gap entity
+// with terminal status inside repo's work/gaps/ directory. Used by
+// the AC-7 test to pin the "pre-sweep tree contains an unswept
+// terminal" premise independently of the live kernel tree's
+// housekeeping state (per G-0106).
+//
+// The synthetic id (G-9999) is a sentinel high enough above current
+// allocation that it will not collide with the live kernel tree
+// even on the unlikely contingency that someone copies a test
+// artifact into the kernel's planning tree. The slug names the
+// intent explicitly so a reader of the post-sweep archive directory
+// recognizes the entry as test-synthesized, not historical.
+//
+// Returns the repo-relative path the helper wrote, for use in
+// post-sweep assertions.
+func writeSyntheticTerminalGap(t *testing.T, repo string) string {
+	t.Helper()
+	const id = "G-9999"
+	const slug = id + "-synthetic-terminal-anchor-for-ac-7-test"
+	relPath := filepath.Join("work", "gaps", slug+".md")
+	absDir := filepath.Join(repo, "work", "gaps")
+	if err := os.MkdirAll(absDir, 0o755); err != nil {
+		t.Fatalf("mkdir %s: %v", absDir, err)
+	}
+	body := "---\n" +
+		"id: " + id + "\n" +
+		"title: synthetic-terminal-anchor-for-ac-7-test\n" +
+		"status: wontfix\n" +
+		"---\n# Problem\n\n" +
+		"Synthesized by TestBinary_ArchiveKernelMigration_LeavesCheckClean\n" +
+		"to guarantee the kernel-tree copy carries at least one unswept\n" +
+		"terminal entity, regardless of the live kernel tree's housekeeping\n" +
+		"state. The test pre-sweep premise (and the verb's substantive\n" +
+		"path) depend on having something to sweep. See G-0106 for the\n" +
+		"original design discussion.\n"
+	absPath := filepath.Join(repo, relPath)
+	if err := os.WriteFile(absPath, []byte(body), 0o644); err != nil {
+		t.Fatalf("write synthetic gap: %v", err)
+	}
+	return relPath
 }
 
 // checkOutputHasZeroErrors parses `aiwf check` output and reports
