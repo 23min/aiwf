@@ -1,7 +1,7 @@
 ---
 id: M-0098
 title: 'Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap'
-status: draft
+status: in_progress
 parent: E-0029
 tdd: required
 acs:
