@@ -32,7 +32,7 @@ acs:
     - id: AC-7
       title: Kernel-tree integration test — default output is short
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-8
       title: Summary lines name the code structurally, not by substring grep
       status: open
