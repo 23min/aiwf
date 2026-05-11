@@ -29,6 +29,10 @@ acs:
       title: cmd/aiwf/completion_drift_test.go passes
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: Kernel-tree integration test — default output is short
+      status: open
+      tdd_phase: red
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
@@ -136,4 +140,6 @@ Intended landing zone:
 ### AC-5 — aiwf check --help documents --verbose
 
 ### AC-6 — cmd/aiwf/completion_drift_test.go passes
+
+### AC-7 — Kernel-tree integration test — default output is short
 
