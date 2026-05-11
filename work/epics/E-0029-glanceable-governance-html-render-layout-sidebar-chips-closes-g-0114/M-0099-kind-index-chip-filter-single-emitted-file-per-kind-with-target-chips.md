@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Chip strip with Active/All renders on kind-index pages
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Default kind-index view shows only non-archived rows
