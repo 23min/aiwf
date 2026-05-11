@@ -112,7 +112,7 @@ flowchart LR
 | G-0077 | Post-promotion working paper (aiwf's thesis) not yet written |  |
 | G-0078 | No priority field on entities; backlog isn't filterable or sortable by importance |  |
 | G-0079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation | M-0076 |
-| G-0080 | Wide-table verbs wrap mid-row and break column scan; no TTY-aware sizing, glyph palette, or truncation surface | M-0076 |
+| G-0080 | Wide-table verbs wrap mid-row; no TTY-aware sizing or truncation | M-0076 |
 | G-0081 | aiwf rename does not pre-flight trunk-collision check | E-0021 |
 | G-0082 | Planning closure should default-merge to main before implementation begins | E-0021 |
 | G-0083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-0021 |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle ADR-0007 -> 'Planning-conversation skills: rituals-plugin placement, pure-skill default' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle D-0001 -> 'entity-body-empty treats sub-headings as content under top-level sections' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0097 -> 'Test-suite wall time dominated by serial execution and per-test setup' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle ADR-0009 -> 'Orchestration substrate: substrate-vs-driver split with trailer-only events' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0073 -> 'depends_on restricted to milestone→milestone; cross-kind blocking via body prose' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle E-0028 -> 'Start-epic ritual: sovereign activation with preflight + delegation' |
 
