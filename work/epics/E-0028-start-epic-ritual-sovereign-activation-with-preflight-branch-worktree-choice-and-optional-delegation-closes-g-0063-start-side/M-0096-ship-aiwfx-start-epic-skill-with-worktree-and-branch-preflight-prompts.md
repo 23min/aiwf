@@ -19,7 +19,7 @@ acs:
     - id: AC-3
       title: Sovereign-promotion step names the M-0095 rule and the override path
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Branch prompt is heading-scoped Q&A with G-0059 deferral note
       status: open
