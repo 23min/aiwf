@@ -4,6 +4,25 @@ title: Roll out TestMain + t.Parallel across internal/* test packages
 status: draft
 parent: E-0025
 tdd: none
+acs:
+    - id: AC-1
+      title: race-parallel cap lands in Makefile and workflows in a leading commit
+      status: open
+    - id: AC-2
+      title: every internal/* test-bearing package has setup_test.go with TestMain
+      status: open
+    - id: AC-3
+      title: t.Parallel adopted on every test that does not need serial execution
+      status: open
+    - id: AC-4
+      title: internal/policies shares the live-repo tree.Load via a sync.Once helper
+      status: open
+    - id: AC-5
+      title: go test -race -parallel 8 ./internal/... reliable across 10 runs
+      status: open
+    - id: AC-6
+      title: wall-time baseline and post-conversion numbers recorded at wrap
+      status: open
 ---
 
 # M-0091 — Roll out TestMain + t.Parallel across internal/* test packages
@@ -79,3 +98,28 @@ Per the epic's Constraints, this milestone explicitly **relaxes "one commit per 
 ## Reviewer notes
 
 - (none yet)
+
+### AC-1 — race-parallel cap lands in Makefile and workflows in a leading commit
+
+`Makefile`'s `test-race` target gains `-parallel 8`; the `coverage` and `ci` targets propagate the same cap where they invoke race-mode tests. `.github/workflows/go.yml`'s race-mode test step gains the same flag. `.github/workflows/flake-hunt.yml`'s `go test -race -count=10` line gains the same flag. The commit message documents the rationale (race + heavy subprocess fan-out flakes on macOS at default parallelism; CI Linux less affected but uniform cap keeps the chokepoint single-valued). After this commit, all three race-test surfaces agree.
+
+### AC-2 — every internal/* test-bearing package has setup_test.go with TestMain
+
+For each package in the scope list — `internal/verb`, `internal/check`, `internal/initrepo`, `internal/htmlrender`, `internal/policies`, `internal/aiwfyaml`, `internal/contractverify`, `internal/tree`, `internal/gitops`, `internal/skills`, `internal/config`, plus any others discovered during audit — a `setup_test.go` is added with a `TestMain(m *testing.M)` that calls `os.Setenv` once for `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL` before `m.Run()`. The filename is uniform; the structure mirrors `internal/verb/setup_test.go` from the spike. Tests in the package no longer call `t.Setenv` for these four variables (with the documented serial-batch exceptions called out in AC-3).
+
+### AC-3 — t.Parallel adopted on every test that does not need serial execution
+
+For each converted package, the per-package audit produces a written skip-list of tests that stay serial — those that call `t.Setenv`/`t.Chdir`, mutate a package-level var, or guard a global the parallel suite depends on. Every test not on the skip-list calls `t.Parallel()` as its first non-`t.Helper()` statement. The skip-list lives in the package's `setup_test.go` as a comment (`// Serial tests: …`) so a contributor can see at a glance what is intentionally serial and why. The per-package conversion commits each cite the skip-list in their commit body.
+
+### AC-4 — internal/policies shares the live-repo tree.Load via a sync.Once helper
+
+A new helper in `internal/policies/` loads the repo tree once and returns the shared `*Tree` to consumers (`TestPolicy_ThisRepoTreeIsClean`, `TestPolicy_ThisRepoDriftCheckClean`, `internal/policies/m080_test.go::loadM080Spec`, and any other live-repo-tree readers discovered during conversion). The helper carries a `// do not mutate` comment at its definition. `TestMain` and the shared loader compose cleanly (env setup in `TestMain`; tree memoization in a separate `sync.Once`).
+
+### AC-5 — go test -race -parallel 8 ./internal/... reliable across 10 runs
+
+After all per-package commits land, the milestone records a 10-run loop of `go test -race -parallel 8 ./internal/...` with zero flakes and zero timeouts. The run log is pasted into the milestone's Validation section at wrap. If a flake surfaces, it is root-caused (not papered over per CLAUDE.md "Don't paper over a test failure") and the fix lands either as a per-package amendment or as a new gap if it's a real data race the conversion exposed.
+
+### AC-6 — wall-time baseline and post-conversion numbers recorded at wrap
+
+The milestone records `go test ./internal/...` wall time before the first conversion commit and after the last, on the same hardware. The target per the epic is ≥2× faster at default parallelism; the actual numbers go into Validation at wrap. If the target is missed, the milestone documents why in Reviewer notes (not a wrap blocker; the epic's success criteria are the hard bar).
+
