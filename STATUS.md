@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_255 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_256 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 > Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -12,6 +12,7 @@ _255 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 - **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(draft)_ — tdd: required
 - **M-0100** — Sidebar surfaces gaps with active count _(draft)_ — tdd: required
 - **M-0101** — In-page status hierarchy in gaps.html _(draft)_ — tdd: required
+- **M-0102** — Repair Playwright e2e suite for current kernel state _(draft)_ — tdd: advisory
 
 ```mermaid
 flowchart LR
@@ -24,6 +25,8 @@ flowchart LR
   E_0029 --> M_0100
   M_0101["M-0101<br/>In-page status hierarchy in gaps.html"]:::ms_draft
   E_0029 --> M_0101
+  M_0102["M-0102<br/>Repair Playwright e2e suite for current kernel state"]:::ms_draft
+  E_0029 --> M_0102
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -142,9 +145,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | ai/claude | promote | aiwf promote M-0098 draft -> in_progress |
 | 2026-05-11 | ai/claude | add | aiwf add ac M-0098 AC-1..AC-4 (4 criteria) |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0101 |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0100 |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0099 |
-| 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0098 |
 
