@@ -286,9 +286,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | implement | feat(aiwf): aiwf check per-code text summary + --verbose flag (M-0089) |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0098 |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-8 'Summary lines name the code structurally, not by substring grep' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-7 'Kernel-tree integration test — default output is short' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-6 'cmd/aiwf/completion_drift_test.go passes' |
-| 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-5 'aiwf check --help documents --verbose' |
 
