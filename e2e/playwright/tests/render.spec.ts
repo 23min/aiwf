@@ -577,6 +577,38 @@ test.describe("layout — tab clicks don't scroll (M-0098/AC-5)", () => {
   });
 });
 
+test.describe("layout — prose-cap (M-0098/AC-3)", () => {
+  // Prose blocks inside `main` cap at ~50rem (~800px at default
+  // 16px html font) for readability; wide content (tables, code
+  // blocks, AC card containers, dependency DAG) stays unbound and
+  // fills the panel width.
+  //
+  // The test uses computed-style assertions rather than bounding-
+  // rect width because the fixture's prose paragraphs are short
+  // and wouldn't reach the cap visually — but we need to verify
+  // the CSS rule IS APPLIED, not just that text happens to fit
+  // (which it would whether or not the rule existed). The cap
+  // value is 50rem = 800px at the default 16px html font.
+
+  test("paragraphs in main cap at 800px; tables stay unbound", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto(fileURL("E-0001.html"));
+
+    // A prose paragraph inside main has max-width: 800px (50rem).
+    // `main p` is the targeted selector class.
+    const proseMaxWidth = await page.locator("main p").first().evaluate(
+      (el) => getComputedStyle(el).maxWidth,
+    );
+    expect(proseMaxWidth, "first <p> in main should be capped at 800px").toBe("800px");
+
+    // A table inside main has no max-width cap.
+    const tableMaxWidth = await page.locator("main table").first().evaluate(
+      (el) => getComputedStyle(el).maxWidth,
+    );
+    expect(tableMaxWidth, "first <table> in main should not be capped").toBe("none");
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {
