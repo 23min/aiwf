@@ -1,6 +1,6 @@
 ---
 id: G-0097
-title: Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom
+title: Test-suite wall time dominated by serial execution and per-test setup
 status: open
 ---
 ## Problem

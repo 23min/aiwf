@@ -122,7 +122,7 @@ flowchart LR
 | G-0090 | M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests | M-0079 |
 | G-0091 | No preventive check for body-prose path-form refs to archive-moved entities |  |
 | G-0092 | No documented hierarchy of doc authority across docs/ |  |
-| G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
+| G-0097 | Test-suite wall time dominated by serial execution and per-test setup |  |
 | G-0099 | Worktree isolation must be a parent-side precondition, not an Agent kwarg honor |  |
 | G-0100 | aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing | M-0089 |
 | G-0103 | absolute-path leak lint | M-0089 |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle ADR-0009 -> 'Orchestration substrate: substrate-vs-driver split with trailer-only events' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0073 -> 'depends_on restricted to milestone→milestone; cross-kind blocking via body prose' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle E-0028 -> 'Start-epic ritual: sovereign activation with preflight + delegation' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0059 -> 'Branch model: no canonical entity-hierarchy-to-git-branches mapping' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0079 -> 'aiwfx-plan-milestones plugin skill needs --depends-on documentation' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0092 -> 'No documented hierarchy of doc authority across docs/' |
 
