@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Sidebar width resolves to chosen target value
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Prose blocks cap at readable measure inside main
       status: open
