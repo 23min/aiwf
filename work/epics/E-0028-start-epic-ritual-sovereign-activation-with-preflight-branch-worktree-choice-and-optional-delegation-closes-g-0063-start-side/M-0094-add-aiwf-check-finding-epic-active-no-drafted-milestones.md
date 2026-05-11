@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: rule does not fire when active epic has at least one drafted milestone
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: rule does not fire when epic is at status proposed, done, or cancelled
       status: open
