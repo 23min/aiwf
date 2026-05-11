@@ -1,7 +1,7 @@
 ---
 id: E-0024
 title: Implement uniform archive convention (ADR-0004)
-status: active
+status: done
 ---
 
 # E-0024 — Implement uniform archive convention (ADR-0004)

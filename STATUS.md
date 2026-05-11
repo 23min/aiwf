@@ -4,34 +4,7 @@ _218 entities · 0 errors · 0 warnings_
 
 ## In flight
 
-### E-0024 — Implement uniform archive convention (ADR-0004) _(active)_
-
-- ✓ **M-0084** — Loader and id resolver span active and archive directories _(done)_ — ACs 6/6 met — tdd: required
-- ✓ **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(done)_ — ACs 8/8 met — tdd: required
-- ✓ **M-0086** — Three new archive check-rule findings and existing-rule scoping _(done)_ — ACs 7/7 met — tdd: required
-- ✓ **M-0087** — Display surfaces for archived entities (status, show, render) _(done)_ — ACs 9/9 met — tdd: required
-- ✓ **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(done)_ — ACs 8/8 met — tdd: required
-
-```mermaid
-flowchart LR
-  E_0024["E-0024<br/>Implement uniform archive convention (ADR-0004)"]:::epic_active
-  M_0084["M-0084 (6/6)<br/>Loader and id resolver span active and archive directories"]:::ms_done
-  E_0024 --> M_0084
-  M_0085["M-0085 (8/8)<br/>aiwf archive verb (dry-run default, --apply, --kind)"]:::ms_done
-  E_0024 --> M_0085
-  M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_done
-  E_0024 --> M_0086
-  M_0087["M-0087 (9/9)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_done
-  E_0024 --> M_0087
-  M_0088["M-0088 (8/8)<br/>Configuration knob, embedded skill, and CLAUDE.md amendment"]:::ms_done
-  E_0024 --> M_0088
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
+_(no active epics)_
 
 ## Roadmap
 
@@ -116,9 +89,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote E-0024 proposed -> active |
 | 2026-05-11 | human/peter | merge | Merge worktree-agent-ae85cfc7baf987101: E-0024 — uniform archive convention (ADR-0004) |
 | 2026-05-11 | human/peter | wrap | chore(E-0024): wrap epic — uniform archive convention (ADR-0004) |
 | 2026-05-11 | human/peter | chore | chore(aiwf): drop vestigial v1 tracking docs + gitignore .aiwf.lock |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0088 in_progress -> done |
 
