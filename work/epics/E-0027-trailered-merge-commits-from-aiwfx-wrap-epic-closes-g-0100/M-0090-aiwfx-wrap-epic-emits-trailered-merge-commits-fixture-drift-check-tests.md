@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Fixture body prescribes the trailered-merge sequence.
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Drift-check test compares the fixture vs. local marketplace cache.
       status: open
