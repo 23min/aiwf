@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: human actor promoting epic to active succeeds without override
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: rule scoped to proposed-to-active edge; other epic transitions unaffected
       status: open
