@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Sidebar width resolves to chosen target value
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Prose blocks cap at readable measure inside main
