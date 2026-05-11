@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Rituals-repo SHA recorded at wrap.
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Kernel rule unchanged.
       status: open
