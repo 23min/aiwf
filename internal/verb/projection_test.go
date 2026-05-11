@@ -29,10 +29,17 @@ func TestProjectionFindings_PreExistingFiltered(t *testing.T) {
 				ID: "G-0001", Kind: entity.KindGap, Title: "Broken", Status: "open",
 				DiscoveredIn: "M-0999", Path: "g.md",
 			},
-			// Unrelated new epic — should not be blocked.
+			// Unrelated new epic — should not be blocked. Paired with a
+			// drafted milestone so the M-0094 rule
+			// (epic-active-no-drafted-milestones) does not fire and
+			// muddy this test's premise.
 			{
 				ID: "E-0001", Kind: entity.KindEpic, Title: "Foundations", Status: "active",
 				Path: "e.md",
+			},
+			{
+				ID: "M-0001", Kind: entity.KindMilestone, Title: "Queued", Status: "draft",
+				Parent: "E-0001", Path: "m.md",
 			},
 		},
 	}

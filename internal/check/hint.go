@@ -24,6 +24,12 @@ var hintTable = map[string]string{
 	"adr-supersession-mutual":           "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
 	"gap-resolved-has-resolver":         "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
 
+	// M-0094: start-epic preflight signal per G-0063. The aiwfx-start-epic
+	// skill consumes this finding to surface "no work queued" before
+	// activation; post-activation, drafting the next milestone (or wrapping
+	// the epic) clears it.
+	"epic-active-no-drafted-milestones": "draft the next milestone with `aiwf add milestone --epic E-NN --tdd <policy> --title \"...\"`, or wrap the epic if all planned work is in flight or done — the rule is the start-epic preflight signal from G-0063",
+
 	// M-083 AC-1: tree mid-migration warning. Fires only on the
 	// mixed-active-tree case; uniform-narrow and uniform-canonical
 	// stay silent per ADR-0008's "Drift control" subsection.

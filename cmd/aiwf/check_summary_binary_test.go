@@ -161,16 +161,19 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 		t.Errorf("want 10 per-instance error lines, got %d", len(errorPerInstance))
 	}
 
-	// AC-1: warning-code summary count for the messy fixture is 5.
+	// AC-1: warning-code summary count for the messy fixture is 6.
 	// The kernel test for the fixture pins this: adr-supersession-mutual,
-	// archive-sweep-pending, gap-resolved-has-resolver,
-	// terminal-entity-not-archived, titles-nonempty.
+	// archive-sweep-pending, epic-active-no-drafted-milestones (added
+	// by M-0094 alongside the E-02-no-drafts fixture entity),
+	// gap-resolved-has-resolver, terminal-entity-not-archived,
+	// titles-nonempty.
 	wantCodes := map[string]int{
-		"adr-supersession-mutual":      2,
-		"archive-sweep-pending":        1,
-		"gap-resolved-has-resolver":    1,
-		"terminal-entity-not-archived": 3,
-		"titles-nonempty":              1,
+		"adr-supersession-mutual":           2,
+		"archive-sweep-pending":             1,
+		"epic-active-no-drafted-milestones": 1,
+		"gap-resolved-has-resolver":         1,
+		"terminal-entity-not-archived":      3,
+		"titles-nonempty":                   1,
 	}
 	gotCodes := map[string]int{}
 	for _, s := range summaries {
@@ -194,11 +197,13 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	// AC-1 ordering pin: count desc, alphabetic tie-break.
 	// Expected order: terminal-entity-not-archived (3),
 	// adr-supersession-mutual (2), archive-sweep-pending (1),
-	// gap-resolved-has-resolver (1), titles-nonempty (1).
+	// epic-active-no-drafted-milestones (1), gap-resolved-has-resolver (1),
+	// titles-nonempty (1).
 	wantOrder := []string{
 		"terminal-entity-not-archived",
 		"adr-supersession-mutual",
 		"archive-sweep-pending",
+		"epic-active-no-drafted-milestones",
 		"gap-resolved-has-resolver",
 		"titles-nonempty",
 	}
@@ -211,9 +216,9 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 		}
 	}
 
-	// Footer: instance counts unchanged from baseline (10 errors + 8
-	// warnings = 18 findings).
-	if !strings.Contains(out, "18 findings (10 errors, 8 warnings)") {
+	// Footer: instance counts shift by +1 warning with M-0094's
+	// fixture addition (E-02-no-drafts) — 10 errors + 9 warnings = 19.
+	if !strings.Contains(out, "19 findings (10 errors, 9 warnings)") {
 		t.Errorf("default-mode footer missing or wrong:\n%s", out)
 	}
 }

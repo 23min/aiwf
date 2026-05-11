@@ -124,6 +124,15 @@
       "hint": "run `aiwf archive --dry-run` to preview the sweep, then `aiwf archive --apply` to commit; the aggregate's count comes from the per-file `terminal-entity-not-archived` findings"
     },
     {
+      "code": "epic-active-no-drafted-milestones",
+      "severity": "warning",
+      "message": "epic E-02 is active but has no milestones at status draft",
+      "path": "work/epics/E-02-no-drafts/epic.md",
+      "line": 4,
+      "entity_id": "E-02",
+      "hint": "draft the next milestone with `aiwf add milestone --epic E-NN --tdd \u003cpolicy\u003e --title \"...\"`, or wrap the epic if all planned work is in flight or done — the rule is the start-epic preflight signal from G-0063"
+    },
+    {
       "code": "gap-resolved-has-resolver",
       "severity": "warning",
       "message": "gap is marked addressed but addressed_by and addressed_by_commit are both empty",
@@ -171,8 +180,8 @@
   ],
   "metadata": {
     "bindings": 0,
-    "entities": 12,
-    "findings": 18,
-    "root": "/tmp/m0089-fixture"
+    "entities": 13,
+    "findings": 19,
+    "root": "/var/folders/r8/472bv5fx4vz_jxbx6jfc_q5w0000gn/T/tmp.7u1EiKcG9x"
   }
 }

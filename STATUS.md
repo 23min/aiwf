@@ -139,9 +139,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0094 in_progress -> done |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0094 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0094 |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-4 open -> met |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-4 --phase green -> done |
 
