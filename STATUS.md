@@ -6,7 +6,31 @@ _255 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
-_(no active epics)_
+### E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) _(active)_
+
+- **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(draft)_ — tdd: required
+- **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(draft)_ — tdd: required
+- **M-0100** — Sidebar surfaces gaps with active count _(draft)_ — tdd: required
+- **M-0101** — In-page status hierarchy in gaps.html _(draft)_ — tdd: required
+
+```mermaid
+flowchart LR
+  E_0029["E-0029<br/>Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)"]:::epic_active
+  M_0098["M-0098<br/>Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap"]:::ms_draft
+  E_0029 --> M_0098
+  M_0099["M-0099<br/>Kind-index chip filter: single emitted file per kind with :target chips"]:::ms_draft
+  E_0029 --> M_0099
+  M_0100["M-0100<br/>Sidebar surfaces gaps with active count"]:::ms_draft
+  E_0029 --> M_0100
+  M_0101["M-0101<br/>In-page status hierarchy in gaps.html"]:::ms_draft
+  E_0029 --> M_0101
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Roadmap
 
@@ -55,32 +79,6 @@ flowchart LR
   E_0025 --> M_0092
   M_0093["M-0093 (0/3)<br/>Document test-discipline convention and lock its chokepoint"]:::ms_draft
   E_0025 --> M_0093
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
-
-### E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) _(proposed)_
-
-- **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(draft)_ — tdd: required
-- **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(draft)_ — tdd: required
-- **M-0100** — Sidebar surfaces gaps with active count _(draft)_ — tdd: required
-- **M-0101** — In-page status hierarchy in gaps.html _(draft)_ — tdd: required
-
-```mermaid
-flowchart LR
-  E_0029["E-0029<br/>Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)"]:::epic_proposed
-  M_0098["M-0098<br/>Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap"]:::ms_draft
-  E_0029 --> M_0098
-  M_0099["M-0099<br/>Kind-index chip filter: single emitted file per kind with :target chips"]:::ms_draft
-  E_0029 --> M_0099
-  M_0100["M-0100<br/>Sidebar surfaces gaps with active count"]:::ms_draft
-  E_0029 --> M_0100
-  M_0101["M-0101<br/>In-page status hierarchy in gaps.html"]:::ms_draft
-  E_0029 --> M_0101
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -144,9 +142,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0116 'aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0082 open -> addressed |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0083 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0029 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0101 'In-page status hierarchy in gaps.html' |
-| 2026-05-11 | human/peter | add | aiwf add milestone M-0100 'Sidebar surfaces gaps with active count' |
 
