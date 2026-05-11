@@ -268,7 +268,11 @@ Land the `aiwf archive` verb and the convergence machinery so terminal-status en
 
 Convert the Go test suite from serial-with-per-test-setup to parallel-with-shared-fixtures across the load-bearing packages, so `make test` and CI's `go test` job complete in a fraction of today's wall time. The change is mechanical (a pattern, applied per package) and the spike on `spike/test-parallel` proved the pattern works on the largest single package (`internal/verb/`: ~4× faster non-race, ~2.4× with race).
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0091 | Roll out TestMain + t.Parallel across internal/* test packages | draft |
+| M-0092 | Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/ | draft |
+| M-0093 | Document test-discipline convention and lock its chokepoint | draft |
 
 ## E-0026 — aiwf check per-code summary by default (closes G-0098) (done)
 
