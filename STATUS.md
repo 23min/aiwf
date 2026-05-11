@@ -1,8 +1,6 @@
 # aiwf status — 2026-05-11
 
-_242 entities · 0 errors · 2 warnings · run `aiwf check` for details_
-
-> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
+_242 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -134,9 +132,7 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| terminal-entity-not-archived | G-0100 | work/gaps/G-0100-provenance-untrailered-entity-commit-fires-on-git-merge-commits-that-touch-entity-files-rule-should-skip-merge-commits-parent-count-1-so-every-epic-wrap-merge-doesn-t-inflate-the-warning-count.md | entity G-0100 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+_(none)_
 
 ## Recent activity
 
