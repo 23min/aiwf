@@ -1,8 +1,6 @@
 # aiwf status — 2026-05-11
 
-_248 entities · 0 errors · 11 warnings · run `aiwf check` for details_
-
-> Sweep pending: 10 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+_248 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -109,26 +107,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| terminal-entity-not-archived | ADR-0005 | docs/adr/ADR-0005-verb-hygiene-contract-complete-consistent-pre-flighted-aiwf-verbs.md | entity ADR-0005 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | M-0094 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0094-add-aiwf-check-finding-epic-active-no-drafted-milestones.md | entity M-0094 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | M-0095 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md | entity M-0095 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | M-0096 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | entity M-0096 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | M-0097 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0097-close-m-0094-95-96-verification-seams-m-0095-automation-audit-chokepoint-and-ac-5-drift-comparator.md | entity M-0097 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | E-0028 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/epic.md | entity E-0028 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0063 | work/gaps/G-0063-no-start-epic-ritual.md | entity G-0063 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0081 | work/gaps/G-0081-aiwf-rename-does-not-pre-flight-trunk-collision-check.md | entity G-0081 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0084 | work/gaps/G-0084-verb-hygiene-contract-is-undocumented-g-081-g-082-g-083-lack-umbrella.md | entity G-0084 has terminal status 'wontfix' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0091 | work/gaps/G-0091-no-preventive-check-body-path-refs-to-archive.md | entity G-0091 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0081 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0081 |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0084 open -> wontfix |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0084 |
 | 2026-05-11 | human/peter | promote | aiwf promote ADR-0005 proposed -> rejected |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 
