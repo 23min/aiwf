@@ -17,8 +17,8 @@ import { mkdtempSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-/** Repo root — three levels up from this file (tools/e2e/playwright/). */
-export const repoRoot = resolve(__dirname, "..", "..", "..");
+/** Repo root — two levels up from this file (e2e/playwright/). */
+export const repoRoot = resolve(__dirname, "..", "..");
 
 /** Path the test process re-uses across tests for the built binary. */
 let cachedBin: string | null = null;
@@ -28,7 +28,7 @@ export function buildAiwf(): string {
   if (cachedBin) return cachedBin;
   const dir = mkdtempSync(join(tmpdir(), "aiwf-e2e-bin-"));
   const bin = join(dir, "aiwf");
-  execFileSync("go", ["build", "-o", bin, "./tools/cmd/aiwf"], {
+  execFileSync("go", ["build", "-o", bin, "./cmd/aiwf"], {
     cwd: repoRoot,
     stdio: "pipe",
   });
@@ -87,18 +87,30 @@ export function renderRichFixture(): string {
   runGit(repoDir, "init", "-q");
   runGit(repoDir, "config", "user.email", "e2e@example.com");
   runGit(repoDir, "config", "user.name", "e2e");
-  // Disable hooks: aiwf init writes pre-push and pre-commit; the
-  // pre-commit hook re-execs the aiwf binary on every commit which
-  // slows things and risks reentrancy under e2e.
-  runGit(repoDir, "config", "core.hooksPath", "/var/empty");
 
   runAiwf(bin, repoDir, "init", "--actor", "human/peter");
+
+  // Disable hooks for the per-verb commits that follow. aiwf init
+  // wrote its pre-push (and possibly pre-commit) hook into
+  // `.git/hooks/` (the default); pointing `core.hooksPath` at a
+  // writable empty dir AFTER init causes subsequent git commits to
+  // skip the kernel hooks without writing to the read-only system
+  // path that the previous `/var/empty` approach relied on.
+  const emptyHooks = mkdtempSync(join(tmpdir(), "aiwf-e2e-hooks-"));
+  runGit(repoDir, "config", "core.hooksPath", emptyHooks);
 
   const verbs: string[][] = [
     ["add", "epic", "--title", "Foundations", "--actor", "human/peter"],
     ["add", "epic", "--title", "Adoption", "--actor", "human/peter"],
-    ["add", "milestone", "--epic", "E-01", "--title", "Schema parser", "--actor", "human/peter"],
-    ["add", "milestone", "--epic", "E-01", "--title", "Tree loader", "--actor", "human/peter"],
+    // --tdd none on M-001 matches the original fixture intent: AC-1 is
+    // promoted directly to met (testing empty-phases rendering) and
+    // AC-2 is walked through phases (testing populated-phases
+    // rendering). Under tdd: required the direct-met would fail the
+    // acs-tdd-audit; tdd: none disables the audit so both flows work.
+    // G-055 (E-0016) made --tdd explicit; the prior absent-default-
+    // none behavior is preserved by passing "none" verbatim.
+    ["add", "milestone", "--epic", "E-01", "--tdd", "none", "--title", "Schema parser", "--actor", "human/peter"],
+    ["add", "milestone", "--epic", "E-01", "--tdd", "none", "--title", "Tree loader", "--actor", "human/peter"],
     ["add", "ac", "M-001", "--title", "Parses YAML frontmatter", "--actor", "human/peter"],
     ["add", "ac", "M-001", "--title", "Reports parse errors", "--actor", "human/peter"],
     ["promote", "M-001/AC-1", "met", "--actor", "human/peter"],
