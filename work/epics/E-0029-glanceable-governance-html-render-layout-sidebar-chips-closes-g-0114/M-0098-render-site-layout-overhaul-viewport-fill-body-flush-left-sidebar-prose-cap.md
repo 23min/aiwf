@@ -29,7 +29,7 @@ ACs added via `aiwf add ac M-<id>` at start-milestone time. The observable-behav
 - Tables, code blocks, AC cards, and milestone-tab content (Manifest table, Tests table, Provenance scope table, dependency DAG, commits list) fill the full main-panel width — the prose-cap rule does not affect them.
 - The existing <768px mobile collapse continues to work: the sidebar drops below main; no horizontal scroll appears on phone-width viewports; no broken layout at common phone widths (375, 414, 768).
 
-Each AC is asserted via a structural assertion (per CLAUDE.md *Substring assertions are not structural assertions*): HTML parsed via `golang.org/x/net/html` and CSS rules verified by parsing the emitted `style.css` and checking the rule existence, not by substring grep. A render-against-real-fixture human-verification pass closes the milestone per CLAUDE.md *Render output must be human-verified before the iteration closes*.
+Each AC is asserted via **Playwright browser tests** in `e2e/playwright/tests/` (extending the existing `render.spec.ts` or in a sibling spec added for this milestone). Computed-style verification — `getComputedStyle`, `getBoundingClientRect`, viewport-resize behavior — is the load-bearing check; parsed-CSS / parsed-HTML checks in Go remain useful for structural shape but cannot reliably assert `clamp()`-resolved widths, viewport-dependent layout, or the `@media (max-width: 768px)` collapse. CI integration for the Playwright suite is **deferred for E-0029** per the epic Constraints; the run is local until the follow-up wires it. A render-against-real-fixture human-verification pass closes the milestone per CLAUDE.md *Render output must be human-verified before the iteration closes*; the chosen sidebar width value is recorded in *Validation* at wrap.
 
 ## Constraints
 
@@ -48,7 +48,8 @@ Each AC is asserted via a structural assertion (per CLAUDE.md *Substring asserti
 
 - `internal/htmlrender/embedded/style.css` (primary — body, .layout, .sidebar, prose-cap rule)
 - `internal/htmlrender/embedded/_sidebar.tmpl`, `internal/htmlrender/embedded/index.tmpl`, `internal/htmlrender/embedded/epic.tmpl`, `internal/htmlrender/embedded/milestone.tmpl`, `internal/htmlrender/embedded/entity.tmpl`, `internal/htmlrender/embedded/kind_index.tmpl`, `internal/htmlrender/embedded/status.tmpl` (minimal — possibly wrap prose blocks in a class for the prose-cap selector)
-- `cmd/aiwf/render_*_test.go` and `internal/htmlrender/htmlrender_test.go` (structural assertions on layout / CSS rules / prose-cap presence)
+- `e2e/playwright/tests/` (primary test surface — extend `render.spec.ts` or add a milestone-scoped spec; load-bearing computed-style assertions live here)
+- `cmd/aiwf/render_*_test.go` and `internal/htmlrender/htmlrender_test.go` (complementary — emit-shape and CSS-rule-presence checks; not load-bearing for layout ACs)
 
 ## Out of scope
 
