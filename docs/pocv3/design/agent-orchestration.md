@@ -9,7 +9,7 @@ Companion artifacts:
 - [`ADR-0003`](../../adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — finding (F-NNN) as 7th entity kind.
 - [`ADR-0004`](../../adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) — uniform archive convention.
 - [`ADR-0009`](../../adr/ADR-0009-orchestration-substrate-vs-driver-split.md) — ratifies the three load-bearing decisions in this design doc (substrate-vs-driver split per §6.1, trailer-only cycle events per §6.3, isolation as parent-side precondition per §6.2 / §7.7). Currently `proposed`; iterates as this doc's design is shaped.
-- [`G-0099`](../../../work/gaps/G-0099-orchestration-design-s-worktree-isolation-depends-on-agent-kwarg-honor-materialisation-should-be-a-parent-side-precondition-git-worktree-add-check-git-worktree-list-invoke-agent-with-path-so-isolation-does-not-depend-on-llm-harness-behavior.md) — the concrete failure mode that surfaced the isolation-as-precondition rule (§6.2 step 3, §7.7).
+- [`G-0099`](../../../work/gaps/G-0099-worktree-isolation-parent-side-precondition.md) — the concrete failure mode that surfaced the isolation-as-precondition rule (§6.2 step 3, §7.7).
 
 ---
 
