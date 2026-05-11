@@ -50,6 +50,10 @@ Option 1 matches the operator's mental model (one verb, one observable change). 
 
 The aiwf grain leans toward Option 1: the kernel already has `aiwf rename` as a separate verb when you only want the slug change; consolidating "title + slug" into retitle removes a class of "I forgot to also rename" bugs.
 
+# Decision (locked 2026-05-11)
+
+**Option 1 — extend `aiwf retitle` to atomically sync the on-disk slug** alongside the frontmatter title. Operator-ergonomics over verb-hygiene-strictness: the "I forgot to also rename" class of bug is a real friction surface, observed today during the G-0102 cleanup pass. Verb-hygiene defenders can read `aiwf retitle` as "rename the entity end-to-end" — one observable change to the operator, even if the implementation touches two fields. `aiwf rename` stays as the slug-only verb for the "I just want a slug tweak" case.
+
 # Why not urgent
 
 The two-step workflow exists; the docs (after this gap surfaces) can describe it. No active work is blocked. Promote when retitle-batches become frequent enough that the two-step friction matters.
