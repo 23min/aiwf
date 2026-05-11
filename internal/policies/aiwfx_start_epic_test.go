@@ -1,13 +1,31 @@
 package policies
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 )
+
+// compareSkillBytes is the byte-compare seam between the M-0096
+// fixture and the marketplace-cache copy of the rituals-repo skill.
+// Returns nil if the two byte slices are identical; returns a typed
+// error containing skillPath and a re-deploy hint on drift.
+//
+// Extracted from `TestAiwfxStartEpic_AC5_DriftAgainstCache` per
+// M-0097/AC-2 so the comparator's two arms can be exercised
+// synthetically — the production AC-5 test only reaches the drift
+// arm post-wrap in the rare drift-detected production state.
+func compareSkillBytes(fixture, cached []byte, skillPath string) error {
+	if bytes.Equal(fixture, cached) {
+		return nil
+	}
+	return fmt.Errorf("drift between fixture and cached skill at %q — re-deploy fixture to rituals repo and reload plugins, or update the fixture if the rituals-side is canonical", skillPath)
+}
 
 // aiwfxStartEpicFixturePath is the canonical authoring location for
 // the `aiwfx-start-epic` skill body during M-0096, per CLAUDE.md
@@ -82,6 +100,50 @@ func TestAiwfxStartEpic_AC1_FixtureAndWorkflow(t *testing.T) {
 	}
 }
 
+// TestCompareSkillBytes_BranchCoverage pins M-0097/AC-2: the
+// fixture-vs-cache byte-compare logic used by AC-5's drift check is
+// exercised synthetically — both the match arm and the drift arm —
+// regardless of whether the marketplace cache currently carries the
+// rituals-repo content. Before M-0097, the drift arm could only be
+// reached in the rare production state where cache bytes differed
+// from fixture bytes; this test pins the arm with controlled inputs.
+//
+// The empty/empty case asserts the match arm tolerates an empty
+// fixture and cache without producing a false-positive drift signal
+// (defensive: prevents a regression where empty-vs-empty would be
+// treated as "drift" by an over-eager comparator).
+func TestCompareSkillBytes_BranchCoverage(t *testing.T) {
+	cases := []struct {
+		name    string
+		fixture []byte
+		cached  []byte
+		wantErr bool
+	}{
+		{"identical", []byte("---\nname: x\n---\nbody\n"), []byte("---\nname: x\n---\nbody\n"), false},
+		{"empty-both", []byte(""), []byte(""), false},
+		{"drift-different-bytes", []byte("old content\n"), []byte("new content\n"), true},
+		{"drift-fixture-only", []byte("present\n"), []byte(""), true},
+		{"drift-cached-only", []byte(""), []byte("present\n"), true},
+		{"drift-trailing-newline", []byte("body\n"), []byte("body"), true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := compareSkillBytes(tc.fixture, tc.cached, "/fake/skill/path/SKILL.md")
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("%s: expected drift error, got nil", tc.name)
+					return
+				}
+				if !strings.Contains(err.Error(), "/fake/skill/path/SKILL.md") {
+					t.Errorf("%s: drift error must name the skill path; got %v", tc.name, err)
+				}
+			} else if err != nil {
+				t.Errorf("%s: expected nil on match, got %v", tc.name, err)
+			}
+		})
+	}
+}
+
 // TestAiwfxStartEpic_AC5_DriftAgainstCache pins M-0096/AC-5: the
 // fixture content matches the currently-active plugin install per
 // `installed_plugins.json` when the cache is present and the skill
@@ -151,8 +213,8 @@ func TestAiwfxStartEpic_AC5_DriftAgainstCache(t *testing.T) {
 	}
 
 	fixture := loadAiwfxStartEpicFixture(t)
-	if string(cached) != fixture {
-		t.Errorf("AC-5: drift between fixture and cached skill at %q — re-deploy fixture to rituals repo and reload plugins, or update the fixture if the rituals-side is canonical", skillPath)
+	if err := compareSkillBytes([]byte(fixture), cached, skillPath); err != nil {
+		t.Errorf("AC-5: %v", err)
 	}
 }
 

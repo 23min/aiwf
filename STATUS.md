@@ -146,9 +146,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0097 in_progress -> done |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0097 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0110 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0110 'gremlins --diff <ref> filter excludes new files entirely; manual mutation review needed for M-0094/95/96' |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0097/AC-2 open -> met |
 
