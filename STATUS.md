@@ -8,7 +8,7 @@ _255 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ### E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) _(active)_
 
-- **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(draft)_ — tdd: required
+- **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(draft)_ — ACs 0/4 met (4 open) — tdd: required
 - **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(draft)_ — tdd: required
 - **M-0100** — Sidebar surfaces gaps with active count _(draft)_ — tdd: required
 - **M-0101** — In-page status hierarchy in gaps.html _(draft)_ — tdd: required
@@ -16,7 +16,7 @@ _255 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 ```mermaid
 flowchart LR
   E_0029["E-0029<br/>Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)"]:::epic_active
-  M_0098["M-0098<br/>Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap"]:::ms_draft
+  M_0098["M-0098 (0/4)<br/>Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap"]:::ms_draft
   E_0029 --> M_0098
   M_0099["M-0099<br/>Kind-index chip filter: single emitted file per kind with :target chips"]:::ms_draft
   E_0029 --> M_0099
@@ -142,9 +142,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0101 |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0100 |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0099 |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0098 |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body E-0029 |
-| 2026-05-11 | human/peter | authorize | aiwf authorize E-0029 --to ai/claude |
 

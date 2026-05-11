@@ -4,6 +4,23 @@ title: 'Render-site layout overhaul: viewport-fill body, flush-left sidebar, pro
 status: draft
 parent: E-0029
 tdd: required
+acs:
+    - id: AC-1
+      title: Layout fills viewport at widths above 768px
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Sidebar width resolves to chosen target value
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Prose blocks cap at readable measure inside main
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Mobile collapse stacks sidebar below main below 768px
+      status: open
+      tdd_phase: red
 ---
 # Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap
 
@@ -85,3 +102,36 @@ Each AC is asserted via **Playwright browser tests** in `e2e/playwright/tests/` 
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — Layout fills viewport at widths above 768px
+
+**Pass criterion**: At any viewport width above 768px, the layout grid fills the viewport horizontally — the sidebar's left edge sits at `boundingBox.x === 0` and the main panel's right edge equals the viewport's width. The body element has no `max-width` cap (`getComputedStyle(document.body).maxWidth` is `"none"`). No horizontal scrollbar appears (`document.documentElement.scrollWidth === window.innerWidth`). Verified via Playwright `boundingBox()` / `getComputedStyle()` queries at 1280, 1920, and 2560 viewport widths.
+
+**Edge cases**: A 2560px viewport must show the layout truly fluid, not capped at 78rem (the current default). The sidebar's flush-left positioning must hold even when the sidebar's internal content (epic titles, the brand mark) is shorter than the sidebar column's allocated width. The `.layout` grid's gap (currently `1.5rem`) and any inner padding on main are preserved — the test asserts viewport-edge alignment, not zero spacing inside the panel.
+
+**Code references**: Primary change in `internal/htmlrender/embedded/style.css` — body's `margin: 2rem auto; max-width: 78rem` and `.layout`'s grid shape need to flip to viewport-spanning. Test lives in `e2e/playwright/tests/render.spec.ts` under a new `test.describe("layout — viewport-fill", ...)` block adjacent to the existing `index.html` / tabs describes. Render fixture: existing `renderRichFixture()` in `e2e/playwright/fixture.ts` (no fixture changes expected for AC-1).
+
+### AC-2 — Sidebar width resolves to chosen target value
+
+**Pass criterion**: The sidebar's computed width is the chosen target value across viewport widths. The target is a single source of truth defined in CSS (e.g. a custom property `--sidebar-width: clamp(240px, 18vw, 320px)` or a fixed `280px`); the test asserts `getComputedStyle(sidebar).width` resolves correctly at 800, 1280, 1920, and 2560 viewport widths. If `clamp()` is used, the test verifies the resolved value sits between the clamp's min and max at each viewport (240px floor, 320px ceiling for the proposed `clamp(240px, 18vw, 320px)`). The chosen value is recorded in this milestone's wrap *Validation* section so M-0099/M-0100/M-0101 reference one source of truth.
+
+**Edge cases**: The sidebar's content (epic titles, brand mark + wordmark, "Project status" / "Overview" links, the planned "Gaps (N)" entry from M-0100) must not overflow the chosen width — verify the longest epic title in the rich fixture fits without `text-overflow: ellipsis` triggering. The chosen value must also not be so wide that main becomes uncomfortably narrow on common laptop viewports (1280–1440px) — sketched options and the eyeball pass record the choice. If `clamp()` is chosen, verify it degrades sensibly below the floor (mobile collapse takes over at <768px per AC-4).
+
+**Code references**: Likely `internal/htmlrender/embedded/style.css` — either a `--sidebar-width` custom property in `:root` consumed by `.layout`'s `grid-template-columns`, or a direct value in the grid declaration. Decision sketch (2–3 options) lives in this milestone's *Design notes* section, filled at red-phase start. Test in `e2e/playwright/tests/render.spec.ts` under "layout — sidebar width". Final value lands in *Validation* at wrap; downstream milestones reference it.
+
+### AC-3 — Prose blocks cap at readable measure inside main
+
+**Pass criterion**: At a viewport wide enough that `main` exceeds ~50rem (800px at default 16px font; verified at 1920×1080), prose blocks inside `main` are capped at the readable measure — a paragraph rendered on an epic page, milestone Overview tab, entity body section, or AC card description has `boundingClientRect.width <= 50rem`. Wide content inside the same `main` panel is unaffected — a `<table>` on a milestone Manifest tab, a `<pre>` code block, an AC card container (the `.ac` div), or the dependency DAG renders at the full main-panel width (`boundingClientRect.width > 50rem`). The cap is implemented as a CSS rule on prose-typed elements (likely a `.body-section`, `.ac > .ac-desc`, or `main p` selector — final selector decided in red phase), not by capping `main` itself.
+
+**Edge cases**: Prose-cap must apply uniformly across page kinds — verify on epic / milestone / entity (gap/ADR/decision/contract) pages, not only one. Short prose blocks (one-sentence paragraphs) render at their natural width — the cap is a `max-width`, not a fixed width. Code blocks and `<pre>` tags inside prose paragraphs (`<p><code>...</code></p>`) follow the paragraph's cap, not their own scope. Tables nested inside body sections (rare but possible) fill the main width, not the prose cap. The cap respects rem units (so user font scaling extends the cap proportionally) rather than pixels.
+
+**Code references**: New CSS rule in `internal/htmlrender/embedded/style.css` keyed off a prose-typed selector or class. Templates under `internal/htmlrender/embedded/*.tmpl` may need a small structural wrap (e.g. `<div class="body-section">` around the body markdown emit) if the existing markup doesn't already isolate prose. Test in `e2e/playwright/tests/render.spec.ts` under "layout — prose cap" — assert prose width on at least one page per kind, and assert table/code/`.ac` width exceeds the cap on at least one milestone page.
+
+### AC-4 — Mobile collapse stacks sidebar below main below 768px
+
+**Pass criterion**: At viewport widths below 768px (verified at 375 — iPhone SE width — 414, 600, and 767), the sidebar renders below `main` rather than beside it. Asserted via Playwright: `sidebar.boundingBox().y > main.boundingBox().y + main.boundingBox().height` (sidebar's top edge is below main's bottom edge), or — depending on the layout collapse mechanism — `sidebar.boundingBox().x === 0 && main.boundingBox().x === 0 && sidebar.boundingBox().y > main.boundingBox().y` (single-column stack). No horizontal scrollbar appears (`document.documentElement.scrollWidth <= window.innerWidth`). The existing `@media (max-width: 768px)` rule in `style.css` still fires and still flips `.layout`'s `grid-template-columns` to `1fr`; the sidebar's `position: static !important` override holds against the new sticky/flush-left layout.
+
+**Edge cases**: At exactly 768px the rule fires (per the existing `max-width: 768px` definition); just above (e.g. 769px) it does not — verify both sides of the boundary so future tweaks to the breakpoint don't silently regress. Sidebar links still navigate when clicked in the collapsed layout (no overlap with main blocking the click target). The main panel's prose cap from AC-3 still applies in the collapsed view but never exceeds viewport width — main fills the available column. The brand mark + wordmark in the sidebar header don't overflow at 375px width.
+
+**Code references**: Existing `@media (max-width: 768px)` block in `internal/htmlrender/embedded/style.css` (around line 101 today) — verify intact post-overhaul; may need a one-line tweak if the new layout's sticky/flush-left rules need explicit reset at the breakpoint. Test in `e2e/playwright/tests/render.spec.ts` under "layout — mobile collapse" — use `page.setViewportSize({ width: 600, height: 800 })` (and the other widths) to drive the assertion.
+
