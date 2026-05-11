@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_259 entities · 0 errors · 6 warnings · run `aiwf check` for details_
+_260 entities · 0 errors · 8 warnings · run `aiwf check` for details_
 
 > Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -91,6 +91,7 @@ flowchart LR
 
 - **M-0102** — aiwf authorize --branch flag + scope-branch trailer coupling _(draft)_ — tdd: required
 - **M-0103** — AI-side preflight: aiwf authorize refuses without ritual branch context _(draft)_ — tdd: required
+- **M-0104** — aiwfx-start-epic sequencing fix (closes G-0116) _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
@@ -99,6 +100,8 @@ flowchart LR
   E_0030 --> M_0102
   M_0103["M-0103<br/>AI-side preflight: aiwf authorize refuses without ritual branch context"]:::ms_draft
   E_0030 --> M_0103
+  M_0104["M-0104<br/>aiwfx-start-epic sequencing fix (closes G-0116)"]:::ms_draft
+  E_0030 --> M_0104
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -155,15 +158,17 @@ flowchart LR
 | entity-body-empty | M-0102 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0102-aiwf-authorize-branch-flag-scope-branch-trailer-coupling.md | M-0102 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-0103 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0103-ai-side-preflight-aiwf-authorize-refuses-without-ritual-branch-context.md | M-0103 body section \`## Goal\` is empty |
 | entity-body-empty | M-0103 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0103-ai-side-preflight-aiwf-authorize-refuses-without-ritual-branch-context.md | M-0103 body section \`## Acceptance criteria\` is empty |
+| entity-body-empty | M-0104 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0104-aiwfx-start-epic-sequencing-fix-closes-g-0116.md | M-0104 body section \`## Goal\` is empty |
+| entity-body-empty | M-0104 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0104-aiwfx-start-epic-sequencing-fix-closes-g-0116.md | M-0104 body section \`## Acceptance criteria\` is empty |
 | terminal-entity-not-archived | G-0059 | work/gaps/G-0059-branch-model-no-canonical-hierarchy-mapping.md | entity G-0059 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | add | aiwf add milestone M-0103 'AI-side preflight: aiwf authorize refuses without ritual branch context' |
 | 2026-05-12 | human/peter | add | aiwf add milestone M-0102 'aiwf authorize --branch flag + scope-branch trailer coupling' |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body E-0030 |
 | 2026-05-12 | human/peter | add | aiwf add epic E-0030 'Branch model chokepoint: --branch flag, sequencing, isolation-escape finding' |
 | 2026-05-12 | human/peter | promote | aiwf promote G-0059 open -> addressed |
-| 2026-05-12 | human/peter | promote | aiwf promote ADR-0010 proposed -> accepted |
 
