@@ -17,6 +17,10 @@ acs:
       title: --verbose flag restores full per-instance output
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: JSON envelope is unchanged
+      status: open
+      tdd_phase: red
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
@@ -118,4 +122,6 @@ Intended landing zone:
 ### AC-2 — Errors still print per-instance in default text
 
 ### AC-3 — --verbose flag restores full per-instance output
+
+### AC-4 — JSON envelope is unchanged
 
