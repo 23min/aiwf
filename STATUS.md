@@ -141,9 +141,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | rename | aiwf rename G-0092 slug -> no-documented-doc-authority-hierarchy |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0091 slug -> no-preventive-check-body-path-refs-to-archive |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0090 slug -> m-0079-ac-8-drift-check-untested-branches |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0088 slug -> skill-coverage-misses-plugin-skills |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0087 slug -> no-aiwf-show-embedded-skill |
-| 2026-05-11 | human/peter | rename | aiwf rename G-0082 slug -> planning-closure-default-merges-to-main |
 
