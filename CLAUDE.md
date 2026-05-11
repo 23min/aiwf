@@ -114,7 +114,7 @@ Install both `aiwf-extensions@ai-workflow-rituals` and `wf-rituals@ai-workflow-r
 
 The historical sessions and iterations are archived at [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md). Forward work tracks via epic + milestone entities under `work/`; allocate via `aiwf add epic` / `aiwf add milestone` and run `aiwf status` to see in-flight state.
 
-Trunk-based development on `main`: commit directly, no PR ceremony. Conventional Commits subjects are still useful (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs: ...`).
+**Trunk-based development on `main` for maintainers.** Commit directly to trunk; no PR ceremony, no review queue. Validation is mechanized: `aiwf check` runs pre-commit (shape-only) and pre-push (full), and CI runs the full lint/test/build matrix. Outside contributors propose changes through GitHub PRs — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Conventional Commits subjects are mandatory for both paths (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs: ...`).
 
 When in doubt: the smaller change is the right change.
 
