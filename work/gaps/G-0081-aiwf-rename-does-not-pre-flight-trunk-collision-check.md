@@ -1,8 +1,10 @@
 ---
 id: G-0081
 title: aiwf rename does not pre-flight trunk-collision check
-status: open
+status: addressed
 discovered_in: E-0021
+addressed_by:
+    - G-0109
 ---
 
 # G-0081 — aiwf rename does not pre-flight trunk-collision check
