@@ -24,6 +24,10 @@ acs:
       title: Branch prompt is heading-scoped Q&A with G-0059 deferral note
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Drift-check test compares fixture to cache; skips cleanly when absent
+      status: open
+      tdd_phase: red
 ---
 
 # M-0096 — Ship `aiwfx-start-epic` skill with worktree and branch preflight prompts
@@ -70,4 +74,6 @@ The worktree-placement prompt and the branch prompt are deliberately separate Q&
 ### AC-3 — Sovereign-promotion step names the M-0095 rule and the override path
 
 ### AC-4 — Branch prompt is heading-scoped Q&A with G-0059 deferral note
+
+### AC-5 — Drift-check test compares fixture to cache; skips cleanly when absent
 
