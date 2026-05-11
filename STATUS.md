@@ -141,9 +141,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | rename | aiwf rename G-0067 slug -> wf-tdd-cycle-llm-honor-system-advisory |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0063 slug -> no-start-epic-ritual |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0060 slug -> patch-ritual-loosely-defined |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0059 slug -> branch-model-no-canonical-hierarchy-mapping |
 | 2026-05-11 | human/peter | rename | aiwf rename ADR-0009 slug -> orchestration-substrate-vs-driver-split |
-| 2026-05-11 | human/peter | rename | aiwf rename ADR-0008 slug -> canonicalize-kernel-ids-to-4-digits |
 
