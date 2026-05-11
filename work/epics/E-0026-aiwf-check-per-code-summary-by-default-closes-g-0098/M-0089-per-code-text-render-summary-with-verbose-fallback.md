@@ -33,6 +33,10 @@ acs:
       title: Kernel-tree integration test — default output is short
       status: open
       tdd_phase: red
+    - id: AC-8
+      title: Summary lines name the code structurally, not by substring grep
+      status: open
+      tdd_phase: red
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
@@ -142,4 +146,6 @@ Intended landing zone:
 ### AC-6 — cmd/aiwf/completion_drift_test.go passes
 
 ### AC-7 — Kernel-tree integration test — default output is short
+
+### AC-8 — Summary lines name the code structurally, not by substring grep
 
