@@ -1,7 +1,7 @@
 ---
 id: M-0094
 title: Add aiwf check finding epic-active-no-drafted-milestones
-status: draft
+status: in_progress
 parent: E-0028
 tdd: required
 acs:
