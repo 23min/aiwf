@@ -1,7 +1,7 @@
 ---
 id: E-0028
 title: 'Start-epic ritual: sovereign activation with preflight + delegation'
-status: active
+status: done
 ---
 
 # E-0028 — Start-epic ritual

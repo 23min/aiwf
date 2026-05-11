@@ -1,36 +1,12 @@
 # aiwf status — 2026-05-11
 
-_245 entities · 0 errors · 6 warnings · run `aiwf check` for details_
+_245 entities · 0 errors · 7 warnings · run `aiwf check` for details_
 
-> Sweep pending: 5 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 6 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
-### E-0028 — Start-epic ritual: sovereign activation with preflight + delegation _(active)_
-
-- ✓ **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(done)_ — ACs 4/4 met — tdd: required
-- ✓ **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(done)_ — ACs 4/4 met — tdd: required
-- ✓ **M-0096** — Ship aiwfx-start-epic skill with worktree and branch preflight prompts _(done)_ — ACs 5/5 met — tdd: required
-- ✓ **M-0097** — Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator _(done)_ — ACs 2/2 met — tdd: required
-
-```mermaid
-flowchart LR
-  E_0028["E-0028<br/>Start-epic ritual: sovereign activation with preflight + delegation"]:::epic_active
-  M_0094["M-0094 (4/4)<br/>Add aiwf check finding epic-active-no-drafted-milestones"]:::ms_done
-  E_0028 --> M_0094
-  M_0095["M-0095 (4/4)<br/>Enforce human-only actor on aiwf promote E-NN active"]:::ms_done
-  E_0028 --> M_0095
-  M_0096["M-0096 (5/5)<br/>Ship aiwfx-start-epic skill with worktree and branch preflight prompts"]:::ms_done
-  E_0028 --> M_0096
-  M_0097["M-0097 (2/2)<br/>Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator"]:::ms_done
-  E_0028 --> M_0097
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
+_(no active epics)_
 
 ## Roadmap
 
@@ -141,15 +117,16 @@ flowchart LR
 | terminal-entity-not-archived | M-0095 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md | entity M-0095 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0096 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | entity M-0096 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0097 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0097-close-m-0094-95-96-verification-seams-m-0095-automation-audit-chokepoint-and-ac-5-drift-comparator.md | entity M-0097 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | E-0028 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/epic.md | entity E-0028 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0063 | work/gaps/G-0063-no-start-epic-ritual.md | entity G-0063 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0063 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0111 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0111 'Wrap-side ritual: scope ends before done, human-only on done, wrap-epic update' |
 | 2026-05-11 | human/peter | implement | feat(aiwfx): close M-0094/95/96 verification seams — audit chokepoint and drift comparator (M-0097) |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0097 in_progress -> done |
 
