@@ -123,9 +123,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | wrap-epic | chore(E-0028): wrap epic — start-epic ritual + verification seams closed |
 | 2026-05-11 | human/peter | wrap-epic | chore(epic): wrap E-0028 — start-epic ritual: sovereign activation with preflight + delegation |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0108 open -> addressed |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | promote | aiwf promote E-0028 active -> done |
 

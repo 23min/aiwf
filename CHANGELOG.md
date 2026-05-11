@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-05-11
+
 ### Added — E-0028: Start-epic ritual `aiwfx-start-epic` (closes G-0063 start-side)
 
 Activating an aiwf epic is now a deliberate sovereign ritual. The rituals plugin's new `aiwfx-start-epic` skill orchestrates a 10-step workflow at activation time: preflight reads of the epic spec, drafted-milestone check (new kernel finding), `aiwf check` cleanliness, tests/build advisory pass, worktree-placement Q&A (three options: no-worktree on `main`, `.claude/worktrees/<branch>/`, or sibling `../aiwf-<branch>/`), branch-shape Q&A (placeholder pending G-0059), delegation prompt (in-loop vs. `aiwf authorize E-NN --to ai/<id>`), sovereign promotion via `aiwf promote E-NN active`, optional `aiwf authorize`, and hand-off to `aiwfx-start-milestone`. The promote verb refuses non-`human/` actors at runtime (mirroring the existing `--force` actor coherence rule); the standard `--force --reason "..."` override remains available for genuine sovereign-act-shaped exceptions. CI/script chokepoint added under `internal/policies/` to catch static `aiwf promote E-... active` invocations missing `--force`. Wrap-side concerns (`scope-end-before-done`, human-only on `done`, `aiwfx-wrap-epic` update) deliberately deferred to follow-up gap G-0111. Rituals-repo fixture lands at `ai-workflow-rituals/87fc790`.
@@ -36,6 +38,22 @@ The rituals plugin's `aiwfx-wrap-epic` skill now prescribes a *trailered* merge 
 Default text output of `aiwf check` collapses warnings to one line per finding-code: `<code> (warning) × N — <representative message>`. Errors continue to print per-instance — each error is per-instance-actionable. A new `--verbose` flag restores the full pre-epic per-instance shape byte-for-byte. The JSON envelope is unchanged modulo `metadata.root` (which is environmental); machines still receive every finding via `--format=json` regardless of `--verbose`. On the kernel tree the post-E-0023 / post-E-0024 advisory state (~176 near-identical `terminal-entity-not-archived` lines + the paired `archive-sweep-pending` aggregate) shrinks from a ~180-line scroll to a 5-line scannable summary. Sort order is count-desc with alphabetic tie-break (pinned so golden files don't drift). No check rules, severities, or finding codes changed.
 
 - **M-0089 — Per-code text-render summary with `--verbose` fallback.** New `render.TextSummary` partitions findings: errors flow through the existing per-instance path, warnings group by `Code` into per-code buckets. `Text` was refactored to share a `renderPerInstance` helper so the verbose path stays byte-identical to the pre-epic behaviour by construction, not just by golden file. Sample message per code is the first finding's `Message` verbatim. Binary integration tests at `cmd/aiwf/check_summary_binary_test.go` (kernel-tree ≤10-line bound, byte-identity against captured baselines for verbose text, structural-equal modulo `metadata.root` for JSON, `--help` documentation of `--verbose`). Discovered the friction post-E-0024 when the advisory paired-finding shape became the new normal; this milestone collapses the noise at the render layer alone.
+
+### Added — E-0024: Uniform archive convention for terminal-status entities (ADR-0004)
+
+Every entity kind now stores terminal-status files under a per-parent `archive/` subdirectory — `work/gaps/archive/`, `work/decisions/archive/`, `work/contracts/archive/`, `work/epics/archive/`, `docs/adr/archive/`. The active-directory listing reflects what is currently in-flight without filter ceremony. Movement is decoupled from FSM promotion: `aiwf promote` and `aiwf cancel` flip status only; the new `aiwf archive` verb sweeps qualifying entities into their archive subdirs as a single commit per invocation. The loader resolves ids across active and archive, so cross-references stay live indefinitely. Drift is policed via the new `archive-sweep-pending` advisory finding, with an opt-in `archive.sweep_threshold` knob in `aiwf.yaml` that flips the finding to blocking past the named count. Recorded as item 10 of CLAUDE.md *What aiwf commits to*.
+
+### Fixed — G-0102: Title length cap at write-time
+
+`aiwf add`, `aiwf retitle`, `aiwf import`, and `aiwf rename` now hard-reject titles exceeding `entities.title_max_length` (default 80 chars — the Conventional Commits subject-line convention so entity-touching commit subjects stay scannable in `git log`). The slug shares the same budget so filesystem and frontmatter stay in sync. Non-positive configured values fall back to the kernel default. Existing entities with pre-cap titles are grandfathered (write-time policy doesn't retroact); operators retitle them manually when convenient.
+
+### Changed — G-0108: `aiwf retitle` syncs the on-disk slug
+
+`aiwf retitle` now atomically renames the entity file's on-disk slug to match the new title in the same commit. Previously the slug stayed on the old form until a separate `aiwf rename` was run; the two-verb cleanup pass collapses to one verb per entity going forward.
+
+### Fixed — G-0109: `aiwf check` trunk-collision recognizes branch renames
+
+The `ids-unique/trunk-collision` rule now recognizes git renames since the merge-base with trunk and treats them as the same entity moved, not duplicate id allocations. Previously a slug-renamed entity on trunk plus the old-slug version on a feature branch fired as a hard collision; now the rename is detected and the check passes. Critical companion fix to the G-0102 / G-0108 work (renames on trunk while a branch is in flight would otherwise block the branch's wrap merge).
 
 ## [0.7.0] — 2026-05-10
 
