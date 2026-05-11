@@ -1,6 +1,6 @@
 ---
 id: D-0001
-title: entity-body-empty top-level sections count sub-headings as content; only AC leaf bodies require non-heading prose
+title: entity-body-empty treats sub-headings as content under top-level sections
 status: accepted
 relates_to:
     - M-0066
