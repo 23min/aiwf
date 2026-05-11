@@ -103,7 +103,7 @@ flowchart LR
 | G-0063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
 | G-0067 | wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard | M-0066 |
 | G-0068 | Discoverability policy misses dynamic finding subcodes | M-0066 |
-| G-0069 | aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome | M-0070 |
+| G-0069 | aiwf init's plugins nudge hardcodes user-scope CLI install form | M-0070 |
 | G-0070 | aiwf doctor has no --format=json envelope; M-0070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears | M-0070 |
 | G-0073 | depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-0072 in scope | E-0021 |
 | G-0074 | docs/pocv3/ body prose still uses PoC framing; needs sweep |  |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0088 -> 'Skill-coverage policy doesn't police plugin skills under aiwf-extensions/' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0067 -> 'wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0099 -> 'Worktree isolation must be a parent-side precondition, not an Agent kwarg honor' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0102 open -> addressed |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 
