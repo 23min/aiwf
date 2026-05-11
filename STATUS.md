@@ -8,7 +8,7 @@ _256 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
 ### E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) _(active)_
 
-- → **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(in_progress)_ — ACs 0/4 met (4 open) — tdd: required
+- → **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(in_progress)_ — ACs 1/4 met (3 open) — tdd: required
 - **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(draft)_ — tdd: required
 - **M-0100** — Sidebar surfaces gaps with active count _(draft)_ — tdd: required
 - **M-0101** — In-page status hierarchy in gaps.html _(draft)_ — tdd: required
@@ -17,7 +17,7 @@ _256 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 ```mermaid
 flowchart LR
   E_0029["E-0029<br/>Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)"]:::epic_active
-  M_0098["M-0098 (0/4)<br/>Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap"]:::ms_in_progress
+  M_0098["M-0098 (1/4)<br/>Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap"]:::ms_in_progress
   E_0029 --> M_0098
   M_0099["M-0099<br/>Kind-index chip filter: single emitted file per kind with :target chips"]:::ms_draft
   E_0029 --> M_0099
@@ -148,9 +148,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | ai/claude | promote | aiwf promote M-0098/AC-1 --phase green -> done |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0098/AC-1 --phase red -> green |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0102 in_progress -> done |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0102 |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0102/AC-2 open -> met |
-| 2026-05-11 | ai/claude | promote | aiwf promote M-0102/AC-1 open -> met |
 

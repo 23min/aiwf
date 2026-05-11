@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Layout fills viewport at widths above 768px
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Sidebar width resolves to chosen target value
