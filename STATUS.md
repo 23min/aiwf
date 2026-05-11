@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_232 entities · 0 errors · 0 warnings_
+_233 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -40,7 +40,20 @@ _(no milestones)_
 
 ### E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 _(proposed)_
 
-_(no milestones)_
+- **M-0091** — Roll out TestMain + t.Parallel across internal/* test packages _(draft)_ — tdd: none
+
+```mermaid
+flowchart LR
+  E_0025["E-0025<br/>Test-suite parallelism and fixture-sharing pass — closes G-0097"]:::epic_proposed
+  M_0091["M-0091<br/>Roll out TestMain + t.Parallel across internal/* test packages"]:::ms_draft
+  E_0025 --> M_0091
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Open decisions
 
@@ -89,15 +102,18 @@ _(no milestones)_
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | M-0091 body section \`## Goal\` is empty |
+| entity-body-empty | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | M-0091 body section \`## Acceptance criteria\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | archive | aiwf archive: sweep 2 entities into archive/ (2 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0106 open -> addressed |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0106 'TestBinary_ArchiveKernelMigration_LeavesCheckClean assertion depends on transient kernel-tree housekeeping state' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0105 open -> addressed |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0105 'TestProvenanceCheck_UntrailedEntityCommit asserts obsolete warning-severity substring format' |
-| 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 epic) |
 
