@@ -890,6 +890,39 @@ test.describe("sidebar — archive chip filter (M-0100/AC-3)", () => {
   });
 });
 
+test.describe("chips — no-scroll-on-click (M-0100/AC-4)", () => {
+  // Same bug class as M-0098/AC-5 (tab clicks scrolling). Chips
+  // have id matching href so :target lights them up — but the
+  // browser also scrolls the chip into view on hash change.
+  // `scroll-margin-top: 100vh` on .chip clamps the scroll to y=0.
+
+  test("kind-index chip click keeps scrollY === 0", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 400 });
+    await page.goto(fileURL("gaps.html"));
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    for (const fragment of ["#all", "#active"]) {
+      await page.locator(`main a.chip[href="${fragment}"]`).click();
+      await page.waitForFunction((f) => location.hash === f, fragment);
+      const scrollY = await page.evaluate(() => window.scrollY);
+      expect(scrollY, `kind-index chip ${fragment} click should keep scrollY=0`).toBe(0);
+    }
+  });
+
+  test("sidebar chip click keeps scrollY === 0", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 400 });
+    await page.goto(fileURL("index.html"));
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    for (const fragment of ["#sidebar-all", "#sidebar-active"]) {
+      await page.locator(`aside.sidebar a.chip[href="${fragment}"]`).click();
+      await page.waitForFunction((f) => location.hash === f, fragment);
+      const scrollY = await page.evaluate(() => window.scrollY);
+      expect(scrollY, `sidebar chip ${fragment} click should keep scrollY=0`).toBe(0);
+    }
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {

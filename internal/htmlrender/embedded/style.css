@@ -372,6 +372,10 @@ li { margin: 0.2rem 0; }
   font-weight: 500;
   text-decoration: none;
   line-height: 1.4;
+  /* Pin the page at y=0 when this chip is targeted via #fragment.
+   * Same mechanism as section[data-tab]'s tab-no-scroll rule —
+   * browser scroll-clamp keeps the page from jumping. M-0100/AC-4. */
+  scroll-margin-top: 100vh;
 }
 .chip-strip .chip:hover {
   color: var(--fg);
