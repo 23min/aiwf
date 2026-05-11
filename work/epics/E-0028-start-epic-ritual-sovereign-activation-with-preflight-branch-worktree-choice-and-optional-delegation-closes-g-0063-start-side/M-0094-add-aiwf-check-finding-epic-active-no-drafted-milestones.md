@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: rule fires warning when active epic has zero drafted milestones
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: rule does not fire when active epic has at least one drafted milestone
