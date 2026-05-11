@@ -164,7 +164,7 @@ End state: `aiwf add milestone --tdd required|advisory|none` is the chokepoint; 
 
 ### Goal
 
-Make non-empty body prose a kernel-enforced property across entity kinds. The design has always specified that each entity's load-bearing body sections carry prose detail (description, examples, edge cases, references — see [`docs/pocv3/plans/acs-and-tdd-plan.md:22`](docs/pocv3/plans/acs-and-tdd-plan.md), [`docs/pocv3/design/design-decisions.md:139`](docs/pocv3/design/design-decisions.md)) but no chokepoint enforces it: `aiwf add` verbs scaffold bare headings, existing coherence rules only check heading↔frontmatter pairing, and the `aiwf-add` skill never prompts the operator to fill the body in. Result is repo-wide skimping — every milestone M-0049..M-0061 shipped with empty AC bodies, many entities ship with bare body sections. See [G-0058](work/gaps/archive/G-0058-ac-body-sections-ship-empty-no-chokepoint-enforces-prose-intent.md) for the AC-side evidence.
+Make non-empty body prose a kernel-enforced property across entity kinds. The design has always specified that each entity's load-bearing body sections carry prose detail (description, examples, edge cases, references — see [`docs/pocv3/plans/acs-and-tdd-plan.md:22`](../../../docs/pocv3/plans/acs-and-tdd-plan.md), [`docs/pocv3/design/design-decisions.md:139`](../../../docs/pocv3/design/design-decisions.md)) but no chokepoint enforces it: `aiwf add` verbs scaffold bare headings, existing coherence rules only check heading↔frontmatter pairing, and the `aiwf-add` skill never prompts the operator to fill the body in. Result is repo-wide skimping — every milestone M-0049..M-0061 shipped with empty AC bodies, many entities ship with bare body sections. See [G-0058](work/gaps/archive/G-0058-ac-body-sections-ship-empty-no-chokepoint-enforces-prose-intent.md) for the AC-side evidence.
 
 End state: `aiwf check` reports `entity-body-empty` for any entity whose load-bearing body section is empty (warning by default; error under `aiwf.yaml: tdd.strict: true`); `aiwf add ac` accepts `--body-file` per AC so the body lands in the same atomic commit (the analogous flag for other `aiwf add` verbs is captured as a follow-up gap); the `aiwf-add` skill names "fill in the body" as a required follow-up step across all kinds. Together these make the design intent mechanically enforceable rather than aspirational, for every kind that ships load-bearing body prose.
 
@@ -216,7 +216,7 @@ Ship `aiwf list` as the AI's hot-path read primitive over the planning tree, rou
 
 ### Goal
 
-Graduate the open-work synthesis pattern — the tiered landscape, recommended sequence, and pending-decisions Q&A flow that produced `work/epics/critical-path.md` (retired in M-0080) — into a reproducible kernel feature. Ship a synthesis skill that any AI assistant routing through it can produce a fresh, current critical-path-style narrative on demand, with a Q&A gate for the operator to walk through pending decisions one at a time.
+Graduate the open-work synthesis pattern — the tiered landscape, recommended sequence, and pending-decisions Q&A flow that produced [`work/epics/critical-path.md`](../critical-path.md) — into a reproducible kernel feature. Ship a synthesis skill that any AI assistant routing through it can produce a fresh, current critical-path-style narrative on demand, with a Q&A gate for the operator to walk through pending decisions one at a time.
 
 | Milestone | Title | Status |
 |---|---|---|
@@ -306,4 +306,31 @@ Ship the `aiwfx-start-epic` ritual plus its supporting kernel chokepoints so epi
 | M-0095 | Enforce human-only actor on aiwf promote E-NN active | done |
 | M-0096 | Ship aiwfx-start-epic skill with worktree and branch preflight prompts | done |
 | M-0097 | Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator | done |
+
+## E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) (active)
+
+### Goal
+
+Make the rendered governance site usable for current-state synthesis at a glance. The layout fills the viewport with the sidebar flush-left; the sidebar surfaces gaps with the active count; per-kind index pages collapse from active/all-pair to a single file with `:target`-driven filter chips at the top; within `gaps.html` the open subset pops visually rather than sitting equally-weighted with the addressed rows.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0098 | Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap | draft |
+| M-0099 | Kind-index chip filter: single emitted file per kind with :target chips | draft |
+| M-0100 | Sidebar surfaces gaps with active count | draft |
+| M-0101 | In-page status hierarchy in gaps.html | draft |
+
+## E-0030 — Branch model chokepoint: --branch flag, sequencing, isolation-escape finding (proposed)
+
+### Goal
+
+Make [ADR-0010](docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md)'s two-tier branch model mechanically enforceable: AI-actor multi-commit work cannot escape a ritual branch context, and the rituals create branches in the right sequence so kernel state-of-the-world stays visible from main throughout the cycle.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0102 | aiwf authorize --branch flag + scope-branch trailer coupling | draft |
+| M-0103 | AI-side preflight: aiwf authorize refuses without ritual branch context | draft |
+| M-0104 | aiwfx-start-epic sequencing fix (closes G-0116) | draft |
+| M-0105 | aiwfx-start-milestone sequencing alignment | draft |
+| M-0106 | Kernel finding isolation-escape (closes G-0099) | draft |
 
