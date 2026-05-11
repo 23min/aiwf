@@ -6,14 +6,14 @@ _239 entities · 0 errors · 0 warnings_
 
 ### E-0028 — Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side) _(active)_
 
-- → **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(in_progress)_ — ACs 3/4 met (1 open) — tdd: required
+- → **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(in_progress)_ — ACs 4/4 met — tdd: required
 - **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(draft)_ — tdd: required
 - **M-0096** — Ship aiwfx-start-epic skill with worktree and branch preflight prompts _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_0028["E-0028<br/>Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side)"]:::epic_active
-  M_0094["M-0094 (3/4)<br/>Add aiwf check finding epic-active-no-drafted-milestones"]:::ms_in_progress
+  M_0094["M-0094 (4/4)<br/>Add aiwf check finding epic-active-no-drafted-milestones"]:::ms_in_progress
   E_0028 --> M_0094
   M_0095["M-0095<br/>Enforce human-only actor on aiwf promote E-NN active"]:::ms_draft
   E_0028 --> M_0095
@@ -135,9 +135,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-4 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-4 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-3 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-3 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-3 --phase red -> green |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-2 open -> met |
 

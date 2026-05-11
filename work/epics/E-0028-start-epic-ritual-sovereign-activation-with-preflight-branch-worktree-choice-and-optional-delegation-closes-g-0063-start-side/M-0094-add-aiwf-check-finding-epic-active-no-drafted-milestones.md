@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: finding hint text references the start-epic preflight role and G-0063
-      status: open
+      status: met
       tdd_phase: done
 ---
 
