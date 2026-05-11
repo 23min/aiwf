@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_227 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_227 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -104,18 +104,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## What's missing\` is empty |
-| entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## Why it matters\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0009 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0027 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0090 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0090 'aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests' |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0027 |
 

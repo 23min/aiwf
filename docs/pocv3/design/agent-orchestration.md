@@ -344,7 +344,7 @@ Lives under `.claude/skills/aiwf-*` (or each host's equivalent). Marker-managed 
 4. **Spawn subagent** with appropriate env signal + agent definition file; invoke the agent-dispatch tool with the worktree path as the working directory.
 5. Wait for return; collect envelope; persist forensic bundle.
 6. Walk envelope's `findings[]`; call `aiwf add finding` per finding.
-7. **Reconcile isolation.** Verify every commit carrying the cycle's `aiwf-cycle-id` lives on the cycle's declared worktree branch and the diff is rooted inside the worktree path; a mismatch fires the `isolation-escape` finding and forces `ended-failure`.
+7. **Reconcile isolation.** A kernel `aiwf check` rule (`isolation-escape`) verifies every commit carrying the cycle's `aiwf-cycle-id` is reachable from the cycle's `aiwf-cycle-worktree-branch` trailer; a mismatch fires the `isolation-escape` finding and forces `ended-failure`. The driver does not own this check — it lands in `aiwf check` so every driver inherits the same enforcement.
 8. Close sub-scope with appropriate end-state.
 9. Surface to human if findings block AC closure.
 
@@ -469,7 +469,7 @@ Subagent isolation is **materialised by the parent before dispatch** — not req
 
 **Failure mode caught.** A subagent whose `git worktree`-aware harness silently fell back to the live tree (the G-0099 session); a subagent that ran `cd ..` and committed in the parent checkout; an agent-dispatch tool that ignored the working-directory argument. All three produce commits whose branch / path don't match the cycle's declared worktree — all three fire `isolation-escape`.
 
-**Check site.** The precondition is parent-side by definition (it runs before any agent is invoked). The post-cycle reconciliation requirement is mechanical, but its exact site — kernel `aiwf check` rule consuming cycle trailers, orchestrator code reading `git log` post-merge, or both — is implementation detail for the milestone that lands this rule. See [ADR-0009](../../adr/ADR-0009-orchestration-substrate-substrate-vs-driver-split-trailer-only-cycle-events-isolation-as-parent-side-precondition.md) §Decision 3.
+**Check site (kernel-side).** The precondition is parent-side by definition (it runs before any agent is invoked). The post-cycle reconciliation is a **kernel `aiwf check` rule** (`isolation-escape`) that reads cycle trailers — specifically `aiwf-cycle-id` and `aiwf-cycle-worktree-branch` (§9 trailer surface) — and asserts every commit carrying that cycle-id is reachable from the declared worktree branch ref. The check is decidable from `git log` alone, so it composes with the existing pre-push hook and CI surface without requiring filesystem inspection. Driver-side enforcement is not the chokepoint; the kernel rule is — every driver (current Claude Code skill, hypothetical `aiwfdo` sidekick per §6.4, third-party drivers) inherits identical enforcement for free. See [ADR-0009](../../adr/ADR-0009-orchestration-substrate-substrate-vs-driver-split-trailer-only-cycle-events-isolation-as-parent-side-precondition.md) §Decision 3 for rationale.
 
 ---
 
@@ -482,9 +482,9 @@ Combining §2.3 with the role table in §3.2:
 | **L1 — substrate write deny** | Host-level hooks (e.g., gitignored `.claude/` hook) deny Edit/Write tool calls outside the role's allowed surface | Read-only, additive-tests, additive-docs |
 | **L2 — verb gate** | `aiwf` dispatcher refuses subagent-forbidden verbs (`cancel`, `reallocate`, `authorize`, `--force`) | All capabilities |
 | **L3 — deviation-detection check rule** | Kernel-side `scope-expanded` check compares cycle diff against declared scope hint; emits blocking finding on deviation | Full-builder (where L1 doesn't apply) |
-| **L4 — isolation reconciliation** | Post-cycle verification that cycle commits (by `aiwf-cycle-id`) live on the declared worktree branch and the diff is rooted inside the worktree path; mismatch fires `isolation-escape` (see §7.7) | All cycles dispatched against a worktree |
+| **L4 — isolation reconciliation** | Kernel-side `isolation-escape` check rule asserts every commit carrying `aiwf-cycle-id` is reachable from the cycle's `aiwf-cycle-worktree-branch` trailer; mismatch fires `isolation-escape` (see §7.7) | All cycles dispatched against a worktree |
 
-L1 is host-specific (Claude Code today; another host gets its own implementation). L2 and L3 are kernel-side, host-agnostic. L4 is host-agnostic; the check site (kernel `aiwf check` rule vs. orchestrator code) is implementation detail. The combination is belt + suspenders: L1 catches misbehavior before commit; L3 and L4 catch it before AC closure.
+L1 is host-specific (Claude Code today; another host gets its own implementation). L2, L3, and L4 are kernel-side, host-agnostic. The combination is belt + suspenders: L1 catches misbehavior before commit; L3 and L4 catch it before AC closure.
 
 ---
 
@@ -503,6 +503,7 @@ aiwf-cycle-agent        (registry name)
 aiwf-cycle-model
 aiwf-cycle-host
 aiwf-cycle-pipeline-step
+aiwf-cycle-worktree-branch  (git ref where cycle commits must live; consumed by isolation-escape rule)
 aiwf-cycle-scope-hint
 aiwf-cycle-prompt-hash  (sha256:... — content-addressable hook for future CAS)
 aiwf-cycle-duration-ms
