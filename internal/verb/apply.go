@@ -91,10 +91,20 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		}
 	}()
 
-	// Phase 1: moves.
+	// Phase 1: moves. `git mv` does not auto-create parent directories
+	// for the destination, so we MkdirAll the target's parent first.
+	// This is a no-op when the parent already exists (the common case
+	// for rename/reallocate, which move within an existing dir) and a
+	// bootstrap when it doesn't (archive's first sweep, which creates
+	// per-kind `archive/` subdirectories on demand). Idempotent;
+	// MkdirAll on existing returns nil.
 	for _, op := range p.Ops {
 		if op.Type != OpMove {
 			continue
+		}
+		destFull := filepath.Join(root, op.NewPath)
+		if mkdirErr := os.MkdirAll(filepath.Dir(destFull), 0o755); mkdirErr != nil {
+			return fmt.Errorf("creating parent of %s: %w", op.NewPath, mkdirErr)
 		}
 		if mvErr := gitops.Mv(ctx, root, op.Path, op.NewPath); mvErr != nil {
 			return classifyGitError(ctx, root, fmt.Sprintf("git mv %s -> %s", op.Path, op.NewPath), mvErr)

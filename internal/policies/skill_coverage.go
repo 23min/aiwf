@@ -202,7 +202,8 @@ var skillCoverageAllowlist = map[string]string{
 	"milestone": "kind-namespace parent (subverb `depends-on` for cross-milestone deps); the surrounding `aiwf-add` and `aiwf-promote` skills cover the flow",
 
 	// Deferred — explicitly tracked, not papered over.
-	"show": "deferred — see G-087 (a per-entity inspection skill warrants its own design pass; --help covers the surface mechanically in the meantime)",
+	"show":    "deferred — see G-087 (a per-entity inspection skill warrants its own design pass; --help covers the surface mechanically in the meantime)",
+	"archive": "embedded skill lands in M-0088 (E-0024 epic); --help suffices in the M-0085 verb landing window",
 }
 
 // embeddedSkillEntry is the parsed shape of one
