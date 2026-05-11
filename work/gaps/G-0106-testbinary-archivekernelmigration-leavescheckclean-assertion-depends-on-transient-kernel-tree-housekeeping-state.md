@@ -1,7 +1,9 @@
 ---
 id: G-0106
 title: TestBinary_ArchiveKernelMigration_LeavesCheckClean assertion depends on transient kernel-tree housekeeping state
-status: open
+status: addressed
+addressed_by_commit:
+    - 47b0bd0
 ---
 # Problem
 
