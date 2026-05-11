@@ -1,6 +1,6 @@
 ---
 id: G-0063
-title: 'No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip'
+title: No defined start-epic ritual; activation is bare FSM flip today
 status: open
 ---
 

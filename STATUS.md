@@ -100,7 +100,7 @@ flowchart LR
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
 | G-0059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
-| G-0063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
+| G-0063 | No defined start-epic ritual; activation is bare FSM flip today |  |
 | G-0067 | wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard | M-0066 |
 | G-0068 | Discoverability policy misses dynamic finding subcodes | M-0066 |
 | G-0069 | aiwf init's plugins nudge hardcodes user-scope CLI install form | M-0070 |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0090 -> 'M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0087 -> 'No aiwf-show embedded skill' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0091 -> 'No preventive check for body-prose path-form refs to archive-moved entities' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0070 -> 'aiwf doctor lacks --format=json envelope' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0069 -> 'aiwf init's plugins nudge hardcodes user-scope CLI install form' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0088 -> 'Skill-coverage policy doesn't police plugin skills under aiwf-extensions/' |
 
