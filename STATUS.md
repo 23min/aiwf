@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_239 entities · 0 errors · 0 warnings_
+_240 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -127,6 +127,7 @@ flowchart LR
 | G-0100 | aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing | M-0089 |
 | G-0103 | absolute-path leak lint | M-0089 |
 | G-0104 | Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy | E-0025 |
+| G-0107 | reorganize cmd/aiwf into idiomatic per-verb packages |  |
 
 ## Warnings
 
@@ -136,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0102 open -> addressed |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0096 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0095 |
 
