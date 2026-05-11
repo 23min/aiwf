@@ -280,3 +280,13 @@ Change the default text output of `aiwf check` from one line per finding to one 
 |---|---|---|
 | M-0089 | Per-code text-render summary with --verbose fallback | done |
 
+## E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) (proposed)
+
+### Goal
+
+Change `aiwfx-wrap-epic`'s merge step so the merge commit it produces carries `aiwf-verb: wrap-epic`, `aiwf-entity: E-NNNN`, and `aiwf-actor: human/<id>` trailers. The merge commit becomes self-describing — `aiwf history E-NNNN` surfaces the merge event — and the kernel's `provenance-untrailered-entity-commit` rule stays strict, with the ritual now aligned to pass it cleanly.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0090 | aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests | draft |
+
