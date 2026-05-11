@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: All Playwright assertions match current rendered output
-      status: open
+      status: met
 ---
 # Repair Playwright e2e suite for current kernel state
 

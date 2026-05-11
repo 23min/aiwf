@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_256 entities · 0 errors · 4 warnings · run `aiwf check` for details_
+_256 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 > Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -12,7 +12,7 @@ _256 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 - **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(draft)_ — tdd: required
 - **M-0100** — Sidebar surfaces gaps with active count _(draft)_ — tdd: required
 - **M-0101** — In-page status hierarchy in gaps.html _(draft)_ — tdd: required
-- → **M-0102** — Repair Playwright e2e suite for current kernel state _(in_progress)_ — ACs 1/2 met (1 open) — tdd: advisory
+- → **M-0102** — Repair Playwright e2e suite for current kernel state _(in_progress)_ — ACs 2/2 met — tdd: advisory
 
 ```mermaid
 flowchart LR
@@ -25,7 +25,7 @@ flowchart LR
   E_0029 --> M_0100
   M_0101["M-0101<br/>In-page status hierarchy in gaps.html"]:::ms_draft
   E_0029 --> M_0101
-  M_0102["M-0102 (1/2)<br/>Repair Playwright e2e suite for current kernel state"]:::ms_in_progress
+  M_0102["M-0102 (2/2)<br/>Repair Playwright e2e suite for current kernel state"]:::ms_in_progress
   E_0029 --> M_0102
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -139,6 +139,7 @@ flowchart LR
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
 | acs-tdd-audit | M-0102/AC-1 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0102-repair-playwright-e2e-suite-for-current-kernel-state.md | M-0102/AC-1 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
+| acs-tdd-audit | M-0102/AC-2 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0102-repair-playwright-e2e-suite-for-current-kernel-state.md | M-0102/AC-2 status: met under tdd: advisory but tdd_phase is (absent) (expected done) |
 | terminal-entity-not-archived | G-0082 | work/gaps/G-0082-planning-closure-default-merges-to-main.md | entity G-0082 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0083 | work/gaps/G-0083-aiwf-retitle-does-not-sync-entity-body-h1-with-frontmatter-title.md | entity G-0083 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
