@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_227 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_227 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 > Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(proposed)_
 
-- → **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(in_progress)_ — ACs 0/1 met (1 open) — tdd: required
+- → **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(in_progress)_ — ACs 0/2 met (2 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_0027["E-0027<br/>Trailered merge commits from aiwfx-wrap-epic (closes G-0100)"]:::epic_proposed
-  M_0090["M-0090 (0/1)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_in_progress
+  M_0090["M-0090 (0/2)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_in_progress
   E_0027 --> M_0090
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -108,15 +108,16 @@ flowchart LR
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
 | entity-body-empty | M-0090/AC-1 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-1 body under \`### AC-1\` is empty |
+| entity-body-empty | M-0090/AC-2 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-2 body under \`### AC-2\` is empty |
 | terminal-entity-not-archived | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | entity G-0101 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add ac M-0090/AC-1 'Fixture SKILL.md exists at the canonical authoring location.' |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090 draft -> in_progress |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0101 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0101 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0009 |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 

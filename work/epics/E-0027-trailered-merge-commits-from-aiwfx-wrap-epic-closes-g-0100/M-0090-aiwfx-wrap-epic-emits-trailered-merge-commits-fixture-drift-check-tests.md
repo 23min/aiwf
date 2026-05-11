@@ -9,6 +9,10 @@ acs:
       title: Fixture SKILL.md exists at the canonical authoring location.
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Fixture body prescribes the trailered-merge sequence.
+      status: open
+      tdd_phase: red
 ---
 
 # M-0090 — `aiwfx-wrap-epic` emits trailered merge commits; fixture + drift-check tests
@@ -109,4 +113,6 @@ Intended landing zone:
 - (none)
 
 ### AC-1 — Fixture SKILL.md exists at the canonical authoring location.
+
+### AC-2 — Fixture body prescribes the trailered-merge sequence.
 
