@@ -4,6 +4,11 @@ title: Per-code text-render summary with --verbose fallback
 status: in_progress
 parent: E-0026
 tdd: required
+acs:
+    - id: AC-1
+      title: Default text output is per-code-summarized for warnings
+      status: open
+      tdd_phase: red
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
@@ -99,3 +104,6 @@ Intended landing zone:
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — Default text output is per-code-summarized for warnings
+
