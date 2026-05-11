@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_248 entities · 0 errors · 0 warnings_
+_249 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -61,6 +61,10 @@ flowchart LR
   classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
 ```
 
+### E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) _(proposed)_
+
+_(no milestones)_
+
 ## Open decisions
 
 | ID | Kind | Title | Status |
@@ -107,15 +111,19 @@ flowchart LR
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| entity-body-empty | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | E-0029 body section \`## Goal\` is empty |
+| entity-body-empty | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | E-0029 body section \`## Scope\` is empty |
+| entity-body-empty | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | E-0029 body section \`## Out of scope\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | archive | aiwf archive: sweep 6 entities into archive/ (1 epic, 1 adr, 4 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0081 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0081 |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0084 open -> wontfix |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0084 |
-| 2026-05-11 | human/peter | promote | aiwf promote ADR-0005 proposed -> rejected |
 
