@@ -26,7 +26,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Drift-check test compares fixture to cache; skips cleanly when absent
-      status: open
+      status: met
       tdd_phase: done
 ---
 
