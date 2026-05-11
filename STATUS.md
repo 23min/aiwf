@@ -1,8 +1,6 @@
 # aiwf status — 2026-05-11
 
-_262 entities · 0 errors · 8 warnings · run `aiwf check` for details_
-
-> Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+_262 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -164,16 +162,14 @@ flowchart LR
 | entity-body-empty | M-0104 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0104-aiwfx-start-epic-sequencing-fix-closes-g-0116.md | M-0104 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-0105 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0105-aiwfx-start-milestone-sequencing-alignment.md | M-0105 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-0106 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0106-kernel-finding-isolation-escape-closes-g-0099.md | M-0106 body section \`## Acceptance criteria\` is empty |
-| terminal-entity-not-archived | G-0059 | work/gaps/G-0059-branch-model-no-canonical-hierarchy-mapping.md | entity G-0059 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
-| terminal-entity-not-archived | G-0115 | work/gaps/G-0115-aiwf-render-roadmap-write-rewrites-entity-refs-in-epic-prose-to-broken-paths.md | entity G-0115 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | promote | aiwf promote G-0115 open -> addressed |
 | 2026-05-12 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body E-0030 |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0106 |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0105 |
-| 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0104 |
 
