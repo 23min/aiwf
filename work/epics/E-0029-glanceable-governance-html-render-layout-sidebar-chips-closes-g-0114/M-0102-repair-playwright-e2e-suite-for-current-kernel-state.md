@@ -1,7 +1,7 @@
 ---
 id: M-0102
 title: Repair Playwright e2e suite for current kernel state
-status: in_progress
+status: done
 parent: E-0029
 tdd: advisory
 acs:
