@@ -149,7 +149,7 @@ Add batching capabilities to the `aiwf add` family so a planning session produce
 
 ### Goal
 
-Make every milestone's TDD policy an explicit, recorded choice at creation time. Today, `aiwf add milestone` has no `--tdd` flag and absence of the field silently maps to `tdd: none`, so an LLM (or human) following the `aiwf-add` skill faithfully produces a code milestone with no TDD tracking. This violates the kernel's "framework correctness must not depend on LLM behavior" principle. See [G-0055](../../gaps/G-055-milestone-creation-does-not-require-a-tdd-policy-declaration.md) for the empirical evidence (E-0014's M-0049..M-0055 all created with no TDD, M-0061 reproducing the pattern this week).
+Make every milestone's TDD policy an explicit, recorded choice at creation time. Today, `aiwf add milestone` has no `--tdd` flag and absence of the field silently maps to `tdd: none`, so an LLM (or human) following the `aiwf-add` skill faithfully produces a code milestone with no TDD tracking. This violates the kernel's "framework correctness must not depend on LLM behavior" principle. See [G-0055](work/gaps/archive/G-0055-milestone-creation-does-not-require-a-tdd-policy-declaration.md) for the empirical evidence (E-0014's M-0049..M-0055 all created with no TDD, M-0061 reproducing the pattern this week).
 
 End state: `aiwf add milestone --tdd required|advisory|none` is the chokepoint; `aiwf.yaml: tdd.default: required` is the project-level fallback shipped by `aiwf init`; `aiwf update` migrates existing consumer repos with loud output so the policy shift is visible exactly when it lands.
 
@@ -164,7 +164,7 @@ End state: `aiwf add milestone --tdd required|advisory|none` is the chokepoint; 
 
 ### Goal
 
-Make non-empty body prose a kernel-enforced property across entity kinds. The design has always specified that each entity's load-bearing body sections carry prose detail (description, examples, edge cases, references — see [`docs/pocv3/plans/acs-and-tdd-plan.md:22`](../../../docs/pocv3/plans/acs-and-tdd-plan.md), [`docs/pocv3/design/design-decisions.md:139`](../../../docs/pocv3/design/design-decisions.md)) but no chokepoint enforces it: `aiwf add` verbs scaffold bare headings, existing coherence rules only check heading↔frontmatter pairing, and the `aiwf-add` skill never prompts the operator to fill the body in. Result is repo-wide skimping — every milestone M-0049..M-0061 shipped with empty AC bodies, many entities ship with bare body sections. See [G-0058](../../gaps/G-058-ac-body-sections-ship-empty-no-chokepoint-enforces-prose-intent.md) for the AC-side evidence.
+Make non-empty body prose a kernel-enforced property across entity kinds. The design has always specified that each entity's load-bearing body sections carry prose detail (description, examples, edge cases, references — see [`docs/pocv3/plans/acs-and-tdd-plan.md:22`](docs/pocv3/plans/acs-and-tdd-plan.md), [`docs/pocv3/design/design-decisions.md:139`](docs/pocv3/design/design-decisions.md)) but no chokepoint enforces it: `aiwf add` verbs scaffold bare headings, existing coherence rules only check heading↔frontmatter pairing, and the `aiwf-add` skill never prompts the operator to fill the body in. Result is repo-wide skimping — every milestone M-0049..M-0061 shipped with empty AC bodies, many entities ship with bare body sections. See [G-0058](work/gaps/archive/G-0058-ac-body-sections-ship-empty-no-chokepoint-enforces-prose-intent.md) for the AC-side evidence.
 
 End state: `aiwf check` reports `entity-body-empty` for any entity whose load-bearing body section is empty (warning by default; error under `aiwf.yaml: tdd.strict: true`); `aiwf add ac` accepts `--body-file` per AC so the body lands in the same atomic commit (the analogous flag for other `aiwf add` verbs is captured as a follow-up gap); the `aiwf-add` skill names "fill in the body" as a required follow-up step across all kinds. Together these make the design intent mechanically enforceable rather than aspirational, for every kind that ships load-bearing body prose.
 
@@ -180,12 +180,12 @@ End state: `aiwf check` reports `entity-body-empty` for any entity whose load-be
 
 Close the operator-side gap in this repo's dogfooding of aiwf. G-0038 ("kernel repo does not dogfood aiwf") landed the planning-tree migration but explicitly closed *partial* — kernel ran `aiwf init/update/check/status/import` end-to-end, but the ritual-plugin half of operator-side dogfooding was never named as a follow-up. This session surfaced the consequence: the kernel repo's design assumes `aiwf-extensions` and `wf-rituals` are present, but neither plugin is installed for this project's scope. AI assistants invoked here cannot see ritual skills (`aiwfx-start-milestone`, `wf-patch`, etc.); the standing behavior is silent ritual absence.
 
-This epic closes the loop with two coupled milestones: [M-0070](M-070-aiwf-doctor-warning-for-missing-recommended-plugins.md) adds a kernel detection mechanism (`aiwf doctor` warns on missing recommended plugins); [M-0071](M-071-install-ritual-plugins-in-kernel-repo-document-operator-setup-path.md) installs the plugins in this repo, declares them in `aiwf.yaml`, and documents the install path in CLAUDE.md. M-0070 ships first so M-0071's fix can be validated by watching the warning go silent.
+This epic closes the loop with two coupled milestones: [M-0070](work/epics/archive/E-0018-operator-side-dogfooding-completion-closes-g-062-g-064/M-0070-aiwf-doctor-warning-for-missing-recommended-plugins.md) adds a kernel detection mechanism (`aiwf doctor` warns on missing recommended plugins); [M-0071](work/epics/archive/E-0018-operator-side-dogfooding-completion-closes-g-062-g-064/M-0071-install-ritual-plugins-in-kernel-repo-document-operator-setup-path.md) installs the plugins in this repo, declares them in `aiwf.yaml`, and documents the install path in CLAUDE.md. M-0070 ships first so M-0071's fix can be validated by watching the warning go silent.
 
 End state:
 - Any consumer repo can declare `doctor.recommended_plugins` in `aiwf.yaml`; missing entries surface as `aiwf doctor` warnings.
 - This repo declares its own recommended plugins, has them installed, and documents the install commands so a fresh operator (human or AI) can replicate the setup without external context.
-- [G-0062](../../gaps/G-062-aiwf-doctor-does-not-surface-missing-recommended-plugins-ritual-skills-aiwf-extensions-wf-rituals-can-be-silently-absent-from-a-consumer-repo-with-no-signal-to-operator-or-ai-assistant.md) and [G-0064](../../gaps/G-064-kernel-repo-dogfooding-closed-partial-g-038-without-installing-the-ritual-plugins-aiwf-extensions-wf-rituals-operator-side-surface-incomplete-here-despite-framework-design-assuming-rituals-are-present.md) close.
+- [G-0062](work/gaps/archive/G-0062-aiwf-doctor-does-not-surface-missing-recommended-plugins-ritual-skills-aiwf-extensions-wf-rituals-can-be-silently-absent-from-a-consumer-repo-with-no-signal-to-operator-or-ai-assistant.md) and [G-0064](work/gaps/archive/G-0064-kernel-repo-dogfooding-closed-partial-g-038-without-installing-the-ritual-plugins-aiwf-extensions-wf-rituals-operator-side-surface-incomplete-here-despite-framework-design-assuming-rituals-are-present.md) close.
 
 | Milestone | Title | Status |
 |---|---|---|
@@ -216,7 +216,7 @@ Ship `aiwf list` as the AI's hot-path read primitive over the planning tree, rou
 
 ### Goal
 
-Graduate the open-work synthesis pattern — the tiered landscape, recommended sequence, and pending-decisions Q&A flow that produced [`work/epics/critical-path.md`](../critical-path.md) — into a reproducible kernel feature. Ship a synthesis skill that any AI assistant routing through it can produce a fresh, current critical-path-style narrative on demand, with a Q&A gate for the operator to walk through pending decisions one at a time.
+Graduate the open-work synthesis pattern — the tiered landscape, recommended sequence, and pending-decisions Q&A flow that produced `work/epics/critical-path.md` (retired in M-0080) — into a reproducible kernel feature. Ship a synthesis skill that any AI assistant routing through it can produce a fresh, current critical-path-style narrative on demand, with a Q&A gate for the operator to walk through pending decisions one at a time.
 
 | Milestone | Title | Status |
 |---|---|---|
