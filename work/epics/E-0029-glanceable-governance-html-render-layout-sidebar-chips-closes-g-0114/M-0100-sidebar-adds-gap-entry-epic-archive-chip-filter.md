@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Sidebar archive chip filter toggles epic visibility
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 # M-0100 — Sidebar adds gap entry + epic archive chip filter
 
