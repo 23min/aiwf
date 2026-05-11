@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0026 — aiwf check per-code summary by default (closes G-0098) _(proposed)_
 
-- → **M-0089** — Per-code text-render summary with --verbose fallback _(in_progress)_ — ACs 3/8 met (5 open) — tdd: required
+- → **M-0089** — Per-code text-render summary with --verbose fallback _(in_progress)_ — ACs 4/8 met (4 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_0026["E-0026<br/>aiwf check per-code summary by default (closes G-0098)"]:::epic_proposed
-  M_0089["M-0089 (3/8)<br/>Per-code text-render summary with --verbose fallback"]:::ms_in_progress
+  M_0089["M-0089 (4/8)<br/>Per-code text-render summary with --verbose fallback"]:::ms_in_progress
   E_0026 --> M_0089
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -286,9 +286,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-4 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-4 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-3 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-3 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-3 --phase red -> green |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-2 open -> met |
 

@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: JSON envelope is unchanged
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: aiwf check --help documents --verbose
