@@ -118,7 +118,7 @@ flowchart LR
 | G-0083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-0021 |
 | G-0084 | Verb hygiene contract is undocumented; G-0081/G-0082/G-0083 lack umbrella | E-0021 |
 | G-0087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-0074 |
-| G-0088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-0079 did | M-0079 |
+| G-0088 | Skill-coverage policy doesn't police plugin skills under aiwf-extensions/ | M-0079 |
 | G-0090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-0079 |
 | G-0091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0067 -> 'wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0099 -> 'Worktree isolation must be a parent-side precondition, not an Agent kwarg honor' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0102 open -> addressed |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
 
