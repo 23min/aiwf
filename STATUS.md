@@ -126,9 +126,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote ADR-0005 proposed -> rejected |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0114 'HTML render gap surface: status and archive state not glanceable from sidebar' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0091 open -> addressed |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0113 'rendered HTML site has no publish path; only viewable via local aiwf render' |
-| 2026-05-11 | human/peter | add | aiwf add gap G-0112 'STATUS.md pre-commit regen produces merge conflicts on a derived artifact' |
 

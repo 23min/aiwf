@@ -60,6 +60,18 @@ This gap is met when:
 - **A policy test enforcing the contract mechanically** (e.g., `internal/policies/verb_hygiene.go` that asserts every mutating verb has a pre-flight call). Compatible with this gap; not required for it. Probably belongs in the audit follow-up.
 - **Renaming any of G-0081/G-0082/G-0083** to reflect their relationship to the contract. The titles are already descriptive of the specific case; the umbrella relationship lives in the cross-references.
 
+## Resolution (2026-05-11)
+
+ADR-0005, which this gap motivated, was rejected. See the ADR body's "Rejected" section for the full rationale; in brief: the three obligations the ADR bundled are structurally heterogeneous, obligation 1's motivating case (G-0081) collapsed under inspection (the symptom was a checker false positive resolved by G-0109, not a verb-hygiene issue), obligation 2 has only one instance of evidence (G-0083) which is not enough to codify a principle, and obligation 3 lives at the skill layer which CLAUDE.md says is structurally advisory.
+
+The implementing gaps are addressed individually:
+
+- **G-0081** — closed `addressed` (misdiagnosis; resolved by G-0109).
+- **G-0083** — to be fixed as a `wf-patch` (`aiwf retitle` syncs body H1 with the frontmatter title).
+- **G-0082** — to be fixed in the rituals plugin (planning skills prompt merge-to-main).
+
+With the umbrella ADR rejected and no implementing gaps left dependent on a contract framing, this gap closes `wontfix`.
+
 ## Discovered in
 
 - E-0021 milestone planning, 2026-05-08. The three component gaps surfaced over the course of the planning session — first G-0081 (rename collision after a slug rename), then G-0082 (planning closure should default-merge), then G-0083 (retitle leaves H1 stale during the audit-sweep). At the third instance, the meta-pattern became visible and was named.
