@@ -15,7 +15,7 @@ acs:
     - id: AC-2
       title: Worktree-placement prompt is heading-scoped Q&A with three named options
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Sovereign-promotion step names the M-0095 rule and the override path
       status: open
