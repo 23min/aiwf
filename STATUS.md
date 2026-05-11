@@ -121,7 +121,7 @@ flowchart LR
 | G-0088 | Skill-coverage policy doesn't police plugin skills under aiwf-extensions/ | M-0079 |
 | G-0090 | M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests | M-0079 |
 | G-0091 | No preventive check for body-prose path-form refs to archive-moved entities |  |
-| G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
+| G-0092 | No documented hierarchy of doc authority across docs/ |  |
 | G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
 | G-0099 | Worktree isolation must be a parent-side precondition, not an Agent kwarg honor |  |
 | G-0100 | aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing | M-0089 |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0063 -> 'No defined start-epic ritual; activation is bare FSM flip today' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0090 -> 'M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0087 -> 'No aiwf-show embedded skill' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0091 -> 'No preventive check for body-prose path-form refs to archive-moved entities' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0070 -> 'aiwf doctor lacks --format=json envelope' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0069 -> 'aiwf init's plugins nudge hardcodes user-scope CLI install form' |
 
