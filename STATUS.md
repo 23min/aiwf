@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_262 entities · 0 errors · 5 warnings · run `aiwf check` for details_
+_263 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -152,6 +152,7 @@ flowchart LR
 | G-0113 | rendered HTML site has no publish path; only viewable via local aiwf render |  |
 | G-0114 | HTML render gap surface: status and archive state not glanceable from sidebar |  |
 | G-0116 | aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos | E-0029 |
+| G-0117 | aiwf render html: project tree once, render via SPA instead of N files |  |
 
 ## Warnings
 
@@ -167,9 +168,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | archive | aiwf archive: sweep 2 entities into archive/ (2 gap) |
 | 2026-05-12 | human/peter | promote | aiwf promote G-0115 open -> addressed |
 | 2026-05-12 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body E-0030 |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0106 |
-| 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0105 |
 
