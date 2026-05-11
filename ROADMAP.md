@@ -294,7 +294,7 @@ Change `aiwfx-wrap-epic`'s merge step so the merge commit it produces carries `a
 |---|---|---|
 | M-0090 | aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests | done |
 
-## E-0028 — Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side) (proposed)
+## E-0028 — Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side) (active)
 
 ### Goal
 
@@ -302,7 +302,7 @@ Ship the `aiwfx-start-epic` ritual plus its supporting kernel chokepoints so epi
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0094 | Add aiwf check finding epic-active-no-drafted-milestones | draft |
+| M-0094 | Add aiwf check finding epic-active-no-drafted-milestones | done |
 | M-0095 | Enforce human-only actor on aiwf promote E-NN active | draft |
 | M-0096 | Ship aiwfx-start-epic skill with worktree and branch preflight prompts | draft |
 
