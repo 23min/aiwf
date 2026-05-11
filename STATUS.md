@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_240 entities · 0 errors · 4 warnings · run `aiwf check` for details_
+_240 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
 > Sweep pending: 3 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -11,7 +11,7 @@ _240 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 - ✓ **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(done)_ — ACs 4/4 met — tdd: required
 - ✓ **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(done)_ — ACs 4/4 met — tdd: required
 - ✓ **M-0096** — Ship aiwfx-start-epic skill with worktree and branch preflight prompts _(done)_ — ACs 5/5 met — tdd: required
-- **M-0097** — Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator _(draft)_ — ACs 0/2 met (2 open) — tdd: required
+- → **M-0097** — Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator _(in_progress)_ — ACs 0/2 met (2 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -22,7 +22,7 @@ flowchart LR
   E_0028 --> M_0095
   M_0096["M-0096 (5/5)<br/>Ship aiwfx-start-epic skill with worktree and branch preflight prompts"]:::ms_done
   E_0028 --> M_0096
-  M_0097["M-0097 (0/2)<br/>Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator"]:::ms_draft
+  M_0097["M-0097 (0/2)<br/>Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator"]:::ms_in_progress
   E_0028 --> M_0097
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -136,6 +136,8 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| entity-body-empty | M-0097/AC-1 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0097-close-m-0094-95-96-verification-seams-m-0095-automation-audit-chokepoint-and-ac-5-drift-comparator.md | M-0097/AC-1 body under \`### AC-1\` is empty |
+| entity-body-empty | M-0097/AC-2 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0097-close-m-0094-95-96-verification-seams-m-0095-automation-audit-chokepoint-and-ac-5-drift-comparator.md | M-0097/AC-2 body under \`### AC-2\` is empty |
 | terminal-entity-not-archived | M-0094 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0094-add-aiwf-check-finding-epic-active-no-drafted-milestones.md | entity M-0094 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0095 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md | entity M-0095 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0096 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | entity M-0096 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -144,9 +146,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add ac M-0097/AC-2 'Drift comparator helper has synthetic two-arm test (match + drift)' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0097/AC-1 'CI/script audit chokepoint fires on non-forced epic-activation invocations' |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0097 |
-| 2026-05-11 | human/peter | add | aiwf add milestone M-0097 'Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator' |
 
