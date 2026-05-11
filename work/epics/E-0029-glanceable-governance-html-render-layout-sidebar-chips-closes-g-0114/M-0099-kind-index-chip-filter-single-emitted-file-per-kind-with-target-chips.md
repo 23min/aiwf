@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Renderer emits one file per kind (no *-all.html)
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Chip strip with Active/All renders on kind-index pages
       status: open
