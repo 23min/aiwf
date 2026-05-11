@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_257 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_258 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 > Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -89,7 +89,20 @@ flowchart LR
 
 ### E-0030 — Branch model chokepoint: --branch flag, sequencing, isolation-escape finding _(proposed)_
 
-_(no milestones)_
+- **M-0102** — aiwf authorize --branch flag + scope-branch trailer coupling _(draft)_ — tdd: required
+
+```mermaid
+flowchart LR
+  E_0030["E-0030<br/>Branch model chokepoint: --branch flag, sequencing, isolation-escape finding"]:::epic_proposed
+  M_0102["M-0102<br/>aiwf authorize --branch flag + scope-branch trailer coupling"]:::ms_draft
+  E_0030 --> M_0102
+  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
+  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
+  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
+  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
+  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
+```
 
 ## Open decisions
 
@@ -135,15 +148,17 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| entity-body-empty | M-0102 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0102-aiwf-authorize-branch-flag-scope-branch-trailer-coupling.md | M-0102 body section \`## Goal\` is empty |
+| entity-body-empty | M-0102 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0102-aiwf-authorize-branch-flag-scope-branch-trailer-coupling.md | M-0102 body section \`## Acceptance criteria\` is empty |
 | terminal-entity-not-archived | G-0059 | work/gaps/G-0059-branch-model-no-canonical-hierarchy-mapping.md | entity G-0059 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | edit-body | aiwf edit-body E-0030 |
 | 2026-05-12 | human/peter | add | aiwf add epic E-0030 'Branch model chokepoint: --branch flag, sequencing, isolation-escape finding' |
 | 2026-05-12 | human/peter | promote | aiwf promote G-0059 open -> addressed |
 | 2026-05-12 | human/peter | promote | aiwf promote ADR-0010 proposed -> accepted |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body ADR-0010 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0010 |
 
