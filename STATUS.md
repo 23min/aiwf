@@ -9,7 +9,7 @@ _256 entities · 0 errors · 7 warnings · run `aiwf check` for details_
 ### E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) _(active)_
 
 - ✓ **M-0098** — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap _(done)_ — ACs 5/5 met — tdd: required
-- → **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(in_progress)_ — ACs 3/4 met (1 open) — tdd: required
+- → **M-0099** — Kind-index chip filter: single emitted file per kind with :target chips _(in_progress)_ — ACs 4/4 met — tdd: required
 - **M-0100** — Sidebar surfaces gaps with active count _(draft)_ — tdd: required
 - **M-0101** — In-page status hierarchy in gaps.html _(draft)_ — tdd: required
 - ✓ **M-0102** — Repair Playwright e2e suite for current kernel state _(done)_ — ACs 2/2 met — tdd: advisory
@@ -19,7 +19,7 @@ flowchart LR
   E_0029["E-0029<br/>Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)"]:::epic_active
   M_0098["M-0098 (5/5)<br/>Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap"]:::ms_done
   E_0029 --> M_0098
-  M_0099["M-0099 (3/4)<br/>Kind-index chip filter: single emitted file per kind with :target chips"]:::ms_in_progress
+  M_0099["M-0099 (4/4)<br/>Kind-index chip filter: single emitted file per kind with :target chips"]:::ms_in_progress
   E_0029 --> M_0099
   M_0100["M-0100<br/>Sidebar surfaces gaps with active count"]:::ms_draft
   E_0029 --> M_0100
@@ -149,9 +149,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-4 --phase green -> done |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-4 --phase red -> green |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-3 open -> met |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-3 --phase green -> done |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0099/AC-3 --phase red -> green |
-| 2026-05-11 | ai/claude | promote | aiwf promote M-0099/AC-2 open -> met |
 
