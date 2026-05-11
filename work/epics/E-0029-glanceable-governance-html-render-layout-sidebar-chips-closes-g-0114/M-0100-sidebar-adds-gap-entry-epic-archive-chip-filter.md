@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Chip strip with Active/All renders in sidebar
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Sidebar archive chip filter toggles epic visibility
