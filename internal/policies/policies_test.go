@@ -139,6 +139,10 @@ func TestPolicy_FilepathJoinSegmentBySegment(t *testing.T) {
 	runPolicy(t, PolicyFilepathJoinSegmentBySegment)
 }
 
+func TestPolicy_NoHardcodedEntityPaths(t *testing.T) {
+	runPolicy(t, PolicyNoHardcodedEntityPaths)
+}
+
 func TestPolicy_TestsRealCloneNotUpdateRef(t *testing.T) {
 	runPolicy(t, PolicyTestsRealCloneNotUpdateRef)
 }

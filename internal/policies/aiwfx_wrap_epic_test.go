@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -8,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // aiwfxWrapEpicFixturePath is the canonical authoring location for
@@ -337,9 +340,20 @@ func TestAiwfxWrapEpic_AC5_KernelRuleUnchanged(t *testing.T) {
 // the AC-5/AC-4 failure mode the spec calls out.
 func TestAiwfxWrapEpic_AC4_RitualsRepoSHARecordedAtWrap(t *testing.T) {
 	root := repoRoot(t)
-	specPath := filepath.Join(root, "work", "epics",
-		"E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100",
-		"M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md")
+	// Resolve M-0090's spec via tree.Load so the lookup survives
+	// archive sweeps (per ADR-0004). A hardcoded path under
+	// work/epics/E-0027-.../ would break the moment `aiwf archive
+	// --apply` moves the milestone into the per-kind archive/
+	// subdir — the bug enforced by PolicyNoHardcodedEntityPaths.
+	tr, _, err := tree.Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("AC-4: tree.Load: %v", err)
+	}
+	e := tr.ByID("M-0090")
+	if e == nil {
+		t.Fatal("AC-4: milestone M-0090 not found in tree (active or archive)")
+	}
+	specPath := filepath.Join(root, e.Path)
 	data, err := os.ReadFile(specPath)
 	if err != nil {
 		t.Fatalf("AC-4: reading milestone spec %q: %v", specPath, err)

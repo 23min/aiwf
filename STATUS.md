@@ -100,9 +100,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0104 'Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0025 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | wrap-epic | chore(E-0027): wrap epic — trailered merge commits ritual + CHANGELOG entry |
 | 2026-05-11 | human/peter | wrap-epic | chore(epic): wrap E-0027 — trailered merge commits from aiwfx-wrap-epic (closes G-0100) |
-| 2026-05-11 | human/peter | promote | aiwf promote E-0027 active -> done |
 

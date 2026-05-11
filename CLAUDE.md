@@ -232,6 +232,26 @@ Concrete shape:
 
 Why this rule exists: I3 step 2A's `TestRun_AddACWithTestsFlag` originally hit a verb error after a hand-edit; I added a manual `git add -A && git commit` to make the test pass without diagnosing why the verb's projection ran in the wrong direction. The test now passes for a different reason than its assertion claims.
 
+#### Policy tests that read entity files must resolve via the loader
+
+When a test under `internal/policies/` (or any test that reads a live planning-tree entity) needs the file path of an epic, milestone, gap, decision, contract, or ADR, the path must come from the loader — `tree.Load(ctx, root)` + `Tree.ByID(id)` + `entity.Path`. **Never** hardcode a literal path like `filepath.Join(root, "work", "epics", "E-NNNN-...", "M-NNNN-....md")`.
+
+The reason is ADR-0004 (uniform archive convention): `aiwf archive --apply` moves terminal-status entities into a per-kind `archive/` subdirectory, and the loader resolves ids transparently across active and archive. A test that hardcodes the active-tree path appears to work right up until the parent entity reaches terminal status and the next sweep moves the file — at which point the test fails with a confusing file-not-found error inside a pre-commit policy hook, blocking the very `aiwf archive` commit that should have been routine.
+
+Concrete shape:
+
+```go
+tr, _, err := tree.Load(context.Background(), root)
+if err != nil { t.Fatalf("tree.Load: %v", err) }
+e := tr.ByID("M-0090")
+if e == nil { t.Fatal("M-0090 not found") }
+specPath := filepath.Join(root, e.Path)  // active or archive, transparent
+```
+
+The chokepoint is `PolicyNoHardcodedEntityPaths` in `internal/policies/`. It scans Go source under that package for `filepath.Join(...)` calls whose string-literal args match the entity-slug shape (`E-/M-/G-/D-/C-/ADR-` followed by digits and a dash). Any such call fails CI with a finding pointing at the offending line and citing the loader-based resolution above. The policy's scope is `internal/policies/*.go` — that's where this bug class lives in practice; if the pattern leaks into other packages, widen the scope in one commit rather than chasing it per-file.
+
+Why this rule exists: M-0090's first archive sweep aborted because `TestAiwfxWrapEpic_AC4_RitualsRepoSHARecordedAtWrap` read the milestone spec via a hardcoded `filepath.Join` literal that the sweep invalidated. The test had passed every commit up to that point — it broke the instant the milestone's parent epic became archive-eligible. ADR-0004's whole point is that archive movement should be transparent; a test that opts out of the loader opts out of that guarantee.
+
 ### Coverage
 
 - **High coverage on `internal/...` packages.** PoC target is 90%; failing checks for low coverage are advisory at this stage.
