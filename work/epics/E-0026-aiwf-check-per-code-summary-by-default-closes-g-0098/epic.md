@@ -71,7 +71,7 @@ The aggregate finding pattern (one `archive-sweep-pending` summarizing 176 `term
 
 ## Milestones
 
-- [M-NNNN](work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-NNNN-...md) — Per-code text-render summary + `--verbose` flag · depends on: —
+- [M-0089](work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md) — Per-code text-render summary + `--verbose` flag · depends on: —
 
 ## References
 

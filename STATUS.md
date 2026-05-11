@@ -288,9 +288,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0089 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0089 'Per-code text-render summary with --verbose fallback' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0026 |
 | 2026-05-11 | human/peter | add | aiwf add epic E-0026 'aiwf check per-code summary by default (closes G-0098)' |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0098 'aiwf check default output dumps every leaf finding; per-code summary + --verbose would make the surface scannable, especially when an aggregate finding (e.g. archive-sweep-pending) already covers N leaves' |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 
