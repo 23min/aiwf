@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_222 entities · 0 errors · 180 warnings · run `aiwf check` for details_
+_223 entities · 0 errors · 182 warnings · run `aiwf check` for details_
 
 > Sweep pending: 179 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -83,11 +83,14 @@ _(no milestones)_
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
 | G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
 | G-0099 | Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior |  |
+| G-0100 | provenance-untrailered-entity-commit fires on git merge commits that touch entity files; rule should skip merge commits (parent count > 1) so every epic-wrap merge doesn't inflate the warning count | M-0089 |
 
 ## Warnings
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| entity-body-empty | G-0100 | work/gaps/G-0100-provenance-untrailered-entity-commit-fires-on-git-merge-commits-that-touch-entity-files-rule-should-skip-merge-commits-parent-count-1-so-every-epic-wrap-merge-doesn-t-inflate-the-warning-count.md | G-0100 body section \`## What's missing\` is empty |
+| entity-body-empty | G-0100 | work/gaps/G-0100-provenance-untrailered-entity-commit-fires-on-git-merge-commits-that-touch-entity-files-rule-should-skip-merge-commits-parent-count-1-so-every-epic-wrap-merge-doesn-t-inflate-the-warning-count.md | G-0100 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | entity ADR-0002 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0001 | work/epics/E-0001-foundations-and-aiwf-check/M-0001-session-1-deliverable-aiwf-check-end-to-end.md | entity M-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0001 | work/epics/E-0001-foundations-and-aiwf-check/epic.md | entity E-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -272,9 +275,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0098 open -> addressed |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0026 active -> done |
 | 2026-05-11 | human/peter | wrap | chore(E-0026): wrap epic — aiwf check per-code summary by default |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0026 proposed -> active |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
 
