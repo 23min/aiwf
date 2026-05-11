@@ -4,6 +4,11 @@ title: aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check test
 status: in_progress
 parent: E-0027
 tdd: required
+acs:
+    - id: AC-1
+      title: Fixture SKILL.md exists at the canonical authoring location.
+      status: open
+      tdd_phase: red
 ---
 
 # M-0090 — `aiwfx-wrap-epic` emits trailered merge commits; fixture + drift-check tests
@@ -102,3 +107,6 @@ Intended landing zone:
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — Fixture SKILL.md exists at the canonical authoring location.
+
