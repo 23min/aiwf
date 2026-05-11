@@ -13,11 +13,13 @@ import (
 )
 
 // newRetitleCmd builds `aiwf retitle <id|composite-id> <new-title>
-// [--reason "..."]`. Title-only mutation: updates the entity's
-// frontmatter `title:` (and for composite ids, the matching `### AC-N
-// — <title>` body heading inside the parent milestone). Closes G-065 —
-// the asymmetry where `aiwf rename` exists for slugs but no verb
-// exists for titles.
+// [--reason "..."]`. Title mutation: updates the entity's frontmatter
+// `title:`; for top-level entities also re-derives the on-disk slug
+// (G-0108) and syncs a canonical `# <ID> — <title>` body H1 if one is
+// present (G-0083); for composite ids regenerates the matching
+// `### AC-N — <title>` body heading inside the parent milestone.
+// Closes G-065 — the asymmetry where `aiwf rename` exists for slugs
+// but no verb exists for titles.
 //
 // Two positional arguments matching `aiwf rename`'s shape:
 // id (or M-NNN/AC-N), new-title. The optional `--reason` flag lands

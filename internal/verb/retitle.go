@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/23min/aiwf/internal/check"
@@ -15,8 +16,12 @@ import (
 // (top-level kind) or AC (composite id). For top-level entities, the
 // on-disk slug is also re-derived from the new title and the file is
 // renamed atomically in the same commit (G-0108) — so frontmatter
-// title and filesystem slug never drift apart. Use `aiwf rename` when
-// you want a slug change without touching the title.
+// title and filesystem slug never drift apart. A canonical
+// `# <ID> — <title>` body H1, if present, is rewritten to track the
+// new title in the same commit (G-0083); bodies without a canonical
+// H1 are left untouched, so an operator-shaped non-canonical heading
+// is never silently clobbered. Use `aiwf rename` when you want a slug
+// change without touching the title.
 //
 // For composite ids (M-NNN/AC-N), Retitle dispatches to retitleAC,
 // which updates the AC's title in the parent milestone's acs[] array
@@ -99,6 +104,12 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 	if err != nil {
 		return nil, err
 	}
+	// G-0083: keep a canonical `# <ID> — <title>` body H1 in sync with
+	// the frontmatter title. Body H1 is optional (the BodyTemplate
+	// scaffold doesn't produce one); when absent, rewriteEntityH1 is a
+	// no-op. Non-canonical H1s (operator-shaped headings) are left
+	// alone so an intentional divergence isn't silently clobbered.
+	body = rewriteEntityH1(body, id, newTitle)
 	content, err := entity.Serialize(&modified, body)
 	if err != nil {
 		return nil, fmt.Errorf("serializing %s: %w", id, err)
@@ -120,6 +131,24 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 			Ops:      ops,
 		},
 	}, nil
+}
+
+// rewriteEntityH1 scans body for lines matching the canonical
+// `# <id> — <anything>` H1 shape and rewrites them to carry newTitle.
+// When no matching line exists, the body is returned unchanged — H1
+// is optional in the kernel's body shape (BodyTemplate doesn't produce
+// one), so most freshly-added entities have nothing to sync. Mirrors
+// rewriteACHeading's pattern for top-level entity bodies (G-0083).
+//
+// The match is intentionally strict: only the canonical em-dash
+// separator `# <id> — ` is recognized. Non-canonical headings (colon,
+// hyphen, missing id, etc.) are operator-shaped hand edits and stay
+// untouched so retitle never silently clobbers a deliberate
+// divergence.
+func rewriteEntityH1(body []byte, id, newTitle string) []byte {
+	pattern := regexp.MustCompile(`(?m)^# ` + regexp.QuoteMeta(id) + ` — .*$`)
+	replacement := []byte(fmt.Sprintf("# %s — %s", id, newTitle))
+	return pattern.ReplaceAll(body, replacement)
 }
 
 // retitleAC handles `aiwf retitle M-NNN/AC-N "<new-title>"`. Updates

@@ -154,6 +154,110 @@ func TestRetitle_UnknownIdRejected(t *testing.T) {
 	}
 }
 
+// TestRetitle_TopLevel_BodyH1Sync pins G-0083: when a top-level
+// entity's body carries a canonical `# <ID> — <title>` H1, retitle
+// rewrites it in the same atomic commit as the frontmatter `title:`
+// update — mirroring the AC behavior (`### AC-N — <title>` rewrite).
+// Most entities have no H1 (the BodyTemplate scaffold doesn't include
+// one), but those that do — historical entities, hand-added headings —
+// must not drift from the frontmatter after a retitle.
+func TestRetitle_TopLevel_BodyH1Sync(t *testing.T) {
+	root := retitleSetup(t)
+
+	// Inject a canonical H1 into the epic body so retitle has something
+	// to sync. Use aiwf edit-body --body-file so the change lands as a
+	// proper trailered commit (the retitle verb otherwise sees a dirty
+	// working tree and the projection diff drifts).
+	bodyFile := filepath.Join(t.TempDir(), "body-with-h1.md")
+	bodyContent := "# E-0001 — Foundations\n\n## Goal\n\n## Scope\n\n## Out of scope\n"
+	if err := os.WriteFile(bodyFile, []byte(bodyContent), 0o644); err != nil {
+		t.Fatalf("write body file: %v", err)
+	}
+	if rc := run([]string{"edit-body", "E-0001", "--body-file", bodyFile, "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("edit-body to inject H1: %d", rc)
+	}
+
+	if rc := run([]string{"retitle", "E-0001", "Refocused Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("retitle: %d", rc)
+	}
+
+	body, err := os.ReadFile(filepath.Join(root, "work", "epics", "E-0001-refocused-foundations", "epic.md"))
+	if err != nil {
+		t.Fatalf("read epic at new slug: %v", err)
+	}
+	s := string(body)
+	if !strings.Contains(s, "# E-0001 — Refocused Foundations\n") {
+		t.Errorf("H1 not synced to new title; body:\n%s", s)
+	}
+	if strings.Contains(s, "# E-0001 — Foundations\n") {
+		t.Errorf("stale H1 (old title) still present; body:\n%s", s)
+	}
+	if !strings.Contains(s, "title: Refocused Foundations") {
+		t.Errorf("frontmatter title not updated; body:\n%s", s)
+	}
+}
+
+// TestRetitle_TopLevel_NoH1_BodyUnchanged pins the silent-no-op shape
+// for G-0083: the kernel's BodyTemplate scaffold doesn't produce an H1
+// (frontmatter `title:` is the single source of truth), so most
+// freshly-added entities have no H1. Retitle must not introduce one —
+// frontmatter updates, body stays exactly as it was minus the
+// frontmatter block.
+func TestRetitle_TopLevel_NoH1_BodyUnchanged(t *testing.T) {
+	root := retitleSetup(t)
+
+	if rc := run([]string{"retitle", "E-0001", "Refocused", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("retitle: %d", rc)
+	}
+
+	body, err := os.ReadFile(filepath.Join(root, "work", "epics", "E-0001-refocused", "epic.md"))
+	if err != nil {
+		t.Fatalf("read epic at new slug: %v", err)
+	}
+	s := string(body)
+	for _, line := range strings.Split(s, "\n") {
+		if strings.HasPrefix(line, "# ") {
+			t.Errorf("unexpected H1 in body after retitle on a no-H1 entity: %q", line)
+		}
+	}
+}
+
+// TestRetitle_TopLevel_NonCanonicalH1_LeftAlone pins the conservative
+// rewrite shape for G-0083: only the canonical `# <ID> — <title>`
+// pattern is touched. Non-canonical variants (colon, hyphen, missing
+// id, etc.) are operator-owned hand edits — retitle leaves them as-is
+// so an intentional divergence isn't silently clobbered.
+func TestRetitle_TopLevel_NonCanonicalH1_LeftAlone(t *testing.T) {
+	root := retitleSetup(t)
+
+	// Hand-shaped H1 that doesn't match the `# E-0001 — ` canonical
+	// prefix — the rewrite should skip it entirely.
+	bodyFile := filepath.Join(t.TempDir(), "body-noncanon.md")
+	bodyContent := "# Custom heading the operator wrote\n\n## Goal\n\n## Scope\n\n## Out of scope\n"
+	if err := os.WriteFile(bodyFile, []byte(bodyContent), 0o644); err != nil {
+		t.Fatalf("write body file: %v", err)
+	}
+	if rc := run([]string{"edit-body", "E-0001", "--body-file", bodyFile, "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("edit-body to inject non-canonical H1: %d", rc)
+	}
+
+	if rc := run([]string{"retitle", "E-0001", "Refocused Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+		t.Fatalf("retitle: %d", rc)
+	}
+
+	body, err := os.ReadFile(filepath.Join(root, "work", "epics", "E-0001-refocused-foundations", "epic.md"))
+	if err != nil {
+		t.Fatalf("read epic at new slug: %v", err)
+	}
+	s := string(body)
+	if !strings.Contains(s, "# Custom heading the operator wrote\n") {
+		t.Errorf("non-canonical H1 was rewritten; body:\n%s", s)
+	}
+	if !strings.Contains(s, "title: Refocused Foundations") {
+		t.Errorf("frontmatter title not updated; body:\n%s", s)
+	}
+}
+
 // TestRetitle_AC_FrontmatterAndBody pins AC-2: composite-id retitle
 // updates BOTH the parent milestone's acs[i].title AND the matching
 // `### AC-N — <title>` body heading, atomically in one commit.
