@@ -36,7 +36,7 @@ acs:
     - id: AC-8
       title: Summary lines name the code structurally, not by substring grep
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
