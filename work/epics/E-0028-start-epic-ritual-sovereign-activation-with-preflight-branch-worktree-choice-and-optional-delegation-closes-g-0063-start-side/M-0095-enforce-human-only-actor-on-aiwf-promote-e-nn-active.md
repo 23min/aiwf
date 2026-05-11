@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: rule scoped to epic kind; other kinds unaffected by sovereign-act rule
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0095 — Enforce human-only actor on `aiwf promote E-NN active`
