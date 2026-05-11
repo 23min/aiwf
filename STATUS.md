@@ -144,9 +144,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0097 |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0097 'Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator' |
 | 2026-05-11 | human/peter | implement | feat(aiwfx): aiwfx-start-epic skill fixture + drift-check + structural ACs (M-0096) |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0096 in_progress -> done |
 
