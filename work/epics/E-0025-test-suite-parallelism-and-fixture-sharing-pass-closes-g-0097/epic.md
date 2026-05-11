@@ -26,6 +26,7 @@ The spike's secondary finding — `-race -parallel=GOMAXPROCS` flakes under heav
 - **`sync.Once` the no-ldflags build in `cmd/aiwf/binary_integration_test.go`.** 5 of 7 tests build a non-stamped binary; share one. The 2 ldflags-stamped tests still build their own. Pattern matches the existing `aiwfBinary` in `cmd/aiwf/integration_test.go`.
 - **Memoize the live-repo `tree.Load(repoRoot)` in `internal/policies`.** A `TestMain` (or a `sync.Once`-guarded helper) loads the repo tree once and shares the `*Tree` across `TestPolicy_ThisRepoTreeIsClean`, `TestPolicy_ThisRepoDriftCheckClean`, `internal/policies/m080_test.go::loadM080Spec`, and any other consumers. Tests must not mutate the shared tree — assert this via review.
 - **Cap `-race` parallelism in CI and local Makefile.** `Makefile`'s `test-race` target gains `-parallel 8`; `.github/workflows/go.yml`'s test job gains the same. Document the rationale (race + heavy subprocess fan-out flakes on macOS; CI Linux less affected but the cap is uniform). One-line change in each file.
+- **Add a `setup_test.go`-presence policy test under `internal/policies/`.** The test walks every `internal/*` directory containing `*_test.go` and asserts each has a `setup_test.go` declaring a `TestMain`. AST-level check, not substring. Ships in M-C alongside the CLAUDE.md `## Test discipline` section so the rule and its chokepoint land together. No per-function `t.Parallel()` audit — too pedantic for the marginal value; presence of `setup_test.go` is a reasonable proxy.
 
 ### Out of scope
 
@@ -35,14 +36,16 @@ The spike's secondary finding — `-race -parallel=GOMAXPROCS` flakes under heav
 - **Moving `runBin` callers to in-process `run([]string{...})`.** Tempting but risky — subprocess isolation is load-bearing in many tests (exit codes, stdout/stderr capture, env isolation, the kernel's "test the actual binary" stance per CLAUDE.md). Touching this in bulk would be a separate, much-larger epic.
 - **Dropping `-race` or `-coverprofile`.** Both are deliberate kernel-correctness commitments per CLAUDE.md.
 - **Investigating the macOS `git add: signal: segmentation fault` under heavy parallel fan-out.** `-parallel 8` (or below) avoids it reliably; chasing the upstream-environment cause would be a yak-shave.
+- **A per-function `t.Parallel()` policy check.** Auditing every `Test*` body for `t.Parallel()` with a clean opt-out story (filename convention, directive comments) creates more friction than it prevents. The `setup_test.go`-presence check above is the chokepoint; per-function discipline lives in CLAUDE.md and review.
+- **Shipping the convention to downstream consumers** (e.g., via a `wf-rituals` skill). Consumers either copy aiwf's `CLAUDE.md ## Test discipline` section into their own `CLAUDE.md` or wait for a follow-up gap to propose an opt-in skill — no obligation imposed by this epic. The author of this epic is also a consumer; the consumer-copy path is the working assumption.
 
 ## Constraints
 
 - **No test semantics change.** `t.Parallel()` adoption must not change what tests assert. Race-detector findings, `-coverprofile`, and the existing assertion structure all survive the conversion. Reviewer chokepoint: a converted test that newly passes for a different reason than its assertion claims (per CLAUDE.md "Don't paper over a test failure") fails review.
 - **TDD: not required.** This is pure test-infrastructure refactor; no new production logic, no FSM changes. Each milestone's gate is "the same suite (or its converted subset) still passes after the change, including under `-race -parallel 8`."
-- **One commit per milestone.** Each milestone produces a single commit even though it touches many files — same per-mutation atomicity rule the rest of the codebase follows.
+- **One commit per milestone — except M-A.** M-A explicitly relaxes this to one commit per per-package conversion plus a leading cap-change commit. The milestone is refactor-shaped, not mutation-shaped: per-package commit signal (which package, what shape, did `-race -count=10` survive afterward) is more valuable than atomic-milestone signal. Each commit still carries the standard trailers (`aiwf-verb`, `aiwf-entity: M-NNNN`, `aiwf-actor`). M-B and M-C remain single-commit.
 - **Forward-compatibility with future test additions.** The `TestMain` pattern must not introduce package-level mutable state that a future test could surprise itself with. `os.Setenv` for the GIT identity is intentional (process-wide constant; never mutated); other patterns (e.g., a shared `*Tree`) get a single `sync.Once`-guarded loader and a comment saying "do not mutate."
-- **AI-discoverability.** A new `## Test discipline` section in `CLAUDE.md` documents the pattern (`TestMain` for env, `t.Parallel` default-on, shared-fixture rule), so a future contributor or AI assistant authoring a new test file picks up the convention by reading the playbook rather than the existing code.
+- **AI-discoverability.** A new `## Test discipline` section in `CLAUDE.md` documents the pattern (`TestMain` for env, `t.Parallel` default-on, shared-fixture rule), so a future contributor or AI assistant authoring a new test file picks up the convention by reading the playbook rather than the existing code. The CLAUDE.md change is paired in the same commit (M-C) with the `setup_test.go`-presence policy test, so the rule and its chokepoint ship together.
 - **What undoes this?** Re-running the conversion script with the inverse rules (or `git revert`) — the pattern is mechanical, the inverse is mechanical. No durable state is created.
 
 ## Success criteria
@@ -54,6 +57,7 @@ The spike's secondary finding — `-race -parallel=GOMAXPROCS` flakes under heav
 - [ ] `internal/policies/` shares the live-repo `tree.Load` across consumers via a single helper; the affected tests pass unchanged.
 - [ ] `Makefile` (`test-race` target) and `.github/workflows/go.yml` (test job) both pass `-parallel 8` to `go test -race`.
 - [ ] `CLAUDE.md` gains a `## Test discipline` section (or equivalent) recording the convention; a contributor reading it can write a new test file in the right shape without prior knowledge.
+- [ ] A policy test under `internal/policies/` asserts every `internal/*` test-bearing package has a `setup_test.go` with a `TestMain` declaration; CI fails any future package that omits it.
 - [ ] G-0097 promoted to `addressed` via `aiwf promote`; closing commit cites this epic.
 
 ## Design decisions (locked at planning time)
@@ -64,6 +68,8 @@ The spike's secondary finding — `-race -parallel=GOMAXPROCS` flakes under heav
 | **`-parallel 8` is the cap in CI and local `make test-race`.** | Reliable across the spike's macOS runs; matches typical CI runner core counts. Higher caps risk the macOS git-fan-out flake; lower caps leave performance on the table. Documented in CLAUDE.md alongside the convention. |
 | **The shared-tree pattern in `internal/policies/` uses `sync.Once`, not `TestMain`.** | `TestMain` is taken by the env setup; a separate `sync.Once`-guarded loader composes cleanly without conflicting. The `*Tree` is read-only across consumers; reviewer enforces "do not mutate" via a comment at the loader site. |
 | **Per-package `TestMain` files are named `setup_test.go`.** | Convention; the spike used the same name. A consistent filename means contributors / AI agents searching for the env-setup site know where to look. |
+| **The convention's chokepoint is a `setup_test.go`-presence test, not a per-function `t.Parallel()` audit.** | A presence check is mechanical and cheap; a per-function audit needs an opt-out grammar (filename convention, directive comments) that creates friction without proportional value. Presence of `setup_test.go` is a reasonable proxy: a package that has the file has been audited; the rule lives in CLAUDE.md for the rest. |
+| **M-A relaxes "one commit per milestone" to one commit per per-package conversion plus a leading cap-change commit.** | The milestone is refactor-shaped: ~12 packages converted by the same mechanical recipe. A single 50-file commit has poor reviewer signal; per-package commits keep `-race -count=10` regression-bisectable to the specific package that broke. The atomicity rule is about mutation-verb commits with kernel-trailers; refactor milestones can compose multiple commits cleanly. M-B and M-C stay single-commit. |
 
 ## Risks
 
@@ -78,9 +84,9 @@ The spike's secondary finding — `-race -parallel=GOMAXPROCS` flakes under heav
 
 <!-- Bulleted list, ordered by execution sequence. Status lives in each milestone's frontmatter. Recommended order: M-A first (proves the pattern wider than the spike), M-B parallel-safe with M-A, M-C documents the convention so it sticks. -->
 
-- **M-A** — Roll out `TestMain` + `t.Parallel` to `internal/*` packages. Apply the spike's pattern across every `internal/*` test package. Per-package audit produces a skip-list (tests that legitimately can't be parallel); the rest gain `t.Parallel()`. `setup_test.go` lands in each package. Race-cap in `Makefile` + `.github/workflows/go.yml` lands here too (the parallelism is unsafe at default cap; the two changes ship together). · `tdd: none` · depends on: —
-- **M-B** — Roll out `TestMain` + `t.Parallel` + dedup to `cmd/aiwf/`. Per-file audit (some tests need subprocess isolation; some don't); convert the safe ones; share the no-ldflags binary build via `sync.Once` in `binary_integration_test.go`. Memoize the live-repo `tree.Load` in `internal/policies` via a shared helper. · `tdd: none` · depends on: M-A
-- **M-C** — Document the convention in `CLAUDE.md`. New `## Test discipline` section captures the pattern (TestMain for env, t.Parallel default-on, sync.Once for shared expensive fixtures, race-parallel cap). A new test file written under this rule reads as obviously-conformant; a deviation reads as obviously-deviant. · `tdd: none` · depends on: M-A, M-B
+- **M-A** — Roll out `TestMain` + `t.Parallel` to `internal/*` packages. Apply the spike's pattern across every `internal/*` test package. Per-package audit produces a skip-list (tests that legitimately can't be parallel); the rest gain `t.Parallel()`. `setup_test.go` lands in each package. **First commit** lands the race-cap in `Makefile` + `.github/workflows/go.yml` (+ `flake-hunt.yml`) — the cap is the prerequisite for the parallel adoption that follows, so it must precede the per-package work. **Subsequent commits** convert one package each (relaxing the "one commit per milestone" rule for this refactor-shaped milestone — see Constraints). Memoizing the live-repo `tree.Load(repoRoot)` in `internal/policies` ships in this milestone too, on the same per-package cadence. **Reference for the convention until M-C lands: `internal/verb/setup_test.go`** (the spike). · `tdd: none` · depends on: —
+- **M-B** — Roll out `TestMain` + `t.Parallel` + no-ldflags dedup to `cmd/aiwf/`. Per-file audit (some tests need subprocess isolation; some don't); convert the safe ones; share the no-ldflags binary build via `sync.Once` in `binary_integration_test.go`. Single commit. · `tdd: none` · depends on: M-A
+- **M-C** — Document the convention and lock its chokepoint. Add a new `## Test discipline` section to `CLAUDE.md` (TestMain for env, t.Parallel default-on, sync.Once for shared expensive fixtures, race-parallel cap). Ship the `setup_test.go`-presence policy test under `internal/policies/` in the same commit so the rule and its enforcement land together. A new test file written under this rule reads as obviously-conformant; a deviation reads as obviously-deviant and fails CI. Single commit. · `tdd: none` · depends on: M-A, M-B
 
 (The dependencies are loose: M-B can start once M-A's pattern is established without waiting for M-A to fully wrap. M-C captures lessons learned from M-A and M-B and waits for both. If a fourth wave is needed for the deferred `htmlrender` fixture snapshot or the `aiwf init` skeleton snapshot, it spawns its own milestone — this epic accepts the addition rather than letting any milestone bloat.)
 
@@ -91,7 +97,7 @@ The spike's secondary finding — `-race -parallel=GOMAXPROCS` flakes under heav
 ## Dependencies
 
 - **No upstream blockers.** The conversion touches test files only; no production code, no FSM changes, no ADRs needed first.
-- **Compatible with the existing `flake-hunt` workflow.** That workflow runs `go test -race -count=10`; the parallelism cap applies there too (the workflow file change in M-A covers both the regular `test` job and `flake-hunt`).
+- **Compatible with the existing `flake-hunt` workflow.** That workflow runs `go test -race -count=10`; the parallelism cap applies there too (the workflow file change in M-A's first commit covers `go.yml`, `flake-hunt.yml`, and the Makefile in one shot).
 
 ## References
 
