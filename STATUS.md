@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_221 entities · 0 errors · 180 warnings · run `aiwf check` for details_
+_221 entities · 0 errors · 181 warnings · run `aiwf check` for details_
 
 > Sweep pending: 176 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0026 — aiwf check per-code summary by default (closes G-0098) _(proposed)_
 
-- → **M-0089** — Per-code text-render summary with --verbose fallback _(in_progress)_ — ACs 0/1 met (1 open) — tdd: required
+- → **M-0089** — Per-code text-render summary with --verbose fallback _(in_progress)_ — ACs 0/2 met (2 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_0026["E-0026<br/>aiwf check per-code summary by default (closes G-0098)"]:::epic_proposed
-  M_0089["M-0089 (0/1)<br/>Per-code text-render summary with --verbose fallback"]:::ms_in_progress
+  M_0089["M-0089 (0/2)<br/>Per-code text-render summary with --verbose fallback"]:::ms_in_progress
   E_0026 --> M_0089
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -106,6 +106,7 @@ flowchart LR
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
 | entity-body-empty | M-0089/AC-1 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-1 body under \`### AC-1\` is empty |
+| entity-body-empty | M-0089/AC-2 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089/AC-2 body under \`### AC-2\` is empty |
 | entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## What's missing\` is empty |
 | entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | entity ADR-0002 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -289,9 +290,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add ac M-0089/AC-1 'Default text output is per-code-summarized for warnings' |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089 draft -> in_progress |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0026 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0089 |
-| 2026-05-11 | human/peter | add | aiwf add milestone M-0089 'Per-code text-render summary with --verbose fallback' |
 

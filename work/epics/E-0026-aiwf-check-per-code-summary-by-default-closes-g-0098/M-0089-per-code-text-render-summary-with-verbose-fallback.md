@@ -9,6 +9,10 @@ acs:
       title: Default text output is per-code-summarized for warnings
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Errors still print per-instance in default text
+      status: open
+      tdd_phase: red
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
@@ -106,4 +110,6 @@ Intended landing zone:
 - (none)
 
 ### AC-1 — Default text output is per-code-summarized for warnings
+
+### AC-2 — Errors still print per-instance in default text
 
