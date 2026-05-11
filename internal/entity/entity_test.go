@@ -491,3 +491,97 @@ func TestPathKind(t *testing.T) {
 		})
 	}
 }
+
+// TestPathKind_Archive covers the archive-located shapes from the
+// ADR-0004 storage table (M-0084 AC-1). The full enumerated input
+// space is the per-kind archive row in
+// docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md
+// §"Storage — per-kind layout":
+//
+//	Epic       work/epics/archive/<dir>/epic.md          (whole subtree moves)
+//	Milestone  work/epics/archive/<dir>/M-*.md           (rides with parent epic)
+//	Contract   work/contracts/archive/<dir>/contract.md  (whole subtree moves)
+//	Gap        work/gaps/archive/G-*.md
+//	Decision   work/decisions/archive/D-*.md
+//	ADR        docs/adr/archive/ADR-*.md
+//
+// Milestones don't archive independently per the ADR but their files
+// still appear in the archived epic's subtree, so the loader must
+// classify them when walking it.
+func TestPathKind_Archive(t *testing.T) {
+	tests := []struct {
+		path   string
+		want   Kind
+		wantOk bool
+	}{
+		// Positive cases — every archive shape from the storage table.
+		{"work/epics/archive/E-01-platform/epic.md", KindEpic, true},
+		{"work/epics/archive/E-01-platform/M-001-cache.md", KindMilestone, true},
+		{"work/epics/archive/E-01-platform/M-001.md", KindMilestone, true},
+		{"work/gaps/archive/G-001-noise.md", KindGap, true},
+		{"work/gaps/archive/G-001.md", KindGap, true},
+		{"work/decisions/archive/D-001-format.md", KindDecision, true},
+		{"work/contracts/archive/C-001-orders/contract.md", KindContract, true},
+		{"docs/adr/archive/ADR-0001-format.md", KindADR, true},
+		{"docs/adr/archive/ADR-0001.md", KindADR, true},
+
+		// Negative cases — archive-shaped paths that don't match a kind.
+		// (`work/epics/archive/no-id/epic.md` is structurally a kind-epic
+		// shape; PathKind classifies on shape, IDFromPath rejects no-id.)
+		{"work/epics/archive/E-01-platform/notes.md", "", false},
+		{"work/gaps/archive/random.md", "", false},
+		{"work/decisions/archive/notes.md", "", false},
+		{"docs/adr/archive/notes.md", "", false},
+
+		// Nested deeper than one archive level — not legal under ADR-0004.
+		{"work/epics/archive/old/E-01-platform/epic.md", "", false},
+		{"work/gaps/archive/2026/G-001-noise.md", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			got, ok := PathKind(tt.path)
+			if got != tt.want || ok != tt.wantOk {
+				t.Errorf("PathKind(%q) = %v, %v; want %v, %v", tt.path, got, ok, tt.want, tt.wantOk)
+			}
+		})
+	}
+}
+
+// TestIDFromPath_Archive pins the id-extraction seam for archive-located
+// entity paths (M-0084 AC-1). Same enumerated space as TestPathKind_Archive.
+func TestIDFromPath_Archive(t *testing.T) {
+	tests := []struct {
+		path   string
+		kind   Kind
+		want   string
+		wantOk bool
+	}{
+		// Positive cases.
+		{"work/epics/archive/E-01-platform/epic.md", KindEpic, "E-01", true},
+		{"work/epics/archive/E-01-platform/M-001-cache.md", KindMilestone, "M-001", true},
+		{"work/epics/archive/E-01-platform/M-001.md", KindMilestone, "M-001", true},
+		{"work/gaps/archive/G-001-noise.md", KindGap, "G-001", true},
+		{"work/gaps/archive/G-001.md", KindGap, "G-001", true},
+		{"work/decisions/archive/D-001-format.md", KindDecision, "D-001", true},
+		{"work/contracts/archive/C-001-orders/contract.md", KindContract, "C-001", true},
+		{"docs/adr/archive/ADR-0001-format.md", KindADR, "ADR-0001", true},
+		{"docs/adr/archive/ADR-0001.md", KindADR, "ADR-0001", true},
+
+		// Width tolerance carries over to archive paths too (per ADR-0008).
+		{"work/epics/archive/E-100-big/epic.md", KindEpic, "E-100", true},
+		{"docs/adr/archive/ADR-12345-future.md", KindADR, "ADR-12345", true},
+
+		// Mismatched kind / shape.
+		{"work/epics/archive/E-01-platform/epic.md", KindMilestone, "", false},
+		{"work/epics/archive/no-id/epic.md", KindEpic, "", false},
+		{"work/gaps/archive/random.md", KindGap, "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path+":"+string(tt.kind), func(t *testing.T) {
+			got, ok := IDFromPath(tt.path, tt.kind)
+			if got != tt.want || ok != tt.wantOk {
+				t.Errorf("IDFromPath(%q, %v) = %q, %v; want %q, %v", tt.path, tt.kind, got, ok, tt.want, tt.wantOk)
+			}
+		})
+	}
+}

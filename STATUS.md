@@ -1,6 +1,6 @@
-# aiwf status — 2026-05-10
+# aiwf status — 2026-05-11
 
-_215 entities · 0 errors · 17 warnings · run `aiwf check` for details_
+_215 entities · 0 errors · 9 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -118,23 +118,15 @@ flowchart LR
 | entity-body-empty | M-0085/AC-6 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-6 body under \`### AC-6\` is empty |
 | entity-body-empty | M-0085/AC-7 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-7 body under \`### AC-7\` is empty |
 | entity-body-empty | M-0085/AC-8 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0085-aiwf-archive-verb-dry-run-default-apply-kind.md | M-0085/AC-8 body under \`### AC-8\` is empty |
-| entity-body-empty | M-0088/AC-1 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-0088/AC-2 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-0088/AC-3 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-0088/AC-4 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-0088/AC-5 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-0088/AC-6 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088/AC-6 body under \`### AC-6\` is empty |
-| entity-body-empty | M-0088/AC-7 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088/AC-7 body under \`### AC-7\` is empty |
-| entity-body-empty | M-0088/AC-8 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | M-0088/AC-8 body under \`### AC-8\` is empty |
 | gap-resolved-has-resolver | G-0093 | work/gaps/G-0093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md | gap is marked addressed but addressed_by and addressed_by_commit are both empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-7 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-7 --phase green -> done |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-7 --phase red -> green |
 

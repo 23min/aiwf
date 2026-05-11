@@ -279,6 +279,105 @@ func TestRefsResolve_StubPreservesWrongKindCheck(t *testing.T) {
 	}
 }
 
+// TestRefsResolve_ResolvesArchivedTargets — M-0084 AC-3: id-form
+// references whose target lives under <kind>/archive/ resolve cleanly,
+// without flag opt-in. The seam test drives through tree.Load against
+// an on-disk fixture so the loader's archive walk + refsResolve's
+// canonicalized index agree end-to-end. Active → archive references
+// are explicitly legal under ADR-0004 §"Reversal" — the canonical
+// pattern when a closed entity needs revisiting is to file a new
+// entity that references the archived one.
+func TestRefsResolve_ResolvesArchivedTargets(t *testing.T) {
+	root := t.TempDir()
+
+	// Active milestone parents to an archived (done) epic. ADR-0004
+	// §"Storage" puts the parent epic's whole subtree under
+	// work/epics/archive/<dir>/ when terminal — a freshly-filed gap
+	// or follow-up milestone might still legitimately reference it.
+	mustWrite(t, root, "work/epics/archive/E-01-old/epic.md", `---
+id: E-01
+title: Old epic
+status: done
+---
+`)
+	mustWrite(t, root, "work/epics/E-02-active/epic.md", `---
+id: E-02
+title: Active epic
+status: active
+---
+`)
+	mustWrite(t, root, "work/epics/E-02-active/M-001-followup.md", `---
+id: M-001
+title: Follow-up to old epic
+status: in_progress
+parent: E-02
+depends_on:
+  - M-007
+---
+`)
+	// Archived milestone (rides with archived epic E-01) — the
+	// active milestone references it via depends_on.
+	mustWrite(t, root, "work/epics/archive/E-01-old/M-007-old.md", `---
+id: M-007
+title: Old milestone
+status: done
+parent: E-01
+---
+`)
+	// Active gap referencing an archived ADR via discovered_in needs
+	// the cross-kind allowed-set to match. Use addressed_by which is
+	// open-target instead — points at the archived milestone.
+	mustWrite(t, root, "work/gaps/G-001-followup.md", `---
+id: G-001
+title: Follow-up to old work
+status: addressed
+addressed_by:
+  - M-007
+---
+`)
+	// Active ADR superseding an archived ADR.
+	mustWrite(t, root, "docs/adr/archive/ADR-0099-old.md", `---
+id: ADR-0099
+title: Old ADR
+status: superseded
+---
+`)
+	mustWrite(t, root, "docs/adr/ADR-0100-new.md", `---
+id: ADR-0100
+title: New ADR
+status: accepted
+supersedes:
+  - ADR-0099
+---
+`)
+
+	tr, loadErrs, err := tree.Load(t.Context(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(loadErrs) != 0 {
+		t.Fatalf("loadErrs = %v, want empty", loadErrs)
+	}
+	got := refsResolve(tr)
+	if len(got) != 0 {
+		t.Errorf("refsResolve findings should be empty (active → archive refs are legal); got: %+v", got)
+	}
+}
+
+// mustWrite is a small testing helper local to this package's
+// fixture-based tests. Mirrors the tree package's writeFile helper
+// so check tests don't reach across package boundaries.
+func mustWrite(t *testing.T, root, rel, content string) {
+	t.Helper()
+	full := filepath.Join(root, rel)
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		t.Fatalf("mkdir %s: %v", filepath.Dir(rel), err)
+	}
+	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+		t.Fatalf("write %s: %v", rel, err)
+	}
+}
+
 func TestRefsResolve_RealEntityWinsOverStub(t *testing.T) {
 	// If both a real entity and a stub claim the same id (shouldn't
 	// happen in practice, but defensive), the real one is indexed

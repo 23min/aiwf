@@ -11,6 +11,120 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
+// mkActiveAndArchivedGaps populates root with one active and one
+// archived gap. Direct on-disk write (rather than `aiwf add gap`)
+// is intentional: the verb's check-rule preflight would lint the
+// archived G-0099 alongside, and we want a tight test fixture.
+// Shared by AC-5 JSON and text tests.
+func mkActiveAndArchivedGaps(t *testing.T, root string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(root, "work", "gaps"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "work", "gaps", "G-0001-active.md"), []byte(`---
+id: G-0001
+title: Active gap
+status: open
+---
+## What's missing
+
+Active gap body.
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "work", "gaps", "archive"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "work", "gaps", "archive", "G-0099-archived.md"), []byte(`---
+id: G-0099
+title: Archived gap
+status: addressed
+addressed_by:
+    - M-0001
+---
+## What's missing
+
+Archived gap body.
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestRun_ShowResolvesArchivedID — M-0084 AC-4: `aiwf show <id>`
+// resolves an entity living under <kind>/archive/ identically to one
+// in the active dir, without flag opt-in. Drives through the in-process
+// dispatcher (`run`) so the seam from Cobra → tree.Load → buildShowView
+// → t.ByID is exercised end-to-end on a tree carrying both an active
+// and an archived entity.
+func TestRun_ShowResolvesArchivedID(t *testing.T) {
+	root := setupCLITestRepo(t)
+
+	// Active gap (so the loader has at least one active entity to walk
+	// past). Plain on-disk write rather than `aiwf add gap` because
+	// the verb's check-rule preflight would lint the archived G-0099
+	// next to it; see the M-0084 work-log decision on M-0086 scope.
+	if err := os.MkdirAll(filepath.Join(root, "work", "gaps"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "work", "gaps", "G-0001-active.md"), []byte(`---
+id: G-0001
+title: Active gap
+status: open
+---
+## What's missing
+
+Active gap body.
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Archived gap (terminal status, lives under work/gaps/archive/
+	// per ADR-0004 storage table). Written directly so the test
+	// doesn't depend on the unimplemented `aiwf archive` verb (M-0085).
+	if err := os.MkdirAll(filepath.Join(root, "work", "gaps", "archive"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "work", "gaps", "archive", "G-0099-archived.md"), []byte(`---
+id: G-0099
+title: Archived gap
+status: addressed
+---
+## What's missing
+
+Archived gap body.
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	out := captureStdout(t, func() {
+		// JSON output exposes the resolved entity's `path` field,
+		// which structurally proves the lookup landed on the archived
+		// file (not, e.g., a same-id active file that shadowed it).
+		// A pure substring assertion on the text-format header would
+		// not distinguish those cases.
+		if rc := run([]string{"show", "--format=json", "--root", root, "G-0099"}); rc != exitOK {
+			t.Fatalf("show G-0099 (archived): rc = %d", rc)
+		}
+	})
+	var env struct {
+		Result ShowView `json:"result"`
+	}
+	if err := json.Unmarshal(out, &env); err != nil {
+		t.Fatalf("parse JSON: %v\n%s", err, out)
+	}
+	if env.Result.ID != "G-0099" {
+		t.Errorf("Result.ID = %q, want %q", env.Result.ID, "G-0099")
+	}
+	if env.Result.Status != "addressed" {
+		t.Errorf("Result.Status = %q, want %q (archived terminal status)", env.Result.Status, "addressed")
+	}
+	wantPath := filepath.ToSlash(filepath.Join("work", "gaps", "archive", "G-0099-archived.md"))
+	if filepath.ToSlash(env.Result.Path) != wantPath {
+		t.Errorf("Result.Path = %q, want %q (structural proof that the archived file resolved)", env.Result.Path, wantPath)
+	}
+}
+
+
 // TestRun_ShowMilestoneAggregatesACsHistoryFindings exercises the
 // full top-level path: a milestone with two ACs, a TDD phase walk,
 // and a status promotion. The text output must contain the header,

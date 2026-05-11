@@ -108,6 +108,216 @@ status: accepted
 	}
 }
 
+// TestLoad_ArchivedEntities — M-0084 AC-2: tree.Load walks
+// <kind>/archive/ for every kind whose ADR-0004 storage row populates
+// an archive location, and yields the archived entities in
+// Tree.Entities alongside active ones. The id-resolution surface
+// (ByID) returns the archived entity by id without flag opt-in.
+//
+// Spec-sourced: the per-kind enumeration follows the ADR-0004 storage
+// table at docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md
+// §"Storage — per-kind layout". Every row that ADR-0004 names with
+// an archive location is exercised here.
+func TestLoad_ArchivedEntities(t *testing.T) {
+	root := t.TempDir()
+
+	// Active set — one of every kind, just so the test exercises
+	// active+archive coexistence rather than "archive only."
+	writeFile(t, root, "work/epics/E-01-active/epic.md", `---
+id: E-01
+title: Active epic
+status: active
+---
+`)
+	writeFile(t, root, "work/gaps/G-001-active.md", `---
+id: G-001
+title: Active gap
+status: open
+---
+`)
+
+	// Archive set — terminal-status entities at their per-kind archive
+	// location per the ADR-0004 storage table. Every row gets a fixture.
+	writeFile(t, root, "work/epics/archive/E-02-old-epic/epic.md", `---
+id: E-02
+title: Old epic
+status: done
+---
+`)
+	writeFile(t, root, "work/epics/archive/E-02-old-epic/M-007-old-milestone.md", `---
+id: M-007
+title: Old milestone (rides with archived epic)
+status: done
+parent: E-02
+---
+`)
+	writeFile(t, root, "work/gaps/archive/G-002-old-gap.md", `---
+id: G-002
+title: Old gap
+status: addressed
+---
+`)
+	writeFile(t, root, "work/decisions/archive/D-002-old-decision.md", `---
+id: D-002
+title: Old decision
+status: superseded
+---
+`)
+	writeFile(t, root, "work/contracts/archive/C-002-old-contract/contract.md", `---
+id: C-002
+title: Old contract
+status: retired
+---
+`)
+	writeFile(t, root, "docs/adr/archive/ADR-0099-old-adr.md", `---
+id: ADR-0099
+title: Old ADR
+status: superseded
+---
+`)
+
+	tr, loadErrs, err := Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(loadErrs) != 0 {
+		t.Fatalf("loadErrs = %v, want empty", loadErrs)
+	}
+
+	wantIDs := map[string]entity.Kind{
+		"E-01":     entity.KindEpic,
+		"E-02":     entity.KindEpic,
+		"M-007":    entity.KindMilestone,
+		"G-001":    entity.KindGap,
+		"G-002":    entity.KindGap,
+		"D-002":    entity.KindDecision,
+		"C-002":    entity.KindContract,
+		"ADR-0099": entity.KindADR,
+	}
+	if len(tr.Entities) != len(wantIDs) {
+		t.Fatalf("Entities count = %d, want %d: %+v", len(tr.Entities), len(wantIDs), tr.Entities)
+	}
+	gotIDs := make(map[string]entity.Kind, len(tr.Entities))
+	for _, e := range tr.Entities {
+		gotIDs[e.ID] = e.Kind
+	}
+	for id, wantKind := range wantIDs {
+		if got, ok := gotIDs[id]; !ok {
+			t.Errorf("Entities missing %s (kind %s)", id, wantKind)
+		} else if got != wantKind {
+			t.Errorf("Entities[%s].Kind = %s, want %s", id, got, wantKind)
+		}
+	}
+
+	// ByID resolves archived entities identically to active ones —
+	// no flag, no separate accessor. This is the seam that everything
+	// downstream (refsResolve, aiwf show, aiwf history) reads through.
+	for _, id := range []string{"E-02", "G-002", "D-002", "C-002", "ADR-0099", "M-007"} {
+		if e := tr.ByID(id); e == nil {
+			t.Errorf("tr.ByID(%q) = nil, want archived entity", id)
+		}
+	}
+
+	// No strays surfaced for archive paths — the loader must classify
+	// them as recognized entities, not flag them under tree-discipline.
+	if len(tr.Strays) != 0 {
+		t.Errorf("Strays = %v, want empty (archive paths must classify cleanly)", tr.Strays)
+	}
+}
+
+// TestLoad_ArchiveEmptyTreeBoundedCost — M-0084 AC-6: a tree with no
+// archive content (or with empty archive/ subdirectories) loads
+// exactly the same entity set as the pre-archive loader would have.
+// "Bounded cost" here means "no extra entities, no extra strays, no
+// extra load errors" — the archive walk does not introduce parasitic
+// work on trees that don't use archive.
+//
+// The canonical test pair: (a) active-only fixture, (b) same fixture
+// with empty work/<kind>/archive/ and docs/adr/archive/ directories
+// added. Both must yield identical Entities, Strays, and load-error
+// counts. This is the spec-fidelity assertion for "archive-empty
+// trees pay no extra cost."
+func TestLoad_ArchiveEmptyTreeBoundedCost(t *testing.T) {
+	build := func(t *testing.T, withEmptyArchive bool) (*Tree, []LoadError) {
+		t.Helper()
+		root := t.TempDir()
+		writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
+id: E-01
+title: Platform
+status: active
+---
+`)
+		writeFile(t, root, "work/gaps/G-001-noise.md", `---
+id: G-001
+title: Noise
+status: open
+---
+`)
+		writeFile(t, root, "work/decisions/D-001-format.md", `---
+id: D-001
+title: Format
+status: accepted
+---
+`)
+		writeFile(t, root, "docs/adr/ADR-0001-format.md", `---
+id: ADR-0001
+title: Adopt format
+status: accepted
+---
+`)
+
+		if withEmptyArchive {
+			// Empty archive directories under every kind that ADR-0004
+			// names. The loader walks them but finds nothing — no
+			// extra entities, no strays, no load errors. The directory
+			// must persist on disk; create a .gitkeep-style sentinel
+			// only if the kind needs it. Most filesystems keep empty
+			// dirs around fine for the duration of a test.
+			for _, sub := range []string{
+				"work/epics/archive",
+				"work/gaps/archive",
+				"work/decisions/archive",
+				"work/contracts/archive",
+				"docs/adr/archive",
+			} {
+				if err := os.MkdirAll(filepath.Join(root, sub), 0o755); err != nil {
+					t.Fatalf("mkdir %s: %v", sub, err)
+				}
+			}
+		}
+		tr, loadErrs, err := Load(context.Background(), root)
+		if err != nil {
+			t.Fatalf("Load (withEmptyArchive=%v): %v", withEmptyArchive, err)
+		}
+		return tr, loadErrs
+	}
+
+	withoutArchive, errsA := build(t, false)
+	withArchive, errsB := build(t, true)
+
+	// Cost-equivalence — the archive walk must not introduce any
+	// entity, stray, or load-error delta on a tree with empty archive
+	// dirs.
+	if len(withoutArchive.Entities) != len(withArchive.Entities) {
+		t.Errorf("Entities count differs: without=%d, with-empty-archive=%d",
+			len(withoutArchive.Entities), len(withArchive.Entities))
+	}
+	if len(withoutArchive.Strays) != len(withArchive.Strays) {
+		t.Errorf("Strays count differs: without=%v, with-empty-archive=%v",
+			withoutArchive.Strays, withArchive.Strays)
+	}
+	if len(errsA) != len(errsB) {
+		t.Errorf("LoadError count differs: without=%v, with-empty-archive=%v", errsA, errsB)
+	}
+
+	// Sanity check: the four-kind active fixture itself loaded as
+	// expected (so the equivalence above isn't comparing two empty
+	// trees by accident).
+	if len(withoutArchive.Entities) != 4 {
+		t.Errorf("baseline Entities = %d, want 4", len(withoutArchive.Entities))
+	}
+}
+
 func TestLoad_ParseErrorBecomesLoadError(t *testing.T) {
 	root := t.TempDir()
 	// Valid sibling so we know the loader keeps going.
