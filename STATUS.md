@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_234 entities · 0 errors · 4 warnings · run `aiwf check` for details_
+_235 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -42,6 +42,7 @@ _(no milestones)_
 
 - **M-0091** — Roll out TestMain + t.Parallel across internal/* test packages _(draft)_ — tdd: none
 - **M-0092** — Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/ _(draft)_ — tdd: none
+- **M-0093** — Document test-discipline convention and lock its chokepoint _(draft)_ — tdd: none
 
 ```mermaid
 flowchart LR
@@ -50,6 +51,8 @@ flowchart LR
   E_0025 --> M_0091
   M_0092["M-0092<br/>Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/"]:::ms_draft
   E_0025 --> M_0092
+  M_0093["M-0093<br/>Document test-discipline convention and lock its chokepoint"]:::ms_draft
+  E_0025 --> M_0093
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -111,14 +114,16 @@ flowchart LR
 | entity-body-empty | M-0091 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0091-roll-out-testmain-t-parallel-across-internal-test-packages.md | M-0091 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | M-0092 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0092-roll-out-testmain-t-parallel-no-ldflags-dedup-to-cmd-aiwf.md | M-0092 body section \`## Goal\` is empty |
 | entity-body-empty | M-0092 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0092-roll-out-testmain-t-parallel-no-ldflags-dedup-to-cmd-aiwf.md | M-0092 body section \`## Acceptance criteria\` is empty |
+| entity-body-empty | M-0093 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0093-document-test-discipline-convention-and-lock-its-chokepoint.md | M-0093 body section \`## Goal\` is empty |
+| entity-body-empty | M-0093 | work/epics/E-0025-test-suite-parallelism-and-fixture-sharing-pass-closes-g-0097/M-0093-document-test-discipline-convention-and-lock-its-chokepoint.md | M-0093 body section \`## Acceptance criteria\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add milestone M-0092 'Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/' |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0091 'Roll out TestMain + t.Parallel across internal/* test packages' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 2 entities into archive/ (2 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0106 open -> addressed |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0106 'TestBinary_ArchiveKernelMigration_LeavesCheckClean assertion depends on transient kernel-tree housekeeping state' |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0105 open -> addressed |
 
