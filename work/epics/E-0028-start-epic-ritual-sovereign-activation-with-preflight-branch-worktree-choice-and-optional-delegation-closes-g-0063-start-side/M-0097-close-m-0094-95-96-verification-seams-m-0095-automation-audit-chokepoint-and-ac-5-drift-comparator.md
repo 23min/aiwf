@@ -4,6 +4,11 @@ title: 'Close M-0094/95/96 verification seams: M-0095 automation audit chokepoin
 status: draft
 parent: E-0028
 tdd: required
+acs:
+    - id: AC-1
+      title: CI/script audit chokepoint fires on non-forced epic-activation invocations
+      status: open
+      tdd_phase: red
 ---
 
 # M-0097 — Close M-0094/95/96 verification seams
@@ -47,3 +52,6 @@ This milestone closes (1) and (2) with durable test chokepoints. Items (3)–(5)
 - G-0063 — gap framing the start-epic ritual.
 - CLAUDE.md *AC promotion requires mechanical evidence* — the rule M-0097 operationalizes by converting a paper-trail audit into a durable test.
 - CLAUDE.md §"Test untested code paths before declaring code paths done" — rationale for the AC-5 drift comparator's two-arm test.
+
+### AC-1 — CI/script audit chokepoint fires on non-forced epic-activation invocations
+
