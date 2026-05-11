@@ -365,7 +365,12 @@ li { margin: 0.2rem 0; }
  * overview. The `~` general-sibling combinator only matches
  * following siblings, which is why we need :has() here — overview
  * is first in DOM order so a sibling-only rule can't reach it. */
-section[data-tab] { display: none; padding: 0.5rem 0; }
+/* `scroll-margin-top: 100vh` keeps the page pinned at y=0 when a
+ * tab is clicked. The browser's "scroll target into view on hash
+ * change" behavior respects scroll-margin-top as a phantom top
+ * margin; with a value larger than any reasonable document height,
+ * the scroll-clamp keeps scrollY at 0. M-0098/AC-5. */
+section[data-tab] { display: none; padding: 0.5rem 0; scroll-margin-top: 100vh; }
 section[data-tab="overview"] { display: block; }
 section[data-tab]:target { display: block; }
 main:has(section[data-tab]:target:not([data-tab="overview"])) section[data-tab="overview"] { display: none; }
