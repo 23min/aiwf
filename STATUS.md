@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_221 entities · 0 errors · 181 warnings · run `aiwf check` for details_
+_221 entities · 0 errors · 179 warnings · run `aiwf check` for details_
 
 > Sweep pending: 176 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -105,8 +105,6 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-0089 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089 body section \`## Goal\` is empty |
-| entity-body-empty | M-0089 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | M-0089 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## What's missing\` is empty |
 | entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | entity ADR-0002 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -290,9 +288,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add milestone M-0089 'Per-code text-render summary with --verbose fallback' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0026 |
 | 2026-05-11 | human/peter | add | aiwf add epic E-0026 'aiwf check per-code summary by default (closes G-0098)' |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0098 'aiwf check default output dumps every leaf finding; per-code summary + --verbose would make the surface scannable, especially when an aggregate finding (e.g. archive-sweep-pending) already covers N leaves' |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | promote | aiwf promote E-0024 active -> done |
 
