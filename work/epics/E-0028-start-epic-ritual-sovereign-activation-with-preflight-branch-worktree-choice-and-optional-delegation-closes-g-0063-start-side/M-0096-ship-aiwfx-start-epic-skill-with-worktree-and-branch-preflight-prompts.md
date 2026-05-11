@@ -27,7 +27,7 @@ acs:
     - id: AC-5
       title: Drift-check test compares fixture to cache; skips cleanly when absent
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0096 — Ship `aiwfx-start-epic` skill with worktree and branch preflight prompts
