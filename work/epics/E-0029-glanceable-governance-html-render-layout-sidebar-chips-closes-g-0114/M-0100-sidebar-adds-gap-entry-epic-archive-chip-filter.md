@@ -1,6 +1,6 @@
 ---
 id: M-0100
-title: Sidebar surfaces gaps with active count
+title: Sidebar adds gap entry + epic archive chip filter
 status: draft
 parent: E-0029
 depends_on:
