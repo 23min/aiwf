@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_255 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+_255 entities · 0 errors · 6 warnings · run `aiwf check` for details_
 
-> Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 5 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -104,15 +104,12 @@ flowchart LR
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
 | G-0067 | wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard | M-0066 |
 | G-0068 | Discoverability policy misses dynamic finding subcodes | M-0066 |
-| G-0069 | aiwf init's plugins nudge hardcodes user-scope CLI install form | M-0070 |
 | G-0070 | aiwf doctor lacks --format=json envelope | M-0070 |
 | G-0073 | depends_on restricted to milestone→milestone; cross-kind blocking via body prose | E-0021 |
 | G-0074 | docs/pocv3/ body prose still uses PoC framing; needs sweep |  |
 | G-0075 | docs/pocv3/ directory naming is now historical; rename or accept |  |
-| G-0076 | CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main |  |
 | G-0077 | Post-promotion working paper (aiwf's thesis) not yet written |  |
 | G-0078 | No priority field on entities; backlog isn't filterable or sortable by importance |  |
-| G-0079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation | M-0076 |
 | G-0080 | Wide-table verbs wrap mid-row; no TTY-aware sizing or truncation | M-0076 |
 | G-0087 | No aiwf-show embedded skill | M-0074 |
 | G-0088 | Skill-coverage policy doesn't police plugin skills under aiwf-extensions/ | M-0079 |
@@ -135,6 +132,9 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| terminal-entity-not-archived | G-0069 | work/gaps/G-0069-init-plugins-nudge-hardcodes-user-scope.md | entity G-0069 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | G-0076 | work/gaps/G-0076-contributing-md-pr-vs-trunk-mismatch.md | entity G-0076 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | G-0079 | work/gaps/G-0079-plan-milestones-skill-needs-depends-on-docs.md | entity G-0079 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0082 | work/gaps/G-0082-planning-closure-default-merges-to-main.md | entity G-0082 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0083 | work/gaps/G-0083-aiwf-retitle-does-not-sync-entity-body-h1-with-frontmatter-title.md | entity G-0083 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
@@ -142,9 +142,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0076 open -> addressed |
+| 2026-05-11 | human/peter | promote | aiwf promote G-0069 open -> addressed |
 | 2026-05-11 | human/peter | authorize | aiwf authorize E-0029 --to ai/claude |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0029 proposed -> active |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0116 'aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos' |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0082 open -> addressed |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0083 open -> addressed |
 

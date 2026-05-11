@@ -1,8 +1,10 @@
 ---
 id: G-0079
 title: aiwfx-plan-milestones plugin skill needs --depends-on documentation
-status: open
+status: addressed
 discovered_in: M-0076
+addressed_by_commit:
+    - 5f49800
 ---
 
 ## What's missing
