@@ -126,9 +126,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | ai/claude | promote | aiwf promote E-0029 active -> done |
 | 2026-05-12 | ai/claude | cancel | aiwf cancel M-0101 -> cancelled |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0100 in_progress -> done |
 | 2026-05-12 | ai/claude | edit-body | aiwf edit-body M-0100 |
 | 2026-05-12 | ai/claude | promote | aiwf promote M-0100/AC-4 open -> met |
-| 2026-05-12 | ai/claude | promote | aiwf promote M-0100/AC-4 --phase green -> done |
 
