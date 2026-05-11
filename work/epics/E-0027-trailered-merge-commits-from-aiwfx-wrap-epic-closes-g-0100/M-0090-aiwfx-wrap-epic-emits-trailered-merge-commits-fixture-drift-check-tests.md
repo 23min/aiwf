@@ -21,6 +21,10 @@ acs:
       title: Rituals-repo SHA recorded at wrap.
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Kernel rule unchanged.
+      status: open
+      tdd_phase: red
 ---
 
 # M-0090 — `aiwfx-wrap-epic` emits trailered merge commits; fixture + drift-check tests
@@ -127,4 +131,6 @@ Intended landing zone:
 ### AC-3 — Drift-check test compares the fixture vs. local marketplace cache.
 
 ### AC-4 — Rituals-repo SHA recorded at wrap.
+
+### AC-5 — Kernel rule unchanged.
 

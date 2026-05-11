@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_227 entities · 0 errors · 6 warnings · run `aiwf check` for details_
+_227 entities · 0 errors · 7 warnings · run `aiwf check` for details_
 
 > Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(proposed)_
 
-- → **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(in_progress)_ — ACs 0/4 met (4 open) — tdd: required
+- → **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(in_progress)_ — ACs 0/5 met (5 open) — tdd: required
 
 ```mermaid
 flowchart LR
   E_0027["E-0027<br/>Trailered merge commits from aiwfx-wrap-epic (closes G-0100)"]:::epic_proposed
-  M_0090["M-0090 (0/4)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_in_progress
+  M_0090["M-0090 (0/5)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_in_progress
   E_0027 --> M_0090
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -111,15 +111,16 @@ flowchart LR
 | entity-body-empty | M-0090/AC-2 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-2 body under \`### AC-2\` is empty |
 | entity-body-empty | M-0090/AC-3 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-3 body under \`### AC-3\` is empty |
 | entity-body-empty | M-0090/AC-4 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-4 body under \`### AC-4\` is empty |
+| entity-body-empty | M-0090/AC-5 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-5 body under \`### AC-5\` is empty |
 | terminal-entity-not-archived | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | entity G-0101 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add ac M-0090/AC-4 'Rituals-repo SHA recorded at wrap.' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0090/AC-3 'Drift-check test compares the fixture vs. local marketplace cache.' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0090/AC-2 'Fixture body prescribes the trailered-merge sequence.' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0090/AC-1 'Fixture SKILL.md exists at the canonical authoring location.' |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090 draft -> in_progress |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0101 open -> addressed |
 
