@@ -1,8 +1,10 @@
 ---
 id: G-0069
 title: aiwf init's plugins nudge hardcodes user-scope CLI install form
-status: open
+status: addressed
 discovered_in: M-0070
+addressed_by_commit:
+    - 17ad68026f1f3f58e011edc3dd1b9d41df24a683
 ---
 
 ## What's missing
