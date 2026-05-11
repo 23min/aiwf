@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Drift comparator helper has synthetic two-arm test (match + drift)
-      status: open
+      status: met
       tdd_phase: done
 ---
 
