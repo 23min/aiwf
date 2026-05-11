@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_222 entities · 0 errors · 179 warnings · run `aiwf check` for details_
+_222 entities · 0 errors · 180 warnings · run `aiwf check` for details_
 
-> Sweep pending: 176 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 177 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0026 — aiwf check per-code summary by default (closes G-0098) _(proposed)_
 
-- → **M-0089** — Per-code text-render summary with --verbose fallback _(in_progress)_ — ACs 8/8 met — tdd: required
+- ✓ **M-0089** — Per-code text-render summary with --verbose fallback _(done)_ — ACs 8/8 met — tdd: required
 
 ```mermaid
 flowchart LR
   E_0026["E-0026<br/>aiwf check per-code summary by default (closes G-0098)"]:::epic_proposed
-  M_0089["M-0089 (8/8)<br/>Per-code text-render summary with --verbose fallback"]:::ms_in_progress
+  M_0089["M-0089 (8/8)<br/>Per-code text-render summary with --verbose fallback"]:::ms_done
   E_0026 --> M_0089
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -215,6 +215,7 @@ flowchart LR
 | terminal-entity-not-archived | M-0087 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | entity M-0087 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0088 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | entity M-0088 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0024 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/epic.md | entity E-0024 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | M-0089 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | entity M-0089 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0001 | work/gaps/G-0001-contract-paths-can-escape-the-repo-via-or-symlinks.md | entity G-0001 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0002 | work/gaps/G-0002-apply-is-not-atomic-on-partial-failure.md | entity G-0002 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0003 | work/gaps/G-0003-pre-push-hook-fails-opaquely-when-validators-are-missing.md | entity G-0003 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -289,9 +290,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0099 'Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior' |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-8 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-7 open -> met |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0089/AC-7 --phase green -> done |
 

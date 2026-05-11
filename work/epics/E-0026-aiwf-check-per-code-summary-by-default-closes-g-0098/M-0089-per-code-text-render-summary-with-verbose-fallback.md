@@ -1,7 +1,7 @@
 ---
 id: M-0089
 title: Per-code text-render summary with --verbose fallback
-status: in_progress
+status: done
 parent: E-0026
 tdd: required
 acs:
@@ -124,7 +124,9 @@ Intended landing zone:
 - Wired `--verbose` boolean flag into `aiwf check`. Boolean flags are auto-skipped by `completion_drift_test.go` per its existing rule, so AC-6 was green without extra wiring.
 - Added binary integration tests under `cmd/aiwf/check_summary_binary_test.go`: AC-3 byte-identical against `verbose-text.golden`, AC-4 structural against `json.golden` / `json-pretty.golden` (modulo `metadata.root`), AC-7 kernel-tree ≤10 lines, AC-5 `--help` structurally documents `--verbose`.
 - Filled in 100% branch coverage in `internal/render/` via failing-writer tests (`TestTextSummary_WriteErrorBubblesUp`, `TestText_WriteErrorBubblesUp`, `TestRenderPerInstance_WriteErrorPerShape`).
-- Human-verified default-mode output against the kernel tree — 6 lines, reads cleanly. Captured under *Validation* below.
+- Human-verified default-mode output against the kernel tree — 5 lines after the G-0098 body fill, reads cleanly. Captured under *Validation* below.
+- At wrap-prep: filled G-0098's empty `## What's missing` and `## Why it matters` sections (commit `b3e0402`) — the gap this epic closes, surfacing in `aiwf check` as 2 `entity-body-empty` warnings. Sweep the new `internal/render/render_test.go` fixtures' narrow-width id literals (`G-001`, `E-99`, `E-77`, `E-66`, `M-001`–`M-005`) to canonical 4-digit width to satisfy `TestPolicy_NarrowIDLiteralsAllowlisted`; the fixtures are synthetic so canonical width is the correct shape (option (a) in the policy's diagnostic).
+- Implementation commit landed at `de94cf9`.
 
 ## Decisions made during implementation
 
@@ -136,20 +138,24 @@ Intended landing zone:
 
 ## Validation
 
-Kernel-tree default-mode output (rendered by `aiwf check` against this repo at branch `milestone/M-0089-…`):
+- `golangci-lint run`: 0 issues.
+- `go build -o /tmp/aiwf ./cmd/aiwf`: clean.
+- `go test ./internal/render/`, `go test ./internal/policies/ -run TestPolicy_NarrowIDLiteralsAllowlisted`: both green at wrap-prep. Full suite re-runs skipped per the user's standing G-0097 ack (test-suite wall-time gap).
+- `aiwf check`: 0 errors. Pre-existing warnings only (terminal-entity-not-archived ×176 awaiting archive sweep, the paired archive-sweep-pending ×1, provenance-untrailered-scope-undefined ×1).
+
+Kernel-tree default-mode output (rendered by the new binary against this repo after the G-0098 body-fill commit landed and the implementation commit was made):
 
 ```
 terminal-entity-not-archived (warning) × 176 — entity ADR-0002 has terminal status "rejected" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
-entity-body-empty (warning) × 10 — M-0089/AC-1 body under `### AC-1` is empty
 archive-sweep-pending (warning) × 1 — 176 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
 provenance-untrailered-scope-undefined (warning) × 1 — no upstream configured and no --since <ref>; provenance audit skipped
 
-188 findings (0 errors, 188 warnings)
+178 findings (0 errors, 178 warnings)
 ```
 
-6 lines total — well under the AC-7 ≤10 bound. Ordering is count-desc, alphabetic tie-break (`archive-sweep-pending` before `provenance-untrailered-scope-undefined` on the 1-count tier). Each line names the code, severity, instance count, and a representative message. Reads cleanly.
+5 lines total — well under the AC-7 ≤10 bound. Ordering is count-desc, alphabetic tie-break (`archive-sweep-pending` before `provenance-untrailered-scope-undefined` on the 1-count tier). Each line names the code, severity, instance count, and a representative message. Reads cleanly.
 
-The pre-M-0089 binary at the same SHA emits 179 lines for the same tree (177 of which were near-identical `terminal-entity-not-archived` warnings sharing the same hint). This milestone closes that friction by collapsing the warning leaves into a per-code summary.
+The pre-M-0089 binary at the same SHA emits ~180 lines for the same tree (~176 of which are near-identical `terminal-entity-not-archived` warnings sharing the same hint). This milestone closes that friction by collapsing the warning leaves into a per-code summary.
 
 Verbose-mode output reproduces the pre-M-0089 shape byte-for-byte against the `messy` fixture; pinned by `TestBinary_CheckVerbose_ByteIdenticalToBaseline`.
 
@@ -159,7 +165,8 @@ Verbose-mode output reproduces the pre-M-0089 shape byte-for-byte against the `m
 
 ## Reviewer notes
 
-- (none)
+- **AC-4 was relaxed from strict byte-identity to structural-equal modulo `metadata.root`.** See the *Decisions made during implementation* section above. The relaxation is principled (the field is environmental) and the contract is still tight (every per-finding field is `cmp.Diff`-equal, presence + non-emptiness on the relaxed field is asserted). No reviewer action required.
+- Test re-runs at wrap-prep were skipped per the user's standing G-0097 ack. `golangci-lint run` and `go build` were run and are clean; the relevant unit-test slices (`internal/render/`, the narrow-id policy) were run targeted and are green. The full suite is the next consumer's responsibility on a fresh main checkout.
 
 ### AC-1 — Default text output is per-code-summarized for warnings
 
