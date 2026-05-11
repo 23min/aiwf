@@ -16,6 +16,10 @@ acs:
       title: Worktree-placement prompt is heading-scoped Q&A with three named options
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: Sovereign-promotion step names the M-0095 rule and the override path
+      status: open
+      tdd_phase: red
 ---
 
 # M-0096 — Ship `aiwfx-start-epic` skill with worktree and branch preflight prompts
@@ -58,4 +62,6 @@ The worktree-placement prompt and the branch prompt are deliberately separate Q&
 ### AC-1 — Fixture exists with valid skill frontmatter and 10-step Workflow section
 
 ### AC-2 — Worktree-placement prompt is heading-scoped Q&A with three named options
+
+### AC-3 — Sovereign-promotion step names the M-0095 rule and the override path
 
