@@ -148,9 +148,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0098 |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0098/AC-1 open -> met |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0098/AC-1 --phase green -> done |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0098/AC-1 --phase red -> green |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0102 in_progress -> done |
-| 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0102 |
 

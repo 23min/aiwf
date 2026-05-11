@@ -77,14 +77,15 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 /* Viewport-fill: body has no max-width cap and no auto-centering
- * margin; the .layout grid spans the full viewport width with the
- * sidebar flush against the left edge. Internal padding lives on
- * `main` and inside the sidebar — body itself contributes no
- * horizontal spacing. (M-0098/AC-1) */
+ * margin; the .layout grid spans the full viewport width with
+ * modest uniform 1rem padding around the layout for visible
+ * breathing room from the browser frame. The padding is the body's
+ * own; main and sidebar contribute their own internal padding on
+ * top. (M-0098/AC-1) */
 body {
   font: 15px/1.45 -apple-system, system-ui, "Segoe UI", sans-serif;
   margin: 0;
-  padding: 0;
+  padding: 1rem;
   color: var(--fg);
   background: var(--bg);
   font-feature-settings: "ss01", "cv11";
