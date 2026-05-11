@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_249 entities · 0 errors · 0 warnings_
+_250 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -108,6 +108,7 @@ _(no milestones)_
 | G-0112 | STATUS.md pre-commit regen produces merge conflicts on a derived artifact |  |
 | G-0113 | rendered HTML site has no publish path; only viewable via local aiwf render |  |
 | G-0114 | HTML render gap surface: status and archive state not glanceable from sidebar |  |
+| G-0115 | aiwf render roadmap --write rewrites entity refs in epic prose to broken paths |  |
 
 ## Warnings
 
@@ -117,9 +118,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0029 |
 | 2026-05-11 | human/peter | add | aiwf add epic E-0029 'Glanceable governance HTML render: layout, sidebar, chips (closes G-0114)' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 6 entities into archive/ (1 epic, 1 adr, 4 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0081 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0081 |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0084 open -> wontfix |
 
