@@ -1,7 +1,7 @@
 ---
 id: E-0026
 title: aiwf check per-code summary by default (closes G-0098)
-status: active
+status: done
 ---
 
 # E-0026 — `aiwf check` per-code summary by default
