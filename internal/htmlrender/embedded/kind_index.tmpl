@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="{{cssHref}}">
+</head>
+<body>
+<div class="layout">
+{{template "sidebar" .Sidebar}}
+<main>
+<p class="kicker">aiwf · {{.Kind}}</p>
+<h1>{{.Title}}</h1>
+<p class="kind-index-nav">
+{{- if .IncludeArchived}}
+<a href="{{.ActiveFileName}}">← active only</a>
+{{- else}}
+<a href="{{.AllFileName}}">View all (active + archived) →</a>
+{{- end}}
+</p>
+{{- if .Entries}}
+<table class="kind-index">
+<thead><tr><th>Id</th><th>Title</th><th>Status</th>{{if .IncludeArchived}}<th>Location</th>{{end}}</tr></thead>
+<tbody>
+{{- range .Entries}}
+<tr>
+<td><a href="{{.FileName}}">{{.ID}}</a></td>
+<td>{{.Title}}</td>
+<td><span class="status status-{{.Status}}">{{.Status}}</span></td>
+{{- if $.IncludeArchived}}
+<td>{{if .Archived}}<span class="archived-marker">archived</span>{{else}}active{{end}}</td>
+{{- end}}
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- else}}
+<p>No entries.</p>
+{{- end}}
+</main>
+</div>
+</body>
+</html>

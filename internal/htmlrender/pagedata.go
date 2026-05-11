@@ -4,12 +4,65 @@ package htmlrender
 // each row carries the AC met-rollup so the index can show the
 // `met / (total - cancelled)` column without reaching back into the
 // tree.
+//
+// KindIndexLinks lists the per-kind index pages reachable from the
+// home nav. Populated by the resolver post-M-0087/AC-6 so the index
+// surfaces gaps.html / decisions.html / adrs.html / contracts.html
+// alongside the active-default epic rollup.
 type IndexData struct {
-	Title         string
-	Epics         []EpicSummary
-	FindingCounts FindingCounts
-	LastActivity  string // ISO date of most recent commit on aiwf-* trailer set; empty in pre-aiwf repos
-	Sidebar       SidebarData
+	Title          string
+	Epics          []EpicSummary
+	KindIndexLinks []KindIndexLink
+	FindingCounts  FindingCounts
+	LastActivity   string // ISO date of most recent commit on aiwf-* trailer set; empty in pre-aiwf repos
+	Sidebar        SidebarData
+}
+
+// KindIndexLink is one row in the home page's kind-index nav block.
+// Each kind that participates in archive segregation (gap, decision,
+// adr, contract) gets a link to its active-default page (FileName)
+// and a separate link to its all-set page (AllFileName).
+type KindIndexLink struct {
+	Kind          string // human-readable plural: "gaps", "decisions"
+	FileName      string // active-default per-kind index page, e.g. "gaps.html"
+	AllFileName   string // all-set per-kind index page, e.g. "gaps-all.html"
+	ActiveCount   int
+	ArchivedCount int
+}
+
+// KindIndexData is the input to the per-kind index template. Used by
+// both the active-default page (Title = "Gaps", IncludeArchived =
+// false) and the all-set page (Title = "All gaps", IncludeArchived =
+// true). Entries is the sorted entity rollup.
+//
+// SiblingFileName names the *other* page of the active/all pair so
+// the template emits a back/forward link. ActiveFileName /
+// AllFileName carry the canonical filenames for both variants —
+// either is the sibling depending on this page's IncludeArchived
+// flag — but giving the template both names directly avoids the
+// "which one am I" branch logic at template time.
+//
+// M-0087/AC-6 + AC-7.
+type KindIndexData struct {
+	Sidebar         SidebarData
+	Title           string
+	Kind            string // pluralized human name: "gaps", "decisions"
+	IncludeArchived bool
+	Entries         []KindIndexEntry
+	ActiveFileName  string
+	AllFileName     string
+}
+
+// KindIndexEntry is one row in a per-kind index listing. Archived
+// surfaces the archive-state marker in the row (paralleling the
+// `aiwf show` indicator in AC-5) so the all-set page can visually
+// distinguish active from archived rows at a glance.
+type KindIndexEntry struct {
+	ID       string
+	Title    string
+	Status   string
+	FileName string
+	Archived bool
 }
 
 // SidebarData is the left-nav payload every page receives. Epics is
@@ -96,6 +149,11 @@ type EpicData struct {
 // path) and the rendered file's name. Decouples templates from the
 // internal entity.Entity struct so future schema changes don't
 // rewrite templates.
+//
+// Archived is true when the entity lives under a per-kind `archive/`
+// directory per ADR-0004. The per-entity templates use it to emit a
+// visible archived-state marker (M-0087/AC-8) paralleling the `aiwf
+// show` indicator.
 type EntityRef struct {
 	ID       string
 	Title    string
@@ -104,6 +162,7 @@ type EntityRef struct {
 	FileName string
 	Kind     string
 	TDD      string
+	Archived bool
 }
 
 // MilestoneSummary is one milestone row on an epic page.

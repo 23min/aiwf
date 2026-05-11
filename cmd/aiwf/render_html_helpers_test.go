@@ -77,6 +77,103 @@ func assertNotContainsIn(t *testing.T, html, dataTab, needle, label string) {
 	}
 }
 
+// htmlMain extracts the <main>...</main> content of a rendered page,
+// including the opening and closing tags. The pages emitted by
+// aiwf render carry exactly one <main> per file (the page body
+// outside the sidebar). The helper exists because the M-0087
+// regression fix dropped the <section data-tab="kind-listing">
+// wrapper around the per-kind index body — the listing now lives
+// directly under <main>, so the structural-scope for the AC
+// assertions moves up one level.
+//
+// Returns "" when <main> is not found.
+func htmlMain(html string) string {
+	openIdx := strings.Index(html, "<main>")
+	if openIdx < 0 {
+		// Tolerate `<main attr="...">` openers too.
+		openRE := regexp.MustCompile(`<main\b[^>]*>`)
+		loc := openRE.FindStringIndex(html)
+		if loc == nil {
+			return ""
+		}
+		openIdx = loc[0]
+	}
+	closeIdx := strings.Index(html[openIdx:], "</main>")
+	if closeIdx < 0 {
+		return ""
+	}
+	end := openIdx + closeIdx + len("</main>")
+	return html[openIdx:end]
+}
+
+// htmlElementByClass extracts the first <tag class="...class..."> element
+// matching the given tag and class, returning the full element body
+// including opening/closing tags. Used to scope substring assertions
+// to a specific block (e.g. the kind-index <nav>). Nested same-tag
+// elements are handled by simple depth-tracking.
+//
+// Returns "" when the element is not found.
+func htmlElementByClass(html, tag, class string) string {
+	// Match <tag ... class="..."> where the class attribute contains
+	// the desired class token. Allow other attributes before or
+	// after. Class names in our templates are single-token so the
+	// substring-equal match is sufficient.
+	openRE := regexp.MustCompile(`<` + regexp.QuoteMeta(tag) + `\b[^>]*\bclass="[^"]*\b` + regexp.QuoteMeta(class) + `\b[^"]*"[^>]*>`)
+	loc := openRE.FindStringIndex(html)
+	if loc == nil {
+		return ""
+	}
+	rest := html[loc[1]:]
+	openTagBare := "<" + tag
+	closeTag := "</" + tag + ">"
+	depth := 1
+	cursor := 0
+	for depth > 0 {
+		nextOpen := strings.Index(rest[cursor:], openTagBare)
+		nextClose := strings.Index(rest[cursor:], closeTag)
+		if nextClose < 0 {
+			return ""
+		}
+		if nextOpen >= 0 && nextOpen < nextClose {
+			depth++
+			cursor += nextOpen + len(openTagBare)
+			continue
+		}
+		depth--
+		cursor += nextClose + len(closeTag)
+	}
+	return html[loc[0] : loc[1]+cursor]
+}
+
+// TestHTMLMain_ExtractsMainContent pins the basic extraction
+// contract: open/close balanced, inner content preserved.
+func TestHTMLMain_ExtractsMainContent(t *testing.T) {
+	html := `<body><aside>sidebar</aside><main><h1>Hello</h1><p>body</p></main></body>`
+	got := htmlMain(html)
+	want := `<main><h1>Hello</h1><p>body</p></main>`
+	if got != want {
+		t.Errorf("htmlMain = %q, want %q", got, want)
+	}
+}
+
+// TestHTMLElementByClass_ExtractsByClass pins extraction by class.
+func TestHTMLElementByClass_ExtractsByClass(t *testing.T) {
+	html := `<main><nav class="other">a</nav><nav class="kind-index"><ul><li>x</li></ul></nav></main>`
+	got := htmlElementByClass(html, "nav", "kind-index")
+	want := `<nav class="kind-index"><ul><li>x</li></ul></nav>`
+	if got != want {
+		t.Errorf("htmlElementByClass = %q, want %q", got, want)
+	}
+}
+
+// TestHTMLElementByClass_MissingReturnsEmpty pins the negative path.
+func TestHTMLElementByClass_MissingReturnsEmpty(t *testing.T) {
+	html := `<main><nav class="other">x</nav></main>`
+	if got := htmlElementByClass(html, "nav", "kind-index"); got != "" {
+		t.Errorf("htmlElementByClass missing = %q, want empty", got)
+	}
+}
+
 // TestHTMLSection_NestedSectionsHandled pins the load-bearing case:
 // <section data-tab="manifest"> contains nested <section class="ac">
 // blocks per AC. The depth-tracker must stop at the first OUTER

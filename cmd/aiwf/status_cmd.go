@@ -31,14 +31,31 @@ const recentActivityLimit = 5
 // internal/ because it is purely a presentational read view — adding a
 // package boundary would be over-engineering for one verb.
 type statusReport struct {
-	Date           string             `json:"date"`
-	InFlightEpics  []statusEpic       `json:"in_flight_epics"`
-	PlannedEpics   []statusEpic       `json:"planned_epics"`
-	OpenDecisions  []statusEntity     `json:"open_decisions"`
-	OpenGaps       []statusGap        `json:"open_gaps"`
-	Warnings       []statusFinding    `json:"warnings"`
-	RecentActivity []HistoryEvent     `json:"recent_activity"`
-	Health         statusHealthCounts `json:"health"`
+	Date           string              `json:"date"`
+	InFlightEpics  []statusEpic        `json:"in_flight_epics"`
+	PlannedEpics   []statusEpic        `json:"planned_epics"`
+	OpenDecisions  []statusEntity      `json:"open_decisions"`
+	OpenGaps       []statusGap         `json:"open_gaps"`
+	Warnings       []statusFinding     `json:"warnings"`
+	RecentActivity []HistoryEvent      `json:"recent_activity"`
+	SweepPending   *statusSweepPending `json:"sweep_pending,omitempty"`
+	Health         statusHealthCounts  `json:"health"`
+}
+
+// statusSweepPending is the tree-health one-liner for terminal-status
+// entities still living in active directories. Per ADR-0004 §"Display
+// surfaces": "The tree-health section gains a one-liner when sweep is
+// pending: 'Sweep pending: N terminal entities not yet archived (run
+// `aiwf archive --dry-run` to preview).' Hidden when 0."
+//
+// Populated from the `archive-sweep-pending` aggregate finding
+// (M-0086); nil when the count is zero so the renderer can skip the
+// section with a single nil-check. Lifted out of statusReport.Warnings
+// on purpose — the aggregate belongs in the tree-health section, not
+// mixed in with body-empty / resolver-missing warnings.
+type statusSweepPending struct {
+	Count   int    `json:"count"`
+	Message string `json:"message"`
 }
 
 // statusFinding is one warning surfaced inline in the status report.
@@ -333,6 +350,13 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	// Health: errors and warnings from a single check.Run. Warning
 	// detail is surfaced inline; errors stay summarised — if there are
 	// any, the user should run `aiwf check` for the full report.
+	//
+	// `archive-sweep-pending` (M-0086 aggregate) is lifted out of the
+	// general warnings list into r.SweepPending — per ADR-0004
+	// §"Display surfaces", the sweep-pending one-liner belongs in the
+	// tree-health section, not in the general warnings stream. The
+	// per-file `terminal-entity-not-archived` warnings stay in
+	// r.Warnings alongside other finding codes.
 	findings := check.Run(tr, loadErrs)
 	for i := range findings {
 		switch findings[i].Severity {
@@ -340,6 +364,10 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 			r.Health.Errors++
 		case check.SeverityWarning:
 			r.Health.Warnings++
+			if findings[i].Code == "archive-sweep-pending" {
+				r.SweepPending = parseSweepPending(findings[i].Message)
+				continue
+			}
 			r.Warnings = append(r.Warnings, statusFinding{
 				Code:     findings[i].Code,
 				EntityID: entity.Canonicalize(findings[i].EntityID),
@@ -351,6 +379,40 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	r.Health.Entities = len(tr.Entities)
 
 	return r
+}
+
+// parseSweepPending extracts the count from an `archive-sweep-pending`
+// finding message and packages it into a statusSweepPending. The
+// rule's message format ("%d terminal entities awaiting `aiwf archive
+// --apply`...") is the upstream contract; this function is the
+// consumer-side parser, so a future format change must update both
+// sites. The friendlier render-side message names the dry-run verb
+// per ADR-0004's worded example ("run `aiwf archive --dry-run` to
+// preview").
+//
+// Returns nil if the message doesn't begin with a digit, which would
+// only happen if the upstream finding-rule produced an empty count;
+// the rule itself returns nil at zero so this branch shouldn't fire
+// in practice.
+func parseSweepPending(message string) *statusSweepPending {
+	var count int
+	if _, err := fmt.Sscanf(message, "%d", &count); err != nil || count <= 0 {
+		return nil
+	}
+	return &statusSweepPending{
+		Count: count,
+		Message: fmt.Sprintf("Sweep pending: %d terminal entit%s not yet archived (run `aiwf archive --dry-run` to preview)",
+			count, plural(count, "y", "ies")),
+	}
+}
+
+// plural picks between singular and plural noun endings; small,
+// inlined to avoid a dependency for one call site.
+func plural(n int, singular, plural string) string {
+	if n == 1 {
+		return singular
+	}
+	return plural
 }
 
 // readRecentActivity returns the last `limit` commits whose message
@@ -536,6 +598,12 @@ func renderStatusText(w io.Writer, r *statusReport) error {
 	b.WriteByte('\n')
 
 	b.WriteString("Health\n")
+	// Sweep-pending one-liner lives in the Health section per
+	// ADR-0004 §"Display surfaces". Nil-checked at the top of the
+	// section so an absent SweepPending stays silent (AC-2).
+	if r.SweepPending != nil {
+		fmt.Fprintf(&b, "  %s\n", r.SweepPending.Message)
+	}
 	suffix := ""
 	if r.Health.Errors > 0 || r.Health.Warnings > 0 {
 		suffix = " · run `aiwf check` for details"
@@ -562,6 +630,12 @@ func renderStatusMarkdown(w io.Writer, r *statusReport) error {
 	}
 	fmt.Fprintf(&b, "_%d entities · %d errors · %d warnings%s_\n\n",
 		r.Health.Entities, r.Health.Errors, r.Health.Warnings, suffix)
+	// Sweep-pending one-liner — same Health-section placement as the
+	// text renderer. Quoted as markdown blockquote so the line stands
+	// out visually inline with the health summary.
+	if r.SweepPending != nil {
+		fmt.Fprintf(&b, "> %s\n\n", r.SweepPending.Message)
+	}
 
 	b.WriteString("## In flight\n\n")
 	if len(r.InFlightEpics) == 0 {

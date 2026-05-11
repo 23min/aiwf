@@ -37,9 +37,11 @@ func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 	// 1 index + 1 epic + 2 milestones + 1 gap + 1 ADR + 1 decision +
-	// 1 contract = 8 HTML files.
-	if res.FilesWritten != 8 {
-		t.Errorf("FilesWritten = %d, want 8", res.FilesWritten)
+	// 1 contract + 5×2 per-kind index pages (epics/gaps/decisions/
+	// adrs/contracts × active/all) = 18 HTML files. M-0087/AC-6 +
+	// AC-7 added the per-kind active/all pages.
+	if res.FilesWritten != 18 {
+		t.Errorf("FilesWritten = %d, want 18", res.FilesWritten)
 	}
 
 	// Each expected file is on disk.
@@ -227,6 +229,10 @@ func (r bodyAwareResolver) MilestoneData(id string) (*MilestoneData, error) {
 
 func (r bodyAwareResolver) StatusData() (*StatusData, error) {
 	return nil, nil
+}
+
+func (r bodyAwareResolver) KindIndexData(kind string, includeArchived bool) (*KindIndexData, error) {
+	return defaultResolver{tree: r.tree}.KindIndexData(kind, includeArchived)
 }
 
 func (r bodyAwareResolver) EntityData(id string) (*EntityData, error) {

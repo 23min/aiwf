@@ -48,11 +48,19 @@ func newRenderResolver(ctx context.Context, root string, tr *tree.Tree, cfg *con
 }
 
 // IndexData implements htmlrender.PageDataResolver.
+//
+// Active-default per M-0087/AC-6: epics whose path lives under
+// work/epics/archive/ are filtered out of the home page rollup; the
+// full set lives on epics-all.html. KindIndexLinks populates the
+// "Browse by kind" nav block on the home page.
 func (r *renderResolver) IndexData() (*htmlrender.IndexData, error) {
 	sidebar := r.sidebar("", "")
 	sidebar.IsCurrentIndex = true
 	out := &htmlrender.IndexData{Title: "Overview", Sidebar: sidebar}
 	for _, e := range sortedEntitiesByID(r.tree.ByKind(entity.KindEpic)) {
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
 		summary := htmlrender.EpicSummary{
 			ID:       entity.Canonicalize(e.ID),
 			Title:    e.Title,
@@ -68,6 +76,7 @@ func (r *renderResolver) IndexData() (*htmlrender.IndexData, error) {
 		summary.LastActivity = r.lastActivityFor(e.ID)
 		out.Epics = append(out.Epics, summary)
 	}
+	out.KindIndexLinks = r.buildKindIndexLinks()
 	for i := range r.findings {
 		switch r.findings[i].Severity {
 		case check.SeverityError:
@@ -77,6 +86,112 @@ func (r *renderResolver) IndexData() (*htmlrender.IndexData, error) {
 		}
 	}
 	return out, nil
+}
+
+// kindIndexNavKinds lists the per-kind nav entries on the home page.
+// Mirrors the htmlrender package's plural-to-Kind mapping for kinds
+// other than epic (epics show inline on index.html as a rollup; the
+// "Browse by kind" block surfaces only the flatter per-entity
+// kinds). M-0087/AC-6.
+var kindIndexNavKinds = []struct {
+	plural      string
+	fileName    string
+	allFileName string
+	kind        entity.Kind
+}{
+	{"gaps", "gaps.html", "gaps-all.html", entity.KindGap},
+	{"decisions", "decisions.html", "decisions-all.html", entity.KindDecision},
+	{"adrs", "adrs.html", "adrs-all.html", entity.KindADR},
+	{"contracts", "contracts.html", "contracts-all.html", entity.KindContract},
+}
+
+// buildKindIndexLinks counts active and archived entities per kind so
+// the home page's "Browse by kind" nav block shows reach-at-a-glance
+// counts next to each kind name.
+func (r *renderResolver) buildKindIndexLinks() []htmlrender.KindIndexLink {
+	links := make([]htmlrender.KindIndexLink, 0, len(kindIndexNavKinds))
+	for _, k := range kindIndexNavKinds {
+		link := htmlrender.KindIndexLink{
+			Kind:        k.plural,
+			FileName:    k.fileName,
+			AllFileName: k.allFileName,
+		}
+		for _, e := range r.tree.ByKind(k.kind) {
+			if entity.IsArchivedPath(e.Path) {
+				link.ArchivedCount++
+			} else {
+				link.ActiveCount++
+			}
+		}
+		links = append(links, link)
+	}
+	return links
+}
+
+// KindIndexData implements htmlrender.PageDataResolver. Per-kind
+// index payload for the active-default and all-set pages. M-0087/
+// AC-6 + AC-7.
+func (r *renderResolver) KindIndexData(plural string, includeArchived bool) (*htmlrender.KindIndexData, error) {
+	resolved, ok := pluralToEntityKind(plural)
+	if !ok {
+		return nil, nil
+	}
+	data := &htmlrender.KindIndexData{
+		Sidebar:         r.sidebar("", ""),
+		Title:           titleForKindIndex(plural, includeArchived),
+		Kind:            plural,
+		IncludeArchived: includeArchived,
+		ActiveFileName:  plural + ".html",
+		AllFileName:     plural + "-all.html",
+	}
+	for _, e := range sortedEntitiesByID(r.tree.ByKind(resolved)) {
+		isArchived := entity.IsArchivedPath(e.Path)
+		if isArchived && !includeArchived {
+			continue
+		}
+		data.Entries = append(data.Entries, htmlrender.KindIndexEntry{
+			ID:       entity.Canonicalize(e.ID),
+			Title:    e.Title,
+			Status:   e.Status,
+			FileName: idToHTMLFile(e.ID),
+			Archived: isArchived,
+		})
+	}
+	return data, nil
+}
+
+// pluralToEntityKind mirrors the htmlrender package's mapping (which
+// is package-private). Kept in lockstep here so the cmd-side
+// resolver doesn't import unexported helpers; the closed set is
+// small and stable.
+func pluralToEntityKind(plural string) (entity.Kind, bool) {
+	switch plural {
+	case "epics":
+		return entity.KindEpic, true
+	case "gaps":
+		return entity.KindGap, true
+	case "decisions":
+		return entity.KindDecision, true
+	case "adrs":
+		return entity.KindADR, true
+	case "contracts":
+		return entity.KindContract, true
+	}
+	return "", false
+}
+
+// titleForKindIndex returns the page title for a per-kind index.
+// Format: "Gaps" (active) / "All gaps" (all-set). Mirrors the
+// htmlrender package's private titleForKindIndex.
+func titleForKindIndex(plural string, includeArchived bool) string {
+	if includeArchived {
+		return "All " + plural
+	}
+	title := plural
+	if title != "" && title[0] >= 'a' && title[0] <= 'z' {
+		title = string(rune(title[0])-32) + title[1:]
+	}
+	return title
 }
 
 // EpicData implements htmlrender.PageDataResolver.
@@ -346,6 +461,7 @@ func (r *renderResolver) entityRef(e *entity.Entity) *htmlrender.EntityRef {
 		Kind:     string(e.Kind),
 		TDD:      e.TDD,
 		FileName: idToHTMLFile(e.ID),
+		Archived: entity.IsArchivedPath(e.Path),
 	}
 }
 

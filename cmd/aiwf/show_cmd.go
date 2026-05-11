@@ -157,6 +157,14 @@ type ShowView struct {
 	ReferencedBy []string          `json:"referenced_by"`
 	Scopes       []ScopeView       `json:"scopes,omitempty"`
 
+	// Archived is true when the resolved entity's path lives under a
+	// per-kind `archive/` subdirectory per ADR-0004. JSON shape uses
+	// `omitempty` so active envelopes don't carry the field at all —
+	// downstream tooling treats presence as the indicator. Text
+	// rendering appends ` · archived` to the header line (see
+	// renderShowText). M-0087/AC-5.
+	Archived bool `json:"archived,omitempty"`
+
 	// Composite-id-only fields (when querying M-NNN/AC-N): the AC's
 	// own state, populated instead of (not in addition to) the
 	// milestone's full ACs slice.
@@ -201,6 +209,7 @@ func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		TDD:          e.TDD,
 		Body:         entity.ParseBodySections(body),
 		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
+		Archived:     entity.IsArchivedPath(e.Path),
 	}
 	var acDesc map[string]string
 	if e.Kind == entity.KindMilestone && len(e.ACs) > 0 {
@@ -276,6 +285,10 @@ func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 			Description: desc,
 		},
 		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
+		// Composite show inherits archived state from its parent
+		// milestone — an AC under an archived milestone reads as
+		// archived too. M-0087/AC-5.
+		Archived: entity.IsArchivedPath(parent.Path),
 	}
 
 	events, err := readHistory(ctx, root, id)
@@ -335,10 +348,19 @@ func filterFindingsByID(all []check.Finding, id string, parent *entity.Entity) [
 // indented attribute block (parent, tdd), an ACs block, a recent-
 // history block, and a findings block.
 func renderShowText(v ShowView) {
+	// archivedMarker is the terse one-word suffix appended to the
+	// header line for archived entities. Per ADR-0004 §"Display
+	// surfaces": "render output indicates archived state visibly."
+	// Kept to a single word so the header still reads as one scan
+	// rather than a multi-row badge block. M-0087/AC-5.
+	archivedMarker := ""
+	if v.Archived {
+		archivedMarker = " · archived"
+	}
 	if v.AC != nil {
 		// Composite-id view.
-		fmt.Printf("%s · %q · status: %s · phase: %s\n",
-			v.ID, v.AC.Title, v.AC.Status, displayPhase(v.AC.TDDPhase))
+		fmt.Printf("%s · %q · status: %s · phase: %s%s\n",
+			v.ID, v.AC.Title, v.AC.Status, displayPhase(v.AC.TDDPhase), archivedMarker)
 		fmt.Printf("  parent: %s\n", v.ParentID)
 	} else {
 		// Top-level view.
@@ -346,6 +368,7 @@ func renderShowText(v ShowView) {
 		if v.TDD != "" {
 			header += " · tdd: " + v.TDD
 		}
+		header += archivedMarker
 		fmt.Println(header)
 		if v.Parent != "" {
 			fmt.Printf("  parent: %s\n", v.Parent)
