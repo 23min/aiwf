@@ -95,15 +95,42 @@ Each AC is asserted via **Playwright browser tests** in `e2e/playwright/tests/` 
 
 ## Work log
 
-### AC-1 — Layout fills viewport at widths above 768px (red phase paused)
+### AC-1 — Layout fills viewport (with modest padding) at widths above 768px
 
-Red-phase test-authoring began against the existing Playwright suite; running `npx playwright test` against the unmodified suite surfaced rot from three independent kernel changes (path-rot from `a137132` reorg; `aiwf init`'s hook-installation behavior change; canonical 4-digit ID width migration from E-0023). M-0098/AC-1 cannot fail "for the right reason" against the current fixture. M-0102 allocated as a prerequisite milestone to repair the suite; M-0098 stays at `in_progress` but is blocked until M-0102 reaches `done`. Resume here after M-0102 wraps.
+Body cap removed; layout fills the viewport horizontally · commit `3fb8203` (green) + `ce7245a` (refinement) · tests 44/45 green pre-refinement, 44/44 green post-refinement. Red-phase test-authoring initially hit Playwright suite rot — surfaced as M-0102 prerequisite milestone (paths, hooks, ID width drift). After M-0102 wrapped, red phase landed cleanly with `3fb8203` removing body's `max-width: 78rem`, `margin: 2rem auto`, `padding: 0 1rem`. User visual review requested "some padding around everything"; AC-1 refined in `ce7245a` to add `padding: 1rem` on body and relax test threshold from strict `=== 0` to `<= 32px` (allowing 1rem padding + sub-pixel). AC body in this spec updated to reflect refined pass criterion ("modest uniform edge padding, no centering gutter").
+
+### AC-2 — Sidebar width 285px
+
+Sidebar widens from 220px to 285px (~30% wider) · commit `725f5f6` · tests 42/42 green. User-confirmed value 285px (close to "about 30% wider" guidance). Implemented via `.layout { grid-template-columns: 285px 1fr }`. Width verified at viewports 1280, 1920, 2560 via Playwright `getBoundingClientRect()`. Wide enough to host the brand mark, top-section entries, and the planned "Gaps (N)" entry from M-0100 without text-overflow.
+
+### AC-3 — Prose blocks cap at 50rem inside main
+
+Paragraphs inside main cap at 800px (50rem at default 16px html font); tables, code blocks, AC card containers, and the dependency DAG stay unbound · commit `8ce8946` · tests 44/44 green. Minimum selector scope: `main p`. Lists (`<li>`) and headings (`<h2>`/`<h3>`) deliberately NOT capped at this iteration — visual review can surface need for broader scope if real content reveals it. Computed-style assertion (`getComputedStyle(p).maxWidth === "800px"`) rather than bounding-rect width, since fixture prose is too short to visually exercise the cap.
+
+### AC-4 — Mobile collapse stacks sidebar below main below 768px
+
+Regression test confirms existing `@media (max-width: 768px)` rule still flips `.layout` to single-column with sidebar `order: 2` (renders below main), after AC-1 and AC-2's changes · commit `453d9e8` · tests 45/45 green. No CSS change required; test passes against pre-existing rule. Asserted at viewports 375, 600, 767 — three widths spanning the narrow-viewport range.
+
+### AC-5 — Tab clicks do not scroll the page
+
+Adds `scroll-margin-top: 100vh` to `section[data-tab]` so the browser's "scroll target into view on hash change" behavior pins the page at y=0 regardless of which tab is clicked · commit `91ed683` · tests 43/43 green. Bug surfaced during user visual review of AC-1+AC-2: the original `margin: 2rem auto` had visually buffered the scroll-into-view jump; AC-1's body-padding refinement made the jump user-visible. Test uses deliberately short viewport (1280×400) to force vertical overflow so the bug reproduces under headless test.
 
 ## Decisions made during implementation
 
-- (none)
+- **AC-1 strict→relaxed pass criterion.** Initial AC body asserted `sidebar.boundingBox.x === 0` (strict flush-left). User visual review found this too aggressive — preferred "some padding around everything." AC body relaxed to "≤ 32px each side" (1rem padding + sub-pixel tolerance); CSS body got `padding: 1rem`; test updated to match. The relaxation honored intent (no centering gutter on wide viewports) without the visual cost of content touching the browser frame.
+- **Sidebar 285px fixed (not clamp).** Considered `clamp(280px, 20vw, 360px)` for fluid scaling but picked 285px fixed for simplicity. Real-content review at 1920×1080 confirmed 285px fits the longest epic title in the rich fixture without text-overflow; ample for the planned gaps-block (M-0100). Fluid scaling can be revisited if a future iteration needs it.
+- **Prose-cap selector narrow to `main p`.** Considered broader `main p, main li, main h2, main h3` or a new `.body-section` class. Picked minimum-to-pass-test: only `<p>` inside main. Rationale: real content review will surface lists/headings that need capping; iterate then. The narrow rule avoids over-capping short structural paragraphs (status indicators, kicker) that happen to be `<p>` — they're already shorter than 800px so the cap is a no-op there.
+- **Tab-scroll fix via `scroll-margin-top: 100vh`.** Considered alternatives: (a) sticky tab nav (different UX, more invasive), (b) JS click handler (no JS allowed by epic Constraints), (c) re-architect tabs (large refactor). `scroll-margin-top: 100vh` is purely CSS, single-line addition, leverages the browser's scroll-clamp behavior. Brittle if browser scrolling behavior changes, but well-supported across modern browsers.
 
 ## Validation
+
+- `npx playwright test` from `e2e/playwright/` — **45 passed (18.8s)**, chromium-only, headless. All AC tests pass; all pre-existing tests still pass (no regressions).
+- `aiwf check` — 0 errors, 7 warnings (G-0082/G-0083 archive backlog pre-existing; provenance-untrailered-scope-undefined on worktree branch's no-upstream — both unrelated to this milestone).
+- `go test -race ./...` — exit 0 (Go code untouched; trivially clean).
+- All five ACs verified met with phase done; kernel `acs-tdd-audit` quiet.
+- **Sidebar width chosen value: 285px** (recorded here as the source of truth for downstream M-0099/M-0100/M-0101 references to "the sidebar width").
+- **Prose-cap chosen value: 50rem = 800px at default 16px html font** (recorded for downstream consumers).
+- **Body padding chosen value: 1rem uniform (16px)** (recorded for the threshold value in AC-1's test).
 
 ## Deferrals
 
@@ -111,7 +138,11 @@ Red-phase test-authoring began against the existing Playwright suite; running `n
 
 ## Reviewer notes
 
-- (none)
+- The five ACs include AC-5 (tab-scroll fix) and an AC-1 refinement (modest padding), both added during user visual review — not in the original plan. The TDD trail captures the additions cleanly: AC-5 has its own red+green commits; AC-1 refinement is a refinement commit on top of the original AC-1 work with the spec body updated to reflect the new pass criterion.
+- Prose-cap selector is narrow (`main p` only) by intent. If future visual review surfaces wide lists or headings on real content, broaden the selector under a follow-up gap or as a future AC.
+- AC-4 ships as a regression check (test passes immediately against existing CSS). The kernel `acs-tdd-audit` accepts `met` after a phase walk regardless of whether the green-phase commit introduces code change; the test's existence is the chokepoint going forward.
+- The Playwright suite is local-only per the epic Constraints; CI integration remains **deferred** (no gap filed). Operator discipline is the chokepoint for layout regressions until a follow-up wires CI.
+- Sidebar width 285px is a fixed value, not fluid. Wide-viewport users (27"+ monitors) get a 285px sidebar at all widths — that's intentional simplicity. Fluid sidebar (`clamp()`) was considered and rejected for this iteration.
 
 ### AC-1 — Layout fills viewport at widths above 768px
 
