@@ -105,7 +105,7 @@ flowchart LR
 | G-0068 | Discoverability policy misses dynamic finding subcodes | M-0066 |
 | G-0069 | aiwf init's plugins nudge hardcodes user-scope CLI install form | M-0070 |
 | G-0070 | aiwf doctor lacks --format=json envelope | M-0070 |
-| G-0073 | depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-0072 in scope | E-0021 |
+| G-0073 | depends_on restricted to milestone→milestone; cross-kind blocking via body prose | E-0021 |
 | G-0074 | docs/pocv3/ body prose still uses PoC framing; needs sweep |  |
 | G-0075 | docs/pocv3/ directory naming is now historical; rename or accept |  |
 | G-0076 | CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main |  |
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle E-0028 -> 'Start-epic ritual: sovereign activation with preflight + delegation' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0059 -> 'Branch model: no canonical entity-hierarchy-to-git-branches mapping' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0079 -> 'aiwfx-plan-milestones plugin skill needs --depends-on documentation' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0092 -> 'No documented hierarchy of doc authority across docs/' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0063 -> 'No defined start-epic ritual; activation is bare FSM flip today' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0090 -> 'M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests' |
 

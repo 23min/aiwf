@@ -1,6 +1,6 @@
 ---
 id: G-0073
-title: depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-0072 in scope
+title: depends_on restricted to milestone→milestone; cross-kind blocking via body prose
 status: open
 discovered_in: E-0021
 ---
