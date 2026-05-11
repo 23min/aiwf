@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Prose blocks cap at readable measure inside main
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Mobile collapse stacks sidebar below main below 768px
