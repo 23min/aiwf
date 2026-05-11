@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Home page Browse-by-kind has one link per kind
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 # Kind-index chip filter: single emitted file per kind with :target chips
 
