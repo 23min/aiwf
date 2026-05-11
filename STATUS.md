@@ -1,8 +1,6 @@
 # aiwf status — 2026-05-11
 
-_242 entities · 0 errors · 2 warnings · run `aiwf check` for details_
-
-> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
+_242 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -132,17 +130,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| terminal-entity-not-archived | G-0108 | work/gaps/G-0108-aiwf-retitle-should-sync-the-on-disk-slug-not-just-frontmatter-title.md | entity G-0108 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0108 open -> addressed |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0099 slug -> worktree-isolation-parent-side-precondition |
 | 2026-05-11 | human/peter | rename | aiwf rename D-0001 slug -> entity-body-empty-sub-headings-as-content |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0104 slug -> test-parallelism-discipline-rituals-or-byo |
-| 2026-05-11 | human/peter | rename | aiwf rename G-0097 slug -> test-suite-wall-time-serial-execution |
 
