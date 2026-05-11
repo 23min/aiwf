@@ -9,6 +9,10 @@ acs:
       title: CI/script audit chokepoint fires on non-forced epic-activation invocations
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Drift comparator helper has synthetic two-arm test (match + drift)
+      status: open
+      tdd_phase: red
 ---
 
 # M-0097 — Close M-0094/95/96 verification seams
@@ -54,4 +58,6 @@ This milestone closes (1) and (2) with durable test chokepoints. Items (3)–(5)
 - CLAUDE.md §"Test untested code paths before declaring code paths done" — rationale for the AC-5 drift comparator's two-arm test.
 
 ### AC-1 — CI/script audit chokepoint fires on non-forced epic-activation invocations
+
+### AC-2 — Drift comparator helper has synthetic two-arm test (match + drift)
 
