@@ -135,9 +135,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-1 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-1 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0094/AC-1 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0094 draft -> in_progress |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0094 AC-1..AC-4 (4 criteria) |
-| 2026-05-11 | human/peter | promote | aiwf promote E-0028 proposed -> active |
 
