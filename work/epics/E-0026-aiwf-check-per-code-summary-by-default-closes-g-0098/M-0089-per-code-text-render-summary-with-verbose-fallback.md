@@ -13,6 +13,10 @@ acs:
       title: Errors still print per-instance in default text
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: --verbose flag restores full per-instance output
+      status: open
+      tdd_phase: red
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
@@ -112,4 +116,6 @@ Intended landing zone:
 ### AC-1 — Default text output is per-code-summarized for warnings
 
 ### AC-2 — Errors still print per-instance in default text
+
+### AC-3 — --verbose flag restores full per-instance output
 
