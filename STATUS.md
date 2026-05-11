@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_248 entities · 0 errors · 8 warnings · run `aiwf check` for details_
+_248 entities · 0 errors · 9 warnings · run `aiwf check` for details_
 
-> Sweep pending: 7 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 8 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -68,7 +68,6 @@ flowchart LR
 | ID | Kind | Title | Status |
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
-| ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
 | ADR-0009 | adr | Orchestration substrate: substrate-vs-driver split with trailer-only events | proposed |
 
 ## Open gaps
@@ -114,6 +113,7 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| terminal-entity-not-archived | ADR-0005 | docs/adr/ADR-0005-verb-hygiene-contract-complete-consistent-pre-flighted-aiwf-verbs.md | entity ADR-0005 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0094 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0094-add-aiwf-check-finding-epic-active-no-drafted-milestones.md | entity M-0094 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0095 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md | entity M-0095 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0096 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md | entity M-0096 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -126,9 +126,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0114 'HTML render gap surface: status and archive state not glanceable from sidebar' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0091 open -> addressed |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0113 'rendered HTML site has no publish path; only viewable via local aiwf render' |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0112 'STATUS.md pre-commit regen produces merge conflicts on a derived artifact' |
-| 2026-05-11 | human/peter | wrap-epic | chore(E-0028): wrap epic — start-epic ritual + verification seams closed |
 
