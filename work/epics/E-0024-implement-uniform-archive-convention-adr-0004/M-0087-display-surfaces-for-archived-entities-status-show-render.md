@@ -1,7 +1,7 @@
 ---
 id: M-0087
 title: Display surfaces for archived entities (status, show, render)
-status: in_progress
+status: done
 parent: E-0024
 depends_on:
     - M-0086
@@ -109,7 +109,7 @@ Intended landing zone:
 
 ## Decisions made during implementation
 
-- (none)
+- **Visibility regression caught in human verification (AC-6, AC-7).** The first-pass render templates wrapped the home page's "Browse by kind" nav block in `<section data-tab="kind-index">` and every per-kind index page's main body in `<section data-tab="kind-listing">`. The embedded stylesheet hides every `section[data-tab]` by default (only `data-tab="overview"` and `:target` sections are revealed). Neither block had a tab-nav control, so the rendered pages displayed empty in a browser even though the structural HTML and tests looked correct. **Fix:** `index.tmpl` uses `<nav class="kind-index">` for the nav block; `kind_index.tmpl` drops the outer wrapper entirely (the listing lives directly under `<main>`). **Strengthened test:** `render_archive_visibility_test.go` walks the `<section>` ancestor chain at a content marker's position and fails if any enclosing `<section data-tab="X">` (X ≠ `overview`) would hide it per the page's CSS — the prior tests asserted the section *existed* but never asked whether it was *visible*. Per CLAUDE.md *Substring assertions are not structural assertions*. AC-5 was reopened alongside AC-6/7 per task brief, even though AC-5's surface (`aiwf show` text/JSON indicator) was unaffected by the wrapper regression.
 
 ## Validation
 

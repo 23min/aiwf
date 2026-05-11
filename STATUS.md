@@ -43,7 +43,7 @@ _(no milestones)_
 - ✓ **M-0084** — Loader and id resolver span active and archive directories _(done)_ — ACs 6/6 met — tdd: required
 - ✓ **M-0085** — aiwf archive verb (dry-run default, --apply, --kind) _(done)_ — ACs 8/8 met — tdd: required
 - ✓ **M-0086** — Three new archive check-rule findings and existing-rule scoping _(done)_ — ACs 7/7 met — tdd: required
-- → **M-0087** — Display surfaces for archived entities (status, show, render) _(in_progress)_ — ACs 9/9 met — tdd: required
+- ✓ **M-0087** — Display surfaces for archived entities (status, show, render) _(done)_ — ACs 9/9 met — tdd: required
 - → **M-0088** — Configuration knob, embedded skill, and CLAUDE.md amendment _(in_progress)_ — ACs 8/8 met — tdd: required
 
 ```mermaid
@@ -55,7 +55,7 @@ flowchart LR
   E_0024 --> M_0085
   M_0086["M-0086 (7/7)<br/>Three new archive check-rule findings and existing-rule scoping"]:::ms_done
   E_0024 --> M_0086
-  M_0087["M-0087 (9/9)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_in_progress
+  M_0087["M-0087 (9/9)<br/>Display surfaces for archived entities (status, show, render)"]:::ms_done
   E_0024 --> M_0087
   M_0088["M-0088 (8/8)<br/>Configuration knob, embedded skill, and CLAUDE.md amendment"]:::ms_in_progress
   E_0024 --> M_0088
@@ -116,9 +116,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0085 in_progress -> done |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0086 in_progress -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0084 in_progress -> done |
-| 2026-05-11 | human/peter | implement | feat(aiwf): archive sweep threshold, embedded skill, CLAUDE.md item 10 (M-0088) |
 
