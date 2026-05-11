@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: rule scoped to epic kind; other kinds unaffected by sovereign-act rule
-      status: open
+      status: met
       tdd_phase: done
 ---
 
