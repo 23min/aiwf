@@ -41,7 +41,7 @@ _(no milestones)_
 ### E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 _(proposed)_
 
 - **M-0091** — Roll out TestMain + t.Parallel across internal/* test packages _(draft)_ — ACs 0/6 met (6 open) — tdd: none
-- **M-0092** — Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/ _(draft)_ — tdd: none
+- **M-0092** — Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/ _(draft)_ — ACs 0/4 met (4 open) — tdd: none
 - **M-0093** — Document test-discipline convention and lock its chokepoint _(draft)_ — tdd: none
 
 ```mermaid
@@ -49,7 +49,7 @@ flowchart LR
   E_0025["E-0025<br/>Test-suite parallelism and fixture-sharing pass — closes G-0097"]:::epic_proposed
   M_0091["M-0091 (0/6)<br/>Roll out TestMain + t.Parallel across internal/* test packages"]:::ms_draft
   E_0025 --> M_0091
-  M_0092["M-0092<br/>Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/"]:::ms_draft
+  M_0092["M-0092 (0/4)<br/>Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/"]:::ms_draft
   E_0025 --> M_0092
   M_0093["M-0093<br/>Document test-discipline convention and lock its chokepoint"]:::ms_draft
   E_0025 --> M_0093
@@ -114,9 +114,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add ac M-0091 AC-1..AC-6 (6 criteria) |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0093 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0092 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0091 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0025 |
 

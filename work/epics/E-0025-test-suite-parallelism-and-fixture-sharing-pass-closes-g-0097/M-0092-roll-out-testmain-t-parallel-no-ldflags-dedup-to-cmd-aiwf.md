@@ -6,6 +6,19 @@ parent: E-0025
 depends_on:
     - M-0091
 tdd: none
+acs:
+    - id: AC-1
+      title: cmd/aiwf/setup_test.go lands with TestMain setting GIT identity
+      status: open
+    - id: AC-2
+      title: per-file audit produces a serial skip-list; safe tests gain t.Parallel
+      status: open
+    - id: AC-3
+      title: binary_integration_test.go shares the no-ldflags build via sync.Once
+      status: open
+    - id: AC-4
+      title: go test -race -parallel 8 ./cmd/... reliable across 10 runs
+      status: open
 ---
 
 # M-0092 — Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/
@@ -81,3 +94,20 @@ This milestone is single-commit per the epic's Constraints. M-0091 relaxes that 
 ## Reviewer notes
 
 - (none yet)
+
+### AC-1 — cmd/aiwf/setup_test.go lands with TestMain setting GIT identity
+
+A new `setup_test.go` in `cmd/aiwf/` declares a `TestMain` that calls `os.Setenv` for `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL` before `m.Run()`. The shape matches `internal/verb/setup_test.go`. Tests in the package no longer call `t.Setenv` for these four variables except where they deliberately clear them.
+
+### AC-2 — per-file audit produces a serial skip-list; safe tests gain t.Parallel
+
+Every `*_test.go` file in `cmd/aiwf/` is audited: which tests can safely `t.Parallel()` and which must stay serial. Stay-serial criteria: calls `t.Setenv`/`t.Chdir`, mutates `os.Args`, depends on a package-level var another test could clobber, or saturates a shared subprocess limit (the `integration_g37_test.go` cluster is the canonical case — its 11 tests each spin up a bare origin + multiple clones; running them all in parallel risks file-descriptor or process-table exhaustion). The skip-list lives as a `// Serial tests: …` comment in `setup_test.go` with one-line rationales. Every test not on the skip-list calls `t.Parallel()` as its first non-`t.Helper()` statement.
+
+### AC-3 — binary_integration_test.go shares the no-ldflags build via sync.Once
+
+A package-private helper modelled on `aiwfBinary` in `cmd/aiwf/integration_test.go` builds the no-ldflags binary once on first call and returns the path on subsequent calls. The 5 tests that build a non-stamped binary call the new helper; the 2 ldflags-stamped tests build their own as today. Test count and assertions are unchanged.
+
+### AC-4 — go test -race -parallel 8 ./cmd/... reliable across 10 runs
+
+After the conversion commit lands, the milestone records a 10-run loop of `go test -race -parallel 8 ./cmd/...` with zero flakes and zero timeouts. Pasted into Validation at wrap. Flakes are root-caused, not papered over.
+
