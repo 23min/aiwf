@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_246 entities · 0 errors · 7 warnings · run `aiwf check` for details_
+_247 entities · 0 errors · 7 warnings · run `aiwf check` for details_
 
 > Sweep pending: 6 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -108,6 +108,7 @@ flowchart LR
 | G-0110 | gremlins --diff <ref> filter excludes new files entirely; manual mutation review needed for M-0094/95/96 | M-0097 |
 | G-0111 | Wrap-side ritual: scope ends before done, human-only on done, wrap-epic update | M-0096 |
 | G-0112 | STATUS.md pre-commit regen produces merge conflicts on a derived artifact |  |
+| G-0113 | rendered HTML site has no publish path; only viewable via local aiwf render |  |
 
 ## Warnings
 
@@ -124,9 +125,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0112 'STATUS.md pre-commit regen produces merge conflicts on a derived artifact' |
 | 2026-05-11 | human/peter | wrap-epic | chore(E-0028): wrap epic — start-epic ritual + verification seams closed |
 | 2026-05-11 | human/peter | wrap-epic | chore(epic): wrap E-0028 — start-epic ritual: sovereign activation with preflight + delegation |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0108 open -> addressed |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 
