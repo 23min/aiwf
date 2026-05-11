@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: finding hint text references the start-epic preflight role and G-0063
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0094 — Add `aiwf check` finding `epic-active-no-drafted-milestones`
