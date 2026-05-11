@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_229 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_229 entities · 0 errors · 0 warnings_
 
 ## In flight
 
@@ -105,18 +105,15 @@ flowchart LR
 
 ## Warnings
 
-| Code | Entity | Path | Message |
-|------|--------|------|---------|
-| entity-body-empty | G-0103 | work/gaps/G-0103-absolute-path-leak-lint.md | G-0103 body section \`## What's missing\` is empty |
-| entity-body-empty | G-0103 | work/gaps/G-0103-absolute-path-leak-lint.md | G-0103 body section \`## Why it matters\` is empty |
+_(none)_
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add gap G-0103 'absolute-path leak lint' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0102 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0102 'Entity titles uncapped; long titles break filesystem paths, status HTML layout, and CLI table columns' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0101 open -> addressed |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0101 |
 
