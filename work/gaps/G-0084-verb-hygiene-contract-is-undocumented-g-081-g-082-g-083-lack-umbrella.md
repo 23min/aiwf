@@ -1,7 +1,7 @@
 ---
 id: G-0084
 title: Verb hygiene contract is undocumented; G-0081/G-0082/G-0083 lack umbrella
-status: open
+status: wontfix
 discovered_in: E-0021
 ---
 

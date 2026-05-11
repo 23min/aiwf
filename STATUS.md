@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_248 entities · 0 errors · 9 warnings · run `aiwf check` for details_
+_248 entities · 0 errors · 10 warnings · run `aiwf check` for details_
 
-> Sweep pending: 8 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 9 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -93,7 +93,6 @@ flowchart LR
 | G-0081 | aiwf rename does not pre-flight trunk-collision check | E-0021 |
 | G-0082 | Planning closure should default-merge to main before implementation begins | E-0021 |
 | G-0083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-0021 |
-| G-0084 | Verb hygiene contract is undocumented; G-0081/G-0082/G-0083 lack umbrella | E-0021 |
 | G-0087 | No aiwf-show embedded skill | M-0074 |
 | G-0088 | Skill-coverage policy doesn't police plugin skills under aiwf-extensions/ | M-0079 |
 | G-0090 | M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests | M-0079 |
@@ -120,15 +119,16 @@ flowchart LR
 | terminal-entity-not-archived | M-0097 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0097-close-m-0094-95-96-verification-seams-m-0095-automation-audit-chokepoint-and-ac-5-drift-comparator.md | entity M-0097 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0028 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/epic.md | entity E-0028 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0063 | work/gaps/G-0063-no-start-epic-ritual.md | entity G-0063 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | G-0084 | work/gaps/G-0084-verb-hygiene-contract-is-undocumented-g-081-g-082-g-083-lack-umbrella.md | entity G-0084 has terminal status 'wontfix' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0091 | work/gaps/G-0091-no-preventive-check-body-path-refs-to-archive.md | entity G-0091 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0084 |
 | 2026-05-11 | human/peter | promote | aiwf promote ADR-0005 proposed -> rejected |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0005 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0114 'HTML render gap surface: status and archive state not glanceable from sidebar' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0091 open -> addressed |
-| 2026-05-11 | human/peter | add | aiwf add gap G-0113 'rendered HTML site has no publish path; only viewable via local aiwf render' |
 
