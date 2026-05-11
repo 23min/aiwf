@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Chip clicks do not scroll the page
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 # M-0100 — Sidebar adds gap entry + epic archive chip filter
 
