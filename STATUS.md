@@ -1,6 +1,8 @@
 # aiwf status — 2026-05-11
 
-_229 entities · 0 errors · 0 warnings_
+_229 entities · 0 errors · 3 warnings · run `aiwf check` for details_
+
+> Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -41,23 +43,6 @@ _(no milestones)_
 ### E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 _(proposed)_
 
 _(no milestones)_
-
-### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(proposed)_
-
-- **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(draft)_ — tdd: required
-
-```mermaid
-flowchart LR
-  E_0027["E-0027<br/>Trailered merge commits from aiwfx-wrap-epic (closes G-0100)"]:::epic_proposed
-  M_0090["M-0090<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_draft
-  E_0027 --> M_0090
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
 
 ## Open decisions
 
@@ -105,15 +90,18 @@ flowchart LR
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| terminal-entity-not-archived | M-0090 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | entity M-0090 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | E-0027 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/epic.md | entity E-0027 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0103 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0103 'absolute-path leak lint' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 1 entity into archive/ (1 gap) |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0102 |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0102 'Entity titles uncapped; long titles break filesystem paths, status HTML layout, and CLI table columns' |
-| 2026-05-11 | human/peter | promote | aiwf promote G-0101 open -> addressed |
 
