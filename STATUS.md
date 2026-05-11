@@ -140,9 +140,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add milestone M-0101 'In-page status hierarchy in gaps.html' |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0100 'Sidebar surfaces gaps with active count' |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0099 'Kind-index chip filter: single emitted file per kind with :target chips' |
 | 2026-05-11 | human/peter | add | aiwf add milestone M-0098 'Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap' |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0115 'aiwf render roadmap --write rewrites entity refs in epic prose to broken paths' |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0029 |
 

@@ -74,11 +74,10 @@ Closes G-0114.
 
 <!-- Bulleted list, ordered by execution sequence. Status is NOT carried here. -->
 
-<!-- To be filled by `aiwfx-plan-milestones`. Sketch:
-- M-NNNN — Layout overhaul: body fills viewport, sidebar wider + flush-left, main panel fluid with prose cap
-- M-NNNN — Kind-index chip filter: collapse to single emitted file per kind, `:target`-driven [Active]/[All] chips
-- M-NNNN — Sidebar surfaces gaps with active count + in-page status hierarchy in gaps.html
--->
+- [M-0098](M-0098-render-site-layout-overhaul-viewport-fill-body-flush-left-sidebar-prose-cap.md) — Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap · depends on: —
+- [M-0099](M-0099-kind-index-chip-filter-single-emitted-file-per-kind-with-target-chips.md) — Kind-index chip filter: single emitted file per kind with `:target` chips · depends on: M-0098
+- [M-0100](M-0100-sidebar-surfaces-gaps-with-active-count.md) — Sidebar surfaces gaps with active count · depends on: M-0099
+- [M-0101](M-0101-in-page-status-hierarchy-in-gaps-html.md) — In-page status hierarchy in `gaps.html` · depends on: M-0099 (parallelizable with M-0100)
 
 ## References
 
