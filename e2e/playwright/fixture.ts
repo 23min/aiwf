@@ -122,6 +122,15 @@ export function renderRichFixture(): string {
     // has something to render. buildStatus only lists active epics.
     ["promote", "E-01", "active", "--actor", "human/peter"],
     ["authorize", "M-002", "--to", "ai/claude", "--actor", "human/peter"],
+    // M-0099/AC-3 chip-filter fixture: one active gap + one
+    // archived gap so the kind-index chip filter has rows to
+    // hide/reveal. G-0001 stays open; G-0002 is promoted to
+    // `addressed` (terminal) then swept into work/gaps/archive/
+    // by `aiwf archive --apply`.
+    ["add", "gap", "--title", "active gap fixture", "--actor", "human/peter"],
+    ["add", "gap", "--title", "archived gap fixture", "--actor", "human/peter"],
+    ["promote", "G-0002", "addressed", "--force", "--reason", "fixture: archive sweep target", "--actor", "human/peter"],
+    ["archive", "--apply", "--actor", "human/peter"],
   ];
   for (const args of verbs) {
     runAiwf(bin, repoDir, ...args);

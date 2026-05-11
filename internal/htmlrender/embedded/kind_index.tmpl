@@ -17,16 +17,13 @@
 </nav>
 {{- if .Entries}}
 <table class="kind-index">
-<thead><tr><th>Id</th><th>Title</th><th>Status</th>{{if .IncludeArchived}}<th>Location</th>{{end}}</tr></thead>
+<thead><tr><th>Id</th><th>Title</th><th>Status</th></tr></thead>
 <tbody>
 {{- range .Entries}}
-<tr>
-<td><a href="{{.FileName}}">{{.ID}}</a></td>
+<tr data-archived="{{if .Archived}}true{{else}}false{{end}}">
+<td><a href="{{.FileName}}">{{.ID}}</a>{{if .Archived}} <span class="archived-marker">archived</span>{{end}}</td>
 <td>{{.Title}}</td>
 <td><span class="status status-{{.Status}}">{{.Status}}</span></td>
-{{- if $.IncludeArchived}}
-<td>{{if .Archived}}<span class="archived-marker">archived</span>{{else}}active{{end}}</td>
-{{- end}}
 </tr>
 {{- end}}
 </tbody>

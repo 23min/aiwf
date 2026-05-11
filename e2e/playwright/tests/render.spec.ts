@@ -708,6 +708,53 @@ test.describe("kind-index — chip strip markup (M-0099/AC-2)", () => {
   });
 });
 
+test.describe("kind-index — chip filter behavior (M-0099/AC-3)", () => {
+  // The chip filter is :target-driven CSS:
+  // - Default view (no fragment): archived rows have display: none
+  // - #all view: all rows visible regardless of archive state
+  // Every row carries data-archived="true|false" so the CSS rule
+  // can target archived rows specifically.
+  //
+  // The fixture includes G-0001 (active) and G-0002 (archived) so
+  // both row classes are exercised on a real rendered table.
+
+  test("rows carry data-archived; archived hidden by default; #all reveals", async ({ page }) => {
+    // Default view — gaps.html with no fragment.
+    await page.goto(fileURL("gaps.html"));
+
+    // Every row in the kind-index table carries data-archived.
+    const allRows = page.locator("table.kind-index tbody tr");
+    const rowCount = await allRows.count();
+    expect(rowCount, "gaps.html should have at least 2 rows from fixture").toBeGreaterThanOrEqual(2);
+    for (let i = 0; i < rowCount; i++) {
+      const attr = await allRows.nth(i).getAttribute("data-archived");
+      expect(attr, `row ${i} should have data-archived attribute`).toMatch(/^(true|false)$/);
+    }
+
+    // Archived rows are display: none in default view.
+    const archived = page.locator('table.kind-index tbody tr[data-archived="true"]');
+    await expect(archived, "gaps.html should have at least one archived row in markup").toHaveCount(1);
+    const archivedDisplay = await archived.first().evaluate(
+      (el) => getComputedStyle(el).display,
+    );
+    expect(archivedDisplay, "archived row should be display:none in default view").toBe("none");
+
+    // Active rows are visible.
+    const active = page.locator('table.kind-index tbody tr[data-archived="false"]');
+    const activeDisplay = await active.first().evaluate(
+      (el) => getComputedStyle(el).display,
+    );
+    expect(activeDisplay, "active row should be visible in default view").not.toBe("none");
+
+    // #all view — archived rows now visible.
+    await page.goto(fileURL("gaps.html") + "#all");
+    const archivedDisplayAll = await page.locator('table.kind-index tbody tr[data-archived="true"]')
+      .first()
+      .evaluate((el) => getComputedStyle(el).display);
+    expect(archivedDisplayAll, "archived row should be visible under #all").not.toBe("none");
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {

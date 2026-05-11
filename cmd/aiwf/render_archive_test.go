@@ -70,7 +70,14 @@ Archived gap body for render fixture.
 // The visibility test in render_archive_visibility_test.go pins
 // the no-hidden-wrapper property; this test pins the active-only
 // content property.
-func TestRender_PerKindIndexShowsActiveOnly(t *testing.T) {
+// TestRender_PerKindIndexEmitsBothActiveAndArchivedRows — M-0099/AC-3
+// inverts the original "active-only in markup" rule: archived rows
+// ARE in the rendered markup now, with data-archived="true", so the
+// :target-driven CSS chip filter can hide/reveal them client-side.
+// Visibility-based assertions move to Playwright; this Go test pins
+// the markup-presence half (both ids exist; data-archived attribute
+// is present and correct).
+func TestRender_PerKindIndexEmitsBothActiveAndArchivedRows(t *testing.T) {
 	root := setupArchiveRenderFixture(t)
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -80,11 +87,16 @@ func TestRender_PerKindIndexShowsActiveOnly(t *testing.T) {
 	if listing == "" {
 		t.Fatalf("gaps.html missing <main> body:\n%s", gapsHTML)
 	}
-	if !strings.Contains(listing, "G-0001") {
-		t.Errorf("gaps.html <main> missing active id G-0001:\n%s", listing)
+	for _, id := range []string{"G-0001", "G-0099"} {
+		if !strings.Contains(listing, id) {
+			t.Errorf("gaps.html <main> missing id %s (chip filter requires both in markup):\n%s", id, listing)
+		}
 	}
-	if strings.Contains(listing, "G-0099") {
-		t.Errorf("gaps.html <main> leaks archived id G-0099 (active-default must hide archive):\n%s", listing)
+	if !strings.Contains(listing, `data-archived="true"`) {
+		t.Errorf("gaps.html <main> missing data-archived=\"true\" attribute (required for chip-filter CSS):\n%s", listing)
+	}
+	if !strings.Contains(listing, `data-archived="false"`) {
+		t.Errorf("gaps.html <main> missing data-archived=\"false\" attribute (required for chip-filter CSS):\n%s", listing)
 	}
 }
 

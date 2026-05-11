@@ -391,6 +391,12 @@ li { margin: 0.2rem 0; }
   color: var(--accent);
 }
 
+/* Chip filter behavior (M-0099/AC-3): rows in the kind-index
+ * table carry data-archived="true|false". Default view hides
+ * archived rows; the #all chip toggles them on via :target. */
+.kind-index tbody tr[data-archived="true"] { display: none; }
+body:has(#all:target) .kind-index tbody tr[data-archived="true"] { display: table-row; }
+
 /* ---------- Tabs ---------- */
 
 .tabs {
