@@ -24,28 +24,14 @@ This milestone is single-commit per the epic's Constraints. M-0091 relaxes that 
 
 ## Acceptance criteria
 
-### AC-1 — `cmd/aiwf/setup_test.go` lands with `TestMain` setting GIT identity once
-
-A new `setup_test.go` in `cmd/aiwf/` declares a `TestMain` that calls `os.Setenv` for `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL` before `m.Run()`. The shape matches `internal/verb/setup_test.go`. Tests in the package no longer call `t.Setenv` for these four variables except where they deliberately clear them.
-
-### AC-2 — Per-file audit produces a serial skip-list; safe tests gain `t.Parallel()`
-
-Every `*_test.go` file in `cmd/aiwf/` is audited: which tests can safely `t.Parallel()` and which must stay serial. Stay-serial criteria: calls `t.Setenv`/`t.Chdir`, mutates `os.Args`, depends on a package-level var another test could clobber, or saturates a shared subprocess limit (the `integration_g37_test.go` cluster is the canonical case — its 11 tests each spin up a bare origin + multiple clones; running them all in parallel risks file-descriptor or process-table exhaustion). The skip-list lives as a `// Serial tests: …` comment in `setup_test.go` with one-line rationales. Every test not on the skip-list calls `t.Parallel()` as its first non-`t.Helper()` statement.
-
-### AC-3 — `cmd/aiwf/binary_integration_test.go` shares the no-ldflags build via `sync.Once`
-
-A package-private helper modelled on `aiwfBinary` in `cmd/aiwf/integration_test.go` builds the no-ldflags binary once on first call and returns the path on subsequent calls. The 5 tests that build a non-stamped binary call the new helper; the 2 ldflags-stamped tests build their own as today. Test count and assertions are unchanged.
-
-### AC-4 — `go test -race -parallel 8 ./cmd/...` reliable across 10 consecutive runs
-
-After the conversion commit lands, the milestone records a 10-run loop of `go test -race -parallel 8 ./cmd/...` with zero flakes and zero timeouts. Pasted into Validation at wrap. Flakes are root-caused, not papered over.
+(ACs allocated via `aiwf add ac`; bodies follow below.)
 
 ## Constraints
 
 - **One commit for the milestone**, carrying `aiwf-verb`, `aiwf-entity: M-0092`, and `aiwf-actor` trailers.
 - **Subprocess-isolating tests stay subprocess-isolating.** This milestone does not move any `runBin` caller to in-process `run([]string{...})`. That conversion is explicitly out per the epic — subprocess isolation is load-bearing for exit-code / stdout-stderr / env-isolation assertions and the kernel's "test the actual binary" stance.
 - **Topology sharing across `integration_g37_test.go` stays deferred.** Each test's bare-origin + N-clone setup has enough variation that sharing is real refactor work. Plain `t.Parallel` adoption (with the dense-fan-out caveat in the skip-list) is the right scope here.
-- **No test semantics change.** Same `-race -count=10` discipline as M-0091's AC-5.
+- **No test semantics change.** Same `-race -count=10` discipline as M-0091's AC for cross-run reliability.
 
 ## Design notes
 
