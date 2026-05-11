@@ -80,7 +80,7 @@ Each AC is asserted via **Playwright browser tests** in `e2e/playwright/tests/` 
 
 ## Dependencies
 
-- None. M-α is the foundation milestone for E-0029.
+- **M-0102** (Repair Playwright e2e suite for current kernel state) — added mid-flight after AC-1's red phase surfaced that the Playwright suite had rotted across multiple kernel changes since E-0009 (repo reorg, ID width migration, `aiwf init` hook-write behavior). M-0098 cannot have its layout / CSS / viewport ACs tested via Playwright until M-0102 lands the suite green.
 
 ## References
 
@@ -90,6 +90,10 @@ Each AC is asserted via **Playwright browser tests** in `e2e/playwright/tests/` 
 - `CLAUDE.md` — *Substring assertions are not structural assertions*, *Render output must be human-verified before the iteration closes*, *Test untested code paths before declaring code paths "done"*
 
 ## Work log
+
+### AC-1 — Layout fills viewport at widths above 768px (red phase paused)
+
+Red-phase test-authoring began against the existing Playwright suite; running `npx playwright test` against the unmodified suite surfaced rot from three independent kernel changes (path-rot from `a137132` reorg; `aiwf init`'s hook-installation behavior change; canonical 4-digit ID width migration from E-0023). M-0098/AC-1 cannot fail "for the right reason" against the current fixture. M-0102 allocated as a prerequisite milestone to repair the suite; M-0098 stays at `in_progress` but is blocked until M-0102 reaches `done`. Resume here after M-0102 wraps.
 
 ## Decisions made during implementation
 
