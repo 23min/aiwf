@@ -408,20 +408,24 @@ func newCheckCmd() *cobra.Command {
 		pretty    bool
 		since     string
 		shapeOnly bool
+		verbose   bool
 	)
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "Validate the consumer repo's planning state",
-		Example: `  # Run the full validation pass
+		Example: `  # Default: errors per-instance, warnings collapsed to a per-code summary
   aiwf check
 
-  # Emit a JSON envelope for CI scripts
+  # Restore the full per-instance shape (one line per finding) for warnings too
+  aiwf check --verbose
+
+  # Emit a JSON envelope for CI scripts (always per-instance regardless of --verbose)
   aiwf check --format=json --pretty`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runCheckCmd(root, format, pretty, since, shapeOnly))
+			return wrapExitCode(runCheckCmd(root, format, pretty, since, shapeOnly, verbose))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -429,11 +433,12 @@ func newCheckCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
 	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
+	cmd.Flags().BoolVar(&verbose, "verbose", false, "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless")
 	registerFormatCompletion(cmd)
 	return cmd
 }
 
-func runCheckCmd(root, format string, pretty bool, since string, shapeOnly bool) int {
+func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verbose bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf check: --format must be 'text' or 'json', got %q\n", format)
 		return exitUsage
@@ -516,7 +521,16 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly bool)
 
 	switch format {
 	case "text":
-		if err := render.Text(os.Stdout, findings); err != nil {
+		// M-0089 AC-1/AC-2/AC-3: default text mode collapses warnings
+		// into a per-code summary while keeping errors per-instance;
+		// --verbose restores the full per-instance shape (byte-for-byte
+		// identical to the pre-M-0089 output). JSON is never affected
+		// (AC-4).
+		writeText := render.TextSummary
+		if verbose {
+			writeText = render.Text
+		}
+		if err := writeText(os.Stdout, findings); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
 			return exitInternal
 		}

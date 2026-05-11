@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0026: `aiwf check` per-code summary by default (closes G-0098)
+
+Default text output of `aiwf check` collapses warnings to one line per finding-code: `<code> (warning) × N — <representative message>`. Errors continue to print per-instance — each error is per-instance-actionable. A new `--verbose` flag restores the full pre-epic per-instance shape byte-for-byte. The JSON envelope is unchanged modulo `metadata.root` (which is environmental); machines still receive every finding via `--format=json` regardless of `--verbose`. On the kernel tree the post-E-0023 / post-E-0024 advisory state (~176 near-identical `terminal-entity-not-archived` lines + the paired `archive-sweep-pending` aggregate) shrinks from a ~180-line scroll to a 5-line scannable summary. Sort order is count-desc with alphabetic tie-break (pinned so golden files don't drift). No check rules, severities, or finding codes changed.
+
+- **M-0089 — Per-code text-render summary with `--verbose` fallback.** New `render.TextSummary` partitions findings: errors flow through the existing per-instance path, warnings group by `Code` into per-code buckets. `Text` was refactored to share a `renderPerInstance` helper so the verbose path stays byte-identical to the pre-epic behaviour by construction, not just by golden file. Sample message per code is the first finding's `Message` verbatim. Binary integration tests at `cmd/aiwf/check_summary_binary_test.go` (kernel-tree ≤10-line bound, byte-identity against captured baselines for verbose text, structural-equal modulo `metadata.root` for JSON, `--help` documentation of `--verbose`). Discovered the friction post-E-0024 when the advisory paired-finding shape became the new normal; this milestone collapses the noise at the render layer alone.
+
 ## [0.7.0] — 2026-05-10
 
 ### Changed (breaking) — Module path rename `github.com/23min/ai-workflow-v2` → `github.com/23min/aiwf` (closes G-0094)

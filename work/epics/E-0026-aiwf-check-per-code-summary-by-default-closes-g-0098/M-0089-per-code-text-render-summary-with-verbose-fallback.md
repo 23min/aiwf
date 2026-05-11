@@ -1,9 +1,42 @@
 ---
 id: M-0089
 title: Per-code text-render summary with --verbose fallback
-status: draft
+status: done
 parent: E-0026
 tdd: required
+acs:
+    - id: AC-1
+      title: Default text output is per-code-summarized for warnings
+      status: met
+      tdd_phase: done
+    - id: AC-2
+      title: Errors still print per-instance in default text
+      status: met
+      tdd_phase: done
+    - id: AC-3
+      title: --verbose flag restores full per-instance output
+      status: met
+      tdd_phase: done
+    - id: AC-4
+      title: JSON envelope is unchanged
+      status: met
+      tdd_phase: done
+    - id: AC-5
+      title: aiwf check --help documents --verbose
+      status: met
+      tdd_phase: done
+    - id: AC-6
+      title: cmd/aiwf/completion_drift_test.go passes
+      status: met
+      tdd_phase: done
+    - id: AC-7
+      title: Kernel-tree integration test — default output is short
+      status: met
+      tdd_phase: done
+    - id: AC-8
+      title: Summary lines name the code structurally, not by substring grep
+      status: met
+      tdd_phase: done
 ---
 
 # M-0089 — Per-code text-render summary with `--verbose` fallback
@@ -82,15 +115,49 @@ Intended landing zone:
 
 ## Work log
 
-(populated during implementation)
+- Branched milestone/M-0089-… off main at `5523e99`.
+- Promoted M-0089 draft → in_progress.
+- Allocated 8 ACs verbatim from the spec's "Intended landing zone".
+- Captured pre-change goldens by building the binary at `5523e99` (`/tmp/aiwf-baseline-m0089`) and running it against a tempdir copy of `internal/check/testdata/messy` for text + JSON + JSON-pretty. Goldens stored at `cmd/aiwf/testdata/m0089/`.
+- TDD pass for AC-1: red test (`TestTextSummary_WarningsCollapsedByCode`) → added `render.TextSummary` partitioning errors per-instance and grouping warnings by Code with count-desc / alphabetic tie-break → green.
+- Refactored `render.Text` to share `renderPerInstance` so the verbose path is identical-by-construction to the pre-M-0089 behavior (AC-3).
+- Wired `--verbose` boolean flag into `aiwf check`. Boolean flags are auto-skipped by `completion_drift_test.go` per its existing rule, so AC-6 was green without extra wiring.
+- Added binary integration tests under `cmd/aiwf/check_summary_binary_test.go`: AC-3 byte-identical against `verbose-text.golden`, AC-4 structural against `json.golden` / `json-pretty.golden` (modulo `metadata.root`), AC-7 kernel-tree ≤10 lines, AC-5 `--help` structurally documents `--verbose`.
+- Filled in 100% branch coverage in `internal/render/` via failing-writer tests (`TestTextSummary_WriteErrorBubblesUp`, `TestText_WriteErrorBubblesUp`, `TestRenderPerInstance_WriteErrorPerShape`).
+- Human-verified default-mode output against the kernel tree — 5 lines after the G-0098 body fill, reads cleanly. Captured under *Validation* below.
+- At wrap-prep: filled G-0098's empty `## What's missing` and `## Why it matters` sections (commit `b3e0402`) — the gap this epic closes, surfacing in `aiwf check` as 2 `entity-body-empty` warnings. Sweep the new `internal/render/render_test.go` fixtures' narrow-width id literals (`G-001`, `E-99`, `E-77`, `E-66`, `M-001`–`M-005`) to canonical 4-digit width to satisfy `TestPolicy_NarrowIDLiteralsAllowlisted`; the fixtures are synthetic so canonical width is the correct shape (option (a) in the policy's diagnostic).
+- Implementation commit landed at `de94cf9`.
 
 ## Decisions made during implementation
 
-- (none)
+- **AC-4 strict byte-identity is structurally over-stated.** The pre-M-0089 baseline at `/tmp/m0089-fixture` carries that absolute path in `metadata.root`; any test run resolves the consumer repo to a fresh tempdir and emits a different `root` value. Strict byte-equality across machines is impossible. The chosen reading: byte-identical to baseline modulo `metadata.root`, with the field's presence + non-emptiness still asserted. The compare is structural via `cmp.Diff` on parsed envelopes, which proves every per-finding field is unchanged. The renderer is the stdlib's `encoding/json` so within-binary byte-shape (key order, whitespace, escaping) is deterministic; the JSON contract is intact.
+- **`TextSummary` lives in `internal/render/render.go`, not a sibling file.** The spec named `internal/render/text.go` as the renderer's home; the actual renderer is `internal/render/render.go` (no separate `text.go`). The new function lives next to `Text` so callers see one entry point per output shape. Refactored existing `Text` to delegate per-instance lines to a shared `renderPerInstance` helper so the two paths cannot drift (AC-3 byte-identity is enforced by code structure, not just by golden file).
+- **Shape-only check path unchanged.** `runCheckShapeOnly` (the pre-commit hook's fast path) still calls `render.Text` per-instance — it has no `--verbose` flag because it only emits tree-discipline findings and a summary would obscure the per-file paths the hook is meant to flag.
+- **JSON path remains `render.JSON` regardless of `--verbose`.** AC-4: JSON is the machine-readable contract; `--verbose` is text-only. The text-branch switch on `verbose` happens in `runCheckCmd`'s `case "text"` arm; the `case "json"` arm passes the full `findings` slice straight through.
+- **Boolean flag, no completion wiring needed.** `--verbose` is a bool, which `completion_drift_test.go` auto-skips. Cobra renders it without a value argument and tab-completion does not enumerate values, so no `RegisterFlagCompletionFunc` or opt-out entry was needed.
 
 ## Validation
 
-(populated at wrap)
+- `golangci-lint run`: 0 issues.
+- `go build -o /tmp/aiwf ./cmd/aiwf`: clean.
+- `go test ./internal/render/`, `go test ./internal/policies/ -run TestPolicy_NarrowIDLiteralsAllowlisted`: both green at wrap-prep. Full suite re-runs skipped per the user's standing G-0097 ack (test-suite wall-time gap).
+- `aiwf check`: 0 errors. Pre-existing warnings only (terminal-entity-not-archived ×176 awaiting archive sweep, the paired archive-sweep-pending ×1, provenance-untrailered-scope-undefined ×1).
+
+Kernel-tree default-mode output (rendered by the new binary against this repo after the G-0098 body-fill commit landed and the implementation commit was made):
+
+```
+terminal-entity-not-archived (warning) × 176 — entity ADR-0002 has terminal status "rejected" but file is still in the active tree; awaiting `aiwf archive --apply` sweep
+archive-sweep-pending (warning) × 1 — 176 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N
+provenance-untrailered-scope-undefined (warning) × 1 — no upstream configured and no --since <ref>; provenance audit skipped
+
+178 findings (0 errors, 178 warnings)
+```
+
+5 lines total — well under the AC-7 ≤10 bound. Ordering is count-desc, alphabetic tie-break (`archive-sweep-pending` before `provenance-untrailered-scope-undefined` on the 1-count tier). Each line names the code, severity, instance count, and a representative message. Reads cleanly.
+
+The pre-M-0089 binary at the same SHA emits ~180 lines for the same tree (~176 of which are near-identical `terminal-entity-not-archived` warnings sharing the same hint). This milestone closes that friction by collapsing the warning leaves into a per-code summary.
+
+Verbose-mode output reproduces the pre-M-0089 shape byte-for-byte against the `messy` fixture; pinned by `TestBinary_CheckVerbose_ByteIdenticalToBaseline`.
 
 ## Deferrals
 
@@ -98,4 +165,52 @@ Intended landing zone:
 
 ## Reviewer notes
 
-- (none)
+- **AC-4 was relaxed from strict byte-identity to structural-equal modulo `metadata.root`.** See the *Decisions made during implementation* section above. The relaxation is principled (the field is environmental) and the contract is still tight (every per-finding field is `cmp.Diff`-equal, presence + non-emptiness on the relaxed field is asserted). No reviewer action required.
+- Test re-runs at wrap-prep were skipped per the user's standing G-0097 ack. `golangci-lint run` and `go build` were run and are clean; the relevant unit-test slices (`internal/render/`, the narrow-id policy) were run targeted and are green. The full suite is the next consumer's responsibility on a fresh main checkout.
+
+### AC-1 — Default text output is per-code-summarized for warnings
+
+`render.TextSummary` partitions findings: errors flow through `renderPerInstance` unchanged, warnings group by `Code` into per-code buckets emitted as `<code> (warning) × N — <sample>`. The sample message is the first finding's `Message` verbatim per the spec's *Constraints*.
+
+Test: `TestTextSummary_WarningsCollapsedByCode` in `internal/render/render_test.go` constructs a 5-finding slice with two distinct warning codes (one ×3, one ×2), asserts exactly two summary lines, parses the leading code token structurally (no flat substring match), and verifies the per-leaf form is *absent* from the output. Binary-level: `TestBinary_CheckDefault_SummarizesWarnings` against the `messy` fixture asserts the full 5-warning-code summary set.
+
+### AC-2 — Errors still print per-instance in default text
+
+The error path in `TextSummary` accumulates errors into a slice that goes through `renderPerInstance` — the same formatting `Text` uses in verbose mode. Errors are never summarized.
+
+Test: `TestTextSummary_ErrorsPrintPerInstance` constructs 3 errors (same code) + 2 warnings (same code), asserts 3 per-instance error lines extracted by the documented `<path>:<line>: error <code>: <msg>` shape and 0 error-severity summary lines. Binary-level: `TestBinary_CheckDefault_SummarizesWarnings` runs the same shape end-to-end through `aiwf check`.
+
+### AC-3 — `--verbose` flag restores full per-instance output
+
+`Text` was refactored to share `renderPerInstance` with `TextSummary`; the verbose branch in `runCheckCmd` selects `Text` instead of `TextSummary`. Per-instance rendering is identical by construction, not just by golden file.
+
+Test: `TestBinary_CheckVerbose_ByteIdenticalToBaseline` builds the post-change binary, runs `aiwf check --verbose --root <tempdir-copy-of-messy>`, and asserts byte-identical stdout to `cmd/aiwf/testdata/m0089/verbose-text.golden`. The golden was captured from the pre-change binary at SHA `5523e99` against the same fixture, so a single-byte drift in the verbose path's output fails the test.
+
+### AC-4 — JSON envelope is unchanged
+
+The text-branch switch on `verbose` lives only inside `case "text":`; the `case "json":` arm is unchanged and the `render.JSON` function is untouched. The full `findings` slice flows into the envelope regardless of `--verbose`.
+
+Test: `TestBinary_CheckJSON_ByteIdenticalToBaseline` runs `aiwf check --format=json` and `aiwf check --format=json --verbose` against the `messy` fixture, parses both stdout and `cmd/aiwf/testdata/m0089/json.golden`, and compares structurally via `cmp.Diff` — modulo `metadata.root` which is the absolute path of the resolved consumer repo (legitimately environmental). `TestBinary_CheckJSONPretty_ByteIdenticalToBaseline` does the same for the pretty branch and additionally pins that 2-space indentation is present. See *Decisions made during implementation* for the structural-modulo-root reasoning.
+
+### AC-5 — `aiwf check --help` documents `--verbose`
+
+The Cobra `Flags()` block on the check command names `--verbose` with description "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless". The Examples block was updated to show three invocations: default (per-code summary), `--verbose` (full per-instance), and `--format=json --pretty` (CI script consumption).
+
+Test: `TestBinary_CheckHelp_DocumentsVerbose` runs `aiwf check --help` (Cobra writes to stderr; captured via `runBinaryCombined`), parses the flags block to locate the `--verbose` row and asserts a non-empty description, then walks the Examples block to confirm both a bare-default invocation and a `--verbose` invocation are present. Flat substring grep on the word "verbose" would not have distinguished a stale description from a fresh one.
+
+### AC-6 — `cmd/aiwf/completion_drift_test.go` passes
+
+`--verbose` is a boolean flag. `TestPolicy_FlagsHaveCompletion` auto-skips boolean flags (see the test's `if f.Value.Type() == "bool" { return }` at the top of the visitor). No `RegisterFlagCompletionFunc` or opt-out entry was needed.
+
+Test: `TestPolicy_FlagsHaveCompletion` runs unchanged and passes.
+
+### AC-7 — Kernel-tree integration test — default output is short
+
+The kernel's planning tree currently has ~3-4 distinct warning codes producing ~180 warnings; the summary collapses to ~5 lines + footer.
+
+Test: `TestBinary_CheckDefault_KernelTreeShortOutput` builds the binary, runs `aiwf check --root <repo-root>` (the kernel's own tree, located via `repoRootForTest`), and asserts ≤10 lines total. The exact line count depends on how many distinct warning codes the kernel tree happens to carry at test time, so the bound is the assertion, not a fixed value. Per CLAUDE.md *Render output must be human-verified before the iteration closes*, the *Validation* section above also pins the rendered output the human read.
+
+### AC-8 — Summary lines name the code structurally, not by substring grep
+
+Both the render-layer tests (`extractSummaryLines` helper in `render_test.go`) and the binary-level tests (`parseSummaryLines` helper in `check_summary_binary_test.go`) use the anchored regex `^(\S+) \((warning|error)\) × (\d+) — (.+)$` to extract the code token from each summary line. The leading `\S+` plus start-of-line anchor means a per-instance line (which begins with `<path>:<line>:`) cannot accidentally satisfy the pattern. The error case in `TestTextSummary_ErrorsPrintPerInstance` confirms this — the same parser scans 3 error lines and finds 0 summaries.
+

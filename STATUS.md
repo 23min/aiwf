@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_221 entities · 0 errors · 179 warnings · run `aiwf check` for details_
+_222 entities · 0 errors · 179 warnings · run `aiwf check` for details_
 
-> Sweep pending: 176 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 178 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -44,23 +44,6 @@ _(no milestones)_
 
 _(no milestones)_
 
-### E-0026 — aiwf check per-code summary by default (closes G-0098) _(proposed)_
-
-- **M-0089** — Per-code text-render summary with --verbose fallback _(draft)_ — tdd: required
-
-```mermaid
-flowchart LR
-  E_0026["E-0026<br/>aiwf check per-code summary by default (closes G-0098)"]:::epic_proposed
-  M_0089["M-0089<br/>Per-code text-render summary with --verbose fallback"]:::ms_draft
-  E_0026 --> M_0089
-  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
-  classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
-  classDef ms_in_progress fill:#fff3c4,stroke:#caa400,color:#000
-  classDef ms_draft fill:#f4f4f4,stroke:#888,color:#000
-  classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
-```
-
 ## Open decisions
 
 | ID | Kind | Title | Status |
@@ -100,13 +83,12 @@ flowchart LR
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
 | G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
 | G-0098 | aiwf check default output dumps every leaf finding; per-code summary + --verbose would make the surface scannable, especially when an aggregate finding (e.g. archive-sweep-pending) already covers N leaves | M-0086 |
+| G-0099 | Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior |  |
 
 ## Warnings
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## What's missing\` is empty |
-| entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | entity ADR-0002 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0001 | work/epics/E-0001-foundations-and-aiwf-check/M-0001-session-1-deliverable-aiwf-check-end-to-end.md | entity M-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0001 | work/epics/E-0001-foundations-and-aiwf-check/epic.md | entity E-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -214,6 +196,8 @@ flowchart LR
 | terminal-entity-not-archived | M-0087 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0087-display-surfaces-for-archived-entities-status-show-render.md | entity M-0087 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0088 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/M-0088-configuration-knob-embedded-skill-and-claude-md-amendment.md | entity M-0088 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0024 | work/epics/E-0024-implement-uniform-archive-convention-adr-0004/epic.md | entity E-0024 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | M-0089 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/M-0089-per-code-text-render-summary-with-verbose-fallback.md | entity M-0089 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | E-0026 | work/epics/E-0026-aiwf-check-per-code-summary-by-default-closes-g-0098/epic.md | entity E-0026 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0001 | work/gaps/G-0001-contract-paths-can-escape-the-repo-via-or-symlinks.md | entity G-0001 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0002 | work/gaps/G-0002-apply-is-not-atomic-on-partial-failure.md | entity G-0002 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0003 | work/gaps/G-0003-pre-push-hook-fails-opaquely-when-validators-are-missing.md | entity G-0003 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
@@ -288,9 +272,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0026 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0089 |
-| 2026-05-11 | human/peter | add | aiwf add milestone M-0089 'Per-code text-render summary with --verbose fallback' |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0026 |
-| 2026-05-11 | human/peter | add | aiwf add epic E-0026 'aiwf check per-code summary by default (closes G-0098)' |
+| 2026-05-11 | human/peter | wrap | chore(E-0026): wrap epic — aiwf check per-code summary by default |
+| 2026-05-11 | human/peter | promote | aiwf promote E-0026 proposed -> active |
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
+| 2026-05-11 | human/peter | promote | aiwf promote M-0089 in_progress -> done |
 
