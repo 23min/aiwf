@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: rule scoped to proposed-to-active edge; other epic transitions unaffected
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: rule scoped to epic kind; other kinds unaffected by sovereign-act rule
