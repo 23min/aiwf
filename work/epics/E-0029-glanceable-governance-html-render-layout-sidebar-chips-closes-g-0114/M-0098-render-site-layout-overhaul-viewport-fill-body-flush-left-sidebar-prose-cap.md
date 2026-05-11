@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Layout fills viewport at widths above 768px
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Sidebar width resolves to chosen target value
       status: open
