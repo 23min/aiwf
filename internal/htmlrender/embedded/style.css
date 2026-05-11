@@ -383,12 +383,25 @@ li { margin: 0.2rem 0; }
   color: var(--accent);
 }
 /* When no chip is :target (bare page URL), highlight Active by
- * default — :has() lets us scope this to the chip strip and
- * select the Active chip when no chip-target exists. */
-.chip-strip:not(:has(.chip:target)) #active {
+ * default. Two parallel rules cover both chip surfaces: the
+ * kind-index strip's #active and the sidebar strip's
+ * #sidebar-active (M-0100/AC-2). */
+.chip-strip:not(:has(.chip:target)) #active,
+.chip-strip:not(:has(.chip:target)) #sidebar-active {
   background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
   border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   color: var(--accent);
+}
+
+/* Sidebar chip strip: scale down vs the main-area version so the
+ * narrow sidebar column doesn't feel cramped. */
+.sidebar-chip-strip {
+  margin: 0.5rem 0 0.4rem;
+  padding: 0 0.5rem;
+}
+.sidebar-chip-strip .chip {
+  padding: 0.2rem 0.65rem;
+  font-size: 0.82rem;
 }
 
 /* Chip filter behavior (M-0099/AC-3): rows in the kind-index

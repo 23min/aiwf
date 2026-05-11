@@ -40,6 +40,10 @@
 {{- end}}
 </li>
 </ul>
+<nav class="chip-strip sidebar-chip-strip">
+<a class="chip" href="#sidebar-active" id="sidebar-active">Active</a>
+<a class="chip" href="#sidebar-all" id="sidebar-all">All</a>
+</nav>
 {{- range .Epics}}
 <details class="sidebar-epic"{{if .IsActive}} open{{end}}>
 <summary>

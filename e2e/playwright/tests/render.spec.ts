@@ -256,7 +256,10 @@ test.describe("sidebar — left-nav tree", () => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {
       await page.goto(fileURL(path));
       await expect(page.locator("aside.sidebar")).toBeVisible();
-      await expect(page.locator("aside.sidebar nav")).toBeVisible();
+      // First match: the outer <nav> wrapping the sidebar's link
+      // tree. (Post-M-0100 a second <nav class="chip-strip"> also
+      // lives inside; use .first() to avoid strict-mode violation.)
+      await expect(page.locator("aside.sidebar nav").first()).toBeVisible();
       // Every sidebar lists every epic.
       await expect(page.locator("aside.sidebar a", { hasText: "E-0001" })).toBeVisible();
       await expect(page.locator("aside.sidebar a", { hasText: "E-0002" })).toBeVisible();
@@ -813,6 +816,33 @@ test.describe("sidebar — gap entry (M-0100/AC-1)", () => {
     const entry = page.locator("aside.sidebar .sidebar-top a").filter({ hasText: /^Gaps \(\d+\)/ });
     await entry.click();
     await expect(page).toHaveURL(/gaps\.html$/);
+  });
+});
+
+test.describe("sidebar — chip strip markup (M-0100/AC-2)", () => {
+  // The sidebar has its own chip strip mirroring the kind-index
+  // chip strip from M-0099 but using the `#sidebar-active` and
+  // `#sidebar-all` URL fragments so the two filters operate
+  // independently. Each chip is an <a> with matching id and href.
+
+  test("sidebar contains nav.chip-strip with Active and All chips", async ({ page }) => {
+    await page.goto(fileURL("index.html"));
+
+    const chipStrip = page.locator("aside.sidebar nav.chip-strip");
+    await expect(chipStrip).toHaveCount(1);
+
+    const chips = chipStrip.locator("a.chip");
+    await expect(chips).toHaveCount(2);
+
+    const active = chips.nth(0);
+    await expect(active).toHaveText("Active");
+    await expect(active).toHaveAttribute("href", "#sidebar-active");
+    await expect(active).toHaveAttribute("id", "sidebar-active");
+
+    const all = chips.nth(1);
+    await expect(all).toHaveText("All");
+    await expect(all).toHaveAttribute("href", "#sidebar-all");
+    await expect(all).toHaveAttribute("id", "sidebar-all");
   });
 });
 
