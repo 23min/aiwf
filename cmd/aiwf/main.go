@@ -480,11 +480,14 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly bool)
 	var treeAllow []string
 	treeStrict := false
 	tddStrict := false
+	archiveThreshold := 0
+	archiveThresholdSet := false
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
 		treeAllow = cfg.Tree.AllowPaths
 		treeStrict = cfg.Tree.Strict
 		tddStrict = cfg.TDD.Strict
+		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
 	}
 	metricsFindings, mErr := runTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
@@ -499,6 +502,14 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly bool)
 	// (and any future TDD-strict-covered finding) from warning to
 	// error so the pre-push hook blocks the push.
 	check.ApplyTDDStrict(findings, tddStrict)
+
+	// M-0088/AC-2: aiwf.yaml: archive.sweep_threshold bumps the
+	// aggregate `archive-sweep-pending` finding from warning to
+	// error when the pending-sweep count exceeds the consumer's
+	// declared ceiling. The count is the same value the rule's
+	// Message already names — computed once via CountPendingSweep
+	// so the bumper does not re-iterate the tree.
+	check.ApplyArchiveSweepThreshold(findings, archiveThreshold, archiveThresholdSet, check.CountPendingSweep(tr))
 
 	applyHintsLikeRun(findings)
 	check.SortFindings(findings)

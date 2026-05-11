@@ -124,9 +124,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | implement | feat(aiwf): display surfaces for archived entities — status, show, render (M-0087) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): aiwf archive verb (dry-run default, --apply, --kind) (M-0085) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): archive check rules and per-rule scoping (M-0086) |
 | 2026-05-11 | human/peter | implement | feat(aiwf): loader and id resolver span active+archive directories (M-0084) |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 open -> met |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0088/AC-8 --phase green -> done |
 

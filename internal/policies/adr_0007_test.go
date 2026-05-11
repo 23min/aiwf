@@ -35,6 +35,13 @@ func loadADR0007(t *testing.T) string {
 // or higher level. Returns "" if not found. The match is on a
 // prefix of the heading text (the literal headings carry trailing
 // rationale after `—`, so prefix match is enough).
+//
+// Fenced code blocks (triple-backtick spans) are skipped when
+// scanning for the closing heading: a bash-comment line like
+// `# Preview the planned moves` inside a ```` ```bash ```` block
+// is content, not a level-1 heading. Without this guard the
+// scanner truncates SKILL.md sections at the first hash-prefixed
+// line inside an example block.
 func extractMarkdownSection(body string, level int, headingPrefix string) string {
 	if level < 1 || level > 6 {
 		return ""
@@ -42,7 +49,15 @@ func extractMarkdownSection(body string, level int, headingPrefix string) string
 	prefix := strings.Repeat("#", level) + " "
 	lines := strings.Split(body, "\n")
 	start := -1
+	inFence := false
 	for i, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "```") {
+			inFence = !inFence
+			continue
+		}
+		if inFence {
+			continue
+		}
 		if strings.HasPrefix(line, prefix) {
 			rest := strings.TrimPrefix(line, prefix)
 			if strings.HasPrefix(rest, headingPrefix) {
@@ -55,7 +70,15 @@ func extractMarkdownSection(body string, level int, headingPrefix string) string
 		return ""
 	}
 	end := len(lines)
+	inFence = false
 	for i := start; i < len(lines); i++ {
+		if strings.HasPrefix(strings.TrimSpace(lines[i]), "```") {
+			inFence = !inFence
+			continue
+		}
+		if inFence {
+			continue
+		}
 		// Stop at any heading of equal or higher level (i.e.,
 		// fewer or equal `#` characters before the space).
 		hashes := 0
