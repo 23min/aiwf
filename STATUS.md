@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_257 entities · 0 errors · 5 warnings · run `aiwf check` for details_
+_257 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 > Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -135,18 +135,15 @@ _(no milestones)_
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | E-0030 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/epic.md | E-0030 body section \`## Goal\` is empty |
-| entity-body-empty | E-0030 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/epic.md | E-0030 body section \`## Scope\` is empty |
-| entity-body-empty | E-0030 | work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/epic.md | E-0030 body section \`## Out of scope\` is empty |
 | terminal-entity-not-archived | G-0059 | work/gaps/G-0059-branch-model-no-canonical-hierarchy-mapping.md | entity G-0059 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | add | aiwf add epic E-0030 'Branch model chokepoint: --branch flag, sequencing, isolation-escape finding' |
 | 2026-05-12 | human/peter | promote | aiwf promote G-0059 open -> addressed |
 | 2026-05-12 | human/peter | promote | aiwf promote ADR-0010 proposed -> accepted |
 | 2026-05-12 | human/peter | edit-body | aiwf edit-body ADR-0010 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0010 |
-| 2026-05-11 | human/peter | add | aiwf add adr ADR-0010 'Branch model: ritualized work on branches, author iteration on main' |
 
