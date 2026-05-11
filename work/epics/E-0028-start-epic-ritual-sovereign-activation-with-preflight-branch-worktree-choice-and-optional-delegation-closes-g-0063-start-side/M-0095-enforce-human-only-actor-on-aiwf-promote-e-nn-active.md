@@ -4,6 +4,23 @@ title: Enforce human-only actor on aiwf promote E-NN active
 status: draft
 parent: E-0028
 tdd: required
+acs:
+    - id: AC-1
+      title: non-human actor promoting epic to active is refused with override-hint error
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: human actor promoting epic to active succeeds without override
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: rule scoped to proposed-to-active edge; other epic transitions unaffected
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: rule scoped to epic kind; other kinds unaffected by sovereign-act rule
+      status: open
+      tdd_phase: red
 ---
 
 # M-0095 — Enforce human-only actor on `aiwf promote E-NN active`
@@ -38,3 +55,20 @@ This is a standalone kernel rule. It does not depend on M-0094 (drafted-mileston
 - G-0063 — preflight checks table, row 5.
 - CLAUDE.md *Provenance is principal × agent × scope* — the model this rule operationalizes.
 - `internal/verb/promote*.go` — verb path for the transition; existing `--force` handling.
+
+### AC-1 — non-human actor promoting epic to active is refused with override-hint error
+
+Invoking `aiwf promote <epic-id> active` with an actor that does not start with `human/` returns a Go error from `verb.Promote`. The error message references the new sovereign-act rule (so a reader understands *why* the verb refused) and points at the `--force --reason "..."` override path (so a sovereign actor knows the unblock path). Test drives `verb.Promote` directly with a non-human actor against an in-memory fixture; asserts non-nil error and substring presence of the override hint.
+
+### AC-2 — human actor promoting epic to active succeeds without override
+
+Invoking `aiwf promote <epic-id> active` with a `human/...` actor succeeds in default mode (no `--force`, no `--reason` required). The commit's standard trailers land (`aiwf-verb: promote`, `aiwf-entity: <epic-id>`, `aiwf-actor: human/...`). Test drives `verb.Promote` with a human actor end-to-end against a `proposed` epic; asserts no error, status flipped to `active`, trailer set well-formed.
+
+### AC-3 — rule scoped to proposed-to-active edge; other epic transitions unaffected
+
+The rule fires only on the `epic / proposed → active` edge. Other epic transitions executed by a non-human actor — `active → done`, `proposed → cancelled`, `active → cancelled`, `done → active` (with `--force`), etc. — are not refused by *this* rule (other rules may still apply via separate mechanisms). Table-driven test covering each non-`proposed-to-active` transition with a non-human actor; asserts the rule's error message does not appear.
+
+### AC-4 — rule scoped to epic kind; other kinds unaffected by sovereign-act rule
+
+The rule is scoped to `entity.KindEpic`. Non-human actors invoking promote on other kinds — milestone (`draft → in_progress`), contract (`proposed → active`), gap (`open → addressed`), ADR (`proposed → accepted`), decision — are not blocked by this rule. Table-driven test covering each non-epic kind reaching its respective active/accepted/in_progress/addressed state with a non-human actor; asserts no rule-fired error (other unrelated errors are tolerated; we assert the absence of the sovereign-act message).
+
