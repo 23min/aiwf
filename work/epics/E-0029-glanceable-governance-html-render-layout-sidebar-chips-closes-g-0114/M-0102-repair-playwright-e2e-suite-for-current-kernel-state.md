@@ -82,11 +82,26 @@ ACs added via `aiwf add ac M-0102` at start-milestone time. The observable-behav
 
 ## Work log
 
+### AC-1 — Fixture builds and runs against current kernel
+
+Fixture executes cleanly against current kernel · commit `9cd5955` · tests 40/40 reach assertion phase. Three rot layers addressed in one commit: (1) `repoRoot` resolver changed from 3-levels-up to 2-levels-up to match post-`a137132` repo layout; (2) `go build` target changed from `./tools/cmd/aiwf` to `./cmd/aiwf`; (3) hook-disable strategy switched from `core.hooksPath: /var/empty` (read-only) to a `mkdtempSync` writable empty hooks dir set after `aiwf init`. Also caught a fourth rot layer mid-work: G-0055 chokepoint (E-0016) requires `--tdd` on `aiwf add milestone` — added `--tdd none` to both fixture milestone-add calls, preserving the original "M-001 tests both met-direct and phase-walked AC rendering" intent.
+
+### AC-2 — All Playwright assertions match current rendered output
+
+Full suite green · commit `c5a80e6` · tests 40/40. Eight find-replace sweeps canonicalized narrow-legacy ID strings in `render.spec.ts` (`"E-01"` → `"E-0001"`, `"M-001"` → `"M-0001"`, and the analogous `E-02` / `M-002` and `.html`-suffixed forms). AC-* identifiers (single-digit, not padded) and the fixture's verb-invocation side (narrow input still tolerated per ADR-0008 parser) were intentionally left alone. `npx playwright test` from `e2e/playwright/` — 40 passed in 24.7s on a clean run.
+
 ## Decisions made during implementation
 
-- (none)
+- **Hook-disable strategy: writable empty dir set AFTER `aiwf init`.** Considered alternatives: (a) set writable dir BEFORE init (works but causes init to write hooks into the empty dir, where they sit unused — wasteful), (b) skip the hooks-disable entirely (slow, risks pre-commit reentrancy). The after-init writable-empty-dir approach lets `aiwf init` populate `.git/hooks/` as normal (where the hooks are simply ignored because hooksPath redirects elsewhere) and subsequent commits skip them cleanly. Documented at the call site.
+- **`--tdd none` preserves original M-001 intent.** Under tdd: required the fixture's direct-promote of `M-001/AC-1` to `met` triggers `acs-tdd-audit` as error. The original (pre-G-0055) fixture had no `--tdd` flag → effectively `none` → audit didn't fire. Passing `--tdd none` verbatim post-G-0055 chokepoint preserves that behavior exactly. The M-001 fixture continues to test BOTH the "AC met without phase walk" path (AC-1) and the "AC phase-walked" path (AC-2) in one milestone, which is the rendering scenario the test suite cares about.
+- **Fixture's verb-input narrow IDs stay unchanged.** Per ADR-0008 the parser tolerates narrow legacy widths on input. The fixture continues to send `--epic E-01`, `--epic M-001` etc.; the kernel canonicalizes on emit; tests assert canonical. Asymmetry is intentional — updating the verb inputs would be churn for no behavioral benefit.
 
 ## Validation
+
+- `npx playwright test` from `e2e/playwright/` — **40 passed (24.7s)**, chromium-only, headless. No flakes, no skips.
+- `aiwf check` — 0 errors, 2 `acs-tdd-audit` warnings on M-0102/AC-1 and AC-2 (expected; under tdd: advisory, met-without-phase-done is advisory-by-design, not a regression). Other warnings (G-0082, G-0083 archive-pending; provenance-untrailered-scope-undefined on the worktree branch's no-upstream) are pre-existing and unrelated to this milestone.
+- `go test -race ./...` — clean (pre-wrap run from the worktree).
+- Spot-check coverage: the existing `:target + :has()` tabs tests at `render.spec.ts:104..138` exercise CSS-driven computed-style behavior end-to-end; passing means the suite remains usable as the test surface for the upcoming layout / chip / sidebar / hierarchy milestones.
 
 ## Deferrals
 
@@ -94,7 +109,10 @@ ACs added via `aiwf add ac M-0102` at start-milestone time. The observable-behav
 
 ## Reviewer notes
 
-- (none)
+- The `acs-tdd-audit` warnings on AC-1 and AC-2 are intentional under tdd: advisory. The work was repair-shaped, not new-behavior-shaped — there is no meaningful "write failing test first" red phase for fixing assertions to match current rendered output. The audit fires as warning (not error) by design for `tdd: advisory`; accepting it is the right call.
+- The fixture's verb-input narrow IDs were deliberately left unchanged; this is a documented asymmetry, not an oversight (see *Decisions made*).
+- CI integration of the Playwright suite remains **deferred** per the epic Constraints. The suite is local-only; operator discipline is the chokepoint until a follow-up wires CI.
+- Future kernel changes that affect emitted output (rendered HTML structure, page filenames, ID format) will require parallel updates to this suite. The pattern of "kernel changes silently break Playwright" is the root issue surfaced here; a CI gate would catch it, but that gate is out of scope.
 
 ### AC-1 — Fixture builds and runs against current kernel
 
