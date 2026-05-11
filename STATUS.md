@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_227 entities · 0 errors · 4 warnings · run `aiwf check` for details_
+_227 entities · 0 errors · 2 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -106,8 +106,6 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-0090 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090 body section \`## Goal\` is empty |
-| entity-body-empty | M-0090 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090 body section \`## Acceptance criteria\` is empty |
 | entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## What's missing\` is empty |
 | entity-body-empty | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | G-0101 body section \`## Why it matters\` is empty |
 
@@ -115,9 +113,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add milestone M-0090 'aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0027 |
 | 2026-05-11 | human/peter | add | aiwf add epic E-0027 'Trailered merge commits from aiwfx-wrap-epic (closes G-0100)' |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0100 |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0100 -> 'aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing' |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
 
