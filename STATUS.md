@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_222 entities · 0 errors · 179 warnings · run `aiwf check` for details_
+_222 entities · 0 errors · 180 warnings · run `aiwf check` for details_
 
-> Sweep pending: 178 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 179 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -82,7 +82,6 @@ _(no milestones)_
 | G-0091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
 | G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
-| G-0098 | aiwf check default output dumps every leaf finding; per-code summary + --verbose would make the surface scannable, especially when an aggregate finding (e.g. archive-sweep-pending) already covers N leaves | M-0086 |
 | G-0099 | Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior |  |
 
 ## Warnings
@@ -267,14 +266,15 @@ _(no milestones)_
 | terminal-entity-not-archived | G-0094 | work/gaps/G-0094-github-repo-name-ai-workflow-v2-is-post-promotion-historical-mismatches-kernel-identity-aiwf-across-go-install-path-internal-version-proxy-queries-and-155-in-repo-references.md | entity G-0094 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0095 | work/gaps/G-0095-internal-policies-walker-doesn-t-exclude-claude-false-positive-flags-from-sibling-worktree-go-files.md | entity G-0095 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0096 | work/gaps/G-0096-aiwf-promote-doesn-t-require-resolver-pointer-on-resolution-class-transitions-back-fill-blocked-by-terminal-status-fsm.md | entity G-0096 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | entity G-0098 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0026 active -> done |
 | 2026-05-11 | human/peter | wrap | chore(E-0026): wrap epic — aiwf check per-code summary by default |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0026 proposed -> active |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 

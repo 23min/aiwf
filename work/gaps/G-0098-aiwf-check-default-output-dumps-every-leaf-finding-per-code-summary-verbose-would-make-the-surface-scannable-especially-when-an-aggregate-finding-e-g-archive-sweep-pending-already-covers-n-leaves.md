@@ -1,8 +1,10 @@
 ---
 id: G-0098
 title: aiwf check default output dumps every leaf finding; per-code summary + --verbose would make the surface scannable, especially when an aggregate finding (e.g. archive-sweep-pending) already covers N leaves
-status: open
+status: addressed
 discovered_in: M-0086
+addressed_by:
+    - E-0026
 ---
 
 ## What's missing
