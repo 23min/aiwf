@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_245 entities · 0 errors · 7 warnings · run `aiwf check` for details_
+_246 entities · 0 errors · 7 warnings · run `aiwf check` for details_
 
 > Sweep pending: 6 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -107,6 +107,7 @@ flowchart LR
 | G-0107 | reorganize cmd/aiwf into idiomatic per-verb packages |  |
 | G-0110 | gremlins --diff <ref> filter excludes new files entirely; manual mutation review needed for M-0094/95/96 | M-0097 |
 | G-0111 | Wrap-side ritual: scope ends before done, human-only on done, wrap-epic update | M-0096 |
+| G-0112 | STATUS.md pre-commit regen produces merge conflicts on a derived artifact |  |
 
 ## Warnings
 
