@@ -61,7 +61,7 @@ flowchart LR
   classDef ms_cancelled fill:#fbeaea,stroke:#c33,color:#000
 ```
 
-### E-0028 — Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side) _(proposed)_
+### E-0028 — Start-epic ritual: sovereign activation with preflight + delegation _(proposed)_
 
 - **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(draft)_ — tdd: required
 - **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(draft)_ — tdd: required
@@ -69,7 +69,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  E_0028["E-0028<br/>Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side)"]:::epic_proposed
+  E_0028["E-0028<br/>Start-epic ritual: sovereign activation with preflight + delegation"]:::epic_proposed
   M_0094["M-0094<br/>Add aiwf check finding epic-active-no-drafted-milestones"]:::ms_draft
   E_0028 --> M_0094
   M_0095["M-0095<br/>Enforce human-only actor on aiwf promote E-NN active"]:::ms_draft
@@ -137,9 +137,9 @@ _(none)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | retitle | aiwf retitle G-0059 -> 'Branch model: no canonical entity-hierarchy-to-git-branches mapping' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0079 -> 'aiwfx-plan-milestones plugin skill needs --depends-on documentation' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0092 -> 'No documented hierarchy of doc authority across docs/' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0063 -> 'No defined start-epic ritual; activation is bare FSM flip today' |
 | 2026-05-11 | human/peter | retitle | aiwf retitle G-0090 -> 'M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests' |
-| 2026-05-11 | human/peter | retitle | aiwf retitle G-0087 -> 'No aiwf-show embedded skill' |
 
