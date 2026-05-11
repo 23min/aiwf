@@ -1,6 +1,8 @@
 # aiwf status — 2026-05-11
 
-_242 entities · 0 errors · 0 warnings_
+_242 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+
+> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -127,11 +129,12 @@ flowchart LR
 | G-0103 | absolute-path leak lint | M-0089 |
 | G-0104 | Test-parallelism discipline: ship to consumers via wf-rituals or BYO? | E-0025 |
 | G-0107 | reorganize cmd/aiwf into idiomatic per-verb packages |  |
-| G-0108 | aiwf retitle should sync the on-disk slug, not just frontmatter title |  |
 
 ## Warnings
 
-_(none)_
+| Code | Entity | Path | Message |
+|------|--------|------|---------|
+| terminal-entity-not-archived | G-0108 | work/gaps/G-0108-aiwf-retitle-should-sync-the-on-disk-slug-not-just-frontmatter-title.md | entity G-0108 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 

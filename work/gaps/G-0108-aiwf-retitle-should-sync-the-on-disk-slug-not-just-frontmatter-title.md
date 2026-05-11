@@ -1,7 +1,9 @@
 ---
 id: G-0108
 title: aiwf retitle should sync the on-disk slug, not just frontmatter title
-status: open
+status: addressed
+addressed_by_commit:
+    - 8ab3f9f
 ---
 # Problem
 
