@@ -32,6 +32,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/23min/aiwf/internal/check"
 )
@@ -75,13 +76,108 @@ func Text(w io.Writer, findings []check.Finding) error {
 	}
 	errCount, warnCount := 0, 0
 	for i := range findings {
-		f := &findings[i]
-		switch f.Severity {
+		switch findings[i].Severity {
 		case check.SeverityError:
 			errCount++
 		case check.SeverityWarning:
 			warnCount++
 		}
+	}
+	if err := renderPerInstance(w, findings); err != nil {
+		return err
+	}
+	_, err := fmt.Fprintf(w, "\n%d findings (%d errors, %d warnings)\n", len(findings), errCount, warnCount)
+	return err
+}
+
+// TextSummary writes the default-mode text rendering of findings used
+// by `aiwf check` (without --verbose). Errors are rendered per
+// instance — identical to the full per-instance shape produced by
+// Text — because each error is per-instance-actionable. Warnings are
+// collapsed into a per-code summary:
+//
+//	<code> (warning) × N — <representative message>
+//
+// where N is the count of findings sharing that Code and the
+// representative message is the Message of the first finding in the
+// input slice with that code (per M-0089 *Constraints*: "the first
+// finding's Message field, verbatim").
+//
+// Summary lines are sorted by count descending, with ties broken
+// alphabetically by code (also pinned in *Constraints* — pinned here
+// so the golden files in the test suite don't drift).
+//
+// The footer line ("N findings (E errors, W warnings)") is unchanged
+// and reflects raw instance counts, not summary-line counts.
+func TextSummary(w io.Writer, findings []check.Finding) error {
+	if len(findings) == 0 {
+		_, err := fmt.Fprintln(w, "ok — no findings")
+		return err
+	}
+
+	// Partition: errors flow through the existing per-instance path;
+	// warnings collect into summary buckets keyed by Code.
+	var errors []check.Finding
+	type bucket struct {
+		code   string
+		count  int
+		sample string // first finding's Message (verbatim, per Constraints)
+	}
+	buckets := make(map[string]*bucket)
+	var bucketOrder []string // codes in first-seen order, used for stable iteration
+	errCount, warnCount := 0, 0
+
+	for i := range findings {
+		f := &findings[i]
+		switch f.Severity {
+		case check.SeverityError:
+			errCount++
+			errors = append(errors, *f)
+		case check.SeverityWarning:
+			warnCount++
+			b, ok := buckets[f.Code]
+			if !ok {
+				b = &bucket{code: f.Code, sample: f.Message}
+				buckets[f.Code] = b
+				bucketOrder = append(bucketOrder, f.Code)
+			}
+			b.count++
+		}
+	}
+
+	// Render errors per-instance using the same formatting Text uses.
+	if err := renderPerInstance(w, errors); err != nil {
+		return err
+	}
+
+	// Sort buckets: count desc, alphabetic tie-break.
+	sort.SliceStable(bucketOrder, func(i, j int) bool {
+		bi, bj := buckets[bucketOrder[i]], buckets[bucketOrder[j]]
+		if bi.count != bj.count {
+			return bi.count > bj.count
+		}
+		return bi.code < bj.code
+	})
+
+	for _, code := range bucketOrder {
+		b := buckets[code]
+		if _, err := fmt.Fprintf(w, "%s (warning) × %d — %s\n", b.code, b.count, b.sample); err != nil {
+			return err
+		}
+	}
+
+	_, err := fmt.Fprintf(w, "\n%d findings (%d errors, %d warnings)\n", len(findings), errCount, warnCount)
+	return err
+}
+
+// renderPerInstance writes the per-finding text rendering used by
+// both Text (verbose mode) and TextSummary (default mode, for the
+// errors slice). Extracted so the two callers stay byte-identical on
+// the per-instance path — AC-3 of M-0089 requires --verbose output
+// reproduce the pre-milestone behavior byte-for-byte.
+func renderPerInstance(w io.Writer, findings []check.Finding) error {
+	for i := range findings {
+		f := &findings[i]
 		code := f.Code
 		if f.Subcode != "" {
 			code = code + "/" + f.Subcode
@@ -105,8 +201,7 @@ func Text(w io.Writer, findings []check.Finding) error {
 			}
 		}
 	}
-	_, err := fmt.Fprintf(w, "\n%d findings (%d errors, %d warnings)\n", len(findings), errCount, warnCount)
-	return err
+	return nil
 }
 
 // JSON writes the envelope to w as a single JSON object. Pretty enables
