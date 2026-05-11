@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_237 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_238 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -64,12 +64,15 @@ flowchart LR
 ### E-0028 — Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side) _(proposed)_
 
 - **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(draft)_ — tdd: required
+- **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(draft)_ — tdd: required
 
 ```mermaid
 flowchart LR
   E_0028["E-0028<br/>Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side)"]:::epic_proposed
   M_0094["M-0094<br/>Add aiwf check finding epic-active-no-drafted-milestones"]:::ms_draft
   E_0028 --> M_0094
+  M_0095["M-0095<br/>Enforce human-only actor on aiwf promote E-NN active"]:::ms_draft
+  E_0028 --> M_0095
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
   classDef ms_done fill:#d8f5d8,stroke:#2a8a2a,color:#000
@@ -129,14 +132,16 @@ flowchart LR
 |------|--------|------|---------|
 | entity-body-empty | M-0094 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0094-add-aiwf-check-finding-epic-active-no-drafted-milestones.md | M-0094 body section \`## Goal\` is empty |
 | entity-body-empty | M-0094 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0094-add-aiwf-check-finding-epic-active-no-drafted-milestones.md | M-0094 body section \`## Acceptance criteria\` is empty |
+| entity-body-empty | M-0095 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md | M-0095 body section \`## Goal\` is empty |
+| entity-body-empty | M-0095 | work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md | M-0095 body section \`## Acceptance criteria\` is empty |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | add | aiwf add milestone M-0094 'Add aiwf check finding epic-active-no-drafted-milestones' |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0028 |
 | 2026-05-11 | human/peter | add | aiwf add epic E-0028 'Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side)' |
 | 2026-05-11 | human/peter | add | aiwf add ac M-0093 AC-1..AC-3 (3 criteria) |
-| 2026-05-11 | human/peter | add | aiwf add ac M-0092 AC-1..AC-4 (4 criteria) |
 
