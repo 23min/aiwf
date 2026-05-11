@@ -249,6 +249,16 @@ func idsUnique(t *tree.Tree) []Finding {
 		if entity.ActiveFormOf(branchPath) == entity.ActiveFormOf(tid.Path) {
 			continue
 		}
+		// G-0109: any other git-detected rename of the trunk-side path
+		// to the branch-side path is also "same entity moved," not a
+		// collision. Without this, a feature-branch slug rename of an
+		// existing entity produces a finding and the pre-push hook
+		// blocks the push that would resolve it. TrunkRenames is
+		// precomputed by the cmd dispatcher (gitops.RenamesFromRef) and
+		// keyed by trunk-side path → branch-side path.
+		if newPath, ok := t.TrunkRenames[tid.Path]; ok && newPath == branchPath {
+			continue
+		}
 		findings = append(findings, Finding{
 			Code:     "ids-unique",
 			Severity: SeverityError,

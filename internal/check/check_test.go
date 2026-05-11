@@ -185,6 +185,58 @@ func TestIDsUnique_NonArchivePathDivergenceStillFires(t *testing.T) {
 	}
 }
 
+// TestIDsUnique_GitRenameNotCollision pins G-0109: when the cmd
+// dispatcher has reported (via gitops.RenamesFromRef) that the
+// trunk-side path was renamed to the branch-side path between the
+// trunk ref and the working tree, the same-id-different-path pair is
+// the same entity moved by `aiwf rename`, not a duplicate id
+// allocation. Without this exception, every slug-rename batch on a
+// feature branch produces a trunk-collision finding per renamed entity
+// and the pre-push hook blocks the push that would resolve it — the
+// catch-22 the gap documents.
+func TestIDsUnique_GitRenameNotCollision(t *testing.T) {
+	tr := makeTree(
+		&entity.Entity{ID: "G-0035", Kind: entity.KindGap, Path: "work/gaps/G-0035-short-new-slug.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-0035", Path: "work/gaps/G-0035-very-long-historical-slug-that-was-the-original-shape.md"},
+	}
+	tr.TrunkRenames = map[string]string{
+		"work/gaps/G-0035-very-long-historical-slug-that-was-the-original-shape.md": "work/gaps/G-0035-short-new-slug.md",
+	}
+	got := idsUnique(tr)
+	if len(got) != 0 {
+		t.Errorf("expected no findings (git-detected rename is not a collision), got %+v", got)
+	}
+}
+
+// TestIDsUnique_GitRenameToDifferentPathStillFires pins the negative
+// case: a rename map entry whose value points to some *other* path
+// must not silence the finding for a same-id collision at an unrelated
+// branch path. Otherwise a stale rename record could mask a real
+// duplicate-id allocation made elsewhere on the branch.
+func TestIDsUnique_GitRenameToDifferentPathStillFires(t *testing.T) {
+	tr := makeTree(
+		&entity.Entity{ID: "G-0035", Kind: entity.KindGap, Path: "work/gaps/G-0035-actually-here.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-0035", Path: "work/gaps/G-0035-trunk.md"},
+	}
+	// Rename map says trunk path moved to a DIFFERENT branch path. The
+	// working-tree entity is at a third location — the rename exception
+	// must not apply, and the collision finding must still fire.
+	tr.TrunkRenames = map[string]string{
+		"work/gaps/G-0035-trunk.md": "work/gaps/G-0035-renamed-elsewhere.md",
+	}
+	got := idsUnique(tr)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 finding (rename target is different from branch path), got %d: %+v", len(got), got)
+	}
+	if got[0].Subcode != "trunk-collision" {
+		t.Errorf("Subcode = %q, want trunk-collision", got[0].Subcode)
+	}
+}
+
 func TestIDsUnique_TrunkOnlyID_NoFinding(t *testing.T) {
 	// Trunk has G-007; the working tree doesn't. That is not a
 	// collision — the working tree just hasn't pulled, or has elected

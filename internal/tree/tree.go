@@ -80,6 +80,18 @@ type Tree struct {
 	// empty in tests that don't set it (the verb falls back to
 	// today's "ambiguous, pass a path" error in that case).
 	TrunkRef string
+	// TrunkRenames maps a pre-rename path on TrunkRef to the
+	// corresponding post-rename path in the working tree, as detected
+	// by `git diff -M` (gitops.RenamesFromRef). Used by the ids-unique
+	// trunk-collision check to recognize that a branch-side slug
+	// rename of an existing entity is the same entity moved, not a
+	// duplicate id allocation (G-0109).
+	//
+	// Populated alongside TrunkIDs by the cmd dispatcher. Tests that
+	// build trees in-memory leave it nil, in which case the rule
+	// degrades to today's behavior (every different-path same-id pair
+	// surfaces as a collision, modulo the archive-sweep exception).
+	TrunkRenames map[string]string
 	// Strays holds repo-relative file paths (forward-slash form) that
 	// the loader walked under work/* but could not classify as a
 	// recognized entity file via entity.PathKind. The tree-discipline
