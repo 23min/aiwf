@@ -111,7 +111,13 @@ Added `TestEpicActiveNoDraftedMilestones_IgnoresMilestonesUnderOtherEpics` cover
 
 ## Validation
 
-(pasted at wrap)
+- `go test -race -count=1 ./...` — all packages green; zero FAIL lines.
+- `golangci-lint run ./...` — 0 issues.
+- `go test -coverprofile=… ./internal/check/` — `epicActiveNoDraftedMilestones` at 100.0% statement coverage; branch-coverage audit walked the rule's `if/continue/break` arms and matched each to a named test (AC-1 positive, AC-2 has-draft, AC-3 non-active status, AC-4 hint, plus the `IgnoresMilestonesUnderOtherEpics` branch-coverage extra).
+- `aiwf check` (kernel planning tree from the worktree) — clean modulo the benign `provenance-untrailered-scope-undefined` warning (worktree branch has no upstream; expected pre-push).
+- Discoverability gate — `TestPolicy_FindingCodesAreDiscoverable` passes against the new code's row in `internal/skills/embedded/aiwf-check/SKILL.md`.
+- Cross-binary regression — `cmd/aiwf` binary tests (`TestBinary_CheckVerbose_ByteIdenticalToBaseline`, `TestBinary_CheckJSON*`, `TestBinary_CheckDefault_SummarizesWarnings`) pass with regenerated goldens + updated expected-counts (10 errors, 9 warnings, 19 findings for the messy fixture after the E-02-no-drafts addition).
+- `wf-doc-lint` (scoped to the change-set) — no broken references, no removed-feature docs, no doc-side drift.
 
 ## Deferrals
 
@@ -119,4 +125,6 @@ Added `TestEpicActiveNoDraftedMilestones_IgnoresMilestonesUnderOtherEpics` cover
 
 ## Reviewer notes
 
-- (none yet)
+- **Reading-A semantics.** The rule fires whenever an `active` epic has zero `draft` milestones, *not* "zero non-terminal." Late in an epic (all milestones in flight or done, none drafted) the warning persists as a forward-motion nudge — drafting the next milestone or wrapping the epic clears it. This was an explicit design choice (planning conversation, Decision 1 of the M-0094 readiness Q&A); reading-B and reading-C were rejected for, respectively, rule-name/semantics drift and the kernel-chokepoint principle.
+- **Cross-pollination in the messy fixture.** Before this milestone, the messy fixture had two epics sharing id `E-01` (the `ids-unique` collision case). My rule's parent-match logic treats both epics as having the *same* drafted milestones (M-001/M-002 with `parent: E-01`), so neither fires. A separate `E-02-no-drafts/epic.md` was added so the rule has a clean firing case. This is the right shape: the kernel correctly avoids overfiring on the ambiguous-id case; the fixture's job is to give every documented code a non-ambiguous trigger.
+- **Trailer convention for the wrap commit.** Per the M-0089 precedent (commit `de94cf9`), the wrap commit's trailers are `aiwf-verb: implement`, `aiwf-entity: M-0094`, `aiwf-actor: human/<id>`. The `implement` verb is a synthetic trailer-only marker (no CLI surface) signaling "this commit is the implementation work for this entity." Documented here so the next milestone doesn't re-derive it.
