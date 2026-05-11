@@ -123,7 +123,7 @@ flowchart LR
 | G-0091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
 | G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
-| G-0099 | Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior |  |
+| G-0099 | Worktree isolation must be a parent-side precondition, not an Agent kwarg honor |  |
 | G-0100 | aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing | M-0089 |
 | G-0103 | absolute-path leak lint | M-0089 |
 | G-0104 | Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy | E-0025 |
