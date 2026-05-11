@@ -272,9 +272,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote E-0026 active -> done |
 | 2026-05-11 | human/peter | wrap | chore(E-0026): wrap epic — aiwf check per-code summary by default |
 | 2026-05-11 | human/peter | promote | aiwf promote E-0026 proposed -> active |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0099 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0089 in_progress -> done |
 

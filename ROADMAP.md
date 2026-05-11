@@ -270,7 +270,7 @@ Convert the Go test suite from serial-with-per-test-setup to parallel-with-share
 
 _No milestones yet._
 
-## E-0026 — aiwf check per-code summary by default (closes G-0098) (proposed)
+## E-0026 — aiwf check per-code summary by default (closes G-0098) (done)
 
 ### Goal
 
