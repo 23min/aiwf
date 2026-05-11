@@ -108,6 +108,14 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		if err := requireResolverForResolutionClass(e.Kind, newStatus, opts); err != nil {
 			return nil, err
 		}
+		// M-0095: the `epic / proposed → active` edge is a sovereign
+		// act per G-0063. Non-human actors are refused; --force is the
+		// explicit override (and itself enforces human-only via the
+		// existing provenance coherence rule, so non-human + --force
+		// already fails at the coherence chokepoint).
+		if err := requireHumanActorForEpicActivation(e.Kind, newStatus, actor); err != nil {
+			return nil, err
+		}
 	}
 
 	modified := *e

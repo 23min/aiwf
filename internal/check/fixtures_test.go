@@ -67,6 +67,7 @@ func TestFixture_Messy(t *testing.T) {
 		"titles-nonempty",
 		"adr-supersession-mutual",
 		"gap-resolved-has-resolver",
+		"epic-active-no-drafted-milestones",
 	}
 	var missing []string
 	for _, code := range expected {

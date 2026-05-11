@@ -82,6 +82,8 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, titlesNonempty(t)...)
 	findings = append(findings, adrSupersessionMutual(t)...)
 	findings = append(findings, gapResolvedHasResolver(t)...)
+	// M-0094: epic-active preflight signal per G-0063.
+	findings = append(findings, epicActiveNoDraftedMilestones(t)...)
 	// I2: AC and TDD checks.
 	findings = append(findings, acsShape(t)...)
 	findings = append(findings, acsBodyCoherence(t)...)

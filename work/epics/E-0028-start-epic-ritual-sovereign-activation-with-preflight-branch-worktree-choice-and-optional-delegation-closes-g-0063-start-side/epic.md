@@ -1,7 +1,7 @@
 ---
 id: E-0028
 title: 'Start-epic ritual: sovereign activation with preflight + delegation'
-status: proposed
+status: done
 ---
 
 # E-0028 — Start-epic ritual
@@ -88,6 +88,7 @@ Prior work in E-0017 already shipped the kind-generalized `entity-body-empty` fi
 - [M-0094](M-0094-add-aiwf-check-finding-epic-active-no-drafted-milestones.md) — `epic-active-no-drafted-milestones` check rule (kernel). · depends on: —
 - [M-0095](M-0095-enforce-human-only-actor-on-aiwf-promote-e-nn-active.md) — Sovereign-act enforcement on `aiwf promote E-NN active`. · depends on: —
 - [M-0096](M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md) — `aiwfx-start-epic` skill (fixture + drift-check + ACs). · depends on: M-0094, M-0095
+- [M-0097](M-0097-close-m-0094-95-96-verification-seams-m-0095-automation-audit-chokepoint-and-ac-5-drift-comparator.md) — Close verification seams: M-0095 audit chokepoint + AC-5 drift comparator. · depends on: M-0094, M-0095, M-0096
 
 ## ADRs produced (optional)
 
