@@ -10,7 +10,7 @@ _239 entities · 0 errors · 8 warnings · run `aiwf check` for details_
 
 - ✓ **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(done)_ — ACs 4/4 met — tdd: required
 - ✓ **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(done)_ — ACs 4/4 met — tdd: required
-- → **M-0096** — Ship aiwfx-start-epic skill with worktree and branch preflight prompts _(in_progress)_ — ACs 3/5 met (2 open) — tdd: required
+- → **M-0096** — Ship aiwfx-start-epic skill with worktree and branch preflight prompts _(in_progress)_ — ACs 4/5 met (1 open) — tdd: required
 
 ```mermaid
 flowchart LR
@@ -19,7 +19,7 @@ flowchart LR
   E_0028 --> M_0094
   M_0095["M-0095 (4/4)<br/>Enforce human-only actor on aiwf promote E-NN active"]:::ms_done
   E_0028 --> M_0095
-  M_0096["M-0096 (3/5)<br/>Ship aiwfx-start-epic skill with worktree and branch preflight prompts"]:::ms_in_progress
+  M_0096["M-0096 (4/5)<br/>Ship aiwfx-start-epic skill with worktree and branch preflight prompts"]:::ms_in_progress
   E_0028 --> M_0096
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -145,9 +145,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-4 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-4 --phase red -> green |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-3 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-3 --phase green -> done |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-3 --phase red -> green |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0096/AC-2 open -> met |
 
