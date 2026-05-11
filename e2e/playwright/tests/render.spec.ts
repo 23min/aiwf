@@ -510,6 +510,40 @@ test.describe("layout — viewport-fill (M-0098/AC-1)", () => {
   });
 });
 
+test.describe("layout — sidebar width (M-0098/AC-2)", () => {
+  // The sidebar widens from the original 220px to a target value
+  // that provides comfortable horizontal room for the brand mark,
+  // top-section entries (Project status / Overview), and — when
+  // M-0100 lands — the gaps-block with active count. ~30% wider
+  // than the original puts the target near 285px (user-confirmed:
+  // 285px fixed).
+  //
+  // The test asserts the computed width across several viewport
+  // widths to confirm a fixed value, not a fluid one. If a future
+  // iteration switches to clamp(), the expected value would change
+  // by viewport — currently it's stable.
+  const SIDEBAR_WIDTH = 285;
+
+  test("sidebar column resolves to target width at all viewport widths", async ({ page }) => {
+    for (const width of [1280, 1920, 2560]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(fileURL("index.html"));
+
+      // .sidebar's computed width must match the target. The .layout
+      // grid drives this via grid-template-columns; we read it off
+      // the rendered element rather than the CSS rule so any future
+      // wrapping (e.g. extra padding/margin) is caught.
+      const sidebarWidth = await page.locator(".sidebar").evaluate(
+        (el) => el.getBoundingClientRect().width,
+      );
+      expect(
+        Math.round(sidebarWidth),
+        `sidebar width at viewport ${width}px should be ${SIDEBAR_WIDTH}px`,
+      ).toBe(SIDEBAR_WIDTH);
+    }
+  });
+});
+
 test.describe("link integrity", () => {
   test("every internal href resolves to a file or in-page anchor", async ({ page }) => {
     for (const path of ["index.html", "E-0001.html", "E-0002.html", "M-0001.html", "M-0002.html"]) {
