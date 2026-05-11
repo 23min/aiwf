@@ -1,6 +1,6 @@
 ---
 id: G-0104
-title: Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy
+title: 'Test-parallelism discipline: ship to consumers via wf-rituals or BYO?'
 status: open
 discovered_in: E-0025
 ---

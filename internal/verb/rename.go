@@ -32,7 +32,12 @@ import (
 // Returns a Go error for "couldn't even start": id not found, slug
 // produces an invalid path, source path missing on disk. Tree-level
 // findings caused by the move are returned in Result.Findings.
-func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string) (*Result, error) {
+// slugMaxLength caps the rewritten slug per
+// `entities.title_max_length` (G-0102, kernel default 80). Title and
+// slug share the same length budget so on-disk filenames and
+// frontmatter titles stay in sync. Pass 0 from tests that don't care
+// about cap policy.
+func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMaxLength int) (*Result, error) {
 	_ = ctx
 	if entity.IsCompositeID(id) {
 		return renameAC(t, id, newSlug, actor)
@@ -44,6 +49,9 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string) (*Resu
 	cleanSlug, dropped := entity.SlugifyDetailed(newSlug)
 	if cleanSlug == "" {
 		return nil, fmt.Errorf("new slug %q is empty after normalization", newSlug)
+	}
+	if err := entity.ValidateSlug(cleanSlug, slugMaxLength); err != nil {
+		return nil, err
 	}
 	var slugNotices []check.Finding
 	if len(dropped) > 0 {

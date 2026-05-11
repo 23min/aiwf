@@ -1,6 +1,6 @@
 ---
 id: G-0088
-title: Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-0079 did
+title: Skill-coverage policy doesn't police plugin skills under aiwf-extensions/
 status: open
 discovered_in: M-0079
 ---

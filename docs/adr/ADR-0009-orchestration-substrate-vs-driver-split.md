@@ -1,13 +1,13 @@
 ---
 id: ADR-0009
-title: 'Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition'
+title: 'Orchestration substrate: substrate-vs-driver split with trailer-only events'
 status: proposed
 ---
 # ADR-0009 — Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition
 
 ## Context
 
-The orchestration of LLM subagents over aiwf entities (parallel TDD cycles, builder/reviewer pipelines, code-review and security-audit roles, doc-gardening passes, etc.) needs a clear split between the *substrate* aiwf provides and the *driver* an external orchestrator runs against. The exploratory design in [`docs/pocv3/design/agent-orchestration.md`](../pocv3/design/agent-orchestration.md) names three load-bearing choices about how that split is drawn. Each has been informally settled inside the design doc but never ratified; each is cited by subsequent work ([`parallel-tdd-subagents.md`](../pocv3/design/parallel-tdd-subagents.md), the E-0019 scope) as if it were ratified; and one of them (isolation handling) has now surfaced a concrete failure mode in a real session — [G-0099](../../work/gaps/G-0099-orchestration-design-s-worktree-isolation-depends-on-agent-kwarg-honor-materialisation-should-be-a-parent-side-precondition-git-worktree-add-check-git-worktree-list-invoke-agent-with-path-so-isolation-does-not-depend-on-llm-harness-behavior.md).
+The orchestration of LLM subagents over aiwf entities (parallel TDD cycles, builder/reviewer pipelines, code-review and security-audit roles, doc-gardening passes, etc.) needs a clear split between the *substrate* aiwf provides and the *driver* an external orchestrator runs against. The exploratory design in [`docs/pocv3/design/agent-orchestration.md`](../pocv3/design/agent-orchestration.md) names three load-bearing choices about how that split is drawn. Each has been informally settled inside the design doc but never ratified; each is cited by subsequent work ([`parallel-tdd-subagents.md`](../pocv3/design/parallel-tdd-subagents.md), the E-0019 scope) as if it were ratified; and one of them (isolation handling) has now surfaced a concrete failure mode in a real session — [G-0099](../../work/gaps/G-0099-worktree-isolation-parent-side-precondition.md).
 
 This ADR records the three choices so they have a named home, are cross-linked from the design doc, and have a single page reviewers can read to see what aiwf's orchestration model commits to. The implementation epic (E-0019) consumes these decisions; the design doc continues to carry the long-form rationale and worked examples.
 

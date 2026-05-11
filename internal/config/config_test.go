@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -907,6 +908,85 @@ func TestArchive_BlockRoundTrip(t *testing.T) {
 	}
 	if cfg2.Archive.SweepThreshold == nil || *cfg2.Archive.SweepThreshold != 12 {
 		t.Errorf("round-trip: SweepThreshold = %v, want &12", cfg2.Archive.SweepThreshold)
+	}
+}
+
+// TestEntityTitleMaxLength_DefaultUnset: no `entities:` block; getter
+// returns DefaultEntityTitleMaxLength. G-0102 — the cap exists by
+// kernel default; consumers override deliberately, not by accident.
+func TestEntityTitleMaxLength_DefaultUnset(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("hosts: [claude-code]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Entities.TitleMaxLength != nil {
+		t.Errorf("Entities.TitleMaxLength = %v, want nil (absent)", *cfg.Entities.TitleMaxLength)
+	}
+	if got := cfg.EntityTitleMaxLength(); got != DefaultEntityTitleMaxLength {
+		t.Errorf("EntityTitleMaxLength() = %d, want %d", got, DefaultEntityTitleMaxLength)
+	}
+}
+
+// TestEntityTitleMaxLength_ExplicitOverride: a consumer who wants
+// longer slugs overrides the kernel default. Verifies the *int
+// indirection reads through and the getter returns the configured
+// value.
+func TestEntityTitleMaxLength_ExplicitOverride(t *testing.T) {
+	root := t.TempDir()
+	contents := []byte("entities:\n  title_max_length: 120\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Entities.TitleMaxLength == nil {
+		t.Fatal("Entities.TitleMaxLength = nil, want &120")
+	}
+	if *cfg.Entities.TitleMaxLength != 120 {
+		t.Errorf("*Entities.TitleMaxLength = %d, want 120", *cfg.Entities.TitleMaxLength)
+	}
+	if got := cfg.EntityTitleMaxLength(); got != 120 {
+		t.Errorf("EntityTitleMaxLength() = %d, want 120", got)
+	}
+}
+
+// TestEntityTitleMaxLength_NonPositiveFallsBackToDefault: a consumer
+// who tries to disable the cap with `0` or a negative value gets the
+// kernel default instead. Documented in the getter's doc comment;
+// pinned here so a future tweak can't accidentally honor the
+// disable-attempt.
+func TestEntityTitleMaxLength_NonPositiveFallsBackToDefault(t *testing.T) {
+	for _, val := range []int{0, -1, -100} {
+		root := t.TempDir()
+		contents := []byte(fmt.Sprintf("entities:\n  title_max_length: %d\n", val))
+		if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := Load(root)
+		if err != nil {
+			t.Fatalf("Load: %v", err)
+		}
+		if got := cfg.EntityTitleMaxLength(); got != DefaultEntityTitleMaxLength {
+			t.Errorf("EntityTitleMaxLength() with configured=%d = %d, want %d", val, got, DefaultEntityTitleMaxLength)
+		}
+	}
+}
+
+// TestEntityTitleMaxLength_NilReceiver: getter on a nil Config returns
+// the default, matching ArchiveSweepThreshold_NilReceiver's
+// nil-tolerance for the same call-site reason (the verb dispatcher
+// may reach the getter before Load succeeds).
+func TestEntityTitleMaxLength_NilReceiver(t *testing.T) {
+	var cfg *Config
+	if got := cfg.EntityTitleMaxLength(); got != DefaultEntityTitleMaxLength {
+		t.Errorf("nil-receiver EntityTitleMaxLength() = %d, want %d", got, DefaultEntityTitleMaxLength)
 	}
 }
 

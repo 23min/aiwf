@@ -146,12 +146,13 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 	}
 
 	opts := verb.AddOptions{
-		EpicID:        epicID,
-		TDD:           tddPolicy,
-		DiscoveredIn:  discoveredIn,
-		BindValidator: bindValidator,
-		BindSchema:    bindSchema,
-		BindFixtures:  bindFixtures,
+		EpicID:         epicID,
+		TDD:            tddPolicy,
+		DiscoveredIn:   discoveredIn,
+		BindValidator:  bindValidator,
+		BindSchema:     bindSchema,
+		BindFixtures:   bindFixtures,
+		TitleMaxLength: configuredTitleMaxLength(rootDir),
 	}
 	opts.RelatesTo = splitCommaList(relatesTo)
 	opts.LinkedADRs = splitCommaList(linkedADRs)
@@ -820,7 +821,7 @@ func runRenameCmd(id, newSlug, actor, principal, root string) int {
 		fmt.Fprintf(os.Stderr, "aiwf rename: loading tree: %v\n", err)
 		return exitInternal
 	}
-	result, err := verb.Rename(ctx, tr, id, newSlug, actorStr)
+	result, err := verb.Rename(ctx, tr, id, newSlug, actorStr, configuredTitleMaxLength(rootDir))
 	pctx := provenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),

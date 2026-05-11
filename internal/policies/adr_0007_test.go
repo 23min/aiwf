@@ -1,19 +1,22 @@
 package policies
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/tree"
 )
 
-// adr0007Path is the canonical relative path to the ADR-0007 file.
-// Anchored as a constant so the tests fail loudly with a single
-// rename target if the slug ever changes.
-const adr0007Path = "docs/adr/ADR-0007-planning-conversation-skills-rituals-plugin-placement-pure-skill-first-kernel-verb-only-if-usage-demands-it.md"
-
-// loadADR0007 reads ADR-0007 from disk relative to the repo root.
+// loadADR0007 reads ADR-0007 from disk by resolving the id through
+// the loader (per CLAUDE.md *Testing* §"Policy tests that read entity
+// files must resolve via the loader"). This survives rename and
+// archive sweeps; an earlier hardcoded-path constant broke when
+// ADR-0007's slug was shortened for the G-0102 cap.
+//
 // The tests are seam-tests against the live document — they assert
 // the doctrinal claims M-078's ACs require, scoped to the relevant
 // markdown section. Per CLAUDE.md *Testing* §"Substring assertions
@@ -22,9 +25,17 @@ const adr0007Path = "docs/adr/ADR-0007-planning-conversation-skills-rituals-plug
 func loadADR0007(t *testing.T) string {
 	t.Helper()
 	root := repoRoot(t)
-	data, err := os.ReadFile(filepath.Join(root, adr0007Path))
+	tr, _, err := tree.Load(context.Background(), root)
 	if err != nil {
-		t.Fatalf("loading %s: %v", adr0007Path, err)
+		t.Fatalf("tree.Load: %v", err)
+	}
+	e := tr.ByID("ADR-0007")
+	if e == nil {
+		t.Fatal("ADR-0007 not found in tree (active or archive)")
+	}
+	data, err := os.ReadFile(filepath.Join(root, e.Path))
+	if err != nil {
+		t.Fatalf("reading ADR-0007 at %s: %v", e.Path, err)
 	}
 	return string(data)
 }

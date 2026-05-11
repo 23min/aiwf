@@ -117,6 +117,97 @@ func HasRef(ctx context.Context, workdir, ref string) (bool, error) {
 	return true, nil
 }
 
+// RenamesFromRef returns the set of file renames committed on HEAD
+// since it diverged from ref — i.e., renames in commits reachable from
+// HEAD but not from ref. Keys are pre-rename paths, values are post-
+// rename paths (both repo-relative, slash-separated).
+//
+// Used by `aiwf check`'s ids-unique trunk-collision rule (G-0109) so a
+// feature-branch slug rename of an existing entity is recognized as
+// the same entity moved, not a duplicate id allocation. Without this,
+// any rename-heavy cleanup on a feature branch produces a finding per
+// renamed entity and blocks `git push` via the pre-push hook — the
+// catch-22 the gap documents.
+//
+// The scope is deliberately **merge-base(HEAD, ref)..HEAD**, not
+// `ref..HEAD` or `ref` vs the working tree. The merge-base scoping
+// matters for the G37 case the trunk-collision rule was originally
+// designed to catch: two parallel clones each independently allocate
+// the same id at different slug-derived paths. Comparing ref's tree
+// to HEAD's tree (or to the working tree) sees both sides' add+delete
+// pair and git's similarity heuristic matches them as a rename, even
+// though no rename ever happened. Scoping to merge-base..HEAD only
+// surfaces the renames *this branch* committed; the other clone's
+// add isn't in this branch's history at all and can't be misread as
+// a rename.
+//
+// Returns an empty map (not nil) when no renames are detected. Returns
+// (nil, nil) when ref does not resolve, when HEAD has no commits, or
+// when ref and HEAD share no common ancestor — in each case the
+// trunk-collision rule already degrades to "no cross-tree view" so
+// the empty answer is the correct one.
+//
+// `-z` is required for safe parsing: file paths can legally contain
+// any byte except NUL, and the default newline-separated output
+// breaks on paths with embedded tabs or newlines.
+func RenamesFromRef(ctx context.Context, workdir, ref string) (map[string]string, error) {
+	exists, err := HasRef(ctx, workdir, ref)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, nil
+	}
+	headExists, err := HasRef(ctx, workdir, "HEAD")
+	if err != nil {
+		return nil, err
+	}
+	if !headExists {
+		return nil, nil
+	}
+	mbOut, err := output(ctx, workdir, "merge-base", "HEAD", ref)
+	if err != nil {
+		// No common ancestor (unrelated histories) is a legitimate
+		// "no cross-tree view" — return an empty map rather than
+		// erroring. Other failures (bad workdir, etc.) propagate.
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return map[string]string{}, nil
+		}
+		return nil, fmt.Errorf("finding merge-base of HEAD and %s: %w", ref, err)
+	}
+	mergeBase := strings.TrimSpace(mbOut)
+	if mergeBase == "" {
+		return map[string]string{}, nil
+	}
+	out, err := output(ctx, workdir, "diff", "-M", "--diff-filter=R", "--name-status", "-z", mergeBase, "HEAD")
+	if err != nil {
+		return nil, fmt.Errorf("detecting renames since merge-base with %s: %w", ref, err)
+	}
+	renames := make(map[string]string)
+	if out == "" {
+		return renames, nil
+	}
+	// With -z, each rename entry serializes as three NUL-separated
+	// fields: "R<score>", oldPath, newPath. A trailing NUL after the
+	// last newPath is typical but not guaranteed; TrimRight handles
+	// either form.
+	fields := strings.Split(strings.TrimRight(out, "\x00"), "\x00")
+	for i := 0; i+2 < len(fields); i += 3 {
+		status := fields[i]
+		if status == "" || status[0] != 'R' {
+			continue
+		}
+		oldPath := fields[i+1]
+		newPath := fields[i+2]
+		if oldPath == "" || newPath == "" {
+			continue
+		}
+		renames[oldPath] = newPath
+	}
+	return renames, nil
+}
+
 // LsTreePaths returns the file paths under ref's tree, optionally
 // filtered to those whose slash-normalized path begins with any of the
 // supplied prefixes. Pass no prefixes to list every path. Paths are

@@ -72,6 +72,7 @@ type Config struct {
 	Tree              Tree     `yaml:"tree,omitempty"`
 	Doctor            Doctor   `yaml:"doctor,omitempty"`
 	Archive           Archive  `yaml:"archive,omitempty"`
+	Entities          Entities `yaml:"entities,omitempty"`
 }
 
 // Doctor carries opt-in configuration consumed by `aiwf doctor`.
@@ -229,6 +230,43 @@ func (c *Config) ArchiveSweepThreshold() (n int, set bool) {
 		return 0, false
 	}
 	return *c.Archive.SweepThreshold, true
+}
+
+// Entities carries the consumer's policy for entity-shape constraints
+// the kernel applies when writing new entity files. TitleMaxLength
+// caps the length of `--title` accepted by mutating verbs that write
+// titles (`aiwf add`, `aiwf retitle`, `aiwf import`) and the length
+// of `<new-slug>` accepted by `aiwf rename`. Title and slug share the
+// same budget so on-disk filenames and frontmatter titles stay in
+// sync — every kernel render surface (CLI tables, HTML render,
+// git-log subjects, `aiwf history`, filesystem) degrades uniformly
+// rather than diverging.
+//
+// Default behavior (empty Entities block, or absent
+// entities.title_max_length): the cap is DefaultEntityTitleMaxLength
+// (80 chars — the Conventional Commits subject-line convention).
+// Consumers who want longer or shorter caps override here per
+// G-0102.
+type Entities struct {
+	TitleMaxLength *int `yaml:"title_max_length,omitempty"`
+}
+
+// DefaultEntityTitleMaxLength is the kernel-default cap on entity
+// title (and slug) length. 80 chars matches the Conventional Commits
+// subject-line convention so an entity-touching commit subject that
+// quotes the title verbatim still fits within typical commit-subject
+// guidelines.
+const DefaultEntityTitleMaxLength = 80
+
+// EntityTitleMaxLength returns the configured title-length cap or
+// the kernel default when unset. A non-positive configured value is
+// treated as the default — the cap exists to prevent filesystem and
+// table-layout pathologies, not to enable disabling them.
+func (c *Config) EntityTitleMaxLength() int {
+	if c == nil || c.Entities.TitleMaxLength == nil || *c.Entities.TitleMaxLength <= 0 {
+		return DefaultEntityTitleMaxLength
+	}
+	return *c.Entities.TitleMaxLength
 }
 
 // StatusMdAutoUpdate returns whether the consumer wants the

@@ -1,7 +1,9 @@
 ---
 id: G-0102
 title: Entity titles uncapped; long titles break filesystem paths, status HTML layout, and CLI table columns
-status: open
+status: addressed
+addressed_by_commit:
+    - 37edd20
 ---
 ## What's missing
 

@@ -29,6 +29,14 @@ type ImportOptions struct {
 	// explicit id that already exists in the tree. Empty defaults
 	// to "fail".
 	OnCollision string
+	// TitleMaxLength caps each manifest entry's title length. The
+	// CLI dispatcher sets it from `aiwf.yaml`'s
+	// `entities.title_max_length` (default 80 per G-0102). Zero or
+	// negative means "uncapped" — used by tests that don't thread a
+	// config. An import is rejected atomically if any entry's title
+	// exceeds the cap; the kernel's "one verb = one commit" rule
+	// makes per-entry partial-acceptance untenable.
+	TitleMaxLength int
 }
 
 // ImportResult is what Import returns. Either Findings is non-empty
@@ -182,7 +190,7 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 	plannedPaths := make([]string, 0, len(plannedEntries))
 	for i := range plannedEntries {
 		pe := &plannedEntries[i]
-		ent, opErr := buildEntityFromEntry(pe, t, plannedByID)
+		ent, opErr := buildEntityFromEntry(pe, t, plannedByID, opts.TitleMaxLength)
 		if opErr != nil {
 			return nil, fmt.Errorf("manifest entry %d (%s/%s): %w", pe.idx, pe.kind, pe.id, opErr)
 		}
@@ -280,7 +288,7 @@ func formatID(k entity.Kind, n int) string {
 // entity.Entity, with path resolved and the resolved id stamped onto
 // the frontmatter. Forward refs to manifest-declared epics resolve
 // via plannedByID.
-func buildEntityFromEntry(pe *plannedEntry, t *tree.Tree, plannedByID map[string]*plannedEntry) (*entity.Entity, error) {
+func buildEntityFromEntry(pe *plannedEntry, t *tree.Tree, plannedByID map[string]*plannedEntry, titleMaxLength int) (*entity.Entity, error) {
 	// Frontmatter from manifest, with id forced to the resolved one.
 	fm := make(map[string]any, len(pe.entry.Frontmatter)+1)
 	for k, v := range pe.entry.Frontmatter {
@@ -308,6 +316,9 @@ func buildEntityFromEntry(pe *plannedEntry, t *tree.Tree, plannedByID map[string
 		return &ent, nil
 	}
 
+	if err := entity.ValidateTitle(ent.Title, titleMaxLength); err != nil {
+		return nil, fmt.Errorf("manifest entry %q: %w", pe.id, err)
+	}
 	slug := entity.Slugify(ent.Title)
 	if slug == "" {
 		return nil, fmt.Errorf("title %q produces empty slug", ent.Title)
@@ -320,7 +331,7 @@ func buildEntityFromEntry(pe *plannedEntry, t *tree.Tree, plannedByID map[string
 		if parent == "" {
 			return nil, fmt.Errorf("milestone requires `parent`")
 		}
-		parentDir, perr := lookupEpicDir(parent, t, plannedByID)
+		parentDir, perr := lookupEpicDir(parent, t, plannedByID, titleMaxLength)
 		if perr != nil {
 			return nil, perr
 		}
@@ -342,7 +353,7 @@ func buildEntityFromEntry(pe *plannedEntry, t *tree.Tree, plannedByID map[string
 // lookupEpicDir resolves a parent epic id to its directory. The epic
 // may already exist in the tree, or it may be declared earlier in the
 // same manifest. The returned path is repo-relative.
-func lookupEpicDir(epicID string, t *tree.Tree, plannedByID map[string]*plannedEntry) (string, error) {
+func lookupEpicDir(epicID string, t *tree.Tree, plannedByID map[string]*plannedEntry, titleMaxLength int) (string, error) {
 	if ex := t.ByID(epicID); ex != nil {
 		if ex.Kind != entity.KindEpic {
 			return "", fmt.Errorf("parent %q is not an epic (it's a %s)", epicID, ex.Kind)
@@ -356,7 +367,11 @@ func lookupEpicDir(epicID string, t *tree.Tree, plannedByID map[string]*plannedE
 	if pe.kind != entity.KindEpic {
 		return "", fmt.Errorf("parent %q is not an epic (it's a %s)", epicID, pe.kind)
 	}
-	slug := entity.Slugify(asString(pe.entry.Frontmatter["title"]))
+	title := asString(pe.entry.Frontmatter["title"])
+	if err := entity.ValidateTitle(title, titleMaxLength); err != nil {
+		return "", fmt.Errorf("manifest entry %q (parent epic): %w", epicID, err)
+	}
+	slug := entity.Slugify(title)
 	if slug == "" {
 		return "", fmt.Errorf("parent %q has empty title; cannot derive directory", epicID)
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/trunk"
 )
@@ -39,6 +40,33 @@ func loadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	if !res.Skipped {
 		ref, _ := cfg.AllocateTrunkRef()
 		tr.TrunkRef = ref
+		// G-0109: hand the ids-unique trunk-collision check the set
+		// of renames git detects between trunk and the working tree,
+		// so a feature-branch slug rename of an existing entity is
+		// treated as the same entity moved rather than a duplicate id
+		// allocation. RenamesFromRef returns nil (no map) when the
+		// trunk ref doesn't resolve — but res.Skipped already covers
+		// the no-remotes case, so reaching here implies the ref
+		// resolved.
+		renames, err := gitops.RenamesFromRef(ctx, rootDir, ref)
+		if err != nil {
+			return tr, loadErrs, err
+		}
+		tr.TrunkRenames = renames
 	}
 	return tr, loadErrs, nil
+}
+
+// configuredTitleMaxLength returns the consumer's
+// `entities.title_max_length` from aiwf.yaml, or the kernel default
+// when absent (G-0102). Tolerant of a missing aiwf.yaml — the kernel
+// default applies in that case too, so the verb dispatchers in
+// cmd/aiwf can call this unconditionally without a precondition
+// check.
+func configuredTitleMaxLength(rootDir string) int {
+	cfg, err := config.Load(rootDir)
+	if err != nil || cfg == nil {
+		return config.DefaultEntityTitleMaxLength
+	}
+	return cfg.EntityTitleMaxLength()
 }

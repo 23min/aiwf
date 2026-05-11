@@ -1,6 +1,6 @@
 ---
 id: G-0080
-title: Wide-table verbs wrap mid-row and break column scan; no TTY-aware sizing, glyph palette, or truncation surface
+title: Wide-table verbs wrap mid-row; no TTY-aware sizing or truncation
 status: open
 discovered_in: M-0076
 ---

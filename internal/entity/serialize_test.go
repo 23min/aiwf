@@ -76,6 +76,66 @@ func TestSlugify_StaysCompatibleWithSlugifyDetailed(t *testing.T) {
 	}
 }
 
+func TestValidateTitle(t *testing.T) {
+	tests := []struct {
+		name      string
+		title     string
+		maxLength int
+		wantErr   bool
+	}{
+		// Zero / negative cap: validation is a no-op.
+		{"zero cap accepts any length", strings.Repeat("a", 500), 0, false},
+		{"negative cap accepts any length", strings.Repeat("a", 500), -1, false},
+		// Within cap.
+		{"empty title accepted", "", 80, false},
+		{"title under cap accepted", "Short title", 80, false},
+		{"title exactly at cap accepted", strings.Repeat("a", 80), 80, false},
+		// Over cap.
+		{"title one over cap rejected", strings.Repeat("a", 81), 80, true},
+		{"title far over cap rejected", strings.Repeat("a", 250), 80, true},
+		// The error message names the cap and points at the body
+		// elaboration path; pinned indirectly via wantErr=true above.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateTitle(tt.title, tt.maxLength)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateTitle(len=%d, max=%d) err = %v, wantErr = %v", len(tt.title), tt.maxLength, err, tt.wantErr)
+			}
+			if tt.wantErr && err != nil {
+				if !strings.Contains(err.Error(), "title length") {
+					t.Errorf("ValidateTitle error %q should name the offending dimension (title length)", err)
+				}
+				if !strings.Contains(err.Error(), "entities.title_max_length") {
+					t.Errorf("ValidateTitle error %q should cite the config knob for discoverability", err)
+				}
+			}
+		})
+	}
+}
+
+func TestValidateSlug(t *testing.T) {
+	tests := []struct {
+		name      string
+		slug      string
+		maxLength int
+		wantErr   bool
+	}{
+		{"zero cap accepts any length", strings.Repeat("a", 500), 0, false},
+		{"slug under cap accepted", "short-slug", 80, false},
+		{"slug exactly at cap accepted", strings.Repeat("a", 80), 80, false},
+		{"slug over cap rejected", strings.Repeat("a", 90), 80, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateSlug(tt.slug, tt.maxLength)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateSlug(len=%d, max=%d) err = %v, wantErr = %v", len(tt.slug), tt.maxLength, err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestBodyTemplate_Sections(t *testing.T) {
 	expectedSections := map[Kind][]string{
 		KindEpic:      {"## Goal", "## Scope", "## Out of scope"},

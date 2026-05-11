@@ -1,12 +1,12 @@
 # aiwf status — 2026-05-11
 
-_241 entities · 0 errors · 5 warnings · run `aiwf check` for details_
+_244 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 > Sweep pending: 4 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
-### E-0028 — Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side) _(active)_
+### E-0028 — Start-epic ritual: sovereign activation with preflight + delegation _(active)_
 
 - ✓ **M-0094** — Add aiwf check finding epic-active-no-drafted-milestones _(done)_ — ACs 4/4 met — tdd: required
 - ✓ **M-0095** — Enforce human-only actor on aiwf promote E-NN active _(done)_ — ACs 4/4 met — tdd: required
@@ -15,7 +15,7 @@ _241 entities · 0 errors · 5 warnings · run `aiwf check` for details_
 
 ```mermaid
 flowchart LR
-  E_0028["E-0028<br/>Start-epic ritual: sovereign activation with preflight, branch/worktree choice, and optional delegation (closes G-0063 start-side)"]:::epic_active
+  E_0028["E-0028<br/>Start-epic ritual: sovereign activation with preflight + delegation"]:::epic_active
   M_0094["M-0094 (4/4)<br/>Add aiwf check finding epic-active-no-drafted-milestones"]:::ms_done
   E_0028 --> M_0094
   M_0095["M-0095 (4/4)<br/>Enforce human-only actor on aiwf promote E-NN active"]:::ms_done
@@ -93,7 +93,7 @@ flowchart LR
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
-| ADR-0009 | adr | Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition | proposed |
+| ADR-0009 | adr | Orchestration substrate: substrate-vs-driver split with trailer-only events | proposed |
 
 ## Open gaps
 
@@ -101,36 +101,36 @@ flowchart LR
 |----|-------|---------------|
 | G-0022 | Provenance model extension surface |  |
 | G-0023 | Delegated \`--force\` via \`aiwf authorize --allow-force\` |  |
-| G-0059 | Branch model: no canonical mapping from entity hierarchy to git branches; epic/milestone work lands on whichever branch is current | M-0069 |
+| G-0059 | Branch model: no canonical entity-hierarchy-to-git-branches mapping | M-0069 |
 | G-0060 | Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail |  |
-| G-0063 | No defined start-epic ritual: epic activation is a deliberate sovereign act with preflight + optional delegation, but kernel treats it as a one-line FSM flip |  |
-| G-0067 | wf-tdd-cycle is LLM-honor-system advisory; under load the LLM bypasses RED-first and the branch-coverage HARD RULE without anything mechanical catching it (M-0066/AC-1 cycle wrote ~165 lines of impl before any test existed) | M-0066 |
+| G-0063 | No defined start-epic ritual; activation is bare FSM flip today |  |
+| G-0067 | wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard | M-0066 |
 | G-0068 | Discoverability policy misses dynamic finding subcodes | M-0066 |
-| G-0069 | aiwf init's printRitualsSuggestion hardcodes the CLI install form, which defaults to user scope and won't satisfy doctor.recommended_plugins; nudge silently steers fresh operators away from project-scope outcome | M-0070 |
-| G-0070 | aiwf doctor has no --format=json envelope; M-0070's recommended-plugin-not-installed finding-code surfaces only as human text. Add JSON envelope when a JSON-consuming caller appears | M-0070 |
-| G-0073 | depends_on is restricted to milestone→milestone edges; cross-kind blocking lives in body prose only; subsumes G-0072 in scope | E-0021 |
+| G-0069 | aiwf init's plugins nudge hardcodes user-scope CLI install form | M-0070 |
+| G-0070 | aiwf doctor lacks --format=json envelope | M-0070 |
+| G-0073 | depends_on restricted to milestone→milestone; cross-kind blocking via body prose | E-0021 |
 | G-0074 | docs/pocv3/ body prose still uses PoC framing; needs sweep |  |
 | G-0075 | docs/pocv3/ directory naming is now historical; rename or accept |  |
 | G-0076 | CONTRIBUTING.md describes PR-based workflow at odds with trunk-based model on main |  |
 | G-0077 | Post-promotion working paper (aiwf's thesis) not yet written |  |
 | G-0078 | No priority field on entities; backlog isn't filterable or sortable by importance |  |
-| G-0079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation; M-0076 added the verb but the plugin lives in ai-workflow-rituals upstream | M-0076 |
-| G-0080 | Wide-table verbs wrap mid-row and break column scan; no TTY-aware sizing, glyph palette, or truncation surface | M-0076 |
+| G-0079 | aiwfx-plan-milestones plugin skill needs --depends-on documentation | M-0076 |
+| G-0080 | Wide-table verbs wrap mid-row; no TTY-aware sizing or truncation | M-0076 |
 | G-0081 | aiwf rename does not pre-flight trunk-collision check | E-0021 |
 | G-0082 | Planning closure should default-merge to main before implementation begins | E-0021 |
 | G-0083 | aiwf retitle does not sync entity body H1 with frontmatter title | E-0021 |
 | G-0084 | Verb hygiene contract is undocumented; G-0081/G-0082/G-0083 lack umbrella | E-0021 |
-| G-0087 | no aiwf-show embedded skill; show is the per-entity inspection verb every AI reaches for, but --help-only coverage misses body-rendering and composite-id discovery | M-0074 |
-| G-0088 | Skill-coverage policy walks internal/skills/embedded/ only; plugin skills (aiwf-extensions/skills/aiwfx-*) are not policed by the kernel — equivalent invariants must be re-applied per-skill in test code as M-0079 did | M-0079 |
-| G-0090 | AC-8 materialisation drift-check has three branches not unit-tested; refactor lookup to take cache root as parameter for hermetic testing with synthetic temp dirs | M-0079 |
-| G-0091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
-| G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
-| G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
-| G-0099 | Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior |  |
-| G-0100 | aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing | M-0089 |
-| G-0102 | Entity titles uncapped; long titles break filesystem paths, status HTML layout, and CLI table columns |  |
+| G-0087 | No aiwf-show embedded skill | M-0074 |
+| G-0088 | Skill-coverage policy doesn't police plugin skills under aiwf-extensions/ | M-0079 |
+| G-0090 | M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests | M-0079 |
+| G-0091 | No preventive check for body-prose path-form refs to archive-moved entities |  |
+| G-0092 | No documented hierarchy of doc authority across docs/ |  |
+| G-0097 | Test-suite wall time dominated by serial execution and per-test setup |  |
+| G-0099 | Worktree isolation must be a parent-side precondition, not an Agent kwarg honor |  |
 | G-0103 | absolute-path leak lint | M-0089 |
-| G-0104 | Whether aiwf's test-parallelism discipline should ship to consumers via wf-rituals or stay consumer-copy | E-0025 |
+| G-0104 | Test-parallelism discipline: ship to consumers via wf-rituals or BYO? | E-0025 |
+| G-0107 | reorganize cmd/aiwf into idiomatic per-verb packages |  |
+| G-0108 | aiwf retitle should sync the on-disk slug, not just frontmatter title |  |
 | G-0110 | gremlins --diff <ref> filter excludes new files entirely; manual mutation review needed for M-0094/95/96 | M-0097 |
 
 ## Warnings
@@ -146,9 +146,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | implement | feat(aiwfx): close M-0094/95/96 verification seams — audit chokepoint and drift comparator (M-0097) |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0097 in_progress -> done |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0097 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0110 |
-| 2026-05-11 | human/peter | add | aiwf add gap G-0110 'gremlins --diff <ref> filter excludes new files entirely; manual mutation review needed for M-0094/95/96' |
 

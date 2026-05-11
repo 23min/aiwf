@@ -242,6 +242,131 @@ func TestIsAncestor_BadRef(t *testing.T) {
 	}
 }
 
+// TestRenamesFromRef_DetectsCommittedRename pins G-0109's primary path.
+// Set up a "trunk" ref pointing at the original slug, commit a rename
+// on top, and assert that RenamesFromRef reports the old → new pair.
+func TestRenamesFromRef_DetectsCommittedRename(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	const oldPath = "work/gaps/G-0035-very-long-historical-slug.md"
+	const newPath = "work/gaps/G-0035-short.md"
+	body := "---\nid: G-0035\nkind: gap\ntitle: example\nstatus: open\n---\nbody text\n"
+	commitFile(t, ctx, dir, oldPath, body)
+	mustRun(t, ctx, dir, "branch", "trunk")
+
+	// Rename in a fresh commit on top of trunk.
+	mustRun(t, ctx, dir, "mv", oldPath, newPath)
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "rename G-0035 to short slug")
+
+	got, err := RenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("RenamesFromRef: %v", err)
+	}
+	want := map[string]string{oldPath: newPath}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("RenamesFromRef mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestRenamesFromRef_IgnoresUncommittedRename pins the
+// merge-base..HEAD scoping (G-0109): an uncommitted `git mv` shows
+// in the working tree but not in any commit, so RenamesFromRef does
+// not see it. This is the documented contract — pre-push (the
+// trunk-collision rule's canonical caller) runs after commit, so the
+// working-tree-only state is a transient interactive condition and
+// is intentionally out of scope.
+func TestRenamesFromRef_IgnoresUncommittedRename(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	const oldPath = "work/gaps/G-0036-original.md"
+	const newPath = "work/gaps/G-0036-after.md"
+	body := "---\nid: G-0036\ntitle: example\nstatus: open\n---\nbody text\n"
+	commitFile(t, ctx, dir, oldPath, body)
+	mustRun(t, ctx, dir, "branch", "trunk")
+	mustRun(t, ctx, dir, "mv", oldPath, newPath)
+
+	got, err := RenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("RenamesFromRef: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("uncommitted rename should not appear in committed-since-merge-base view; got %+v", got)
+	}
+}
+
+// TestRenamesFromRef_IgnoresParallelClonesG37Case pins the negative
+// side of the G-0109 fix against the original G37 scenario: two
+// independent commits on different branches each add a file claiming
+// the same id at a different slug. The two files are byte-similar
+// enough that git's plain rename heuristic would pair them, but
+// neither branch's history contains a rename — they're true
+// duplicate allocations. The merge-base..HEAD scope guarantees that
+// only renames *this branch committed* surface, which excludes the
+// parallel-add case the original trunk-collision rule must still
+// catch.
+func TestRenamesFromRef_IgnoresParallelClonesG37Case(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	// Establish a shared starting commit, then branch.
+	commitFile(t, ctx, dir, "README.md", "shared\n")
+	// Trunk's branch adds G-0001 at one slug, near-template body.
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "trunk")
+	commitFile(t, ctx, dir, "work/gaps/G-0001-trunk-side.md", "---\nid: G-0001\ntitle: t\nstatus: open\n---\n\n## Problem\n\n")
+	// HEAD (feature branch) returns to the merge-base and adds G-0001 at
+	// a DIFFERENT slug with a near-identical template body — the G37
+	// shape git's -M would otherwise pair as a rename.
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+	commitFile(t, ctx, dir, "work/gaps/G-0001-branch-side.md", "---\nid: G-0001\ntitle: b\nstatus: open\n---\n\n## Problem\n\n")
+
+	got, err := RenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("RenamesFromRef: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("parallel-clone G37 case must not register as a rename; got %+v", got)
+	}
+}
+
+// TestRenamesFromRef_NoRenamesEmptyMap verifies that an unmodified
+// working tree returns an empty (non-nil) map. Empty vs nil matters
+// because the caller assigns into Tree.TrunkRenames; nil-vs-empty would
+// be observable in tests that lookup keys.
+func TestRenamesFromRef_NoRenamesEmptyMap(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-a.md", "x\n")
+	mustRun(t, ctx, dir, "branch", "trunk")
+
+	got, err := RenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("RenamesFromRef: %v", err)
+	}
+	if got == nil {
+		t.Fatal("RenamesFromRef returned nil map, want empty non-nil")
+	}
+	if len(got) != 0 {
+		t.Errorf("RenamesFromRef on clean tree = %+v, want empty", got)
+	}
+}
+
+// TestRenamesFromRef_AbsentRefReturnsNil verifies the degraded-graceful
+// path: when the named ref doesn't resolve, the function returns
+// (nil, nil) rather than erroring. This matches the trunk-collision
+// rule's behavior — no trunk view means no cross-tree comparison.
+func TestRenamesFromRef_AbsentRefReturnsNil(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "a.txt", "x")
+
+	got, err := RenamesFromRef(ctx, dir, "refs/remotes/origin/nope")
+	if err != nil {
+		t.Fatalf("RenamesFromRef: %v", err)
+	}
+	if got != nil {
+		t.Errorf("RenamesFromRef with absent ref = %+v, want nil", got)
+	}
+}
+
 // initTestRepo creates a fresh git repo in a temp dir and returns its
 // path. It also sets a deterministic commit identity via t.Setenv so
 // tests don't depend on the host's git config.
