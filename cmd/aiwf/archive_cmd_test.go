@@ -475,3 +475,47 @@ func TestArchive_NonHumanActorWithPrincipal_StampsTrailer(t *testing.T) {
 		t.Errorf("aiwf-principal trailer missing on non-human-actor commit (provenance model violation):\n  trailers: %+v", tr)
 	}
 }
+
+// TestArchive_ExplicitDryRunFlag — `aiwf archive --dry-run` is the
+// explicit alias for the default behavior. Same observable outcome as
+// the no-flag invocation: zero commits, worktree untouched, exit 0.
+// The flag exists so the finding hints in internal/check/hint.go and
+// ad-hoc user invocations can name it directly without hitting
+// "unknown flag".
+func TestArchive_ExplicitDryRunFlag(t *testing.T) {
+	root := setupCLITestRepo(t)
+	seedArchiveFixture(t, root)
+	commitArchiveFixture(t, root, "seed archive fixture")
+
+	before := archiveCommitCount(t, root)
+	if rc := run([]string{"archive", "--dry-run", "--root", root, "--actor", "human/test"}); rc != exitOK {
+		t.Fatalf("archive --dry-run rc = %d, want exitOK", rc)
+	}
+	after := archiveCommitCount(t, root)
+	if delta := after - before; delta != 0 {
+		t.Errorf("archive --dry-run produced %d commit(s), want 0", delta)
+	}
+
+	for _, archDir := range []string{
+		"work/epics/archive",
+		"work/gaps/archive",
+		"work/decisions/archive",
+		"work/contracts/archive",
+		"docs/adr/archive",
+	} {
+		if _, err := os.Stat(filepath.Join(root, archDir)); err == nil {
+			t.Errorf("archive --dry-run created %s — must be a no-op on disk", archDir)
+		}
+	}
+}
+
+// TestArchive_DryRunAndApplyMutuallyExclusive — passing both flags
+// fails fast with exit-usage. The combination has no coherent meaning
+// (one is the read-only branch; the other commits) and silently
+// preferring either would surprise the operator.
+func TestArchive_DryRunAndApplyMutuallyExclusive(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := run([]string{"archive", "--dry-run", "--apply", "--root", root, "--actor", "human/test"}); rc != exitUsage {
+		t.Errorf("archive --dry-run --apply rc = %d, want exitUsage", rc)
+	}
+}

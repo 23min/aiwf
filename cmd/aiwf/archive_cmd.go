@@ -37,15 +37,19 @@ func newArchiveCmd() *cobra.Command {
 		principal string
 		root      string
 		apply     bool
+		dryRun    bool
 		kind      string
 	)
 	cmd := &cobra.Command{
-		Use:   "archive [--apply] [--kind <kind>]",
+		Use:   "archive [--apply | --dry-run] [--kind <kind>]",
 		Short: "Sweep terminal-status entities into per-kind archive/ subdirs (per ADR-0004)",
 		Long: `Sweep terminal-status entities into their per-kind archive/
 subdirectories per ADR-0004. Default is dry-run; --apply commits the
-sweep as a single commit with trailer aiwf-verb: archive. The verb
-sweeps by status, not by id — there is no positional id argument.
+sweep as a single commit with trailer aiwf-verb: archive. --dry-run is
+an explicit alias for the default behavior (mutually exclusive with
+--apply) so finding hints and ad-hoc invocations can name it directly.
+The verb sweeps by status, not by id — there is no positional id
+argument.
 
 Per-kind storage layout (per ADR-0004 §"Storage — per-kind layout"):
 
@@ -63,8 +67,11 @@ needs revisiting.
 
 The same verb covers both the bulk first-run sweep against a pre-
 ADR-0004 tree and the routine ongoing sweeps that follow.`,
-		Example: `  # Preview the sweep (dry-run, no commit)
+		Example: `  # Preview the sweep (dry-run is the default)
   aiwf archive
+
+  # Same, named explicitly
+  aiwf archive --dry-run
 
   # Commit the sweep as a single commit
   aiwf archive --apply
@@ -75,6 +82,10 @@ ADR-0004 tree and the routine ongoing sweeps that follow.`,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
+			if apply && dryRun {
+				fmt.Fprintln(os.Stderr, "aiwf archive: --apply and --dry-run are mutually exclusive")
+				return wrapExitCode(exitUsage)
+			}
 			return wrapExitCode(runArchiveCmd(actor, principal, root, kind, apply))
 		},
 	}
@@ -82,6 +93,7 @@ ADR-0004 tree and the routine ongoing sweeps that follow.`,
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&apply, "apply", false, "commit the sweep; without this flag the verb is dry-run")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "explicit alias for the default dry-run behavior; mutually exclusive with --apply")
 	cmd.Flags().StringVar(&kind, "kind", "", "scope the sweep to one kind (epic, contract, gap, decision, adr); milestones do not archive independently")
 
 	_ = cmd.RegisterFlagCompletionFunc("kind", cobra.FixedCompletions(
