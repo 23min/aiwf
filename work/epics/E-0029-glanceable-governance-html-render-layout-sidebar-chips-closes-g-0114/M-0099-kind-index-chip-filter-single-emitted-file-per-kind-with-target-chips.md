@@ -103,19 +103,47 @@ A render-against-real-fixture human-verification pass closes the milestone per C
 
 ## Work log
 
+### AC-1 — Renderer emits one file per kind (no `*-all.html`)
+
+Renderer collapses active/all-pair emit to single canonical file per kind · commit `a2961aa` (green) + `1c91c60` (red) · tests 46/46 green. Three additional changes folded into the green commit to keep all tests passing: (a) `kind_index.tmpl` lost the View-all/active-only cross-link; (b) `index.tmpl` lost the `.all-link` sub-link in Browse-by-kind (coincides with AC-4's surface change; AC-4 becomes a regression check); (c) three obsolete Go tests in `cmd/aiwf/render_archive_test.go` deleted (they pinned the old active/all-pair design). Internal struct cleanup (KindIndexData.IncludeArchived / ActiveFileName / AllFileName) deferred — those fields remain as dead-code paths but compile fine; cleanup is a follow-up refinement.
+
+### AC-2 — Chip strip with Active/All renders on kind-index pages
+
+Chip strip markup + visual styling · commit `04b132a` (green) + `e03106a` (red) · tests 47/47 green. Each chip is an `<a>` with matching `id` and `href` (e.g. `<a class="chip" href="#all" id="all">All</a>`) so `:target` CSS drives both the active-chip visual state and AC-3's row filter. Pill-shaped styling, hover state, :target state, and default "Active highlighted when no chip is :target" via `:not(:has(.chip:target))`. Rendered unconditionally on every kind-index page.
+
+### AC-3 — Default kind-index view shows only non-archived rows
+
+CSS chip filter behavior · commit `4f3fce3` (red+green combo) · tests 48/48 green. Bigger commit than usual — fixture enrichment + resolver change + template change + CSS rule + replacement Go test all landed together so each AC's behavior could be validated. Fixture enriched with one active gap (G-0001) and one archived gap (G-0099) via promote-to-addressed + `aiwf archive --apply`; `--force` used on the promote since the kernel's "gap to addressed requires --by" rule applies and fixture data has no real resolver. `renderKindIndex` decoupled from `includeArchived` for filename (always `<kind>.html`); resolver now returns all entries via `includeArchived=true`. Template adds `data-archived="true|false"` to every `<tr>`; archived rows get an inline "archived" marker on the id cell so users can scan archive state when [All] is selected. CSS filter rule: `tr[data-archived="true"]` default `display: none`; `body:has(#all:target) tr[data-archived="true"]` returns to `display: table-row`. The Location column dropped (redundant with the inline marker + filter). Replacement Go test `TestRender_PerKindIndexEmitsBothActiveAndArchivedRows` pins the markup-presence rule; visibility moves to Playwright.
+
+### AC-4 — Home page Browse-by-kind has one link per kind
+
+Regression check · commit `31867f0` (red+green; behavior already shipped in AC-1) · tests 49/49 green. Asserts `ul.kind-index` has no `a.all-link` children and all primary links point at canonical `<kind>.html` (not `<kind>-all.html`). Guards against the small `.all-link` returning from a future template change.
+
 ## Decisions made during implementation
 
-- (none)
+- **AC-1 minimum-green strategy: keep `IncludeArchived` field, drop only the emit loop.** Considered the full struct refactor (drop IncludeArchived / ActiveFileName / AllFileName entirely) but chose the smaller change since AC-3 naturally subsumes the cleanup. The field remains in `KindIndexData` and is passed as `true` from the call site; the resolver branches on it to either filter (legacy callers) or include all (new behavior). Acceptable dead-code path; a follow-up commit can clean up.
+- **AC-3 row markup: inline "archived" marker instead of separate Location column.** The previous design had a `Location` column showing `active` / `archived` only when `IncludeArchived=true`. With chip filter, the column would always be shown but contributes little — same information is conveyed by the row's filter behavior (hidden by default; visible under [All]). Inline marker on the id cell is more compact and the table stays narrower.
+- **AC-3 fixture enrichment: G-0001 active + G-0002 archived.** Considered alternatives: a) build a chip-only narrower fixture (more complex, two fixtures to maintain); b) skip fixture enrichment and test via computed-CSS-rule-presence (weaker test, doesn't exercise real row data). Picked enrichment: simpler and a more thorough test. The `--force` on the addressed promote is documented at the call site so future readers don't re-litigate.
+- **AC-3 chip filter fragment: `#all` (page-local).** Considered a more specific fragment like `#kind-all` to leave `#all` free for other uses. Chose `#all` because it pairs cleanly with `#active` (matching the chip ids) and the URL fragment is page-scoped — `gaps.html#all` doesn't conflict with `index.html#all` since each page renders its own DOM. Future cross-cutting uses of the `#all` fragment (e.g. M-0100's sidebar archive filter, per the in-flight broadening) will need different fragments per CLAUDE.md's no-implicit-cross-scope-coupling discipline.
 
 ## Validation
 
+- `npx playwright test` from `e2e/playwright/` — **49 passed**, chromium-only, headless. All 4 AC tests pass; all pre-existing tests still pass (no regressions). Suite ran clean against the enriched fixture (G-0001 active + G-0099 archived).
+- `aiwf check` — 0 errors, pre-existing warnings only (G-0082/G-0083 archive backlog; worktree no-upstream).
+- `go test ./internal/htmlrender/... ./cmd/aiwf/...` — exit 0.
+- Visible chip filter verified manually in the rendered output: `gaps.html` shows G-0001 (active) by default; clicking [All] reveals G-0099 (archived); clicking [Active] hides it again; URL fragment updates `#active` ↔ `#all` per chip.
+- Spec-source: M-0099/AC-2's chip styling re-uses the existing `.tab` pattern from `style.css:343+` — same pill aesthetic, same `:target`-driven state machine. Cross-reference established for future iterations.
+
 ## Deferrals
 
-- (none)
+- **Internal struct cleanup** — `KindIndexData.IncludeArchived`, `KindIndexData.ActiveFileName`, `KindIndexData.AllFileName`, and `KindIndexLink.AllFileName` fields plus the resolver method's `includeArchived bool` parameter are dead-code paths after M-0099. The fields compile fine and the param is always passed `true`; this milestone deliberately kept the change minimal to keep commits focused. A follow-up commit (likely during M-0100 implementation or end-of-epic refinement) can drop the dead code. Not filed as a gap — it's tracked here.
 
 ## Reviewer notes
 
-- (none)
+- The chip filter conflates "selected chip's visual state" and "row visibility" into a single `:target` source of truth. That works because each chip's `id` and `href` are the same fragment value; clicking either chip drives both the chip's own visual highlight and the table's row filter via different CSS rules keying off the same `:target`.
+- The `body:has(#all:target)` CSS rule is the load-bearing selector for the row filter. If a future kernel change ever renders any element with `id="all"` outside the chip strip on a kind-index page, the selector still works (it just matches whichever element is the target). If we ever need the selector to be more specific, scope it: `body:has(.chip-strip #all:target)`.
+- The fixture's `--force --reason "fixture: archive sweep target"` on G-0002's addressed promote is the kernel-correct way to bypass the "gap to addressed requires --by" rule in a synthetic test context. Documented at the call site so future readers can update if the rule changes.
+- AC-3's commit bundled red + green because the fixture enrichment, resolver change, template change, CSS rule, and Go test replacement are interlocked — any partial state leaves at least one test failing. The wf-tdd-cycle skill anti-pattern about "writing tests that can't fail" doesn't apply since the test does meaningfully fail against the pre-change CSS (verified before the green changes landed).
 
 ### AC-1 — Renderer emits one file per kind (no *-all.html)
 
