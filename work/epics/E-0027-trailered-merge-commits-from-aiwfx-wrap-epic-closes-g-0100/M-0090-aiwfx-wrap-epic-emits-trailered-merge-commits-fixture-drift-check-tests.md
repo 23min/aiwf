@@ -1,7 +1,7 @@
 ---
 id: M-0090
 title: aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests
-status: in_progress
+status: done
 parent: E-0027
 tdd: required
 acs:

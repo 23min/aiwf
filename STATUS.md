@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-11
 
-_227 entities · 0 errors · 8 warnings · run `aiwf check` for details_
+_227 entities · 0 errors · 3 warnings · run `aiwf check` for details_
 
-> Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 2 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -46,12 +46,12 @@ _(no milestones)_
 
 ### E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) _(proposed)_
 
-- → **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(in_progress)_ — ACs 6/6 met — tdd: required
+- ✓ **M-0090** — aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests _(done)_ — ACs 6/6 met — tdd: required
 
 ```mermaid
 flowchart LR
   E_0027["E-0027<br/>Trailered merge commits from aiwfx-wrap-epic (closes G-0100)"]:::epic_proposed
-  M_0090["M-0090 (6/6)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_in_progress
+  M_0090["M-0090 (6/6)<br/>aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests"]:::ms_done
   E_0027 --> M_0090
   classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000
   classDef epic_proposed fill:#f4f4f4,stroke:#888,color:#000
@@ -107,21 +107,16 @@ flowchart LR
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
-| entity-body-empty | M-0090/AC-1 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-1 body under \`### AC-1\` is empty |
-| entity-body-empty | M-0090/AC-2 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-2 body under \`### AC-2\` is empty |
-| entity-body-empty | M-0090/AC-3 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-3 body under \`### AC-3\` is empty |
-| entity-body-empty | M-0090/AC-4 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-4 body under \`### AC-4\` is empty |
-| entity-body-empty | M-0090/AC-5 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-5 body under \`### AC-5\` is empty |
-| entity-body-empty | M-0090/AC-6 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | M-0090/AC-6 body under \`### AC-6\` is empty |
+| terminal-entity-not-archived | M-0090 | work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md | entity M-0090 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | entity G-0101 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0090 |
 | 2026-05-11 | human/peter | implement | feat(aiwf): aiwfx-wrap-epic fixture emits trailered merge commits (M-0090) |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-6 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-5 open -> met |
 | 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-4 open -> met |
-| 2026-05-11 | human/peter | promote | aiwf promote M-0090/AC-3 open -> met |
 
