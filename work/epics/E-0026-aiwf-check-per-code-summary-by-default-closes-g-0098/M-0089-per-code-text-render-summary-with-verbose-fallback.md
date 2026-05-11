@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: --verbose flag restores full per-instance output
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: JSON envelope is unchanged
       status: open
