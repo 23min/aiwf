@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_227 entities · 0 errors · 2 warnings · run `aiwf check` for details_
+_228 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 > Sweep pending: 1 terminal entity not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -102,20 +102,23 @@ flowchart LR
 | G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
 | G-0099 | Orchestration design's worktree isolation depends on Agent kwarg honor; materialisation should be a parent-side precondition (git worktree add → check git worktree list → invoke agent with path) so isolation does not depend on LLM/harness behavior |  |
 | G-0100 | aiwfx-wrap-epic emits untrailered merge commits; ritual should produce aiwf-verb/entity/actor trailers on the merge so provenance is self-describing | M-0089 |
+| G-0102 | Entity titles uncapped; long titles break filesystem paths, status HTML layout, and CLI table columns |  |
 
 ## Warnings
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| entity-body-empty | G-0102 | work/gaps/G-0102-entity-titles-uncapped-long-titles-break-filesystem-paths-status-html-layout-and-cli-table-columns.md | G-0102 body section \`## What's missing\` is empty |
+| entity-body-empty | G-0102 | work/gaps/G-0102-entity-titles-uncapped-long-titles-break-filesystem-paths-status-html-layout-and-cli-table-columns.md | G-0102 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | G-0101 | work/gaps/G-0101-ids-unique-trunk-collision-rule-is-not-archive-aware-first-aiwf-archive-apply-triggers-176-false-positive-errors-that-block-the-pre-push-hook.md | entity G-0101 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | promote | aiwf promote G-0101 open -> addressed |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body G-0101 |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body ADR-0009 |
 | 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 | 2026-05-11 | human/peter | edit-body | aiwf edit-body E-0027 |
-| 2026-05-11 | human/peter | edit-body | aiwf edit-body M-0090 |
 
