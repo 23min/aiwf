@@ -176,9 +176,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | add | aiwf add milestone M-0106 'Kernel finding isolation-escape (closes G-0099)' |
 | 2026-05-12 | human/peter | add | aiwf add milestone M-0105 'aiwfx-start-milestone sequencing alignment' |
 | 2026-05-12 | human/peter | add | aiwf add milestone M-0104 'aiwfx-start-epic sequencing fix (closes G-0116)' |
 | 2026-05-12 | human/peter | add | aiwf add milestone M-0103 'AI-side preflight: aiwf authorize refuses without ritual branch context' |
 | 2026-05-12 | human/peter | add | aiwf add milestone M-0102 'aiwf authorize --branch flag + scope-branch trailer coupling' |
-| 2026-05-12 | human/peter | edit-body | aiwf edit-body E-0030 |
 
