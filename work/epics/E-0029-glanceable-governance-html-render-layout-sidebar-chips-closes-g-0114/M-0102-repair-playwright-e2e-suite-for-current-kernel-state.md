@@ -4,6 +4,13 @@ title: Repair Playwright e2e suite for current kernel state
 status: draft
 parent: E-0029
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Fixture builds and runs against current kernel
+      status: open
+    - id: AC-2
+      title: All Playwright assertions match current rendered output
+      status: open
 ---
 # Repair Playwright e2e suite for current kernel state
 
@@ -88,3 +95,20 @@ ACs added via `aiwf add ac M-0102` at start-milestone time. The observable-behav
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — Fixture builds and runs against current kernel
+
+**Pass criterion**: `renderRichFixture()` in `e2e/playwright/fixture.ts` completes successfully against the current kernel — the kernel binary builds, the fixture repo's `aiwf init` succeeds, the 14 verb invocations all return zero exit codes, and the final `aiwf render --format html --out <dir>` produces a populated rendered site at the returned out-dir path. Verified by running `npx playwright test --reporter=line` from `e2e/playwright/` — if AC-1 holds, all tests reach their assertion phase (they may still fail because of AC-2, but no test errors before assertions during fixture setup).
+
+**Edge cases**: The `repoRoot` resolver must work whether the file is read from `/Users/peterbru/Projects/aiwf` or from the worktree at `/Users/peterbru/Projects/aiwf-E-0029-glanceable-render` — it derives from `__dirname` which is fixture-file-local, not invocation-cwd-local, so both should work once paths are correct. The hook-disable strategy must survive `aiwf init`'s current behavior of writing pre-push (and possibly pre-commit) hooks to the configured `core.hooksPath`. Edge: if `aiwf init` writes both pre-push and pre-commit, and the test runs commit-shaped verbs (add / promote), the writable-empty-hooks-dir must accept those too — i.e. it's a real writable temp dir, not `/var/empty`.
+
+**Code references**: `e2e/playwright/fixture.ts` — three concrete sites: (1) line 21 `repoRoot = resolve(__dirname, "..", "..", "..")` needs to become `resolve(__dirname, "..", "..")` (per the post-reorg layout); (2) line 31 `"./tools/cmd/aiwf"` needs to become `"./cmd/aiwf"`; (3) line 93 `runGit(repoDir, "config", "core.hooksPath", "/var/empty")` needs to switch to either a `mkdtempSync` writable hooks dir set before init, or to be reordered to run after `aiwf init` with a writable target. The accompanying comment at line 20 (`tools/e2e/playwright/`) and the comments at lines 90–92 (about hook strategy) get refreshed in step with the code edits.
+
+### AC-2 — All Playwright assertions match current rendered output
+
+**Pass criterion**: All 40 tests in `e2e/playwright/tests/render.spec.ts` pass against the rendered output produced by `renderRichFixture()` running through the current kernel. `npx playwright test` from `e2e/playwright/` exits 0; the reporter shows all tests passed; no test is skipped or flaky. Verified by a clean run from a fresh `node_modules/` state.
+
+**Edge cases**: Tests that locate entities by literal ID name (`getByRole("link", { name: "E-01" })`, `name: "M-001"`, etc.) need their assertion targets updated to canonical 4-digit form (`"E-0001"`, `"M-0001"`). This applies to every kind the kernel canonicalizes: epics, milestones, gaps, decisions, contracts, ADRs, ACs. The fixture's verb-invocation side (`["add", "milestone", "--epic", "E-01", ...]`) can stay (kernel parsers tolerate narrow input per ADR-0008) or be updated for consistency — either choice is valid; pick the one that yields the cleanest diff. Tests asserting URL fragments / anchors (e.g. `#tab-build`, `#ac-2`) are kind-independent and should still pass — verify they do. Tests asserting CSS classes (`.status-met`, `.scope-active`) are kind-independent and should still pass. The `console.error` collector in `beforeEach` must remain green — no template / asset 404s introduced by canonical IDs (e.g. `M-0001.html` is the new filename, the fixture's directory layout must produce that).
+
+**Code references**: `e2e/playwright/tests/render.spec.ts` — every `getByRole`, `getByText`, `locator(..., { hasText: "..." })`, `toHaveAttribute("href", "...")` assertion that targets an entity ID name. Approximate count via `grep -c "E-01\|M-001\|AC-1\|AC-2" e2e/playwright/tests/render.spec.ts`; each match site gets its narrow-ID target replaced with the canonical form. The `playwright-report/` directory shows per-test trace.zip files for any remaining red — useful for diagnosing assertions that fail for *other* reasons (template structure changes from E-0017's body-prose chokepoint, M-074's milestone tabs layout, etc. — out of scope for M-0102 but flagged if encountered).
+
