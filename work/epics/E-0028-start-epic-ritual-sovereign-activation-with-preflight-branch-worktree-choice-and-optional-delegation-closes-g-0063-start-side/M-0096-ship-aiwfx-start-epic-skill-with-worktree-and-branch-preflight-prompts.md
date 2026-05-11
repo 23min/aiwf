@@ -1,7 +1,7 @@
 ---
 id: M-0096
 title: Ship aiwfx-start-epic skill with worktree and branch preflight prompts
-status: draft
+status: in_progress
 parent: E-0028
 depends_on:
     - M-0094
