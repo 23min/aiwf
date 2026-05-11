@@ -11,13 +11,10 @@
 <main>
 <p class="kicker">aiwf · {{.Kind}}</p>
 <h1>{{.Title}}</h1>
-<p class="kind-index-nav">
-{{- if .IncludeArchived}}
-<a href="{{.ActiveFileName}}">← active only</a>
-{{- else}}
-<a href="{{.AllFileName}}">View all (active + archived) →</a>
-{{- end}}
-</p>
+<nav class="chip-strip">
+<a class="chip" href="#active" id="active">Active</a>
+<a class="chip" href="#all" id="all">All</a>
+</nav>
 {{- if .Entries}}
 <table class="kind-index">
 <thead><tr><th>Id</th><th>Title</th><th>Status</th>{{if .IncludeArchived}}<th>Location</th>{{end}}</tr></thead>
