@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_218 entities · 0 errors · 177 warnings · run `aiwf check` for details_
+_219 entities · 0 errors · 179 warnings · run `aiwf check` for details_
 
 > Sweep pending: 176 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -82,11 +82,14 @@ _(no milestones)_
 | G-0091 | No preventive check for body-prose path-form refs to entity files; archive-move drift surfaces only via post-hoc CI link-check, after the break has already shipped |  |
 | G-0092 | No documented hierarchy of doc authority across docs/; LLMs and humans cannot tell normative from exploratory from archival without reading every file |  |
 | G-0097 | Test-suite wall time dominated by serial execution and per-test fixture setup; internal/verb spike shows ~4× headroom |  |
+| G-0098 | aiwf check default output dumps every leaf finding; per-code summary + --verbose would make the surface scannable, especially when an aggregate finding (e.g. archive-sweep-pending) already covers N leaves | M-0086 |
 
 ## Warnings
 
 | Code | Entity | Path | Message |
 |------|--------|------|---------|
+| entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## What's missing\` is empty |
+| entity-body-empty | G-0098 | work/gaps/G-0098-aiwf-check-default-output-dumps-every-leaf-finding-per-code-summary-verbose-would-make-the-surface-scannable-especially-when-an-aggregate-finding-e-g-archive-sweep-pending-already-covers-n-leaves.md | G-0098 body section \`## Why it matters\` is empty |
 | terminal-entity-not-archived | ADR-0002 | docs/adr/ADR-0002-test-dry-run-delete-me.md | entity ADR-0002 has terminal status 'rejected' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0001 | work/epics/E-0001-foundations-and-aiwf-check/M-0001-session-1-deliverable-aiwf-check-end-to-end.md | entity M-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0001 | work/epics/E-0001-foundations-and-aiwf-check/epic.md | entity E-0001 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
