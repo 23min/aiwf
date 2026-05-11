@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Mobile collapse stacks sidebar below main below 768px
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Tab clicks do not scroll the page
       status: met
