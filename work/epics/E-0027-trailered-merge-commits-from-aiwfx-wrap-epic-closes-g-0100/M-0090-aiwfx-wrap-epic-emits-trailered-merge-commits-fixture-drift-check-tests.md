@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Rituals-repo SHA recorded at wrap.
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Kernel rule unchanged.
