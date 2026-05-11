@@ -141,9 +141,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | rename | aiwf rename G-0078 slug -> no-priority-field-on-entities |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0076 slug -> contributing-md-pr-vs-trunk-mismatch |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0073 slug -> depends-on-milestone-only-no-cross-kind |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0070 slug -> doctor-no-format-json |
 | 2026-05-11 | human/peter | rename | aiwf rename G-0069 slug -> init-plugins-nudge-hardcodes-user-scope |
-| 2026-05-11 | human/peter | rename | aiwf rename G-0067 slug -> wf-tdd-cycle-llm-honor-system-advisory |
 
