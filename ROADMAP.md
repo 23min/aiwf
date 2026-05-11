@@ -280,7 +280,7 @@ Change the default text output of `aiwf check` from one line per finding to one 
 |---|---|---|
 | M-0089 | Per-code text-render summary with --verbose fallback | done |
 
-## E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) (proposed)
+## E-0027 — Trailered merge commits from aiwfx-wrap-epic (closes G-0100) (done)
 
 ### Goal
 
@@ -288,5 +288,5 @@ Change `aiwfx-wrap-epic`'s merge step so the merge commit it produces carries `a
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0090 | aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests | draft |
+| M-0090 | aiwfx-wrap-epic emits trailered merge commits; fixture + drift-check tests | done |
 
