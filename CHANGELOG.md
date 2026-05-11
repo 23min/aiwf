@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0029: Glanceable governance HTML render — layout, sidebar, chips (closes G-0114)
+
+The rendered governance site (`aiwf render --format=html`) becomes usable for current-state synthesis at a glance. Body fills the viewport (no more `max-width: 78rem` cap) with 1rem uniform padding; sidebar widens to 285px and sits flush-left; prose blocks inside `main` cap at 50rem for readability while tables, code, and AC cards stretch with the panel (M-0098). Per-kind index pages (`gaps.html`, `decisions.html`, `adrs.html`, `contracts.html`) collapse from active/all-pair to a single file per kind with a `:target`-driven `[Active] [All]` chip strip at the top; archived rows are hidden by default and revealed via `#all`; `*-all.html` cousins no longer emit (M-0099). The sidebar gains a `Gaps (N)` entry (non-archived count) in its top section and its own `[Active] [All]` chip strip with the distinct `#sidebar-all` fragment so the sidebar archive filter and kind-index page filter toggle independently — archived epics hide by default, closing the "all 29 epics drown the in-flight ones" half of the glanceability issue (M-0100). Tab clicks (M-0098/AC-5) and chip clicks (M-0100/AC-4) no longer scroll the page on hash change — `scroll-margin-top: 100vh` clamps the page at top. Playwright e2e suite repaired across three independent rot layers (repo reorg paths, kernel `aiwf init` hook-installation change, ID width migration) and the G-0055 `--tdd` chokepoint — 55 passing tests covering layout, chip filters, sidebar, and no-scroll-on-click (M-0107, renumbered from M-0102 at wrap due to concurrent allocation on main). M-0101 (in-page status hierarchy in `gaps.html`) deferred: mechanism choice (server-side sort vs CSS `order:` vs grouped sections vs hybrid) needs more design thought; cancelled-milestone body preserved for a future iteration.
+
+Two follow-up gaps filed during the epic: G-0115 (`aiwf render roadmap --write` rewrites entity refs in epic prose to broken paths — blocks the roadmap-regen step at wrap until fixed) and G-0116 (the rituals-plugin `aiwfx-start-epic` skill orders worktree creation before promote/authorize, producing the wrong commit topology for trunk-based projects). Both survive the epic for future attention.
+
 ## [0.8.0] — 2026-05-11
 
 ### Added — E-0028: Start-epic ritual `aiwfx-start-epic` (closes G-0063 start-side)
