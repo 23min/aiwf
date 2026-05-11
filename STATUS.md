@@ -145,9 +145,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | ai/claude | add | aiwf add milestone M-0102 'Repair Playwright e2e suite for current kernel state' |
 | 2026-05-11 | ai/claude | promote | aiwf promote M-0098 draft -> in_progress |
 | 2026-05-11 | ai/claude | add | aiwf add ac M-0098 AC-1..AC-4 (4 criteria) |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0101 |
 | 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0100 |
-| 2026-05-11 | ai/claude | edit-body | aiwf edit-body M-0099 |
 
