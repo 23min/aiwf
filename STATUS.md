@@ -171,9 +171,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | edit-body | aiwf edit-body M-0102 |
 | 2026-05-12 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0106 |
 | 2026-05-12 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0105 |
 | 2026-05-12 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0104 |
 | 2026-05-12 | human/peter | milestone-depends-on | aiwf milestone depends-on M-0103 |
-| 2026-05-12 | human/peter | add | aiwf add milestone M-0106 'Kernel finding isolation-escape (closes G-0099)' |
 
