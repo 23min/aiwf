@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-11
 
-_224 entities · 0 errors · 4 warnings · run `aiwf check` for details_
+_225 entities · 0 errors · 4 warnings · run `aiwf check` for details_
 
 ## In flight
 
@@ -48,6 +48,7 @@ _(no milestones)_
 |----|------|-------|--------|
 | ADR-0001 | adr | Mint entity ids at trunk integration via per-kind inbox state | proposed |
 | ADR-0005 | adr | Verb hygiene contract: complete, consistent, pre-flighted aiwf verbs | proposed |
+| ADR-0009 | adr | Orchestration substrate: substrate-vs-driver split, trailer-only cycle events, isolation as parent-side precondition | proposed |
 
 ## Open gaps
 
@@ -97,9 +98,9 @@ _(no milestones)_
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-11 | human/peter | fix | fix(aiwf): trunk-collision rule is archive-aware (closes G-0101) |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0101 'ids-unique trunk-collision rule is not archive-aware; first aiwf archive --apply triggers 176 false-positive errors that block the pre-push hook' |
 | 2026-05-11 | human/peter | archive | aiwf archive: sweep 94 entities into archive/ (23 epic, 1 adr, 70 gap) |
 | 2026-05-11 | human/peter | add | aiwf add gap G-0100 'provenance-untrailered-entity-commit fires on git merge commits that touch entity files; rule should skip merge commits (parent count > 1) so every epic-wrap merge doesn't inflate the warning count' |
 | 2026-05-11 | human/peter | promote | aiwf promote G-0098 open -> addressed |
-| 2026-05-11 | human/peter | render-roadmap | aiwf render roadmap |
 
