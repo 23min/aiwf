@@ -119,19 +119,45 @@ A render-against-real-fixture human-verification pass closes the milestone per C
 
 ## Work log
 
+### AC-1 — Sidebar shows Gaps (N) entry with active count
+
+Sidebar's top section gains "Gaps (N)" entry · commit `80b75dd` · tests 51/51 green. Two new `SidebarData` fields: `GapCount int` (count of non-archived gaps) and `IsCurrentGaps bool` (for aria-current on `gaps.html`). Default and cmd-side resolvers both populate via `entity.IsArchivedPath` filtering. Template uses the existing aria-current pattern. The pre-existing "sidebar top order" test (line 266) updated from a 2-element exact-match to a 3-element shape check (Project status / Overview / `/^Gaps \(\d+\)$/`) since the count is fixture-dependent. `IsCurrentGaps` wiring landed but the kind-index resolver doesn't set it yet — `gaps.html` doesn't get aria-current on the sidebar entry when the user is on `gaps.html`. Recorded as a deferral.
+
+### AC-2 — Chip strip with Active/All renders in sidebar
+
+Sidebar chip strip · commit `914911e` · tests 52/52 green. Markup added to `_sidebar.tmpl` between the top section and the epic loop: `<nav class="chip-strip sidebar-chip-strip">` with two `<a class="chip">` children using `#sidebar-active` / `#sidebar-all` fragments (deliberately distinct from M-0099's `#active` / `#all` so the two filters operate independently). CSS broadened M-0099's default-highlight rule to cover both `#active` and `#sidebar-active`; added `.sidebar-chip-strip` scale-down rules (smaller padding, smaller font, modest margins) so chips fit the narrower sidebar column. Pre-existing test `aside.sidebar nav` started matching both the outer wrapper `<nav>` and the new `<nav class="chip-strip">` — updated to `.first()` to avoid strict-mode violation.
+
+### AC-3 — Sidebar archive chip filter toggles epic visibility
+
+Sidebar epic archive filter behavior · commit `7f95543` · tests 53/53 green. `SidebarEpic` gains `Archived bool` populated via `entity.IsArchivedPath(e.Path)` in both resolvers. Template emits `data-archived="true|false"` on each `<details class="sidebar-epic">`. CSS rule pair: `aside.sidebar details.sidebar-epic[data-archived="true"]` default `display: none`; `body:has(#sidebar-all:target) ... { display: block; }`. Fixture enriched with E-0003 — promoted active → done → archived (via `archive --apply`) so the chip filter has an archived epic to exercise.
+
+### AC-4 — Chip clicks do not scroll the page
+
+Scroll-fix on chip click · commit `7d22bb1` (red+green combo) · tests 55/55 green. User-reported during M-0100 visual review: clicking chips caused page scroll (same bug class as M-0098/AC-5's tab-click scroll). Fix: add `scroll-margin-top: 100vh` to `.chip` in `style.css` — the browser's scroll-clamp pins scrollY at 0 when a chip is targeted. New test covers both kind-index and sidebar chips at a deliberately short 1280×400 viewport that forces vertical overflow so the bug reproduces under headless test.
+
 ## Decisions made during implementation
 
-- (none)
+- **AC-2 sidebar chip strip uses a nested `<nav>`.** Considered using `<div class="chip-strip">` to avoid nesting `<nav>` inside the sidebar's outer `<nav>`. Picked nested `<nav>` for consistency with M-0099's kind-index chip strip (both use `<nav class="chip-strip">`); HTML5 spec explicitly allows multiple `<nav>` elements per page. Side effect: pre-existing test using `aside.sidebar nav` locator now matches two elements; fixed with `.first()`.
+- **AC-2 sidebar chip strip uses `#sidebar-active` / `#sidebar-all` (not `#active` / `#all`).** Deliberately distinct fragments so the sidebar archive filter and the kind-index page archive filter operate independently. A reader on `gaps.html#all` (revealing archived gaps in the table) can simultaneously keep archived epics hidden in the sidebar; conversely, `index.html#sidebar-all` reveals archived epics without affecting any kind-index visibility.
+- **AC-3 archive determination is path-based, not status-based.** Aligns with ADR-0004. Filesystem location (paths under `work/epics/archive/`) is the source of truth, not frontmatter status. So an epic that's `cancelled` but hasn't been swept stays visible in the default sidebar view; an epic that's `done` and has been archive-swept hides.
+- **AC-4 fix landed inside M-0100 rather than as a new milestone or a refinement to M-0098/AC-5.** The bug surfaced during M-0100 visual review and affects chips specifically (M-0098/AC-5 was about tabs). Adding AC-4 here keeps the fix close to the work that exposed it, with proper TDD discipline (red commit + green commit + phase walk).
 
 ## Validation
 
+- `npx playwright test` from `e2e/playwright/` — **55 passed**, chromium-only, headless. All 4 AC tests pass; all pre-existing tests still pass (sidebar top-order, link-integrity, etc.).
+- `aiwf check` — 0 errors on this milestone; pre-existing warnings only (G-0082/G-0083 archive backlog; worktree no-upstream; the `ids-unique/trunk-collision` finding from the M-0100 retitle resolves on merge to trunk).
+- Visible behavior verified manually: sidebar gap entry shows on every page kind; chip strip toggles archived epics with no scroll-jump; both kind-index and sidebar chip filters operate independently (a reader can be on `gaps.html#all` AND have `#sidebar-all` set without conflict).
+- Spec-source reuse: AC-2's chip styling reuses M-0099's `.chip-strip` / `.chip` rules verbatim; only adds `.sidebar-chip-strip` scaling-down rules and broadens the default-highlight selector. No duplication.
+
 ## Deferrals
 
-- (none)
+- **`IsCurrentGaps` populated nowhere.** AC-1 added the field on `SidebarData` for completeness, but no resolver path sets it to true. The downstream effect: the sidebar's "Gaps (N)" entry doesn't get `aria-current="page"` when the user is viewing `gaps.html`. Not a tested AC; deferred as a polish item. Tracking here rather than as a gap since the wiring is trivial — the kind-index page resolver could set it based on the page being rendered. A follow-up commit can land it.
 
 ## Reviewer notes
 
-- (none)
+- The sidebar's two-chip-strip-coexistence pattern (kind-index `#all` AND sidebar `#sidebar-all`) is the first time the codebase has multiple independent `:target`-driven CSS state machines on one page. Keeping them on disjoint fragment namespaces is the discipline that makes them composable. Future similar features should pick fragment names that name their scope ("topic-action", not just "action").
+- The pre-migration `M-0100-sidebar-surfaces-gaps-with-active-count.md` filename was renamed during this milestone via `aiwf retitle` after the scope broadened. Git rename detection at the default 50% similarity threshold doesn't catch the rename (the body was extensively rewritten); `git diff -M10%` does. The kernel's `ids-unique/trunk-collision` check fires as a result. Resolves on merge to trunk. A follow-up gap could ask whether the kernel should use a more lenient rename threshold or use commit-walk rename tracking instead of cross-tree diff.
+- The fixture's E-0003 (active → done → archived) parallels G-0002's archive-sweep pattern from M-0099/AC-3 — a tested template now exists for fixture-side archived entities. M-0101 may not need additional fixture enrichment since gaps are already enriched.
 
 ### AC-1 — Sidebar shows Gaps (N) entry with active count
 
