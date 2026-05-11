@@ -239,6 +239,186 @@ func TestRender_NoBodyFile_NoGoal(t *testing.T) {
 	}
 }
 
+// G-0115 tests: normalizeEntityLinks rewrites entity-file link URLs in
+// Goal body prose so they resolve relative to repo root (ROADMAP.md's
+// emission location) and use the entity's canonical on-disk slug.
+
+func TestNormalizeEntityLinks_RewritesNarrowLegacySlug(t *testing.T) {
+	t.Parallel()
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindGap, ID: "G-0055", Path: "work/gaps/G-0055-canonical-slug.md"},
+		},
+	}
+	in := []byte("See [G-0055](../../gaps/G-055-old-narrow-slug.md) for context.")
+	want := "See [G-0055](work/gaps/G-0055-canonical-slug.md) for context."
+	if got := string(normalizeEntityLinks(in, tr)); got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestNormalizeEntityLinks_RewritesWrongRelativePath(t *testing.T) {
+	t.Parallel()
+	// ROADMAP.md is at repo root; a Goal body's `../../../docs/adr/...`
+	// (correct relative to the epic file) becomes wrong when copied
+	// into ROADMAP. Normalization replaces it with the canonical
+	// repo-root-relative path.
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindADR, ID: "ADR-0010", Path: "docs/adr/ADR-0010-branch-model.md"},
+		},
+	}
+	in := []byte("Per [ADR-0010](../../../docs/adr/ADR-0010-branch-model.md), the kernel enforces ...")
+	want := "Per [ADR-0010](docs/adr/ADR-0010-branch-model.md), the kernel enforces ..."
+	if got := string(normalizeEntityLinks(in, tr)); got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestNormalizeEntityLinks_CanonicalizesNarrowLinkText(t *testing.T) {
+	t.Parallel()
+	// Even if the author wrote the link text narrow ([G-055]), the
+	// renderer emits the canonical 4-digit form per ADR-0008.
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindGap, ID: "G-0055", Path: "work/gaps/G-0055-canonical.md"},
+		},
+	}
+	in := []byte("Per [G-055](some/old/path.md), see the empirical evidence.")
+	want := "Per [G-0055](work/gaps/G-0055-canonical.md), see the empirical evidence."
+	if got := string(normalizeEntityLinks(in, tr)); got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestNormalizeEntityLinks_LeavesUnknownEntityAlone(t *testing.T) {
+	t.Parallel()
+	// Entity id doesn't resolve in the tree (typo, archived without
+	// loading, external ref) — link passes through unchanged so
+	// `aiwf check`'s dangling-refs policy surfaces it elsewhere.
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-0001-foo.md"},
+		},
+	}
+	in := []byte("See [G-9999](some/path.md) for context.")
+	want := "See [G-9999](some/path.md) for context."
+	if got := string(normalizeEntityLinks(in, tr)); got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestNormalizeEntityLinks_LeavesBareIDAlone(t *testing.T) {
+	t.Parallel()
+	// Bare-id refs (no markdown link syntax) are valid per the
+	// loader-resolves convention and require no rewriting.
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindGap, ID: "G-0055", Path: "work/gaps/G-0055-foo.md"},
+		},
+	}
+	in := []byte("See G-0055 for context, and don't touch this [external link](https://example.com).")
+	want := "See G-0055 for context, and don't touch this [external link](https://example.com)."
+	if got := string(normalizeEntityLinks(in, tr)); got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestNormalizeEntityLinks_RewritesMultipleLinks(t *testing.T) {
+	t.Parallel()
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{Kind: entity.KindGap, ID: "G-0055", Path: "work/gaps/G-0055-tdd-policy.md"},
+			{Kind: entity.KindMilestone, ID: "M-0070", Path: "work/epics/E-0018-foo/M-0070-doctor.md"},
+			{Kind: entity.KindADR, ID: "ADR-0010", Path: "docs/adr/ADR-0010-branch-model.md"},
+		},
+	}
+	in := []byte("See [G-0055](old/G-055.md), [M-0070](M-070.md), and [ADR-0010](../../../docs/adr/ADR-0010-foo.md).")
+	want := "See [G-0055](work/gaps/G-0055-tdd-policy.md), [M-0070](work/epics/E-0018-foo/M-0070-doctor.md), and [ADR-0010](docs/adr/ADR-0010-branch-model.md)."
+	if got := string(normalizeEntityLinks(in, tr)); got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+// TestNormalizeEntityLinks_AllEntityKinds: the regex covers every entity
+// kind in the kernel (E-/M-/G-/D-/C-/ADR-). Table-driven over each so
+// adding a new kind to the regex without a test fails CI.
+func TestNormalizeEntityLinks_AllEntityKinds(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		id     string
+		kind   entity.Kind
+		path   string
+		inURL  string
+		wantID string // canonicalized
+	}{
+		{"epic", "E-0030", entity.KindEpic, "work/epics/E-0030-foo/epic.md", "old/E-030.md", "E-0030"},
+		{"milestone", "M-0070", entity.KindMilestone, "work/epics/E-0018-bar/M-0070-baz.md", "old/M-070.md", "M-0070"},
+		{"gap", "G-0055", entity.KindGap, "work/gaps/G-0055-foo.md", "old/G-055.md", "G-0055"},
+		{"decision", "D-0001", entity.KindDecision, "work/decisions/D-0001-foo.md", "old/D-1.md", "D-0001"},
+		{"contract", "C-0001", entity.KindContract, "work/contracts/C-0001-foo.md", "old/C-001.md", "C-0001"},
+		{"adr", "ADR-0010", entity.KindADR, "docs/adr/ADR-0010-foo.md", "../../../docs/adr/ADR-0010-foo.md", "ADR-0010"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tr := &tree.Tree{Entities: []*entity.Entity{{Kind: tc.kind, ID: tc.id, Path: tc.path}}}
+			in := []byte("Per [" + tc.id + "](" + tc.inURL + ") see ...")
+			want := "Per [" + tc.wantID + "](" + tc.path + ") see ..."
+			if got := string(normalizeEntityLinks(in, tr)); got != want {
+				t.Errorf("got %q\nwant %q", got, want)
+			}
+		})
+	}
+}
+
+// TestRender_NormalizesEntityLinksInGoal: integration test. An epic
+// Goal section containing a broken entity-file link is normalized
+// when rendered into the roadmap. Closes G-0115's user-visible bug:
+// `aiwf render roadmap --write` no longer produces dangling-refs.
+func TestRender_NormalizesEntityLinksInGoal(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	path := writeEpicFile(t, root, "E-0030-chokepoint", `---
+id: E-0030
+title: Branch chokepoint
+status: proposed
+---
+
+## Goal
+
+Make ADR-0010 enforceable. See [ADR-0010](../../../docs/adr/ADR-0010-branch-model.md) for the model and [G-0055](../../gaps/G-055-narrow.md) for context.
+
+## Scope
+
+unrelated
+`)
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{
+			{Kind: entity.KindEpic, ID: "E-0030", Title: "Branch chokepoint", Status: "proposed", Path: path},
+			{Kind: entity.KindADR, ID: "ADR-0010", Path: "docs/adr/ADR-0010-branch-model.md"},
+			{Kind: entity.KindGap, ID: "G-0055", Path: "work/gaps/G-0055-canonical.md"},
+		},
+	}
+	got := string(Render(tr))
+
+	// Both links should be rewritten to canonical repo-root paths.
+	wantADR := "[ADR-0010](docs/adr/ADR-0010-branch-model.md)"
+	wantGap := "[G-0055](work/gaps/G-0055-canonical.md)"
+	for _, want := range []string{wantADR, wantGap} {
+		if !strings.Contains(got, want) {
+			t.Errorf("rendered roadmap missing rewritten link %q:\n%s", want, got)
+		}
+	}
+	// The original broken links must NOT appear in the output.
+	for _, badURL := range []string{"../../../docs/adr/ADR-0010", "../../gaps/G-055-narrow"} {
+		if strings.Contains(got, badURL) {
+			t.Errorf("rendered roadmap still contains broken URL fragment %q:\n%s", badURL, got)
+		}
+	}
+}
+
 func TestExtractSection_StopsAtNextH2(t *testing.T) {
 	src := []byte("## Goal\n\nfirst\n\n## Scope\n\nsecond\n")
 	got := extractSection(src, "Goal")

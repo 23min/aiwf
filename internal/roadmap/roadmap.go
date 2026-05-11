@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -65,7 +66,7 @@ func Render(t *tree.Tree) []byte {
 		fmt.Fprintf(&buf, "## %s — %s (%s)\n\n", canonE, escape(e.Title), e.Status)
 		if goal := readEpicGoal(t.Root, e.Path); goal != nil {
 			buf.WriteString("### Goal\n\n")
-			buf.Write(goal)
+			buf.Write(normalizeEntityLinks(goal, t))
 			buf.WriteString("\n\n")
 		}
 		// byParent is keyed by the milestone's on-disk Parent; collect
@@ -165,6 +166,42 @@ func extractSection(src []byte, heading string) []byte {
 		return nil
 	}
 	return body
+}
+
+// entityLinkRe matches markdown links whose link text is an aiwf entity
+// id (G-NNN, M-NNN, E-NN, D-NN, C-NNN, ADR-NNNN — width tolerated per
+// ADR-0008's narrow-legacy parser rule, canonicalized before lookup).
+// Group 1 captures the id text, group 2 the URL. The URL must not
+// contain whitespace; that keeps the regex from over-matching across
+// adjacent prose containing `(` and `)`.
+var entityLinkRe = regexp.MustCompile(`\[(E-\d+|M-\d+|G-\d+|D-\d+|C-\d+|ADR-\d+)\]\(([^)\s]+)\)`)
+
+// normalizeEntityLinks rewrites entity-file link URLs inside body so
+// the resulting markdown resolves correctly from the roadmap's emission
+// directory (repo root). For each markdown link whose text is an aiwf
+// entity id and whose id resolves in t, the URL is replaced with the
+// entity's current canonical path (entity.Path, which the loader
+// already records as repo-root-relative) and the link text is
+// canonicalized to ADR-0008's 4-digit form. Links whose id does not
+// resolve pass through unchanged so external refs and typos surface
+// through `aiwf check`'s dangling-refs policy instead of disappearing
+// here.
+//
+// This is the fix-side of G-0115: the renderer copies epic Goal prose
+// verbatim, so any narrow-legacy slug or wrong-relative-path in an
+// epic body becomes a broken ref in ROADMAP.md. Normalizing here
+// keeps the roadmap canonical regardless of how the source bodies
+// were authored.
+func normalizeEntityLinks(body []byte, t *tree.Tree) []byte {
+	return entityLinkRe.ReplaceAllFunc(body, func(match []byte) []byte {
+		parts := entityLinkRe.FindSubmatch(match)
+		id := string(parts[1])
+		e := t.ByID(entity.Canonicalize(id))
+		if e == nil {
+			return match
+		}
+		return []byte(fmt.Sprintf("[%s](%s)", entity.Canonicalize(id), e.Path))
+	})
 }
 
 // escape protects markdown table cells from `|` (which would split the
