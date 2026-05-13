@@ -225,9 +225,10 @@ func TestIntegration_HonorsCoreHooksPath(t *testing.T) {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
 
-	// Hooks land at the configured path, not the default.
+	// Hooks land at the configured path, not the default. Per G-0112
+	// we also install the post-commit hook here.
 	configured := filepath.Join(root, "scripts", "git-hooks")
-	for _, name := range []string{"pre-push", "pre-commit"} {
+	for _, name := range []string{"pre-push", "pre-commit", "post-commit"} {
 		atConfigured := filepath.Join(configured, name)
 		info, err := os.Stat(atConfigured)
 		if err != nil {
@@ -243,17 +244,19 @@ func TestIntegration_HonorsCoreHooksPath(t *testing.T) {
 		}
 	}
 
-	// 2. add an epic — drives a commit, which fires the pre-commit
-	// hook. If git can't find the hook at the configured path, the
-	// commit silently skips the hook (and STATUS.md never gets
-	// regenerated). Asserting STATUS.md exists after the add proves
-	// the pre-commit hook actually fired from the configured
-	// location — pure exit-code observation isn't enough.
+	// 2. add an epic — drives a commit, which fires both the
+	// pre-commit hook (tree-discipline gate) and the post-commit hook
+	// (STATUS.md regen, per G-0112). If git can't find the hooks at
+	// the configured path, the commit silently skips them (and
+	// STATUS.md never gets regenerated). Asserting STATUS.md exists
+	// after the add proves the post-commit hook actually fired from
+	// the configured location — pure exit-code observation isn't
+	// enough.
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Foundations"); err != nil {
-		t.Fatalf("aiwf add (drives a commit through pre-commit hook): %v\n%s", err, out)
+		t.Fatalf("aiwf add (drives a commit through pre-commit + post-commit hooks): %v\n%s", err, out)
 	}
 	if _, err := os.Stat(filepath.Join(root, "STATUS.md")); err != nil {
-		t.Errorf("STATUS.md missing after aiwf add — pre-commit hook did not fire from configured path: %v", err)
+		t.Errorf("STATUS.md missing after aiwf add — post-commit hook did not fire from configured path (G-0112): %v", err)
 	}
 
 	// 3. Run the pre-push hook from the configured path directly to

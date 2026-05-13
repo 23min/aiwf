@@ -68,3 +68,6 @@ site/
 # synthesis output (regenerated on each skill invocation; see the
 # aiwfx-whiteboard skill body §"Output cache").
 WHITEBOARD.md
+
+# aiwf: post-commit-regenerated STATUS.md (G-0112)
+STATUS.md

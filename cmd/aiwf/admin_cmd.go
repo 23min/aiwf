@@ -952,10 +952,16 @@ func doctorReport(rootDir string, opts doctorOptions) (lines []string, problems 
 	//    `aiwf init` baked in an absolute path that's since moved.
 	lines, problems = appendHookReport(lines, problems, rootDir)
 
-	// 6b. Pre-commit hook: same drift detection, plus the config-
-	//     driven opt-out — when status_md.auto_update is false, the
-	//     desired state is "no marker-managed hook on disk".
+	// 6b. Pre-commit hook: same drift detection. Per G-0112 the
+	//     pre-commit hook is gate-only (the STATUS.md regen moved to
+	//     the post-commit hook); a stale regen step is flagged for
+	//     `aiwf update` to refresh.
 	lines, problems = appendPreCommitHookReport(lines, problems, rootDir)
+
+	// 6c. Post-commit hook (G-0112): present when
+	//     status_md.auto_update is true, absent when false. A
+	//     mismatch is flagged for `aiwf update` to reconcile.
+	lines, problems = appendPostCommitHookReport(lines, problems, rootDir)
 
 	// 4b. Render config: surface the configured out_dir and
 	//     commit_output flag, plus the misconfiguration where
@@ -1176,39 +1182,29 @@ func localChainSuffix(rootDir, hooksDir, hookName string) (suffix string, proble
 }
 
 // appendPreCommitHookReport inspects .git/hooks/pre-commit and
-// reports its state. Per G42 the hook's primary responsibility is
-// the tree-discipline gate (always present); the secondary
-// responsibility — STATUS.md regeneration — toggles with the
-// consumer's `status_md.auto_update` flag. The hook itself is
-// expected to be installed regardless of that flag.
+// reports its state. Per G42 the hook's sole responsibility is the
+// G41 tree-discipline gate; per G-0112 the STATUS.md regen step
+// moved to the post-commit hook, so pre-commit no longer toggles
+// with `status_md.auto_update`. The hook always installs.
 //
 // States:
 //   - hook missing → drift (the gate must always be present); problem.
-//   - hook present, gate-only mode (regen step absent) and auto_update
-//     is false → desired-and-actual-agree (no problem; reported as
-//     "ok, gate-only").
-//   - hook present, regen step absent but auto_update is true → drift
-//     (regen was opted in but the script body doesn't reflect it);
-//     problem; remediated by `aiwf update`.
-//   - hook present, regen step present but auto_update is false →
-//     opposite drift; problem; remediated by `aiwf update`.
-//   - hook present, regen step matches the flag → ok.
+//   - hook present, marker-managed, executable path resolves, regen
+//     step absent → ok.
+//   - hook present but carries a `status --root` regen step → stale
+//     pre-G-0112 body; problem; remediated by `aiwf update`.
+//   - hook present, no aiwf marker → user-written; we report
+//     informationally but do not flag a problem.
 func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
 	lines = in
 	problems = problemsIn
-
-	autoUpdate := true
-	if cfg, err := config.Load(rootDir); err == nil {
-		autoUpdate = cfg.StatusMdAutoUpdate()
-	}
 
 	hooksDir := resolveHooksDir(rootDir)
 	hookPath := filepath.Join(hooksDir, "pre-commit")
 	raw, err := os.ReadFile(hookPath)
 	if errors.Is(err, os.ErrNotExist) {
 		// Per G42 the gate must always be installed when aiwf is
-		// adopted in the repo, so a missing hook is drift regardless
-		// of status_md.auto_update.
+		// adopted in the repo.
 		lines = append(lines, "pre-commit: missing — tree-discipline gate not installed; run `aiwf update`")
 		problems++
 		return lines, problems
@@ -1233,23 +1229,81 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		problems++
 		return lines, problems
 	}
-	hasRegen := strings.Contains(string(raw), "status --root")
 	chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "pre-commit")
 	if chainProblem {
 		problems++
 	}
-	switch {
-	case autoUpdate && !hasRegen:
-		lines = append(lines, "pre-commit: present but missing STATUS.md regen (status_md.auto_update: true); run `aiwf update` to refresh")
+	// G-0112: a marker-managed pre-commit body must never carry the
+	// STATUS.md regen step. The presence of one identifies a stale
+	// pre-fix body that `aiwf update` will rewrite.
+	if strings.Contains(string(raw), "status --root") {
+		lines = append(lines, "pre-commit: present with stale STATUS.md regen step (G-0112: regen moved to post-commit); run `aiwf update` to refresh")
 		problems++
-	case !autoUpdate && hasRegen:
-		lines = append(lines, "pre-commit: present with STATUS.md regen but config says off (status_md.auto_update: false); run `aiwf update` to refresh")
-		problems++
-	case !autoUpdate && !hasRegen:
-		lines = append(lines, fmt.Sprintf("pre-commit: ok, gate-only (%s; status_md.auto_update: false)%s", embedded, chainSuffix))
-	default:
-		lines = append(lines, fmt.Sprintf("pre-commit: ok (%s)%s", embedded, chainSuffix))
+		return lines, problems
 	}
+	lines = append(lines, fmt.Sprintf("pre-commit: ok (%s)%s", embedded, chainSuffix))
+	return lines, problems
+}
+
+// appendPostCommitHookReport inspects .git/hooks/post-commit and
+// reports its state (G-0112). The hook is opt-out via
+// `status_md.auto_update`: with the default true, it must be
+// installed and resolve to a valid binary; with auto_update: false,
+// the desired state is "no marker-managed hook on disk".
+func appendPostCommitHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+	lines = in
+	problems = problemsIn
+
+	autoUpdate := true
+	if cfg, err := config.Load(rootDir); err == nil {
+		autoUpdate = cfg.StatusMdAutoUpdate()
+	}
+
+	hooksDir := resolveHooksDir(rootDir)
+	hookPath := filepath.Join(hooksDir, "post-commit")
+	raw, err := os.ReadFile(hookPath)
+	if errors.Is(err, os.ErrNotExist) {
+		if autoUpdate {
+			lines = append(lines, "post-commit: missing — STATUS.md will not regenerate (status_md.auto_update: true); run `aiwf update`")
+			problems++
+			return lines, problems
+		}
+		lines = append(lines, "post-commit: not installed (status_md.auto_update: false; nothing to install)")
+		return lines, problems
+	}
+	if err != nil {
+		lines = append(lines, "post-commit: "+err.Error())
+		problems++
+		return lines, problems
+	}
+	hasOurMarker := strings.Contains(string(raw), "# aiwf:post-commit")
+	if !hasOurMarker {
+		// User-written hook. Report informationally; don't flag a
+		// problem because the user opted into managing it themselves.
+		lines = append(lines, "post-commit: present but not aiwf-managed (no `# aiwf:post-commit` marker); STATUS.md regen will not run")
+		return lines, problems
+	}
+	if !autoUpdate {
+		lines = append(lines, "post-commit: present (aiwf-managed) but config says off (status_md.auto_update: false); run `aiwf update` to remove")
+		problems++
+		return lines, problems
+	}
+	embedded := extractPreCommitExecPath(string(raw))
+	if embedded == "" {
+		lines = append(lines, "post-commit: aiwf-managed but malformed (no aiwf invocation found); run `aiwf update` to refresh")
+		problems++
+		return lines, problems
+	}
+	if _, statErr := os.Stat(embedded); statErr != nil {
+		lines = append(lines, fmt.Sprintf("post-commit: stale path %s — binary moved or removed; run `aiwf update` to refresh", embedded))
+		problems++
+		return lines, problems
+	}
+	chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "post-commit")
+	if chainProblem {
+		problems++
+	}
+	lines = append(lines, fmt.Sprintf("post-commit: ok (%s)%s", embedded, chainSuffix))
 	return lines, problems
 }
 

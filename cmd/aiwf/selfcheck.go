@@ -98,6 +98,7 @@ func runSelfCheck() int {
 	}
 
 	preCommitHook := filepath.Join(tmp, ".git", "hooks", "pre-commit")
+	postCommitHook := filepath.Join(tmp, ".git", "hooks", "post-commit")
 
 	// Each step optionally carries a `setup` hook that runs before
 	// the CLI invocation, a `verify` hook that runs after (used to
@@ -135,11 +136,14 @@ func runSelfCheck() int {
 				if _, err := os.Stat(preCommitHook); err != nil {
 					return fmt.Errorf("pre-commit hook should exist after default update: %w", err)
 				}
+				if _, err := os.Stat(postCommitHook); err != nil {
+					return fmt.Errorf("post-commit hook should exist after default update (G-0112): %w", err)
+				}
 				return nil
 			},
 		},
 		{
-			label: "update (status_md.auto_update: false → keeps gate, drops regen)",
+			label: "update (status_md.auto_update: false → keeps gate, removes post-commit)",
 			args:  []string{"update", "--root", tmp},
 			setup: func() error {
 				return rewriteAiwfYAMLAutoUpdate(tmp, false)
@@ -153,24 +157,30 @@ func runSelfCheck() int {
 					return fmt.Errorf("pre-commit hook lost the tree-discipline gate after opt-out:\n%s", body)
 				}
 				if strings.Contains(string(body), "status --root") {
-					return fmt.Errorf("pre-commit hook still includes STATUS.md regen after opt-out:\n%s", body)
+					return fmt.Errorf("pre-commit hook still includes STATUS.md regen (G-0112: regen lives in post-commit):\n%s", body)
+				}
+				if _, err := os.Stat(postCommitHook); !os.IsNotExist(err) {
+					return fmt.Errorf("post-commit hook should be removed under opt-out (G-0112) (stat err=%w)", err)
 				}
 				return nil
 			},
 		},
 		{
-			label: "update (status_md.auto_update: true → reinstates regen)",
+			label: "update (status_md.auto_update: true → reinstates post-commit)",
 			args:  []string{"update", "--root", tmp},
 			setup: func() error {
 				return rewriteAiwfYAMLAutoUpdate(tmp, true)
 			},
 			verify: func() error {
-				body, err := os.ReadFile(preCommitHook)
+				if _, err := os.Stat(postCommitHook); err != nil {
+					return fmt.Errorf("post-commit hook missing after re-opt-in (G-0112): %w", err)
+				}
+				body, err := os.ReadFile(postCommitHook)
 				if err != nil {
-					return fmt.Errorf("pre-commit hook missing after re-opt-in: %w", err)
+					return fmt.Errorf("read post-commit hook: %w", err)
 				}
 				if !strings.Contains(string(body), "status --root") {
-					return fmt.Errorf("pre-commit hook missing STATUS.md regen after re-opt-in:\n%s", body)
+					return fmt.Errorf("post-commit hook missing STATUS.md regen after re-opt-in:\n%s", body)
 				}
 				return nil
 			},

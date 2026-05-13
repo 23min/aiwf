@@ -23,9 +23,10 @@ func TestPreHookScript_HasBrownfieldGuard(t *testing.T) {
 
 // TestPreCommitHookScript_HasBrownfieldGuard pins the same guard on
 // the pre-commit template. Without it, brownfield commits would
-// silently introduce a tracked STATUS.md.
+// silently run the tree-discipline gate on a repo that hasn't
+// adopted aiwf.
 func TestPreCommitHookScript_HasBrownfieldGuard(t *testing.T) {
-	body := preCommitHookScript("/some/aiwf", true)
+	body := preCommitHookScript("/some/aiwf")
 	if !strings.Contains(body, `[ -f "$repo_root/aiwf.yaml" ] || exit 0`) {
 		t.Errorf("pre-commit hook missing brownfield guard:\n%s", body)
 	}
@@ -77,16 +78,13 @@ func TestPreHookScript_AiwfYamlExitsViaExec(t *testing.T) {
 }
 
 // TestPreCommitHookScript_NoAiwfYamlExitsSilently exercises the
-// same brownfield guard on the pre-commit hook. Critically asserts
-// no STATUS.md is written and the hook does not call `aiwf status`
-// (the baked path is /bin/false; if it ran, the if-branch would
-// fail and the hook would still exit 0 — but no tmp file would be
-// produced either way; we assert STATUS.md absence as the visible
-// signal).
+// same brownfield guard on the pre-commit hook. The baked binary is
+// /bin/false; if the guard fails the gate runs and /bin/false's
+// non-zero exit aborts the hook.
 func TestPreCommitHookScript_NoAiwfYamlExitsSilently(t *testing.T) {
 	root := freshGitRepo(t)
 	hookPath := filepath.Join(t.TempDir(), "pre-commit.sh")
-	if err := os.WriteFile(hookPath, []byte(preCommitHookScript("/bin/false", true)), 0o755); err != nil {
+	if err := os.WriteFile(hookPath, []byte(preCommitHookScript("/bin/false")), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -96,22 +94,14 @@ func TestPreCommitHookScript_NoAiwfYamlExitsSilently(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pre-commit hook exited non-zero on brownfield repo:\n%s\nerr: %v", out, err)
 	}
-	if _, err := os.Stat(filepath.Join(root, "STATUS.md")); !os.IsNotExist(err) {
-		t.Errorf("pre-commit hook wrote STATUS.md in brownfield repo (stat err=%v)", err)
-	}
 }
 
-// TestPreCommitHookScript_AiwfYamlPresentRunsBody asserts the guard
-// passes through to the body when aiwf.yaml exists. The baked
-// "binary" is a shell-shim that exits 0 — both the tree-discipline
-// check and the STATUS.md regen succeed; the body is reached and
-// STATUS.md gets written by `mv`.
-//
-// (Pre-G41 the test used /bin/false to exercise the body's tolerant
-// rm-the-tmp branch. With G41 the check step is now non-tolerant —
-// a failing binary would block the commit before reaching status.
-// A succeed-shim keeps the test focused on "the body runs.")
-func TestPreCommitHookScript_AiwfYamlPresentRunsBody(t *testing.T) {
+// TestPreCommitHookScript_AiwfYamlPresentRunsGate asserts the guard
+// passes through to the gate when aiwf.yaml exists. Per G-0112 the
+// pre-commit hook no longer regenerates STATUS.md, so the only body
+// reach we test is the gate (a succeed-shim exits 0; if the gate
+// runs, the hook itself exits 0).
+func TestPreCommitHookScript_AiwfYamlPresentRunsGate(t *testing.T) {
 	root := freshGitRepo(t)
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
 		[]byte("aiwf_version: 0.1.0\nactor: human/peter\n"), 0o644); err != nil {
@@ -122,7 +112,7 @@ func TestPreCommitHookScript_AiwfYamlPresentRunsBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	hookPath := filepath.Join(t.TempDir(), "pre-commit.sh")
-	if err := os.WriteFile(hookPath, []byte(preCommitHookScript(shim, true)), 0o755); err != nil {
+	if err := os.WriteFile(hookPath, []byte(preCommitHookScript(shim)), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -132,12 +122,9 @@ func TestPreCommitHookScript_AiwfYamlPresentRunsBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pre-commit hook exited non-zero with aiwf.yaml present:\n%s\nerr: %v", out, err)
 	}
-	// The shim ignores its args and exits 0 with no stdout, so the
-	// status step's `>"$tmp"` truncates tmp to empty and `mv` moves
-	// it to STATUS.md. STATUS.md's existence proves the body ran
-	// past the tree-discipline gate into the regen step.
-	if _, err := os.Stat(filepath.Join(root, "STATUS.md")); err != nil {
-		t.Errorf("pre-commit hook did not reach STATUS.md regen step: %v", err)
+	// Per G-0112 the pre-commit hook must never produce STATUS.md.
+	if _, err := os.Stat(filepath.Join(root, "STATUS.md")); !os.IsNotExist(err) {
+		t.Errorf("pre-commit hook produced STATUS.md (G-0112 regression — regen lives in post-commit now):\n%v", err)
 	}
 }
 
@@ -159,7 +146,7 @@ func TestPreCommitHookScript_CheckFailureBlocksCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	hookPath := filepath.Join(t.TempDir(), "pre-commit.sh")
-	if err := os.WriteFile(hookPath, []byte(preCommitHookScript(shim, true)), 0o755); err != nil {
+	if err := os.WriteFile(hookPath, []byte(preCommitHookScript(shim)), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -168,11 +155,6 @@ func TestPreCommitHookScript_CheckFailureBlocksCommit(t *testing.T) {
 	if err := cmd.Run(); err == nil {
 		t.Fatal("pre-commit hook exited 0; expected non-zero (tree-discipline gate must block)")
 	}
-	// STATUS.md must NOT have been written — the gate fails before
-	// the regen step runs.
-	if _, err := os.Stat(filepath.Join(root, "STATUS.md")); !os.IsNotExist(err) {
-		t.Errorf("STATUS.md exists after a blocked commit; the gate did not short-circuit (stat err=%v)", err)
-	}
 }
 
 // TestPreCommitHookScript_InvokesShapeOnly pins the verb invocation
@@ -180,30 +162,8 @@ func TestPreCommitHookScript_CheckFailureBlocksCommit(t *testing.T) {
 // could silently break the pre-commit gate. Asserts the script body
 // contains `check --shape-only`, the load-bearing verb call.
 func TestPreCommitHookScript_InvokesShapeOnly(t *testing.T) {
-	body := preCommitHookScript("/some/aiwf", true)
+	body := preCommitHookScript("/some/aiwf")
 	if !strings.Contains(body, "check --shape-only") {
 		t.Errorf("pre-commit hook missing `check --shape-only` invocation; tree-discipline gate would not fire:\n%s", body)
-	}
-}
-
-// TestPreCommitHookScript_RegenStatus_Decoupling pins the G42
-// contract: the tree-discipline gate is always present, and only
-// the STATUS.md regen step toggles with regenStatus. Without this
-// test, a refactor that re-coupled the two responsibilities would
-// silently regress G42's enforcement guarantee.
-func TestPreCommitHookScript_RegenStatus_Decoupling(t *testing.T) {
-	withRegen := preCommitHookScript("/some/aiwf", true)
-	withoutRegen := preCommitHookScript("/some/aiwf", false)
-
-	for _, body := range []string{withRegen, withoutRegen} {
-		if !strings.Contains(body, "check --shape-only") {
-			t.Errorf("gate missing regardless of regenStatus:\n%s", body)
-		}
-	}
-	if !strings.Contains(withRegen, "status --root") {
-		t.Errorf("regenStatus=true should include status regen:\n%s", withRegen)
-	}
-	if strings.Contains(withoutRegen, "status --root") {
-		t.Errorf("regenStatus=false must omit status regen (G42 decoupling):\n%s", withoutRegen)
 	}
 }

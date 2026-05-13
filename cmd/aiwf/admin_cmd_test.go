@@ -243,22 +243,28 @@ func TestRun_UpdateRefreshesPreCommitHook(t *testing.T) {
 	}
 }
 
-// TestRun_UpdateDropsRegenKeepsGateOnOptOut (G42): run init (hook
-// installed by default), flip status_md.auto_update: false, run
-// update → the marker-managed pre-commit hook stays installed
-// (tree-discipline gate is enforcement, not opt-out-able), but the
-// STATUS.md regen step is dropped from the script body.
-func TestRun_UpdateDropsRegenKeepsGateOnOptOut(t *testing.T) {
+// TestRun_UpdateOptOutRemovesPostCommitKeepsGate (G42 + G-0112): run
+// init (default install lays down both pre-commit and post-commit),
+// flip status_md.auto_update: false, run update → the pre-commit
+// hook stays installed (tree-discipline gate is enforcement, not
+// opt-out-able) and never carries a regen step in any mode; the
+// post-commit hook is removed (G-0112: that's where the regen toggle
+// lives now).
+func TestRun_UpdateOptOutRemovesPostCommitKeepsGate(t *testing.T) {
 	root := setupCLITestRepo(t)
-	// No --skip-hook: this test verifies G42 round-trip behavior
-	// (install → opt-out → re-install) which needs real hook
-	// installation through init. No commits triggered.
+	// No --skip-hook: this test verifies G42 + G-0112 round-trip
+	// behavior (install → opt-out → re-install) which needs real
+	// hook installation through init. No commits triggered.
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	hookPath := filepath.Join(root, ".git", "hooks", "pre-commit")
-	if _, err := os.Stat(hookPath); err != nil {
+	preCommit := filepath.Join(root, ".git", "hooks", "pre-commit")
+	postCommit := filepath.Join(root, ".git", "hooks", "post-commit")
+	if _, err := os.Stat(preCommit); err != nil {
 		t.Fatalf("pre-commit hook not installed by default Init: %v", err)
+	}
+	if _, err := os.Stat(postCommit); err != nil {
+		t.Fatalf("post-commit hook not installed by default Init (G-0112): %v", err)
 	}
 
 	// Flip the opt-out flag.
@@ -275,15 +281,18 @@ status_md:
 	if rc := run([]string{"update", "--root", root}); rc != exitOK {
 		t.Fatalf("update: %d", rc)
 	}
-	body, err := os.ReadFile(hookPath)
+	body, err := os.ReadFile(preCommit)
 	if err != nil {
 		t.Fatalf("pre-commit hook missing after opt-out (G42 violation): %v", err)
 	}
 	if !strings.Contains(string(body), "check --shape-only") {
-		t.Errorf("hook missing tree-discipline gate after opt-out:\n%s", body)
+		t.Errorf("pre-commit hook missing tree-discipline gate after opt-out:\n%s", body)
 	}
 	if strings.Contains(string(body), "status --root") {
-		t.Errorf("opt-out must drop STATUS.md regen step:\n%s", body)
+		t.Errorf("pre-commit hook still includes STATUS.md regen step (G-0112: regen lives in post-commit):\n%s", body)
+	}
+	if _, err := os.Stat(postCommit); !os.IsNotExist(err) {
+		t.Errorf("post-commit hook should be removed under opt-out (G-0112) (stat err=%v)", err)
 	}
 }
 
@@ -780,8 +789,8 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 		"ok    history",
 		"ok    render roadmap",
 		"ok    update (default install)",
-		"ok    update (status_md.auto_update: false → keeps gate, drops regen)",
-		"ok    update (status_md.auto_update: true → reinstates regen)",
+		"ok    update (status_md.auto_update: false → keeps gate, removes post-commit)",
+		"ok    update (status_md.auto_update: true → reinstates post-commit)",
 		"ok    check",
 		"ok    doctor",
 		// M-070/AC-7: end-to-end coverage of the recommended-plugin
@@ -1089,10 +1098,12 @@ func TestDoctorReport_PreCommitHookOK(t *testing.T) {
 	}
 }
 
-// TestDoctorReport_PreCommitHookGateOnly (G42): status_md.auto_update
-// false leaves the pre-commit hook installed in gate-only mode.
-// Doctor reports "ok, gate-only" and counts no problems — that's
-// the desired-and-actual-agree state under G42.
+// TestDoctorReport_PreCommitHookGateOnly (G42 + G-0112): with
+// status_md.auto_update false, the pre-commit hook is installed
+// gate-only. Per G-0112 gate-only is now the *only* shape of the
+// pre-commit body, so doctor reports plain "pre-commit: ok" (no
+// "gate-only" qualifier). Doctor counts no problems — that's the
+// desired-and-actual-agree state.
 func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
 	root := setupCLITestRepo(t)
 	// Pre-write aiwf.yaml with the same Version the binary will
@@ -1109,11 +1120,16 @@ func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
 	}
 	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "pre-commit: ok, gate-only") {
-		t.Errorf("expected 'ok, gate-only' line under G42:\n%s", joined)
+	if !strings.Contains(joined, "pre-commit: ok") {
+		t.Errorf("expected 'pre-commit: ok' line under G-0112:\n%s", joined)
+	}
+	// Post-commit should be absent under opt-out — that's the new
+	// surface where auto_update flips behavior.
+	if !strings.Contains(joined, "post-commit: not installed") {
+		t.Errorf("expected 'post-commit: not installed' under opt-out (G-0112):\n%s", joined)
 	}
 	if problems != 0 {
-		t.Errorf("gate-only mode should produce no problems; got %d:\n%s", problems, joined)
+		t.Errorf("gate-only + post-commit-absent should produce no problems; got %d:\n%s", problems, joined)
 	}
 }
 
@@ -1143,10 +1159,12 @@ func TestDoctorReport_PreCommitHookMissingButFlagOn(t *testing.T) {
 	}
 }
 
-// TestDoctorReport_PreCommitHookPresentButFlagOff: hook on disk but
-// the user just flipped the flag — drift in the other direction.
-// `aiwf update` removes it.
-func TestDoctorReport_PreCommitHookPresentButFlagOff(t *testing.T) {
+// TestDoctorReport_PostCommitHookPresentButFlagOff (G-0112):
+// post-commit hook on disk but the user just flipped
+// status_md.auto_update to false — drift; `aiwf update` removes it.
+// (Under G-0112 the regen toggle lives on the post-commit hook, not
+// the pre-commit hook.)
+func TestDoctorReport_PostCommitHookPresentButFlagOff(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -1163,11 +1181,11 @@ status_md:
 	}
 	lines, problems := doctorReport(root, doctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "config says off") {
-		t.Errorf("expected 'config says off' diagnostic:\n%s", joined)
+	if !strings.Contains(joined, "post-commit: present") || !strings.Contains(joined, "config says off") {
+		t.Errorf("expected post-commit 'present ... config says off' diagnostic:\n%s", joined)
 	}
 	if problems == 0 {
-		t.Errorf("hook-present-but-config-off should be a problem")
+		t.Errorf("post-commit-present-but-config-off should be a problem")
 	}
 }
 
