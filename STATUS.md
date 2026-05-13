@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-13
 
-_267 entities · 0 errors · 15 warnings · run `aiwf check` for details_
+_267 entities · 0 errors · 16 warnings · run `aiwf check` for details_
 
-> Sweep pending: 7 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 8 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -132,7 +132,6 @@ flowchart LR
 | G-0116 | aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos | E-0029 |
 | G-0117 | aiwf render html: project tree once, render via SPA instead of N files |  |
 | G-0119 | aiwfx-wrap-epic promotes target before wrap-bundle commits complete | E-0029 |
-| G-0120 | provenance audit rules cascade unfix-ably on post-promote wrap commits | E-0029 |
 
 ## Warnings
 
@@ -152,6 +151,7 @@ flowchart LR
 | terminal-entity-not-archived | M-0107 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md | entity M-0107 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | entity E-0029 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | G-0118 | work/gaps/G-0118-aiwf-reallocate-does-not-populate-prior-ids-provenance-check-fails-post-rename.md | entity G-0118 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | G-0120 | work/gaps/G-0120-provenance-audit-rules-cascade-unfix-ably-on-post-promote-wrap-commits.md | entity G-0120 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 

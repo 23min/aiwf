@@ -1,8 +1,10 @@
 ---
 id: G-0120
 title: provenance audit rules cascade unfix-ably on post-promote wrap commits
-status: open
+status: addressed
 discovered_in: E-0029
+addressed_by_commit:
+    - a87d7138ba5fe6cedff20131d4ec85bf2d337e4c
 ---
 ## What's missing
 
