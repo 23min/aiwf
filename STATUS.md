@@ -1,6 +1,6 @@
 # aiwf status — 2026-05-13
 
-_266 entities · 0 errors · 15 warnings · run `aiwf check` for details_
+_267 entities · 0 errors · 15 warnings · run `aiwf check` for details_
 
 > Sweep pending: 7 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -132,6 +132,7 @@ flowchart LR
 | G-0116 | aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos | E-0029 |
 | G-0117 | aiwf render html: project tree once, render via SPA instead of N files |  |
 | G-0119 | aiwfx-wrap-epic promotes target before wrap-bundle commits complete | E-0029 |
+| G-0120 | provenance audit rules cascade unfix-ably on post-promote wrap commits | E-0029 |
 
 ## Warnings
 
@@ -156,9 +157,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-13 | human/peter | add | aiwf add gap G-0119 'aiwfx-wrap-epic promotes target before wrap-bundle commits complete' |
 | 2026-05-13 | human/peter | promote | aiwf promote G-0118 open -> addressed |
 | 2026-05-13 | human/peter | add | aiwf add gap G-0118 'aiwf reallocate does not populate prior_ids; provenance check fails post-rename' |
 | 2026-05-12 | human/peter | wrap-epic | chore(E-0029): CHANGELOG entry for wrap |
 | 2026-05-12 | human/peter | wrap-epic | chore(epic): wrap E-0029 — glanceable render layout, chips, sidebar |
-| 2026-05-12 | human/peter | reallocate | aiwf reallocate M-0102 -> M-0107 |
 
