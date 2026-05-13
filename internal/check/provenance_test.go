@@ -926,6 +926,378 @@ func TestResolveViaPriorIDs(t *testing.T) {
 	}
 }
 
+// TestRunProvenance_WrapBundleCommitTolerated_AuthorizationEnded covers
+// G-0120: a wrap-bundle commit (aiwf-verb: wrap-epic) that lands AFTER
+// its scope was terminated by a same-entity terminal-promote is treated
+// as still within scope — the wrap operation is atomic across commit
+// boundaries even when the ritual order put the promote first. The
+// rule must NOT fire.
+//
+// This is the live failing case from commit 25c11e1 on main: a
+// `wrap-epic` artefact commit that lands a few minutes after the
+// `aiwf promote E-NNNN active -> done` commit (which carried
+// `aiwf-scope-ends:`). G-0119 is the forward fix (re-order the
+// ritual); this exception keeps historical commits validatable
+// without history rewrite.
+func TestRunProvenance_WrapBundleCommitTolerated_AuthorizationEnded(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	authSHA := strings.Repeat("a", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+		// Terminal-promote on E-0001 ends the scope.
+		agentCommit("ccc3333", "promote", "E-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		}),
+		// Wrap-epic artefact commit on the SAME entity, lands AFTER
+		// the scope ended. Must not fire authorization-ended.
+		agentCommit("dddd444", "wrap-epic", "E-0001", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if hasFinding(got, CodeProvenanceAuthorizationEnded) {
+		t.Fatalf("findings = %v; wrap-bundle commit after same-entity terminal promote must not fire authorization-ended",
+			findingCodes(got))
+	}
+}
+
+// TestRunProvenance_WrapBundleCommitTolerated_WrapMilestone covers the
+// milestone-wrap analogue: aiwfx-wrap-milestone emits wrap-bundle
+// commits with `aiwf-verb: wrap-milestone`. Same tolerance pattern as
+// the epic case.
+func TestRunProvenance_WrapBundleCommitTolerated_WrapMilestone(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	authSHA := strings.Repeat("b", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "M-0001", "human/peter", "ai/claude"),
+		agentCommit("ccc3333", "promote", "M-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		}),
+		agentCommit("dddd444", "wrap-milestone", "M-0001", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if hasFinding(got, CodeProvenanceAuthorizationEnded) {
+		t.Fatalf("findings = %v; wrap-milestone bundle commit must be tolerated",
+			findingCodes(got))
+	}
+}
+
+// TestRunProvenance_WrapBundleExceptionScoped_DifferentEntityStillFires
+// pins the narrowing rule: the wrap-bundle exception applies ONLY
+// when the wrap commit's entity matches the entity that terminated the
+// scope. A wrap commit pointing at a different entity from the
+// scope-ender still fires.
+func TestRunProvenance_WrapBundleExceptionScoped_DifferentEntityStillFires(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	authSHA := strings.Repeat("c", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+		// Terminal-promote on E-0001 ends the scope.
+		agentCommit("ccc3333", "promote", "E-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		}),
+		// Wrap commit targets M-0001, NOT the scope-terminating entity.
+		// Even though M-0001 is reachable from E-0001, the exception is
+		// narrowed to same-entity to avoid silently broadening scope.
+		agentCommit("dddd444", "wrap-epic", "M-0001", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if !hasFinding(got, CodeProvenanceAuthorizationEnded) {
+		t.Fatalf("findings = %v; wrap commit on a different entity from the scope-ender must still fire",
+			findingCodes(got))
+	}
+}
+
+// TestRunProvenance_WrapBundleExceptionScoped_NonWrapVerbStillFires
+// pins the verb allow-list: a non-wrap verb (e.g. `promote`,
+// `reallocate`) referencing a dead scope on the same entity is NOT
+// covered by the exception. Only `wrap-epic` and `wrap-milestone`
+// participate in the wrap-bundle window.
+func TestRunProvenance_WrapBundleExceptionScoped_NonWrapVerbStillFires(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	authSHA := strings.Repeat("d", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+		agentCommit("ccc3333", "promote", "E-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		}),
+		// Non-wrap verb on the same entity after scope ended.
+		agentCommit("dddd444", "promote", "E-0001", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if !hasFinding(got, CodeProvenanceAuthorizationEnded) {
+		t.Fatalf("findings = %v; non-wrap verb in post-promote window must still fire",
+			findingCodes(got))
+	}
+}
+
+// TestRunProvenance_WrapBundleExceptionScoped_NonPromoteEnderStillFires
+// pins the scope-ender shape: the exception only kicks in when the
+// scope-end commit's verb is `promote` (the canonical terminating
+// step). A scope ended by `revoke` or any other verb does not enable
+// the wrap-bundle window — those scopes were ended deliberately
+// outside the normal wrap path.
+func TestRunProvenance_WrapBundleExceptionScoped_NonPromoteEnderStillFires(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	authSHA := strings.Repeat("e", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+		// Scope ended by a non-promote verb (e.g. revoke). The wrap-
+		// bundle window only opens after a terminal promote.
+		{
+			SHA: "ccc3333",
+			Trailers: []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "revoke"},
+				{Key: gitops.TrailerEntity, Value: "E-0001"},
+				{Key: gitops.TrailerActor, Value: "human/peter"},
+				{Key: gitops.TrailerScopeEnds, Value: authSHA},
+			},
+		},
+		agentCommit("dddd444", "wrap-epic", "E-0001", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if !hasFinding(got, CodeProvenanceAuthorizationEnded) {
+		t.Fatalf("findings = %v; wrap commit after non-promote scope-end must still fire",
+			findingCodes(got))
+	}
+}
+
+// TestRunProvenance_WrapBundleExceptionScoped_MissingAuthSHAStillFires
+// pins the resolver branch: when authorized-by is malformed or absent
+// the wrap-bundle path is skipped (the cross-commit rules don't run)
+// — covered by the existing shape-rule code path. This test asserts
+// the helper itself handles the "no opener for the authSHA" case
+// without panicking and that no spurious exception triggers when the
+// auth SHA was never indexed.
+func TestRunProvenance_WrapBundleExceptionScoped_MissingAuthSHAStillFires(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	// No authorize/opened commit — the authorized-by SHA on the
+	// wrap commit doesn't resolve, so -authorization-missing should
+	// fire and -authorization-ended cannot fire.
+	commits := []scope.Commit{
+		agentCommit("dddd444", "wrap-epic", "E-0001", "ai/claude", "human/peter",
+			strings.Repeat("0", 40), nil),
+	}
+	got := RunProvenance(commits, tr)
+	if !hasFinding(got, CodeProvenanceAuthorizationMissing) {
+		t.Fatalf("findings = %v; missing authorize-opener must still fire -authorization-missing",
+			findingCodes(got))
+	}
+	if hasFinding(got, CodeProvenanceAuthorizationEnded) {
+		t.Fatalf("findings = %v; -authorization-ended cannot fire with no resolved opener",
+			findingCodes(got))
+	}
+}
+
+// TestRunProvenance_WrapBundleExceptionScoped_PriorIDsRenameResolves
+// covers the rename-chain interaction: a wrap-bundle commit references
+// an entity that was reallocated post-scope, and the wrap-bundle helper
+// resolves via prior_ids the same way the out-of-scope rule does
+// (G-0118). This pins that the same-entity match isn't fooled by id
+// drift across the wrap window.
+func TestRunProvenance_WrapBundleExceptionScoped_PriorIDsRenameResolves(t *testing.T) {
+	tr := buildProvenanceTreeWithRenamed(t)
+	authSHA := strings.Repeat("f", 40)
+	commits := []scope.Commit{
+		// Scope opened against the OLD id, which now lives as
+		// prior_ids on M-0001 (per the renamed fixture).
+		authorizeOpenedCommit(authSHA, "M-0099", "human/peter", "ai/claude"),
+		// Terminal promote on the OLD id ends the scope.
+		agentCommit("ccc3333", "promote", "M-0099", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		}),
+		// Wrap-bundle commit references the CURRENT id; the helper
+		// must resolve both sides through prior_ids and treat them
+		// as the same entity.
+		agentCommit("dddd444", "wrap-milestone", "M-0001", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if hasFinding(got, CodeProvenanceAuthorizationEnded) {
+		t.Fatalf("findings = %v; same-entity match via prior_ids must enable wrap-bundle exception",
+			findingCodes(got))
+	}
+}
+
+// TestRunProvenance_WrapBundleExceptionScoped_CompositeRolledUp covers
+// composite-id rollup: a wrap-bundle commit on `M-0001/AC-1` should
+// match a scope-ender on `M-0001` after compositeRoot rollup. Mirrors
+// the existing out-of-scope rollup behavior.
+func TestRunProvenance_WrapBundleExceptionScoped_CompositeRolledUp(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	authSHA := strings.Repeat("1", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "M-0001", "human/peter", "ai/claude"),
+		agentCommit("ccc3333", "promote", "M-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		}),
+		// Composite target on a child AC; rolls up to M-0001.
+		agentCommit("dddd444", "wrap-milestone", "M-0001/AC-1", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if hasFinding(got, CodeProvenanceAuthorizationEnded) {
+		t.Fatalf("findings = %v; composite target must roll up to same scope-entity",
+			findingCodes(got))
+	}
+}
+
+// TestIsWrapBundleCommit covers every branch of the helper directly,
+// supplementing the integration-style tests above. Each case names
+// the branch it's pinning.
+func TestIsWrapBundleCommit(t *testing.T) {
+	tr := buildProvenanceTree(t)
+	authSHA := strings.Repeat("a", 40)
+	opener := scope.Commit{
+		SHA: authSHA,
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "authorize"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerTo, Value: "ai/claude"},
+			{Key: gitops.TrailerScope, Value: "opened"},
+		},
+	}
+	endPromote := scope.Commit{
+		SHA: "cccccc1",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "ai/claude"},
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		},
+	}
+	endRevoke := scope.Commit{
+		SHA: "cccccc2",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "revoke"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		},
+	}
+	endPromoteOtherEnt := scope.Commit{
+		SHA: "cccccc3",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerEntity, Value: "M-0001"},
+			{Key: gitops.TrailerActor, Value: "ai/claude"},
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		},
+	}
+	openerWrongEnt := scope.Commit{
+		SHA: authSHA,
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "authorize"},
+			{Key: gitops.TrailerEntity, Value: "M-0002"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerTo, Value: "ai/claude"},
+			{Key: gitops.TrailerScope, Value: "opened"},
+		},
+	}
+	wrapIdxOK := map[string]string{
+		gitops.TrailerVerb:   "wrap-epic",
+		gitops.TrailerEntity: "E-0001",
+	}
+	wrapIdxNonWrap := map[string]string{
+		gitops.TrailerVerb:   "promote",
+		gitops.TrailerEntity: "E-0001",
+	}
+	wrapIdxNoEntity := map[string]string{
+		gitops.TrailerVerb: "wrap-epic",
+	}
+	tests := []struct {
+		name      string
+		idx       map[string]string
+		opener    *scope.Commit
+		endCommit *scope.Commit
+		want      bool
+	}{
+		{name: "happy path matches", idx: wrapIdxOK, opener: &opener, endCommit: &endPromote, want: true},
+		{name: "end commit nil (defensive)", idx: wrapIdxOK, opener: &opener, endCommit: nil, want: false},
+		{name: "non-wrap verb", idx: wrapIdxNonWrap, opener: &opener, endCommit: &endPromote, want: false},
+		{name: "end commit verb not promote", idx: wrapIdxOK, opener: &opener, endCommit: &endRevoke, want: false},
+		{name: "wrap commit missing entity (defensive)", idx: wrapIdxNoEntity, opener: &opener, endCommit: &endPromote, want: false},
+		{name: "end commit on different entity", idx: wrapIdxOK, opener: &opener, endCommit: &endPromoteOtherEnt, want: false},
+		{name: "opener on different entity (defense-in-depth)", idx: wrapIdxOK, opener: &openerWrongEnt, endCommit: &endPromote, want: false},
+		// Opener nil: skipped defensively; same-entity match between
+		// wrap and end commit still authorises the exception.
+		{name: "opener nil falls through to end-commit match", idx: wrapIdxOK, opener: nil, endCommit: &endPromote, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isWrapBundleCommit(tt.idx, tt.opener, tt.endCommit, nil, tr)
+			if got != tt.want {
+				t.Errorf("isWrapBundleCommit(%q) = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestIsWrapBundleCommit_EndCommitMissingEntity covers the
+// `endEntity == ""` branch: an end-commit with a scope-ends trailer
+// but no aiwf-entity (pathological history) shouldn't crash and
+// shouldn't enable the exception.
+func TestIsWrapBundleCommit_EndCommitMissingEntity(t *testing.T) {
+	authSHA := strings.Repeat("a", 40)
+	opener := scope.Commit{
+		SHA: authSHA,
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "authorize"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+		},
+	}
+	endNoEnt := scope.Commit{
+		SHA: "ccc1234",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerScopeEnds, Value: authSHA},
+		},
+	}
+	idx := map[string]string{
+		gitops.TrailerVerb:   "wrap-epic",
+		gitops.TrailerEntity: "E-0001",
+	}
+	if got := isWrapBundleCommit(idx, &opener, &endNoEnt, nil, nil); got {
+		t.Errorf("isWrapBundleCommit with end-commit missing aiwf-entity = %v, want false", got)
+	}
+}
+
+// TestBuildEndedByIndex covers the helper directly: scope-ends
+// trailers map to their emitting commit, first-wins on duplicates,
+// commits without scope-ends are excluded.
+func TestBuildEndedByIndex(t *testing.T) {
+	authA := strings.Repeat("a", 40)
+	authB := strings.Repeat("b", 40)
+	commits := []scope.Commit{
+		// No scope-ends trailer; excluded.
+		{SHA: "noend01", Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+		}},
+		// First scope-ends for authA.
+		{SHA: "endsa01", Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerScopeEnds, Value: authA},
+		}},
+		// Second scope-ends for authA (defensive duplicate); first-wins.
+		{SHA: "endsa02", Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerScopeEnds, Value: authA},
+		}},
+		// scope-ends for authB.
+		{SHA: "endsb01", Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerScopeEnds, Value: authB},
+		}},
+	}
+	got := buildEndedByIndex(commits)
+	if got[authA] == nil || got[authA].SHA != "endsa01" {
+		t.Errorf("ended-by[authA] = %v, want endsa01 (first-wins)", got[authA])
+	}
+	if got[authB] == nil || got[authB].SHA != "endsb01" {
+		t.Errorf("ended-by[authB] = %v, want endsb01", got[authB])
+	}
+	if _, ok := got["never-ended"]; ok {
+		t.Errorf("ended-by has spurious entry for unused SHA")
+	}
+}
+
 // hasFinding reports whether any finding has the given code.
 func hasFinding(fs []Finding, code string) bool {
 	for i := range fs {

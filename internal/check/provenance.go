@@ -73,6 +73,7 @@ func RunProvenance(commits []scope.Commit, t *tree.Tree) []Finding {
 		chronoIdx[c.SHA] = i
 	}
 	endedAt := buildEndedAtIndex(commits, chronoIdx)
+	endedBy := buildEndedByIndex(commits)
 	renameChain := buildRenameChain(commits)
 
 	var findings []Finding
@@ -81,7 +82,7 @@ func RunProvenance(commits []scope.Commit, t *tree.Tree) []Finding {
 		idx := indexCommitTrailersForProvenance(c.Trailers)
 		findings = append(findings, provenanceShapeFindings(c, idx)...)
 		findings = append(findings, provenanceCoherenceFindings(c, idx)...)
-		findings = append(findings, provenanceAuthorizationFindings(c, idx, authIndex, endedAt, chronoIdx, renameChain, t)...)
+		findings = append(findings, provenanceAuthorizationFindings(c, idx, authIndex, endedAt, endedBy, chronoIdx, renameChain, t)...)
 	}
 	return findings
 }
@@ -211,12 +212,14 @@ func provenanceCoherenceFindings(c *scope.Commit, idx map[string]string) []Findi
 //
 // authIndex maps known authorize-opener SHAs to their opener commit;
 // endedAt maps each opener SHA to the chrono index of its first
-// scope-end (or absence); chronoIdx is the position-by-SHA lookup.
+// scope-end; endedBy maps each opener SHA to the commit that emitted
+// the scope-ends trailer; chronoIdx is the position-by-SHA lookup.
 func provenanceAuthorizationFindings(
 	c *scope.Commit,
 	idx map[string]string,
 	authIndex map[string]*scope.Commit,
 	endedAt map[string]int,
+	endedBy map[string]*scope.Commit,
 	chronoIdx map[string]int,
 	renameChain map[string]string,
 	t *tree.Tree,
@@ -264,12 +267,20 @@ func provenanceAuthorizationFindings(
 	// by); the act is allowed because the scope was active when this
 	// commit landed. Strict less-than fires only when an earlier
 	// commit already ended the scope.
+	//
+	// G-0120 exception: a wrap-bundle commit (wrap-epic / wrap-
+	// milestone) that lands after a same-entity terminal-promote ended
+	// the scope is treated as still within scope — wraps are atomic
+	// across commit boundaries even when the ritual order put the
+	// promote first (see G-0119 for the forward fix). The exception is
+	// narrow on purpose: same entity, wrap verb, terminating verb is
+	// `promote`. See isWrapBundleCommit for the full contract.
 	if endIdx, ended := endedAt[opener.SHA]; ended {
 		thisIdx, ok := chronoIdx[c.SHA]
 		if !ok {
 			thisIdx = -1
 		}
-		if endIdx < thisIdx {
+		if endIdx < thisIdx && !isWrapBundleCommit(idx, opener, endedBy[opener.SHA], renameChain, t) {
 			findings = append(findings, Finding{
 				Code:     CodeProvenanceAuthorizationEnded,
 				Severity: SeverityError,
@@ -538,6 +549,118 @@ func buildEndedAtIndex(commits []scope.Commit, chronoIdx map[string]int) map[str
 		}
 	}
 	return out
+}
+
+// buildEndedByIndex maps each authorize-opener SHA to the commit that
+// emitted the first `aiwf-scope-ends: <auth-sha>` trailer for it.
+// Openers without an end commit are absent. The companion of
+// buildEndedAtIndex: that one carries chrono position for the
+// -authorization-ended comparison; this one carries the end-commit
+// pointer so the wrap-bundle exception (G-0120) can inspect the
+// terminating commit's verb and entity.
+func buildEndedByIndex(commits []scope.Commit) map[string]*scope.Commit {
+	out := map[string]*scope.Commit{}
+	for i := range commits {
+		c := &commits[i]
+		for _, tr := range c.Trailers {
+			if tr.Key != gitops.TrailerScopeEnds {
+				continue
+			}
+			if _, already := out[tr.Value]; already {
+				continue
+			}
+			out[tr.Value] = c
+		}
+	}
+	return out
+}
+
+// wrapBundleVerbs is the closed set of `aiwf-verb:` values that
+// participate in a wrap bundle — the post-promote commit window the
+// rituals plugin's `aiwfx-wrap-epic` / `aiwfx-wrap-milestone` skills
+// produce (wrap.md artefact, CHANGELOG entries, merge trailers). New
+// wrap-related verbs must be added here explicitly; the empty / non-
+// matching case keeps the exception narrow per CLAUDE.md
+// §"Engineering principles" YAGNI.
+var wrapBundleVerbs = map[string]bool{
+	"wrap-epic":      true,
+	"wrap-milestone": true,
+}
+
+// isWrapBundleCommit reports whether the commit described by `idx` (its
+// trailer map) is a wrap-bundle commit whose scope was terminated by a
+// same-entity terminal-promote — the legitimate post-promote pattern
+// G-0119's ritual order produces and G-0120 makes audit-tolerant.
+//
+// Recognition criteria (all must hold):
+//   - the commit's aiwf-verb is in wrapBundleVerbs;
+//   - the scope was terminated by a known end-commit (endedBy
+//     supplies it);
+//   - the end-commit's aiwf-verb is `promote` (the canonical
+//     terminating step; a scope ended by `revoke` or another verb
+//     does NOT enable the window — those terminations were
+//     deliberate operator acts outside the wrap path);
+//   - the end-commit's aiwf-entity matches this commit's aiwf-entity
+//     (after composite-root rollup, rename-chain walk, and prior_ids
+//     resolution — same lineage of equivalence the out-of-scope rule
+//     uses for the target/scope reachability check).
+//
+// The same-entity narrowing avoids silently broadening the exception
+// to any reachable descendant: a wrap commit on M-0001 under a scope
+// ended on the parent epic E-0001 still fires authorization-ended
+// because the scope-terminator was a different entity. The forward fix
+// (G-0119) keeps the promote at the end of the wrap bundle; this
+// exception only forgives the specific post-promote-on-same-entity
+// pattern produced by the pre-G-0119 ritual order.
+//
+// Returns false when any input is missing or any criterion fails —
+// the caller's default behavior (firing the finding) is the safe
+// fallback.
+func isWrapBundleCommit(
+	idx map[string]string,
+	opener *scope.Commit,
+	endCommit *scope.Commit,
+	renameChain map[string]string,
+	t *tree.Tree,
+) bool {
+	if endCommit == nil {
+		return false
+	}
+	if !wrapBundleVerbs[idx[gitops.TrailerVerb]] {
+		return false
+	}
+	endIdx := indexCommitTrailersForProvenance(endCommit.Trailers)
+	if endIdx[gitops.TrailerVerb] != "promote" {
+		return false
+	}
+	wrapEntity := idx[gitops.TrailerEntity]
+	endEntity := endIdx[gitops.TrailerEntity]
+	if wrapEntity == "" || endEntity == "" {
+		return false
+	}
+	// Resolve both sides through the same lineage helpers the out-of-
+	// scope rule uses, so a reallocate across the wrap window doesn't
+	// defeat the same-entity match.
+	wrapRoot := resolveViaPriorIDs(walkRenameChain(compositeRoot(wrapEntity), renameChain), t)
+	endRoot := resolveViaPriorIDs(walkRenameChain(compositeRoot(endEntity), renameChain), t)
+	if wrapRoot != endRoot {
+		return false
+	}
+	// Defense-in-depth: the opener's entity should also match (a wrap
+	// referencing an opener on an unrelated entity but somehow
+	// terminated on the wrap's entity is pathological — the
+	// authorization-out-of-scope rule already catches it, but a quick
+	// check here keeps the exception's contract crisp).
+	if opener != nil {
+		openerEnt := indexCommitTrailersForProvenance(opener.Trailers)[gitops.TrailerEntity]
+		if openerEnt != "" {
+			openerRoot := resolveViaPriorIDs(walkRenameChain(compositeRoot(openerEnt), renameChain), t)
+			if openerRoot != wrapRoot {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // buildRenameChain maps prior-entity ids to the new id assigned by

@@ -157,9 +157,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-13 | human/peter | add | aiwf add gap G-0120 'provenance audit rules cascade unfix-ably on post-promote wrap commits' |
 | 2026-05-13 | human/peter | add | aiwf add gap G-0119 'aiwfx-wrap-epic promotes target before wrap-bundle commits complete' |
 | 2026-05-13 | human/peter | promote | aiwf promote G-0118 open -> addressed |
 | 2026-05-13 | human/peter | add | aiwf add gap G-0118 'aiwf reallocate does not populate prior_ids; provenance check fails post-rename' |
 | 2026-05-12 | human/peter | wrap-epic | chore(E-0029): CHANGELOG entry for wrap |
-| 2026-05-12 | human/peter | wrap-epic | chore(epic): wrap E-0029 — glanceable render layout, chips, sidebar |
 
