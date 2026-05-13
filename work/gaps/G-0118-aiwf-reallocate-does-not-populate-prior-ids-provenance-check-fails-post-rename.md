@@ -1,8 +1,10 @@
 ---
 id: G-0118
 title: aiwf reallocate does not populate prior_ids; provenance check fails post-rename
-status: open
+status: addressed
 discovered_in: E-0029
+addressed_by_commit:
+    - 6e1a0c0a803e4c9aa66dcc45590c467b4a8b05f6
 ---
 ## What's missing
 

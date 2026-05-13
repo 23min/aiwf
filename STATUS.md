@@ -1,8 +1,8 @@
 # aiwf status — 2026-05-13
 
-_265 entities · 0 errors · 14 warnings · run `aiwf check` for details_
+_265 entities · 0 errors · 15 warnings · run `aiwf check` for details_
 
-> Sweep pending: 6 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
+> Sweep pending: 7 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
 ## In flight
 
@@ -131,7 +131,6 @@ flowchart LR
 | G-0114 | HTML render gap surface: status and archive state not glanceable from sidebar |  |
 | G-0116 | aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos | E-0029 |
 | G-0117 | aiwf render html: project tree once, render via SPA instead of N files |  |
-| G-0118 | aiwf reallocate does not populate prior_ids; provenance check fails post-rename | E-0029 |
 
 ## Warnings
 
@@ -150,6 +149,7 @@ flowchart LR
 | terminal-entity-not-archived | M-0101 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0101-in-page-status-hierarchy-in-gaps-html.md | entity M-0101 has terminal status 'cancelled' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | M-0107 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0107-repair-playwright-e2e-suite-for-current-kernel-state.md | entity M-0107 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 | terminal-entity-not-archived | E-0029 | work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/epic.md | entity E-0029 has terminal status 'done' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
+| terminal-entity-not-archived | G-0118 | work/gaps/G-0118-aiwf-reallocate-does-not-populate-prior-ids-provenance-check-fails-post-rename.md | entity G-0118 has terminal status 'addressed' but file is still in the active tree; awaiting \`aiwf archive --apply\` sweep |
 
 ## Recent activity
 
