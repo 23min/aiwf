@@ -1,7 +1,9 @@
 ---
 id: G-0112
 title: STATUS.md pre-commit regen produces merge conflicts on a derived artifact
-status: open
+status: addressed
+addressed_by_commit:
+    - 63acc40
 ---
 ## What's missing
 
