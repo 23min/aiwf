@@ -1,6 +1,6 @@
-# aiwf status — 2026-05-11
+# aiwf status — 2026-05-13
 
-_264 entities · 0 errors · 14 warnings · run `aiwf check` for details_
+_265 entities · 0 errors · 14 warnings · run `aiwf check` for details_
 
 > Sweep pending: 6 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)
 
@@ -131,6 +131,7 @@ flowchart LR
 | G-0114 | HTML render gap surface: status and archive state not glanceable from sidebar |  |
 | G-0116 | aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos | E-0029 |
 | G-0117 | aiwf render html: project tree once, render via SPA instead of N files |  |
+| G-0118 | aiwf reallocate does not populate prior_ids; provenance check fails post-rename | E-0029 |
 
 ## Warnings
 
@@ -154,9 +155,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-12 | human/peter | wrap-epic | chore(E-0029): CHANGELOG entry for wrap |
 | 2026-05-12 | human/peter | wrap-epic | chore(epic): wrap E-0029 — glanceable render layout, chips, sidebar |
 | 2026-05-12 | human/peter | reallocate | aiwf reallocate M-0102 -> M-0107 |
 | 2026-05-12 | ai/claude | wrap-epic | chore(E-0029): wrap artefact |
 | 2026-05-12 | ai/claude | promote | aiwf promote E-0029 active -> done |
-| 2026-05-12 | ai/claude | cancel | aiwf cancel M-0101 -> cancelled |
 
