@@ -316,6 +316,85 @@ func TestRunProvenance_PriorEntityChainResolves(t *testing.T) {
 	}
 }
 
+// TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs covers G-0118:
+// when an entity is reallocated (M-0099 → M-0001) and historical
+// commits on the feature branch still name the OLD id in their
+// aiwf-entity: trailers, the out-of-scope walk must resolve the old
+// id forward via the renumbered entity's frontmatter `prior_ids:`
+// list before declaring the target unreachable from the scope-entity.
+//
+// Critically this test does NOT include the reallocate commit in the
+// audit window — the failure mode this exercises is the case where a
+// push spans only the post-reallocate work and the rename-trailer
+// signal isn't in scope, but the renumbered entity's frontmatter
+// lineage still witnesses the rename. The fix must consult tree
+// state, not just commit trailers.
+func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs(t *testing.T) {
+	tr := buildProvenanceTreeWithRenamed(t)
+	authSHA := strings.Repeat("e", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+		// Historical commit naming M-0099, the OLD id of M-0001.
+		// No reallocate commit is included in this window — only the
+		// renumbered entity's prior_ids witnesses the lineage.
+		agentCommit("bbbb222", "promote", "M-0099", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+		t.Fatalf("findings = %v; old-id target should resolve via prior_ids and reach scope-entity",
+			findingCodes(got))
+	}
+}
+
+// TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs_CollisionCase
+// covers the harder G-0118 reproduction: the old id `M-0099` now
+// resolves DIRECTLY to a different entity in the tree (a parallel
+// allocation under an unrelated epic E-0009), AND the renumbered
+// entity M-0001 carries `prior_ids: [M-0099]`. The walk must prefer
+// the frontmatter lineage over the bare id lookup so the historical
+// trailer resolves to the entity it was actually written against.
+func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs_CollisionCase(t *testing.T) {
+	tr := buildProvenanceTreeWithRenamedAndCollision(t)
+	authSHA := strings.Repeat("f", 40)
+	commits := []scope.Commit{
+		authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+		// Historical trailer names M-0099. ByID resolves to the
+		// parallel allocation under E-0009 (out of scope). ByPriorID
+		// resolves to M-0001 under E-0001 (in scope). The fix must
+		// prefer the prior_ids lineage.
+		agentCommit("ccc1234", "promote", "M-0099", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+		t.Fatalf("findings = %v; renamed-target with collision must resolve via prior_ids",
+			findingCodes(got))
+	}
+}
+
+// TestRunProvenance_OutOfScope_PriorIDsDoesNotMaskGenuineOutOfScope
+// asserts the branch coverage's negative case: when the target's
+// prior_ids resolution still does NOT reach the scope-entity (or
+// the target has no prior_ids at all and isn't in the tree), the
+// rule must still fire. This pins that the prior_ids lookup is a
+// resolution helper, not a blanket suppression.
+func TestRunProvenance_OutOfScope_PriorIDsDoesNotMaskGenuineOutOfScope(t *testing.T) {
+	tr := buildProvenanceTreeWithRenamed(t)
+	authSHA := strings.Repeat("a", 40)
+	commits := []scope.Commit{
+		// Scope on the unrelated E-0009.
+		authorizeOpenedCommit(authSHA, "E-0009", "human/peter", "ai/claude"),
+		// Agent acts on M-0099 (renumbered to M-0001 under E-0001).
+		// Even after resolving prior_ids → M-0001, M-0001 does not
+		// reach E-0009. The rule must fire.
+		agentCommit("dddd444", "promote", "M-0099", "ai/claude", "human/peter", authSHA, nil),
+	}
+	got := RunProvenance(commits, tr)
+	if !hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+		t.Fatalf("findings = %v; prior_ids lookup must not mask a genuine out-of-scope target",
+			findingCodes(got))
+	}
+}
+
 // TestRunProvenance_AuthorizeCommitNoActiveScopeSkipped asserts that
 // an authorize commit (which itself doesn't operate inside a scope)
 // is exempt from the no-active-scope rule. The kernel reserves the
@@ -817,6 +896,36 @@ func TestRunProvenance_MultipleAuthorizedByLastWins(t *testing.T) {
 	}
 }
 
+// TestResolveViaPriorIDs covers every branch of the helper introduced
+// for G-0118: empty id, nil tree, no prior_ids match, and a found
+// prior_ids match (returning the current id of the renamed entity).
+func TestResolveViaPriorIDs(t *testing.T) {
+	tr := buildProvenanceTreeWithRenamed(t)
+	tests := []struct {
+		name string
+		id   string
+		t    *tree.Tree
+		want string
+	}{
+		{name: "empty id passes through", id: "", t: tr, want: ""},
+		{name: "nil tree passes through", id: "M-0099", t: nil, want: "M-0099"},
+		{name: "absent id with no prior match passes through", id: "M-0500", t: tr, want: "M-0500"},
+		{name: "live id with no prior match passes through", id: "M-0001", t: tr, want: "M-0001"},
+		// The function returns prior.ID as-loaded from frontmatter
+		// (canonical width here). Downstream Reaches() canonicalizes
+		// both sides anyway, so on-disk width passes through unchanged.
+		{name: "old id resolves forward via prior_ids", id: "M-0099", t: tr, want: "M-0001"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resolveViaPriorIDs(tt.id, tt.t)
+			if got != tt.want {
+				t.Errorf("resolveViaPriorIDs(%q) = %q, want %q", tt.id, got, tt.want)
+			}
+		})
+	}
+}
+
 // hasFinding reports whether any finding has the given code.
 func hasFinding(fs []Finding, code string) bool {
 	for i := range fs {
@@ -847,6 +956,70 @@ func buildProvenanceTree(t *testing.T) *tree.Tree {
 		"work/epics/E-01-platform/M-002-evict.md": "---\nid: M-002\ntitle: Eviction policy\n" +
 			"status: draft\nparent: E-01\n---\n",
 		"work/epics/E-09-unrelated/epic.md": "---\nid: E-09\ntitle: Unrelated\nstatus: proposed\n---\n",
+	}
+	for relPath, content := range files {
+		full := filepath.Join(root, filepath.FromSlash(relPath))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tr, _, err := tree.Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+	return tr
+}
+
+// buildProvenanceTreeWithRenamed extends buildProvenanceTree with a
+// renumbered milestone: M-0001 (in tree) carries `prior_ids: [M-0099]`,
+// so a historical commit naming M-0099 resolves forward to M-0001
+// via the lineage list. M-0099 is NOT a separate live entity in this
+// tree — the only signal for the rename is the prior_ids field.
+func buildProvenanceTreeWithRenamed(t *testing.T) *tree.Tree {
+	t.Helper()
+	root := t.TempDir()
+	files := map[string]string{
+		"work/epics/E-0001-platform/epic.md": "---\nid: E-0001\ntitle: Platform\nstatus: active\n---\n",
+		"work/epics/E-0001-platform/M-0001-cache.md": "---\nid: M-0001\ntitle: Cache warmup\n" +
+			"status: in_progress\nparent: E-0001\nprior_ids:\n  - M-0099\n---\n",
+		"work/epics/E-0009-unrelated/epic.md": "---\nid: E-0009\ntitle: Unrelated\nstatus: proposed\n---\n",
+	}
+	for relPath, content := range files {
+		full := filepath.Join(root, filepath.FromSlash(relPath))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tr, _, err := tree.Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+	return tr
+}
+
+// buildProvenanceTreeWithRenamedAndCollision builds the G-0118
+// reproduction: M-0001 under E-0001 carries `prior_ids: [M-0099]`,
+// AND a separate live entity M-0099 exists under the unrelated
+// E-0009 (the parallel allocation that took the old id post-merge).
+// A bare ByID("M-0099") resolves to the wrong entity; only ByPriorID
+// returns the correctly-renumbered M-0001.
+func buildProvenanceTreeWithRenamedAndCollision(t *testing.T) *tree.Tree {
+	t.Helper()
+	root := t.TempDir()
+	files := map[string]string{
+		"work/epics/E-0001-platform/epic.md": "---\nid: E-0001\ntitle: Platform\nstatus: active\n---\n",
+		"work/epics/E-0001-platform/M-0001-cache.md": "---\nid: M-0001\ntitle: Cache warmup\n" +
+			"status: in_progress\nparent: E-0001\nprior_ids:\n  - M-0099\n---\n",
+		"work/epics/E-0009-unrelated/epic.md": "---\nid: E-0009\ntitle: Unrelated\nstatus: proposed\n---\n",
+		// Parallel allocation under E-0009 took the old id.
+		"work/epics/E-0009-unrelated/M-0099-other.md": "---\nid: M-0099\ntitle: Other milestone\n" +
+			"status: in_progress\nparent: E-0009\n---\n",
 	}
 	for relPath, content := range files {
 		full := filepath.Join(root, filepath.FromSlash(relPath))

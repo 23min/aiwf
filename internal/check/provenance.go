@@ -288,9 +288,10 @@ func provenanceAuthorizationFindings(
 	openerIdx := indexCommitTrailersForProvenance(opener.Trailers)
 	scopeEntity := openerIdx[gitops.TrailerEntity]
 	scopeEntity = walkRenameChain(scopeEntity, renameChain)
+	scopeEntity = resolveViaPriorIDs(scopeEntity, t)
 	target := idx[gitops.TrailerEntity]
 	if scopeEntity != "" && target != "" && t != nil {
-		from := compositeRoot(target)
+		from := resolveViaPriorIDs(compositeRoot(target), t)
 		to := compositeRoot(scopeEntity)
 		if from != to && !t.Reaches(from, to) {
 			findings = append(findings, Finding{
@@ -303,6 +304,50 @@ func provenanceAuthorizationFindings(
 		}
 	}
 	return findings
+}
+
+// resolveViaPriorIDs maps a possibly-old id to the current id of the
+// entity whose `prior_ids:` frontmatter lists it. This is the
+// tree-side companion to walkRenameChain (which follows
+// aiwf-prior-entity commit trailers): together they cover the case
+// where a reallocate happened before the audit window so the rename
+// trailer isn't in scope but the renumbered entity's frontmatter still
+// witnesses the lineage (G-0118).
+//
+// When id resolves directly to a live entity, that entity is
+// authoritative — the bare lookup wins. Only when the id is absent
+// from current state, OR when a different entity reclaims the id
+// post-rename (the parallel-allocation collision case in G-0118), do
+// we fall through to ByPriorID. In the collision case ByID returns
+// the wrong entity, so we always check ByPriorID and prefer it when
+// it returns a distinct entity that actually claims this id as a
+// prior.
+//
+// Returns id unchanged when t is nil, when id is empty, when no
+// entity claims id via prior_ids, or when the prior-id lookup would
+// land on the same entity already returned by ByID.
+//
+// Single-hop by design: each `aiwf reallocate` appends exactly one
+// predecessor to the renumbered entity's prior_ids list, so one
+// lookup covers the typical rename chain. If double-rename chains
+// ever surface as friction the right fix is to accumulate prior_ids
+// transitively at write time inside the reallocate verb — not to
+// turn this reader into a multi-hop walker. The returned value is
+// `prior.ID` verbatim (on-disk width), so callers must canonicalize
+// before string-comparing; `Tree.Reaches` already does.
+func resolveViaPriorIDs(id string, t *tree.Tree) string {
+	if id == "" || t == nil {
+		return id
+	}
+	prior := t.ByPriorID(id)
+	if prior == nil {
+		return id
+	}
+	// Prefer the prior-ids match. If ByID returned the same entity,
+	// this is a no-op; if ByID returned a different (parallel-
+	// allocation collision) entity, the prior-ids match is the
+	// renumbered-forward entity G-0118 needs to reach.
+	return prior.ID
 }
 
 // UntrailedCommit is the input shape for RunUntrailedAudit: the

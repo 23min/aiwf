@@ -155,9 +155,9 @@ flowchart LR
 
 | Date | Actor | Verb | Detail |
 |------|-------|------|--------|
+| 2026-05-13 | human/peter | add | aiwf add gap G-0118 'aiwf reallocate does not populate prior_ids; provenance check fails post-rename' |
 | 2026-05-12 | human/peter | wrap-epic | chore(E-0029): CHANGELOG entry for wrap |
 | 2026-05-12 | human/peter | wrap-epic | chore(epic): wrap E-0029 — glanceable render layout, chips, sidebar |
 | 2026-05-12 | human/peter | reallocate | aiwf reallocate M-0102 -> M-0107 |
 | 2026-05-12 | ai/claude | wrap-epic | chore(E-0029): wrap artefact |
-| 2026-05-12 | ai/claude | promote | aiwf promote E-0029 active -> done |
 
