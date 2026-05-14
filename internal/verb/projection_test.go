@@ -14,6 +14,7 @@ import (
 // verb shouldn't refuse to run because of unrelated pre-existing
 // breakage.
 func TestProjectionFindings_PreExistingFiltered(t *testing.T) {
+	t.Parallel()
 	original := &tree.Tree{
 		Entities: []*entity.Entity{
 			// Pre-existing refs-resolve error: gap points to non-existent milestone.
@@ -53,6 +54,7 @@ func TestProjectionFindings_PreExistingFiltered(t *testing.T) {
 // TestProjectionFindings_NewErrorIntroduced is the complement: a
 // finding present only in the projected tree surfaces as introduced.
 func TestProjectionFindings_NewErrorIntroduced(t *testing.T) {
+	t.Parallel()
 	original := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
@@ -85,6 +87,7 @@ func TestProjectionFindings_NewErrorIntroduced(t *testing.T) {
 // existing problems plus a verb that introduces a *new* error surfaces
 // only the new one (the existing ones are filtered).
 func TestProjectionFindings_PreExistingPlusNew(t *testing.T) {
+	t.Parallel()
 	original := &tree.Tree{
 		Entities: []*entity.Entity{
 			// Pre-existing issue.

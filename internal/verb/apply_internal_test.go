@@ -13,11 +13,9 @@ import (
 // not match" reason (e.g. the path is outside the repo), the
 // rollback captures the error.
 func TestRollback_RestoreError(t *testing.T) {
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-
+	t.Parallel()
+	// GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} are seeded once in TestMain
+	// (setup_test.go) — using t.Setenv here would panic under t.Parallel.
 	// Use a non-git directory as the root so git restore fails hard.
 	root := t.TempDir()
 	tx := &applyTx{
@@ -34,6 +32,7 @@ func TestRollback_RestoreError(t *testing.T) {
 // chmod'd to 0500 fails os.Remove with EACCES; the error is
 // captured (and not swallowed as ErrNotExist).
 func TestRollback_RemoveError(t *testing.T) {
+	t.Parallel()
 	if os.Geteuid() == 0 {
 		t.Skip("root bypasses permission checks")
 	}
@@ -69,6 +68,7 @@ func TestRollback_RemoveError(t *testing.T) {
 // TestRollback_NoOpWhenCommitted: a committed transaction's
 // rollback does nothing.
 func TestRollback_NoOpWhenCommitted(t *testing.T) {
+	t.Parallel()
 	tx := &applyTx{committed: true, touchedPaths: []string{"x"}, createdFiles: []string{"y"}}
 	if err := tx.rollback(); err != nil {
 		t.Errorf("committed rollback should be no-op; got %v", err)
@@ -78,6 +78,7 @@ func TestRollback_NoOpWhenCommitted(t *testing.T) {
 // TestRollback_NoOpWhenNothingTouched: an empty transaction's
 // rollback does nothing.
 func TestRollback_NoOpWhenNothingTouched(t *testing.T) {
+	t.Parallel()
 	tx := &applyTx{ctx: context.Background()}
 	if err := tx.rollback(); err != nil {
 		t.Errorf("empty rollback should be no-op; got %v", err)
@@ -88,13 +89,12 @@ func TestRollback_NoOpWhenNothingTouched(t *testing.T) {
 // triggers rollback, and rollback itself fails, the user sees the
 // composite error string mentioning manual cleanup.
 func TestApply_WrapsErrorWhenRollbackAlsoFails(t *testing.T) {
+	t.Parallel()
 	if os.Geteuid() == 0 {
 		t.Skip("root bypasses permission checks")
 	}
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
+	// GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} are seeded once in TestMain
+	// (setup_test.go) — using t.Setenv here would panic under t.Parallel.
 
 	// A directory that's not a git repo: git mv will fail. But to
 	// trigger the rollback-also-fails path, we need a touched-path
@@ -157,6 +157,7 @@ func TestApply_WrapsErrorWhenRollbackAlsoFails(t *testing.T) {
 // TestDedupePaths_PreservesOrderRemovesDuplicates exercises the
 // helper directly with a duplicate-laden input.
 func TestDedupePaths_PreservesOrderRemovesDuplicates(t *testing.T) {
+	t.Parallel()
 	in := []string{"a", "b", "a", "c", "b", "a"}
 	got := dedupePaths(in)
 	want := []string{"a", "b", "c"}

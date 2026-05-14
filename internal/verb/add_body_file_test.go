@@ -15,6 +15,7 @@ import (
 // TestAdd_BodyFile_Epic: BodyOverride content lands as the epic's
 // body in the created file (M-056/AC-1, AC-2).
 func TestAdd_BodyFile_Epic(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	bodyText := "## Goal\n\nUser-supplied prose explaining the epic.\n"
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Body-file epic", testActor, verb.AddOptions{
@@ -38,6 +39,7 @@ func TestAdd_BodyFile_Epic(t *testing.T) {
 // works for *every* kind, not just one. Table-driven so the verb
 // staying kind-agnostic on this seam is pinned by a single regression.
 func TestAdd_BodyFile_AllKinds(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		kind entity.Kind
@@ -102,6 +104,7 @@ func TestAdd_BodyFile_AllKinds(t *testing.T) {
 // (M-056/AC-3). Pins the regression that adding the field would
 // silently change the default for callers that don't set it.
 func TestAdd_BodyFile_AbsencePreservesTemplate(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Default body", testActor, verb.AddOptions{}))
 
@@ -123,6 +126,7 @@ func TestAdd_BodyFile_AbsencePreservesTemplate(t *testing.T) {
 // OpWrite for the entity file — frontmatter and body land together
 // in the same atomic commit, no separate body-edit step.
 func TestAdd_BodyFile_SingleOpWrite(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	res, err := verb.Add(r.ctx, r.tree(), entity.KindEpic, "Atomic body", testActor, verb.AddOptions{
 		BodyOverride: []byte("body content\n"),
@@ -150,6 +154,7 @@ func TestAdd_BodyFile_SingleOpWrite(t *testing.T) {
 // double-block file the loader can't parse — better to refuse early
 // with a clear message than to silently strip and surprise the user.
 func TestAdd_BodyFile_RejectsFrontmatter(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	bad := []byte("---\nid: PRETEND-1\n---\n\n## Pretend body\n")
 	_, err := verb.Add(r.ctx, r.tree(), entity.KindEpic, "Has frontmatter", testActor, verb.AddOptions{
@@ -165,6 +170,7 @@ func TestAdd_BodyFile_RejectsFrontmatter(t *testing.T) {
 // check. The trim is intentional — `---` after a couple of newlines
 // would still produce a malformed serialized file.
 func TestAdd_BodyFile_RejectsLeadingWhitespaceFrontmatter(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	bad := []byte("\n\n---\nid: PRETEND-1\n---\n")
 	_, err := verb.Add(r.ctx, r.tree(), entity.KindEpic, "Whitespace shield", testActor, verb.AddOptions{
@@ -181,6 +187,7 @@ func TestAdd_BodyFile_RejectsLeadingWhitespaceFrontmatter(t *testing.T) {
 // file (e.g., missing trailing newline between frontmatter and
 // body).
 func TestAdd_BodyFile_PostAddTreeIsClean(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Clean body", testActor, verb.AddOptions{
 		BodyOverride: []byte("## Goal\n\nClean body content.\n"),

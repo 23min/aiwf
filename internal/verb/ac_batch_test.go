@@ -17,6 +17,7 @@ import (
 // one commit. Asserts the ids are AC-1..AC-N (allocation order),
 // titles are preserved per-position, and statuses default to open.
 func TestAddACBatch_RoundTrip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -51,6 +52,7 @@ func TestAddACBatch_RoundTrip(t *testing.T) {
 // per the rest of the kernel. AC-2's contract presumes mid-list
 // allocation works.
 func TestAddACBatch_AppendsToExistingACs(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -80,6 +82,7 @@ func TestAddACBatch_AppendsToExistingACs(t *testing.T) {
 // of N, the plan produces exactly one OpWrite (the milestone file).
 // One verb invocation = one git commit.
 func TestAddACBatch_SingleOpWriteAndCommit(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -104,6 +107,7 @@ func TestAddACBatch_SingleOpWriteAndCommit(t *testing.T) {
 // created composite id, in allocation order. `aiwf history M-NNN/AC-X`
 // finds the commit because git's --grep matches any trailer line.
 func TestAddACBatch_EmitsOneEntityTrailerPerAC(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -137,6 +141,7 @@ func TestAddACBatch_EmitsOneEntityTrailerPerAC(t *testing.T) {
 // failing, it means the batch path silently changed semantics for
 // the most common single-title case.
 func TestAddACBatch_SingleTitleUnchanged(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Single", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -170,6 +175,7 @@ func TestAddACBatch_SingleTitleUnchanged(t *testing.T) {
 // Pre-fix, an empty title might create N-1 ACs and surprise the
 // user with an inconsistent state.
 func TestAddACBatch_RejectsEmptyTitleInBatch(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -191,6 +197,7 @@ func TestAddACBatch_RejectsEmptyTitleInBatch(t *testing.T) {
 // one --tests value would otherwise silently apply the same
 // metrics to every AC.
 func TestAddACBatch_RejectsTestsWithMultipleTitles(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -209,6 +216,7 @@ func TestAddACBatch_RejectsTestsWithMultipleTitles(t *testing.T) {
 // rule set; once the title shape passes, projection is well-defined
 // for any number of new ACs against an empty milestone.)
 func TestAddACBatch_AtomicReversionOnProjectionFailure(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Batch", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -240,6 +248,7 @@ func TestAddACBatch_AtomicReversionOnProjectionFailure(t *testing.T) {
 // page show all the new criteria; the frontmatter alone isn't
 // enough.
 func TestAddACBatch_BodyHeadingsAppendedInOrder(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Body", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))

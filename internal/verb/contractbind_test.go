@@ -74,6 +74,7 @@ func mustReadDoc(t *testing.T, src string) (*aiwfyaml.Doc, *aiwfyaml.Contracts) 
 }
 
 func TestContractBind_NewBinding(t *testing.T) {
+	t.Parallel()
 	tr := contractTree("C-0001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
@@ -97,6 +98,7 @@ func TestContractBind_NewBinding(t *testing.T) {
 }
 
 func TestContractBind_IdempotentExactMatch(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(baseAiwfYAML, "  entries: []", `  entries:
     - id: C-001
       validator: cue
@@ -120,6 +122,7 @@ func TestContractBind_IdempotentExactMatch(t *testing.T) {
 }
 
 func TestContractBind_DifferentValuesRequiresForce(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(baseAiwfYAML, "  entries: []", `  entries:
     - id: C-001
       validator: cue
@@ -140,6 +143,7 @@ func TestContractBind_DifferentValuesRequiresForce(t *testing.T) {
 }
 
 func TestContractBind_ForceReplaces(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(baseAiwfYAML, "  entries: []", `  entries:
     - id: C-001
       validator: cue
@@ -164,6 +168,7 @@ func TestContractBind_ForceReplaces(t *testing.T) {
 }
 
 func TestContractBind_RejectsMissingEntity(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
@@ -176,6 +181,7 @@ func TestContractBind_RejectsMissingEntity(t *testing.T) {
 }
 
 func TestContractBind_RejectsUndeclaredValidator(t *testing.T) {
+	t.Parallel()
 	tr := contractTree("C-0001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
@@ -188,6 +194,7 @@ func TestContractBind_RejectsUndeclaredValidator(t *testing.T) {
 }
 
 func TestContractBind_RejectsMissingFlags(t *testing.T) {
+	t.Parallel()
 	tr := contractTree("C-0001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
@@ -200,6 +207,7 @@ func TestContractBind_RejectsMissingFlags(t *testing.T) {
 }
 
 func TestContractUnbind_Removes(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(baseAiwfYAML, "  entries: []", `  entries:
     - id: C-001
       validator: cue
@@ -223,6 +231,7 @@ func TestContractUnbind_Removes(t *testing.T) {
 }
 
 func TestContractUnbind_RejectsMissingEntry(t *testing.T) {
+	t.Parallel()
 	d, c := mustReadDoc(t, baseAiwfYAML)
 	_, err := ContractUnbind(context.Background(), d, c, "C-0001", "human/test")
 	if err == nil {
@@ -231,6 +240,7 @@ func TestContractUnbind_RejectsMissingEntry(t *testing.T) {
 }
 
 func TestContractUnbind_RejectsNoContractsBlock(t *testing.T) {
+	t.Parallel()
 	src := `aiwf_version: 0.1.0
 actor: human/test
 `
@@ -245,6 +255,7 @@ actor: human/test
 // every mutating verb that touches contracts: we exercise it
 // directly so a regression here surfaces immediately.
 func TestCloneContracts_DeepCopy(t *testing.T) {
+	t.Parallel()
 	src := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{
 			"cue": {Command: "cue", Args: []string{"vet"}},
@@ -286,6 +297,7 @@ func mustHaveTrailerInPlan(t *testing.T, p *Plan, key, value string) {
 // must carry two OpWrites — one for the entity file, one for the
 // updated aiwf.yaml — so the atomic bind lands in a single commit.
 func TestAdd_ContractWithBindingProducesTwoOps(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{{
 			ID: "ADR-0001", Kind: entity.KindADR, Title: "Adopt Cue", Status: "accepted",
@@ -331,6 +343,7 @@ func TestAdd_ContractWithBindingProducesTwoOps(t *testing.T) {
 }
 
 func TestAdd_ContractRejectsPartialBindTriplet(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
 	_, err := Add(context.Background(), tr, entity.KindContract, "Public API", "human/test", AddOptions{
@@ -345,6 +358,7 @@ func TestAdd_ContractRejectsPartialBindTriplet(t *testing.T) {
 }
 
 func TestAdd_NonContractRejectsContractFlags(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{}
 	_, err := Add(context.Background(), tr, entity.KindEpic, "Epic", "human/test", AddOptions{
 		LinkedADRs: []string{"ADR-0001"},
@@ -361,6 +375,7 @@ func TestAdd_NonContractRejectsContractFlags(t *testing.T) {
 // a usage error. Without the doc we can't perform the atomic splice,
 // so we refuse rather than write the entity in isolation.
 func TestAdd_ContractBindWithoutAiwfDocRejected(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{}
 	_, err := Add(context.Background(), tr, entity.KindContract, "API", "human/test", AddOptions{
 		BindValidator: "cue",
@@ -377,6 +392,7 @@ func TestAdd_ContractBindWithoutAiwfDocRejected(t *testing.T) {
 // add+bind variant must validate the validator name *before* writing
 // any file ops. The verb is all-or-nothing across both files.
 func TestAdd_ContractBindWithUndeclaredValidatorRejected(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
 	_, err := Add(context.Background(), tr, entity.KindContract, "API", "human/test", AddOptions{
@@ -395,6 +411,7 @@ func TestAdd_ContractBindWithUndeclaredValidatorRejected(t *testing.T) {
 // CLI dispatcher errors at parse time on an empty positional, but
 // the verb itself should also refuse a programmatic empty id (defensive).
 func TestContractBind_RejectsEmptyID(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
 	_, err := ContractBind(context.Background(), tr, d, c, "", "human/test", bindRepo(t), ContractBindOptions{
@@ -408,6 +425,7 @@ func TestContractBind_RejectsEmptyID(t *testing.T) {
 // TestContractBind_RejectsNonContractEntity: an id that exists but
 // resolves to (e.g.) an epic must be refused with a clear message.
 func TestContractBind_RejectsNonContractEntity(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{{
 			ID: "E-0001", Kind: entity.KindEpic, Title: "Foo", Status: "active",
@@ -426,6 +444,7 @@ func TestContractBind_RejectsNonContractEntity(t *testing.T) {
 // TestContractUnbind_OnlyRemovesNamedID: unbind on one of several
 // bindings must keep the rest untouched.
 func TestContractUnbind_OnlyRemovesNamedID(t *testing.T) {
+	t.Parallel()
 	src := `aiwf_version: 0.1.0
 actor: human/test
 contracts:
@@ -471,6 +490,7 @@ contracts:
 // contractcheck/missing-schema finding instead of writing the bad
 // binding and deferring detection to the pre-push hook.
 func TestContractBind_G18_MissingSchemaCaughtAtVerb(t *testing.T) {
+	t.Parallel()
 	tr := contractTree("C-0001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 	root := t.TempDir() // no schema.cue, no fixtures/
@@ -512,6 +532,7 @@ func TestContractBind_G18_MissingSchemaCaughtAtVerb(t *testing.T) {
 // on other entries (a stale binding pointing at a deleted schema) are
 // not the verb's responsibility and should not block it.
 func TestContractBind_G18_OnlyTouchesBoundEntity(t *testing.T) {
+	t.Parallel()
 	// aiwf.yaml has a pre-existing binding for C-002 pointing at
 	// missing files, plus a contract entity for C-002 so the only
 	// per-entry finding is missing-schema/missing-fixtures.
@@ -542,6 +563,7 @@ func TestContractBind_G18_OnlyTouchesBoundEntity(t *testing.T) {
 // TestAdd_ContractWithBindBadPathsCaughtAtVerb: G18 — same
 // enforcement on the atomic add+bind path through verb.Add.
 func TestAdd_ContractWithBindBadPathsCaughtAtVerb(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{}
 	d, c := mustReadDoc(t, baseAiwfYAML)
 
@@ -577,6 +599,7 @@ func TestAdd_ContractWithBindBadPathsCaughtAtVerb(t *testing.T) {
 // TestContractBind_PartialBindOptionsRejected: missing fixtures on
 // the verb level (not just CLI level) errors.
 func TestContractBind_PartialBindOptionsRejected(t *testing.T) {
+	t.Parallel()
 	tr := contractTree("C-0001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
 	_, err := ContractBind(context.Background(), tr, d, c, "C-0001", "human/test", bindRepo(t), ContractBindOptions{

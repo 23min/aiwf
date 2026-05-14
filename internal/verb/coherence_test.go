@@ -205,6 +205,7 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 // case: no trailers at all. Coherent by construction (all rules
 // trigger only on presence).
 func TestCheckTrailerCoherence_EmptyTrailerSet(t *testing.T) {
+	t.Parallel()
 	if err := CheckTrailerCoherence(nil); err != nil {
 		t.Errorf("empty trailer set should be coherent, got %v", err)
 	}
@@ -217,6 +218,7 @@ func TestCheckTrailerCoherence_EmptyTrailerSet(t *testing.T) {
 // helper returns nil/"" for any other error type — callers can safely
 // dispatch on the result.
 func TestAsCoherenceError_NonCoherenceErrorPassesThrough(t *testing.T) {
+	t.Parallel()
 	plain := &someOtherError{msg: "not a coherence error"}
 	ce, rule := AsCoherenceError(plain)
 	if ce != nil {

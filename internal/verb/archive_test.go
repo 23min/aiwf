@@ -29,6 +29,7 @@ import (
 )
 
 func TestArchiveTargetForEpic(t *testing.T) {
+	t.Parallel()
 	got := archiveTargetForEpic("work/epics/E-0010-foo-bar")
 	want := "work/epics/archive/E-0010-foo-bar"
 	if got != want {
@@ -37,6 +38,7 @@ func TestArchiveTargetForEpic(t *testing.T) {
 }
 
 func TestArchiveTargetForContract(t *testing.T) {
+	t.Parallel()
 	got := archiveTargetForContract("work/contracts/C-0010-some-api")
 	want := "work/contracts/archive/C-0010-some-api"
 	if got != want {
@@ -45,6 +47,7 @@ func TestArchiveTargetForContract(t *testing.T) {
 }
 
 func TestArchiveTargetForFlatFile(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name, in string
 		kind     entity.Kind
@@ -65,6 +68,7 @@ func TestArchiveTargetForFlatFile(t *testing.T) {
 }
 
 func TestPluralize(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		n                int
 		sing, plur, want string
@@ -84,6 +88,7 @@ func TestPluralize(t *testing.T) {
 }
 
 func TestIsKnownKind(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		in   string
 		want bool
@@ -110,6 +115,7 @@ func TestIsKnownKind(t *testing.T) {
 // computeArchiveMoves: a kindFilter that doesn't match any of the six
 // kinds returns a wrapped error naming the bad input.
 func TestComputeArchiveMoves_UnknownKindFilter(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{}
 	moves, err := computeArchiveMoves(tr, "widget")
 	if err == nil {
@@ -133,6 +139,7 @@ func TestComputeArchiveMoves_UnknownKindFilter(t *testing.T) {
 // parent epic. A user who explicitly asks --kind milestone gets a
 // truthful no-op, not an error.
 func TestComputeArchiveMoves_MilestoneFilterNoOp(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
@@ -157,6 +164,7 @@ func TestComputeArchiveMoves_MilestoneFilterNoOp(t *testing.T) {
 // exactly ONE OpMove (the dir rename). The milestones don't generate
 // their own moves; they ride with the epic dir rename.
 func TestComputeArchiveMoves_EpicWithMultipleMilestones_OneMove(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
@@ -211,6 +219,7 @@ func TestComputeArchiveMoves_EpicWithMultipleMilestones_OneMove(t *testing.T) {
 // two epic.md or contract.md records with the same parent dir, but
 // the guard exists to keep the move set deterministic regardless.
 func TestComputeArchiveMoves_DirShapeKindsDeduplicate(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{ID: "E-0010", Kind: entity.KindEpic, Status: entity.StatusDone, Path: "work/epics/E-0010-foo/epic.md"},
@@ -233,6 +242,7 @@ func TestComputeArchiveMoves_DirShapeKindsDeduplicate(t *testing.T) {
 // under archive/ is left alone, regardless of status. This is the
 // idempotence-load-bearing branch.
 func TestComputeArchiveMoves_AlreadyArchivedSkipped(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
@@ -256,6 +266,7 @@ func TestComputeArchiveMoves_AlreadyArchivedSkipped(t *testing.T) {
 // "non-terminal status -> skip" branch for each entity-kind arm of
 // the switch. Active-status entities never produce moves.
 func TestComputeArchiveMoves_NonTerminalSkipped(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{ID: "E-0010", Kind: entity.KindEpic, Status: entity.StatusActive, Path: "work/epics/E-0010-x/epic.md"},
@@ -278,6 +289,7 @@ func TestComputeArchiveMoves_NonTerminalSkipped(t *testing.T) {
 // when planArchive returns nil (nothing to sweep), Archive returns
 // a Result with NoOp=true and a human-readable message.
 func TestArchive_NoOpResultOnConvergedTree(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	// An empty tempdir has no entities to load; planArchive returns
 	// (nil, nil) and Archive's NoOp branch fires.
@@ -301,6 +313,7 @@ func TestArchive_NoOpResultOnConvergedTree(t *testing.T) {
 // sort key). Without two moves of the same kind, the comparator's
 // from-comparison line goes uncovered.
 func TestPlanArchive_SortsBySameKindThenFrom(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	// Stage three terminal-status gaps (same kind), in non-alphabetical
 	// id order, so the sort comparator must fire and order them.
@@ -347,6 +360,7 @@ func TestPlanArchive_SortsBySameKindThenFrom(t *testing.T) {
 // order regardless of how the moves slice was built. Determinism is
 // load-bearing for human-diffable commit messages.
 func TestArchiveCommitSubject_Determinism(t *testing.T) {
+	t.Parallel()
 	moves := []archiveMove{
 		{kind: entity.KindADR, id: "ADR-0001"},
 		{kind: entity.KindEpic, id: "E-0001"},
@@ -378,6 +392,7 @@ func TestArchiveCommitSubject_Determinism(t *testing.T) {
 // within each kind. ADR-0004 §"`aiwf archive` verb": "the commit
 // message body lists affected ids and per-kind counts."
 func TestArchiveCommitBody_DeterministicAndCompliant(t *testing.T) {
+	t.Parallel()
 	moves := []archiveMove{
 		{kind: entity.KindGap, id: "G-0017"},
 		{kind: entity.KindGap, id: "G-0010"},

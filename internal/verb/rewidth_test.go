@@ -73,6 +73,7 @@ func rewriteRewritesToPaths(ws []rewidthRewrite) []string {
 // is narrow AND its milestones are narrow. Both rename; the milestone
 // `from` paths are post-epic-rename so Apply can run moves in order.
 func TestPlanRewidth_EpicAndMilestoneNarrow(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	f.write("work/epics/E-22-foo/epic.md",
 		"---\nid: E-22\ntitle: Foo\nstatus: active\n---\nbody.\n")
@@ -101,6 +102,7 @@ func TestPlanRewidth_EpicAndMilestoneNarrow(t *testing.T) {
 // epic dir is already canonical, but a milestone inside is narrow.
 // Only the milestone renames in place.
 func TestPlanRewidth_EpicCanonicalMilestoneNarrow(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	f.write("work/epics/E-0022-foo/epic.md",
 		"---\nid: E-0022\ntitle: Foo\nstatus: active\n---\nbody.\n")
@@ -124,6 +126,7 @@ func TestPlanRewidth_EpicCanonicalMilestoneNarrow(t *testing.T) {
 // epic dir is narrow but the milestone inside is already canonical.
 // Only the epic renames; the milestone filename inside stays.
 func TestPlanRewidth_EpicNarrowMilestoneCanonical(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	f.write("work/epics/E-22-foo/epic.md",
 		"---\nid: E-22\ntitle: Foo\nstatus: active\n---\nbody.\n")
@@ -147,6 +150,7 @@ func TestPlanRewidth_EpicNarrowMilestoneCanonical(t *testing.T) {
 // gets walked when populated with a narrow file. Confirms walk order
 // (epic, milestone, gap, decision, contract, adr) per the spec.
 func TestPlanRewidth_AllKindsNarrow(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	f.write("work/epics/E-22-e/epic.md", "---\nid: E-22\ntitle: E\nstatus: active\n---\n")
 	f.write("work/epics/E-22-e/M-77-m.md", "---\nid: M-77\ntitle: M\nstatus: in_progress\nparent: E-22\n---\n")
@@ -181,6 +185,7 @@ func TestPlanRewidth_AllKindsNarrow(t *testing.T) {
 // TestPlanRewidth_ArchiveSkipped — files under <kind>/archive/ MUST
 // NOT be touched. Per ADR-0004's forget-by-default principle.
 func TestPlanRewidth_ArchiveSkipped(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	// Active narrow file (should rename).
 	f.write("work/gaps/G-9-active.md", "---\nid: G-9\ntitle: A\nstatus: open\n---\n")
@@ -208,6 +213,7 @@ func TestPlanRewidth_ArchiveSkipped(t *testing.T) {
 // Distinct from TestPlanRewidth_ArchiveSkipped which exercises a
 // flat-dir kind (gap).
 func TestPlanRewidth_EpicArchiveSkipped(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	// Active narrow epic.
 	f.write("work/epics/E-22-active/epic.md", "---\nid: E-22\ntitle: A\nstatus: active\n---\n")
@@ -231,6 +237,7 @@ func TestPlanRewidth_EpicArchiveSkipped(t *testing.T) {
 // filename order within a kind, per the spec. Two narrow gaps with
 // out-of-order filenames return in alphabetical order.
 func TestPlanRewidth_DeterministicOrderWithinKind(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	f.write("work/gaps/G-9-zeta.md", "---\nid: G-9\ntitle: Z\nstatus: open\n---\n")
 	f.write("work/gaps/G-3-alpha.md", "---\nid: G-3\ntitle: A\nstatus: open\n---\n")
@@ -257,6 +264,7 @@ func TestPlanRewidth_DeterministicOrderWithinKind(t *testing.T) {
 // silently ignored. Covers the canonicalizeFilename "ok=false" branch
 // and the file-shape suffix-mismatch branch.
 func TestPlanRewidth_NonEntityFilesIgnored(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	// One real narrow gap.
 	f.write("work/gaps/G-9-real.md", "---\nid: G-9\ntitle: R\nstatus: open\n---\n")
@@ -307,6 +315,7 @@ func TestPlanRewidth_NonEntityFilesIgnored(t *testing.T) {
 // doesn't exist on disk shouldn't error. The verb runs against any
 // consumer tree; absence of work/contracts/ is normal.
 func TestPlanRewidth_MissingKindDirSkipped(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	f.write("work/gaps/G-9-foo.md", "---\nid: G-9\ntitle: F\nstatus: open\n---\n")
 	// No work/epics, work/decisions, work/contracts, docs/adr.
@@ -327,6 +336,7 @@ func TestPlanRewidth_MissingKindDirSkipped(t *testing.T) {
 // TestRewriteRewidthBody_BareIDsInProse covers the core rewrite case:
 // `E-22` → `E-0022`. Word-boundary guards for trailing digits.
 func TestRewriteRewidthBody_BareIDsInProse(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		in   string
@@ -378,6 +388,7 @@ func TestRewriteRewidthBody_BareIDsInProse(t *testing.T) {
 // The AC suffix is preserved verbatim; only the milestone portion
 // rewrites.
 func TestRewriteRewidthBody_CompositeIDs(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		in, want string
 	}{
@@ -399,6 +410,7 @@ func TestRewriteRewidthBody_CompositeIDs(t *testing.T) {
 // TestRewriteRewidthBody_MarkdownLinks covers active-tree link
 // rewriting. Archive-prefixed link paths are NOT rewritten.
 func TestRewriteRewidthBody_MarkdownLinks(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		in   string
@@ -440,6 +452,7 @@ func TestRewriteRewidthBody_MarkdownLinks(t *testing.T) {
 // is load-bearing — kernel docs frequently quote literal narrow ids
 // in shell snippets ("aiwf show E-22").
 func TestRewriteRewidthBody_CodeFences(t *testing.T) {
+	t.Parallel()
 	in := "Outside: E-22 should rewrite.\n" +
 		"```\n" +
 		"Inside fence: E-22 stays narrow.\n" +
@@ -462,6 +475,7 @@ func TestRewriteRewidthBody_CodeFences(t *testing.T) {
 // exclusion. Kernel docs use “ `E-22` “ to denote literal id text;
 // rewriting that would erase the literal-quote semantics.
 func TestRewriteRewidthBody_InlineBackticks(t *testing.T) {
+	t.Parallel()
 	in := "Mention `E-22` literally vs. mention E-22 in prose."
 	want := "Mention `E-22` literally vs. mention E-0022 in prose."
 	got := string(rewriteRewidthBody([]byte(in)))
@@ -475,6 +489,7 @@ func TestRewriteRewidthBody_InlineBackticks(t *testing.T) {
 // AC-3 spec's URL-fragment exclusion applies regardless of whether
 // the URL is inside `(...)`.
 func TestRewriteRewidthBody_BareURLPreserved(t *testing.T) {
+	t.Parallel()
 	in := "Visit https://example.com/E-22-issue today; also see E-22 in prose."
 	want := "Visit https://example.com/E-22-issue today; also see E-0022 in prose."
 	got := string(rewriteRewidthBody([]byte(in)))
@@ -496,6 +511,7 @@ func TestRewriteRewidthBody_BareURLPreserved(t *testing.T) {
 // a future change to splitLinkPathRegions doesn't silently shift
 // the contract.
 func TestRewriteRewidthBody_UnbalancedLinkParens(t *testing.T) {
+	t.Parallel()
 	in := "Look at [text](work/gaps/G-9-foo.md and continue with E-22"
 	// Both `G-9` and `E-22` are rewritten because the absence of a
 	// closing `)` puts everything into the outside-link region.
@@ -510,6 +526,7 @@ func TestRewriteRewidthBody_UnbalancedLinkParens(t *testing.T) {
 // empty-input branch (returns nil) and the rewriter's pass-through
 // behavior for empty content.
 func TestRewriteRewidthBody_EmptyInput(t *testing.T) {
+	t.Parallel()
 	if got := string(rewriteRewidthBody([]byte(""))); got != "" {
 		t.Errorf("empty input: got %q, want empty string", got)
 	}
@@ -518,6 +535,7 @@ func TestRewriteRewidthBody_EmptyInput(t *testing.T) {
 // TestRewriteRewidthBody_MultipleSpansPerLine confirms the inline-
 // span tracker handles multiple spans on one line correctly.
 func TestRewriteRewidthBody_MultipleSpansPerLine(t *testing.T) {
+	t.Parallel()
 	in := "First `E-22` then E-22 then `E-77` then E-77."
 	want := "First `E-22` then E-0022 then `E-77` then E-0077."
 	got := string(rewriteRewidthBody([]byte(in)))
@@ -532,6 +550,7 @@ func TestRewriteRewidthBody_MultipleSpansPerLine(t *testing.T) {
 // documents have them; we conservatively don't rewrite so we don't
 // silently mangle prose.
 func TestRewriteRewidthBody_UnterminatedSpan(t *testing.T) {
+	t.Parallel()
 	in := "Mid-line ` opens but never closes E-22."
 	// Buffer captures everything after `, treats as in-span verbatim.
 	want := "Mid-line ` opens but never closes E-22."
@@ -544,6 +563,7 @@ func TestRewriteRewidthBody_UnterminatedSpan(t *testing.T) {
 // TestRewriteRewidthBody_Idempotent — running rewrite twice produces
 // the same output as running it once. AC-4's textual-rewrite half.
 func TestRewriteRewidthBody_Idempotent(t *testing.T) {
+	t.Parallel()
 	in := "E-22 and M-77/AC-1 and [link](work/gaps/G-9-foo.md)."
 	once := rewriteRewidthBody([]byte(in))
 	twice := rewriteRewidthBody(once)
@@ -557,6 +577,7 @@ func TestRewriteRewidthBody_Idempotent(t *testing.T) {
 // TestRewidth_AlreadyCanonical_NoOp — calling Rewidth on a tree where
 // every id is already canonical produces a NoOp result. No commit.
 func TestRewidth_AlreadyCanonical_NoOp(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	f.write("work/epics/E-0022-foo/epic.md",
 		"---\nid: E-0022\ntitle: Foo\nstatus: active\n---\nbody.\n")
@@ -582,6 +603,7 @@ func TestRewidth_AlreadyCanonical_NoOp(t *testing.T) {
 // entity files at all (just the consumer-repo scaffolding) produces
 // NoOp. Caller exits 0; no commit.
 func TestRewidth_EmptyTree_NoOp(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	// No files written. The kind dirs may not exist either; verify
 	// that's fine.
@@ -598,6 +620,7 @@ func TestRewidth_EmptyTree_NoOp(t *testing.T) {
 // canonical and others narrow, only the narrow ones change. The
 // canonical files are byte-identical pre/post. AC-4 mixed-state.
 func TestRewidth_MixedState_OnlyNarrowMigrates(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	canonicalBody := "---\nid: G-0099\ntitle: C\nstatus: open\n---\n## What's missing\n\nNo refs.\n"
 	f.write("work/gaps/G-0099-canonical.md", canonicalBody)
@@ -642,6 +665,7 @@ func TestRewidth_MixedState_OnlyNarrowMigrates(t *testing.T) {
 // from the public Rewidth result (NoOp) so the caller-vs-verb seam is
 // asserted at both layers.
 func TestPlanRewidth_NoOpOnCanonical(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	f.write("work/gaps/G-0099-c.md", "---\nid: G-0099\ntitle: C\nstatus: open\n---\nbody.\n")
 
@@ -659,6 +683,7 @@ func TestPlanRewidth_NoOpOnCanonical(t *testing.T) {
 // must be the post-move location so OpWrite lands at the new path.
 // Asserts the seam between rename and rewrite.
 func TestPlanRewidthRewrites_PostMovePathing(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t)
 	// Milestone body has no rewritable content at first, so we
 	// give it some prose that needs rewriting.

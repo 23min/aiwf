@@ -16,6 +16,7 @@ import (
 // entry, the body grows a `### AC-1 — <title>` heading, and the
 // commit lands with composite-id trailers.
 func TestAddAC_AppendsACAndScaffoldsHeading(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -56,6 +57,7 @@ func TestAddAC_AppendsACAndScaffoldsHeading(t *testing.T) {
 // same commit. The kernel never makes a TDD-policy decision — it just
 // writes the only legal starting state under the FSM.
 func TestAddAC_SeedsRedPhaseUnderTDDRequired(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "required"}))
@@ -75,6 +77,7 @@ func TestAddAC_SeedsRedPhaseUnderTDDRequired(t *testing.T) {
 // max+1 over the FULL list (cancelled entries count toward position).
 // After cancelling AC-2, a new AC must be AC-3, not AC-2.
 func TestAddAC_PositionMaxPlus1AcrossCancellation(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -104,6 +107,7 @@ func TestAddAC_PositionMaxPlus1AcrossCancellation(t *testing.T) {
 // pointed at the workflow: short label for --title, hand-edit body
 // prose under the heading after creation.
 func TestAddAC_RefusesProseyTitle(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -127,6 +131,7 @@ func TestAddAC_RefusesProseyTitle(t *testing.T) {
 // reject reasonable short labels — the happy path the verb is built
 // around still works.
 func TestAddAC_AcceptsShortLabel(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -139,6 +144,7 @@ func TestAddAC_AcceptsShortLabel(t *testing.T) {
 
 // TestAddAC_NotAMilestoneRefuses: only milestones host ACs.
 func TestAddAC_NotAMilestoneRefuses(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	_, err := verb.AddAC(r.ctx, r.tree(), "E-0001", "nope", testActor, nil)
@@ -149,6 +155,7 @@ func TestAddAC_NotAMilestoneRefuses(t *testing.T) {
 
 // TestAddAC_NonExistentParent surfaces a clean error.
 func TestAddAC_NonExistentParent(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	_, err := verb.AddAC(r.ctx, r.tree(), "M-0999", "title", testActor, nil)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
@@ -159,6 +166,7 @@ func TestAddAC_NonExistentParent(t *testing.T) {
 // TestPromote_Composite: aiwf promote M-001/AC-1 met flips the AC's
 // status; the milestone file is rewritten in place.
 func TestPromote_Composite(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -174,6 +182,7 @@ func TestPromote_Composite(t *testing.T) {
 // TestPromote_CompositeRespectsACFSM: AC FSM rejects open → done
 // without --force.
 func TestPromote_CompositeRespectsACFSM(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -192,6 +201,7 @@ func TestPromote_CompositeRespectsACFSM(t *testing.T) {
 // TestCancel_Composite cancels an AC; the entry stays in acs[] at
 // its original position.
 func TestCancel_Composite(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -207,6 +217,7 @@ func TestCancel_Composite(t *testing.T) {
 // TestCancel_CompositeAlreadyCancelled refuses re-cancelling — same
 // guard as for top-level entities. No diff to write.
 func TestCancel_CompositeAlreadyCancelled(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -222,6 +233,7 @@ func TestCancel_CompositeAlreadyCancelled(t *testing.T) {
 // TestRename_CompositeUpdatesTitleAndHeading: the AC's frontmatter
 // title is updated AND the body heading is rewritten in place.
 func TestRename_CompositeUpdatesTitleAndHeading(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -247,6 +259,7 @@ func TestRename_CompositeUpdatesTitleAndHeading(t *testing.T) {
 // TestRename_CompositeNoOp errors when the new title equals the
 // current one — no diff to write.
 func TestRename_CompositeNoOp(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -263,6 +276,7 @@ func TestRename_CompositeNoOp(t *testing.T) {
 // the load-bearing pre-cycle entry case for ACs that didn't get an
 // auto-seed.
 func TestPromoteACPhase_RoundTrip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -287,6 +301,7 @@ func TestPromoteACPhase_RoundTrip(t *testing.T) {
 // red → done. "" → green is also rejected — only "" → red is the
 // pre-cycle entry transition.
 func TestPromoteACPhase_RejectsIllegalSkipAhead(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -307,6 +322,7 @@ func TestPromoteACPhase_RejectsIllegalSkipAhead(t *testing.T) {
 // and the trailers carry both aiwf-to: <newPhase> and aiwf-force:
 // <reason> as expected.
 func TestPromoteACPhase_ForceRelaxesFSM(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -349,6 +365,7 @@ func readMilestoneBody(root, relPath string) (string, error) {
 // for I3 step 2 — the kernel write path the rituals plugin will call
 // is the verb's TestMetrics arg, not direct trailer construction.
 func TestPromoteACPhase_TestsTrailerWritten(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -382,6 +399,7 @@ func TestPromoteACPhase_TestsTrailerWritten(t *testing.T) {
 // bearing for "no half-finished implementations" — a flag the user
 // passed must either be honored or rejected.
 func TestAddAC_TestsTrailerOnSeededRedOnly(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Required", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "required"}))

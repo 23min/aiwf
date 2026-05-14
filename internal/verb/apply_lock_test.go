@@ -119,11 +119,9 @@ func TestParseLsof(t *testing.T) {
 // holder — the test only asserts the contention-detection path.
 // Holder discovery is exercised by TestApply_LockContentionWithHolder.
 func TestApply_LockContentionDiagnostic(t *testing.T) {
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-
+	t.Parallel()
+	// GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} are seeded once in TestMain
+	// (setup_test.go) — using t.Setenv here would panic under t.Parallel.
 	root := t.TempDir()
 	ctx := context.Background()
 	if err := gitops.Init(ctx, root); err != nil {
@@ -186,17 +184,15 @@ func TestApply_LockContentionDiagnostic(t *testing.T) {
 // branch in that case, which TestApply_LockContentionDiagnostic
 // already covers.
 func TestApply_LockContentionWithHolder(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("lsof not available on Windows")
 	}
 	if _, err := exec.LookPath("lsof"); err != nil {
 		t.Skip("lsof missing on this machine")
 	}
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-
+	// GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} are seeded once in TestMain
+	// (setup_test.go) — using t.Setenv here would panic under t.Parallel.
 	root := t.TempDir()
 	ctx := context.Background()
 	if err := gitops.Init(ctx, root); err != nil {

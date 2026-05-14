@@ -16,6 +16,7 @@ import (
 // principal is allowed unconditionally. Scope state and reachability
 // are not consulted.
 func TestAllow_HumanActorBypassesScopeCheck(t *testing.T) {
+	t.Parallel()
 	res := verb.Allow(verb.AllowInput{
 		Kind:     verb.VerbAct,
 		TargetID: "M-0007",
@@ -33,6 +34,7 @@ func TestAllow_HumanActorBypassesScopeCheck(t *testing.T) {
 // behalf of" themselves is incoherent — principal is forbidden when
 // the actor is human/.
 func TestAllow_HumanActorWithPrincipalRefused(t *testing.T) {
+	t.Parallel()
 	res := verb.Allow(verb.AllowInput{
 		Kind:      verb.VerbAct,
 		TargetID:  "M-0007",
@@ -50,6 +52,7 @@ func TestAllow_HumanActorWithPrincipalRefused(t *testing.T) {
 // TestAllow_NonHumanActorNeedsPrincipal: an ai/... actor without a
 // principal is refused before scope lookup runs.
 func TestAllow_NonHumanActorNeedsPrincipal(t *testing.T) {
+	t.Parallel()
 	res := verb.Allow(verb.AllowInput{
 		Kind:     verb.VerbAct,
 		TargetID: "M-0007",
@@ -67,6 +70,7 @@ func TestAllow_NonHumanActorNeedsPrincipal(t *testing.T) {
 // principal but no active scope on a reachable entity is refused
 // with the no-active-scope reason.
 func TestAllow_NonHumanActorNoActiveScope(t *testing.T) {
+	t.Parallel()
 	tr := buildAllowTree(t)
 	res := verb.Allow(verb.AllowInput{
 		Kind:      verb.VerbAct,
@@ -88,6 +92,7 @@ func TestAllow_NonHumanActorNoActiveScope(t *testing.T) {
 // E-01 lets the agent operate on M-001 (which reaches E-01 via
 // parent). The matching scope is returned for trailer decoration.
 func TestAllow_NonHumanActorAllowedViaActiveScope(t *testing.T) {
+	t.Parallel()
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
 		{AuthSHA: "deadbee", Entity: "E-0001", Agent: "ai/claude", Principal: "human/peter", State: scope.StateActive},
@@ -111,6 +116,7 @@ func TestAllow_NonHumanActorAllowedViaActiveScope(t *testing.T) {
 // TestAllow_NonHumanActorRefusedOutOfScope: an active scope on E-09
 // does NOT authorize work on M-001 (which doesn't reach E-09).
 func TestAllow_NonHumanActorRefusedOutOfScope(t *testing.T) {
+	t.Parallel()
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
 		{AuthSHA: "outscope", Entity: "E-0009", Agent: "ai/claude", Principal: "human/peter", State: scope.StateActive},
@@ -131,6 +137,7 @@ func TestAllow_NonHumanActorRefusedOutOfScope(t *testing.T) {
 // TestAllow_PausedScopeDoesNotAuthorize: a paused scope is ignored.
 // The agent must wait for --resume before operating again.
 func TestAllow_PausedScopeDoesNotAuthorize(t *testing.T) {
+	t.Parallel()
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
 		{AuthSHA: "paused1", Entity: "E-0001", State: scope.StatePaused},
@@ -153,6 +160,7 @@ func TestAllow_PausedScopeDoesNotAuthorize(t *testing.T) {
 // selection). Verified by giving each scope a different AuthSHA and
 // checking which one comes back.
 func TestAllow_PicksMostRecentlyOpenedActiveScope(t *testing.T) {
+	t.Parallel()
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
 		{AuthSHA: "older11", Entity: "E-0001", State: scope.StateActive},
@@ -178,6 +186,7 @@ func TestAllow_PicksMostRecentlyOpenedActiveScope(t *testing.T) {
 // a target id in the tree yet; reachability runs against the new
 // entity's outbound references.
 func TestAllow_VerbCreateUsesCreationRefs(t *testing.T) {
+	t.Parallel()
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
 		{AuthSHA: "scope11", Entity: "E-0001", State: scope.StateActive},
@@ -213,6 +222,7 @@ func TestAllow_VerbCreateUsesCreationRefs(t *testing.T) {
 // and destination to reach the scope-entity. Either alone is
 // insufficient.
 func TestAllow_VerbMoveBothEndpoints(t *testing.T) {
+	t.Parallel()
 	tr := buildAllowTree(t)
 	scopes := []*scope.Scope{
 		{AuthSHA: "scope11", Entity: "E-0001", State: scope.StateActive},
@@ -250,6 +260,7 @@ func TestAllow_VerbMoveBothEndpoints(t *testing.T) {
 // have caught this earlier, but Allow refuses on its own to keep the
 // invariant "no commit lands without an identified operator."
 func TestAllow_EmptyActorRefused(t *testing.T) {
+	t.Parallel()
 	res := verb.Allow(verb.AllowInput{
 		Kind:     verb.VerbAct,
 		TargetID: "M-0001",

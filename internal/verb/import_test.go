@@ -44,6 +44,7 @@ func loadManifest(t *testing.T, src string) *manifest.Manifest {
 // against the manifest, not the existing tree). Expects a single
 // commit with `aiwf-verb: import` and the two files on disk.
 func TestImport_SingleEpicAndMilestone_RoundTrip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	src := `version: 1
 entities:
@@ -107,6 +108,7 @@ entities:
 // epics; these should land at E-02 and E-03 (not E-01 again, not E-02
 // duplicated).
 func TestImport_AutoAllocates(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	src := `version: 1
 entities:
@@ -141,6 +143,7 @@ entities:
 // TestImport_AutoAllocatesAboveExistingTree: when the tree already
 // has E-05, an `auto` epic should land at E-06.
 func TestImport_AutoAllocatesAboveExistingTree(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	// Pre-populate via Add so the tree has E-01 (Foundations).
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
@@ -170,6 +173,7 @@ entities:
 // it already imported once must fail with an `import-collision`
 // finding when --on-collision=fail (default).
 func TestImport_CollisionFail(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	src := `version: 1
 entities:
@@ -201,6 +205,7 @@ entities:
 // TestImport_CollisionSkip: with --on-collision=skip, the colliding
 // entry is dropped and other entries still import.
 func TestImport_CollisionSkip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
 
@@ -237,6 +242,7 @@ entities:
 // existing entity at E-01 is rewritten in place with the manifest's
 // frontmatter and body.
 func TestImport_CollisionUpdate(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
 
@@ -271,6 +277,7 @@ entities:
 // TestImport_DuplicateIDsInManifest: declaring the same explicit id
 // twice in one manifest is an `import-duplicate-id` finding.
 func TestImport_DuplicateIDsInManifest(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	src := `version: 1
 entities:
@@ -297,6 +304,7 @@ entities:
 // TestImport_PerEntityCommitMode: commit.mode=per-entity produces N
 // plans, each carrying an `aiwf-entity` trailer.
 func TestImport_PerEntityCommitMode(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	src := `version: 1
 commit:
@@ -333,6 +341,7 @@ entities:
 // failing check (here, milestone with unknown parent) returns
 // findings, no plans.
 func TestImport_RejectsCheckErrors(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	src := `version: 1
 entities:
@@ -355,6 +364,7 @@ entities:
 
 // TestImport_BadCommitMode rejected at parse time.
 func TestImport_UnknownOnCollision(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	m := loadManifest(t, "version: 1\nentities: []\n")
 	_, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{OnCollision: "explode"})
@@ -367,6 +377,7 @@ func TestImport_UnknownOnCollision(t *testing.T) {
 // `parent: E-01` resolves correctly when E-01 is also `auto` and
 // declared earlier.
 func TestImport_AutoMilestoneInForwardEpic(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	src := `version: 1
 entities:

@@ -16,6 +16,7 @@ import (
 // epics, the file lands at the new path, frontmatter parent is
 // rewritten, and the commit carries the expected trailers.
 func TestMove_RoundTrip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First half", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second half", testActor, verb.AddOptions{}))
@@ -59,6 +60,7 @@ func TestMove_RoundTrip(t *testing.T) {
 // milestone via discovered_in still resolves after the move. This is
 // the load-bearing property of stable ids.
 func TestMove_PreservesReferencingGap(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second", testActor, verb.AddOptions{}))
@@ -77,6 +79,7 @@ func TestMove_PreservesReferencingGap(t *testing.T) {
 }
 
 func TestMove_RejectsNonMilestone(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Bar", testActor, verb.AddOptions{}))
@@ -88,6 +91,7 @@ func TestMove_RejectsNonMilestone(t *testing.T) {
 }
 
 func TestMove_RejectsUnknownID(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 
@@ -98,6 +102,7 @@ func TestMove_RejectsUnknownID(t *testing.T) {
 }
 
 func TestMove_RejectsUnknownEpic(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -109,6 +114,7 @@ func TestMove_RejectsUnknownEpic(t *testing.T) {
 }
 
 func TestMove_RejectsTargetWrongKind(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -121,6 +127,7 @@ func TestMove_RejectsTargetWrongKind(t *testing.T) {
 }
 
 func TestMove_RejectsSameEpic(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -132,6 +139,7 @@ func TestMove_RejectsSameEpic(t *testing.T) {
 }
 
 func TestMove_RequiresEpicFlag(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
