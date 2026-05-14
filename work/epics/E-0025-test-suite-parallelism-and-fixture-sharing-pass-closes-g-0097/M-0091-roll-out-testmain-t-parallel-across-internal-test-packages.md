@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-4
       title: internal/policies shares the live-repo tree.Load via a sync.Once helper
-      status: open
+      status: met
     - id: AC-5
       title: go test -race -parallel 8 ./internal/... reliable across 10 runs
       status: open
