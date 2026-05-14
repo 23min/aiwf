@@ -53,6 +53,7 @@ func writeFixture(t *testing.T, root, fixturesRel, version, bucket, name, conten
 }
 
 func TestSubstitute_AppliesAllFourVariables(t *testing.T) {
+	t.Parallel()
 	args := []string{
 		"--schema={{schema}}",
 		"--fixture={{fixture}}",
@@ -76,6 +77,7 @@ func TestSubstitute_AppliesAllFourVariables(t *testing.T) {
 }
 
 func TestEnumerateVersions_PicksHighest(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	fixDir := filepath.Join(root, "fixtures")
 	for _, v := range []string{"v1", "v2", "v3"} {
@@ -97,6 +99,7 @@ func TestEnumerateVersions_PicksHighest(t *testing.T) {
 }
 
 func TestEnumerateVersions_MissingDir(t *testing.T) {
+	t.Parallel()
 	versions, err := enumerateVersions(filepath.Join(t.TempDir(), "nope"))
 	if err == nil {
 		t.Fatal("expected error for missing dir")
@@ -107,6 +110,7 @@ func TestEnumerateVersions_MissingDir(t *testing.T) {
 }
 
 func TestWalkFixtures_RegularFilesOnly(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	for _, n := range []string{"a.json", "b.json", "c.yaml"} {
 		if err := os.WriteFile(filepath.Join(dir, n), []byte("PASS"), 0o644); err != nil {
@@ -124,6 +128,7 @@ func TestWalkFixtures_RegularFilesOnly(t *testing.T) {
 }
 
 func TestRun_VerifyPassClean(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	script := fakeValidatorScript(t, repo)
 
@@ -147,6 +152,7 @@ func TestRun_VerifyPassClean(t *testing.T) {
 }
 
 func TestRun_FixtureRejected_OneFailingValid(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	script := fakeValidatorScript(t, repo)
 	writeFixture(t, repo, "fixtures", "v1", "valid", "a.json", "PASS")
@@ -177,6 +183,7 @@ func TestRun_FixtureRejected_OneFailingValid(t *testing.T) {
 }
 
 func TestRun_FixtureAccepted_OneInvalidPasses(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	script := fakeValidatorScript(t, repo)
 	writeFixture(t, repo, "fixtures", "v1", "valid", "a.json", "PASS")
@@ -201,6 +208,7 @@ func TestRun_FixtureAccepted_OneInvalidPasses(t *testing.T) {
 }
 
 func TestRun_ValidatorError_AllValidsFail(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	script := fakeValidatorScript(t, repo)
 	// Every valid fixture fails — reclassify to validator-error.
@@ -231,6 +239,7 @@ func TestRun_ValidatorError_AllValidsFail(t *testing.T) {
 }
 
 func TestRun_EvolutionRegression(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	script := fakeValidatorScript(t, repo)
 	// Current version v2 is clean.
@@ -264,6 +273,7 @@ func TestRun_EvolutionRegression(t *testing.T) {
 // The downstream wiring then renders this as a warning (not an
 // error) unless strict_validators is set.
 func TestRun_ValidatorUnavailable(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	contracts := &aiwfyaml.Contracts{
 		Validators: map[string]aiwfyaml.Validator{
@@ -289,6 +299,7 @@ func TestRun_ValidatorUnavailable(t *testing.T) {
 }
 
 func TestRun_SkipsTerminalContracts(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	script := fakeValidatorScript(t, repo)
 	// C-001 has a failing valid fixture but is skipped.
@@ -316,6 +327,7 @@ func TestRun_SkipsTerminalContracts(t *testing.T) {
 }
 
 func TestRun_EmptyFixturesDirSkippedSilently(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	script := fakeValidatorScript(t, repo)
 	// Create the fixtures dir but leave it empty.
@@ -338,6 +350,7 @@ func TestRun_EmptyFixturesDirSkippedSilently(t *testing.T) {
 }
 
 func TestRun_NilContractsReturnsEmpty(t *testing.T) {
+	t.Parallel()
 	got := Run(context.Background(), Options{RepoRoot: t.TempDir(), Contracts: nil})
 	if got != nil {
 		t.Errorf("expected nil; got %+v", got)
@@ -347,6 +360,7 @@ func TestRun_NilContractsReturnsEmpty(t *testing.T) {
 // --- Edge case coverage (added during the I1 hardening pass) ---
 
 func TestSubstitute_TokenAlone(t *testing.T) {
+	t.Parallel()
 	got := substitute([]string{"{{schema}}"},
 		aiwfyaml.Entry{ID: "C-0001", Schema: "s.cue"}, "v1", "fix.json")
 	if got[0] != "s.cue" {
@@ -355,6 +369,7 @@ func TestSubstitute_TokenAlone(t *testing.T) {
 }
 
 func TestSubstitute_ConcatenatedAndRepeated(t *testing.T) {
+	t.Parallel()
 	args := []string{
 		"prefix={{schema}}.suffix",
 		"--schema={{schema}} --fixture={{fixture}}",
@@ -377,6 +392,7 @@ func TestSubstitute_ConcatenatedAndRepeated(t *testing.T) {
 }
 
 func TestSubstitute_LiteralBracesAreNotPlaceholders(t *testing.T) {
+	t.Parallel()
 	// `{{}}` is not a documented placeholder; the replacer must leave
 	// it alone. (strings.NewReplacer matches longest-token-first, so
 	// this is essentially testing the replacer doesn't get confused
@@ -389,6 +405,7 @@ func TestSubstitute_LiteralBracesAreNotPlaceholders(t *testing.T) {
 }
 
 func TestSubstitute_EmptyArgsSlice(t *testing.T) {
+	t.Parallel()
 	got := substitute(nil, aiwfyaml.Entry{ID: "C-0001"}, "v1", "f")
 	if got == nil || len(got) != 0 {
 		t.Errorf("substitute(nil) = %v, want empty slice", got)
@@ -396,6 +413,7 @@ func TestSubstitute_EmptyArgsSlice(t *testing.T) {
 }
 
 func TestRun_NoReclassificationWhenZeroValidFixtures(t *testing.T) {
+	t.Parallel()
 	// Only invalid fixtures, none valid. The reclassification rule
 	// requires at least one valid fixture; with zero valids, no
 	// fixture-rejected can fire and therefore no validator-error.
@@ -418,6 +436,7 @@ func TestRun_NoReclassificationWhenZeroValidFixtures(t *testing.T) {
 }
 
 func TestRun_NoReclassificationWhenSomeValidsPass(t *testing.T) {
+	t.Parallel()
 	// One valid passes, one valid fails. Reclassification requires
 	// *every* valid to fail, so this stays as one fixture-rejected.
 	repo := t.TempDir()
@@ -443,6 +462,7 @@ func TestRun_NoReclassificationWhenSomeValidsPass(t *testing.T) {
 }
 
 func TestRun_MultipleVersions_VerifyAndEvolve(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	script := fakeValidatorScript(t, repo)
 	// v3 = current; one PASS valid, one PASS invalid... wait, invalid
@@ -475,6 +495,7 @@ func TestRun_MultipleVersions_VerifyAndEvolve(t *testing.T) {
 }
 
 func TestRun_VersionSubstitutionFlowsThrough(t *testing.T) {
+	t.Parallel()
 	// Validator that records its argv into a sentinel file in the repo,
 	// then exits 0. Verifies that {{version}} is substituted with the
 	// directory name (not, say, an empty string).
@@ -514,6 +535,7 @@ exit 0
 }
 
 func TestRun_NonexistentFixturesDirSilent(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	script := fakeValidatorScript(t, repo)
 	// fixtures: points at a directory that doesn't exist.
@@ -532,6 +554,7 @@ func TestRun_NonexistentFixturesDirSilent(t *testing.T) {
 }
 
 func TestRun_ContextCancellation(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	if runtime.GOOS == "windows" {
 		t.Skip("uses /bin/sh script")
@@ -588,6 +611,7 @@ func markerValidatorScript(t *testing.T, dir, markerPath string) string {
 // test for G1: when an entry's schema path escapes the repo root, the
 // validator binary must never be executed against that entry.
 func TestRun_DoesNotInvokeValidator_ForEscapedSchema(t *testing.T) {
+	t.Parallel()
 	repo, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -614,6 +638,7 @@ func TestRun_DoesNotInvokeValidator_ForEscapedSchema(t *testing.T) {
 // guarantee, but for the fixtures path (which is what flows through to
 // fixture enumeration and would invoke the validator on each file).
 func TestRun_DoesNotInvokeValidator_ForEscapedFixtures(t *testing.T) {
+	t.Parallel()
 	repo, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -653,6 +678,7 @@ func TestRun_DoesNotInvokeValidator_ForEscapedFixtures(t *testing.T) {
 // the middle one has clean paths, only the middle one should produce
 // validator activity. Confirms the guard skips at the per-entry level.
 func TestRun_MixedEntries_OnlyCleanOneVerifies(t *testing.T) {
+	t.Parallel()
 	repo, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -690,6 +716,7 @@ func TestRun_MixedEntries_OnlyCleanOneVerifies(t *testing.T) {
 }
 
 func TestCombineStdStreams(t *testing.T) {
+	t.Parallel()
 	if got := combineStdStreams(nil, nil); got != "" {
 		t.Errorf("empty case = %q", got)
 	}
