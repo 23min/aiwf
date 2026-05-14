@@ -53,10 +53,14 @@ func CommitMessage(subject, body string, trailers []Trailer) string {
 	return b.String()
 }
 
-// Init initializes a git repository at workdir. Used by tests; not
-// invoked by `aiwf` verbs at runtime.
+// Init initializes a git repository at workdir with `main` as the
+// default branch. Used by tests; not invoked by `aiwf` verbs at
+// runtime. The explicit `-b main` is what makes the test set
+// env-independent — without it, `git init` honours the runner's
+// `init.defaultBranch` config and tests that later `git checkout main`
+// fail on runners that default to `master` (or anything else).
 func Init(ctx context.Context, workdir string) error {
-	return run(ctx, workdir, "init", "-q")
+	return run(ctx, workdir, "init", "-q", "-b", "main")
 }
 
 // Mv runs `git mv` to relocate a tracked file or directory. from and to
