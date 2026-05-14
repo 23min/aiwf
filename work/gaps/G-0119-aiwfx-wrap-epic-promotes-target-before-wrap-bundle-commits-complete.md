@@ -1,8 +1,10 @@
 ---
 id: G-0119
 title: aiwfx-wrap-epic promotes target before wrap-bundle commits complete
-status: open
+status: addressed
 discovered_in: E-0029
+addressed_by_commit:
+    - "4763355"
 ---
 ## What's missing
 
