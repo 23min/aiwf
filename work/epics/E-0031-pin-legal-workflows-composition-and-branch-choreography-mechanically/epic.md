@@ -23,6 +23,14 @@ During the M-0091 bulk-conversion (TestMain + t.Parallel across 24 internal pack
 
 **Secondary observation for M-0108:** the violation is structurally invisible to pre-commit (`--shape-only` is by design — it keeps the local commit loop fast). Branch-resident commits can carry provenance debt until pre-push surfaces it. The spec should call out this asymmetry so workflow authors know where the actual chokepoint is.
 
+### wf-patch leaves referenced gap unaddressed (G-0123, May 2026)
+
+A wf-patch on `fix/G-0123-status-md-linkcheck` (worktree-bootstrapped, single-commit, citing `Refs: G-0123` in the commit body) landed on main via fast-forward merge. The patch closed the defect the gap captured. The gap's status remained `open` after the merge — no follow-on `aiwf promote G-0123 addressed --by-commit <sha>` step fired automatically because the wf-patch ritual ends at "delete the branch + confirm on mainline." The `Refs:` trailer in the fix commit was inert provenance: a string in the message body, with nothing reading it to propose or perform the status flip. The operator promoted G-0123 manually as a follow-on, but only after the user noticed the missing step.
+
+**Rule M-0108 should encode:** any wf-patch whose commit message references a gap via `Refs: G-NNNN`, `Closes: G-NNNN`, or `Addresses: G-NNNN` must conclude with `aiwf promote G-NNNN addressed --by-commit <fix-sha>` as a final step. The ritual is incomplete if the referenced gap's status doesn't transition. The composition shape is `wf-patch → promote-gap → archive` — a variant of the `add gap → promote → archive` lifecycle in the Context section, where wf-patch (not a wrap ritual) is the gap-closer.
+
+**Secondary observation for M-0108:** the asymmetry between trailers the kernel *enforces* (`aiwf-verb:` / `aiwf-entity:` / `aiwf-actor:` — verb commits refuse without them) and trailers it *records but does not act on* (`Refs:`, `Closes:`, `Fixes:` — surfaced in commit bodies only). The legal-workflows spec should distinguish the two: kernel-binding trailers are part of the verb's commit contract; reference-trailers are documentation. A ritual that depends on a reference-trailer to drive a downstream action needs to invoke that action itself — the trailer isn't a hook.
+
 ## Scope
 
 ### In scope
