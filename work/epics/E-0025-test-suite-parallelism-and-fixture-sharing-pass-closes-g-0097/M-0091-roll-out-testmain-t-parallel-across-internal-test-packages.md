@@ -19,7 +19,7 @@ acs:
       status: met
     - id: AC-5
       title: go test -race -parallel 8 ./internal/... reliable across 10 runs
-      status: open
+      status: met
     - id: AC-6
       title: wall-time baseline and post-conversion numbers recorded at wrap
       status: open
