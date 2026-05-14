@@ -11,6 +11,18 @@ Workflow legality — the multi-step procedures contributors walk through to shi
 
 The kernel pins per-entity legality tightly today (six FSMs, AC and TDD-phase FSMs, ~15 `aiwf check` rules, ~40 `internal/policies/` tests). What it does not pin is the *composition* of those verbs across multi-step workflows — `start-epic → plan-milestones → start-milestone → wf-tdd-cycle → wrap-milestone → wrap-epic`, or `add gap → promote → archive`, or `authorize → start-milestone → end-scope → resume`. Procedural shape lives only in skill bodies under `.claude/skills/aiwfx-*` and `wf-rituals:*` — recipes, not specs. G-0118 (`reallocate` failing to populate `prior_ids`, breaking the provenance audit on a downstream verb) was the canonical instance of the composition-bug class this epic guards against. G-0121 is the kernel gap; this epic is the addressing arc.
 
+## Evidence in flight
+
+Real-world incidents motivating this epic. Each entry surfaces a choreography rule M-0108 should encode in `legal-workflows.md`.
+
+### Subagent dispatch without `aiwf authorize` (M-0091, May 2026)
+
+During the M-0091 bulk-conversion (TestMain + t.Parallel across 24 internal packages), the parent session dispatched a builder subagent to convert 22 packages. The subagent's per-package commits invoked `aiwf edit-body M-0091`, producing trailers with `aiwf-actor: ai/claude` but no `aiwf-principal:` and no `aiwf-on-behalf-of:` — because no `aiwf authorize` scope was open on M-0091. The pre-commit hook (`--shape-only` by design) did not catch it; the violation surfaced at the post-implementation `aiwf check` with 22 `provenance-trailer-incoherent` errors. Retroactive principal-add surfaced the next-in-chain rule (`provenance-no-active-scope`) with no scope to reference. Recovery was a `git filter-branch --msg-filter` pass stripping every `aiwf-*` trailer from those 22 commits, demoting them to plain `chore(test):` commits with no aiwf provenance.
+
+**Rule M-0108 should encode:** parent must run `aiwf authorize <id> --to <agent>` *before* dispatching any subagent that will invoke aiwf mutating verbs (`add`, `promote`, `edit-body`, `rename`, `retitle`, `reallocate`, `cancel`, `move`, `authorize`, `import`, `contract bind`, `contract unbind`). The scope is what licenses the agent's `aiwf-actor: ai/...` and provides the `aiwf-on-behalf-of:` reference. Without it, agent verb commits accumulate provenance debt that requires history rewriting to clear — possible only on unpushed branches.
+
+**Secondary observation for M-0108:** the violation is structurally invisible to pre-commit (`--shape-only` is by design — it keeps the local commit loop fast). Branch-resident commits can carry provenance debt until pre-push surfaces it. The spec should call out this asymmetry so workflow authors know where the actual chokepoint is.
+
 ## Scope
 
 ### In scope
