@@ -307,7 +307,7 @@ Ship the `aiwfx-start-epic` ritual plus its supporting kernel chokepoints so epi
 | M-0096 | Ship aiwfx-start-epic skill with worktree and branch preflight prompts | done |
 | M-0097 | Close M-0094/95/96 verification seams: M-0095 automation audit chokepoint and AC-5 drift comparator | done |
 
-## E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) (active)
+## E-0029 — Glanceable governance HTML render: layout, sidebar, chips (closes G-0114) (done)
 
 ### Goal
 
@@ -315,10 +315,11 @@ Make the rendered governance site usable for current-state synthesis at a glance
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0098 | Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap | draft |
-| M-0099 | Kind-index chip filter: single emitted file per kind with :target chips | draft |
-| M-0100 | Sidebar surfaces gaps with active count | draft |
-| M-0101 | In-page status hierarchy in gaps.html | draft |
+| M-0098 | Render-site layout overhaul: viewport-fill body, flush-left sidebar, prose cap | done |
+| M-0099 | Kind-index chip filter: single emitted file per kind with :target chips | done |
+| M-0100 | Sidebar adds gap entry + epic archive chip filter | done |
+| M-0101 | In-page status hierarchy in gaps.html | cancelled |
+| M-0107 | Repair Playwright e2e suite for current kernel state | done |
 
 ## E-0030 — Branch model chokepoint: --branch flag, sequencing, isolation-escape finding (proposed)
 
@@ -333,4 +334,12 @@ Make [ADR-0010](docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-autho
 | M-0104 | aiwfx-start-epic sequencing fix (closes G-0116) | draft |
 | M-0105 | aiwfx-start-milestone sequencing alignment | draft |
 | M-0106 | Kernel finding isolation-escape (closes G-0099) | draft |
+
+## E-0031 — Pin legal workflows, composition, and branch choreography mechanically (proposed)
+
+### Goal
+
+Workflow legality — the multi-step procedures contributors walk through to ship value — moves from prose-only recipes in skill bodies to a declarative spec backed by composition integration tests and a verb-sequence fuzz harness. The chokepoint becomes "tests pass under arbitrary legal composition, including branch transitions," not "the recipe author and the recipe reader both remembered the right sequence."
+
+_No milestones yet._
 
