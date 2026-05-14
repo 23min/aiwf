@@ -20,6 +20,7 @@ import (
 // aiwf-archive (added in M-0088 of E-0024 for the uniform archive
 // convention per ADR-0004).
 func TestList_AllShippedSkillsPresent(t *testing.T) {
+	t.Parallel()
 	skills, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -44,6 +45,7 @@ func TestList_AllShippedSkillsPresent(t *testing.T) {
 // embedded SKILL.md starts with a YAML front-matter block; a missing
 // front-matter would silently break Claude Code's skill loader.
 func TestList_ContentNonEmptyAndYAMLFrontmatter(t *testing.T) {
+	t.Parallel()
 	skills, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -73,6 +75,7 @@ func TestList_ContentNonEmptyAndYAMLFrontmatter(t *testing.T) {
 // Add a marker only when its absence would represent a regression
 // in AI-discoverability.
 func TestList_I2_5ContentMarkers(t *testing.T) {
+	t.Parallel()
 	skills, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -196,6 +199,7 @@ func extractH2Section(content, heading string) (string, bool) {
 // `heading missing` arm and the fence-aware behavior the helper
 // was added for.
 func TestExtractH2Section(t *testing.T) {
+	t.Parallel()
 	t.Run("heading missing returns ok=false", func(t *testing.T) {
 		body, ok := extractH2Section("# only h1 here\n\nsome text\n", "## Missing")
 		if ok {
@@ -252,6 +256,7 @@ func TestExtractH2Section(t *testing.T) {
 // so an LLM scanning the skill can't miss the requirement no matter
 // which section it reads first.
 func TestSkill_AddNamesFillInBodyAsRequiredNextStep(t *testing.T) {
+	t.Parallel()
 	skills, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -346,6 +351,7 @@ func TestSkill_AddNamesFillInBodyAsRequiredNextStep(t *testing.T) {
 // presence anywhere is not enough — that would let a future change
 // move the citation into a footnote and the test wouldn't notice.
 func TestSkill_AddCitesDesignIntent(t *testing.T) {
+	t.Parallel()
 	skills, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -399,6 +405,7 @@ func TestSkill_AddCitesDesignIntent(t *testing.T) {
 // (gap "What's missing" — "concrete defect", per the spec's
 // own example).
 func TestSkill_AddRecommendsBodyShape(t *testing.T) {
+	t.Parallel()
 	skills, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -491,6 +498,7 @@ func TestSkill_AddRecommendsBodyShape(t *testing.T) {
 // which is the universal availability — it does NOT pin the
 // stale "AC-only" framing the spec text used.
 func TestSkill_AddNamesBodyFileAsAlternative(t *testing.T) {
+	t.Parallel()
 	skills, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -558,6 +566,7 @@ func TestSkill_AddNamesBodyFileAsAlternative(t *testing.T) {
 //     finding code that surfaces the omission.
 //   - Reference M-066 so the cross-link to the rule is explicit.
 func TestSkill_AddDontEntryAgainstEmptyBodies(t *testing.T) {
+	t.Parallel()
 	skills, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -603,6 +612,7 @@ func TestSkill_AddDontEntryAgainstEmptyBodies(t *testing.T) {
 // directory and verifies the on-disk content matches the embed
 // byte-for-byte.
 func TestMaterialize_FreshDir(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := Materialize(root); err != nil {
 		t.Fatalf("Materialize: %v", err)
@@ -628,6 +638,7 @@ func TestMaterialize_FreshDir(t *testing.T) {
 // current version no longer embeds it, Materialize wipes the stale
 // dir. This is the "skill removed from a release" cleanup path.
 func TestMaterialize_WipesPreviouslyOwnedStale(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	skillsRoot := filepath.Join(root, SkillsDir)
 	if err := os.MkdirAll(skillsRoot, 0o755); err != nil {
@@ -658,6 +669,7 @@ func TestMaterialize_WipesPreviouslyOwnedStale(t *testing.T) {
 // though it shares the `aiwf-` prefix. Third-party plugins under the
 // prefix are safe.
 func TestMaterialize_LeavesForeignAiwfPrefixedDirAlone(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	foreign := filepath.Join(root, SkillsDir, "aiwf-rituals-tdd")
 	if err := os.MkdirAll(foreign, 0o755); err != nil {
@@ -683,6 +695,7 @@ func TestMaterialize_LeavesForeignAiwfPrefixedDirAlone(t *testing.T) {
 // ownership manifest lists exactly the names of currently-embedded
 // skills, one per line.
 func TestMaterialize_WritesManifest(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := Materialize(root); err != nil {
 		t.Fatal(err)
@@ -709,6 +722,7 @@ func TestMaterialize_WritesManifest(t *testing.T) {
 // dir survives multiple Materialize calls (simulating successive
 // `aiwf update` invocations).
 func TestMaterialize_RoundTripPreservesForeignAcrossUpdates(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	foreign := filepath.Join(root, SkillsDir, "aiwf-userplugin")
 	if err := os.MkdirAll(foreign, 0o755); err != nil {
@@ -735,6 +749,7 @@ func TestMaterialize_RoundTripPreservesForeignAcrossUpdates(t *testing.T) {
 // user-authored `.claude/skills/<not-aiwf>/` directories must not be
 // touched by Materialize.
 func TestMaterialize_PreservesNonAiwfDirs(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	user := filepath.Join(root, SkillsDir, "my-custom-skill")
 	if err := os.MkdirAll(user, 0o755); err != nil {
@@ -756,6 +771,7 @@ func TestMaterialize_PreservesNonAiwfDirs(t *testing.T) {
 }
 
 func TestGitignorePatterns(t *testing.T) {
+	t.Parallel()
 	got := GitignorePatterns()
 	if len(got) != 3 {
 		t.Fatalf("got %d patterns, want 3 (wildcard + manifest + binary); got %v", len(got), got)
@@ -806,6 +822,7 @@ func TestGitignorePatterns(t *testing.T) {
 // because the assertion is about what skills.GitignorePatterns()
 // promises to its caller, not about ensureGitignore's other branches.
 func TestGitignorePatterns_BinaryEntryListed(t *testing.T) {
+	t.Parallel()
 	for _, p := range GitignorePatterns() {
 		if p == "/aiwf" {
 			return
