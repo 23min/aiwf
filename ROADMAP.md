@@ -341,5 +341,11 @@ Make [ADR-0010](docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-autho
 
 Workflow legality — the multi-step procedures contributors walk through to ship value — moves from prose-only recipes in skill bodies to a declarative spec backed by composition integration tests and a verb-sequence fuzz harness. The chokepoint becomes "tests pass under arbitrary legal composition, including branch transitions," not "the recipe author and the recipe reader both remembered the right sequence."
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0108 | Author legal-workflows.md spec enumerating every blessed workflow | draft |
+| M-0109 | internal/workflows/ test harness with one workflow as seam test | draft |
+| M-0110 | Per-workflow integration test coverage including G-0118 regression | draft |
+| M-0111 | Skill-citation discipline and skill-spec drift-prevention test | draft |
+| M-0112 | Verb-sequence fuzz harness with spec-derived seeds | draft |
 
