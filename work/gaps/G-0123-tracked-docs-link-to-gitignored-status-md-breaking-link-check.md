@@ -1,7 +1,9 @@
 ---
 id: G-0123
 title: Tracked docs link to gitignored STATUS.md, breaking link-check
-status: open
+status: addressed
+addressed_by_commit:
+    - c7545f3
 ---
 ## What's missing
 
