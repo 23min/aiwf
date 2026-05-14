@@ -1,7 +1,7 @@
 ---
 id: M-0091
 title: Roll out TestMain + t.Parallel across internal/* test packages
-status: in_progress
+status: done
 parent: E-0025
 tdd: none
 acs:
