@@ -27,16 +27,7 @@ import (
 func terminalEntityNotArchived(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
-		if entity.IsArchivedPath(e.Path) {
-			continue
-		}
-		if e.Status == "" {
-			continue
-		}
-		if !entity.IsAllowedStatus(e.Kind, e.Status) {
-			continue
-		}
-		if !entity.IsTerminal(e.Kind, e.Status) {
+		if !isPendingSweep(e) {
 			continue
 		}
 		findings = append(findings, Finding{
@@ -50,6 +41,37 @@ func terminalEntityNotArchived(t *tree.Tree) []Finding {
 		})
 	}
 	return findings
+}
+
+// isPendingSweep is the shared predicate that defines "this entity is
+// terminal-status, lives in an active dir, and is sweep-eligible by
+// `aiwf archive`." Used by both terminalEntityNotArchived (leaf
+// findings) and CountPendingSweep (aggregate count) so the two
+// surfaces cannot drift in their definition of what awaits sweep.
+//
+// Milestones are excluded — they ride with their parent epic per
+// ADR-0004 §"Storage — per-kind layout" (and the verbatim copy in the
+// `aiwf archive` verb's docstring at `internal/verb/archive.go:40`).
+// A terminal milestone under an active epic has no independent
+// archive path, so neither the leaf finding nor the aggregate count
+// should treat it as awaiting sweep. G-0124.
+func isPendingSweep(e *entity.Entity) bool {
+	if entity.IsArchivedPath(e.Path) {
+		return false
+	}
+	if e.Status == "" {
+		return false
+	}
+	if !entity.IsAllowedStatus(e.Kind, e.Status) {
+		return false
+	}
+	if !entity.IsTerminal(e.Kind, e.Status) {
+		return false
+	}
+	if e.Kind == entity.KindMilestone {
+		return false
+	}
+	return true
 }
 
 // archiveSweepPending is the aggregate finding that summarizes the
@@ -82,30 +104,18 @@ func archiveSweepPending(t *tree.Tree) []Finding {
 }
 
 // CountPendingSweep returns the number of terminal-status entities
-// still in the active tree (i.e. the count of pending sweeps). The
-// same predicate as archiveSweepPending and terminalEntityNotArchived
-// — extracted so the verb dispatcher can compute the count once and
-// hand it to ApplyArchiveSweepThreshold without duplicating the
-// iteration logic.
+// still in the active tree (i.e. the count of pending sweeps). Uses
+// the shared `isPendingSweep` predicate so it cannot drift from
+// `terminalEntityNotArchived`'s definition.
 //
 // Exported so callers outside the check package can read the value;
 // it is the same number the aggregate finding's Message names.
 func CountPendingSweep(t *tree.Tree) int {
 	var count int
 	for _, e := range t.Entities {
-		if entity.IsArchivedPath(e.Path) {
-			continue
+		if isPendingSweep(e) {
+			count++
 		}
-		if e.Status == "" {
-			continue
-		}
-		if !entity.IsAllowedStatus(e.Kind, e.Status) {
-			continue
-		}
-		if !entity.IsTerminal(e.Kind, e.Status) {
-			continue
-		}
-		count++
 	}
 	return count
 }

@@ -317,6 +317,97 @@ status: addressed
 	}
 }
 
+// TestTerminalEntityNotArchived_SkipsMilestonesUnderActiveEpic — G-0124.
+//
+// Per ADR-0004 §"Storage — per-kind layout" (verbatim in the `aiwf
+// archive` verb's docstring at `internal/verb/archive.go:40`):
+//
+//	| Milestone | work/epics/<epic>/M-NNNN-<slug>.md | does not
+//	  archive independently — rides w/ epic |
+//
+// So `aiwf archive` correctly skips terminal milestones whose parent
+// epic is still active. The `terminal-entity-not-archived` rule must
+// honour the same definition of "sweep-eligible" — otherwise the
+// chokepoint emits a warning whose remediation (`aiwf archive --apply`)
+// is a no-op, training operators to ignore the rule.
+//
+// Fixture: an active epic carrying a terminal milestone, plus a
+// terminal gap (control — must still fire to prove the rule isn't
+// disabled wholesale).
+func TestTerminalEntityNotArchived_SkipsMilestonesUnderActiveEpic(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+
+	// Active epic — its directory is NOT swept yet.
+	mustWrite(t, root, "work/epics/E-0099-in-flight/epic.md", `---
+id: E-0099
+title: In-flight epic
+status: active
+---
+`)
+	// Terminal milestone under the active epic — this is the case the
+	// rule must skip (milestone rides with its parent epic per
+	// ADR-0004; it has no independent archive path).
+	mustWrite(t, root, "work/epics/E-0099-in-flight/M-0099-wrapped.md", `---
+id: M-0099
+title: Wrapped milestone under in-flight epic
+status: done
+---
+`)
+	// Control: a terminal gap that IS sweep-eligible. Confirms the
+	// rule still fires for kinds with independent archive paths, so
+	// the milestone skip isn't a wholesale disabling.
+	mustWrite(t, root, "work/gaps/G-0050-fixed.md", `---
+id: G-0050
+title: Fixed gap awaiting sweep
+status: addressed
+---
+`)
+
+	tr, loadErrs, err := tree.Load(t.Context(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	got := Run(tr, loadErrs)
+
+	var milestoneFinding, gapFinding *Finding
+	for i, f := range got {
+		if f.Code != "terminal-entity-not-archived" {
+			continue
+		}
+		switch f.EntityID {
+		case "M-0099":
+			milestoneFinding = &got[i]
+		case "G-0050":
+			gapFinding = &got[i]
+		}
+	}
+
+	if milestoneFinding != nil {
+		t.Errorf("rule fired on milestone M-0099 under active epic E-0099 (must skip per ADR-0004 — milestones ride with parent epic, never archive independently): %+v", milestoneFinding)
+	}
+	if gapFinding == nil {
+		t.Errorf("control case failed: rule did not fire on terminal gap G-0050; the milestone skip must not disable the rule for other kinds")
+	}
+
+	// The aggregate count must reflect the gap only (1), not the
+	// milestone false-positive (which would inflate to 2).
+	var aggregate *Finding
+	for i, f := range got {
+		if f.Code == "archive-sweep-pending" {
+			aggregate = &got[i]
+			break
+		}
+	}
+	if aggregate == nil {
+		t.Fatalf("expected archive-sweep-pending aggregate finding (1 terminal gap); got: %+v", got)
+	}
+	if !strings.Contains(aggregate.Message, "1 terminal") {
+		t.Errorf("aggregate message = %q, want it to count 1 (gap only); milestone must not inflate the count", aggregate.Message)
+	}
+}
+
 // TestArchiveSweepPending_AggregatesPendingCount — M-0086 AC-3.
 //
 // Per ADR-0004 §"Drift control" (1) and §"Check shape rules":
