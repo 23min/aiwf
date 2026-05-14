@@ -1,0 +1,563 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"regexp"
+	"strings"
+
+	"github.com/spf13/cobra"
+
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/tree"
+)
+
+// newHistoryCmd builds `aiwf history <id>`: filters git log for the
+// entity's structured trailers and prints one line per event.
+func newHistoryCmd() *cobra.Command {
+	var (
+		root     string
+		format   string
+		pretty   bool
+		showAuth bool
+	)
+	cmd := &cobra.Command{
+		Use:   "history <id>",
+		Short: "Show the entity's lifecycle from git log trailers",
+		Example: `  # Print one line per lifecycle event
+  aiwf history E-01
+
+  # Render the full provenance chain as JSON
+  aiwf history M-007 --format=json --pretty`,
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return wrapExitCode(runHistoryCmd(args[0], root, format, pretty, showAuth))
+		},
+	}
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
+	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	cmd.Flags().BoolVar(&showAuth, "show-authorization", false, "include the full aiwf-authorized-by SHA on scope-authorized rows (text format only)")
+	registerFormatCompletion(cmd)
+	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
+	return cmd
+}
+
+func runHistoryCmd(id, root, format string, pretty, showAuth bool) int {
+	if format != "text" && format != "json" {
+		fmt.Fprintf(os.Stderr, "aiwf history: --format must be text or json, got %q\n", format)
+		return exitUsage
+	}
+
+	rootDir, err := resolveRoot(root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
+		return exitUsage
+	}
+
+	// Resolve the queried id through prior_ids lineage so a query for
+	// an old id returns the same chronological chain as a query for
+	// the entity's current id. The chain is the union of (a) the
+	// queried id itself, (b) the canonical entity's current id when
+	// distinct, and (c) every id in the canonical entity's PriorIDs.
+	// readHistory greps git log once for the union — pre-rename
+	// commits (matching aiwf-entity: <old>), the rename commit
+	// itself (matching aiwf-prior-entity: <old> against the queried
+	// id), and post-rename commits (matching aiwf-entity: <new>) all
+	// arrive in one chronological pass.
+	chain := []string{id}
+	if tr, _, terr := tree.Load(context.Background(), rootDir); terr == nil && tr != nil {
+		if e := tr.ResolveByCurrentOrPriorID(id); e != nil {
+			seen := map[string]bool{id: true}
+			for _, p := range e.PriorIDs {
+				if !seen[p] {
+					chain = append(chain, p)
+					seen[p] = true
+				}
+			}
+			if !seen[e.ID] {
+				chain = append(chain, e.ID)
+			}
+		}
+	}
+
+	events, err := readHistoryChain(context.Background(), rootDir, chain)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
+		return exitInternal
+	}
+
+	switch format {
+	case "text":
+		if len(events) == 0 {
+			fmt.Printf("no history for %s\n", id)
+			return exitOK
+		}
+		// Resolve authorize-SHA → scope-entity once; chip rendering
+		// reads from the map. Pre-I2.5 commits and pure entity-only
+		// histories produce an empty map (no chips).
+		scopeEntities := buildScopeEntityMap(context.Background(), rootDir, events)
+		for i := range events {
+			e := &events[i]
+			fmt.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
+				e.Date, renderActor(*e), e.Verb, renderTo(e.To), e.Detail, e.Commit,
+				renderScopeChips(*e, scopeEntities, showAuth))
+			if e.Force != "" {
+				fmt.Printf("    [forced: %s]\n", e.Force)
+			}
+			if e.AuditOnly != "" {
+				fmt.Printf("    [audit-only: %s]\n", e.AuditOnly)
+			}
+			if e.Reason != "" {
+				fmt.Printf("    [reason: %s]\n", e.Reason)
+			}
+			if e.Body != "" {
+				for _, line := range strings.Split(e.Body, "\n") {
+					fmt.Printf("    %s\n", line)
+				}
+			}
+		}
+	case "json":
+		env := render.Envelope{
+			Tool:    "aiwf",
+			Version: Version,
+			Status:  "ok",
+			Result:  map[string]any{"id": id, "events": events},
+			Metadata: map[string]any{
+				"root":   rootDir,
+				"events": len(events),
+			},
+		}
+		if err := render.JSON(os.Stdout, env, pretty); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
+			return exitInternal
+		}
+	}
+	return exitOK
+}
+
+// HistoryEvent is one line of `aiwf history`. The JSON representation
+// is the structured form callers consume.
+//
+// Body carries the commit's free-form body — typically the human's
+// `--reason` for a status transition, or empty when the verb wasn't
+// invoked with one. Trailers are stripped before storage so Body is
+// pure prose.
+//
+// To is the target status of a `promote` event, extracted from the
+// `aiwf-to:` trailer (added in I2). Empty for non-promote events and
+// for pre-I2 promote commits that were written before the trailer
+// schema landed; the renderer shows a dash for those rows.
+//
+// Force is the reason value of an `aiwf-force:` trailer. Empty for
+// non-forced transitions; non-empty marks the event as having
+// bypassed the FSM's transition-legality rule.
+//
+// AuditOnly is the reason value of an `aiwf-audit-only:` trailer
+// (I2.5 G24 recovery mode). Empty for normal verb commits; non-empty
+// marks the event as a backfilled audit trail for state that was
+// reached via a manual commit. Renders as a `[audit-only: <reason>]`
+// chip in text output, mirroring the `[forced: ...]` rendering.
+//
+// Principal, OnBehalfOf, AuthorizedBy, Scope, ScopeEnds, Reason
+// expose the I2.5 provenance trailer set. Principal is the human on
+// whose authority the actor ran (always `human/<id>` when set);
+// OnBehalfOf names the human inside whose scope the act lands;
+// AuthorizedBy is the SHA of the authorize commit that opened the
+// scope. Scope carries the lifecycle event for `aiwf authorize`
+// commits (`opened` / `paused` / `resumed`); ScopeEnds is the slice
+// of authorize-SHAs whose scopes the commit terminated (multiple
+// ends per commit are allowed). Reason carries the free-text
+// rationale from `aiwf-reason:`. All fields are empty for pre-I2.5
+// commits — the renderer treats absence as "no chip".
+type HistoryEvent struct {
+	Date         string              `json:"date"`
+	Actor        string              `json:"actor"`
+	Verb         string              `json:"verb"`
+	Detail       string              `json:"detail"`
+	Commit       string              `json:"commit"`
+	Body         string              `json:"body,omitempty"`
+	To           string              `json:"to,omitempty"`
+	Force        string              `json:"force,omitempty"`
+	AuditOnly    string              `json:"audit_only,omitempty"`
+	Principal    string              `json:"principal,omitempty"`
+	OnBehalfOf   string              `json:"on_behalf_of,omitempty"`
+	AuthorizedBy string              `json:"authorized_by,omitempty"`
+	Scope        string              `json:"scope,omitempty"`
+	ScopeEnds    []string            `json:"scope_ends,omitempty"`
+	Reason       string              `json:"reason,omitempty"`
+	Tests        *gitops.TestMetrics `json:"tests,omitempty"`
+}
+
+// readHistory shells out to `git log` and returns one HistoryEvent per
+// commit whose `aiwf-entity:` or `aiwf-prior-entity:` trailer matches
+// id. Events are returned oldest-first.
+//
+// The git format string carries seven fields per record separated by
+// the ASCII unit separator (\x1f), with the ASCII record separator
+// (\x1e) between commits — none of these appear in subjects or
+// trailers, so a single split suffices. Pre-I2 commits without
+// `aiwf-to:` or `aiwf-force:` trailers produce empty strings for
+// those fields; the renderer treats empty as "absent" and emits a
+// dash, which is the load-bearing backwards-compat behavior.
+//
+// For a bare milestone id (e.g. `M-007`), the query also matches
+// composite-id trailers under that milestone (`M-007/AC-N`) so the
+// milestone view shows its AC events alongside its own. The match is
+// anchored on the literal `/` boundary so `M-007/` cannot prefix-
+// match `M-070/`. A composite id queried directly (`M-007/AC-1`)
+// matches only that AC's events.
+func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
+	return readHistoryChain(ctx, root, []string{id})
+}
+
+// readHistoryChain is readHistory's lineage-aware variant: it greps
+// git log for any aiwf-entity / aiwf-prior-entity trailer matching
+// any id in chain, dedupes by commit SHA, and returns a single
+// oldest-first chronological slice. Used by `aiwf history <id>`
+// after the cmd dispatcher has expanded id through prior_ids
+// lineage. A single-element chain is the pre-G37 behavior; longer
+// chains weave pre-rename and post-rename history into one timeline.
+func readHistoryChain(ctx context.Context, root string, chain []string) ([]HistoryEvent, error) {
+	if !hasCommits(ctx, root) {
+		return nil, nil
+	}
+	if len(chain) == 0 {
+		return nil, nil
+	}
+	const sep = "\x1f"
+	const recSep = "\x1e\n"
+	args := []string{
+		"log",
+		"--reverse",
+		"-E",
+	}
+	for _, id := range chain {
+		// Width-tolerant per AC-2/AC-4 in M-081: a query for E-22
+		// matches both legacy `E-22` trailers and canonical `E-0022`
+		// trailers (and vice versa) via entity.IDGrepAlternation.
+		alt := entity.IDGrepAlternation(id)
+		args = append(args,
+			"--grep", "^aiwf-entity: "+alt+"$",
+			"--grep", "^aiwf-prior-entity: "+alt+"$",
+		)
+		if isBareMilestoneID(id) {
+			// Path-prefix match anchored on the literal `/` boundary
+			// so M-007/ cannot match M-070/. Includes M-NNN/AC-N
+			// events. The bare-id alternation handles width tolerance;
+			// the AC-N portion stays free-form (any digits).
+			args = append(args,
+				"--grep", "^aiwf-entity: "+alt+"/AC-[0-9]+$",
+				"--grep", "^aiwf-prior-entity: "+alt+"/AC-[0-9]+$",
+			)
+		}
+	}
+	args = append(args,
+		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+
+			sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-to,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-force,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-audit-only,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-principal,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-on-behalf-of,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-authorized-by,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-scope,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-scope-ends,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-reason,valueonly=true,unfold=true)"+
+			sep+"%(trailers:key=aiwf-tests,valueonly=true,unfold=true)"+
+			sep+"%b\x1e",
+	)
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, fmt.Errorf("git log: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
+		}
+		return nil, fmt.Errorf("git log: %w", err)
+	}
+
+	var events []HistoryEvent
+	const fieldCount = 16
+	for _, rec := range strings.Split(string(out), recSep) {
+		rec = strings.TrimSpace(rec)
+		if rec == "" {
+			continue
+		}
+		parts := strings.SplitN(rec, sep, fieldCount)
+		if len(parts) < fieldCount {
+			continue
+		}
+		verb := strings.TrimSpace(parts[3])
+		actor := strings.TrimSpace(parts[4])
+		// Skip prose-mention false-positives (G30): `--grep` matched a
+		// wrapped line that starts with `aiwf-entity: <id>` but Git's
+		// trailer parser found no real aiwf-verb / aiwf-actor pair.
+		// A genuine entity event always carries both.
+		if verb == "" && actor == "" {
+			continue
+		}
+		ev := HistoryEvent{
+			Commit:       shortHash(parts[0]),
+			Date:         parts[1],
+			Detail:       strings.TrimSpace(parts[2]),
+			Verb:         verb,
+			Actor:        actor,
+			To:           strings.TrimSpace(parts[5]),
+			Force:        strings.TrimSpace(parts[6]),
+			AuditOnly:    strings.TrimSpace(parts[7]),
+			Principal:    strings.TrimSpace(parts[8]),
+			OnBehalfOf:   strings.TrimSpace(parts[9]),
+			AuthorizedBy: strings.TrimSpace(parts[10]),
+			Scope:        strings.TrimSpace(parts[11]),
+			ScopeEnds:    splitMultiValueTrailer(parts[12]),
+			Reason:       strings.TrimSpace(parts[13]),
+			Body:         stripTrailers(strings.TrimSpace(parts[15])),
+		}
+		if metrics, ok := gitops.ParseTestMetrics(parts[14]); ok {
+			m := metrics
+			ev.Tests = &m
+		}
+		events = append(events, ev)
+	}
+	return events, nil
+}
+
+// splitMultiValueTrailer splits a `git log %(trailers:key=...,
+// valueonly=true,unfold=true)` cell into one entry per repeated
+// trailer. Multi-value trailers (notably aiwf-scope-ends) are
+// rendered newline-separated by git; we split, trim, and drop empty
+// entries.
+func splitMultiValueTrailer(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	var out []string
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			out = append(out, line)
+		}
+	}
+	return out
+}
+
+// stripTrailers removes the trailing trailer block from a commit body.
+// `git log %(body)` includes everything after the subject and the
+// separating blank line, including trailers; we only want the prose.
+//
+// The heuristic walks backward through a contiguous run of
+// trailer-shape `<Token>: <value>` lines at the end of the body. The
+// run is only treated as a trailer block when (a) the run is preceded
+// by a blank line or is the entire body, and (b) the run contains at
+// least one `aiwf-*` trailer. The aiwf-* marker is what distinguishes
+// real trailers (which we always emit) from body prose that happens to
+// look like a trailer (e.g. "decided: 30 days" written by a human).
+func stripTrailers(body string) string {
+	if body == "" {
+		return ""
+	}
+	lines := strings.Split(body, "\n")
+
+	// Walk backward, eating trailing blank lines.
+	end := len(lines)
+	for end > 0 && lines[end-1] == "" {
+		end--
+	}
+	// Walk backward through the contiguous trailer-shape block.
+	trailerStart := end
+	for trailerStart > 0 && isTrailerLine(lines[trailerStart-1]) {
+		trailerStart--
+	}
+	hasTrailer := trailerStart < end
+	precededByBlank := trailerStart == 0 || lines[trailerStart-1] == ""
+	hasAiwfMarker := false
+	for i := trailerStart; i < end; i++ {
+		if strings.HasPrefix(lines[i], "aiwf-") {
+			hasAiwfMarker = true
+			break
+		}
+	}
+	if !hasTrailer || !precededByBlank || !hasAiwfMarker {
+		return strings.TrimSpace(body)
+	}
+	// Strip the trailer block plus the blank line separating it.
+	cut := trailerStart
+	for cut > 0 && lines[cut-1] == "" {
+		cut--
+	}
+	return strings.TrimSpace(strings.Join(lines[:cut], "\n"))
+}
+
+// isTrailerLine reports whether s looks like a git commit trailer:
+// a `Key: value` line where Key matches the conventional shape
+// (alphanumerics, hyphens, no whitespace before the colon).
+func isTrailerLine(s string) bool {
+	idx := strings.Index(s, ": ")
+	if idx <= 0 {
+		return false
+	}
+	for _, r := range s[:idx] {
+		switch {
+		case r == '-':
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r >= '0' && r <= '9':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// shortHash returns the first 7 hex digits of a SHA, the conventional
+// short form. Falls back to the full hash if it is shorter.
+func shortHash(sha string) string {
+	if len(sha) <= 7 {
+		return sha
+	}
+	return sha[:7]
+}
+
+// renderTo formats the target-status column in `aiwf history` text
+// output. Empty (the absent-trailer case for non-promote events and
+// pre-I2 promote commits) renders as "-"; a populated value is shown
+// with a leading arrow so the column reads as a transition target.
+func renderTo(to string) string {
+	if to == "" {
+		return "-"
+	}
+	return "→ " + to
+}
+
+// renderActor formats the actor column. When a non-human principal
+// is present and differs from the actor (the agent-acts-for-human
+// case from I2.5), the column reads `principal via agent` so the
+// human is visually attributed first. Direct human acts (no
+// principal) render the actor verbatim.
+func renderActor(e HistoryEvent) string {
+	if e.Principal == "" || e.Principal == e.Actor {
+		return e.Actor
+	}
+	return e.Principal + " via " + e.Actor
+}
+
+// renderScopeChips assembles the trailing chip block for one history
+// row. For `aiwf authorize` rows, a `[<scope> <event>]` chip names
+// the lifecycle event (`opened` / `paused` / `resumed`). For
+// scope-authorized rows, a `[<scope-entity> <auth-short>]` chip
+// names the authorizing scope. For terminal-promote rows that ended
+// one or more scopes, one `[<scope-entity> ended]` chip per ended
+// scope.
+//
+// scopeEntities maps full auth-SHA to scope-entity id. showAuth
+// flips on the full SHA inline (the --show-authorization flag).
+//
+// The output begins with a leading "  " when non-empty so it sits
+// flush against the Commit column the caller already printed.
+func renderScopeChips(e HistoryEvent, scopeEntities map[string]string, showAuth bool) string {
+	var chips []string
+	if e.Verb == "authorize" && e.Scope != "" {
+		chips = append(chips, fmt.Sprintf("[scope: %s]", e.Scope))
+	}
+	if e.AuthorizedBy != "" {
+		scopeEntity := scopeEntities[e.AuthorizedBy]
+		if scopeEntity == "" {
+			scopeEntity = "?"
+		}
+		sha := shortHash(e.AuthorizedBy)
+		if showAuth {
+			sha = e.AuthorizedBy
+		}
+		chips = append(chips, fmt.Sprintf("[%s %s]", scopeEntity, sha))
+	}
+	for _, sha := range e.ScopeEnds {
+		scopeEntity := scopeEntities[sha]
+		if scopeEntity == "" {
+			scopeEntity = shortHash(sha)
+		}
+		chips = append(chips, fmt.Sprintf("[%s ended]", scopeEntity))
+	}
+	if len(chips) == 0 {
+		return ""
+	}
+	return "  " + strings.Join(chips, " ")
+}
+
+// buildScopeEntityMap walks every authorize-opener commit visible
+// from HEAD once and returns auth-SHA → scope-entity. Used by
+// renderScopeChips to label the [<entity> <sha>] chip without a
+// per-row git lookup. Pre-I2.5 repos with no authorize commits
+// produce an empty map; the renderer falls back gracefully.
+//
+// The walk is bounded by the existing event set: any auth SHA the
+// rendered events reference is looked up via this map; SHAs absent
+// from the map render as "?", which is benign.
+func buildScopeEntityMap(ctx context.Context, root string, events []HistoryEvent) map[string]string {
+	out := map[string]string{}
+	if !hasCommits(ctx, root) {
+		return out
+	}
+	cmd := exec.CommandContext(ctx, "git", "log",
+		"-E",
+		"--grep", "^aiwf-verb: authorize$",
+		"--grep", "^aiwf-scope: opened$",
+		"--all-match",
+		"--pretty=tformat:%H\x1f%(trailers:key=aiwf-entity,valueonly=true,unfold=true)\x1e")
+	cmd.Dir = root
+	outBytes, err := cmd.Output()
+	if err != nil {
+		// Treat lookup failure as a missing map: chips render with "?"
+		// rather than blocking the verb on a metadata read.
+		return out
+	}
+	for _, rec := range strings.Split(string(outBytes), "\x1e") {
+		rec = strings.TrimSpace(rec)
+		if rec == "" {
+			continue
+		}
+		parts := strings.SplitN(rec, "\x1f", 2)
+		if len(parts) < 2 {
+			continue
+		}
+		sha := strings.TrimSpace(parts[0])
+		entID := strings.TrimSpace(parts[1])
+		if sha == "" || entID == "" {
+			continue
+		}
+		// Canonicalize per AC-2 in M-081 so consumers can compare
+		// against tree-loaded ids without re-disambiguating widths.
+		out[sha] = entity.Canonicalize(entID)
+	}
+	return out
+}
+
+// bareMilestoneIDPattern recognizes a top-level milestone id (`M-NNN`).
+// Used by readHistory to decide whether to also match composite-id
+// trailers under the milestone (the path-prefix shape promised by the
+// design).
+var bareMilestoneIDPattern = regexp.MustCompile(`^M-\d{3,}$`)
+
+// isBareMilestoneID reports whether id is a bare milestone id that
+// should match its AC events too (path-prefix match).
+func isBareMilestoneID(id string) bool {
+	return bareMilestoneIDPattern.MatchString(id)
+}
+
+// hasCommits reports whether root's HEAD points at a real commit.
+// `git log` on an empty repo errors with "your current branch X does
+// not have any commits yet"; this guard converts that into "no events".
+func hasCommits(ctx context.Context, root string) bool {
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "HEAD")
+	cmd.Dir = root
+	return cmd.Run() == nil
+}
