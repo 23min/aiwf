@@ -62,4 +62,8 @@ The kernel pins per-entity legality tightly today (six FSMs, AC and TDD-phase FS
 
 ## Milestones
 
-<!-- Filled in by aiwfx-plan-milestones next. -->
+- [M-0108](work/epics/E-0031-pin-legal-workflows-composition-and-branch-choreography-mechanically/M-0108-author-legal-workflows-md-spec-enumerating-every-blessed-workflow.md) — Author `legal-workflows.md` spec enumerating every blessed workflow · depends on: —
+- [M-0109](work/epics/E-0031-pin-legal-workflows-composition-and-branch-choreography-mechanically/M-0109-internal-workflows-test-harness-with-one-workflow-as-seam-test.md) — `internal/workflows/` test harness with one workflow as seam test · depends on: M-0108
+- [M-0110](work/epics/E-0031-pin-legal-workflows-composition-and-branch-choreography-mechanically/M-0110-per-workflow-integration-test-coverage-including-g-0118-regression.md) — Per-workflow integration test coverage including G-0118 regression · depends on: M-0109
+- [M-0111](work/epics/E-0031-pin-legal-workflows-composition-and-branch-choreography-mechanically/M-0111-skill-citation-discipline-and-skill-spec-drift-prevention-test.md) — Skill-citation discipline and skill-spec drift-prevention test · depends on: M-0108 (parallel with M-0109/M-0110)
+- [M-0112](work/epics/E-0031-pin-legal-workflows-composition-and-branch-choreography-mechanically/M-0112-verb-sequence-fuzz-harness-with-spec-derived-seeds.md) — Verb-sequence fuzz harness with spec-derived seeds · depends on: M-0108, M-0109
