@@ -130,6 +130,7 @@ func extractBoldedHeading(s string) string {
 // branch of extractBoldedHeading: no bold span, an unterminated
 // span, and a well-formed span.
 func TestExtractBoldedHeading_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		in   string
 		want string
@@ -183,6 +184,7 @@ func isNumberedStepStart(line string) bool {
 // before declaring code paths done" — every reachable branch has a
 // test.
 func TestFindDependsOnStep_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name     string
 		body     string
@@ -238,6 +240,7 @@ func TestFindDependsOnStep_BranchCoverage(t *testing.T) {
 // TestIsNumberedStepStart_BranchCoverage exercises every reachable
 // branch of isNumberedStepStart against synthetic inputs.
 func TestIsNumberedStepStart_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		line string
 		want bool
@@ -266,6 +269,7 @@ func TestIsNumberedStepStart_BranchCoverage(t *testing.T) {
 // continues to surface the skill correctly. Acts as a guard against
 // accidental frontmatter edits during the dependency-doc update.
 func TestAiwfxPlanMilestones_FixtureFrontmatter(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxPlanMilestonesFixture(t)
 
 	if name := frontmatterField(body, "name"); name != "aiwfx-plan-milestones" {
@@ -294,6 +298,7 @@ func TestAiwfxPlanMilestones_FixtureFrontmatter(t *testing.T) {
 // rationale form ("don't hand-edit `depends_on:` in frontmatter"); the
 // bracketed-array example is what the anti-pattern test forbids.
 func TestAiwfxPlanMilestones_DependsOnUsesVerb_ClosesG0079(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxPlanMilestonesFixture(t)
 
 	section := findDependsOnStep(body)
@@ -362,6 +367,7 @@ func TestAiwfxPlanMilestones_DependsOnUsesVerb_ClosesG0079(t *testing.T) {
 // plugins, this test skips with an explanatory message rather than
 // failing on the (intentional) pre-deploy drift.
 func TestAiwfxPlanMilestones_DriftAgainstCache(t *testing.T) {
+	t.Parallel()
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatalf("UserHomeDir: %v", err)

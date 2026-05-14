@@ -1,12 +1,10 @@
 package policies
 
 import (
-	"context"
 	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
-	"github.com/23min/aiwf/internal/tree"
 )
 
 // TestPolicy_ThisRepoTreeIsClean is the AC-6 chokepoint for M-081:
@@ -24,18 +22,12 @@ import (
 // Per CLAUDE.md "framework correctness must not depend on the LLM's
 // behavior", AC-6's discipline lives here, not in reviewer recall.
 func TestPolicy_ThisRepoTreeIsClean(t *testing.T) {
-	root, err := repoRootFromTest(t)
-	if err != nil {
-		t.Fatalf("locate repo root: %v", err)
-	}
-	tr, loadErrs, err := tree.Load(context.Background(), root)
-	if err != nil {
-		t.Fatalf("tree.Load: %v", err)
-	}
+	t.Parallel()
+	_, tr := sharedRepoTree(t)
+	loadErrs := sharedRepoTreeLoadErrs(t)
 	if len(loadErrs) != 0 {
 		t.Fatalf("loadErrs: %v", loadErrs)
 	}
-
 	findings := check.Run(tr, loadErrs)
 	// AC-6 cares about id-width-shaped codes specifically. The wider
 	// codes here are the ones an id-width regression would surface

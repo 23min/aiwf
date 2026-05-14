@@ -62,6 +62,7 @@ func frontmatterField(body, key string) string {
 // carry the queried key) and the project's branch-coverage rule
 // applies even to test-package helpers.
 func TestFrontmatterField_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		body string
@@ -92,6 +93,7 @@ func TestFrontmatterField_BranchCoverage(t *testing.T) {
 // team-wide drift). The test fires if a future contributor
 // removes the entry without also revising the skill body.
 func TestAiwfxWhiteboard_GitignoreCarriesWhiteboardMd(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 	data, err := os.ReadFile(filepath.Join(root, ".gitignore"))
 	if err != nil {
@@ -110,6 +112,7 @@ func TestAiwfxWhiteboard_GitignoreCarriesWhiteboardMd(t *testing.T) {
 // (matching the directory) and a non-empty `description:`. This is
 // the v1 single-SKILL.md layout (no template subdirs).
 func TestAiwfxWhiteboard_AC1_SkillScaffolded(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWhiteboardFixture(t)
 
 	name := frontmatterField(body, "name")
@@ -129,6 +132,7 @@ func TestAiwfxWhiteboard_AC1_SkillScaffolded(t *testing.T) {
 // cites examples drawn from `critical-path.md` (which is in-tree
 // at the time of authoring; deletion is M-080's act).
 func TestAiwfxWhiteboard_AC3_TierRubric(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWhiteboardFixture(t)
 	section := extractMarkdownSection(body, 2, "Tier classification rubric")
 	if section == "" {
@@ -177,6 +181,7 @@ func TestAiwfxWhiteboard_AC3_TierRubric(t *testing.T) {
 // first-decision fork, pending-decisions list — with column /
 // ordering shape spelled out.
 func TestAiwfxWhiteboard_AC4_OutputTemplate(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWhiteboardFixture(t)
 	section := extractMarkdownSection(body, 2, "Output template")
 	if section == "" {
@@ -220,6 +225,7 @@ func TestAiwfxWhiteboard_AC4_OutputTemplate(t *testing.T) {
 // one-at-a-time framing per CLAUDE.md *Working with the user*
 // §Q&A format.
 func TestAiwfxWhiteboard_AC5_QAGate(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWhiteboardFixture(t)
 	section := extractMarkdownSection(body, 2, "Q&A gate")
 	if section == "" {
@@ -251,6 +257,7 @@ func TestAiwfxWhiteboard_AC5_QAGate(t *testing.T) {
 // anti-patterns (no operator override, no verb invention, no
 // persisted artefact, scope locked to direction-synthesis).
 func TestAiwfxWhiteboard_AC6_AntiPatterns(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWhiteboardFixture(t)
 	section := extractMarkdownSection(body, 2, "Anti-patterns")
 	if section == "" {
@@ -285,6 +292,7 @@ func TestAiwfxWhiteboard_AC6_AntiPatterns(t *testing.T) {
 // the kernel policy to plugin skills is captured under the
 // milestone's *Deferrals* section.
 func TestAiwfxWhiteboard_AC7_SkillCoveragePolicyEquivalent(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWhiteboardFixture(t)
 
 	// Frontmatter shape: name matches dir, description non-empty,
@@ -336,6 +344,7 @@ func TestAiwfxWhiteboard_AC7_SkillCoveragePolicyEquivalent(t *testing.T) {
 //     fixture, the test FAILS — that's the drift condition
 //     CLAUDE.md's pattern is designed to catch.
 func TestAiwfxWhiteboard_AC8_MaterialisationDriftCheck(t *testing.T) {
+	t.Parallel()
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatalf("UserHomeDir: %v", err)
@@ -393,6 +402,7 @@ func TestAiwfxWhiteboard_AC8_MaterialisationDriftCheck(t *testing.T) {
 // (`whiteboard`) is metaphor-shaped not query-shaped, so
 // description-density does the routing work.
 func TestAiwfxWhiteboard_AC2_DescriptionPhrasings(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWhiteboardFixture(t)
 	desc := frontmatterField(body, "description")
 	if desc == "" {

@@ -45,6 +45,7 @@ func repoRootFromTest(t *testing.T) (string, error) {
 // behavior," AC-5's discipline lives in this test, not in reviewer
 // recall.
 func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("grep dependency: skip on windows CI")
 	}

@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -9,8 +8,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/23min/aiwf/internal/tree"
 )
 
 // criticalPathMdPath is the path AC-5 forbids and AC-6 polices.
@@ -24,11 +21,7 @@ const criticalPathMdPath = "work/epics/critical-path.md"
 // resolves either width.
 func loadM080Spec(t *testing.T) string {
 	t.Helper()
-	root := repoRoot(t)
-	tr, _, err := tree.Load(context.Background(), root)
-	if err != nil {
-		t.Fatalf("loading tree: %v", err)
-	}
+	root, tr := sharedRepoTree(t)
 	e := tr.ByID("M-080")
 	if e == nil {
 		t.Fatalf("entity M-080 not found in tree")
@@ -68,6 +61,7 @@ func containsIDForm(haystack, id string) bool {
 // Validation section captures the four output blocks the
 // `aiwfx-whiteboard` skill produces.
 func TestM080_AC1_ValidationHasSkillOutput(t *testing.T) {
+	t.Parallel()
 	body := loadM080Spec(t)
 	section := extractMarkdownSection(body, 2, "Validation")
 	if section == "" {
@@ -98,6 +92,7 @@ func TestM080_AC1_ValidationHasSkillOutput(t *testing.T) {
 // table column structure. Tier *contents* are explicitly allowed
 // to drift; structural shape is asserted.
 func TestM080_AC2_StructuralAgreement(t *testing.T) {
+	t.Parallel()
 	body := loadM080Spec(t)
 	section := extractMarkdownSection(body, 2, "Validation")
 	if section == "" {
@@ -138,6 +133,7 @@ func TestM080_AC2_StructuralAgreement(t *testing.T) {
 // five items, matching the floor the spec inherited from
 // critical-path.md's *Pending decisions* list.
 func TestM080_AC3_PendingDecisionsFloor(t *testing.T) {
+	t.Parallel()
 	body := loadM080Spec(t)
 	section := extractMarkdownSection(body, 2, "Validation")
 	if section == "" {
@@ -183,6 +179,7 @@ func TestM080_AC3_PendingDecisionsFloor(t *testing.T) {
 // paste; the actual routing is operator/agent-confirmed and the
 // captured paste is the evidence.
 func TestM080_AC4_RoutePrompts(t *testing.T) {
+	t.Parallel()
 	body := loadM080Spec(t)
 	section := extractMarkdownSection(body, 2, "Validation")
 	if section == "" {
@@ -206,6 +203,7 @@ func TestM080_AC4_RoutePrompts(t *testing.T) {
 // TestM080_AC5_CriticalPathRetired asserts AC-5: the holding doc
 // `work/epics/critical-path.md` has been deleted from the tree.
 func TestM080_AC5_CriticalPathRetired(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 	path := filepath.Join(root, criticalPathMdPath)
 	if _, err := os.Stat(path); err == nil {
@@ -222,6 +220,7 @@ func TestM080_AC5_CriticalPathRetired(t *testing.T) {
 // in preflight) so the test exercises the same surface as a
 // pre-push hook.
 func TestM080_AC6_NoUnexpectedTreeFileWarning(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 	bin := "/tmp/aiwf-m080"
 	if _, err := os.Stat(bin); os.IsNotExist(err) {
@@ -271,6 +270,7 @@ func TestM080_AC6_NoUnexpectedTreeFileWarning(t *testing.T) {
 // chokepoint; aiwf history + the commit trailer remain the
 // authoritative record of the actual promote.
 func TestM080_AC7_ValidationCitesE21Promote(t *testing.T) {
+	t.Parallel()
 	body := loadM080Spec(t)
 	section := extractMarkdownSection(body, 2, "Validation")
 	if section == "" {

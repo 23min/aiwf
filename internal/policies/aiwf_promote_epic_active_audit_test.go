@@ -25,6 +25,7 @@ import (
 // run-time invocations; this test pins the *static* invocation set
 // in repo source.
 func TestPolicy_NoNonForcedEpicActivateInCIScripts(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 	fsys := os.DirFS(root)
 
@@ -53,6 +54,7 @@ func TestPolicy_NoNonForcedEpicActivateInCIScripts(t *testing.T) {
 // run. Confirms the defensive arm is reachable AND that the helper
 // produces zero findings (the only sane response).
 func TestAuditUnforcedEpicActivate_MissingPathIsSilent(t *testing.T) {
+	t.Parallel()
 	fsys := fstest.MapFS{
 		// Empty fs — the named path does not exist.
 	}
@@ -75,6 +77,7 @@ func TestAuditUnforcedEpicActivate_MissingPathIsSilent(t *testing.T) {
 // and the offending arm (a matching line without --force, fires).
 // A multi-file case threads the WalkDir's per-file iteration.
 func TestAuditUnforcedEpicActivate_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name         string
 		fsys         fstest.MapFS

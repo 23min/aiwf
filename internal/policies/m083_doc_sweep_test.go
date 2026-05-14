@@ -42,6 +42,7 @@ import (
 // behavior," AC-3's discipline lives in this test, not in reviewer
 // recall.
 func TestPolicy_DocTreeNarrowIDsCanonicalized(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 
 	// Each entry is a repo-relative path that legitimately holds
