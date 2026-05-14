@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: t.Parallel adopted on every test that does not need serial execution
-      status: open
+      status: met
     - id: AC-4
       title: internal/policies shares the live-repo tree.Load via a sync.Once helper
       status: open
