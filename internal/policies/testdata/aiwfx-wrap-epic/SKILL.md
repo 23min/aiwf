@@ -98,17 +98,7 @@ Invoke `wf-doc-lint` against the epic's change-set (every file touched on `epic/
 
 Append the report to `wrap.md` under a `## Doc findings` section. If findings include broken references or removed-feature docs, fix or open as gaps before proceeding. `wf-doc-lint` reports only — prose fixes are deliberate edits here.
 
-### 4. Promote the epic to `done`
-
-```bash
-aiwf promote E-NN done
-```
-
-aiwf validates `active → done`, rewrites frontmatter, commits with `aiwf-verb: promote`. (If the epic is still `proposed`, that means no milestone ever started — wrap doesn't apply. Investigate.)
-
-The completion date is recorded in `wrap.md` (step 2) and is recoverable from the `aiwf-verb: promote` commit via `aiwf history E-NN`. Do not add a `completed:` field to the epic frontmatter — aiwf's epic schema does not include it, and the parse failure cascades into unresolved-reference findings on every entity that links to this epic.
-
-### 5. 🛑 Merge gate — merge epic branch into integration target with a trailered merge commit
+### 4. 🛑 Merge gate — merge epic branch into integration target with a trailered merge commit
 
 Confirm with the user. Then:
 
@@ -138,7 +128,7 @@ The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — `
 
 **Do not push yet.**
 
-### 6. Update `CHANGELOG.md` `[Unreleased]` and stage all wrap artefacts
+### 5. Update `CHANGELOG.md` `[Unreleased]` and stage all wrap artefacts
 
 The `[Unreleased]` section of `CHANGELOG.md` is a per-epic accumulator: every wrapped epic adds an entry here, and `aiwfx-release` later rolls the accumulated entries into a versioned `## [X.Y.Z]` heading. *Without this step, releases ship with empty changelog entries* — that's the `[Unreleased]` drift this step prevents.
 
@@ -154,7 +144,7 @@ git add work/epics/E-NN-<slug>/wrap.md
 git status
 ```
 
-### 7. 🛑 Commit gate
+### 6. 🛑 Commit gate
 
 Show the user:
 - The wrap artefact summary.
@@ -163,7 +153,7 @@ Show the user:
 
 **Stop and wait for "commit" approval.**
 
-### 8. After commit approval
+### 7. After commit approval
 
 The wrap-artefact commit (the CHANGELOG + `wrap.md` addition) is a normal mutating commit on top of the trailered merge — it carries the same three trailer keys so `aiwf history E-NNNN` surfaces it alongside the merge:
 
@@ -173,6 +163,18 @@ git commit -m "<approved-message>" \
   --trailer "aiwf-entity: E-NNNN" \
   --trailer "aiwf-actor: human/<id>"
 ```
+
+### 8. Promote the epic to `done` — last commit in the wrap bundle
+
+```bash
+aiwf promote E-NN done
+```
+
+aiwf validates `active → done`, rewrites frontmatter, commits with `aiwf-verb: promote`. (If the epic is still `proposed`, that means no milestone ever started — wrap doesn't apply. Investigate.)
+
+**Why promote is last (closes G-0119).** The `aiwf promote E-NN done` commit ends the authorize scope that opened with `aiwfx-start-epic`. Any commit produced *after* this — wrap artefact, CHANGELOG entry, reallocates, or other wrap-bundle commits — would carry `aiwf-authorized-by:` referencing the just-ended scope and trigger the kernel's `provenance-authorization-ended` finding on push, blocking the wrap with no clean remediation short of `--no-verify` or history rewrite. Keeping `aiwf promote E-NN done` as the last commit in the wrap bundle guarantees every other wrap commit lives under the live scope, and the scope-ending promote is itself the natural last act before the push gate.
+
+The completion date is recorded in `wrap.md` (step 1) and is recoverable from the `aiwf-verb: promote` commit via `aiwf history E-NN`. Do not add a `completed:` field to the epic frontmatter — aiwf's epic schema does not include it, and the parse failure cascades into unresolved-reference findings on every entity that links to this epic.
 
 ### 9. 🛑 Push gate
 
@@ -214,8 +216,9 @@ Append to `work/agent-history/<agent>.md` (whoever closed the epic): patterns th
 
 ## Constraints
 
-- 🛑 **Never merge or push without explicit approval** (steps 5, 9, 10).
+- 🛑 **Never merge or push without explicit approval** (steps 4, 9, 10).
 - 🛑 **The merge commit and the wrap-artefact commit both carry the three required trailers.** Skipping either is the regression the kernel's `provenance-untrailered-entity-commit` finding catches.
+- 🛑 **`aiwf promote E-NN done` is the last commit in the wrap bundle** (step 8). It ends the active authorize scope; any commit produced after it carries an ended-scope `aiwf-authorized-by:` and fails the kernel's `provenance-authorization-ended` check on push. Closes G-0119.
 - Every milestone must be `done` before wrap — `aiwf check` and `aiwf history E-NN` confirm.
 - Branch-cleanup is origin-only. Do not delete local branches.
 - The wrap artefact is mandatory. Don't close an epic without one.
@@ -229,12 +232,13 @@ Append to `work/agent-history/<agent>.md` (whoever closed the epic): patterns th
 - *Pushing before approval.*
 - *Merging without `--no-commit`.* Produces an untrailered merge commit; the kernel rule fires once per entity file touched.
 - *Hardcoding `<id>` in the actor trailer.* Resolve from `git config user.email` at run time per the provenance model.
+- *Promoting the epic to `done` before the wrap-artefact and other wrap-bundle commits.* Ends the authorize scope mid-bundle; subsequent commits carry an ended-scope `aiwf-authorized-by:` and fail `provenance-authorization-ended` on push. Promote is step 8, after the wrap-artefact commit — see G-0119.
 
 ## Out of scope
 
 Version-tag cuts, the `[Unreleased]` → `[X.Y.Z]` rename, package publishing, and deployment. Those belong to `aiwfx-release`.
 
-**Note:** *Adding* the per-epic entry under `## [Unreleased]` in `CHANGELOG.md` is **in scope** for this skill (step 6). The `[Unreleased]` heading is the per-epic accumulator; `aiwfx-release` only rolls the accumulated entries forward when cutting a version. Skipping the CHANGELOG-update step at wrap is the failure mode that produces empty release notes — this skill owns prevention.
+**Note:** *Adding* the per-epic entry under `## [Unreleased]` in `CHANGELOG.md` is **in scope** for this skill (step 5). The `[Unreleased]` heading is the per-epic accumulator; `aiwfx-release` only rolls the accumulated entries forward when cutting a version. Skipping the CHANGELOG-update step at wrap is the failure mode that produces empty release notes — this skill owns prevention.
 
 ## Next step
 

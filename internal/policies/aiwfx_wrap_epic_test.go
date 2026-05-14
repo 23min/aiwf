@@ -196,6 +196,82 @@ func findMergeStepSection(body string) string {
 	return ""
 }
 
+// TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle asserts the
+// closing condition for G-0119: the `aiwf promote E-NN done` step
+// must appear *after* every other commit-emitting step in the
+// `## Workflow` section. Specifically: after the merge gate, after
+// the wrap-artefact commit, and before the push gate.
+//
+// Rationale: `aiwf promote E-NN done` ends the authorize scope
+// opened by `aiwfx-start-epic`. Any commit produced after the
+// promote carries `aiwf-authorized-by:` referencing an ended scope
+// and triggers the kernel's `provenance-authorization-ended`
+// finding on push, blocking the wrap with no clean remediation
+// short of `--no-verify`. The skill must order the bundle so the
+// promote is the last commit before push.
+//
+// This is a structural test per CLAUDE.md *Substring assertions
+// are not structural assertions*: it walks the `## Workflow`
+// heading hierarchy, locates each step's `### ` heading, and
+// asserts ordering by line index — so a reshuffle that moved the
+// promote step back to its pre-fix position would fail this test
+// even if the literal phrases still appeared somewhere in the
+// fixture.
+func TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle(t *testing.T) {
+	body := loadAiwfxWrapEpicFixture(t)
+
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("G-0119: SKILL.md must have a `## Workflow` section")
+	}
+
+	// Walk Workflow's `### ` headings, capturing each step's body-
+	// relative line index. We need promote, wrap-artefact commit,
+	// merge gate, and push gate.
+	mergeIdx, wrapArtefactIdx, promoteIdx, pushIdx := -1, -1, -1, -1
+	for i, line := range strings.Split(workflow, "\n") {
+		if !strings.HasPrefix(line, "### ") {
+			continue
+		}
+		lower := strings.ToLower(strings.TrimPrefix(line, "### "))
+		switch {
+		case strings.Contains(lower, "merge") && strings.Contains(lower, "epic branch"):
+			mergeIdx = i
+		case strings.Contains(lower, "after commit approval"):
+			// The wrap-artefact commit step's heading is "After
+			// commit approval" — that's the step that emits the
+			// CHANGELOG + wrap.md commit.
+			wrapArtefactIdx = i
+		case strings.Contains(lower, "promote the epic to `done`"):
+			promoteIdx = i
+		case strings.Contains(lower, "push gate"):
+			pushIdx = i
+		}
+	}
+
+	if mergeIdx < 0 {
+		t.Error("G-0119: `## Workflow` must contain a `### …merge…epic branch…` step")
+	}
+	if wrapArtefactIdx < 0 {
+		t.Error("G-0119: `## Workflow` must contain a `### …After commit approval` step (the wrap-artefact commit)")
+	}
+	if promoteIdx < 0 {
+		t.Error("G-0119: `## Workflow` must contain a `### …Promote the epic to `done`…` step")
+	}
+	if pushIdx < 0 {
+		t.Error("G-0119: `## Workflow` must contain a `### …Push gate` step")
+	}
+	if mergeIdx < 0 || wrapArtefactIdx < 0 || promoteIdx < 0 || pushIdx < 0 {
+		return
+	}
+
+	// The promote step is last among commit-emitting steps and
+	// strictly before the push gate.
+	if !(mergeIdx < wrapArtefactIdx && wrapArtefactIdx < promoteIdx && promoteIdx < pushIdx) {
+		t.Errorf("G-0119: wrap-bundle ordering must be merge → wrap-artefact commit → promote → push (got line indices: merge=%d, wrap-artefact=%d, promote=%d, push=%d). The promote must be the last commit before push so the authorize scope is still live for every other wrap commit.", mergeIdx, wrapArtefactIdx, promoteIdx, pushIdx)
+	}
+}
+
 // TestAiwfxWrapEpic_AC3_CacheComparison asserts M-0090 AC-3 / spec
 // AC-4: the fixture content matches the currently-active plugin
 // install per `installed_plugins.json`. Skip semantics follow
