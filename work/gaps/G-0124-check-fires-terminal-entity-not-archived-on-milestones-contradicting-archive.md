@@ -1,7 +1,9 @@
 ---
 id: G-0124
 title: check fires terminal-entity-not-archived on milestones, contradicting archive
-status: open
+status: addressed
+addressed_by_commit:
+    - 7d75c78
 ---
 ## What's missing
 
