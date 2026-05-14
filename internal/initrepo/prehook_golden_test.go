@@ -61,6 +61,7 @@ const sentinelBinaryPath = "/AIWF_BIN"
 // new template and updating testdata/pre-push.golden) or accidental
 // (revert the change).
 func TestPreHookScript_ByteGolden(t *testing.T) {
+	t.Parallel()
 	got := preHookScript(sentinelBinaryPath)
 
 	want, err := os.ReadFile("testdata/pre-push.golden")
@@ -80,6 +81,7 @@ func TestPreHookScript_ByteGolden(t *testing.T) {
 // template function returns and nothing else — no parallel source of
 // truth.
 func TestPreHookScript_TemplateEqualsInstalled(t *testing.T) {
+	t.Parallel()
 	tmp := t.TempDir()
 	if err := exec.Command("git", "init", "-q", tmp).Run(); err != nil {
 		t.Fatalf("git init: %v", err)

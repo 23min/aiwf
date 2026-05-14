@@ -16,6 +16,7 @@ import (
 // G-0112 the script body must not include the STATUS.md regen step
 // (that lives in the post-commit hook now).
 func TestEnsurePreCommitHook_InstallFresh(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	step, conflict, err := ensurePreCommitHook(context.Background(), root, false)
 	if err != nil {
@@ -46,6 +47,7 @@ func TestEnsurePreCommitHook_InstallFresh(t *testing.T) {
 // marker-managed hook is already there → ActionUpdated, body
 // rewritten from the embedded template.
 func TestEnsurePreCommitHook_RefreshOurOwn(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -79,6 +81,7 @@ func TestEnsurePreCommitHook_RefreshOurOwn(t *testing.T) {
 // place → auto-migrates to pre-commit.local, installs aiwf's
 // chain-aware hook.
 func TestEnsurePreCommitHook_MigratesAlien(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -124,6 +127,7 @@ func TestEnsurePreCommitHook_MigratesAlien(t *testing.T) {
 // exist, ensurePreCommitHook refuses to migrate (would clobber the
 // .local) and returns ActionSkipped + conflict=true.
 func TestEnsurePreCommitHook_RefusesMigrationOnLocalCollision(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -163,6 +167,7 @@ func TestEnsurePreCommitHook_RefusesMigrationOnLocalCollision(t *testing.T) {
 // still says ActionCreated so a preview ledger reads as "this would
 // be created".
 func TestEnsurePreCommitHook_DryRunInstall(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	step, conflict, err := ensurePreCommitHook(context.Background(), root, true)
 	if err != nil {
@@ -183,6 +188,7 @@ func TestEnsurePreCommitHook_DryRunInstall(t *testing.T) {
 // marker-managed hook must not rewrite the file. StepResult reports
 // ActionUpdated.
 func TestEnsurePreCommitHook_DryRunRefresh(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -215,6 +221,7 @@ func TestEnsurePreCommitHook_DryRunRefresh(t *testing.T) {
 // ledger reports it Created. Default-on is the framework's contract
 // for STATUS.md auto-update.
 func TestInit_InstallsPreCommitByDefault(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
@@ -240,6 +247,7 @@ func TestInit_InstallsPreCommitByDefault(t *testing.T) {
 // Per G-0112 the pre-commit body no longer carries a regen step at
 // all; the post-commit hook is what toggles with opt-out.
 func TestInit_StatusMdAutoUpdateFalse_StillInstallsGate(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	yaml := []byte(`aiwf_version: 0.1.0
 actor: human/peter
@@ -276,6 +284,7 @@ status_md:
 // body. (The post-commit hook is what gets installed/uninstalled;
 // that case is exercised by the post-commit tests.)
 func TestRefreshArtifacts_FlipFlagPreCommitUntouched(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -335,6 +344,7 @@ func bytesEqual(a, b []byte) bool {
 // aiwf is invoked. Drives the script as `sh <hook> ...` so the test
 // is portable; the chain prelude is plain POSIX sh.
 func TestPreCommitHook_ChainsToLocalAtRuntime(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("aiwf hooks are unix-only")
 	}
