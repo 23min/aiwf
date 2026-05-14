@@ -16,6 +16,7 @@ import (
 )
 
 func TestRead_NoRemotes_Skips(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initRepo(t)
 	commitFile(t, ctx, dir, "work/gaps/G-001-foo.md", "# foo\n")
@@ -33,6 +34,7 @@ func TestRead_NoRemotes_Skips(t *testing.T) {
 }
 
 func TestRead_RemoteAddedButNeverFetched_Skips(t *testing.T) {
+	t.Parallel()
 	// `git remote add` without `git fetch` leaves no refs/remotes/*
 	// tracking refs. There's nothing on this remote we know about
 	// yet, so trunk-awareness has nothing to do. This also covers
@@ -54,6 +56,7 @@ func TestRead_RemoteAddedButNeverFetched_Skips(t *testing.T) {
 }
 
 func TestRead_RemoteAndDefaultTrunk_ReturnsIDs(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initRepo(t)
 	commitFile(t, ctx, dir, "work/gaps/G-001-foo.md", "# foo\n")
@@ -84,6 +87,7 @@ func TestRead_RemoteAndDefaultTrunk_ReturnsIDs(t *testing.T) {
 }
 
 func TestRead_TrackingRefsExistButTrunkMissing_HardError(t *testing.T) {
+	t.Parallel()
 	// The repo has fetched at least one branch from origin (so
 	// refs/remotes/origin/* is populated) but the configured trunk
 	// is not one of them. That is real misconfiguration: the user
@@ -111,6 +115,7 @@ func TestRead_TrackingRefsExistButTrunkMissing_HardError(t *testing.T) {
 }
 
 func TestRead_ExplicitTrunk_UsedInsteadOfDefault(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initRepo(t)
 	commitFile(t, ctx, dir, "work/gaps/G-007-explicit.md", "# explicit\n")
@@ -132,6 +137,7 @@ func TestRead_ExplicitTrunk_UsedInsteadOfDefault(t *testing.T) {
 }
 
 func TestRead_ExplicitTrunkMissing_HardError(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initRepo(t)
 	commitFile(t, ctx, dir, "README.md", "readme\n")
@@ -148,6 +154,7 @@ func TestRead_ExplicitTrunkMissing_HardError(t *testing.T) {
 }
 
 func TestResult_IDStrings(t *testing.T) {
+	t.Parallel()
 	r := Result{IDs: []ID{
 		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-001-foo.md"},
 		{Kind: entity.KindADR, ID: "ADR-0001", Path: "docs/adr/ADR-0001-baz.md"},
@@ -166,12 +173,10 @@ func TestResult_IDStrings(t *testing.T) {
 // initRepo / commitFile / mustRun mirror the helpers in
 // gitops/refs_test.go; duplicated here so this package's tests don't
 // depend on internal-test-helper exports from gitops.
+// GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} are seeded once in TestMain
+// (setup_test.go) — using t.Setenv here would panic under t.Parallel.
 func initRepo(t *testing.T) string {
 	t.Helper()
-	t.Setenv("GIT_AUTHOR_NAME", "Test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.invalid")
-	t.Setenv("GIT_COMMITTER_NAME", "Test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.invalid")
 	dir := t.TempDir()
 	if err := gitops.Init(context.Background(), dir); err != nil {
 		t.Fatalf("git init: %v", err)
