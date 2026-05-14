@@ -12,6 +12,7 @@ import (
 // template's load-bearing guard line. If this assertion drifts, the
 // hook will start blocking pushes on brownfield clones.
 func TestPreHookScript_HasBrownfieldGuard(t *testing.T) {
+	t.Parallel()
 	body := preHookScript("/some/aiwf")
 	if !strings.Contains(body, `[ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0`) {
 		t.Errorf("pre-push hook missing brownfield guard:\n%s", body)
@@ -26,6 +27,7 @@ func TestPreHookScript_HasBrownfieldGuard(t *testing.T) {
 // silently run the tree-discipline gate on a repo that hasn't
 // adopted aiwf.
 func TestPreCommitHookScript_HasBrownfieldGuard(t *testing.T) {
+	t.Parallel()
 	body := preCommitHookScript("/some/aiwf")
 	if !strings.Contains(body, `[ -f "$repo_root/aiwf.yaml" ] || exit 0`) {
 		t.Errorf("pre-commit hook missing brownfield guard:\n%s", body)
@@ -41,6 +43,7 @@ func TestPreCommitHookScript_HasBrownfieldGuard(t *testing.T) {
 // removed/broken, /bin/false runs and the hook exits non-zero, so
 // this test fails loudly.
 func TestPreHookScript_NoAiwfYamlExitsSilently(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hookPath := filepath.Join(t.TempDir(), "pre-push.sh")
 	if err := os.WriteFile(hookPath, []byte(preHookScript("/bin/false")), 0o755); err != nil {
@@ -60,6 +63,7 @@ func TestPreHookScript_NoAiwfYamlExitsSilently(t *testing.T) {
 // the exec line. We use /bin/false so the test exits non-zero
 // (proving the exec ran) without depending on a real aiwf.
 func TestPreHookScript_AiwfYamlExitsViaExec(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
 		[]byte("aiwf_version: 0.1.0\nactor: human/peter\n"), 0o644); err != nil {
@@ -82,6 +86,7 @@ func TestPreHookScript_AiwfYamlExitsViaExec(t *testing.T) {
 // /bin/false; if the guard fails the gate runs and /bin/false's
 // non-zero exit aborts the hook.
 func TestPreCommitHookScript_NoAiwfYamlExitsSilently(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hookPath := filepath.Join(t.TempDir(), "pre-commit.sh")
 	if err := os.WriteFile(hookPath, []byte(preCommitHookScript("/bin/false")), 0o755); err != nil {
@@ -102,6 +107,7 @@ func TestPreCommitHookScript_NoAiwfYamlExitsSilently(t *testing.T) {
 // reach we test is the gate (a succeed-shim exits 0; if the gate
 // runs, the hook itself exits 0).
 func TestPreCommitHookScript_AiwfYamlPresentRunsGate(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
 		[]byte("aiwf_version: 0.1.0\nactor: human/peter\n"), 0o644); err != nil {
@@ -136,6 +142,7 @@ func TestPreCommitHookScript_AiwfYamlPresentRunsGate(t *testing.T) {
 // pre-push time — the LLM-loop signal G41 added would be silently
 // dropped.
 func TestPreCommitHookScript_CheckFailureBlocksCommit(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
 		[]byte("aiwf_version: 0.1.0\n"), 0o644); err != nil {
@@ -162,6 +169,7 @@ func TestPreCommitHookScript_CheckFailureBlocksCommit(t *testing.T) {
 // could silently break the pre-commit gate. Asserts the script body
 // contains `check --shape-only`, the load-bearing verb call.
 func TestPreCommitHookScript_InvokesShapeOnly(t *testing.T) {
+	t.Parallel()
 	body := preCommitHookScript("/some/aiwf")
 	if !strings.Contains(body, "check --shape-only") {
 		t.Errorf("pre-commit hook missing `check --shape-only` invocation; tree-discipline gate would not fire:\n%s", body)

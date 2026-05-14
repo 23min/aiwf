@@ -15,6 +15,7 @@ import (
 // and `description:` values, multi-line wrapped descriptions, and
 // missing frontmatter.
 func TestParseSkillMarkdown_FrontmatterShapes(t *testing.T) {
+	t.Parallel()
 	t.Run("single-line fields", func(t *testing.T) {
 		got := parseSkillMarkdown([]byte("---\nname: aiwf-list\ndescription: filter the planning tree\n---\n\n# body\n"))
 		if got.frontmatterName != "aiwf-list" {
@@ -52,6 +53,7 @@ func TestParseSkillMarkdown_FrontmatterShapes(t *testing.T) {
 // inline-code `aiwf X`, multi-token `aiwf X Y`, flag-shaped `aiwf --v`,
 // and the non-aiwf prose that must not match.
 func TestBacktickedAiwfMentions_Extraction(t *testing.T) {
+	t.Parallel()
 	body := "Run `aiwf list` and then `aiwf show <id>`. Also `aiwf list --kind contract`. Don't pick up `aiwf --version` (flag, no verb). Bare `aiwf` alone has no verb.\n\nFenced too:\n```\naiwf history E-01\n```\nAnd a non-aiwf mention `git status` must be skipped."
 
 	got := backtickedAiwfMentions(body)
@@ -74,6 +76,7 @@ func TestBacktickedAiwfMentions_Extraction(t *testing.T) {
 // verb. Otherwise the policy fires false positives on legitimate
 // flag-shaped help text.
 func TestBacktickedAiwfMentions_FlagOnlyDoesNotMatch(t *testing.T) {
+	t.Parallel()
 	for _, body := range []string{
 		"`aiwf --version`",
 		"`aiwf --help`",
@@ -92,6 +95,7 @@ func TestBacktickedAiwfMentions_FlagOnlyDoesNotMatch(t *testing.T) {
 // reference that gap by id. A future change that drops the entry or
 // the rationale fails here.
 func TestSkillCoverageAllowlist_HasShowEntry(t *testing.T) {
+	t.Parallel()
 	rationale, ok := skillCoverageAllowlist["show"]
 	if !ok {
 		t.Fatal("skillCoverageAllowlist missing entry for `show` (AC-6)")
@@ -109,6 +113,7 @@ func TestSkillCoverageAllowlist_HasShowEntry(t *testing.T) {
 // rationale string. Per the spec, the allowlist's purpose is making
 // each absence visible — an empty value defeats that.
 func TestSkillCoverageAllowlist_AllEntriesHaveRationale(t *testing.T) {
+	t.Parallel()
 	if len(skillCoverageAllowlist) == 0 {
 		t.Fatal("skillCoverageAllowlist is empty; expected at least the standard ops/trivial verbs")
 	}
@@ -131,6 +136,7 @@ func TestSkillCoverageAllowlist_AllEntriesHaveRationale(t *testing.T) {
 // case: a skill with empty `name:` frontmatter must fire a violation
 // naming the missing field.
 func TestCheckSkillFrontmatter_FiresOnEmptyName(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{
 			relPath:         "internal/skills/embedded/aiwf-broken/SKILL.md",
@@ -146,6 +152,7 @@ func TestCheckSkillFrontmatter_FiresOnEmptyName(t *testing.T) {
 // TestCheckSkillFrontmatter_FiresOnEmptyDescription is M-074 AC-2
 // negative case: a skill with empty `description:` fires a violation.
 func TestCheckSkillFrontmatter_FiresOnEmptyDescription(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{
 			relPath:         "internal/skills/embedded/aiwf-empty-desc/SKILL.md",
@@ -162,6 +169,7 @@ func TestCheckSkillFrontmatter_FiresOnEmptyDescription(t *testing.T) {
 // negative case: a skill whose `name:` differs from its directory
 // fires a violation citing both values.
 func TestCheckSkillFrontmatter_FiresOnNameDirMismatch(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{
 			relPath:         "internal/skills/embedded/aiwf-foo/SKILL.md",
@@ -179,6 +187,7 @@ func TestCheckSkillFrontmatter_FiresOnNameDirMismatch(t *testing.T) {
 // convention fires a violation. (The dir-mismatch branch fires first
 // when both apply, so we set name == dirName to isolate this branch.)
 func TestCheckSkillFrontmatter_FiresOnAiwfPrefixMissing(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{
 			relPath:         "internal/skills/embedded/foo/SKILL.md",
@@ -195,6 +204,7 @@ func TestCheckSkillFrontmatter_FiresOnAiwfPrefixMissing(t *testing.T) {
 // case: name == "aiwf-" with no topic suffix is also a convention
 // violation (the topic carries discovery semantics).
 func TestCheckSkillFrontmatter_FiresOnAiwfPrefixOnly(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{
 			relPath:         "internal/skills/embedded/aiwf-/SKILL.md",
@@ -211,6 +221,7 @@ func TestCheckSkillFrontmatter_FiresOnAiwfPrefixOnly(t *testing.T) {
 // produces no violations. The negative-case tests above confirm the
 // policy fires; this one confirms it doesn't fire too eagerly.
 func TestCheckSkillFrontmatter_NoFalsePositive(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{
 			relPath:         "internal/skills/embedded/aiwf-list/SKILL.md",
@@ -229,6 +240,7 @@ func TestCheckSkillFrontmatter_NoFalsePositive(t *testing.T) {
 // case: a top-level verb without a same-named skill and without an
 // allowlist entry fires a violation.
 func TestCheckVerbCoverage_FiresOnUncoveredVerb(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		// Only `aiwf-list` ships; `widget` is registered as a verb but
 		// has no skill and no allowlist entry.
@@ -248,6 +260,7 @@ func TestCheckVerbCoverage_FiresOnUncoveredVerb(t *testing.T) {
 // scenario, but with the verb in the allowlist, must NOT fire. This
 // pins the allowlist's entire purpose.
 func TestCheckVerbCoverage_AllowlistRescuesUncoveredVerb(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{{frontmatterName: "aiwf-list"}}
 	verbs := map[string]string{
 		"list":   "newListCmd",
@@ -266,6 +279,7 @@ func TestCheckVerbCoverage_AllowlistRescuesUncoveredVerb(t *testing.T) {
 // TestCheckVerbCoverage_SkillCoverageRescuesVerb: a verb with a
 // same-named skill produces no violation.
 func TestCheckVerbCoverage_SkillCoverageRescuesVerb(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{{frontmatterName: "aiwf-list"}}
 	verbs := map[string]string{"list": "newListCmd"}
 	got := checkVerbCoverage(skills, verbs, map[string]string{})
@@ -278,6 +292,7 @@ func TestCheckVerbCoverage_SkillCoverageRescuesVerb(t *testing.T) {
 // negative case: a skill body referencing a non-existent verb fires
 // a violation citing both the offending mention and the skill path.
 func TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{
 			relPath: "internal/skills/embedded/aiwf-fake/SKILL.md",
@@ -296,6 +311,7 @@ func TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb(t *testing.T) {
 // have them. The policy adds them at check time; this test pins
 // that.
 func TestCheckSkillBodyMentionsResolve_HelpAndCompletionResolve(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{body: "Try `aiwf help` for the verb list, or `aiwf completion bash` for shell wiring."},
 	}
@@ -312,6 +328,7 @@ func TestCheckSkillBodyMentionsResolve_HelpAndCompletionResolve(t *testing.T) {
 // referencing a non-existent verb. The policy must catch both inline-
 // and fenced-code mentions.
 func TestCheckSkillBodyMentionsResolve_FencedAndInlineBothChecked(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{
 			relPath: "skill-with-fenced.md",
@@ -334,6 +351,7 @@ func TestCheckSkillBodyMentionsResolve_FencedAndInlineBothChecked(t *testing.T) 
 // counterpart to the per-check tests above — it proves the parts
 // compose correctly.
 func TestRunSkillCoverageChecks_FullDriftFiresAllAxes(t *testing.T) {
+	t.Parallel()
 	skills := []embeddedSkillEntry{
 		// AC-2: empty name + empty description.
 		{
@@ -404,6 +422,7 @@ func mustHaveViolation(t *testing.T, vs []Violation, needle string) {
 // surface (M-072 ships `--kind`, `--status`, `--parent`, `--archived`,
 // `--format`, `--pretty`).
 func TestNoReintroducedDeadVerbForms_ContractsAndSkill(t *testing.T) {
+	t.Parallel()
 	root := repoRootForFile(t)
 
 	type deadForm struct {

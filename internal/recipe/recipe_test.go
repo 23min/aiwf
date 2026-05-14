@@ -10,6 +10,7 @@ import (
 )
 
 func TestList_EmbeddedHasTwoRecipes(t *testing.T) {
+	t.Parallel()
 	got, err := List()
 	if err != nil {
 		t.Fatalf("List: %v", err)
@@ -32,6 +33,7 @@ func TestList_EmbeddedHasTwoRecipes(t *testing.T) {
 }
 
 func TestGet_HitsAndMisses(t *testing.T) {
+	t.Parallel()
 	got, err := Get("cue")
 	if err != nil {
 		t.Fatalf("Get(cue): %v", err)
@@ -50,6 +52,7 @@ func TestGet_HitsAndMisses(t *testing.T) {
 }
 
 func TestParseFile_CustomValidator(t *testing.T) {
+	t.Parallel()
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "pydantic.yaml")
 	body := []byte(`name: pydantic
@@ -76,6 +79,7 @@ args:
 }
 
 func TestParseFile_RejectsUnknownField(t *testing.T) {
+	t.Parallel()
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "bad.yaml")
 	body := []byte(`name: bad
@@ -92,6 +96,7 @@ mystery: nope
 }
 
 func TestParseFile_RejectsMissingFields(t *testing.T) {
+	t.Parallel()
 	tmp := t.TempDir()
 	tests := []struct {
 		name string
@@ -102,6 +107,7 @@ func TestParseFile_RejectsMissingFields(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			path := filepath.Join(tmp, tt.name+".yaml")
 			if err := os.WriteFile(path, []byte(tt.body), 0o644); err != nil {
 				t.Fatal(err)
@@ -114,12 +120,14 @@ func TestParseFile_RejectsMissingFields(t *testing.T) {
 }
 
 func TestSplitFrontmatter_RejectsMissingDelimiter(t *testing.T) {
+	t.Parallel()
 	if _, _, err := splitFrontmatter([]byte("# just markdown\n")); err == nil {
 		t.Error("expected error for missing frontmatter")
 	}
 }
 
 func TestSplitFrontmatter_RejectsUnterminated(t *testing.T) {
+	t.Parallel()
 	if _, _, err := splitFrontmatter([]byte("---\nname: foo\n")); err == nil {
 		t.Error("expected error for unterminated frontmatter")
 	}

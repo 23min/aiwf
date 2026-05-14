@@ -16,6 +16,7 @@ import (
 // (e.g., paragraph wrapping, code-block class names), this test is
 // the canary.
 func TestMarkdownToHTML_RenderingShapes(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name     string
 		input    string
@@ -68,6 +69,7 @@ func TestMarkdownToHTML_RenderingShapes(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got := string(markdownToHTML(tc.input))
 			for _, want := range tc.contains {
 				if !strings.Contains(got, want) {
@@ -90,6 +92,7 @@ func TestMarkdownToHTML_RenderingShapes(t *testing.T) {
 // nicer to power users" change cannot ship without flagging the
 // security regression.
 func TestMarkdownToHTML_RawHTMLEscaped(t *testing.T) {
+	t.Parallel()
 	got := string(markdownToHTML("<script>alert('xss')</script>"))
 	if strings.Contains(got, "<script>") {
 		t.Errorf("raw <script> tag passed through to output:\n%s", got)
@@ -104,6 +107,7 @@ func TestMarkdownToHTML_RawHTMLEscaped(t *testing.T) {
 // with empty content via `with` guards, but the helper itself still
 // has to be safe to call.
 func TestMarkdownToHTML_Empty(t *testing.T) {
+	t.Parallel()
 	if got := markdownToHTML(""); got != "" {
 		t.Errorf("markdownToHTML(\"\") = %q, want empty", got)
 	}

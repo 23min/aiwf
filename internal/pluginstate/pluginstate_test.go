@@ -13,6 +13,7 @@ import (
 // design treats absence as "no plugins installed" so every recommended plugin
 // warns — see the milestone spec's Approach §3.
 func TestLoad_FileMissing_IsEmptyIndex(t *testing.T) {
+	t.Parallel()
 	tmp := t.TempDir()
 	idx, err := Load(tmp)
 	if err != nil {
@@ -30,6 +31,7 @@ func TestLoad_FileMissing_IsEmptyIndex(t *testing.T) {
 // the actual Claude Code layout) loads into a typed Index. Captures only the
 // fields the matcher needs (scope, projectPath); other fields are ignored.
 func TestLoad_PresentAndParses(t *testing.T) {
+	t.Parallel()
 	tmp := writeFixture(t, `{
   "version": 2,
   "plugins": {
@@ -68,6 +70,7 @@ func TestLoad_PresentAndParses(t *testing.T) {
 // only carries `{"version": 2}`). Load returns an Index whose Plugins map
 // is non-nil-empty so callers can range over it without a nil check.
 func TestLoad_NoPluginsKey_YieldsNonNilMap(t *testing.T) {
+	t.Parallel()
 	tmp := writeFixture(t, `{"version": 2}`)
 	idx, err := Load(tmp)
 	if err != nil {
@@ -87,6 +90,7 @@ func TestLoad_NoPluginsKey_YieldsNonNilMap(t *testing.T) {
 // nil is the contract guard for any future code path that elects not to
 // construct an empty index).
 func TestHasProjectScope_NilReceiver(t *testing.T) {
+	t.Parallel()
 	var idx *Index
 	got, err := idx.HasProjectScope("anything@anywhere", "/any/root")
 	if err != nil {
@@ -101,6 +105,7 @@ func TestHasProjectScope_NilReceiver(t *testing.T) {
 // JSON, Load returns an error naming the path. Loud failure beats silent
 // "no plugins" because the latter would mask a real config breakage.
 func TestLoad_MalformedJSON_ReturnsError(t *testing.T) {
+	t.Parallel()
 	tmp := writeFixture(t, "{not json")
 	_, err := Load(tmp)
 	if err == nil {
@@ -115,6 +120,7 @@ func TestLoad_MalformedJSON_ReturnsError(t *testing.T) {
 // returns false (no error). Covers the "file present, no matches" fixture
 // the AC calls out.
 func TestHasProjectScope_NoSuchPlugin(t *testing.T) {
+	t.Parallel()
 	idx := &Index{Plugins: map[string][]InstallEntry{}}
 	got, err := idx.HasProjectScope("does-not-exist@somewhere", "/any/root")
 	if err != nil {
@@ -130,6 +136,7 @@ func TestHasProjectScope_NoSuchPlugin(t *testing.T) {
 // root must return false. Covers the AC-6 session-canonical case where
 // `aiwf-extensions` lives under another project's path.
 func TestHasProjectScope_DifferentProjectPath(t *testing.T) {
+	t.Parallel()
 	consumerRoot := "/Users/x/Projects/consumer"
 	idx := &Index{
 		Plugins: map[string][]InstallEntry{
@@ -151,6 +158,7 @@ func TestHasProjectScope_DifferentProjectPath(t *testing.T) {
 // Plugin installed at project scope with projectPath equal to the
 // consumer root → query returns true. Covers AC-5.
 func TestHasProjectScope_MatchingProjectPath(t *testing.T) {
+	t.Parallel()
 	consumerRoot := "/Users/x/Projects/consumer"
 	idx := &Index{
 		Plugins: map[string][]InstallEntry{
@@ -174,6 +182,7 @@ func TestHasProjectScope_MatchingProjectPath(t *testing.T) {
 // plugin installed only at user scope must NOT silence the warning for
 // any consumer.
 func TestHasProjectScope_UserScopeOnlyDoesNotMatch(t *testing.T) {
+	t.Parallel()
 	idx := &Index{
 		Plugins: map[string][]InstallEntry{
 			"aiwf-extensions@ai-workflow-rituals": {

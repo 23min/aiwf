@@ -22,6 +22,7 @@ import (
 // distinguish its own hook from a user-written one and refuses to
 // overwrite, breaking idempotent updates.
 func TestPostCommitHookScript_HasMarker(t *testing.T) {
+	t.Parallel()
 	body := postCommitHookScript("/some/aiwf")
 	if !strings.Contains(body, PostCommitHookMarker()) {
 		t.Errorf("post-commit hook missing marker line %q:\n%s", PostCommitHookMarker(), body)
@@ -32,6 +33,7 @@ func TestPostCommitHookScript_HasMarker(t *testing.T) {
 // pre-commit guards: a clone with no aiwf.yaml at the root is a
 // brownfield repo and the hook is a no-op for it.
 func TestPostCommitHookScript_HasBrownfieldGuard(t *testing.T) {
+	t.Parallel()
 	body := postCommitHookScript("/some/aiwf")
 	if !strings.Contains(body, `[ -f "$repo_root/aiwf.yaml" ] || exit 0`) {
 		t.Errorf("post-commit hook missing brownfield guard:\n%s", body)
@@ -41,6 +43,7 @@ func TestPostCommitHookScript_HasBrownfieldGuard(t *testing.T) {
 // TestPostCommitHookScript_RegeneratesStatusMd pins the regen
 // invocation. This is the hook's whole point.
 func TestPostCommitHookScript_RegeneratesStatusMd(t *testing.T) {
+	t.Parallel()
 	body := postCommitHookScript("/some/aiwf")
 	if !strings.Contains(body, "status --root") {
 		t.Errorf("post-commit hook missing `aiwf status --root` invocation:\n%s", body)
@@ -63,6 +66,7 @@ func TestPostCommitHookScript_RegeneratesStatusMd(t *testing.T) {
 // A `git add` invocation here is a regression — likely a refactor
 // dragged the line over from the old pre-commit body.
 func TestPostCommitHookScript_NoGitAdd(t *testing.T) {
+	t.Parallel()
 	body := postCommitHookScript("/some/aiwf")
 	if strings.Contains(body, "git add") {
 		t.Errorf("post-commit hook must not `git add` (STATUS.md is gitignored; post-commit can't amend the commit):\n%s", body)
@@ -80,6 +84,7 @@ func TestPostCommitHookScript_NoGitAdd(t *testing.T) {
 // post-commit hook as the new home of the regen is informative
 // documentation, not a regression.
 func TestPreCommitHookScript_HasNoRegen(t *testing.T) {
+	t.Parallel()
 	body := preCommitHookScript("/some/aiwf")
 	if !strings.Contains(body, "check --shape-only") {
 		t.Errorf("pre-commit hook missing tree-discipline gate:\n%s", body)
@@ -95,6 +100,7 @@ func TestPreCommitHookScript_HasNoRegen(t *testing.T) {
 // TestEnsurePostCommitHook_InstallFresh: a fresh install lands the
 // post-commit hook with the marker.
 func TestEnsurePostCommitHook_InstallFresh(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	step, conflict, err := ensurePostCommitHook(context.Background(), root, true, false)
 	if err != nil {
@@ -126,6 +132,7 @@ func TestEnsurePostCommitHook_InstallFresh(t *testing.T) {
 // (Contrast with the pre-commit hook, which always installs because
 // the tree-discipline gate is enforcement and not opt-out-able.)
 func TestEnsurePostCommitHook_AutoUpdateOff_FreshInstall(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	step, conflict, err := ensurePostCommitHook(context.Background(), root, false, false)
 	if err != nil {
@@ -147,6 +154,7 @@ func TestEnsurePostCommitHook_AutoUpdateOff_FreshInstall(t *testing.T) {
 // status_md.auto_update to false, the next refresh removes our
 // marker-managed hook. Mirrors the old preCommit opt-out shape.
 func TestEnsurePostCommitHook_AutoUpdateOff_UninstallsOwn(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -177,6 +185,7 @@ func TestEnsurePostCommitHook_AutoUpdateOff_UninstallsOwn(t *testing.T) {
 // consumer opts out and an *alien* (non-marker) post-commit hook is
 // in place, we leave it alone — never delete user-written hooks.
 func TestEnsurePostCommitHook_AutoUpdateOff_LeavesAlien(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -211,6 +220,7 @@ func TestEnsurePostCommitHook_AutoUpdateOff_LeavesAlien(t *testing.T) {
 // hook is present and regen is on, a refresh rewrites the body from
 // the template (idempotent against tampering).
 func TestEnsurePostCommitHook_RefreshOurOwn(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -248,6 +258,7 @@ func TestEnsurePostCommitHook_RefreshOurOwn(t *testing.T) {
 // post-commit hook in place — auto-migrate to post-commit.local, then
 // install aiwf's chain-aware hook.
 func TestEnsurePostCommitHook_MigratesAlien(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -292,6 +303,7 @@ func TestEnsurePostCommitHook_MigratesAlien(t *testing.T) {
 // when a non-marker hook AND an existing post-commit.local both
 // exist, we refuse to migrate.
 func TestEnsurePostCommitHook_RefusesMigrationOnLocalCollision(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
@@ -329,6 +341,7 @@ func TestEnsurePostCommitHook_RefusesMigrationOnLocalCollision(t *testing.T) {
 // TestEnsurePostCommitHook_DryRunInstall: dry-run reports
 // ActionCreated but writes nothing.
 func TestEnsurePostCommitHook_DryRunInstall(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	step, conflict, err := ensurePostCommitHook(context.Background(), root, true, true)
 	if err != nil {
@@ -348,6 +361,7 @@ func TestEnsurePostCommitHook_DryRunInstall(t *testing.T) {
 // TestInit_InstallsPostCommitByDefault: a fresh `aiwf init` lands the
 // post-commit hook (default-on status_md.auto_update).
 func TestInit_InstallsPostCommitByDefault(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
@@ -370,6 +384,7 @@ func TestInit_InstallsPostCommitByDefault(t *testing.T) {
 // post-commit hook is installed. Contrast with the pre-commit hook,
 // which still installs because it carries the enforcement gate.
 func TestInit_StatusMdAutoUpdateFalse_SkipsPostCommit(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	yaml := []byte(`status_md:
   auto_update: false
@@ -395,6 +410,7 @@ func TestInit_StatusMdAutoUpdateFalse_SkipsPostCommit(t *testing.T) {
 // then flip to default and re-refresh — the post-commit hook should
 // appear. Mirrors the pre-commit flip-flag test.
 func TestRefreshArtifacts_FlipOnInstallsPostCommit(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	yaml := []byte(`status_md:
   auto_update: false
@@ -440,6 +456,7 @@ func TestRefreshArtifacts_FlipOnInstallsPostCommit(t *testing.T) {
 // (or, equivalently, the file is regenerated and git silently ignores it
 // because of .gitignore).
 func TestPostCommitHook_RegeneratesStatusMd(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("aiwf hooks are unix-only")
 	}
@@ -489,6 +506,7 @@ func TestPostCommitHook_RegeneratesStatusMd(t *testing.T) {
 // and never invoke the binary. Mirrors the pre-push / pre-commit
 // brownfield guard.
 func TestPostCommitHook_BrownfieldShortCircuits(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("aiwf hooks are unix-only")
 	}
@@ -513,6 +531,7 @@ func TestPostCommitHook_BrownfieldShortCircuits(t *testing.T) {
 // true (the default). Locally regenerated derived artifact → it must
 // not be tracked.
 func TestEnsureGitignore_AddsStatusMdWhenAutoUpdate(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -530,6 +549,7 @@ func TestEnsureGitignore_AddsStatusMdWhenAutoUpdate(t *testing.T) {
 // consumer opts out, the gitignore reconciler does NOT add STATUS.md
 // (the consumer decides whether to commit the file or not).
 func TestEnsureGitignore_OmitsStatusMdWhenAutoUpdateFalse(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	yaml := []byte("status_md:\n  auto_update: false\n")
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
@@ -557,6 +577,7 @@ func TestEnsureGitignore_OmitsStatusMdWhenAutoUpdateFalse(t *testing.T) {
 // consumer flips to auto_update: true. Mirrors the html-out-dir flip
 // pattern already in ensureGitignore.
 func TestEnsureGitignore_StatusMdFlipFalseToTrue(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	yaml := []byte("status_md:\n  auto_update: false\n")
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
@@ -598,6 +619,7 @@ func TestEnsureGitignore_StatusMdFlipFalseToTrue(t *testing.T) {
 // landed STATUS.md gets it removed when the consumer flips opt-out.
 // Symmetric to the html-out-dir flip-true-to-false test.
 func TestEnsureGitignore_StatusMdFlipTrueToFalse(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -629,6 +651,7 @@ func TestEnsureGitignore_StatusMdFlipTrueToFalse(t *testing.T) {
 // "/STATUS.md" or "STATUS.md  # my own comment"), reconciliation
 // leaves it alone — we only match the exact line we write.
 func TestEnsureGitignore_PreservesUserStatusMdShape(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	yaml := []byte("status_md:\n  auto_update: false\n")
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {

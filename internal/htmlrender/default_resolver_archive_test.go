@@ -13,9 +13,11 @@ import (
 // test the default arm of the switch in kindPluralToKind stays
 // uncovered.
 func TestDefaultResolver_KindIndexData_UnknownReturnsNil(t *testing.T) {
+	t.Parallel()
 	r := defaultResolver{tree: &tree.Tree{}}
 	for _, plural := range []string{"", "gap", "milestones", "tomatoes"} {
 		t.Run(plural, func(t *testing.T) {
+			t.Parallel()
 			data, err := r.KindIndexData(plural, false)
 			if err != nil {
 				t.Errorf("err = %v, want nil", err)
@@ -30,9 +32,11 @@ func TestDefaultResolver_KindIndexData_UnknownReturnsNil(t *testing.T) {
 // TestKindPluralToKind_UnknownReturnsFalse — direct branch-
 // coverage of the kindPluralToKind switch's default arm.
 func TestKindPluralToKind_UnknownReturnsFalse(t *testing.T) {
+	t.Parallel()
 	cases := []string{"", "gap", "milestones", "tomatoes"}
 	for _, plural := range cases {
 		t.Run(plural, func(t *testing.T) {
+			t.Parallel()
 			_, ok := kindPluralToKind(plural)
 			if ok {
 				t.Errorf("kindPluralToKind(%q): unknown plural reported as known", plural)
@@ -45,6 +49,7 @@ func TestKindPluralToKind_UnknownReturnsFalse(t *testing.T) {
 // "empty string" and "already-capitalized" no-op branches of
 // the title helper. Active-default + all-set toggles each.
 func TestTitleForKindIndex_EmptyAndPreCapitalized(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		plural          string
 		includeArchived bool
@@ -69,6 +74,7 @@ func TestTitleForKindIndex_EmptyAndPreCapitalized(t *testing.T) {
 // integration test that renders a known kind; this test pins the
 // "no file written" branch via a stub resolver returning nil.
 func TestRenderKindIndex_UnknownKindIsSkipped(t *testing.T) {
+	t.Parallel()
 	tmpls, err := loadTemplates()
 	if err != nil {
 		t.Fatalf("loadTemplates: %v", err)

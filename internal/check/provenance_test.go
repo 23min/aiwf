@@ -15,6 +15,7 @@ import (
 // TestRunProvenance_Empty asserts that an empty commit slice produces
 // no findings (a fresh repo or pre-aiwf-only history is silent).
 func TestRunProvenance_Empty(t *testing.T) {
+	t.Parallel()
 	got := RunProvenance(nil, nil)
 	if len(got) != 0 {
 		t.Fatalf("findings = %v, want empty", got)
@@ -25,6 +26,7 @@ func TestRunProvenance_Empty(t *testing.T) {
 // design doc don't fire any findings — every shape rule and every
 // cross-commit rule has its happy path here.
 func TestRunProvenance_CleanCommits(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("4", 40)
 	commits := []scope.Commit{
@@ -53,6 +55,7 @@ func TestRunProvenance_CleanCommits(t *testing.T) {
 // The cmd-glue grep already filters them out, but the in-package
 // rules are defensive.
 func TestRunProvenance_PreAiwfCommitsSilent(t *testing.T) {
+	t.Parallel()
 	got := RunProvenance([]scope.Commit{{SHA: "abc1234"}}, nil)
 	if len(got) != 0 {
 		t.Fatalf("pre-aiwf commit produced %d findings, want 0", len(got))
@@ -63,6 +66,7 @@ func TestRunProvenance_PreAiwfCommitsSilent(t *testing.T) {
 // actor-malformed, principal-non-human, on-behalf-of-non-human,
 // authorized-by-malformed, force-non-human, audit-only-non-human.
 func TestRunProvenance_ShapeRules(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		commit   scope.Commit
@@ -136,6 +140,7 @@ func TestRunProvenance_ShapeRules(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := RunProvenance([]scope.Commit{tt.commit}, nil)
 			if !hasFinding(got, tt.wantCode) {
 				t.Fatalf("findings = %v, want code %q", findingCodes(got), tt.wantCode)
@@ -147,6 +152,7 @@ func TestRunProvenance_ShapeRules(t *testing.T) {
 // TestRunProvenance_CoherenceRules covers the required-together /
 // mutually-exclusive incoherent-trailer findings.
 func TestRunProvenance_CoherenceRules(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		commit      scope.Commit
@@ -197,6 +203,7 @@ func TestRunProvenance_CoherenceRules(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := RunProvenance([]scope.Commit{tt.commit}, nil)
 			found := false
 			for i := range got {
@@ -217,6 +224,7 @@ func TestRunProvenance_CoherenceRules(t *testing.T) {
 // on-behalf-of: the verb-time gate would refuse, but a hand-edited
 // commit in history surfaces here.
 func TestRunProvenance_NoActiveScope(t *testing.T) {
+	t.Parallel()
 	c := scope.Commit{SHA: "9999999", Trailers: []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "promote"},
 		{Key: gitops.TrailerEntity, Value: "E-0001"},
@@ -232,6 +240,7 @@ func TestRunProvenance_NoActiveScope(t *testing.T) {
 // TestRunProvenance_AuthorizationMissing fires when aiwf-authorized-by
 // names a SHA that isn't an authorize/opened commit in history.
 func TestRunProvenance_AuthorizationMissing(t *testing.T) {
+	t.Parallel()
 	c := scope.Commit{SHA: "aaaaaaa", Trailers: []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "promote"},
 		{Key: gitops.TrailerEntity, Value: "E-0001"},
@@ -249,6 +258,7 @@ func TestRunProvenance_AuthorizationMissing(t *testing.T) {
 // TestRunProvenance_AuthorizationEnded fires when a verb references
 // a scope after a prior commit ended it.
 func TestRunProvenance_AuthorizationEnded(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("a", 40)
 	commits := []scope.Commit{
@@ -271,6 +281,7 @@ func TestRunProvenance_AuthorizationEnded(t *testing.T) {
 // TestRunProvenance_AuthorizationOutOfScope fires when scope-entity
 // has no reference path to the verb's target.
 func TestRunProvenance_AuthorizationOutOfScope(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("a", 40)
 	commits := []scope.Commit{
@@ -290,6 +301,7 @@ func TestRunProvenance_AuthorizationOutOfScope(t *testing.T) {
 // rename-chain walker should resolve the scope-entity to its current
 // id, and the rule should NOT fire.
 func TestRunProvenance_PriorEntityChainResolves(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("b", 40)
 	// E-07 was reallocated to E-01 (the live entity in the fixture).
@@ -330,6 +342,7 @@ func TestRunProvenance_PriorEntityChainResolves(t *testing.T) {
 // lineage still witnesses the rename. The fix must consult tree
 // state, not just commit trailers.
 func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTreeWithRenamed(t)
 	authSHA := strings.Repeat("e", 40)
 	commits := []scope.Commit{
@@ -354,6 +367,7 @@ func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs(t *testing.T) {
 // the frontmatter lineage over the bare id lookup so the historical
 // trailer resolves to the entity it was actually written against.
 func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs_CollisionCase(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTreeWithRenamedAndCollision(t)
 	authSHA := strings.Repeat("f", 40)
 	commits := []scope.Commit{
@@ -378,6 +392,7 @@ func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs_CollisionCase(t *tes
 // rule must still fire. This pins that the prior_ids lookup is a
 // resolution helper, not a blanket suppression.
 func TestRunProvenance_OutOfScope_PriorIDsDoesNotMaskGenuineOutOfScope(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTreeWithRenamed(t)
 	authSHA := strings.Repeat("a", 40)
 	commits := []scope.Commit{
@@ -400,6 +415,7 @@ func TestRunProvenance_OutOfScope_PriorIDsDoesNotMaskGenuineOutOfScope(t *testin
 // is exempt from the no-active-scope rule. The kernel reserves the
 // authorize+on-behalf-of question to G22.
 func TestRunProvenance_AuthorizeCommitNoActiveScopeSkipped(t *testing.T) {
+	t.Parallel()
 	c := scope.Commit{SHA: "1234567", Trailers: []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "authorize"},
 		{Key: gitops.TrailerEntity, Value: "E-0001"},
@@ -418,6 +434,7 @@ func TestRunProvenance_AuthorizeCommitNoActiveScopeSkipped(t *testing.T) {
 // touching an entity file is followed in the same range by an
 // audit-only commit on that entity. The warning is suppressed.
 func TestRunUntrailedAudit_AuditOnlyClearsWarning(t *testing.T) {
+	t.Parallel()
 	commits := []UntrailedCommit{
 		{
 			SHA:   "manual1",
@@ -442,6 +459,7 @@ func TestRunUntrailedAudit_AuditOnlyClearsWarning(t *testing.T) {
 // ordering rule: an audit-only commit BEFORE a manual commit does
 // not retroactively cover later manual commits. The warning fires.
 func TestRunUntrailedAudit_AuditOnlyBeforeManualStillFires(t *testing.T) {
+	t.Parallel()
 	commits := []UntrailedCommit{
 		{
 			SHA: "audit01",
@@ -466,6 +484,7 @@ func TestRunUntrailedAudit_AuditOnlyBeforeManualStillFires(t *testing.T) {
 // covers the per-entity matching: an audit-only on G-001 does not
 // suppress a manual commit on G-002.
 func TestRunUntrailedAudit_AuditOnlyOnDifferentEntityDoesNotCover(t *testing.T) {
+	t.Parallel()
 	commits := []UntrailedCommit{
 		{
 			SHA:   "manual1",
@@ -492,6 +511,7 @@ func TestRunUntrailedAudit_AuditOnlyOnDifferentEntityDoesNotCover(t *testing.T) 
 // with subcode `squash-merge`. A subject without that suffix
 // produces the bare code only.
 func TestRunUntrailedAudit_SquashMergeSubcode(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		subject     string
@@ -504,6 +524,7 @@ func TestRunUntrailedAudit_SquashMergeSubcode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := RunUntrailedAudit([]UntrailedCommit{
 				{
 					SHA:     "abc1234",
@@ -529,6 +550,7 @@ func TestRunUntrailedAudit_SquashMergeSubcode(t *testing.T) {
 // entity. Each finding carries the entity id; messages are short
 // (no embedded path list).
 func TestRunUntrailedAudit_PerEntityFindings(t *testing.T) {
+	t.Parallel()
 	commits := []UntrailedCommit{
 		{
 			SHA: "manual1",
@@ -564,6 +586,7 @@ func TestRunUntrailedAudit_PerEntityFindings(t *testing.T) {
 // previous all-or-nothing suppression left BOTH warnings flagged
 // in this scenario.
 func TestRunUntrailedAudit_AuditOnlyClearsPerEntity(t *testing.T) {
+	t.Parallel()
 	commits := []UntrailedCommit{
 		{
 			SHA: "manual1",
@@ -595,6 +618,7 @@ func TestRunUntrailedAudit_AuditOnlyClearsPerEntity(t *testing.T) {
 // matching, so a manual mutation of the M-001 file before it is
 // covered.
 func TestRunUntrailedAudit_CompositeAuditCoversParentManual(t *testing.T) {
+	t.Parallel()
 	commits := []UntrailedCommit{
 		{
 			SHA:   "manual1",
@@ -620,6 +644,7 @@ func TestRunUntrailedAudit_CompositeAuditCoversParentManual(t *testing.T) {
 // commit with the trailer is silent; a commit touching only
 // non-entity files is silent.
 func TestRunUntrailedAudit(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		commits   []UntrailedCommit
@@ -672,6 +697,7 @@ func TestRunUntrailedAudit(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := RunUntrailedAudit(tt.commits)
 			if len(got) != tt.wantCount {
 				t.Fatalf("findings = %d (%v), want %d", len(got), findingCodes(got), tt.wantCount)
@@ -689,6 +715,7 @@ func TestRunUntrailedAudit(t *testing.T) {
 // TestShaOK covers the boundary cases of the SHA-shape predicate.
 // 7..40 hex passes; everything else fails. Lowercase only.
 func TestShaOK(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		s    string
 		want bool
@@ -715,6 +742,7 @@ func TestShaOK(t *testing.T) {
 // ValidateTrailer regex, exposed here for the in-package shape
 // checks).
 func TestRoleIDOK(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		s    string
 		want bool
@@ -747,6 +775,7 @@ func TestRoleIDOK(t *testing.T) {
 //     visit-once guard, returning the current position rather than
 //     looping.
 func TestWalkRenameChain(t *testing.T) {
+	t.Parallel()
 	t.Run("empty id", func(t *testing.T) {
 		if got := walkRenameChain("", map[string]string{"E-0001": "E-0002"}); got != "" {
 			t.Errorf("got %q, want empty", got)
@@ -788,6 +817,7 @@ func TestWalkRenameChain(t *testing.T) {
 // (nil, false) so the standing rule fires authorization-missing
 // rather than picking one silently. The full SHA path is unaffected.
 func TestResolveAuthSHA_AmbiguousPrefix(t *testing.T) {
+	t.Parallel()
 	full1 := strings.Repeat("a", 40)
 	full2 := "a" + strings.Repeat("b", 39)
 	authIndex := map[string]*scope.Commit{
@@ -829,6 +859,7 @@ func TestResolveAuthSHA_AmbiguousPrefix(t *testing.T) {
 // child milestone, the rule must NOT fire (M-001 reaches E-01
 // via parent).
 func TestRunProvenance_CompositeTargetRollsUp(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("c", 40)
 	commits := []scope.Commit{
@@ -848,6 +879,7 @@ func TestRunProvenance_CompositeTargetRollsUp(t *testing.T) {
 // short-circuit branch where target == scope-entity (after composite
 // rollup). The reachability check is skipped via `from == to`.
 func TestRunProvenance_SelfReferentialOutOfScope(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("d", 40)
 	commits := []scope.Commit{
@@ -869,6 +901,7 @@ func TestRunProvenance_SelfReferentialOutOfScope(t *testing.T) {
 // pins that behavior so a future change to the indexer surfaces
 // here.
 func TestRunProvenance_MultipleAuthorizedByLastWins(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	goodSHA := strings.Repeat("a", 40)
 	missingSHA := strings.Repeat("0", 40)
@@ -900,6 +933,7 @@ func TestRunProvenance_MultipleAuthorizedByLastWins(t *testing.T) {
 // for G-0118: empty id, nil tree, no prior_ids match, and a found
 // prior_ids match (returning the current id of the renamed entity).
 func TestResolveViaPriorIDs(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTreeWithRenamed(t)
 	tests := []struct {
 		name string
@@ -918,6 +952,7 @@ func TestResolveViaPriorIDs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := resolveViaPriorIDs(tt.id, tt.t)
 			if got != tt.want {
 				t.Errorf("resolveViaPriorIDs(%q) = %q, want %q", tt.id, got, tt.want)
@@ -940,6 +975,7 @@ func TestResolveViaPriorIDs(t *testing.T) {
 // ritual); this exception keeps historical commits validatable
 // without history rewrite.
 func TestRunProvenance_WrapBundleCommitTolerated_AuthorizationEnded(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("a", 40)
 	commits := []scope.Commit{
@@ -964,6 +1000,7 @@ func TestRunProvenance_WrapBundleCommitTolerated_AuthorizationEnded(t *testing.T
 // commits with `aiwf-verb: wrap-milestone`. Same tolerance pattern as
 // the epic case.
 func TestRunProvenance_WrapBundleCommitTolerated_WrapMilestone(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("b", 40)
 	commits := []scope.Commit{
@@ -986,6 +1023,7 @@ func TestRunProvenance_WrapBundleCommitTolerated_WrapMilestone(t *testing.T) {
 // scope. A wrap commit pointing at a different entity from the
 // scope-ender still fires.
 func TestRunProvenance_WrapBundleExceptionScoped_DifferentEntityStillFires(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("c", 40)
 	commits := []scope.Commit{
@@ -1012,6 +1050,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_DifferentEntityStillFires(t *te
 // covered by the exception. Only `wrap-epic` and `wrap-milestone`
 // participate in the wrap-bundle window.
 func TestRunProvenance_WrapBundleExceptionScoped_NonWrapVerbStillFires(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("d", 40)
 	commits := []scope.Commit{
@@ -1036,6 +1075,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_NonWrapVerbStillFires(t *testin
 // the wrap-bundle window — those scopes were ended deliberately
 // outside the normal wrap path.
 func TestRunProvenance_WrapBundleExceptionScoped_NonPromoteEnderStillFires(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("e", 40)
 	commits := []scope.Commit{
@@ -1068,6 +1108,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_NonPromoteEnderStillFires(t *te
 // without panicking and that no spurious exception triggers when the
 // auth SHA was never indexed.
 func TestRunProvenance_WrapBundleExceptionScoped_MissingAuthSHAStillFires(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	// No authorize/opened commit — the authorized-by SHA on the
 	// wrap commit doesn't resolve, so -authorization-missing should
@@ -1094,6 +1135,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_MissingAuthSHAStillFires(t *tes
 // (G-0118). This pins that the same-entity match isn't fooled by id
 // drift across the wrap window.
 func TestRunProvenance_WrapBundleExceptionScoped_PriorIDsRenameResolves(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTreeWithRenamed(t)
 	authSHA := strings.Repeat("f", 40)
 	commits := []scope.Commit{
@@ -1121,6 +1163,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_PriorIDsRenameResolves(t *testi
 // match a scope-ender on `M-0001` after compositeRoot rollup. Mirrors
 // the existing out-of-scope rollup behavior.
 func TestRunProvenance_WrapBundleExceptionScoped_CompositeRolledUp(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("1", 40)
 	commits := []scope.Commit{
@@ -1142,6 +1185,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_CompositeRolledUp(t *testing.T)
 // supplementing the integration-style tests above. Each case names
 // the branch it's pinning.
 func TestIsWrapBundleCommit(t *testing.T) {
+	t.Parallel()
 	tr := buildProvenanceTree(t)
 	authSHA := strings.Repeat("a", 40)
 	opener := scope.Commit{
@@ -1222,6 +1266,7 @@ func TestIsWrapBundleCommit(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := isWrapBundleCommit(tt.idx, tt.opener, tt.endCommit, nil, tr)
 			if got != tt.want {
 				t.Errorf("isWrapBundleCommit(%q) = %v, want %v", tt.name, got, tt.want)
@@ -1235,6 +1280,7 @@ func TestIsWrapBundleCommit(t *testing.T) {
 // but no aiwf-entity (pathological history) shouldn't crash and
 // shouldn't enable the exception.
 func TestIsWrapBundleCommit_EndCommitMissingEntity(t *testing.T) {
+	t.Parallel()
 	authSHA := strings.Repeat("a", 40)
 	opener := scope.Commit{
 		SHA: authSHA,
@@ -1263,6 +1309,7 @@ func TestIsWrapBundleCommit_EndCommitMissingEntity(t *testing.T) {
 // trailers map to their emitting commit, first-wins on duplicates,
 // commits without scope-ends are excluded.
 func TestBuildEndedByIndex(t *testing.T) {
+	t.Parallel()
 	authA := strings.Repeat("a", 40)
 	authB := strings.Repeat("b", 40)
 	commits := []scope.Commit{

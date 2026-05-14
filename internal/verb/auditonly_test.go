@@ -15,6 +15,7 @@ import (
 // empty-diff commit carrying the standard trailer block plus
 // aiwf-audit-only with the reason.
 func TestPromoteAuditOnly_HappyPath(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(context.Background(), r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -52,6 +53,7 @@ func TestPromoteAuditOnly_HappyPath(t *testing.T) {
 // a state the entity hasn't reached yet is refused — audit-only never
 // transitions, only documents.
 func TestPromoteAuditOnly_RefusesWhenStateMismatch(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	// E-01 is `proposed`. Audit-only to `done` (which the entity has
@@ -65,6 +67,7 @@ func TestPromoteAuditOnly_RefusesWhenStateMismatch(t *testing.T) {
 // TestPromoteAuditOnly_RequiresReason: audit-only with no reason (or
 // whitespace-only) is refused.
 func TestPromoteAuditOnly_RequiresReason(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-0001", "proposed", testActor, "   ")
@@ -81,6 +84,7 @@ func TestPromoteAuditOnly_RequiresReason(t *testing.T) {
 // human actor cannot wield audit-only" — the specific rule depends
 // on what other trailers came along.
 func TestPromoteAuditOnly_RefusesNonHumanActor(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-0001", "proposed", "ai/claude", "trying to backfill from a bot")
@@ -103,6 +107,7 @@ func TestPromoteAuditOnly_RefusesNonHumanActor(t *testing.T) {
 // TestPromoteAuditOnly_RejectsUnknownStatus: an unknown status
 // (typo, wrong kind) fails before the state-mismatch check fires.
 func TestPromoteAuditOnly_RejectsUnknownStatus(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	_, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "E-0001", "Done", testActor, "wrong case")
@@ -115,6 +120,7 @@ func TestPromoteAuditOnly_RejectsUnknownStatus(t *testing.T) {
 // kind's terminal-cancel target) via a manual commit. CancelAuditOnly
 // produces the audit trailer.
 func TestCancelAuditOnly_HappyPath(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Validators leak temp files", testActor, verb.AddOptions{
 		DiscoveredIn: "",
@@ -149,6 +155,7 @@ func TestCancelAuditOnly_HappyPath(t *testing.T) {
 // open (not yet at the kind's terminal-cancel target). Audit-only
 // refuses.
 func TestCancelAuditOnly_RefusesWhenNotAtTerminal(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Untriaged gap", testActor, verb.AddOptions{}))
 	_, err := verb.CancelAuditOnly(r.ctx, r.tree(), "G-0001", testActor, "no")
@@ -160,6 +167,7 @@ func TestCancelAuditOnly_RefusesWhenNotAtTerminal(t *testing.T) {
 // TestPromoteACAuditOnly_HappyPath: composite-id audit-only on AC
 // status. The AC is already at `met`; the verb records the audit.
 func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -185,6 +193,7 @@ func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 // composite id. AC's tdd_phase already matches; verb records the
 // audit.
 func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -206,6 +215,7 @@ func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
 // TestPromoteACPhaseAuditOnly_RefusesUnknownPhase: a typo or invalid
 // phase value is rejected before the state-mismatch check fires.
 func TestPromoteACPhaseAuditOnly_RefusesUnknownPhase(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))

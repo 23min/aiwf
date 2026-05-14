@@ -25,6 +25,7 @@ func findingByCode(fs []Finding, code, subcode string) *Finding {
 }
 
 func TestAcsShape_CleanMilestoneNoFindings(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo", Status: "in_progress", Parent: "E-0001",
 		TDD: "required",
@@ -39,6 +40,7 @@ func TestAcsShape_CleanMilestoneNoFindings(t *testing.T) {
 }
 
 func TestAcsShape_AbsentACsAndTDD(t *testing.T) {
+	t.Parallel()
 	// A pre-I2 milestone with no acs[] and no tdd: must produce no
 	// findings. This is the load-bearing backwards-compat assertion.
 	tr := makeTree(&entity.Entity{
@@ -50,6 +52,7 @@ func TestAcsShape_AbsentACsAndTDD(t *testing.T) {
 }
 
 func TestAcsShape_IDProblems(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		acs     []entity.AcceptanceCriterion
@@ -87,6 +90,7 @@ func TestAcsShape_IDProblems(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tr := makeTree(&entity.Entity{
 				ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 				Status: "in_progress", Parent: "E-0001", ACs: tt.acs,
@@ -100,6 +104,7 @@ func TestAcsShape_IDProblems(t *testing.T) {
 }
 
 func TestAcsShape_TitleStatusTDDPhaseAndPolicy(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		ac       entity.AcceptanceCriterion
@@ -141,6 +146,7 @@ func TestAcsShape_TitleStatusTDDPhaseAndPolicy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tr := makeTree(&entity.Entity{
 				ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 				Status: "in_progress", Parent: "E-0001", TDD: tt.tdd,
@@ -155,6 +161,7 @@ func TestAcsShape_TitleStatusTDDPhaseAndPolicy(t *testing.T) {
 }
 
 func TestAcsShape_TDDPolicyInvalid(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001", TDD: "strict",
@@ -166,6 +173,7 @@ func TestAcsShape_TDDPolicyInvalid(t *testing.T) {
 }
 
 func TestAcsShape_NonMilestoneSkipped(t *testing.T) {
+	t.Parallel()
 	// Other kinds shouldn't produce AC findings even if their fields
 	// are populated (which the schema disallows but the struct permits).
 	tr := makeTree(&entity.Entity{
@@ -178,6 +186,7 @@ func TestAcsShape_NonMilestoneSkipped(t *testing.T) {
 }
 
 func TestAcsShape_PositionStableAcrossCancellation(t *testing.T) {
+	t.Parallel()
 	// AC-2 cancelled stays in position 2; new AC at position 3 must
 	// be AC-3 (max+1, not gap-fill). This is the load-bearing
 	// position-stability assertion.
@@ -216,6 +225,7 @@ func TestAcsShape_PositionStableAcrossCancellation(t *testing.T) {
 // G20: an AC that landed via hand-edit (or pre-G20 tooling) with a
 // prose-y title surfaces as a warning so the human knows to refactor.
 func TestAcsTitleProse_FlagsLongTitle(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001",
@@ -240,6 +250,7 @@ func TestAcsTitleProse_FlagsLongTitle(t *testing.T) {
 // finding, so the existing clean-fixture round-trip continues to
 // pass.
 func TestAcsTitleProse_ShortTitleClean(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001",
@@ -253,6 +264,7 @@ func TestAcsTitleProse_ShortTitleClean(t *testing.T) {
 }
 
 func TestAcsTDDAudit_RequiredFiresAsError(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001", TDD: "required",
@@ -276,6 +288,7 @@ func TestAcsTDDAudit_RequiredFiresAsError(t *testing.T) {
 }
 
 func TestAcsTDDAudit_AdvisoryFiresAsWarning(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001", TDD: "advisory",
@@ -290,6 +303,7 @@ func TestAcsTDDAudit_AdvisoryFiresAsWarning(t *testing.T) {
 }
 
 func TestAcsTDDAudit_NoneSkipped(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001", TDD: "none",
@@ -314,6 +328,7 @@ func TestAcsTDDAudit_NoneSkipped(t *testing.T) {
 }
 
 func TestAcsTDDAudit_DonePassesUnderRequired(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001", TDD: "required",
@@ -327,6 +342,7 @@ func TestAcsTDDAudit_DonePassesUnderRequired(t *testing.T) {
 }
 
 func TestAcsTDDAudit_NonMetIgnored(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001", TDD: "required",
@@ -341,6 +357,7 @@ func TestAcsTDDAudit_NonMetIgnored(t *testing.T) {
 }
 
 func TestMilestoneDoneIncompleteACs_FiresOnOpen(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "done", Parent: "E-0001",
@@ -364,6 +381,7 @@ func TestMilestoneDoneIncompleteACs_FiresOnOpen(t *testing.T) {
 }
 
 func TestMilestoneDoneIncompleteACs_TerminalACsAccepted(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "done", Parent: "E-0001",
@@ -379,6 +397,7 @@ func TestMilestoneDoneIncompleteACs_TerminalACsAccepted(t *testing.T) {
 }
 
 func TestMilestoneDoneIncompleteACs_NotDoneSkipped(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
 		Status: "in_progress", Parent: "E-0001",
@@ -392,6 +411,7 @@ func TestMilestoneDoneIncompleteACs_NotDoneSkipped(t *testing.T) {
 }
 
 func TestAcsBodyCoherence_PairsByID(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	mPath := "work/epics/E-01-foundations/M-007-warnings.md"
 	abs := filepath.Join(root, filepath.FromSlash(mPath))
@@ -446,6 +466,7 @@ prose
 }
 
 func TestAcsBodyCoherence_MissingHeading(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	mPath := "work/epics/E-01/M-007.md"
 	abs := filepath.Join(root, filepath.FromSlash(mPath))
@@ -494,6 +515,7 @@ only AC-1 has a body heading
 }
 
 func TestAcsBodyCoherence_OrphanHeading(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	mPath := "work/epics/E-01/M-007.md"
 	abs := filepath.Join(root, filepath.FromSlash(mPath))
@@ -536,6 +558,7 @@ no frontmatter entry for this one
 }
 
 func TestAcsBodyCoherence_PermissiveSeparator(t *testing.T) {
+	t.Parallel()
 	// All four heading shapes are accepted; the coherence check pairs
 	// by id only and emits no findings on a well-paired set.
 	root := t.TempDir()
@@ -589,6 +612,7 @@ acs:
 }
 
 func TestAcsBodyCoherence_TitleTextNotChecked(t *testing.T) {
+	t.Parallel()
 	// Frontmatter title and body heading title disagree — kernel
 	// stays blind. Pairs by id only.
 	root := t.TempDir()
@@ -626,6 +650,7 @@ prose
 }
 
 func TestRefsResolve_CompositeIDInAddressedBy(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Status: "active", Path: "epic.md"},
 		&entity.Entity{
@@ -645,6 +670,7 @@ func TestRefsResolve_CompositeIDInAddressedBy(t *testing.T) {
 }
 
 func TestRefsResolve_CompositeUnresolvedMilestone(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{
 			ID: "G-0001", Kind: entity.KindGap, Status: "open",
@@ -659,6 +685,7 @@ func TestRefsResolve_CompositeUnresolvedMilestone(t *testing.T) {
 }
 
 func TestRefsResolve_CompositeUnresolvedAC(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Status: "active", Path: "epic.md"},
 		&entity.Entity{
@@ -678,6 +705,7 @@ func TestRefsResolve_CompositeUnresolvedAC(t *testing.T) {
 }
 
 func TestRefsResolve_CompositeRejectedOnClosedTargetField(t *testing.T) {
+	t.Parallel()
 	// milestone.parent is a closed-target field (epic only).
 	// Using a composite id there should produce a regular `unresolved`
 	// finding (the composite isn't in the index), not a special path.

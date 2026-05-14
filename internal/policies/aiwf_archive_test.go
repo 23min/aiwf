@@ -35,6 +35,7 @@ func loadAiwfArchiveSkill(t *testing.T) string {
 // AC-3 wants a dedicated assertion so the AC's mechanical evidence
 // is visible at the AC granularity.
 func TestAiwfArchive_AC3_Scaffolded(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfArchiveSkill(t)
 
 	name := frontmatterField(body, "name")
@@ -54,6 +55,7 @@ func TestAiwfArchive_AC3_Scaffolded(t *testing.T) {
 // scoped to the named §; substring-greppimg across the whole file
 // would pass even if the prose lived in the wrong section.
 func TestAiwfArchive_AC3_DryRunVsApplySection(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfArchiveSkill(t)
 	section := extractMarkdownSection(body, 2, "What to run")
 	if section == "" {
@@ -77,6 +79,7 @@ func TestAiwfArchive_AC3_DryRunVsApplySection(t *testing.T) {
 // archived one") must appear in the dedicated reversal section so
 // readers learn the rule from the skill, not the ADR alone.
 func TestAiwfArchive_AC3_NoReverseSection(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfArchiveSkill(t)
 	section := extractMarkdownSection(body, 2, "Reversal")
 	if section == "" {
@@ -99,6 +102,7 @@ func TestAiwfArchive_AC3_NoReverseSection(t *testing.T) {
 // itself: the skill must explain `archive.sweep_threshold` and how
 // to set it in `aiwf.yaml`. Per ADR-0004 §"Drift control" layer (2).
 func TestAiwfArchive_AC3_ThresholdKnobSection(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfArchiveSkill(t)
 	// Accept either "Drift control" or "Threshold" headings — the
 	// concept is one; the heading text is the author's call. Try
@@ -126,6 +130,7 @@ func TestAiwfArchive_AC3_ThresholdKnobSection(t *testing.T) {
 // conflict"). The skill body covers it so AI assistants reach for
 // the right resolution without re-reading the ADR.
 func TestAiwfArchive_AC3_MergeEdgeSection(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfArchiveSkill(t)
 	section := extractMarkdownSection(body, 2, "Merge")
 	if section == "" {
@@ -147,6 +152,7 @@ func TestAiwfArchive_AC3_MergeEdgeSection(t *testing.T) {
 // SKILL.md replicates the table — every kind named in the ADR must
 // appear so the AI reader sees the active→archive path mapping.
 func TestAiwfArchive_AC3_PerKindStorageSection(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfArchiveSkill(t)
 	section := extractMarkdownSection(body, 2, "Per-kind storage")
 	if section == "" {
@@ -172,6 +178,7 @@ func TestAiwfArchive_AC3_PerKindStorageSection(t *testing.T) {
 // the reader who lands on the skill must be able to follow the
 // thread back to the ratified decision).
 func TestAiwfArchive_AC3_CitesADR0004(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfArchiveSkill(t)
 	if !strings.Contains(body, "ADR-0004") {
 		t.Error("AC-3: SKILL.md must cite ADR-0004 by id")
@@ -193,6 +200,7 @@ func TestAiwfArchive_AC3_CitesADR0004(t *testing.T) {
 // the structural anchor: the convention prose must live inside the
 // section, and the section must grow to ≥10 items.
 func TestAiwfArchive_AC6_ClaudeMdNamesArchiveConvention(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 	data, err := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
 	if err != nil {
@@ -294,6 +302,7 @@ func isNumberedListStart(line string) bool {
 // (precedent: TestFrontmatterField_BranchCoverage in
 // aiwfx_whiteboard_test.go).
 func TestNumberedListItems_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name      string
 		section   string
@@ -350,6 +359,7 @@ func TestNumberedListItems_BranchCoverage(t *testing.T) {
 // assertion to AC-5's named surface so a future drift specific to
 // the archive skill surfaces at this AC.
 func TestAiwfArchive_AC5_SkillCoveragePolicyClean(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 	violations, err := PolicySkillCoverageMatchesVerbs(root)
 	if err != nil {
@@ -381,6 +391,7 @@ func TestAiwfArchive_AC5_SkillCoveragePolicyClean(t *testing.T) {
 // drift-check so a future regression that re-adds the entry is
 // caught explicitly, not only via the policy's coverage walk.
 func TestAiwfArchive_AC4_AllowlistEntryRemoved(t *testing.T) {
+	t.Parallel()
 	if rationale, ok := skillCoverageAllowlist["archive"]; ok {
 		t.Errorf("AC-4: skillCoverageAllowlist still carries an entry for `archive` (rationale: %q); remove it now that internal/skills/embedded/aiwf-archive/SKILL.md ships",
 			rationale)

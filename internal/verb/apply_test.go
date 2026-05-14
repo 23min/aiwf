@@ -25,11 +25,8 @@ type applyTestRepo struct {
 
 func newApplyTestRepo(t *testing.T) *applyTestRepo {
 	t.Helper()
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-
+	// GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} are seeded once in TestMain
+	// (setup_test.go) — using t.Setenv here would panic under t.Parallel.
 	root := t.TempDir()
 	ctx := context.Background()
 	if err := gitops.Init(ctx, root); err != nil {
@@ -90,6 +87,7 @@ func readFile(t *testing.T, path string) []byte {
 // non-failure path: after Apply succeeds, exactly one new commit
 // exists and the working tree is clean.
 func TestApply_HappyPath_OneCommitNoExtraIndexChurn(t *testing.T) {
+	t.Parallel()
 	r := newApplyTestRepo(t)
 	plan := &verb.Plan{
 		Subject: "test write",
@@ -121,6 +119,7 @@ func TestApply_HappyPath_OneCommitNoExtraIndexChurn(t *testing.T) {
 // succeeds without pre-mkdir. Then a write to a blocked path fails,
 // triggering the rollback path that keeps the staged mv around.
 func TestApply_RollsBackOnWriteFailure(t *testing.T) {
+	t.Parallel()
 	if os.Geteuid() == 0 {
 		t.Skip("root bypasses permission checks")
 	}
@@ -174,6 +173,7 @@ func TestApply_RollsBackOnWriteFailure(t *testing.T) {
 // TestApply_RollsBackOnGitMvFailure: when `git mv` fails (e.g. source
 // not tracked), no commit and no leftover state.
 func TestApply_RollsBackOnGitMvFailure(t *testing.T) {
+	t.Parallel()
 	r := newApplyTestRepo(t)
 	plan := &verb.Plan{
 		Subject:  "test mv-fail",
@@ -199,6 +199,7 @@ func TestApply_RollsBackOnGitMvFailure(t *testing.T) {
 // the verb must be removed (not just unstaged) on rollback, otherwise
 // the next aiwf invocation sees stale state.
 func TestApply_RollsBackUntrackedNewFiles(t *testing.T) {
+	t.Parallel()
 	if os.Geteuid() == 0 {
 		t.Skip("root bypasses permission checks")
 	}
@@ -241,6 +242,7 @@ func TestApply_RollsBackUntrackedNewFiles(t *testing.T) {
 // the deferred rollback before the panic propagates. Provoke the
 // panic by passing a nil Plan, which derefs in the for-range loop.
 func TestApply_PanicTriggersRollback(t *testing.T) {
+	t.Parallel()
 	r := newApplyTestRepo(t)
 	defer func() {
 		if got := recover(); got == nil {
@@ -259,11 +261,18 @@ func TestApply_PanicTriggersRollback(t *testing.T) {
 // TestApply_RollsBackOnCommitFailure: missing committer identity
 // makes `git commit` fail; the rollback must still leave a clean
 // tree.
+//
+// This test stays SERIAL (no t.Parallel) per M-0091: it deliberately
+// clears the GIT identity env vars TestMain seeded, plus
+// GIT_CONFIG_GLOBAL/SYSTEM, to provoke a real commit failure.
+// t.Setenv is fundamental to the test's premise; t.Parallel would
+// panic, and even if it didn't, parallel tests sharing the process's
+// env would see the cleared values transiently.
 func TestApply_RollsBackOnCommitFailure(t *testing.T) {
 	r := newApplyTestRepo(t)
 	// Override author/committer with empty values so git refuses to
-	// commit. (newApplyTestRepo sets these; t.Setenv here overrides
-	// just for this test.)
+	// commit. (TestMain seeds these; t.Setenv here overrides just
+	// for this test.)
 	t.Setenv("GIT_AUTHOR_NAME", "")
 	t.Setenv("GIT_AUTHOR_EMAIL", "")
 	t.Setenv("GIT_COMMITTER_NAME", "")
@@ -304,6 +313,7 @@ func TestApply_RollsBackOnCommitFailure(t *testing.T) {
 // only by deliberate corruption; we skip it here and rely on
 // inspection.
 func TestApply_RollsBackOnGitAddFailure(t *testing.T) {
+	t.Parallel()
 	t.Skip("git-add failure is defensive; not reachable from a clean unit test")
 }
 
@@ -312,6 +322,7 @@ func TestApply_RollsBackOnGitAddFailure(t *testing.T) {
 // not pass the same path to git restore twice — that would error or
 // emit duplicate warnings.
 func TestApply_DedupesTouchedPaths(t *testing.T) {
+	t.Parallel()
 	if os.Geteuid() == 0 {
 		t.Skip("root bypasses permission checks")
 	}
@@ -356,6 +367,7 @@ func TestApply_DedupesTouchedPaths(t *testing.T) {
 // commit lands carrying only the verb's path; `unrelated.go` is
 // still staged for the user's next commit.
 func TestApply_PreservesUnrelatedStagedChanges(t *testing.T) {
+	t.Parallel()
 	r := newApplyTestRepo(t)
 
 	// User pre-stages an unrelated file.
@@ -414,6 +426,7 @@ func TestApply_PreservesUnrelatedStagedChanges(t *testing.T) {
 // write. Apply must error, must not advance HEAD, and must leave the
 // user's staged content untouched.
 func TestApply_RefusesConflictingPreStagedPath(t *testing.T) {
+	t.Parallel()
 	r := newApplyTestRepo(t)
 
 	// Pre-stage content at the path the verb will write.
@@ -468,6 +481,7 @@ func TestApply_RefusesConflictingPreStagedPath(t *testing.T) {
 // trailers only, then the stash is popped — the user's staged work
 // is back in the index for their next commit.
 func TestApply_AllowEmptyPreservesUnrelatedStaged(t *testing.T) {
+	t.Parallel()
 	r := newApplyTestRepo(t)
 
 	// User stages an unrelated file.
@@ -512,6 +526,7 @@ func TestApply_AllowEmptyPreservesUnrelatedStaged(t *testing.T) {
 // index is clean, an allow-empty plan still commits trailers-only
 // the way authorize / --audit-only have always done.
 func TestApply_AllowEmptyOnCleanIndex(t *testing.T) {
+	t.Parallel()
 	r := newApplyTestRepo(t)
 	plan := &verb.Plan{
 		Subject:    "aiwf authorize E-01 [test]",

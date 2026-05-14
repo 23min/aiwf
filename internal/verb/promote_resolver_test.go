@@ -14,6 +14,7 @@ import (
 // After promotion the gap-resolved-has-resolver check is silent — the verb
 // route alone is enough; no follow-up hand-edit needed (M-059/AC-4).
 func TestPromote_GapAddressedBy(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Resolver", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -45,6 +46,7 @@ func TestPromote_GapAddressedBy(t *testing.T) {
 // TestPromote_GapAddressedByMultiple: --by accepts a comma-separated
 // list of entity ids, all of which land in addressed_by.
 func TestPromote_GapAddressedByMultiple(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -66,6 +68,7 @@ func TestPromote_GapAddressedByMultiple(t *testing.T) {
 // TestPromote_GapAddressedByCommit: --by-commit value lands in
 // addressed_by_commit and satisfies the resolver check on its own.
 func TestPromote_GapAddressedByCommit(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Closed by hardening commit", testActor, verb.AddOptions{}))
 
@@ -92,6 +95,7 @@ func TestPromote_GapAddressedByCommit(t *testing.T) {
 // TestPromote_ADRSupersededBy: adr → superseded with --superseded-by
 // writes superseded_by atomically (M-059/AC-2, AC-3).
 func TestPromote_ADRSupersededBy(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Replacement decision", testActor, verb.AddOptions{}))
@@ -117,6 +121,7 @@ func TestPromote_ADRSupersededBy(t *testing.T) {
 // TestPromote_ResolverWrongKind: a resolver flag on the wrong entity
 // kind is a Go error (usage misalignment), not a finding.
 func TestPromote_ResolverWrongKind(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 
@@ -137,6 +142,7 @@ func TestPromote_ResolverWrongKind(t *testing.T) {
 // TestPromote_ResolverWrongStatus: --by on gap → wontfix is rejected
 // (resolver is meaningful only when promoting to addressed).
 func TestPromote_ResolverWrongStatus(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
 
@@ -151,6 +157,7 @@ func TestPromote_ResolverWrongStatus(t *testing.T) {
 // don't have resolver fields; the verb refuses early so the user
 // notices the misalignment instead of silently dropping the values.
 func TestPromote_ResolverOnAC(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Bar", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -168,6 +175,7 @@ func TestPromote_ResolverOnAC(t *testing.T) {
 // the entity at HEAD shows both changes together; HEAD~1 shows
 // neither.
 func TestPromote_ResolverAtomicSingleCommit(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))

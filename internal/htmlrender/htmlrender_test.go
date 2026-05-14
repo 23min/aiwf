@@ -24,6 +24,7 @@ import (
 // skeleton — it exercises sortedByID, idToFileName, and the
 // embed.FS template loading pipeline as a single round-trip.
 func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
+	t.Parallel()
 	root := writeFixtureTree(t)
 
 	tr, _, err := tree.Load(context.Background(), root)
@@ -91,6 +92,7 @@ func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
 // real determinism gate is in step 4, but the renderer's own
 // behavior must already satisfy it.
 func TestRender_DeterministicAcrossInvocations(t *testing.T) {
+	t.Parallel()
 	root := writeFixtureTree(t)
 	tr, _, err := tree.Load(context.Background(), root)
 	if err != nil {
@@ -131,6 +133,7 @@ func TestRender_DeterministicAcrossInvocations(t *testing.T) {
 // code), then asserts the rendered HTML contains the corresponding
 // HTML elements.
 func TestRender_BodyMarkdownRendersAsHTML(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	gapsDir := filepath.Join(root, "work", "gaps")
 	mustMkdir(t, gapsDir)
@@ -274,6 +277,7 @@ func (r bodyAwareResolver) EntityData(id string) (*EntityData, error) {
 // every link 404'd. The test pins one page per kind, asserting the
 // kind kicker and the entity title are present in the right place.
 func TestRender_NonEpicMilestoneKinds_GetPages(t *testing.T) {
+	t.Parallel()
 	root := writeFixtureTree(t)
 	tr, _, err := tree.Load(context.Background(), root)
 	if err != nil {
@@ -295,6 +299,7 @@ func TestRender_NonEpicMilestoneKinds_GetPages(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.kind, func(t *testing.T) {
+			t.Parallel()
 			html := readFile(t, filepath.Join(out, tc.file))
 			// Kicker carries the kind label; title is in the H1.
 			if !strings.Contains(html, tc.kind+" · ") {
@@ -315,6 +320,7 @@ func TestRender_NonEpicMilestoneKinds_GetPages(t *testing.T) {
 // must still produce a valid index.html (with an empty-state line)
 // so the deployment pipeline always has something to ship.
 func TestRender_EmptyTree_StillProducesIndex(t *testing.T) {
+	t.Parallel()
 	root := setupEmptyTree(t)
 	tr, _, err := tree.Load(context.Background(), root)
 	if err != nil {
@@ -331,6 +337,7 @@ func TestRender_EmptyTree_StillProducesIndex(t *testing.T) {
 }
 
 func TestIDToFileName(t *testing.T) {
+	t.Parallel()
 	// idToFileName preserves the input width — filenames mirror the
 	// on-disk shape so links continue to point at the actual file.
 	// Display canonicalization (AC-3 in M-081) happens to the
@@ -346,6 +353,7 @@ func TestIDToFileName(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
+			t.Parallel()
 			if got := idToFileName(tc.in); got != tc.want {
 				t.Errorf("idToFileName(%q) = %q, want %q", tc.in, got, tc.want)
 			}
@@ -354,6 +362,7 @@ func TestIDToFileName(t *testing.T) {
 }
 
 func TestACAnchor(t *testing.T) {
+	t.Parallel()
 	cases := map[string]string{
 		"AC-1":  "ac-1",
 		"AC-12": "ac-12",

@@ -8,6 +8,7 @@ import (
 )
 
 func TestAllowedStatuses(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		kind Kind
 		want []string
@@ -21,6 +22,7 @@ func TestAllowedStatuses(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind), func(t *testing.T) {
+			t.Parallel()
 			got := AllowedStatuses(tt.kind)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("AllowedStatuses(%s) mismatch (-want +got):\n%s", tt.kind, diff)
@@ -30,6 +32,7 @@ func TestAllowedStatuses(t *testing.T) {
 }
 
 func TestIsAllowedStatus(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		kind   Kind
 		status string
@@ -47,6 +50,7 @@ func TestIsAllowedStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind)+"/"+tt.status, func(t *testing.T) {
+			t.Parallel()
 			if got := IsAllowedStatus(tt.kind, tt.status); got != tt.want {
 				t.Errorf("IsAllowedStatus(%s, %q) = %v, want %v", tt.kind, tt.status, got, tt.want)
 			}
@@ -55,6 +59,7 @@ func TestIsAllowedStatus(t *testing.T) {
 }
 
 func TestValidateID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		kind    Kind
 		id      string
@@ -77,6 +82,7 @@ func TestValidateID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind)+"/"+tt.id, func(t *testing.T) {
+			t.Parallel()
 			err := ValidateID(tt.kind, tt.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateID(%s, %q) err = %v, wantErr = %v", tt.kind, tt.id, err, tt.wantErr)
@@ -86,6 +92,7 @@ func TestValidateID(t *testing.T) {
 }
 
 func TestKindFromID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		id     string
 		want   Kind
@@ -112,6 +119,7 @@ func TestKindFromID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
+			t.Parallel()
 			got, ok := KindFromID(tt.id)
 			if got != tt.want || ok != tt.wantOk {
 				t.Errorf("KindFromID(%q) = %v, %v; want %v, %v", tt.id, got, ok, tt.want, tt.wantOk)
@@ -121,6 +129,7 @@ func TestKindFromID(t *testing.T) {
 }
 
 func TestIsCompositeID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		id   string
 		want bool
@@ -143,6 +152,7 @@ func TestIsCompositeID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
+			t.Parallel()
 			if got := IsCompositeID(tt.id); got != tt.want {
 				t.Errorf("IsCompositeID(%q) = %v, want %v", tt.id, got, tt.want)
 			}
@@ -151,6 +161,7 @@ func TestIsCompositeID(t *testing.T) {
 }
 
 func TestParseCompositeID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		id         string
 		wantParent string
@@ -167,6 +178,7 @@ func TestParseCompositeID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
+			t.Parallel()
 			parent, sub, ok := ParseCompositeID(tt.id)
 			if parent != tt.wantParent || sub != tt.wantSub || ok != tt.wantOk {
 				t.Errorf("ParseCompositeID(%q) = (%q, %q, %v); want (%q, %q, %v)",
@@ -177,6 +189,7 @@ func TestParseCompositeID(t *testing.T) {
 }
 
 func TestSubKindFromID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		id     string
 		want   string
@@ -191,6 +204,7 @@ func TestSubKindFromID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
+			t.Parallel()
 			got, ok := SubKindFromID(tt.id)
 			if got != tt.want || ok != tt.wantOk {
 				t.Errorf("SubKindFromID(%q) = (%q, %v); want (%q, %v)", tt.id, got, ok, tt.want, tt.wantOk)
@@ -200,6 +214,7 @@ func TestSubKindFromID(t *testing.T) {
 }
 
 func TestIDFromPath(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		path   string
 		kind   Kind
@@ -235,6 +250,7 @@ func TestIDFromPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.path+":"+string(tt.kind), func(t *testing.T) {
+			t.Parallel()
 			got, ok := IDFromPath(tt.path, tt.kind)
 			if got != tt.want || ok != tt.wantOk {
 				t.Errorf("IDFromPath(%q, %v) = %q, %v; want %q, %v", tt.path, tt.kind, got, ok, tt.want, tt.wantOk)
@@ -244,8 +260,10 @@ func TestIDFromPath(t *testing.T) {
 }
 
 func TestSchemaForKind(t *testing.T) {
+	t.Parallel()
 	for _, k := range AllKinds() {
 		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
 			s, ok := SchemaForKind(k)
 			if !ok {
 				t.Fatalf("SchemaForKind(%v): not found", k)
@@ -283,12 +301,14 @@ func TestSchemaForKind(t *testing.T) {
 }
 
 func TestSchemaForKind_Unknown(t *testing.T) {
+	t.Parallel()
 	if _, ok := SchemaForKind("nonsense"); ok {
 		t.Error("expected SchemaForKind to return ok=false for unknown kind")
 	}
 }
 
 func TestAllSchemas_OneEntryPerKind(t *testing.T) {
+	t.Parallel()
 	got := AllSchemas()
 	if len(got) != len(AllKinds()) {
 		t.Fatalf("AllSchemas length = %d, want %d", len(got), len(AllKinds()))
@@ -301,6 +321,7 @@ func TestAllSchemas_OneEntryPerKind(t *testing.T) {
 }
 
 func TestAllowedStatuses_DelegatesToSchemas(t *testing.T) {
+	t.Parallel()
 	for _, k := range AllKinds() {
 		s, _ := SchemaForKind(k)
 		got := AllowedStatuses(k)
@@ -311,6 +332,7 @@ func TestAllowedStatuses_DelegatesToSchemas(t *testing.T) {
 }
 
 func TestIDFormat_DelegatesToSchemas(t *testing.T) {
+	t.Parallel()
 	for _, k := range AllKinds() {
 		s, _ := SchemaForKind(k)
 		if got, want := IDFormat(k), s.IDFormat; got != want {
@@ -320,6 +342,7 @@ func TestIDFormat_DelegatesToSchemas(t *testing.T) {
 }
 
 func TestIsAllowedACStatus(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		status string
 		want   bool
@@ -335,6 +358,7 @@ func TestIsAllowedACStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.status, func(t *testing.T) {
+			t.Parallel()
 			if got := IsAllowedACStatus(tt.status); got != tt.want {
 				t.Errorf("IsAllowedACStatus(%q) = %v, want %v", tt.status, got, tt.want)
 			}
@@ -343,6 +367,7 @@ func TestIsAllowedACStatus(t *testing.T) {
 }
 
 func TestIsAllowedTDDPhase(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		phase string
 		want  bool
@@ -357,6 +382,7 @@ func TestIsAllowedTDDPhase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.phase, func(t *testing.T) {
+			t.Parallel()
 			if got := IsAllowedTDDPhase(tt.phase); got != tt.want {
 				t.Errorf("IsAllowedTDDPhase(%q) = %v, want %v", tt.phase, got, tt.want)
 			}
@@ -365,6 +391,7 @@ func TestIsAllowedTDDPhase(t *testing.T) {
 }
 
 func TestIsAllowedTDDPolicy(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		policy string
 		want   bool
@@ -378,6 +405,7 @@ func TestIsAllowedTDDPolicy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.policy, func(t *testing.T) {
+			t.Parallel()
 			if got := IsAllowedTDDPolicy(tt.policy); got != tt.want {
 				t.Errorf("IsAllowedTDDPolicy(%q) = %v, want %v", tt.policy, got, tt.want)
 			}
@@ -386,6 +414,7 @@ func TestIsAllowedTDDPolicy(t *testing.T) {
 }
 
 func TestACClosedSets_NoEmptyMember(t *testing.T) {
+	t.Parallel()
 	// Belt-and-braces: confirm none of the AC closed sets accidentally
 	// include the empty string as a legal value. Empty is the absent
 	// sentinel and must not collide with a real value.
@@ -407,6 +436,7 @@ func TestACClosedSets_NoEmptyMember(t *testing.T) {
 }
 
 func TestMilestoneSchema_OptionalFieldsIncludeACs(t *testing.T) {
+	t.Parallel()
 	s, ok := SchemaForKind(KindMilestone)
 	if !ok {
 		t.Fatal("SchemaForKind(milestone) not found")
@@ -428,6 +458,7 @@ func TestMilestoneSchema_OptionalFieldsIncludeACs(t *testing.T) {
 // `aiwf add ac` and the `acs-title-prose` check share. Triggers:
 // long, multi-sentence, markdown-formatted, or newline-bearing.
 func TestIsProseyTitle(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		title string
@@ -453,6 +484,7 @@ func TestIsProseyTitle(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if got := IsProseyTitle(tt.title); got != tt.want {
 				t.Errorf("IsProseyTitle(%q) = %v, want %v", tt.title, got, tt.want)
 			}
@@ -461,6 +493,7 @@ func TestIsProseyTitle(t *testing.T) {
 }
 
 func TestPathKind(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		path   string
 		want   Kind
@@ -484,6 +517,7 @@ func TestPathKind(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
+			t.Parallel()
 			got, ok := PathKind(tt.path)
 			if got != tt.want || ok != tt.wantOk {
 				t.Errorf("PathKind(%q) = %v, %v; want %v, %v", tt.path, got, ok, tt.want, tt.wantOk)
@@ -509,6 +543,7 @@ func TestPathKind(t *testing.T) {
 // still appear in the archived epic's subtree, so the loader must
 // classify them when walking it.
 func TestPathKind_Archive(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		path   string
 		want   Kind
@@ -539,6 +574,7 @@ func TestPathKind_Archive(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
+			t.Parallel()
 			got, ok := PathKind(tt.path)
 			if got != tt.want || ok != tt.wantOk {
 				t.Errorf("PathKind(%q) = %v, %v; want %v, %v", tt.path, got, ok, tt.want, tt.wantOk)
@@ -550,6 +586,7 @@ func TestPathKind_Archive(t *testing.T) {
 // TestIDFromPath_Archive pins the id-extraction seam for archive-located
 // entity paths (M-0084 AC-1). Same enumerated space as TestPathKind_Archive.
 func TestIDFromPath_Archive(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		path   string
 		kind   Kind
@@ -578,6 +615,7 @@ func TestIDFromPath_Archive(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.path+":"+string(tt.kind), func(t *testing.T) {
+			t.Parallel()
 			got, ok := IDFromPath(tt.path, tt.kind)
 			if got != tt.want || ok != tt.wantOk {
 				t.Errorf("IDFromPath(%q, %v) = %q, %v; want %q, %v", tt.path, tt.kind, got, ok, tt.want, tt.wantOk)
@@ -592,6 +630,7 @@ func TestIDFromPath_Archive(t *testing.T) {
 // drawn from ADR-0004 §"Storage — per-kind layout" (the archive
 // column).
 func TestIsArchivedPath(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		path string
 		want bool
@@ -623,6 +662,7 @@ func TestIsArchivedPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
+			t.Parallel()
 			if got := IsArchivedPath(tt.path); got != tt.want {
 				t.Errorf("IsArchivedPath(%q) = %v, want %v", tt.path, got, tt.want)
 			}
@@ -634,6 +674,7 @@ func TestIsArchivedPath(t *testing.T) {
 // helper strips a recognized per-kind `archive/` segment so callers
 // can compare branch and trunk paths across a sweep rename.
 func TestActiveFormOf(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		desc string
 		in   string
@@ -661,6 +702,7 @@ func TestActiveFormOf(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
+			t.Parallel()
 			if got := ActiveFormOf(tt.in); got != tt.want {
 				t.Errorf("ActiveFormOf(%q) = %q, want %q", tt.in, got, tt.want)
 			}

@@ -13,6 +13,7 @@ import (
 // does not begin with `human/` is refused with a typed error pointing
 // at the rule and the `--force --reason` override path.
 func TestPromote_EpicActive_RefusesNonHumanActor(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Sovereign", testActor, verb.AddOptions{}))
 
@@ -37,6 +38,7 @@ func TestPromote_EpicActive_RefusesNonHumanActor(t *testing.T) {
 // to `active` succeeds without `--force` or `--reason`. The rule
 // targets only non-human actors; humans are unaffected.
 func TestPromote_EpicActive_HumanActorSucceeds(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Sovereign", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
@@ -54,6 +56,7 @@ func TestPromote_EpicActive_HumanActorSucceeds(t *testing.T) {
 // and asserts the rule's error message (with its tell-tale "sovereign"
 // substring) does not appear when the non-human actor moves it.
 func TestPromote_EpicActive_OtherTransitionsUnaffected(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name      string
 		setup     func(r *runner) // leaves E-0001 in the appropriate starting state
@@ -104,6 +107,7 @@ func TestPromote_EpicActive_OtherTransitionsUnaffected(t *testing.T) {
 // blocked by this rule. (Other rules may apply; this test asserts the
 // absence of the sovereign-act-rule's message specifically.)
 func TestPromote_EpicActive_OtherKindsUnaffected(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name      string
 		setup     func(r *runner) // returns with the entity created (and parent epic if needed)

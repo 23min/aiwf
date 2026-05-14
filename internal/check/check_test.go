@@ -36,6 +36,7 @@ func codes(fs []Finding) []string {
 }
 
 func TestIDsUnique(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "a.md"},
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "b.md"},
@@ -51,6 +52,7 @@ func TestIDsUnique(t *testing.T) {
 }
 
 func TestIDsUnique_TrunkCollision(t *testing.T) {
+	t.Parallel()
 	// Working tree has G-035 at one path; trunk has G-035 at a different
 	// path — the G37 case. The check must surface this as a finding so
 	// the pre-push hook fails before the colliding push lands.
@@ -83,6 +85,7 @@ func TestIDsUnique_TrunkCollision(t *testing.T) {
 }
 
 func TestIDsUnique_TrunkSamePath_NoFinding(t *testing.T) {
+	t.Parallel()
 	// The entity is already on trunk at the same path — that's the
 	// normal post-merge state, not a collision. The check must stay
 	// silent so every aiwf check doesn't drown in noise.
@@ -114,6 +117,7 @@ func TestIDsUnique_TrunkSamePath_NoFinding(t *testing.T) {
 // archive trunk — unlikely under the no-reverse-sweep design but the
 // normalization is symmetric and worth pinning).
 func TestIDsUnique_ArchiveSweepNotCollision(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		desc      string
 		entity    *entity.Entity
@@ -152,6 +156,7 @@ func TestIDsUnique_ArchiveSweepNotCollision(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
 			tr := makeTree(tc.entity)
 			tr.TrunkIDs = []trunk.ID{
 				{Kind: tc.entity.Kind, ID: tc.entity.ID, Path: tc.trunkPath},
@@ -170,6 +175,7 @@ func TestIDsUnique_ArchiveSweepNotCollision(t *testing.T) {
 // must still fire. Otherwise G-0101's fix would mask the original
 // G37 trunk-collision case it was designed to catch.
 func TestIDsUnique_NonArchivePathDivergenceStillFires(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "G-0035", Kind: entity.KindGap, Path: "work/gaps/G-0035-renamed-slug.md"},
 	)
@@ -195,6 +201,7 @@ func TestIDsUnique_NonArchivePathDivergenceStillFires(t *testing.T) {
 // and the pre-push hook blocks the push that would resolve it — the
 // catch-22 the gap documents.
 func TestIDsUnique_GitRenameNotCollision(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "G-0035", Kind: entity.KindGap, Path: "work/gaps/G-0035-short-new-slug.md"},
 	)
@@ -216,6 +223,7 @@ func TestIDsUnique_GitRenameNotCollision(t *testing.T) {
 // branch path. Otherwise a stale rename record could mask a real
 // duplicate-id allocation made elsewhere on the branch.
 func TestIDsUnique_GitRenameToDifferentPathStillFires(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "G-0035", Kind: entity.KindGap, Path: "work/gaps/G-0035-actually-here.md"},
 	)
@@ -238,6 +246,7 @@ func TestIDsUnique_GitRenameToDifferentPathStillFires(t *testing.T) {
 }
 
 func TestIDsUnique_TrunkOnlyID_NoFinding(t *testing.T) {
+	t.Parallel()
 	// Trunk has G-007; the working tree doesn't. That is not a
 	// collision — the working tree just hasn't pulled, or has elected
 	// not to carry that entity yet. The allocator's job is to avoid
@@ -261,6 +270,7 @@ func TestIDsUnique_TrunkOnlyID_NoFinding(t *testing.T) {
 // reviewer's machine. casePaths catches this footgun before it
 // silently surfaces as data loss on checkout.
 func TestCasePaths_ReportsCaseEquivalentEntities(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
 		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Path: "work/epics/E-01-Foo/epic.md"},
@@ -286,6 +296,7 @@ func TestCasePaths_ReportsCaseEquivalentEntities(t *testing.T) {
 // TestCasePaths_CleanTreeNoFindings: a tree with all-distinct paths
 // produces no case-paths findings.
 func TestCasePaths_CleanTreeNoFindings(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
 		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Path: "work/epics/E-02-bar/epic.md"},
@@ -300,6 +311,7 @@ func TestCasePaths_CleanTreeNoFindings(t *testing.T) {
 // the same case-insensitive path each generate a finding so the
 // user sees every offender, not just one.
 func TestCasePaths_ThreeWayCollision(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-foo/epic.md"},
 		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Path: "work/epics/E-01-FOO/epic.md"},
@@ -312,6 +324,7 @@ func TestCasePaths_ThreeWayCollision(t *testing.T) {
 }
 
 func TestStatusValid(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Status: "active"},           // ok
 		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Status: "in_progress"},      // milestone-only status
@@ -329,6 +342,7 @@ func TestStatusValid(t *testing.T) {
 }
 
 func TestFrontmatterShape(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		// Missing id.
 		&entity.Entity{Kind: entity.KindEpic, Title: "Foo", Status: "active", Path: "a.md"},
@@ -353,6 +367,7 @@ func TestFrontmatterShape(t *testing.T) {
 }
 
 func TestRefsResolve_Unresolved(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic},
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"}, // unresolved
@@ -364,6 +379,7 @@ func TestRefsResolve_Unresolved(t *testing.T) {
 }
 
 func TestRefsResolve_WrongKind(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "D-0001", Kind: entity.KindDecision},
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "D-0001"}, // parent must be epic
@@ -375,6 +391,7 @@ func TestRefsResolve_WrongKind(t *testing.T) {
 }
 
 func TestRefsResolve_StubResolvesReferences(t *testing.T) {
+	t.Parallel()
 	// Regression for the wrap-epic cascade bug: when E-01's epic.md
 	// fails to parse (e.g. an unknown frontmatter field rejected by
 	// KnownFields(true)), every entity that references E-01 used to
@@ -400,6 +417,7 @@ func TestRefsResolve_StubResolvesReferences(t *testing.T) {
 }
 
 func TestRefsResolve_StubPreservesWrongKindCheck(t *testing.T) {
+	t.Parallel()
 	// A stub still carries its kind (derived from path), so wrong-kind
 	// findings on referrers must still fire when the link is to the
 	// wrong kind. Here a milestone's parent points at a stubbed gap;
@@ -427,6 +445,7 @@ func TestRefsResolve_StubPreservesWrongKindCheck(t *testing.T) {
 // pattern when a closed entity needs revisiting is to file a new
 // entity that references the archived one.
 func TestRefsResolve_ResolvesArchivedTargets(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Active milestone parents to an archived (done) epic. ADR-0004
@@ -518,6 +537,7 @@ func mustWrite(t *testing.T, root, rel, content string) {
 }
 
 func TestRefsResolve_RealEntityWinsOverStub(t *testing.T) {
+	t.Parallel()
 	// If both a real entity and a stub claim the same id (shouldn't
 	// happen in practice, but defensive), the real one is indexed
 	// first and wins.
@@ -546,6 +566,7 @@ func TestRefsResolve_RealEntityWinsOverStub(t *testing.T) {
 // bad field. This test fails on the pre-fix code (12 cascade findings
 // would appear) and passes once stubs short-circuit refs-resolve.
 func TestRefsResolve_ProliminalCascadeRepro(t *testing.T) {
+	t.Parallel()
 	entities := []*entity.Entity{}
 	// 5 milestones, all parented to E-01.
 	for i := 1; i <= 5; i++ {
@@ -587,6 +608,7 @@ func TestRefsResolve_ProliminalCascadeRepro(t *testing.T) {
 }
 
 func TestIdsUnique_StubVsRealCollision(t *testing.T) {
+	t.Parallel()
 	// User has two epic dirs both claiming id E-01; one parses, one
 	// doesn't. ids-unique must still flag the duplicate; otherwise
 	// the cascade-suppression fix would silently swallow a real
@@ -609,6 +631,7 @@ func TestIdsUnique_StubVsRealCollision(t *testing.T) {
 }
 
 func TestIdsUnique_StubVsStubCollision(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Stubs: []*entity.Entity{
 			{ID: "E-0001", Kind: entity.KindEpic, Path: "work/epics/E-01-a/epic.md"},
@@ -622,6 +645,7 @@ func TestIdsUnique_StubVsStubCollision(t *testing.T) {
 }
 
 func TestIdPathConsistent_Mismatch(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID:   "M-0100",
 		Kind: entity.KindMilestone,
@@ -643,6 +667,7 @@ func TestIdPathConsistent_Mismatch(t *testing.T) {
 }
 
 func TestIdPathConsistent_Agrees(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID:   "E-0001",
 		Kind: entity.KindEpic,
@@ -655,6 +680,7 @@ func TestIdPathConsistent_Agrees(t *testing.T) {
 }
 
 func TestIdPathConsistent_SkipsEntitiesWithoutPathID(t *testing.T) {
+	t.Parallel()
 	// Path is something IDFromPath can't extract an id from.
 	// Defensive: shouldn't happen post-loader, but the check
 	// must not crash if it does.
@@ -670,6 +696,7 @@ func TestIdPathConsistent_SkipsEntitiesWithoutPathID(t *testing.T) {
 }
 
 func TestIdPathConsistent_StubsTriviallyMatch(t *testing.T) {
+	t.Parallel()
 	// Stubs are constructed from the path-derived id, so they always
 	// pass id-path-consistent. The check iterates only Entities,
 	// not Stubs, so this confirms the stubs slice doesn't get a
@@ -692,8 +719,10 @@ func TestIdPathConsistent_StubsTriviallyMatch(t *testing.T) {
 // this test fails — preventing the published `aiwf schema` surface
 // from drifting away from runtime enforcement.
 func TestSchemaMatchesForwardRefs(t *testing.T) {
+	t.Parallel()
 	for _, k := range entity.AllKinds() {
 		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
 			s, _ := entity.SchemaForKind(k)
 
 			// Build a synthetic entity carrying a sentinel value in
@@ -775,6 +804,7 @@ func sameKinds(a, b []entity.Kind) bool {
 }
 
 func TestRefsResolve_AnyKindFields(t *testing.T) {
+	t.Parallel()
 	// addressed_by and relates_to permit any kind, so a gap addressed_by
 	// a milestone or a decision relates_to a contract should resolve fine.
 	tr := makeTree(
@@ -791,6 +821,7 @@ func TestRefsResolve_AnyKindFields(t *testing.T) {
 }
 
 func TestNoCycles_DependsOn(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0002"}, Path: "1.md"},
 		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, DependsOn: []string{"M-0003"}, Path: "2.md"},
@@ -808,6 +839,7 @@ func TestNoCycles_DependsOn(t *testing.T) {
 }
 
 func TestNoCycles_ADRChain(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "ADR-0001", Kind: entity.KindADR, SupersededBy: "ADR-0002", Path: "1.md"},
 		&entity.Entity{ID: "ADR-0002", Kind: entity.KindADR, SupersededBy: "ADR-0001", Path: "2.md"},
@@ -824,6 +856,7 @@ func TestNoCycles_ADRChain(t *testing.T) {
 }
 
 func TestNoCycles_AcyclicIsClean(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0002"}},
 		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, DependsOn: []string{"M-0003"}},
@@ -836,6 +869,7 @@ func TestNoCycles_AcyclicIsClean(t *testing.T) {
 }
 
 func TestNoCycles_SelfLoop(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0001"}, Path: "1.md"},
 	)
@@ -846,6 +880,7 @@ func TestNoCycles_SelfLoop(t *testing.T) {
 }
 
 func TestTitlesNonempty(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "good"},
 		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Title: ""},
@@ -863,6 +898,7 @@ func TestTitlesNonempty(t *testing.T) {
 }
 
 func TestADRSupersessionMutual(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "ADR-0001", Kind: entity.KindADR, SupersededBy: "ADR-0002"},
 		// Mutual link missing — ADR-0002 does not list ADR-0001 in supersedes.
@@ -881,6 +917,7 @@ func TestADRSupersessionMutual(t *testing.T) {
 }
 
 func TestGapResolvedHasResolver(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		// Open gap: no constraint.
 		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Status: "open"},
@@ -898,6 +935,7 @@ func TestGapResolvedHasResolver(t *testing.T) {
 }
 
 func TestRun_OrdersBySeverity(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "", Status: "active"}, // titles-nonempty (warning)
 		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Title: "Foo", Status: "wat"}, // status-valid (error)
@@ -913,6 +951,7 @@ func TestRun_OrdersBySeverity(t *testing.T) {
 }
 
 func TestRun_LoadErrorsAreFindings(t *testing.T) {
+	t.Parallel()
 	tr := makeTree() // empty
 	loadErrs := []tree.LoadError{
 		{Path: "work/epics/E-01/epic.md", Err: errFake},
@@ -927,6 +966,7 @@ func TestRun_LoadErrorsAreFindings(t *testing.T) {
 }
 
 func TestHasErrors(t *testing.T) {
+	t.Parallel()
 	if HasErrors([]Finding{{Severity: SeverityWarning}}) {
 		t.Error("HasErrors true on warning-only")
 	}
@@ -951,6 +991,7 @@ func (e *fakeError) Error() string { return e.msg }
 // the first surfaces as its own finding (so a 3-way collision yields
 // 2 findings, not 1).
 func TestIDsUnique_ThreeWayCollision(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "a.md"},
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "b.md"},
@@ -970,6 +1011,7 @@ func TestIDsUnique_ThreeWayCollision(t *testing.T) {
 // from the same source converging on the same target is not flagged
 // as a cycle.
 func TestNoCycles_DiamondIsAcyclic(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0002", "M-0003"}},
 		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, DependsOn: []string{"M-0004"}},
@@ -984,6 +1026,7 @@ func TestNoCycles_DiamondIsAcyclic(t *testing.T) {
 
 // TestNoCycles_TwoDisjointCycles surfaces both cycles independently.
 func TestNoCycles_TwoDisjointCycles(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		// Cycle A: M-001 <-> M-002
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, DependsOn: []string{"M-0002"}, Path: "1.md"},
@@ -1011,6 +1054,7 @@ func TestNoCycles_TwoDisjointCycles(t *testing.T) {
 // mismatches (a sequence where a string is expected, or vice versa)
 // surface as parse failures and become load-error findings.
 func TestParse_TypeErrorsBecomeLoadErrors(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		content string
@@ -1041,6 +1085,7 @@ depends_on: M-002
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := entity.Parse("synthetic.md", []byte(tt.content))
 			if err == nil {
 				t.Error("expected parse error for type mismatch")
@@ -1055,6 +1100,7 @@ depends_on: M-002
 // finding. We construct a real on-disk fixture so the line resolver
 // has something to scan.
 func TestRun_PopulatesHintsAndLines(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	// On-disk dir/filename uses canonical width to align with AC-1's
 	// emission policy. The id-string contents inside frontmatter are
@@ -1107,6 +1153,7 @@ func TestRun_PopulatesHintsAndLines(t *testing.T) {
 // any line in the file (or the file can't be read), Line falls back to 1
 // so editors still get a clickable file:line link.
 func TestRun_LineFallsBackToOne(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID: "E-0001", Kind: entity.KindEpic, Title: "Foo", Status: "bogus",
 		Path: "synthetic-no-such-file.md",
@@ -1130,6 +1177,7 @@ func TestRun_LineFallsBackToOne(t *testing.T) {
 // guarantees that callers who pre-order within a code group keep
 // that order through the merge.
 func TestSortFindings_Stable(t *testing.T) {
+	t.Parallel()
 	in := []Finding{
 		{Code: "x", Severity: SeverityError, Path: "a.md", EntityID: "first"},
 		{Code: "x", Severity: SeverityError, Path: "a.md", EntityID: "second"},
@@ -1144,6 +1192,7 @@ func TestSortFindings_Stable(t *testing.T) {
 // TestSortFindings_ErrorsBeforeWarnings: error-severity findings
 // always sort ahead of warnings, regardless of code.
 func TestSortFindings_ErrorsBeforeWarnings(t *testing.T) {
+	t.Parallel()
 	in := []Finding{
 		{Code: "z-warn", Severity: SeverityWarning, Path: "a.md"},
 		{Code: "a-err", Severity: SeverityError, Path: "z.md"},
@@ -1156,6 +1205,7 @@ func TestSortFindings_ErrorsBeforeWarnings(t *testing.T) {
 
 // TestHintFor_KnownAndUnknown probes the public hint table.
 func TestHintFor_KnownAndUnknown(t *testing.T) {
+	t.Parallel()
 	if HintFor("refs-resolve", "unresolved") == "" {
 		t.Errorf("known code+subcode should return a hint")
 	}

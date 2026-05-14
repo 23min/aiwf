@@ -53,6 +53,7 @@ func loadCLAUDEMd(t *testing.T) string {
 // `F-NNNN` floated in an unrelated section; a section-scoped
 // assertion fires only when the content lands in the right place.
 func TestM083_AC2_ADR0003IDStorageSection(t *testing.T) {
+	t.Parallel()
 	body := loadADR0003(t)
 	section := extractMarkdownSection(body, 3, "Id and storage")
 	if section == "" {
@@ -111,6 +112,7 @@ func TestM083_AC2_ADR0003IDStorageSection(t *testing.T) {
 // substring grep over the whole file would pass even if the rewrite
 // landed in the wrong section.
 func TestM083_AC2_CLAUDEMdCommitment2(t *testing.T) {
+	t.Parallel()
 	body := loadCLAUDEMd(t)
 	section := extractMarkdownSection(body, 2, "What aiwf commits to")
 	if section == "" {

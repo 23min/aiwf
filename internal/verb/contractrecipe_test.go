@@ -16,6 +16,7 @@ contracts:
 `
 
 func TestRecipeInstall_NewValidator(t *testing.T) {
+	t.Parallel()
 	d, c := mustReadDoc(t, recipeBaseYAML)
 	res, err := RecipeInstall(context.Background(), d, c, "cue", aiwfyaml.Validator{
 		Command: "cue", Args: []string{"vet", "{{schema}}", "{{fixture}}"},
@@ -34,6 +35,7 @@ func TestRecipeInstall_NewValidator(t *testing.T) {
 }
 
 func TestRecipeInstall_IdempotentExactMatch(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(recipeBaseYAML, "  validators: {}", `  validators:
     cue:
       command: cue
@@ -54,6 +56,7 @@ func TestRecipeInstall_IdempotentExactMatch(t *testing.T) {
 }
 
 func TestRecipeInstall_DifferentRequiresForce(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(recipeBaseYAML, "  validators: {}", `  validators:
     cue:
       command: cue
@@ -69,6 +72,7 @@ func TestRecipeInstall_DifferentRequiresForce(t *testing.T) {
 }
 
 func TestRecipeInstall_TrailersIncludeReferencingBindings(t *testing.T) {
+	t.Parallel()
 	src := `aiwf_version: 0.1.0
 actor: human/test
 contracts:
@@ -123,6 +127,7 @@ contracts:
 }
 
 func TestRecipeRemove_Success(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(recipeBaseYAML, "  validators: {}", `  validators:
     cue:
       command: cue
@@ -140,6 +145,7 @@ func TestRecipeRemove_Success(t *testing.T) {
 }
 
 func TestRecipeRemove_RejectsReferencedValidator(t *testing.T) {
+	t.Parallel()
 	src := `aiwf_version: 0.1.0
 actor: human/test
 contracts:
@@ -161,6 +167,7 @@ contracts:
 }
 
 func TestRecipeRemove_RejectsMissingValidator(t *testing.T) {
+	t.Parallel()
 	d, c := mustReadDoc(t, recipeBaseYAML)
 	if _, err := RecipeRemove(context.Background(), d, c, "ghost", "human/test"); err == nil {
 		t.Error("expected error for missing validator")
@@ -170,6 +177,7 @@ func TestRecipeRemove_RejectsMissingValidator(t *testing.T) {
 // --- Edge case coverage (added during the I1 hardening pass) ---
 
 func TestRecipeInstall_RejectsEmptyName(t *testing.T) {
+	t.Parallel()
 	d, c := mustReadDoc(t, recipeBaseYAML)
 	_, err := RecipeInstall(context.Background(), d, c, "", aiwfyaml.Validator{Command: "x"}, "human/test", RecipeInstallOptions{})
 	if err == nil {
@@ -178,6 +186,7 @@ func TestRecipeInstall_RejectsEmptyName(t *testing.T) {
 }
 
 func TestRecipeInstall_RejectsEmptyCommand(t *testing.T) {
+	t.Parallel()
 	d, c := mustReadDoc(t, recipeBaseYAML)
 	_, err := RecipeInstall(context.Background(), d, c, "x", aiwfyaml.Validator{Command: ""}, "human/test", RecipeInstallOptions{})
 	if err == nil {
@@ -186,6 +195,7 @@ func TestRecipeInstall_RejectsEmptyCommand(t *testing.T) {
 }
 
 func TestRecipeInstall_NoTrailersForUnreferencedValidator(t *testing.T) {
+	t.Parallel()
 	// Brand-new validator with no bindings yet — install should NOT
 	// emit any aiwf-entity trailers.
 	d, c := mustReadDoc(t, recipeBaseYAML)
@@ -203,6 +213,7 @@ func TestRecipeInstall_NoTrailersForUnreferencedValidator(t *testing.T) {
 }
 
 func TestRecipeInstall_ForceUpdatesArgsAndKeepsValidator(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(recipeBaseYAML, "  validators: {}", `  validators:
     cue:
       command: cue
@@ -223,6 +234,7 @@ func TestRecipeInstall_ForceUpdatesArgsAndKeepsValidator(t *testing.T) {
 }
 
 func TestRecipeRemove_NamesMultipleReferencesInError(t *testing.T) {
+	t.Parallel()
 	src := `aiwf_version: 0.1.0
 actor: human/test
 contracts:
@@ -253,6 +265,7 @@ contracts:
 }
 
 func TestValidatorEqual_HandlesNilArgs(t *testing.T) {
+	t.Parallel()
 	a := aiwfyaml.Validator{Command: "x", Args: nil}
 	b := aiwfyaml.Validator{Command: "x", Args: []string{}}
 	if !validatorEqual(a, b) {
@@ -261,6 +274,7 @@ func TestValidatorEqual_HandlesNilArgs(t *testing.T) {
 }
 
 func TestBindingsReferencing_IsNilSafeAndSorted(t *testing.T) {
+	t.Parallel()
 	if got := bindingsReferencing(nil, "x"); got != nil {
 		t.Errorf("nil contracts should yield nil; got %+v", got)
 	}

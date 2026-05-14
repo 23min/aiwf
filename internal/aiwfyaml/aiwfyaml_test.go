@@ -13,6 +13,7 @@ actor: human/peter
 `
 
 func TestRead_NoContractsBlock(t *testing.T) {
+	t.Parallel()
 	_, c, err := ReadBytes([]byte(baseConfig))
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
@@ -23,6 +24,7 @@ func TestRead_NoContractsBlock(t *testing.T) {
 }
 
 func TestRead_BasicBlock(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + `
 contracts:
   validators:
@@ -60,6 +62,7 @@ contracts:
 }
 
 func TestRead_StrictValidatorsTrue(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + `
 contracts:
   strict_validators: true
@@ -79,6 +82,7 @@ contracts:
 }
 
 func TestRead_StrictValidatorsDefaultFalse(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + `
 contracts:
   validators: {}
@@ -94,6 +98,7 @@ contracts:
 }
 
 func TestSetContracts_RoundTripsStrictValidators(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + "\n"
 	doc, _, err := ReadBytes([]byte(src))
 	if err != nil {
@@ -126,6 +131,7 @@ func TestSetContracts_RoundTripsStrictValidators(t *testing.T) {
 }
 
 func TestRead_RejectsAnchor(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + `
 contracts:
   validators:
@@ -145,6 +151,7 @@ contracts:
 }
 
 func TestRead_RejectsAlias(t *testing.T) {
+	t.Parallel()
 	// Alias in another section is fine; only aliases *inside* contracts:
 	// are rejected. We exercise the alias-inside-contracts path by
 	// declaring an anchor outside and aliasing inside.
@@ -170,6 +177,7 @@ contracts:
 }
 
 func TestRead_RejectsUnknownField(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + `
 contracts:
   validators:
@@ -193,6 +201,7 @@ contracts:
 }
 
 func TestRead_RejectsBadID(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + `
 contracts:
   validators:
@@ -212,6 +221,7 @@ contracts:
 }
 
 func TestRead_RejectsUndeclaredValidator(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + `
 contracts:
   validators:
@@ -234,6 +244,7 @@ contracts:
 }
 
 func TestSetContracts_AppendsWhenAbsent(t *testing.T) {
+	t.Parallel()
 	d, c, err := ReadBytes([]byte(baseConfig))
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
@@ -273,6 +284,7 @@ func TestSetContracts_AppendsWhenAbsent(t *testing.T) {
 }
 
 func TestSetContracts_PreservesOuterCommentsAndOrder(t *testing.T) {
+	t.Parallel()
 	src := `# Top-of-file comment
 aiwf_version: 0.1.0
 actor: human/peter # actor comment
@@ -326,6 +338,7 @@ contracts:
 }
 
 func TestSetContracts_ReplaceMidFile(t *testing.T) {
+	t.Parallel()
 	// `contracts:` is *not* the last top-level key; verify the splice
 	// stops at the line of the next key (`hosts:`) and content after
 	// it survives.
@@ -367,6 +380,7 @@ hosts:
 }
 
 func TestSetContracts_RemovesWithNil(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + `
 contracts:
   validators:
@@ -400,6 +414,7 @@ contracts:
 }
 
 func TestSetContracts_RoundTripIsStable(t *testing.T) {
+	t.Parallel()
 	in := &Contracts{
 		Validators: map[string]Validator{
 			"cue":        {Command: "cue", Args: []string{"vet", "{{schema}}", "{{fixture}}"}},
@@ -432,6 +447,7 @@ func TestSetContracts_RoundTripIsStable(t *testing.T) {
 }
 
 func TestWrite_AtomicAndIdempotent(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "aiwf.yaml")
 	d, _, err := ReadBytes([]byte(baseConfig))
@@ -448,6 +464,7 @@ func TestWrite_AtomicAndIdempotent(t *testing.T) {
 }
 
 func TestValidate_RejectsEmptyCommand(t *testing.T) {
+	t.Parallel()
 	c := &Contracts{
 		Validators: map[string]Validator{
 			"empty": {Command: "", Args: nil},
@@ -459,6 +476,7 @@ func TestValidate_RejectsEmptyCommand(t *testing.T) {
 }
 
 func TestValidate_RejectsEmptyValidatorKey(t *testing.T) {
+	t.Parallel()
 	c := &Contracts{
 		Validators: map[string]Validator{
 			"": {Command: "x", Args: nil},
@@ -472,6 +490,7 @@ func TestValidate_RejectsEmptyValidatorKey(t *testing.T) {
 // --- Edge case coverage (added during the I1 hardening pass) ---
 
 func TestRead_BOMTolerant(t *testing.T) {
+	t.Parallel()
 	src := "\xef\xbb\xbf" + baseConfig
 	_, c, err := ReadBytes([]byte(src))
 	if err != nil {
@@ -483,6 +502,7 @@ func TestRead_BOMTolerant(t *testing.T) {
 }
 
 func TestRead_CRLFLineEndings(t *testing.T) {
+	t.Parallel()
 	src := "aiwf_version: 0.1.0\r\nactor: human/peter\r\ncontracts:\r\n  validators:\r\n    cue:\r\n      command: cue\r\n      args: [vet]\r\n  entries:\r\n    - id: C-0001\r\n      validator: cue\r\n      schema: s\r\n      fixtures: f\r\n"
 	_, c, err := ReadBytes([]byte(src))
 	if err != nil {
@@ -494,6 +514,7 @@ func TestRead_CRLFLineEndings(t *testing.T) {
 }
 
 func TestRead_EmptyFile(t *testing.T) {
+	t.Parallel()
 	d, c, err := ReadBytes([]byte(""))
 	if err != nil {
 		t.Fatalf("ReadBytes empty: %v", err)
@@ -516,6 +537,7 @@ func TestRead_EmptyFile(t *testing.T) {
 }
 
 func TestRead_OnlyContractsBlock(t *testing.T) {
+	t.Parallel()
 	// A file that has *only* a contracts: block, no other top-level
 	// keys. The splice range must extend to EOF.
 	src := `contracts:
@@ -547,6 +569,7 @@ func TestRead_OnlyContractsBlock(t *testing.T) {
 }
 
 func TestRead_FlowStyleMapping(t *testing.T) {
+	t.Parallel()
 	// Flow-style is valid YAML but unusual inside contracts:. The
 	// parser should accept it; the writer normalizes to block style
 	// on round-trip (documented in §5).
@@ -576,6 +599,7 @@ contracts:
 }
 
 func TestRead_ContractsBlockWithInternalBlankLines(t *testing.T) {
+	t.Parallel()
 	// Blank lines inside the contracts: block are tolerated by the
 	// parser; the writer normalizes them away (intra-block formatting
 	// is owned by the engine per §5).
@@ -609,6 +633,7 @@ contracts:
 }
 
 func TestRead_RejectsTopLevelSequence(t *testing.T) {
+	t.Parallel()
 	src := `- one
 - two
 `
@@ -619,6 +644,7 @@ func TestRead_RejectsTopLevelSequence(t *testing.T) {
 }
 
 func TestRead_ContractsBlockMidComment(t *testing.T) {
+	t.Parallel()
 	// A full-line comment inside the contracts: block survives parsing
 	// but is dropped on round-trip (intra-block normalization). Outer
 	// comments must still be preserved exactly — the assertion that
@@ -664,6 +690,7 @@ hosts: [claude-code]
 }
 
 func TestSetContracts_RemovesAndAppends(t *testing.T) {
+	t.Parallel()
 	// Sequence: load with a block, remove it, append again. The
 	// resulting bytes must parse cleanly and round-trip.
 	src := baseConfig + `
@@ -698,6 +725,7 @@ contracts:
 }
 
 func TestRead_RejectsMultiDocumentStream(t *testing.T) {
+	t.Parallel()
 	src := baseConfig + "\n---\ndocument_two: yes\n"
 	_, _, err := ReadBytes([]byte(src))
 	if err == nil {
@@ -706,6 +734,7 @@ func TestRead_RejectsMultiDocumentStream(t *testing.T) {
 }
 
 func TestYAMLScalar_QuotesDangerousValues(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		in   string
 		want string
@@ -722,6 +751,7 @@ func TestYAMLScalar_QuotesDangerousValues(t *testing.T) {
 	}
 	for _, tt := range cases {
 		t.Run(tt.in, func(t *testing.T) {
+			t.Parallel()
 			got := yamlScalar(tt.in)
 			// "with space" is the one tolerable exception — yaml does
 			// allow plain spaces, so let's just check that the dangerous
@@ -737,6 +767,7 @@ func TestYAMLScalar_QuotesDangerousValues(t *testing.T) {
 }
 
 func TestSetContracts_EmptyEntriesEmptyValidators(t *testing.T) {
+	t.Parallel()
 	d, _, err := ReadBytes([]byte(baseConfig))
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
@@ -763,6 +794,7 @@ func TestSetContracts_EmptyEntriesEmptyValidators(t *testing.T) {
 }
 
 func TestSetContracts_ValidatorWithEmptyArgs(t *testing.T) {
+	t.Parallel()
 	d, _, err := ReadBytes([]byte(baseConfig))
 	if err != nil {
 		t.Fatal(err)
@@ -787,6 +819,7 @@ func TestSetContracts_ValidatorWithEmptyArgs(t *testing.T) {
 }
 
 func TestRead_RejectsMalformedYAML(t *testing.T) {
+	t.Parallel()
 	src := `aiwf_version: 0.1.0
 actor: [
 `

@@ -17,6 +17,7 @@ import (
 // replaces the markdown body of an existing entity in a single
 // atomic commit, leaving frontmatter intact.
 func TestEditBody_RoundTrip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 
@@ -50,6 +51,7 @@ func TestEditBody_RoundTrip(t *testing.T) {
 // entity file regardless of body size — same single-commit guarantee
 // as add/promote/cancel.
 func TestEditBody_SingleOpWriteAndCommit(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Test gap", testActor, verb.AddOptions{}))
 
@@ -72,6 +74,7 @@ func TestEditBody_SingleOpWriteAndCommit(t *testing.T) {
 // carries aiwf-verb edit-body + aiwf-entity + aiwf-actor. No
 // aiwf-to: (no status change).
 func TestEditBody_TrailerSet(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
 	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte("body content\n"), testActor, ""))
@@ -93,6 +96,7 @@ func TestEditBody_TrailerSet(t *testing.T) {
 // TestEditBody_WithReason: --reason lands in the commit body so the
 // "why" is queryable via `aiwf history` / `git show`.
 func TestEditBody_WithReason(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
 	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte("body\n"), testActor,
@@ -111,6 +115,7 @@ func TestEditBody_WithReason(t *testing.T) {
 // helper applies — body content with leading `---` is refused so
 // edit-body can't accidentally produce a double-frontmatter file.
 func TestEditBody_RejectsFrontmatter(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
 
@@ -125,6 +130,7 @@ func TestEditBody_RejectsFrontmatter(t *testing.T) {
 // supported in v1; the verb refuses with a message that points the
 // user at editing the parent milestone instead.
 func TestEditBody_RejectsCompositeID(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -139,6 +145,7 @@ func TestEditBody_RejectsCompositeID(t *testing.T) {
 // TestEditBody_NonExistentID returns a Go error before any disk
 // work — same shape as Promote/Cancel for missing ids.
 func TestEditBody_NonExistentID(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	_, err := verb.EditBody(r.ctx, r.tree(), "E-0099", []byte("body\n"), testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "not found") {
@@ -151,6 +158,7 @@ func TestEditBody_NonExistentID(t *testing.T) {
 // regression where a malformed body produces a file the loader
 // can't parse on the next aiwf check.
 func TestEditBody_PostEditTreeIsClean(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
 	r.must(verb.EditBody(r.ctx, r.tree(), "E-0001", []byte("## Goal\n\nClean body.\n"), testActor, ""))
@@ -166,6 +174,7 @@ func TestEditBody_PostEditTreeIsClean(t *testing.T) {
 // by contract; structured state is the domain of promote / rename
 // / cancel.
 func TestEditBody_PreservesFrontmatterFields(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))

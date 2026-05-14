@@ -18,6 +18,7 @@ import (
 // --force (since `addressed` is terminal in the gap FSM). G-0096
 // closes that hole at the verb chokepoint.
 func TestPromote_GapAddressedRequiresResolver(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Empty resolver", testActor, verb.AddOptions{}))
 
@@ -35,6 +36,7 @@ func TestPromote_GapAddressedRequiresResolver(t *testing.T) {
 // failure mode as the gap case — adr-supersession-mutual is a
 // warning, not blocking, so the verb is the chokepoint.
 func TestPromote_ADRSupersededRequiresResolver(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "accepted", testActor, "", false, verb.PromoteOptions{}))
@@ -54,6 +56,7 @@ func TestPromote_ADRSupersededRequiresResolver(t *testing.T) {
 // (a follow-up gap-resolved-has-resolver warning) but the option is
 // preserved for genuine exceptional cases.
 func TestPromote_ResolverRequirementBypassedByForce(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Force-resolved", testActor, verb.AddOptions{}))
 
@@ -77,6 +80,7 @@ func TestPromote_ResolverRequirementBypassedByForce(t *testing.T) {
 // pre-dated the verb-time enforcement could only be cleaned via
 // --force.
 func TestPromote_BackfillResolverOnAddressedGap(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Closer", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Stray", testActor, verb.AddOptions{}))
@@ -111,6 +115,7 @@ func TestPromote_BackfillResolverOnAddressedGap(t *testing.T) {
 // (not yet available) or --force. This keeps the carve-out from
 // becoming a generic "edit any frontmatter field" surface.
 func TestPromote_BackfillRejectedWhenResolverAlreadySet(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second", testActor, verb.AddOptions{}))
@@ -135,6 +140,7 @@ func TestPromote_BackfillRejectedWhenResolverAlreadySet(t *testing.T) {
 // `superseded` with empty `superseded_by` can be back-filled via the
 // same path.
 func TestPromote_ADRSupersededBackfill(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "New", testActor, verb.AddOptions{}))

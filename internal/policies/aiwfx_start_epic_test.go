@@ -62,6 +62,7 @@ func loadAiwfxStartEpicFixture(t *testing.T) string {
 // would pass even if the steps were renumbered or missing; the
 // numbered-heading enumeration ensures the structural promise holds.
 func TestAiwfxStartEpic_AC1_FixtureAndWorkflow(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxStartEpicFixture(t)
 
 	if name := frontmatterField(body, "name"); name != "aiwfx-start-epic" {
@@ -113,6 +114,7 @@ func TestAiwfxStartEpic_AC1_FixtureAndWorkflow(t *testing.T) {
 // (defensive: prevents a regression where empty-vs-empty would be
 // treated as "drift" by an over-eager comparator).
 func TestCompareSkillBytes_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name    string
 		fixture []byte
@@ -169,6 +171,7 @@ func TestCompareSkillBytes_BranchCoverage(t *testing.T) {
 // way of staying clean during the M-0096 milestone itself, where the
 // rituals-repo copy has not landed yet.
 func TestAiwfxStartEpic_AC5_DriftAgainstCache(t *testing.T) {
+	t.Parallel()
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatalf("UserHomeDir: %v", err)
@@ -274,6 +277,7 @@ func findSovereignPromotionSection(body string) string {
 // defensive return arms of findSovereignPromotionSection that the
 // happy-path fixture test does not reach.
 func TestFindSovereignPromotionSection_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		body string
@@ -306,6 +310,7 @@ func TestFindSovereignPromotionSection_BranchCoverage(t *testing.T) {
 // *content* (human-only + --force --reason override) is what readers
 // land on the section to learn.
 func TestAiwfxStartEpic_AC3_SovereignPromotionStep(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxStartEpicFixture(t)
 
 	section := findSovereignPromotionSection(body)
@@ -365,6 +370,7 @@ func findBranchPromptSection(body string) string {
 // return arms plus the worktree-skip arm (a `### …worktree…branch…`
 // heading must not match the branch-prompt locator).
 func TestFindBranchPromptSection_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		body string
@@ -401,6 +407,7 @@ func TestFindBranchPromptSection_BranchCoverage(t *testing.T) {
 // its presence is the load-bearing signal that "this prompt is a
 // placeholder, not a settled convention."
 func TestAiwfxStartEpic_AC4_BranchPromptDefersToG0059(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxStartEpicFixture(t)
 
 	section := findBranchPromptSection(body)
@@ -437,6 +444,7 @@ func TestAiwfxStartEpic_AC4_BranchPromptDefersToG0059(t *testing.T) {
 // insurance per CLAUDE.md §"Test untested code paths before
 // declaring code paths done" — every reachable branch has a test.
 func TestFindWorktreePromptSection_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		body string
@@ -477,6 +485,7 @@ func TestFindWorktreePromptSection_BranchCoverage(t *testing.T) {
 //   - tolerate small wording variations in the surrounding prose
 //     (each marker is a path literal, not a sentence fragment).
 func TestAiwfxStartEpic_AC2_WorktreePromptOptions(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxStartEpicFixture(t)
 
 	section := findWorktreePromptSection(body)

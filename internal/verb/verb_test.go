@@ -26,11 +26,8 @@ type runner struct {
 
 func newRunner(t *testing.T) *runner {
 	t.Helper()
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-
+	// GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} are seeded once in TestMain
+	// (setup_test.go) — using t.Setenv here would panic under t.Parallel.
 	root := t.TempDir()
 	if err := gitops.Init(context.Background(), root); err != nil {
 		t.Fatalf("git init: %v", err)
@@ -72,6 +69,7 @@ func (r *runner) tree() *tree.Tree {
 }
 
 func TestAdd_Epic_RoundTrip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 
@@ -98,6 +96,7 @@ func TestAdd_Epic_RoundTrip(t *testing.T) {
 }
 
 func TestAdd_MilestoneUnderEpic(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -122,6 +121,7 @@ func TestAdd_MilestoneUnderEpic(t *testing.T) {
 // verb succeeds. Confirms that Stubs propagate from loaded tree
 // through projectAdd's shallow copy into the projection check.
 func TestAdd_GapDiscoveredInStubbedEntity(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 
 	// Drop a corrupt epic.md directly — the wrap-epic skill bug
@@ -168,6 +168,7 @@ completed: 2026-04-30
 }
 
 func TestAdd_MilestoneRequiresEpic(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	// TDD: "none" satisfies the G-055 chokepoint so the --epic error
 	// (the assertion of this test) is what surfaces.
@@ -178,6 +179,7 @@ func TestAdd_MilestoneRequiresEpic(t *testing.T) {
 }
 
 func TestAdd_AllocatesSequentially(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	for i := 0; i < 3; i++ {
 		r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
@@ -191,6 +193,7 @@ func TestAdd_AllocatesSequentially(t *testing.T) {
 }
 
 func TestPromote_RoundTrip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
@@ -201,6 +204,7 @@ func TestPromote_RoundTrip(t *testing.T) {
 }
 
 func TestPromote_RejectsBadTransition(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	_, err := verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "", false, verb.PromoteOptions{})
@@ -210,6 +214,7 @@ func TestPromote_RejectsBadTransition(t *testing.T) {
 }
 
 func TestCancel_RoundTrip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
 	r.must(verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false))
@@ -222,6 +227,7 @@ func TestCancel_RoundTrip(t *testing.T) {
 // TestCancel_WithReason: --reason prose lands in the commit body
 // between the subject and the trailers, queryable via `git show`.
 func TestCancel_WithReason(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
 	r.must(verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "scope folded into E-02", false))
@@ -237,6 +243,7 @@ func TestCancel_WithReason(t *testing.T) {
 
 // TestPromote_WithReason mirrors TestCancel_WithReason for promote.
 func TestPromote_WithReason(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "kicking off after the planning review", false, verb.PromoteOptions{}))
@@ -251,6 +258,7 @@ func TestPromote_WithReason(t *testing.T) {
 }
 
 func TestRename_FilePath(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -263,6 +271,7 @@ func TestRename_FilePath(t *testing.T) {
 }
 
 func TestRename_DirectoryKind(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Old name", testActor, verb.AddOptions{}))
 	r.must(verb.Rename(r.ctx, r.tree(), "E-0001", "new-name", testActor, 0))
@@ -274,6 +283,7 @@ func TestRename_DirectoryKind(t *testing.T) {
 }
 
 func TestReallocate_RewritesReferences(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -319,6 +329,7 @@ func TestReallocate_RewritesReferences(t *testing.T) {
 // aiwf show, projections) should never have to walk git log to
 // learn an entity's prior ids.
 func TestReallocate_PopulatesPriorIDs(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "First gap", testActor, verb.AddOptions{}))
 	r.must(verb.Reallocate(r.ctx, r.tree(), "G-0001", testActor))
@@ -340,6 +351,7 @@ func TestReallocate_PopulatesPriorIDs(t *testing.T) {
 // chain `aiwf history` walks to weave pre- and post-rename commits
 // into one timeline.
 func TestReallocate_PriorIDsChainAcrossMultipleRenumbers(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Original gap", testActor, verb.AddOptions{}))
 
@@ -373,6 +385,7 @@ func TestReallocate_PriorIDsChainAcrossMultipleRenumbers(t *testing.T) {
 // the dropped characters and the resulting slug. The user is no
 // longer surprised when they later try to rename to a related slug.
 func TestAdd_NonASCIITitle_SurfacesSlugWarning(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	res, err := verb.Add(r.ctx, r.tree(), entity.KindEpic, "Café au Lait", testActor, verb.AddOptions{})
 	if err != nil {
@@ -414,6 +427,7 @@ func TestAdd_NonASCIITitle_SurfacesSlugWarning(t *testing.T) {
 // TestAdd_PureASCIITitle_NoWarning: a normal English title gets no
 // slug warning (regression check that we don't flag everything).
 func TestAdd_PureASCIITitle_NoWarning(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	res, err := verb.Add(r.ctx, r.tree(), entity.KindEpic, "Cache Warmup", testActor, verb.AddOptions{})
 	if err != nil {
@@ -430,6 +444,7 @@ func TestAdd_PureASCIITitle_NoWarning(t *testing.T) {
 // rename — when the user passes a slug containing non-ASCII chars,
 // they see what was dropped.
 func TestRename_NonASCIINewSlug_SurfacesSlugWarning(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 
@@ -453,6 +468,7 @@ func TestRename_NonASCIINewSlug_SurfacesSlugWarning(t *testing.T) {
 // the old id in other entities' bodies are rewritten to the new id
 // in the same commit. No "fix it yourself" warnings.
 func TestReallocate_RewritesProseReferences(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mention test", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -517,6 +533,7 @@ M-001 again, and a longer id M-0010 that must NOT match.
 // other entities each mentioning the old id all get rewritten in
 // one commit.
 func TestReallocate_RewritesProseAcrossMultipleEntities(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Target", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -562,6 +579,7 @@ func TestReallocate_RewritesProseAcrossMultipleEntities(t *testing.T) {
 // being reallocated may mention itself in its own body. That
 // self-reference must update too.
 func TestReallocate_RewritesSelfReferenceInTargetBody(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Target", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -600,6 +618,7 @@ func TestReallocate_RewritesSelfReferenceInTargetBody(t *testing.T) {
 }
 
 func TestAddContract_Minimal(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{}))
@@ -641,6 +660,7 @@ func mustHaveTrailer(t *testing.T, trailers []gitops.Trailer, key, value string)
 // different slugs). `aiwf reallocate <path>` picks the entity at that
 // specific path and renumbers it.
 func TestReallocate_ByPath_DisambiguatesCollision(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Original", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -704,6 +724,7 @@ parent: E-01
 // reallocate a contract (which lives in a directory) and verify that
 // the dir moved and the contract.md's frontmatter id was rewritten.
 func TestReallocate_Contract(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{}))
@@ -745,6 +766,7 @@ func TestReallocate_Contract(t *testing.T) {
 // ids-unique and refs-resolve errors. The milestone should land
 // inside the new epic dir with the rewritten parent.
 func TestReallocate_EpicWithMilestoneInside(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache layer", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -785,6 +807,7 @@ func TestReallocate_EpicWithMilestoneInside(t *testing.T) {
 // rejected by the FSM (proposed only goes to active or cancelled). With
 // force, the verb writes the new status and produces a clean plan.
 func TestPromote_ForceSkipsFSM(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 
@@ -804,6 +827,7 @@ func TestPromote_ForceSkipsFSM(t *testing.T) {
 // closed set is still caught — by the projection's status-valid
 // finding, not by ValidateTransition.
 func TestPromote_ForceStillFailsCoherence(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 
@@ -834,6 +858,7 @@ func TestPromote_ForceStillFailsCoherence(t *testing.T) {
 // `aiwf-force: <reason>` trailer alongside the standard ones, so
 // `aiwf history` can render forced events distinctly.
 func TestPromote_ForceEmitsTrailer(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "the rare emergency", true, verb.PromoteOptions{}))
@@ -861,6 +886,7 @@ func TestPromote_ForceEmitsTrailer(t *testing.T) {
 // emit `aiwf-force`. Backwards-compat guard for the `aiwf history`
 // renderer which distinguishes forced events.
 func TestPromote_NoForceNoTrailer(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "kicking off", false, verb.PromoteOptions{}))
@@ -880,6 +906,7 @@ func TestPromote_NoForceNoTrailer(t *testing.T) {
 // FSM rule to relax (any non-target status → target is permitted), so
 // force here is purely an audit signal — but the trailer still lands.
 func TestCancel_ForceEmitsTrailer(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
 	r.must(verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "policy violation", true))
@@ -907,6 +934,7 @@ func TestCancel_ForceEmitsTrailer(t *testing.T) {
 // The body itself is rendered verbatim by gitops.CommitMessage which
 // also trims; this test pins the trailer side specifically.
 func TestPromote_ForceTrailerTrimsReason(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "  whitespace around it  ", true, verb.PromoteOptions{}))
@@ -932,6 +960,7 @@ func TestPromote_ForceTrailerTrimsReason(t *testing.T) {
 // Backwards compat is on the read side (renderer dashes for absent);
 // the writer always emits forward.
 func TestPromote_EmitsAiwfTo(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
@@ -958,6 +987,7 @@ func TestPromote_EmitsAiwfTo(t *testing.T) {
 // (the kind's terminal-cancel status, well-known); the verb name is
 // enough. Only `promote` events carry aiwf-to:.
 func TestCancel_DoesNotEmitAiwfTo(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
 	r.must(verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false))
@@ -978,6 +1008,7 @@ func TestCancel_DoesNotEmitAiwfTo(t *testing.T) {
 // suppress the trailer; aiwf-force and aiwf-to coexist on a forced
 // commit.
 func TestPromote_AiwfToCarriesForcedTarget(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "the rare emergency", true, verb.PromoteOptions{}))
@@ -1005,6 +1036,7 @@ func TestPromote_AiwfToCarriesForcedTarget(t *testing.T) {
 
 // TestPromote_NonExistentID returns a Go error before any disk work.
 func TestPromote_NonExistentID(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	_, err := verb.Promote(r.ctx, r.tree(), "E-0099", "active", testActor, "", false, verb.PromoteOptions{})
 	if err == nil || !strings.Contains(err.Error(), "not found") {
@@ -1014,6 +1046,7 @@ func TestPromote_NonExistentID(t *testing.T) {
 
 // TestCancel_NonExistentID covers the same path for cancel.
 func TestCancel_NonExistentID(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	_, err := verb.Cancel(r.ctx, r.tree(), "M-0099", testActor, "", false)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
@@ -1023,6 +1056,7 @@ func TestCancel_NonExistentID(t *testing.T) {
 
 // TestRename_NonExistentID covers the same path for rename.
 func TestRename_NonExistentID(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	_, err := verb.Rename(r.ctx, r.tree(), "E-0099", "new-slug", testActor, 0)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
@@ -1032,6 +1066,7 @@ func TestRename_NonExistentID(t *testing.T) {
 
 // TestReallocate_NonExistentTarget covers the same path for reallocate.
 func TestReallocate_NonExistentTarget(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	_, err := verb.Reallocate(r.ctx, r.tree(), "X-99", testActor)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
@@ -1042,6 +1077,7 @@ func TestReallocate_NonExistentTarget(t *testing.T) {
 // TestCancel_AlreadyTerminal returns an error rather than producing a
 // no-op commit.
 func TestCancel_AlreadyTerminal(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed twice", testActor, verb.AddOptions{}))
 	r.must(verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false))
@@ -1055,6 +1091,7 @@ func TestCancel_AlreadyTerminal(t *testing.T) {
 // TestRename_SameSlug returns an error rather than producing a no-op
 // commit.
 func TestRename_SameSlug(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Same name", testActor, verb.AddOptions{}))
 	_, err := verb.Rename(r.ctx, r.tree(), "E-0001", "same-name", testActor, 0)
@@ -1066,6 +1103,7 @@ func TestRename_SameSlug(t *testing.T) {
 // TestAdd_GapWithDiscoveredIn confirms the --discovered-in flag wires
 // through to the gap's frontmatter and resolves correctly.
 func TestAdd_GapWithDiscoveredIn(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -1088,6 +1126,7 @@ func TestAdd_GapWithDiscoveredIn(t *testing.T) {
 // existed in the loaded tree. Lets users incrementally fix a partially
 // broken tree without first having to clean up unrelated breakage.
 func TestAdd_PreExistingErrorDoesNotBlockUnrelatedVerb(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 
@@ -1131,6 +1170,7 @@ discovered_in: M-999
 // TestAdd_DecisionWithRelatesTo confirms the --relates-to flag wires
 // through to the decision's relates_to list and resolves correctly.
 func TestAdd_DecisionWithRelatesTo(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))

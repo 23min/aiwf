@@ -9,6 +9,7 @@ import (
 )
 
 func TestSlugify(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		title string
 		want  string
@@ -26,6 +27,7 @@ func TestSlugify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.title, func(t *testing.T) {
+			t.Parallel()
 			if got := Slugify(tt.title); got != tt.want {
 				t.Errorf("Slugify(%q) = %q, want %q", tt.title, got, tt.want)
 			}
@@ -37,6 +39,7 @@ func TestSlugify(t *testing.T) {
 // were dropped. The dropped list lets verbs surface a notice when
 // a non-ASCII title silently loses characters in the slug.
 func TestSlugifyDetailed(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		title       string
@@ -53,6 +56,7 @@ func TestSlugifyDetailed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			gotSlug, gotDropped := SlugifyDetailed(tt.title)
 			if gotSlug != tt.wantSlug {
 				t.Errorf("slug = %q, want %q", gotSlug, tt.wantSlug)
@@ -67,6 +71,7 @@ func TestSlugifyDetailed(t *testing.T) {
 // TestSlugify_StaysCompatibleWithSlugifyDetailed: the simple
 // Slugify wrapper must agree with SlugifyDetailed's slug return.
 func TestSlugify_StaysCompatibleWithSlugifyDetailed(t *testing.T) {
+	t.Parallel()
 	for _, title := range []string{"Hello World", "Café", "München-Frühling", "", "日本語"} {
 		want, _ := SlugifyDetailed(title)
 		got := Slugify(title)
@@ -77,6 +82,7 @@ func TestSlugify_StaysCompatibleWithSlugifyDetailed(t *testing.T) {
 }
 
 func TestValidateTitle(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		title     string
@@ -98,6 +104,7 @@ func TestValidateTitle(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ValidateTitle(tt.title, tt.maxLength)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateTitle(len=%d, max=%d) err = %v, wantErr = %v", len(tt.title), tt.maxLength, err, tt.wantErr)
@@ -115,6 +122,7 @@ func TestValidateTitle(t *testing.T) {
 }
 
 func TestValidateSlug(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		slug      string
@@ -128,6 +136,7 @@ func TestValidateSlug(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ValidateSlug(tt.slug, tt.maxLength)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateSlug(len=%d, max=%d) err = %v, wantErr = %v", len(tt.slug), tt.maxLength, err, tt.wantErr)
@@ -137,6 +146,7 @@ func TestValidateSlug(t *testing.T) {
 }
 
 func TestBodyTemplate_Sections(t *testing.T) {
+	t.Parallel()
 	expectedSections := map[Kind][]string{
 		KindEpic:      {"## Goal", "## Scope", "## Out of scope"},
 		KindMilestone: {"## Goal", "## Acceptance criteria"},
@@ -147,6 +157,7 @@ func TestBodyTemplate_Sections(t *testing.T) {
 	}
 	for k, sections := range expectedSections {
 		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
 			body := string(BodyTemplate(k))
 			for _, s := range sections {
 				if !strings.Contains(body, s) {
@@ -158,6 +169,7 @@ func TestBodyTemplate_Sections(t *testing.T) {
 }
 
 func TestSplit_RoundTrip(t *testing.T) {
+	t.Parallel()
 	original := []byte(`---
 id: M-007
 title: Cache warmup
@@ -186,6 +198,7 @@ It warms the cache.
 }
 
 func TestSplit_NoFrontmatter(t *testing.T) {
+	t.Parallel()
 	_, _, ok := Split([]byte("# Just markdown\n"))
 	if ok {
 		t.Error("Split should fail without frontmatter")
@@ -193,6 +206,7 @@ func TestSplit_NoFrontmatter(t *testing.T) {
 }
 
 func TestSerialize_RoundTrip(t *testing.T) {
+	t.Parallel()
 	original := []byte(`---
 id: M-007
 title: Cache warmup
@@ -235,6 +249,7 @@ Build a cache warmer.
 }
 
 func TestSerialize_ModifyAndWrite(t *testing.T) {
+	t.Parallel()
 	original := []byte(`---
 id: M-007
 title: Cache warmup
@@ -268,6 +283,7 @@ body unchanged
 // inner `tdd_phase` field is `omitempty`; an AC without a phase round-
 // trips with an empty string, not a nil-vs-empty distinction.
 func TestSerialize_RoundTripACsAndTDD(t *testing.T) {
+	t.Parallel()
 	original := []byte(`---
 id: M-007
 title: Engine warning surface
@@ -312,6 +328,7 @@ acs:
 // YAML (otherwise we'd write `tdd_phase: ""` which conflicts with the
 // closed-set membership rule).
 func TestSerialize_OmitsAbsentTDDPhase(t *testing.T) {
+	t.Parallel()
 	e := &Entity{
 		ID:     "M-008",
 		Title:  "No-TDD",
@@ -334,6 +351,7 @@ func TestSerialize_OmitsAbsentTDDPhase(t *testing.T) {
 }
 
 func TestSerialize_EmptyBodyForNewEntity(t *testing.T) {
+	t.Parallel()
 	e := &Entity{
 		ID:     "E-01",
 		Title:  "Foundations",

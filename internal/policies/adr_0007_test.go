@@ -1,14 +1,11 @@
 package policies
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/23min/aiwf/internal/tree"
 )
 
 // loadADR0007 reads ADR-0007 from disk by resolving the id through
@@ -24,11 +21,7 @@ import (
 // greps because the same word in the wrong section is still wrong.
 func loadADR0007(t *testing.T) string {
 	t.Helper()
-	root := repoRoot(t)
-	tr, _, err := tree.Load(context.Background(), root)
-	if err != nil {
-		t.Fatalf("tree.Load: %v", err)
-	}
+	root, tr := sharedRepoTree(t)
 	e := tr.ByID("ADR-0007")
 	if e == nil {
 		t.Fatal("ADR-0007 not found in tree (active or archive)")
@@ -117,6 +110,7 @@ func extractMarkdownSection(body string, level int, headingPrefix string) string
 // is the only mechanical surface that should constrain status
 // transitions, and `aiwf promote` already enforces it.
 func TestADR0007_AC1_Allocation(t *testing.T) {
+	t.Parallel()
 	body := loadADR0007(t)
 
 	if !regexp.MustCompile(`(?m)^id:\s*ADR-0007\s*$`).MatchString(body) {
@@ -130,6 +124,7 @@ func TestADR0007_AC1_Allocation(t *testing.T) {
 // distinction, and cites the existing-pattern skills the AC spec
 // names verbatim.
 func TestADR0007_AC2_PlacementClaims(t *testing.T) {
+	t.Parallel()
 	body := loadADR0007(t)
 	section := extractMarkdownSection(body, 3, "Placement")
 	if section == "" {
@@ -183,6 +178,7 @@ func TestADR0007_AC2_PlacementClaims(t *testing.T) {
 // trigger conditions for promotion, and explicitly cites E-21
 // success criterion #7.
 func TestADR0007_AC3_TieringRule(t *testing.T) {
+	t.Parallel()
 	body := loadADR0007(t)
 	section := extractMarkdownSection(body, 3, "Tiering")
 	if section == "" {
@@ -217,6 +213,7 @@ func TestADR0007_AC3_TieringRule(t *testing.T) {
 // dimensions) and rejects each named alternative with at least
 // one-line rationale prose adjacent to the name.
 func TestADR0007_AC4_NameWorkedExample(t *testing.T) {
+	t.Parallel()
 	body := loadADR0007(t)
 	section := extractMarkdownSection(body, 3, "Name")
 	if section == "" {
@@ -285,6 +282,7 @@ func TestADR0007_AC4_NameWorkedExample(t *testing.T) {
 // overlapping framing must appear (somewhere in the body — that
 // claim is doctrinal and not section-scoped in the spec).
 func TestADR0007_AC5_CrossReferences(t *testing.T) {
+	t.Parallel()
 	body := loadADR0007(t)
 
 	// ADR-0006 must be cited.

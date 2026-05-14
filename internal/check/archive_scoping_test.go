@@ -29,6 +29,7 @@ import (
 // archive must not trigger frontmatter-shape. Mirrors the M-0084
 // rewidth-archive seam discovery.
 func TestArchiveScoping_FrontmatterShape(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Active gap with a missing-required-field shape — empty
@@ -80,6 +81,7 @@ status:
 // malformed AC must not trigger acs-shape findings. The ADR's
 // shape-and-health group includes acs-shape explicitly.
 func TestArchiveScoping_AcsShape(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Active epic for the milestone parent ref.
@@ -148,6 +150,7 @@ acs:
 // TestArchiveScoping_AcsBodyCoherence — orphan/missing AC body
 // headings on archived milestones must not fire.
 func TestArchiveScoping_AcsBodyCoherence(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Active epic.
@@ -222,6 +225,7 @@ acs:
 // milestone with an AC in `met` status but tdd_phase != done would
 // fire acs-tdd-audit on active. On archive it must skip.
 func TestArchiveScoping_AcsTDDAudit(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	mustWrite(t, root, "work/epics/E-0001-active/epic.md", `---
@@ -300,6 +304,7 @@ Body text.
 // milestone whose ACs are not all met would fire on active. Must
 // skip on archive.
 func TestArchiveScoping_MilestoneDoneIncompleteACs(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	mustWrite(t, root, "work/epics/E-0001-active/epic.md", `---
@@ -376,6 +381,7 @@ Body text.
 // load-bearing body sections would fire on active. Must skip on
 // archive.
 func TestArchiveScoping_EntityBodyEmpty(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Active gap with empty body section — fires.
@@ -440,6 +446,7 @@ status: addressed
 // refs-resolve finding. The archive-side references are out of
 // scope for active-set health linting.
 func TestArchiveScoping_RefsResolve_ArchiveSideNotLinted(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Archived gap with addressed_by pointing at a non-existent
@@ -498,6 +505,7 @@ addressed_by:
 // id existing in active and archive directories is still a
 // collision. ids-unique must surface it.
 func TestArchiveTreeIntegrity_IdsUniqueSpansActiveAndArchive(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Active and archived gap with the same id — collision.
@@ -535,6 +543,7 @@ status: addressed
 // frontmatter under archive/ must still surface as a load-error
 // finding. Parse-level errors do not skip archive.
 func TestArchiveTreeIntegrity_ParseErrorsTraverseArchive(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Malformed YAML frontmatter on an archived gap — must surface.
@@ -570,6 +579,7 @@ status: addressed
 // stray under archive (not matching any pattern) becomes a stray
 // path with the archive prefix.
 func TestArchiveScoping_UnexpectedTreeFile(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Active stray (positive control).

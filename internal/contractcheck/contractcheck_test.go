@@ -14,6 +14,7 @@ import (
 )
 
 func TestRun_NilContractsReturnsNil(t *testing.T) {
+	t.Parallel()
 	got := Run(&tree.Tree{}, nil, "/tmp")
 	if got != nil {
 		t.Errorf("expected nil; got %+v", got)
@@ -21,6 +22,7 @@ func TestRun_NilContractsReturnsNil(t *testing.T) {
 }
 
 func TestRun_MissingEntity(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	mustWriteFile(t, filepath.Join(repo, "schema.cue"), "")
 	if err := os.MkdirAll(filepath.Join(repo, "fixtures"), 0o755); err != nil {
@@ -42,6 +44,7 @@ func TestRun_MissingEntity(t *testing.T) {
 }
 
 func TestRun_MissingSchemaPath(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(repo, "fixtures"), 0o755); err != nil {
 		t.Fatal(err)
@@ -66,6 +69,7 @@ func TestRun_MissingSchemaPath(t *testing.T) {
 }
 
 func TestRun_MissingFixturesPath(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	mustWriteFile(t, filepath.Join(repo, "schema.cue"), "")
 	tr := &tree.Tree{
@@ -88,6 +92,7 @@ func TestRun_MissingFixturesPath(t *testing.T) {
 }
 
 func TestRun_FixturesIsAFile_NotDirectory(t *testing.T) {
+	t.Parallel()
 	// fixtures: pointing at a regular file rather than a directory
 	// is the same shape of error as missing.
 	repo := t.TempDir()
@@ -113,6 +118,7 @@ func TestRun_FixturesIsAFile_NotDirectory(t *testing.T) {
 }
 
 func TestRun_NoBindingForActiveEntity(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	tr := &tree.Tree{
 		Root: repo,
@@ -138,6 +144,7 @@ func TestRun_NoBindingForActiveEntity(t *testing.T) {
 }
 
 func TestRun_TerminalEntityNoBinding_NoFinding(t *testing.T) {
+	t.Parallel()
 	// retired/rejected contract with no binding: silent (no finding).
 	repo := t.TempDir()
 	tr := &tree.Tree{
@@ -155,6 +162,7 @@ func TestRun_TerminalEntityNoBinding_NoFinding(t *testing.T) {
 }
 
 func TestRun_CleanRepoNoFindings(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	mustWriteFile(t, filepath.Join(repo, "schema.cue"), "")
 	if err := os.MkdirAll(filepath.Join(repo, "fixtures"), 0o755); err != nil {
@@ -215,6 +223,7 @@ func contains(haystack []string, needle string) bool {
 // every dimension simultaneously — missing entity, missing schema
 // path, missing fixtures path. All three findings must surface.
 func TestRun_AllThreeProblemsAtOnce(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	tr := &tree.Tree{Root: repo, Entities: nil}
 	contracts := &aiwfyaml.Contracts{
@@ -243,6 +252,7 @@ func TestRun_AllThreeProblemsAtOnce(t *testing.T) {
 // because contract-config validates the binding's structural
 // correctness regardless of entity status.
 func TestRun_TerminalEntityWithBindingStillReportsConfig(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	tr := &tree.Tree{
 		Root: repo,
@@ -268,6 +278,7 @@ func TestRun_TerminalEntityWithBindingStillReportsConfig(t *testing.T) {
 // finding and suppress the missing-schema finding (we don't
 // double-report on entries we won't trust anyway).
 func TestRun_DotDotEscape_Schema(t *testing.T) {
+	t.Parallel()
 	repo, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -307,6 +318,7 @@ func TestRun_DotDotEscape_Schema(t *testing.T) {
 // silently rebases absolute arguments, so this is the
 // regression-prone path).
 func TestRun_AbsoluteEscape_Fixtures(t *testing.T) {
+	t.Parallel()
 	repo, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -342,6 +354,7 @@ func TestRun_AbsoluteEscape_Fixtures(t *testing.T) {
 // path that resolves outside the repo must produce path-escape and
 // must suppress missing-fixtures (the escaped path is untrustworthy).
 func TestRun_SymlinkOutside_Fixtures(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("posix symlinks")
 	}
@@ -384,6 +397,7 @@ func TestRun_SymlinkOutside_Fixtures(t *testing.T) {
 // bindings have different problems, each finding must name the
 // correct entity id so the user knows which row to fix.
 func TestRun_MultipleBindings_FindingsCarryEntityID(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	mustWriteFile(t, filepath.Join(repo, "good.cue"), "")
 	if err := os.MkdirAll(filepath.Join(repo, "good-fixtures"), 0o755); err != nil {

@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -9,8 +8,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/23min/aiwf/internal/tree"
 )
 
 // aiwfxWrapEpicFixturePath is the canonical authoring location for
@@ -41,6 +38,7 @@ func loadAiwfxWrapEpicFixture(t *testing.T) string {
 // is present at the canonical authoring location with frontmatter
 // declaring `name: aiwfx-wrap-epic` and a non-empty `description:`.
 func TestAiwfxWrapEpic_AC1_FixtureExists(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWrapEpicFixture(t)
 
 	name := frontmatterField(body, "name")
@@ -67,6 +65,7 @@ func TestAiwfxWrapEpic_AC1_FixtureExists(t *testing.T) {
 // substring match passes vacuously if the merge instructions are
 // reshaped into an unrelated section.
 func TestAiwfxWrapEpic_AC2_TrailerSequenceInMergeStep(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWrapEpicFixture(t)
 
 	// AC-6's structural locator finds the merge-step section by
@@ -110,6 +109,7 @@ func TestAiwfxWrapEpic_AC2_TrailerSequenceInMergeStep(t *testing.T) {
 // (say) the "Branch cleanup" section would fail this test even if
 // a flat grep over the file still passed.
 func TestAiwfxWrapEpic_AC6_StructuralMergeStepDriftCheck(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWrapEpicFixture(t)
 
 	// Step 1: the parent section exists.
@@ -218,6 +218,7 @@ func findMergeStepSection(body string) string {
 // even if the literal phrases still appeared somewhere in the
 // fixture.
 func TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle(t *testing.T) {
+	t.Parallel()
 	body := loadAiwfxWrapEpicFixture(t)
 
 	workflow := extractMarkdownSection(body, 2, "Workflow")
@@ -290,6 +291,7 @@ func TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle(t *testing.T) {
 // criterion is "the test exists and asserts the right thing,"
 // which holds independent of the cache's current state.
 func TestAiwfxWrapEpic_AC3_CacheComparison(t *testing.T) {
+	t.Parallel()
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatalf("UserHomeDir: %v", err)
@@ -350,6 +352,7 @@ func TestAiwfxWrapEpic_AC3_CacheComparison(t *testing.T) {
 // kernel rule files are touched. Skips cleanly when the env doesn't
 // expose a base ref (e.g. a worktree without `main` reachable).
 func TestAiwfxWrapEpic_AC5_KernelRuleUnchanged(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 	// Files this milestone must not touch. The kernel's
 	// `provenance-untrailered-entity-commit` finding is rendered
@@ -415,16 +418,13 @@ func TestAiwfxWrapEpic_AC5_KernelRuleUnchanged(t *testing.T) {
 // milestone reached wrap without the SHA being recorded. That's
 // the AC-5/AC-4 failure mode the spec calls out.
 func TestAiwfxWrapEpic_AC4_RitualsRepoSHARecordedAtWrap(t *testing.T) {
-	root := repoRoot(t)
-	// Resolve M-0090's spec via tree.Load so the lookup survives
-	// archive sweeps (per ADR-0004). A hardcoded path under
-	// work/epics/E-0027-.../ would break the moment `aiwf archive
-	// --apply` moves the milestone into the per-kind archive/
-	// subdir — the bug enforced by PolicyNoHardcodedEntityPaths.
-	tr, _, err := tree.Load(context.Background(), root)
-	if err != nil {
-		t.Fatalf("AC-4: tree.Load: %v", err)
-	}
+	t.Parallel()
+	// Resolve M-0090's spec via sharedRepoTree (per ADR-0004 +
+	// M-0091/AC-4). A hardcoded path under work/epics/E-0027-.../
+	// would break the moment `aiwf archive --apply` moves the
+	// milestone into the per-kind archive/ subdir — the bug
+	// enforced by PolicyNoHardcodedEntityPaths.
+	root, tr := sharedRepoTree(t)
 	e := tr.ByID("M-0090")
 	if e == nil {
 		t.Fatal("AC-4: milestone M-0090 not found in tree (active or archive)")

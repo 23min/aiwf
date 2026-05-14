@@ -14,12 +14,10 @@ import (
 
 // freshGitRepo gives each test an isolated repo with a deterministic
 // git identity so deriveActor's user.email path is exercisable.
+// GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} are seeded once in TestMain
+// (setup_test.go) — using t.Setenv here would panic under t.Parallel.
 func freshGitRepo(t *testing.T) string {
 	t.Helper()
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
 	root := t.TempDir()
 	cmd := exec.Command("git", "init", "-q", root)
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -41,6 +39,7 @@ func freshGitRepo(t *testing.T) string {
 }
 
 func TestInit_FreshRepo(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
@@ -131,6 +130,7 @@ func TestInit_FreshRepo(t *testing.T) {
 // TestInit_Idempotent re-runs Init and confirms it preserves
 // pre-existing aiwf.yaml and CLAUDE.md byte-for-byte.
 func TestInit_Idempotent(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #1: %v", err)
@@ -157,6 +157,7 @@ func TestInit_Idempotent(t *testing.T) {
 // fields are stripped on init/update by design: `actor:` (I2.5) and
 // `aiwf_version:` (G47). Anything else survives byte-for-byte.
 func TestInit_PreservesExistingConfig(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	custom := []byte("aiwf_version: 9.9.9\nactor: human/somebody-else\nhosts: [claude-code]\n")
 	if err := os.WriteFile(filepath.Join(root, config.FileName), custom, 0o644); err != nil {
@@ -175,6 +176,7 @@ func TestInit_PreservesExistingConfig(t *testing.T) {
 // TestInit_PreservesExistingClaudeMd: do not overwrite a project's own
 // CLAUDE.md.
 func TestInit_PreservesExistingClaudeMd(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	custom := []byte("# This project has its own CLAUDE.md\n")
 	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), custom, 0o644); err != nil {
@@ -195,6 +197,7 @@ func TestInit_PreservesExistingClaudeMd(t *testing.T) {
 // byte-for-byte; HookConflict stays false because there's no conflict
 // to remediate.
 func TestInit_MigratesAlienPreHook(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hookDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hookDir, 0o755); err != nil {
@@ -253,6 +256,7 @@ func TestInit_MigratesAlienPreHook(t *testing.T) {
 // refuses to migrate (would clobber the .local) and returns
 // HookConflict=true with a clear remediation message.
 func TestInit_RefusesPreHookMigrationOnCollision(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	hookDir := filepath.Join(root, ".git", "hooks")
 	if err := os.MkdirAll(hookDir, 0o755); err != nil {
@@ -296,6 +300,7 @@ func TestInit_RefusesPreHookMigrationOnCollision(t *testing.T) {
 // aiwf's hooks land where git won't look and the validation
 // chokepoint silently disappears.
 func TestInit_HonorsCoreHooksPath(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	// Configure a relative tracked-hooks dir, the most common shape.
 	c := exec.Command("git", "config", "core.hooksPath", "scripts/git-hooks")
@@ -340,6 +345,7 @@ func TestInit_HonorsCoreHooksPath(t *testing.T) {
 // configured directory. The alien hook moves to <name>.local
 // alongside the configured location, not `.git/hooks/`.
 func TestInit_HonorsCoreHooksPath_MigratesAlien(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	configured := filepath.Join(root, "scripts", "git-hooks")
 	if err := os.MkdirAll(configured, 0o755); err != nil {
@@ -401,6 +407,7 @@ func findStep(t *testing.T, steps []StepResult, what string) StepResult {
 // TestInit_OverwritesOwnHook: re-running init when our own hook is in
 // place must succeed (idempotent).
 func TestInit_OverwritesOwnHook(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #1: %v", err)
@@ -427,6 +434,7 @@ func TestInit_OverwritesOwnHook(t *testing.T) {
 // before any disk writes (aiwf.yaml shouldn't be created when it
 // would be invalid).
 func TestInit_RejectsBadActorOverride(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	_, err := Init(context.Background(), root, Options{ActorOverride: "no slashes here"})
 	if err == nil {
@@ -440,6 +448,7 @@ func TestInit_RejectsBadActorOverride(t *testing.T) {
 // TestInit_GitignorePreservesExisting: an existing .gitignore with
 // unrelated entries is preserved verbatim with skill paths appended.
 func TestInit_GitignorePreservesExisting(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	existing := []byte("# user gitignore\nnode_modules/\n")
 	if err := os.WriteFile(filepath.Join(root, ".gitignore"), existing, 0o644); err != nil {
@@ -460,6 +469,7 @@ func TestInit_GitignorePreservesExisting(t *testing.T) {
 // TestInit_GitignoreNoDoubleAppend: re-running init does not add the
 // skill wildcard twice (G19: with the wildcard, no per-skill drift).
 func TestInit_GitignoreNoDoubleAppend(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #1: %v", err)
@@ -483,6 +493,7 @@ func TestInit_GitignoreNoDoubleAppend(t *testing.T) {
 // place, adding a new aiwf-* skill to the embedded set does not require
 // the consumer to re-run aiwf init.
 func TestInit_GitignoreFutureProof(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	existing := []byte("# pre-existing\n.claude/skills/aiwf-*/\n.claude/skills/.aiwf-owned\n")
 	if err := os.WriteFile(filepath.Join(root, ".gitignore"), existing, 0o644); err != nil {
@@ -501,6 +512,7 @@ func TestInit_GitignoreFutureProof(t *testing.T) {
 // `site/` in the gitignore so the renderer's default output is
 // invisible to git unless the consumer flips html.commit_output: true.
 func TestInit_GitignoreHTMLOutDir_DefaultIsIgnored(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -515,6 +527,7 @@ func TestInit_GitignoreHTMLOutDir_DefaultIsIgnored(t *testing.T) {
 // html.commit_output: true in aiwf.yaml, init does not add the
 // out_dir line — the consumer wants to commit the rendered files.
 func TestInit_GitignoreHTMLOutDir_CommitOutputTrue(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	yamlPath := filepath.Join(root, "aiwf.yaml")
 	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhtml:\n  out_dir: docs/site\n  commit_output: true\n"), 0o644); err != nil {
@@ -534,6 +547,7 @@ func TestInit_GitignoreHTMLOutDir_CommitOutputTrue(t *testing.T) {
 // flips html.commit_output to true on the next init/update — the
 // stale line is removed.
 func TestInit_GitignoreHTMLOutDir_FlipFalseToTrue(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	// First pass: default config → site/ ends up in .gitignore.
 	if _, err := Init(context.Background(), root, Options{}); err != nil {
@@ -567,6 +581,7 @@ func TestInit_GitignoreHTMLOutDir_FlipFalseToTrue(t *testing.T) {
 // commit_output: true and decides to ungitignore the output gets
 // `site/` re-added on next init.
 func TestInit_GitignoreHTMLOutDir_FlipTrueToFalse(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	yamlPath := filepath.Join(root, "aiwf.yaml")
 	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhtml:\n  commit_output: true\n"), 0o644); err != nil {
@@ -598,6 +613,7 @@ func TestInit_GitignoreHTMLOutDir_FlipTrueToFalse(t *testing.T) {
 // path. The reconciler only matches the configured out_dir or the
 // default; arbitrary user content is untouched.
 func TestInit_GitignoreHTMLOutDir_PreservesUserDir(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte("node_modules/\nbuild/\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -623,6 +639,7 @@ func TestInit_GitignoreHTMLOutDir_PreservesUserDir(t *testing.T) {
 // bearing piece of the v0.2.0 upgrade flow — `aiwf doctor` used
 // to flag the field as deprecated but never removed it.
 func TestInit_StripsLegacyActor(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	// Hand-author the aiwf.yaml so the actor: field is present.
 	// hosts: stays as a stable other-field witness for byte-preservation.
@@ -658,6 +675,7 @@ func TestInit_StripsLegacyActor(t *testing.T) {
 // top-level `aiwf_version:` field) drops the field on disk. Mirror
 // of TestInit_StripsLegacyActor for the new strip step.
 func TestInit_StripsLegacyAiwfVersion(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	yamlPath := filepath.Join(root, config.FileName)
 	if err := os.WriteFile(yamlPath, []byte("aiwf_version: 0.1.0\nhosts: [claude-code]\n"), 0o644); err != nil {
@@ -690,6 +708,7 @@ func TestInit_StripsLegacyAiwfVersion(t *testing.T) {
 // `actor:` line stays byte-identical across the legacy-strip step.
 // The step still runs (ledger row preserved) but is silent.
 func TestInit_LegacyActorAbsentIsNoOp(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	if _, err := Init(context.Background(), root, Options{}); err != nil {
 		t.Fatalf("Init #1: %v", err)
@@ -713,6 +732,7 @@ func TestInit_LegacyActorAbsentIsNoOp(t *testing.T) {
 // A second non-dry-run pass on the same repo must still treat it as
 // fresh (i.e. dry-run leaves no side effects).
 func TestInit_DryRun(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	res, err := Init(context.Background(), root, Options{DryRun: true})
 	if err != nil {
@@ -760,6 +780,7 @@ func TestInit_DryRun(t *testing.T) {
 // hook step is reported as Skipped with a clear detail; HookConflict
 // is not set (skipping is by user request, not a conflict).
 func TestInit_SkipHook(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	res, err := Init(context.Background(), root, Options{SkipHook: true})
 	if err != nil {
@@ -800,6 +821,7 @@ func TestInit_SkipHook(t *testing.T) {
 // TestInit_DryRunWithSkipHook combines both flags. The hook step is
 // reported skipped (not "would-create"), and nothing is written.
 func TestInit_DryRunWithSkipHook(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	res, err := Init(context.Background(), root, Options{DryRun: true, SkipHook: true})
 	if err != nil {
@@ -825,6 +847,7 @@ func TestInit_DryRunWithSkipHook(t *testing.T) {
 // work/ must not be touched (they show up as findings on the next
 // `aiwf check` and serve as a migration to-do list).
 func TestInit_PreservesExistingEntities(t *testing.T) {
+	t.Parallel()
 	root := freshGitRepo(t)
 	dir := filepath.Join(root, "work", "epics", "E-0001-foo")
 	if err := os.MkdirAll(dir, 0o755); err != nil {

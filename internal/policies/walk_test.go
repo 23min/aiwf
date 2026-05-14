@@ -15,6 +15,7 @@ import (
 // trailer keys, --force references, etc. as production violations
 // of the kernel.
 func TestWalkGoFiles_SkipsExcludedDirs(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Files that should be picked up.

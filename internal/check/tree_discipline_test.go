@@ -15,6 +15,7 @@ import (
 // zero findings, confirming the rule short-circuits when Strays is
 // empty.
 func TestTreeDiscipline_NoStrays_NoFindings(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Path: "work/epics/E-01-foo/M-001-bar.md"})
 	got := TreeDiscipline(tr, nil, false)
 	if len(got) != 0 {
@@ -25,6 +26,7 @@ func TestTreeDiscipline_NoStrays_NoFindings(t *testing.T) {
 // TestTreeDiscipline_PlainStray_Warning: a stray file under work/
 // surfaces as a single warning by default.
 func TestTreeDiscipline_PlainStray_Warning(t *testing.T) {
+	t.Parallel()
 	tr := makeTree()
 	tr.Strays = []string{"work/epics/E-01-foo/notes.md"}
 
@@ -50,6 +52,7 @@ func TestTreeDiscipline_PlainStray_Warning(t *testing.T) {
 // TestTreeDiscipline_Strict_Error: tree.strict=true upgrades the
 // warning to an error so the pre-push hook blocks the push.
 func TestTreeDiscipline_Strict_Error(t *testing.T) {
+	t.Parallel()
 	tr := makeTree()
 	tr.Strays = []string{"work/gaps/scratch.md"}
 
@@ -63,6 +66,7 @@ func TestTreeDiscipline_Strict_Error(t *testing.T) {
 // glob are exempt. Uses filepath.Match — `?` is single-char,
 // `*` does not cross slashes.
 func TestTreeDiscipline_AllowPaths_Glob(t *testing.T) {
+	t.Parallel()
 	tr := makeTree()
 	tr.Strays = []string{
 		"work/epics/E-01-foo/notes.md",
@@ -83,6 +87,7 @@ func TestTreeDiscipline_AllowPaths_Glob(t *testing.T) {
 // legitimately carry schema/fixture artifacts alongside contract.md.
 // A stray sibling of a contract dir (not inside it) still fires.
 func TestTreeDiscipline_ContractDir_Auto_Exempt(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(&entity.Entity{
 		ID:   "C-0001",
 		Kind: entity.KindContract,
@@ -109,6 +114,7 @@ func TestTreeDiscipline_ContractDir_Auto_Exempt(t *testing.T) {
 // population would still pass the in-memory unit tests above. Per
 // tools/CLAUDE.md "Test the seam, not just the layer."
 func TestTreeDiscipline_LoaderSeam(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	mustWrite := func(rel, body string) {

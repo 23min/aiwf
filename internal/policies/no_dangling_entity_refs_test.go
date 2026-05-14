@@ -20,6 +20,7 @@ import (
 // integrity is the lychee workflow's concern; this rule is the
 // archive/rename/width drift class specifically.
 func TestPolicy_NoDanglingEntityRefsInNarrativeDocs(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 	fsys := os.DirFS(root)
 
@@ -43,6 +44,7 @@ func TestPolicy_NoDanglingEntityRefsInNarrativeDocs(t *testing.T) {
 // paths before declaring code paths done", each branch has a test
 // that traverses it.
 func TestAuditDanglingEntityRefs_BranchCoverage(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name         string
 		fsys         fstest.MapFS

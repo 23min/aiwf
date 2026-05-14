@@ -3,6 +3,7 @@ package entity
 import "testing"
 
 func TestAllocateID_FirstOfKind(t *testing.T) {
+	t.Parallel()
 	// Per AC-1 in M-081 (canonicalized via ADR-0008), the allocator
 	// emits canonical 4-digit width for every kind on the first
 	// allocation.
@@ -19,6 +20,7 @@ func TestAllocateID_FirstOfKind(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind), func(t *testing.T) {
+			t.Parallel()
 			got := AllocateID(tt.kind, nil, nil)
 			if got != tt.want {
 				t.Errorf("AllocateID(%s, empty, empty) = %q, want %q", tt.kind, got, tt.want)
@@ -28,6 +30,7 @@ func TestAllocateID_FirstOfKind(t *testing.T) {
 }
 
 func TestAllocateID_IncrementsMax(t *testing.T) {
+	t.Parallel()
 	// Narrow legacy on-disk ids are tolerated by the allocator's
 	// parseIDNumber (AC-2 parser-tolerance); the emitted next-id is
 	// canonical (AC-1).
@@ -46,6 +49,7 @@ func TestAllocateID_IncrementsMax(t *testing.T) {
 }
 
 func TestAllocateID_IgnoresOtherKinds(t *testing.T) {
+	t.Parallel()
 	// A milestone with id M-007 should not influence epic numbering.
 	entities := []*Entity{
 		{ID: "M-007", Kind: KindMilestone},
@@ -56,6 +60,7 @@ func TestAllocateID_IgnoresOtherKinds(t *testing.T) {
 }
 
 func TestAllocateID_GrowsPastPadWidth(t *testing.T) {
+	t.Parallel()
 	entities := []*Entity{
 		{ID: "E-99", Kind: KindEpic},
 	}
@@ -68,6 +73,7 @@ func TestAllocateID_GrowsPastPadWidth(t *testing.T) {
 }
 
 func TestAllocateID_TolerantOfBadIds(t *testing.T) {
+	t.Parallel()
 	// Malformed id should not crash the allocator (frontmatter-shape
 	// surfaces the bookkeeping error separately).
 	entities := []*Entity{
@@ -85,6 +91,7 @@ func TestAllocateID_TolerantOfBadIds(t *testing.T) {
 // max+1 across the union with the working tree.
 
 func TestAllocateID_TrunkOnly(t *testing.T) {
+	t.Parallel()
 	// Working tree empty, trunk has E-05 — next epic id must be
 	// canonical E-0006 per AC-1 in M-081 (allocator always emits
 	// canonical 4-digit width). Narrow legacy trunk ids are
@@ -96,6 +103,7 @@ func TestAllocateID_TrunkOnly(t *testing.T) {
 }
 
 func TestAllocateID_TrunkAheadOfWorkingTree(t *testing.T) {
+	t.Parallel()
 	// Forgot-to-fetch case: working tree shows E-02 as the highest,
 	// but trunk has already moved on to E-07. The allocator unions
 	// both and skips past trunk; canonical emission per AC-1.
@@ -107,6 +115,7 @@ func TestAllocateID_TrunkAheadOfWorkingTree(t *testing.T) {
 }
 
 func TestAllocateID_WorkingTreeAheadOfTrunk(t *testing.T) {
+	t.Parallel()
 	// Local has already gone past trunk — common during feature work.
 	// Allocator picks the local max+1, ignoring the smaller trunk
 	// values. Canonical emission per AC-1.
@@ -121,6 +130,7 @@ func TestAllocateID_WorkingTreeAheadOfTrunk(t *testing.T) {
 }
 
 func TestAllocateID_TrunkIDsKindFiltered(t *testing.T) {
+	t.Parallel()
 	// Trunk ids of other kinds should not affect this kind's allocation.
 	got := AllocateID(KindGap, nil, []string{"E-99", "M-99", "ADR-9999"})
 	if got != "G-0001" {

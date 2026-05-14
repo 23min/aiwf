@@ -44,113 +44,141 @@ func runPolicy(t *testing.T, fn func(string) ([]Violation, error)) {
 }
 
 func TestPolicy_TrailerKeysViaConstants(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyTrailerKeysViaConstants)
 }
 
 func TestPolicy_SovereignDispatchersGuardHumanActor(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicySovereignDispatchersGuardHumanActor)
 }
 
 func TestPolicy_EmptyDiffCommitsCarryMarker(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyEmptyDiffCommitsCarryMarker)
 }
 
 func TestPolicy_FindingCodesHaveHints(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyFindingCodesHaveHints)
 }
 
 func TestPolicy_ReadOnlyVerbsDoNotMutate(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyReadOnlyVerbsDoNotMutate)
 }
 
 func TestPolicy_FindingCodesAreDiscoverable(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyFindingCodesAreDiscoverable)
 }
 
 func TestPolicy_SkillCoverageMatchesVerbs(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicySkillCoverageMatchesVerbs)
 }
 
 func TestPolicy_NoHistoryRewrites(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyNoHistoryRewrites)
 }
 
 func TestPolicy_NoTimestampManipulation(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyNoTimestampManipulation)
 }
 
 func TestPolicy_NoSignatureBypass(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyNoSignatureBypass)
 }
 
 func TestPolicy_NoTrailerStringComposition(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyNoTrailerStringComposition)
 }
 
 func TestPolicy_RoleIDRegexCentralized(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyRoleIDRegexCentralized)
 }
 
 func TestPolicy_PrincipalWriteSitesGuardHuman(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyPrincipalWriteSitesGuardHuman)
 }
 
 func TestPolicy_AuthorizedByWriteSitesUseAllow(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyAuthorizedByWriteSitesUseAllow)
 }
 
 func TestPolicy_ApplyCallersAcquireLock(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyApplyCallersAcquireLock)
 }
 
 func TestPolicy_VerbsValidateThenWrite(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyVerbsValidateThenWrite)
 }
 
 func TestPolicy_NoActorFieldsInAiwfYAML(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyNoActorFieldsInAiwfYAML)
 }
 
 func TestPolicy_ClosedSetStatusViaConstants(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyClosedSetStatusViaConstants)
 }
 
 func TestPolicy_NoSilentFallbacks(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyNoSilentFallbacks)
 }
 
 func TestPolicy_NoRetryLoopsOnGitErrors(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyNoRetryLoopsOnGitErrors)
 }
 
 func TestPolicy_FindingCodesHaveTests(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyFindingCodesHaveTests)
 }
 
 func TestPolicy_IntegrationTestsAssertTrailers(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyIntegrationTestsAssertTrailers)
 }
 
 func TestPolicy_DesignDocAnchors(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyDesignDocAnchors)
 }
 
 func TestPolicy_FilepathJoinSegmentBySegment(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyFilepathJoinSegmentBySegment)
 }
 
 func TestPolicy_NoHardcodedEntityPaths(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyNoHardcodedEntityPaths)
 }
 
 func TestPolicy_TestsRealCloneNotUpdateRef(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyTestsRealCloneNotUpdateRef)
 }
 
 func TestPolicy_ConfigFieldsAreDiscoverable(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyConfigFieldsAreDiscoverable)
 }
 
 func TestPolicy_FSMInvariants(t *testing.T) {
+	t.Parallel()
 	runPolicy(t, PolicyFSMInvariants)
 }

@@ -16,6 +16,7 @@ import (
 // aiwf-to=ai/claude, aiwf-scope=opened, plus the reason in the body
 // and an aiwf-reason: trailer.
 func TestAuthorize_Open_HappyPath(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -62,6 +63,7 @@ func TestAuthorize_Open_HappyPath(t *testing.T) {
 // TestAuthorize_Open_NoReason: --reason is optional for --to. The
 // commit lands without an aiwf-reason: trailer when none is supplied.
 func TestAuthorize_Open_NoReason(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -83,6 +85,7 @@ func TestAuthorize_Open_NoReason(t *testing.T) {
 // TestAuthorize_Open_RefusesNonHumanActor: only human/... actors may
 // authorize. An ai/... or bot/... actor is refused at the verb gate.
 func TestAuthorize_Open_RefusesNonHumanActor(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -102,6 +105,7 @@ func TestAuthorize_Open_RefusesNonHumanActor(t *testing.T) {
 // TestAuthorize_Open_RefusesTerminalEntity: a `done` or `cancelled`
 // epic refuses --to without --force.
 func TestAuthorize_Open_RefusesTerminalEntity(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -122,6 +126,7 @@ func TestAuthorize_Open_RefusesTerminalEntity(t *testing.T) {
 // TestAuthorize_Open_ForceOverridesTerminal: --force --reason on a
 // terminal entity opens a fresh scope and stamps an aiwf-force trailer.
 func TestAuthorize_Open_ForceOverridesTerminal(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -149,6 +154,7 @@ func TestAuthorize_Open_ForceOverridesTerminal(t *testing.T) {
 // TestAuthorize_Open_ForceRequiresReason: --force without --reason
 // (or with whitespace-only reason) is refused.
 func TestAuthorize_Open_ForceRequiresReason(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -167,6 +173,7 @@ func TestAuthorize_Open_ForceRequiresReason(t *testing.T) {
 // TestAuthorize_Open_RequiresAgent: --to without an agent argument
 // (or with whitespace-only) is refused.
 func TestAuthorize_Open_RequiresAgent(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -182,6 +189,7 @@ func TestAuthorize_Open_RequiresAgent(t *testing.T) {
 // TestAuthorize_Open_AgentMustBeRoleSlashID: an agent value that
 // isn't <role>/<id> is refused.
 func TestAuthorize_Open_AgentMustBeRoleSlashID(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -198,6 +206,7 @@ func TestAuthorize_Open_AgentMustBeRoleSlashID(t *testing.T) {
 // TestAuthorize_Pause_RefusesWithoutActiveScope: --pause with no
 // active scope on the entity is refused.
 func TestAuthorize_Pause_RefusesWithoutActiveScope(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -215,6 +224,7 @@ func TestAuthorize_Pause_RefusesWithoutActiveScope(t *testing.T) {
 // --pause produces an authorize commit with aiwf-scope=paused and
 // aiwf-reason=<text>.
 func TestAuthorize_Pause_HappyPath(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -253,6 +263,7 @@ func TestAuthorize_Pause_HappyPath(t *testing.T) {
 // TestAuthorize_Pause_RequiresReason: --pause with no reason (or
 // whitespace-only) is refused before scope state is even consulted.
 func TestAuthorize_Pause_RequiresReason(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -272,6 +283,7 @@ func TestAuthorize_Pause_RequiresReason(t *testing.T) {
 // TestAuthorize_Resume_HappyPath: with a paused scope on the entity,
 // --resume produces an authorize commit with aiwf-scope=resumed.
 func TestAuthorize_Resume_HappyPath(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -301,6 +313,7 @@ func TestAuthorize_Resume_HappyPath(t *testing.T) {
 // TestAuthorize_Resume_RefusesWithoutPausedScope: --resume with no
 // paused scope on the entity is refused.
 func TestAuthorize_Resume_RefusesWithoutPausedScope(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -322,6 +335,7 @@ func TestAuthorize_Resume_RefusesWithoutPausedScope(t *testing.T) {
 // scopes exist on the entity, --pause picks the most-recently-opened
 // active one. Ended/paused scopes are skipped over.
 func TestAuthorize_Pause_PicksMostRecentlyOpenedActive(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
@@ -352,6 +366,7 @@ func TestAuthorize_Pause_PicksMostRecentlyOpenedActive(t *testing.T) {
 // TestAuthorize_Open_RefusesUnknownEntity: an id that doesn't resolve
 // to a tree entity is rejected before any other rule fires.
 func TestAuthorize_Open_RefusesUnknownEntity(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	_, err := verb.Authorize(r.ctx, r.tree(), "E-0099", testActor, verb.AuthorizeOptions{
 		Mode:  verb.AuthorizeOpen,
@@ -368,6 +383,7 @@ func TestAuthorize_Open_RefusesUnknownEntity(t *testing.T) {
 // behind, simulated here by manually flipping the state on the in-
 // memory scope.
 func TestAuthorize_Open_PauseResumeCycleE2E(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))

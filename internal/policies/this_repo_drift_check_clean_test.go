@@ -1,12 +1,10 @@
 package policies
 
 import (
-	"context"
 	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
-	"github.com/23min/aiwf/internal/tree"
 )
 
 // TestPolicy_ThisRepoDriftCheckClean is the M-083 AC-5 chokepoint:
@@ -34,15 +32,9 @@ import (
 // behavior," AC-5's discipline lives in this test, not in reviewer
 // recall.
 func TestPolicy_ThisRepoDriftCheckClean(t *testing.T) {
-	root, err := repoRootFromTest(t)
-	if err != nil {
-		t.Fatalf("locate repo root: %v", err)
-	}
-	tr, loadErrs, err := tree.Load(context.Background(), root)
-	if err != nil {
-		t.Fatalf("tree.Load: %v", err)
-	}
-
+	t.Parallel()
+	_, tr := sharedRepoTree(t)
+	loadErrs := sharedRepoTreeLoadErrs(t)
 	findings := check.Run(tr, loadErrs)
 	var unwanted []check.Finding
 	for _, f := range findings {

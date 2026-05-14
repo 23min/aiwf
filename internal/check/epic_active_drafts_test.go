@@ -24,6 +24,7 @@ func hasFindingCode(fs []Finding, code string) bool {
 // between the rule and the dispatcher is covered per CLAUDE.md
 // *Test the seam, not just the layer*.
 func TestEpicActiveNoDraftedMilestones_FiresOnActiveEpicWithNoDrafts(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Test", Status: entity.StatusActive},
 	)
@@ -53,6 +54,7 @@ func TestEpicActiveNoDraftedMilestones_FiresOnActiveEpicWithNoDrafts(t *testing.
 // (one in_progress alongside one draft) still satisfy the rule —
 // the draft alone is enough.
 func TestEpicActiveNoDraftedMilestones_SilentWhenDraftPresent(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Test", Status: entity.StatusActive},
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "In flight", Status: entity.StatusInProgress, Parent: "E-0001"},
@@ -70,6 +72,7 @@ func TestEpicActiveNoDraftedMilestones_SilentWhenDraftPresent(t *testing.T) {
 // fire even with zero drafted milestones — those statuses are not
 // what the preflight signal is about.
 func TestEpicActiveNoDraftedMilestones_SilentForNonActiveEpic(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name   string
 		status string
@@ -80,6 +83,7 @@ func TestEpicActiveNoDraftedMilestones_SilentForNonActiveEpic(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			tr := makeTree(
 				&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Test", Status: tc.status},
 			)
@@ -97,6 +101,7 @@ func TestEpicActiveNoDraftedMilestones_SilentForNonActiveEpic(t *testing.T) {
 // "has draft" check. Without this guard the rule would consider every
 // draft milestone in the tree as satisfying every active epic.
 func TestEpicActiveNoDraftedMilestones_IgnoresMilestonesUnderOtherEpics(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Target", Status: entity.StatusActive},
 		// Draft milestone parented elsewhere — should not satisfy E-0001's preflight.
@@ -116,6 +121,7 @@ func TestEpicActiveNoDraftedMilestones_IgnoresMilestonesUnderOtherEpics(t *testi
 // assertions are not structural assertions* — the hint is a single
 // short string, not a structured document where placement matters.
 func TestEpicActiveNoDraftedMilestones_HintReferencesStartEpicPreflight(t *testing.T) {
+	t.Parallel()
 	tr := makeTree(
 		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Test", Status: entity.StatusActive},
 	)

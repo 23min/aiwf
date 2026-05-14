@@ -17,6 +17,7 @@ import (
 // narrow files in archive stay narrow forever per ADR-0004's
 // forget-by-default principle.
 func TestEntityIDNarrowWidth(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name        string
 		tr          *tree.Tree
@@ -143,6 +144,7 @@ func TestEntityIDNarrowWidth(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got := entityIDNarrowWidth(tc.tr)
 			if len(got) != tc.wantCount {
 				t.Fatalf("entityIDNarrowWidth findings = %d, want %d: %+v",
@@ -180,6 +182,7 @@ func TestEntityIDNarrowWidth(t *testing.T) {
 // fixtures. Kept as a separate unit test so a future change to the
 // helper's contract still catches the malformed-input cases.
 func TestIsNarrowID_DefensiveBranches(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		id   string
@@ -196,6 +199,7 @@ func TestIsNarrowID_DefensiveBranches(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if got := isNarrowID(tc.id); got != tc.want {
 				t.Errorf("isNarrowID(%q) = %v, want %v", tc.id, got, tc.want)
 			}

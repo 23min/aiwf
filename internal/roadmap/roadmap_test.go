@@ -28,6 +28,7 @@ func writeEpicFile(t *testing.T, root, slug, content string) string {
 }
 
 func TestRender_EmptyTree(t *testing.T) {
+	t.Parallel()
 	got := string(Render(&tree.Tree{}))
 	want := "# Roadmap\n\n_No epics yet._\n"
 	if got != want {
@@ -36,6 +37,7 @@ func TestRender_EmptyTree(t *testing.T) {
 }
 
 func TestRender_EpicWithoutMilestones(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foundations", Status: "active"},
@@ -54,6 +56,7 @@ func TestRender_EpicWithoutMilestones(t *testing.T) {
 }
 
 func TestRender_GroupsAndSortsMilestones(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			// Out-of-order on purpose to confirm we sort.
@@ -82,6 +85,7 @@ func TestRender_GroupsAndSortsMilestones(t *testing.T) {
 }
 
 func TestRender_OrphanedMilestonesSurfaced(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Auth", Status: "active"},
@@ -99,6 +103,7 @@ func TestRender_OrphanedMilestonesSurfaced(t *testing.T) {
 }
 
 func TestRender_EscapesPipesAndNewlinesInTitles(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Pipes | inside | title", Status: "active"},
@@ -118,6 +123,7 @@ func TestRender_EscapesPipesAndNewlinesInTitles(t *testing.T) {
 }
 
 func TestRender_Deterministic(t *testing.T) {
+	t.Parallel()
 	build := func() *tree.Tree {
 		return &tree.Tree{
 			Entities: []*entity.Entity{
@@ -136,6 +142,7 @@ func TestRender_Deterministic(t *testing.T) {
 }
 
 func TestRender_IgnoresNonEpicNonMilestoneKinds(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
@@ -157,6 +164,7 @@ func TestRender_IgnoresNonEpicNonMilestoneKinds(t *testing.T) {
 // `## Goal` section, the roadmap surfaces it as `### Goal` between the
 // epic heading and the milestone table.
 func TestRender_IncludesEpicGoal(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	path := writeEpicFile(t, root, "E-0001-foo", `---
 id: E-01
@@ -200,6 +208,7 @@ unrelated content
 // whitespace-only (the BodyTemplate default) does not introduce an
 // empty `### Goal` block.
 func TestRender_SkipsEmptyGoal(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	path := writeEpicFile(t, root, "E-0001-foo", `---
 id: E-01
@@ -228,6 +237,7 @@ status: active
 // unset, or root unset) skips the goal lookup silently. This keeps
 // purely-in-memory tests working.
 func TestRender_NoBodyFile_NoGoal(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
@@ -362,6 +372,7 @@ func TestNormalizeEntityLinks_AllEntityKinds(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			tr := &tree.Tree{Entities: []*entity.Entity{{Kind: tc.kind, ID: tc.id, Path: tc.path}}}
 			in := []byte("Per [" + tc.id + "](" + tc.inURL + ") see ...")
 			want := "Per [" + tc.wantID + "](" + tc.path + ") see ..."
@@ -420,6 +431,7 @@ unrelated
 }
 
 func TestExtractSection_StopsAtNextH2(t *testing.T) {
+	t.Parallel()
 	src := []byte("## Goal\n\nfirst\n\n## Scope\n\nsecond\n")
 	got := extractSection(src, "Goal")
 	if string(got) != "first" {
@@ -428,6 +440,7 @@ func TestExtractSection_StopsAtNextH2(t *testing.T) {
 }
 
 func TestExtractSection_RunsToEOF(t *testing.T) {
+	t.Parallel()
 	src := []byte("## Goal\n\nlone-section\n")
 	got := extractSection(src, "Goal")
 	if string(got) != "lone-section" {
@@ -436,6 +449,7 @@ func TestExtractSection_RunsToEOF(t *testing.T) {
 }
 
 func TestExtractSection_MissingHeading(t *testing.T) {
+	t.Parallel()
 	src := []byte("## Scope\n\nno goal here\n")
 	if got := extractSection(src, "Goal"); got != nil {
 		t.Errorf("got %q, want nil", got)
@@ -443,6 +457,7 @@ func TestExtractSection_MissingHeading(t *testing.T) {
 }
 
 func TestExtractSection_WhitespaceOnly(t *testing.T) {
+	t.Parallel()
 	src := []byte("## Goal\n\n   \n\n## Scope\n")
 	if got := extractSection(src, "Goal"); got != nil {
 		t.Errorf("got %q, want nil", got)
@@ -453,6 +468,7 @@ func TestExtractSection_WhitespaceOnly(t *testing.T) {
 // Candidates` heading is recognized and the section body is returned
 // verbatim, stopping at the next `## ` heading.
 func TestExtractCandidates_FromCanonicalSection(t *testing.T) {
+	t.Parallel()
 	src := []byte(`# Roadmap
 
 ## E-01 — Foo (active)
@@ -483,6 +499,7 @@ other stuff
 // TestExtractCandidates_BacklogAlias: "Backlog" is accepted as a
 // drop-in heading for repos that prefer that wording.
 func TestExtractCandidates_BacklogAlias(t *testing.T) {
+	t.Parallel()
 	src := []byte("## Backlog\n\n- One\n- Two\n")
 	got := ExtractCandidates(src)
 	if got == nil {
@@ -496,6 +513,7 @@ func TestExtractCandidates_BacklogAlias(t *testing.T) {
 // TestExtractCandidates_None: no recognized heading returns nil so
 // the caller can skip the append.
 func TestExtractCandidates_None(t *testing.T) {
+	t.Parallel()
 	src := []byte("# Roadmap\n\n## E-01 — Foo (active)\n\nstuff\n")
 	if got := ExtractCandidates(src); got != nil {
 		t.Errorf("expected nil, got %s", got)
@@ -505,6 +523,7 @@ func TestExtractCandidates_None(t *testing.T) {
 // TestExtractCandidates_RunsToEOF: when the candidates section is
 // the last block in the file it captures through EOF.
 func TestExtractCandidates_RunsToEOF(t *testing.T) {
+	t.Parallel()
 	src := []byte("## Candidates\n\n- One\n- Two\n")
 	got := ExtractCandidates(src)
 	if !bytes.Contains(got, []byte("- Two")) {
@@ -516,6 +535,7 @@ func TestExtractCandidates_RunsToEOF(t *testing.T) {
 // candidates appended matches the input shape closely enough that a
 // second pass leaves it unchanged.
 func TestAppendCandidates_RoundTrip(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
@@ -541,6 +561,7 @@ func TestAppendCandidates_RoundTrip(t *testing.T) {
 // TestAppendCandidates_NilCandidates: a nil candidates input returns
 // the generated output verbatim.
 func TestAppendCandidates_NilCandidates(t *testing.T) {
+	t.Parallel()
 	gen := []byte("# Roadmap\n\n_x_\n")
 	got := AppendCandidates(gen, nil)
 	if !bytes.Equal(got, gen) {

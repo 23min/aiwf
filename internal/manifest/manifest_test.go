@@ -12,6 +12,7 @@ import (
 // override. Verifies that field tags work for both explicit YAML
 // fields and the polymorphic Frontmatter map.
 func TestParse_YAML(t *testing.T) {
+	t.Parallel()
 	src := []byte(`version: 1
 actor: human/peter
 commit:
@@ -66,6 +67,7 @@ entities:
 // TestParse_JSON parses the same logical manifest as JSON; field tags
 // must work for both lexers.
 func TestParse_JSON(t *testing.T) {
+	t.Parallel()
 	src := []byte(`{
   "version": 1,
   "entities": [
@@ -84,6 +86,7 @@ func TestParse_JSON(t *testing.T) {
 // TestParse_DefaultsCommitToSingle: when commit.mode is omitted,
 // EffectiveCommitMode falls back to single.
 func TestParse_DefaultsCommitToSingle(t *testing.T) {
+	t.Parallel()
 	m, err := Parse([]byte("version: 1\nentities: []\n"), "yaml")
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
@@ -96,6 +99,7 @@ func TestParse_DefaultsCommitToSingle(t *testing.T) {
 // TestParse_AcceptsEmptyEntities: `entities: []` is a valid no-op
 // manifest. Useful for testing the import pipeline without entities.
 func TestParse_AcceptsEmptyEntities(t *testing.T) {
+	t.Parallel()
 	if _, err := Parse([]byte("version: 1\nentities: []\n"), "yaml"); err != nil {
 		t.Errorf("empty entities should parse: %v", err)
 	}
@@ -104,6 +108,7 @@ func TestParse_AcceptsEmptyEntities(t *testing.T) {
 // TestValidate_Errors enumerates the structural rejections the parser
 // promises. Each case is named for the field it violates.
 func TestValidate_Errors(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name    string
 		src     string
@@ -152,6 +157,7 @@ func TestValidate_Errors(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := Parse([]byte(tc.src), "yaml")
 			if err == nil {
 				t.Fatalf("expected error containing %q, got nil", tc.wantSub)
@@ -166,6 +172,7 @@ func TestValidate_Errors(t *testing.T) {
 // TestParseFile_DetectsFormat covers extension-based dispatch and the
 // rejection of unknown extensions.
 func TestParseFile_DetectsFormat(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	yamlPath := filepath.Join(dir, "m.yaml")
 	if err := writeFile(yamlPath, "version: 1\nentities: []\n"); err != nil {

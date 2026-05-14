@@ -40,8 +40,10 @@ var kindInitialStatus = map[Kind]string{
 // declared legal but unreachable in the FSM, or the FSM admits
 // transitions to states the schema considers illegal.
 func TestKindFSM_StateSetAgreement(t *testing.T) {
+	t.Parallel()
 	for kind := range transitions {
 		t.Run(string(kind), func(t *testing.T) {
+			t.Parallel()
 			declared := stringSet(AllowedStatuses(kind))
 			fsm := stringSet(nil)
 			for from, tos := range transitions[kind] {
@@ -71,8 +73,10 @@ func TestKindFSM_StateSetAgreement(t *testing.T) {
 // caused by typo / forgotten entry — the entity can land there but
 // nothing knows what to do with it.
 func TestKindFSM_EveryDeclaredStatusIsAFSMSource(t *testing.T) {
+	t.Parallel()
 	for kind, kindFSM := range transitions {
 		t.Run(string(kind), func(t *testing.T) {
+			t.Parallel()
 			for _, s := range AllowedStatuses(kind) {
 				if _, ok := kindFSM[s]; !ok {
 					t.Errorf("status %q is declared allowed for %s but has no entry as an FSM source state", s, kind)
@@ -88,8 +92,10 @@ func TestKindFSM_EveryDeclaredStatusIsAFSMSource(t *testing.T) {
 // kernel commitment 1's "closed status set with terminal members" rule
 // stated mechanically.
 func TestKindFSM_TerminalityHonored(t *testing.T) {
+	t.Parallel()
 	for kind, kindFSM := range transitions {
 		t.Run(string(kind), func(t *testing.T) {
+			t.Parallel()
 			anyTerminal := false
 			for _, tos := range kindFSM {
 				if len(tos) == 0 {
@@ -108,8 +114,10 @@ func TestKindFSM_TerminalityHonored(t *testing.T) {
 // purpose under the kernel's "every mutating verb produces exactly one
 // commit" rule (the commit would be a no-op promote). Forbidden.
 func TestKindFSM_NoSelfTransitions(t *testing.T) {
+	t.Parallel()
 	for kind, kindFSM := range transitions {
 		t.Run(string(kind), func(t *testing.T) {
+			t.Parallel()
 			for from, tos := range kindFSM {
 				for _, to := range tos {
 					if from == to {
@@ -127,8 +135,10 @@ func TestKindFSM_NoSelfTransitions(t *testing.T) {
 // status legal but no entity can ever land there through verb-driven
 // transitions — silent dead code in the closed set.
 func TestKindFSM_AllStatesReachableFromInitial(t *testing.T) {
+	t.Parallel()
 	for kind, kindFSM := range transitions {
 		t.Run(string(kind), func(t *testing.T) {
+			t.Parallel()
 			initial, ok := kindInitialStatus[kind]
 			if !ok {
 				t.Fatalf("test bug: no initial status declared for %s", kind)
@@ -160,8 +170,10 @@ func TestKindFSM_AllStatesReachableFromInitial(t *testing.T) {
 // declared statuses for each kind — if the function panics on any pair,
 // the test fails with a recover()'d error.
 func TestKindFSM_ValidateTransition_TotalOverClosedSet(t *testing.T) {
+	t.Parallel()
 	for kind := range transitions {
 		t.Run(string(kind), func(t *testing.T) {
+			t.Parallel()
 			statuses := AllowedStatuses(kind)
 			for _, from := range statuses {
 				for _, to := range statuses {
@@ -196,6 +208,7 @@ func TestKindFSM_ValidateTransition_TotalOverClosedSet(t *testing.T) {
 // the AC status FSM. acAllowedStatuses (declared) must equal the set
 // of states the acTransitions map mentions.
 func TestACFSM_StateSetAgreement(t *testing.T) {
+	t.Parallel()
 	declared := stringSet(acAllowedStatuses)
 	fsm := stringSet(nil)
 	for from, tos := range acTransitions {
@@ -219,6 +232,7 @@ func TestACFSM_StateSetAgreement(t *testing.T) {
 // TestACFSM_AllStatesReachableFromOpen: every AC state is reachable
 // from the initial state "open" via some sequence of legal transitions.
 func TestACFSM_AllStatesReachableFromOpen(t *testing.T) {
+	t.Parallel()
 	reachable := map[string]struct{}{"open": {}}
 	frontier := []string{"open"}
 	for len(frontier) > 0 {
@@ -244,6 +258,7 @@ func TestACFSM_AllStatesReachableFromOpen(t *testing.T) {
 // IsLegalACTransition(_, _) === false rule for unknown statuses by
 // passing values not in the closed set.
 func TestACFSM_IsLegalACTransition_TotalOverClosedSet(t *testing.T) {
+	t.Parallel()
 	for _, from := range acAllowedStatuses {
 		for _, to := range acAllowedStatuses {
 			expectLegal := false
@@ -275,6 +290,7 @@ func TestACFSM_IsLegalACTransition_TotalOverClosedSet(t *testing.T) {
 // pre-cycle entry sentinel — present in the FSM as a source but not a
 // declared phase value (entities never carry an empty-string phase).
 func TestTDDPhaseFSM_StateSetAgreement(t *testing.T) {
+	t.Parallel()
 	declared := stringSet(tddPhases)
 	fsm := stringSet(nil)
 	for from, tos := range tddPhaseTransitions {
@@ -301,6 +317,7 @@ func TestTDDPhaseFSM_StateSetAgreement(t *testing.T) {
 // is reachable from the empty-string entry sentinel. red is the entry,
 // then linear progression.
 func TestTDDPhaseFSM_AllStatesReachableFromEmpty(t *testing.T) {
+	t.Parallel()
 	reachable := map[string]struct{}{"": {}}
 	frontier := []string{""}
 	for len(frontier) > 0 {
@@ -326,6 +343,7 @@ func TestTDDPhaseFSM_AllStatesReachableFromEmpty(t *testing.T) {
 // closed-set cross-product, plus the empty-string entry sentinel and
 // unknown-status fail-closed rule.
 func TestTDDPhaseFSM_IsLegalTDDPhaseTransition_TotalOverClosedSet(t *testing.T) {
+	t.Parallel()
 	allFroms := append([]string{""}, tddPhases...)
 	for _, from := range allFroms {
 		for _, to := range tddPhases {
@@ -352,8 +370,10 @@ func TestTDDPhaseFSM_IsLegalTDDPhaseTransition_TotalOverClosedSet(t *testing.T) 
 // This pins the cancel verb's commitment that "any non-terminal
 // entity can be cancelled to a terminal state in one step."
 func TestCancelTarget_AllKinds(t *testing.T) {
+	t.Parallel()
 	for kind := range transitions {
 		t.Run(string(kind), func(t *testing.T) {
+			t.Parallel()
 			target := CancelTarget(kind)
 			if target == "" {
 				t.Fatalf("%s: CancelTarget returned empty", kind)

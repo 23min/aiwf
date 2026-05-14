@@ -19,6 +19,7 @@ import (
 // commits it under the standard edit-body trailers, leaving
 // frontmatter untouched.
 func TestEditBody_Bless_RoundTrip(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 
@@ -63,6 +64,7 @@ func TestEditBody_Bless_RoundTrip(t *testing.T) {
 // there's no working-copy diff, bless mode refuses cleanly without
 // producing an empty commit.
 func TestEditBody_Bless_RefusesWhenNoChanges(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Quiet gap", testActor, verb.AddOptions{}))
 
@@ -78,6 +80,7 @@ func TestEditBody_Bless_RefusesWhenNoChanges(t *testing.T) {
 // rename, cancel, reallocate). Frontmatter is body-only's
 // counterpart and stays the domain of those verbs.
 func TestEditBody_Bless_RefusesFrontmatterChange(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Frontmatter test", testActor, verb.AddOptions{}))
 
@@ -110,6 +113,7 @@ func TestEditBody_Bless_RefusesFrontmatterChange(t *testing.T) {
 // tree but not yet committed has no HEAD bytes to diff against, so
 // the verb refuses and points at `aiwf add` for the create-time path.
 func TestEditBody_Bless_RefusesNewEntity(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 
 	// Hand-write a gap file directly without committing — this
@@ -144,6 +148,7 @@ func TestEditBody_Bless_RefusesNewEntity(t *testing.T) {
 // loader, bless mode preserves it; the explicit-content path
 // (which re-serializes) would canonicalize.
 func TestEditBody_Bless_PreservesYAMLFormatting(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Format gap", testActor, verb.AddOptions{}))
 
@@ -185,6 +190,7 @@ func TestEditBody_Bless_PreservesYAMLFormatting(t *testing.T) {
 // sub-section change. The verb doesn't need composite-id support
 // — it commits whatever changed in the milestone file.
 func TestEditBody_Bless_ACSubSectionEdit(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -235,6 +241,7 @@ func TestEditBody_Bless_ACSubSectionEdit(t *testing.T) {
 // refused in bless mode (same as explicit mode). The user routes
 // AC sub-section edits through the parent milestone, per AC-5.
 func TestEditBody_Bless_RejectsCompositeID(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
@@ -263,6 +270,7 @@ func TestEditBody_Bless_RejectsCompositeID(t *testing.T) {
 // flip from "succeeds, surfaces warning later" to "verb refuses with
 // a finding."
 func TestEditBody_Bless_AcceptsBodyShapeWarnings_PrePushIsChokepoint(t *testing.T) {
+	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
