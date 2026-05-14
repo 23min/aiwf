@@ -1,7 +1,7 @@
 ---
 id: E-0025
 title: Test-suite parallelism and fixture-sharing pass — closes G-0097
-status: proposed
+status: active
 ---
 # E-0025 — Test-suite parallelism and fixture-sharing pass (closes G-0097)
 
