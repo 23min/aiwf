@@ -58,6 +58,7 @@ func hasEscape(findings []check.Finding, id, kind string) bool {
 }
 
 func TestResolve_nilContracts(t *testing.T) {
+	t.Parallel()
 	root := realRoot(t)
 	resolved, findings := Resolve(root, nil)
 	if resolved != nil {
@@ -69,6 +70,7 @@ func TestResolve_nilContracts(t *testing.T) {
 }
 
 func TestResolve_bothPathsInsideAndExist(t *testing.T) {
+	t.Parallel()
 	root := realRoot(t)
 	writeFile(t, filepath.Join(root, "schema.cue"))
 	mkdir(t, filepath.Join(root, "fixtures"))
@@ -94,6 +96,7 @@ func TestResolve_bothPathsInsideAndExist(t *testing.T) {
 }
 
 func TestResolve_bothPathsInsideMissing(t *testing.T) {
+	t.Parallel()
 	root := realRoot(t)
 	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", "fixtures")}
 	resolved, findings := Resolve(root, entries)
@@ -106,6 +109,7 @@ func TestResolve_bothPathsInsideMissing(t *testing.T) {
 }
 
 func TestResolve_dotdotEscape_schema(t *testing.T) {
+	t.Parallel()
 	root := realRoot(t)
 	entries := []aiwfyaml.Entry{entry("C-0001", "../../etc/passwd", "fixtures")}
 	resolved, findings := Resolve(root, entries)
@@ -127,6 +131,7 @@ func TestResolve_dotdotEscape_schema(t *testing.T) {
 }
 
 func TestResolve_absoluteEscape_fixtures(t *testing.T) {
+	t.Parallel()
 	root := realRoot(t)
 	outside := realRoot(t)
 	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", outside)}
@@ -141,6 +146,7 @@ func TestResolve_absoluteEscape_fixtures(t *testing.T) {
 }
 
 func TestResolve_symlinkOutsideRepo(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("posix symlinks")
 	}
@@ -166,6 +172,7 @@ func TestResolve_symlinkOutsideRepo(t *testing.T) {
 }
 
 func TestResolve_symlinkInsideRepo(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("posix symlinks")
 	}
@@ -190,6 +197,7 @@ func TestResolve_symlinkInsideRepo(t *testing.T) {
 }
 
 func TestResolve_symlinkLoop(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("posix symlinks")
 	}
@@ -215,6 +223,7 @@ func TestResolve_symlinkLoop(t *testing.T) {
 }
 
 func TestResolve_bothPathsEscape(t *testing.T) {
+	t.Parallel()
 	root := realRoot(t)
 	entries := []aiwfyaml.Entry{entry("C-0001", "../escape1", "../escape2")}
 	resolved, findings := Resolve(root, entries)
@@ -231,6 +240,7 @@ func TestResolve_bothPathsEscape(t *testing.T) {
 }
 
 func TestResolve_emptyConfiguredPath(t *testing.T) {
+	t.Parallel()
 	root := realRoot(t)
 	entries := []aiwfyaml.Entry{entry("C-0001", "", "fixtures")}
 	resolved, findings := Resolve(root, entries)
@@ -243,6 +253,7 @@ func TestResolve_emptyConfiguredPath(t *testing.T) {
 }
 
 func TestResolve_relativeRepoRootRejected(t *testing.T) {
+	t.Parallel()
 	// Relative repoRoot is a usage error: callers (the engine) always
 	// pass absolute. We fail closed — every entry is marked Skip with
 	// path-escape findings.
@@ -257,6 +268,7 @@ func TestResolve_relativeRepoRootRejected(t *testing.T) {
 }
 
 func TestResolve_threeEntriesMixed(t *testing.T) {
+	t.Parallel()
 	root := realRoot(t)
 	writeFile(t, filepath.Join(root, "schema.cue"))
 	mkdir(t, filepath.Join(root, "fixtures"))
@@ -291,6 +303,7 @@ func TestResolve_threeEntriesMixed(t *testing.T) {
 }
 
 func TestResolve_unresolvableRepoRoot(t *testing.T) {
+	t.Parallel()
 	missing := filepath.Join(t.TempDir(), "does", "not", "exist")
 	entries := []aiwfyaml.Entry{entry("C-0001", "schema.cue", "fixtures")}
 	resolved, findings := Resolve(missing, entries)
@@ -308,6 +321,7 @@ func TestResolve_unresolvableRepoRoot(t *testing.T) {
 }
 
 func TestResolve_repoRootSymlinkLoop(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("posix symlinks")
 	}
@@ -331,6 +345,7 @@ func TestResolve_repoRootSymlinkLoop(t *testing.T) {
 }
 
 func TestResolve_findingShape(t *testing.T) {
+	t.Parallel()
 	root := realRoot(t)
 	entries := []aiwfyaml.Entry{entry("C-0042", "../bad", "fixtures")}
 	_, findings := Resolve(root, entries)
