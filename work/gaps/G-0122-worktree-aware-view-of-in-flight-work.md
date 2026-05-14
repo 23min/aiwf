@@ -1,6 +1,6 @@
 ---
 id: G-0122
-title: No worktree-aware view of in-flight work across parallel sessions
+title: Worktree-aware view of in-flight work
 status: open
 ---
 ## What's missing
