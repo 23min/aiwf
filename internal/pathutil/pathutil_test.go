@@ -9,6 +9,7 @@ import (
 )
 
 func TestInside(t *testing.T) {
+	t.Parallel()
 	sep := string(filepath.Separator)
 	cases := []struct {
 		name      string
@@ -46,6 +47,7 @@ func TestInside(t *testing.T) {
 }
 
 func TestResolve_existingFile(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	target := filepath.Join(dir, "a")
 	if err := os.WriteFile(target, []byte("x"), 0o600); err != nil {
@@ -65,6 +67,7 @@ func TestResolve_existingFile(t *testing.T) {
 }
 
 func TestResolve_existingDir(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	got, err := Resolve(dir)
 	if err != nil {
@@ -80,6 +83,7 @@ func TestResolve_existingDir(t *testing.T) {
 }
 
 func TestResolve_missingPath_lexicalFallback(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	missing := filepath.Join(dir, "does-not-exist", "child")
 	got, err := Resolve(missing)
@@ -93,6 +97,7 @@ func TestResolve_missingPath_lexicalFallback(t *testing.T) {
 }
 
 func TestResolve_symlinkInside(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	dirReal, err := filepath.EvalSymlinks(dir)
 	if err != nil {
@@ -116,6 +121,7 @@ func TestResolve_symlinkInside(t *testing.T) {
 }
 
 func TestResolve_symlinkOutside(t *testing.T) {
+	t.Parallel()
 	outside := t.TempDir()
 	inside := t.TempDir()
 	insideReal, err := filepath.EvalSymlinks(inside)
@@ -147,6 +153,7 @@ func TestResolve_symlinkOutside(t *testing.T) {
 }
 
 func TestResolve_brokenSymlink(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	link := filepath.Join(dir, "broken")
 	if err := os.Symlink(filepath.Join(dir, "nope"), link); err != nil {
@@ -158,6 +165,7 @@ func TestResolve_brokenSymlink(t *testing.T) {
 }
 
 func TestResolve_symlinkLoop(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	a := filepath.Join(dir, "a")
 	b := filepath.Join(dir, "b")
@@ -173,6 +181,7 @@ func TestResolve_symlinkLoop(t *testing.T) {
 }
 
 func TestResolve_lstatPermissionError(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("posix permissions")
 	}
@@ -202,6 +211,7 @@ func TestResolve_lstatPermissionError(t *testing.T) {
 }
 
 func TestResolve_relativeInputRejected(t *testing.T) {
+	t.Parallel()
 	for _, in := range []string{"a", "./a", "../a", ""} {
 		t.Run(in, func(t *testing.T) {
 			_, err := Resolve(in)
