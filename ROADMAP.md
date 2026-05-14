@@ -262,7 +262,7 @@ Land the `aiwf archive` verb and the convergence machinery so terminal-status en
 | M-0087 | Display surfaces for archived entities (status, show, render) | done |
 | M-0088 | Configuration knob, embedded skill, and CLAUDE.md amendment | done |
 
-## E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 (proposed)
+## E-0025 — Test-suite parallelism and fixture-sharing pass — closes G-0097 (active)
 
 ### Goal
 
@@ -270,7 +270,7 @@ Convert the Go test suite from serial-with-per-test-setup to parallel-with-share
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0091 | Roll out TestMain + t.Parallel across internal/* test packages | draft |
+| M-0091 | Roll out TestMain + t.Parallel across internal/* test packages | done |
 | M-0092 | Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/ | draft |
 | M-0093 | Document test-discipline convention and lock its chokepoint | draft |
 
