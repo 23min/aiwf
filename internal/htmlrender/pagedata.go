@@ -86,8 +86,8 @@ type SidebarData struct {
 	// GapCount is the count of non-archived gaps in the planning
 	// tree, surfaced in the sidebar's top section as "Gaps (N)".
 	// M-0100/AC-1.
-	GapCount       int
-	IsCurrentGaps  bool // true when the rendered page is gaps.html
+	GapCount      int
+	IsCurrentGaps bool // true when the rendered page is gaps.html
 }
 
 // SidebarEpic is one epic row in the sidebar. IsActive is true when

@@ -37,11 +37,11 @@ func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 	// 1 index + 1 epic + 2 milestones + 1 gap + 1 ADR + 1 decision +
-	// 1 contract + 5×2 per-kind index pages (epics/gaps/decisions/
-	// adrs/contracts × active/all) = 18 HTML files. M-0087/AC-6 +
-	// AC-7 added the per-kind active/all pages.
-	if res.FilesWritten != 18 {
-		t.Errorf("FilesWritten = %d, want 18", res.FilesWritten)
+	// 1 contract = 8 entity/index pages. Plus 5 per-kind index pages
+	// (epics/gaps/decisions/adrs/contracts), one per kind — M-0099/AC-1
+	// dropped the *-all.html cousins. Total: 13 HTML files.
+	if res.FilesWritten != 13 {
+		t.Errorf("FilesWritten = %d, want 13", res.FilesWritten)
 	}
 
 	// Each expected file is on disk.
