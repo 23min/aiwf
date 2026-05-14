@@ -87,6 +87,7 @@ func TestValidateTrailer_KnownKeys(t *testing.T) {
 // trailers come out in the order documented in provenance-model.md
 // regardless of the order callers assemble them in.
 func TestSortedTrailers_CanonicalOrder(t *testing.T) {
+	t.Parallel()
 	// Construct in a deliberately-wrong order.
 	in := []Trailer{
 		{Key: TrailerReason, Value: "stop work on E-03"},
@@ -113,6 +114,7 @@ func TestSortedTrailers_CanonicalOrder(t *testing.T) {
 // terminal-promote). Their relative input order must survive the
 // sort so the rendered trailer block is reproducible.
 func TestSortedTrailers_RepeatedKeysPreserveOrder(t *testing.T) {
+	t.Parallel()
 	in := []Trailer{
 		{Key: TrailerScopeEnds, Value: "abc1234"},
 		{Key: TrailerScopeEnds, Value: "def5678"},
@@ -133,6 +135,7 @@ func TestSortedTrailers_RepeatedKeysPreserveOrder(t *testing.T) {
 // caller passing an unrecognized trailer must not break the sort,
 // and the unknown key sorts to the end (lex order among unknowns).
 func TestSortedTrailers_UnknownKeysLast(t *testing.T) {
+	t.Parallel()
 	in := []Trailer{
 		{Key: "z-future-trailer", Value: "v1"},
 		{Key: TrailerActor, Value: "human/peter"},
@@ -153,7 +156,7 @@ func TestSortedTrailers_UnknownKeysLast(t *testing.T) {
 // load-bearing property: every new I2.5 key parses back to its
 // original value through `git log --pretty=%(trailers)`.
 func TestSortedTrailers_RoundTripsThroughCommit(t *testing.T) {
-	gitTestEnv(t)
+	t.Parallel()
 	ctx := context.Background()
 	root := t.TempDir()
 	if err := Init(ctx, root); err != nil {
@@ -234,6 +237,7 @@ func TestSortedTrailers_RoundTripsThroughCommit(t *testing.T) {
 // (aiwf check) read a missing principal as "no principal," not as
 // a parse failure.
 func TestParseTrailers_ToleratesAbsentI25Keys(t *testing.T) {
+	t.Parallel()
 	preI25 := "aiwf-verb: promote\naiwf-entity: M-007\naiwf-actor: human/peter\n"
 	got := parseTrailers(preI25)
 	if len(got) != 3 {
@@ -255,6 +259,7 @@ func TestParseTrailers_ToleratesAbsentI25Keys(t *testing.T) {
 // trailer landing on a developer's machine that hasn't upgraded yet)
 // must parse without failing — the parser is forward-compatible.
 func TestParseTrailers_ToleratesUnknownFutureKeys(t *testing.T) {
+	t.Parallel()
 	future := "aiwf-verb: promote\naiwf-future-key: future-value\naiwf-actor: human/peter\n"
 	got := parseTrailers(future)
 	if len(got) != 3 {

@@ -8,6 +8,7 @@ import (
 )
 
 func TestParseTestMetrics(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name   string
 		input  string
@@ -95,6 +96,7 @@ func TestParseTestMetrics(t *testing.T) {
 }
 
 func TestParseStrictTestMetrics(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name    string
 		input   string
@@ -135,6 +137,7 @@ func TestParseStrictTestMetrics(t *testing.T) {
 }
 
 func TestFormatTestMetrics(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		m    TestMetrics
@@ -161,6 +164,7 @@ func TestFormatTestMetrics(t *testing.T) {
 // and aiwf history reads it back through the tolerant parser; we want
 // the strict→format→strict path to be a fixed-point.
 func TestTestMetrics_StrictParseRoundTrip(t *testing.T) {
+	t.Parallel()
 	cases := []TestMetrics{
 		{Pass: 12, Fail: 1, Skip: 2, Total: 15},
 		{Pass: 5},
@@ -180,6 +184,7 @@ func TestTestMetrics_StrictParseRoundTrip(t *testing.T) {
 }
 
 func TestTotalOrDerive(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		m    TestMetrics

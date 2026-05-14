@@ -12,6 +12,7 @@ import (
 )
 
 func TestHasRemotes_NoRemotes(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	got, err := HasRemotes(ctx, dir)
@@ -24,6 +25,7 @@ func TestHasRemotes_NoRemotes(t *testing.T) {
 }
 
 func TestHasRemotes_WithRemote(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	mustRun(t, ctx, dir, "remote", "add", "origin", "https://example.invalid/x.git")
@@ -37,6 +39,7 @@ func TestHasRemotes_WithRemote(t *testing.T) {
 }
 
 func TestHasRef_Present(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	commitFile(t, ctx, dir, "a.txt", "hello")
@@ -50,6 +53,7 @@ func TestHasRef_Present(t *testing.T) {
 }
 
 func TestHasRef_Missing(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	commitFile(t, ctx, dir, "a.txt", "hello")
@@ -63,6 +67,7 @@ func TestHasRef_Missing(t *testing.T) {
 }
 
 func TestLsTreePaths_FullTree(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	writeFile(t, dir, "work/gaps/G-001-foo.md", "# foo\n")
@@ -89,6 +94,7 @@ func TestLsTreePaths_FullTree(t *testing.T) {
 }
 
 func TestLsTreePaths_Prefixes(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	writeFile(t, dir, "work/gaps/G-001-foo.md", "# foo\n")
@@ -112,6 +118,7 @@ func TestLsTreePaths_Prefixes(t *testing.T) {
 }
 
 func TestLsTreePaths_RefNotFound(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	commitFile(t, ctx, dir, "a.txt", "hello")
@@ -122,6 +129,7 @@ func TestLsTreePaths_RefNotFound(t *testing.T) {
 }
 
 func TestLsTreePaths_EmptyTree(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	// Create an empty tree object and a commit pointing at it on a branch.
@@ -139,6 +147,7 @@ func TestLsTreePaths_EmptyTree(t *testing.T) {
 }
 
 func TestAddCommitSHA_ReturnsBirthCommitForExactPath(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 
@@ -158,6 +167,7 @@ func TestAddCommitSHA_ReturnsBirthCommitForExactPath(t *testing.T) {
 }
 
 func TestAddCommitSHA_DoesNotFollowAcrossRename(t *testing.T) {
+	t.Parallel()
 	// AddCommitSHA deliberately omits `git log --follow` because
 	// `--follow` is a content-similarity heuristic that mis-attributes
 	// one entity's add commit to a similar entity in the
@@ -191,6 +201,7 @@ func TestAddCommitSHA_DoesNotFollowAcrossRename(t *testing.T) {
 }
 
 func TestAddCommitSHA_PathWithNoHistory(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	commitFile(t, ctx, dir, "README.md", "readme\n")
@@ -205,6 +216,7 @@ func TestAddCommitSHA_PathWithNoHistory(t *testing.T) {
 }
 
 func TestIsAncestor_TrueAndFalse(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	commitFile(t, ctx, dir, "a.txt", "1")
@@ -232,6 +244,7 @@ func TestIsAncestor_TrueAndFalse(t *testing.T) {
 }
 
 func TestIsAncestor_BadRef(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	commitFile(t, ctx, dir, "a.txt", "1")
@@ -246,6 +259,7 @@ func TestIsAncestor_BadRef(t *testing.T) {
 // Set up a "trunk" ref pointing at the original slug, commit a rename
 // on top, and assert that RenamesFromRef reports the old → new pair.
 func TestRenamesFromRef_DetectsCommittedRename(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	const oldPath = "work/gaps/G-0035-very-long-historical-slug.md"
@@ -276,6 +290,7 @@ func TestRenamesFromRef_DetectsCommittedRename(t *testing.T) {
 // working-tree-only state is a transient interactive condition and
 // is intentionally out of scope.
 func TestRenamesFromRef_IgnoresUncommittedRename(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	const oldPath = "work/gaps/G-0036-original.md"
@@ -305,6 +320,7 @@ func TestRenamesFromRef_IgnoresUncommittedRename(t *testing.T) {
 // parallel-add case the original trunk-collision rule must still
 // catch.
 func TestRenamesFromRef_IgnoresParallelClonesG37Case(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	// Establish a shared starting commit, then branch.
@@ -332,6 +348,7 @@ func TestRenamesFromRef_IgnoresParallelClonesG37Case(t *testing.T) {
 // because the caller assigns into Tree.TrunkRenames; nil-vs-empty would
 // be observable in tests that lookup keys.
 func TestRenamesFromRef_NoRenamesEmptyMap(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	commitFile(t, ctx, dir, "work/gaps/G-0001-a.md", "x\n")
@@ -354,6 +371,7 @@ func TestRenamesFromRef_NoRenamesEmptyMap(t *testing.T) {
 // (nil, nil) rather than erroring. This matches the trunk-collision
 // rule's behavior — no trunk view means no cross-tree comparison.
 func TestRenamesFromRef_AbsentRefReturnsNil(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	dir := initTestRepo(t)
 	commitFile(t, ctx, dir, "a.txt", "x")
@@ -367,15 +385,12 @@ func TestRenamesFromRef_AbsentRefReturnsNil(t *testing.T) {
 	}
 }
 
-// initTestRepo creates a fresh git repo in a temp dir and returns its
-// path. It also sets a deterministic commit identity via t.Setenv so
-// tests don't depend on the host's git config.
+// initTestRepo creates a fresh git repo in a temp dir and returns
+// its path. Commit identity is seeded by TestMain in setup_test.go
+// (via os.Setenv) so this helper is t.Parallel-compatible — t.Setenv
+// would panic under parallel execution.
 func initTestRepo(t *testing.T) string {
 	t.Helper()
-	t.Setenv("GIT_AUTHOR_NAME", "Test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.invalid")
-	t.Setenv("GIT_COMMITTER_NAME", "Test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.invalid")
 	dir := t.TempDir()
 	ctx := context.Background()
 	if err := Init(ctx, dir); err != nil {

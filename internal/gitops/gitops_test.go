@@ -11,17 +11,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// gitTestEnv sets the env vars git needs to author commits without
-// reading a user-level config (which CI and t.TempDir won't have).
-func gitTestEnv(t *testing.T) {
-	t.Helper()
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-}
-
 func TestCommitMessage(t *testing.T) {
+	t.Parallel()
 	got := CommitMessage("add milestone M-007", "", []Trailer{
 		{Key: "aiwf-verb", Value: "add"},
 		{Key: "aiwf-entity", Value: "M-007"},
@@ -34,6 +25,7 @@ func TestCommitMessage(t *testing.T) {
 }
 
 func TestCommitMessage_NoTrailers(t *testing.T) {
+	t.Parallel()
 	got := CommitMessage("subject only", "", nil)
 	if got != "subject only\n" {
 		t.Errorf("got %q, want %q", got, "subject only\n")
@@ -41,6 +33,7 @@ func TestCommitMessage_NoTrailers(t *testing.T) {
 }
 
 func TestCommitMessage_WithBody(t *testing.T) {
+	t.Parallel()
 	got := CommitMessage("aiwf cancel M-002 -> cancelled", "scope folded into M-001", []Trailer{
 		{Key: "aiwf-verb", Value: "cancel"},
 		{Key: "aiwf-entity", Value: "M-002"},
@@ -52,6 +45,7 @@ func TestCommitMessage_WithBody(t *testing.T) {
 }
 
 func TestCommitMessage_BodyTrimmed(t *testing.T) {
+	t.Parallel()
 	// Whitespace at body edges is trimmed; an all-whitespace body produces no body section.
 	got := CommitMessage("subject", "   ", nil)
 	if got != "subject\n" {
@@ -60,6 +54,7 @@ func TestCommitMessage_BodyTrimmed(t *testing.T) {
 }
 
 func TestParseTrailers(t *testing.T) {
+	t.Parallel()
 	out := "aiwf-verb: add\naiwf-entity: M-007\n\naiwf-actor: human/peter\n"
 	got := parseTrailers(out)
 	want := []Trailer{
@@ -73,7 +68,7 @@ func TestParseTrailers(t *testing.T) {
 }
 
 func TestEndToEnd_InitAddMvCommit(t *testing.T) {
-	gitTestEnv(t)
+	t.Parallel()
 	ctx := context.Background()
 	root := t.TempDir()
 
@@ -145,7 +140,7 @@ func TestEndToEnd_InitAddMvCommit(t *testing.T) {
 // exit 1 silently in both — and a caller in bless mode treats both
 // as "use aiwf add to create this entity for the first time."
 func TestReadFromHEAD(t *testing.T) {
-	gitTestEnv(t)
+	t.Parallel()
 	ctx := context.Background()
 	root := t.TempDir()
 	if err := Init(ctx, root); err != nil {
@@ -207,7 +202,7 @@ func TestReadFromHEAD(t *testing.T) {
 // allow-empty is in effect, with the trailer set intact. Used by
 // `aiwf authorize` and the `--audit-only` recovery mode (plan step 5b).
 func TestCommitAllowEmpty(t *testing.T) {
-	gitTestEnv(t)
+	t.Parallel()
 	ctx := context.Background()
 	root := t.TempDir()
 
@@ -262,13 +257,14 @@ func TestCommitAllowEmpty(t *testing.T) {
 }
 
 func TestIsRepo_FalseInPlainDir(t *testing.T) {
+	t.Parallel()
 	if IsRepo(context.Background(), t.TempDir()) {
 		t.Error("IsRepo true in non-repo tmpdir")
 	}
 }
 
 func TestRun_ErrorIncludesStderr(t *testing.T) {
-	gitTestEnv(t)
+	t.Parallel()
 	ctx := context.Background()
 	// Trying to commit in a non-repo directory should fail with
 	// stderr embedded in the error message.
@@ -290,7 +286,7 @@ func TestRun_ErrorIncludesStderr(t *testing.T) {
 // letting the verb's normal `git commit` flow (and any pre-commit
 // hooks that auto-add files) run unchanged.
 func TestStashStaged_PushPopRoundTrip(t *testing.T) {
-	gitTestEnv(t)
+	t.Parallel()
 	ctx := context.Background()
 	root := t.TempDir()
 
@@ -381,7 +377,7 @@ func TestStashStaged_PushPopRoundTrip(t *testing.T) {
 // Used by Apply's conflict guard; the load-bearing assertions are
 // "clean index → nil/empty" and "staged file → file's path returned."
 func TestStagedPaths(t *testing.T) {
-	gitTestEnv(t)
+	t.Parallel()
 	ctx := context.Background()
 	root := t.TempDir()
 
@@ -432,7 +428,7 @@ func TestStagedPaths(t *testing.T) {
 // absolute path (returned verbatim), set to a relative path
 // (resolved against workdir). G-048.
 func TestHooksDir(t *testing.T) {
-	gitTestEnv(t)
+	t.Parallel()
 	ctx := context.Background()
 
 	t.Run("unset falls back to gitDir/hooks", func(t *testing.T) {
