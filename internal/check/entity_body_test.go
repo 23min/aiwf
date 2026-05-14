@@ -21,6 +21,7 @@ import (
 // case lives under a milestone parent because ACs are not standalone
 // files.
 func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name         string
 		writeFixture func(root string) (entities []*entity.Entity, err error)
@@ -81,6 +82,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
 			ents, err := tc.writeFixture(root)
 			if err != nil {
@@ -121,6 +123,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 // signals "this AC was ruled out"; surfacing an empty-body warning
 // against it would be noise.
 func TestEntityBodyEmpty_CancelledACSkipped(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	path := "work/epics/E-01-foo/M-001-bar.md"
 	body := `## Goal
@@ -189,6 +192,7 @@ acs:
 // finding. entity-body-empty must stay silent so the operator gets
 // one signal, not two redundant ones.
 func TestEntityBodyEmpty_ACWithoutBodyHeadingSkipped(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	path := "work/epics/E-01-foo/M-001-bar.md"
 	// AC-1 exists in frontmatter but the body has only `## ` headings,
@@ -249,6 +253,7 @@ acs:
 // finding owns the file-missing case; entity-body-empty must not
 // double-emit.
 func TestEntityBodyEmpty_FileReadError_SilentlySkipped(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	tr := &tree.Tree{
 		Root: root,
@@ -269,6 +274,7 @@ func TestEntityBodyEmpty_FileReadError_SilentlySkipped(t *testing.T) {
 // rule continues without emitting. The loader's parse-error path is
 // the single source of truth for malformed files.
 func TestEntityBodyEmpty_FrontmatterParseFailure_SilentlySkipped(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	path := "work/epics/E-01-foo/M-001-malformed.md"
 	abs := filepath.Join(root, filepath.FromSlash(path))
@@ -300,6 +306,7 @@ func TestEntityBodyEmpty_FrontmatterParseFailure_SilentlySkipped(t *testing.T) {
 // introduce one and the locator must not bleed AC-1's content into
 // the next AC.
 func TestEntityBodyEmpty_ScanACBodies_H2Resets(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	path := "work/epics/E-01-foo/M-001-bar.md"
 	// AC-1 has a `## Trailing section` after it — the locator
@@ -386,6 +393,7 @@ acs:
 // bodies are typically leaf prose, but a hand-edit could nest a
 // sub-heading.
 func TestEntityBodyEmpty_ScanACBodies_H3NonACResets(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	path := "work/epics/E-01-foo/M-001-bar.md"
 	body := `## Goal
@@ -473,6 +481,7 @@ acs:
 // bumper handles only this code, but the function is the single
 // source of truth for which codes the strict flag covers.
 func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
+	t.Parallel()
 	build := func() []Finding {
 		return []Finding{
 			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "milestone", EntityID: "M-0001"},
@@ -539,6 +548,7 @@ func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 // test; serves as the negative control so a future bug that emits
 // findings on healthy trees is caught fast.
 func TestEntityBodyEmpty_NonEmptyBodyClean(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	ents, err := writeFullyPopulatedFixture(root)
 	if err != nil {
@@ -566,6 +576,7 @@ func TestEntityBodyEmpty_NonEmptyBodyClean(t *testing.T) {
 // a future change that tightens the rule (e.g. requires a paragraph
 // shape, rejects code blocks, demands a minimum word count) fails here.
 func TestEntityBodyEmpty_AcceptsVariedProseShapes(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		body string
@@ -644,6 +655,7 @@ func TestEntityBodyEmpty_AcceptsVariedProseShapes(t *testing.T) {
 // AC-leaf (`### AC-1`) level so both consumers of stripHTMLComments
 // are pinned.
 func TestEntityBodyEmpty_HTMLCommentsAreEmpty(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name      string
 		body      string
@@ -749,6 +761,7 @@ func TestEntityBodyEmpty_HTMLCommentsAreEmpty(t *testing.T) {
 // (met + phase: red, empty body): proves the zero-count above isn't
 // because acsTDDAudit is silent for unrelated reasons.
 func TestEntityBodyEmpty_DoesNotEngageACSTDDAudit(t *testing.T) {
+	t.Parallel()
 	t.Run("met+done+empty body: body-empty fires, audit silent", func(t *testing.T) {
 		root := t.TempDir()
 		ents, err := writeMetDoneACWithEmptyBody()(root)
@@ -811,6 +824,7 @@ func TestEntityBodyEmpty_DoesNotEngageACSTDDAudit(t *testing.T) {
 // future kind that grows a new terminal state without wiring it through
 // the IsTerminal predicate fails here.
 func TestEntityBodyEmpty_TerminalStatusSkipped(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name         string
 		writeFixture func(root string) ([]*entity.Entity, error)
@@ -866,6 +880,7 @@ func TestEntityBodyEmpty_TerminalStatusSkipped(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
 			ents, err := tc.writeFixture(root)
 			if err != nil {
@@ -889,6 +904,7 @@ func TestEntityBodyEmpty_TerminalStatusSkipped(t *testing.T) {
 // Acceptance criteria`) still fire if empty — this gate is narrow to
 // the AC-body arm, not the whole entity.
 func TestEntityBodyEmpty_DraftMilestoneACsSkipped(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	path := "work/epics/E-01-foo/M-001-bar.md"
 	body := `## Goal
@@ -959,6 +975,7 @@ acs:
 // a draft milestone. Drafts ship with shape; the spec body is still
 // load-bearing prose.
 func TestEntityBodyEmpty_DraftMilestoneTopSectionsStillFire(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	path := "work/epics/E-01-foo/M-001-bar.md"
 	// `## Approach` is empty; everything else has prose.
@@ -1005,6 +1022,7 @@ Each AC pins one observable behavior.
 // `accepted` ADRs too") would silently silence the rule on its
 // intended target population.
 func TestEntityBodyEmpty_ActiveStateStillFires(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name         string
 		writeFixture func(root string) ([]*entity.Entity, error)
@@ -1053,6 +1071,7 @@ func TestEntityBodyEmpty_ActiveStateStillFires(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
 			ents, err := tc.writeFixture(root)
 			if err != nil {
@@ -1075,6 +1094,7 @@ func TestEntityBodyEmpty_ActiveStateStillFires(t *testing.T) {
 // narrow to status: draft; once a milestone promotes to `in_progress`,
 // empty AC bodies fire again.
 func TestEntityBodyEmpty_InProgressMilestoneACBodiesStillFire(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	ents, err := writeACFixture()(root)
 	if err != nil {

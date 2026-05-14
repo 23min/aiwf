@@ -25,6 +25,7 @@ import (
 // Seam: this test drives through tree.Load + check.Run so the loader's
 // archive walk and the check.Run dispatch chain both participate.
 func TestArchivedEntityNotTerminal_FiresOnHandEditDrift(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Archived gap with a non-terminal status — the canonical
@@ -90,6 +91,7 @@ status: open
 // post-sweep steady state) does not fire. This is the in-the-clear
 // case the rule must not over-flag.
 func TestArchivedEntityNotTerminal_TerminalArchivedIsClean(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	mustWrite(t, root, "work/gaps/archive/G-0099-old.md", `---
@@ -124,6 +126,7 @@ status: addressed
 // findings tree-wide — that's the in-the-clear shape this test
 // pins.
 func TestArchivedEntityNotTerminal_QuietOnEmptyStatus(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	mustWrite(t, root, "work/gaps/archive/G-0099-old.md", `---
@@ -153,6 +156,7 @@ status:
 // status-valid still fires on the malformed status — assertion
 // pins that.
 func TestArchivedEntityNotTerminal_QuietOnUnknownStatus(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	mustWrite(t, root, "work/gaps/archive/G-0099-old.md", `---
@@ -198,6 +202,7 @@ status: not-a-real-status
 // warning (advisory) — the threshold knob (M-0088) flips it to
 // blocking past N.
 func TestTerminalEntityNotArchived_FiresOnTerminalInActiveDir(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Two terminal-status entities sitting in active dirs — the
@@ -261,6 +266,7 @@ status: open
 // matching the same one-finding-per-authoring-problem rationale as
 // archivedEntityNotTerminal.
 func TestTerminalEntityNotArchived_DefersToFrontmatterShapeOnEmptyStatus(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	mustWrite(t, root, "work/gaps/G-0099-empty.md", `---
@@ -288,6 +294,7 @@ status:
 // (the post-sweep steady state) does not fire this rule. The rule is
 // location-keyed to active dirs.
 func TestTerminalEntityNotArchived_ArchivedTerminalIsClean(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	mustWrite(t, root, "work/gaps/archive/G-0099-old.md", `---
@@ -324,6 +331,7 @@ status: addressed
 // per-file terminal-entity-not-archived findings stay alongside —
 // the aggregate summarizes; it does not replace the leaves.
 func TestArchiveSweepPending_AggregatesPendingCount(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Three terminal-status entities pending sweep.
@@ -396,6 +404,7 @@ status: open
 // ADR-0004 §"Drift control": "Hidden when zero." A clean tree (no
 // pending sweep) emits no aggregate finding.
 func TestArchiveSweepPending_HiddenWhenZero(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Only an active open gap and an archived terminal gap — no
@@ -433,6 +442,7 @@ status: addressed
 // side). This rule is location-keyed: "lives in archive/ but isn't
 // terminal," not "isn't terminal, period."
 func TestArchivedEntityNotTerminal_ActiveDirNeverFires(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	mustWrite(t, root, "work/gaps/G-0050-active-open.md", `---
@@ -478,6 +488,7 @@ status: open
 // bearing default behavior — kernel must not nag a fresh consumer
 // that has terminals awaiting sweep.
 func TestApplyArchiveSweepThreshold_UnsetIsNoOp(t *testing.T) {
+	t.Parallel()
 	build := func() []Finding {
 		return []Finding{
 			{Code: "archive-sweep-pending", Severity: SeverityWarning, Message: "47 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N"},
@@ -507,6 +518,7 @@ func TestApplyArchiveSweepThreshold_UnsetIsNoOp(t *testing.T) {
 // gate per ADR-0004's "past N" wording — at exactly N the consumer's
 // declared ceiling is met but not breached.
 func TestApplyArchiveSweepThreshold_AtOrBelowStaysAdvisory(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name  string
 		count int
@@ -516,6 +528,7 @@ func TestApplyArchiveSweepThreshold_AtOrBelowStaysAdvisory(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			findings := []Finding{
 				{Code: "archive-sweep-pending", Severity: SeverityWarning},
 				{Code: "terminal-entity-not-archived", Severity: SeverityWarning, EntityID: "G-0050"},
@@ -545,6 +558,7 @@ func TestApplyArchiveSweepThreshold_AtOrBelowStaysAdvisory(t *testing.T) {
 // `aiwf check` output sees their declared threshold cited explicitly,
 // not just the default "set the threshold to escalate" hint.
 func TestApplyArchiveSweepThreshold_PastThresholdEscalates(t *testing.T) {
+	t.Parallel()
 	findings := []Finding{
 		{
 			Code:     "archive-sweep-pending",
@@ -588,6 +602,7 @@ func TestApplyArchiveSweepThreshold_PastThresholdEscalates(t *testing.T) {
 // branch coverage for a slice that has no findings yet. Mirrors
 // the TestApplyTDDStrict nil-defense subtest.
 func TestApplyArchiveSweepThreshold_NilFindingsIsNoOp(t *testing.T) {
+	t.Parallel()
 	ApplyArchiveSweepThreshold(nil, 5, true, 47)
 }
 
@@ -598,6 +613,7 @@ func TestApplyArchiveSweepThreshold_NilFindingsIsNoOp(t *testing.T) {
 // finding to escalate. (This is the production path on a clean
 // tree with a threshold configured.)
 func TestApplyArchiveSweepThreshold_NoAggregateInSliceIsNoOp(t *testing.T) {
+	t.Parallel()
 	findings := []Finding{
 		{Code: "refs-resolve", Severity: SeverityError, EntityID: "M-0002"},
 	}

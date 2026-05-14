@@ -18,6 +18,7 @@ import (
 // findings of any severity. If this test breaks, either a check has a
 // false positive or the fixture has drifted.
 func TestFixture_Clean(t *testing.T) {
+	t.Parallel()
 	tr, loadErrs, err := tree.Load(context.Background(), "testdata/clean")
 	if err != nil {
 		t.Fatalf("loading: %v", err)
@@ -37,6 +38,7 @@ func TestFixture_Clean(t *testing.T) {
 // and counts shift when the fixture is extended — only that each
 // expected code appears at least once.
 func TestFixture_Messy(t *testing.T) {
+	t.Parallel()
 	tr, loadErrs, err := tree.Load(context.Background(), "testdata/messy")
 	if err != nil {
 		t.Fatalf("loading: %v", err)
@@ -109,6 +111,7 @@ func TestFixture_Messy(t *testing.T) {
 // (rather than testdata/) so it doubles as documentation: anyone
 // reading this test sees the exact shape of the bug.
 func TestFixture_ProliminalCascadeEndToEnd(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// E-01 with the unknown `completed:` field — the bug.
@@ -187,6 +190,7 @@ relates_to: [E-01]
 // the cross-links must produce exactly 2 findings (the load errors)
 // and zero cascade noise.
 func TestFixture_MultipleStubsAndCrossLinks(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// E-01: parse failure (unknown field).

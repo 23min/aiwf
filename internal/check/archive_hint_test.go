@@ -34,6 +34,7 @@ import (
 // future drop of backticks (or a pivot to prose phrasing) fails this
 // test before it ships to consumer output.
 func TestHintFor_TerminalEntityNotArchived_ContainsBacktickedVerb(t *testing.T) {
+	t.Parallel()
 	hint := HintFor("terminal-entity-not-archived", "")
 	if hint == "" {
 		t.Fatal("HintFor(\"terminal-entity-not-archived\") returned empty string")
@@ -51,6 +52,7 @@ func TestHintFor_TerminalEntityNotArchived_ContainsBacktickedVerb(t *testing.T) 
 // per-tree aggregate counterpart. Same structural shape as the leaf
 // rule above.
 func TestHintFor_ArchiveSweepPending_ContainsBacktickedVerb(t *testing.T) {
+	t.Parallel()
 	hint := HintFor("archive-sweep-pending", "")
 	if hint == "" {
 		t.Fatal("HintFor(\"archive-sweep-pending\") returned empty string")
@@ -68,6 +70,7 @@ func TestHintFor_ArchiveSweepPending_ContainsBacktickedVerb(t *testing.T) {
 // carries the backticked hint string in its Hint field. This is
 // what JSON consumers and rendered text both read.
 func TestApplyHints_ArchiveFindings_CarryBacktickedHint(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		code string
 	}{
@@ -76,6 +79,7 @@ func TestApplyHints_ArchiveFindings_CarryBacktickedHint(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.code, func(t *testing.T) {
+			t.Parallel()
 			findings := []Finding{
 				{Code: tc.code, Severity: SeverityWarning, Message: "test fixture"},
 			}
@@ -101,6 +105,7 @@ func TestApplyHints_ArchiveFindings_CarryBacktickedHint(t *testing.T) {
 // names the finding code, so a stray reference elsewhere in the
 // document doesn't satisfy the assertion.
 func TestSkillCheckSkillMd_ArchiveTableRowsBacktickedVerb(t *testing.T) {
+	t.Parallel()
 	// Locate the SKILL.md by walking up to the kernel root, then
 	// dropping into the embedded path.
 	skillPath := findSkillMd(t, "aiwf-check")
@@ -116,6 +121,7 @@ func TestSkillCheckSkillMd_ArchiveTableRowsBacktickedVerb(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.findingCode, func(t *testing.T) {
+			t.Parallel()
 			row := findTableRowForCode(string(body), tc.findingCode)
 			if row == "" {
 				t.Fatalf("no table row whose first column names `%s` in %s", tc.findingCode, skillPath)
