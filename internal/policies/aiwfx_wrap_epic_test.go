@@ -268,7 +268,7 @@ func TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle(t *testing.T) {
 
 	// The promote step is last among commit-emitting steps and
 	// strictly before the push gate.
-	if !(mergeIdx < wrapArtefactIdx && wrapArtefactIdx < promoteIdx && promoteIdx < pushIdx) {
+	if mergeIdx >= wrapArtefactIdx || wrapArtefactIdx >= promoteIdx || promoteIdx >= pushIdx {
 		t.Errorf("G-0119: wrap-bundle ordering must be merge → wrap-artefact commit → promote → push (got line indices: merge=%d, wrap-artefact=%d, promote=%d, push=%d). The promote must be the last commit before push so the authorize scope is still live for every other wrap commit.", mergeIdx, wrapArtefactIdx, promoteIdx, pushIdx)
 	}
 }
