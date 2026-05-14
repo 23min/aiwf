@@ -43,6 +43,11 @@ exclude = [
   # GitHub Discussions URLs 404 until the feature is enabled with the
   # referenced category. Re-evaluate after enabling Discussions.
   "^https?://github\\.com/23min/aiwf/discussions",
+  # STATUS.md is gitignored — a post-commit-regenerated snapshot
+  # (G-0112) that doesn't exist in a fresh checkout. Tracked docs no
+  # longer link to it directly; defense-in-depth keeps this guard so
+  # any stray reference doesn't fail link-check.
+  "^file://.*/STATUS\\.md$",
 ]
 
 # Cache results between runs to keep CI fast.
