@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: race-parallel cap lands in Makefile and workflows in a leading commit
-      status: open
+      status: met
     - id: AC-2
       title: every internal/* test-bearing package has setup_test.go with TestMain
       status: open
