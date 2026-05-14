@@ -23,6 +23,7 @@ func writeFile(t *testing.T, root, rel, content string) {
 }
 
 func TestLoad_EmptyRepo(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	tr, loadErrs, err := Load(context.Background(), root)
 	if err != nil {
@@ -37,6 +38,7 @@ func TestLoad_EmptyRepo(t *testing.T) {
 }
 
 func TestLoad_AllSixKinds(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
 id: E-01
@@ -119,6 +121,7 @@ status: accepted
 // §"Storage — per-kind layout". Every row that ADR-0004 names with
 // an archive location is exercised here.
 func TestLoad_ArchivedEntities(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	// Active set — one of every kind, just so the test exercises
@@ -238,6 +241,7 @@ status: superseded
 // counts. This is the spec-fidelity assertion for "archive-empty
 // trees pay no extra cost."
 func TestLoad_ArchiveEmptyTreeBoundedCost(t *testing.T) {
+	t.Parallel()
 	build := func(t *testing.T, withEmptyArchive bool) (*Tree, []LoadError) {
 		t.Helper()
 		root := t.TempDir()
@@ -319,6 +323,7 @@ status: accepted
 }
 
 func TestLoad_ParseErrorBecomesLoadError(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	// Valid sibling so we know the loader keeps going.
 	writeFile(t, root, "work/epics/E-01-good/epic.md", `---
@@ -351,6 +356,7 @@ status: active
 }
 
 func TestLoad_ParseErrorRegistersStub(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	// Unknown frontmatter field — KnownFields(true) rejects it,
 	// matching the real-world wrap-epic skill bug that motivated
@@ -386,6 +392,7 @@ completed: 2026-04-30
 }
 
 func TestLoad_ReadFailureRegistersStub(t *testing.T) {
+	t.Parallel()
 	if os.Getuid() == 0 {
 		t.Skip("running as root; cannot create unreadable file")
 	}
@@ -416,6 +423,7 @@ status: active
 }
 
 func TestLoad_ParseErrorWithUnreadablePathSkipsStub(t *testing.T) {
+	t.Parallel()
 	// If the path itself doesn't yield a recognizable id (shouldn't
 	// happen in practice — PathKind already filtered — but defensive),
 	// no stub is registered. The load-error finding still fires.
@@ -442,6 +450,7 @@ not: yaml
 }
 
 func TestLoad_StraysSkipped(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
 id: E-01
@@ -467,6 +476,7 @@ status: active
 }
 
 func TestLoad_PartialLayout(t *testing.T) {
+	t.Parallel()
 	// Repo has only some of the entity-bearing dirs (a fresh repo with
 	// only an ADR, for example). Missing dirs should not error.
 	root := t.TempDir()
@@ -489,6 +499,7 @@ status: accepted
 }
 
 func TestTree_ByID(t *testing.T) {
+	t.Parallel()
 	tr := &Tree{Entities: []*entity.Entity{
 		{ID: "E-01", Kind: entity.KindEpic},
 		{ID: "M-001", Kind: entity.KindMilestone},
@@ -511,6 +522,7 @@ func TestTree_ByID(t *testing.T) {
 // these are the parser-tolerance cases by design — the tree-load
 // layer accepts the on-disk shape verbatim and the lookup canonicalizes.
 func TestTree_ByID_AcceptsBothWidths(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		stored string
@@ -527,6 +539,7 @@ func TestTree_ByID_AcceptsBothWidths(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			kind, ok := entity.KindFromID(tt.stored)
 			if !ok {
 				t.Fatalf("KindFromID(%q) ok=false", tt.stored)
@@ -549,6 +562,7 @@ func TestTree_ByID_AcceptsBothWidths(t *testing.T) {
 // id finds the entity that carries the narrow id in PriorIDs (and
 // vice versa).
 func TestTree_ByPriorID_AcceptsBothWidths(t *testing.T) {
+	t.Parallel()
 	g := &entity.Entity{
 		ID:       "G-0094",
 		Kind:     entity.KindGap,
@@ -566,6 +580,7 @@ func TestTree_ByPriorID_AcceptsBothWidths(t *testing.T) {
 }
 
 func TestTree_ByPriorIDAndResolve(t *testing.T) {
+	t.Parallel()
 	// G-003 carries lineage [G-001, G-002] — two prior reallocations.
 	// Queries for any of the three should resolve to G-003 via
 	// ResolveByCurrentOrPriorID.
@@ -601,6 +616,7 @@ func TestTree_ByPriorIDAndResolve(t *testing.T) {
 }
 
 func TestLoad_ReverseRefs(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	// Epic with two milestones; the second depends on the first.
 	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
@@ -714,6 +730,7 @@ linked_adrs:
 	}
 	for _, tc := range cases {
 		t.Run(tc.target, func(t *testing.T) {
+			t.Parallel()
 			got := tr.ReferencedBy(tc.target)
 			if !equalStrings(got, tc.want) {
 				t.Errorf("ReferencedBy(%q) = %v, want %v", tc.target, got, tc.want)
@@ -727,6 +744,7 @@ linked_adrs:
 // from `from` toward `to`, with composite ids rolling up to their
 // parent for traversal. Same fixture shape as TestLoad_ReverseRefs.
 func TestReaches(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
 id: E-01
@@ -790,6 +808,7 @@ addressed_by:
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if got := tr.Reaches(tc.from, tc.to); got != tc.want {
 				t.Errorf("Reaches(%q, %q) = %v, want %v", tc.from, tc.to, got, tc.want)
 			}
@@ -802,6 +821,7 @@ addressed_by:
 // entity's outbound references (read from the proposed frontmatter)
 // and asks "does any of them reach the scope-entity."
 func TestReachesAny(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
 id: E-01
@@ -834,6 +854,7 @@ parent: E-01
 // TestLoad_ReverseRefsEmptyTree verifies that an empty tree yields a
 // non-nil empty map — callers can range or index without a nil check.
 func TestLoad_ReverseRefsEmptyTree(t *testing.T) {
+	t.Parallel()
 	tr, _, err := Load(context.Background(), t.TempDir())
 	if err != nil {
 		t.Fatalf("Load: %v", err)
@@ -859,6 +880,7 @@ func equalStrings(a, b []string) bool {
 }
 
 func TestTree_ByKind(t *testing.T) {
+	t.Parallel()
 	tr := &Tree{Entities: []*entity.Entity{
 		{ID: "E-01", Kind: entity.KindEpic},
 		{ID: "M-001", Kind: entity.KindMilestone},
@@ -883,6 +905,7 @@ func TestTree_ByKind(t *testing.T) {
 // drift both verbs in lockstep — much easier to spot than two
 // independent regressions diverging silently.
 func TestTree_FilterByKindStatuses(t *testing.T) {
+	t.Parallel()
 	tr := &Tree{Entities: []*entity.Entity{
 		{ID: "E-02", Kind: entity.KindEpic, Status: "active"},
 		{ID: "E-01", Kind: entity.KindEpic, Status: "active"},
