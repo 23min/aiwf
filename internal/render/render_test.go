@@ -14,6 +14,7 @@ import (
 )
 
 func TestStatusFor(t *testing.T) {
+	t.Parallel()
 	if got := StatusFor(nil); got != "ok" {
 		t.Errorf("StatusFor(nil) = %q, want ok", got)
 	}
@@ -23,6 +24,7 @@ func TestStatusFor(t *testing.T) {
 }
 
 func TestText_Empty(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 	if err := Text(&buf, nil); err != nil {
 		t.Fatal(err)
@@ -33,6 +35,7 @@ func TestText_Empty(t *testing.T) {
 }
 
 func TestText_PathLineSeverityCodeMessageHint(t *testing.T) {
+	t.Parallel()
 	findings := []check.Finding{
 		{
 			Code:     "refs-resolve",
@@ -73,6 +76,7 @@ func TestText_PathLineSeverityCodeMessageHint(t *testing.T) {
 // (e.g., a load error whose file failed to parse) should still render
 // path-prefixed but without the :line suffix.
 func TestText_PathWithoutLine(t *testing.T) {
+	t.Parallel()
 	findings := []check.Finding{{
 		Code:     "load-error",
 		Severity: check.SeverityError,
@@ -91,6 +95,7 @@ func TestText_PathWithoutLine(t *testing.T) {
 }
 
 func TestText_NoPath(t *testing.T) {
+	t.Parallel()
 	findings := []check.Finding{{
 		Code:     "load-error",
 		Severity: check.SeverityError,
@@ -109,6 +114,7 @@ func TestText_NoPath(t *testing.T) {
 // trailing "— hint: ..." suffix. The renderer is responsible for
 // degrading gracefully when checks haven't been hint-annotated.
 func TestText_HintOmittedWhenEmpty(t *testing.T) {
+	t.Parallel()
 	findings := []check.Finding{{
 		Code:     "ids-unique",
 		Severity: check.SeverityError,
@@ -138,6 +144,7 @@ func TestText_HintOmittedWhenEmpty(t *testing.T) {
 // A flat substring grep would fire even if the code drifted into the
 // hint or the footer.
 func TestTextSummary_WarningsCollapsedByCode(t *testing.T) {
+	t.Parallel()
 	// terminal-entity-not-archived × 3 (highest count), titles-nonempty × 2.
 	// Constructed in the order Run() would emit (sorted alphabetically by
 	// code, then path) so the "first message" rule is unambiguous.
@@ -201,6 +208,7 @@ func TestTextSummary_WarningsCollapsedByCode(t *testing.T) {
 // identified by leading `<path>:<line>: error <code>` shape, not by
 // substring grep on the path or code alone.
 func TestTextSummary_ErrorsPrintPerInstance(t *testing.T) {
+	t.Parallel()
 	findings := []check.Finding{
 		{Code: "refs-resolve", Subcode: "unresolved", Severity: check.SeverityError, Message: `milestone field "parent" references unknown id "E-0099"`, Path: "work/epics/E-0001/M-0001.md", Line: 5, Hint: "check spelling"},
 		{Code: "refs-resolve", Subcode: "unresolved", Severity: check.SeverityError, Message: `milestone field "parent" references unknown id "E-0077"`, Path: "work/epics/E-0001/M-0002.md", Line: 5, Hint: "check spelling"},
@@ -252,6 +260,7 @@ func TestTextSummary_ErrorsPrintPerInstance(t *testing.T) {
 // empty input produces the same "ok — no findings" banner regardless
 // of which entry point the caller chose.
 func TestTextSummary_Empty(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 	if err := TextSummary(&buf, nil); err != nil {
 		t.Fatal(err)
@@ -265,6 +274,7 @@ func TestTextSummary_Empty(t *testing.T) {
 // when two codes have equal count, the order is alphabetic by code.
 // This is the deterministic tie-break that keeps golden files stable.
 func TestTextSummary_TieBreakAlphabeticByCode(t *testing.T) {
+	t.Parallel()
 	findings := []check.Finding{
 		// zeta-code appears first in input order but sorts second
 		// alphabetically; alpha-code must therefore come first.
@@ -319,6 +329,7 @@ func (errFailWriterValue) Error() string { return "failWriter: simulated write f
 // paths before declaring code paths 'done'": every reachable
 // conditional branch is exercised.
 func TestTextSummary_WriteErrorBubblesUp(t *testing.T) {
+	t.Parallel()
 	findings := []check.Finding{
 		{Code: "boom", Severity: check.SeverityError, Message: "an error", Path: "a.md", Line: 1},
 		{Code: "fizz", Severity: check.SeverityWarning, Message: "a warning"},
@@ -354,6 +365,7 @@ func TestTextSummary_WriteErrorBubblesUp(t *testing.T) {
 // but Text shares the renderPerInstance helper so the failure
 // surfaces through it too.
 func TestText_WriteErrorBubblesUp(t *testing.T) {
+	t.Parallel()
 	findings := []check.Finding{
 		{Code: "boom", Severity: check.SeverityError, Message: "an error", Path: "a.md", Line: 1},
 	}
@@ -377,6 +389,7 @@ func TestText_WriteErrorBubblesUp(t *testing.T) {
 // own Fprintf with its own return-err branch; a failure on the first
 // write of a single-finding slice surfaces the matching arm's branch.
 func TestRenderPerInstance_WriteErrorPerShape(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name    string
 		finding check.Finding
@@ -387,6 +400,7 @@ func TestRenderPerInstance_WriteErrorPerShape(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			err := renderPerInstance(&failWriter{failOn: 1}, []check.Finding{tc.finding})
 			if err == nil {
 				t.Errorf("expected error from failing writer (%s branch); got nil", tc.name)
@@ -400,6 +414,7 @@ func TestRenderPerInstance_WriteErrorPerShape(t *testing.T) {
 // field of the first finding in the input slice with that code,
 // verbatim. No template substitution, no truncation.
 func TestTextSummary_SampleMessageIsFirstFinding(t *testing.T) {
+	t.Parallel()
 	findings := []check.Finding{
 		{Code: "same-code", Severity: check.SeverityWarning, Message: "first instance message", Path: "a.md", Line: 1},
 		{Code: "same-code", Severity: check.SeverityWarning, Message: "second instance message", Path: "b.md", Line: 1},
@@ -462,6 +477,7 @@ func extractSummaryLines(t *testing.T, out string) []summaryLine {
 }
 
 func TestJSON_RoundTrip(t *testing.T) {
+	t.Parallel()
 	env := Envelope{
 		Tool:    "aiwf",
 		Version: "0.1.0",
@@ -485,6 +501,7 @@ func TestJSON_RoundTrip(t *testing.T) {
 }
 
 func TestJSON_PrettyIndents(t *testing.T) {
+	t.Parallel()
 	var compact, pretty bytes.Buffer
 	env := Envelope{Tool: "aiwf", Version: "dev", Status: "ok"}
 	if err := JSON(&compact, env, false); err != nil {
@@ -499,6 +516,7 @@ func TestJSON_PrettyIndents(t *testing.T) {
 }
 
 func TestJSON_NilFindingsBecomesEmptyArray(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 	env := Envelope{Tool: "aiwf", Version: "dev", Status: "ok", Findings: nil}
 	if err := JSON(&buf, env, false); err != nil {
