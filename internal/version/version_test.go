@@ -12,6 +12,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
+	t.Parallel()
 	// Inputs sourced from the Go module spec — see
 	// https://go.dev/ref/mod#pseudo-versions for the three
 	// pseudo-version forms, https://semver.org for the base grammar,
@@ -61,6 +62,7 @@ func TestParse(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
+			t.Parallel()
 			got := Parse(tc.in)
 			if got.Version != tc.wantVer {
 				t.Errorf("Version = %q, want %q", got.Version, tc.wantVer)
@@ -73,6 +75,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestCompare(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		a, b string
@@ -100,6 +103,7 @@ func TestCompare(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got := Compare(Parse(tc.a), Parse(tc.b))
 			if got != tc.want {
 				t.Errorf("Compare(%q, %q) = %s, want %s", tc.a, tc.b, got, tc.want)
@@ -109,6 +113,7 @@ func TestCompare(t *testing.T) {
 }
 
 func TestSkewString(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		s    Skew
 		want string
@@ -121,6 +126,7 @@ func TestSkewString(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.want, func(t *testing.T) {
+			t.Parallel()
 			if got := tc.s.String(); got != tc.want {
 				t.Errorf("String() = %q, want %q", got, tc.want)
 			}
@@ -129,6 +135,7 @@ func TestSkewString(t *testing.T) {
 }
 
 func TestParseTriple(t *testing.T) {
+	t.Parallel()
 	// Direct white-box test of the parseTriple helper. Compare only
 	// calls it on values that already passed isTagged, so the
 	// defensive paths (wrong segment count, non-numeric segments)
@@ -150,6 +157,7 @@ func TestParseTriple(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
+			t.Parallel()
 			got, ok := parseTriple(tc.in)
 			if ok != tc.ok {
 				t.Fatalf("parseTriple(%q) ok = %v, want %v", tc.in, ok, tc.ok)
@@ -162,6 +170,7 @@ func TestParseTriple(t *testing.T) {
 }
 
 func TestCurrent_DevelInTestBinary(t *testing.T) {
+	t.Parallel()
 	// `go test` builds the test binary as a working-tree build, so
 	// runtime/debug.ReadBuildInfo reports Main.Version == "" or
 	// "(devel)" — either way Current() returns DevelVersion with
@@ -177,6 +186,7 @@ func TestCurrent_DevelInTestBinary(t *testing.T) {
 }
 
 func TestModulePath_TestBinary(t *testing.T) {
+	t.Parallel()
 	// Under `go test`, ModulePath returns the module of the test
 	// binary, which is this repo's go.mod path.
 	got := ModulePath()
@@ -411,6 +421,7 @@ func TestLatest_GoproxyOff(t *testing.T) {
 }
 
 func TestLatest_EmptyModulePath(t *testing.T) {
+	t.Parallel()
 	_, err := latestFor(context.Background(), http.DefaultClient, "")
 	if err == nil {
 		t.Fatal("expected error on empty module path")
