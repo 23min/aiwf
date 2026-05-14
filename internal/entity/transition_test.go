@@ -6,6 +6,7 @@ import (
 )
 
 func TestValidateTransition_Allowed(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		kind Kind
 		from string
@@ -29,6 +30,7 @@ func TestValidateTransition_Allowed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind)+"/"+tt.from+"->"+tt.to, func(t *testing.T) {
+			t.Parallel()
 			if err := ValidateTransition(tt.kind, tt.from, tt.to); err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -37,6 +39,7 @@ func TestValidateTransition_Allowed(t *testing.T) {
 }
 
 func TestValidateTransition_Forbidden(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		kind      Kind
@@ -54,6 +57,7 @@ func TestValidateTransition_Forbidden(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ValidateTransition(tt.kind, tt.from, tt.to)
 			if err == nil {
 				t.Fatal("want error, got nil")
@@ -66,6 +70,7 @@ func TestValidateTransition_Forbidden(t *testing.T) {
 }
 
 func TestCancelTarget(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		kind Kind
 		want string
@@ -79,6 +84,7 @@ func TestCancelTarget(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind), func(t *testing.T) {
+			t.Parallel()
 			if got := CancelTarget(tt.kind); got != tt.want {
 				t.Errorf("CancelTarget(%s) = %q, want %q", tt.kind, got, tt.want)
 			}
@@ -90,8 +96,10 @@ func TestCancelTarget(t *testing.T) {
 // status set drifting away from its FSM. Every status in
 // AllowedStatuses(k) must have a transition entry (possibly empty).
 func TestEveryAllowedStatusHasTransitionEntry(t *testing.T) {
+	t.Parallel()
 	for _, k := range AllKinds() {
 		t.Run(string(k), func(t *testing.T) {
+			t.Parallel()
 			fsm := transitions[k]
 			for _, status := range AllowedStatuses(k) {
 				if _, ok := fsm[status]; !ok {
@@ -108,6 +116,7 @@ func TestEveryAllowedStatusHasTransitionEntry(t *testing.T) {
 // `deferred` and `cancelled` are terminal — every outgoing pair from
 // either is illegal.
 func TestIsLegalACTransition_AllPairs(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		from, to string
 		want     bool
@@ -140,6 +149,7 @@ func TestIsLegalACTransition_AllPairs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.from+"->"+tt.to, func(t *testing.T) {
+			t.Parallel()
 			if got := IsLegalACTransition(tt.from, tt.to); got != tt.want {
 				t.Errorf("IsLegalACTransition(%q, %q) = %v, want %v", tt.from, tt.to, got, tt.want)
 			}
@@ -154,6 +164,7 @@ func TestIsLegalACTransition_AllPairs(t *testing.T) {
 // only enter at red — entering at green or later from absent would
 // bypass the red-discipline that the audit relies on.
 func TestIsLegalTDDPhaseTransition_AllPairs(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		from, to string
 		want     bool
@@ -191,6 +202,7 @@ func TestIsLegalTDDPhaseTransition_AllPairs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.from+"->"+tt.to, func(t *testing.T) {
+			t.Parallel()
 			if got := IsLegalTDDPhaseTransition(tt.from, tt.to); got != tt.want {
 				t.Errorf("IsLegalTDDPhaseTransition(%q, %q) = %v, want %v", tt.from, tt.to, got, tt.want)
 			}
@@ -203,6 +215,7 @@ func TestIsLegalTDDPhaseTransition_AllPairs(t *testing.T) {
 // must have a transition entry (possibly empty), so adding a new
 // status without wiring its FSM row fails loudly.
 func TestEveryAllowedACStatusHasTransitionEntry(t *testing.T) {
+	t.Parallel()
 	for _, status := range AllowedACStatuses() {
 		if _, ok := acTransitions[status]; !ok {
 			t.Errorf("AC status %q has no FSM entry in acTransitions", status)
@@ -214,6 +227,7 @@ func TestEveryAllowedACStatusHasTransitionEntry(t *testing.T) {
 // for AC statuses. Every phase in AllowedTDDPhases must have a
 // transition entry (possibly empty).
 func TestEveryAllowedTDDPhaseHasTransitionEntry(t *testing.T) {
+	t.Parallel()
 	for _, phase := range AllowedTDDPhases() {
 		if _, ok := tddPhaseTransitions[phase]; !ok {
 			t.Errorf("TDD phase %q has no FSM entry in tddPhaseTransitions", phase)
@@ -222,6 +236,7 @@ func TestEveryAllowedTDDPhaseHasTransitionEntry(t *testing.T) {
 }
 
 func TestMilestoneCanGoDone(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		acs         []AcceptanceCriterion
@@ -292,6 +307,7 @@ func TestMilestoneCanGoDone(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			m := &Entity{Kind: KindMilestone, ID: "M-007", ACs: tt.acs}
 			canGo, openIDs := MilestoneCanGoDone(m)
 			if canGo != tt.wantCanGo {
@@ -305,6 +321,7 @@ func TestMilestoneCanGoDone(t *testing.T) {
 }
 
 func TestMilestoneCanGoDone_NilEntity(t *testing.T) {
+	t.Parallel()
 	canGo, openIDs := MilestoneCanGoDone(nil)
 	if !canGo {
 		t.Error("nil entity should permit milestone-done")
@@ -322,9 +339,11 @@ func TestMilestoneCanGoDone_NilEntity(t *testing.T) {
 // wontfix; contract: retired|rejected) and the property that IsTerminal
 // derives from the FSM rather than maintaining a parallel hardcoded list.
 func TestIsTerminal_ExhaustiveOverFSM(t *testing.T) {
+	t.Parallel()
 	for _, k := range AllKinds() {
 		for _, status := range AllowedStatuses(k) {
 			t.Run(string(k)+"/"+status, func(t *testing.T) {
+				t.Parallel()
 				want := len(AllowedTransitions(k, status)) == 0
 				if got := IsTerminal(k, status); got != want {
 					t.Errorf("IsTerminal(%s, %q) = %v, want %v", k, status, got, want)
@@ -338,6 +357,7 @@ func TestIsTerminal_ExhaustiveOverFSM(t *testing.T) {
 // future FSM tweak can't silently demote a status from terminal without
 // failing this assertion.
 func TestIsTerminal_TerminalSet(t *testing.T) {
+	t.Parallel()
 	wantTerminal := map[Kind][]string{
 		KindEpic:      {"done", "cancelled"},
 		KindMilestone: {"done", "cancelled"},
@@ -349,6 +369,7 @@ func TestIsTerminal_TerminalSet(t *testing.T) {
 	for kind, statuses := range wantTerminal {
 		for _, s := range statuses {
 			t.Run(string(kind)+"/"+s, func(t *testing.T) {
+				t.Parallel()
 				if !IsTerminal(kind, s) {
 					t.Errorf("IsTerminal(%s, %q) = false, want true", kind, s)
 				}
@@ -360,6 +381,7 @@ func TestIsTerminal_TerminalSet(t *testing.T) {
 // TestIsTerminal_NonTerminal samples every non-terminal status across
 // the six kinds and asserts IsTerminal returns false.
 func TestIsTerminal_NonTerminal(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		kind   Kind
 		status string
@@ -379,6 +401,7 @@ func TestIsTerminal_NonTerminal(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(string(c.kind)+"/"+c.status, func(t *testing.T) {
+			t.Parallel()
 			if IsTerminal(c.kind, c.status) {
 				t.Errorf("IsTerminal(%s, %q) = true, want false", c.kind, c.status)
 			}
@@ -391,6 +414,7 @@ func TestIsTerminal_NonTerminal(t *testing.T) {
 // downstream checks (like entity-body-empty) must keep firing on
 // junk-status entities so other findings surface them.
 func TestIsTerminal_UnknownInputs(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name   string
 		kind   Kind
@@ -403,6 +427,7 @@ func TestIsTerminal_UnknownInputs(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			if IsTerminal(c.kind, c.status) {
 				t.Errorf("IsTerminal(%s, %q) = true, want false", c.kind, c.status)
 			}

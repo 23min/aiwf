@@ -23,6 +23,7 @@ func regexpCompile(pat string) (*regexp.Regexp, error) {
 // inputs (`E-22`, `M-007`, etc.) are intentional: AC-2 is the
 // parser-tolerance test, so narrow inputs by design.
 func TestCanonicalize(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		in   string
@@ -64,6 +65,7 @@ func TestCanonicalize(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := Canonicalize(tt.in)
 			if got != tt.want {
 				t.Errorf("Canonicalize(%q) = %q, want %q", tt.in, got, tt.want)
@@ -79,6 +81,7 @@ func TestCanonicalize(t *testing.T) {
 // regex semantics and match both narrow and canonical-width
 // renderings of the input id.
 func TestIDGrepAlternation_MatchesBothWidths(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		id         string
@@ -126,6 +129,7 @@ func TestIDGrepAlternation_MatchesBothWidths(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			pat := IDGrepAlternation(tt.id)
 			// Anchor end-to-end so the test mirrors how the grep is used:
 			// `^aiwf-entity: <pat>$` against trailer lines.
@@ -152,6 +156,7 @@ func TestIDGrepAlternation_MatchesBothWidths(t *testing.T) {
 // branches the matchers above don't traverse; the seam-test rule
 // from CLAUDE.md asks for explicit coverage, not just integration.
 func TestIDGrepAlternation_EdgeCases(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		in   string
@@ -167,6 +172,7 @@ func TestIDGrepAlternation_EdgeCases(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if got := IDGrepAlternation(tt.in); got != tt.want {
 				t.Errorf("IDGrepAlternation(%q) = %q, want %q", tt.in, got, tt.want)
 			}
@@ -179,9 +185,11 @@ func TestIDGrepAlternation_EdgeCases(t *testing.T) {
 // from internal/entity/entity.go::compositeIDPattern, which uses
 // `\d{3,}` so ≥3 digits is the floor.
 func TestIsCompositeID_TolerantOfBothWidths(t *testing.T) {
+	t.Parallel()
 	tests := []string{"M-22/AC-1", "M-007/AC-1", "M-0007/AC-1", "M-12345/AC-3"}
 	for _, in := range tests {
 		t.Run(in, func(t *testing.T) {
+			t.Parallel()
 			// compositeIDPattern requires `M-\d{3,}` so M-22 is still
 			// rejected by the grammar — Canonicalize is the right
 			// chokepoint for that case, not IsCompositeID.
@@ -212,6 +220,7 @@ func TestIsCompositeID_TolerantOfBothWidths(t *testing.T) {
 // across all kinds; this is the load-bearing assertion that the
 // allocator never re-emits narrow widths once M-A ships.
 func TestAllocateID_CanonicalFourDigitForEveryKind(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		kind Kind
 		want string
@@ -225,6 +234,7 @@ func TestAllocateID_CanonicalFourDigitForEveryKind(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind), func(t *testing.T) {
+			t.Parallel()
 			got := AllocateID(tt.kind, nil, nil)
 			if got != tt.want {
 				t.Errorf("AllocateID(%s, empty, empty) = %q, want %q", tt.kind, got, tt.want)
@@ -238,6 +248,7 @@ func TestAllocateID_CanonicalFourDigitForEveryKind(t *testing.T) {
 // (the typical post-migration legacy state), the allocator's next
 // allocation lands at the canonical 4-digit width.
 func TestAllocateID_CanonicalAfterNarrowHighWater(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		kind  Kind
 		prior string
@@ -252,6 +263,7 @@ func TestAllocateID_CanonicalAfterNarrowHighWater(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind), func(t *testing.T) {
+			t.Parallel()
 			entities := []*Entity{{ID: tt.prior, Kind: tt.kind}}
 			got := AllocateID(tt.kind, entities, nil)
 			if got != tt.want {

@@ -9,6 +9,7 @@ import (
 )
 
 func TestParse_Minimal(t *testing.T) {
+	t.Parallel()
 	content := []byte(`---
 id: E-01
 title: Platform foundations
@@ -35,6 +36,7 @@ Set up the platform.
 }
 
 func TestParse_MilestoneWithRefs(t *testing.T) {
+	t.Parallel()
 	content := []byte(`---
 id: M-007
 title: Cache warmup
@@ -65,6 +67,7 @@ body
 // these as `[]` and `none` respectively; a parse-side regression here
 // would silently break that contract before the check runs.
 func TestParse_MilestoneAbsentACsAndTDD(t *testing.T) {
+	t.Parallel()
 	content := []byte(`---
 id: M-001
 title: Pre-I2 milestone
@@ -89,6 +92,7 @@ parent: E-01
 // the second met with phase done. The `KnownFields(true)` decoder will
 // reject the new keys until the Entity struct carries them.
 func TestParse_MilestoneWithACsAndTDD(t *testing.T) {
+	t.Parallel()
 	content := []byte(`---
 id: M-007
 title: Engine warning surface
@@ -127,6 +131,7 @@ acs:
 // `aiwf add ac` invocation produces when the parent milestone is `tdd:
 // none` (or absent).
 func TestParse_ACWithoutTDDPhase(t *testing.T) {
+	t.Parallel()
 	content := []byte(`---
 id: M-008
 title: No-TDD milestone
@@ -151,6 +156,7 @@ acs:
 }
 
 func TestParse_ContractFields(t *testing.T) {
+	t.Parallel()
 	content := []byte(`---
 id: C-003
 title: Orders API
@@ -173,6 +179,7 @@ linked_adrs:
 }
 
 func TestParse_NoFrontmatter(t *testing.T) {
+	t.Parallel()
 	content := []byte("# Just a markdown file\n\nNo frontmatter here.\n")
 	_, err := Parse("notes.md", content)
 	if !errors.Is(err, ErrNoFrontmatter) {
@@ -181,6 +188,7 @@ func TestParse_NoFrontmatter(t *testing.T) {
 }
 
 func TestParse_UnclosedFrontmatter(t *testing.T) {
+	t.Parallel()
 	content := []byte("---\nid: E-01\ntitle: Foo\n")
 	_, err := Parse("foo.md", content)
 	if !errors.Is(err, ErrNoFrontmatter) {
@@ -189,6 +197,7 @@ func TestParse_UnclosedFrontmatter(t *testing.T) {
 }
 
 func TestParse_UnknownField(t *testing.T) {
+	t.Parallel()
 	content := []byte(`---
 id: E-01
 title: Foo
@@ -203,6 +212,7 @@ mystery_field: nope
 }
 
 func TestParse_BOMTolerant(t *testing.T) {
+	t.Parallel()
 	content := []byte("\xef\xbb\xbf---\nid: E-01\ntitle: Foo\nstatus: active\n---\n")
 	got, err := Parse("foo.md", content)
 	if err != nil {
@@ -214,6 +224,7 @@ func TestParse_BOMTolerant(t *testing.T) {
 }
 
 func TestParse_CRLFTolerant(t *testing.T) {
+	t.Parallel()
 	content := []byte("---\r\nid: E-01\r\ntitle: Foo\r\nstatus: active\r\n---\r\nbody\r\n")
 	got, err := Parse("foo.md", content)
 	if err != nil {
