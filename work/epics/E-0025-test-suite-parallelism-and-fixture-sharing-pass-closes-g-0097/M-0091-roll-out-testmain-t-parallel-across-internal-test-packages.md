@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: every internal/* test-bearing package has setup_test.go with TestMain
-      status: open
+      status: met
     - id: AC-3
       title: t.Parallel adopted on every test that does not need serial execution
       status: open
