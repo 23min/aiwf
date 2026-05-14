@@ -23,6 +23,7 @@ func initRepo(t *testing.T) string {
 }
 
 func TestAcquire_Once_OK(t *testing.T) {
+	t.Parallel()
 	root := initRepo(t)
 	l, err := Acquire(root, 0)
 	if err != nil {
@@ -34,6 +35,7 @@ func TestAcquire_Once_OK(t *testing.T) {
 }
 
 func TestAcquire_Twice_SecondGetsErrBusy(t *testing.T) {
+	t.Parallel()
 	root := initRepo(t)
 	l1, err := Acquire(root, 0)
 	if err != nil {
@@ -48,6 +50,7 @@ func TestAcquire_Twice_SecondGetsErrBusy(t *testing.T) {
 }
 
 func TestAcquire_Twice_SecondWaitsThenSucceeds(t *testing.T) {
+	t.Parallel()
 	root := initRepo(t)
 	l1, err := Acquire(root, 0)
 	if err != nil {
@@ -78,6 +81,7 @@ func TestAcquire_Twice_SecondWaitsThenSucceeds(t *testing.T) {
 }
 
 func TestAcquire_DifferentRoots_NoConflict(t *testing.T) {
+	t.Parallel()
 	a := initRepo(t)
 	b := initRepo(t)
 	la, err := Acquire(a, 0)
@@ -95,6 +99,7 @@ func TestAcquire_DifferentRoots_NoConflict(t *testing.T) {
 }
 
 func TestAcquire_AfterRelease_ReAcquireOK(t *testing.T) {
+	t.Parallel()
 	root := initRepo(t)
 	l1, err := Acquire(root, 0)
 	if err != nil {
@@ -113,6 +118,7 @@ func TestAcquire_AfterRelease_ReAcquireOK(t *testing.T) {
 }
 
 func TestAcquire_NonExistentRoot_Error(t *testing.T) {
+	t.Parallel()
 	_, err := Acquire(filepath.Join(t.TempDir(), "does", "not", "exist"), 0)
 	if err == nil {
 		t.Error("Acquire on missing root should error")
@@ -123,6 +129,7 @@ func TestAcquire_NonExistentRoot_Error(t *testing.T) {
 }
 
 func TestAcquire_TimeoutRespected(t *testing.T) {
+	t.Parallel()
 	root := initRepo(t)
 	l1, err := Acquire(root, 0)
 	if err != nil {
@@ -148,6 +155,7 @@ func TestAcquire_TimeoutRespected(t *testing.T) {
 // (e.g. running aiwf in a directory that's not yet a git repo, or
 // in tests), the lockfile lives at <root>/.aiwf.lock instead.
 func TestAcquire_DotGitMissing_FallsBackToRoot(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir() // no .git
 	l, err := Acquire(root, 0)
 	if err != nil {
@@ -163,6 +171,7 @@ func TestAcquire_DotGitMissing_FallsBackToRoot(t *testing.T) {
 // TestRelease_Idempotent: calling Release a second time is a no-op
 // rather than panicking on a closed fd.
 func TestRelease_Idempotent(t *testing.T) {
+	t.Parallel()
 	root := initRepo(t)
 	l, err := Acquire(root, 0)
 	if err != nil {
@@ -179,6 +188,7 @@ func TestRelease_Idempotent(t *testing.T) {
 // TestRelease_NilLockSafe: Release on a zero-value Lock is a no-op
 // (used by deferred cleanup paths where Acquire may have failed).
 func TestRelease_NilLockSafe(t *testing.T) {
+	t.Parallel()
 	var l *Lock
 	if err := l.Release(); err != nil {
 		t.Errorf("nil Release should be no-op; got %v", err)
@@ -189,6 +199,7 @@ func TestRelease_NilLockSafe(t *testing.T) {
 // not writable, OpenFile fails and we get a wrapped error (not
 // ErrBusy).
 func TestAcquire_OpenFailure_PropagatesError(t *testing.T) {
+	t.Parallel()
 	if os.Geteuid() == 0 {
 		t.Skip("root bypasses permission checks")
 	}
@@ -212,6 +223,7 @@ func TestAcquire_OpenFailure_PropagatesError(t *testing.T) {
 // TestParallelAcquireRace: 20 goroutines race to acquire the same
 // lock; exactly one should succeed at a time.
 func TestParallelAcquireRace(t *testing.T) {
+	t.Parallel()
 	root := initRepo(t)
 
 	var (
