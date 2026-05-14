@@ -35,6 +35,7 @@ func TestIsLegalScopeTransition(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if got := IsLegalScopeTransition(tt.from, tt.to); got != tt.want {
 				t.Errorf("IsLegalScopeTransition(%s, %s) = %v, want %v", tt.from, tt.to, got, tt.want)
 			}
@@ -69,6 +70,7 @@ func trailerSet(verb, entity, actor, scope, reason, to string, scopeEnds ...stri
 // TestLoadScope_OpenerOnlyIsActive: the simplest case — just the
 // authorize commit, no transitions yet.
 func TestLoadScope_OpenerOnlyIsActive(t *testing.T) {
+	t.Parallel()
 	auth := "4b13a0f"
 	history := []Commit{
 		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "implement the engine", "ai/claude")},
@@ -97,6 +99,7 @@ func TestLoadScope_OpenerOnlyIsActive(t *testing.T) {
 // TestLoadScope_PauseResumeCycle: full cycle pause → resume → pause →
 // resume — every transition lands in Events with the correct state.
 func TestLoadScope_PauseResumeCycle(t *testing.T) {
+	t.Parallel()
 	auth := "4b13a0f"
 	history := []Commit{
 		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
@@ -127,6 +130,7 @@ func TestLoadScope_PauseResumeCycle(t *testing.T) {
 // terminal status and the promote commit carries aiwf-scope-ends:
 // pointing at the scope's auth SHA. Final state is ended.
 func TestLoadScope_AutoEndOnTerminalPromote(t *testing.T) {
+	t.Parallel()
 	auth := "4b13a0f"
 	history := []Commit{
 		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
@@ -172,6 +176,7 @@ func TestLoadScope_AutoEndOnTerminalPromote(t *testing.T) {
 // commit on the same entity does NOT resurrect the scope. Strict
 // end-on-terminal per provenance-model.md §"Scope states".
 func TestLoadScope_UnCancelDoesNotResurrect(t *testing.T) {
+	t.Parallel()
 	auth := "4b13a0f"
 	history := []Commit{
 		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
@@ -210,6 +215,7 @@ func TestLoadScope_UnCancelDoesNotResurrect(t *testing.T) {
 // TestLoadScope_RejectsBadOpener: history[0] must be the auth commit
 // AND must carry aiwf-verb: authorize + aiwf-scope: opened.
 func TestLoadScope_RejectsBadOpener(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		authSHA   string
@@ -249,6 +255,7 @@ func TestLoadScope_RejectsBadOpener(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := LoadScope(tt.authSHA, tt.history)
 			if err == nil {
 				t.Fatal("expected error, got nil")
@@ -264,6 +271,7 @@ func TestLoadScope_RejectsBadOpener(t *testing.T) {
 // a resume on an active scope (no preceding pause) is malformed.
 // LoadScope catches it via the FSM check.
 func TestLoadScope_RejectsIllegalTransition(t *testing.T) {
+	t.Parallel()
 	auth := "4b13a0f"
 	history := []Commit{
 		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
@@ -284,6 +292,7 @@ func TestLoadScope_RejectsIllegalTransition(t *testing.T) {
 // scope, scope-ends pointing at a different auth SHA) are silently
 // skipped — they're noise, not malformed input.
 func TestLoadScope_IgnoresUnrelatedCommits(t *testing.T) {
+	t.Parallel()
 	auth := "4b13a0f"
 	other := "9999999"
 	history := []Commit{
@@ -318,6 +327,7 @@ func TestLoadScope_IgnoresUnrelatedCommits(t *testing.T) {
 // TestLoadScope_AutoEndDuringPaused: a paused scope can still be
 // ended by a terminal-promote. Final state is ended, not paused.
 func TestLoadScope_AutoEndDuringPaused(t *testing.T) {
+	t.Parallel()
 	auth := "4b13a0f"
 	history := []Commit{
 		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
@@ -348,6 +358,7 @@ func TestLoadScope_AutoEndDuringPaused(t *testing.T) {
 // scope being loaded is ended only when the trailer matches its
 // auth SHA. The other scope-ends targets are noise to this scope.
 func TestLoadScope_MultipleScopeEndsOnSameCommit(t *testing.T) {
+	t.Parallel()
 	auth := "4b13a0f"
 	history := []Commit{
 		{SHA: auth, Trailers: trailerSet("authorize", "E-0003", "human/peter", "opened", "", "ai/claude")},
