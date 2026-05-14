@@ -22,7 +22,7 @@ acs:
       status: met
     - id: AC-6
       title: wall-time baseline and post-conversion numbers recorded at wrap
-      status: open
+      status: met
 ---
 
 # M-0091 — Roll out TestMain + t.Parallel across internal/* test packages
