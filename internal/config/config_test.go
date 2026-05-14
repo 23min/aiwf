@@ -11,6 +11,7 @@ import (
 )
 
 func TestLoad_Missing_ReturnsErrNotFound(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	_, err := Load(root)
 	if !errors.Is(err, ErrNotFound) {
@@ -19,6 +20,7 @@ func TestLoad_Missing_ReturnsErrNotFound(t *testing.T) {
 }
 
 func TestAllocateTrunkRef_DefaultWhenUnset(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		cfg  *Config
@@ -29,6 +31,7 @@ func TestAllocateTrunkRef_DefaultWhenUnset(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			ref, explicit := tc.cfg.AllocateTrunkRef()
 			if ref != DefaultAllocateTrunk {
 				t.Errorf("ref = %q, want %q", ref, DefaultAllocateTrunk)
@@ -41,6 +44,7 @@ func TestAllocateTrunkRef_DefaultWhenUnset(t *testing.T) {
 }
 
 func TestAllocateTrunkRef_ExplicitlyConfigured(t *testing.T) {
+	t.Parallel()
 	cfg := &Config{Allocate: Allocate{Trunk: "refs/remotes/upstream/master"}}
 	ref, explicit := cfg.AllocateTrunkRef()
 	if ref != "refs/remotes/upstream/master" {
@@ -52,6 +56,7 @@ func TestAllocateTrunkRef_ExplicitlyConfigured(t *testing.T) {
 }
 
 func TestLoad_TreeBlockRoundTrip(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte(strings.Join([]string{
 		"aiwf_version: 0.1.0",
@@ -84,6 +89,7 @@ func TestLoad_TreeBlockRoundTrip(t *testing.T) {
 }
 
 func TestLoad_TreeBlockDefaults(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -101,6 +107,7 @@ func TestLoad_TreeBlockDefaults(t *testing.T) {
 }
 
 func TestLoad_AllocateTrunkRoundTrip(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("aiwf_version: 0.1.0\nallocate:\n  trunk: refs/remotes/origin/develop\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -120,6 +127,7 @@ func TestLoad_AllocateTrunkRoundTrip(t *testing.T) {
 }
 
 func TestLoad_TypicalFile(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	// Post-G47 typical file: no `actor:` key (I2.5) and no
 	// `aiwf_version:` key (G47). aiwf.yaml carries only policy.
@@ -147,6 +155,7 @@ func TestLoad_TypicalFile(t *testing.T) {
 // the value surfaces on Config.LegacyAiwfVersion so doctor can
 // render its deprecation note and update can strip it.
 func TestLoad_LegacyAiwfVersionIsTolerated(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("aiwf_version: 0.1.0\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -162,6 +171,7 @@ func TestLoad_LegacyAiwfVersionIsTolerated(t *testing.T) {
 }
 
 func TestLoad_LegacyActorIsTolerated(t *testing.T) {
+	t.Parallel()
 	// Backwards compat: pre-I2.5 repos still carry `actor:` in their
 	// aiwf.yaml. Load must succeed (the field is ignored for runtime
 	// identity resolution) and the value must surface on Config.LegacyActor
@@ -181,6 +191,7 @@ func TestLoad_LegacyActorIsTolerated(t *testing.T) {
 }
 
 func TestLoad_LegacyMalformedActorIsHarmless(t *testing.T) {
+	t.Parallel()
 	// A malformed legacy `actor:` is no longer a parse error — the
 	// field is ignored for runtime resolution. This keeps repos that
 	// were previously misconfigured loadable so the user can run
@@ -199,6 +210,7 @@ func TestLoad_LegacyMalformedActorIsHarmless(t *testing.T) {
 }
 
 func TestLoad_WithHosts(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("hosts: [claude-code]\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -216,6 +228,7 @@ func TestLoad_WithHosts(t *testing.T) {
 // TestLoad_EmptyFileIsOK (G47): aiwf_version is no longer required.
 // An aiwf.yaml with nothing (or only optional fields) loads fine.
 func TestLoad_EmptyFileIsOK(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
@@ -226,6 +239,7 @@ func TestLoad_EmptyFileIsOK(t *testing.T) {
 }
 
 func TestLoad_MalformedYAML(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName), []byte(":::not yaml"), 0o644); err != nil {
 		t.Fatal(err)
@@ -237,6 +251,7 @@ func TestLoad_MalformedYAML(t *testing.T) {
 }
 
 func TestWrite_FreshDir(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	cfg := &Config{}
 	if err := Write(root, cfg); err != nil {
@@ -257,6 +272,7 @@ func TestWrite_FreshDir(t *testing.T) {
 }
 
 func TestWrite_RefusesOverwrite(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName), []byte("# pre-existing"), 0o644); err != nil {
 		t.Fatal(err)
@@ -271,6 +287,7 @@ func TestWrite_RefusesOverwrite(t *testing.T) {
 // TestStatusMdAutoUpdate_Default: no `status_md:` block in the file.
 // Getter returns true (the framework's default-on opt-out semantics).
 func TestStatusMdAutoUpdate_Default(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
 		[]byte("hosts: [claude-code]\n"), 0o644); err != nil {
@@ -291,6 +308,7 @@ func TestStatusMdAutoUpdate_Default(t *testing.T) {
 // TestStatusMdAutoUpdate_BlockEmpty: `status_md:` is present but
 // carries no fields. The getter still falls back to the default.
 func TestStatusMdAutoUpdate_BlockEmpty(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
 		[]byte("status_md: {}\n"), 0o644); err != nil {
@@ -309,6 +327,7 @@ func TestStatusMdAutoUpdate_BlockEmpty(t *testing.T) {
 // case. The getter returns false; the round-trip preserves the
 // explicit setting.
 func TestStatusMdAutoUpdate_ExplicitFalse(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
 		[]byte("status_md:\n  auto_update: false\n"), 0o644); err != nil {
@@ -330,6 +349,7 @@ func TestStatusMdAutoUpdate_ExplicitFalse(t *testing.T) {
 // opts in (matches the default but is preserved on round-trip so the
 // user's intent isn't dropped).
 func TestStatusMdAutoUpdate_ExplicitTrue(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
 		[]byte("status_md:\n  auto_update: true\n"), 0o644); err != nil {
@@ -352,6 +372,7 @@ func TestStatusMdAutoUpdate_ExplicitTrue(t *testing.T) {
 // the file-shape guarantee that "default behavior" is also "default
 // file shape" (no surprise YAML on `aiwf init`).
 func TestWrite_OmitsStatusMdByDefault(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	cfg := &Config{}
 	if err := Write(root, cfg); err != nil {
@@ -370,6 +391,7 @@ func TestWrite_OmitsStatusMdByDefault(t *testing.T) {
 // a top-level `actor:` key gets the line removed; aiwf_version and
 // surrounding content stay byte-identical (only that line drops).
 func TestStripLegacyActor_RemovesField(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("aiwf_version: 0.1.0\nactor: human/peter\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -397,6 +419,7 @@ func TestStripLegacyActor_RemovesField(t *testing.T) {
 // survive — that's the whole reason we line-strip rather than
 // YAML round-trip.
 func TestStripLegacyActor_NoFieldIsNoOp(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("# project config\naiwf_version: 0.1.0\nhosts: [claude-code]\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -422,6 +445,7 @@ func TestStripLegacyActor_NoFieldIsNoOp(t *testing.T) {
 // the actor line is retained; the strip only drops the actor
 // line itself.
 func TestStripLegacyActor_PreservesComments(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("# the project's config\naiwf_version: 0.1.0\n# legacy identity\nactor: human/peter\nhosts: [claude-code]\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -448,6 +472,7 @@ func TestStripLegacyActor_PreservesComments(t *testing.T) {
 // strip is a no-op (changed=false, no error). Lets `aiwf update`
 // run on a brownfield branch with no aiwf.yaml at the root.
 func TestStripLegacyActor_MissingFile(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	changed, err := StripLegacyActor(root)
 	if err != nil {
@@ -462,6 +487,7 @@ func TestStripLegacyActor_MissingFile(t *testing.T) {
 // line (i.e., a key inside some other mapping) is left alone. The
 // strip targets only the documented top-level legacy field.
 func TestStripLegacyActor_IgnoresIndentedActor(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("aiwf_version: 0.1.0\nfuture_block:\n  actor: human/peter\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -487,6 +513,7 @@ func TestStripLegacyActor_IgnoresIndentedActor(t *testing.T) {
 // carrying a top-level `aiwf_version:` key gets the line removed;
 // surrounding content stays byte-identical.
 func TestStripLegacyAiwfVersion_RemovesField(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("aiwf_version: 0.1.0\nhosts: [claude-code]\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -513,6 +540,7 @@ func TestStripLegacyAiwfVersion_RemovesField(t *testing.T) {
 // no aiwf_version: stays byte-for-byte unchanged (idempotent on
 // every `aiwf update`).
 func TestStripLegacyAiwfVersion_NoFieldIsNoOp(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("# project config\nhosts: [claude-code]\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -537,6 +565,7 @@ func TestStripLegacyAiwfVersion_NoFieldIsNoOp(t *testing.T) {
 // TestStripLegacyAiwfVersion_MissingFile: brownfield-safe — strip
 // runs on `aiwf update` even before init has scaffolded the yaml.
 func TestStripLegacyAiwfVersion_MissingFile(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	changed, err := StripLegacyAiwfVersion(root)
 	if err != nil {
@@ -551,6 +580,7 @@ func TestStripLegacyAiwfVersion_MissingFile(t *testing.T) {
 // `aiwf_version:` line (a key inside some other mapping) is left
 // alone — strip targets only the documented top-level legacy field.
 func TestStripLegacyAiwfVersion_IgnoresIndentedField(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("hosts: [claude-code]\nfuture_block:\n  aiwf_version: 0.1.0\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -570,6 +600,7 @@ func TestStripLegacyAiwfVersion_IgnoresIndentedField(t *testing.T) {
 // Config.Doctor.RecommendedPlugins is empty. M-070/AC-1 + AC-4 —
 // kernel-neutral default.
 func TestLoad_DoctorRecommendedPlugins_AbsentIsEmpty(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -586,6 +617,7 @@ func TestLoad_DoctorRecommendedPlugins_AbsentIsEmpty(t *testing.T) {
 // TestLoad_DoctorRecommendedPlugins_ExplicitEmpty: `[]` is identical
 // in effect to absence — empty slice, no checks fire downstream.
 func TestLoad_DoctorRecommendedPlugins_ExplicitEmpty(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName), []byte("doctor:\n  recommended_plugins: []\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -602,6 +634,7 @@ func TestLoad_DoctorRecommendedPlugins_ExplicitEmpty(t *testing.T) {
 // TestLoad_DoctorRecommendedPlugins_RoundTrip: a populated list
 // loads in order with each entry preserved verbatim.
 func TestLoad_DoctorRecommendedPlugins_RoundTrip(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		yaml string
@@ -620,6 +653,7 @@ func TestLoad_DoctorRecommendedPlugins_RoundTrip(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
 			if err := os.WriteFile(filepath.Join(root, FileName), []byte(tc.yaml), 0o644); err != nil {
 				t.Fatal(err)
@@ -648,6 +682,7 @@ func TestLoad_DoctorRecommendedPlugins_RoundTrip(t *testing.T) {
 // fully-absent fixtures don't exercise (they take the !ok branch
 // one step earlier).
 func TestLoad_DoctorBlock_FallsThrough_WhenRecommendedPluginsAbsent(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		yaml string
@@ -662,6 +697,7 @@ func TestLoad_DoctorBlock_FallsThrough_WhenRecommendedPluginsAbsent(t *testing.T
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
 			if err := os.WriteFile(filepath.Join(root, FileName), []byte(tc.yaml), 0o644); err != nil {
 				t.Fatal(err)
@@ -683,6 +719,7 @@ func TestLoad_DoctorBlock_FallsThrough_WhenRecommendedPluginsAbsent(t *testing.T
 // Each error message must name `doctor.recommended_plugins` so a
 // reader can locate the offending key without grepping the source.
 func TestLoad_DoctorRecommendedPlugins_RejectsMalformed(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name        string
 		yaml        string
@@ -713,6 +750,7 @@ func TestLoad_DoctorRecommendedPlugins_RejectsMalformed(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
 			if err := os.WriteFile(filepath.Join(root, FileName), []byte(tc.yaml), 0o644); err != nil {
 				t.Fatal(err)
@@ -729,6 +767,7 @@ func TestLoad_DoctorRecommendedPlugins_RejectsMalformed(t *testing.T) {
 }
 
 func TestActorPattern(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		s    string
 		want bool
@@ -763,6 +802,7 @@ func TestActorPattern(t *testing.T) {
 // is nil; ArchiveSweepThreshold() returns 0, false (the "unset"
 // signal a check rule reads to skip the escalation).
 func TestArchiveSweepThreshold_DefaultUnset(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
 		[]byte("hosts: [claude-code]\n"), 0o644); err != nil {
@@ -785,6 +825,7 @@ func TestArchiveSweepThreshold_DefaultUnset(t *testing.T) {
 // block. Distinguished from "unset" via the *int tristate and the
 // "set" return of the getter.
 func TestArchiveSweepThreshold_ExplicitZero(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("archive:\n  sweep_threshold: 0\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -814,6 +855,7 @@ func TestArchiveSweepThreshold_ExplicitZero(t *testing.T) {
 // getter returns (5, true); a check rule reading the value will
 // escalate the aggregate finding when count > 5.
 func TestArchiveSweepThreshold_ExplicitPositive(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("archive:\n  sweep_threshold: 5\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -844,6 +886,7 @@ func TestArchiveSweepThreshold_ExplicitPositive(t *testing.T) {
 // reach the getter before cfg is loaded (or when Load returned
 // ErrNotFound), and the getter must not panic.
 func TestArchiveSweepThreshold_NilReceiver(t *testing.T) {
+	t.Parallel()
 	var cfg *Config
 	n, set := cfg.ArchiveSweepThreshold()
 	if set || n != 0 {
@@ -855,6 +898,7 @@ func TestArchiveSweepThreshold_NilReceiver(t *testing.T) {
 // carries no `sweep_threshold:`. Mirrors TestStatusMdAutoUpdate_BlockEmpty:
 // the block-empty case must still resolve to the default.
 func TestArchiveSweepThreshold_BlockEmpty(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
 		[]byte("archive: {}\n"), 0o644); err != nil {
@@ -876,6 +920,7 @@ func TestArchiveSweepThreshold_BlockEmpty(t *testing.T) {
 // `archive.sweep_threshold` value through the full Config life-
 // cycle. Mirrors the existing TestLoad_TreeBlockRoundTrip pattern.
 func TestArchive_BlockRoundTrip(t *testing.T) {
+	t.Parallel()
 	root1 := t.TempDir()
 	contents := []byte("archive:\n  sweep_threshold: 12\n")
 	if err := os.WriteFile(filepath.Join(root1, FileName), contents, 0o644); err != nil {
@@ -915,6 +960,7 @@ func TestArchive_BlockRoundTrip(t *testing.T) {
 // returns DefaultEntityTitleMaxLength. G-0102 — the cap exists by
 // kernel default; consumers override deliberately, not by accident.
 func TestEntityTitleMaxLength_DefaultUnset(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, FileName),
 		[]byte("hosts: [claude-code]\n"), 0o644); err != nil {
@@ -937,6 +983,7 @@ func TestEntityTitleMaxLength_DefaultUnset(t *testing.T) {
 // indirection reads through and the getter returns the configured
 // value.
 func TestEntityTitleMaxLength_ExplicitOverride(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	contents := []byte("entities:\n  title_max_length: 120\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
@@ -963,6 +1010,7 @@ func TestEntityTitleMaxLength_ExplicitOverride(t *testing.T) {
 // pinned here so a future tweak can't accidentally honor the
 // disable-attempt.
 func TestEntityTitleMaxLength_NonPositiveFallsBackToDefault(t *testing.T) {
+	t.Parallel()
 	for _, val := range []int{0, -1, -100} {
 		root := t.TempDir()
 		contents := []byte(fmt.Sprintf("entities:\n  title_max_length: %d\n", val))
@@ -984,6 +1032,7 @@ func TestEntityTitleMaxLength_NonPositiveFallsBackToDefault(t *testing.T) {
 // nil-tolerance for the same call-site reason (the verb dispatcher
 // may reach the getter before Load succeeds).
 func TestEntityTitleMaxLength_NilReceiver(t *testing.T) {
+	t.Parallel()
 	var cfg *Config
 	if got := cfg.EntityTitleMaxLength(); got != DefaultEntityTitleMaxLength {
 		t.Errorf("nil-receiver EntityTitleMaxLength() = %d, want %d", got, DefaultEntityTitleMaxLength)
@@ -995,6 +1044,7 @@ func TestEntityTitleMaxLength_NilReceiver(t *testing.T) {
 // guarantee. Otherwise `aiwf init` would surprise the operator
 // with a knob they didn't set.
 func TestWrite_OmitsArchiveByDefault(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	cfg := &Config{}
 	if err := Write(root, cfg); err != nil {
