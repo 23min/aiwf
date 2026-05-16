@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: binary_integration_test.go shares the no-ldflags build via sync.Once
-      status: open
+      status: met
     - id: AC-4
       title: go test -race -parallel 8 ./cmd/... reliable across 10 runs
       status: deferred
