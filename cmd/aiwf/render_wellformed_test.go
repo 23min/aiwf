@@ -21,6 +21,7 @@ import (
 // every browser falls back to error-recovery heuristics that
 // produce different DOMs.
 func TestRender_AllPagesAreWellFormed(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)

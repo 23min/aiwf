@@ -11,6 +11,7 @@ import (
 // uncovered (see CLAUDE.md "Test untested code paths before
 // declaring code paths 'done'").
 func TestPluralToEntityKind_UnknownReturnsFalse(t *testing.T) {
+	t.Parallel()
 	cases := []string{
 		"", "gap", "milestones", "tomatoes",
 	}
@@ -35,6 +36,7 @@ func TestPluralToEntityKind_UnknownReturnsFalse(t *testing.T) {
 // zero (the rule itself returns nil at zero so this won't fire in
 // practice but the parser still guards against it).
 func TestParseSweepPending_MalformedMessageReturnsNil(t *testing.T) {
+	t.Parallel()
 	cases := []string{
 		"",
 		"no digit here",
@@ -58,6 +60,7 @@ func TestParseSweepPending_MalformedMessageReturnsNil(t *testing.T) {
 // branch even when the integration set doesn't reach unknown
 // kinds.
 func TestRunResolverKindIndexData_UnknownKindReturnsNil(t *testing.T) {
+	t.Parallel()
 	r := &renderResolver{}
 	data, err := r.KindIndexData("widgets", false)
 	if err != nil {
@@ -73,6 +76,7 @@ func TestRunResolverKindIndexData_UnknownKindReturnsNil(t *testing.T) {
 // (capitalized); all-set page is "All gaps" (lowercase, prefixed).
 // Empty plural and pre-capitalized plural take the no-op branches.
 func TestTitleForKindIndex_CapitalizesActive(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		plural          string
 		includeArchived bool

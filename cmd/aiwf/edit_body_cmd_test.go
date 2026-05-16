@@ -17,6 +17,7 @@ import (
 // trailered commit. Without this test, a regression that drops the
 // runEditBody case from main.go would still pass internal/verb tests.
 func TestEditBody_BinaryEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -88,6 +89,7 @@ func TestEditBody_BinaryEndToEnd(t *testing.T) {
 // from stdin, so callers can pipe text without a temp file —
 // matches the aiwf add --body-file - shape.
 func TestEditBody_StdinEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 
 	root := t.TempDir()
@@ -141,6 +143,7 @@ func TestEditBody_StdinEndToEnd(t *testing.T) {
 // passes content through to the verb, which refuses leading-`---`
 // content. Exit non-zero, no commit produced.
 func TestEditBody_RejectsFrontmatter_BinaryEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -185,6 +188,7 @@ func TestEditBody_RejectsFrontmatter_BinaryEndToEnd(t *testing.T) {
 // that drops the "body == nil → bless mode" branch from the
 // dispatcher would still pass internal/verb tests.
 func TestEditBody_Bless_BinaryEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -264,6 +268,7 @@ func TestEditBody_Bless_BinaryEndToEnd(t *testing.T) {
 // a clean working copy refuses with a clear "no changes" message
 // rather than producing an empty commit.
 func TestEditBody_Bless_NoChanges_BinaryRefusal(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -302,6 +307,7 @@ func TestEditBody_Bless_NoChanges_BinaryRefusal(t *testing.T) {
 // shape from the pre-M-060 "--body-file required" usage error, but
 // equally clear.
 func TestEditBody_BareCommand_BlessModeOnNonExistentID(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

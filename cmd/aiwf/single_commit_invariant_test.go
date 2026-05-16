@@ -53,6 +53,7 @@ import (
 // design — `aiwf init` writes files and defers the first commit to
 // the user) so the first commit-producing verb is `add epic`.
 func TestSingleCommitPerMutatingVerb_Invariant(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 
 	// init writes scaffolding without producing a commit. Track that

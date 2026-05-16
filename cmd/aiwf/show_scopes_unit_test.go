@@ -16,6 +16,7 @@ import (
 //   - one match, returned
 //   - multiple matches: the latest (last by index) wins
 func TestLastEventSHA(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		s     *scope.Scope
@@ -66,6 +67,7 @@ func TestLastEventSHA(t *testing.T) {
 // root at a non-existent directory (so a real `git show` would
 // fail), and verify the cached value comes back unchanged.
 func TestLookupCommitDateCached_CacheReuse(t *testing.T) {
+	t.Parallel()
 	cache := map[string]string{
 		"deadbeef": "2026-05-02T10:00:00+00:00",
 	}
@@ -81,6 +83,7 @@ func TestLookupCommitDateCached_CacheReuse(t *testing.T) {
 // with "" so a second call doesn't retry. This is the load-bearing
 // behavior that keeps `aiwf show` from blocking on missing dates.
 func TestLookupCommitDateCached_ErrorFallback(t *testing.T) {
+	t.Parallel()
 	tmp := t.TempDir() // not a git repo
 	cache := map[string]string{}
 	if got := lookupCommitDateCached(context.Background(), tmp, "deadbeef", cache); got != "" {
@@ -96,6 +99,7 @@ func TestLookupCommitDateCached_ErrorFallback(t *testing.T) {
 // the cache (proven by removing the repo and observing the same
 // value comes back).
 func TestLookupCommitDateCached_HappyPath(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
@@ -136,6 +140,7 @@ func TestLookupCommitDateCached_HappyPath(t *testing.T) {
 // that fires when a commit carries repeated trailers (notably
 // aiwf-scope-ends).
 func TestSplitMultiValueTrailer(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		in   string
@@ -176,6 +181,7 @@ func TestSplitMultiValueTrailer(t *testing.T) {
 // fallback flooded long-lived branches with commits already
 // merged in from trunk — see issue #5 sub-item 2).
 func TestResolveUntrailedRange_NoUpstream(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
@@ -198,6 +204,7 @@ func TestResolveUntrailedRange_NoUpstream(t *testing.T) {
 // TestResolveUntrailedRange_WithUpstream: when @{u} resolves, the
 // helper returns "@{u}..HEAD" and no advisory.
 func TestResolveUntrailedRange_WithUpstream(t *testing.T) {
+	t.Parallel()
 	upstream := t.TempDir()
 	if out, err := runGit(upstream, "init", "--bare", "-q"); err != nil {
 		t.Fatalf("git init bare: %v\n%s", err, out)
@@ -239,6 +246,7 @@ func TestResolveUntrailedRange_WithUpstream(t *testing.T) {
 // `git rev-parse`; an unknown ref returns an advisory finding
 // (audit skipped) rather than failing the whole check.
 func TestResolveUntrailedRange_SinceWins(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
@@ -279,6 +287,7 @@ func TestResolveUntrailedRange_SinceWins(t *testing.T) {
 // pushed), the unpushed range produces no commits. The helper
 // should return nil without error so step 7b stays silent.
 func TestReadUntrailedCommits_EmptyRange(t *testing.T) {
+	t.Parallel()
 	upstream := t.TempDir()
 	if out, err := runGit(upstream, "init", "--bare", "-q"); err != nil {
 		t.Fatalf("git init bare: %v\n%s", err, out)
@@ -321,6 +330,7 @@ func TestReadUntrailedCommits_EmptyRange(t *testing.T) {
 // changes (against its first parent) visible, so per-(commit,
 // entity) findings fire on the integration branch boundary.
 func TestReadUntrailedCommits_MergeCommitSurface(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if out, err := runGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
@@ -399,6 +409,7 @@ func TestReadUntrailedCommits_MergeCommitSurface(t *testing.T) {
 // expected four-field shape (SHA, subject, trailers, paths) are
 // silently skipped. Drives the defensive parsing branch.
 func TestParseUntrailedCommits_Malformed(t *testing.T) {
+	t.Parallel()
 	const sep = "\x1f"
 	const rec = "\x1e"
 	tests := []struct {
@@ -438,6 +449,7 @@ func TestParseUntrailedCommits_Malformed(t *testing.T) {
 // TestLoadEntityScopeViews_NoCommits: pre-init repo; helper returns
 // (nil, nil) without shelling out further.
 func TestLoadEntityScopeViews_NoCommits(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
@@ -455,6 +467,7 @@ func TestLoadEntityScopeViews_NoCommits(t *testing.T) {
 // repo. hasCommits returns false; helper returns (nil, nil)
 // gracefully without erroring.
 func TestLoadEntityScopeViews_NotInGitRepo(t *testing.T) {
+	t.Parallel()
 	tmp := t.TempDir()
 	got, err := loadEntityScopeViews(context.Background(), tmp, "E-0001")
 	if err != nil {
@@ -468,6 +481,7 @@ func TestLoadEntityScopeViews_NotInGitRepo(t *testing.T) {
 // TestLoadEntityScopeViews_NoScopesTouchEntity: a repo with commits
 // but none referencing the queried entity returns nil.
 func TestLoadEntityScopeViews_NoScopesTouchEntity(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)

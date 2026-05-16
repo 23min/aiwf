@@ -13,6 +13,7 @@ import (
 // `1/2` rollup on the index page. Pins the I3 plan §3 "AC met-
 // rollup per epic" requirement through the dispatcher seam.
 func TestRender_IndexShowsACRollup(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -36,6 +37,7 @@ func TestRender_IndexShowsACRollup(t *testing.T) {
 // HTML must declare every section regardless of content so the
 // nav links resolve.
 func TestRender_MilestoneEmitsSixTabs(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -64,6 +66,7 @@ func TestRender_MilestoneEmitsSixTabs(t *testing.T) {
 // TestRender_TestsTabPolicyBadge_Advisory: with require_test_metrics
 // off, the Tests tab shows the "advisory" badge.
 func TestRender_TestsTabPolicyBadge_Advisory(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -81,6 +84,7 @@ func TestRender_TestsTabPolicyBadge_Advisory(t *testing.T) {
 // TestRender_TestsTabPolicyBadge_Strict: with require_test_metrics
 // on, the badge flips to "strict".
 func TestRender_TestsTabPolicyBadge_Strict(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	yamlPath := filepath.Join(root, "aiwf.yaml")
@@ -109,6 +113,7 @@ func TestRender_TestsTabPolicyBadge_Strict(t *testing.T) {
 // block. Pins the body-section parser (step 1) end-to-end through
 // the templates.
 func TestRender_EpicBodyGoalRendered(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -141,6 +146,7 @@ func TestRender_EpicBodyGoalRendered(t *testing.T) {
 // of this test (which would pass even with the anchor in the
 // wrong tab) is what the testing-rules audit caught.
 func TestRender_ACAnchorWiredManifestToBuild(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -164,6 +170,7 @@ func TestRender_ACAnchorWiredManifestToBuild(t *testing.T) {
 // this assertion (`policy-strict">strict`) was the first example
 // the testing-rules audit flagged as "passes for wrong reasons."
 func TestRender_TestsTabBadgeIsInsideTestsTab(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -185,6 +192,7 @@ func TestRender_TestsTabBadgeIsInsideTestsTab(t *testing.T) {
 // status events as phase rows. Was a real bug surfaced by the
 // I3 step-5 smoke render; this test is the regression pin.
 func TestRender_BuildTabExcludesStatusEvents(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -210,6 +218,7 @@ func TestRender_BuildTabExcludesStatusEvents(t *testing.T) {
 // had only status promotions; no phase history was rendered into
 // any test).
 func TestRender_BuildTabIncludesPhaseHistory(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -241,6 +250,7 @@ func TestRender_BuildTabIncludesPhaseHistory(t *testing.T) {
 // the previous test set never exercised (no fixture had any
 // authorize commits).
 func TestRender_ProvenanceTabShowsAuthorizeScope(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -265,6 +275,7 @@ func TestRender_ProvenanceTabShowsAuthorizeScope(t *testing.T) {
 // render a stub "Linked decisions" heading + empty <ul>. Bug
 // surfaced by the smoke render.
 func TestRender_OverviewSuppressesEmptyLinkedDecisions(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -282,6 +293,7 @@ func TestRender_OverviewSuppressesEmptyLinkedDecisions(t *testing.T) {
 // full ISO timestamps. Bug surfaced by the smoke render —
 // historyEventToRow originally passed the raw Date through.
 func TestRender_CommitDatesAreDateOnly(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)

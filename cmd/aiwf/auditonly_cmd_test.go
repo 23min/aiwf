@@ -17,6 +17,7 @@ import (
 // empty-diff commit carrying the audit trail; `aiwf history` renders
 // the [audit-only] chip with the reason.
 func TestAuditOnly_CancelG24Recovery(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -78,6 +79,7 @@ func TestAuditOnly_CancelG24Recovery(t *testing.T) {
 // TestAuditOnly_PromoteRefusesWhenNotAtTarget: the entity is not at
 // the named state. `aiwf promote --audit-only` exits non-zero.
 func TestAuditOnly_PromoteRefusesWhenNotAtTarget(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -114,6 +116,7 @@ func TestAuditOnly_PromoteRefusesWhenNotAtTarget(t *testing.T) {
 // mutually exclusive (one transitions, the other backfills). The
 // dispatcher catches this before invoking the verb.
 func TestAuditOnly_RejectsForceCombination(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

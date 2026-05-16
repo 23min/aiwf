@@ -14,6 +14,7 @@ import (
 // the dispatcher (parses the flag but never threads BodyOverride
 // into AddOptions) would still pass internal/verb tests.
 func TestAdd_BodyFile_BinaryEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -69,6 +70,7 @@ func TestAdd_BodyFile_BinaryEndToEnd(t *testing.T) {
 // file. The runBin helper doesn't pipe stdin, so this test invokes
 // exec.Command directly with a configured Stdin reader.
 func TestAdd_BodyFile_StdinEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 
 	root := t.TempDir()
@@ -119,6 +121,7 @@ func TestAdd_BodyFile_StdinEndToEnd(t *testing.T) {
 // passes through to the verb-side rule check; a body file with its
 // own frontmatter exits non-zero and the entity is never created.
 func TestAdd_BodyFile_RefusesFrontmatter_BinaryEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

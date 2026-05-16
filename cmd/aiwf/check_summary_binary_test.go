@@ -47,6 +47,7 @@ const fixtureCheckSource = "../../internal/check/testdata/messy"
 // base commit); a drift means the verbose path or one of its
 // dependencies changed shape, which is exactly what AC-3 forbids.
 func TestBinary_CheckVerbose_ByteIdenticalToBaseline(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp)
@@ -80,6 +81,7 @@ func TestBinary_CheckVerbose_ByteIdenticalToBaseline(t *testing.T) {
 // assertions are not structural assertions", the comparison parses
 // both envelopes and compares parsed structures, not raw bytes.
 func TestBinary_CheckJSON_ByteIdenticalToBaseline(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp)
@@ -109,6 +111,7 @@ func TestBinary_CheckJSON_ByteIdenticalToBaseline(t *testing.T) {
 // `metadata.root` are guaranteed identical because the underlying
 // encoder is the stdlib's deterministic shape.
 func TestBinary_CheckJSONPretty_ByteIdenticalToBaseline(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp)
@@ -141,6 +144,7 @@ func TestBinary_CheckJSONPretty_ByteIdenticalToBaseline(t *testing.T) {
 // Assertions are structural per AC-8: extract code tokens via the
 // documented summary-line shape, do not grep flat.
 func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp)
@@ -237,6 +241,7 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 // wrap also reads the actual output and confirms it scans cleanly.
 // The two checks are complementary, not redundant.
 func TestBinary_CheckDefault_KernelTreeShortOutput(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp)
@@ -270,6 +275,7 @@ func TestBinary_CheckDefault_KernelTreeShortOutput(t *testing.T) {
 // description, and the Example block shows the default vs.
 // --verbose invocation contrast.
 func TestBinary_CheckHelp_DocumentsVerbose(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp)

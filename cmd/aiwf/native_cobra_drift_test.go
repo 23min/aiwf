@@ -82,6 +82,7 @@ func findPassthroughAdapters(root *cobra.Command) []passthroughViolation {
 // is wired with DisableFlagParsing:true (or DisableFlagsInUseLine:true)
 // fails CI with the verb's command path.
 func TestPolicy_NoPassthroughAdapters(t *testing.T) {
+	t.Parallel()
 	violations := findPassthroughAdapters(newRootCmd())
 	if len(violations) > 0 {
 		var lines []string
@@ -106,6 +107,7 @@ func TestPolicy_NoPassthroughAdapters(t *testing.T) {
 // forever even though the rule had stopped firing. This test pins
 // the rule actually fires when it should.
 func TestPolicy_NoPassthroughAdapters_DetectsRegression(t *testing.T) {
+	t.Parallel()
 	// Synthetic tree: root → [clean-child, dirty-child].
 	root := &cobra.Command{Use: "synth"}
 	clean := &cobra.Command{Use: "clean", Run: func(*cobra.Command, []string) {}}

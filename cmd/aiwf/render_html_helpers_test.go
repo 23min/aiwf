@@ -148,6 +148,7 @@ func htmlElementByClass(html, tag, class string) string {
 // TestHTMLMain_ExtractsMainContent pins the basic extraction
 // contract: open/close balanced, inner content preserved.
 func TestHTMLMain_ExtractsMainContent(t *testing.T) {
+	t.Parallel()
 	html := `<body><aside>sidebar</aside><main><h1>Hello</h1><p>body</p></main></body>`
 	got := htmlMain(html)
 	want := `<main><h1>Hello</h1><p>body</p></main>`
@@ -158,6 +159,7 @@ func TestHTMLMain_ExtractsMainContent(t *testing.T) {
 
 // TestHTMLElementByClass_ExtractsByClass pins extraction by class.
 func TestHTMLElementByClass_ExtractsByClass(t *testing.T) {
+	t.Parallel()
 	html := `<main><nav class="other">a</nav><nav class="kind-index"><ul><li>x</li></ul></nav></main>`
 	got := htmlElementByClass(html, "nav", "kind-index")
 	want := `<nav class="kind-index"><ul><li>x</li></ul></nav>`
@@ -168,6 +170,7 @@ func TestHTMLElementByClass_ExtractsByClass(t *testing.T) {
 
 // TestHTMLElementByClass_MissingReturnsEmpty pins the negative path.
 func TestHTMLElementByClass_MissingReturnsEmpty(t *testing.T) {
+	t.Parallel()
 	html := `<main><nav class="other">x</nav></main>`
 	if got := htmlElementByClass(html, "nav", "kind-index"); got != "" {
 		t.Errorf("htmlElementByClass missing = %q, want empty", got)
@@ -179,6 +182,7 @@ func TestHTMLElementByClass_MissingReturnsEmpty(t *testing.T) {
 // blocks per AC. The depth-tracker must stop at the first OUTER
 // </section>, not the inner one.
 func TestHTMLSection_NestedSectionsHandled(t *testing.T) {
+	t.Parallel()
 	html := `<main>
 <section data-tab="manifest" id="tab-manifest">
 <h2>Manifest</h2>
@@ -214,6 +218,7 @@ func TestHTMLSection_NestedSectionsHandled(t *testing.T) {
 // TestHTMLSection_MissingReturnsEmpty: a tab name that doesn't
 // exist returns "" so callers can detect the absence cleanly.
 func TestHTMLSection_MissingReturnsEmpty(t *testing.T) {
+	t.Parallel()
 	html := `<section data-tab="overview">x</section>`
 	if got := htmlSection(html, "tests"); got != "" {
 		t.Errorf("missing tab should return empty; got %q", got)

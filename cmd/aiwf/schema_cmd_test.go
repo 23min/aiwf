@@ -44,18 +44,21 @@ func TestRunSchema_OneKindText(t *testing.T) {
 }
 
 func TestRunSchema_UnknownKind(t *testing.T) {
+	t.Parallel()
 	if rc := run([]string{"schema", "nonsense"}); rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)
 	}
 }
 
 func TestRunSchema_TooManyArgs(t *testing.T) {
+	t.Parallel()
 	if rc := run([]string{"schema", "epic", "milestone"}); rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)
 	}
 }
 
 func TestRunSchema_BadFormat(t *testing.T) {
+	t.Parallel()
 	if rc := run([]string{"schema", "--format", "yaml"}); rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)
 	}
@@ -95,6 +98,7 @@ func TestRunSchema_JSONEnvelope(t *testing.T) {
 }
 
 func TestRunSchema_PrettyWithoutJSONIsHarmless(t *testing.T) {
+	t.Parallel()
 	// --pretty without --format=json prints a stderr nudge but still
 	// exits 0 with text output.
 	if rc := run([]string{"schema", "--pretty", "epic"}); rc != exitOK {
@@ -103,6 +107,7 @@ func TestRunSchema_PrettyWithoutJSONIsHarmless(t *testing.T) {
 }
 
 func TestWriteSchemaText_WriterError(t *testing.T) {
+	t.Parallel()
 	// Confirms the error-return path on an io.Writer that fails on the
 	// first byte — covers the defensive `if _, err := ...; err != nil`
 	// branches that stdout in normal tests can never reach.

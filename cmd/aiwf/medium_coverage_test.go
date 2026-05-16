@@ -13,6 +13,7 @@ import (
 // backwards-compat promise from the plan: existing trailered
 // commits must keep their original rendering.
 func TestRenderHistory_PreI2_5BackwardsCompat(t *testing.T) {
+	t.Parallel()
 	e := HistoryEvent{
 		Date:   "2026-04-30T12:00:00+00:00",
 		Actor:  "human/peter",
@@ -35,6 +36,7 @@ func TestRenderHistory_PreI2_5BackwardsCompat(t *testing.T) {
 // helper swallows the error and returns an empty map so chip
 // rendering falls back to "?" without blocking the verb.
 func TestBuildScopeEntityMap_GitFailureFallback(t *testing.T) {
+	t.Parallel()
 	tmp := t.TempDir()
 	got := buildScopeEntityMap(context.Background(), tmp, nil)
 	if len(got) != 0 {
@@ -47,6 +49,7 @@ func TestBuildScopeEntityMap_GitFailureFallback(t *testing.T) {
 // surfaces the scope under `scopes`. Exercises
 // buildCompositeShowView's I2.5 wiring.
 func TestShow_CompositeIdWithScopes(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()
@@ -122,6 +125,7 @@ func TestShow_CompositeIdWithScopes(t *testing.T) {
 // flip — it pins the behavior so a design change is explicit, not
 // silent.
 func TestShow_AncestorScopeNotInheritedWithoutAct(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()
@@ -187,6 +191,7 @@ func TestShow_AncestorScopeNotInheritedWithoutAct(t *testing.T) {
 // the same entity, the second after the first is paused. Both
 // surface in `scopes`, ordered by Opened ascending (oldest first).
 func TestShow_MultipleScopesSorted(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()

@@ -8,6 +8,7 @@ import (
 )
 
 func TestActorPattern(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		s    string
 		want bool
@@ -24,6 +25,7 @@ func TestActorPattern(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.s, func(t *testing.T) {
+			t.Parallel()
 			got := actorPattern.MatchString(tt.s)
 			if got != tt.want {
 				t.Errorf("actorPattern.Match(%q) = %v, want %v", tt.s, got, tt.want)
@@ -33,6 +35,7 @@ func TestActorPattern(t *testing.T) {
 }
 
 func TestResolveActor_ExplicitValid(t *testing.T) {
+	t.Parallel()
 	got, err := resolveActor("human/peter", "")
 	if err != nil {
 		t.Fatal(err)
@@ -43,8 +46,10 @@ func TestResolveActor_ExplicitValid(t *testing.T) {
 }
 
 func TestResolveActor_ExplicitInvalid(t *testing.T) {
+	t.Parallel()
 	for _, bad := range []string{"human:peter", "human / peter", "no-slash", ""} {
 		t.Run(bad, func(t *testing.T) {
+			t.Parallel()
 			_, err := resolveActor(bad, "")
 			if bad == "" {
 				// Empty falls through to git-config derivation; not an "invalid" path.

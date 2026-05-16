@@ -64,6 +64,7 @@ func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 // produces a commit with structured trailers. A second --write is a
 // no-op (HEAD doesn't advance) because content is unchanged.
 func TestRun_RenderRoadmap_WriteCommits(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -125,6 +126,7 @@ func TestRun_RenderRoadmap_WriteCommits(t *testing.T) {
 
 // TestRun_RenderRoadmap_UnknownSubcommand reports a usage error.
 func TestRun_RenderRoadmap_UnknownSubcommand(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if got := run([]string{"render", "treemap", "--root", root}); got != exitUsage {
 		t.Errorf("got %d, want %d", got, exitUsage)

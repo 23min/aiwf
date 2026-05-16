@@ -10,6 +10,7 @@ import (
 // TestRitualsPluginInstalled_DetectsProjectScope verifies the heuristic
 // finds an `aiwf-extensions` reference in .claude/settings.json.
 func TestRitualsPluginInstalled_DetectsProjectScope(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	claude := filepath.Join(root, ".claude")
 	if err := os.MkdirAll(claude, 0o755); err != nil {
@@ -28,6 +29,7 @@ func TestRitualsPluginInstalled_DetectsProjectScope(t *testing.T) {
 // TestRitualsPluginInstalled_DetectsLocalScope verifies detection in
 // the local-scope settings.local.json file too.
 func TestRitualsPluginInstalled_DetectsLocalScope(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	claude := filepath.Join(root, ".claude")
 	if err := os.MkdirAll(claude, 0o755); err != nil {
@@ -47,6 +49,7 @@ func TestRitualsPluginInstalled_DetectsLocalScope(t *testing.T) {
 // detected (the common case; user hasn't installed the plugin or has it
 // at user scope).
 func TestRitualsPluginInstalled_NoSettings(t *testing.T) {
+	t.Parallel()
 	if ritualsPluginInstalled(t.TempDir()) {
 		t.Error("expected non-detection when no settings file exists")
 	}
@@ -55,6 +58,7 @@ func TestRitualsPluginInstalled_NoSettings(t *testing.T) {
 // TestRitualsPluginInstalled_OtherPluginsOnly: settings exists but
 // references other plugins, not aiwf-extensions → not detected.
 func TestRitualsPluginInstalled_OtherPluginsOnly(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	claude := filepath.Join(root, ".claude")
 	if err := os.MkdirAll(claude, 0o755); err != nil {

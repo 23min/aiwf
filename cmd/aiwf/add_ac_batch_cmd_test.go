@@ -18,6 +18,7 @@ import (
 // (e.g. someone reverts to fs.String) would still pass internal/verb
 // tests.
 func TestAddAC_RepeatedTitle_BinaryEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -92,6 +93,7 @@ func TestAddAC_RepeatedTitle_BinaryEndToEnd(t *testing.T) {
 // that broke the length-1 case would surface here even if every
 // internal test still passed.
 func TestAddAC_SingleTitle_BinaryUnchanged(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -133,6 +135,7 @@ func TestAddAC_SingleTitle_BinaryUnchanged(t *testing.T) {
 // the dispatcher refuses with a clear message rather than blindly
 // passing an empty slice through to the verb.
 func TestAddAC_MissingTitle_RejectsCleanly(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

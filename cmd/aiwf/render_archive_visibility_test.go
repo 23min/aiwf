@@ -161,6 +161,7 @@ func assertVisible(t *testing.T, html, marker, pageName, markerName string) {
 // around the kind-index nav. The test names the offending
 // data-tab value so the regression is obvious.
 func TestRender_IndexKindIndexNavIsVisible(t *testing.T) {
+	t.Parallel()
 	root := setupArchiveRenderFixture(t)
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -181,6 +182,7 @@ func TestRender_IndexKindIndexNavIsVisible(t *testing.T) {
 // asserts the listing table is NOT inside any hidden data-tab
 // section, on both the active-default and all-set pages.
 func TestRender_PerKindIndexListingIsVisible(t *testing.T) {
+	t.Parallel()
 	root := setupArchiveRenderFixture(t)
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -206,6 +208,7 @@ func TestRender_PerKindIndexListingIsVisible(t *testing.T) {
 // data-tab="kind-listing"> is flagged hidden, that "overview" is
 // whitelisted, and that a plain <nav> wrapper is not flagged.
 func TestEnclosingHiddenDataTabs_DetectsHiddenWrapper(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		html string

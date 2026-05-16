@@ -104,6 +104,7 @@ func TestRun_RenderHTML_HonorsAiwfYAMLOutDir(t *testing.T) {
 // htmlrender package has its own determinism test; this one
 // asserts the property holds when invoked through `aiwf render`).
 func TestRun_RenderHTML_DeterministicAcrossInvocations(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)

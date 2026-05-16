@@ -102,6 +102,7 @@ func canonicalStatusReport() statusReport {
 // goldens prove "the literal exists in the right place, in the right
 // order, with the right whitespace."
 func TestRenderStatus_Goldens(t *testing.T) {
+	t.Parallel()
 	r := canonicalStatusReport()
 
 	t.Run("text", func(t *testing.T) {

@@ -40,6 +40,7 @@ func addMilestoneTDDSetup(t *testing.T) string {
 // this invocation succeeded silently with `tdd:` absent (treated as
 // none). Post-fix, the operator must state the policy.
 func TestAddMilestone_TDDFlagRequired(t *testing.T) {
+	t.Parallel()
 	root := addMilestoneTDDSetup(t)
 
 	got := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--actor", "human/test", "--root", root})
@@ -51,6 +52,7 @@ func TestAddMilestone_TDDFlagRequired(t *testing.T) {
 // TestAddMilestone_TDDValueValidation rejects values outside the closed
 // set {required, advisory, none}.
 func TestAddMilestone_TDDValueValidation(t *testing.T) {
+	t.Parallel()
 	root := addMilestoneTDDSetup(t)
 
 	// A bogus value must produce exitUsage.
@@ -76,6 +78,7 @@ func TestAddMilestone_TDDValueValidation(t *testing.T) {
 // TestAddMilestone_TDDPersisted_Required pins the on-disk shape: the
 // created milestone file contains `tdd: required` in its frontmatter.
 func TestAddMilestone_TDDPersisted_Required(t *testing.T) {
+	t.Parallel()
 	root := addMilestoneTDDSetup(t)
 
 	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "required", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -93,6 +96,7 @@ func TestAddMilestone_TDDPersisted_Required(t *testing.T) {
 
 // TestAddMilestone_TDDPersisted_Advisory mirrors the above for advisory.
 func TestAddMilestone_TDDPersisted_Advisory(t *testing.T) {
+	t.Parallel()
 	root := addMilestoneTDDSetup(t)
 
 	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "advisory", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -113,6 +117,7 @@ func TestAddMilestone_TDDPersisted_Advisory(t *testing.T) {
 // absent. Pre-fix, absence masqueraded as opt-out; post-fix, opt-out
 // is loud.
 func TestAddMilestone_TDDPersisted_None(t *testing.T) {
+	t.Parallel()
 	root := addMilestoneTDDSetup(t)
 
 	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -133,6 +138,7 @@ func TestAddMilestone_TDDPersisted_None(t *testing.T) {
 // drift-prevention test in completion_drift_test.go. The completion
 // must return exactly the closed set.
 func TestAddMilestone_TDDFlagCompletes(t *testing.T) {
+	t.Parallel()
 	root := newRootCmd()
 	addCmd, _, err := root.Find([]string{"add"})
 	if err != nil {
@@ -159,6 +165,7 @@ func TestAddMilestone_TDDFlagCompletes(t *testing.T) {
 // has no meaning on epics, ADRs, gaps, decisions, or contracts;
 // silently accepting it on those kinds would invite confusion.
 func TestAddMilestone_TDDOnlyForMilestones(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 
 	cases := []struct {

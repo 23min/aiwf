@@ -14,6 +14,7 @@ import (
 // thread TitleMaxLength into AddOptions would still let long titles
 // through.
 func TestAdd_TitleMaxLength_DefaultRejectsLong(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -59,6 +60,7 @@ func TestAdd_TitleMaxLength_DefaultRejectsLong(t *testing.T) {
 // frontmatter title matches what the operator passed. Pairs with the
 // rejection test above to pin both arms of the seam.
 func TestAdd_TitleMaxLength_AcceptsShort(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -103,6 +105,7 @@ func TestAdd_TitleMaxLength_AcceptsShort(t *testing.T) {
 // the dispatcher ignores the configured value and falls back to the
 // default would still pass the default-path tests above.
 func TestAdd_TitleMaxLength_ConfiguredOverride(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

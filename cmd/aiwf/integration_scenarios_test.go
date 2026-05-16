@@ -73,6 +73,7 @@ func setupGitRepoWithUpstream(t *testing.T, email string) string {
 // same epic; terminal-promote of the epic must end BOTH atomically
 // (one aiwf-scope-ends per active scope on the entity).
 func TestScenario_TerminalPromoteEndsMultipleParallelScopes(t *testing.T) {
+	t.Parallel()
 	root, binDir := initRepoFor(t, "peter@example.com")
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
@@ -150,6 +151,7 @@ func TestScenario_TerminalPromoteEndsMultipleParallelScopes(t *testing.T) {
 // E-02, work on E-02, pause E-02, resume E-01. Each scoped commit
 // references the right authorize SHA.
 func TestScenario_PivotMidFlight(t *testing.T) {
+	t.Parallel()
 	root, binDir := initRepoFor(t, "peter@example.com")
 	for _, args := range [][]string{
 		{"add", "epic", "--title", "Engine"},
@@ -240,6 +242,7 @@ func authorizedByOf(t *testing.T, root, rev string) string {
 // under what's now E-02. The standing rules must NOT fire
 // out-of-scope (the rename chain resolves) and the verb succeeds.
 func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
+	t.Parallel()
 	root, binDir := initRepoFor(t, "peter@example.com")
 	for _, args := range [][]string{
 		{"add", "epic", "--title", "Decoy"},  // burn E-01 so reallocate has a target
@@ -309,6 +312,7 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 // committer respectively. The kernel reads identity at runtime;
 // no aiwf.yaml field carries it.
 func TestScenario_MultiCloneIdentity(t *testing.T) {
+	t.Parallel()
 	rootA, binDirA := initRepoFor(t, "alice@example.com")
 	rootB, binDirB := initRepoFor(t, "bob@example.com")
 	if out, err := runBin(t, rootA, binDirA, nil, "add", "epic", "--title", "Alice's epic"); err != nil {
@@ -350,6 +354,7 @@ func TestScenario_MultiCloneIdentity(t *testing.T) {
 // and finishes the work via a manual commit; `aiwf cancel
 // --audit-only --reason "..."` backfills the audit trail.
 func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
+	t.Parallel()
 	root, binDir := initRepoFor(t, "peter@example.com")
 	if out, err := runBin(t, root, binDir, nil, "add", "gap", "--title", "Validators leak"); err != nil {
 		t.Fatalf("aiwf add gap: %v\n%s", err, out)
@@ -416,6 +421,7 @@ func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
 // resume on the same scope, twice, lands the scope in `active` and
 // LoadScope walks every transition without raising.
 func TestScenario_RepeatedPauseResumeCycle(t *testing.T) {
+	t.Parallel()
 	root, binDir := initRepoFor(t, "peter@example.com")
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
@@ -466,6 +472,7 @@ func TestScenario_RepeatedPauseResumeCycle(t *testing.T) {
 // the standing rules. The kernel reserves the policy decision; the
 // check pass stays neutral.
 func TestScenario_AuthorizeWithOnBehalfOfNeutralAtCheck(t *testing.T) {
+	t.Parallel()
 	root, binDir := initRepoFor(t, "peter@example.com")
 	if out, err := runBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)

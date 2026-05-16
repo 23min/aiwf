@@ -17,6 +17,7 @@ import (
 // proof that the cmd dispatcher, the verb function, and the scope
 // loader all line up on a real consumer repo.
 func TestRunAuthorize_OpenPauseResumeRoundTrip(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -89,6 +90,7 @@ func TestRunAuthorize_OpenPauseResumeRoundTrip(t *testing.T) {
 // TestRunAuthorize_RefusesNonHumanActor: --actor ai/claude is rejected
 // before any state is touched — only humans authorize.
 func TestRunAuthorize_RefusesNonHumanActor(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -127,6 +129,7 @@ func TestRunAuthorize_RefusesNonHumanActor(t *testing.T) {
 // TestRunAuthorize_PauseRefusedWhenNoActiveScope: --pause with no
 // open scope on the entity exits non-zero with a clear message.
 func TestRunAuthorize_PauseRefusedWhenNoActiveScope(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -162,6 +165,7 @@ func TestRunAuthorize_PauseRefusedWhenNoActiveScope(t *testing.T) {
 // TestRunAuthorize_RejectsMixedModes: passing both --pause and
 // --resume (or --to + --pause) is a usage error.
 func TestRunAuthorize_RejectsMixedModes(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

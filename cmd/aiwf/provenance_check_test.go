@@ -13,6 +13,7 @@ import (
 // pass scans an empty unpushed range without firing the
 // scope-undefined advisory.
 func TestProvenanceCheck_CleanRepoSilent(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 	root := setupGitRepoWithUpstream(t, "peter@example.com")
@@ -36,6 +37,7 @@ func TestProvenanceCheck_CleanRepoSilent(t *testing.T) {
 // onto the repo. `aiwf check` fires
 // provenance-no-active-scope.
 func TestProvenanceCheck_HandEditedAgentCommit(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 	root := setupGitRepoWithUpstream(t, "peter@example.com")
@@ -70,6 +72,7 @@ func TestProvenanceCheck_HandEditedAgentCommit(t *testing.T) {
 // `git commit` lands on an entity file without an aiwf-verb: trailer.
 // `aiwf check` fires the warning and points at `--audit-only`.
 func TestProvenanceCheck_UntrailedEntityCommit(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 	root := setupGitRepoWithUpstream(t, "peter@example.com")
@@ -107,6 +110,7 @@ func TestProvenanceCheck_UntrailedEntityCommit(t *testing.T) {
 // TestProvenanceCheck_AuthorizationMissing: a hand-crafted commit
 // references an authorize SHA that doesn't exist.
 func TestProvenanceCheck_AuthorizationMissing(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 	root := setupGitRepoWithUpstream(t, "peter@example.com")
@@ -147,6 +151,7 @@ func TestProvenanceCheck_AuthorizationMissing(t *testing.T) {
 // without depending on the rituals plugin being installed in the
 // test environment.
 func TestProvenanceCheck_WrapBundleAfterPromoteIsTolerated(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 	root := setupGitRepoWithUpstream(t, "peter@example.com")

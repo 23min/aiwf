@@ -93,6 +93,7 @@ entities:
 // TestRun_ImportCollisionFail: re-importing the same explicit-id
 // manifest exits with findings.
 func TestRun_ImportCollisionFail(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -114,6 +115,7 @@ entities:
 // TestRun_ImportPerEntityCommit emits one commit per entity in the
 // manifest. Verifies the commit count grew by exactly N.
 func TestRun_ImportPerEntityCommit(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)

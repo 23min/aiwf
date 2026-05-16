@@ -91,6 +91,7 @@ var entityIDPattern = regexp.MustCompile(`^(E-\d+|M-\d+|ADR-\d+|G-\d+|D-\d+|C-\d
 // same setup) so a regression in any one verb's trailer wiring
 // surfaces with the verb name in the failing-subtest line.
 func TestTrailerShapePerMutatingVerb(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {

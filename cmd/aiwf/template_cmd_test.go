@@ -49,24 +49,28 @@ func TestRunTemplate_AllKindsHasHeaders(t *testing.T) {
 }
 
 func TestRunTemplate_UnknownKind(t *testing.T) {
+	t.Parallel()
 	if rc := run([]string{"template", "nonsense"}); rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)
 	}
 }
 
 func TestRunTemplate_TooManyArgs(t *testing.T) {
+	t.Parallel()
 	if rc := run([]string{"template", "epic", "milestone"}); rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)
 	}
 }
 
 func TestRunTemplate_BadFormat(t *testing.T) {
+	t.Parallel()
 	if rc := run([]string{"template", "--format", "yaml"}); rc != exitUsage {
 		t.Errorf("rc = %d, want %d", rc, exitUsage)
 	}
 }
 
 func TestRunTemplate_PrettyWithoutJSONIsHarmless(t *testing.T) {
+	t.Parallel()
 	if rc := run([]string{"template", "--pretty", "epic"}); rc != exitOK {
 		t.Errorf("rc = %d, want %d", rc, exitOK)
 	}
@@ -128,6 +132,7 @@ func TestRunTemplate_JSONOneKind(t *testing.T) {
 }
 
 func TestWriteTemplateText_WriterError(t *testing.T) {
+	t.Parallel()
 	got := writeTemplateText(brokenWriter{}, []templateOut{{Kind: entity.KindEpic, Body: "x"}}, true)
 	if got == nil {
 		t.Error("expected error from broken writer")

@@ -37,6 +37,7 @@ import (
 // Boolean flags are auto-skipped (no value to suggest); the test does
 // not check them.
 func TestPolicy_FlagsHaveCompletion(t *testing.T) {
+	t.Parallel()
 	root := newRootCmd()
 
 	// optOutFlags name (cmd-path, flag-name) pairs that intentionally
@@ -128,6 +129,7 @@ func TestPolicy_FlagsHaveCompletion(t *testing.T) {
 // the opt-out list. M-054 AC-4: dynamic-completion-required cases
 // covered.
 func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
+	t.Parallel()
 	root := newRootCmd()
 
 	// Commands intentionally without a ValidArgsFunction. The cmd-path

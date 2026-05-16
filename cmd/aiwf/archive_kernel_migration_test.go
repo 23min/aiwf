@@ -31,6 +31,7 @@ import (
 // commit, sweeps every terminal-status entity into archive/, and
 // leaves `aiwf check` with no error-severity findings.
 func TestBinary_ArchiveKernelMigration_LeavesCheckClean(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp /* no ldflags */)

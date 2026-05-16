@@ -18,6 +18,7 @@ import (
 // Running the built binary as a subprocess exercises the same path
 // an operator's tab-completion-driven `--help` lookup follows.
 func TestBinary_ArchiveHelp(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp /* no ldflags */)

@@ -50,14 +50,12 @@ func commitWithTrailer(t *testing.T, root, id, verb string) {
 // initTrailerRepo bootstraps a fresh git repo with one initial commit.
 func initTrailerRepo(t *testing.T) string {
 	t.Helper()
+	// GIT identity is seeded once by TestMain (setup_test.go) via
+	// os.Setenv — t.Setenv would panic under t.Parallel.
 	root := t.TempDir()
 	if err := gitops.Init(context.Background(), root); err != nil {
 		t.Fatalf("git init: %v", err)
 	}
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
 	commitWithTrailer(t, root, "bootstrap", "init")
 	return root
 }
@@ -68,6 +66,7 @@ func initTrailerRepo(t *testing.T) string {
 // commit. Mirrored across the entity kinds the kernel allocates:
 // per-kind grammar floors come from internal/entity/entity.go::idPatterns.
 func TestHistory_NarrowTrailerMatchesCanonicalQuery(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		stored  string
@@ -89,6 +88,7 @@ func TestHistory_NarrowTrailerMatchesCanonicalQuery(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := initTrailerRepo(t)
 			commitWithTrailer(t, root, tt.stored, "promote")
 			for _, q := range tt.queries {
@@ -124,6 +124,7 @@ func TestHistory_NarrowTrailerMatchesCanonicalQuery(t *testing.T) {
 // `add` writes a canonical id; this test exercises the verb-level
 // commit path end-to-end and inspects HEAD's trailers.
 func TestHistory_NewVerbsEmitCanonicalTrailers(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)

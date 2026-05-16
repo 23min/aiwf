@@ -262,6 +262,7 @@ func TestInstallLocationHint(t *testing.T) {
 // when a tagged release no longer contains the requested package
 // at the requested subpath.
 func TestPathChangedFromStderr(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name   string
 		stderr string
@@ -447,6 +448,7 @@ func TestRunUpgrade_BadFlag(t *testing.T) {
 
 // TestRenderVersionLabel covers the label-format edge cases.
 func TestRenderVersionLabel(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		ver  string
