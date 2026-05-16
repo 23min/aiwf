@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: per-file audit produces a serial skip-list; safe tests gain t.Parallel
-      status: open
+      status: met
     - id: AC-3
       title: binary_integration_test.go shares the no-ldflags build via sync.Once
       status: open
