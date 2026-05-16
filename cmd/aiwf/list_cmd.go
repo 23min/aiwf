@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"text/tabwriter"
+	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 
@@ -46,6 +47,7 @@ func newListCmd() *cobra.Command {
 		archived bool
 		format   string
 		pretty   bool
+		noTrunc  bool
 	)
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -63,12 +65,15 @@ func newListCmd() *cobra.Command {
   aiwf list --archived
 
   # JSON envelope for downstream tooling
-  aiwf list --kind contract --format=json --pretty`,
+  aiwf list --kind contract --format=json --pretty
+
+  # Full titles even in a narrow terminal (default truncates the title column)
+  aiwf list --kind milestone --no-trunc`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runListCmd(root, kind, status, parent, archived, format, pretty))
+			return wrapExitCode(runListCmd(root, kind, status, parent, archived, format, pretty, noTrunc))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -78,6 +83,7 @@ func newListCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&archived, "archived", false, "include terminal-status entities (default: hide them)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	cmd.Flags().BoolVar(&noTrunc, "no-trunc", false, "do not truncate the title column when stdout is a terminal narrower than the row")
 
 	_ = cmd.RegisterFlagCompletionFunc("kind", cobra.FixedCompletions(
 		allKindNames(),
@@ -115,7 +121,7 @@ func unionAllStatuses() []string {
 	return out
 }
 
-func runListCmd(root, kind, status, parent string, archived bool, format string, pretty bool) int {
+func runListCmd(root, kind, status, parent string, archived bool, format string, pretty, noTrunc bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf list: --format must be 'text' or 'json', got %q\n", format)
 		return exitUsage
@@ -164,7 +170,8 @@ func runListCmd(root, kind, status, parent string, archived bool, format string,
 	rows := buildListRows(tr, kind, status, parent, archived)
 	switch format {
 	case "text":
-		renderListRowsText(os.Stdout, rows)
+		w := termTitleBudget(os.Stdout, noTrunc)
+		renderListRowsText(os.Stdout, rows, w)
 	case "json":
 		env := render.Envelope{
 			Tool:    "aiwf",
@@ -282,10 +289,19 @@ func pluralKindLabel(k entity.Kind, n int) string {
 //
 // Empty-result is the empty string (no header) — keeps the verb cheap
 // to consume in shell pipelines and grep-friendly.
-func renderListRowsText(w io.Writer, rows []listSummary) {
+//
+// titleBudget caps the title column's rune width when stdout is a TTY
+// narrower than a row's natural width — closes G-0080's tabwriter-wrap
+// bug where long titles wrap into the id-column gutter. A non-positive
+// budget disables truncation (piped output, --no-trunc, or a TTY wide
+// enough to fit the row as-is). The cap is applied per-row before the
+// tabwriter sees the input, so tabwriter's column alignment stays
+// intact.
+func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int) {
 	if len(rows) == 0 {
 		return
 	}
+	titleMax := computeTitleBudget(rows, titleBudget)
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	_, _ = fmt.Fprintln(tw, "ID\tSTATUS\tTITLE\tPARENT")
 	for _, r := range rows {
@@ -293,7 +309,77 @@ func renderListRowsText(w io.Writer, rows []listSummary) {
 		if parent == "" {
 			parent = "-"
 		}
-		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.ID, r.Status, r.Title, parent)
+		title := r.Title
+		if titleMax > 0 {
+			title = render.Truncate(title, titleMax)
+		}
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.ID, r.Status, title, parent)
 	}
 	_ = tw.Flush()
+}
+
+// computeTitleBudget returns the per-row rune cap for the title column,
+// or 0 to disable truncation. termWidth=0 means "no TTY / no-trunc /
+// width unknown" — pass through as 0 and the caller skips truncation.
+//
+// The math: tabwriter renders id|status|title|parent with 2-char
+// padding between columns. Natural row width is
+// id_w + 2 + status_w + 2 + title_w + 2 + parent_w. Set
+// title_w = termWidth - (id_w + status_w + parent_w + 6) and floor at
+// minTitleColumnRunes — if the remainder would be below the floor,
+// truncation buys so little (and looks so ugly) that we return 0 and
+// let the terminal wrap. The header row contributes its own width
+// (ID/STATUS/TITLE/PARENT, all narrower than typical content) so we
+// don't measure it.
+func computeTitleBudget(rows []listSummary, termWidth int) int {
+	if termWidth <= 0 || len(rows) == 0 {
+		return 0
+	}
+	idW, statusW, parentW := len("ID"), len("STATUS"), len("PARENT")
+	naturalTitleW := len("TITLE")
+	for i := range rows {
+		if n := utf8.RuneCountInString(rows[i].ID); n > idW {
+			idW = n
+		}
+		if n := utf8.RuneCountInString(rows[i].Status); n > statusW {
+			statusW = n
+		}
+		parent := rows[i].Parent
+		if parent == "" {
+			parent = "-"
+		}
+		if n := utf8.RuneCountInString(parent); n > parentW {
+			parentW = n
+		}
+		if n := utf8.RuneCountInString(rows[i].Title); n > naturalTitleW {
+			naturalTitleW = n
+		}
+	}
+	natural := idW + statusW + parentW + naturalTitleW + 6 // 3 gaps × 2 chars
+	if natural <= termWidth {
+		return 0 // already fits — no truncation needed
+	}
+	budget := termWidth - (idW + statusW + parentW + 6)
+	if budget < minTitleColumnRunes {
+		return 0
+	}
+	return budget
+}
+
+// minTitleColumnRunes is the floor below which the title column is no
+// longer worth truncating — at 10 runes most titles collapse to a few
+// initial words plus "…", which is more annoying than useful. When the
+// terminal is narrower than what's needed to leave this much room, we
+// give up on truncation and let the terminal wrap as it always has.
+const minTitleColumnRunes = 10
+
+// termTitleBudget resolves the title-truncation budget for stdout. The
+// returned width is the terminal width when stdout is a TTY and
+// noTrunc is false; 0 otherwise. Callers feed this into
+// computeTitleBudget to compute the per-column cap.
+func termTitleBudget(f *os.File, noTrunc bool) int {
+	if noTrunc {
+		return 0
+	}
+	return render.TerminalWidth(f)
 }

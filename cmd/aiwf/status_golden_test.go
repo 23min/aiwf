@@ -107,7 +107,7 @@ func TestRenderStatus_Goldens(t *testing.T) {
 
 	t.Run("text", func(t *testing.T) {
 		var buf bytes.Buffer
-		if err := renderStatusText(&buf, &r); err != nil {
+		if err := renderStatusText(&buf, &r, 0); err != nil {
 			t.Fatalf("renderStatusText: %v", err)
 		}
 		assertGolden(t, "status_text.golden", buf.Bytes())

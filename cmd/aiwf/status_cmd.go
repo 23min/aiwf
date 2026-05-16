@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 
@@ -177,9 +178,10 @@ type statusHealthCounts struct {
 // "what are we working on?".
 func newStatusCmd() *cobra.Command {
 	var (
-		root   string
-		format string
-		pretty bool
+		root    string
+		format  string
+		pretty  bool
+		noTrunc bool
 	)
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -188,17 +190,22 @@ func newStatusCmd() *cobra.Command {
   aiwf status
 
   # Markdown form (the same output committed to STATUS.md)
-  aiwf status --format=md`,
+  aiwf status --format=md
+
+  # Full titles even in a narrow terminal (default truncates long titles
+  # when stdout is a TTY narrower than the row)
+  aiwf status --no-trunc`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runStatusCmd(root, format, pretty))
+			return wrapExitCode(runStatusCmd(root, format, pretty, noTrunc))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text, json, or md")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	cmd.Flags().BoolVar(&noTrunc, "no-trunc", false, "do not truncate long titles when stdout is a terminal narrower than the row")
 	_ = cmd.RegisterFlagCompletionFunc("format", cobra.FixedCompletions(
 		[]string{"text", "json", "md"},
 		cobra.ShellCompDirectiveNoFileComp,
@@ -206,7 +213,7 @@ func newStatusCmd() *cobra.Command {
 	return cmd
 }
 
-func runStatusCmd(root, format string, pretty bool) int {
+func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 	if format != "text" && format != "json" && format != "md" {
 		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
 		return exitUsage
@@ -236,7 +243,11 @@ func runStatusCmd(root, format string, pretty bool) int {
 
 	switch format {
 	case "text":
-		if err := renderStatusText(os.Stdout, &report); err != nil {
+		termWidth := 0
+		if !noTrunc {
+			termWidth = render.TerminalWidth(os.Stdout)
+		}
+		if err := renderStatusText(os.Stdout, &report, termWidth); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
 			return exitInternal
 		}
@@ -492,8 +503,13 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryE
 
 // writeStatusEpicText writes one epic plus its milestones in the
 // terminal-friendly shape shared by the In flight and Roadmap sections.
-func writeStatusEpicText(b *strings.Builder, e statusEpic) {
-	fmt.Fprintf(b, "  %s — %s    [%s]\n", e.ID, e.Title, e.Status)
+// termWidth caps title widths so long titles don't wrap into the next
+// row's column-zero (the G-0080 visual-scan bug); 0 disables truncation.
+func writeStatusEpicText(b *strings.Builder, e statusEpic, termWidth int) {
+	epicPrefix := fmt.Sprintf("  %s — ", e.ID)
+	epicTail := fmt.Sprintf("    [%s]", e.Status)
+	epicTitle := truncStatusTitle(e.Title, termWidth, epicPrefix, epicTail)
+	fmt.Fprintf(b, "%s%s%s\n", epicPrefix, epicTitle, epicTail)
 	if len(e.Milestones) == 0 {
 		b.WriteString("       (no milestones)\n")
 	}
@@ -512,8 +528,28 @@ func writeStatusEpicText(b *strings.Builder, e statusEpic) {
 		if m.TDD != "" {
 			suffix += "    · tdd: " + m.TDD
 		}
-		fmt.Fprintf(b, "    %s%s — %s    [%s]%s\n", marker, m.ID, m.Title, m.Status, suffix)
+		msPrefix := fmt.Sprintf("    %s%s — ", marker, m.ID)
+		msTail := fmt.Sprintf("    [%s]%s", m.Status, suffix)
+		msTitle := truncStatusTitle(m.Title, termWidth, msPrefix, msTail)
+		fmt.Fprintf(b, "%s%s%s\n", msPrefix, msTitle, msTail)
 	}
+}
+
+// truncStatusTitle caps title to fit termWidth given the non-title
+// prefix/tail of the line. Returns title unchanged when termWidth is 0
+// (no TTY / --no-trunc) or when the available room would fall below
+// the per-G-0080 minimum useful column width. The minimum (10 runes)
+// is the same floor renderListRowsText uses — see minTitleColumnRunes.
+func truncStatusTitle(title string, termWidth int, prefix, tail string) string {
+	if termWidth <= 0 {
+		return title
+	}
+	other := utf8.RuneCountInString(prefix) + utf8.RuneCountInString(tail)
+	avail := termWidth - other
+	if avail < minTitleColumnRunes {
+		return title
+	}
+	return render.Truncate(title, avail)
 }
 
 // renderStatusText writes the human-readable status report to w. The
@@ -523,7 +559,11 @@ func writeStatusEpicText(b *strings.Builder, e statusEpic) {
 // decisions" without counting bullets. Builds the full output in a
 // strings.Builder and writes once so the only error to surface is the
 // final write.
-func renderStatusText(w io.Writer, r *statusReport) error {
+//
+// termWidth caps title widths to keep rows on one visual line when
+// stdout is a TTY narrower than the natural row; pass 0 to disable
+// truncation (default in tests, in pipes, and under --no-trunc).
+func renderStatusText(w io.Writer, r *statusReport, termWidth int) error {
 	var b strings.Builder
 	fmt.Fprintf(&b, "aiwf status — %s\n\n", r.Date)
 
@@ -532,7 +572,7 @@ func renderStatusText(w io.Writer, r *statusReport) error {
 		b.WriteString("  (no active epics)\n")
 	}
 	for _, e := range r.InFlightEpics {
-		writeStatusEpicText(&b, e)
+		writeStatusEpicText(&b, e, termWidth)
 	}
 	b.WriteByte('\n')
 
@@ -541,7 +581,7 @@ func renderStatusText(w io.Writer, r *statusReport) error {
 		b.WriteString("  (nothing planned)\n")
 	}
 	for _, e := range r.PlannedEpics {
-		writeStatusEpicText(&b, e)
+		writeStatusEpicText(&b, e, termWidth)
 	}
 	b.WriteByte('\n')
 
@@ -550,7 +590,10 @@ func renderStatusText(w io.Writer, r *statusReport) error {
 		b.WriteString("  (none)\n")
 	}
 	for _, d := range r.OpenDecisions {
-		fmt.Fprintf(&b, "  %s — %s    [%s]\n", d.ID, d.Title, d.Status)
+		prefix := fmt.Sprintf("  %s — ", d.ID)
+		tail := fmt.Sprintf("    [%s]", d.Status)
+		title := truncStatusTitle(d.Title, termWidth, prefix, tail)
+		fmt.Fprintf(&b, "%s%s%s\n", prefix, title, tail)
 	}
 	b.WriteByte('\n')
 
@@ -559,11 +602,13 @@ func renderStatusText(w io.Writer, r *statusReport) error {
 		b.WriteString("  (none)\n")
 	}
 	for _, g := range r.OpenGaps {
+		prefix := fmt.Sprintf("  %s — ", g.ID)
+		tail := ""
 		if g.DiscoveredIn != "" {
-			fmt.Fprintf(&b, "  %s — %s    (discovered in %s)\n", g.ID, g.Title, g.DiscoveredIn)
-		} else {
-			fmt.Fprintf(&b, "  %s — %s\n", g.ID, g.Title)
+			tail = fmt.Sprintf("    (discovered in %s)", g.DiscoveredIn)
 		}
+		title := truncStatusTitle(g.Title, termWidth, prefix, tail)
+		fmt.Fprintf(&b, "%s%s%s\n", prefix, title, tail)
 	}
 	b.WriteByte('\n')
 
