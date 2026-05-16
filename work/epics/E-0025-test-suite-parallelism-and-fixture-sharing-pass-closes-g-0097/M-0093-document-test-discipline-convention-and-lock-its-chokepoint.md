@@ -73,23 +73,57 @@ This milestone is single-commit: the documentation change and the policy test sh
 
 ## Work log
 
-(filled during implementation)
+### AC-1 — CLAUDE.md `### Test discipline` section (in the wrap commit, `8eb05a7`)
+
+New `### Test discipline` section under `## Go conventions` covers the five load-bearing rules: setup_test.go per package, `t.Parallel()` first-line on parallelizable tests, serial skip-list documented in `setup_test.go`'s comment block, `sync.Once` for shared expensive fixtures, and the `-race -parallel 8` cap. Each rule names its mechanical chokepoint (or the package-local skip-list convention for serial tests). The section cross-references `internal/policies/test_setup_presence.go` and `internal/policies/race_parallel_cap.go` so a reader of the doc lands on the enforcement code.
+
+Two rows added to the *What's enforced and where* table at the bottom of *Go conventions*: the setup-presence chokepoint that lands in AC-2 of this milestone, and the race-cap policy that landed in M-0091/AC-1 (was previously documented in the section body but not surfaced in the chokepoint table). Both rows mark "Blocking via CI test."
+
+Structural-assertion evidence: `internal/policies/claude_md_test_discipline.go` walks the heading hierarchy of CLAUDE.md and asserts `### Test discipline` exists under `## Go conventions`. A future edit that moves, renames, or accidentally deletes the section fires the policy at the next CI run.
+
+### AC-2 — `internal/policies/test_setup_presence.go` (in the wrap commit)
+
+AST-level walk via `go/parser` of every directory under `internal/` containing at least one `*_test.go` file (testdata/ subtrees skipped). For each such directory, the policy asserts that `setup_test.go` exists and that the file contains a top-level `func TestMain(m *testing.M)` declaration. The TestMain match anchors on: name `TestMain`, no receiver, exactly one parameter, parameter type `*testing.M` (selector-expr `testing.M` wrapped in a star expr). Substring-grep alternatives were rejected per CLAUDE.md *Substring assertions are not structural assertions* — a flat grep for `func TestMain(` would match a function inside a build-tagged file or a misnamed helper.
+
+Scope is `internal/*` per spec. `cmd/aiwf/` has a per-file audit shape (M-0092's `setup_test.go` skip-list captures captureStdout/Stderr/Run-caller serialization as a finer-grained discipline than a presence check could express). Extending the policy to `cmd/aiwf/` is a future gap if real friction surfaces.
+
+Helper: `hasTestMainDecl(*ast.File) bool` for the TestMain signature check; isolating it from the walk keeps the AST inspection unit-testable if a future regression motivates explicit cases.
+
+### AC-3 — G-0097 promoted to addressed
+
+`aiwf promote G-0097 addressed --by E-0025 --reason "Closed via E-0025 — M-0091 (internal/* parallelism, ~2.2x speedup) + M-0092 (cmd/aiwf/* parallelism, 47% wall-time reduction; AC-4 deferred to G-0125) + M-0093 (test-discipline convention in CLAUDE.md + setup_test.go presence chokepoint in internal/policies/)."`. Landed as a separate verb commit on this branch (kernel rule: gap-promote-to-terminal requires `--by <entity-id>` or `--by-commit <sha>` to satisfy `gap-resolved-has-resolver`).
 
 ## Decisions made during implementation
 
-- (none yet)
+- **Belt-and-suspenders for AC-1's doc-shape assertion.** AC-1 is doc-shape; the spec body implies the AC-2 policy alone is the mechanical chokepoint (it enforces what AC-1 documents). Per CLAUDE.md *AC promotion requires mechanical evidence*, doc-shape ACs benefit from a structural assertion on the named section. Added `PolicyClaudeMdTestDisciplineSection` as a small heading-hierarchy walk. Catches the inverse failure mode: the section is moved/renamed/deleted while AC-2's chokepoint stays intact. Trivial cost, useful belt.
+- **G-0097 closed via `--by E-0025`, inside M-0093.** The spec body's AC-3 hinted that the promote could land at epic wrap (`aiwfx-wrap-epic`). Doing it inside M-0093 keeps AC-3's terminal state local — the milestone wraps `done` without needing AC-3 to stay `open` pending the epic wrap. The closing trailer references the full E-0025 arc (M-0091, M-0092 with AC-4 deferred, M-0093); future readers of `aiwf history G-0097` see the resolution chain.
 
 ## Validation
 
-(pasted at wrap: `aiwf check` clean; `go test ./internal/policies/...` shows the new policy test passing; the convention section in `CLAUDE.md` reviewed for AI-discoverability)
+### Build + lint + check
+
+- `go build ./cmd/aiwf` — green.
+- `golangci-lint run` — 0 issues.
+- `aiwf check` — 0 errors (warning: G-0097 awaits archive sweep, expected — see Reviewer notes).
+- `go test ./...` — all packages pass.
+
+### Policy tests (the AC-2 + AC-1 chokepoints, in `internal/policies/`)
+
+- `TestPolicy_TestSetupPresence` — passes (every `internal/*` test-bearing package has `setup_test.go` with `TestMain`).
+- `TestPolicy_ClaudeMdTestDisciplineSection` — passes (`### Test discipline` section exists under `## Go conventions` in CLAUDE.md).
+- Both run as part of `go test ./internal/policies/`; the discovered packages cover everything M-0091 + M-0092 landed.
 
 ## Deferrals
 
-- (none yet)
+- (none)
 
 ## Reviewer notes
 
-- (none yet)
+- **AC-3 done in-milestone, not at epic wrap.** The spec hinted the G-0097 promote could land at `aiwfx-wrap-epic` time; this milestone took it in-flight so AC-3 closes inside M-0093 (avoids leaving AC-3 `open` while M-0093 is `done`). Per the kernel's `gap-resolved-has-resolver` rule, the promote required `--by E-0025`; the trailer references the epic and the rationale text names all three milestones.
+- **G-0097 archive sweep is now pending.** `aiwf check` warns `terminal-entity-not-archived` for G-0097. Expected — the gap is terminal, the sweep is opt-in. Either run `aiwf archive --apply` before/after E-0025 wraps, or let the next routine sweep pick it up.
+- **`cmd/aiwf/` not scoped.** Per spec the policy is `internal/*`-only. The cmd-side audit shape (captureStdout/Stderr/Run-caller serialization, integration_g37 file-level skip) is finer-grained than a presence check can express; that audit lives in `cmd/aiwf/setup_test.go`'s comment block as reviewer-enforced discipline. If a future contributor adds a test file in `cmd/aiwf/` that omits the setup_test.go convention, M-0092's skip-list won't catch it — but the test suite would fail under -race for a different reason (concurrent stdout capture), making the omission self-correcting. Worth a follow-up gap if it ever surfaces in the field.
+- **Race-cap policy retroactively added to the chokepoint table.** `internal/policies/race_parallel_cap.go` landed in M-0091/AC-1 but wasn't called out in the *What's enforced and where* table. Adding it now alongside the new setup-presence policy keeps the table comprehensive.
+- **M-0091's spike branch is unrecoverable.** The original `spike/test-parallel` branch (referenced in M-0091's spec) was deleted before this epic started. M-0091 reconstructed the pattern from prose. Future ritual lesson: don't delete a spike branch until the wrap-merge confirms.
 
 ### AC-1 — CLAUDE.md gains a Test discipline section under Go conventions
 
