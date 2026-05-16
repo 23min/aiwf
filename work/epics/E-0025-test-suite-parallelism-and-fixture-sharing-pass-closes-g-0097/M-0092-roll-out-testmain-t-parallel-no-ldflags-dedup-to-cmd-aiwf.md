@@ -9,7 +9,7 @@ tdd: none
 acs:
     - id: AC-1
       title: cmd/aiwf/setup_test.go lands with TestMain setting GIT identity
-      status: open
+      status: met
     - id: AC-2
       title: per-file audit produces a serial skip-list; safe tests gain t.Parallel
       status: open
