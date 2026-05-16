@@ -171,7 +171,7 @@ func runListCmd(root, kind, status, parent string, archived bool, format string,
 	switch format {
 	case "text":
 		w := termTitleBudget(os.Stdout, noTrunc)
-		renderListRowsText(os.Stdout, rows, w)
+		renderListRowsText(os.Stdout, rows, w, render.ColorEnabled(os.Stdout))
 	case "json":
 		env := render.Envelope{
 			Tool:    "aiwf",
@@ -284,11 +284,15 @@ func pluralKindLabel(k entity.Kind, n int) string {
 
 // renderListRowsText emits one row per entity with aligned columns:
 //
-//	ID      STATUS    TITLE                  PARENT
-//	M-001   draft     M one                  E-01
+//	ID      STATUS         TITLE                  PARENT
+//	M-001   ○ draft        M one                  E-01
+//	M-002   → in_progress  M two                  E-01
 //
 // Empty-result is the empty string (no header) — keeps the verb cheap
-// to consume in shell pipelines and grep-friendly.
+// to consume in shell pipelines and grep-friendly. The status column
+// carries a 1-rune glyph + space prefix when the status maps to the
+// G-0080 palette (every kernel status does); the glyph is content,
+// not style, and appears in piped output the same as in a TTY.
 //
 // titleBudget caps the title column's rune width when stdout is a TTY
 // narrower than a row's natural width — closes G-0080's tabwriter-wrap
@@ -297,14 +301,31 @@ func pluralKindLabel(k entity.Kind, n int) string {
 // enough to fit the row as-is). The cap is applied per-row before the
 // tabwriter sees the input, so tabwriter's column alignment stays
 // intact.
-func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int) {
+//
+// colorEnabled toggles the ANSI-bold styling on the header row. It is
+// the only place ANSI escapes enter this verb's output; row content
+// stays escape-free so downstream tooling (grep, awk) sees plain text.
+func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int, colorEnabled bool) {
 	if len(rows) == 0 {
 		return
 	}
-	titleMax := computeTitleBudget(rows, titleBudget)
+	// Pre-compute the rendered status for each row so the truncation
+	// budget measures the glyph-prefixed width, not the raw status. Two
+	// runes per glyphed status ("X "); empty string for rows whose
+	// status falls outside the palette (defensive — the kernel's status
+	// vocabulary is closed and maps fully today).
+	statuses := make([]string, len(rows))
+	for i := range rows {
+		if g := render.StatusGlyph(rows[i].Status); g != "" {
+			statuses[i] = g + " " + rows[i].Status
+		} else {
+			statuses[i] = rows[i].Status
+		}
+	}
+	titleMax := computeTitleBudget(rows, statuses, titleBudget)
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	_, _ = fmt.Fprintln(tw, "ID\tSTATUS\tTITLE\tPARENT")
-	for _, r := range rows {
+	_, _ = fmt.Fprintln(tw, render.Bold("ID\tSTATUS\tTITLE\tPARENT", colorEnabled))
+	for i, r := range rows {
 		parent := r.Parent
 		if parent == "" {
 			parent = "-"
@@ -313,7 +334,7 @@ func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int) {
 		if titleMax > 0 {
 			title = render.Truncate(title, titleMax)
 		}
-		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.ID, r.Status, title, parent)
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.ID, statuses[i], title, parent)
 	}
 	_ = tw.Flush()
 }
@@ -321,6 +342,9 @@ func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int) {
 // computeTitleBudget returns the per-row rune cap for the title column,
 // or 0 to disable truncation. termWidth=0 means "no TTY / no-trunc /
 // width unknown" — pass through as 0 and the caller skips truncation.
+// renderedStatuses is the per-row status string as it will be written
+// (glyph + space + status when the row matches the G-0080 palette);
+// measured here so the budget reflects the actual column width.
 //
 // The math: tabwriter renders id|status|title|parent with 2-char
 // padding between columns. Natural row width is
@@ -331,7 +355,7 @@ func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int) {
 // let the terminal wrap. The header row contributes its own width
 // (ID/STATUS/TITLE/PARENT, all narrower than typical content) so we
 // don't measure it.
-func computeTitleBudget(rows []listSummary, termWidth int) int {
+func computeTitleBudget(rows []listSummary, renderedStatuses []string, termWidth int) int {
 	if termWidth <= 0 || len(rows) == 0 {
 		return 0
 	}
@@ -341,7 +365,13 @@ func computeTitleBudget(rows []listSummary, termWidth int) int {
 		if n := utf8.RuneCountInString(rows[i].ID); n > idW {
 			idW = n
 		}
-		if n := utf8.RuneCountInString(rows[i].Status); n > statusW {
+		var statusText string
+		if i < len(renderedStatuses) {
+			statusText = renderedStatuses[i]
+		} else {
+			statusText = rows[i].Status
+		}
+		if n := utf8.RuneCountInString(statusText); n > statusW {
 			statusW = n
 		}
 		parent := rows[i].Parent

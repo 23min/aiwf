@@ -10,36 +10,49 @@ import (
 // `aiwf list`. Closes G-0080's first chokepoint: when the terminal is
 // too narrow to fit a row's natural width, the title column is the
 // flex; id/status/parent are fixed by content.
+//
+// Two-axis: nil renderedStatuses falls back to rows[i].Status (the
+// pre-glyph behavior — preserved so callers that don't render glyphs
+// don't pay for them); an explicit slice widens statusW by the glyph
+// prefix runes (the production path through renderListRowsText).
 func TestComputeTitleBudget(t *testing.T) {
 	t.Parallel()
 	rows := []listSummary{
 		{ID: "M-0001", Status: "in_progress", Title: "A very long milestone title that exceeds normal width", Parent: "E-0001"},
 		{ID: "M-0002", Status: "draft", Title: "Short", Parent: "E-0001"},
 	}
-	// idW=6 (M-0001), statusW=11 (in_progress), parentW=6 (E-0001),
-	// titleW=54 (the long title). Natural row width:
-	//   6 + 2 + 11 + 2 + 54 + 2 + 6 = 83
+	// Without glyph prefixes: idW=6, statusW=11 (in_progress),
+	// parentW=6, titleW=54. Natural row width: 6+2+11+2+54+2+6 = 83.
+	// With glyph prefixes (each 2 runes wider): statusW=13, natural 85.
+	withGlyphs := []string{"→ in_progress", "○ draft"}
 	tests := []struct {
-		name      string
-		rows      []listSummary
-		termWidth int
-		want      int
+		name             string
+		rows             []listSummary
+		renderedStatuses []string
+		termWidth        int
+		want             int
 	}{
-		{"no termWidth disables truncation", rows, 0, 0},
-		{"termWidth zero rows returns 0", nil, 80, 0},
-		{"wide enough returns 0 (no truncation needed)", rows, 200, 0},
+		{"no termWidth disables truncation", rows, nil, 0, 0},
+		{"termWidth zero rows returns 0", nil, nil, 80, 0},
+		{"wide enough returns 0 (no truncation needed)", rows, nil, 200, 0},
 		// At width=83 the row fits exactly — no truncation.
-		{"exact-fit returns 0", rows, 83, 0},
+		{"exact-fit returns 0", rows, nil, 83, 0},
 		// At width=60: budget = 60 - (6+11+6+6) = 31 runes — above floor.
-		{"narrow terminal returns positive budget", rows, 60, 31},
+		{"narrow terminal returns positive budget", rows, nil, 60, 31},
 		// At width=30: budget = 30 - 29 = 1, below floor — return 0 so
 		// the row falls back to terminal-wrap rather than collapsing.
-		{"below floor returns 0", rows, 30, 0},
+		{"below floor returns 0", rows, nil, 30, 0},
+
+		// With-glyphs path — statusW gains 2 runes per row's prefix.
+		// At width=60: budget = 60 - (6+13+6+6) = 29 (still above floor).
+		{"with glyphs widens status, narrows budget", rows, withGlyphs, 60, 29},
+		// Glyph-aware exact-fit: 85 columns.
+		{"with glyphs exact-fit returns 0", rows, withGlyphs, 85, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := computeTitleBudget(tt.rows, tt.termWidth)
+			got := computeTitleBudget(tt.rows, tt.renderedStatuses, tt.termWidth)
 			if got != tt.want {
 				t.Errorf("computeTitleBudget(%d) = %d, want %d", tt.termWidth, got, tt.want)
 			}
@@ -58,11 +71,12 @@ func TestRenderListRowsText_TruncatesTitleWhenNarrow(t *testing.T) {
 		{ID: "M-0001", Status: "in_progress", Title: "A very long milestone title that should not wrap mid-row", Parent: "E-0001"},
 	}
 	var buf bytes.Buffer
-	// termWidth=50: budget = 50 - (6+11+6+6) = 21 runes.
-	renderListRowsText(&buf, rows, 50)
+	// termWidth=50, statusW with glyph prefix = 13 ("→ in_progress").
+	// budget = 50 - (6+13+6+6) = 19 runes.
+	renderListRowsText(&buf, rows, 50, false)
 	out := buf.String()
-	// The id, status, and parent must appear unchanged.
-	for _, want := range []string{"M-0001", "in_progress", "E-0001"} {
+	// The id, status (substring), glyph, and parent must appear.
+	for _, want := range []string{"M-0001", "in_progress", "→", "E-0001"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered output missing %q:\n%s", want, out)
 		}
@@ -75,10 +89,8 @@ func TestRenderListRowsText_TruncatesTitleWhenNarrow(t *testing.T) {
 	if !strings.Contains(out, "…") {
 		t.Errorf("rendered output missing ellipsis '…' (truncation marker):\n%s", out)
 	}
-	// The truncated prefix must appear. budget = termWidth(50) -
-	// (idW(6) + statusW(11) + parentW(6) + 3 padding gaps × 2) = 21
-	// runes total; Truncate keeps 20 + appends "…".
-	if !strings.Contains(out, "A very long mileston…") {
+	// Truncate keeps 18 runes + "…": "A very long milest…" (18+1=19).
+	if !strings.Contains(out, "A very long milest…") {
 		t.Errorf("rendered output missing expected truncated prefix:\n%s", out)
 	}
 }
@@ -93,7 +105,7 @@ func TestRenderListRowsText_NoTruncationOnZeroBudget(t *testing.T) {
 		{ID: "M-0001", Status: "draft", Title: "Whatever-length title here", Parent: "E-0001"},
 	}
 	var buf bytes.Buffer
-	renderListRowsText(&buf, rows, 0)
+	renderListRowsText(&buf, rows, 0, false)
 	out := buf.String()
 	if !strings.Contains(out, "Whatever-length title here") {
 		t.Errorf("zero-budget render dropped or altered title:\n%s", out)
@@ -175,7 +187,7 @@ func TestRenderStatusText_TruncatesAllTitleColumnsWhenNarrow(t *testing.T) {
 		Health: statusHealthCounts{Entities: 4},
 	}
 	var buf bytes.Buffer
-	if err := renderStatusText(&buf, &r, 80); err != nil {
+	if err := renderStatusText(&buf, &r, 80, false); err != nil {
 		t.Fatalf("renderStatusText: %v", err)
 	}
 	out := buf.String()

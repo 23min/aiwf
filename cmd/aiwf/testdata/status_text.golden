@@ -4,11 +4,11 @@ In flight
   E-0099 — Goldenfix epic for refactor parity    [active]
      ✓ M-0901 — Lay foundations    [done]
      → M-0902 — Wire the seam    [in_progress]    · ACs 2/3 met (1 open)    · tdd: required
-       M-0903 — Polish edges    [draft]
+     ○ M-0903 — Polish edges    [draft]
 
 Roadmap
   E-0100 — Future work that hasn't started    [proposed]
-       M-0910 — First plan step    [draft]
+     ○ M-0910 — First plan step    [draft]
 
 Open decisions
   ADR-0901 — Adopt fictional convention    [proposed]

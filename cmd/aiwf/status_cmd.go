@@ -247,7 +247,7 @@ func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 		if !noTrunc {
 			termWidth = render.TerminalWidth(os.Stdout)
 		}
-		if err := renderStatusText(os.Stdout, &report, termWidth); err != nil {
+		if err := renderStatusText(os.Stdout, &report, termWidth, render.ColorEnabled(os.Stdout)); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
 			return exitInternal
 		}
@@ -505,6 +505,12 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryE
 // terminal-friendly shape shared by the In flight and Roadmap sections.
 // termWidth caps title widths so long titles don't wrap into the next
 // row's column-zero (the G-0080 visual-scan bug); 0 disables truncation.
+//
+// Milestone rows lead with a glyph from the G-0080 palette so every
+// row carries a visible state marker — the in-progress and done
+// glyphs (→ ✓) have always been present; this function also emits ○
+// for draft and ✗ for cancelled so the four-glyph palette is uniformly
+// applied across all milestone states.
 func writeStatusEpicText(b *strings.Builder, e statusEpic, termWidth int) {
 	epicPrefix := fmt.Sprintf("  %s — ", e.ID)
 	epicTail := fmt.Sprintf("    [%s]", e.Status)
@@ -514,12 +520,12 @@ func writeStatusEpicText(b *strings.Builder, e statusEpic, termWidth int) {
 		b.WriteString("       (no milestones)\n")
 	}
 	for _, m := range e.Milestones {
+		// 3-rune marker keeps the milestone id at a fixed column across
+		// every status; the glyph is centred so " ○ M-0001" lines up
+		// with " → M-0002" and " ✓ M-0003" regardless of state.
 		marker := "   "
-		switch m.Status {
-		case entity.StatusInProgress:
-			marker = " → "
-		case entity.StatusDone:
-			marker = " ✓ "
+		if g := render.StatusGlyph(m.Status); g != "" {
+			marker = " " + g + " "
 		}
 		suffix := ""
 		if progress := renderACProgress(m.ACs); progress != "" {
@@ -553,21 +559,25 @@ func truncStatusTitle(title string, termWidth int, prefix, tail string) string {
 }
 
 // renderStatusText writes the human-readable status report to w. The
-// in-progress milestone gets a `→` prefix; done a `✓`; everything else
-// blank-prefix so the row aligns. Empty sections render with a
-// parenthesised "(none)" so a glance can see "yes there are open
-// decisions" without counting bullets. Builds the full output in a
-// strings.Builder and writes once so the only error to surface is the
-// final write.
+// in-progress milestone gets a `→` prefix; done a `✓`; draft a `○`;
+// cancelled a `✗` — the four-glyph G-0080 palette, applied so every
+// milestone row carries a visible state marker. Empty sections render
+// with a parenthesised "(none)" so a glance can see "yes there are
+// open decisions" without counting bullets. Builds the full output in
+// a strings.Builder and writes once so the only error to surface is
+// the final write.
 //
 // termWidth caps title widths to keep rows on one visual line when
 // stdout is a TTY narrower than the natural row; pass 0 to disable
 // truncation (default in tests, in pipes, and under --no-trunc).
-func renderStatusText(w io.Writer, r *statusReport, termWidth int) error {
+// colorEnabled toggles ANSI-bold section labels; row content stays
+// escape-free so downstream tooling (grep, awk) sees plain text. The
+// glyph palette is content, not style, and appears regardless.
+func renderStatusText(w io.Writer, r *statusReport, termWidth int, colorEnabled bool) error {
 	var b strings.Builder
 	fmt.Fprintf(&b, "aiwf status — %s\n\n", r.Date)
 
-	b.WriteString("In flight\n")
+	b.WriteString(render.Bold("In flight", colorEnabled) + "\n")
 	if len(r.InFlightEpics) == 0 {
 		b.WriteString("  (no active epics)\n")
 	}
@@ -576,7 +586,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int) error {
 	}
 	b.WriteByte('\n')
 
-	b.WriteString("Roadmap\n")
+	b.WriteString(render.Bold("Roadmap", colorEnabled) + "\n")
 	if len(r.PlannedEpics) == 0 {
 		b.WriteString("  (nothing planned)\n")
 	}
@@ -585,7 +595,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int) error {
 	}
 	b.WriteByte('\n')
 
-	b.WriteString("Open decisions\n")
+	b.WriteString(render.Bold("Open decisions", colorEnabled) + "\n")
 	if len(r.OpenDecisions) == 0 {
 		b.WriteString("  (none)\n")
 	}
@@ -597,7 +607,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int) error {
 	}
 	b.WriteByte('\n')
 
-	b.WriteString("Open gaps\n")
+	b.WriteString(render.Bold("Open gaps", colorEnabled) + "\n")
 	if len(r.OpenGaps) == 0 {
 		b.WriteString("  (none)\n")
 	}
@@ -612,7 +622,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int) error {
 	}
 	b.WriteByte('\n')
 
-	b.WriteString("Warnings\n")
+	b.WriteString(render.Bold("Warnings", colorEnabled) + "\n")
 	if len(r.Warnings) == 0 {
 		b.WriteString("  (none)\n")
 	}
@@ -628,7 +638,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int) error {
 	}
 	b.WriteByte('\n')
 
-	b.WriteString("Recent activity\n")
+	b.WriteString(render.Bold("Recent activity", colorEnabled) + "\n")
 	if len(r.RecentActivity) == 0 {
 		b.WriteString("  (none)\n")
 	}
@@ -642,7 +652,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int) error {
 	}
 	b.WriteByte('\n')
 
-	b.WriteString("Health\n")
+	b.WriteString(render.Bold("Health", colorEnabled) + "\n")
 	// Sweep-pending one-liner lives in the Health section per
 	// ADR-0004 §"Display surfaces". Nil-checked at the top of the
 	// section so an absent SweepPending stays silent (AC-2).

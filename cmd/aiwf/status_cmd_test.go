@@ -133,7 +133,7 @@ func TestRenderStatusText_MarksInProgress(t *testing.T) {
 		Health: statusHealthCounts{Entities: 4},
 	}
 	out := captureStdout(t, func() {
-		if err := renderStatusText(os.Stdout, &r, 0); err != nil {
+		if err := renderStatusText(os.Stdout, &r, 0, false); err != nil {
 			t.Fatalf("renderStatusText: %v", err)
 		}
 	})
@@ -271,7 +271,7 @@ func TestRenderStatusText_SweepPendingLineAppearsInHealthSection(t *testing.T) {
 		Health: statusHealthCounts{Entities: 5},
 	}
 	out := captureStdout(t, func() {
-		if err := renderStatusText(os.Stdout, &r, 0); err != nil {
+		if err := renderStatusText(os.Stdout, &r, 0, false); err != nil {
 			t.Fatalf("renderStatusText: %v", err)
 		}
 	})
@@ -302,7 +302,7 @@ func TestRenderStatusText_SweepPendingLineHiddenWhenNil(t *testing.T) {
 		Health:       statusHealthCounts{Entities: 5},
 	}
 	out := captureStdout(t, func() {
-		if err := renderStatusText(os.Stdout, &r, 0); err != nil {
+		if err := renderStatusText(os.Stdout, &r, 0, false); err != nil {
 			t.Fatalf("renderStatusText: %v", err)
 		}
 	})
@@ -425,7 +425,7 @@ func TestRenderStatusText_Warnings(t *testing.T) {
 		Health: statusHealthCounts{Entities: 1, Warnings: 1},
 	}
 	out := captureStdout(t, func() {
-		if err := renderStatusText(os.Stdout, &r, 0); err != nil {
+		if err := renderStatusText(os.Stdout, &r, 0, false); err != nil {
 			t.Fatalf("renderStatusText: %v", err)
 		}
 	})
@@ -636,7 +636,7 @@ func TestRenderStatusText_ACProgressInline(t *testing.T) {
 	}
 	r := buildStatus(tr, nil)
 	var b strings.Builder
-	if err := renderStatusText(&b, &r, 0); err != nil {
+	if err := renderStatusText(&b, &r, 0, false); err != nil {
 		t.Fatalf("renderStatusText: %v", err)
 	}
 	out := b.String()
