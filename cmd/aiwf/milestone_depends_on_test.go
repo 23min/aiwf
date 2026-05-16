@@ -34,6 +34,7 @@ func milestoneDependsOnSetup(t *testing.T) string {
 // a single dependency via the dedicated verb writes the depends_on
 // frontmatter array on the target milestone.
 func TestMilestoneDependsOn_SetSingle(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -61,6 +62,7 @@ func TestMilestoneDependsOn_SetSingle(t *testing.T) {
 
 // TestMilestoneDependsOn_SetMultiple pins AC-2's comma-list contract.
 func TestMilestoneDependsOn_SetMultiple(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -91,6 +93,7 @@ func TestMilestoneDependsOn_SetMultiple(t *testing.T) {
 // semantics (per the spec's locked design): a second invocation
 // replaces the list rather than appending.
 func TestMilestoneDependsOn_Replace(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0001", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -117,6 +120,7 @@ func TestMilestoneDependsOn_Replace(t *testing.T) {
 // TestMilestoneDependsOn_Clear pins AC-3: --clear empties the
 // depends_on list.
 func TestMilestoneDependsOn_Clear(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0001,M-0002", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -139,6 +143,7 @@ func TestMilestoneDependsOn_Clear(t *testing.T) {
 // TestMilestoneDependsOn_ClearAndOnMutex pins AC-3's mutex: --clear
 // and --on cannot be combined; the verb refuses with a usage error.
 func TestMilestoneDependsOn_ClearAndOnMutex(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -157,6 +162,7 @@ func TestMilestoneDependsOn_ClearAndOnMutex(t *testing.T) {
 // least one of --on or --clear must be passed; bare invocation is a
 // usage error.
 func TestMilestoneDependsOn_NoFlagIsUsage(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -172,6 +178,7 @@ func TestMilestoneDependsOn_NoFlagIsUsage(t *testing.T) {
 // TestMilestoneDependsOn_TargetNotMilestone pins the verb-side guard:
 // the positional id must resolve to a milestone, not any other kind.
 func TestMilestoneDependsOn_TargetNotMilestone(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -188,6 +195,7 @@ func TestMilestoneDependsOn_TargetNotMilestone(t *testing.T) {
 // TestMilestoneDependsOn_TargetUnknown pins the verb-side guard for
 // missing target milestone.
 func TestMilestoneDependsOn_TargetUnknown(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -204,6 +212,7 @@ func TestMilestoneDependsOn_TargetUnknown(t *testing.T) {
 // TestMilestoneDependsOn_OnRefUnknown pins AC-4 on the verb side: the
 // --on referent must resolve to an existing milestone.
 func TestMilestoneDependsOn_OnRefUnknown(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -220,6 +229,7 @@ func TestMilestoneDependsOn_OnRefUnknown(t *testing.T) {
 // TestMilestoneDependsOn_OnRefNonMilestone pins AC-4's kind-restriction
 // on the verb side.
 func TestMilestoneDependsOn_OnRefNonMilestone(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -237,6 +247,7 @@ func TestMilestoneDependsOn_OnRefNonMilestone(t *testing.T) {
 // that rejects composite ids (M-NNN/AC-N) — depends_on is a milestone-
 // level field, not an AC-level one.
 func TestMilestoneDependsOn_CompositeIDRejected(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 	// Allocate an AC under M-001 so the composite id resolves.
 	if rc := run([]string{"add", "ac", "M-0001", "--title", "first ac", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -257,6 +268,7 @@ func TestMilestoneDependsOn_CompositeIDRejected(t *testing.T) {
 // TestMilestoneDependsOn_SelfDependencyRejected pins the self-loop
 // guard: a milestone cannot depend on itself.
 func TestMilestoneDependsOn_SelfDependencyRejected(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -284,6 +296,7 @@ func TestMilestoneDependsOn_SelfDependencyRejected(t *testing.T) {
 // flag is read but never copied into AddOptions would slip past
 // individual unit tests but trip here.
 func TestMilestoneDependsOn_DispatcherSeam_AddFlag(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -324,6 +337,7 @@ func TestMilestoneDependsOn_DispatcherSeam_AddFlag(t *testing.T) {
 // the dispatcher end-to-end and asserts both the on-disk frontmatter
 // shape and the trailered commit are present.
 func TestMilestoneDependsOn_DispatcherSeam_Verb(t *testing.T) {
+	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
 	rc := run([]string{

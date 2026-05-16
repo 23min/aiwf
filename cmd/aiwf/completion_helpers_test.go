@@ -18,6 +18,7 @@ import (
 // the kind's allowed statuses. Composite ids and malformed input must
 // return nil so the shell falls back to file completion.
 func TestStatusesForID(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		id   string
@@ -48,6 +49,7 @@ func TestStatusesForID(t *testing.T) {
 // rename or addition in the entity package fails the test rather
 // than silently desynchronizing the completion source.
 func TestAllKindNames(t *testing.T) {
+	t.Parallel()
 	got := allKindNames()
 	want := make([]string, 0, len(entity.AllKinds()))
 	for _, k := range entity.AllKinds() {
@@ -63,6 +65,7 @@ func TestAllKindNames(t *testing.T) {
 // to nil; non-zero must round-trip through *exitError so run() can
 // unwrap the original code.
 func TestWrapExitCode(t *testing.T) {
+	t.Parallel()
 	if got := wrapExitCode(exitOK); got != nil {
 		t.Errorf("wrapExitCode(exitOK) = %v, want nil", got)
 	}
@@ -212,6 +215,7 @@ func TestCompleteEntityIDFlag_KindFilter(t *testing.T) {
 // after registration, the command must report a completion function
 // for --format that emits {text, json} with the no-file directive.
 func TestRegisterFormatCompletion(t *testing.T) {
+	t.Parallel()
 	cmd := &cobra.Command{Use: "fake"}
 	cmd.Flags().String("format", "text", "")
 	registerFormatCompletion(cmd)

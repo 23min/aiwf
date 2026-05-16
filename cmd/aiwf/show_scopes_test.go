@@ -13,6 +13,7 @@ import (
 // scope under `scopes`. The agent column reflects the scope's
 // agent, and the state moves through active → ended.
 func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()
@@ -131,6 +132,7 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 // involvement omits the scopes field (omitempty in JSON, no
 // "Scopes (N):" block in text).
 func TestShow_ScopesView_NoScopes(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()

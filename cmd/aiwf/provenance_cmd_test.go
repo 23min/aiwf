@@ -16,6 +16,7 @@ import (
 // full provenance: aiwf-actor=ai/claude, aiwf-principal=human/peter,
 // aiwf-on-behalf-of=human/peter, aiwf-authorized-by=<auth-sha>.
 func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -89,6 +90,7 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 // doesn't reach E-01). The verb is refused before any disk state
 // changes.
 func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -150,6 +152,7 @@ func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
 // the aiwf-prior-entity chain so the agent can keep operating under
 // the same authorization. The authorize commit's SHA stays valid.
 func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -229,6 +232,7 @@ func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
 // = [E-01], which trivially reach the scope-entity). The same verb
 // against E-02 (out of scope) is refused.
 func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -286,6 +290,7 @@ func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
 // `aiwf-scope-ends: <auth-sha>` per active scope on that entity.
 // Subsequent loadEntityScopes calls report the scope as ended.
 func TestProvenance_TerminalPromoteEmitsScopeEnds(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

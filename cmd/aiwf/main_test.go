@@ -9,18 +9,21 @@ import (
 )
 
 func TestRun_NoArgs_UsageError(t *testing.T) {
+	t.Parallel()
 	if got := run(nil); got != exitUsage {
 		t.Errorf("run(nil) = %d, want %d", got, exitUsage)
 	}
 }
 
 func TestRun_UnknownVerb_UsageError(t *testing.T) {
+	t.Parallel()
 	if got := run([]string{"yodel"}); got != exitUsage {
 		t.Errorf("run(yodel) = %d, want %d", got, exitUsage)
 	}
 }
 
 func TestRun_HelpVariants(t *testing.T) {
+	t.Parallel()
 	for _, arg := range []string{"help", "--help", "-h"} {
 		t.Run(arg, func(t *testing.T) {
 			if got := run([]string{arg}); got != exitOK {
@@ -65,6 +68,7 @@ func TestRun_SubverbHelpDoesNotRecurse(t *testing.T) {
 }
 
 func TestRun_VersionVariants(t *testing.T) {
+	t.Parallel()
 	for _, arg := range []string{"version", "--version", "-v"} {
 		t.Run(arg, func(t *testing.T) {
 			if got := run([]string{arg}); got != exitOK {
@@ -75,6 +79,7 @@ func TestRun_VersionVariants(t *testing.T) {
 }
 
 func TestRun_CheckEmptyRepo_OK(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if got := run([]string{"check", "--root=" + root}); got != exitOK {
 		t.Errorf("run(check on empty) = %d, want %d", got, exitOK)
@@ -82,6 +87,7 @@ func TestRun_CheckEmptyRepo_OK(t *testing.T) {
 }
 
 func TestRun_CheckBadFormat_UsageError(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if got := run([]string{"check", "--root=" + root, "--format=xml"}); got != exitUsage {
 		t.Errorf("got %d, want %d", got, exitUsage)
@@ -89,6 +95,7 @@ func TestRun_CheckBadFormat_UsageError(t *testing.T) {
 }
 
 func TestRun_CheckFindsErrors(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	// Create a milestone with a bad parent reference and a bad status.
 	dir := filepath.Join(root, "work", "epics", "E-0001-foo")
@@ -118,6 +125,7 @@ parent: E-99
 }
 
 func TestResolveRoot_ExplicitWins(t *testing.T) {
+	t.Parallel()
 	tmp := t.TempDir()
 	got, err := resolveRoot(tmp)
 	if err != nil {
@@ -130,6 +138,7 @@ func TestResolveRoot_ExplicitWins(t *testing.T) {
 }
 
 func TestWalkUpFor(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	deep := filepath.Join(root, "a", "b", "c")
 	if err := os.MkdirAll(deep, 0o755); err != nil {
@@ -174,10 +183,8 @@ func TestWalkUpFor(t *testing.T) {
 // above (explicit `--skip-hook`) replaces it.
 func setupCLITestRepo(t *testing.T) string {
 	t.Helper()
-	t.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-	t.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
+	// GIT identity is seeded once by TestMain (setup_test.go) via
+	// os.Setenv — t.Setenv would panic under t.Parallel.
 	root := t.TempDir()
 	if got := run([]string{"check", "--root=" + root}); got != exitOK {
 		t.Fatalf("baseline check on tmpdir = %d", got)
@@ -206,6 +213,7 @@ func osExec(t *testing.T, workdir, name string, args ...string) error {
 // through main's dispatcher: flags parse, actor resolves, the verb
 // runs, and a commit lands.
 func TestRun_AddVerbThroughDispatcher(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 
 	got := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root})
@@ -223,6 +231,7 @@ func TestRun_AddVerbThroughDispatcher(t *testing.T) {
 // TestRun_AddThenPromoteThenCancel exercises the verb chain through
 // the dispatcher to confirm flag handling and commit ordering.
 func TestRun_AddThenPromoteThenCancel(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 
 	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -241,6 +250,7 @@ func TestRun_AddThenPromoteThenCancel(t *testing.T) {
 
 // TestRun_AddBadKind reports a usage error without touching the repo.
 func TestRun_AddBadKind(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if got := run([]string{"add", "widget", "--title", "X", "--actor", "human/test", "--root", root}); got != exitUsage {
 		t.Errorf("got %d, want %d", got, exitUsage)
@@ -249,6 +259,7 @@ func TestRun_AddBadKind(t *testing.T) {
 
 // TestRun_PromoteMissingArgs reports a usage error.
 func TestRun_PromoteMissingArgs(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if got := run([]string{"promote", "--root", root, "M-0001"}); got != exitUsage {
 		t.Errorf("got %d, want %d (missing new-status)", got, exitUsage)

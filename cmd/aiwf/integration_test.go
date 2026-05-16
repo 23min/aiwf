@@ -108,6 +108,7 @@ func runBinStdin(t *testing.T, workdir, extraPath string, stdin io.Reader, args 
 // This is the test that says "yes, the framework works in a real
 // consumer repo, not just inside Go test fixtures."
 func TestIntegration_FreshRepoLifecycle(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -202,6 +203,7 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 // `.git/hooks/` while git looked at the configured path —
 // validation chokepoint silently disabled.
 func TestIntegration_HonorsCoreHooksPath(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -291,6 +293,7 @@ func runGit(workdir string, args ...string) (string, error) {
 // unit test in package trunk pins the package-level error message;
 // this test pins that the cmd surfaces it through the binary.)
 func TestIntegration_TrunkExplicitMissingIsHardError(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

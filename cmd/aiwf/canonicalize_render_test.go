@@ -87,6 +87,7 @@ status: accepted
 // canonical ids in every structural id-bearing surface (sidebar
 // links, anchors, page headings).
 func TestRender_HTML_CanonicalIDsFromNarrowTree(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	writeNarrowFixtureTree(t, root)
 
@@ -164,6 +165,7 @@ func TestRender_HTML_CanonicalIDsFromNarrowTree(t *testing.T) {
 // regardless of on-disk filename width. Structural assertion: the
 // JSON unmarshals and the `id` field on every row is canonical.
 func TestList_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	writeNarrowFixtureTree(t, root)
 
@@ -205,6 +207,7 @@ func TestList_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 // JSON-shape projection carries canonical ids on every id-bearing
 // field (epics, milestones, gaps, decisions, warnings).
 func TestStatus_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	writeNarrowFixtureTree(t, root)
 
@@ -247,6 +250,7 @@ func TestStatus_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 // composite id — even when invoked with a narrow id and a tree
 // stored at narrow width.
 func TestShow_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	writeNarrowFixtureTree(t, root)
 

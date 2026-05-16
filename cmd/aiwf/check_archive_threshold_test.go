@@ -22,6 +22,7 @@ import (
 // seam test catches the case where the caller has a parallel source
 // of truth and never adopts the helper.
 func TestCheck_ArchiveSweepThreshold_EscalatesAggregate(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -146,6 +147,7 @@ func TestCheck_ArchiveSweepThreshold_MessageNamesThresholdAndCount(t *testing.T)
 // break this test before it broke the migration scenario, and the
 // failure would name the AC.
 func TestCheck_ArchiveSweepThreshold_UnsetStaysPermissive(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)

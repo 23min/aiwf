@@ -20,6 +20,7 @@ import (
 // commit subject + trailers are correct, and the post-promote tree
 // validates clean (no gap-resolved-has-resolver hint).
 func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -78,6 +79,7 @@ func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 // the post-promote tree validates clean (mutual link satisfied via
 // supersedes on ADR-0002, written via the same flag below).
 func TestPromote_SupersededByFlag_BinaryEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -128,6 +130,7 @@ func TestPromote_SupersededByFlag_BinaryEndToEnd(t *testing.T) {
 // which contradicts audit-only's semantics. The dispatcher catches
 // this before any verb work.
 func TestPromote_ByFlag_RejectsAuditOnlyCombination(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

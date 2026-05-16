@@ -64,6 +64,7 @@ var helpFieldOptOuts = map[string]string{
 // regression where a new verb lands without an Example block fails
 // CI here.
 func TestPolicy_ExamplePresent(t *testing.T) {
+	t.Parallel()
 	root := newRootCmd()
 
 	var failures []string
@@ -101,6 +102,7 @@ func TestPolicy_ExamplePresent(t *testing.T) {
 // terms like "Cobra" or entity ids are legitimate references in
 // help text and would generate false positives.
 func TestPolicy_NoMigrationProse(t *testing.T) {
+	t.Parallel()
 	root := newRootCmd()
 
 	type hit struct {

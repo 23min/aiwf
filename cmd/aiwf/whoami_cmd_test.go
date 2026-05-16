@@ -104,6 +104,7 @@ func TestRunWhoami_NoActorAvailable(t *testing.T) {
 }
 
 func TestRunWhoami_InvalidActorFlag(t *testing.T) {
+	t.Parallel()
 	if rc := run([]string{"whoami", "--actor", "no-slash"}); rc != exitFindings {
 		t.Errorf("rc = %d, want %d", rc, exitFindings)
 	}

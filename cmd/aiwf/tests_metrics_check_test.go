@@ -15,6 +15,7 @@ import (
 // off (the default), the check produces no findings even when an AC
 // is at tdd_phase: done with no aiwf-tests trailer in history.
 func TestRunTestsMetricsCheck_DefaultIsSilent(t *testing.T) {
+	t.Parallel()
 	root := setupTDDDoneAC(t)
 
 	tr, _, err := tree.Load(context.Background(), root)
@@ -34,6 +35,7 @@ func TestRunTestsMetricsCheck_DefaultIsSilent(t *testing.T) {
 // require=true, milestone tdd: required, AC at done, no commit in
 // history carries aiwf-tests → exactly one warning fires.
 func TestRunTestsMetricsCheck_WarnsWhenRequireOnAndTrailerMissing(t *testing.T) {
+	t.Parallel()
 	root := setupTDDDoneAC(t)
 
 	tr, _, err := tree.Load(context.Background(), root)
@@ -63,6 +65,7 @@ func TestRunTestsMetricsCheck_WarnsWhenRequireOnAndTrailerMissing(t *testing.T) 
 // one commit in the AC's history carries an aiwf-tests trailer, the
 // warning does not fire even with require=true.
 func TestRunTestsMetricsCheck_SilentWhenTrailerOnHistory(t *testing.T) {
+	t.Parallel()
 	root := setupTDDDoneAC(t)
 
 	// Hand-author an empty commit on M-001/AC-1 carrying aiwf-tests
@@ -93,6 +96,7 @@ func TestRunTestsMetricsCheck_SilentWhenTrailerOnHistory(t *testing.T) {
 // is at tdd_phase: done. Load-bearing — the warning is a property of
 // the consumer's TDD policy, not a universal AC requirement.
 func TestRunTestsMetricsCheck_SilentForNonRequiredMilestone(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root)

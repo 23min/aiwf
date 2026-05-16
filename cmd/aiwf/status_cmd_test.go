@@ -17,6 +17,7 @@ import (
 // `proposed` ADRs/decisions in OpenDecisions; only `open` gaps in
 // OpenGaps.
 func TestBuildStatus_FiltersToInFlight(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Active", Status: "active"},
@@ -77,6 +78,7 @@ func TestBuildStatus_FiltersToInFlight(t *testing.T) {
 // TestBuildStatus_MilestoneOrder verifies milestones under an in-flight
 // epic come back in id order.
 func TestBuildStatus_MilestoneOrder(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Active", Status: "active"},
@@ -103,6 +105,7 @@ func TestBuildStatus_MilestoneOrder(t *testing.T) {
 // TestBuildStatus_EmptyTree: no entities — every section is empty,
 // health has zero counts. No panic.
 func TestBuildStatus_EmptyTree(t *testing.T) {
+	t.Parallel()
 	r := buildStatus(&tree.Tree{}, nil)
 	if len(r.InFlightEpics) != 0 || len(r.PlannedEpics) != 0 ||
 		len(r.OpenDecisions) != 0 || len(r.OpenGaps) != 0 ||
@@ -164,6 +167,7 @@ func TestRenderStatusText_MarksInProgress(t *testing.T) {
 // AC forbids, so a future change that adds `--archived` to status
 // fails this test specifically and not just the drift summary.
 func TestStatusCmd_NoArchivedFlag(t *testing.T) {
+	t.Parallel()
 	cmd := newStatusCmd()
 	if cmd.Flags().Lookup("archived") != nil {
 		t.Errorf("status has --archived flag; ADR-0004 §\"Display surfaces\" forbids it on the status verb (archive inspection lives in `aiwf list --archived`)")
@@ -184,6 +188,7 @@ func TestStatusCmd_NoArchivedFlag(t *testing.T) {
 // reader sees "Sweep pending: N" inline with health rather than
 // mixed in with body-empty / resolver-missing warnings.
 func TestBuildStatus_SweepPendingPopulatedWhenTerminalsLiveInActive(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			// Two terminal-status gaps, both in the active dir.
@@ -228,6 +233,7 @@ func TestBuildStatus_SweepPendingPopulatedWhenTerminalsLiveInActive(t *testing.T
 // silent: the archive-sweep-pending rule only counts terminals in
 // the active dir.
 func TestBuildStatus_SweepPendingNilWhenNoTerminalsInActive(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindGap, ID: "G-0001", Title: "Active", Status: "open", Path: "work/gaps/G-0001-active.md"},
@@ -378,6 +384,7 @@ Closed-but-active gap body.
 // has-resolver is not in AC-4's archive-skip list and still fires
 // on archive entities.
 func TestBuildStatus_Warnings(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{
@@ -536,6 +543,7 @@ func TestRenderStatusMarkdown_EmptyReport(t *testing.T) {
 // TestSummarizeACs covers the per-status counter and the InScope
 // derivation (Total minus Cancelled).
 func TestSummarizeACs(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		acs  []entity.AcceptanceCriterion
@@ -588,6 +596,7 @@ func TestSummarizeACs(t *testing.T) {
 // TestRenderACProgress covers the badge text rendered next to each
 // milestone in the status output.
 func TestRenderACProgress(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		p    *statusACProgress
@@ -611,6 +620,7 @@ func TestRenderACProgress(t *testing.T) {
 // TestRenderStatusText_ACProgressInline confirms the AC progress
 // badge appears on the milestone row in the text renderer.
 func TestRenderStatusText_ACProgressInline(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
@@ -642,6 +652,7 @@ func TestRenderStatusText_ACProgressInline(t *testing.T) {
 // appears in the mermaid milestone label, and the bullet row carries
 // the inline progress text.
 func TestRenderStatusMarkdown_MermaidACBadge(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Foo", Status: "active"},
@@ -670,6 +681,7 @@ func TestRenderStatusMarkdown_MermaidACBadge(t *testing.T) {
 }
 
 func TestMdEscape(t *testing.T) {
+	t.Parallel()
 	cases := []struct{ in, want string }{
 		{"plain", "plain"},
 		{"a | b", "a \\| b"},
@@ -689,6 +701,7 @@ func TestMdEscape(t *testing.T) {
 // TestRunStatus_BadFormat: --format with an unsupported value returns
 // the usage exit code.
 func TestRunStatus_BadFormat(t *testing.T) {
+	t.Parallel()
 	rc := run([]string{"status", "--format=xml"})
 	if rc != exitUsage {
 		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
@@ -703,6 +716,7 @@ func TestRunStatus_BadFormat(t *testing.T) {
 // Actor columns; the fix post-filters on the parsed-trailer column
 // (Git's structured trailer parser correctly finds no trailer).
 func TestReadRecentActivity_SkipsProseMentions(t *testing.T) {
+	t.Parallel()
 	root := setupGitRepoWithUpstream(t, "peter@example.com")
 	// Real trailered commit — must show up.
 	realMsg := "feat(aiwf): add a thing\n\n" +
@@ -738,6 +752,7 @@ func TestReadRecentActivity_SkipsProseMentions(t *testing.T) {
 // applied to `aiwf history <id>`. A wrapped body line starting
 // with `aiwf-entity: G-001` must not render as an event for G-001.
 func TestReadHistory_SkipsProseMentions(t *testing.T) {
+	t.Parallel()
 	root := setupGitRepoWithUpstream(t, "peter@example.com")
 	realMsg := "feat(aiwf): real add\n\n" +
 		"aiwf-verb: add\n" +

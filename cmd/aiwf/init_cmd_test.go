@@ -18,6 +18,7 @@ import (
 // installation is covered by the runBin-style binary integration
 // tests, which build a real aiwf and exercise consumer parity.
 func TestRun_InitThroughDispatcher(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 
 	rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"})

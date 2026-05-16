@@ -42,6 +42,7 @@ import (
 // hook firing during the self-check's commits would deadlock by
 // re-invoking the test binary.
 func TestSeam_InitThenDoctorSelfCheck(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp /* no ldflags */)

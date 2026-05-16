@@ -10,6 +10,7 @@ import (
 // human pattern from I2.5). Direct human acts (no principal) render
 // the actor verbatim.
 func TestRenderActor(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		e    HistoryEvent
@@ -32,6 +33,7 @@ func TestRenderActor(t *testing.T) {
 // lifecycle on authorize commits, the [<scope-entity> <sha>] chip on
 // scope-authorized rows, and per-end chips on terminal-promote rows.
 func TestRenderScopeChips(t *testing.T) {
+	t.Parallel()
 	scopeEntities := map[string]string{
 		"4b13a0fdeadbeef": "E-0003",
 		"abc1234deadbeef": "E-0009",
@@ -99,6 +101,7 @@ func TestRenderScopeChips(t *testing.T) {
 // scope → human terminal-promotes E-01 (which ends the scope). The
 // resulting history rendering carries each chip.
 func TestRenderHistory_AuthorizationFlow(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()

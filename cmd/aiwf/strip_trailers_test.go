@@ -3,6 +3,7 @@ package main
 import "testing"
 
 func TestStripTrailers(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		in   string
@@ -58,6 +59,7 @@ func TestStripTrailers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := stripTrailers(tt.in)
 			if got != tt.want {
 				t.Errorf("stripTrailers(%q) = %q, want %q", tt.in, got, tt.want)

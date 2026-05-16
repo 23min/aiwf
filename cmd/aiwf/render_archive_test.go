@@ -78,6 +78,7 @@ Archived gap body for render fixture.
 // the markup-presence half (both ids exist; data-archived attribute
 // is present and correct).
 func TestRender_PerKindIndexEmitsBothActiveAndArchivedRows(t *testing.T) {
+	t.Parallel()
 	root := setupArchiveRenderFixture(t)
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -120,6 +121,7 @@ func TestRender_PerKindIndexEmitsBothActiveAndArchivedRows(t *testing.T) {
 // the file exists and its content names the archived entity's
 // title.
 func TestRender_PerEntityPageRendersForArchivedEntity(t *testing.T) {
+	t.Parallel()
 	root := setupArchiveRenderFixture(t)
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -141,6 +143,7 @@ func TestRender_PerEntityPageRendersForArchivedEntity(t *testing.T) {
 // element: the marker lives near the status badge in the page
 // header. Active per-entity pages have no marker.
 func TestRender_PerEntityPageMarksArchivedState(t *testing.T) {
+	t.Parallel()
 	root := setupArchiveRenderFixture(t)
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
@@ -177,6 +180,7 @@ func TestRender_PerEntityPageMarksArchivedState(t *testing.T) {
 // prompted the change — the data-tab wrapper was hidden by
 // default per the embedded stylesheet's section[data-tab] rule.
 func TestRender_IndexLinksPerKindPages(t *testing.T) {
+	t.Parallel()
 	root := setupArchiveRenderFixture(t)
 	out := filepath.Join(t.TempDir(), "site")
 	mustRun(t, "render", "--root", root, "--format", "html", "--out", out)

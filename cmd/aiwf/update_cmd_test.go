@@ -12,6 +12,7 @@ import (
 // TestRun_UpdateMaterializes wipes a tampered skill file and verifies
 // `aiwf update` restores the embedded content byte-for-byte.
 func TestRun_UpdateMaterializes(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -37,6 +38,7 @@ func TestRun_UpdateMaterializes(t *testing.T) {
 // the broadened update verb (step 5), this would fail because
 // update only re-materialised skills.
 func TestRun_UpdateRefreshesPrePushHook(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// No --skip-hook: this test exercises update's hook-refresh
 	// behavior and needs init to land a real hook first. The test
@@ -64,6 +66,7 @@ func TestRun_UpdateRefreshesPrePushHook(t *testing.T) {
 // TestRun_UpdateRefreshesPreCommitHook is the same property for the
 // new pre-commit hook (default-on per status_md.auto_update).
 func TestRun_UpdateRefreshesPreCommitHook(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// No --skip-hook: same rationale as TestRun_UpdateRefreshesPrePushHook.
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
@@ -93,6 +96,7 @@ func TestRun_UpdateRefreshesPreCommitHook(t *testing.T) {
 // post-commit hook is removed (G-0112: that's where the regen toggle
 // lives now).
 func TestRun_UpdateOptOutRemovesPostCommitKeepsGate(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// No --skip-hook: this test verifies G42 + G-0112 round-trip
 	// behavior (install → opt-out → re-install) which needs real
@@ -144,6 +148,7 @@ status_md:
 // flag has nowhere to come from). The user is expected to run
 // `aiwf init` first.
 func TestRun_UpdateMissingConfig(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// No init: aiwf.yaml is absent.
 	if rc := run([]string{"update", "--root", root}); rc != exitInternal {

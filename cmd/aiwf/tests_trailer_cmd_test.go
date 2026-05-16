@@ -19,6 +19,7 @@ import (
 // metrics into the verb (a parallel-source-of-truth regression).
 // This test exercises the full dispatcher → verb → commit path.
 func TestRun_PromotePhaseWithTestsFlag(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
@@ -51,6 +52,7 @@ func TestRun_PromotePhaseWithTestsFlag(t *testing.T) {
 // unknown key, malformed token, or negative value. The verb is not
 // invoked and no commit lands.
 func TestRun_PromotePhase_TestsRejectsBadInput(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -81,6 +83,7 @@ func TestRun_PromotePhase_TestsRejectsBadInput(t *testing.T) {
 // lands the trailer; on a non-tdd-required parent the dispatcher
 // surfaces the verb's refusal as a non-zero exit.
 func TestRun_AddACWithTestsFlag(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
@@ -118,6 +121,7 @@ func TestRun_AddACWithTestsFlag(t *testing.T) {
 // in phase mode; passing it with a positional new-status (status
 // mode) is a usage error.
 func TestRun_PromoteStatusModeRejectsTests(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)

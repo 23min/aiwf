@@ -9,6 +9,7 @@ import (
 // Windows host must produce a clear up-front error rather than a
 // confusing failure deeper in the call stack.
 func TestAssertSupportedOS_Windows(t *testing.T) {
+	t.Parallel()
 	err := assertSupportedOS("windows")
 	if err == nil {
 		t.Fatal("expected error on windows")
@@ -24,6 +25,7 @@ func TestAssertSupportedOS_Windows(t *testing.T) {
 // TestAssertSupportedOS_SupportedHosts: linux and darwin are the
 // two supported PoC platforms and must produce no error.
 func TestAssertSupportedOS_SupportedHosts(t *testing.T) {
+	t.Parallel()
 	for _, goos := range []string{"linux", "darwin"} {
 		t.Run(goos, func(t *testing.T) {
 			if err := assertSupportedOS(goos); err != nil {

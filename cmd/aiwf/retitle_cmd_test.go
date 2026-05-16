@@ -45,6 +45,7 @@ func retitleSetup(t *testing.T) string {
 // in one commit. The `wantPath` reflects the post-rename location
 // (G-0108) — the slug is re-derived from the new title.
 func TestRetitle_AllKinds(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name        string
 		id          string
@@ -92,6 +93,7 @@ func TestRetitle_AllKinds(t *testing.T) {
 // TestRetitle_Reason pins AC-1's --reason flag: the prose lands in
 // the commit body (visible to `aiwf history`).
 func TestRetitle_Reason(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	rc := run([]string{
@@ -112,6 +114,7 @@ func TestRetitle_Reason(t *testing.T) {
 
 // TestRetitle_EmptyTitleRejected pins the empty-title guard.
 func TestRetitle_EmptyTitleRejected(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	rc := run([]string{
@@ -128,6 +131,7 @@ func TestRetitle_EmptyTitleRejected(t *testing.T) {
 // current title produces a clear error so the operator notices the
 // typo (no commit lands).
 func TestRetitle_SameTitleRejected(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	rc := run([]string{
@@ -142,6 +146,7 @@ func TestRetitle_SameTitleRejected(t *testing.T) {
 
 // TestRetitle_UnknownIdRejected pins the missing-target guard.
 func TestRetitle_UnknownIdRejected(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	rc := run([]string{
@@ -162,6 +167,7 @@ func TestRetitle_UnknownIdRejected(t *testing.T) {
 // one), but those that do — historical entities, hand-added headings —
 // must not drift from the frontmatter after a retitle.
 func TestRetitle_TopLevel_BodyH1Sync(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	// Inject a canonical H1 into the epic body so retitle has something
@@ -204,6 +210,7 @@ func TestRetitle_TopLevel_BodyH1Sync(t *testing.T) {
 // frontmatter updates, body stays exactly as it was minus the
 // frontmatter block.
 func TestRetitle_TopLevel_NoH1_BodyUnchanged(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	if rc := run([]string{"retitle", "E-0001", "Refocused", "--actor", "human/test", "--root", root}); rc != exitOK {
@@ -228,6 +235,7 @@ func TestRetitle_TopLevel_NoH1_BodyUnchanged(t *testing.T) {
 // id, etc.) are operator-owned hand edits — retitle leaves them as-is
 // so an intentional divergence isn't silently clobbered.
 func TestRetitle_TopLevel_NonCanonicalH1_LeftAlone(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	// Hand-shaped H1 that doesn't match the `# E-0001 — ` canonical
@@ -262,6 +270,7 @@ func TestRetitle_TopLevel_NonCanonicalH1_LeftAlone(t *testing.T) {
 // updates BOTH the parent milestone's acs[i].title AND the matching
 // `### AC-N — <title>` body heading, atomically in one commit.
 func TestRetitle_AC_FrontmatterAndBody(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 	if rc := run([]string{"add", "ac", "M-0001", "--title", "original ac title", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)
@@ -296,6 +305,7 @@ func TestRetitle_AC_FrontmatterAndBody(t *testing.T) {
 
 // TestRetitle_AC_UnknownRejected pins the missing-AC guard.
 func TestRetitle_AC_UnknownRejected(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	rc := run([]string{
@@ -313,6 +323,7 @@ func TestRetitle_AC_UnknownRejected(t *testing.T) {
 // layer". Drives the dispatcher end-to-end and asserts both the on-
 // disk title change AND the trailered commit landed (history finds it).
 func TestRetitle_DispatcherSeam_TopLevel(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	rc := run([]string{
@@ -343,6 +354,7 @@ func TestRetitle_DispatcherSeam_TopLevel(t *testing.T) {
 // this behavior the operator has to follow every retitle with a manual
 // `aiwf rename` and the two-step workflow leaks back in.
 func TestRetitle_SlugSyncedToTitle(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	rc := run([]string{
@@ -382,6 +394,7 @@ func TestRetitle_SlugSyncedToTitle(t *testing.T) {
 // punctuation-only or capitalization-only tweak. The frontmatter
 // updates, but no rename happens (source == dest, OpMove skipped).
 func TestRetitle_TitleChangeButSameSlug(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	// "First Gap" slugifies to "first-gap"; "first gap!" slugifies to
@@ -410,6 +423,7 @@ func TestRetitle_TitleChangeButSameSlug(t *testing.T) {
 // pointer at `aiwf rename` for the operator who genuinely needs that
 // shape.
 func TestRetitle_EmptySlugRejected(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 
 	rc := run([]string{
@@ -429,6 +443,7 @@ func TestRetitle_EmptySlugRejected(t *testing.T) {
 // TestRetitle_DispatcherSeam_Composite is the seam test for AC-6 on
 // the composite-id path.
 func TestRetitle_DispatcherSeam_Composite(t *testing.T) {
+	t.Parallel()
 	root := retitleSetup(t)
 	if rc := run([]string{"add", "ac", "M-0001", "--title", "original", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add ac: %d", rc)

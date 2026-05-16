@@ -11,6 +11,7 @@ import (
 // add, promote, cancel, then history. The output should list three
 // events for the entity, oldest-first.
 func TestRun_HistoryShowsAddPromoteCancel(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -104,6 +105,7 @@ func TestRun_HistoryJSON(t *testing.T) {
 // OR M-NNN/AC-N (path-prefix anchored on `/`). The composite-id query
 // matches only that AC.
 func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -149,6 +151,7 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 // promote --force (with aiwf-to AND aiwf-force) covers the load-
 // bearing field-projection paths.
 func TestRun_HistoryReadsAiwfToAndForce(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -209,6 +212,7 @@ func TestRun_HistoryReadsAiwfToAndForce(t *testing.T) {
 // when one is present. This is the load-bearing backwards-compat
 // rendering for pre-I2 commits.
 func TestRun_HistoryRenderToDash(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		to   string
 		want string
@@ -263,6 +267,7 @@ func TestRun_HistoryTextOutputIncludesForceLine(t *testing.T) {
 // TestRun_HistoryUnknownIDIsEmpty: querying a never-allocated id
 // returns no events and exits cleanly.
 func TestRun_HistoryUnknownIDIsEmpty(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -276,6 +281,7 @@ func TestRun_HistoryUnknownIDIsEmpty(t *testing.T) {
 // `aiwf-prior-entity:` trailer is queryable: after reallocating, the
 // old id still surfaces a final event.
 func TestRun_HistoryReallocateBridgesBothIDs(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)

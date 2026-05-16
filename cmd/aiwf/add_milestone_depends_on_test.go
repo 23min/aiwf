@@ -39,6 +39,7 @@ func addMilestoneDependsOnSetup(t *testing.T) string {
 // id passed to --depends-on lands as a one-element depends_on list in
 // the new milestone's frontmatter, in the same atomic create commit.
 func TestAddMilestone_DependsOnSingle(t *testing.T) {
+	t.Parallel()
 	root := addMilestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -70,6 +71,7 @@ func TestAddMilestone_DependsOnSingle(t *testing.T) {
 // TestAddMilestone_DependsOnMultiple pins the comma-separated list
 // shape: --depends-on M-001,M-002 lands as a two-element list.
 func TestAddMilestone_DependsOnMultiple(t *testing.T) {
+	t.Parallel()
 	root := addMilestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -103,6 +105,7 @@ func TestAddMilestone_DependsOnMultiple(t *testing.T) {
 // produces no depends_on block — the field is optional, the YAML
 // `depends_on,omitempty` tag must hold.
 func TestAddMilestone_DependsOnAbsent(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
@@ -124,6 +127,7 @@ func TestAddMilestone_DependsOnAbsent(t *testing.T) {
 // --depends-on is milestone-only. Passing it on `aiwf add gap` (or any
 // non-milestone kind) is a usage error.
 func TestAddMilestone_DependsOnRejectedOnNonMilestone(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	rc := run([]string{
 		"add", "gap",
@@ -142,6 +146,7 @@ func TestAddMilestone_DependsOnRejectedOnNonMilestone(t *testing.T) {
 // is refused before the create commit lands; the error names the
 // specific unresolvable id.
 func TestAddMilestone_DependsOnUnknownReferent(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
 		t.Fatalf("add epic: %d", rc)
@@ -171,6 +176,7 @@ func TestAddMilestone_DependsOnUnknownReferent(t *testing.T) {
 // is restricted to milestone→milestone edges per the schema's
 // AllowedKinds. Passing an epic id (or any non-milestone) is refused.
 func TestAddMilestone_DependsOnNonMilestoneReferent(t *testing.T) {
+	t.Parallel()
 	root := addMilestoneDependsOnSetup(t)
 
 	rc := run([]string{
@@ -191,6 +197,7 @@ func TestAddMilestone_DependsOnNonMilestoneReferent(t *testing.T) {
 // some valid and some invalid ids, the verb refuses the whole call
 // (no partial writes).
 func TestAddMilestone_DependsOnPartialUnknown(t *testing.T) {
+	t.Parallel()
 	root := addMilestoneDependsOnSetup(t)
 
 	rc := run([]string{

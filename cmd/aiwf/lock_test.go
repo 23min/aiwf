@@ -14,6 +14,7 @@ import (
 // repolock guard, exactly one wins and one returns exitUsage with
 // a busy message.
 func TestRun_ConcurrentMutations_OneWinsOneBusy(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -63,6 +64,7 @@ func TestRun_ConcurrentMutations_OneWinsOneBusy(t *testing.T) {
 // TestRun_Check_DoesNotAcquireLock: read-only check must work even
 // while a mutation lock is held — concurrent reads/writes are fine.
 func TestRun_Check_DoesNotAcquireLock(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)

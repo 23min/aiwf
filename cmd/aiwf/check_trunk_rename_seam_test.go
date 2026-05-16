@@ -23,6 +23,7 @@ import (
 // pre-push runs `aiwf check`, the rename is misread as a duplicate id
 // allocation, push is blocked, and the only escape is `--no-verify`.
 func TestBinary_Check_TrunkRenameNotCollision(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp)
@@ -85,6 +86,7 @@ func TestBinary_Check_TrunkRenameNotCollision(t *testing.T) {
 // exception masks the genuine duplicate-id case the rule exists to
 // catch.
 func TestBinary_Check_NonRenameSameIDStillCollides(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp)

@@ -32,6 +32,7 @@ import (
 // must report that exact value from `aiwf version`. This is the
 // `make install` path the kernel-dev repo uses today.
 func TestBinary_VersionVerb_RespectsLdflags(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	const stampedVersion = "v0.99.0-binary-integration-test"
@@ -54,9 +55,10 @@ func TestBinary_VersionVerb_RespectsLdflags(t *testing.T) {
 // other (the v0.1.0 shape) fails this test even when both surfaces
 // individually look "right" in isolation.
 func TestBinary_VersionVerb_FallsBackToBuildInfo(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp /* no ldflags */)
+	bin := aiwfBinary(t)
 
 	verOut, err := runBinary(bin, "version")
 	if err != nil {
@@ -103,9 +105,9 @@ func TestBinary_VersionVerb_FallsBackToBuildInfo(t *testing.T) {
 // promote (entity, AC) → edit-body → cancel → add second epic → move →
 // reallocate → import (dry-run) → check.
 func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
-	tmp := t.TempDir()
-	bin := buildBinary(t, tmp /* no ldflags */)
+	bin := aiwfBinary(t)
 
 	repo := t.TempDir()
 	mustExec(t, repo, "git", "init", "-q")
@@ -221,9 +223,9 @@ func mustExec(t *testing.T, workdir, name string, args ...string) {
 // remove. Each step is its own subprocess invocation so a regression
 // in any single subcommand's Cobra wiring is reported by name.
 func TestBinary_ContractFamily_Subprocess(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
-	tmp := t.TempDir()
-	bin := buildBinary(t, tmp /* no ldflags */)
+	bin := aiwfBinary(t)
 
 	repo := t.TempDir()
 	mustExec(t, repo, "git", "init", "-q")
@@ -299,9 +301,9 @@ func TestBinary_ContractFamily_Subprocess(t *testing.T) {
 // the way a user's installed binary does, not just the way go test's
 // in-process run() works.
 func TestBinary_DoctorSelfCheck_Passes(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
-	tmp := t.TempDir()
-	bin := buildBinary(t, tmp /* no ldflags */)
+	bin := aiwfBinary(t)
 
 	out, err := runBinary(bin, "doctor", "--self-check")
 	if err != nil {
@@ -320,9 +322,9 @@ func TestBinary_DoctorSelfCheck_Passes(t *testing.T) {
 // our exitError unwrap, and the os.Exit translation only become
 // visible when a real binary executes.
 func TestBinary_ReadOnlyVerbs_ExitOK(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
-	tmp := t.TempDir()
-	bin := buildBinary(t, tmp /* no ldflags */)
+	bin := aiwfBinary(t)
 
 	// Empty repo (no aiwf.yaml, no work tree). Doctor returns 1
 	// ("findings"); the others run cleanly with exit 0.
@@ -477,9 +479,10 @@ func versionTokenFromBinaryRow(row string) string {
 // shelled out (e.g., embed.FS resolution from a packed binary,
 // flag-parsing differences when args land via os.Args vs. run()).
 func TestBinary_RenderHTML_EndToEnd(t *testing.T) {
+	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp /* no ldflags */)
+	bin := aiwfBinary(t)
 
 	// Build the consumer repo via the binary, just like a user
 	// would. Each verb is its own subprocess; failure on any of

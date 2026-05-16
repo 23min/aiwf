@@ -13,6 +13,7 @@ import (
 
 // TestRun_DoctorClean reports problems=0 in a freshly-initialized repo.
 func TestRun_DoctorClean(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// No --skip-hook: doctor's "clean" judgement requires both
 	// hooks to be installed. The test runs only doctor afterward
@@ -29,6 +30,7 @@ func TestRun_DoctorClean(t *testing.T) {
 // TestRun_DoctorDetectsSkillDrift: tamper with a materialized skill
 // and confirm doctor surfaces it as a problem.
 func TestRun_DoctorDetectsSkillDrift(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -45,6 +47,7 @@ func TestRun_DoctorDetectsSkillDrift(t *testing.T) {
 // TestRun_DoctorReportsMissingConfig: a repo without aiwf.yaml is a
 // problem (run init).
 func TestRun_DoctorReportsMissingConfig(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if rc := run([]string{"doctor", "--root", root}); rc != exitFindings {
 		t.Errorf("doctor on un-init'd repo = %d, want %d", rc, exitFindings)
@@ -56,6 +59,7 @@ func TestRun_DoctorReportsMissingConfig(t *testing.T) {
 // output. The note is informational — it does NOT increment problems
 // (the field is harmless, just unnecessary).
 func TestRun_DoctorReportsLegacyActor(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -76,6 +80,7 @@ func TestRun_DoctorReportsLegacyActor(t *testing.T) {
 // runtime-derived actor + its source so the user can confirm what
 // the next mutating verb's aiwf-actor: trailer would say.
 func TestRun_DoctorReportsRuntimeIdentity(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -97,6 +102,7 @@ func TestRun_DoctorReportsRuntimeIdentity(t *testing.T) {
 // doctor (mirrors the legacy-actor note). The advisory does not
 // increment the doctor problem count.
 func TestRun_DoctorReportsLegacyAiwfVersion(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// No --skip-hook: the test asserts problems == 0 (the legacy
 	// field is advisory, not a problem). Without hooks installed
@@ -137,6 +143,7 @@ func TestRun_DoctorReportsLegacyAiwfVersion(t *testing.T) {
 // in-process via the dispatcher would deadlock (hook execs the
 // test binary).
 func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 
 	out, err := runBin(t, root, "", nil, "doctor", "--self-check")
@@ -205,6 +212,7 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 // G48's helper, doctor would say "missing — pre-push validation not
 // installed" because it looked at the wrong location.
 func TestDoctor_HonorsCoreHooksPath(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// Configure a relative tracked-hooks dir before init lands hooks.
 	if err := osExec(t, root, "git", "config", "core.hooksPath", "scripts/git-hooks"); err != nil {
@@ -246,6 +254,7 @@ func TestDoctor_HonorsCoreHooksPath(t *testing.T) {
 // matter: absent (no suffix), present + executable ("chains to ..."),
 // present + non-executable (error, increments problem count).
 func TestDoctor_HookChainReporting(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -317,6 +326,7 @@ func TestDoctor_HookChainReporting(t *testing.T) {
 // TestDoctorReport_Contents checks the pure helper produces the
 // expected lines for a typical fresh repo.
 func TestDoctorReport_Contents(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -364,6 +374,7 @@ func TestDoctor_CheckLatest_ProxyDisabled(t *testing.T) {
 // appear in the default (no --check-latest) report path. Doctor must
 // stay offline by default.
 func TestDoctor_CheckLatest_DefaultOff(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -380,6 +391,7 @@ func TestDoctor_CheckLatest_DefaultOff(t *testing.T) {
 // installed at .git/hooks/pre-push pointing at an existing binary;
 // doctor reports it as ok.
 func TestDoctorReport_HookOK(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -406,6 +418,7 @@ func TestDoctorReport_HookOK(t *testing.T) {
 // drift and increments problems so users see the issue without
 // having to discover it on a failed push.
 func TestDoctorReport_HookStalePath_DetectsDrift(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -437,6 +450,7 @@ exec /nonexistent/path/to/old-aiwf check
 // validation isn't gating their push, even if everything else is
 // clean).
 func TestDoctorReport_HookMissing(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -458,6 +472,7 @@ func TestDoctorReport_HookMissing(t *testing.T) {
 // hook with the marker; doctor reports it ok and increments no
 // problems.
 func TestDoctorReport_PreCommitHookOK(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -481,6 +496,7 @@ func TestDoctorReport_PreCommitHookOK(t *testing.T) {
 // "gate-only" qualifier). Doctor counts no problems — that's the
 // desired-and-actual-agree state.
 func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// Pre-write aiwf.yaml with the same Version the binary will
 	// stamp on init, so the version-skew check doesn't add a
@@ -513,6 +529,7 @@ func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
 // config still says install — drift, doctor flags as a problem and
 // hints `aiwf update`.
 func TestDoctorReport_PreCommitHookMissingButFlagOn(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -541,6 +558,7 @@ func TestDoctorReport_PreCommitHookMissingButFlagOn(t *testing.T) {
 // (Under G-0112 the regen toggle lives on the post-commit hook, not
 // the pre-commit hook.)
 func TestDoctorReport_PostCommitHookPresentButFlagOff(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -569,6 +587,7 @@ status_md:
 // Doctor reports it but does not increment problems (the user owns
 // the hook; aiwf can't and won't touch it).
 func TestDoctorReport_PreCommitHookAlien(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -593,6 +612,7 @@ func TestDoctorReport_PreCommitHookAlien(t *testing.T) {
 // TestDoctorReport_PreCommitHookStalePath: marker present but the
 // exec path no longer exists. Same drift class as G12 for pre-push.
 func TestDoctorReport_PreCommitHookStalePath(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -632,6 +652,7 @@ exit 0
 // they're on a case-insensitive volume (where E-01-foo and
 // E-01-Foo collapse to one path) before they hit the footgun.
 func TestDoctorReport_ReportsFilesystemCaseSensitivity(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -649,6 +670,7 @@ func TestDoctorReport_ReportsFilesystemCaseSensitivity(t *testing.T) {
 // validator binary missing from PATH appears as a warning line in
 // the report and does NOT increment problems (default lenient).
 func TestDoctorReport_ValidatorAvailability_Warning(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",
@@ -885,6 +907,7 @@ func TestDoctorReport_RecommendedPlugins_AreSoftWarning_DoNotIncrementProblems(t
 // guard the public doctorReport relies on when `config.Load` failed
 // for a non-NotFound reason (cfg comes back nil).
 func TestAppendRecommendedPluginsReport_NilCfg_NoOp(t *testing.T) {
+	t.Parallel()
 	in := []string{"line a", "line b"}
 	out := appendRecommendedPluginsReport(in, nil, t.TempDir())
 	if len(out) != len(in) {
@@ -943,6 +966,7 @@ func writeInstalledPluginsFixture(t *testing.T, home, body string) {
 // strict_validators=true makes a missing validator a hard problem
 // in the doctor report (matching the verify-time error).
 func TestDoctorReport_ValidatorAvailability_StrictIncrementsProblems(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
 		ActorOverride: "human/test",

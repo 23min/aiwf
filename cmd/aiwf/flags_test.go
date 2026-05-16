@@ -6,6 +6,7 @@ import (
 )
 
 func TestReorderFlagsFirst(t *testing.T) {
+	t.Parallel()
 	known := []string{"actor", "root", "reason"}
 	bools := []string{"force"}
 	tests := []struct {
@@ -80,6 +81,7 @@ func TestReorderFlagsFirst(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := reorderFlagsFirst(tt.in, known, bools)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got %v, want %v", got, tt.want)

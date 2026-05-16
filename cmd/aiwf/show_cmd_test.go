@@ -150,6 +150,7 @@ Archived gap body.
 // verb resolves archived ids" and "the verb does not require a flag
 // to do so" as separate mechanical assertions.
 func TestShowCmd_NoArchivedFlag(t *testing.T) {
+	t.Parallel()
 	cmd := newShowCmd()
 	if cmd.Flags().Lookup("archived") != nil {
 		t.Errorf("show has --archived flag; archived ids resolve without flag opt-in per ADR-0004 §\"Display surfaces\"")
@@ -480,6 +481,7 @@ func TestRun_ShowJSONEnvelope(t *testing.T) {
 // TestRun_ShowUnknownIDIsUsageError surfaces a clean error and
 // usage exit code.
 func TestRun_ShowUnknownIDIsUsageError(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -586,6 +588,7 @@ func TestRun_ShowReferencedByEmptyIsPresent(t *testing.T) {
 // and commits — exactly the scenario the standing check exists to
 // catch.
 func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)

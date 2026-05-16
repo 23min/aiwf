@@ -372,6 +372,7 @@ contracts:
 //     (pre-push integration parity)
 //  8. unbind and verify clean again
 func TestRun_ContractEndToEnd_FullChain(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -524,6 +525,7 @@ args: ["{{fixture}}"]
 // any 1-of-3 / 2-of-3 of the bind flags) must error out as a usage
 // problem and leave no entity behind.
 func TestRun_ContractAddPartialBindFlagsRejected(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)

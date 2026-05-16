@@ -17,6 +17,7 @@ import (
 // AC whose body section under `### AC-N — <title>` contains the file's
 // content, in the same atomic commit as the AC creation.
 func TestAddAC_BodyFile_BinaryEndToEnd(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -137,6 +138,7 @@ func TestAddAC_BodyFile_BinaryEndToEnd(t *testing.T) {
 // the pairing falls out from the loop's index. AC-3 covers the
 // mismatched-counts refusal in a later cycle.
 func TestAddAC_BodyFile_MultiAC_PositionalPairing(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -290,6 +292,7 @@ func TestAddAC_BodyFile_MultiAC_PositionalPairing(t *testing.T) {
 // bodies, more bodies than titles) so a future refactor can't
 // accept one direction silently.
 func TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -415,6 +418,7 @@ func TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation(t *testing.T) {
 // whitespace before the prefix check, mirroring
 // internal/verb/common.go:validateUserBodyBytes).
 func TestAddAC_BodyFile_LeadingFrontmatter_Refused(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -517,6 +521,7 @@ func TestAddAC_BodyFile_LeadingFrontmatter_Refused(t *testing.T) {
 // reads body content from stdin and lands it under the AC heading,
 // consistent with the existing whole-entity --body-file - shorthand.
 func TestAddAC_BodyFile_Stdin_SingleTitle_Succeeds(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -581,6 +586,7 @@ func TestAddAC_BodyFile_Stdin_SingleTitle_Succeeds(t *testing.T) {
 // (--body-file - --body-file -) and stdin mixed with a real file
 // (--body-file - --body-file file.md). Either form is forbidden.
 func TestAddAC_BodyFile_Stdin_MultiTitle_Refused(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -694,6 +700,7 @@ func TestAddAC_BodyFile_Stdin_MultiTitle_Refused(t *testing.T) {
 // "Empty body" here means: between this AC's heading and either
 // the next `### ` heading or EOF, nothing but whitespace appears.
 func TestAddAC_NoBodyFile_LeavesBodyEmpty(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 
@@ -802,6 +809,7 @@ func TestAddAC_NoBodyFile_LeavesBodyEmpty(t *testing.T) {
 // This pins the error-path coverage that the AC-1 happy path leaves
 // unexercised.
 func TestAddAC_BodyFile_MissingFile_ExitsUsage(t *testing.T) {
+	t.Parallel()
 	bin := aiwfBinary(t)
 	binDir := filepath.Dir(bin)
 

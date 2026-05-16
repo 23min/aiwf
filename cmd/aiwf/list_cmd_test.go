@@ -329,6 +329,7 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 // (`--format=xml` and other unsupported values). Mirrors
 // TestRunStatus_BadFormat for the same closed-set discipline.
 func TestRun_List_BadFormat(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"list", "--root", root, "--format=xml"}); rc != exitUsage {
 		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
@@ -339,6 +340,7 @@ func TestRun_List_BadFormat(t *testing.T) {
 // A value outside entity.AllKinds() must not cause a tree walk; the
 // verb returns exitUsage before loading anything.
 func TestRun_List_BadKind(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"list", "--root", root, "--kind", "milestoneish"}); rc != exitUsage {
 		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
@@ -352,6 +354,7 @@ func TestRun_List_BadKind(t *testing.T) {
 // re-introduces parallel filter logic in either site, the agreement
 // breaks here even when each verb's own tests still pass.
 func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
+	t.Parallel()
 	tr := &tree.Tree{Entities: []*entity.Entity{
 		{Kind: entity.KindGap, ID: "G-0001", Status: "open", Title: "open one"},
 		{Kind: entity.KindGap, ID: "G-0002", Status: "addressed", Title: "addressed (terminal)"},
@@ -394,6 +397,7 @@ func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
 // the drift test, and silently degrades the shell-completion UX. This
 // test pins the closed-set semantics directly.
 func TestNewListCmd_CompletionWiring(t *testing.T) {
+	t.Parallel()
 	cmd := newListCmd()
 
 	t.Run("--kind returns entity.AllKinds", func(t *testing.T) {
@@ -459,6 +463,7 @@ func TestNewListCmd_CompletionWiring(t *testing.T) {
 // returns the de-duplicated, sorted union of every kind's allowed
 // statuses. Pure helper; unit-test only.
 func TestUnionAllStatuses(t *testing.T) {
+	t.Parallel()
 	got := unionAllStatuses()
 	if len(got) == 0 {
 		t.Fatalf("unionAllStatuses returned empty slice")

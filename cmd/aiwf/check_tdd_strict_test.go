@@ -17,6 +17,7 @@ import (
 // dispatcher reads config and applies the bumper, so a future
 // refactor can't silently drop the wiring.
 func TestCheck_TDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)

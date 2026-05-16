@@ -130,6 +130,7 @@ func archiveCommitCount(t *testing.T, root string) int {
 // flags prints the planned operations and exits 0 without producing
 // a commit or mutating the worktree.
 func TestArchive_DryRunByDefault(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
@@ -175,6 +176,7 @@ func TestArchive_DryRunByDefault(t *testing.T) {
 // TestArchive_HelpAvailable — AC-1: `aiwf archive --help` returns
 // non-empty short text. Mirrors TestRewidth_HelpAvailable.
 func TestArchive_HelpAvailable(t *testing.T) {
+	t.Parallel()
 	root := newRootCmd()
 	archive, _, err := root.Find([]string{"archive"})
 	if err != nil {
@@ -188,6 +190,7 @@ func TestArchive_HelpAvailable(t *testing.T) {
 // TestArchive_ApplyProducesSingleCommit — AC-3: `aiwf archive --apply`
 // produces exactly one commit per invocation. CLAUDE.md §7.
 func TestArchive_ApplyProducesSingleCommit(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
@@ -209,6 +212,7 @@ func TestArchive_ApplyProducesSingleCommit(t *testing.T) {
 // `aiwf-verb: archive` (no `aiwf-entity:` trailer — multi-entity
 // sweeps are a special case in the trailer-keys policy)."
 func TestArchive_TrailerShape(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
@@ -241,6 +245,7 @@ func TestArchive_TrailerShape(t *testing.T) {
 // scopes the sweep to gaps only. Other terminal-status entities (epic,
 // decision, contract, adr) stay in the active tree.
 func TestArchive_KindGapScopesSweep(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
@@ -274,6 +279,7 @@ func TestArchive_KindGapScopesSweep(t *testing.T) {
 // twice produces exactly one commit (the second invocation is a
 // no-op). The CLI exits 0 on the no-op path.
 func TestArchive_ApplyIdempotent(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
@@ -297,6 +303,7 @@ func TestArchive_ApplyIdempotent(t *testing.T) {
 // an empty repo (no terminal entities) is a no-op with exit 0 and
 // zero commits.
 func TestArchive_EmptyTreeApply_NoOp(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
 		t.Fatalf("init: %d", rc)
@@ -325,6 +332,7 @@ func TestArchive_EmptyTreeApply_NoOp(t *testing.T) {
 // spaces" — the storage table is the input space; this test
 // enumerates every row.
 func TestArchive_PerKindStorageLayout(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
@@ -410,6 +418,7 @@ func TestArchive_PerKindStorageLayout(t *testing.T) {
 // 'archive this specific entity' mode — that would be a hand-edit
 // detour, not a verb."
 func TestArchive_NoPositionalIDArg(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"archive", "G-0010", "--root", root, "--actor", "human/test"}); rc != exitUsage {
 		t.Errorf("archive with positional id arg rc = %d, want exitUsage (the verb sweeps by status, not by id — ADR-0004)", rc)
@@ -420,6 +429,7 @@ func TestArchive_NoPositionalIDArg(t *testing.T) {
 // without --principal fails fast with exit-usage (mirrors rewidth's
 // shape). Covers the principal-coherence guard.
 func TestArchive_NonHumanActorRequiresPrincipal(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"archive", "--root", root, "--actor", "ai/claude"}); rc != exitUsage {
 		t.Errorf("expected exitUsage for non-human actor without --principal; got %d", rc)
@@ -429,6 +439,7 @@ func TestArchive_NonHumanActorRequiresPrincipal(t *testing.T) {
 // TestArchive_HumanActorForbidsPrincipal — a human actor that
 // supplies --principal also fails fast.
 func TestArchive_HumanActorForbidsPrincipal(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"archive", "--root", root, "--actor", "human/test", "--principal", "human/test"}); rc != exitUsage {
 		t.Errorf("expected exitUsage for human actor with --principal; got %d", rc)
@@ -439,6 +450,7 @@ func TestArchive_HumanActorForbidsPrincipal(t *testing.T) {
 // validation fires before the verb runs. A typo or an unknown kind
 // returns exit-usage with an actionable error message.
 func TestArchive_InvalidKindRejected(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"archive", "--kind", "widget", "--root", root, "--actor", "human/test"}); rc != exitUsage {
 		t.Errorf("expected exitUsage for invalid --kind; got %d", rc)
@@ -450,6 +462,7 @@ func TestArchive_InvalidKindRejected(t *testing.T) {
 // and stamps aiwf-principal on the commit. Mirrors rewidth's same-
 // shape test.
 func TestArchive_NonHumanActorWithPrincipal_StampsTrailer(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
@@ -483,6 +496,7 @@ func TestArchive_NonHumanActorWithPrincipal_StampsTrailer(t *testing.T) {
 // ad-hoc user invocations can name it directly without hitting
 // "unknown flag".
 func TestArchive_ExplicitDryRunFlag(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
@@ -514,6 +528,7 @@ func TestArchive_ExplicitDryRunFlag(t *testing.T) {
 // (one is the read-only branch; the other commits) and silently
 // preferring either would surprise the operator.
 func TestArchive_DryRunAndApplyMutuallyExclusive(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"archive", "--dry-run", "--apply", "--root", root, "--actor", "human/test"}); rc != exitUsage {
 		t.Errorf("archive --dry-run --apply rc = %d, want exitUsage", rc)

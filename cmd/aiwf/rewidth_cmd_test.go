@@ -96,6 +96,7 @@ func rewidthCommitCount(t *testing.T, root string) int {
 // flags prints the planned operations and exits 0 without producing a
 // commit.
 func TestRewidth_DryRunByDefault(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
@@ -118,6 +119,7 @@ func TestRewidth_DryRunByDefault(t *testing.T) {
 // TestRewidth_ApplyProducesSingleCommit — AC-1: `aiwf rewidth --apply`
 // produces exactly one commit per invocation. CLAUDE.md §7.
 func TestRewidth_ApplyProducesSingleCommit(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
@@ -137,6 +139,7 @@ func TestRewidth_ApplyProducesSingleCommit(t *testing.T) {
 // `aiwf-entity:` trailer (multi-entity sweep, same shape as
 // `aiwf archive`).
 func TestRewidth_TrailerShape(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
@@ -170,6 +173,7 @@ func TestRewidth_TrailerShape(t *testing.T) {
 // catch a totally empty Short, but this is the more pointed check —
 // the verb's existence on the help surface is part of the AC.
 func TestRewidth_HelpAvailable(t *testing.T) {
+	t.Parallel()
 	root := newRootCmd()
 	rewidth, _, err := root.Find([]string{"rewidth"})
 	if err != nil {
@@ -185,6 +189,7 @@ func TestRewidth_HelpAvailable(t *testing.T) {
 // active tree post-run. Mirrors the AC-5 verification grep that the
 // human will run against this repo at wrap.
 func TestRewidth_PostApply_NoNarrowFilenamesInActiveTree(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
@@ -230,6 +235,7 @@ func TestRewidth_PostApply_NoNarrowFilenamesInActiveTree(t *testing.T) {
 // AC-3 dispatcher-level seam test — body content rewrites land at
 // the post-rename file paths and contain canonical-width ids.
 func TestRewidth_PostApply_BodyContentRewritten(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
@@ -264,6 +270,7 @@ func TestRewidth_PostApply_BodyContentRewritten(t *testing.T) {
 // AC-4 dispatcher-level seam test — running `aiwf rewidth --apply`
 // twice produces exactly one commit (the second invocation is a no-op).
 func TestRewidth_ApplyIdempotent(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
@@ -287,6 +294,7 @@ func TestRewidth_ApplyIdempotent(t *testing.T) {
 // empty consumer repo (no entity files anywhere) is a no-op with
 // exit 0 and zero commits.
 func TestRewidth_EmptyTreeApply_NoOp(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// init produces no commits but creates aiwf.yaml + scaffolding;
 	// commit it so we have a base HEAD.
@@ -309,6 +317,7 @@ func TestRewidth_EmptyTreeApply_NoOp(t *testing.T) {
 // without --principal fails fast with exit-usage (mirrors import's
 // shape). Covers the principal-coherence guard.
 func TestRewidth_NonHumanActorRequiresPrincipal(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"rewidth", "--root", root, "--actor", "ai/claude"}); rc != exitUsage {
 		t.Errorf("expected exitUsage for non-human actor without --principal; got %d", rc)
@@ -318,6 +327,7 @@ func TestRewidth_NonHumanActorRequiresPrincipal(t *testing.T) {
 // TestRewidth_HumanActorForbidsPrincipal — a human actor that
 // supplies --principal also fails fast.
 func TestRewidth_HumanActorForbidsPrincipal(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := run([]string{"rewidth", "--root", root, "--actor", "human/test", "--principal", "human/test"}); rc != exitUsage {
 		t.Errorf("expected exitUsage for human actor with --principal; got %d", rc)
@@ -329,6 +339,7 @@ func TestRewidth_HumanActorForbidsPrincipal(t *testing.T) {
 // runs and stamps aiwf-principal on the commit. Covers the
 // principal-trailer-append branch.
 func TestRewidth_NonHumanActorWithPrincipal_StampsTrailer(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
@@ -358,6 +369,7 @@ func TestRewidth_NonHumanActorWithPrincipal_StampsTrailer(t *testing.T) {
 // AC-2 dispatcher-level — archive entries are byte-for-byte preserved
 // across an --apply. Per ADR-0004 forget-by-default.
 func TestRewidth_ArchivePreservedByteIdentical(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 
@@ -404,6 +416,7 @@ func TestRewidth_ArchivePreservedByteIdentical(t *testing.T) {
 // The preflight catches the error, refuses the migration, exits with
 // exitFindings, and produces no commit.
 func TestRewidth_PreflightApply_BailsOnAiwfCheckError(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 
@@ -434,6 +447,7 @@ func TestRewidth_PreflightApply_BailsOnAiwfCheckError(t *testing.T) {
 // fixture from the test above, but adds --skip-checks. The verb runs
 // to completion and produces exactly one commit. Power-user opt-out.
 func TestRewidth_PreflightApply_SkipChecksBypasses(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	gap := filepath.Join(root, "work", "gaps", "G-099-some-gap.md")
@@ -460,6 +474,7 @@ func TestRewidth_PreflightApply_SkipChecksBypasses(t *testing.T) {
 // already omits work/contracts and docs/adr; this confirms the verb
 // continues past those advisory warnings.
 func TestRewidth_PreflightApply_LayoutWarningButRuns(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture (no contracts/, no docs/adr/)")
@@ -481,6 +496,7 @@ func TestRewidth_PreflightApply_LayoutWarningButRuns(t *testing.T) {
 // docs/adr exist; the preflight bails with a usage error rather than
 // running an empty migration or flooding stderr with check errors.
 func TestRewidth_PreflightApply_AllExpectedDirsMissingBails(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	// No fixture seeded — none of the expected kind directories exist.
 	if err := osExec(t, root, "git", "commit", "--allow-empty", "-q", "-m", "empty repo"); err != nil {
@@ -502,6 +518,7 @@ func TestRewidth_PreflightApply_AllExpectedDirsMissingBails(t *testing.T) {
 // on --apply. Dry-run is a read-only preview; even on a tree with
 // aiwf-check errors it produces the plan output and exits OK.
 func TestRewidth_PreflightDryRun_NoGate(t *testing.T) {
+	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedNarrowFixture(t, root)
 	gap := filepath.Join(root, "work", "gaps", "G-099-some-gap.md")
