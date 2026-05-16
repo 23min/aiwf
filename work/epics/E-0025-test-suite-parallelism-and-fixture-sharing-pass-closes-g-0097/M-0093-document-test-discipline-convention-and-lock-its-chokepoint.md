@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-3
       title: G-0097 promoted to addressed and the closing trailer cites E-0025
-      status: open
+      status: met
 ---
 
 # M-0093 — Document test-discipline convention and lock its chokepoint
