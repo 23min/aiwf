@@ -272,7 +272,7 @@ Convert the Go test suite from serial-with-per-test-setup to parallel-with-share
 |---|---|---|
 | M-0091 | Roll out TestMain + t.Parallel across internal/* test packages | done |
 | M-0092 | Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/ | done |
-| M-0093 | Document test-discipline convention and lock its chokepoint | draft |
+| M-0093 | Document test-discipline convention and lock its chokepoint | done |
 
 ## E-0026 — aiwf check per-code summary by default (closes G-0098) (done)
 

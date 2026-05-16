@@ -269,6 +269,45 @@ The chokepoint is `PolicyNoHardcodedEntityPaths` in `internal/policies/`. It sca
 
 Why this rule exists: M-0090's first archive sweep aborted because `TestAiwfxWrapEpic_AC4_RitualsRepoSHARecordedAtWrap` read the milestone spec via a hardcoded `filepath.Join` literal that the sweep invalidated. The test had passed every commit up to that point — it broke the instant the milestone's parent epic became archive-eligible. ADR-0004's whole point is that archive movement should be transparent; a test that opts out of the loader opts out of that guarantee.
 
+### Test discipline
+
+Test files in this module run **parallel-by-default**. After M-0091 + M-0092 the convention is established across `internal/*` and `cmd/aiwf/`; new test files in any module package follow it by default.
+
+The five load-bearing rules:
+
+- **`setup_test.go` per package.** Every test-bearing package has a `setup_test.go` (uniform filename — mechanical, AI-discoverable) containing a `TestMain(m *testing.M)`. The TestMain calls `os.Setenv` for the four GIT identity vars (`GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL`) once at startup, then `os.Exit(m.Run())`. The shape:
+
+  ```go
+  package <pkg>
+
+  import (
+      "os"
+      "testing"
+  )
+
+  func TestMain(m *testing.M) {
+      os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
+      os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
+      os.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
+      os.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
+      os.Exit(m.Run())
+  }
+  ```
+
+  **`os.Setenv` not `t.Setenv`** because `t.Setenv` panics under `t.Parallel`. The identity values are immutable for the test binary's lifetime; once-setup is correct.
+
+- **`t.Parallel()` first-line on every parallelizable test.** Test functions that don't legitimately need serial execution call `t.Parallel()` as their first statement (after `t.Helper()` if present). Table-driven subtests inside `t.Run` get a nested `t.Parallel()` when each iteration is independent (separate `t.TempDir`, no shared state mutation).
+
+- **Serial skip-list in `setup_test.go`'s comment block.** Tests that legitimately must stay serial (calls `t.Setenv`/`t.Chdir`, mutates a package-level var, depends on shared `os.Stdout`/`os.Stderr` capture, saturates a shared subprocess limit) are documented with a one-line rationale per test. The comment is the audit trail — a reviewer reads it before adding a new parallel test that might interact with one of the listed ones. Canonical examples: `internal/verb/setup_test.go::TestApply_RollsBackOnCommitFailure` (deliberately clears GIT identity to provoke a commit failure); `cmd/aiwf/setup_test.go`'s integration_g37 file-level entry (dense subprocess fan-out).
+
+- **`sync.Once` for expensive shared fixtures.** Anything that costs more than a `t.TempDir()` per call and is read-only at test time goes behind a `sync.Once`. Canonical examples: the cmd-binary build (`cmd/aiwf/integration_test.go::aiwfBinary`) and the live-repo `*Tree` (`internal/policies/shared_tree_test.go::sharedRepoTree`). The helper carries a `// do not mutate` comment at its definition because the returned value is shared across goroutines.
+
+- **`-race -parallel 8` cap.** `Makefile`'s `test-race`, `.github/workflows/go.yml`'s race-coverage step, and `.github/workflows/flake-hunt.yml`'s race-detector sweep all carry `-parallel 8`. Rationale: race + heavy git-subprocess fan-out flakes on macOS at default `-parallel=GOMAXPROCS` (~50% of runs at GOMAXPROCS=20 in the G-0097 spike). CI Linux is less affected but the cap stays uniform across host shapes. Drift-prevention: `internal/policies/race_parallel_cap.go` (M-0091/AC-1) — drop the cap from one surface and the policy fires on that file at that line.
+
+The presence-of-`setup_test.go` chokepoint is `internal/policies/test_setup_presence.go` (M-0093/AC-2): an AST-level walk of every test-bearing package under `internal/` that fails CI if the package omits `setup_test.go` or its `setup_test.go` lacks a `func TestMain(m *testing.M)` declaration. **Scope is `internal/*`** — `cmd/aiwf/` has a more nuanced per-file audit shape (the captureStdout/Stderr/Run helpers force most callers serial; the per-file skip-list lives in `cmd/aiwf/setup_test.go`'s comment block, not a Go policy). If `cmd/aiwf/` should also be guarded, that's a future gap.
+
+Why this discipline: G-0097 measured ~4× wall-time headroom in `internal/verb` from parallel execution; M-0091's full rollout produced a 2.2× speedup at default parallelism across `internal/*` (53.6s → 24.5s); M-0092's cmd/aiwf rollout produced a 47% wall-time reduction on the cmd/* surface. Without the discipline + the chokepoint, future test files copy whichever shape was last touched and the parallelism rots package-by-package.
+
 ### Coverage
 
 - **High coverage on `internal/...` packages.** PoC target is 90%; failing checks for low coverage are advisory at this stage.
@@ -400,6 +439,8 @@ The kernel's "framework correctness must not depend on LLM behavior" principle a
 | Full planning-tree validation (refs, ids, FSM, contracts)    | `aiwf check` — pre-push hook                                     | Blocking pre-push       |
 | Repo-specific invariants (trailer keys, sovereign acts, etc.) | `internal/policies/` — runs as a Go test package                 | Blocking via CI test    |
 | Every verb has skill coverage or an allowlist entry; every `aiwf <verb>` mention in a skill resolves | `internal/policies/skill_coverage.go` — runs as a Go test (M-074) | Blocking via CI test    |
+| Every `internal/*` test-bearing package has a `setup_test.go` with `TestMain` | `internal/policies/test_setup_presence.go` — runs as a Go test (M-0093) | Blocking via CI test    |
+| Race-mode `go test` invocations carry `-parallel 8` uniformly across Makefile + workflows | `internal/policies/race_parallel_cap.go` — runs as a Go test (M-0091/AC-1) | Blocking via CI test    |
 | `context.Context` as first arg of new IO function            | Code review                                                      | Advisory                |
 | No new package-level mutable state                           | Code review                                                      | Advisory                |
 | Each new dep has a one-line justification                    | Code review (commit message / PR description)                    | Advisory                |
