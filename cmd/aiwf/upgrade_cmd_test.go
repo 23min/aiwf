@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -24,8 +25,8 @@ func TestRunUpgrade_CheckOnly_NoNetworkRequired(t *testing.T) {
 	rc, stdout, _ := captureRun(t, func() int {
 		return run([]string{"upgrade", "--check"})
 	})
-	if rc != exitOK {
-		t.Fatalf("rc = %d, want %d (stdout: %s)", rc, exitOK, stdout)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rc = %d, want %d (stdout: %s)", rc, cliutil.ExitOK, stdout)
 	}
 	if !strings.Contains(stdout, "current:") {
 		t.Errorf("missing 'current:' line in output:\n%s", stdout)
@@ -50,8 +51,8 @@ func TestRunUpgrade_CheckOnly_FakeProxy(t *testing.T) {
 	rc, stdout, _ := captureRun(t, func() int {
 		return run([]string{"upgrade", "--check"})
 	})
-	if rc != exitOK {
-		t.Fatalf("rc = %d, want %d (stdout: %s)", rc, exitOK, stdout)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rc = %d, want %d (stdout: %s)", rc, cliutil.ExitOK, stdout)
 	}
 	if !strings.Contains(stdout, "v9.9.9 (tagged)") {
 		t.Errorf("expected target line to show v9.9.9 (tagged); stdout:\n%s", stdout)
@@ -70,7 +71,7 @@ func TestRunUpgrade_NoGoBinary(t *testing.T) {
 	rc, _, stderr := captureRun(t, func() int {
 		return run([]string{"upgrade", "--version", "v0.1.0"})
 	})
-	if rc == exitOK {
+	if rc == cliutil.ExitOK {
 		t.Fatalf("expected non-zero exit when go binary is missing")
 	}
 	if !strings.Contains(stderr, "locating `go`") {
@@ -106,8 +107,8 @@ func TestRunUpgrade_FullFlow_NoReexec(t *testing.T) {
 	rc, stdout, stderr := captureRun(t, func() int {
 		return run([]string{"upgrade", "--version", "v0.1.0", "--root", tmp})
 	})
-	if rc != exitOK {
-		t.Fatalf("rc = %d, want %d (stdout=%s, stderr=%s)", rc, exitOK, stdout, stderr)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rc = %d, want %d (stdout=%s, stderr=%s)", rc, cliutil.ExitOK, stdout, stderr)
 	}
 
 	logBytes, err := os.ReadFile(logPath)
@@ -158,8 +159,8 @@ func TestRunUpgrade_FullFlow_GOBINUnset(t *testing.T) {
 	rc, stdout, stderr := captureRun(t, func() int {
 		return run([]string{"upgrade", "--version", "v0.1.0", "--root", tmp})
 	})
-	if rc != exitOK {
-		t.Fatalf("rc = %d, want %d (stdout=%s, stderr=%s)", rc, exitOK, stdout, stderr)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rc = %d, want %d (stdout=%s, stderr=%s)", rc, cliutil.ExitOK, stdout, stderr)
 	}
 
 	logBytes, err := os.ReadFile(logPath)
@@ -346,8 +347,8 @@ esac
 	rc, _, stderr := captureRun(t, func() int {
 		return run([]string{"upgrade", "--version", "v0.4.0", "--root", tmp})
 	})
-	if rc != exitInternal {
-		t.Errorf("rc = %d, want %d (install fails)", rc, exitInternal)
+	if rc != cliutil.ExitInternal {
+		t.Errorf("rc = %d, want %d (install fails)", rc, cliutil.ExitInternal)
 	}
 	for _, want := range []string{
 		"hint — the install path may have changed",
@@ -390,8 +391,8 @@ esac
 	rc, _, stderr := captureRun(t, func() int {
 		return run([]string{"upgrade", "--version", "v9.9.9", "--root", tmp})
 	})
-	if rc != exitInternal {
-		t.Errorf("rc = %d, want %d", rc, exitInternal)
+	if rc != cliutil.ExitInternal {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitInternal)
 	}
 	if strings.Contains(stderr, "hint — the install path may have changed") {
 		t.Errorf("G46 hint fired on unrelated error (false positive); stderr:\n%s", stderr)
@@ -441,8 +442,8 @@ func TestRunUpgrade_BadFlag(t *testing.T) {
 	rc, _, _ := captureRun(t, func() int {
 		return run([]string{"upgrade", "--nope"})
 	})
-	if rc != exitUsage {
-		t.Errorf("rc = %d, want %d", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 

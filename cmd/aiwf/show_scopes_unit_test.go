@@ -464,7 +464,7 @@ func TestLoadEntityScopeViews_NoCommits(t *testing.T) {
 }
 
 // TestLoadEntityScopeViews_NotInGitRepo: working dir is not a git
-// repo. hasCommits returns false; helper returns (nil, nil)
+// repo. cliutil.HasCommits returns false; helper returns (nil, nil)
 // gracefully without erroring.
 func TestLoadEntityScopeViews_NotInGitRepo(t *testing.T) {
 	t.Parallel()

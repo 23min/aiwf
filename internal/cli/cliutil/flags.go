@@ -1,8 +1,8 @@
-package main
+package cliutil
 
 import "strings"
 
-// reorderFlagsFirst hoists known flags (and their values) to the front
+// ReorderFlagsFirst hoists known flags (and their values) to the front
 // of args so Go's stdlib `flag` package — which stops parsing at the
 // first non-flag token — accepts the natural CLI shape:
 //
@@ -24,7 +24,7 @@ import "strings"
 // it starts with `--` or `-` AND its name is in one of the known sets.
 // Unknown flags fall through to the original position so flag.Parse
 // can produce its usual error.
-func reorderFlagsFirst(args, knownFlags, knownBoolFlags []string) []string {
+func ReorderFlagsFirst(args, knownFlags, knownBoolFlags []string) []string {
 	known := make(map[string]bool, len(knownFlags))
 	for _, k := range knownFlags {
 		known[k] = true

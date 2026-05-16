@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // newWhoamiCmd builds `aiwf whoami`: prints the resolved actor for the
@@ -27,7 +29,7 @@ func newWhoamiCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runWhoamiCmd(root, actor))
+			return cliutil.WrapExitCode(runWhoamiCmd(root, actor))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -39,14 +41,14 @@ func runWhoamiCmd(root, actor string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf whoami: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	resolved, source, err := resolveActorWithSource(actor, rootDir)
+	resolved, source, err := cliutil.ResolveActorWithSource(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf whoami: %v\n", err)
-		return exitFindings
+		return cliutil.ExitFindings
 	}
 	fmt.Printf("%s (source: %s)\n", resolved, source)
-	return exitOK
+	return cliutil.ExitOK
 }

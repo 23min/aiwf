@@ -19,6 +19,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
@@ -47,38 +48,6 @@ func resolvedVersion() string {
 		return Version
 	}
 	return version.Current().Version
-}
-
-// Exit codes per CLAUDE.md § Go conventions § CLI conventions.
-const (
-	exitOK       = 0 // no error-severity findings (warnings allowed)
-	exitFindings = 1 // at least one error-severity finding
-	exitUsage    = 2
-	exitInternal = 3
-)
-
-// exitError carries a verb-handler return code through Cobra's
-// Execute boundary. run() unwraps it so the wrapped code becomes the
-// process exit status. Without this typed shuttle, Cobra would
-// collapse the 0/1/2/3 contract to "0 or non-zero" because it only
-// knows about its own usage-error return path.
-type exitError struct {
-	code int
-}
-
-func (e *exitError) Error() string {
-	return fmt.Sprintf("exit %d", e.code)
-}
-
-// wrapExitCode lifts a verb's int return code into the error channel
-// Cobra's RunE expects. exitOK collapses to nil (success); anything
-// else becomes an *exitError that run() unwraps. Centralizing the
-// translation keeps every RunE one-liner-shaped.
-func wrapExitCode(code int) error {
-	if code == exitOK {
-		return nil
-	}
-	return &exitError{code: code}
 }
 
 // registerFormatCompletion wires `--format=` shell completion to the
@@ -176,9 +145,9 @@ func completeEntityIDArg(filter entity.Kind, position int) func(*cobra.Command, 
 }
 
 func main() {
-	if err := assertSupportedOS(runtime.GOOS); err != nil {
+	if err := cliutil.AssertSupportedOS(runtime.GOOS); err != nil {
 		fmt.Fprintln(os.Stderr, "aiwf:", err)
-		os.Exit(exitUsage)
+		os.Exit(cliutil.ExitUsage)
 	}
 	os.Exit(run(os.Args[1:]))
 }
@@ -193,17 +162,17 @@ func run(args []string) int {
 
 	err := rootCmd.Execute()
 	if err == nil {
-		return exitOK
+		return cliutil.ExitOK
 	}
-	var ee *exitError
+	var ee *cliutil.ExitError
 	if errors.As(err, &ee) {
-		return ee.code
+		return ee.Code
 	}
-	// Non-exitError means Cobra surfaced a usage problem (unknown verb,
+	// Non-cliutil.ExitError means Cobra surfaced a usage problem (unknown verb,
 	// bad flag, missing required arg). With SilenceErrors:true on the
 	// root, Cobra didn't print; we print here in the existing house style.
 	fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
-	return exitUsage
+	return cliutil.ExitUsage
 }
 
 // newRootCmd assembles the Cobra command tree. Every verb is a
@@ -222,7 +191,7 @@ func newRootCmd() *cobra.Command {
 				return nil
 			}
 			fmt.Fprintln(os.Stderr, "aiwf: missing verb. Try 'aiwf help'.")
-			return &exitError{code: exitUsage}
+			return cliutil.WrapExitCode(cliutil.ExitUsage)
 		},
 	}
 	// Manual --version/-v registration (rather than cmd.Version) lets
@@ -425,7 +394,7 @@ func newCheckCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runCheckCmd(root, format, pretty, since, shapeOnly, verbose))
+			return cliutil.WrapExitCode(runCheckCmd(root, format, pretty, since, shapeOnly, verbose))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -441,7 +410,7 @@ func newCheckCmd() *cobra.Command {
 func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verbose bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf check: --format must be 'text' or 'json', got %q\n", format)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if pretty && format != "json" {
 		fmt.Fprintln(os.Stderr, "aiwf check: --pretty has no effect without --format=json")
@@ -450,7 +419,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 	resolved, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
@@ -458,10 +427,10 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 		return runCheckShapeOnly(ctx, resolved, format, pretty)
 	}
 
-	tr, loadErrs, err := loadTreeWithTrunk(ctx, resolved)
+	tr, loadErrs, err := cliutil.LoadTreeWithTrunk(ctx, resolved)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	findings := check.Run(tr, loadErrs)
@@ -469,7 +438,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 	contracts, contractErr := loadContractsBlock(resolved)
 	if contractErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", contractErr)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	contractFindings := runContractValidation(ctx, tr, resolved, contracts)
 	findings = append(findings, contractFindings...)
@@ -477,7 +446,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 	provenanceFindings, pErr := runProvenanceCheck(ctx, resolved, tr, since)
 	if pErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	findings = append(findings, provenanceFindings...)
 
@@ -497,7 +466,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 	metricsFindings, mErr := runTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", mErr)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	findings = append(findings, metricsFindings...)
 
@@ -532,7 +501,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 		}
 		if err := writeText(os.Stdout, findings); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	case "json":
 		env := render.Envelope{
@@ -549,14 +518,14 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	}
 
 	if check.HasErrors(findings) {
-		return exitFindings
+		return cliutil.ExitFindings
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // runCheckShapeOnly runs the tree-discipline rule and nothing else.
@@ -573,7 +542,7 @@ func runCheckShapeOnly(ctx context.Context, root, format string, pretty bool) in
 	tr, _, err := tree.Load(ctx, root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	var allow []string
 	strict := false
@@ -589,7 +558,7 @@ func runCheckShapeOnly(ctx context.Context, root, format string, pretty bool) in
 	case "text":
 		if err := render.Text(os.Stdout, findings); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	case "json":
 		env := render.Envelope{
@@ -606,14 +575,14 @@ func runCheckShapeOnly(ctx context.Context, root, format string, pretty bool) in
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	}
 
 	if check.HasErrors(findings) {
-		return exitFindings
+		return cliutil.ExitFindings
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // resolveRoot picks the consumer repo root. If explicit is non-empty,

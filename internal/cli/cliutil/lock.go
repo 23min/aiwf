@@ -1,4 +1,4 @@
-package main
+package cliutil
 
 import (
 	"errors"
@@ -14,14 +14,14 @@ import (
 // expectation of "another aiwf invocation is winding down".
 const lockTimeout = 2 * time.Second
 
-// acquireRepoLock takes the per-repo mutation lock and returns a
+// AcquireRepoLock takes the per-repo mutation lock and returns a
 // release function plus a zero exit code on success. On failure it
 // prints an explanation to stderr and returns a non-zero exit code
 // the caller must propagate (release will be nil).
 //
 // Usage in every mutating verb:
 //
-//	release, rc := acquireRepoLock(rootDir, "aiwf add")
+//	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add")
 //	if release == nil {
 //	    return rc
 //	}
@@ -29,17 +29,17 @@ const lockTimeout = 2 * time.Second
 //
 // Read-only verbs (check, history, status, render, doctor, whoami)
 // must NOT call this — they can run concurrently with mutations.
-func acquireRepoLock(rootDir, verbDisplay string) (release func(), rc int) {
+func AcquireRepoLock(rootDir, verbDisplay string) (release func(), rc int) {
 	lock, err := repolock.Acquire(rootDir, lockTimeout)
 	if err != nil {
 		if errors.Is(err, repolock.ErrBusy) {
 			fmt.Fprintf(os.Stderr,
 				"%s: another aiwf process is running on this repo; retry in a moment\n",
 				verbDisplay)
-			return nil, exitUsage
+			return nil, ExitUsage
 		}
 		fmt.Fprintf(os.Stderr, "%s: acquiring repo lock: %v\n", verbDisplay, err)
-		return nil, exitInternal
+		return nil, ExitInternal
 	}
 	return func() { _ = lock.Release() }, 0
 }

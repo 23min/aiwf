@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 )
@@ -34,7 +35,7 @@ func newSchemaCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runSchemaCmd(args, format, pretty))
+			return cliutil.WrapExitCode(runSchemaCmd(args, format, pretty))
 		},
 	}
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
@@ -52,7 +53,7 @@ func newSchemaCmd() *cobra.Command {
 func runSchemaCmd(args []string, format string, pretty bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf schema: --format must be 'text' or 'json', got %q\n", format)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if pretty && format != "json" {
 		fmt.Fprintln(os.Stderr, "aiwf schema: --pretty has no effect without --format=json")
@@ -64,7 +65,7 @@ func runSchemaCmd(args []string, format string, pretty bool) int {
 		s, ok := entity.SchemaForKind(k)
 		if !ok {
 			fmt.Fprintf(os.Stderr, "aiwf schema: unknown kind %q (known: %s)\n", args[0], joinKinds(entity.AllKinds()))
-			return exitUsage
+			return cliutil.ExitUsage
 		}
 		schemas = []entity.Schema{s}
 	} else {
@@ -75,7 +76,7 @@ func runSchemaCmd(args []string, format string, pretty bool) int {
 	case "text":
 		if err := writeSchemaText(os.Stdout, schemas); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf schema: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	case "json":
 		env := render.Envelope{
@@ -86,10 +87,10 @@ func runSchemaCmd(args []string, format string, pretty bool) int {
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf schema: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // writeSchemaText renders schemas one block per kind, in a fixed-column

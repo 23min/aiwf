@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
@@ -73,7 +74,7 @@ func newListCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runListCmd(root, kind, status, parent, archived, format, pretty, noTrunc))
+			return cliutil.WrapExitCode(runListCmd(root, kind, status, parent, archived, format, pretty, noTrunc))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -124,23 +125,23 @@ func unionAllStatuses() []string {
 func runListCmd(root, kind, status, parent string, archived bool, format string, pretty, noTrunc bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf list: --format must be 'text' or 'json', got %q\n", format)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if kind != "" && !isKnownKind(kind) {
 		fmt.Fprintf(os.Stderr, "aiwf list: --kind must be one of %v, got %q\n", allKindNames(), kind)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf list: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	tr, _, err := tree.Load(context.Background(), rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf list: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	noArgs := kind == "" && status == "" && parent == "" && !archived
@@ -161,10 +162,10 @@ func runListCmd(root, kind, status, parent string, archived bool, format string,
 			}
 			if err := render.JSON(os.Stdout, env, pretty); err != nil {
 				fmt.Fprintf(os.Stderr, "aiwf list: writing output: %v\n", err)
-				return exitInternal
+				return cliutil.ExitInternal
 			}
 		}
-		return exitOK
+		return cliutil.ExitOK
 	}
 
 	rows := buildListRows(tr, kind, status, parent, archived)
@@ -185,10 +186,10 @@ func runListCmd(root, kind, status, parent string, archived bool, format string,
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf list: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // isKnownKind validates --kind input against the closed kind set

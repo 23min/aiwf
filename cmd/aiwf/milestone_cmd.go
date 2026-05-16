@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
@@ -57,7 +58,7 @@ func newMilestoneDependsOnCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runMilestoneDependsOnCmd(args[0], actor, principal, root, reason, on, clearList))
+			return cliutil.WrapExitCode(runMilestoneDependsOnCmd(args[0], actor, principal, root, reason, on, clearList))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -74,25 +75,25 @@ func newMilestoneDependsOnCmd() *cobra.Command {
 func runMilestoneDependsOnCmd(id, actor, principal, root, reason, on string, clearList bool) int {
 	if on != "" && clearList {
 		fmt.Fprintln(os.Stderr, "aiwf milestone depends-on: --on and --clear are mutually exclusive")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if on == "" && !clearList {
 		fmt.Fprintln(os.Stderr, "aiwf milestone depends-on: pass --on <id,id,...> to set the list, or --clear to empty it")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf milestone depends-on")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf milestone depends-on")
 	if release == nil {
 		return rc
 	}
@@ -102,16 +103,16 @@ func runMilestoneDependsOnCmd(id, actor, principal, root, reason, on string, cle
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	deps := splitCommaList(on)
-	pctx := provenanceContext{
+	pctx := cliutil.ProvenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
 	result, vErr := verb.MilestoneDependsOn(ctx, tr, id, deps, clearList, actorStr, reason)
-	return decorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx)
 }

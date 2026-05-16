@@ -15,6 +15,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -54,7 +55,7 @@ func newUpgradeCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runUpgradeCmd(root, target, checkOnly))
+			return cliutil.WrapExitCode(runUpgradeCmd(root, target, checkOnly))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root for the post-install `aiwf update` step (default: cwd)")
@@ -67,7 +68,7 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 	pkg := version.PackagePath()
 	if pkg == "" {
 		fmt.Fprintln(os.Stderr, "aiwf upgrade: package path unavailable from build info — run `go install <pkg>@latest` manually")
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	current := version.Current()
@@ -87,7 +88,7 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 		switch version.Compare(current, resolved) {
 		case version.SkewEqual:
 			fmt.Println("status:   already at target, nothing to do")
-			return exitOK
+			return cliutil.ExitOK
 		case version.SkewAhead:
 			fmt.Println("status:   binary is ahead of target (downgrade)")
 		case version.SkewBehind:
@@ -98,13 +99,13 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 	}
 
 	if checkOnly {
-		return exitOK
+		return cliutil.ExitOK
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf upgrade: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	installArg := pkg + "@" + target
@@ -120,7 +121,7 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 		if missingPkg, ok := pathChangedFromStderr(stderrBuf); ok {
 			printPackagePathChangedHint(pkg, target, missingPkg)
 		}
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	newBinary, err := installedBinaryPath(context.Background(), pkg)
@@ -132,26 +133,26 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 		} else {
 			fmt.Fprintln(os.Stderr, "                run `aiwf update` manually to refresh consumer artifacts")
 		}
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	if os.Getenv("AIWF_NO_REEXEC") != "" {
 		fmt.Printf("install succeeded; new binary at %s\n", newBinary)
 		fmt.Println("AIWF_NO_REEXEC set — skipping re-exec into `aiwf update`")
-		return exitOK
+		return cliutil.ExitOK
 	}
 
 	fmt.Printf("re-exec:  %s update --root %s\n", newBinary, rootDir)
 	if err := reexecUpdate(newBinary, rootDir); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf upgrade: re-exec failed: %v\n", err)
 		fmt.Fprintln(os.Stderr, "                run `aiwf update` manually to refresh consumer artifacts")
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	// reexecUpdate replaces this process; we never return from here on
 	// success.
 	//coverage:ignore Reached only when reexecUpdate's syscall.Exec
 	// returns without overlaying the process — kernel-level oddity.
-	return exitInternal
+	return cliutil.ExitInternal
 }
 
 // renderVersionLabel formats an Info for human display: the version

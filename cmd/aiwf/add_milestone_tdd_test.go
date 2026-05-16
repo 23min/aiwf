@@ -9,6 +9,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/cobra"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // G-055 layer #1: `aiwf add milestone` requires an explicit `--tdd
@@ -29,7 +31,7 @@ import (
 func addMilestoneTDDSetup(t *testing.T) string {
 	t.Helper()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
 	return root
@@ -44,8 +46,8 @@ func TestAddMilestone_TDDFlagRequired(t *testing.T) {
 	root := addMilestoneTDDSetup(t)
 
 	got := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--actor", "human/test", "--root", root})
-	if got != exitUsage {
-		t.Errorf("add milestone without --tdd = %d, want %d (usage error — G-055 layer 1)", got, exitUsage)
+	if got != cliutil.ExitUsage {
+		t.Errorf("add milestone without --tdd = %d, want %d (usage error — G-055 layer 1)", got, cliutil.ExitUsage)
 	}
 }
 
@@ -55,10 +57,10 @@ func TestAddMilestone_TDDValueValidation(t *testing.T) {
 	t.Parallel()
 	root := addMilestoneTDDSetup(t)
 
-	// A bogus value must produce exitUsage.
+	// A bogus value must produce cliutil.ExitUsage.
 	got := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bogus", "--tdd", "bogus", "--actor", "human/test", "--root", root})
-	if got != exitUsage {
-		t.Errorf("add milestone --tdd bogus = %d, want %d", got, exitUsage)
+	if got != cliutil.ExitUsage {
+		t.Errorf("add milestone --tdd bogus = %d, want %d", got, cliutil.ExitUsage)
 	}
 
 	// Each valid value succeeds. Use a different epic per call so the
@@ -68,8 +70,8 @@ func TestAddMilestone_TDDValueValidation(t *testing.T) {
 		t.Run(val, func(t *testing.T) {
 			subRoot := addMilestoneTDDSetup(t)
 			rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap " + val, "--tdd", val, "--actor", "human/test", "--root", subRoot})
-			if rc != exitOK {
-				t.Errorf("add milestone --tdd %s = %d, want %d", val, rc, exitOK)
+			if rc != cliutil.ExitOK {
+				t.Errorf("add milestone --tdd %s = %d, want %d", val, rc, cliutil.ExitOK)
 			}
 		})
 	}
@@ -81,7 +83,7 @@ func TestAddMilestone_TDDPersisted_Required(t *testing.T) {
 	t.Parallel()
 	root := addMilestoneTDDSetup(t)
 
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "required", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "required", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-bootstrap.md")
@@ -99,7 +101,7 @@ func TestAddMilestone_TDDPersisted_Advisory(t *testing.T) {
 	t.Parallel()
 	root := addMilestoneTDDSetup(t)
 
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "advisory", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "advisory", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-bootstrap.md")
@@ -120,7 +122,7 @@ func TestAddMilestone_TDDPersisted_None(t *testing.T) {
 	t.Parallel()
 	root := addMilestoneTDDSetup(t)
 
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Bootstrap", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-bootstrap.md")
@@ -182,8 +184,8 @@ func TestAddMilestone_TDDOnlyForMilestones(t *testing.T) {
 			args := append([]string{}, tc.args...)
 			args = append(args, "--actor", "human/test", "--root", root)
 			rc := run(args)
-			if rc != exitUsage {
-				t.Errorf("add %s --tdd required = %d, want %d (--tdd is milestone-only)", tc.name, rc, exitUsage)
+			if rc != cliutil.ExitUsage {
+				t.Errorf("add %s --tdd required = %d, want %d (--tdd is milestone-only)", tc.name, rc, cliutil.ExitUsage)
 			}
 		})
 	}

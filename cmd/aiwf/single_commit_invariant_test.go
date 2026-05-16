@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // M-069 AC-2 — Single-commit-per-verb invariant asserted per
@@ -59,7 +61,7 @@ func TestSingleCommitPerMutatingVerb_Invariant(t *testing.T) {
 	// init writes scaffolding without producing a commit. Track that
 	// explicitly so the first mutating verb's delta is measured from
 	// "0 commits", not from "init's commit".
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if n := commitCountSafe(t, root); n != 0 {
@@ -179,8 +181,8 @@ entities:
 			}
 
 			before := commitCountSafe(t, root)
-			if rc := run(s.args); rc != exitOK {
-				t.Fatalf("verb %v rc = %d (want exitOK)", s.args, rc)
+			if rc := run(s.args); rc != cliutil.ExitOK {
+				t.Fatalf("verb %v rc = %d (want cliutil.ExitOK)", s.args, rc)
 			}
 			after := commitCountSafe(t, root)
 			delta := after - before

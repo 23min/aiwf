@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/scope"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -33,7 +34,7 @@ import (
 // which uses a different filter (range scoped per resolveUntrailedRange,
 // no trailer grep).
 func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string) ([]check.Finding, error) {
-	if !hasCommits(ctx, root) {
+	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
 	commits, err := readProvenanceCommits(ctx, root)
@@ -178,7 +179,7 @@ func parseUntrailedCommits(s string) []check.UntrailedCommit {
 		out = append(out, check.UntrailedCommit{
 			SHA:      strings.TrimSpace(parts[0]),
 			Subject:  strings.TrimSpace(parts[1]),
-			Trailers: parseTrailerLines(parts[2]),
+			Trailers: cliutil.ParseTrailerLines(parts[2]),
 			Paths:    paths,
 		})
 	}
@@ -224,7 +225,7 @@ func readProvenanceCommits(ctx context.Context, root string) ([]scope.Commit, er
 		}
 		commits = append(commits, scope.Commit{
 			SHA:      strings.TrimSpace(parts[0]),
-			Trailers: parseTrailerLines(parts[1]),
+			Trailers: cliutil.ParseTrailerLines(parts[1]),
 		})
 	}
 	return commits, nil

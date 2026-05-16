@@ -1,4 +1,4 @@
-package main
+package cliutil
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/23min/aiwf/internal/scope"
 )
 
-// loadEntityScopes returns every scope ever opened on entity id, in
+// LoadEntityScopes returns every scope ever opened on entity id, in
 // open-order (oldest first), with each scope's current state derived
 // from the entity's commit history. Empty / no-commit repos return
 // (nil, nil).
@@ -37,8 +37,8 @@ import (
 // walk finds the latest match. Multiple parallel scopes on the same
 // entity are supported; transitions land on the freshest matching
 // state.
-func loadEntityScopes(ctx context.Context, root, id string) ([]*scope.Scope, error) {
-	if !hasCommits(ctx, root) {
+func LoadEntityScopes(ctx context.Context, root, id string) ([]*scope.Scope, error) {
+	if !HasCommits(ctx, root) {
 		return nil, nil
 	}
 	commits, err := readEntityScopeCommits(ctx, root, id)
@@ -116,7 +116,7 @@ func indexCommitTrailers(trailers []gitops.Trailer) map[string]string {
 	return out
 }
 
-// commitTrailers is the per-commit shape consumed by loadEntityScopes:
+// commitTrailers is the per-commit shape consumed by LoadEntityScopes:
 // the SHA plus the parsed trailer set.
 type commitTrailers struct {
 	SHA      string
@@ -163,13 +163,13 @@ func readEntityScopeCommits(ctx context.Context, root, id string) ([]commitTrail
 		}
 		commits = append(commits, commitTrailers{
 			SHA:      strings.TrimSpace(parts[0]),
-			Trailers: parseTrailerLines(parts[1]),
+			Trailers: ParseTrailerLines(parts[1]),
 		})
 	}
 	return commits, nil
 }
 
-// resolveCurrentEntityID walks the aiwf-prior-entity chain forward
+// ResolveCurrentEntityID walks the aiwf-prior-entity chain forward
 // from id to its current id. When id has never been reallocated,
 // returns id unchanged. When the entity was renumbered, follows the
 // rename chain — each `aiwf reallocate` commit carries
@@ -187,8 +187,8 @@ func readEntityScopeCommits(ctx context.Context, root, id string) ([]commitTrail
 // Cycle guard: each id may appear at most once. A cycle (which
 // would indicate corrupted history) returns the chain's current
 // position rather than looping.
-func resolveCurrentEntityID(ctx context.Context, root, id string) (string, error) {
-	if !hasCommits(ctx, root) {
+func ResolveCurrentEntityID(ctx context.Context, root, id string) (string, error) {
+	if !HasCommits(ctx, root) {
 		return id, nil
 	}
 	visited := map[string]bool{id: true}
@@ -251,11 +251,11 @@ func readPriorEntityNewID(ctx context.Context, root, priorID string) (string, er
 	return "", nil
 }
 
-// parseTrailerLines parses a `git log %(trailers:only=true,unfold=true)`
+// ParseTrailerLines parses a `git log %(trailers:only=true,unfold=true)`
 // block into structured Trailer values. The format is one trailer per
 // line, `Key: value`, possibly followed by a trailing newline; empty
 // lines and malformed lines are skipped.
-func parseTrailerLines(s string) []gitops.Trailer {
+func ParseTrailerLines(s string) []gitops.Trailer {
 	var trailers []gitops.Trailer
 	for _, line := range strings.Split(s, "\n") {
 		line = strings.TrimSpace(line)

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // TestRun_HistoryShowsAddPromoteCancel exercises the full chain: init,
@@ -13,16 +15,16 @@ import (
 func TestRun_HistoryShowsAddPromoteCancel(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote: %d", rc)
 	}
-	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "E-0001"}); rc != exitOK {
+	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
 		t.Fatalf("cancel: %d", rc)
 	}
 
@@ -49,18 +51,18 @@ func TestRun_HistoryShowsAddPromoteCancel(t *testing.T) {
 // we then parse the envelope and assert its shape.
 func TestRun_HistoryJSON(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote: %d", rc)
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"history", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
+		if rc := run([]string{"history", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("history: %d", rc)
 		}
 	})
@@ -107,19 +109,19 @@ func TestRun_HistoryJSON(t *testing.T) {
 func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC one"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC one"}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "met"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "met"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote AC: %d", rc)
 	}
 
@@ -153,23 +155,23 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 func TestRun_HistoryReadsAiwfToAndForce(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote 1: %d", rc)
 	}
 	// Force-jump from active straight to cancelled — illegal for epics
 	// (active→cancelled is legal so let's pick proposed→done... but
 	// E-01 is now active). Force the FSM-illegal active→done jump
 	// using a different epic to keep this test focused.
-	if rc := run([]string{"add", "epic", "--title", "Bar", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Bar", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add 2: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0002", "done", "--force", "--reason", "sandbox emergency"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0002", "done", "--force", "--reason", "sandbox emergency"}); rc != cliutil.ExitOK {
 		t.Fatalf("forced promote: %d", rc)
 	}
 
@@ -236,18 +238,18 @@ func TestRun_HistoryRenderToDash(t *testing.T) {
 // the main row. Pinned via captured stdout.
 func TestRun_HistoryTextOutputIncludesForceLine(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "done", "--force", "--reason", "policy override"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "done", "--force", "--reason", "policy override"}); rc != cliutil.ExitOK {
 		t.Fatalf("forced promote: %d", rc)
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"history", "--root", root, "E-0001"}); rc != exitOK {
+		if rc := run([]string{"history", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("history: %d", rc)
 		}
 	})
@@ -269,11 +271,11 @@ func TestRun_HistoryTextOutputIncludesForceLine(t *testing.T) {
 func TestRun_HistoryUnknownIDIsEmpty(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"history", "--root", root, "E-0099"}); rc != exitOK {
-		t.Errorf("got %d, want %d", rc, exitOK)
+	if rc := run([]string{"history", "--root", root, "E-0099"}); rc != cliutil.ExitOK {
+		t.Errorf("got %d, want %d", rc, cliutil.ExitOK)
 	}
 }
 
@@ -283,13 +285,13 @@ func TestRun_HistoryUnknownIDIsEmpty(t *testing.T) {
 func TestRun_HistoryReallocateBridgesBothIDs(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Bar", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Bar", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"reallocate", "--actor", "human/test", "--root", root, "E-0001"}); rc != exitOK {
+	if rc := run([]string{"reallocate", "--actor", "human/test", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
 		t.Fatalf("reallocate: %d", rc)
 	}
 

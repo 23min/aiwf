@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -358,7 +359,7 @@ Closed-but-active gap body.
 	}
 
 	out := captureStdout(t, func() {
-		if rc := run([]string{"status", "--root", root}); rc != exitOK {
+		if rc := run([]string{"status", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("status: rc = %d", rc)
 		}
 	})
@@ -703,8 +704,8 @@ func TestMdEscape(t *testing.T) {
 func TestRunStatus_BadFormat(t *testing.T) {
 	t.Parallel()
 	rc := run([]string{"status", "--format=xml"})
-	if rc != exitUsage {
-		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want cliutil.ExitUsage (%d)", rc, cliutil.ExitUsage)
 	}
 }
 

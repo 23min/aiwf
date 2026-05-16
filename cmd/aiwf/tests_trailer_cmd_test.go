@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -72,8 +73,8 @@ func TestRun_PromotePhase_TestsRejectsBadInput(t *testing.T) {
 				"promote", "--actor", "human/test", "--root", root,
 				"M-0001/AC-1", "--phase", "green", "--tests", bad,
 			})
-			if rc == exitOK {
-				t.Errorf("--tests %q should be a usage error; got exitOK", bad)
+			if rc == cliutil.ExitOK {
+				t.Errorf("--tests %q should be a usage error; got cliutil.ExitOK", bad)
 			}
 		})
 	}
@@ -112,8 +113,8 @@ func TestRun_AddACWithTestsFlag(t *testing.T) {
 		"add", "ac", "--actor", "human/test", "--root", root,
 		"M-0002", "--title", "Pointless", "--tests", "pass=1",
 	})
-	if rc == exitOK {
-		t.Error("--tests on non-tdd milestone should fail; got exitOK")
+	if rc == cliutil.ExitOK {
+		t.Error("--tests on non-tdd milestone should fail; got cliutil.ExitOK")
 	}
 }
 
@@ -130,8 +131,8 @@ func TestRun_PromoteStatusModeRejectsTests(t *testing.T) {
 		"promote", "--actor", "human/test", "--root", root,
 		"E-0001", "active", "--tests", "pass=1",
 	})
-	if rc == exitOK {
-		t.Error("--tests in status mode should be a usage error; got exitOK")
+	if rc == cliutil.ExitOK {
+		t.Error("--tests in status mode should be a usage error; got cliutil.ExitOK")
 	}
 }
 
@@ -139,7 +140,7 @@ func TestRun_PromoteStatusModeRejectsTests(t *testing.T) {
 // boilerplate t.Fatalf wrapping.
 func mustRun(t *testing.T, args ...string) {
 	t.Helper()
-	if rc := run(args); rc != exitOK {
-		t.Fatalf("run(%s) = %d, want exitOK", strings.Join(args, " "), rc)
+	if rc := run(args); rc != cliutil.ExitOK {
+		t.Fatalf("run(%s) = %d, want cliutil.ExitOK", strings.Join(args, " "), rc)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -94,7 +95,7 @@ func TestTrailerShapePerMutatingVerb(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
 
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -166,8 +167,8 @@ entities:
 
 	for _, s := range steps {
 		t.Run(s.name, func(t *testing.T) {
-			if rc := run(s.args); rc != exitOK {
-				t.Fatalf("verb %v rc = %d (want exitOK)", s.args, rc)
+			if rc := run(s.args); rc != cliutil.ExitOK {
+				t.Fatalf("verb %v rc = %d (want cliutil.ExitOK)", s.args, rc)
 			}
 			assertTrailerShape(t, root, s.wantVerb, s.wantEntities)
 		})
@@ -194,8 +195,8 @@ entities:
 	}
 	for _, s := range bindSteps {
 		t.Run(s.name, func(t *testing.T) {
-			if rc := run(s.args); rc != exitOK {
-				t.Fatalf("verb %v rc = %d (want exitOK)", s.args, rc)
+			if rc := run(s.args); rc != cliutil.ExitOK {
+				t.Fatalf("verb %v rc = %d (want cliutil.ExitOK)", s.args, rc)
 			}
 			assertTrailerShape(t, root, s.wantVerb, s.wantEntities)
 		})

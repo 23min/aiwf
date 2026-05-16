@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/htmlrender"
@@ -51,9 +52,9 @@ func newRenderCmd() *cobra.Command {
 		RunE: func(c *cobra.Command, args []string) error {
 			if format == "" {
 				fmt.Fprintln(os.Stderr, "aiwf render: missing subcommand or --format. Try 'aiwf render roadmap' or 'aiwf render --format=html'.")
-				return &exitError{code: exitUsage}
+				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
-			return wrapExitCode(runRenderSiteCmd(root, format, out, scope, noHistory, pretty))
+			return cliutil.WrapExitCode(runRenderSiteCmd(root, format, out, scope, noHistory, pretty))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -149,7 +150,7 @@ func newRenderRoadmapCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runRenderRoadmapCmd(root, write, actor))
+			return cliutil.WrapExitCode(runRenderRoadmapCmd(root, write, actor))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -162,14 +163,14 @@ func runRenderRoadmapCmd(root string, write bool, actor string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	content := roadmap.Render(tr)
@@ -183,30 +184,30 @@ func runRenderRoadmapCmd(root string, write bool, actor string) int {
 	existing, readErr := os.ReadFile(dest)
 	if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", readErr)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	content = roadmap.AppendCandidates(content, roadmap.ExtractCandidates(existing))
 
 	if !write {
 		if _, werr := os.Stdout.Write(content); werr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", werr)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
-		return exitOK
+		return cliutil.ExitOK
 	}
 
 	if bytes.Equal(existing, content) {
 		fmt.Println("aiwf render roadmap: ROADMAP.md is already up to date.")
-		return exitOK
+		return cliutil.ExitOK
 	}
 
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf render roadmap")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf render roadmap")
 	if release == nil {
 		return rc
 	}
@@ -221,21 +222,21 @@ func runRenderRoadmapCmd(root string, write bool, actor string) int {
 	staged, err := gitops.StagedPaths(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: checking pre-staged changes: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	for _, p := range staged {
 		if p == "ROADMAP.md" {
 			fmt.Fprintf(os.Stderr,
 				"aiwf render roadmap: ROADMAP.md is already staged with your own edits.\n"+
 					"  run `git restore --staged ROADMAP.md` (or `git stash`) and re-run.\n")
-			return exitUsage
+			return cliutil.ExitUsage
 		}
 	}
 	stashed := false
 	if len(staged) > 0 {
 		if err := gitops.StashStaged(ctx, rootDir, "aiwf pre-verb stash: render roadmap"); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf render roadmap: stashing pre-staged changes: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 		stashed = true
 	}
@@ -252,11 +253,11 @@ func runRenderRoadmapCmd(root string, write bool, actor string) int {
 
 	if err := os.WriteFile(dest, content, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	if err := gitops.Add(ctx, rootDir, "ROADMAP.md"); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	subject := "aiwf render roadmap"
 	trailers := []gitops.Trailer{
@@ -265,10 +266,10 @@ func runRenderRoadmapCmd(root string, write bool, actor string) int {
 	}
 	if err := gitops.Commit(ctx, rootDir, subject, "", trailers); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	fmt.Println(subject)
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // runRenderSiteCmd handles `aiwf render --format=html [--out <dir>]
@@ -282,7 +283,7 @@ func runRenderRoadmapCmd(root string, write bool, actor string) int {
 func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) int {
 	if format != "html" {
 		fmt.Fprintf(os.Stderr, "aiwf render: --format must be 'html'; got %q\n", format)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	_ = scope     // step-4 placeholder: reserved for §3 incremental render
 	_ = noHistory // step-4 placeholder: reserved for the no-history flag
@@ -290,14 +291,14 @@ func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) i
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	cfg, _ := config.Load(rootDir)
 	findings := check.Run(tr, loadErrs)
@@ -312,7 +313,7 @@ func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) i
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	emitGitignoreWarning(rootDir, outDir, cfg)
 
@@ -329,9 +330,9 @@ func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) i
 	}
 	if werr := render.JSON(os.Stdout, env, pretty); werr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", werr)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // emitGitignoreWarning probes whether outDir is covered by the

@@ -1,4 +1,4 @@
-package main
+package cliutil
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// provenanceContext carries the inputs the cmd dispatcher feeds into
+// ProvenanceContext carries the inputs the cmd dispatcher feeds into
 // the I2.5 allow-rule and trailer-decoration step. Built once per
 // verb invocation.
 //
@@ -34,7 +34,7 @@ import (
 // target state is terminal for the entity's kind. Triggers the
 // scope-end side effect — writing aiwf-scope-ends for every active
 // scope on the target entity.
-type provenanceContext struct {
+type ProvenanceContext struct {
 	Actor             string
 	Principal         string
 	VerbKind          verb.VerbKind
@@ -59,7 +59,7 @@ type provenanceContext struct {
 // supplied for human actor) fire here too. The verb has already run
 // at this point; if Allow refuses, we abandon the plan without
 // applying it.
-func gateAndDecorate(ctx context.Context, root string, t *tree.Tree, plan *verb.Plan, pctx provenanceContext) error {
+func gateAndDecorate(ctx context.Context, root string, t *tree.Tree, plan *verb.Plan, pctx ProvenanceContext) error {
 	if plan == nil {
 		return nil
 	}
@@ -128,14 +128,14 @@ func gateAndDecorate(ctx context.Context, root string, t *tree.Tree, plan *verb.
 // `aiwf-verb:` is `authorize` and `aiwf-scope:` is `opened` (the
 // opener commits), then augments each scope by reading
 // pause/resume/scope-ends events from the entity's history (via
-// loadEntityScopes, which the cmd dispatcher already uses for the
+// LoadEntityScopes, which the cmd dispatcher already uses for the
 // authorize verb).
 //
 // Returns only scopes whose State is StateActive — paused or ended
 // scopes do not authorize work. The caller can still inspect Scope's
 // Entity / Principal for trailer decoration.
 func loadActiveScopesForActor(ctx context.Context, root, actor string) ([]*scope.Scope, error) {
-	if !hasCommits(ctx, root) {
+	if !HasCommits(ctx, root) {
 		return nil, nil
 	}
 	openers, err := readActorOpenerEntities(ctx, root, actor)
@@ -152,7 +152,7 @@ func loadActiveScopesForActor(ctx context.Context, root, actor string) ([]*scope
 			continue
 		}
 		seen[entityID] = true
-		scopes, err := loadEntityScopes(ctx, root, entityID)
+		scopes, err := LoadEntityScopes(ctx, root, entityID)
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +164,7 @@ func loadActiveScopesForActor(ctx context.Context, root, actor string) ([]*scope
 				// authorize commit's SHA stays valid (byte-identical
 				// historical commit); only the entity field is
 				// rebased onto the current id.
-				current, resolveErr := resolveCurrentEntityID(ctx, root, s.Entity)
+				current, resolveErr := ResolveCurrentEntityID(ctx, root, s.Entity)
 				if resolveErr != nil {
 					return nil, fmt.Errorf("resolving scope-entity %s: %w", s.Entity, resolveErr)
 				}
@@ -237,7 +237,7 @@ func readActorOpenerEntities(ctx context.Context, root, actor string) ([]string,
 // `aiwf-scope-ends: <auth-sha>` per matched scope, ending each scope
 // atomically with the entity's transition to a terminal state.
 func loadActiveScopeAuthSHAsForEntity(ctx context.Context, root, entityID string) ([]string, error) {
-	scopes, err := loadEntityScopes(ctx, root, entityID)
+	scopes, err := LoadEntityScopes(ctx, root, entityID)
 	if err != nil {
 		return nil, err
 	}
@@ -250,14 +250,14 @@ func loadActiveScopeAuthSHAsForEntity(ctx context.Context, root, entityID string
 	return shas, nil
 }
 
-// isTerminalPromote reports whether `(kind, newStatus)` is a state
+// IsTerminalPromote reports whether `(kind, newStatus)` is a state
 // transition into a terminal status — the trigger for the scope-end
 // side effect. Mirrors entity.AllowedTransitions semantics: a status
 // with no outgoing edges is terminal.
 //
 // Returns false for unknown kinds or unknown statuses (cautious; the
 // trigger should fire on real terminal moves only).
-func isTerminalPromote(k entity.Kind, newStatus string) bool {
+func IsTerminalPromote(k entity.Kind, newStatus string) bool {
 	allowed := entity.AllowedTransitions(k, newStatus)
 	if allowed != nil {
 		return len(allowed) == 0
@@ -266,29 +266,29 @@ func isTerminalPromote(k entity.Kind, newStatus string) bool {
 	return false
 }
 
-// decorateAndFinish wraps the verb's post-execution path: when the
+// DecorateAndFinish wraps the verb's post-execution path: when the
 // verb produced a Plan, it runs gateAndDecorate (which enforces the
 // I2.5 allow-rule and stamps provenance trailers), then hands off to
-// finishVerb to apply the plan and report the outcome.
+// FinishVerb to apply the plan and report the outcome.
 //
 // On allow-rule denial, the plan is abandoned (verb output is
 // validate-then-write, so no disk state has been mutated yet) and
 // the dispatcher exits with the findings code so the user sees the
 // refusal as a clean error.
-func decorateAndFinish(
+func DecorateAndFinish(
 	ctx context.Context,
 	root, label string,
 	t *tree.Tree,
 	result *verb.Result,
 	vErr error,
-	pctx provenanceContext,
+	pctx ProvenanceContext,
 ) int {
 	if vErr != nil || result == nil || result.Plan == nil {
-		return finishVerb(ctx, root, label, result, vErr)
+		return FinishVerb(ctx, root, label, result, vErr)
 	}
 	if err := gateAndDecorate(ctx, root, t, result.Plan, pctx); err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", label, err)
-		return exitFindings
+		return ExitFindings
 	}
-	return finishVerb(ctx, root, label, result, nil)
+	return FinishVerb(ctx, root, label, result, nil)
 }

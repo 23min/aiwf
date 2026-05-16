@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 )
 
@@ -62,21 +63,21 @@ func TestAllKindNames(t *testing.T) {
 
 // TestWrapExitCode is the single load-bearing translation between
 // verb int returns and Cobra's RunE error channel. Zero must collapse
-// to nil; non-zero must round-trip through *exitError so run() can
+// to nil; non-zero must round-trip through *cliutil.ExitError so run() can
 // unwrap the original code.
 func TestWrapExitCode(t *testing.T) {
 	t.Parallel()
-	if got := wrapExitCode(exitOK); got != nil {
-		t.Errorf("wrapExitCode(exitOK) = %v, want nil", got)
+	if got := cliutil.WrapExitCode(cliutil.ExitOK); got != nil {
+		t.Errorf("cliutil.WrapExitCode(cliutil.ExitOK) = %v, want nil", got)
 	}
-	for _, code := range []int{exitFindings, exitUsage, exitInternal, 42} {
-		err := wrapExitCode(code)
-		var ee *exitError
+	for _, code := range []int{cliutil.ExitFindings, cliutil.ExitUsage, cliutil.ExitInternal, 42} {
+		err := cliutil.WrapExitCode(code)
+		var ee *cliutil.ExitError
 		if !errors.As(err, &ee) {
-			t.Fatalf("wrapExitCode(%d): err type = %T, want *exitError", code, err)
+			t.Fatalf("cliutil.WrapExitCode(%d): err type = %T, want *cliutil.ExitError", code, err)
 		}
-		if ee.code != code {
-			t.Errorf("wrapExitCode(%d) carried code = %d, want %d", code, ee.code, code)
+		if ee.Code != code {
+			t.Errorf("cliutil.WrapExitCode(%d) carried code = %d, want %d", code, ee.Code, code)
 		}
 	}
 }

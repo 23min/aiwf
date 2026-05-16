@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // M-069 AC-1 — Envelope conforms to documented schema for every
@@ -75,22 +77,22 @@ type envelopeVerbCase struct {
 func TestEnvelopeSchemaConformance_AllJSONVerbs(t *testing.T) {
 	standardSetup := func(t *testing.T, root string) {
 		t.Helper()
-		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 			t.Fatalf("init: %d", rc)
 		}
-		if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+		if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("add epic: %d", rc)
 		}
-		if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+		if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("add milestone: %d", rc)
 		}
-		if rc := run([]string{"add", "ac", "M-0001", "--title", "AC sample", "--actor", "human/test", "--root", root}); rc != exitOK {
+		if rc := run([]string{"add", "ac", "M-0001", "--title", "AC sample", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("add ac: %d", rc)
 		}
 	}
 	initOnly := func(t *testing.T, root string) {
 		t.Helper()
-		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 			t.Fatalf("init: %d", rc)
 		}
 	}
@@ -195,7 +197,7 @@ func TestEnvelopeSchemaConformance_AllJSONVerbs(t *testing.T) {
 			}
 
 			captured := captureStdout(t, func() {
-				if rc := run(args); rc != exitOK && rc != exitFindings {
+				if rc := run(args); rc != cliutil.ExitOK && rc != cliutil.ExitFindings {
 					t.Fatalf("run %v = %d (want ok or findings)", args, rc)
 				}
 			})

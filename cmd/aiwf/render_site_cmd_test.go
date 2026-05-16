@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // TestRun_RenderHTML_DispatchesToSite: `aiwf render --format=html`
@@ -149,15 +151,15 @@ func TestRun_Render_DispatcherDistinguishesSubcommandFromFormat(t *testing.T) {
 	}
 
 	// Unknown subcommand without --format → usage error.
-	if rc := run([]string{"render", "nope", "--root", root}); rc == exitOK {
-		t.Errorf("render nope should be a usage error; got exitOK")
+	if rc := run([]string{"render", "nope", "--root", root}); rc == cliutil.ExitOK {
+		t.Errorf("render nope should be a usage error; got cliutil.ExitOK")
 	}
 }
 
 // TestRun_Render_HelpFlag: `aiwf render --help` prints the verb's
 // usage and exits cleanly. Pre-fix the dispatcher fell into the
 // subcommand switch and reported "unknown subcommand --help" with
-// exitUsage. Both surfaces (roadmap + --format=html) must appear
+// cliutil.ExitUsage. Both surfaces (roadmap + --format=html) must appear
 // so the help text is a true catalog.
 func TestRun_Render_HelpFlag(t *testing.T) {
 	cases := []struct {
@@ -174,8 +176,8 @@ func TestRun_Render_HelpFlag(t *testing.T) {
 			captured := captureStdout(t, func() {
 				rc = run([]string{"render", tc.arg})
 			})
-			if rc != exitOK {
-				t.Errorf("rc = %d, want exitOK", rc)
+			if rc != cliutil.ExitOK {
+				t.Errorf("rc = %d, want cliutil.ExitOK", rc)
 			}
 			out := string(captured)
 			for _, want := range []string{"roadmap", "--format=html"} {

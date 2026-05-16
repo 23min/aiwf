@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/scope"
 )
@@ -41,13 +42,13 @@ type ScopeView struct {
 // commits to build authSHA → scope-entity. Then we walk id's
 // history (readHistory) and collect every distinct auth-SHA the
 // entity references (its own opener SHAs plus authorized-by
-// references). For each scope-entity touched, loadEntityScopes
+// references). For each scope-entity touched, cliutil.LoadEntityScopes
 // materializes the FSM; we then filter to the interested SHAs and
 // convert to ScopeView.
 //
 // Empty / pre-aiwf repos return (nil, nil).
 func loadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, error) {
-	if !hasCommits(ctx, root) {
+	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
 	events, err := readHistory(ctx, root, id)
@@ -83,7 +84,7 @@ func loadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 
 	var allScopes []*scope.Scope
 	for ent := range scopeEntitiesNeeded {
-		scopes, err := loadEntityScopes(ctx, root, ent)
+		scopes, err := cliutil.LoadEntityScopes(ctx, root, ent)
 		if err != nil {
 			return nil, err
 		}

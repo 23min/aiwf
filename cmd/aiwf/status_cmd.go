@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
@@ -199,7 +200,7 @@ func newStatusCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runStatusCmd(root, format, pretty, noTrunc))
+			return cliutil.WrapExitCode(runStatusCmd(root, format, pretty, noTrunc))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -216,20 +217,20 @@ func newStatusCmd() *cobra.Command {
 func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 	if format != "text" && format != "json" && format != "md" {
 		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf status: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf status: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	report := buildStatus(tr, loadErrs)
@@ -237,7 +238,7 @@ func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 	recent, err := readRecentActivity(ctx, rootDir, recentActivityLimit)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf status: reading recent activity: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	report.RecentActivity = recent
 
@@ -249,7 +250,7 @@ func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 		}
 		if err := renderStatusText(os.Stdout, &report, termWidth, render.ColorEnabled(os.Stdout)); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	case "json":
 		env := render.Envelope{
@@ -264,15 +265,15 @@ func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	case "md":
 		if err := renderStatusMarkdown(os.Stdout, &report); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // buildStatus returns the project status payload for tree tr, with
@@ -439,7 +440,7 @@ func plural(n int, singular, plural string) string {
 // long history is also asked for more rows than `limit` so the
 // post-filter doesn't silently shrink the result; we then truncate.
 func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryEvent, error) {
-	if !hasCommits(ctx, root) {
+	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
 	const sep = "\x1f"

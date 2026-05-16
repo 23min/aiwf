@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -28,7 +29,7 @@ func TestRun_ShowArchivedIndicatorJSON(t *testing.T) {
 
 	// Archived id renders archived: true.
 	out := captureStdout(t, func() {
-		if rc := run([]string{"show", "--format=json", "--root", root, "G-0099"}); rc != exitOK {
+		if rc := run([]string{"show", "--format=json", "--root", root, "G-0099"}); rc != cliutil.ExitOK {
 			t.Fatalf("show G-0099 (archived): rc = %d", rc)
 		}
 	})
@@ -47,7 +48,7 @@ func TestRun_ShowArchivedIndicatorJSON(t *testing.T) {
 
 	// Active id has no archived field in the envelope (omitempty).
 	out2 := captureStdout(t, func() {
-		if rc := run([]string{"show", "--format=json", "--root", root, "G-0001"}); rc != exitOK {
+		if rc := run([]string{"show", "--format=json", "--root", root, "G-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show G-0001 (active): rc = %d", rc)
 		}
 	})
@@ -71,7 +72,7 @@ func TestRun_ShowArchivedIndicatorTextHeader(t *testing.T) {
 	mkActiveAndArchivedGaps(t, root)
 
 	out := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "G-0099"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "G-0099"}); rc != cliutil.ExitOK {
 			t.Fatalf("show G-0099 (archived) text: rc = %d", rc)
 		}
 	})
@@ -81,7 +82,7 @@ func TestRun_ShowArchivedIndicatorTextHeader(t *testing.T) {
 	}
 
 	out2 := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "G-0001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "G-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show G-0001 (active) text: rc = %d", rc)
 		}
 	})
@@ -209,7 +210,7 @@ Archived gap body.
 		// file (not, e.g., a same-id active file that shadowed it).
 		// A pure substring assertion on the text-format header would
 		// not distinguish those cases.
-		if rc := run([]string{"show", "--format=json", "--root", root, "G-0099"}); rc != exitOK {
+		if rc := run([]string{"show", "--format=json", "--root", root, "G-0099"}); rc != cliutil.ExitOK {
 			t.Fatalf("show G-0099 (archived): rc = %d", rc)
 		}
 	})
@@ -307,7 +308,7 @@ Body.
 	// matches on text format would not distinguish "both events
 	// present" from "one event present twice."
 	out := captureStdout(t, func() {
-		if rc := run([]string{"history", "--format=json", "--root", root, "G-0001"}); rc != exitOK {
+		if rc := run([]string{"history", "--format=json", "--root", root, "G-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("history G-0001: rc = %d", rc)
 		}
 	})
@@ -361,27 +362,27 @@ func TestRun_ShowMilestoneAggregatesACsHistoryFindings(t *testing.T) {
 	if err := os.WriteFile(acBody2, []byte("AC-2 prose under the heading.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--body-file", epicBody, "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--body-file", epicBody, "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Engine warning", "--body-file", mBody, "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Engine warning", "--body-file", mBody, "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC one", "--body-file", acBody1}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC one", "--body-file", acBody1}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac 1: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC two", "--body-file", acBody2}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC two", "--body-file", acBody2}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac 2: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "met"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "met"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote: %d", rc)
 	}
 
 	out := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "M-0001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "M-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
@@ -406,24 +407,24 @@ func TestRun_ShowMilestoneAggregatesACsHistoryFindings(t *testing.T) {
 // milestone shown as "parent: M-NNN".
 func TestRun_ShowCompositeIDRendersACSlice(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Just one"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Just one"}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "red"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "red"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote phase: %d", rc)
 	}
 
 	out := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "M-0001/AC-1"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "M-0001/AC-1"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
@@ -445,15 +446,15 @@ func TestRun_ShowCompositeIDRendersACSlice(t *testing.T) {
 // envelope with the right shape.
 func TestRun_ShowJSONEnvelope(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
@@ -483,11 +484,11 @@ func TestRun_ShowJSONEnvelope(t *testing.T) {
 func TestRun_ShowUnknownIDIsUsageError(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"show", "--root", root, "E-0099"}); rc != exitUsage {
-		t.Errorf("expected exitUsage, got %d", rc)
+	if rc := run([]string{"show", "--root", root, "E-0099"}); rc != cliutil.ExitUsage {
+		t.Errorf("expected cliutil.ExitUsage, got %d", rc)
 	}
 }
 
@@ -497,23 +498,23 @@ func TestRun_ShowUnknownIDIsUsageError(t *testing.T) {
 // covered by tree.TestLoad_ReverseRefs.
 func TestRun_ShowReferencedByPopulated(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Second", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Second", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone 2: %d", rc)
 	}
 
 	// Text path: showing E-01 must surface both milestones in the
 	// "Referenced by" block.
 	out := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "E-0001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
@@ -530,7 +531,7 @@ func TestRun_ShowReferencedByPopulated(t *testing.T) {
 
 	// JSON path: result.referenced_by is the sorted referrer list.
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show json: %d", rc)
 		}
 	})
@@ -558,15 +559,15 @@ func TestRun_ShowReferencedByPopulated(t *testing.T) {
 // downstream consumers don't have to check for field presence.
 func TestRun_ShowReferencedByEmptyIsPresent(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Lonely", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Lonely", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show json: %d", rc)
 		}
 	})
@@ -590,16 +591,16 @@ func TestRun_ShowReferencedByEmptyIsPresent(t *testing.T) {
 func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Done milestone", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Done milestone", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Open AC"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Open AC"}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
@@ -644,10 +645,10 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 // step 5, which reads these slugs to populate the per-tab content.
 func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
 
@@ -666,7 +667,7 @@ func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show json: %d", rc)
 		}
 	})
@@ -696,16 +697,16 @@ func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {
 // tab in I3 step 5, which renders each AC's body inline.
 func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine starts"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine starts"}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
@@ -729,7 +730,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})
@@ -754,7 +755,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 	// Composite-id show should also surface description on the AC
 	// payload.
 	captured = captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001/AC-1"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001/AC-1"}); rc != cliutil.ExitOK {
 			t.Fatalf("composite show: %d", rc)
 		}
 	})
@@ -784,16 +785,16 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 // step 1 so step-5 templates have data to render.
 func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine starts"}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine starts"}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
@@ -808,7 +809,7 @@ func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001/AC-1"}); rc != exitOK {
+		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001/AC-1"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
 	})

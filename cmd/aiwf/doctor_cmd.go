@@ -15,6 +15,7 @@ import (
 
 	"github.com/23min/aiwf/internal/aiwfyaml"
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/pluginstate"
@@ -48,7 +49,7 @@ func newDoctorCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runDoctorCmd(root, selfCheck, checkLatest))
+			return cliutil.WrapExitCode(runDoctorCmd(root, selfCheck, checkLatest))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -65,7 +66,7 @@ func runDoctorCmd(root string, selfCheck, checkLatest bool) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	report, problems := doctorReport(rootDir, doctorOptions{CheckLatest: checkLatest})
@@ -73,9 +74,9 @@ func runDoctorCmd(root string, selfCheck, checkLatest bool) int {
 		fmt.Println(line)
 	}
 	if problems > 0 {
-		return exitFindings
+		return cliutil.ExitFindings
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // doctorOptions carries flag-derived knobs into doctorReport. Kept
@@ -138,7 +139,7 @@ func doctorReport(rootDir string, opts doctorOptions) (lines []string, problems 
 	//     verb's aiwf-actor: trailer would say, plus the source the
 	//     value came from (--actor flag is absent here, so the source
 	//     is git config user.email).
-	if actor, source, actorErr := resolveActorWithSource("", rootDir); actorErr != nil {
+	if actor, source, actorErr := cliutil.ResolveActorWithSource("", rootDir); actorErr != nil {
 		lines = append(lines, "actor:     "+actorErr.Error())
 		problems++
 	} else {

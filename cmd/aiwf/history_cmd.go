@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/render"
@@ -38,7 +39,7 @@ func newHistoryCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runHistoryCmd(args[0], root, format, pretty, showAuth))
+			return cliutil.WrapExitCode(runHistoryCmd(args[0], root, format, pretty, showAuth))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -53,13 +54,13 @@ func newHistoryCmd() *cobra.Command {
 func runHistoryCmd(id, root, format string, pretty, showAuth bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf history: --format must be text or json, got %q\n", format)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	// Resolve the queried id through prior_ids lineage so a query for
@@ -91,14 +92,14 @@ func runHistoryCmd(id, root, format string, pretty, showAuth bool) int {
 	events, err := readHistoryChain(context.Background(), rootDir, chain)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	switch format {
 	case "text":
 		if len(events) == 0 {
 			fmt.Printf("no history for %s\n", id)
-			return exitOK
+			return cliutil.ExitOK
 		}
 		// Resolve authorize-SHA → scope-entity once; chip rendering
 		// reads from the map. Pre-I2.5 commits and pure entity-only
@@ -137,10 +138,10 @@ func runHistoryCmd(id, root, format string, pretty, showAuth bool) int {
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // HistoryEvent is one line of `aiwf history`. The JSON representation
@@ -226,7 +227,7 @@ func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
 // lineage. A single-element chain is the pre-G37 behavior; longer
 // chains weave pre-rename and post-rename history into one timeline.
 func readHistoryChain(ctx context.Context, root string, chain []string) ([]HistoryEvent, error) {
-	if !hasCommits(ctx, root) {
+	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
 	if len(chain) == 0 {
@@ -504,7 +505,7 @@ func renderScopeChips(e HistoryEvent, scopeEntities map[string]string, showAuth 
 // from the map render as "?", which is benign.
 func buildScopeEntityMap(ctx context.Context, root string, events []HistoryEvent) map[string]string {
 	out := map[string]string{}
-	if !hasCommits(ctx, root) {
+	if !cliutil.HasCommits(ctx, root) {
 		return out
 	}
 	cmd := exec.CommandContext(ctx, "git", "log",
@@ -551,13 +552,4 @@ var bareMilestoneIDPattern = regexp.MustCompile(`^M-\d{3,}$`)
 // should match its AC events too (path-prefix match).
 func isBareMilestoneID(id string) bool {
 	return bareMilestoneIDPattern.MatchString(id)
-}
-
-// hasCommits reports whether root's HEAD points at a real commit.
-// `git log` on an empty repo errors with "your current branch X does
-// not have any commits yet"; this guard converts that into "no events".
-func hasCommits(ctx context.Context, root string) bool {
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "HEAD")
-	cmd.Dir = root
-	return cmd.Run() == nil
 }

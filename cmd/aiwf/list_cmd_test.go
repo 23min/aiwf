@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -21,7 +22,7 @@ import (
 // dispatcher so a future implementation that wires the flags wrongly
 // fails here, not just at the helper layer.
 //
-// Pre-implementation this test fails with exitUsage because Cobra
+// Pre-implementation this test fails with cliutil.ExitUsage because Cobra
 // reports `aiwf list` as an unknown verb. The red phase landed here is
 // what the green phase has to clear.
 func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
@@ -32,19 +33,19 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 	//
 	// E-01 active, E-02 proposed; M-001 (parent E-01, tdd none),
 	// M-002 (parent E-02, tdd advisory).
-	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic E-01: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Planned epic", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Planned epic", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic E-02: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote E-01 active: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "M one", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "M one", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone M-001: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-0002", "--title", "M two", "--tdd", "advisory", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0002", "--title", "M two", "--tdd", "advisory", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone M-002: %d", rc)
 	}
 
@@ -53,8 +54,8 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 		out := captureStdout(t, func() {
 			rc = run([]string{"list", "--root", root})
 		})
-		if rc != exitOK {
-			t.Fatalf("rc = %d, want exitOK", rc)
+		if rc != cliutil.ExitOK {
+			t.Fatalf("rc = %d, want cliutil.ExitOK", rc)
 		}
 		s := string(out)
 		// Structural per-kind assertions: each fixture-created kind shows
@@ -82,8 +83,8 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 		out := captureStdout(t, func() {
 			rc = run([]string{"list", "--kind", "milestone", "--root", root})
 		})
-		if rc != exitOK {
-			t.Fatalf("rc = %d, want exitOK", rc)
+		if rc != cliutil.ExitOK {
+			t.Fatalf("rc = %d, want cliutil.ExitOK", rc)
 		}
 		s := string(out)
 		if !strings.Contains(s, "M-0001") || !strings.Contains(s, "M-0002") {
@@ -103,8 +104,8 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 		out := captureStdout(t, func() {
 			rc = run([]string{"list", "--kind", "epic", "--status", "active", "--root", root})
 		})
-		if rc != exitOK {
-			t.Fatalf("rc = %d, want exitOK", rc)
+		if rc != cliutil.ExitOK {
+			t.Fatalf("rc = %d, want cliutil.ExitOK", rc)
 		}
 		s := string(out)
 		if !strings.Contains(s, "E-0001") {
@@ -120,8 +121,8 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 		out := captureStdout(t, func() {
 			rc = run([]string{"list", "--kind", "milestone", "--parent", "E-0001", "--root", root})
 		})
-		if rc != exitOK {
-			t.Fatalf("rc = %d, want exitOK", rc)
+		if rc != cliutil.ExitOK {
+			t.Fatalf("rc = %d, want cliutil.ExitOK", rc)
 		}
 		s := string(out)
 		if !strings.Contains(s, "M-0001") {
@@ -137,8 +138,8 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 		out := captureStdout(t, func() {
 			rc = run([]string{"list", "--kind", "milestone", "--format=json", "--pretty", "--root", root})
 		})
-		if rc != exitOK {
-			t.Fatalf("rc = %d, want exitOK", rc)
+		if rc != cliutil.ExitOK {
+			t.Fatalf("rc = %d, want cliutil.ExitOK", rc)
 		}
 		var envelope struct {
 			Tool   string `json:"tool"`
@@ -185,19 +186,19 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 // `path` from the Summary struct silently passes there but fails here.
 func TestRun_List_JSONResultIsArrayOfSummaryObjects(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic E-01: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote E-01: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "M one", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "M one", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 
 	out := captureStdout(t, func() {
-		if rc := run([]string{"list", "--kind", "milestone", "--format=json", "--root", root}); rc != exitOK {
-			t.Fatalf("list rc != exitOK")
+		if rc := run([]string{"list", "--kind", "milestone", "--format=json", "--root", root}); rc != cliutil.ExitOK {
+			t.Fatalf("list rc != cliutil.ExitOK")
 		}
 	})
 
@@ -261,29 +262,29 @@ func TestRun_List_JSONResultIsArrayOfSummaryObjects(t *testing.T) {
 // must surface only the in_progress one; --archived must surface both.
 func TestRun_List_ArchivedFlag(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Active epic", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote epic active: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Live", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Live", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add M-001: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Doomed", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--title", "Doomed", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add M-002: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001", "in_progress"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "M-0001", "in_progress"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote M-001 in_progress: %d", rc)
 	}
-	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "M-0002"}); rc != exitOK {
+	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "M-0002"}); rc != cliutil.ExitOK {
 		t.Fatalf("cancel M-002: %d", rc)
 	}
 
 	t.Run("default excludes terminal-status entities", func(t *testing.T) {
 		out := captureStdout(t, func() {
-			if rc := run([]string{"list", "--kind", "milestone", "--root", root}); rc != exitOK {
-				t.Fatalf("list rc != exitOK")
+			if rc := run([]string{"list", "--kind", "milestone", "--root", root}); rc != cliutil.ExitOK {
+				t.Fatalf("list rc != cliutil.ExitOK")
 			}
 		})
 		s := string(out)
@@ -297,8 +298,8 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 
 	t.Run("--archived includes terminal-status entities", func(t *testing.T) {
 		out := captureStdout(t, func() {
-			if rc := run([]string{"list", "--kind", "milestone", "--archived", "--root", root}); rc != exitOK {
-				t.Fatalf("list --archived rc != exitOK")
+			if rc := run([]string{"list", "--kind", "milestone", "--archived", "--root", root}); rc != cliutil.ExitOK {
+				t.Fatalf("list --archived rc != cliutil.ExitOK")
 			}
 		})
 		s := string(out)
@@ -312,8 +313,8 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 
 	t.Run("no-args counts exclude terminal entities", func(t *testing.T) {
 		out := captureStdout(t, func() {
-			if rc := run([]string{"list", "--root", root}); rc != exitOK {
-				t.Fatalf("no-args rc != exitOK")
+			if rc := run([]string{"list", "--root", root}); rc != cliutil.ExitOK {
+				t.Fatalf("no-args rc != cliutil.ExitOK")
 			}
 		})
 		s := string(out)
@@ -331,19 +332,19 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 func TestRun_List_BadFormat(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"list", "--root", root, "--format=xml"}); rc != exitUsage {
-		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
+	if rc := run([]string{"list", "--root", root, "--format=xml"}); rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want cliutil.ExitUsage (%d)", rc, cliutil.ExitUsage)
 	}
 }
 
 // TestRun_List_BadKind covers the --kind validation usage-error path.
 // A value outside entity.AllKinds() must not cause a tree walk; the
-// verb returns exitUsage before loading anything.
+// verb returns cliutil.ExitUsage before loading anything.
 func TestRun_List_BadKind(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"list", "--root", root, "--kind", "milestoneish"}); rc != exitUsage {
-		t.Errorf("rc = %d, want exitUsage (%d)", rc, exitUsage)
+	if rc := run([]string{"list", "--root", root, "--kind", "milestoneish"}); rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want cliutil.ExitUsage (%d)", rc, cliutil.ExitUsage)
 	}
 }
 

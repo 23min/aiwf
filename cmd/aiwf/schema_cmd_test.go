@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 )
 
@@ -13,7 +14,7 @@ var errBroken = errors.New("broken writer")
 
 func TestRunSchema_AllKindsText(t *testing.T) {
 	out := string(captureStdout(t, func() {
-		if rc := run([]string{"schema"}); rc != exitOK {
+		if rc := run([]string{"schema"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -26,7 +27,7 @@ func TestRunSchema_AllKindsText(t *testing.T) {
 
 func TestRunSchema_OneKindText(t *testing.T) {
 	out := string(captureStdout(t, func() {
-		if rc := run([]string{"schema", "milestone"}); rc != exitOK {
+		if rc := run([]string{"schema", "milestone"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -45,28 +46,28 @@ func TestRunSchema_OneKindText(t *testing.T) {
 
 func TestRunSchema_UnknownKind(t *testing.T) {
 	t.Parallel()
-	if rc := run([]string{"schema", "nonsense"}); rc != exitUsage {
-		t.Errorf("rc = %d, want %d", rc, exitUsage)
+	if rc := run([]string{"schema", "nonsense"}); rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
 func TestRunSchema_TooManyArgs(t *testing.T) {
 	t.Parallel()
-	if rc := run([]string{"schema", "epic", "milestone"}); rc != exitUsage {
-		t.Errorf("rc = %d, want %d", rc, exitUsage)
+	if rc := run([]string{"schema", "epic", "milestone"}); rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
 func TestRunSchema_BadFormat(t *testing.T) {
 	t.Parallel()
-	if rc := run([]string{"schema", "--format", "yaml"}); rc != exitUsage {
-		t.Errorf("rc = %d, want %d", rc, exitUsage)
+	if rc := run([]string{"schema", "--format", "yaml"}); rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
 func TestRunSchema_JSONEnvelope(t *testing.T) {
 	out := captureStdout(t, func() {
-		if rc := run([]string{"schema", "--format", "json"}); rc != exitOK {
+		if rc := run([]string{"schema", "--format", "json"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	})
@@ -101,8 +102,8 @@ func TestRunSchema_PrettyWithoutJSONIsHarmless(t *testing.T) {
 	t.Parallel()
 	// --pretty without --format=json prints a stderr nudge but still
 	// exits 0 with text output.
-	if rc := run([]string{"schema", "--pretty", "epic"}); rc != exitOK {
-		t.Errorf("rc = %d, want %d", rc, exitOK)
+	if rc := run([]string{"schema", "--pretty", "epic"}); rc != cliutil.ExitOK {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitOK)
 	}
 }
 
@@ -123,7 +124,7 @@ func (brokenWriter) Write([]byte) (int, error) { return 0, errBroken }
 
 func TestRunSchema_JSONOneKind(t *testing.T) {
 	out := captureStdout(t, func() {
-		if rc := run([]string{"schema", "--format", "json", "epic"}); rc != exitOK {
+		if rc := run([]string{"schema", "--format", "json", "epic"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	})

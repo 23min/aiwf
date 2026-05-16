@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // writeManifest is a helper that writes a YAML manifest into the test
@@ -23,7 +25,7 @@ func writeManifest(t *testing.T, root, body string) string {
 // one commit, prints its subject, and the on-disk tree validates.
 func TestRun_ImportThroughDispatcher(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -38,7 +40,7 @@ entities:
 `)
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != exitOK {
+		if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != cliutil.ExitOK {
 			t.Errorf("import rc != ok")
 		}
 	})
@@ -55,7 +57,7 @@ entities:
 		}
 	}
 
-	if rc := run([]string{"check", "--root", root}); rc != exitOK {
+	if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("post-import check rc = %d", rc)
 	}
 }
@@ -63,7 +65,7 @@ entities:
 // TestRun_ImportDryRun prints the would-be plans and writes nothing.
 func TestRun_ImportDryRun(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	manifest := writeManifest(t, root, `version: 1
@@ -74,7 +76,7 @@ entities:
 `)
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"import", "--root", root, "--actor", "human/test", "--dry-run", manifest}); rc != exitOK {
+		if rc := run([]string{"import", "--root", root, "--actor", "human/test", "--dry-run", manifest}); rc != cliutil.ExitOK {
 			t.Errorf("import --dry-run rc != ok")
 		}
 	})
@@ -95,7 +97,7 @@ entities:
 func TestRun_ImportCollisionFail(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	manifest := writeManifest(t, root, `version: 1
@@ -104,11 +106,11 @@ entities:
     id: E-0001
     frontmatter: {title: "Cake", status: active}
 `)
-	if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != exitOK {
+	if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != cliutil.ExitOK {
 		t.Fatalf("first import rc = %d", rc)
 	}
-	if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != exitFindings {
-		t.Errorf("second import rc = %d, want %d", rc, exitFindings)
+	if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != cliutil.ExitFindings {
+		t.Errorf("second import rc = %d, want %d", rc, cliutil.ExitFindings)
 	}
 }
 
@@ -117,11 +119,11 @@ entities:
 func TestRun_ImportPerEntityCommit(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	// Seed an initial commit so HEAD exists.
-	if rc := run([]string{"add", "epic", "--title", "Seed", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Seed", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("seed add: %d", rc)
 	}
 	manifest := writeManifest(t, root, `version: 1
@@ -135,7 +137,7 @@ entities:
     id: E-0003
     frontmatter: {title: "C", status: active}
 `)
-	if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != exitOK {
+	if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != cliutil.ExitOK {
 		t.Fatalf("import per-entity rc = %d", rc)
 	}
 	// Two new commits expected.

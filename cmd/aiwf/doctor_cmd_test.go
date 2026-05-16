@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/initrepo"
 )
 
@@ -19,11 +20,11 @@ func TestRun_DoctorClean(t *testing.T) {
 	// hooks to be installed. The test runs only doctor afterward
 	// (read-only), no commits, so the test-binary-as-hook hazard
 	// doesn't apply.
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"doctor", "--root", root}); rc != exitOK {
-		t.Errorf("doctor on clean repo = %d, want %d", rc, exitOK)
+	if rc := run([]string{"doctor", "--root", root}); rc != cliutil.ExitOK {
+		t.Errorf("doctor on clean repo = %d, want %d", rc, cliutil.ExitOK)
 	}
 }
 
@@ -32,15 +33,15 @@ func TestRun_DoctorClean(t *testing.T) {
 func TestRun_DoctorDetectsSkillDrift(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	skillPath := filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")
 	if err := os.WriteFile(skillPath, []byte("tampered"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if rc := run([]string{"doctor", "--root", root}); rc != exitFindings {
-		t.Errorf("doctor on drifted repo = %d, want %d", rc, exitFindings)
+	if rc := run([]string{"doctor", "--root", root}); rc != cliutil.ExitFindings {
+		t.Errorf("doctor on drifted repo = %d, want %d", rc, cliutil.ExitFindings)
 	}
 }
 
@@ -49,8 +50,8 @@ func TestRun_DoctorDetectsSkillDrift(t *testing.T) {
 func TestRun_DoctorReportsMissingConfig(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if rc := run([]string{"doctor", "--root", root}); rc != exitFindings {
-		t.Errorf("doctor on un-init'd repo = %d, want %d", rc, exitFindings)
+	if rc := run([]string{"doctor", "--root", root}); rc != cliutil.ExitFindings {
+		t.Errorf("doctor on un-init'd repo = %d, want %d", rc, cliutil.ExitFindings)
 	}
 }
 
@@ -61,7 +62,7 @@ func TestRun_DoctorReportsMissingConfig(t *testing.T) {
 func TestRun_DoctorReportsLegacyActor(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	// Append the legacy `actor:` line to simulate a pre-I2.5 repo.
@@ -82,7 +83,7 @@ func TestRun_DoctorReportsLegacyActor(t *testing.T) {
 func TestRun_DoctorReportsRuntimeIdentity(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	lines, _ := doctorReport(root, doctorOptions{})
@@ -108,7 +109,7 @@ func TestRun_DoctorReportsLegacyAiwfVersion(t *testing.T) {
 	// field is advisory, not a problem). Without hooks installed
 	// the missing-hook problems would mask the assertion. No
 	// commits triggered.
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	// Replace aiwf.yaml with one that carries the legacy field.
@@ -128,8 +129,8 @@ func TestRun_DoctorReportsLegacyAiwfVersion(t *testing.T) {
 	if problems != 0 {
 		t.Errorf("legacy aiwf_version should be advisory (problems=0); got problems=%d:\n%s", problems, joined)
 	}
-	if rc := run([]string{"doctor", "--root", root}); rc != exitOK {
-		t.Errorf("CLI exit on advisory legacy aiwf_version = %d, want %d", rc, exitOK)
+	if rc := run([]string{"doctor", "--root", root}); rc != cliutil.ExitOK {
+		t.Errorf("CLI exit on advisory legacy aiwf_version = %d, want %d", rc, cliutil.ExitOK)
 	}
 }
 
@@ -725,7 +726,7 @@ func TestDoctorReport_RecommendedPlugins_EmptyConfig_NoOutputNoFileRead(t *testi
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			root := setupCLITestRepo(t)
-			if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+			if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 				t.Fatalf("init: %d", rc)
 			}
 			// Append (or rewrite) aiwf.yaml with the test's extra block.
@@ -751,7 +752,7 @@ func TestDoctorReport_RecommendedPlugins_EmptyConfig_NoOutputNoFileRead(t *testi
 // command `claude /plugin install <id>`.
 func TestDoctorReport_RecommendedPlugins_OneMissing_OneWarningWithInstall(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	contents := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
@@ -778,7 +779,7 @@ func TestDoctorReport_RecommendedPlugins_OneMissing_OneWarningWithInstall(t *tes
 // can correlate with their aiwf.yaml.
 func TestDoctorReport_RecommendedPlugins_NoneInstalled_NWarnings(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	contents := []byte(`hosts: [claude-code]
@@ -815,7 +816,7 @@ doctor:
 // section. Fixture mirrors the real installed_plugins.json shape.
 func TestDoctorReport_RecommendedPlugins_AllInstalledForProject_NoWarning(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	contents := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
@@ -846,7 +847,7 @@ func TestDoctorReport_RecommendedPlugins_AllInstalledForProject_NoWarning(t *tes
 // installation elsewhere does not silence it.
 func TestDoctorReport_RecommendedPlugins_InstalledElsewhereStillWarns(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	contents := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
@@ -883,7 +884,7 @@ func TestDoctorReport_RecommendedPlugins_AreSoftWarning_DoNotIncrementProblems(t
 	// AC-targeted assertion is "the recommended-plugin warning does
 	// not contribute to the problem count" — measured by comparing the
 	// problem count with vs. without the recommended-plugin block.
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	t.Setenv("HOME", t.TempDir())
@@ -927,7 +928,7 @@ func TestAppendRecommendedPluginsReport_NilCfg_NoOp(t *testing.T) {
 // validator/render checks treat unrecoverable read failures.
 func TestDoctorReport_RecommendedPlugins_CorruptedIndex_EmitsAdvisory(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	contents := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")

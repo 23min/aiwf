@@ -1,4 +1,4 @@
-package main
+package cliutil
 
 import (
 	"os"
@@ -36,7 +36,7 @@ func TestActorPattern(t *testing.T) {
 
 func TestResolveActor_ExplicitValid(t *testing.T) {
 	t.Parallel()
-	got, err := resolveActor("human/peter", "")
+	got, err := ResolveActor("human/peter", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestResolveActor_ExplicitInvalid(t *testing.T) {
 	for _, bad := range []string{"human:peter", "human / peter", "no-slash", ""} {
 		t.Run(bad, func(t *testing.T) {
 			t.Parallel()
-			_, err := resolveActor(bad, "")
+			_, err := ResolveActor(bad, "")
 			if bad == "" {
 				// Empty falls through to git-config derivation; not an "invalid" path.
 				return
@@ -82,9 +82,9 @@ func TestResolveActor_LegacyConfigActorIgnored(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := resolveActor("", root)
+	got, err := ResolveActor("", root)
 	if err != nil {
-		t.Fatalf("resolveActor: %v", err)
+		t.Fatalf("ResolveActor: %v", err)
 	}
 	// Must come from git, not from the legacy aiwf.yaml.actor.
 	if got != "human/git-user" {
@@ -94,7 +94,7 @@ func TestResolveActor_LegacyConfigActorIgnored(t *testing.T) {
 
 // TestResolveActor_DerivedFromGitConfig sets up an isolated git env
 // (HOME pointing at a tmpdir with a .gitconfig containing user.email)
-// and verifies that resolveActor("") derives `human/<localpart>`.
+// and verifies that ResolveActor("") derives `human/<localpart>`.
 func TestResolveActor_DerivedFromGitConfig(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -105,9 +105,9 @@ func TestResolveActor_DerivedFromGitConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := resolveActor("", "")
+	got, err := ResolveActor("", "")
 	if err != nil {
-		t.Fatalf("resolveActor: %v", err)
+		t.Fatalf("ResolveActor: %v", err)
 	}
 	if got != "human/peter" {
 		t.Errorf("got %q, want human/peter", got)
@@ -128,9 +128,9 @@ func TestResolveActor_FlagOverridesGitConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := resolveActor("ai/claude", "")
+	got, err := ResolveActor("ai/claude", "")
 	if err != nil {
-		t.Fatalf("resolveActor: %v", err)
+		t.Fatalf("ResolveActor: %v", err)
 	}
 	if got != "ai/claude" {
 		t.Errorf("got %q, want ai/claude (--actor must override git config)", got)
@@ -151,7 +151,7 @@ func TestResolveActor_MalformedGitEmail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := resolveActor("", "")
+	_, err := ResolveActor("", "")
 	if err == nil {
 		t.Fatal("expected error from malformed git config user.email, got nil")
 	}
@@ -166,7 +166,7 @@ func TestResolveActor_NoConfigErrors(t *testing.T) {
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	// Intentionally no .gitconfig.
 
-	_, err := resolveActor("", "")
+	_, err := ResolveActor("", "")
 	if err == nil {
 		t.Fatal("expected error when neither --actor nor git config is set")
 	}

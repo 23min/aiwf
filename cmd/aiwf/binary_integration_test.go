@@ -297,7 +297,7 @@ func TestBinary_ContractFamily_Subprocess(t *testing.T) {
 // scaffolds a throwaway repo, drives every verb through it, and
 // asserts the resulting state. Exit 0 here means the entire post-
 // Cobra dispatch tree (root command + each verb's flag binding +
-// repo lock acquisition + decorateAndFinish path + verb.Apply) works
+// repo lock acquisition + cliutil.DecorateAndFinish path + verb.Apply) works
 // the way a user's installed binary does, not just the way go test's
 // in-process run() works.
 func TestBinary_DoctorSelfCheck_Passes(t *testing.T) {
@@ -319,7 +319,7 @@ func TestBinary_DoctorSelfCheck_Passes(t *testing.T) {
 // runs cleanly as a subprocess against the migrated Cobra binary
 // and returns the contracted exit code. This covers the production
 // path the in-process `run()` tests cannot — Cobra's flag parsing,
-// our exitError unwrap, and the os.Exit translation only become
+// our cliutil.ExitError unwrap, and the os.Exit translation only become
 // visible when a real binary executes.
 func TestBinary_ReadOnlyVerbs_ExitOK(t *testing.T) {
 	t.Parallel()
@@ -431,7 +431,7 @@ func runBinary(bin string, args ...string) (string, error) {
 }
 
 // exitedWithCode reports whether err is an *exec.ExitError with the
-// given exit code. Used to tolerate doctor's `exitFindings` (1) when
+// given exit code. Used to tolerate doctor's `cliutil.ExitFindings` (1) when
 // no aiwf.yaml is present in --root.
 func exitedWithCode(err error, code int) bool {
 	var exitErr *exec.ExitError

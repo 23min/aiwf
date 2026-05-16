@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
 )
@@ -53,9 +54,9 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 
 	// Capture the auth SHA so we can match it against the agent's
 	// promote trailers.
-	scopes, err := loadEntityScopes(context.Background(), root, "E-0001")
+	scopes, err := cliutil.LoadEntityScopes(context.Background(), root, "E-0001")
 	if err != nil {
-		t.Fatalf("loadEntityScopes: %v", err)
+		t.Fatalf("cliutil.LoadEntityScopes: %v", err)
 	}
 	if len(scopes) != 1 || scopes[0].State != scope.StateActive {
 		t.Fatalf("expected one active scope on E-01; got %+v", scopes)
@@ -80,7 +81,7 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 	hasTrailer(t, tr, "aiwf-actor", "ai/claude")
 	hasTrailer(t, tr, "aiwf-principal", "human/peter")
 	hasTrailer(t, tr, "aiwf-on-behalf-of", "human/peter")
-	// authSHA from loadEntityScopes is the full hash; the trailer
+	// authSHA from cliutil.LoadEntityScopes is the full hash; the trailer
 	// likewise carries the full SHA. Compare directly.
 	hasTrailer(t, tr, "aiwf-authorized-by", authSHA)
 }
@@ -207,13 +208,13 @@ func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
 		t.Fatalf("reallocate did not produce a new id; head trailers: %+v", tr)
 	}
 
-	// Verify resolveCurrentEntityID walks the chain.
-	resolved, err := resolveCurrentEntityID(context.Background(), root, "M-0001")
+	// Verify cliutil.ResolveCurrentEntityID walks the chain.
+	resolved, err := cliutil.ResolveCurrentEntityID(context.Background(), root, "M-0001")
 	if err != nil {
-		t.Fatalf("resolveCurrentEntityID: %v", err)
+		t.Fatalf("cliutil.ResolveCurrentEntityID: %v", err)
 	}
 	if resolved != newID {
-		t.Errorf("resolveCurrentEntityID(M-001) = %q, want %q", resolved, newID)
+		t.Errorf("cliutil.ResolveCurrentEntityID(M-001) = %q, want %q", resolved, newID)
 	}
 
 	// Agent runs a verb on the NEW id under the original
@@ -288,7 +289,7 @@ func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
 // TestProvenance_TerminalPromoteEmitsScopeEnds: when the scope-
 // entity itself is promoted to a terminal state, the commit carries
 // `aiwf-scope-ends: <auth-sha>` per active scope on that entity.
-// Subsequent loadEntityScopes calls report the scope as ended.
+// Subsequent cliutil.LoadEntityScopes calls report the scope as ended.
 func TestProvenance_TerminalPromoteEmitsScopeEnds(t *testing.T) {
 	t.Parallel()
 	bin := aiwfBinary(t)
@@ -319,9 +320,9 @@ func TestProvenance_TerminalPromoteEmitsScopeEnds(t *testing.T) {
 		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-01"); err != nil {
 		t.Fatalf("aiwf authorize: %v\n%s", err, out)
 	}
-	scopes, err := loadEntityScopes(context.Background(), root, "E-0001")
+	scopes, err := cliutil.LoadEntityScopes(context.Background(), root, "E-0001")
 	if err != nil {
-		t.Fatalf("loadEntityScopes (pre): %v", err)
+		t.Fatalf("cliutil.LoadEntityScopes (pre): %v", err)
 	}
 	if len(scopes) != 1 {
 		t.Fatalf("expected 1 scope; got %d", len(scopes))
@@ -344,9 +345,9 @@ func TestProvenance_TerminalPromoteEmitsScopeEnds(t *testing.T) {
 	hasTrailer(t, tr, "aiwf-scope-ends", authSHA)
 
 	// Scope is now ended.
-	scopes, err = loadEntityScopes(context.Background(), root, "E-0001")
+	scopes, err = cliutil.LoadEntityScopes(context.Background(), root, "E-0001")
 	if err != nil {
-		t.Fatalf("loadEntityScopes (post): %v", err)
+		t.Fatalf("cliutil.LoadEntityScopes (post): %v", err)
 	}
 	if len(scopes) != 1 || scopes[0].State != scope.StateEnded {
 		t.Errorf("expected one ended scope; got %+v", scopes)

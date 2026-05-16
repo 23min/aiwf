@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 )
@@ -29,7 +30,7 @@ func runSelfCheck() int {
 	tmp, err := os.MkdirTemp("", "aiwf-self-check-")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	keep := false
 	defer func() {
@@ -63,17 +64,17 @@ func runSelfCheck() int {
 	fakeHome, err := os.MkdirTemp("", "aiwf-self-check-home-")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	defer func() { _ = os.RemoveAll(fakeHome) }()
 	// Seed a synthetic ~/.gitconfig so identity-resolution
-	// (`exec.Command("git", "config", "user.email")` in resolveActor)
+	// (`exec.Command("git", "config", "user.email")` in cliutil.ResolveActor)
 	// still produces a valid actor under the redirected HOME — every
 	// step that runs a mutating verb depends on this.
 	gitconfig := []byte("[user]\n\temail = self-check@aiwf.local\n\tname = aiwf self-check\n")
 	if err := os.WriteFile(filepath.Join(fakeHome, ".gitconfig"), gitconfig, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	prevHome, hadHome := os.LookupEnv("HOME")
 	_ = os.Setenv("HOME", fakeHome)
@@ -89,12 +90,12 @@ func runSelfCheck() int {
 	if err := gitops.Init(ctx, tmp); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: git init: %v\n", err)
 		keep = true
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	if err := setLocalGitIdentity(ctx, tmp); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
 		keep = true
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	preCommitHook := filepath.Join(tmp, ".git", "hooks", "pre-commit")
@@ -298,11 +299,11 @@ func runSelfCheck() int {
 				fmt.Printf("  FAIL  %s (setup: %v)\n", s.label, err)
 				fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
 				keep = true
-				return exitFindings
+				return cliutil.ExitFindings
 			}
 		}
 		rc, captured := runCaptured(s.args)
-		if rc != exitOK {
+		if rc != cliutil.ExitOK {
 			fmt.Printf("  FAIL  %s (rc=%d)\n", s.label, rc)
 			if captured != "" {
 				fmt.Println(indent(captured, "        "))
@@ -311,14 +312,14 @@ func runSelfCheck() int {
 			// state, so cascading failures aren't useful.
 			fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
 			keep = true
-			return exitFindings
+			return cliutil.ExitFindings
 		}
 		if s.verify != nil {
 			if err := s.verify(); err != nil {
 				fmt.Printf("  FAIL  %s (verify: %v)\n", s.label, err)
 				fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
 				keep = true
-				return exitFindings
+				return cliutil.ExitFindings
 			}
 		}
 		if s.verifyOutput != nil {
@@ -327,13 +328,13 @@ func runSelfCheck() int {
 				fmt.Println(indent(captured, "        "))
 				fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
 				keep = true
-				return exitFindings
+				return cliutil.ExitFindings
 			}
 		}
 		fmt.Printf("  ok    %s\n", s.label)
 	}
 	fmt.Printf("\nself-check passed (%d steps).\n", len(steps))
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // appendDoctorRecommendedPlugins appends a `doctor:` /
@@ -505,7 +506,7 @@ func synthesizeUntrailedFlip(ctx context.Context, repo, gapID, target string) er
 func runCaptured(args []string) (rc int, output string) {
 	r, w, err := os.Pipe()
 	if err != nil {
-		return exitInternal, fmt.Sprintf("os.Pipe: %v", err)
+		return cliutil.ExitInternal, fmt.Sprintf("os.Pipe: %v", err)
 	}
 	origOut, origErr := os.Stdout, os.Stderr
 	os.Stdout = w

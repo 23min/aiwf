@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // TestCheck_ArchiveSweepThreshold_EscalatesAggregate pins M-0088/AC-2's
@@ -12,7 +14,7 @@ import (
 // still in the active dir, awaiting sweep) produces a clean exit
 // when `archive.sweep_threshold` is absent (warning, exit 0) and a
 // findings exit when the threshold is set below the pending-sweep
-// count (error, exit exitFindings).
+// count (error, exit cliutil.ExitFindings).
 //
 // The unit test on check.ApplyArchiveSweepThreshold covers the bumper
 // logic in isolation; this test exercises the seam where main.go's
@@ -24,7 +26,7 @@ import (
 func TestCheck_ArchiveSweepThreshold_EscalatesAggregate(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -50,9 +52,9 @@ Body.
 
 	// Without archive.sweep_threshold: the aggregate fires at warning
 	// severity; `aiwf check` exits 0 (warnings don't block).
-	if rc := run([]string{"check", "--root", root}); rc != exitOK {
-		t.Errorf("check without archive.sweep_threshold = %d, want exitOK (%d) — warnings should not block",
-			rc, exitOK)
+	if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitOK {
+		t.Errorf("check without archive.sweep_threshold = %d, want cliutil.ExitOK (%d) — warnings should not block",
+			rc, cliutil.ExitOK)
 	}
 
 	// Append archive.sweep_threshold: 0 — the strictest possible
@@ -67,9 +69,9 @@ Body.
 		t.Fatalf("rewrite aiwf.yaml: %v", err)
 	}
 
-	if rc := run([]string{"check", "--root", root}); rc != exitFindings {
-		t.Errorf("check with archive.sweep_threshold: 0 = %d, want exitFindings (%d) — threshold must escalate the aggregate to error",
-			rc, exitFindings)
+	if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitFindings {
+		t.Errorf("check with archive.sweep_threshold: 0 = %d, want cliutil.ExitFindings (%d) — threshold must escalate the aggregate to error",
+			rc, cliutil.ExitFindings)
 	}
 }
 
@@ -81,7 +83,7 @@ Body.
 // the JSON envelope so downstream tools and CI logs name the breach.
 func TestCheck_ArchiveSweepThreshold_MessageNamesThresholdAndCount(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -114,8 +116,8 @@ func TestCheck_ArchiveSweepThreshold_MessageNamesThresholdAndCount(t *testing.T)
 		rc = run([]string{"check", "--root", root})
 	})
 	out := string(outBytes)
-	if rc != exitFindings {
-		t.Fatalf("check exit = %d, want exitFindings (%d); output:\n%s", rc, exitFindings, out)
+	if rc != cliutil.ExitFindings {
+		t.Fatalf("check exit = %d, want cliutil.ExitFindings (%d); output:\n%s", rc, cliutil.ExitFindings, out)
 	}
 	// The escalated message names both the count (2) and the
 	// configured threshold (1).
@@ -149,7 +151,7 @@ func TestCheck_ArchiveSweepThreshold_MessageNamesThresholdAndCount(t *testing.T)
 func TestCheck_ArchiveSweepThreshold_UnsetStaysPermissive(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -171,8 +173,8 @@ func TestCheck_ArchiveSweepThreshold_UnsetStaysPermissive(t *testing.T) {
 	// `aiwf.yaml` from `aiwf init` has no `archive:` block. Verify
 	// the check exits 0 (advisory; warnings don't block) — this is
 	// the AC-8 invariant.
-	if rc := run([]string{"check", "--root", root}); rc != exitOK {
-		t.Errorf("check with archive.sweep_threshold unset = %d, want exitOK (%d) — default-permissive: warnings advisory; pre-sweep migration must still exit 0",
-			rc, exitOK)
+	if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitOK {
+		t.Errorf("check with archive.sweep_threshold unset = %d, want cliutil.ExitOK (%d) — default-permissive: warnings advisory; pre-sweep migration must still exit 0",
+			rc, cliutil.ExitOK)
 	}
 }

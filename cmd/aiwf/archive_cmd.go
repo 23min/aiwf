@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
@@ -84,9 +85,9 @@ ADR-0004 tree and the routine ongoing sweeps that follow.`,
 		RunE: func(c *cobra.Command, args []string) error {
 			if apply && dryRun {
 				fmt.Fprintln(os.Stderr, "aiwf archive: --apply and --dry-run are mutually exclusive")
-				return wrapExitCode(exitUsage)
+				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
-			return wrapExitCode(runArchiveCmd(actor, principal, root, kind, apply))
+			return cliutil.WrapExitCode(runArchiveCmd(actor, principal, root, kind, apply))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -116,12 +117,12 @@ func runArchiveCmd(actor, principal, root, kind string, apply bool) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil { //coverage:ignore resolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
-	if err != nil { //coverage:ignore resolveActor only fails when actor cannot be derived from any source
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
+	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor cannot be derived from any source
 		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	// Provenance coherence check: a non-human actor needs a principal;
@@ -131,11 +132,11 @@ func runArchiveCmd(actor, principal, root, kind string, apply bool) int {
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
 		fmt.Fprintf(os.Stderr, "aiwf archive: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if !actorIsNonHuman && principalStr != "" {
 		fmt.Fprintln(os.Stderr, "aiwf archive: --principal is forbidden when --actor is human/ (humans act directly)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	// Validate --kind early so a typo doesn't wait for the verb.
@@ -143,14 +144,14 @@ func runArchiveCmd(actor, principal, root, kind string, apply bool) int {
 	if kindStr != "" {
 		if !validArchiveKind(kindStr) {
 			fmt.Fprintf(os.Stderr, "aiwf archive: --kind %q is not one of %s\n", kindStr, strings.Join(archiveKindCompletions(), ", "))
-			return exitUsage
+			return cliutil.ExitUsage
 		}
 	}
 
 	// Dry-run is read-only; lock only when we'd write.
 	if apply {
-		release, rc := acquireRepoLock(rootDir, "aiwf archive")
-		if release == nil { //coverage:ignore acquireRepoLock only returns nil on lock contention from a concurrent verb
+		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf archive")
+		if release == nil { //coverage:ignore cliutil.AcquireRepoLock only returns nil on lock contention from a concurrent verb
 			return rc
 		}
 		defer release()
@@ -161,25 +162,25 @@ func runArchiveCmd(actor, principal, root, kind string, apply bool) int {
 	result, err := verb.Archive(ctx, rootDir, actorStr, kindStr)
 	if err != nil { //coverage:ignore verb.Archive only errors on filesystem failures
 		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	if result == nil { //coverage:ignore Archive always returns a non-nil Result on success
 		fmt.Fprintln(os.Stderr, "aiwf archive: no result returned")
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	if result.NoOp {
 		fmt.Println(result.NoOpMessage)
-		return exitOK
+		return cliutil.ExitOK
 	}
 	if result.Plan == nil { //coverage:ignore non-NoOp result without a Plan is unreachable today
 		fmt.Fprintln(os.Stderr, "aiwf archive: validation passed but no plan produced")
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	if !apply {
 		printArchiveDryRun(result.Plan)
-		return exitOK
+		return cliutil.ExitOK
 	}
 
 	// Stamp principal trailer when the operator is non-human, mirroring
@@ -193,13 +194,13 @@ func runArchiveCmd(actor, principal, root, kind string, apply bool) int {
 
 	if applyErr := verb.Apply(ctx, rootDir, result.Plan); applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures
 		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", applyErr)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	if len(result.Findings) > 0 { //coverage:ignore Archive currently never populates Findings
 		_ = render.Text(os.Stderr, result.Findings)
 	}
 	fmt.Println(result.Plan.Subject)
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // validArchiveKind reports whether s is one of the kinds the --kind

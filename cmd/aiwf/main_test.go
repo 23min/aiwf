@@ -6,19 +6,21 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 func TestRun_NoArgs_UsageError(t *testing.T) {
 	t.Parallel()
-	if got := run(nil); got != exitUsage {
-		t.Errorf("run(nil) = %d, want %d", got, exitUsage)
+	if got := run(nil); got != cliutil.ExitUsage {
+		t.Errorf("run(nil) = %d, want %d", got, cliutil.ExitUsage)
 	}
 }
 
 func TestRun_UnknownVerb_UsageError(t *testing.T) {
 	t.Parallel()
-	if got := run([]string{"yodel"}); got != exitUsage {
-		t.Errorf("run(yodel) = %d, want %d", got, exitUsage)
+	if got := run([]string{"yodel"}); got != cliutil.ExitUsage {
+		t.Errorf("run(yodel) = %d, want %d", got, cliutil.ExitUsage)
 	}
 }
 
@@ -26,8 +28,8 @@ func TestRun_HelpVariants(t *testing.T) {
 	t.Parallel()
 	for _, arg := range []string{"help", "--help", "-h"} {
 		t.Run(arg, func(t *testing.T) {
-			if got := run([]string{arg}); got != exitOK {
-				t.Errorf("run(%q) = %d, want %d", arg, got, exitOK)
+			if got := run([]string{arg}); got != cliutil.ExitOK {
+				t.Errorf("run(%q) = %d, want %d", arg, got, cliutil.ExitOK)
 			}
 		})
 	}
@@ -59,8 +61,8 @@ func TestRun_SubverbHelpDoesNotRecurse(t *testing.T) {
 	for _, args := range cases {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			captureStdout(t, func() {
-				if rc := run(args); rc != exitOK {
-					t.Errorf("run(%v) = %d, want exitOK", args, rc)
+				if rc := run(args); rc != cliutil.ExitOK {
+					t.Errorf("run(%v) = %d, want cliutil.ExitOK", args, rc)
 				}
 			})
 		})
@@ -71,8 +73,8 @@ func TestRun_VersionVariants(t *testing.T) {
 	t.Parallel()
 	for _, arg := range []string{"version", "--version", "-v"} {
 		t.Run(arg, func(t *testing.T) {
-			if got := run([]string{arg}); got != exitOK {
-				t.Errorf("run(%q) = %d, want %d", arg, got, exitOK)
+			if got := run([]string{arg}); got != cliutil.ExitOK {
+				t.Errorf("run(%q) = %d, want %d", arg, got, cliutil.ExitOK)
 			}
 		})
 	}
@@ -81,16 +83,16 @@ func TestRun_VersionVariants(t *testing.T) {
 func TestRun_CheckEmptyRepo_OK(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if got := run([]string{"check", "--root=" + root}); got != exitOK {
-		t.Errorf("run(check on empty) = %d, want %d", got, exitOK)
+	if got := run([]string{"check", "--root=" + root}); got != cliutil.ExitOK {
+		t.Errorf("run(check on empty) = %d, want %d", got, cliutil.ExitOK)
 	}
 }
 
 func TestRun_CheckBadFormat_UsageError(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if got := run([]string{"check", "--root=" + root, "--format=xml"}); got != exitUsage {
-		t.Errorf("got %d, want %d", got, exitUsage)
+	if got := run([]string{"check", "--root=" + root, "--format=xml"}); got != cliutil.ExitUsage {
+		t.Errorf("got %d, want %d", got, cliutil.ExitUsage)
 	}
 }
 
@@ -119,8 +121,8 @@ parent: E-99
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if got := run([]string{"check", "--root=" + root}); got != exitFindings {
-		t.Errorf("got %d, want %d (findings)", got, exitFindings)
+	if got := run([]string{"check", "--root=" + root}); got != cliutil.ExitFindings {
+		t.Errorf("got %d, want %d (findings)", got, cliutil.ExitFindings)
 	}
 }
 
@@ -186,7 +188,7 @@ func setupCLITestRepo(t *testing.T) string {
 	// GIT identity is seeded once by TestMain (setup_test.go) via
 	// os.Setenv — t.Setenv would panic under t.Parallel.
 	root := t.TempDir()
-	if got := run([]string{"check", "--root=" + root}); got != exitOK {
+	if got := run([]string{"check", "--root=" + root}); got != cliutil.ExitOK {
 		t.Fatalf("baseline check on tmpdir = %d", got)
 	}
 	// Initialize git repo so the verb can commit.
@@ -217,14 +219,14 @@ func TestRun_AddVerbThroughDispatcher(t *testing.T) {
 	root := setupCLITestRepo(t)
 
 	got := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root})
-	if got != exitOK {
-		t.Fatalf("run(add epic) = %d, want %d", got, exitOK)
+	if got != cliutil.ExitOK {
+		t.Fatalf("run(add epic) = %d, want %d", got, cliutil.ExitOK)
 	}
 	if _, err := os.Stat(filepath.Join(root, "work", "epics", "E-0001-foundations", "epic.md")); err != nil {
 		t.Errorf("epic.md missing after add: %v", err)
 	}
-	if got := run([]string{"check", "--root", root}); got != exitOK {
-		t.Errorf("post-add check = %d, want %d", got, exitOK)
+	if got := run([]string{"check", "--root", root}); got != cliutil.ExitOK {
+		t.Errorf("post-add check = %d, want %d", got, cliutil.ExitOK)
 	}
 }
 
@@ -234,16 +236,16 @@ func TestRun_AddThenPromoteThenCancel(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
 
-	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add: %d", rc)
 	}
-	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != exitOK {
+	if rc := run([]string{"promote", "--actor", "human/test", "--root", root, "E-0001", "active"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote: %d", rc)
 	}
-	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "E-0001"}); rc != exitOK {
+	if rc := run([]string{"cancel", "--actor", "human/test", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
 		t.Fatalf("cancel: %d", rc)
 	}
-	if rc := run([]string{"check", "--root", root}); rc != exitOK {
+	if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("final check: %d", rc)
 	}
 }
@@ -252,8 +254,8 @@ func TestRun_AddThenPromoteThenCancel(t *testing.T) {
 func TestRun_AddBadKind(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if got := run([]string{"add", "widget", "--title", "X", "--actor", "human/test", "--root", root}); got != exitUsage {
-		t.Errorf("got %d, want %d", got, exitUsage)
+	if got := run([]string{"add", "widget", "--title", "X", "--actor", "human/test", "--root", root}); got != cliutil.ExitUsage {
+		t.Errorf("got %d, want %d", got, cliutil.ExitUsage)
 	}
 }
 
@@ -261,7 +263,7 @@ func TestRun_AddBadKind(t *testing.T) {
 func TestRun_PromoteMissingArgs(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if got := run([]string{"promote", "--root", root, "M-0001"}); got != exitUsage {
-		t.Errorf("got %d, want %d (missing new-status)", got, exitUsage)
+	if got := run([]string{"promote", "--root", root, "M-0001"}); got != cliutil.ExitUsage {
+		t.Errorf("got %d, want %d (missing new-status)", got, cliutil.ExitUsage)
 	}
 }

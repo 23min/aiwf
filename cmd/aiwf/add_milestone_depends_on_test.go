@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // M-076/AC-1: `aiwf add milestone --depends-on M-PPP[,M-QQQ]` allocates
@@ -23,13 +25,13 @@ import (
 func addMilestoneDependsOnSetup(t *testing.T) string {
 	t.Helper()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "First", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "First", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add M-001: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Second", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Second", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add M-002: %d", rc)
 	}
 	return root
@@ -51,8 +53,8 @@ func TestAddMilestone_DependsOnSingle(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
-		t.Fatalf("add milestone --depends-on M-001 = %d, want %d", rc, exitOK)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("add milestone --depends-on M-001 = %d, want %d", rc, cliutil.ExitOK)
 	}
 
 	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
@@ -83,8 +85,8 @@ func TestAddMilestone_DependsOnMultiple(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
-		t.Fatalf("add milestone --depends-on M-001,M-002 = %d, want %d", rc, exitOK)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("add milestone --depends-on M-001,M-002 = %d, want %d", rc, cliutil.ExitOK)
 	}
 
 	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
@@ -107,10 +109,10 @@ func TestAddMilestone_DependsOnMultiple(t *testing.T) {
 func TestAddMilestone_DependsOnAbsent(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Solo", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Solo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-solo.md")
@@ -136,8 +138,8 @@ func TestAddMilestone_DependsOnRejectedOnNonMilestone(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("add gap --depends-on = %d, want %d (usage error)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("add gap --depends-on = %d, want %d (usage error)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -148,7 +150,7 @@ func TestAddMilestone_DependsOnRejectedOnNonMilestone(t *testing.T) {
 func TestAddMilestone_DependsOnUnknownReferent(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
 
@@ -161,8 +163,8 @@ func TestAddMilestone_DependsOnUnknownReferent(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("add milestone --depends-on M-999 = %d, want %d (M-999 doesn't exist)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("add milestone --depends-on M-999 = %d, want %d (M-999 doesn't exist)", rc, cliutil.ExitUsage)
 	}
 
 	// The would-be milestone file must NOT have been written.
@@ -188,8 +190,8 @@ func TestAddMilestone_DependsOnNonMilestoneReferent(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("add milestone --depends-on E-01 = %d, want %d (E-01 is not a milestone)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("add milestone --depends-on E-01 = %d, want %d (E-01 is not a milestone)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -209,7 +211,7 @@ func TestAddMilestone_DependsOnPartialUnknown(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("add milestone --depends-on M-001,M-999 = %d, want %d", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("add milestone --depends-on M-001,M-999 = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }

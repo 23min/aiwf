@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -44,7 +45,7 @@ func newRetitleCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runRetitleCmd(args[0], args[1], actor, principal, root, reason))
+			return cliutil.WrapExitCode(runRetitleCmd(args[0], args[1], actor, principal, root, reason))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -59,15 +60,15 @@ func runRetitleCmd(id, newTitle, actor, principal, root, reason string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf retitle: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf retitle: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf retitle")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf retitle")
 	if release == nil {
 		return rc
 	}
@@ -77,14 +78,14 @@ func runRetitleCmd(id, newTitle, actor, principal, root, reason string) int {
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf retitle: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
-	result, vErr := verb.Retitle(ctx, tr, id, newTitle, actorStr, reason, configuredTitleMaxLength(rootDir))
-	pctx := provenanceContext{
+	result, vErr := verb.Retitle(ctx, tr, id, newTitle, actorStr, reason, cliutil.ConfiguredTitleMaxLength(rootDir))
+	pctx := cliutil.ProvenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
-	return decorateAndFinish(ctx, rootDir, "aiwf retitle", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf retitle", tr, result, vErr, pctx)
 }

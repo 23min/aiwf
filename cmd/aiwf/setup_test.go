@@ -117,7 +117,7 @@ import (
 //     window races concurrent tests.
 //   - TestRunWhoami_FromGitConfig, TestRunWhoami_NoActorAvailable
 //     (whoami_cmd_test.go) — os.Chdir into t.TempDir() to ensure
-//     resolveActor reads the test's gitconfig fixture.
+//     cliutil.ResolveActor reads the test's gitconfig fixture.
 //
 // Subtests:
 //   - TestActorPattern (actor_test.go),

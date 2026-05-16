@@ -1,4 +1,4 @@
-package main
+package cliutil
 
 import (
 	"strings"
@@ -10,7 +10,7 @@ import (
 // confusing failure deeper in the call stack.
 func TestAssertSupportedOS_Windows(t *testing.T) {
 	t.Parallel()
-	err := assertSupportedOS("windows")
+	err := AssertSupportedOS("windows")
 	if err == nil {
 		t.Fatal("expected error on windows")
 	}
@@ -28,7 +28,7 @@ func TestAssertSupportedOS_SupportedHosts(t *testing.T) {
 	t.Parallel()
 	for _, goos := range []string{"linux", "darwin"} {
 		t.Run(goos, func(t *testing.T) {
-			if err := assertSupportedOS(goos); err != nil {
+			if err := AssertSupportedOS(goos); err != nil {
 				t.Errorf("%s should be supported; got %v", goos, err)
 			}
 		})

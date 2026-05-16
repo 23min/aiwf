@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -26,7 +27,7 @@ func runTestsMetricsCheck(ctx context.Context, root string, t *tree.Tree, requir
 	if !require {
 		return nil, nil
 	}
-	if !hasCommits(ctx, root) {
+	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
 	var findings []check.Finding

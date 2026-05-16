@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/initrepo"
 )
 
@@ -36,7 +37,7 @@ func newInitCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runInitCmd(root, actor, dryRun, skipHook))
+			return cliutil.WrapExitCode(runInitCmd(root, actor, dryRun, skipHook))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: cwd)")
@@ -50,11 +51,11 @@ func runInitCmd(root, actor string, dryRun, skipHook bool) int {
 	rootDir, err := resolveInitRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	if !dryRun {
-		release, rc := acquireRepoLock(rootDir, "aiwf init")
+		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf init")
 		if release == nil {
 			return rc
 		}
@@ -68,7 +69,7 @@ func runInitCmd(root, actor string, dryRun, skipHook bool) int {
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	if res.DryRun {
@@ -98,7 +99,7 @@ func runInitCmd(root, actor string, dryRun, skipHook bool) int {
 		fmt.Println()
 		fmt.Println("Until then, `aiwf check` does not run automatically on `git push`/`git commit`.")
 		fmt.Println("You can still validate manually with `aiwf check`.")
-		return exitFindings
+		return cliutil.ExitFindings
 	}
 
 	switch {
@@ -116,7 +117,7 @@ func runInitCmd(root, actor string, dryRun, skipHook bool) int {
 			printRitualsSuggestion()
 		}
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // resolveInitRoot picks the root directory for `aiwf init`. Unlike

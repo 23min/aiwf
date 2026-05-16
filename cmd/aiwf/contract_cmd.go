@@ -10,6 +10,7 @@ import (
 
 	"github.com/23min/aiwf/internal/aiwfyaml"
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/contractcheck"
 	"github.com/23min/aiwf/internal/contractverify"
@@ -62,7 +63,7 @@ func newContractVerifyCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runContractVerifyCmd(root, format, pretty))
+			return cliutil.WrapExitCode(runContractVerifyCmd(root, format, pretty))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -75,23 +76,23 @@ func newContractVerifyCmd() *cobra.Command {
 func runContractVerifyCmd(root, format string, pretty bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf contract verify: --format must be 'text' or 'json', got %q\n", format)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract verify: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract verify: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	contracts, err := loadContractsBlock(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract verify: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	findings := runContractValidation(ctx, tr, rootDir, contracts)
 	applyHintsLikeRun(findings)
@@ -101,7 +102,7 @@ func runContractVerifyCmd(root, format string, pretty bool) int {
 	case "text":
 		if err := render.Text(os.Stdout, findings); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf contract verify: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	case "json":
 		env := render.Envelope{
@@ -117,13 +118,13 @@ func runContractVerifyCmd(root, format string, pretty bool) int {
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf contract verify: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	}
 	if check.HasErrors(findings) {
-		return exitFindings
+		return cliutil.ExitFindings
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // runContractValidation is the shared entry point for both the CLI
@@ -240,7 +241,7 @@ func newContractBindCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runContractBindCmd(args[0], root, actor, validator, schema, fixtures, force))
+			return cliutil.WrapExitCode(runContractBindCmd(args[0], root, actor, validator, schema, fixtures, force))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -258,15 +259,15 @@ func runContractBindCmd(id, root, actor, validator, schema, fixtures string, for
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf contract bind")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract bind")
 	if release == nil {
 		return rc
 	}
@@ -276,12 +277,12 @@ func runContractBindCmd(id, root, actor, validator, schema, fixtures string, for
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract bind: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	doc, contracts, err := loadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	result, err := verb.ContractBind(ctx, tr, doc, contracts, id, actorStr, rootDir, verb.ContractBindOptions{
@@ -290,7 +291,7 @@ func runContractBindCmd(id, root, actor, validator, schema, fixtures string, for
 		Fixtures:  fixtures,
 		Force:     force,
 	})
-	return finishVerb(ctx, rootDir, "aiwf contract bind", result, err)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract bind", result, err)
 }
 
 // newContractUnbindCmd builds `aiwf contract unbind <C-id>`.
@@ -308,7 +309,7 @@ func newContractUnbindCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runContractUnbindCmd(args[0], root, actor))
+			return cliutil.WrapExitCode(runContractUnbindCmd(args[0], root, actor))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -321,15 +322,15 @@ func runContractUnbindCmd(id, root, actor string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf contract unbind")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract unbind")
 	if release == nil {
 		return rc
 	}
@@ -339,11 +340,11 @@ func runContractUnbindCmd(id, root, actor string) int {
 	doc, contracts, err := loadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	result, err := verb.ContractUnbind(ctx, doc, contracts, id, actorStr)
-	return finishVerb(ctx, rootDir, "aiwf contract unbind", result, err)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err)
 }
 
 // newContractRecipesCmd builds `aiwf contract recipes`. Lists embedded
@@ -360,7 +361,7 @@ func newContractRecipesCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runContractRecipesCmd(root))
+			return cliutil.WrapExitCode(runContractRecipesCmd(root))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -371,19 +372,19 @@ func runContractRecipesCmd(root string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	embedded, err := recipe.List()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	contracts, err := loadContractsBlock(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	fmt.Println("Embedded recipes (install via `aiwf contract recipe install <name>`):")
@@ -405,7 +406,7 @@ func runContractRecipesCmd(root string) int {
 			fmt.Printf("  %s — %s\n", n, v.Command)
 		}
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // newContractRecipeCmd builds `aiwf contract recipe`. Three children:
@@ -436,7 +437,7 @@ func newContractRecipeShowCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runContractRecipeShowCmd(args[0]))
+			return cliutil.WrapExitCode(runContractRecipeShowCmd(args[0]))
 		},
 	}
 	cmd.ValidArgsFunction = completeEmbeddedRecipeNamesArg
@@ -447,13 +448,13 @@ func runContractRecipeShowCmd(name string) int {
 	r, err := recipe.Get(name)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe show: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if _, err := os.Stdout.Write(r.Markdown); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe show: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // newContractRecipeInstallCmd builds `aiwf contract recipe install
@@ -479,7 +480,7 @@ func newContractRecipeInstallCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runContractRecipeInstallCmd(args, root, actor, from, force))
+			return cliutil.WrapExitCode(runContractRecipeInstallCmd(args, root, actor, from, force))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -498,32 +499,32 @@ func runContractRecipeInstallCmd(args []string, root, actor, from string, force 
 	switch {
 	case from != "" && len(args) > 0:
 		fmt.Fprintln(os.Stderr, "aiwf contract recipe install: pass either <name> or --from <path>, not both")
-		return exitUsage
+		return cliutil.ExitUsage
 	case from != "":
 		r, loadErr = recipe.ParseFile(from)
 	case len(args) == 1:
 		r, loadErr = recipe.Get(args[0])
 	default:
 		fmt.Fprintln(os.Stderr, "aiwf contract recipe install: usage: aiwf contract recipe install <name> | --from <path>")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if loadErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", loadErr)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf contract recipe install")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe install")
 	if release == nil {
 		return rc
 	}
@@ -532,12 +533,12 @@ func runContractRecipeInstallCmd(args []string, root, actor, from string, force 
 	doc, contracts, err := loadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	result, err := verb.RecipeInstall(ctx, doc, contracts, r.Name, r.Validator, actorStr, verb.RecipeInstallOptions{Force: force})
-	return finishVerb(ctx, rootDir, "aiwf contract recipe install", result, err)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe install", result, err)
 }
 
 // newContractRecipeRemoveCmd builds `aiwf contract recipe remove
@@ -557,7 +558,7 @@ func newContractRecipeRemoveCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runContractRecipeRemoveCmd(args[0], root, actor))
+			return cliutil.WrapExitCode(runContractRecipeRemoveCmd(args[0], root, actor))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -570,15 +571,15 @@ func runContractRecipeRemoveCmd(name, root, actor string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf contract recipe remove")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe remove")
 	if release == nil {
 		return rc
 	}
@@ -587,12 +588,12 @@ func runContractRecipeRemoveCmd(name, root, actor string) int {
 	doc, contracts, err := loadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	result, err := verb.RecipeRemove(ctx, doc, contracts, name, actorStr)
-	return finishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err)
 }
 
 // completeEmbeddedRecipeNamesArg is a Cobra ValidArgsFunction that

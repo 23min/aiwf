@@ -5,24 +5,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/repolock"
 )
 
 // TestRun_ConcurrentMutations_OneWinsOneBusy is the load-bearing
 // test for G4: two `aiwf add` invocations against the same repo
 // must not both succeed in allocating the next id. With the
-// repolock guard, exactly one wins and one returns exitUsage with
+// repolock guard, exactly one wins and one returns cliutil.ExitUsage with
 // a busy message.
 func TestRun_ConcurrentMutations_OneWinsOneBusy(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
 	// Pre-acquire the lock to make the test deterministic: the in-process
 	// `aiwf add` invocation will block on Acquire and time out after
-	// lockTimeout (2s), returning exitUsage. Without the guard, it would
+	// lockTimeout (2s), returning cliutil.ExitUsage. Without the guard, it would
 	// proceed and produce a successful add. We hold the lock for slightly
 	// longer than lockTimeout to ensure timeout fires.
 	preLock, err := repolock.Acquire(root, 0)
@@ -47,8 +48,8 @@ func TestRun_ConcurrentMutations_OneWinsOneBusy(t *testing.T) {
 		t.Fatal("aiwf add did not return within 5s; lock acquisition seems unbounded")
 	}
 
-	if rc != exitUsage {
-		t.Errorf("locked-out add returned rc=%d, want %d (exitUsage); the lock guard is missing", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("locked-out add returned rc=%d, want %d (cliutil.ExitUsage); the lock guard is missing", rc, cliutil.ExitUsage)
 	}
 
 	if err := preLock.Release(); err != nil {
@@ -56,8 +57,8 @@ func TestRun_ConcurrentMutations_OneWinsOneBusy(t *testing.T) {
 	}
 
 	// After release, a fresh add should succeed.
-	if rc := run([]string{"add", "epic", "--title", "After", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Errorf("post-release add returned rc=%d, want %d", rc, exitOK)
+	if rc := run([]string{"add", "epic", "--title", "After", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Errorf("post-release add returned rc=%d, want %d", rc, cliutil.ExitOK)
 	}
 }
 
@@ -66,7 +67,7 @@ func TestRun_ConcurrentMutations_OneWinsOneBusy(t *testing.T) {
 func TestRun_Check_DoesNotAcquireLock(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -76,15 +77,15 @@ func TestRun_Check_DoesNotAcquireLock(t *testing.T) {
 	}
 	defer preLock.Release()
 
-	// check should return promptly with exitOK regardless of the lock.
+	// check should return promptly with cliutil.ExitOK regardless of the lock.
 	done := make(chan int, 1)
 	go func() {
 		done <- run([]string{"check", "--root", root})
 	}()
 	select {
 	case rc := <-done:
-		if rc != exitOK {
-			t.Errorf("check rc=%d, want exitOK; check should not acquire the mutation lock", rc)
+		if rc != cliutil.ExitOK {
+			t.Errorf("check rc=%d, want cliutil.ExitOK; check should not acquire the mutation lock", rc)
 		}
 	case <-time.After(3 * time.Second):
 		t.Fatal("check blocked on the mutation lock; should be lock-free")

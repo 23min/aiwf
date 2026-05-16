@@ -25,6 +25,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -102,8 +103,8 @@ func TestRewidth_DryRunByDefault(t *testing.T) {
 	commitFixture(t, root, "seed narrow fixture")
 
 	before := rewidthCommitCount(t, root)
-	if rc := run([]string{"rewidth", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("rewidth (dry-run) rc = %d, want exitOK", rc)
+	if rc := run([]string{"rewidth", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("rewidth (dry-run) rc = %d, want cliutil.ExitOK", rc)
 	}
 	after := rewidthCommitCount(t, root)
 	if delta := after - before; delta != 0 {
@@ -125,8 +126,8 @@ func TestRewidth_ApplyProducesSingleCommit(t *testing.T) {
 	commitFixture(t, root, "seed narrow fixture")
 
 	before := rewidthCommitCount(t, root)
-	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("rewidth --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("rewidth --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 	after := rewidthCommitCount(t, root)
 	if delta := after - before; delta != 1 {
@@ -144,8 +145,8 @@ func TestRewidth_TrailerShape(t *testing.T) {
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
 
-	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("rewidth --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("rewidth --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 
 	tr, err := gitops.HeadTrailers(context.Background(), root)
@@ -194,8 +195,8 @@ func TestRewidth_PostApply_NoNarrowFilenamesInActiveTree(t *testing.T) {
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
 
-	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("rewidth --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("rewidth --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 
 	// Verify every active-tree file has a canonical-width id in its
@@ -240,8 +241,8 @@ func TestRewidth_PostApply_BodyContentRewritten(t *testing.T) {
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
 
-	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("rewidth --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("rewidth --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 
 	// The milestone file at the post-move path should have its prose
@@ -275,13 +276,13 @@ func TestRewidth_ApplyIdempotent(t *testing.T) {
 	seedNarrowFixture(t, root)
 	commitFixture(t, root, "seed narrow fixture")
 
-	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("first rewidth --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("first rewidth --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 	afterFirst := rewidthCommitCount(t, root)
 
-	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("second rewidth --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("second rewidth --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 	afterSecond := rewidthCommitCount(t, root)
 
@@ -298,14 +299,14 @@ func TestRewidth_EmptyTreeApply_NoOp(t *testing.T) {
 	root := setupCLITestRepo(t)
 	// init produces no commits but creates aiwf.yaml + scaffolding;
 	// commit it so we have a base HEAD.
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	commitFixture(t, root, "init scaffolding")
 
 	before := rewidthCommitCount(t, root)
-	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("rewidth --apply on empty tree rc = %d, want exitOK", rc)
+	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("rewidth --apply on empty tree rc = %d, want cliutil.ExitOK", rc)
 	}
 	after := rewidthCommitCount(t, root)
 	if delta := after - before; delta != 0 {
@@ -319,8 +320,8 @@ func TestRewidth_EmptyTreeApply_NoOp(t *testing.T) {
 func TestRewidth_NonHumanActorRequiresPrincipal(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"rewidth", "--root", root, "--actor", "ai/claude"}); rc != exitUsage {
-		t.Errorf("expected exitUsage for non-human actor without --principal; got %d", rc)
+	if rc := run([]string{"rewidth", "--root", root, "--actor", "ai/claude"}); rc != cliutil.ExitUsage {
+		t.Errorf("expected cliutil.ExitUsage for non-human actor without --principal; got %d", rc)
 	}
 }
 
@@ -329,8 +330,8 @@ func TestRewidth_NonHumanActorRequiresPrincipal(t *testing.T) {
 func TestRewidth_HumanActorForbidsPrincipal(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"rewidth", "--root", root, "--actor", "human/test", "--principal", "human/test"}); rc != exitUsage {
-		t.Errorf("expected exitUsage for human actor with --principal; got %d", rc)
+	if rc := run([]string{"rewidth", "--root", root, "--actor", "human/test", "--principal", "human/test"}); rc != cliutil.ExitUsage {
+		t.Errorf("expected cliutil.ExitUsage for human actor with --principal; got %d", rc)
 	}
 }
 
@@ -347,8 +348,8 @@ func TestRewidth_NonHumanActorWithPrincipal_StampsTrailer(t *testing.T) {
 	if rc := run([]string{
 		"rewidth", "--apply", "--root", root,
 		"--actor", "ai/claude", "--principal", "human/test",
-	}); rc != exitOK {
-		t.Fatalf("rewidth --apply (non-human + principal) rc = %d, want exitOK", rc)
+	}); rc != cliutil.ExitOK {
+		t.Fatalf("rewidth --apply (non-human + principal) rc = %d, want cliutil.ExitOK", rc)
 	}
 
 	tr, err := gitops.HeadTrailers(context.Background(), root)
@@ -392,8 +393,8 @@ func TestRewidth_ArchivePreservedByteIdentical(t *testing.T) {
 	// skip archive per ADR-0004, so this test runs without the
 	// `--skip-checks` workaround. If this test starts failing
 	// again, the archive scoping has regressed.
-	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("rewidth --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("rewidth --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 
 	got, err := os.ReadFile(archivePath)
@@ -414,7 +415,7 @@ func TestRewidth_ArchivePreservedByteIdentical(t *testing.T) {
 // fixture that triggers an id-path-consistent error (frontmatter id
 // disagrees with the on-disk path), then invokes `rewidth --apply`.
 // The preflight catches the error, refuses the migration, exits with
-// exitFindings, and produces no commit.
+// cliutil.ExitFindings, and produces no commit.
 func TestRewidth_PreflightApply_BailsOnAiwfCheckError(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
@@ -434,8 +435,8 @@ func TestRewidth_PreflightApply_BailsOnAiwfCheckError(t *testing.T) {
 
 	before := rewidthCommitCount(t, root)
 	rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"})
-	if rc != exitFindings {
-		t.Errorf("rewidth --apply on broken tree rc = %d, want exitFindings (%d)", rc, exitFindings)
+	if rc != cliutil.ExitFindings {
+		t.Errorf("rewidth --apply on broken tree rc = %d, want cliutil.ExitFindings (%d)", rc, cliutil.ExitFindings)
 	}
 	after := rewidthCommitCount(t, root)
 	if delta := after - before; delta != 0 {
@@ -459,8 +460,8 @@ func TestRewidth_PreflightApply_SkipChecksBypasses(t *testing.T) {
 
 	before := rewidthCommitCount(t, root)
 	rc := run([]string{"rewidth", "--apply", "--skip-checks", "--root", root, "--actor", "human/test"})
-	if rc != exitOK {
-		t.Fatalf("rewidth --apply --skip-checks rc = %d, want exitOK", rc)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rewidth --apply --skip-checks rc = %d, want cliutil.ExitOK", rc)
 	}
 	after := rewidthCommitCount(t, root)
 	if delta := after - before; delta != 1 {
@@ -481,8 +482,8 @@ func TestRewidth_PreflightApply_LayoutWarningButRuns(t *testing.T) {
 
 	before := rewidthCommitCount(t, root)
 	rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"})
-	if rc != exitOK {
-		t.Fatalf("rewidth --apply with missing optional dirs rc = %d, want exitOK", rc)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rewidth --apply with missing optional dirs rc = %d, want cliutil.ExitOK", rc)
 	}
 	after := rewidthCommitCount(t, root)
 	if delta := after - before; delta != 1 {
@@ -505,8 +506,8 @@ func TestRewidth_PreflightApply_AllExpectedDirsMissingBails(t *testing.T) {
 
 	before := rewidthCommitCount(t, root)
 	rc := run([]string{"rewidth", "--apply", "--root", root, "--actor", "human/test"})
-	if rc != exitUsage {
-		t.Errorf("rewidth --apply on non-aiwf repo rc = %d, want exitUsage (%d)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rewidth --apply on non-aiwf repo rc = %d, want cliutil.ExitUsage (%d)", rc, cliutil.ExitUsage)
 	}
 	after := rewidthCommitCount(t, root)
 	if delta := after - before; delta != 0 {
@@ -530,8 +531,8 @@ func TestRewidth_PreflightDryRun_NoGate(t *testing.T) {
 
 	before := rewidthCommitCount(t, root)
 	rc := run([]string{"rewidth", "--root", root, "--actor", "human/test"})
-	if rc != exitOK {
-		t.Errorf("dry-run rc = %d on broken tree, want exitOK (preflight is --apply-only)", rc)
+	if rc != cliutil.ExitOK {
+		t.Errorf("dry-run rc = %d on broken tree, want cliutil.ExitOK (preflight is --apply-only)", rc)
 	}
 	after := rewidthCommitCount(t, root)
 	if delta := after - before; delta != 0 {

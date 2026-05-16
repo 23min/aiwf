@@ -5,12 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 )
 
 func TestRunTemplate_OneKindRaw(t *testing.T) {
 	out := string(captureStdout(t, func() {
-		if rc := run([]string{"template", "epic"}); rc != exitOK {
+		if rc := run([]string{"template", "epic"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -25,7 +26,7 @@ func TestRunTemplate_OneKindRaw(t *testing.T) {
 
 func TestRunTemplate_AllKindsHasHeaders(t *testing.T) {
 	out := string(captureStdout(t, func() {
-		if rc := run([]string{"template"}); rc != exitOK {
+		if rc := run([]string{"template"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -50,35 +51,35 @@ func TestRunTemplate_AllKindsHasHeaders(t *testing.T) {
 
 func TestRunTemplate_UnknownKind(t *testing.T) {
 	t.Parallel()
-	if rc := run([]string{"template", "nonsense"}); rc != exitUsage {
-		t.Errorf("rc = %d, want %d", rc, exitUsage)
+	if rc := run([]string{"template", "nonsense"}); rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
 func TestRunTemplate_TooManyArgs(t *testing.T) {
 	t.Parallel()
-	if rc := run([]string{"template", "epic", "milestone"}); rc != exitUsage {
-		t.Errorf("rc = %d, want %d", rc, exitUsage)
+	if rc := run([]string{"template", "epic", "milestone"}); rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
 func TestRunTemplate_BadFormat(t *testing.T) {
 	t.Parallel()
-	if rc := run([]string{"template", "--format", "yaml"}); rc != exitUsage {
-		t.Errorf("rc = %d, want %d", rc, exitUsage)
+	if rc := run([]string{"template", "--format", "yaml"}); rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
 func TestRunTemplate_PrettyWithoutJSONIsHarmless(t *testing.T) {
 	t.Parallel()
-	if rc := run([]string{"template", "--pretty", "epic"}); rc != exitOK {
-		t.Errorf("rc = %d, want %d", rc, exitOK)
+	if rc := run([]string{"template", "--pretty", "epic"}); rc != cliutil.ExitOK {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitOK)
 	}
 }
 
 func TestRunTemplate_JSONEnvelope(t *testing.T) {
 	out := captureStdout(t, func() {
-		if rc := run([]string{"template", "--format", "json"}); rc != exitOK {
+		if rc := run([]string{"template", "--format", "json"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	})
@@ -114,7 +115,7 @@ func TestRunTemplate_JSONEnvelope(t *testing.T) {
 
 func TestRunTemplate_JSONOneKind(t *testing.T) {
 	out := captureStdout(t, func() {
-		if rc := run([]string{"template", "--format", "json", "epic"}); rc != exitOK {
+		if rc := run([]string{"template", "--format", "json", "epic"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	})

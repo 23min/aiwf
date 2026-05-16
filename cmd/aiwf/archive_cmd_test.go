@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -136,8 +137,8 @@ func TestArchive_DryRunByDefault(t *testing.T) {
 	commitArchiveFixture(t, root, "seed archive fixture")
 
 	before := archiveCommitCount(t, root)
-	if rc := run([]string{"archive", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("archive (dry-run) rc = %d, want exitOK", rc)
+	if rc := run([]string{"archive", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("archive (dry-run) rc = %d, want cliutil.ExitOK", rc)
 	}
 	after := archiveCommitCount(t, root)
 	if delta := after - before; delta != 0 {
@@ -196,8 +197,8 @@ func TestArchive_ApplyProducesSingleCommit(t *testing.T) {
 	commitArchiveFixture(t, root, "seed archive fixture")
 
 	before := archiveCommitCount(t, root)
-	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("archive --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("archive --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 	after := archiveCommitCount(t, root)
 	if delta := after - before; delta != 1 {
@@ -217,8 +218,8 @@ func TestArchive_TrailerShape(t *testing.T) {
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
 
-	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("archive --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("archive --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 
 	tr, err := gitops.HeadTrailers(context.Background(), root)
@@ -250,8 +251,8 @@ func TestArchive_KindGapScopesSweep(t *testing.T) {
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
 
-	if rc := run([]string{"archive", "--apply", "--kind", "gap", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("archive --apply --kind gap rc = %d, want exitOK", rc)
+	if rc := run([]string{"archive", "--apply", "--kind", "gap", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("archive --apply --kind gap rc = %d, want cliutil.ExitOK", rc)
 	}
 
 	// Gap should have moved into archive/.
@@ -284,13 +285,13 @@ func TestArchive_ApplyIdempotent(t *testing.T) {
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
 
-	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("first archive --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("first archive --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 	afterFirst := archiveCommitCount(t, root)
 
-	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("second archive --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("second archive --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 	afterSecond := archiveCommitCount(t, root)
 
@@ -305,14 +306,14 @@ func TestArchive_ApplyIdempotent(t *testing.T) {
 func TestArchive_EmptyTreeApply_NoOp(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	commitArchiveFixture(t, root, "init scaffolding")
 
 	before := archiveCommitCount(t, root)
-	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("archive --apply on empty tree rc = %d, want exitOK", rc)
+	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("archive --apply on empty tree rc = %d, want cliutil.ExitOK", rc)
 	}
 	after := archiveCommitCount(t, root)
 	if delta := after - before; delta != 0 {
@@ -337,8 +338,8 @@ func TestArchive_PerKindStorageLayout(t *testing.T) {
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
 
-	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("archive --apply rc = %d, want exitOK", rc)
+	if rc := run([]string{"archive", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("archive --apply rc = %d, want cliutil.ExitOK", rc)
 	}
 
 	// Per ADR-0004's storage table:
@@ -420,8 +421,8 @@ func TestArchive_PerKindStorageLayout(t *testing.T) {
 func TestArchive_NoPositionalIDArg(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"archive", "G-0010", "--root", root, "--actor", "human/test"}); rc != exitUsage {
-		t.Errorf("archive with positional id arg rc = %d, want exitUsage (the verb sweeps by status, not by id — ADR-0004)", rc)
+	if rc := run([]string{"archive", "G-0010", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitUsage {
+		t.Errorf("archive with positional id arg rc = %d, want cliutil.ExitUsage (the verb sweeps by status, not by id — ADR-0004)", rc)
 	}
 }
 
@@ -431,8 +432,8 @@ func TestArchive_NoPositionalIDArg(t *testing.T) {
 func TestArchive_NonHumanActorRequiresPrincipal(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"archive", "--root", root, "--actor", "ai/claude"}); rc != exitUsage {
-		t.Errorf("expected exitUsage for non-human actor without --principal; got %d", rc)
+	if rc := run([]string{"archive", "--root", root, "--actor", "ai/claude"}); rc != cliutil.ExitUsage {
+		t.Errorf("expected cliutil.ExitUsage for non-human actor without --principal; got %d", rc)
 	}
 }
 
@@ -441,8 +442,8 @@ func TestArchive_NonHumanActorRequiresPrincipal(t *testing.T) {
 func TestArchive_HumanActorForbidsPrincipal(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"archive", "--root", root, "--actor", "human/test", "--principal", "human/test"}); rc != exitUsage {
-		t.Errorf("expected exitUsage for human actor with --principal; got %d", rc)
+	if rc := run([]string{"archive", "--root", root, "--actor", "human/test", "--principal", "human/test"}); rc != cliutil.ExitUsage {
+		t.Errorf("expected cliutil.ExitUsage for human actor with --principal; got %d", rc)
 	}
 }
 
@@ -452,8 +453,8 @@ func TestArchive_HumanActorForbidsPrincipal(t *testing.T) {
 func TestArchive_InvalidKindRejected(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"archive", "--kind", "widget", "--root", root, "--actor", "human/test"}); rc != exitUsage {
-		t.Errorf("expected exitUsage for invalid --kind; got %d", rc)
+	if rc := run([]string{"archive", "--kind", "widget", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitUsage {
+		t.Errorf("expected cliutil.ExitUsage for invalid --kind; got %d", rc)
 	}
 }
 
@@ -470,8 +471,8 @@ func TestArchive_NonHumanActorWithPrincipal_StampsTrailer(t *testing.T) {
 	if rc := run([]string{
 		"archive", "--apply", "--root", root,
 		"--actor", "ai/claude", "--principal", "human/test",
-	}); rc != exitOK {
-		t.Fatalf("archive --apply (non-human + principal) rc = %d, want exitOK", rc)
+	}); rc != cliutil.ExitOK {
+		t.Fatalf("archive --apply (non-human + principal) rc = %d, want cliutil.ExitOK", rc)
 	}
 
 	tr, err := gitops.HeadTrailers(context.Background(), root)
@@ -502,8 +503,8 @@ func TestArchive_ExplicitDryRunFlag(t *testing.T) {
 	commitArchiveFixture(t, root, "seed archive fixture")
 
 	before := archiveCommitCount(t, root)
-	if rc := run([]string{"archive", "--dry-run", "--root", root, "--actor", "human/test"}); rc != exitOK {
-		t.Fatalf("archive --dry-run rc = %d, want exitOK", rc)
+	if rc := run([]string{"archive", "--dry-run", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("archive --dry-run rc = %d, want cliutil.ExitOK", rc)
 	}
 	after := archiveCommitCount(t, root)
 	if delta := after - before; delta != 0 {
@@ -530,7 +531,7 @@ func TestArchive_ExplicitDryRunFlag(t *testing.T) {
 func TestArchive_DryRunAndApplyMutuallyExclusive(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"archive", "--dry-run", "--apply", "--root", root, "--actor", "human/test"}); rc != exitUsage {
-		t.Errorf("archive --dry-run --apply rc = %d, want exitUsage", rc)
+	if rc := run([]string{"archive", "--dry-run", "--apply", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitUsage {
+		t.Errorf("archive --dry-run --apply rc = %d, want cliutil.ExitUsage", rc)
 	}
 }

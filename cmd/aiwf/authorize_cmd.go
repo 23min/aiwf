@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -54,7 +55,7 @@ func newAuthorizeCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runAuthorizeCmd(args[0], actor, root, to, pause, resume, reason, force))
+			return cliutil.WrapExitCode(runAuthorizeCmd(args[0], actor, root, to, pause, resume, reason, force))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (default: derived from git config user.email; must be human/...)")
@@ -81,36 +82,36 @@ func runAuthorizeCmd(id, actor, root, to, pause, resume, reason string, force bo
 	}
 	if modes != 1 {
 		fmt.Fprintln(os.Stderr, "aiwf authorize: pick exactly one of --to <agent>, --pause \"<reason>\", or --resume \"<reason>\"")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	// `--reason` is meaningful only with --to (and --to --force). For
 	// --pause / --resume the flag value IS the reason; a separate
 	// --reason would be ambiguous.
 	if (pause != "" || resume != "") && reason != "" {
 		fmt.Fprintln(os.Stderr, "aiwf authorize: --reason is not used with --pause / --resume; the argument to --pause/--resume is itself the reason")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if force && to == "" {
 		fmt.Fprintln(os.Stderr, "aiwf authorize: --force is only meaningful with --to (overrides terminal-scope-entity refusal)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if force && strings.TrimSpace(reason) == "" {
 		fmt.Fprintln(os.Stderr, "aiwf authorize: --force requires --reason \"...\" (non-empty after trim)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf authorize: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf authorize: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf authorize")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf authorize")
 	if release == nil {
 		return rc
 	}
@@ -120,7 +121,7 @@ func runAuthorizeCmd(id, actor, root, to, pause, resume, reason string, force bo
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf authorize: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	opts := verb.AuthorizeOptions{}
@@ -138,14 +139,14 @@ func runAuthorizeCmd(id, actor, root, to, pause, resume, reason string, force bo
 		opts.Reason = resume
 	}
 	if opts.Mode == verb.AuthorizePause || opts.Mode == verb.AuthorizeResume {
-		scopes, scopesErr := loadEntityScopes(ctx, rootDir, id)
+		scopes, scopesErr := cliutil.LoadEntityScopes(ctx, rootDir, id)
 		if scopesErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf authorize: %v\n", scopesErr)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 		opts.Scopes = scopes
 	}
 
 	result, vErr := verb.Authorize(ctx, tr, id, actorStr, opts)
-	return finishVerb(ctx, rootDir, "aiwf authorize", result, vErr)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf authorize", result, vErr)
 }

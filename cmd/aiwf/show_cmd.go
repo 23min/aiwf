@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
@@ -72,7 +73,7 @@ func newShowCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runShowCmd(args[0], root, format, pretty, historyLimit))
+			return cliutil.WrapExitCode(runShowCmd(args[0], root, format, pretty, historyLimit))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -87,26 +88,26 @@ func newShowCmd() *cobra.Command {
 func runShowCmd(id, root, format string, pretty bool, historyLimit int) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf show: --format must be text or json, got %q\n", format)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf show: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	view, ok := buildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
 	if !ok {
 		fmt.Fprintf(os.Stderr, "aiwf show: %s not found\n", id)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	switch format {
@@ -125,10 +126,10 @@ func runShowCmd(id, root, format string, pretty bool, historyLimit int) int {
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // ShowView is the aggregated per-entity state. Exported for the JSON

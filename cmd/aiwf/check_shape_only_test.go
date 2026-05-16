@@ -5,22 +5,24 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // TestRun_CheckShapeOnly_CleanTree exits 0 with no findings on a
 // repo that only contains recognized entity files.
 func TestRun_CheckShapeOnly_CleanTree(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "gap", "--title", "Real gap", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"add", "gap", "--title", "Real gap", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add gap: %d", rc)
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != exitOK {
-			t.Errorf("got rc=%d, want %d (clean)", rc, exitOK)
+		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != cliutil.ExitOK {
+			t.Errorf("got rc=%d, want %d (clean)", rc, cliutil.ExitOK)
 		}
 	})
 	if strings.Contains(string(captured), "unexpected-tree-file") {
@@ -33,7 +35,7 @@ func TestRun_CheckShapeOnly_CleanTree(t *testing.T) {
 // prints the finding but exits 0 — the pre-commit hook proceeds.
 func TestRun_CheckShapeOnly_StrayWarning_ExitOK(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if err := os.MkdirAll(filepath.Join(root, "work", "gaps"), 0o755); err != nil {
@@ -44,8 +46,8 @@ func TestRun_CheckShapeOnly_StrayWarning_ExitOK(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != exitOK {
-			t.Errorf("got rc=%d, want %d (warning, not blocking)", rc, exitOK)
+		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != cliutil.ExitOK {
+			t.Errorf("got rc=%d, want %d (warning, not blocking)", rc, cliutil.ExitOK)
 		}
 	})
 	out := string(captured)
@@ -62,7 +64,7 @@ func TestRun_CheckShapeOnly_StrayWarning_ExitOK(t *testing.T) {
 // exits with findings — the pre-commit hook blocks the commit.
 func TestRun_CheckShapeOnly_StrayStrict_ExitFindings(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	// Append tree.strict: true to the aiwf.yaml init wrote.
@@ -82,8 +84,8 @@ func TestRun_CheckShapeOnly_StrayStrict_ExitFindings(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != exitFindings {
-			t.Errorf("got rc=%d, want %d (strict mode must block)", rc, exitFindings)
+		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != cliutil.ExitFindings {
+			t.Errorf("got rc=%d, want %d (strict mode must block)", rc, cliutil.ExitFindings)
 		}
 	})
 	if !strings.Contains(string(captured), "unexpected-tree-file") {
@@ -96,7 +98,7 @@ func TestRun_CheckShapeOnly_StrayStrict_ExitFindings(t *testing.T) {
 // strict mode on.
 func TestRun_CheckShapeOnly_AllowPathsExempt(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	yamlPath := filepath.Join(root, "aiwf.yaml")
@@ -116,8 +118,8 @@ func TestRun_CheckShapeOnly_AllowPathsExempt(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != exitOK {
-			t.Errorf("got rc=%d, want %d (allow_paths must exempt)", rc, exitOK)
+		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != cliutil.ExitOK {
+			t.Errorf("got rc=%d, want %d (allow_paths must exempt)", rc, cliutil.ExitOK)
 		}
 	})
 	if strings.Contains(string(captured), "unexpected-tree-file") {

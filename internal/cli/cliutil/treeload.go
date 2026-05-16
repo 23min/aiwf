@@ -1,4 +1,4 @@
-package main
+package cliutil
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/23min/aiwf/internal/trunk"
 )
 
-// loadTreeWithTrunk loads the consumer repo's entity tree and stamps
+// LoadTreeWithTrunk loads the consumer repo's entity tree and stamps
 // the configured trunk ref's ids onto Tree.TrunkIDs, so the allocator
 // (entity.AllocateID) and the cross-tree ids-unique check both see
 // trunk in their view.
@@ -23,7 +23,7 @@ import (
 //
 // A missing aiwf.yaml is not fatal — the trunk read uses the default
 // trunk ref in that case.
-func loadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.LoadError, error) {
+func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.LoadError, error) {
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		return tr, loadErrs, err
@@ -57,13 +57,13 @@ func loadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	return tr, loadErrs, nil
 }
 
-// configuredTitleMaxLength returns the consumer's
+// ConfiguredTitleMaxLength returns the consumer's
 // `entities.title_max_length` from aiwf.yaml, or the kernel default
 // when absent (G-0102). Tolerant of a missing aiwf.yaml — the kernel
 // default applies in that case too, so the verb dispatchers in
 // cmd/aiwf can call this unconditionally without a precondition
 // check.
-func configuredTitleMaxLength(rootDir string) int {
+func ConfiguredTitleMaxLength(rootDir string) int {
 	cfg, err := config.Load(rootDir)
 	if err != nil || cfg == nil {
 		return config.DefaultEntityTitleMaxLength

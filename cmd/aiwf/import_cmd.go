@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/manifest"
 	"github.com/23min/aiwf/internal/render"
@@ -46,7 +47,7 @@ func newImportCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runImportCmd(args[0], root, actor, principal, onCollision, dryRun))
+			return cliutil.WrapExitCode(runImportCmd(args[0], root, actor, principal, onCollision, dryRun))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -65,33 +66,33 @@ func runImportCmd(manifestPath, root, actor, principal, onCollision string, dryR
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	m, err := manifest.ParseFile(manifestPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	// Actor resolution: --actor wins, then manifest.actor, then
-	// aiwf.yaml derivation via resolveActor.
+	// aiwf.yaml derivation via cliutil.ResolveActor.
 	actorStr := actor
 	if actorStr == "" {
 		actorStr = m.Actor
 	}
 	if actorStr == "" {
-		resolved, aErr := resolveActor("", rootDir)
+		resolved, aErr := cliutil.ResolveActor("", rootDir)
 		if aErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf import: %v\n", aErr)
-			return exitUsage
+			return cliutil.ExitUsage
 		}
 		actorStr = resolved
 	}
 
 	// dry-run is read-only; lock only when we'd write.
 	if !dryRun {
-		release, rc := acquireRepoLock(rootDir, "aiwf import")
+		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf import")
 		if release == nil {
 			return rc
 		}
@@ -102,7 +103,7 @@ func runImportCmd(manifestPath, root, actor, principal, onCollision string, dryR
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	// Provenance coherence: when the operator is non-human, a principal
@@ -113,29 +114,29 @@ func runImportCmd(manifestPath, root, actor, principal, onCollision string, dryR
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
 		fmt.Fprintf(os.Stderr, "aiwf import: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if !actorIsNonHuman && principalStr != "" {
 		fmt.Fprintln(os.Stderr, "aiwf import: --principal is forbidden when --actor is human/ (humans act directly)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	res, err := verb.Import(ctx, tr, m, actorStr, verb.ImportOptions{
 		OnCollision:    onCollision,
-		TitleMaxLength: configuredTitleMaxLength(rootDir),
+		TitleMaxLength: cliutil.ConfiguredTitleMaxLength(rootDir),
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	if check.HasErrors(res.Findings) {
 		_ = render.Text(os.Stderr, res.Findings)
-		return exitFindings
+		return cliutil.ExitFindings
 	}
 	if len(res.Plans) == 0 {
 		fmt.Println("aiwf import: manifest had no entities to import.")
-		return exitOK
+		return cliutil.ExitOK
 	}
 
 	if dryRun {
@@ -147,7 +148,7 @@ func runImportCmd(manifestPath, root, actor, principal, onCollision string, dryR
 			}
 		}
 		fmt.Println("\naiwf import: dry-run complete. Re-run without --dry-run to apply.")
-		return exitOK
+		return cliutil.ExitOK
 	}
 
 	for i, p := range res.Plans {
@@ -164,9 +165,9 @@ func runImportCmd(manifestPath, root, actor, principal, onCollision string, dryR
 		}
 		if applyErr := verb.Apply(ctx, rootDir, p); applyErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf import: applying plan %d: %v\n", i, applyErr)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 		fmt.Println(p.Subject)
 	}
-	return exitOK
+	return cliutil.ExitOK
 }

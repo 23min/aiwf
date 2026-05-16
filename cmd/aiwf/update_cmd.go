@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/initrepo"
 )
@@ -38,7 +39,7 @@ func newUpdateCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runUpdateCmd(root))
+			return cliutil.WrapExitCode(runUpdateCmd(root))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -49,10 +50,10 @@ func runUpdateCmd(root string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf update")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf update")
 	if release == nil {
 		return rc
 	}
@@ -61,7 +62,7 @@ func runUpdateCmd(root string) int {
 	cfg, err := config.Load(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	steps, conflict, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
@@ -69,7 +70,7 @@ func runUpdateCmd(root string) int {
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	for _, s := range steps {
@@ -87,9 +88,9 @@ func runUpdateCmd(root string) int {
 		fmt.Println("file already exists at .git/hooks/pre-push.local or .git/hooks/pre-commit.local.")
 		fmt.Println("Resolve manually: merge the existing hook's content into the `.local` file,")
 		fmt.Println("delete the original (non-`.local`) hook, and re-run `aiwf update`.")
-		return exitFindings
+		return cliutil.ExitFindings
 	}
 
 	fmt.Println("\naiwf update: done.")
-	return exitOK
+	return cliutil.ExitOK
 }

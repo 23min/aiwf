@@ -6,13 +6,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
 )
 
 // TestRunAuthorize_OpenPauseResumeRoundTrip drives `aiwf authorize`
 // end-to-end through the built binary: open a scope, then read it back
-// via loadEntityScopes; pause it; load again and assert paused; resume
+// via cliutil.LoadEntityScopes; pause it; load again and assert paused; resume
 // it; load again and assert active. This is the integration-level
 // proof that the cmd dispatcher, the verb function, and the scope
 // loader all line up on a real consumer repo.
@@ -196,9 +197,9 @@ func TestRunAuthorize_RejectsMixedModes(t *testing.T) {
 
 func mustLoadScopes(t *testing.T, root, id string) []*scope.Scope {
 	t.Helper()
-	scopes, err := loadEntityScopes(context.Background(), root, id)
+	scopes, err := cliutil.LoadEntityScopes(context.Background(), root, id)
 	if err != nil {
-		t.Fatalf("loadEntityScopes: %v", err)
+		t.Fatalf("cliutil.LoadEntityScopes: %v", err)
 	}
 	return scopes
 }

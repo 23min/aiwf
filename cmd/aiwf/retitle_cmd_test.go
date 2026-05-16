@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // M-077/AC-1: `aiwf retitle <id> "<new-title>" [--reason ...]` updates
@@ -19,22 +21,22 @@ import (
 func retitleSetup(t *testing.T) string {
 	t.Helper()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "First Milestone", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "First Milestone", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := run([]string{"add", "adr", "--title", "First ADR", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "adr", "--title", "First ADR", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add adr: %d", rc)
 	}
-	if rc := run([]string{"add", "gap", "--title", "First Gap", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "gap", "--title", "First Gap", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add gap: %d", rc)
 	}
-	if rc := run([]string{"add", "decision", "--title", "First Decision", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "decision", "--title", "First Decision", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add decision: %d", rc)
 	}
-	if rc := run([]string{"add", "contract", "--title", "First Contract", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "contract", "--title", "First Contract", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 	return root
@@ -69,7 +71,7 @@ func TestRetitle_AllKinds(t *testing.T) {
 				"--actor", "human/test",
 				"--root", root,
 			})
-			if rc != exitOK {
+			if rc != cliutil.ExitOK {
 				t.Fatalf("retitle %s: %d", tc.id, rc)
 			}
 
@@ -102,12 +104,12 @@ func TestRetitle_Reason(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
+	if rc != cliutil.ExitOK {
 		t.Fatalf("retitle with --reason: %d", rc)
 	}
 
 	// History should land — the trailer chain reached git.
-	if rc := run([]string{"history", "E-0001", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "E-0001", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("history E-01: %d", rc)
 	}
 }
@@ -122,8 +124,8 @@ func TestRetitle_EmptyTitleRejected(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("retitle E-01 with whitespace title = %d, want %d", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("retitle E-01 with whitespace title = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -139,8 +141,8 @@ func TestRetitle_SameTitleRejected(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("retitle E-01 with same title = %d, want %d", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("retitle E-01 with same title = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -154,8 +156,8 @@ func TestRetitle_UnknownIdRejected(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("retitle E-99 = %d, want %d (E-99 doesn't exist)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("retitle E-99 = %d, want %d (E-99 doesn't exist)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -179,11 +181,11 @@ func TestRetitle_TopLevel_BodyH1Sync(t *testing.T) {
 	if err := os.WriteFile(bodyFile, []byte(bodyContent), 0o644); err != nil {
 		t.Fatalf("write body file: %v", err)
 	}
-	if rc := run([]string{"edit-body", "E-0001", "--body-file", bodyFile, "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"edit-body", "E-0001", "--body-file", bodyFile, "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("edit-body to inject H1: %d", rc)
 	}
 
-	if rc := run([]string{"retitle", "E-0001", "Refocused Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"retitle", "E-0001", "Refocused Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("retitle: %d", rc)
 	}
 
@@ -213,7 +215,7 @@ func TestRetitle_TopLevel_NoH1_BodyUnchanged(t *testing.T) {
 	t.Parallel()
 	root := retitleSetup(t)
 
-	if rc := run([]string{"retitle", "E-0001", "Refocused", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"retitle", "E-0001", "Refocused", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("retitle: %d", rc)
 	}
 
@@ -245,11 +247,11 @@ func TestRetitle_TopLevel_NonCanonicalH1_LeftAlone(t *testing.T) {
 	if err := os.WriteFile(bodyFile, []byte(bodyContent), 0o644); err != nil {
 		t.Fatalf("write body file: %v", err)
 	}
-	if rc := run([]string{"edit-body", "E-0001", "--body-file", bodyFile, "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"edit-body", "E-0001", "--body-file", bodyFile, "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("edit-body to inject non-canonical H1: %d", rc)
 	}
 
-	if rc := run([]string{"retitle", "E-0001", "Refocused Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"retitle", "E-0001", "Refocused Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("retitle: %d", rc)
 	}
 
@@ -272,7 +274,7 @@ func TestRetitle_TopLevel_NonCanonicalH1_LeftAlone(t *testing.T) {
 func TestRetitle_AC_FrontmatterAndBody(t *testing.T) {
 	t.Parallel()
 	root := retitleSetup(t)
-	if rc := run([]string{"add", "ac", "M-0001", "--title", "original ac title", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "M-0001", "--title", "original ac title", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
@@ -281,7 +283,7 @@ func TestRetitle_AC_FrontmatterAndBody(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
+	if rc != cliutil.ExitOK {
 		t.Fatalf("retitle M-001/AC-1: %d", rc)
 	}
 
@@ -313,8 +315,8 @@ func TestRetitle_AC_UnknownRejected(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("retitle M-001/AC-9 = %d, want %d (no AC-9)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("retitle M-001/AC-9 = %d, want %d (no AC-9)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -331,7 +333,7 @@ func TestRetitle_DispatcherSeam_TopLevel(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
+	if rc != cliutil.ExitOK {
 		t.Fatalf("retitle (seam top-level): %d", rc)
 	}
 
@@ -342,7 +344,7 @@ func TestRetitle_DispatcherSeam_TopLevel(t *testing.T) {
 	if !strings.Contains(string(body), "title: Seam-tested Foundations") {
 		t.Errorf("epic frontmatter missing new title (seam):\n%s", body)
 	}
-	if rc := run([]string{"history", "E-0001", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "E-0001", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("aiwf history E-01 (seam): %d", rc)
 	}
 }
@@ -362,7 +364,7 @@ func TestRetitle_SlugSyncedToTitle(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
+	if rc != cliutil.ExitOK {
 		t.Fatalf("retitle G-0001: %d", rc)
 	}
 
@@ -384,7 +386,7 @@ func TestRetitle_SlugSyncedToTitle(t *testing.T) {
 
 	// History should show one retitle commit covering this id; the
 	// rename + frontmatter change land together.
-	if rc := run([]string{"history", "G-0001", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "G-0001", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("aiwf history G-0001: %d", rc)
 	}
 }
@@ -404,7 +406,7 @@ func TestRetitle_TitleChangeButSameSlug(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
+	if rc != cliutil.ExitOK {
 		t.Fatalf("retitle G-0001 same-slug: %d", rc)
 	}
 
@@ -431,8 +433,8 @@ func TestRetitle_EmptySlugRejected(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("retitle with punctuation-only title = %d, want %d (slug would be empty)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("retitle with punctuation-only title = %d, want %d (slug would be empty)", rc, cliutil.ExitUsage)
 	}
 	// Old path is still there — retitle aborted cleanly.
 	if _, err := os.Stat(filepath.Join(root, "work", "gaps", "G-0001-first-gap.md")); err != nil {
@@ -445,7 +447,7 @@ func TestRetitle_EmptySlugRejected(t *testing.T) {
 func TestRetitle_DispatcherSeam_Composite(t *testing.T) {
 	t.Parallel()
 	root := retitleSetup(t)
-	if rc := run([]string{"add", "ac", "M-0001", "--title", "original", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "M-0001", "--title", "original", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
@@ -454,10 +456,10 @@ func TestRetitle_DispatcherSeam_Composite(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
+	if rc != cliutil.ExitOK {
 		t.Fatalf("retitle (seam composite): %d", rc)
 	}
-	if rc := run([]string{"history", "M-0001/AC-1", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "M-0001/AC-1", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("aiwf history M-001/AC-1 (seam): %d", rc)
 	}
 }

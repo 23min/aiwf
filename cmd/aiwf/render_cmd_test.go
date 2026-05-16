@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -15,13 +16,13 @@ import (
 // lands without --write.
 func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
-	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
 
@@ -31,7 +32,7 @@ func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"render", "roadmap", "--root", root}); rc != exitOK {
+		if rc := run([]string{"render", "roadmap", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("render roadmap: %d", rc)
 		}
 	})
@@ -66,14 +67,14 @@ func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 func TestRun_RenderRoadmap_WriteCommits(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add: %d", rc)
 	}
 
-	if rc := run([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("render --write: %d", rc)
 	}
 
@@ -115,7 +116,7 @@ func TestRun_RenderRoadmap_WriteCommits(t *testing.T) {
 
 	// Second --write with no tree changes should be a no-op.
 	subjectBefore, _ := gitops.HeadSubject(ctx, root)
-	if rc := run([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("re-render --write: %d", rc)
 	}
 	subjectAfter, _ := gitops.HeadSubject(ctx, root)
@@ -128,11 +129,11 @@ func TestRun_RenderRoadmap_WriteCommits(t *testing.T) {
 func TestRun_RenderRoadmap_UnknownSubcommand(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if got := run([]string{"render", "treemap", "--root", root}); got != exitUsage {
-		t.Errorf("got %d, want %d", got, exitUsage)
+	if got := run([]string{"render", "treemap", "--root", root}); got != cliutil.ExitUsage {
+		t.Errorf("got %d, want %d", got, cliutil.ExitUsage)
 	}
-	if got := run([]string{"render", "--root", root}); got != exitUsage {
-		t.Errorf("got %d, want %d (no subcommand)", got, exitUsage)
+	if got := run([]string{"render", "--root", root}); got != cliutil.ExitUsage {
+		t.Errorf("got %d, want %d (no subcommand)", got, cliutil.ExitUsage)
 	}
 }
 
@@ -141,7 +142,7 @@ func TestRun_RenderRoadmap_UnknownSubcommand(t *testing.T) {
 func TestRun_RenderRoadmap_EmptyRepo(t *testing.T) {
 	root := setupCLITestRepo(t)
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"render", "roadmap", "--root", root}); rc != exitOK {
+		if rc := run([]string{"render", "roadmap", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("render: %d", rc)
 		}
 	})

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/initrepo"
 )
 
@@ -14,14 +15,14 @@ import (
 func TestRun_UpdateMaterializes(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	skillPath := filepath.Join(root, ".claude", "skills", "aiwf-add", "SKILL.md")
 	if err := os.WriteFile(skillPath, []byte("tampered"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if rc := run([]string{"update", "--root", root}); rc != exitOK {
+	if rc := run([]string{"update", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("update: %d", rc)
 	}
 	got, err := os.ReadFile(skillPath)
@@ -44,14 +45,14 @@ func TestRun_UpdateRefreshesPrePushHook(t *testing.T) {
 	// behavior and needs init to land a real hook first. The test
 	// triggers no commits, so the embedded test-binary path never
 	// fires as a hook.
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	hookPath := filepath.Join(root, ".git", "hooks", "pre-push")
 	if err := os.Remove(hookPath); err != nil {
 		t.Fatalf("removing pre-push hook: %v", err)
 	}
-	if rc := run([]string{"update", "--root", root}); rc != exitOK {
+	if rc := run([]string{"update", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("update: %d", rc)
 	}
 	body, err := os.ReadFile(hookPath)
@@ -69,14 +70,14 @@ func TestRun_UpdateRefreshesPreCommitHook(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
 	// No --skip-hook: same rationale as TestRun_UpdateRefreshesPrePushHook.
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	hookPath := filepath.Join(root, ".git", "hooks", "pre-commit")
 	if err := os.Remove(hookPath); err != nil {
 		t.Fatalf("removing pre-commit hook: %v", err)
 	}
-	if rc := run([]string{"update", "--root", root}); rc != exitOK {
+	if rc := run([]string{"update", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("update: %d", rc)
 	}
 	body, err := os.ReadFile(hookPath)
@@ -101,7 +102,7 @@ func TestRun_UpdateOptOutRemovesPostCommitKeepsGate(t *testing.T) {
 	// No --skip-hook: this test verifies G42 + G-0112 round-trip
 	// behavior (install → opt-out → re-install) which needs real
 	// hook installation through init. No commits triggered.
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	preCommit := filepath.Join(root, ".git", "hooks", "pre-commit")
@@ -124,7 +125,7 @@ status_md:
 		t.Fatalf("rewriting aiwf.yaml: %v", err)
 	}
 
-	if rc := run([]string{"update", "--root", root}); rc != exitOK {
+	if rc := run([]string{"update", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("update: %d", rc)
 	}
 	body, err := os.ReadFile(preCommit)
@@ -151,7 +152,7 @@ func TestRun_UpdateMissingConfig(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
 	// No init: aiwf.yaml is absent.
-	if rc := run([]string{"update", "--root", root}); rc != exitInternal {
-		t.Errorf("rc = %d, want exitInternal (%d)", rc, exitInternal)
+	if rc := run([]string{"update", "--root", root}); rc != cliutil.ExitInternal {
+		t.Errorf("rc = %d, want cliutil.ExitInternal (%d)", rc, cliutil.ExitInternal)
 	}
 }

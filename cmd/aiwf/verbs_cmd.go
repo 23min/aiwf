@@ -10,10 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -59,23 +58,23 @@ func newAddCmd() *cobra.Command {
 		RunE: func(c *cobra.Command, args []string) error {
 			if len(args) > 1 {
 				fmt.Fprintf(os.Stderr, "aiwf add: unexpected args after kind %q: %v\n", args[0], args[1:])
-				return &exitError{code: exitUsage}
+				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			kindArg := args[0]
 			k, ok := parseKind(kindArg)
 			if !ok {
 				fmt.Fprintf(os.Stderr, "aiwf add: unknown kind %q\n", kindArg)
-				return &exitError{code: exitUsage}
+				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			if len(titles) > 1 {
 				fmt.Fprintf(os.Stderr, "aiwf add: --title may not be repeated for kind %q (only `aiwf add ac` accepts a repeated --title for batched creation)\n", kindArg)
-				return &exitError{code: exitUsage}
+				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			title := ""
 			if len(titles) == 1 {
 				title = titles[0]
 			}
-			return wrapExitCode(runAddCmd(k, title, actor, principal, root,
+			return cliutil.WrapExitCode(runAddCmd(k, title, actor, principal, root,
 				epicID, tddPolicy, dependsOn, discoveredIn, relatesTo, linkedADRs,
 				bindValidator, bindSchema, bindFixtures, bodyFile))
 		},
@@ -124,25 +123,25 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf add")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add")
 	if release == nil {
 		return rc
 	}
 	defer release()
 
 	ctx := context.Background()
-	tr, _, err := loadTreeWithTrunk(ctx, rootDir)
+	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
 	opts := verb.AddOptions{
@@ -152,7 +151,7 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 		BindValidator:  bindValidator,
 		BindSchema:     bindSchema,
 		BindFixtures:   bindFixtures,
-		TitleMaxLength: configuredTitleMaxLength(rootDir),
+		TitleMaxLength: cliutil.ConfiguredTitleMaxLength(rootDir),
 	}
 	opts.RelatesTo = splitCommaList(relatesTo)
 	opts.LinkedADRs = splitCommaList(linkedADRs)
@@ -162,7 +161,7 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 		body, readErr := readBodyFile(bodyFile)
 		if readErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", readErr)
-			return exitUsage
+			return cliutil.ExitUsage
 		}
 		opts.BodyOverride = body
 	}
@@ -171,7 +170,7 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 		doc, contracts, loadErr := loadContractsDoc(rootDir)
 		if loadErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", loadErr)
-			return exitUsage
+			return cliutil.ExitUsage
 		}
 		opts.AiwfDoc = doc
 		opts.AiwfContracts = contracts
@@ -179,13 +178,13 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 	}
 
 	result, err := verb.Add(ctx, tr, k, title, actorStr, opts)
-	pctx := provenanceContext{
+	pctx := cliutil.ProvenanceContext{
 		Actor:        actorStr,
 		Principal:    strings.TrimSpace(principal),
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: addCreationRefs(k, opts),
 	}
-	return decorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx)
 }
 
 // addCreationRefs returns the new entity's outbound references for
@@ -243,7 +242,7 @@ func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Comman
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runAddACCmd(args[0], *titles, bodyFiles, *actor, *principal, *root, tests))
+			return cliutil.WrapExitCode(runAddACCmd(args[0], *titles, bodyFiles, *actor, *principal, *root, tests))
 		},
 	}
 	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
@@ -255,7 +254,7 @@ func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Comman
 func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, root, tests string) int {
 	if len(titles) == 0 {
 		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	// M-067/AC-3: when --body-file is provided at all, per-flag
 	// counts must match — the Nth --body-file pairs positionally
@@ -267,7 +266,7 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 				"(positional pairing: the Nth --body-file populates the Nth --title's body; "+
 				"equal counts required). To create ACs without bodies, omit --body-file entirely.\n",
 			len(titles), len(bodyFiles))
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	// M-067/AC-5: --body-file - is only valid with a single
 	// --title. Stdin is one stream and cannot be split
@@ -280,13 +279,13 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 				fmt.Fprintf(os.Stderr,
 					"aiwf add ac: --body-file[%d] -: stdin (--body-file -) is only valid with a single --title (got %d titles); stdin is one stream and cannot be split positionally — use files for multi-AC invocations\n",
 					i, len(titles))
-				return exitUsage
+				return cliutil.ExitUsage
 			}
 		}
 	}
 	metrics, err := parseTestsFlag(tests, "aiwf add ac")
 	if err != nil {
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	var bodies [][]byte
@@ -296,7 +295,7 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 			b, readErr := readBodyFile(path)
 			if readErr != nil {
 				fmt.Fprintf(os.Stderr, "aiwf add ac: --body-file[%d] %s: %v\n", i, path, readErr)
-				return exitUsage
+				return cliutil.ExitUsage
 			}
 			// M-067/AC-4: refuse body files with leading `---`
 			// frontmatter — same rule as the whole-entity --body-file
@@ -309,7 +308,7 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 				fmt.Fprintf(os.Stderr,
 					"aiwf add ac: --body-file[%d] %s: body content begins with a frontmatter delimiter (---); pass body content only, not a full markdown file with its own frontmatter\n",
 					i, path)
-				return exitUsage
+				return cliutil.ExitUsage
 			}
 			bodies[i] = b
 		}
@@ -318,15 +317,15 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add ac: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add ac: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf add ac")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add ac")
 	if release == nil {
 		return rc
 	}
@@ -336,18 +335,18 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add ac: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	result, err := verb.AddACBatch(ctx, tr, parentID, titles, bodies, actorStr, metrics)
 	// An AC is a sub-element of its parent milestone — its sole
 	// "outbound reference" for scope reachability is the parent id.
-	pctx := provenanceContext{
+	pctx := cliutil.ProvenanceContext{
 		Actor:        actorStr,
 		Principal:    strings.TrimSpace(principal),
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: []string{parentID},
 	}
-	return decorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx)
 }
 
 // parseTestsFlag parses a `--tests` value at the verb dispatcher
@@ -356,7 +355,7 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 // keys, non-negative integers) and returns a *gitops.TestMetrics; on
 // any malformed input writes a one-line error to stderr (prefixed
 // with verbLabel) and returns the parse error so the dispatcher exits
-// with exitUsage.
+// with cliutil.ExitUsage.
 func parseTestsFlag(raw, verbLabel string) (*gitops.TestMetrics, error) {
 	if strings.TrimSpace(raw) == "" {
 		return nil, nil
@@ -445,7 +444,7 @@ func newPromoteCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runPromoteCmd(args, actor, principal, root, reason,
+			return cliutil.WrapExitCode(runPromoteCmd(args, actor, principal, root, reason,
 				phase, tests, by, byCommit, supersededBy, force, auditOnly))
 		},
 	}
@@ -494,18 +493,18 @@ func runPromoteCmd(args []string, actor, principal, root, reason,
 	switch {
 	case phaseMode && len(args) == 2:
 		fmt.Fprintln(os.Stderr, "aiwf promote: --phase is mutex with the positional new-status; pass one or the other")
-		return exitUsage
+		return cliutil.ExitUsage
 	case phaseMode && !entity.IsCompositeID(id):
 		fmt.Fprintf(os.Stderr, "aiwf promote: --phase is only valid for composite ids (M-NNN/AC-N); got %q\n", id)
-		return exitUsage
+		return cliutil.ExitUsage
 	case !phaseMode && len(args) != 2:
 		fmt.Fprintln(os.Stderr, "aiwf promote: missing new-status. Usage: aiwf promote <id> <new-status>")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	if force && auditOnly {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if (force || auditOnly) && strings.TrimSpace(reason) == "" {
 		gateFlag := "--force"
@@ -513,7 +512,7 @@ func runPromoteCmd(args []string, actor, principal, root, reason,
 			gateFlag = "--audit-only"
 		}
 		fmt.Fprintf(os.Stderr, "aiwf promote: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	resolverOpts := verb.PromoteOptions{
@@ -524,25 +523,25 @@ func runPromoteCmd(args []string, actor, principal, root, reason,
 	resolverSet := len(resolverOpts.AddressedBy) > 0 || len(resolverOpts.AddressedByCommit) > 0 || resolverOpts.SupersededBy != ""
 	if resolverSet && auditOnly {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --by/--by-commit/--superseded-by are not allowed with --audit-only (audit-only records an existing transition; resolver-flag values would imply a mutation)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if resolverSet && phase != "" {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --by/--by-commit/--superseded-by are not valid in phase mode (resolver fields apply to entity status, not AC phase)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf promote")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf promote")
 	if release == nil {
 		return rc
 	}
@@ -552,10 +551,10 @@ func runPromoteCmd(args []string, actor, principal, root, reason,
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf promote: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
-	pctx := provenanceContext{
+	pctx := cliutil.ProvenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
@@ -565,37 +564,37 @@ func runPromoteCmd(args []string, actor, principal, root, reason,
 	if phaseMode {
 		metrics, mErr := parseTestsFlag(tests, "aiwf promote")
 		if mErr != nil {
-			return exitUsage
+			return cliutil.ExitUsage
 		}
 		var result *verb.Result
 		var vErr error
 		if auditOnly {
 			if metrics != nil {
 				fmt.Fprintln(os.Stderr, "aiwf promote: --tests is not allowed with --audit-only (audit-only records an existing transition; no test cycle ran)")
-				return exitUsage
+				return cliutil.ExitUsage
 			}
 			result, vErr = verb.PromoteACPhaseAuditOnly(ctx, tr, id, phase, actorStr, reason)
 		} else {
 			result, vErr = verb.PromoteACPhase(ctx, tr, id, phase, actorStr, reason, force, metrics)
 		}
-		return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
+		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 	}
 	if strings.TrimSpace(tests) != "" {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --tests is only valid in phase mode (composite id with --phase <p>)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	newStatus := args[1]
 	if !entity.IsCompositeID(id) {
 		if e := tr.ByID(id); e != nil {
-			pctx.IsTerminalPromote = isTerminalPromote(e.Kind, newStatus)
+			pctx.IsTerminalPromote = cliutil.IsTerminalPromote(e.Kind, newStatus)
 		}
 	}
 	if auditOnly {
 		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, reason)
-		return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
+		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 	}
 	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, reason, force, resolverOpts)
-	return decorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
 }
 
 // newEditBodyCmd builds `aiwf edit-body <id> --body-file <path>` (and
@@ -623,7 +622,7 @@ func newEditBodyCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runEditBodyCmd(args[0], actor, principal, root, reason, bodyFile))
+			return cliutil.WrapExitCode(runEditBodyCmd(args[0], actor, principal, root, reason, bodyFile))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -646,7 +645,7 @@ func runEditBodyCmd(id, actor, principal, root, reason, bodyFile string) int {
 		body, readErr = readBodyFile(bodyFile)
 		if readErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", readErr)
-			return exitUsage
+			return cliutil.ExitUsage
 		}
 		if body == nil {
 			body = []byte{}
@@ -656,15 +655,15 @@ func runEditBodyCmd(id, actor, principal, root, reason, bodyFile string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf edit-body")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf edit-body")
 	if release == nil {
 		return rc
 	}
@@ -674,17 +673,17 @@ func runEditBodyCmd(id, actor, principal, root, reason, bodyFile string) int {
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf edit-body: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 
-	pctx := provenanceContext{
+	pctx := cliutil.ProvenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
 	result, vErr := verb.EditBody(ctx, tr, id, body, actorStr, reason)
-	return decorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx)
 }
 
 // newCancelCmd builds `aiwf cancel <id> [--reason "..."]`.
@@ -706,7 +705,7 @@ func newCancelCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runCancelCmd(args[0], actor, principal, root, reason, force, auditOnly))
+			return cliutil.WrapExitCode(runCancelCmd(args[0], actor, principal, root, reason, force, auditOnly))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -722,7 +721,7 @@ func newCancelCmd() *cobra.Command {
 func runCancelCmd(id, actor, principal, root, reason string, force, auditOnly bool) int {
 	if force && auditOnly {
 		fmt.Fprintln(os.Stderr, "aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if (force || auditOnly) && strings.TrimSpace(reason) == "" {
 		gateFlag := "--force"
@@ -730,21 +729,21 @@ func runCancelCmd(id, actor, principal, root, reason string, force, auditOnly bo
 			gateFlag = "--audit-only"
 		}
 		fmt.Fprintf(os.Stderr, "aiwf cancel: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf cancel")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf cancel")
 	if release == nil {
 		return rc
 	}
@@ -754,9 +753,9 @@ func runCancelCmd(id, actor, principal, root, reason string, force, auditOnly bo
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf cancel: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
-	pctx := provenanceContext{
+	pctx := cliutil.ProvenanceContext{
 		Actor:             actorStr,
 		Principal:         strings.TrimSpace(principal),
 		VerbKind:          verb.VerbAct,
@@ -765,10 +764,10 @@ func runCancelCmd(id, actor, principal, root, reason string, force, auditOnly bo
 	}
 	if auditOnly {
 		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, reason)
-		return decorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
+		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
 	}
 	result, vErr := verb.Cancel(ctx, tr, id, actorStr, reason, force)
-	return decorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
 }
 
 // newRenameCmd builds `aiwf rename <id> <new-slug>`.
@@ -787,7 +786,7 @@ func newRenameCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runRenameCmd(args[0], args[1], actor, principal, root))
+			return cliutil.WrapExitCode(runRenameCmd(args[0], args[1], actor, principal, root))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -801,15 +800,15 @@ func runRenameCmd(id, newSlug, actor, principal, root string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf rename")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rename")
 	if release == nil {
 		return rc
 	}
@@ -819,16 +818,16 @@ func runRenameCmd(id, newSlug, actor, principal, root string) int {
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf rename: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
-	result, err := verb.Rename(ctx, tr, id, newSlug, actorStr, configuredTitleMaxLength(rootDir))
-	pctx := provenanceContext{
+	result, err := verb.Rename(ctx, tr, id, newSlug, actorStr, cliutil.ConfiguredTitleMaxLength(rootDir))
+	pctx := cliutil.ProvenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
-	return decorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx)
 }
 
 // newMoveCmd builds `aiwf move <M-id> --epic <E-id>`: relocates a
@@ -851,9 +850,9 @@ func newMoveCmd() *cobra.Command {
 		RunE: func(c *cobra.Command, args []string) error {
 			if epic == "" {
 				fmt.Fprintln(os.Stderr, "aiwf move: --epic <E-id> is required")
-				return &exitError{code: exitUsage}
+				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
-			return wrapExitCode(runMoveCmd(args[0], epic, actor, principal, root))
+			return cliutil.WrapExitCode(runMoveCmd(args[0], epic, actor, principal, root))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -869,15 +868,15 @@ func runMoveCmd(id, epic, actor, principal, root string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf move")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf move")
 	if release == nil {
 		return rc
 	}
@@ -887,7 +886,7 @@ func runMoveCmd(id, epic, actor, principal, root string) int {
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf move: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	// Move endpoints for the allow-rule are the source epic (the
 	// milestone's current parent) and the destination epic (--epic).
@@ -897,14 +896,14 @@ func runMoveCmd(id, epic, actor, principal, root string) int {
 		moveSource = e.Parent
 	}
 	result, err := verb.Move(ctx, tr, id, epic, actorStr)
-	pctx := provenanceContext{
+	pctx := cliutil.ProvenanceContext{
 		Actor:      actorStr,
 		Principal:  strings.TrimSpace(principal),
 		VerbKind:   verb.VerbMove,
 		TargetID:   epic,
 		MoveSource: moveSource,
 	}
-	return decorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx)
 }
 
 // newReallocateCmd builds `aiwf reallocate <id-or-path>`.
@@ -923,7 +922,7 @@ func newReallocateCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runReallocateCmd(args[0], actor, principal, root))
+			return cliutil.WrapExitCode(runReallocateCmd(args[0], actor, principal, root))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -937,74 +936,34 @@ func runReallocateCmd(target, actor, principal, root string) int {
 	rootDir, err := resolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
-	actorStr, err := resolveActor(actor, rootDir)
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 
-	release, rc := acquireRepoLock(rootDir, "aiwf reallocate")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf reallocate")
 	if release == nil {
 		return rc
 	}
 	defer release()
 
 	ctx := context.Background()
-	tr, _, err := loadTreeWithTrunk(ctx, rootDir)
+	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf reallocate: loading tree: %v\n", err)
-		return exitInternal
+		return cliutil.ExitInternal
 	}
 	result, err := verb.Reallocate(ctx, tr, target, actorStr)
-	pctx := provenanceContext{
+	pctx := cliutil.ProvenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 		TargetID:  target,
 	}
-	return decorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx)
-}
-
-// finishVerb is the post-verb handler shared by every mutating
-// subcommand: it surfaces a Go error as a usage error, renders any
-// findings, applies the plan when present, and prints a one-line
-// summary on success. NoOp results bypass the apply path entirely
-// and print NoOpMessage on stdout.
-func finishVerb(ctx context.Context, root, label string, result *verb.Result, err error) int {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", label, err)
-		return exitUsage
-	}
-	if result == nil {
-		fmt.Fprintf(os.Stderr, "%s: no result returned\n", label)
-		return exitInternal
-	}
-	if check.HasErrors(result.Findings) {
-		_ = render.Text(os.Stderr, result.Findings)
-		return exitFindings
-	}
-	if result.NoOp {
-		fmt.Println(result.NoOpMessage)
-		return exitOK
-	}
-	if result.Plan == nil {
-		fmt.Fprintf(os.Stderr, "%s: validation passed but no plan produced\n", label)
-		return exitInternal
-	}
-	if applyErr := verb.Apply(ctx, root, result.Plan); applyErr != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", label, applyErr)
-		return exitInternal
-	}
-	if len(result.Findings) > 0 {
-		// Warning-level findings travel with a successful plan
-		// (e.g., reallocate body-prose mentions). Surface them but
-		// keep the exit code clean.
-		_ = render.Text(os.Stderr, result.Findings)
-	}
-	fmt.Println(result.Plan.Subject)
-	return exitOK
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx)
 }
 
 // parseKind parses a CLI kind argument (lowercase string) into the

@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 )
@@ -48,7 +49,7 @@ func newTemplateCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return wrapExitCode(runTemplateCmd(args, format, pretty))
+			return cliutil.WrapExitCode(runTemplateCmd(args, format, pretty))
 		},
 	}
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
@@ -66,7 +67,7 @@ func newTemplateCmd() *cobra.Command {
 func runTemplateCmd(args []string, format string, pretty bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf template: --format must be 'text' or 'json', got %q\n", format)
-		return exitUsage
+		return cliutil.ExitUsage
 	}
 	if pretty && format != "json" {
 		fmt.Fprintln(os.Stderr, "aiwf template: --pretty has no effect without --format=json")
@@ -77,7 +78,7 @@ func runTemplateCmd(args []string, format string, pretty bool) int {
 		k := entity.Kind(args[0])
 		if _, ok := entity.SchemaForKind(k); !ok {
 			fmt.Fprintf(os.Stderr, "aiwf template: unknown kind %q (known: %s)\n", args[0], joinKinds(entity.AllKinds()))
-			return exitUsage
+			return cliutil.ExitUsage
 		}
 		templates = []templateOut{{Kind: k, Body: string(entity.BodyTemplate(k))}}
 	} else {
@@ -91,7 +92,7 @@ func runTemplateCmd(args []string, format string, pretty bool) int {
 		single := len(templates) == 1
 		if err := writeTemplateText(os.Stdout, templates, single); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf template: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	case "json":
 		env := render.Envelope{
@@ -102,10 +103,10 @@ func runTemplateCmd(args []string, format string, pretty bool) int {
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf template: writing output: %v\n", err)
-			return exitInternal
+			return cliutil.ExitInternal
 		}
 	}
-	return exitOK
+	return cliutil.ExitOK
 }
 
 // writeTemplateText emits the body templates. When single is true,

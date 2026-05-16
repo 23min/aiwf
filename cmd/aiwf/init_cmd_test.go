@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // TestRun_InitThroughDispatcher confirms `aiwf init` wires through the
@@ -22,7 +24,7 @@ func TestRun_InitThroughDispatcher(t *testing.T) {
 	root := setupCLITestRepo(t)
 
 	rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"})
-	if rc != exitOK {
+	if rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	if _, err := os.Stat(filepath.Join(root, "aiwf.yaml")); err != nil {
@@ -33,7 +35,7 @@ func TestRun_InitThroughDispatcher(t *testing.T) {
 	}
 
 	// Re-run to confirm idempotency through the dispatcher.
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Errorf("re-run init: %d", rc)
 	}
 }
@@ -45,8 +47,8 @@ func TestRun_InitDryRun(t *testing.T) {
 	root := setupCLITestRepo(t)
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook", "--dry-run"}); rc != exitOK {
-			t.Errorf("got rc=%d, want %d", rc, exitOK)
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook", "--dry-run"}); rc != cliutil.ExitOK {
+			t.Errorf("got rc=%d, want %d", rc, cliutil.ExitOK)
 		}
 	})
 	out := string(captured)
@@ -80,8 +82,8 @@ func TestRun_InitSkipHook(t *testing.T) {
 	root := setupCLITestRepo(t)
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
-			t.Errorf("got rc=%d, want %d", rc, exitOK)
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+			t.Errorf("got rc=%d, want %d", rc, cliutil.ExitOK)
 		}
 	})
 	out := string(captured)
@@ -105,7 +107,7 @@ func TestRun_InitSkipHook(t *testing.T) {
 
 // TestRun_InitMigratesAlienHook (G45): when a non-aiwf pre-push hook
 // is in place, init auto-migrates it to pre-push.local, installs
-// aiwf's chain-aware hook, and exits exitOK. The migrated content
+// aiwf's chain-aware hook, and exits cliutil.ExitOK. The migrated content
 // is preserved byte-for-byte.
 func TestRun_InitMigratesAlienHook(t *testing.T) {
 	root := setupCLITestRepo(t)
@@ -123,8 +125,8 @@ func TestRun_InitMigratesAlienHook(t *testing.T) {
 		// migration path and needs init to actually install (and
 		// migrate) the hook. The test does not trigger any commits,
 		// so the test binary won't be invoked as a hook.
-		if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != exitOK {
-			t.Errorf("got %d, want %d (G45 auto-migrates, no conflict)", rc, exitOK)
+		if rc := run([]string{"init", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+			t.Errorf("got %d, want %d (G45 auto-migrates, no conflict)", rc, cliutil.ExitOK)
 		}
 	})
 	out := string(captured)

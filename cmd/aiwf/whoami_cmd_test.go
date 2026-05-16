@@ -5,11 +5,13 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 func TestRunWhoami_FromFlag(t *testing.T) {
 	out := string(captureStdout(t, func() {
-		if rc := run([]string{"whoami", "--actor", "human/peter"}); rc != exitOK {
+		if rc := run([]string{"whoami", "--actor", "human/peter"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -42,7 +44,7 @@ func TestRunWhoami_LegacyConfigActorIgnored(t *testing.T) {
 	}
 
 	out := string(captureStdout(t, func() {
-		if rc := run([]string{"whoami", "--root", root}); rc != exitOK {
+		if rc := run([]string{"whoami", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -74,7 +76,7 @@ func TestRunWhoami_FromGitConfig(t *testing.T) {
 	}
 
 	out := string(captureStdout(t, func() {
-		if rc := run([]string{"whoami"}); rc != exitOK {
+		if rc := run([]string{"whoami"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
 	}))
@@ -98,14 +100,14 @@ func TestRunWhoami_NoActorAvailable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if rc := run([]string{"whoami"}); rc != exitFindings {
-		t.Errorf("rc = %d, want %d", rc, exitFindings)
+	if rc := run([]string{"whoami"}); rc != cliutil.ExitFindings {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitFindings)
 	}
 }
 
 func TestRunWhoami_InvalidActorFlag(t *testing.T) {
 	t.Parallel()
-	if rc := run([]string{"whoami", "--actor", "no-slash"}); rc != exitFindings {
-		t.Errorf("rc = %d, want %d", rc, exitFindings)
+	if rc := run([]string{"whoami", "--actor", "no-slash"}); rc != cliutil.ExitFindings {
+		t.Errorf("rc = %d, want %d", rc, cliutil.ExitFindings)
 	}
 }

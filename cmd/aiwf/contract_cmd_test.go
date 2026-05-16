@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // fakeValidatorCLI writes the same fake validator the contractverify
@@ -33,13 +35,13 @@ esac
 // TestRun_ContractVerifyClean exercises the `aiwf contract verify`
 // dispatcher end-to-end: init the repo, register a contract entity,
 // write a `contracts:` block + on-disk fixtures, and assert exit
-// status is exitOK with no findings.
+// status is cliutil.ExitOK with no findings.
 func TestRun_ContractVerifyClean(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 
@@ -66,8 +68,8 @@ contracts:
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"contract", "verify", "--root", root}); rc != exitOK {
-			t.Errorf("got rc=%d, want %d", rc, exitOK)
+		if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitOK {
+			t.Errorf("got rc=%d, want %d", rc, cliutil.ExitOK)
 		}
 	})
 	out := string(captured)
@@ -81,10 +83,10 @@ contracts:
 // error-severity finding and a non-zero exit code.
 func TestRun_ContractVerifyReportsFixtureRejected(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 
@@ -115,8 +117,8 @@ contracts:
 
 	captured := captureStderr(t, func() {
 		_ = captureStdout(t, func() {
-			if rc := run([]string{"contract", "verify", "--root", root}); rc != exitFindings {
-				t.Errorf("got rc=%d, want %d (findings)", rc, exitFindings)
+			if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitFindings {
+				t.Errorf("got rc=%d, want %d (findings)", rc, cliutil.ExitFindings)
 			}
 		})
 	})
@@ -129,10 +131,10 @@ contracts:
 // the same hook fires both kinds of validation.
 func TestRun_CheckIncludesContractFindings(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 
@@ -160,8 +162,8 @@ contracts:
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"check", "--root", root}); rc != exitFindings {
-			t.Errorf("got rc=%d, want %d (findings)", rc, exitFindings)
+		if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitFindings {
+			t.Errorf("got rc=%d, want %d (findings)", rc, cliutil.ExitFindings)
 		}
 	})
 	out := string(captured)
@@ -175,13 +177,13 @@ contracts:
 // would otherwise fail does not block `aiwf check`.
 func TestRun_CheckSkipsTerminalContracts(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "contract", "--title", "Old API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"add", "contract", "--title", "Old API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
-	if rc := run([]string{"cancel", "--root", root, "--actor", "human/test", "C-0001"}); rc != exitOK {
+	if rc := run([]string{"cancel", "--root", root, "--actor", "human/test", "C-0001"}); rc != cliutil.ExitOK {
 		t.Fatalf("cancel C-001: %d", rc)
 	}
 
@@ -207,8 +209,8 @@ contracts:
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"check", "--root", root}); rc != exitOK {
-			t.Errorf("got rc=%d, want %d (terminal contract skipped)", rc, exitOK)
+		if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitOK {
+			t.Errorf("got rc=%d, want %d (terminal contract skipped)", rc, cliutil.ExitOK)
 		}
 	})
 	out := string(captured)
@@ -222,10 +224,10 @@ contracts:
 // doesn't resolve.
 func TestRun_ContractVerifyReportsConfigMissingSchema(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 
@@ -253,8 +255,8 @@ contracts:
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"contract", "verify", "--root", root}); rc != exitFindings {
-			t.Errorf("got rc=%d, want %d (findings)", rc, exitFindings)
+		if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitFindings {
+			t.Errorf("got rc=%d, want %d (findings)", rc, cliutil.ExitFindings)
 		}
 	})
 	out := string(captured)
@@ -267,13 +269,13 @@ contracts:
 // load-bearing test for G3: a binding whose validator binary is
 // missing must NOT block `aiwf contract verify` (and therefore
 // must not block the pre-push hook). The output must contain a
-// validator-unavailable warning, and the exit code must be exitOK.
+// validator-unavailable warning, and the exit code must be cliutil.ExitOK.
 func TestRun_ContractVerify_ValidatorUnavailableIsWarning(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
@@ -298,8 +300,8 @@ contracts:
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"contract", "verify", "--root", root}); rc != exitOK {
-			t.Errorf("got rc=%d, want %d (warning should NOT block)", rc, exitOK)
+		if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitOK {
+			t.Errorf("got rc=%d, want %d (warning should NOT block)", rc, cliutil.ExitOK)
 		}
 	})
 	out := string(captured)
@@ -317,10 +319,10 @@ contracts:
 // machine can keep that behavior.
 func TestRun_ContractVerify_StrictValidators_IsError(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
@@ -345,8 +347,8 @@ contracts:
 	}
 
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"contract", "verify", "--root", root}); rc != exitFindings {
-			t.Errorf("got rc=%d, want %d (strict mode must block)", rc, exitFindings)
+		if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitFindings {
+			t.Errorf("got rc=%d, want %d (strict mode must block)", rc, cliutil.ExitFindings)
 		}
 	})
 	out := string(captured)
@@ -374,7 +376,7 @@ contracts:
 func TestRun_ContractEndToEnd_FullChain(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -388,7 +390,7 @@ args:
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("recipe install --from: %d", rc)
 	}
 
@@ -402,7 +404,7 @@ args:
 	if rc := run([]string{
 		"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test",
 		"--validator", "fake", "--schema", "schema.cue", "--fixtures", "fixtures",
-	}); rc != exitOK {
+	}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract atomic: %d", rc)
 	}
 	if _, err := os.Stat(filepath.Join(root, "work", "contracts", "C-0001-public-api", "contract.md")); err != nil {
@@ -417,33 +419,33 @@ args:
 	}
 
 	// --- Step: verify is clean. ---
-	if rc := run([]string{"contract", "verify", "--root", root}); rc != exitOK {
+	if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("verify (initial clean): rc=%d", rc)
 	}
-	if rc := run([]string{"check", "--root", root}); rc != exitOK {
+	if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("check (initial clean): rc=%d", rc)
 	}
 
 	// --- Step: corrupt the fixture so the validator rejects it. ---
 	writeFixtureFile(t, root, "fixtures/v1/valid/good.json", "FAIL")
 
-	if rc := run([]string{"contract", "verify", "--root", root}); rc != exitFindings {
-		t.Errorf("verify after corrupt: rc=%d, want %d", rc, exitFindings)
+	if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitFindings {
+		t.Errorf("verify after corrupt: rc=%d, want %d", rc, cliutil.ExitFindings)
 	}
-	if rc := run([]string{"check", "--root", root}); rc != exitFindings {
-		t.Errorf("check after corrupt (pre-push integration): rc=%d, want %d", rc, exitFindings)
+	if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitFindings {
+		t.Errorf("check after corrupt (pre-push integration): rc=%d, want %d", rc, cliutil.ExitFindings)
 	}
 
 	// --- Step: unbind. The contract entity stays; verification stops. ---
-	if rc := run([]string{"contract", "unbind", "--root", root, "--actor", "human/test", "C-0001"}); rc != exitOK {
+	if rc := run([]string{"contract", "unbind", "--root", root, "--actor", "human/test", "C-0001"}); rc != cliutil.ExitOK {
 		t.Fatalf("unbind: %d", rc)
 	}
-	if rc := run([]string{"contract", "verify", "--root", root}); rc != exitOK {
+	if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("verify after unbind: rc=%d (binding gone, should be silent)", rc)
 	}
 
 	// Confirm the entity still exists despite the unbind.
-	if rc := run([]string{"check", "--root", root}); rc == exitInternal {
+	if rc := run([]string{"check", "--root", root}); rc == cliutil.ExitInternal {
 		t.Errorf("check after unbind returned internal error rc=%d", rc)
 	}
 }
@@ -453,7 +455,7 @@ args:
 // printing a no-op message and not creating a second commit.
 func TestRun_ContractRecipeInstallIsIdempotent(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 
@@ -467,11 +469,11 @@ args:
 		t.Fatal(err)
 	}
 
-	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("recipe install (first): %d", rc)
 	}
 	captured := captureStdout(t, func() {
-		if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+		if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 			t.Errorf("recipe install (second, idempotent): %d", rc)
 		}
 	})
@@ -484,7 +486,7 @@ args:
 // must error out (exit 2) and name the offending binding.
 func TestRun_ContractRecipeRemoveRefusesWhenBindingExists(t *testing.T) {
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	script := fakeValidatorCLI(t, root)
@@ -495,10 +497,10 @@ args: ["{{fixture}}"]
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("recipe install: %d", rc)
 	}
-	if rc := run([]string{"add", "contract", "--title", "API", "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"add", "contract", "--title", "API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
@@ -506,14 +508,14 @@ args: ["{{fixture}}"]
 	if rc := run([]string{
 		"contract", "bind", "--root", root, "--actor", "human/test", "C-0001",
 		"--validator", "fake", "--schema", "schema.cue", "--fixtures", "fixtures",
-	}); rc != exitOK {
+	}); rc != cliutil.ExitOK {
 		t.Fatalf("bind: %d", rc)
 	}
 
 	// Now try to remove the validator. Must refuse, naming C-001.
 	captured := captureStderr(t, func() {
-		if rc := run([]string{"contract", "recipe", "remove", "--root", root, "--actor", "human/test", "fake"}); rc != exitUsage {
-			t.Errorf("recipe remove with binding: rc=%d, want %d", rc, exitUsage)
+		if rc := run([]string{"contract", "recipe", "remove", "--root", root, "--actor", "human/test", "fake"}); rc != cliutil.ExitUsage {
+			t.Errorf("recipe remove with binding: rc=%d, want %d", rc, cliutil.ExitUsage)
 		}
 	})
 	if !strings.Contains(string(captured), "C-0001") {
@@ -527,7 +529,7 @@ args: ["{{fixture}}"]
 func TestRun_ContractAddPartialBindFlagsRejected(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != exitOK {
+	if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	script := fakeValidatorCLI(t, root)
@@ -538,14 +540,14 @@ args: ["{{fixture}}"]
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != exitOK {
+	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("recipe install: %d", rc)
 	}
 	if rc := run([]string{
 		"add", "contract", "--title", "API", "--root", root, "--actor", "human/test",
 		"--validator", "fake",
-	}); rc != exitUsage {
-		t.Errorf("partial-triplet add: rc=%d, want %d", rc, exitUsage)
+	}); rc != cliutil.ExitUsage {
+		t.Errorf("partial-triplet add: rc=%d, want %d", rc, cliutil.ExitUsage)
 	}
 	// Confirm no entity was created.
 	if _, err := os.Stat(filepath.Join(root, "work", "contracts", "C-0001-api", "contract.md")); err == nil {

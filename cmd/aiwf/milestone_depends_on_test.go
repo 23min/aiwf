@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // M-076/AC-2 + AC-3: `aiwf milestone depends-on M-NNN --on M-PPP[,M-QQQ]`
@@ -18,12 +20,12 @@ import (
 func milestoneDependsOnSetup(t *testing.T) string {
 	t.Helper()
 	root := setupCLITestRepo(t)
-	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add epic: %d", rc)
 	}
 	for i, slug := range []string{"First", "Second", "Third"} {
 		_ = i
-		if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", slug, "--actor", "human/test", "--root", root}); rc != exitOK {
+		if rc := run([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", slug, "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("add milestone %s: %d", slug, rc)
 		}
 	}
@@ -43,8 +45,8 @@ func TestMilestoneDependsOn_SetSingle(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
-		t.Fatalf("milestone depends-on M-003 --on M-001 = %d, want %d", rc, exitOK)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("milestone depends-on M-003 --on M-001 = %d, want %d", rc, cliutil.ExitOK)
 	}
 
 	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
@@ -71,8 +73,8 @@ func TestMilestoneDependsOn_SetMultiple(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
-		t.Fatalf("milestone depends-on M-0003 --on M-0001,M-0002 = %d, want %d", rc, exitOK)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("milestone depends-on M-0003 --on M-0001,M-0002 = %d, want %d", rc, cliutil.ExitOK)
 	}
 
 	mPath := filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0003-third.md")
@@ -96,10 +98,10 @@ func TestMilestoneDependsOn_Replace(t *testing.T) {
 	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
-	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0001", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0001", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("first set: %d", rc)
 	}
-	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0002", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0002", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("second set (replace): %d", rc)
 	}
 
@@ -123,10 +125,10 @@ func TestMilestoneDependsOn_Clear(t *testing.T) {
 	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 
-	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0001,M-0002", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"milestone", "depends-on", "M-0003", "--on", "M-0001,M-0002", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("set initial: %d", rc)
 	}
-	if rc := run([]string{"milestone", "depends-on", "M-0003", "--clear", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"milestone", "depends-on", "M-0003", "--clear", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("clear: %d", rc)
 	}
 
@@ -153,8 +155,8 @@ func TestMilestoneDependsOn_ClearAndOnMutex(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("milestone depends-on --on --clear = %d, want %d (mutex)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("milestone depends-on --on --clear = %d, want %d (mutex)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -170,8 +172,8 @@ func TestMilestoneDependsOn_NoFlagIsUsage(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("milestone depends-on with no --on/--clear = %d, want %d", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("milestone depends-on with no --on/--clear = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -187,8 +189,8 @@ func TestMilestoneDependsOn_TargetNotMilestone(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("milestone depends-on E-01 = %d, want %d (E-01 is not a milestone)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("milestone depends-on E-01 = %d, want %d (E-01 is not a milestone)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -204,8 +206,8 @@ func TestMilestoneDependsOn_TargetUnknown(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("milestone depends-on M-999 = %d, want %d (M-999 doesn't exist)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("milestone depends-on M-999 = %d, want %d (M-999 doesn't exist)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -221,8 +223,8 @@ func TestMilestoneDependsOn_OnRefUnknown(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("milestone depends-on M-003 --on M-999 = %d, want %d", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("milestone depends-on M-003 --on M-999 = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -238,8 +240,8 @@ func TestMilestoneDependsOn_OnRefNonMilestone(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("milestone depends-on M-003 --on E-01 = %d, want %d (E-01 is not a milestone)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("milestone depends-on M-003 --on E-01 = %d, want %d (E-01 is not a milestone)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -250,7 +252,7 @@ func TestMilestoneDependsOn_CompositeIDRejected(t *testing.T) {
 	t.Parallel()
 	root := milestoneDependsOnSetup(t)
 	// Allocate an AC under M-001 so the composite id resolves.
-	if rc := run([]string{"add", "ac", "M-0001", "--title", "first ac", "--actor", "human/test", "--root", root}); rc != exitOK {
+	if rc := run([]string{"add", "ac", "M-0001", "--title", "first ac", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add ac: %d", rc)
 	}
 
@@ -260,8 +262,8 @@ func TestMilestoneDependsOn_CompositeIDRejected(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("milestone depends-on M-001/AC-1 = %d, want %d (composite ids rejected)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("milestone depends-on M-001/AC-1 = %d, want %d (composite ids rejected)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -277,8 +279,8 @@ func TestMilestoneDependsOn_SelfDependencyRejected(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitUsage {
-		t.Errorf("milestone depends-on M-003 --on M-003 = %d, want %d (self-loop)", rc, exitUsage)
+	if rc != cliutil.ExitUsage {
+		t.Errorf("milestone depends-on M-003 --on M-003 = %d, want %d (self-loop)", rc, cliutil.ExitUsage)
 	}
 }
 
@@ -308,7 +310,7 @@ func TestMilestoneDependsOn_DispatcherSeam_AddFlag(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
+	if rc != cliutil.ExitOK {
 		t.Fatalf("add milestone with --depends-on (seam): %d", rc)
 	}
 
@@ -327,7 +329,7 @@ func TestMilestoneDependsOn_DispatcherSeam_AddFlag(t *testing.T) {
 
 	// Verb trailers: history finds the create commit with the new
 	// entity's id, proving the dispatcher's actor / trailer chain ran.
-	if rc := run([]string{"history", "M-0004", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "M-0004", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("aiwf history M-004 (seam): %d", rc)
 	}
 }
@@ -346,7 +348,7 @@ func TestMilestoneDependsOn_DispatcherSeam_Verb(t *testing.T) {
 		"--actor", "human/test",
 		"--root", root,
 	})
-	if rc != exitOK {
+	if rc != cliutil.ExitOK {
 		t.Fatalf("milestone depends-on (seam): %d", rc)
 	}
 
@@ -365,7 +367,7 @@ func TestMilestoneDependsOn_DispatcherSeam_Verb(t *testing.T) {
 
 	// `aiwf history M-003` finds the trailered milestone-depends-on
 	// commit, proving the verb's trailer chain reached git.
-	if rc := run([]string{"history", "M-0003", "--root", root}); rc != exitOK {
+	if rc := run([]string{"history", "M-0003", "--root", root}); rc != cliutil.ExitOK {
 		t.Errorf("aiwf history M-003 (seam): %d", rc)
 	}
 }
