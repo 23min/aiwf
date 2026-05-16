@@ -1,7 +1,9 @@
 ---
 id: G-0097
 title: Test-suite wall time dominated by serial execution and per-test setup
-status: open
+status: addressed
+addressed_by:
+    - E-0025
 ---
 ## Problem
 
