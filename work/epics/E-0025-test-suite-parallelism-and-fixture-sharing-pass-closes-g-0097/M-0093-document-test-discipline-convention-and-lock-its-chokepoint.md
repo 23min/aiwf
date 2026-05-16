@@ -1,7 +1,7 @@
 ---
 id: M-0093
 title: Document test-discipline convention and lock its chokepoint
-status: in_progress
+status: done
 parent: E-0025
 depends_on:
     - M-0091
