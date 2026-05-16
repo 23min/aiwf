@@ -10,7 +10,7 @@ tdd: none
 acs:
     - id: AC-1
       title: CLAUDE.md gains a Test discipline section under Go conventions
-      status: open
+      status: met
     - id: AC-2
       title: policy test asserts each internal/* test pkg has setup_test.go and TestMain
       status: open
