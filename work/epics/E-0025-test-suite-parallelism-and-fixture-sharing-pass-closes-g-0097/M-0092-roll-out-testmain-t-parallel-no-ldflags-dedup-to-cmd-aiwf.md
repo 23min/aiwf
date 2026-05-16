@@ -18,7 +18,7 @@ acs:
       status: open
     - id: AC-4
       title: go test -race -parallel 8 ./cmd/... reliable across 10 runs
-      status: open
+      status: deferred
 ---
 
 # M-0092 — Roll out TestMain + t.Parallel + no-ldflags dedup to cmd/aiwf/
