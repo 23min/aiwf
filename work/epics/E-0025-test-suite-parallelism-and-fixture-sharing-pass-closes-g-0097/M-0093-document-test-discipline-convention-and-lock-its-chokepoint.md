@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-2
       title: policy test asserts each internal/* test pkg has setup_test.go and TestMain
-      status: open
+      status: met
     - id: AC-3
       title: G-0097 promoted to addressed and the closing trailer cites E-0025
       status: open
