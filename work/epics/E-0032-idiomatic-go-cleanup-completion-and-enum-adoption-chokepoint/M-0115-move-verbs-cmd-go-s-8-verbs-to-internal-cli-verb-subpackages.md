@@ -6,6 +6,11 @@ parent: E-0032
 depends_on:
     - M-0114
 tdd: required
+acs:
+    - id: AC-1
+      title: internal/cli/add/ carries add and add ac verbs
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -46,3 +51,6 @@ Shared helpers (`parseKind`, `parseTestsFlag`, `readBodyFile`, `splitCommaList` 
 ## Dependencies
 
 - M-2 (cliutil completion helpers must be in place before per-verb packages can import them as `cliutil.*`).
+
+### AC-1 — internal/cli/add/ carries add and add ac verbs
+
