@@ -47,6 +47,10 @@ acs:
       title: internal/cli/schema/ carries schema verb
       status: open
       tdd_phase: red
+    - id: AC-11
+      title: internal/cli/show/ carries show verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -103,4 +107,6 @@ Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/ren
 ### AC-9 — internal/cli/rewidth/ carries rewidth verb
 
 ### AC-10 — internal/cli/schema/ carries schema verb
+
+### AC-11 — internal/cli/show/ carries show verb
 
