@@ -1,4 +1,4 @@
-package main
+package cliutil_test
 
 import (
 	"errors"
@@ -38,9 +38,9 @@ func TestStatusesForID(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := statusesForID(tc.id)
+			got := cliutil.StatusesForID(tc.id)
 			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("statusesForID(%q) mismatch (-want +got):\n%s", tc.id, diff)
+				t.Errorf("cliutil.StatusesForID(%q) mismatch (-want +got):\n%s", tc.id, diff)
 			}
 		})
 	}
@@ -51,13 +51,13 @@ func TestStatusesForID(t *testing.T) {
 // than silently desynchronizing the completion source.
 func TestAllKindNames(t *testing.T) {
 	t.Parallel()
-	got := allKindNames()
+	got := cliutil.AllKindNames()
 	want := make([]string, 0, len(entity.AllKinds()))
 	for _, k := range entity.AllKinds() {
 		want = append(want, string(k))
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("allKindNames mismatch (-want +got):\n%s", diff)
+		t.Errorf("cliutil.AllKindNames mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -93,7 +93,7 @@ func TestCompleteEntityIDs_FromTree(t *testing.T) {
 	chdir(t, root)
 
 	t.Run("all_kinds", func(t *testing.T) {
-		ids, dir := completeEntityIDs("")
+		ids, dir := cliutil.CompleteEntityIDs("")
 		if dir != cobra.ShellCompDirectiveNoFileComp {
 			t.Errorf("directive = %v, want NoFileComp", dir)
 		}
@@ -106,14 +106,14 @@ func TestCompleteEntityIDs_FromTree(t *testing.T) {
 	})
 
 	t.Run("filter_epic", func(t *testing.T) {
-		ids, _ := completeEntityIDs(entity.KindEpic)
+		ids, _ := cliutil.CompleteEntityIDs(entity.KindEpic)
 		if diff := cmp.Diff([]string{"E-0001"}, ids); diff != "" {
 			t.Errorf("epic-filtered ids mismatch (-want +got):\n%s", diff)
 		}
 	})
 
 	t.Run("filter_milestone", func(t *testing.T) {
-		ids, _ := completeEntityIDs(entity.KindMilestone)
+		ids, _ := cliutil.CompleteEntityIDs(entity.KindMilestone)
 		got := append([]string{}, ids...)
 		sort.Strings(got)
 		want := []string{"M-0001", "M-0002"}
@@ -139,7 +139,7 @@ func TestCompleteEntityIDs_GracefulNoOp(t *testing.T) {
 	t.Run("no_aiwf_yaml", func(t *testing.T) {
 		root := t.TempDir()
 		chdir(t, root)
-		ids, dir := completeEntityIDs("")
+		ids, dir := cliutil.CompleteEntityIDs("")
 		if len(ids) != 0 {
 			t.Errorf("expected empty completions outside aiwf project, got %v", ids)
 		}
@@ -156,7 +156,7 @@ func TestCompleteEntityIDs_GracefulNoOp(t *testing.T) {
 			t.Fatal(err)
 		}
 		chdir(t, root)
-		ids, _ := completeEntityIDs("")
+		ids, _ := cliutil.CompleteEntityIDs("")
 		if len(ids) != 0 {
 			t.Errorf("expected empty completions on empty tree, got %v", ids)
 		}
@@ -172,7 +172,7 @@ func TestCompleteEntityIDArg_RespectsPosition(t *testing.T) {
 	root := newCompletionFixtureRepo(t)
 	chdir(t, root)
 
-	fn := completeEntityIDArg("", 0)
+	fn := cliutil.CompleteEntityIDArg("", 0)
 
 	t.Run("first_positional_lists_ids", func(t *testing.T) {
 		ids, _ := fn(nil, []string{}, "")
@@ -193,13 +193,13 @@ func TestCompleteEntityIDArg_RespectsPosition(t *testing.T) {
 }
 
 // TestCompleteEntityIDFlag_KindFilter exercises the flag-side wrapper.
-// The contract is the same as completeEntityIDs with the filter
+// The contract is the same as cliutil.CompleteEntityIDs with the filter
 // applied; the wrapper just adapts the function shape Cobra requires.
 func TestCompleteEntityIDFlag_KindFilter(t *testing.T) {
 	root := newCompletionFixtureRepo(t)
 	chdir(t, root)
 
-	fn := completeEntityIDFlag(entity.KindMilestone)
+	fn := cliutil.CompleteEntityIDFlag(entity.KindMilestone)
 	ids, dir := fn(nil, nil, "")
 	if dir != cobra.ShellCompDirectiveNoFileComp {
 		t.Errorf("directive = %v, want NoFileComp", dir)
@@ -219,11 +219,11 @@ func TestRegisterFormatCompletion(t *testing.T) {
 	t.Parallel()
 	cmd := &cobra.Command{Use: "fake"}
 	cmd.Flags().String("format", "text", "")
-	registerFormatCompletion(cmd)
+	cliutil.RegisterFormatCompletion(cmd)
 
 	fn, ok := cmd.GetFlagCompletionFunc("format")
 	if !ok {
-		t.Fatal("registerFormatCompletion did not bind a completion function")
+		t.Fatal("cliutil.RegisterFormatCompletion did not bind a completion function")
 	}
 	got, dir := fn(cmd, nil, "")
 	if dir != cobra.ShellCompDirectiveNoFileComp {
@@ -277,8 +277,9 @@ func intToStr(n int) string {
 }
 
 // chdir pushes the test into root for the duration of the subtest and
-// restores cwd via t.Cleanup. completeEntityIDs reads cwd through
-// resolveRoot, so subtests that share fixture roots set cwd here.
+// restores cwd via t.Cleanup. cliutil.CompleteEntityIDs reads cwd
+// through cliutil.ResolveRoot, so subtests that share fixture roots
+// set cwd here.
 func chdir(t *testing.T, root string) {
 	t.Helper()
 	prev, err := os.Getwd()

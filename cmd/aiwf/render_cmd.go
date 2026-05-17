@@ -160,7 +160,7 @@ func newRenderRoadmapCmd() *cobra.Command {
 }
 
 func runRenderRoadmapCmd(root string, write bool, actor string) int {
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return cliutil.ExitUsage
@@ -288,7 +288,7 @@ func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) i
 	_ = scope     // step-4 placeholder: reserved for §3 incremental render
 	_ = noHistory // step-4 placeholder: reserved for the no-history flag
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)
 		return cliutil.ExitUsage

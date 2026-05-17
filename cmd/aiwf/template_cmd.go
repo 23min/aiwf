@@ -54,12 +54,12 @@ func newTemplateCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
-	registerFormatCompletion(cmd)
+	cliutil.RegisterFormatCompletion(cmd)
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 		if len(args) > 0 {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return allKindNames(), cobra.ShellCompDirectiveNoFileComp
+		return cliutil.AllKindNames(), cobra.ShellCompDirectiveNoFileComp
 	}
 	return cmd
 }

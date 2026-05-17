@@ -80,8 +80,8 @@ func newShowCmd() *cobra.Command {
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().IntVar(&historyLimit, "history", 10, "max recent history events to render (0 = none, -1 = all)")
-	registerFormatCompletion(cmd)
-	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
+	cliutil.RegisterFormatCompletion(cmd)
+	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
 
@@ -91,7 +91,7 @@ func runShowCmd(id, root, format string, pretty bool, historyLimit int) int {
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
 		return cliutil.ExitUsage

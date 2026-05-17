@@ -126,41 +126,6 @@ parent: E-99
 	}
 }
 
-func TestResolveRoot_ExplicitWins(t *testing.T) {
-	t.Parallel()
-	tmp := t.TempDir()
-	got, err := resolveRoot(tmp)
-	if err != nil {
-		t.Fatal(err)
-	}
-	abs, _ := filepath.Abs(tmp)
-	if got != abs {
-		t.Errorf("got %q, want %q", got, abs)
-	}
-}
-
-func TestWalkUpFor(t *testing.T) {
-	t.Parallel()
-	root := t.TempDir()
-	deep := filepath.Join(root, "a", "b", "c")
-	if err := os.MkdirAll(deep, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "marker.txt"), []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	got, ok := walkUpFor(deep, "marker.txt")
-	if !ok {
-		t.Fatal("not found")
-	}
-	if got != root {
-		t.Errorf("got %q, want %q", got, root)
-	}
-	if _, ok := walkUpFor(deep, "nonsuch.txt"); ok {
-		t.Errorf("nonsuch.txt should not be found")
-	}
-}
-
 // setupCLITestRepo gives the test process a git identity and an
 // initialized repo; returns the repo root.
 //

@@ -87,7 +87,7 @@ func newListCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&noTrunc, "no-trunc", false, "do not truncate the title column when stdout is a terminal narrower than the row")
 
 	_ = cmd.RegisterFlagCompletionFunc("kind", cobra.FixedCompletions(
-		allKindNames(),
+		cliutil.AllKindNames(),
 		cobra.ShellCompDirectiveNoFileComp,
 	))
 	_ = cmd.RegisterFlagCompletionFunc("status", func(c *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -97,8 +97,8 @@ func newListCmd() *cobra.Command {
 		}
 		return entity.AllowedStatuses(entity.Kind(k)), cobra.ShellCompDirectiveNoFileComp
 	})
-	_ = cmd.RegisterFlagCompletionFunc("parent", completeEntityIDFlag(""))
-	registerFormatCompletion(cmd)
+	_ = cmd.RegisterFlagCompletionFunc("parent", cliutil.CompleteEntityIDFlag(""))
+	cliutil.RegisterFormatCompletion(cmd)
 
 	return cmd
 }
@@ -128,11 +128,11 @@ func runListCmd(root, kind, status, parent string, archived bool, format string,
 		return cliutil.ExitUsage
 	}
 	if kind != "" && !isKnownKind(kind) {
-		fmt.Fprintf(os.Stderr, "aiwf list: --kind must be one of %v, got %q\n", allKindNames(), kind)
+		fmt.Fprintf(os.Stderr, "aiwf list: --kind must be one of %v, got %q\n", cliutil.AllKindNames(), kind)
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf list: %v\n", err)
 		return cliutil.ExitUsage

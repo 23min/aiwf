@@ -102,7 +102,7 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 		return cliutil.ExitOK
 	}
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf upgrade: %v\n", err)
 		return cliutil.ExitUsage

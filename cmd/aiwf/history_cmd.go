@@ -46,8 +46,8 @@ func newHistoryCmd() *cobra.Command {
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().BoolVar(&showAuth, "show-authorization", false, "include the full aiwf-authorized-by SHA on scope-authorized rows (text format only)")
-	registerFormatCompletion(cmd)
-	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
+	cliutil.RegisterFormatCompletion(cmd)
+	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
 
@@ -57,7 +57,7 @@ func runHistoryCmd(id, root, format string, pretty, showAuth bool) int {
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
 		return cliutil.ExitUsage

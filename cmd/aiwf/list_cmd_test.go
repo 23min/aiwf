@@ -410,7 +410,7 @@ func TestNewListCmd_CompletionWiring(t *testing.T) {
 		if dir != cobra.ShellCompDirectiveNoFileComp {
 			t.Errorf("directive = %v, want NoFileComp", dir)
 		}
-		if diff := cmp.Diff(allKindNames(), got); diff != "" {
+		if diff := cmp.Diff(cliutil.AllKindNames(), got); diff != "" {
 			t.Errorf("--kind completions mismatch (-want +got):\n%s", diff)
 		}
 	})

@@ -67,8 +67,8 @@ func newMilestoneDependsOnCmd() *cobra.Command {
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&on, "on", "", "comma-separated milestone ids the target depends on; replace-not-append semantics")
 	cmd.Flags().BoolVar(&clearList, "clear", false, "empty the depends_on list (mutually exclusive with --on)")
-	_ = cmd.RegisterFlagCompletionFunc("on", completeEntityIDFlag(entity.KindMilestone))
-	cmd.ValidArgsFunction = completeEntityIDArg(entity.KindMilestone, 0)
+	_ = cmd.RegisterFlagCompletionFunc("on", cliutil.CompleteEntityIDFlag(entity.KindMilestone))
+	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
 	return cmd
 }
 
@@ -82,7 +82,7 @@ func runMilestoneDependsOnCmd(id, actor, principal, root, reason, on string, cle
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: %v\n", err)
 		return cliutil.ExitUsage

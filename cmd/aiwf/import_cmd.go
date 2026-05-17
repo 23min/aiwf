@@ -63,7 +63,7 @@ func newImportCmd() *cobra.Command {
 }
 
 func runImportCmd(manifestPath, root, actor, principal, onCollision string, dryRun bool) int {
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
 		return cliutil.ExitUsage

@@ -116,7 +116,7 @@ func TestPolicy_FlagsHaveCompletion(t *testing.T) {
 		sort.Strings(failures)
 		t.Errorf("flags missing completion wiring (E-14 / M-054):\n  %s\n\n"+
 			"Either bind a completion function via cmd.RegisterFlagCompletionFunc(...)\n"+
-			"(static via cobra.FixedCompletions, dynamic via completeEntityIDFlag),\n"+
+			"(static via cobra.FixedCompletions, dynamic via cliutil.CompleteEntityIDFlag),\n"+
 			"or add an entry to optOutFlags in completion_drift_test.go with a one-line rationale.",
 			joinFailures(failures))
 	}

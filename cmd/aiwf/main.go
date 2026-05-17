@@ -11,9 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/spf13/cobra"
@@ -21,7 +19,6 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
-	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -48,100 +45,6 @@ func resolvedVersion() string {
 		return Version
 	}
 	return version.Current().Version
-}
-
-// registerFormatCompletion wires `--format=` shell completion to the
-// closed set {text, json}. Called by every read-only verb that
-// accepts --format so the shell-completion experience is uniform
-// across the surface (E-14's auto-completion-friendliness rule).
-func registerFormatCompletion(cmd *cobra.Command) {
-	_ = cmd.RegisterFlagCompletionFunc("format", cobra.FixedCompletions(
-		[]string{"text", "json"},
-		cobra.ShellCompDirectiveNoFileComp,
-	))
-}
-
-// allKindNames returns the entity-kind names as strings, in the
-// canonical iteration order from entity.AllKinds(). Used by the
-// `aiwf add` and `aiwf schema` / `aiwf template` completion functions.
-func allKindNames() []string {
-	all := entity.AllKinds()
-	names := make([]string, len(all))
-	for i, k := range all {
-		names[i] = string(k)
-	}
-	return names
-}
-
-// statusesForID returns the closed set of statuses that an entity's
-// kind allows, derived from the id's prefix without loading the
-// repo's tree. Used as the static-completion source for `aiwf promote
-// <id> <new-status>`. Returns nil for ids whose kind isn't recognized
-// (composite ids, malformed input) — the completion source then falls
-// back to file completion at the shell level.
-func statusesForID(id string) []string {
-	if id == "" || entity.IsCompositeID(id) {
-		return nil
-	}
-	k, ok := entity.KindFromID(id)
-	if !ok {
-		return nil
-	}
-	return entity.AllowedStatuses(k)
-}
-
-// completeEntityIDs returns the live ids in the consumer repo's
-// planning tree, optionally filtered to a single kind. Designed for
-// use as a Cobra ValidArgsFunction or RegisterFlagCompletionFunc body:
-// failures (no aiwf.yaml, malformed tree, unreadable disk) collapse
-// to an empty list rather than spamming the user's shell with errors,
-// satisfying M-054 AC-2's graceful-no-op rule.
-func completeEntityIDs(filter entity.Kind) ([]string, cobra.ShellCompDirective) {
-	rootDir, err := resolveRoot("")
-	if err != nil {
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
-	tr, _, err := tree.Load(context.Background(), rootDir)
-	if err != nil || tr == nil {
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
-	ids := make([]string, 0, len(tr.Entities))
-	for _, e := range tr.Entities {
-		if filter != "" && e.Kind != filter {
-			continue
-		}
-		// Emit canonical ids so completion always offers the canonical
-		// width, regardless of on-disk filename width (AC-3 in M-081).
-		// Inputs at narrow width are still accepted everywhere
-		// downstream via tree.ByID's lookup-side canonicalization.
-		ids = append(ids, entity.Canonicalize(e.ID))
-	}
-	return ids, cobra.ShellCompDirectiveNoFileComp
-}
-
-// completeEntityIDFlag is the standard Cobra flag-completion adapter
-// over completeEntityIDs. Callers wire it via
-// `cmd.RegisterFlagCompletionFunc(name, completeEntityIDFlag(kind))`
-// where kind is either "" for all kinds or a specific entity.Kind.
-func completeEntityIDFlag(filter entity.Kind) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-	return func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-		return completeEntityIDs(filter)
-	}
-}
-
-// completeEntityIDArg is the standard Cobra positional-arg completion
-// adapter over completeEntityIDs. Callers assign it as a command's
-// ValidArgsFunction. Unlike the flag adapter, this version respects
-// the args slice — if the positional in question isn't the first one,
-// it returns no suggestions (so e.g. `aiwf promote E-01 <TAB>` doesn't
-// re-suggest entity ids when the second positional is the new-status).
-func completeEntityIDArg(filter entity.Kind, position int) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-	return func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
-		if len(args) != position {
-			return nil, cobra.ShellCompDirectiveNoFileComp
-		}
-		return completeEntityIDs(filter)
-	}
 }
 
 func main() {
@@ -403,7 +306,7 @@ func newCheckCmd() *cobra.Command {
 	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
 	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless")
-	registerFormatCompletion(cmd)
+	cliutil.RegisterFormatCompletion(cmd)
 	return cmd
 }
 
@@ -416,7 +319,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 		fmt.Fprintln(os.Stderr, "aiwf check: --pretty has no effect without --format=json")
 	}
 
-	resolved, err := resolveRoot(root)
+	resolved, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", err)
 		return cliutil.ExitUsage
@@ -583,49 +486,4 @@ func runCheckShapeOnly(ctx context.Context, root, format string, pretty bool) in
 		return cliutil.ExitFindings
 	}
 	return cliutil.ExitOK
-}
-
-// resolveRoot picks the consumer repo root. If explicit is non-empty,
-// it is used as-is (resolved to absolute). Otherwise, walks up from cwd
-// looking for aiwf.yaml; if found, uses its parent. If not found, falls
-// back to cwd (lenient pre-init behavior; tightens once `aiwf init` is
-// part of the standard adoption path in Session 3).
-func resolveRoot(explicit string) (string, error) {
-	if explicit != "" {
-		abs, err := filepath.Abs(explicit)
-		if err != nil {
-			return "", fmt.Errorf("resolving --root: %w", err)
-		}
-		return abs, nil
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("getting cwd: %w", err)
-	}
-	if found, ok := walkUpFor(cwd, "aiwf.yaml"); ok {
-		return found, nil
-	}
-	return cwd, nil
-}
-
-// walkUpFor walks from start toward root looking for filename.
-// Returns the directory containing filename (not the filename itself),
-// and true if found.
-func walkUpFor(start, filename string) (string, bool) {
-	dir := start
-	for {
-		candidate := filepath.Join(dir, filename)
-		info, err := os.Stat(candidate)
-		if err == nil && !info.IsDir() {
-			return dir, true
-		}
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return "", false
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", false
-		}
-		dir = parent
-	}
 }

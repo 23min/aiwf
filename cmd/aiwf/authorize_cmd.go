@@ -65,7 +65,7 @@ func newAuthorizeCmd() *cobra.Command {
 	cmd.Flags().StringVar(&resume, "resume", "", "resume the most-recently-paused scope on <id>; the argument is the reason")
 	cmd.Flags().StringVar(&reason, "reason", "", "rationale text for --to (optional) / --force (required); ignored by --pause and --resume (their argument is the reason)")
 	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason)")
-	cmd.ValidArgsFunction = completeEntityIDArg("", 0)
+	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
 
@@ -100,7 +100,7 @@ func runAuthorizeCmd(id, actor, root, to, pause, resume, reason string, force bo
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf authorize: %v\n", err)
 		return cliutil.ExitUsage

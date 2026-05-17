@@ -63,7 +63,7 @@ func runDoctorCmd(root string, selfCheck, checkLatest bool) int {
 		return runSelfCheck()
 	}
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor: %v\n", err)
 		return cliutil.ExitUsage

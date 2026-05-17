@@ -82,8 +82,8 @@ runs.`,
 }
 
 func runRewidthCmd(actor, principal, root string, apply, skipChecks bool) int {
-	rootDir, err := resolveRoot(root)
-	if err != nil { //coverage:ignore resolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
+	rootDir, err := cliutil.ResolveRoot(root)
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
 		fmt.Fprintf(os.Stderr, "aiwf rewidth: %v\n", err)
 		return cliutil.ExitUsage
 	}

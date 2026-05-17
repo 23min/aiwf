@@ -121,7 +121,7 @@ func runInitCmd(root, actor string, dryRun, skipHook bool) int {
 }
 
 // resolveInitRoot picks the root directory for `aiwf init`. Unlike
-// resolveRoot, it does not error when aiwf.yaml is missing — that's
+// cliutil.ResolveRoot, it does not error when aiwf.yaml is missing — that's
 // the normal case for init.
 func resolveInitRoot(explicit string) (string, error) {
 	if explicit != "" {

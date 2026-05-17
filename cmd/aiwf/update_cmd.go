@@ -47,7 +47,7 @@ func newUpdateCmd() *cobra.Command {
 }
 
 func runUpdateCmd(root string) int {
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
 		return cliutil.ExitUsage

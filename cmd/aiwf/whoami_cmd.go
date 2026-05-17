@@ -38,7 +38,7 @@ func newWhoamiCmd() *cobra.Command {
 }
 
 func runWhoamiCmd(root, actor string) int {
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf whoami: %v\n", err)
 		return cliutil.ExitUsage

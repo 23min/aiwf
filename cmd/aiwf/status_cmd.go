@@ -220,7 +220,7 @@ func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf status: %v\n", err)
 		return cliutil.ExitUsage

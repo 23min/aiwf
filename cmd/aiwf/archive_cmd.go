@@ -114,8 +114,8 @@ func archiveKindCompletions() []string {
 }
 
 func runArchiveCmd(actor, principal, root, kind string, apply bool) int {
-	rootDir, err := resolveRoot(root)
-	if err != nil { //coverage:ignore resolveRoot only fails on missing aiwf.yaml + non-existent --root path
+	rootDir, err := cliutil.ResolveRoot(root)
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", err)
 		return cliutil.ExitUsage
 	}

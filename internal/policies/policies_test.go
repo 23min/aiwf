@@ -103,6 +103,11 @@ func TestPolicy_TrailerParserUniqueness(t *testing.T) {
 	runPolicy(t, PolicyTrailerParserUniqueness)
 }
 
+func TestPolicy_CLIHelperLocations(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyCLIHelperLocations)
+}
+
 func TestPolicy_RoleIDRegexCentralized(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyRoleIDRegexCentralized)

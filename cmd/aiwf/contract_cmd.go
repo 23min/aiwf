@@ -69,7 +69,7 @@ func newContractVerifyCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
-	registerFormatCompletion(cmd)
+	cliutil.RegisterFormatCompletion(cmd)
 	return cmd
 }
 
@@ -78,7 +78,7 @@ func runContractVerifyCmd(root, format string, pretty bool) int {
 		fmt.Fprintf(os.Stderr, "aiwf contract verify: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
 	}
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract verify: %v\n", err)
 		return cliutil.ExitUsage
@@ -250,13 +250,13 @@ func newContractBindCmd() *cobra.Command {
 	cmd.Flags().StringVar(&schema, "schema", "", "repo-relative path to the schema file")
 	cmd.Flags().StringVar(&fixtures, "fixtures", "", "repo-relative path to the fixtures-tree root")
 	cmd.Flags().BoolVar(&force, "force", false, "replace an existing binding even when values differ")
-	cmd.ValidArgsFunction = completeEntityIDArg(entity.KindContract, 0)
+	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindContract, 0)
 	_ = cmd.RegisterFlagCompletionFunc("validator", completeDeclaredValidators)
 	return cmd
 }
 
 func runContractBindCmd(id, root, actor, validator, schema, fixtures string, force bool) int {
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
 		return cliutil.ExitUsage
@@ -314,12 +314,12 @@ func newContractUnbindCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
-	cmd.ValidArgsFunction = completeEntityIDArg(entity.KindContract, 0)
+	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindContract, 0)
 	return cmd
 }
 
 func runContractUnbindCmd(id, root, actor string) int {
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
 		return cliutil.ExitUsage
@@ -369,7 +369,7 @@ func newContractRecipesCmd() *cobra.Command {
 }
 
 func runContractRecipesCmd(root string) int {
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
 		return cliutil.ExitUsage
@@ -513,7 +513,7 @@ func runContractRecipeInstallCmd(args []string, root, actor, from string, force 
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
 		return cliutil.ExitUsage
@@ -568,7 +568,7 @@ func newContractRecipeRemoveCmd() *cobra.Command {
 }
 
 func runContractRecipeRemoveCmd(name, root, actor string) int {
-	rootDir, err := resolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
 		return cliutil.ExitUsage
@@ -636,7 +636,7 @@ func completeDeclaredValidators(_ *cobra.Command, _ []string, _ string) ([]strin
 }
 
 func declaredValidatorNames() []string {
-	rootDir, err := resolveRoot("")
+	rootDir, err := cliutil.ResolveRoot("")
 	if err != nil {
 		return nil
 	}

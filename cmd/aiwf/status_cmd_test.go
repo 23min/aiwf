@@ -315,7 +315,7 @@ func TestRenderStatusText_SweepPendingLineHiddenWhenNil(t *testing.T) {
 }
 
 // TestRunStatusCmd_SweepPendingSeam — M-0087/AC-1 seam: drives the
-// dispatcher end-to-end (resolveRoot → tree.Load → buildStatus →
+// dispatcher end-to-end (cliutil.ResolveRoot → tree.Load → buildStatus →
 // renderStatusText), so an integration regression in the wiring
 // would fail this test. Fixture: a synthetic on-disk tree carrying
 // one active gap and one terminal-in-active gap. The text output
