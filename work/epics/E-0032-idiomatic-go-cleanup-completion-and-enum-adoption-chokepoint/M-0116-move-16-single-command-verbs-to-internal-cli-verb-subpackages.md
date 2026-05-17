@@ -42,7 +42,7 @@ acs:
     - id: AC-9
       title: internal/cli/rewidth/ carries rewidth verb
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-10
       title: internal/cli/schema/ carries schema verb
       status: met
