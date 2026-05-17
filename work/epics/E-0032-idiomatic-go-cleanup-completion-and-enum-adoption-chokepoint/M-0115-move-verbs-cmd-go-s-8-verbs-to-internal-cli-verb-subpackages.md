@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: internal/cli/rename/ carries rename verb
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: internal/cli/move/ carries move verb
       status: open
