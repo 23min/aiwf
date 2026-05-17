@@ -1,7 +1,7 @@
 ---
 id: M-0116
 title: Move 16 single-command verbs to internal/cli/<verb>/ subpackages
-status: draft
+status: in_progress
 parent: E-0032
 depends_on:
     - M-0115
