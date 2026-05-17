@@ -19,6 +19,10 @@ acs:
       title: internal/cli/editbody/ carries edit-body verb
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: internal/cli/cancel/ carries cancel verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -65,4 +69,6 @@ Shared helpers (`parseKind`, `parseTestsFlag`, `readBodyFile`, `splitCommaList` 
 ### AC-2 — internal/cli/promote/ carries promote verb
 
 ### AC-3 — internal/cli/editbody/ carries edit-body verb
+
+### AC-4 — internal/cli/cancel/ carries cancel verb
 
