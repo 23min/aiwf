@@ -57,7 +57,7 @@ acs:
       tdd_phase: red
     - id: AC-13
       title: internal/cli/template/ carries template verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-14
       title: internal/cli/update/ carries update verb
