@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/status"
+
 	"github.com/23min/aiwf/internal/cli/history"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
@@ -43,7 +45,7 @@ func TestBuildStatus_FiltersToInFlight(t *testing.T) {
 			{Kind: entity.KindGap, ID: "G-0002", Title: "Addressed gap", Status: "addressed"},
 		},
 	}
-	r := buildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil)
 
 	if len(r.InFlightEpics) != 1 || r.InFlightEpics[0].ID != "E-0001" {
 		t.Errorf("InFlightEpics: only E-01 expected, got %+v", r.InFlightEpics)
@@ -85,13 +87,13 @@ func TestBuildStatus_MilestoneOrder(t *testing.T) {
 	tr := &tree.Tree{
 		Entities: []*entity.Entity{
 			{Kind: entity.KindEpic, ID: "E-0001", Title: "Active", Status: "active"},
-			// Out-of-tree-walk-order on purpose; buildStatus must sort.
+			// Out-of-tree-walk-order on purpose; status.BuildStatus must sort.
 			{Kind: entity.KindMilestone, ID: "M-0003", Title: "Third", Status: "draft", Parent: "E-0001"},
 			{Kind: entity.KindMilestone, ID: "M-0001", Title: "First", Status: "done", Parent: "E-0001"},
 			{Kind: entity.KindMilestone, ID: "M-0002", Title: "Second", Status: "in_progress", Parent: "E-0001"},
 		},
 	}
-	r := buildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil)
 
 	got := []string{}
 	for _, m := range r.InFlightEpics[0].Milestones {
@@ -109,7 +111,7 @@ func TestBuildStatus_MilestoneOrder(t *testing.T) {
 // health has zero counts. No panic.
 func TestBuildStatus_EmptyTree(t *testing.T) {
 	t.Parallel()
-	r := buildStatus(&tree.Tree{}, nil)
+	r := status.BuildStatus(&tree.Tree{}, nil)
 	if len(r.InFlightEpics) != 0 || len(r.PlannedEpics) != 0 ||
 		len(r.OpenDecisions) != 0 || len(r.OpenGaps) != 0 ||
 		len(r.Warnings) != 0 {
@@ -123,21 +125,21 @@ func TestBuildStatus_EmptyTree(t *testing.T) {
 // TestRenderStatusText_MarksInProgress verifies the → marker on the
 // in-progress milestone and the ✓ on the done one.
 func TestRenderStatusText_MarksInProgress(t *testing.T) {
-	r := statusReport{
+	r := status.StatusReport{
 		Date: "2026-04-28",
-		InFlightEpics: []statusEpic{{
+		InFlightEpics: []status.StatusEpic{{
 			ID: "E-0001", Title: "Active", Status: "active",
-			Milestones: []statusMilestone{
+			Milestones: []status.StatusMilestone{
 				{ID: "M-0001", Title: "First", Status: "done"},
 				{ID: "M-0002", Title: "Second", Status: "in_progress"},
 				{ID: "M-0003", Title: "Third", Status: "draft"},
 			},
 		}},
-		Health: statusHealthCounts{Entities: 4},
+		Health: status.StatusHealthCounts{Entities: 4},
 	}
 	out := captureStdout(t, func() {
-		if err := renderStatusText(os.Stdout, &r, 0, false); err != nil {
-			t.Fatalf("renderStatusText: %v", err)
+		if err := status.RenderStatusText(os.Stdout, &r, 0, false); err != nil {
+			t.Fatalf("status.RenderStatusText: %v", err)
 		}
 	})
 	got := string(out)
@@ -166,12 +168,12 @@ func TestRenderStatusText_MarksInProgress(t *testing.T) {
 // The completion-drift test (cmd/aiwf/completion_drift_test.go)
 // already enumerates every flag of every verb at CI time — that's the
 // chokepoint. This AC-level test is the direct mechanical assertion
-// on `newStatusCmd()`'s flag set, scoped to the one flag name the
+// on `status.NewCmd()`'s flag set, scoped to the one flag name the
 // AC forbids, so a future change that adds `--archived` to status
 // fails this test specifically and not just the drift summary.
 func TestStatusCmd_NoArchivedFlag(t *testing.T) {
 	t.Parallel()
-	cmd := newStatusCmd()
+	cmd := status.NewCmd()
 	if cmd.Flags().Lookup("archived") != nil {
 		t.Errorf("status has --archived flag; ADR-0004 §\"Display surfaces\" forbids it on the status verb (archive inspection lives in `aiwf list --archived`)")
 	}
@@ -179,7 +181,7 @@ func TestStatusCmd_NoArchivedFlag(t *testing.T) {
 
 // TestBuildStatus_SweepPendingPopulatedWhenTerminalsLiveInActive
 // — M-0087/AC-1: when the loaded tree carries terminal-status
-// entities still in active dirs, buildStatus populates a dedicated
+// entities still in active dirs, status.BuildStatus populates a dedicated
 // SweepPending field on the report. The field carries the count and
 // the operator-facing message naming the remediation verb.
 //
@@ -210,7 +212,7 @@ func TestBuildStatus_SweepPendingPopulatedWhenTerminalsLiveInActive(t *testing.T
 			},
 		},
 	}
-	r := buildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil)
 
 	if r.SweepPending == nil {
 		t.Fatalf("SweepPending = nil, want non-nil (2 terminal entities in active dirs)")
@@ -245,7 +247,7 @@ func TestBuildStatus_SweepPendingNilWhenNoTerminalsInActive(t *testing.T) {
 			{Kind: entity.KindGap, ID: "G-0002", Title: "Done", Status: "addressed", Path: "work/gaps/archive/G-0002-done.md", AddressedBy: []string{"M-0001"}},
 		},
 	}
-	r := buildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil)
 
 	if r.SweepPending != nil {
 		t.Fatalf("SweepPending = %+v, want nil (no terminals in active dirs)", r.SweepPending)
@@ -265,17 +267,17 @@ func TestBuildStatus_SweepPendingNilWhenNoTerminalsInActive(t *testing.T) {
 // flat-substring match would not distinguish "line lands in Health"
 // from "line lands in Warnings."
 func TestRenderStatusText_SweepPendingLineAppearsInHealthSection(t *testing.T) {
-	r := statusReport{
+	r := status.StatusReport{
 		Date: "2026-05-10",
-		SweepPending: &statusSweepPending{
+		SweepPending: &status.StatusSweepPending{
 			Count:   3,
 			Message: "Sweep pending: 3 terminal entities not yet archived (run `aiwf archive --dry-run` to preview)",
 		},
-		Health: statusHealthCounts{Entities: 5},
+		Health: status.StatusHealthCounts{Entities: 5},
 	}
 	out := captureStdout(t, func() {
-		if err := renderStatusText(os.Stdout, &r, 0, false); err != nil {
-			t.Fatalf("renderStatusText: %v", err)
+		if err := status.RenderStatusText(os.Stdout, &r, 0, false); err != nil {
+			t.Fatalf("status.RenderStatusText: %v", err)
 		}
 	})
 	got := string(out)
@@ -299,14 +301,14 @@ func TestRenderStatusText_SweepPendingLineAppearsInHealthSection(t *testing.T) {
 // emits no "Sweep pending:" line anywhere in the output. Zero-count
 // stays silent; the operator should not see "Sweep pending: 0".
 func TestRenderStatusText_SweepPendingLineHiddenWhenNil(t *testing.T) {
-	r := statusReport{
+	r := status.StatusReport{
 		Date:         "2026-05-10",
 		SweepPending: nil,
-		Health:       statusHealthCounts{Entities: 5},
+		Health:       status.StatusHealthCounts{Entities: 5},
 	}
 	out := captureStdout(t, func() {
-		if err := renderStatusText(os.Stdout, &r, 0, false); err != nil {
-			t.Fatalf("renderStatusText: %v", err)
+		if err := status.RenderStatusText(os.Stdout, &r, 0, false); err != nil {
+			t.Fatalf("status.RenderStatusText: %v", err)
 		}
 	})
 	got := string(out)
@@ -317,14 +319,14 @@ func TestRenderStatusText_SweepPendingLineHiddenWhenNil(t *testing.T) {
 }
 
 // TestRunStatusCmd_SweepPendingSeam — M-0087/AC-1 seam: drives the
-// dispatcher end-to-end (cliutil.ResolveRoot → tree.Load → buildStatus →
-// renderStatusText), so an integration regression in the wiring
+// dispatcher end-to-end (cliutil.ResolveRoot → tree.Load → status.BuildStatus →
+// status.RenderStatusText), so an integration regression in the wiring
 // would fail this test. Fixture: a synthetic on-disk tree carrying
 // one active gap and one terminal-in-active gap. The text output
 // must show "Sweep pending: 1" inside the Health section.
 //
 // Per CLAUDE.md "Test the seam, not just the layer." Unit coverage
-// of buildStatus + renderStatusText is necessary but not sufficient
+// of status.BuildStatus + status.RenderStatusText is necessary but not sufficient
 // — this test pins that the verb dispatcher actually routes through
 // the new field.
 func TestRunStatusCmd_SweepPendingSeam(t *testing.T) {
@@ -397,7 +399,7 @@ func TestBuildStatus_Warnings(t *testing.T) {
 			},
 		},
 	}
-	r := buildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil)
 
 	if r.Health.Warnings != 1 {
 		t.Fatalf("Health.Warnings = %d, want 1", r.Health.Warnings)
@@ -420,16 +422,16 @@ func TestBuildStatus_Warnings(t *testing.T) {
 // TestRenderStatusText_Warnings: the text renderer surfaces each
 // warning row with its code, [entity-id], and message.
 func TestRenderStatusText_Warnings(t *testing.T) {
-	r := statusReport{
+	r := status.StatusReport{
 		Date: "2026-05-01",
-		Warnings: []statusFinding{
+		Warnings: []status.StatusFinding{
 			{Code: "gap-resolved-has-resolver", EntityID: "G-0001", Message: "gap is marked addressed but addressed_by is empty"},
 		},
-		Health: statusHealthCounts{Entities: 1, Warnings: 1},
+		Health: status.StatusHealthCounts{Entities: 1, Warnings: 1},
 	}
 	out := captureStdout(t, func() {
-		if err := renderStatusText(os.Stdout, &r, 0, false); err != nil {
-			t.Fatalf("renderStatusText: %v", err)
+		if err := status.RenderStatusText(os.Stdout, &r, 0, false); err != nil {
+			t.Fatalf("status.RenderStatusText: %v", err)
 		}
 	})
 	got := string(out)
@@ -453,35 +455,35 @@ func TestRenderStatusText_Warnings(t *testing.T) {
 // golden so the date line and small markdown formatting tweaks don't
 // require golden refresh.
 func TestRenderStatusMarkdown_FullReport(t *testing.T) {
-	r := statusReport{
+	r := status.StatusReport{
 		Date: "2026-05-01",
-		InFlightEpics: []statusEpic{{
+		InFlightEpics: []status.StatusEpic{{
 			ID: "E-0001", Title: "Active epic", Status: "active",
-			Milestones: []statusMilestone{
+			Milestones: []status.StatusMilestone{
 				{ID: "M-0001", Title: "First", Status: "done"},
 				{ID: "M-0002", Title: "Second", Status: "in_progress"},
 			},
 		}},
-		PlannedEpics: []statusEpic{{
+		PlannedEpics: []status.StatusEpic{{
 			ID: "E-0002", Title: "Planned epic", Status: "proposed",
-			Milestones: []statusMilestone{
+			Milestones: []status.StatusMilestone{
 				{ID: "M-0010", Title: "Setup", Status: "draft"},
 			},
 		}},
-		OpenDecisions: []statusEntity{
+		OpenDecisions: []status.StatusEntity{
 			{ID: "ADR-0001", Title: "Adopt X", Status: "proposed", Kind: "adr"},
 		},
-		OpenGaps: []statusGap{
+		OpenGaps: []status.StatusGap{
 			{ID: "G-0001", Title: "Edge case", DiscoveredIn: "M-0002"},
 		},
-		Warnings: []statusFinding{
+		Warnings: []status.StatusFinding{
 			{Code: "gap-resolved-has-resolver", EntityID: "G-0002", Message: "gap is marked addressed but addressed_by is empty"},
 		},
-		Health: statusHealthCounts{Entities: 7, Errors: 0, Warnings: 1},
+		Health: status.StatusHealthCounts{Entities: 7, Errors: 0, Warnings: 1},
 	}
 	out := captureStdout(t, func() {
-		if err := renderStatusMarkdown(os.Stdout, &r); err != nil {
-			t.Fatalf("renderStatusMarkdown: %v", err)
+		if err := status.RenderStatusMarkdown(os.Stdout, &r); err != nil {
+			t.Fatalf("status.RenderStatusMarkdown: %v", err)
 		}
 	})
 	got := string(out)
@@ -515,10 +517,10 @@ func TestRenderStatusMarkdown_FullReport(t *testing.T) {
 // TestRenderStatusMarkdown_EmptyReport: every section emits its
 // italic empty-state line and no orphan mermaid block leaks.
 func TestRenderStatusMarkdown_EmptyReport(t *testing.T) {
-	r := statusReport{Date: "2026-05-01"}
+	r := status.StatusReport{Date: "2026-05-01"}
 	out := captureStdout(t, func() {
-		if err := renderStatusMarkdown(os.Stdout, &r); err != nil {
-			t.Fatalf("renderStatusMarkdown: %v", err)
+		if err := status.RenderStatusMarkdown(os.Stdout, &r); err != nil {
+			t.Fatalf("status.RenderStatusMarkdown: %v", err)
 		}
 	})
 	got := string(out)
@@ -550,7 +552,7 @@ func TestSummarizeACs(t *testing.T) {
 	tests := []struct {
 		name string
 		acs  []entity.AcceptanceCriterion
-		want *statusACProgress
+		want *status.StatusACProgress
 	}{
 		{
 			name: "nil/empty returns nil",
@@ -560,7 +562,7 @@ func TestSummarizeACs(t *testing.T) {
 		{
 			name: "single open",
 			acs:  []entity.AcceptanceCriterion{{Status: "open"}},
-			want: &statusACProgress{Total: 1, InScope: 1, Open: 1},
+			want: &status.StatusACProgress{Total: 1, InScope: 1, Open: 1},
 		},
 		{
 			name: "mixed with cancelled",
@@ -570,7 +572,7 @@ func TestSummarizeACs(t *testing.T) {
 				{Status: "deferred"},
 				{Status: "cancelled"},
 			},
-			want: &statusACProgress{Total: 4, InScope: 3, Open: 1, Met: 1, Deferred: 1, Cancelled: 1},
+			want: &status.StatusACProgress{Total: 4, InScope: 3, Open: 1, Met: 1, Deferred: 1, Cancelled: 1},
 		},
 		{
 			name: "all cancelled",
@@ -578,12 +580,12 @@ func TestSummarizeACs(t *testing.T) {
 				{Status: "cancelled"},
 				{Status: "cancelled"},
 			},
-			want: &statusACProgress{Total: 2, InScope: 0, Cancelled: 2},
+			want: &status.StatusACProgress{Total: 2, InScope: 0, Cancelled: 2},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := summarizeACs(tt.acs)
+			got := status.SummarizeACs(tt.acs)
 			switch {
 			case got == nil && tt.want == nil:
 				return
@@ -602,18 +604,18 @@ func TestRenderACProgress(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		p    *statusACProgress
+		p    *status.StatusACProgress
 		want string
 	}{
 		{"nil", nil, ""},
-		{"all met", &statusACProgress{Total: 2, InScope: 2, Met: 2}, "ACs 2/2 met"},
-		{"in progress", &statusACProgress{Total: 3, InScope: 3, Open: 1, Met: 2}, "ACs 2/3 met (1 open)"},
-		{"all cancelled", &statusACProgress{Total: 2, InScope: 0, Cancelled: 2}, "ACs all cancelled"},
-		{"with deferred", &statusACProgress{Total: 3, InScope: 3, Met: 2, Deferred: 1}, "ACs 2/3 met"},
+		{"all met", &status.StatusACProgress{Total: 2, InScope: 2, Met: 2}, "ACs 2/2 met"},
+		{"in progress", &status.StatusACProgress{Total: 3, InScope: 3, Open: 1, Met: 2}, "ACs 2/3 met (1 open)"},
+		{"all cancelled", &status.StatusACProgress{Total: 2, InScope: 0, Cancelled: 2}, "ACs all cancelled"},
+		{"with deferred", &status.StatusACProgress{Total: 3, InScope: 3, Met: 2, Deferred: 1}, "ACs 2/3 met"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := renderACProgress(tt.p); got != tt.want {
+			if got := status.RenderACProgress(tt.p); got != tt.want {
 				t.Errorf("got %q, want %q", got, tt.want)
 			}
 		})
@@ -637,10 +639,10 @@ func TestRenderStatusText_ACProgressInline(t *testing.T) {
 			},
 		},
 	}
-	r := buildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil)
 	var b strings.Builder
-	if err := renderStatusText(&b, &r, 0, false); err != nil {
-		t.Fatalf("renderStatusText: %v", err)
+	if err := status.RenderStatusText(&b, &r, 0, false); err != nil {
+		t.Fatalf("status.RenderStatusText: %v", err)
 	}
 	out := b.String()
 	if !strings.Contains(out, "ACs 1/2 met (1 open)") {
@@ -669,10 +671,10 @@ func TestRenderStatusMarkdown_MermaidACBadge(t *testing.T) {
 			},
 		},
 	}
-	r := buildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil)
 	var b strings.Builder
-	if err := renderStatusMarkdown(&b, &r); err != nil {
-		t.Fatalf("renderStatusMarkdown: %v", err)
+	if err := status.RenderStatusMarkdown(&b, &r); err != nil {
+		t.Fatalf("status.RenderStatusMarkdown: %v", err)
 	}
 	out := b.String()
 	if !strings.Contains(out, "ACs 2/3 met (1 open)") {
@@ -694,8 +696,8 @@ func TestMdEscape(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
-			if got := mdEscape(tc.in); got != tc.want {
-				t.Errorf("mdEscape(%q) = %q, want %q", tc.in, got, tc.want)
+			if got := status.MdEscape(tc.in); got != tc.want {
+				t.Errorf("status.MdEscape(%q) = %q, want %q", tc.in, got, tc.want)
 			}
 		})
 	}
@@ -739,9 +741,9 @@ func TestReadRecentActivity_SkipsProseMentions(t *testing.T) {
 		t.Fatalf("git commit (prose): %v\n%s", err, out)
 	}
 
-	events, err := readRecentActivity(context.Background(), root, 10)
+	events, err := status.ReadRecentActivity(context.Background(), root, 10)
 	if err != nil {
-		t.Fatalf("readRecentActivity: %v", err)
+		t.Fatalf("status.ReadRecentActivity: %v", err)
 	}
 	if len(events) != 1 {
 		t.Fatalf("got %d events, want 1 (prose-mention should be filtered); got %+v", len(events), events)

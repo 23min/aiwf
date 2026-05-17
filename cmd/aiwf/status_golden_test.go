@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/status"
+
 	"github.com/23min/aiwf/internal/cli/history"
 
 	"github.com/23min/aiwf/internal/render"
@@ -19,7 +21,7 @@ import (
 // after refactor") demands.
 var updateGolden = flag.Bool("update", false, "regenerate the status golden files")
 
-// canonicalStatusReport returns a deterministic statusReport intended
+// canonicalStatusReport returns a deterministic status.StatusReport intended
 // for golden-file rendering: hand-constructed entities covering every
 // section (in-flight, planned, decisions, gaps, warnings, recent
 // activity), fixed Date so the header doesn't drift with wall clock,
@@ -27,43 +29,43 @@ var updateGolden = flag.Bool("update", false, "regenerate the status golden file
 //
 // Synthetic content per CLAUDE.md test conventions — entity ids and
 // titles read as obviously fictional, not anonymized copies.
-func canonicalStatusReport() statusReport {
-	return statusReport{
+func canonicalStatusReport() status.StatusReport {
+	return status.StatusReport{
 		Date: "2026-05-09",
-		InFlightEpics: []statusEpic{{
+		InFlightEpics: []status.StatusEpic{{
 			ID:     "E-0099",
 			Title:  "Goldenfix epic for refactor parity",
 			Status: "active",
-			Milestones: []statusMilestone{
+			Milestones: []status.StatusMilestone{
 				{ID: "M-0901", Title: "Lay foundations", Status: "done"},
 				{
 					ID:     "M-0902",
 					Title:  "Wire the seam",
 					Status: "in_progress",
 					TDD:    "required",
-					ACs: &statusACProgress{
+					ACs: &status.StatusACProgress{
 						Total: 3, InScope: 3, Open: 1, Met: 2,
 					},
 				},
 				{ID: "M-0903", Title: "Polish edges", Status: "draft"},
 			},
 		}},
-		PlannedEpics: []statusEpic{{
+		PlannedEpics: []status.StatusEpic{{
 			ID:     "E-0100",
 			Title:  "Future work that hasn't started",
 			Status: "proposed",
-			Milestones: []statusMilestone{
+			Milestones: []status.StatusMilestone{
 				{ID: "M-0910", Title: "First plan step", Status: "draft"},
 			},
 		}},
-		OpenDecisions: []statusEntity{
+		OpenDecisions: []status.StatusEntity{
 			{ID: "ADR-0901", Title: "Adopt fictional convention", Status: "proposed", Kind: "adr"},
 			{ID: "D-0901", Title: "Pick approach A or B", Status: "proposed", Kind: "decision"},
 		},
-		OpenGaps: []statusGap{
+		OpenGaps: []status.StatusGap{
 			{ID: "G-0901", Title: "Refactor leaves a seam", DiscoveredIn: "M-0902"},
 		},
-		Warnings: []statusFinding{
+		Warnings: []status.StatusFinding{
 			{
 				Code:     "gap-resolved-has-resolver",
 				EntityID: "G-0902",
@@ -88,7 +90,7 @@ func canonicalStatusReport() statusReport {
 				Commit: "deadbeef",
 			},
 		},
-		Health: statusHealthCounts{Entities: 11, Errors: 0, Warnings: 1},
+		Health: status.StatusHealthCounts{Entities: 11, Errors: 0, Warnings: 1},
 	}
 }
 
@@ -109,8 +111,8 @@ func TestRenderStatus_Goldens(t *testing.T) {
 
 	t.Run("text", func(t *testing.T) {
 		var buf bytes.Buffer
-		if err := renderStatusText(&buf, &r, 0, false); err != nil {
-			t.Fatalf("renderStatusText: %v", err)
+		if err := status.RenderStatusText(&buf, &r, 0, false); err != nil {
+			t.Fatalf("status.RenderStatusText: %v", err)
 		}
 		assertGolden(t, "status_text.golden", buf.Bytes())
 	})

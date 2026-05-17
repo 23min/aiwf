@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/status"
+
 	"github.com/23min/aiwf/internal/cli/list"
 )
 
@@ -84,15 +86,15 @@ func TestRenderListRowsText_BoldHeaderWhenColorEnabled(t *testing.T) {
 // changing piped output.
 func TestRenderStatusText_BoldSectionLabels(t *testing.T) {
 	t.Parallel()
-	r := statusReport{
+	r := status.StatusReport{
 		Date:   "2026-05-14",
-		Health: statusHealthCounts{Entities: 0},
+		Health: status.StatusHealthCounts{Entities: 0},
 	}
 	labels := []string{"In flight", "Roadmap", "Open decisions", "Open gaps", "Warnings", "Recent activity", "Health"}
 
 	var bufOn bytes.Buffer
-	if err := renderStatusText(&bufOn, &r, 0, true); err != nil {
-		t.Fatalf("renderStatusText: %v", err)
+	if err := status.RenderStatusText(&bufOn, &r, 0, true); err != nil {
+		t.Fatalf("status.RenderStatusText: %v", err)
 	}
 	for _, lbl := range labels {
 		want := "\x1b[1m" + lbl + "\x1b[0m"
@@ -102,8 +104,8 @@ func TestRenderStatusText_BoldSectionLabels(t *testing.T) {
 	}
 
 	var bufOff bytes.Buffer
-	if err := renderStatusText(&bufOff, &r, 0, false); err != nil {
-		t.Fatalf("renderStatusText: %v", err)
+	if err := status.RenderStatusText(&bufOff, &r, 0, false); err != nil {
+		t.Fatalf("status.RenderStatusText: %v", err)
 	}
 	if strings.Contains(bufOff.String(), "\x1b") {
 		t.Errorf("colorEnabled=false: output contains ANSI escape (should be plain):\n%q", bufOff.String())
@@ -123,11 +125,11 @@ func TestRenderStatusText_BoldSectionLabels(t *testing.T) {
 // future change that drops a marker fails here.
 func TestWriteStatusEpicText_MilestoneGlyphPaletteAppliesToAllStates(t *testing.T) {
 	t.Parallel()
-	e := statusEpic{
+	e := status.StatusEpic{
 		ID:     "E-0001",
 		Title:  "Test epic",
 		Status: "active",
-		Milestones: []statusMilestone{
+		Milestones: []status.StatusMilestone{
 			{ID: "M-0001", Title: "Draft work", Status: "draft"},
 			{ID: "M-0002", Title: "In-progress work", Status: "in_progress"},
 			{ID: "M-0003", Title: "Done work", Status: "done"},
@@ -135,7 +137,7 @@ func TestWriteStatusEpicText_MilestoneGlyphPaletteAppliesToAllStates(t *testing.
 		},
 	}
 	var sb strings.Builder
-	writeStatusEpicText(&sb, e, 0)
+	status.WriteStatusEpicText(&sb, e, 0)
 	out := sb.String()
 	for _, want := range []string{
 		" ○ M-0001",

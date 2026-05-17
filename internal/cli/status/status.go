@@ -1,4 +1,5 @@
-package main
+// Package status implements the `aiwf status` verb (per-verb subpackage of M-0116).
+package status
 
 import (
 	"context"
@@ -21,32 +22,33 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/version"
 )
 
-// recentActivityLimit is the number of recent commits surfaced by
+// RecentActivityLimit is the number of recent commits surfaced by
 // `aiwf status`'s "Recent activity" section. Five fits in a glance and
 // answers "what changed lately?" without scrolling. For longer history,
 // fall through to `aiwf history <id>`.
-const recentActivityLimit = 5
+const RecentActivityLimit = 5
 
-// statusReport is the pure-data payload for `aiwf status`. The text and
-// JSON renderers consume the same struct; buildStatus produces it from
+// StatusReport is the pure-data payload for `aiwf status`. The text and
+// JSON renderers consume the same struct; BuildStatus produces it from
 // a loaded tree. Lives alongside the CLI dispatcher rather than under
 // internal/ because it is purely a presentational read view — adding a
 // package boundary would be over-engineering for one verb.
-type statusReport struct {
+type StatusReport struct {
 	Date           string                 `json:"date"`
-	InFlightEpics  []statusEpic           `json:"in_flight_epics"`
-	PlannedEpics   []statusEpic           `json:"planned_epics"`
-	OpenDecisions  []statusEntity         `json:"open_decisions"`
-	OpenGaps       []statusGap            `json:"open_gaps"`
-	Warnings       []statusFinding        `json:"warnings"`
+	InFlightEpics  []StatusEpic           `json:"in_flight_epics"`
+	PlannedEpics   []StatusEpic           `json:"planned_epics"`
+	OpenDecisions  []StatusEntity         `json:"open_decisions"`
+	OpenGaps       []StatusGap            `json:"open_gaps"`
+	Warnings       []StatusFinding        `json:"warnings"`
 	RecentActivity []history.HistoryEvent `json:"recent_activity"`
-	SweepPending   *statusSweepPending    `json:"sweep_pending,omitempty"`
-	Health         statusHealthCounts     `json:"health"`
+	SweepPending   *StatusSweepPending    `json:"sweep_pending,omitempty"`
+	Health         StatusHealthCounts     `json:"health"`
 }
 
-// statusSweepPending is the tree-health one-liner for terminal-status
+// StatusSweepPending is the tree-health one-liner for terminal-status
 // entities still living in active directories. Per ADR-0004 §"Display
 // surfaces": "The tree-health section gains a one-liner when sweep is
 // pending: 'Sweep pending: N terminal entities not yet archived (run
@@ -54,49 +56,49 @@ type statusReport struct {
 //
 // Populated from the `archive-sweep-pending` aggregate finding
 // (M-0086); nil when the count is zero so the renderer can skip the
-// section with a single nil-check. Lifted out of statusReport.Warnings
+// section with a single nil-check. Lifted out of StatusReport.Warnings
 // on purpose — the aggregate belongs in the tree-health section, not
 // mixed in with body-empty / resolver-missing warnings.
-type statusSweepPending struct {
+type StatusSweepPending struct {
 	Count   int    `json:"count"`
 	Message string `json:"message"`
 }
 
-// statusFinding is one warning surfaced inline in the status report.
+// StatusFinding is one warning surfaced inline in the status report.
 // Mirrors the load-bearing fields of check.Finding without coupling the
 // JSON shape to the validator package's internal schema.
-type statusFinding struct {
+type StatusFinding struct {
 	Code     string `json:"code"`
 	EntityID string `json:"entity_id,omitempty"`
 	Path     string `json:"path,omitempty"`
 	Message  string `json:"message"`
 }
 
-// statusEpic is one in-flight epic plus every milestone under it.
-type statusEpic struct {
+// StatusEpic is one in-flight epic plus every milestone under it.
+type StatusEpic struct {
 	ID         string            `json:"id"`
 	Title      string            `json:"title"`
 	Status     string            `json:"status"`
-	Milestones []statusMilestone `json:"milestones"`
+	Milestones []StatusMilestone `json:"milestones"`
 }
 
-// statusMilestone is one milestone under an in-flight epic, with the
+// StatusMilestone is one milestone under an in-flight epic, with the
 // in-progress one identifiable by Status. The TDD and ACs fields
 // carry the I2 acceptance-criteria surface; ACs is omitted from JSON
 // when the milestone carries none (zero progress).
-type statusMilestone struct {
+type StatusMilestone struct {
 	ID     string            `json:"id"`
 	Title  string            `json:"title"`
 	Status string            `json:"status"`
 	TDD    string            `json:"tdd,omitempty"`
-	ACs    *statusACProgress `json:"acs,omitempty"`
+	ACs    *StatusACProgress `json:"acs,omitempty"`
 }
 
-// statusACProgress is the per-status count of a milestone's ACs.
+// StatusACProgress is the per-status count of a milestone's ACs.
 // `Total` includes cancelled entries (they remain in the list per
 // the position-stability rule); `InScope` excludes them, so that's
 // the denominator the renderers use for "M/T met" progress.
-type statusACProgress struct {
+type StatusACProgress struct {
 	Total     int `json:"total"`
 	InScope   int `json:"in_scope"`
 	Open      int `json:"open"`
@@ -105,14 +107,14 @@ type statusACProgress struct {
 	Cancelled int `json:"cancelled"`
 }
 
-// summarizeACs returns the per-status counts for a milestone's acs[].
+// SummarizeACs returns the per-status counts for a milestone's acs[].
 // Returns nil when the slice is empty so the renderer can skip the
 // "ACs: …" suffix entirely on milestones that don't carry any.
-func summarizeACs(acs []entity.AcceptanceCriterion) *statusACProgress {
+func SummarizeACs(acs []entity.AcceptanceCriterion) *StatusACProgress {
 	if len(acs) == 0 {
 		return nil
 	}
-	p := &statusACProgress{Total: len(acs)}
+	p := &StatusACProgress{Total: len(acs)}
 	for i := range acs {
 		switch acs[i].Status {
 		case entity.StatusOpen:
@@ -129,14 +131,14 @@ func summarizeACs(acs []entity.AcceptanceCriterion) *statusACProgress {
 	return p
 }
 
-// renderACProgress formats the AC progress badge appended to a
+// RenderACProgress formats the AC progress badge appended to a
 // milestone row. Returns "" when there are no ACs (so the renderer
 // can skip the separator). Format:
 //
 //	"ACs 2/3 met"           — typical case, in-scope total ≥ 1
 //	"ACs 1/2 met (1 open)"  — when there are still open ACs
 //	"ACs all cancelled"     — every AC was cancelled (in-scope = 0)
-func renderACProgress(p *statusACProgress) string {
+func RenderACProgress(p *StatusACProgress) string {
 	if p == nil {
 		return ""
 	}
@@ -150,36 +152,36 @@ func renderACProgress(p *statusACProgress) string {
 	return out
 }
 
-// statusEntity is the shared shape for ADRs and decisions in the
+// StatusEntity is the shared shape for ADRs and decisions in the
 // "Open decisions" section.
-type statusEntity struct {
+type StatusEntity struct {
 	ID     string `json:"id"`
 	Title  string `json:"title"`
 	Status string `json:"status"`
 	Kind   string `json:"kind"`
 }
 
-// statusGap is one open gap with the milestone or epic it was
+// StatusGap is one open gap with the milestone or epic it was
 // discovered in (if any).
-type statusGap struct {
+type StatusGap struct {
 	ID           string `json:"id"`
 	Title        string `json:"title"`
 	DiscoveredIn string `json:"discovered_in,omitempty"`
 }
 
-// statusHealthCounts summarizes the tree's current validation state
+// StatusHealthCounts summarizes the tree's current validation state
 // without re-running expensive checks; pulled from a single check.Run.
-type statusHealthCounts struct {
+type StatusHealthCounts struct {
 	Entities int `json:"entities"`
 	Errors   int `json:"errors"`
 	Warnings int `json:"warnings"`
 }
 
-// newStatusCmd builds `aiwf status`: a project-wide snapshot of in-flight
+// NewCmd builds `aiwf status`: a project-wide snapshot of in-flight
 // work, open decisions, open gaps, and recent activity. Read-only;
 // produces no commit. Use it to answer "what's next?", "where are we?",
 // "what are we working on?".
-func newStatusCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		root    string
 		format  string
@@ -202,7 +204,7 @@ func newStatusCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runStatusCmd(root, format, pretty, noTrunc))
+			return cliutil.WrapExitCode(Run(root, format, pretty, noTrunc))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -216,7 +218,8 @@ func newStatusCmd() *cobra.Command {
 	return cmd
 }
 
-func runStatusCmd(root, format string, pretty, noTrunc bool) int {
+// Run executes `aiwf status`. Returns one of the cliutil.Exit* codes.
+func Run(root, format string, pretty, noTrunc bool) int {
 	if format != "text" && format != "json" && format != "md" {
 		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
 		return cliutil.ExitUsage
@@ -235,9 +238,9 @@ func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 		return cliutil.ExitInternal
 	}
 
-	report := buildStatus(tr, loadErrs)
+	report := BuildStatus(tr, loadErrs)
 
-	recent, err := readRecentActivity(ctx, rootDir, recentActivityLimit)
+	recent, err := ReadRecentActivity(ctx, rootDir, RecentActivityLimit)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf status: reading recent activity: %v\n", err)
 		return cliutil.ExitInternal
@@ -250,14 +253,14 @@ func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 		if !noTrunc {
 			termWidth = render.TerminalWidth(os.Stdout)
 		}
-		if err := renderStatusText(os.Stdout, &report, termWidth, render.ColorEnabled(os.Stdout)); err != nil {
+		if err := RenderStatusText(os.Stdout, &report, termWidth, render.ColorEnabled(os.Stdout)); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
 		env := render.Envelope{
 			Tool:    "aiwf",
-			Version: Version,
+			Version: version.Current().Version,
 			Status:  "ok",
 			Result:  &report,
 			Metadata: map[string]any{
@@ -270,7 +273,7 @@ func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 			return cliutil.ExitInternal
 		}
 	case "md":
-		if err := renderStatusMarkdown(os.Stdout, &report); err != nil {
+		if err := RenderStatusMarkdown(os.Stdout, &report); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
@@ -278,12 +281,12 @@ func runStatusCmd(root, format string, pretty, noTrunc bool) int {
 	return cliutil.ExitOK
 }
 
-// buildStatus returns the project status payload for tree tr, with
+// BuildStatus returns the project status payload for tree tr, with
 // loadErrs surfaced as part of the health counts. The returned report
-// has RecentActivity unset; the caller fills it via readRecentActivity
+// has RecentActivity unset; the caller fills it via ReadRecentActivity
 // (which needs git access; this function stays pure for testability).
-func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
-	r := statusReport{
+func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError) StatusReport {
+	r := StatusReport{
 		Date: time.Now().UTC().Format("2006-01-02"),
 	}
 
@@ -308,18 +311,18 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 
 	for _, e := range epics {
 		canonEpic := entity.Canonicalize(e.ID)
-		se := statusEpic{
+		se := StatusEpic{
 			ID:     canonEpic,
 			Title:  e.Title,
 			Status: e.Status,
 		}
 		for _, m := range milestonesByParent[canonEpic] {
-			se.Milestones = append(se.Milestones, statusMilestone{
+			se.Milestones = append(se.Milestones, StatusMilestone{
 				ID:     entity.Canonicalize(m.ID),
 				Title:  m.Title,
 				Status: m.Status,
 				TDD:    m.TDD,
-				ACs:    summarizeACs(m.ACs),
+				ACs:    SummarizeACs(m.ACs),
 			})
 		}
 		switch e.Status {
@@ -334,7 +337,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	// Each kind is one helper call; the merge needs an outer sort to
 	// interleave the two id namespaces deterministically.
 	for _, e := range tr.FilterByKindStatuses(entity.KindADR, entity.StatusProposed) {
-		r.OpenDecisions = append(r.OpenDecisions, statusEntity{
+		r.OpenDecisions = append(r.OpenDecisions, StatusEntity{
 			ID:     entity.Canonicalize(e.ID),
 			Title:  e.Title,
 			Status: e.Status,
@@ -342,7 +345,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 		})
 	}
 	for _, e := range tr.FilterByKindStatuses(entity.KindDecision, entity.StatusProposed) {
-		r.OpenDecisions = append(r.OpenDecisions, statusEntity{
+		r.OpenDecisions = append(r.OpenDecisions, StatusEntity{
 			ID:     entity.Canonicalize(e.ID),
 			Title:  e.Title,
 			Status: e.Status,
@@ -354,7 +357,7 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	// Open gaps: status == "open". Helper returns id-sorted; no extra
 	// sort needed.
 	for _, e := range tr.FilterByKindStatuses(entity.KindGap, entity.StatusOpen) {
-		r.OpenGaps = append(r.OpenGaps, statusGap{
+		r.OpenGaps = append(r.OpenGaps, StatusGap{
 			ID:           entity.Canonicalize(e.ID),
 			Title:        e.Title,
 			DiscoveredIn: entity.Canonicalize(e.DiscoveredIn),
@@ -379,10 +382,10 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 		case check.SeverityWarning:
 			r.Health.Warnings++
 			if findings[i].Code == "archive-sweep-pending" {
-				r.SweepPending = parseSweepPending(findings[i].Message)
+				r.SweepPending = ParseSweepPending(findings[i].Message)
 				continue
 			}
-			r.Warnings = append(r.Warnings, statusFinding{
+			r.Warnings = append(r.Warnings, StatusFinding{
 				Code:     findings[i].Code,
 				EntityID: entity.Canonicalize(findings[i].EntityID),
 				Path:     findings[i].Path,
@@ -395,8 +398,8 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 	return r
 }
 
-// parseSweepPending extracts the count from an `archive-sweep-pending`
-// finding message and packages it into a statusSweepPending. The
+// ParseSweepPending extracts the count from an `archive-sweep-pending`
+// finding message and packages it into a StatusSweepPending. The
 // rule's message format ("%d terminal entities awaiting `aiwf archive
 // --apply`...") is the upstream contract; this function is the
 // consumer-side parser, so a future format change must update both
@@ -408,12 +411,12 @@ func buildStatus(tr *tree.Tree, loadErrs []tree.LoadError) statusReport {
 // only happen if the upstream finding-rule produced an empty count;
 // the rule itself returns nil at zero so this branch shouldn't fire
 // in practice.
-func parseSweepPending(message string) *statusSweepPending {
+func ParseSweepPending(message string) *StatusSweepPending {
 	var count int
 	if _, err := fmt.Sscanf(message, "%d", &count); err != nil || count <= 0 {
 		return nil
 	}
-	return &statusSweepPending{
+	return &StatusSweepPending{
 		Count: count,
 		Message: fmt.Sprintf("Sweep pending: %d terminal entit%s not yet archived (run `aiwf archive --dry-run` to preview)",
 			count, plural(count, "y", "ies")),
@@ -429,7 +432,7 @@ func plural(n int, singular, plural string) string {
 	return plural
 }
 
-// readRecentActivity returns the last `limit` commits whose message
+// ReadRecentActivity returns the last `limit` commits whose message
 // carries any `aiwf-verb:` trailer. Cross-entity, no filter — used by
 // `aiwf status` to answer "what changed lately?" across the whole
 // project. Events come back newest-first.
@@ -441,7 +444,7 @@ func plural(n int, singular, plural string) string {
 // Verb column — those records are skipped (G30). The grep over a
 // long history is also asked for more rows than `limit` so the
 // post-filter doesn't silently shrink the result; we then truncate.
-func readRecentActivity(ctx context.Context, root string, limit int) ([]history.HistoryEvent, error) {
+func ReadRecentActivity(ctx context.Context, root string, limit int) ([]history.HistoryEvent, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -504,7 +507,7 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]history.
 	return events, nil
 }
 
-// writeStatusEpicText writes one epic plus its milestones in the
+// WriteStatusEpicText writes one epic plus its milestones in the
 // terminal-friendly shape shared by the In flight and Roadmap sections.
 // termWidth caps title widths so long titles don't wrap into the next
 // row's column-zero (the G-0080 visual-scan bug); 0 disables truncation.
@@ -514,10 +517,10 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]history.
 // glyphs (→ ✓) have always been present; this function also emits ○
 // for draft and ✗ for cancelled so the four-glyph palette is uniformly
 // applied across all milestone states.
-func writeStatusEpicText(b *strings.Builder, e statusEpic, termWidth int) {
+func WriteStatusEpicText(b *strings.Builder, e StatusEpic, termWidth int) {
 	epicPrefix := fmt.Sprintf("  %s — ", e.ID)
 	epicTail := fmt.Sprintf("    [%s]", e.Status)
-	epicTitle := truncStatusTitle(e.Title, termWidth, epicPrefix, epicTail)
+	epicTitle := TruncStatusTitle(e.Title, termWidth, epicPrefix, epicTail)
 	fmt.Fprintf(b, "%s%s%s\n", epicPrefix, epicTitle, epicTail)
 	if len(e.Milestones) == 0 {
 		b.WriteString("       (no milestones)\n")
@@ -531,7 +534,7 @@ func writeStatusEpicText(b *strings.Builder, e statusEpic, termWidth int) {
 			marker = " " + g + " "
 		}
 		suffix := ""
-		if progress := renderACProgress(m.ACs); progress != "" {
+		if progress := RenderACProgress(m.ACs); progress != "" {
 			suffix = "    · " + progress
 		}
 		if m.TDD != "" {
@@ -539,17 +542,17 @@ func writeStatusEpicText(b *strings.Builder, e statusEpic, termWidth int) {
 		}
 		msPrefix := fmt.Sprintf("    %s%s — ", marker, m.ID)
 		msTail := fmt.Sprintf("    [%s]%s", m.Status, suffix)
-		msTitle := truncStatusTitle(m.Title, termWidth, msPrefix, msTail)
+		msTitle := TruncStatusTitle(m.Title, termWidth, msPrefix, msTail)
 		fmt.Fprintf(b, "%s%s%s\n", msPrefix, msTitle, msTail)
 	}
 }
 
-// truncStatusTitle caps title to fit termWidth given the non-title
+// TruncStatusTitle caps title to fit termWidth given the non-title
 // prefix/tail of the line. Returns title unchanged when termWidth is 0
 // (no TTY / --no-trunc) or when the available room would fall below
 // the per-G-0080 minimum useful column width. The minimum (10 runes)
 // is the same floor renderListRowsText uses — see list.MinTitleColumnRunes.
-func truncStatusTitle(title string, termWidth int, prefix, tail string) string {
+func TruncStatusTitle(title string, termWidth int, prefix, tail string) string {
 	if termWidth <= 0 {
 		return title
 	}
@@ -561,7 +564,7 @@ func truncStatusTitle(title string, termWidth int, prefix, tail string) string {
 	return render.Truncate(title, avail)
 }
 
-// renderStatusText writes the human-readable status report to w. The
+// RenderStatusText writes the human-readable status report to w. The
 // in-progress milestone gets a `→` prefix; done a `✓`; draft a `○`;
 // cancelled a `✗` — the four-glyph G-0080 palette, applied so every
 // milestone row carries a visible state marker. Empty sections render
@@ -576,7 +579,7 @@ func truncStatusTitle(title string, termWidth int, prefix, tail string) string {
 // colorEnabled toggles ANSI-bold section labels; row content stays
 // escape-free so downstream tooling (grep, awk) sees plain text. The
 // glyph palette is content, not style, and appears regardless.
-func renderStatusText(w io.Writer, r *statusReport, termWidth int, colorEnabled bool) error {
+func RenderStatusText(w io.Writer, r *StatusReport, termWidth int, colorEnabled bool) error {
 	var b strings.Builder
 	fmt.Fprintf(&b, "aiwf status — %s\n\n", r.Date)
 
@@ -585,7 +588,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int, colorEnabled 
 		b.WriteString("  (no active epics)\n")
 	}
 	for _, e := range r.InFlightEpics {
-		writeStatusEpicText(&b, e, termWidth)
+		WriteStatusEpicText(&b, e, termWidth)
 	}
 	b.WriteByte('\n')
 
@@ -594,7 +597,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int, colorEnabled 
 		b.WriteString("  (nothing planned)\n")
 	}
 	for _, e := range r.PlannedEpics {
-		writeStatusEpicText(&b, e, termWidth)
+		WriteStatusEpicText(&b, e, termWidth)
 	}
 	b.WriteByte('\n')
 
@@ -605,7 +608,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int, colorEnabled 
 	for _, d := range r.OpenDecisions {
 		prefix := fmt.Sprintf("  %s — ", d.ID)
 		tail := fmt.Sprintf("    [%s]", d.Status)
-		title := truncStatusTitle(d.Title, termWidth, prefix, tail)
+		title := TruncStatusTitle(d.Title, termWidth, prefix, tail)
 		fmt.Fprintf(&b, "%s%s%s\n", prefix, title, tail)
 	}
 	b.WriteByte('\n')
@@ -620,7 +623,7 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int, colorEnabled 
 		if g.DiscoveredIn != "" {
 			tail = fmt.Sprintf("    (discovered in %s)", g.DiscoveredIn)
 		}
-		title := truncStatusTitle(g.Title, termWidth, prefix, tail)
+		title := TruncStatusTitle(g.Title, termWidth, prefix, tail)
 		fmt.Fprintf(&b, "%s%s%s\n", prefix, title, tail)
 	}
 	b.WriteByte('\n')
@@ -673,12 +676,12 @@ func renderStatusText(w io.Writer, r *statusReport, termWidth int, colorEnabled 
 	return err
 }
 
-// renderStatusMarkdown writes the status report as a self-contained
+// RenderStatusMarkdown writes the status report as a self-contained
 // markdown document, with mermaid `flowchart` blocks for in-flight and
 // roadmap epics. The output renders unchanged in any markdown viewer
 // that supports mermaid (GitHub web, VSCode, Obsidian, glow + mermaid
 // extension, etc.). Plain markdown — no HTML, no JS.
-func renderStatusMarkdown(w io.Writer, r *statusReport) error {
+func RenderStatusMarkdown(w io.Writer, r *StatusReport) error {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# aiwf status — %s\n\n", r.Date)
 
@@ -700,7 +703,7 @@ func renderStatusMarkdown(w io.Writer, r *statusReport) error {
 		b.WriteString("_(no active epics)_\n\n")
 	}
 	for _, e := range r.InFlightEpics {
-		writeStatusEpicMarkdown(&b, e)
+		WriteStatusEpicMarkdown(&b, e)
 	}
 
 	b.WriteString("## Roadmap\n\n")
@@ -708,7 +711,7 @@ func renderStatusMarkdown(w io.Writer, r *statusReport) error {
 		b.WriteString("_(nothing planned)_\n\n")
 	}
 	for _, e := range r.PlannedEpics {
-		writeStatusEpicMarkdown(&b, e)
+		WriteStatusEpicMarkdown(&b, e)
 	}
 
 	b.WriteString("## Open decisions\n\n")
@@ -719,7 +722,7 @@ func renderStatusMarkdown(w io.Writer, r *statusReport) error {
 		b.WriteString("|----|------|-------|--------|\n")
 		for _, d := range r.OpenDecisions {
 			fmt.Fprintf(&b, "| %s | %s | %s | %s |\n",
-				d.ID, d.Kind, mdEscape(d.Title), d.Status)
+				d.ID, d.Kind, MdEscape(d.Title), d.Status)
 		}
 		b.WriteByte('\n')
 	}
@@ -732,7 +735,7 @@ func renderStatusMarkdown(w io.Writer, r *statusReport) error {
 		b.WriteString("|----|-------|---------------|\n")
 		for _, g := range r.OpenGaps {
 			fmt.Fprintf(&b, "| %s | %s | %s |\n",
-				g.ID, mdEscape(g.Title), g.DiscoveredIn)
+				g.ID, MdEscape(g.Title), g.DiscoveredIn)
 		}
 		b.WriteByte('\n')
 	}
@@ -745,7 +748,7 @@ func renderStatusMarkdown(w io.Writer, r *statusReport) error {
 		b.WriteString("|------|--------|------|---------|\n")
 		for _, ww := range r.Warnings {
 			fmt.Fprintf(&b, "| %s | %s | %s | %s |\n",
-				ww.Code, ww.EntityID, ww.Path, mdEscape(ww.Message))
+				ww.Code, ww.EntityID, ww.Path, MdEscape(ww.Message))
 		}
 		b.WriteByte('\n')
 	}
@@ -763,7 +766,7 @@ func renderStatusMarkdown(w io.Writer, r *statusReport) error {
 				date = date[:10]
 			}
 			fmt.Fprintf(&b, "| %s | %s | %s | %s |\n",
-				date, ev.Actor, ev.Verb, mdEscape(ev.Detail))
+				date, ev.Actor, ev.Verb, MdEscape(ev.Detail))
 		}
 		b.WriteByte('\n')
 	}
@@ -772,13 +775,13 @@ func renderStatusMarkdown(w io.Writer, r *statusReport) error {
 	return err
 }
 
-// writeStatusEpicMarkdown writes one epic — header, milestone list, and
+// WriteStatusEpicMarkdown writes one epic — header, milestone list, and
 // a mermaid `flowchart LR` keyed by milestone status — into b. Empty
 // milestone lists render an explicit "(no milestones)" line so the
 // section stays visually balanced and the diagram is omitted (mermaid
 // barfs on a flowchart with one node and no edges).
-func writeStatusEpicMarkdown(b *strings.Builder, e statusEpic) {
-	fmt.Fprintf(b, "### %s — %s _(%s)_\n\n", e.ID, mdEscape(e.Title), e.Status)
+func WriteStatusEpicMarkdown(b *strings.Builder, e StatusEpic) {
+	fmt.Fprintf(b, "### %s — %s _(%s)_\n\n", e.ID, MdEscape(e.Title), e.Status)
 	if len(e.Milestones) == 0 {
 		b.WriteString("_(no milestones)_\n\n")
 		return
@@ -792,19 +795,19 @@ func writeStatusEpicMarkdown(b *strings.Builder, e statusEpic) {
 			marker = "✓ "
 		}
 		suffix := ""
-		if progress := renderACProgress(m.ACs); progress != "" {
+		if progress := RenderACProgress(m.ACs); progress != "" {
 			suffix = " — " + progress
 		}
 		if m.TDD != "" {
 			suffix += " — tdd: " + m.TDD
 		}
-		fmt.Fprintf(b, "- %s**%s** — %s _(%s)_%s\n", marker, m.ID, mdEscape(m.Title), m.Status, suffix)
+		fmt.Fprintf(b, "- %s**%s** — %s _(%s)_%s\n", marker, m.ID, MdEscape(m.Title), m.Status, suffix)
 	}
 	b.WriteByte('\n')
 
 	b.WriteString("```mermaid\nflowchart LR\n")
 	fmt.Fprintf(b, "  %s[\"%s<br/>%s\"]:::epic_%s\n",
-		mermaidID(e.ID), e.ID, mdEscape(e.Title), e.Status)
+		mermaidID(e.ID), e.ID, MdEscape(e.Title), e.Status)
 	for _, m := range e.Milestones {
 		// Append "(M/T)" badge to the mermaid label when the milestone
 		// has any in-scope ACs. Cancelled-only milestones get no badge
@@ -814,7 +817,7 @@ func writeStatusEpicMarkdown(b *strings.Builder, e statusEpic) {
 			acBadge = fmt.Sprintf(" (%d/%d)", m.ACs.Met, m.ACs.InScope)
 		}
 		fmt.Fprintf(b, "  %s[\"%s%s<br/>%s\"]:::ms_%s\n",
-			mermaidID(m.ID), m.ID, acBadge, mdEscape(m.Title), m.Status)
+			mermaidID(m.ID), m.ID, acBadge, MdEscape(m.Title), m.Status)
 		fmt.Fprintf(b, "  %s --> %s\n", mermaidID(e.ID), mermaidID(m.ID))
 	}
 	b.WriteString("  classDef epic_active fill:#d6eaff,stroke:#1a73e8,color:#000\n")
@@ -834,12 +837,12 @@ func mermaidID(id string) string {
 	return strings.ReplaceAll(id, "-", "_")
 }
 
-// mdEscape escapes the four characters that break a markdown table row
+// MdEscape escapes the four characters that break a markdown table row
 // or a mermaid label: pipe, backtick, the bracket pair (mermaid uses
 // them for node syntax), and the double-quote (mermaid uses it to
 // delimit labels). Newlines are stripped so a single field stays on
 // one row. Conservative; not a full markdown sanitizer.
-func mdEscape(s string) string {
+func MdEscape(s string) string {
 	r := strings.NewReplacer(
 		"|", "\\|",
 		"`", "\\`",

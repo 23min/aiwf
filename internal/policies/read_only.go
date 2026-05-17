@@ -36,7 +36,7 @@ var readOnlyVerbs = []readOnlyVerb{
 	{FuncName: "Run", FilePrefix: "internal/cli/history/"},
 	{FuncName: "runShowCmd", FilePrefix: "cmd/aiwf/"},
 	{FuncName: "runDoctorCmd", FilePrefix: "cmd/aiwf/"},
-	{FuncName: "runStatusCmd", FilePrefix: "cmd/aiwf/"},
+	{FuncName: "Run", FilePrefix: "internal/cli/status/"},
 	{FuncName: "Run", FilePrefix: "internal/cli/whoami/"},
 	{FuncName: "Run", FilePrefix: "internal/cli/schema/"},
 	{FuncName: "runRenderSiteCmd", FilePrefix: "cmd/aiwf/"},

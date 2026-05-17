@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/status"
+
 	"github.com/23min/aiwf/internal/cli/list"
 
 	"github.com/23min/aiwf/internal/render"
@@ -205,7 +207,7 @@ func TestList_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 	}
 }
 
-// TestStatus_JSON_CanonicalIDsFromNarrowTree asserts buildStatus's
+// TestStatus_JSON_CanonicalIDsFromNarrowTree asserts status.BuildStatus's
 // JSON-shape projection carries canonical ids on every id-bearing
 // field (epics, milestones, gaps, decisions, warnings).
 func TestStatus_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
@@ -217,7 +219,7 @@ func TestStatus_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	report := buildStatus(tr, loadErrs)
+	report := status.BuildStatus(tr, loadErrs)
 
 	// Marshal to JSON and parse it back to assert structural shape
 	// without coupling the test to the Go struct field order.

@@ -2,6 +2,8 @@ package main
 
 import (
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/status"
 )
 
 // TestPluralToEntityKind_UnknownReturnsFalse — branch-coverage for
@@ -26,7 +28,7 @@ func TestPluralToEntityKind_UnknownReturnsFalse(t *testing.T) {
 }
 
 // TestParseSweepPending_MalformedMessageReturnsNil — branch-coverage
-// for parseSweepPending's defensive guard. The rule's upstream
+// for status.ParseSweepPending's defensive guard. The rule's upstream
 // contract guarantees the message starts with a digit-count, but
 // the parser still defends against drift by returning nil on a
 // message that doesn't match — the renderer's nil-check skips the
@@ -44,9 +46,9 @@ func TestParseSweepPending_MalformedMessageReturnsNil(t *testing.T) {
 	}
 	for _, msg := range cases {
 		t.Run(msg, func(t *testing.T) {
-			got := parseSweepPending(msg)
+			got := status.ParseSweepPending(msg)
 			if got != nil {
-				t.Errorf("parseSweepPending(%q) = %+v, want nil", msg, got)
+				t.Errorf("status.ParseSweepPending(%q) = %+v, want nil", msg, got)
 			}
 		})
 	}

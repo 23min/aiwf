@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/status"
+
 	"github.com/23min/aiwf/internal/cli/list"
 )
 
@@ -118,7 +120,7 @@ func TestRenderListRowsText_NoTruncationOnZeroBudget(t *testing.T) {
 }
 
 // TestTruncStatusTitle pins the per-line title-cap helper used by
-// renderStatusText for milestone/gap/decision/epic title columns.
+// status.RenderStatusText for milestone/gap/decision/epic title columns.
 func TestTruncStatusTitle(t *testing.T) {
 	t.Parallel()
 	const prefix = "    →M-0001 — "  // 14 runes
@@ -147,9 +149,9 @@ func TestTruncStatusTitle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := truncStatusTitle(tt.title, tt.termWidth, tt.prefix, tt.tail)
+			got := status.TruncStatusTitle(tt.title, tt.termWidth, tt.prefix, tt.tail)
 			if got != tt.want {
-				t.Errorf("truncStatusTitle(%q, %d) = %q, want %q",
+				t.Errorf("status.TruncStatusTitle(%q, %d) = %q, want %q",
 					tt.title, tt.termWidth, got, tt.want)
 			}
 		})
@@ -162,35 +164,35 @@ func TestTruncStatusTitle(t *testing.T) {
 // once is the cheapest way to catch a missed call site.
 func TestRenderStatusText_TruncatesAllTitleColumnsWhenNarrow(t *testing.T) {
 	t.Parallel()
-	r := statusReport{
+	r := status.StatusReport{
 		Date: "2026-05-14",
-		InFlightEpics: []statusEpic{{
+		InFlightEpics: []status.StatusEpic{{
 			ID:     "E-0001",
 			Title:  "An epic title that is definitely long enough to overflow the eighty-column terminal width",
 			Status: "active",
-			Milestones: []statusMilestone{{
+			Milestones: []status.StatusMilestone{{
 				ID:     "M-0001",
 				Title:  "A milestone title that is definitely long enough to overflow the eighty-column terminal width",
 				Status: "in_progress",
 				TDD:    "required",
 			}},
 		}},
-		OpenDecisions: []statusEntity{{
+		OpenDecisions: []status.StatusEntity{{
 			ID:     "ADR-0001",
 			Title:  "A decision title that is definitely long enough to overflow the eighty-column terminal width",
 			Status: "proposed",
 			Kind:   "adr",
 		}},
-		OpenGaps: []statusGap{{
+		OpenGaps: []status.StatusGap{{
 			ID:           "G-0001",
 			Title:        "A gap title that is definitely long enough to overflow the eighty-column terminal width",
 			DiscoveredIn: "M-0001",
 		}},
-		Health: statusHealthCounts{Entities: 4},
+		Health: status.StatusHealthCounts{Entities: 4},
 	}
 	var buf bytes.Buffer
-	if err := renderStatusText(&buf, &r, 80, false); err != nil {
-		t.Fatalf("renderStatusText: %v", err)
+	if err := status.RenderStatusText(&buf, &r, 80, false); err != nil {
+		t.Fatalf("status.RenderStatusText: %v", err)
 	}
 	out := buf.String()
 

@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/status"
+
 	"github.com/23min/aiwf/internal/cli/list"
 
 	"github.com/google/go-cmp/cmp"
@@ -352,7 +354,7 @@ func TestRun_List_BadKind(t *testing.T) {
 
 // TestSeam_ListAndStatusAgreeOnOpenGaps is M-072 AC-6's chokepoint:
 // `aiwf list --kind gap --status open` and the *Open gaps* slice
-// produced by `buildStatus` must agree on the same fixture tree.
+// produced by `status.BuildStatus` must agree on the same fixture tree.
 // Both routes through tree.FilterByKindStatuses; if a future change
 // re-introduces parallel filter logic in either site, the agreement
 // breaks here even when each verb's own tests still pass.
@@ -373,7 +375,7 @@ func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
 		listIDs = append(listIDs, r.ID)
 	}
 
-	report := buildStatus(tr, nil)
+	report := status.BuildStatus(tr, nil)
 	statusIDs := make([]string, 0, len(report.OpenGaps))
 	for _, g := range report.OpenGaps {
 		statusIDs = append(statusIDs, g.ID)

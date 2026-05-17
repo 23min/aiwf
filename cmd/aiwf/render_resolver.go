@@ -9,6 +9,7 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/cli/status"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/htmlrender"
@@ -376,12 +377,12 @@ func (r *renderResolver) sidebarWithStatus(activeEpicID, activeMilestoneID strin
 }
 
 // StatusData implements htmlrender.PageDataResolver. Reuses the
-// existing buildStatus() + readRecentActivity() helpers (which
+// existing status.BuildStatus() + status.ReadRecentActivity() helpers (which
 // power the `aiwf status` verb) and projects the result into the
 // renderer-facing types.
 func (r *renderResolver) StatusData() (*htmlrender.StatusData, error) {
-	report := buildStatus(r.tree, nil)
-	if recent, err := readRecentActivity(r.ctx, r.root, recentActivityLimit); err == nil {
+	report := status.BuildStatus(r.tree, nil)
+	if recent, err := status.ReadRecentActivity(r.ctx, r.root, status.RecentActivityLimit); err == nil {
 		report.RecentActivity = recent
 	}
 	out := &htmlrender.StatusData{
