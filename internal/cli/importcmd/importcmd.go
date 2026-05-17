@@ -1,4 +1,6 @@
-package main
+// Package importcmd implements the `aiwf import` verb (per-verb subpackage of M-0116;
+// directory and package are `importcmd` because `import` is a Go reserved word).
+package importcmd
 
 import (
 	"context"
@@ -17,7 +19,7 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// newImportCmd builds `aiwf import <manifest>`. Reads the manifest,
+// NewCmd builds `aiwf import <manifest>`. Reads the manifest,
 // runs the import verb against the tree, and either renders findings
 // (no writes) or applies each plan (one commit per plan).
 //
@@ -27,7 +29,7 @@ import (
 //	--actor          override the manifest's `actor` (and aiwf.yaml)
 //	--on-collision   fail (default) | skip | update
 //	--dry-run        validate the projection and print what would happen, no writes
-func newImportCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		root        string
 		actor       string
@@ -47,7 +49,7 @@ func newImportCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runImportCmd(args[0], root, actor, principal, onCollision, dryRun))
+			return cliutil.WrapExitCode(Run(args[0], root, actor, principal, onCollision, dryRun))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -62,7 +64,8 @@ func newImportCmd() *cobra.Command {
 	return cmd
 }
 
-func runImportCmd(manifestPath, root, actor, principal, onCollision string, dryRun bool) int {
+// Run executes `aiwf import`. Returns one of the cliutil.Exit* codes.
+func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
