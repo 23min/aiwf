@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/list"
+
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -173,7 +175,7 @@ func TestList_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	rows := buildListRows(tr, "", "", "", true)
+	rows := list.BuildListRows(tr, "", "", "", true)
 	wantIDs := map[string]bool{"E-0022": true, "M-0007": true, "G-0093": true, "ADR-0001": true}
 	for _, r := range rows {
 		if !strings.HasPrefix(r.ID, "E-") && !strings.HasPrefix(r.ID, "M-") &&

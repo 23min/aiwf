@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/list"
 )
 
 // TestComputeTitleBudget pins the title-column sizing math for
@@ -17,7 +19,7 @@ import (
 // prefix runes (the production path through renderListRowsText).
 func TestComputeTitleBudget(t *testing.T) {
 	t.Parallel()
-	rows := []listSummary{
+	rows := []list.ListSummary{
 		{ID: "M-0001", Status: "in_progress", Title: "A very long milestone title that exceeds normal width", Parent: "E-0001"},
 		{ID: "M-0002", Status: "draft", Title: "Short", Parent: "E-0001"},
 	}
@@ -27,7 +29,7 @@ func TestComputeTitleBudget(t *testing.T) {
 	withGlyphs := []string{"→ in_progress", "○ draft"}
 	tests := []struct {
 		name             string
-		rows             []listSummary
+		rows             []list.ListSummary
 		renderedStatuses []string
 		termWidth        int
 		want             int
@@ -52,9 +54,9 @@ func TestComputeTitleBudget(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := computeTitleBudget(tt.rows, tt.renderedStatuses, tt.termWidth)
+			got := list.ComputeTitleBudget(tt.rows, tt.renderedStatuses, tt.termWidth)
 			if got != tt.want {
-				t.Errorf("computeTitleBudget(%d) = %d, want %d", tt.termWidth, got, tt.want)
+				t.Errorf("list.ComputeTitleBudget(%d) = %d, want %d", tt.termWidth, got, tt.want)
 			}
 		})
 	}
@@ -67,13 +69,13 @@ func TestComputeTitleBudget(t *testing.T) {
 // truncation) is what every other list test already exercises.
 func TestRenderListRowsText_TruncatesTitleWhenNarrow(t *testing.T) {
 	t.Parallel()
-	rows := []listSummary{
+	rows := []list.ListSummary{
 		{ID: "M-0001", Status: "in_progress", Title: "A very long milestone title that should not wrap mid-row", Parent: "E-0001"},
 	}
 	var buf bytes.Buffer
 	// termWidth=50, statusW with glyph prefix = 13 ("→ in_progress").
 	// budget = 50 - (6+13+6+6) = 19 runes.
-	renderListRowsText(&buf, rows, 50, false)
+	list.RenderListRowsText(&buf, rows, 50, false)
 	out := buf.String()
 	// The id, status (substring), glyph, and parent must appear.
 	for _, want := range []string{"M-0001", "in_progress", "→", "E-0001"} {
@@ -101,11 +103,11 @@ func TestRenderListRowsText_TruncatesTitleWhenNarrow(t *testing.T) {
 // every golden test and pipeline consumer depends on.
 func TestRenderListRowsText_NoTruncationOnZeroBudget(t *testing.T) {
 	t.Parallel()
-	rows := []listSummary{
+	rows := []list.ListSummary{
 		{ID: "M-0001", Status: "draft", Title: "Whatever-length title here", Parent: "E-0001"},
 	}
 	var buf bytes.Buffer
-	renderListRowsText(&buf, rows, 0, false)
+	list.RenderListRowsText(&buf, rows, 0, false)
 	out := buf.String()
 	if !strings.Contains(out, "Whatever-length title here") {
 		t.Errorf("zero-budget render dropped or altered title:\n%s", out)

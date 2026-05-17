@@ -1,4 +1,6 @@
-package main
+// Package list implements the `aiwf list` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go newRootCmd wires it via NewCmd).
+package list
 
 import (
 	"context"
@@ -16,12 +18,13 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/version"
 )
 
-// listSummary is the per-entity row emitted by `aiwf list`. The shape
+// ListSummary is the per-entity row emitted by `aiwf list`. The shape
 // is the JSON envelope's `result` element verbatim and is the contract
 // downstream tooling depends on; keep it stable across V1 evolutions.
-type listSummary struct {
+type ListSummary struct {
 	ID     string `json:"id"`
 	Kind   string `json:"kind"`
 	Status string `json:"status"`
@@ -30,16 +33,16 @@ type listSummary struct {
 	Path   string `json:"path,omitempty"`
 }
 
-// listCounts is the per-kind count payload for the no-args invocation.
+// ListCounts is the per-kind count payload for the no-args invocation.
 // Keys are kind names; the renderer iterates entity.AllKinds() so the
 // order is canonical and a future kind picks up automatically.
-type listCounts map[string]int
+type ListCounts map[string]int
 
-// newListCmd builds `aiwf list`: the AI-first read primitive over the
+// NewCmd builds `aiwf list`: the AI-first read primitive over the
 // planning tree. Read-only; no commit. Default semantic is "non-
 // terminal entities" (forward-compat with ADR-0004); --archived widens
 // to include terminal-status entities.
-func newListCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		root     string
 		kind     string
@@ -74,7 +77,7 @@ func newListCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runListCmd(root, kind, status, parent, archived, format, pretty, noTrunc))
+			return cliutil.WrapExitCode(Run(root, kind, status, parent, archived, format, pretty, noTrunc))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -93,7 +96,7 @@ func newListCmd() *cobra.Command {
 	_ = cmd.RegisterFlagCompletionFunc("status", func(c *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		k, _ := c.Flags().GetString("kind")
 		if k == "" {
-			return unionAllStatuses(), cobra.ShellCompDirectiveNoFileComp
+			return UnionAllStatuses(), cobra.ShellCompDirectiveNoFileComp
 		}
 		return entity.AllowedStatuses(entity.Kind(k)), cobra.ShellCompDirectiveNoFileComp
 	})
@@ -103,10 +106,10 @@ func newListCmd() *cobra.Command {
 	return cmd
 }
 
-// unionAllStatuses returns every status string any kind allows, sorted
+// UnionAllStatuses returns every status string any kind allows, sorted
 // and de-duplicated. Used as the --status completion fallback when
 // --kind has not been set yet.
-func unionAllStatuses() []string {
+func UnionAllStatuses() []string {
 	seen := map[string]struct{}{}
 	var out []string
 	for _, k := range entity.AllKinds() {
@@ -122,12 +125,13 @@ func unionAllStatuses() []string {
 	return out
 }
 
-func runListCmd(root, kind, status, parent string, archived bool, format string, pretty, noTrunc bool) int {
+// Run executes `aiwf list`. Returns one of the cliutil.Exit* codes.
+func Run(root, kind, status, parent string, archived bool, format string, pretty, noTrunc bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf list: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
 	}
-	if kind != "" && !isKnownKind(kind) {
+	if kind != "" && !IsKnownKind(kind) {
 		fmt.Fprintf(os.Stderr, "aiwf list: --kind must be one of %v, got %q\n", cliutil.AllKindNames(), kind)
 		return cliutil.ExitUsage
 	}
@@ -146,14 +150,14 @@ func runListCmd(root, kind, status, parent string, archived bool, format string,
 
 	noArgs := kind == "" && status == "" && parent == "" && !archived
 	if noArgs {
-		counts := buildListCounts(tr)
+		counts := BuildListCounts(tr)
 		switch format {
 		case "text":
-			renderListCountsText(os.Stdout, counts)
+			RenderListCountsText(os.Stdout, counts)
 		case "json":
 			env := render.Envelope{
 				Tool:    "aiwf",
-				Version: resolvedVersion(),
+				Version: version.Current().Version,
 				Status:  "ok",
 				Result:  counts,
 				Metadata: map[string]any{
@@ -168,15 +172,15 @@ func runListCmd(root, kind, status, parent string, archived bool, format string,
 		return cliutil.ExitOK
 	}
 
-	rows := buildListRows(tr, kind, status, parent, archived)
+	rows := BuildListRows(tr, kind, status, parent, archived)
 	switch format {
 	case "text":
 		w := termTitleBudget(os.Stdout, noTrunc)
-		renderListRowsText(os.Stdout, rows, w, render.ColorEnabled(os.Stdout))
+		RenderListRowsText(os.Stdout, rows, w, render.ColorEnabled(os.Stdout))
 	case "json":
 		env := render.Envelope{
 			Tool:    "aiwf",
-			Version: resolvedVersion(),
+			Version: version.Current().Version,
 			Status:  "ok",
 			Result:  rows,
 			Metadata: map[string]any{
@@ -192,9 +196,9 @@ func runListCmd(root, kind, status, parent string, archived bool, format string,
 	return cliutil.ExitOK
 }
 
-// isKnownKind validates --kind input against the closed kind set
+// IsKnownKind validates --kind input against the closed kind set
 // before the verb walks the tree. Cheap usage-error check.
-func isKnownKind(s string) bool {
+func IsKnownKind(s string) bool {
 	for _, k := range entity.AllKinds() {
 		if string(k) == s {
 			return true
@@ -203,14 +207,14 @@ func isKnownKind(s string) bool {
 	return false
 }
 
-// buildListRows applies the V1 filter axes to tr and returns the
+// BuildListRows applies the V1 filter axes to tr and returns the
 // matched entities as summary rows in id-ascending order. Default
 // semantic excludes terminal-status entities; archived=true widens.
 //
 // The kind+status filter routes through tree.FilterByKindStatuses so
 // `aiwf list --kind gap --status open` and `aiwf status`'s Open gaps
 // section share one source of truth (M-072 AC-6).
-func buildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []listSummary {
+func BuildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []ListSummary {
 	var statuses []string
 	if status != "" {
 		statuses = []string{status}
@@ -218,7 +222,7 @@ func buildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []
 	matched := tr.FilterByKindStatuses(entity.Kind(kind), statuses...)
 	canonParent := entity.Canonicalize(parent)
 
-	rows := make([]listSummary, 0, len(matched))
+	rows := make([]ListSummary, 0, len(matched))
 	for _, e := range matched {
 		if parent != "" && entity.Canonicalize(e.Parent) != canonParent {
 			continue
@@ -228,7 +232,7 @@ func buildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []
 		}
 		// Emitted ids are canonical per AC-3 in M-081 — display
 		// surfaces are uniform-width regardless of on-disk filename.
-		rows = append(rows, listSummary{
+		rows = append(rows, ListSummary{
 			ID:     entity.Canonicalize(e.ID),
 			Kind:   string(e.Kind),
 			Status: e.Status,
@@ -240,10 +244,10 @@ func buildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []
 	return rows
 }
 
-// buildListCounts returns the per-kind count of non-terminal entities
+// BuildListCounts returns the per-kind count of non-terminal entities
 // for the no-args invocation. Iteration order follows entity.AllKinds.
-func buildListCounts(tr *tree.Tree) listCounts {
-	out := listCounts{}
+func BuildListCounts(tr *tree.Tree) ListCounts {
+	out := ListCounts{}
 	for _, k := range entity.AllKinds() {
 		out[string(k)] = 0
 	}
@@ -256,11 +260,11 @@ func buildListCounts(tr *tree.Tree) listCounts {
 	return out
 }
 
-// renderListCountsText emits the per-kind summary line in the order
+// RenderListCountsText emits the per-kind summary line in the order
 // dictated by entity.AllKinds. Format:
 //
 //	5 epics · 47 milestones · 12 ADRs · 14 gaps · 3 decisions · 1 contract
-func renderListCountsText(w io.Writer, counts listCounts) {
+func RenderListCountsText(w io.Writer, counts ListCounts) {
 	parts := make([]string, 0, len(entity.AllKinds()))
 	for _, k := range entity.AllKinds() {
 		n := counts[string(k)]
@@ -283,7 +287,7 @@ func pluralKindLabel(k entity.Kind, n int) string {
 	return label
 }
 
-// renderListRowsText emits one row per entity with aligned columns:
+// RenderListRowsText emits one row per entity with aligned columns:
 //
 //	ID      STATUS         TITLE                  PARENT
 //	M-001   ○ draft        M one                  E-01
@@ -306,7 +310,7 @@ func pluralKindLabel(k entity.Kind, n int) string {
 // colorEnabled toggles the ANSI-bold styling on the header row. It is
 // the only place ANSI escapes enter this verb's output; row content
 // stays escape-free so downstream tooling (grep, awk) sees plain text.
-func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int, colorEnabled bool) {
+func RenderListRowsText(w io.Writer, rows []ListSummary, titleBudget int, colorEnabled bool) {
 	if len(rows) == 0 {
 		return
 	}
@@ -323,7 +327,7 @@ func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int, colorE
 			statuses[i] = rows[i].Status
 		}
 	}
-	titleMax := computeTitleBudget(rows, statuses, titleBudget)
+	titleMax := ComputeTitleBudget(rows, statuses, titleBudget)
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	_, _ = fmt.Fprintln(tw, render.Bold("ID\tSTATUS\tTITLE\tPARENT", colorEnabled))
 	for i, r := range rows {
@@ -340,7 +344,7 @@ func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int, colorE
 	_ = tw.Flush()
 }
 
-// computeTitleBudget returns the per-row rune cap for the title column,
+// ComputeTitleBudget returns the per-row rune cap for the title column,
 // or 0 to disable truncation. termWidth=0 means "no TTY / no-trunc /
 // width unknown" — pass through as 0 and the caller skips truncation.
 // renderedStatuses is the per-row status string as it will be written
@@ -351,12 +355,12 @@ func renderListRowsText(w io.Writer, rows []listSummary, titleBudget int, colorE
 // padding between columns. Natural row width is
 // id_w + 2 + status_w + 2 + title_w + 2 + parent_w. Set
 // title_w = termWidth - (id_w + status_w + parent_w + 6) and floor at
-// minTitleColumnRunes — if the remainder would be below the floor,
+// MinTitleColumnRunes — if the remainder would be below the floor,
 // truncation buys so little (and looks so ugly) that we return 0 and
 // let the terminal wrap. The header row contributes its own width
 // (ID/STATUS/TITLE/PARENT, all narrower than typical content) so we
 // don't measure it.
-func computeTitleBudget(rows []listSummary, renderedStatuses []string, termWidth int) int {
+func ComputeTitleBudget(rows []ListSummary, renderedStatuses []string, termWidth int) int {
 	if termWidth <= 0 || len(rows) == 0 {
 		return 0
 	}
@@ -391,23 +395,23 @@ func computeTitleBudget(rows []listSummary, renderedStatuses []string, termWidth
 		return 0 // already fits — no truncation needed
 	}
 	budget := termWidth - (idW + statusW + parentW + 6)
-	if budget < minTitleColumnRunes {
+	if budget < MinTitleColumnRunes {
 		return 0
 	}
 	return budget
 }
 
-// minTitleColumnRunes is the floor below which the title column is no
+// MinTitleColumnRunes is the floor below which the title column is no
 // longer worth truncating — at 10 runes most titles collapse to a few
 // initial words plus "…", which is more annoying than useful. When the
 // terminal is narrower than what's needed to leave this much room, we
 // give up on truncation and let the terminal wrap as it always has.
-const minTitleColumnRunes = 10
+const MinTitleColumnRunes = 10
 
 // termTitleBudget resolves the title-truncation budget for stdout. The
 // returned width is the terminal width when stdout is a TTY and
 // noTrunc is false; 0 otherwise. Callers feed this into
-// computeTitleBudget to compute the per-column cap.
+// ComputeTitleBudget to compute the per-column cap.
 func termTitleBudget(f *os.File, noTrunc bool) int {
 	if noTrunc {
 		return 0

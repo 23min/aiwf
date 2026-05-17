@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/list"
 )
 
 // TestRenderListRowsText_StatusColumnGetsGlyphPrefix verifies the
@@ -13,7 +15,7 @@ import (
 // the word.
 func TestRenderListRowsText_StatusColumnGetsGlyphPrefix(t *testing.T) {
 	t.Parallel()
-	rows := []listSummary{
+	rows := []list.ListSummary{
 		{ID: "E-0001", Status: "active", Title: "An epic", Parent: ""},
 		{ID: "M-0001", Status: "in_progress", Title: "A milestone", Parent: "E-0001"},
 		{ID: "M-0002", Status: "draft", Title: "Another milestone", Parent: "E-0001"},
@@ -23,7 +25,7 @@ func TestRenderListRowsText_StatusColumnGetsGlyphPrefix(t *testing.T) {
 		{ID: "G-0002", Status: "addressed", Title: "An addressed gap", Parent: ""},
 	}
 	var buf bytes.Buffer
-	renderListRowsText(&buf, rows, 0, false)
+	list.RenderListRowsText(&buf, rows, 0, false)
 	out := buf.String()
 	for _, want := range []string{
 		"→ active",
@@ -48,11 +50,11 @@ func TestRenderListRowsText_StatusColumnGetsGlyphPrefix(t *testing.T) {
 // unaffected.
 func TestRenderListRowsText_BoldHeaderWhenColorEnabled(t *testing.T) {
 	t.Parallel()
-	rows := []listSummary{
+	rows := []list.ListSummary{
 		{ID: "M-0001", Status: "draft", Title: "Whatever", Parent: "E-0001"},
 	}
 	var bufOn bytes.Buffer
-	renderListRowsText(&bufOn, rows, 0, true)
+	list.RenderListRowsText(&bufOn, rows, 0, true)
 	if !strings.Contains(bufOn.String(), "\x1b[1mID") {
 		t.Errorf("colorEnabled=true: header missing ANSI bold-on:\n%s", bufOn.String())
 	}
@@ -69,7 +71,7 @@ func TestRenderListRowsText_BoldHeaderWhenColorEnabled(t *testing.T) {
 	}
 
 	var bufOff bytes.Buffer
-	renderListRowsText(&bufOff, rows, 0, false)
+	list.RenderListRowsText(&bufOff, rows, 0, false)
 	if strings.Contains(bufOff.String(), "\x1b") {
 		t.Errorf("colorEnabled=false: output contains ANSI escape (should be plain):\n%q", bufOff.String())
 	}

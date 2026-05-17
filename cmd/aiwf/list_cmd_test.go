@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/list"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/spf13/cobra"
@@ -367,7 +369,7 @@ func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
 	}}
 
 	listIDs := make([]string, 0)
-	for _, r := range buildListRows(tr, "gap", "open", "", false) {
+	for _, r := range list.BuildListRows(tr, "gap", "open", "", false) {
 		listIDs = append(listIDs, r.ID)
 	}
 
@@ -399,7 +401,7 @@ func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
 // test pins the closed-set semantics directly.
 func TestNewListCmd_CompletionWiring(t *testing.T) {
 	t.Parallel()
-	cmd := newListCmd()
+	cmd := list.NewCmd()
 
 	t.Run("--kind returns entity.AllKinds", func(t *testing.T) {
 		fn, ok := cmd.GetFlagCompletionFunc("kind")
@@ -424,14 +426,14 @@ func TestNewListCmd_CompletionWiring(t *testing.T) {
 		if dir != cobra.ShellCompDirectiveNoFileComp {
 			t.Errorf("directive = %v, want NoFileComp", dir)
 		}
-		if diff := cmp.Diff(unionAllStatuses(), got); diff != "" {
+		if diff := cmp.Diff(list.UnionAllStatuses(), got); diff != "" {
 			t.Errorf("--status (no kind) completions mismatch (-want +got):\n%s", diff)
 		}
 	})
 
 	t.Run("--status with --kind=milestone is kind-aware", func(t *testing.T) {
 		// Same fresh command per subtest so flag state is isolated.
-		c := newListCmd()
+		c := list.NewCmd()
 		if err := c.Flags().Set("kind", "milestone"); err != nil {
 			t.Fatalf("set --kind: %v", err)
 		}
@@ -465,7 +467,7 @@ func TestNewListCmd_CompletionWiring(t *testing.T) {
 // statuses. Pure helper; unit-test only.
 func TestUnionAllStatuses(t *testing.T) {
 	t.Parallel()
-	got := unionAllStatuses()
+	got := list.UnionAllStatuses()
 	if len(got) == 0 {
 		t.Fatalf("unionAllStatuses returned empty slice")
 	}

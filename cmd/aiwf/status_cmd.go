@@ -17,6 +17,7 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/cli/list"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
@@ -547,14 +548,14 @@ func writeStatusEpicText(b *strings.Builder, e statusEpic, termWidth int) {
 // prefix/tail of the line. Returns title unchanged when termWidth is 0
 // (no TTY / --no-trunc) or when the available room would fall below
 // the per-G-0080 minimum useful column width. The minimum (10 runes)
-// is the same floor renderListRowsText uses — see minTitleColumnRunes.
+// is the same floor renderListRowsText uses — see list.MinTitleColumnRunes.
 func truncStatusTitle(title string, termWidth int, prefix, tail string) string {
 	if termWidth <= 0 {
 		return title
 	}
 	other := utf8.RuneCountInString(prefix) + utf8.RuneCountInString(tail)
 	avail := termWidth - other
-	if avail < minTitleColumnRunes {
+	if avail < list.MinTitleColumnRunes {
 		return title
 	}
 	return render.Truncate(title, avail)
