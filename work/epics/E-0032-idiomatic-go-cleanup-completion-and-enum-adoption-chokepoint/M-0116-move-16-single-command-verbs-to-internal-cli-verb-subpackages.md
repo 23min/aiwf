@@ -67,6 +67,10 @@ acs:
       title: internal/cli/upgrade/ carries upgrade verb
       status: open
       tdd_phase: red
+    - id: AC-16
+      title: internal/cli/whoami/ carries whoami verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -133,4 +137,6 @@ Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/ren
 ### AC-14 — internal/cli/update/ carries update verb
 
 ### AC-15 — internal/cli/upgrade/ carries upgrade verb
+
+### AC-16 — internal/cli/whoami/ carries whoami verb
 
