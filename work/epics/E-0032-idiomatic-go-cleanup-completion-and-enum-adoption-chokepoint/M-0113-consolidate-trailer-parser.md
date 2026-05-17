@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Single canonical exported gitops.ParseTrailers
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: All callers consume gitops.ParseTrailers; cliutil duplicate deleted
       status: open
