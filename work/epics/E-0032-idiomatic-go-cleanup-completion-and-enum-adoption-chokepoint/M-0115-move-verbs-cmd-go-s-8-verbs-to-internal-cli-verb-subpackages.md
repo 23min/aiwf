@@ -31,6 +31,10 @@ acs:
       title: internal/cli/move/ carries move verb
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: internal/cli/reallocate/ carries reallocate verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -83,4 +87,6 @@ Shared helpers (`parseKind`, `parseTestsFlag`, `readBodyFile`, `splitCommaList` 
 ### AC-5 — internal/cli/rename/ carries rename verb
 
 ### AC-6 — internal/cli/move/ carries move verb
+
+### AC-7 — internal/cli/reallocate/ carries reallocate verb
 
