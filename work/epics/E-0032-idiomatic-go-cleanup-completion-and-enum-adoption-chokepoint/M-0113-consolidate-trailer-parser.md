@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: All callers consume gitops.ParseTrailers; cliutil duplicate deleted
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
