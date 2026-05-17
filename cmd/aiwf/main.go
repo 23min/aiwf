@@ -31,6 +31,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/promote"
 	"github.com/23min/aiwf/internal/cli/reallocate"
 	"github.com/23min/aiwf/internal/cli/rename"
+	"github.com/23min/aiwf/internal/cli/render"
 	"github.com/23min/aiwf/internal/cli/retitle"
 	"github.com/23min/aiwf/internal/cli/rewidth"
 	"github.com/23min/aiwf/internal/cli/schema"
@@ -41,7 +42,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/upgrade"
 	"github.com/23min/aiwf/internal/cli/whoami"
 	"github.com/23min/aiwf/internal/config"
-	"github.com/23min/aiwf/internal/render"
+	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
 )
@@ -169,7 +170,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(upgrade.NewCmd())
 	cmd.AddCommand(history.NewCmd())
 	cmd.AddCommand(newDoctorCmd())
-	cmd.AddCommand(newRenderCmd())
+	cmd.AddCommand(render.NewCmd())
 	cmd.AddCommand(importcmd.NewCmd())
 	cmd.AddCommand(whoami.NewCmd())
 	cmd.AddCommand(status.NewCmd())
@@ -420,19 +421,19 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 		// --verbose restores the full per-instance shape (byte-for-byte
 		// identical to the pre-M-0089 output). JSON is never affected
 		// (AC-4).
-		writeText := render.TextSummary
+		writeText := baserender.TextSummary
 		if verbose {
-			writeText = render.Text
+			writeText = baserender.Text
 		}
 		if err := writeText(os.Stdout, findings); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
-		env := render.Envelope{
+		env := baserender.Envelope{
 			Tool:     "aiwf",
 			Version:  Version,
-			Status:   render.StatusFor(findings),
+			Status:   baserender.StatusFor(findings),
 			Findings: findings,
 			Metadata: map[string]any{
 				"root":     resolved,
@@ -441,7 +442,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 				"findings": len(findings),
 			},
 		}
-		if err := render.JSON(os.Stdout, env, pretty); err != nil {
+		if err := baserender.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
@@ -481,15 +482,15 @@ func runCheckShapeOnly(ctx context.Context, root, format string, pretty bool) in
 
 	switch format {
 	case "text":
-		if err := render.Text(os.Stdout, findings); err != nil {
+		if err := baserender.Text(os.Stdout, findings); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
-		env := render.Envelope{
+		env := baserender.Envelope{
 			Tool:     "aiwf",
 			Version:  Version,
-			Status:   render.StatusFor(findings),
+			Status:   baserender.StatusFor(findings),
 			Findings: findings,
 			Metadata: map[string]any{
 				"root":       root,
@@ -498,7 +499,7 @@ func runCheckShapeOnly(ctx context.Context, root, format string, pretty bool) in
 				"findings":   len(findings),
 			},
 		}
-		if err := render.JSON(os.Stdout, env, pretty); err != nil {
+		if err := baserender.JSON(os.Stdout, env, pretty); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}

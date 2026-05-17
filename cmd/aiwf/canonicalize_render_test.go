@@ -9,13 +9,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/render"
+
 	"github.com/23min/aiwf/internal/cli/show"
 
 	"github.com/23min/aiwf/internal/cli/status"
 
 	"github.com/23min/aiwf/internal/cli/list"
 
-	"github.com/23min/aiwf/internal/render"
+	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -101,7 +103,7 @@ func TestRender_HTML_CanonicalIDsFromNarrowTree(t *testing.T) {
 	if err := os.MkdirAll(out, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if code := runRenderSiteCmd(root, "html", out, "", false, false); code != 0 {
+	if code := render.RunSite(root, "html", out, "", false, false); code != 0 {
 		t.Fatalf("render html exit code = %d", code)
 	}
 
@@ -226,9 +228,9 @@ func TestStatus_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 	// Marshal to JSON and parse it back to assert structural shape
 	// without coupling the test to the Go struct field order.
 	var buf bytes.Buffer
-	env := render.Envelope{Tool: "aiwf", Status: "ok", Result: report}
-	if err := render.JSON(&buf, env, true); err != nil {
-		t.Fatalf("render.JSON: %v", err)
+	env := baserender.Envelope{Tool: "aiwf", Status: "ok", Result: report}
+	if err := baserender.JSON(&buf, env, true); err != nil {
+		t.Fatalf("baserender.JSON: %v", err)
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal(buf.Bytes(), &parsed); err != nil {

@@ -39,7 +39,7 @@ var readOnlyVerbs = []readOnlyVerb{
 	{FuncName: "Run", FilePrefix: "internal/cli/status/"},
 	{FuncName: "Run", FilePrefix: "internal/cli/whoami/"},
 	{FuncName: "Run", FilePrefix: "internal/cli/schema/"},
-	{FuncName: "runRenderSiteCmd", FilePrefix: "cmd/aiwf/"},
+	{FuncName: "RunSite", FilePrefix: "internal/cli/render/"},
 }
 
 // forbiddenMutations is the set of function/method calls a

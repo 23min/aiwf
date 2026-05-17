@@ -1,4 +1,4 @@
-package main
+package render
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
-// renderResolver implements htmlrender.PageDataResolver against a
+// Resolver implements htmlrender.PageDataResolver against a
 // loaded planning tree plus git access. It pulls per-entity body
 // sections from disk, walks `aiwf history` per entity for the
 // commits / build / tests / provenance tabs, and reads the scope
@@ -27,7 +27,7 @@ import (
 // duration of the call. History results are cached per id so the
 // epic page (recent activity) and milestone page (commits + build
 // + tests + provenance) don't read git twice for the same entity.
-type renderResolver struct {
+type Resolver struct {
 	ctx          context.Context
 	root         string
 	tree         *tree.Tree
@@ -36,11 +36,11 @@ type renderResolver struct {
 	findings     []check.Finding // pre-computed once per render
 }
 
-// newRenderResolver builds a resolver bound to a single render
+// NewRenderResolver builds a resolver bound to a single render
 // invocation. cfg may be nil (the consumer's aiwf.yaml might be
 // missing); the resolver treats nil as "default settings."
-func newRenderResolver(ctx context.Context, root string, tr *tree.Tree, cfg *config.Config, findings []check.Finding) *renderResolver {
-	return &renderResolver{
+func NewRenderResolver(ctx context.Context, root string, tr *tree.Tree, cfg *config.Config, findings []check.Finding) *Resolver {
+	return &Resolver{
 		ctx:          ctx,
 		root:         root,
 		tree:         tr,
@@ -56,7 +56,7 @@ func newRenderResolver(ctx context.Context, root string, tr *tree.Tree, cfg *con
 // work/epics/archive/ are filtered out of the home page rollup; the
 // full set lives on epics-all.html. KindIndexLinks populates the
 // "Browse by kind" nav block on the home page.
-func (r *renderResolver) IndexData() (*htmlrender.IndexData, error) {
+func (r *Resolver) IndexData() (*htmlrender.IndexData, error) {
 	sidebar := r.sidebar("", "")
 	sidebar.IsCurrentIndex = true
 	out := &htmlrender.IndexData{Title: "Overview", Sidebar: sidebar}
@@ -111,7 +111,7 @@ var kindIndexNavKinds = []struct {
 // buildKindIndexLinks counts active and archived entities per kind so
 // the home page's "Browse by kind" nav block shows reach-at-a-glance
 // counts next to each kind name.
-func (r *renderResolver) buildKindIndexLinks() []htmlrender.KindIndexLink {
+func (r *Resolver) buildKindIndexLinks() []htmlrender.KindIndexLink {
 	links := make([]htmlrender.KindIndexLink, 0, len(kindIndexNavKinds))
 	for _, k := range kindIndexNavKinds {
 		link := htmlrender.KindIndexLink{
@@ -134,14 +134,14 @@ func (r *renderResolver) buildKindIndexLinks() []htmlrender.KindIndexLink {
 // KindIndexData implements htmlrender.PageDataResolver. Per-kind
 // index payload for the active-default and all-set pages. M-0087/
 // AC-6 + AC-7.
-func (r *renderResolver) KindIndexData(plural string, includeArchived bool) (*htmlrender.KindIndexData, error) {
-	resolved, ok := pluralToEntityKind(plural)
+func (r *Resolver) KindIndexData(plural string, includeArchived bool) (*htmlrender.KindIndexData, error) {
+	resolved, ok := PluralToEntityKind(plural)
 	if !ok {
 		return nil, nil
 	}
 	data := &htmlrender.KindIndexData{
 		Sidebar:         r.sidebar("", ""),
-		Title:           titleForKindIndex(plural, includeArchived),
+		Title:           TitleForKindIndex(plural, includeArchived),
 		Kind:            plural,
 		IncludeArchived: includeArchived,
 		ActiveFileName:  plural + ".html",
@@ -163,11 +163,11 @@ func (r *renderResolver) KindIndexData(plural string, includeArchived bool) (*ht
 	return data, nil
 }
 
-// pluralToEntityKind mirrors the htmlrender package's mapping (which
+// PluralToEntityKind mirrors the htmlrender package's mapping (which
 // is package-private). Kept in lockstep here so the cmd-side
 // resolver doesn't import unexported helpers; the closed set is
 // small and stable.
-func pluralToEntityKind(plural string) (entity.Kind, bool) {
+func PluralToEntityKind(plural string) (entity.Kind, bool) {
 	switch plural {
 	case "epics":
 		return entity.KindEpic, true
@@ -183,10 +183,10 @@ func pluralToEntityKind(plural string) (entity.Kind, bool) {
 	return "", false
 }
 
-// titleForKindIndex returns the page title for a per-kind index.
+// TitleForKindIndex returns the page title for a per-kind index.
 // Format: "Gaps" (active) / "All gaps" (all-set). Mirrors the
-// htmlrender package's private titleForKindIndex.
-func titleForKindIndex(plural string, includeArchived bool) string {
+// htmlrender package's private TitleForKindIndex.
+func TitleForKindIndex(plural string, includeArchived bool) string {
 	if includeArchived {
 		return "All " + plural
 	}
@@ -198,7 +198,7 @@ func titleForKindIndex(plural string, includeArchived bool) string {
 }
 
 // EpicData implements htmlrender.PageDataResolver.
-func (r *renderResolver) EpicData(id string) (*htmlrender.EpicData, error) {
+func (r *Resolver) EpicData(id string) (*htmlrender.EpicData, error) {
 	e := r.tree.ByID(id)
 	if e == nil || e.Kind != entity.KindEpic {
 		return nil, nil
@@ -241,7 +241,7 @@ func (r *renderResolver) EpicData(id string) (*htmlrender.EpicData, error) {
 // Reads the body from disk and parses sections in document order so
 // the page reads as a recognizable rendering of the source markdown.
 // G35 fix.
-func (r *renderResolver) EntityData(id string) (*htmlrender.EntityData, error) {
+func (r *Resolver) EntityData(id string) (*htmlrender.EntityData, error) {
 	e := r.tree.ByID(id)
 	if e == nil {
 		return nil, nil
@@ -272,7 +272,7 @@ func (r *renderResolver) EntityData(id string) (*htmlrender.EntityData, error) {
 }
 
 // MilestoneData implements htmlrender.PageDataResolver.
-func (r *renderResolver) MilestoneData(id string) (*htmlrender.MilestoneData, error) {
+func (r *Resolver) MilestoneData(id string) (*htmlrender.MilestoneData, error) {
 	m := r.tree.ByID(id)
 	if m == nil || m.Kind != entity.KindMilestone {
 		return nil, nil
@@ -336,11 +336,11 @@ func (r *renderResolver) MilestoneData(id string) (*htmlrender.MilestoneData, er
 // rollups, so sidebar order is the canonical id order across every
 // page. No git access — the sidebar is a pure projection of the
 // frontmatter tree.
-func (r *renderResolver) sidebar(activeEpicID, activeMilestoneID string) htmlrender.SidebarData {
+func (r *Resolver) sidebar(activeEpicID, activeMilestoneID string) htmlrender.SidebarData {
 	return r.sidebarWithStatus(activeEpicID, activeMilestoneID, false)
 }
 
-func (r *renderResolver) sidebarWithStatus(activeEpicID, activeMilestoneID string, currentStatus bool) htmlrender.SidebarData {
+func (r *Resolver) sidebarWithStatus(activeEpicID, activeMilestoneID string, currentStatus bool) htmlrender.SidebarData {
 	canonActiveEpic := entity.Canonicalize(activeEpicID)
 	canonActiveMilestone := entity.Canonicalize(activeMilestoneID)
 	s := htmlrender.SidebarData{
@@ -381,7 +381,7 @@ func (r *renderResolver) sidebarWithStatus(activeEpicID, activeMilestoneID strin
 // existing status.BuildStatus() + status.ReadRecentActivity() helpers (which
 // power the `aiwf status` verb) and projects the result into the
 // renderer-facing types.
-func (r *renderResolver) StatusData() (*htmlrender.StatusData, error) {
+func (r *Resolver) StatusData() (*htmlrender.StatusData, error) {
 	report := status.BuildStatus(r.tree, nil)
 	if recent, err := status.ReadRecentActivity(r.ctx, r.root, status.RecentActivityLimit); err == nil {
 		report.RecentActivity = recent
@@ -462,7 +462,7 @@ func (r *renderResolver) StatusData() (*htmlrender.StatusData, error) {
 // from the on-disk e.ID so links continue to point at the actual
 // file (a separate canonicalization pass — M-082's `aiwf rewidth` —
 // migrates the filenames themselves).
-func (r *renderResolver) entityRef(e *entity.Entity) *htmlrender.EntityRef {
+func (r *Resolver) entityRef(e *entity.Entity) *htmlrender.EntityRef {
 	return &htmlrender.EntityRef{
 		ID:       entity.Canonicalize(e.ID),
 		Title:    e.Title,
@@ -479,7 +479,7 @@ func (r *renderResolver) entityRef(e *entity.Entity) *htmlrender.EntityRef {
 // sorted by id. Comparison is canonicalized per AC-2/AC-3 in M-081
 // so a narrow on-disk parent ref still groups under a canonical
 // query (or vice versa).
-func (r *renderResolver) milestonesUnder(epicID string) []*entity.Entity {
+func (r *Resolver) milestonesUnder(epicID string) []*entity.Entity {
 	canon := entity.Canonicalize(epicID)
 	var out []*entity.Entity
 	for _, m := range r.tree.ByKind(entity.KindMilestone) {
@@ -492,7 +492,7 @@ func (r *renderResolver) milestonesUnder(epicID string) []*entity.Entity {
 }
 
 // history returns events for id, cached per resolver instance.
-func (r *renderResolver) history(id string) []history.HistoryEvent {
+func (r *Resolver) history(id string) []history.HistoryEvent {
 	if events, ok := r.historyCache[id]; ok {
 		return events
 	}
@@ -508,7 +508,7 @@ func (r *renderResolver) history(id string) []history.HistoryEvent {
 
 // historyRows materializes the renderer-facing rows from cached
 // history.HistoryEvents. limit clips to the most recent N.
-func (r *renderResolver) historyRows(id string, limit int) []htmlrender.HistoryRow {
+func (r *Resolver) historyRows(id string, limit int) []htmlrender.HistoryRow {
 	events := r.history(id)
 	if len(events) == 0 {
 		return nil
@@ -525,7 +525,7 @@ func (r *renderResolver) historyRows(id string, limit int) []htmlrender.HistoryR
 
 // lastActivityFor returns the YYYY-MM-DD of the most recent aiwf
 // trailer commit on id, or "" when none.
-func (r *renderResolver) lastActivityFor(id string) string {
+func (r *Resolver) lastActivityFor(id string) string {
 	events := r.history(id)
 	if len(events) == 0 {
 		return ""
@@ -541,7 +541,7 @@ func (r *renderResolver) lastActivityFor(id string) string {
 // that reference the entity, plus the entity's own outbound
 // references that aren't already milestones-of-the-epic. Sorted by
 // id; deduplicated.
-func (r *renderResolver) linkedEntitiesFor(e *entity.Entity) []htmlrender.LinkedEntity {
+func (r *Resolver) linkedEntitiesFor(e *entity.Entity) []htmlrender.LinkedEntity {
 	seen := map[string]struct{}{}
 	var out []htmlrender.LinkedEntity
 	add := func(id, dir string) {
@@ -584,7 +584,7 @@ func (r *renderResolver) linkedEntitiesFor(e *entity.Entity) []htmlrender.Linked
 
 // provenanceFor builds the Provenance tab payload for a milestone:
 // scope-table + chronological timeline.
-func (r *renderResolver) provenanceFor(m *entity.Entity) htmlrender.ProvenanceData {
+func (r *Resolver) provenanceFor(m *entity.Entity) htmlrender.ProvenanceData {
 	var data htmlrender.ProvenanceData
 	scopes, err := show.LoadEntityScopeViews(r.ctx, r.root, m.ID)
 	if err == nil {
@@ -611,7 +611,7 @@ func (r *renderResolver) provenanceFor(m *entity.Entity) htmlrender.ProvenanceDa
 // bodyForEntity reads the body bytes of the entity at path; nil on
 // any IO / parse failure (the renderer treats absent body sections
 // as "skip that block" via the templates' `with` guards).
-func (r *renderResolver) bodyForEntity(relPath string) []byte {
+func (r *Resolver) bodyForEntity(relPath string) []byte {
 	if relPath == "" {
 		return nil
 	}

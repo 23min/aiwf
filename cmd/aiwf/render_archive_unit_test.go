@@ -3,11 +3,13 @@ package main
 import (
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/render"
+
 	"github.com/23min/aiwf/internal/cli/status"
 )
 
 // TestPluralToEntityKind_UnknownReturnsFalse — branch-coverage for
-// pluralToEntityKind's negative path. Closed-set switch with a
+// render.PluralToEntityKind's negative path. Closed-set switch with a
 // default arm; the positive cases are exercised by the per-kind
 // integration tests above. Without this test the default arm goes
 // uncovered (see CLAUDE.md "Test untested code paths before
@@ -19,9 +21,9 @@ func TestPluralToEntityKind_UnknownReturnsFalse(t *testing.T) {
 	}
 	for _, plural := range cases {
 		t.Run(plural, func(t *testing.T) {
-			_, ok := pluralToEntityKind(plural)
+			_, ok := render.PluralToEntityKind(plural)
 			if ok {
-				t.Errorf("pluralToEntityKind(%q) = (_, true), want (_, false) for unknown plural", plural)
+				t.Errorf("render.PluralToEntityKind(%q) = (_, true), want (_, false) for unknown plural", plural)
 			}
 		})
 	}
@@ -55,7 +57,7 @@ func TestParseSweepPending_MalformedMessageReturnsNil(t *testing.T) {
 }
 
 // TestRunResolverKindIndexData_UnknownKindReturnsNil — branch-
-// coverage for the renderResolver.KindIndexData nil-return path.
+// coverage for the render.Resolver.KindIndexData nil-return path.
 // The renderer skips file emission when this returns nil, so the
 // guard is the chokepoint that prevents a bad plural from writing
 // a malformed page. Pinned as a unit test so coverage hits the
@@ -63,7 +65,7 @@ func TestParseSweepPending_MalformedMessageReturnsNil(t *testing.T) {
 // kinds.
 func TestRunResolverKindIndexData_UnknownKindReturnsNil(t *testing.T) {
 	t.Parallel()
-	r := &renderResolver{}
+	r := &render.Resolver{}
 	data, err := r.KindIndexData("widgets", false)
 	if err != nil {
 		t.Errorf("err = %v, want nil", err)
@@ -74,7 +76,7 @@ func TestRunResolverKindIndexData_UnknownKindReturnsNil(t *testing.T) {
 }
 
 // TestTitleForKindIndex_CapitalizesActive — branch-coverage for
-// titleForKindIndex's title-case helper. Active page is "Gaps"
+// render.TitleForKindIndex's title-case helper. Active page is "Gaps"
 // (capitalized); all-set page is "All gaps" (lowercase, prefixed).
 // Empty plural and pre-capitalized plural take the no-op branches.
 func TestTitleForKindIndex_CapitalizesActive(t *testing.T) {
@@ -92,9 +94,9 @@ func TestTitleForKindIndex_CapitalizesActive(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.plural+"/archived="+itoaBool(c.includeArchived), func(t *testing.T) {
-			got := titleForKindIndex(c.plural, c.includeArchived)
+			got := render.TitleForKindIndex(c.plural, c.includeArchived)
 			if got != c.want {
-				t.Errorf("titleForKindIndex(%q, %v) = %q, want %q", c.plural, c.includeArchived, got, c.want)
+				t.Errorf("render.TitleForKindIndex(%q, %v) = %q, want %q", c.plural, c.includeArchived, got, c.want)
 			}
 		})
 	}

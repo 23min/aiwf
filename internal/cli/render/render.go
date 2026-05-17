@@ -1,4 +1,6 @@
-package main
+// Package render implements the `aiwf render` verb (per-verb subpackage of M-0116;
+// includes the Resolver moved from render_resolver.go).
+package render
 
 import (
 	"bytes"
@@ -17,19 +19,20 @@ import (
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/htmlrender"
-	"github.com/23min/aiwf/internal/render"
+	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/roadmap"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/version"
 )
 
-// newRenderCmd builds `aiwf render`. Two surfaces:
+// NewCmd builds `aiwf render`. Two surfaces:
 //   - `aiwf render roadmap [--write]` → markdown roadmap.
 //   - `aiwf render --format=html [...]` → static-site HTML render.
 //
 // Roadmap is a Cobra subcommand; html mode is the parent's RunE
 // (matches the existing public CLI shape rather than introducing a new
 // `render html` subverb that would break consumer scripts).
-func newRenderCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		root      string
 		format    string
@@ -54,7 +57,7 @@ func newRenderCmd() *cobra.Command {
 				fmt.Fprintln(os.Stderr, "aiwf render: missing subcommand or --format. Try 'aiwf render roadmap' or 'aiwf render --format=html'.")
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
-			return cliutil.WrapExitCode(runRenderSiteCmd(root, format, out, scope, noHistory, pretty))
+			return cliutil.WrapExitCode(RunSite(root, format, out, scope, noHistory, pretty))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -88,7 +91,7 @@ func newRenderCmd() *cobra.Command {
 		}
 		_, _ = fmt.Fprint(out, c.UsageString())
 	})
-	cmd.AddCommand(newRenderRoadmapCmd())
+	cmd.AddCommand(newRoadmapCmd())
 	// `aiwf render help` is a positional alias for `aiwf render --help`,
 	// matching the pre-Cobra dispatcher's accepted shapes. Hidden so it
 	// does not appear in the auto-generated subcommand list.
@@ -127,12 +130,12 @@ Surfaces:
 See 'aiwf help' for the master verb catalog.`)
 }
 
-// newRenderRoadmapCmd builds `aiwf render roadmap`: prints the markdown
+// newRoadmapCmd builds `aiwf render roadmap`: prints the markdown
 // roadmap to stdout, or with --write replaces ROADMAP.md and creates a
 // single commit. When the rendered output already matches the on-disk
 // file, --write is a no-op (no commit) so the verb is safely re-runnable
 // in CI.
-func newRenderRoadmapCmd() *cobra.Command {
+func newRoadmapCmd() *cobra.Command {
 	var (
 		root  string
 		write bool
@@ -150,7 +153,7 @@ func newRenderRoadmapCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runRenderRoadmapCmd(root, write, actor))
+			return cliutil.WrapExitCode(RunRoadmap(root, write, actor))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -159,7 +162,8 @@ func newRenderRoadmapCmd() *cobra.Command {
 	return cmd
 }
 
-func runRenderRoadmapCmd(root string, write bool, actor string) int {
+// RunRoadmap executes `aiwf render roadmap`. Returns one of the cliutil.Exit* codes.
+func RunRoadmap(root string, write bool, actor string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
@@ -272,7 +276,7 @@ func runRenderRoadmapCmd(root string, write bool, actor string) int {
 	return cliutil.ExitOK
 }
 
-// runRenderSiteCmd handles `aiwf render --format=html [--out <dir>]
+// RunSite handles `aiwf render --format=html [--out <dir>]
 // [--scope <id>] [--no-history] [--pretty]`. Read-only — produces a
 // directory of HTML files. No commit. Always emits the standard JSON
 // envelope on stdout per I3 plan §5; --pretty toggles indent.
@@ -280,7 +284,9 @@ func runRenderRoadmapCmd(root string, write bool, actor string) int {
 // Result payload:
 //
 //	{ "result": { "out_dir": "<abs>", "files_written": N, "elapsed_ms": M } }
-func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) int {
+//
+// RunSite executes `aiwf render --format=html`. Returns one of the cliutil.Exit* codes.
+func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 	if format != "html" {
 		fmt.Fprintf(os.Stderr, "aiwf render: --format must be 'html'; got %q\n", format)
 		return cliutil.ExitUsage
@@ -302,7 +308,7 @@ func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) i
 	}
 	cfg, _ := config.Load(rootDir)
 	findings := check.Run(tr, loadErrs)
-	resolver := newRenderResolver(ctx, rootDir, tr, cfg, findings)
+	resolver := NewRenderResolver(ctx, rootDir, tr, cfg, findings)
 
 	outDir := resolveHTMLOutDir(rootDir, out)
 	res, err := htmlrender.Render(htmlrender.Options{
@@ -317,9 +323,9 @@ func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) i
 	}
 	emitGitignoreWarning(rootDir, outDir, cfg)
 
-	env := render.Envelope{
+	env := baserender.Envelope{
 		Tool:    "aiwf",
-		Version: Version,
+		Version: version.Current().Version,
 		Status:  "ok",
 		Result: map[string]any{
 			"out_dir":       outDir,
@@ -328,7 +334,7 @@ func runRenderSiteCmd(root, format, out, scope string, noHistory, pretty bool) i
 		},
 		Metadata: map[string]any{"root": rootDir},
 	}
-	if werr := render.JSON(os.Stdout, env, pretty); werr != nil {
+	if werr := baserender.JSON(os.Stdout, env, pretty); werr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", werr)
 		return cliutil.ExitInternal
 	}
