@@ -17,7 +17,7 @@ acs:
       tdd_phase: red
     - id: AC-3
       title: internal/cli/editbody/ carries edit-body verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: internal/cli/cancel/ carries cancel verb
