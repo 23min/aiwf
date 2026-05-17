@@ -19,6 +19,7 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/add"
 	"github.com/23min/aiwf/internal/cli/archive"
+	"github.com/23min/aiwf/internal/cli/authorize"
 	"github.com/23min/aiwf/internal/cli/cancel"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/editbody"
@@ -170,7 +171,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(template.NewCmd())
 	cmd.AddCommand(newContractCmd())
 	cmd.AddCommand(newMilestoneCmd())
-	cmd.AddCommand(newAuthorizeCmd())
+	cmd.AddCommand(authorize.NewCmd())
 
 	return cmd
 }

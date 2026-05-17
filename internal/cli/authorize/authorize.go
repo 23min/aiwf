@@ -1,4 +1,4 @@
-package main
+package authorize
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// newAuthorizeCmd builds `aiwf authorize <id>` in its three modes:
+// NewCmd builds `aiwf authorize <id>` in its three modes:
 //
 //	aiwf authorize <id> --to <agent> [--reason "..."] [--force]
 //	aiwf authorize <id> --pause "<reason>"
@@ -30,7 +30,7 @@ import (
 //   - --pause / --resume: required; the argument to the flag is itself
 //     the reason (e.g. `--pause "blocked by E-09"`). Passing both
 //     `--pause "..."` and `--reason "..."` is a usage error.
-func newAuthorizeCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		actor  string
 		root   string
@@ -55,7 +55,7 @@ func newAuthorizeCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runAuthorizeCmd(args[0], actor, root, to, pause, resume, reason, force))
+			return cliutil.WrapExitCode(Run(args[0], actor, root, to, pause, resume, reason, force))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (default: derived from git config user.email; must be human/...)")
@@ -69,7 +69,7 @@ func newAuthorizeCmd() *cobra.Command {
 	return cmd
 }
 
-func runAuthorizeCmd(id, actor, root, to, pause, resume, reason string, force bool) int {
+func Run(id, actor, root, to, pause, resume, reason string, force bool) int {
 	modes := 0
 	if to != "" {
 		modes++
