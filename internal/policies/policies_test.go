@@ -98,6 +98,11 @@ func TestPolicy_NoTrailerStringComposition(t *testing.T) {
 	runPolicy(t, PolicyNoTrailerStringComposition)
 }
 
+func TestPolicy_TrailerParserUniqueness(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyTrailerParserUniqueness)
+}
+
 func TestPolicy_RoleIDRegexCentralized(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyRoleIDRegexCentralized)

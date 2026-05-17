@@ -163,7 +163,7 @@ func readEntityScopeCommits(ctx context.Context, root, id string) ([]commitTrail
 		}
 		commits = append(commits, commitTrailers{
 			SHA:      strings.TrimSpace(parts[0]),
-			Trailers: ParseTrailerLines(parts[1]),
+			Trailers: gitops.ParseTrailers(parts[1]),
 		})
 	}
 	return commits, nil
@@ -249,27 +249,4 @@ func readPriorEntityNewID(ctx context.Context, root, priorID string) (string, er
 		}
 	}
 	return "", nil
-}
-
-// ParseTrailerLines parses a `git log %(trailers:only=true,unfold=true)`
-// block into structured Trailer values. The format is one trailer per
-// line, `Key: value`, possibly followed by a trailing newline; empty
-// lines and malformed lines are skipped.
-func ParseTrailerLines(s string) []gitops.Trailer {
-	var trailers []gitops.Trailer
-	for _, line := range strings.Split(s, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		idx := strings.IndexByte(line, ':')
-		if idx <= 0 {
-			continue
-		}
-		trailers = append(trailers, gitops.Trailer{
-			Key:   strings.TrimSpace(line[:idx]),
-			Value: strings.TrimSpace(line[idx+1:]),
-		})
-	}
-	return trailers
 }
