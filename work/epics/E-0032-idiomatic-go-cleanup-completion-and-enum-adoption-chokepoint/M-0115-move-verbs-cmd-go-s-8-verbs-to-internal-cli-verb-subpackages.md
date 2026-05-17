@@ -1,7 +1,7 @@
 ---
 id: M-0115
 title: Move verbs_cmd.go's 8 verbs to internal/cli/<verb>/ subpackages
-status: draft
+status: in_progress
 parent: E-0032
 depends_on:
     - M-0114
