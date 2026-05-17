@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: internal/cli/list/ carries list verb
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: internal/cli/render/ carries render verb
       status: open
