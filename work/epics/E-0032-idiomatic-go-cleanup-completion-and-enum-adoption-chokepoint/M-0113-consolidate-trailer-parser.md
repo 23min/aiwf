@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Single canonical exported gitops.ParseTrailers
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: All callers consume gitops.ParseTrailers; cliutil duplicate deleted
