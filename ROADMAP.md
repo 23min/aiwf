@@ -349,3 +349,19 @@ Workflow legality — the multi-step procedures contributors walk through to shi
 | M-0111 | Skill-citation discipline and skill-spec drift-prevention test | draft |
 | M-0112 | Verb-sequence fuzz harness with spec-derived seeds | draft |
 
+## E-0032 — Idiomatic-Go cleanup completion and enum-adoption chokepoint (active)
+
+### Goal
+
+Close G-0107 by moving every top-level verb in `cmd/aiwf/` (~27 verbs across 19 single-verb files plus the 8-verb `verbs_cmd.go` cluster) into per-verb subpackages under `internal/cli/<verb>/`, shrink `cmd/aiwf/main.go` to G-0107's target ~30-line entry shape, and add the AST-based policy that prevents enum-constant adoption drift (G-0126). After this epic lands, `cmd/aiwf/` contains `main.go` only; verb code, helpers, and tests live under `internal/cli/`. The chokepoint becomes mechanical: closed-set comparison-site adoption is a CI test, not reviewer vigilance.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0113 | Consolidate trailer parser | done |
+| M-0114 | Lift completion helpers to internal/cli/cliutil/completion.go | draft |
+| M-0115 | Move verbs_cmd.go's 8 verbs to internal/cli/<verb>/ subpackages | draft |
+| M-0116 | Move 16 single-command verbs to internal/cli/<verb>/ subpackages | draft |
+| M-0117 | Move contract, doctor, milestone (multi-subcommand) to subpackages | draft |
+| M-0118 | Shrink main.go to entry-only; supporting files find homes | draft |
+| M-0119 | Add enum_literal_adoption policy; fix surfaced literal sites | draft |
+
