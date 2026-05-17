@@ -38,7 +38,7 @@ acs:
     - id: AC-8
       title: Shared helpers lifted to cliutil; verbs_cmd.go deleted; rootCmd wired
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
