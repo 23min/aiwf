@@ -25,6 +25,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/promote"
 	"github.com/23min/aiwf/internal/cli/reallocate"
 	"github.com/23min/aiwf/internal/cli/rename"
+	"github.com/23min/aiwf/internal/cli/whoami"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
@@ -156,7 +157,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newDoctorCmd())
 	cmd.AddCommand(newRenderCmd())
 	cmd.AddCommand(newImportCmd())
-	cmd.AddCommand(newWhoamiCmd())
+	cmd.AddCommand(whoami.NewCmd())
 	cmd.AddCommand(newStatusCmd())
 	cmd.AddCommand(newListCmd())
 	cmd.AddCommand(newSchemaCmd())

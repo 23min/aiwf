@@ -4,30 +4,42 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"path/filepath"
 	"strings"
 )
 
-// readOnlyVerbs lists the cmd/aiwf entry-point functions for verbs
-// that must never mutate disk state. The kernel principle: reads
-// are pure functions, mutations go through `verb.Apply`. A direct
-// gitops.Commit / gitops.Mv / gitops.Add or os.WriteFile call from
-// one of these is a regression — the verb is now writing without
-// a Plan.
+// readOnlyVerb describes a read-only verb's expected location. As
+// verbs migrate from cmd/aiwf/ to internal/cli/<pkg>/ (M-0115+),
+// the policy needs to find the verb's body in either location.
+type readOnlyVerb struct {
+	// FuncName is the FuncDecl name the policy looks for. For verbs
+	// still living in cmd/aiwf/, this is `run<Verb>Cmd` (legacy form).
+	// For verbs migrated to internal/cli/<pkg>/, this is `Run` (the
+	// canonical NewCmd/Run pair per the M-0115 subpackage pattern).
+	FuncName string
+	// FilePrefix is the path-prefix the policy walks to find the
+	// FuncDecl. For legacy verbs: "cmd/aiwf/". For migrated verbs:
+	// "internal/cli/<verb>/" (the per-verb subpackage directory).
+	FilePrefix string
+}
+
+// readOnlyVerbs lists every verb the kernel treats as read-only.
+// The kernel principle: reads are pure functions, mutations go
+// through `verb.Apply`. A direct gitops.Commit / gitops.Mv /
+// gitops.Add or os.WriteFile call from one of these is a regression.
 //
-// Names ending in `Cmd` are the body-function shape introduced by
-// E-14's Cobra migration: each Cobra command's RunE delegates to a
-// `run<Verb>Cmd(...)` helper that holds the verb's actual logic.
-// The legacy `runX(args []string) int` shape remains for verbs not
-// yet migrated.
-var readOnlyVerbs = map[string]bool{
-	"runCheckCmd":      true,
-	"runHistoryCmd":    true,
-	"runShowCmd":       true,
-	"runDoctorCmd":     true,
-	"runStatusCmd":     true,
-	"runWhoamiCmd":     true,
-	"runSchemaCmd":     true,
-	"runRenderSiteCmd": true, // html render path; runRenderRoadmapCmd writes only with --write and is policed via the RenderRoadmap rule
+// Render has two run functions — runRenderSiteCmd (read-only) and
+// runRenderRoadmapCmd (writes only with --write, policed by the
+// dedicated RenderRoadmap policy). Only the site path is listed.
+var readOnlyVerbs = []readOnlyVerb{
+	{FuncName: "runCheckCmd", FilePrefix: "cmd/aiwf/"},
+	{FuncName: "runHistoryCmd", FilePrefix: "cmd/aiwf/"},
+	{FuncName: "runShowCmd", FilePrefix: "cmd/aiwf/"},
+	{FuncName: "runDoctorCmd", FilePrefix: "cmd/aiwf/"},
+	{FuncName: "runStatusCmd", FilePrefix: "cmd/aiwf/"},
+	{FuncName: "Run", FilePrefix: "internal/cli/whoami/"},
+	{FuncName: "runSchemaCmd", FilePrefix: "cmd/aiwf/"},
+	{FuncName: "runRenderSiteCmd", FilePrefix: "cmd/aiwf/"},
 }
 
 // forbiddenMutations is the set of function/method calls a
@@ -46,17 +58,17 @@ var forbiddenMutations = []string{
 }
 
 // PolicyReadOnlyVerbsDoNotMutate asserts that the read-only-verb
-// entry points contain no direct call to a known mutating
-// function. Transitive mutations (a helper they call that calls
-// gitops.Add) are not detected by this policy — a real call-graph
-// analysis would be needed; this catches the direct case which is
-// almost always how the regression starts.
+// entry points contain no direct call to a known mutating function.
+// Transitive mutations (a helper they call that calls gitops.Add)
+// are not detected — a real call-graph analysis would be needed;
+// this catches the direct case which is almost always how the
+// regression starts.
 //
-// Note on render: post-E-14 the verb splits into two functions —
-// runRenderSiteCmd (html path, no writes) and runRenderRoadmapCmd
-// (markdown path, writes only with --write). Only the site path is
-// listed above; the roadmap path is governed by the dedicated
-// RenderRoadmap policy below.
+// Each entry in readOnlyVerbs has a FilePrefix — the policy walks
+// .go files under that prefix looking for a FuncDecl with the
+// expected name. As verbs migrate from cmd/aiwf/run<Verb>Cmd to
+// internal/cli/<verb>/Run (M-0115+), the entry's FilePrefix
+// switches from "cmd/aiwf/" to "internal/cli/<verb>/".
 func PolicyReadOnlyVerbsDoNotMutate(root string) ([]Violation, error) {
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
@@ -64,49 +76,55 @@ func PolicyReadOnlyVerbsDoNotMutate(root string) ([]Violation, error) {
 	}
 	var out []Violation
 	fset := token.NewFileSet()
-	seen := map[string]bool{}
+	seen := map[int]bool{}
 	for _, f := range files {
-		if !strings.HasPrefix(f.Path, "cmd/aiwf/") {
-			continue
-		}
 		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
 		if perr != nil {
 			continue
 		}
+		fileRel := filepath.ToSlash(f.Path)
 		for _, decl := range astFile.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
-			if !ok || !readOnlyVerbs[fn.Name.Name] {
+			if !ok || fn.Recv != nil {
 				continue
 			}
-			seen[fn.Name.Name] = true
-			if fn.Body == nil {
-				continue
-			}
-			start := fset.Position(fn.Body.Lbrace).Offset
-			end := fset.Position(fn.Body.Rbrace).Offset
-			if start < 0 || end <= start || end > len(f.Contents) {
-				continue
-			}
-			body := string(f.Contents[start:end])
-			for _, mut := range forbiddenMutations {
-				if strings.Contains(body, mut) {
-					out = append(out, Violation{
-						Policy: "read-only-verbs-do-not-mutate",
-						File:   f.Path,
-						Line:   fset.Position(fn.Pos()).Line,
-						Detail: fn.Name.Name + " calls " + mut +
-							" — read-only verbs must not write disk state directly",
-					})
+			for i, rv := range readOnlyVerbs {
+				if fn.Name.Name != rv.FuncName {
+					continue
+				}
+				if !strings.HasPrefix(fileRel, rv.FilePrefix) {
+					continue
+				}
+				seen[i] = true
+				if fn.Body == nil {
+					continue
+				}
+				start := fset.Position(fn.Body.Lbrace).Offset
+				end := fset.Position(fn.Body.Rbrace).Offset
+				if start < 0 || end <= start || end > len(f.Contents) {
+					continue
+				}
+				body := string(f.Contents[start:end])
+				for _, mut := range forbiddenMutations {
+					if strings.Contains(body, mut) {
+						out = append(out, Violation{
+							Policy: "read-only-verbs-do-not-mutate",
+							File:   f.Path,
+							Line:   fset.Position(fn.Pos()).Line,
+							Detail: fn.Name.Name + " calls " + mut +
+								" — read-only verbs must not write disk state directly",
+						})
+					}
 				}
 			}
 		}
 	}
-	for name := range readOnlyVerbs {
-		if !seen[name] {
+	for i, rv := range readOnlyVerbs {
+		if !seen[i] {
 			out = append(out, Violation{
 				Policy: "read-only-verbs-do-not-mutate",
-				File:   "cmd/aiwf/",
-				Detail: "policy lists " + name +
+				File:   rv.FilePrefix,
+				Detail: "policy expects " + rv.FuncName + " under " + rv.FilePrefix +
 					" but no FuncDecl with that name was found — update the policy or restore the verb",
 			})
 		}

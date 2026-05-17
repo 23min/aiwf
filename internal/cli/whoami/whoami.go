@@ -1,4 +1,4 @@
-package main
+package whoami
 
 import (
 	"fmt"
@@ -9,10 +9,10 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
-// newWhoamiCmd builds `aiwf whoami`: prints the resolved actor for the
+// NewCmd builds `aiwf whoami`: prints the resolved actor for the
 // current context, plus the source label that produced it. Useful to
 // confirm what `aiwf-actor:` trailer the next mutating verb would write.
-func newWhoamiCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		root  string
 		actor string
@@ -29,7 +29,7 @@ func newWhoamiCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runWhoamiCmd(root, actor))
+			return cliutil.WrapExitCode(Run(root, actor))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -37,7 +37,7 @@ func newWhoamiCmd() *cobra.Command {
 	return cmd
 }
 
-func runWhoamiCmd(root, actor string) int {
+func Run(root, actor string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf whoami: %v\n", err)
