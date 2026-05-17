@@ -70,7 +70,7 @@ acs:
     - id: AC-16
       title: internal/cli/whoami/ carries whoami verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
