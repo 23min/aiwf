@@ -11,6 +11,10 @@ acs:
       title: internal/cli/archive/ carries archive verb
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: internal/cli/authorize/ carries authorize verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -49,4 +53,6 @@ Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/ren
 - M-3 (pattern-setter must land first).
 
 ### AC-1 — internal/cli/archive/ carries archive verb
+
+### AC-2 — internal/cli/authorize/ carries authorize verb
 
