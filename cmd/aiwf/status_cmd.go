@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
@@ -39,7 +40,7 @@ type statusReport struct {
 	OpenDecisions  []statusEntity      `json:"open_decisions"`
 	OpenGaps       []statusGap         `json:"open_gaps"`
 	Warnings       []statusFinding     `json:"warnings"`
-	RecentActivity []HistoryEvent      `json:"recent_activity"`
+	RecentActivity []history.HistoryEvent      `json:"recent_activity"`
 	SweepPending   *statusSweepPending `json:"sweep_pending,omitempty"`
 	Health         statusHealthCounts  `json:"health"`
 }
@@ -439,7 +440,7 @@ func plural(n int, singular, plural string) string {
 // Verb column — those records are skipped (G30). The grep over a
 // long history is also asked for more rows than `limit` so the
 // post-filter doesn't silently shrink the result; we then truncate.
-func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryEvent, error) {
+func readRecentActivity(ctx context.Context, root string, limit int) ([]history.HistoryEvent, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -470,7 +471,7 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryE
 		return nil, fmt.Errorf("git log: %w", err)
 	}
 
-	var events []HistoryEvent
+	var events []history.HistoryEvent
 	for _, rec := range strings.Split(string(out), recSep) {
 		rec = strings.TrimSpace(rec)
 		if rec == "" {
@@ -487,13 +488,13 @@ func readRecentActivity(ctx context.Context, root string, limit int) ([]HistoryE
 			// parser found no real trailer. Skip.
 			continue
 		}
-		events = append(events, HistoryEvent{
-			Commit: shortHash(parts[0]),
+		events = append(events, history.HistoryEvent{
+			Commit: history.ShortHash(parts[0]),
 			Date:   parts[1],
 			Detail: strings.TrimSpace(parts[2]),
 			Verb:   verb,
 			Actor:  strings.TrimSpace(parts[4]),
-			Body:   stripTrailers(strings.TrimSpace(parts[5])),
+			Body:   history.StripTrailers(strings.TrimSpace(parts[5])),
 		})
 		if len(events) >= limit {
 			break

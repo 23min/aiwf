@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
@@ -153,7 +154,7 @@ type ShowView struct {
 	TDD          string            `json:"tdd,omitempty"`
 	ACs          []ShowAC          `json:"acs,omitempty"`
 	Body         map[string]string `json:"body,omitempty"`
-	History      []HistoryEvent    `json:"history,omitempty"`
+	History      []history.HistoryEvent    `json:"history,omitempty"`
 	Findings     []check.Finding   `json:"findings,omitempty"`
 	ReferencedBy []string          `json:"referenced_by"`
 	Scopes       []ScopeView       `json:"scopes,omitempty"`
@@ -226,7 +227,7 @@ func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		})
 	}
 
-	events, err := readHistory(ctx, root, id)
+	events, err := history.ReadHistory(ctx, root, id)
 	if err == nil {
 		view.History = limitEvents(events, historyLimit)
 	}
@@ -292,7 +293,7 @@ func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 		Archived: entity.IsArchivedPath(parent.Path),
 	}
 
-	events, err := readHistory(ctx, root, id)
+	events, err := history.ReadHistory(ctx, root, id)
 	if err == nil {
 		view.History = limitEvents(events, historyLimit)
 	}
@@ -309,7 +310,7 @@ func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 // limitEvents trims the history slice. negative limit returns all;
 // zero returns nil; positive returns the most recent N (events come
 // oldest-first from readHistory, so we slice from the tail).
-func limitEvents(events []HistoryEvent, limit int) []HistoryEvent {
+func limitEvents(events []history.HistoryEvent, limit int) []history.HistoryEvent {
 	switch {
 	case limit < 0:
 		return events
@@ -401,7 +402,7 @@ func renderShowText(v ShowView) {
 				ended = "  ended " + s.EndedAt[:10]
 			}
 			fmt.Printf("    %s  %s → %s  state: %-7s  opened %s%s  events: %d\n",
-				shortHash(s.AuthSHA), s.Principal, s.Agent, s.State,
+				history.ShortHash(s.AuthSHA), s.Principal, s.Agent, s.State,
 				dateOnly(s.Opened), ended, s.EventCount)
 		}
 	}
@@ -415,7 +416,7 @@ func renderShowText(v ShowView) {
 				detail += " [forced]"
 			}
 			fmt.Printf("    %s  %-10s  %-12s  %s\n",
-				e.Date[:10], e.Verb, renderTo(e.To), detail)
+				e.Date[:10], e.Verb, history.RenderTo(e.To), detail)
 		}
 	}
 	fmt.Println()

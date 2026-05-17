@@ -90,7 +90,7 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 		}
 	}
 
-	events, err := readHistoryChain(context.Background(), rootDir, chain)
+	events, err := ReadHistoryChain(context.Background(), rootDir, chain)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
 		return cliutil.ExitInternal
@@ -109,7 +109,7 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 		for i := range events {
 			e := &events[i]
 			fmt.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
-				e.Date, renderActor(*e), e.Verb, renderTo(e.To), e.Detail, e.Commit,
+				e.Date, renderActor(*e), e.Verb, RenderTo(e.To), e.Detail, e.Commit,
 				renderScopeChips(*e, scopeEntities, showAuth))
 			if e.Force != "" {
 				fmt.Printf("    [forced: %s]\n", e.Force)
@@ -216,18 +216,18 @@ type HistoryEvent struct {
 // anchored on the literal `/` boundary so `M-007/` cannot prefix-
 // match `M-070/`. A composite id queried directly (`M-007/AC-1`)
 // matches only that AC's events.
-func readHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
-	return readHistoryChain(ctx, root, []string{id})
+func ReadHistory(ctx context.Context, root, id string) ([]HistoryEvent, error) {
+	return ReadHistoryChain(ctx, root, []string{id})
 }
 
-// readHistoryChain is readHistory's lineage-aware variant: it greps
+// ReadHistoryChain is readHistory's lineage-aware variant: it greps
 // git log for any aiwf-entity / aiwf-prior-entity trailer matching
 // any id in chain, dedupes by commit SHA, and returns a single
 // oldest-first chronological slice. Used by `aiwf history <id>`
 // after the cmd dispatcher has expanded id through prior_ids
 // lineage. A single-element chain is the pre-G37 behavior; longer
 // chains weave pre-rename and post-rename history into one timeline.
-func readHistoryChain(ctx context.Context, root string, chain []string) ([]HistoryEvent, error) {
+func ReadHistoryChain(ctx context.Context, root string, chain []string) ([]HistoryEvent, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -309,7 +309,7 @@ func readHistoryChain(ctx context.Context, root string, chain []string) ([]Histo
 			continue
 		}
 		ev := HistoryEvent{
-			Commit:       shortHash(parts[0]),
+			Commit:       ShortHash(parts[0]),
 			Date:         parts[1],
 			Detail:       strings.TrimSpace(parts[2]),
 			Verb:         verb,
@@ -323,7 +323,7 @@ func readHistoryChain(ctx context.Context, root string, chain []string) ([]Histo
 			Scope:        strings.TrimSpace(parts[11]),
 			ScopeEnds:    splitMultiValueTrailer(parts[12]),
 			Reason:       strings.TrimSpace(parts[13]),
-			Body:         stripTrailers(strings.TrimSpace(parts[15])),
+			Body:         StripTrailers(strings.TrimSpace(parts[15])),
 		}
 		if metrics, ok := gitops.ParseTestMetrics(parts[14]); ok {
 			m := metrics
@@ -364,7 +364,7 @@ func splitMultiValueTrailer(raw string) []string {
 // least one `aiwf-*` trailer. The aiwf-* marker is what distinguishes
 // real trailers (which we always emit) from body prose that happens to
 // look like a trailer (e.g. "decided: 30 days" written by a human).
-func stripTrailers(body string) string {
+func StripTrailers(body string) string {
 	if body == "" {
 		return ""
 	}
@@ -423,7 +423,7 @@ func isTrailerLine(s string) bool {
 
 // shortHash returns the first 7 hex digits of a SHA, the conventional
 // short form. Falls back to the full hash if it is shorter.
-func shortHash(sha string) string {
+func ShortHash(sha string) string {
 	if len(sha) <= 7 {
 		return sha
 	}
@@ -434,7 +434,7 @@ func shortHash(sha string) string {
 // output. Empty (the absent-trailer case for non-promote events and
 // pre-I2 promote commits) renders as "-"; a populated value is shown
 // with a leading arrow so the column reads as a transition target.
-func renderTo(to string) string {
+func RenderTo(to string) string {
 	if to == "" {
 		return "-"
 	}
@@ -476,7 +476,7 @@ func renderScopeChips(e HistoryEvent, scopeEntities map[string]string, showAuth 
 		if scopeEntity == "" {
 			scopeEntity = "?"
 		}
-		sha := shortHash(e.AuthorizedBy)
+		sha := ShortHash(e.AuthorizedBy)
 		if showAuth {
 			sha = e.AuthorizedBy
 		}
@@ -485,7 +485,7 @@ func renderScopeChips(e HistoryEvent, scopeEntities map[string]string, showAuth 
 	for _, sha := range e.ScopeEnds {
 		scopeEntity := scopeEntities[sha]
 		if scopeEntity == "" {
-			scopeEntity = shortHash(sha)
+			scopeEntity = ShortHash(sha)
 		}
 		chips = append(chips, fmt.Sprintf("[%s ended]", scopeEntity))
 	}

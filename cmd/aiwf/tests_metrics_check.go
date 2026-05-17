@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
@@ -41,7 +42,7 @@ func runTestsMetricsCheck(ctx context.Context, root string, t *tree.Tree, requir
 				continue
 			}
 			compositeID := m.ID + "/" + ac.ID
-			events, err := readHistory(ctx, root, compositeID)
+			events, err := history.ReadHistory(ctx, root, compositeID)
 			if err != nil {
 				return nil, fmt.Errorf("history for %s: %w", compositeID, err)
 			}
@@ -66,7 +67,7 @@ func runTestsMetricsCheck(ctx context.Context, root string, t *tree.Tree, requir
 // hasTestsTrailer reports whether any event in the history carries a
 // non-nil Tests pointer (i.e. the commit's aiwf-tests trailer parsed
 // successfully through the tolerant reader).
-func hasTestsTrailer(events []HistoryEvent) bool {
+func hasTestsTrailer(events []history.HistoryEvent) bool {
 	for i := range events {
 		if events[i].Tests != nil {
 			return true

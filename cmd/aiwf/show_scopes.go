@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/scope"
 )
@@ -51,7 +52,7 @@ func loadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
-	events, err := readHistory(ctx, root, id)
+	events, err := history.ReadHistory(ctx, root, id)
 	if err != nil {
 		return nil, err
 	}
