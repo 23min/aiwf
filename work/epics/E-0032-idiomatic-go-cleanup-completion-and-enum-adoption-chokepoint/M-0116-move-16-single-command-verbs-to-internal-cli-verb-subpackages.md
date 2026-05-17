@@ -38,7 +38,7 @@ acs:
     - id: AC-8
       title: internal/cli/retitle/ carries retitle verb
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-9
       title: internal/cli/rewidth/ carries rewidth verb
       status: open
