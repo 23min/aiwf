@@ -4,6 +4,11 @@ title: Lift completion helpers to internal/cli/cliutil/completion.go
 status: draft
 parent: E-0032
 tdd: required
+acs:
+    - id: AC-1
+      title: Completion helpers and resolveRoot exported from internal/cli/cliutil/
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -37,3 +42,6 @@ Move `resolveRoot` from `main.go` into cliutil as `cliutil.ResolveRoot`. Move th
 ## Dependencies
 
 - None.
+
+### AC-1 — Completion helpers and resolveRoot exported from internal/cli/cliutil/
+
