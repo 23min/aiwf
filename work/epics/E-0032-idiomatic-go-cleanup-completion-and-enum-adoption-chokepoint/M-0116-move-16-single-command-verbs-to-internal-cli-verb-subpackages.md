@@ -54,7 +54,7 @@ acs:
     - id: AC-12
       title: internal/cli/status/ carries status verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-13
       title: internal/cli/template/ carries template verb
       status: met
