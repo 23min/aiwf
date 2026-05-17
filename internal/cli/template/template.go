@@ -1,4 +1,4 @@
-package main
+package template
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // templateOut is the per-kind payload `aiwf template` emits in both
@@ -20,7 +21,7 @@ type templateOut struct {
 	Body string      `json:"body"`
 }
 
-// newTemplateCmd builds `aiwf template [kind]`: prints the per-kind
+// NewCmd builds `aiwf template [kind]`: prints the per-kind
 // body template that `aiwf add` would scaffold after the frontmatter.
 // Read-only; produces no commit and does not require a consumer repo.
 //
@@ -32,7 +33,7 @@ type templateOut struct {
 // With no kind: emits every kind, separated by `KIND: <kind>` headers.
 // With a kind: emits just that template, raw and unprefixed — so
 // `aiwf template epic > new_epic_body.md` works as a one-liner.
-func newTemplateCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		format string
 		pretty bool
@@ -49,7 +50,7 @@ func newTemplateCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runTemplateCmd(args, format, pretty))
+			return cliutil.WrapExitCode(Run(args, format, pretty))
 		},
 	}
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
@@ -64,7 +65,7 @@ func newTemplateCmd() *cobra.Command {
 	return cmd
 }
 
-func runTemplateCmd(args []string, format string, pretty bool) int {
+func Run(args []string, format string, pretty bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf template: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
@@ -97,7 +98,7 @@ func runTemplateCmd(args []string, format string, pretty bool) int {
 	case "json":
 		env := render.Envelope{
 			Tool:    "aiwf",
-			Version: Version,
+			Version: version.Current().Version,
 			Status:  "ok",
 			Result:  map[string]any{"templates": templates},
 		}
