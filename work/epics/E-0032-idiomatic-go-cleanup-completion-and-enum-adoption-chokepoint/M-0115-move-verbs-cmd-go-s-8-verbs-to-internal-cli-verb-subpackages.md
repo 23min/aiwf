@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: internal/cli/promote/ carries promote verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: internal/cli/editbody/ carries edit-body verb
       status: met
