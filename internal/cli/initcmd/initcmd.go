@@ -1,4 +1,6 @@
-package main
+// Package initcmd implements the `aiwf init` verb (per-verb subpackage of M-0116;
+// directory and package are `initcmd` because `init` is a special Go function name).
+package initcmd
 
 import (
 	"context"
@@ -12,13 +14,13 @@ import (
 	"github.com/23min/aiwf/internal/initrepo"
 )
 
-// newInitCmd builds `aiwf init`: writes aiwf.yaml, scaffolds entity
+// NewCmd builds `aiwf init`: writes aiwf.yaml, scaffolds entity
 // directories, materializes skills, appends to .gitignore, writes a
 // CLAUDE.md template, and installs the pre-push hook. No commit.
 //
 // --dry-run reports the would-be ledger without touching disk.
 // --skip-hook performs every other step but omits hook installation.
-func newInitCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		root     string
 		actor    string
@@ -37,7 +39,7 @@ func newInitCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runInitCmd(root, actor, dryRun, skipHook))
+			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: cwd)")
@@ -47,7 +49,8 @@ func newInitCmd() *cobra.Command {
 	return cmd
 }
 
-func runInitCmd(root, actor string, dryRun, skipHook bool) int {
+// Run executes `aiwf init`. Returns one of the cliutil.Exit* codes.
+func Run(root, actor string, dryRun, skipHook bool) int {
 	rootDir, err := resolveInitRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
