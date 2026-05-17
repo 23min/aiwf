@@ -1,4 +1,4 @@
-package main
+package archive
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// newArchiveCmd builds `aiwf archive [--apply] [--kind <kind>] [--root <path>]`.
+// NewCmd builds `aiwf archive [--apply] [--kind <kind>] [--root <path>]`.
 //
 // Default invocation (no `--apply`) is dry-run: the verb computes a
 // Plan and the dispatcher prints the planned moves. `--apply` runs
@@ -32,7 +32,7 @@ import (
 //   - Reversal is deliberately not implemented (ADR-0004 §"Reversal").
 //     If a closed entity needs revisiting, file a new entity that
 //     references the archived one.
-func newArchiveCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -87,7 +87,7 @@ ADR-0004 tree and the routine ongoing sweeps that follow.`,
 				fmt.Fprintln(os.Stderr, "aiwf archive: --apply and --dry-run are mutually exclusive")
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
-			return cliutil.WrapExitCode(runArchiveCmd(actor, principal, root, kind, apply))
+			return cliutil.WrapExitCode(Run(actor, principal, root, kind, apply))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -113,7 +113,7 @@ func archiveKindCompletions() []string {
 	return []string{"epic", "contract", "gap", "decision", "adr"}
 }
 
-func runArchiveCmd(actor, principal, root, kind string, apply bool) int {
+func Run(actor, principal, root, kind string, apply bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", err)
