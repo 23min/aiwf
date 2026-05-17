@@ -77,7 +77,7 @@ func runTemplateCmd(args []string, format string, pretty bool) int {
 	if len(args) == 1 {
 		k := entity.Kind(args[0])
 		if _, ok := entity.SchemaForKind(k); !ok {
-			fmt.Fprintf(os.Stderr, "aiwf template: unknown kind %q (known: %s)\n", args[0], joinKinds(entity.AllKinds()))
+			fmt.Fprintf(os.Stderr, "aiwf template: unknown kind %q (known: %s)\n", args[0], cliutil.JoinKinds(entity.AllKinds()))
 			return cliutil.ExitUsage
 		}
 		templates = []templateOut{{Kind: k, Body: string(entity.BodyTemplate(k))}}

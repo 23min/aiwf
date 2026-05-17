@@ -1,4 +1,4 @@
-package main
+package schema
 
 import (
 	"fmt"
@@ -11,14 +11,15 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/version"
 )
 
-// newSchemaCmd builds `aiwf schema [kind]`: prints the frontmatter
+// NewCmd builds `aiwf schema [kind]`: prints the frontmatter
 // contract for one kind or for all six. Read-only; produces no commit
 // and does not require a consumer repo. The intended audience is skill
 // authors writing recipes that hand-edit aiwf-managed files — they can
 // read the schema once and stop guessing field names.
-func newSchemaCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		format string
 		pretty bool
@@ -35,7 +36,7 @@ func newSchemaCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runSchemaCmd(args, format, pretty))
+			return cliutil.WrapExitCode(Run(args, format, pretty))
 		},
 	}
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
@@ -50,7 +51,7 @@ func newSchemaCmd() *cobra.Command {
 	return cmd
 }
 
-func runSchemaCmd(args []string, format string, pretty bool) int {
+func Run(args []string, format string, pretty bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf schema: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
@@ -64,7 +65,7 @@ func runSchemaCmd(args []string, format string, pretty bool) int {
 		k := entity.Kind(args[0])
 		s, ok := entity.SchemaForKind(k)
 		if !ok {
-			fmt.Fprintf(os.Stderr, "aiwf schema: unknown kind %q (known: %s)\n", args[0], joinKinds(entity.AllKinds()))
+			fmt.Fprintf(os.Stderr, "aiwf schema: unknown kind %q (known: %s)\n", args[0], cliutil.JoinKinds(entity.AllKinds()))
 			return cliutil.ExitUsage
 		}
 		schemas = []entity.Schema{s}
@@ -81,7 +82,7 @@ func runSchemaCmd(args []string, format string, pretty bool) int {
 	case "json":
 		env := render.Envelope{
 			Tool:    "aiwf",
-			Version: Version,
+			Version: version.Current().Version,
 			Status:  "ok",
 			Result:  map[string]any{"schemas": schemas},
 		}
@@ -132,7 +133,7 @@ func writeSchemaText(w io.Writer, schemas []entity.Schema) error {
 				r := &s.References[j]
 				kinds := "(any)"
 				if len(r.AllowedKinds) > 0 {
-					kinds = joinKinds(r.AllowedKinds)
+					kinds = cliutil.JoinKinds(r.AllowedKinds)
 				}
 				req := "optional"
 				if !r.Optional {
@@ -151,10 +152,3 @@ func writeSchemaText(w io.Writer, schemas []entity.Schema) error {
 	return nil
 }
 
-func joinKinds(ks []entity.Kind) string {
-	parts := make([]string, len(ks))
-	for i, k := range ks {
-		parts[i] = string(k)
-	}
-	return strings.Join(parts, ", ")
-}
