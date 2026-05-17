@@ -358,7 +358,7 @@ Close G-0107 by moving every top-level verb in `cmd/aiwf/` (~27 verbs across 19 
 | Milestone | Title | Status |
 |---|---|---|
 | M-0113 | Consolidate trailer parser | done |
-| M-0114 | Lift completion helpers to internal/cli/cliutil/completion.go | draft |
+| M-0114 | Lift completion helpers to internal/cli/cliutil/completion.go | done |
 | M-0115 | Move verbs_cmd.go's 8 verbs to internal/cli/<verb>/ subpackages | draft |
 | M-0116 | Move 16 single-command verbs to internal/cli/<verb>/ subpackages | draft |
 | M-0117 | Move contract, doctor, milestone (multi-subcommand) to subpackages | draft |
