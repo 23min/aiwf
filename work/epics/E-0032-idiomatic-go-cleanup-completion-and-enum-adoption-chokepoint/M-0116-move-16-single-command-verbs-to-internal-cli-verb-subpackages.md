@@ -1,0 +1,44 @@
+---
+id: M-0116
+title: Move 16 single-command verbs to internal/cli/<verb>/ subpackages
+status: draft
+parent: E-0032
+depends_on:
+    - M-0115
+tdd: required
+---
+## Goal
+
+Move 16 single-command verbs (`archive`, `authorize`, `history`, `import`, `init`, `list`, `render`, `retitle`, `rewidth`, `schema`, `show`, `status`, `template`, `update`, `upgrade`, `whoami`) from `cmd/aiwf/<verb>_cmd.go` into per-verb subpackages under `internal/cli/<verb>/`. After this milestone, only `verbs_cmd.go`'s former 8 verbs (now subpackaged) and the multi-subcommand cluster (`contract`, `doctor`, `milestone`) remain to migrate.
+
+## Context
+
+Largest cluster of G-0107 step 3 execution. Each verb is already in its own `*_cmd.go`, so this is purely a move (not a file-split). Uses M-3's pattern.
+
+## Approach
+
+For each verb, move `cmd/aiwf/<verb>_cmd.go` → `internal/cli/<verb>/<verb>.go` exporting `New<Verb>Cmd()`. Move associated `cmd/aiwf/<verb>_*_test.go` files into `internal/cli/<verb>/`. Update `cmd/aiwf/main.go`'s `newRootCmd` to import each new package. Update completion-drift test. **One verb per commit** so partial failure is rollbackable and review is per-verb.
+
+Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/render_resolver.go) that depends on render's wiring — `render_resolver.go` stays in cmd/aiwf/ for M-6 to handle (it has cross-verb concerns; doesn't move with `render` alone). Same caveat for `show_cmd.go` and [`show_scopes.go`](../../../cmd/aiwf/show_scopes.go), `init_cmd.go` and [`rituals.go`](../../../cmd/aiwf/rituals.go).
+
+## Acceptance criteria
+
+<!-- ACs are added at aiwfx-start-milestone via `aiwf add ac <M-id> --title "..."`. -->
+
+## Surfaces touched
+
+- `cmd/aiwf/<verb>_cmd.go` × 16 — delete
+- `cmd/aiwf/<verb>_*_test.go` × many — move
+- `internal/cli/<verb>/` × 16 — new packages
+- `cmd/aiwf/main.go` — imports
+- `cmd/aiwf/completion_drift_test.go` — drift-test update
+
+## Out of scope
+
+- Multi-subcommand verbs (M-5)
+- Supporting-file moves: `render_resolver.go`, `show_scopes.go`, `rituals.go`, `selfcheck.go`, `tests_metrics_check.go`, `provenance_check.go` — all M-6
+- `main.go` shrink (M-6)
+
+## Dependencies
+
+- M-3 (pattern-setter must land first).
