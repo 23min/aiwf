@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: internal/cli/init/ carries init verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: internal/cli/list/ carries list verb
