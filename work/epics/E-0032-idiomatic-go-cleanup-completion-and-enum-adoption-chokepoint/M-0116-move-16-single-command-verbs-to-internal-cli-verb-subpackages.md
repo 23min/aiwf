@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: internal/cli/archive/ carries archive verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: internal/cli/authorize/ carries authorize verb
       status: open
