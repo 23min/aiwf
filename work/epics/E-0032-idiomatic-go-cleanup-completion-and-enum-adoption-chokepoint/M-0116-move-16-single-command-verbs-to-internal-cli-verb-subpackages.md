@@ -62,7 +62,7 @@ acs:
     - id: AC-14
       title: internal/cli/update/ carries update verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-15
       title: internal/cli/upgrade/ carries upgrade verb
       status: open
