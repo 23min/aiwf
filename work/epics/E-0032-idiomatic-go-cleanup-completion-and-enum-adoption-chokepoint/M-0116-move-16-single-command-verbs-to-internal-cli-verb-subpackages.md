@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: internal/cli/archive/ carries archive verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: internal/cli/authorize/ carries authorize verb
