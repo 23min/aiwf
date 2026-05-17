@@ -1,7 +1,7 @@
 ---
 id: M-0114
 title: Lift completion helpers to internal/cli/cliutil/completion.go
-status: in_progress
+status: done
 parent: E-0032
 tdd: required
 acs:
