@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: internal/cli/history/ carries history verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: internal/cli/importcmd/ carries import verb
