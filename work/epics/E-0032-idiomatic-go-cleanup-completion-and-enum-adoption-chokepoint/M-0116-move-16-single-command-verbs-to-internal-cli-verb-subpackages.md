@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: internal/cli/authorize/ carries authorize verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: internal/cli/history/ carries history verb
