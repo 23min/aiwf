@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: cmd/aiwf has no local definitions; all callers consume cliutil exports
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
