@@ -9,6 +9,10 @@ acs:
       title: Completion helpers and resolveRoot exported from internal/cli/cliutil/
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: cmd/aiwf has no local definitions; all callers consume cliutil exports
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -44,4 +48,6 @@ Move `resolveRoot` from `main.go` into cliutil as `cliutil.ResolveRoot`. Move th
 - None.
 
 ### AC-1 — Completion helpers and resolveRoot exported from internal/cli/cliutil/
+
+### AC-2 — cmd/aiwf has no local definitions; all callers consume cliutil exports
 
