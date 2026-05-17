@@ -23,6 +23,10 @@ acs:
       title: internal/cli/cancel/ carries cancel verb
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: internal/cli/rename/ carries rename verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -71,4 +75,6 @@ Shared helpers (`parseKind`, `parseTestsFlag`, `readBodyFile`, `splitCommaList` 
 ### AC-3 — internal/cli/editbody/ carries edit-body verb
 
 ### AC-4 — internal/cli/cancel/ carries cancel verb
+
+### AC-5 — internal/cli/rename/ carries rename verb
 
