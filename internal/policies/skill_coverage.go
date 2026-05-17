@@ -306,14 +306,20 @@ func parseSkillMarkdown(data []byte) embeddedSkillEntry {
 }
 
 // findTopLevelVerbs returns the set of top-level verb names registered
-// at the root of newRootCmd. Each is mapped to the `newXCmd` function
+// at the root of newRootCmd. Each is mapped to the builder function
 // that constructs it (used in error messages so a violation points at
 // the right file).
 //
 // The walk: AST-parse main.go, find newRootCmd, collect every
-// `cmd.AddCommand(newXCmd())` call. For each newXCmd, parse its
-// definition's body and extract the `Use:` field's string literal —
-// that's the verb name as the user types it.
+// `cmd.AddCommand(...)` call. Two builder shapes are recognized:
+//   - Ident form `newXCmd()` — the legacy in-cmd/aiwf shape, where the
+//     builder lives in cmd/aiwf/*.go.
+//   - Selector form `pkg.NewCmd()` — the M-0115 per-verb subpackage
+//     shape, where the builder lives in internal/cli/<pkg>/*.go.
+//
+// For each builder, the relevant directory is walked for the FuncDecl
+// definition; the `Use:` field's string literal in the
+// `&cobra.Command{...}` is the verb name as the user types it.
 func findTopLevelVerbs(root string) (map[string]string, error) {
 	cmdDir := filepath.Join(root, "cmd", "aiwf")
 	mainPath := filepath.Join(cmdDir, "main.go")
@@ -323,7 +329,10 @@ func findTopLevelVerbs(root string) (map[string]string, error) {
 		return nil, err
 	}
 
-	builders := map[string]bool{}
+	// identBuilders: builder name → true (legacy cmd/aiwf form).
+	// pkgBuilders: subpackage name → builder funcdecl name (M-0115 form).
+	identBuilders := map[string]bool{}
+	pkgBuilders := map[string]string{}
 	ast.Inspect(mainAST, func(n ast.Node) bool {
 		fn, ok := n.(*ast.FuncDecl)
 		if !ok || fn.Name == nil || fn.Name.Name != "newRootCmd" {
@@ -343,12 +352,17 @@ func findTopLevelVerbs(root string) (map[string]string, error) {
 				if !ok {
 					continue
 				}
-				id, ok := inner.Fun.(*ast.Ident)
-				if !ok {
-					continue
-				}
-				if strings.HasPrefix(id.Name, "new") && strings.HasSuffix(id.Name, "Cmd") {
-					builders[id.Name] = true
+				switch fun := inner.Fun.(type) {
+				case *ast.Ident:
+					if strings.HasPrefix(fun.Name, "new") && strings.HasSuffix(fun.Name, "Cmd") {
+						identBuilders[fun.Name] = true
+					}
+				case *ast.SelectorExpr:
+					pkgIdent, ok := fun.X.(*ast.Ident)
+					if !ok {
+						continue
+					}
+					pkgBuilders[pkgIdent.Name] = fun.Sel.Name
 				}
 			}
 			return true
@@ -357,18 +371,21 @@ func findTopLevelVerbs(root string) (map[string]string, error) {
 	})
 
 	out := map[string]string{}
-	files, err := filepath.Glob(filepath.Join(cmdDir, "*.go"))
+
+	// Legacy in-cmd/aiwf builders: walk cmd/aiwf/*.go for FuncDecls
+	// whose names appear in identBuilders.
+	cmdFiles, err := filepath.Glob(filepath.Join(cmdDir, "*.go"))
 	if err != nil {
 		return nil, err
 	}
-	for _, file := range files {
+	for _, file := range cmdFiles {
 		fast, parseErr := parser.ParseFile(fset, file, nil, parser.AllErrors)
 		if parseErr != nil {
 			continue
 		}
 		ast.Inspect(fast, func(n ast.Node) bool {
 			fn, ok := n.(*ast.FuncDecl)
-			if !ok || fn.Name == nil || !builders[fn.Name.Name] {
+			if !ok || fn.Name == nil || !identBuilders[fn.Name.Name] {
 				return true
 			}
 			use := extractCobraUseField(fn)
@@ -380,6 +397,35 @@ func findTopLevelVerbs(root string) (map[string]string, error) {
 			return false
 		})
 	}
+
+	// Subpackage builders: for each pkg.builder pair, walk
+	// internal/cli/<pkg>/*.go for the builder FuncDecl.
+	for pkgName, builderName := range pkgBuilders {
+		pkgDir := filepath.Join(root, "internal", "cli", pkgName)
+		pkgFiles, globErr := filepath.Glob(filepath.Join(pkgDir, "*.go"))
+		if globErr != nil {
+			continue
+		}
+		for _, file := range pkgFiles {
+			fast, parseErr := parser.ParseFile(fset, file, nil, parser.AllErrors)
+			if parseErr != nil {
+				continue
+			}
+			ast.Inspect(fast, func(n ast.Node) bool {
+				fn, ok := n.(*ast.FuncDecl)
+				if !ok || fn.Name == nil || fn.Name.Name != builderName {
+					return true
+				}
+				use := extractCobraUseField(fn)
+				if use != "" {
+					first := strings.SplitN(use, " ", 2)[0]
+					out[first] = pkgName + "." + builderName
+				}
+				return false
+			})
+		}
+	}
+
 	return out, nil
 }
 
