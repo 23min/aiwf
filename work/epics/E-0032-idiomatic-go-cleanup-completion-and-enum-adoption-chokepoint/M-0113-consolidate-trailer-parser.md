@@ -9,6 +9,10 @@ acs:
       title: Single canonical exported gitops.ParseTrailers
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: All callers consume gitops.ParseTrailers; cliutil duplicate deleted
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -43,4 +47,6 @@ Rename `parseTrailers` → `ParseTrailers` in gitops; the existing tests at [`in
 - None.
 
 ### AC-1 — Single canonical exported gitops.ParseTrailers
+
+### AC-2 — All callers consume gitops.ParseTrailers; cliutil duplicate deleted
 
