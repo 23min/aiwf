@@ -1,3 +1,5 @@
+// Package update implements the `aiwf update ` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go's newRootCmd wires it via NewCmd).
 package update
 
 import (
@@ -46,6 +48,7 @@ func NewCmd() *cobra.Command {
 	return cmd
 }
 
+// Run executes `aiwf update`. Returns one of the cliutil.Exit* codes.
 func Run(root string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {

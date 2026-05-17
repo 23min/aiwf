@@ -1,3 +1,5 @@
+// Package archive implements the `aiwf archive ` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go's newRootCmd wires it via NewCmd).
 package archive
 
 import (
@@ -113,6 +115,7 @@ func archiveKindCompletions() []string {
 	return []string{"epic", "contract", "gap", "decision", "adr"}
 }
 
+// Run executes `aiwf archive`. Returns one of the cliutil.Exit* codes.
 func Run(actor, principal, root, kind string, apply bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path

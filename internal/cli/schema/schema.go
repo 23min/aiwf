@@ -1,3 +1,5 @@
+// Package schema implements the `aiwf schema ` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go's newRootCmd wires it via NewCmd).
 package schema
 
 import (
@@ -51,6 +53,7 @@ func NewCmd() *cobra.Command {
 	return cmd
 }
 
+// Run executes `aiwf schema`. Returns one of the cliutil.Exit* codes.
 func Run(args []string, format string, pretty bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf schema: --format must be 'text' or 'json', got %q\n", format)
@@ -75,7 +78,7 @@ func Run(args []string, format string, pretty bool) int {
 
 	switch format {
 	case "text":
-		if err := writeSchemaText(os.Stdout, schemas); err != nil {
+		if err := WriteSchemaText(os.Stdout, schemas); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf schema: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
@@ -94,9 +97,9 @@ func Run(args []string, format string, pretty bool) int {
 	return cliutil.ExitOK
 }
 
-// writeSchemaText renders schemas one block per kind, in a fixed-column
+// WriteSchemaText renders schemas one block per kind, in a fixed-column
 // layout that aligns the field-description rows under each header.
-func writeSchemaText(w io.Writer, schemas []entity.Schema) error {
+func WriteSchemaText(w io.Writer, schemas []entity.Schema) error {
 	for i := range schemas {
 		s := &schemas[i]
 		if i > 0 {
@@ -151,4 +154,3 @@ func writeSchemaText(w io.Writer, schemas []entity.Schema) error {
 	}
 	return nil
 }
-

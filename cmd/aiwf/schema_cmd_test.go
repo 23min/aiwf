@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/schema"
+
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 )
@@ -112,7 +114,7 @@ func TestWriteSchemaText_WriterError(t *testing.T) {
 	// Confirms the error-return path on an io.Writer that fails on the
 	// first byte — covers the defensive `if _, err := ...; err != nil`
 	// branches that stdout in normal tests can never reach.
-	got := writeSchemaText(brokenWriter{}, []entity.Schema{{Kind: entity.KindEpic, IDFormat: "E-NN"}})
+	got := schema.WriteSchemaText(brokenWriter{}, []entity.Schema{{Kind: entity.KindEpic, IDFormat: "E-NN"}})
 	if got == nil {
 		t.Error("expected error from broken writer")
 	}

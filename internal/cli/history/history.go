@@ -1,3 +1,5 @@
+// Package history implements the `aiwf history ` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go's newRootCmd wires it via NewCmd).
 package history
 
 import (
@@ -52,6 +54,7 @@ func NewCmd() *cobra.Command {
 	return cmd
 }
 
+// Run executes `aiwf history`. Returns one of the cliutil.Exit* codes.
 func Run(id, root, format string, pretty, showAuth bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf history: --format must be text or json, got %q\n", format)
@@ -105,12 +108,12 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 		// Resolve authorize-SHA → scope-entity once; chip rendering
 		// reads from the map. Pre-I2.5 commits and pure entity-only
 		// histories produce an empty map (no chips).
-		scopeEntities := buildScopeEntityMap(context.Background(), rootDir, events)
+		scopeEntities := BuildScopeEntityMap(context.Background(), rootDir, events)
 		for i := range events {
 			e := &events[i]
 			fmt.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
-				e.Date, renderActor(*e), e.Verb, RenderTo(e.To), e.Detail, e.Commit,
-				renderScopeChips(*e, scopeEntities, showAuth))
+				e.Date, RenderActor(*e), e.Verb, RenderTo(e.To), e.Detail, e.Commit,
+				RenderScopeChips(*e, scopeEntities, showAuth))
 			if e.Force != "" {
 				fmt.Printf("    [forced: %s]\n", e.Force)
 			}
@@ -198,7 +201,7 @@ type HistoryEvent struct {
 	Tests        *gitops.TestMetrics `json:"tests,omitempty"`
 }
 
-// readHistory shells out to `git log` and returns one HistoryEvent per
+// ReadHistory shells out to `git log` and returns one HistoryEvent per
 // commit whose `aiwf-entity:` or `aiwf-prior-entity:` trailer matches
 // id. Events are returned oldest-first.
 //
@@ -321,7 +324,7 @@ func ReadHistoryChain(ctx context.Context, root string, chain []string) ([]Histo
 			OnBehalfOf:   strings.TrimSpace(parts[9]),
 			AuthorizedBy: strings.TrimSpace(parts[10]),
 			Scope:        strings.TrimSpace(parts[11]),
-			ScopeEnds:    splitMultiValueTrailer(parts[12]),
+			ScopeEnds:    SplitMultiValueTrailer(parts[12]),
 			Reason:       strings.TrimSpace(parts[13]),
 			Body:         StripTrailers(strings.TrimSpace(parts[15])),
 		}
@@ -334,12 +337,12 @@ func ReadHistoryChain(ctx context.Context, root string, chain []string) ([]Histo
 	return events, nil
 }
 
-// splitMultiValueTrailer splits a `git log %(trailers:key=...,
+// SplitMultiValueTrailer splits a `git log %(trailers:key=...,
 // valueonly=true,unfold=true)` cell into one entry per repeated
 // trailer. Multi-value trailers (notably aiwf-scope-ends) are
 // rendered newline-separated by git; we split, trim, and drop empty
 // entries.
-func splitMultiValueTrailer(raw string) []string {
+func SplitMultiValueTrailer(raw string) []string {
 	if strings.TrimSpace(raw) == "" {
 		return nil
 	}
@@ -353,7 +356,7 @@ func splitMultiValueTrailer(raw string) []string {
 	return out
 }
 
-// stripTrailers removes the trailing trailer block from a commit body.
+// StripTrailers removes the trailing trailer block from a commit body.
 // `git log %(body)` includes everything after the subject and the
 // separating blank line, including trailers; we only want the prose.
 //
@@ -421,7 +424,7 @@ func isTrailerLine(s string) bool {
 	return true
 }
 
-// shortHash returns the first 7 hex digits of a SHA, the conventional
+// ShortHash returns the first 7 hex digits of a SHA, the conventional
 // short form. Falls back to the full hash if it is shorter.
 func ShortHash(sha string) string {
 	if len(sha) <= 7 {
@@ -430,7 +433,7 @@ func ShortHash(sha string) string {
 	return sha[:7]
 }
 
-// renderTo formats the target-status column in `aiwf history` text
+// RenderTo formats the target-status column in `aiwf history` text
 // output. Empty (the absent-trailer case for non-promote events and
 // pre-I2 promote commits) renders as "-"; a populated value is shown
 // with a leading arrow so the column reads as a transition target.
@@ -441,19 +444,19 @@ func RenderTo(to string) string {
 	return "→ " + to
 }
 
-// renderActor formats the actor column. When a non-human principal
+// RenderActor formats the actor column. When a non-human principal
 // is present and differs from the actor (the agent-acts-for-human
 // case from I2.5), the column reads `principal via agent` so the
 // human is visually attributed first. Direct human acts (no
 // principal) render the actor verbatim.
-func renderActor(e HistoryEvent) string {
+func RenderActor(e HistoryEvent) string {
 	if e.Principal == "" || e.Principal == e.Actor {
 		return e.Actor
 	}
 	return e.Principal + " via " + e.Actor
 }
 
-// renderScopeChips assembles the trailing chip block for one history
+// RenderScopeChips assembles the trailing chip block for one history
 // row. For `aiwf authorize` rows, a `[<scope> <event>]` chip names
 // the lifecycle event (`opened` / `paused` / `resumed`). For
 // scope-authorized rows, a `[<scope-entity> <auth-short>]` chip
@@ -466,7 +469,7 @@ func renderActor(e HistoryEvent) string {
 //
 // The output begins with a leading "  " when non-empty so it sits
 // flush against the Commit column the caller already printed.
-func renderScopeChips(e HistoryEvent, scopeEntities map[string]string, showAuth bool) string {
+func RenderScopeChips(e HistoryEvent, scopeEntities map[string]string, showAuth bool) string {
 	var chips []string
 	if e.Verb == "authorize" && e.Scope != "" {
 		chips = append(chips, fmt.Sprintf("[scope: %s]", e.Scope))
@@ -495,16 +498,16 @@ func renderScopeChips(e HistoryEvent, scopeEntities map[string]string, showAuth 
 	return "  " + strings.Join(chips, " ")
 }
 
-// buildScopeEntityMap walks every authorize-opener commit visible
+// BuildScopeEntityMap walks every authorize-opener commit visible
 // from HEAD once and returns auth-SHA → scope-entity. Used by
-// renderScopeChips to label the [<entity> <sha>] chip without a
+// RenderScopeChips to label the [<entity> <sha>] chip without a
 // per-row git lookup. Pre-I2.5 repos with no authorize commits
 // produce an empty map; the renderer falls back gracefully.
 //
 // The walk is bounded by the existing event set: any auth SHA the
 // rendered events reference is looked up via this map; SHAs absent
 // from the map render as "?", which is benign.
-func buildScopeEntityMap(ctx context.Context, root string, events []HistoryEvent) map[string]string {
+func BuildScopeEntityMap(ctx context.Context, root string, events []HistoryEvent) map[string]string {
 	out := map[string]string{}
 	if !cliutil.HasCommits(ctx, root) {
 		return out

@@ -1,3 +1,5 @@
+// Package authorize implements the `aiwf authorize ` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go's newRootCmd wires it via NewCmd).
 package authorize
 
 import (
@@ -69,6 +71,7 @@ func NewCmd() *cobra.Command {
 	return cmd
 }
 
+// Run executes `aiwf authorize`. Returns one of the cliutil.Exit* codes.
 func Run(id, actor, root, to, pause, resume, reason string, force bool) int {
 	modes := 0
 	if to != "" {

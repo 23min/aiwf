@@ -1,3 +1,5 @@
+// Package whoami implements the `aiwf whoami ` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go's newRootCmd wires it via NewCmd).
 package whoami
 
 import (
@@ -37,6 +39,7 @@ func NewCmd() *cobra.Command {
 	return cmd
 }
 
+// Run executes `aiwf whoami`. Returns one of the cliutil.Exit* codes.
 func Run(root, actor string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {

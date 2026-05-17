@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/23min/aiwf/internal/cli/history"
+)
 
 func TestStripTrailers(t *testing.T) {
 	t.Parallel()
@@ -60,9 +64,9 @@ func TestStripTrailers(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := stripTrailers(tt.in)
+			got := history.StripTrailers(tt.in)
 			if got != tt.want {
-				t.Errorf("stripTrailers(%q) = %q, want %q", tt.in, got, tt.want)
+				t.Errorf("history.StripTrailers(%q) = %q, want %q", tt.in, got, tt.want)
 			}
 		})
 	}

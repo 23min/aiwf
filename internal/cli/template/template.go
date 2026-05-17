@@ -1,3 +1,5 @@
+// Package template implements the `aiwf template ` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go's newRootCmd wires it via NewCmd).
 package template
 
 import (
@@ -13,10 +15,10 @@ import (
 	"github.com/23min/aiwf/internal/version"
 )
 
-// templateOut is the per-kind payload `aiwf template` emits in both
+// TemplateOut is the per-kind payload `aiwf template` emits in both
 // text and JSON modes. Kept at package level so writeTemplateText
 // can take a typed slice rather than an inline struct.
-type templateOut struct {
+type TemplateOut struct {
 	Kind entity.Kind `json:"kind"`
 	Body string      `json:"body"`
 }
@@ -65,6 +67,7 @@ func NewCmd() *cobra.Command {
 	return cmd
 }
 
+// Run executes `aiwf template`. Returns one of the cliutil.Exit* codes.
 func Run(args []string, format string, pretty bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf template: --format must be 'text' or 'json', got %q\n", format)
@@ -74,24 +77,24 @@ func Run(args []string, format string, pretty bool) int {
 		fmt.Fprintln(os.Stderr, "aiwf template: --pretty has no effect without --format=json")
 	}
 
-	var templates []templateOut
+	var templates []TemplateOut
 	if len(args) == 1 {
 		k := entity.Kind(args[0])
 		if _, ok := entity.SchemaForKind(k); !ok {
 			fmt.Fprintf(os.Stderr, "aiwf template: unknown kind %q (known: %s)\n", args[0], cliutil.JoinKinds(entity.AllKinds()))
 			return cliutil.ExitUsage
 		}
-		templates = []templateOut{{Kind: k, Body: string(entity.BodyTemplate(k))}}
+		templates = []TemplateOut{{Kind: k, Body: string(entity.BodyTemplate(k))}}
 	} else {
 		for _, k := range entity.AllKinds() {
-			templates = append(templates, templateOut{Kind: k, Body: string(entity.BodyTemplate(k))})
+			templates = append(templates, TemplateOut{Kind: k, Body: string(entity.BodyTemplate(k))})
 		}
 	}
 
 	switch format {
 	case "text":
 		single := len(templates) == 1
-		if err := writeTemplateText(os.Stdout, templates, single); err != nil {
+		if err := WriteTemplateText(os.Stdout, templates, single); err != nil {
 			fmt.Fprintf(os.Stderr, "aiwf template: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
@@ -110,12 +113,12 @@ func Run(args []string, format string, pretty bool) int {
 	return cliutil.ExitOK
 }
 
-// writeTemplateText emits the body templates. When single is true,
+// WriteTemplateText emits the body templates. When single is true,
 // the body is written raw (no header) so the output can be piped
 // directly into a new file. When single is false, each body is
 // prefixed by a `KIND: <kind>` header so the kinds can be told
 // apart in the stream.
-func writeTemplateText(w io.Writer, ts []templateOut, single bool) error {
+func WriteTemplateText(w io.Writer, ts []TemplateOut, single bool) error {
 	for i, t := range ts {
 		if !single {
 			if i > 0 {

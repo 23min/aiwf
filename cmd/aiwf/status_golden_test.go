@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/history"
+
 	"github.com/23min/aiwf/internal/render"
 )
 
@@ -69,7 +71,7 @@ func canonicalStatusReport() statusReport {
 				Message:  "gap is marked addressed but addressed_by is empty",
 			},
 		},
-		RecentActivity: []HistoryEvent{
+		RecentActivity: []history.HistoryEvent{
 			{
 				Date:   "2026-05-09",
 				Verb:   "promote",

@@ -5,16 +5,18 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/history"
 )
 
-// TestRenderHistory_PreI2_5BackwardsCompat: a HistoryEvent with no
+// TestRenderHistory_PreI2_5BackwardsCompat: a history.HistoryEvent with no
 // I2.5 trailers (the pre-aiwf-I2.5 shape) renders without any chips
 // or principal-via-agent rewrite. Guards the load-bearing
 // backwards-compat promise from the plan: existing trailered
 // commits must keep their original rendering.
 func TestRenderHistory_PreI2_5BackwardsCompat(t *testing.T) {
 	t.Parallel()
-	e := HistoryEvent{
+	e := history.HistoryEvent{
 		Date:   "2026-04-30T12:00:00+00:00",
 		Actor:  "human/peter",
 		Verb:   "promote",
@@ -22,10 +24,10 @@ func TestRenderHistory_PreI2_5BackwardsCompat(t *testing.T) {
 		Commit: "1a2b3c4",
 		To:     "active",
 	}
-	if got := renderActor(e); got != "human/peter" {
+	if got := history.RenderActor(e); got != "human/peter" {
 		t.Errorf("renderActor on pre-I2.5 event = %q, want %q", got, "human/peter")
 	}
-	chips := renderScopeChips(e, map[string]string{}, false)
+	chips := history.RenderScopeChips(e, map[string]string{}, false)
 	if chips != "" {
 		t.Errorf("renderScopeChips on pre-I2.5 event = %q, want empty", chips)
 	}
@@ -38,7 +40,7 @@ func TestRenderHistory_PreI2_5BackwardsCompat(t *testing.T) {
 func TestBuildScopeEntityMap_GitFailureFallback(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir()
-	got := buildScopeEntityMap(context.Background(), tmp, nil)
+	got := history.BuildScopeEntityMap(context.Background(), tmp, nil)
 	if len(got) != 0 {
 		t.Errorf("buildScopeEntityMap on non-repo = %v, want empty map", got)
 	}

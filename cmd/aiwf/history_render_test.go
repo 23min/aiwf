@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/history"
 )
 
 // TestRenderActor: the actor column shows `principal via agent`
@@ -13,16 +15,16 @@ func TestRenderActor(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		e    HistoryEvent
+		e    history.HistoryEvent
 		want string
 	}{
-		{"direct human", HistoryEvent{Actor: "human/peter"}, "human/peter"},
-		{"agent for principal", HistoryEvent{Actor: "ai/claude", Principal: "human/peter"}, "human/peter via ai/claude"},
-		{"principal == actor (defensive)", HistoryEvent{Actor: "human/peter", Principal: "human/peter"}, "human/peter"},
+		{"direct human", history.HistoryEvent{Actor: "human/peter"}, "human/peter"},
+		{"agent for principal", history.HistoryEvent{Actor: "ai/claude", Principal: "human/peter"}, "human/peter via ai/claude"},
+		{"principal == actor (defensive)", history.HistoryEvent{Actor: "human/peter", Principal: "human/peter"}, "human/peter"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := renderActor(tt.e); got != tt.want {
+			if got := history.RenderActor(tt.e); got != tt.want {
 				t.Errorf("renderActor = %q, want %q", got, tt.want)
 			}
 		})
@@ -41,55 +43,55 @@ func TestRenderScopeChips(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		e        HistoryEvent
+		e        history.HistoryEvent
 		showAuth bool
 		want     string
 	}{
 		{
 			name: "no chips",
-			e:    HistoryEvent{Verb: "promote"},
+			e:    history.HistoryEvent{Verb: "promote"},
 			want: "",
 		},
 		{
 			name: "authorize opened",
-			e:    HistoryEvent{Verb: "authorize", Scope: "opened"},
+			e:    history.HistoryEvent{Verb: "authorize", Scope: "opened"},
 			want: "  [scope: opened]",
 		},
 		{
 			name: "authorize paused",
-			e:    HistoryEvent{Verb: "authorize", Scope: "paused"},
+			e:    history.HistoryEvent{Verb: "authorize", Scope: "paused"},
 			want: "  [scope: paused]",
 		},
 		{
 			name: "scope-authorized agent verb",
-			e:    HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
+			e:    history.HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
 			want: "  [E-0003 4b13a0f]",
 		},
 		{
 			name:     "scope-authorized with --show-authorization",
-			e:        HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
+			e:        history.HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
 			showAuth: true,
 			want:     "  [E-0003 4b13a0fdeadbeef]",
 		},
 		{
 			name: "terminal-promote ends one scope",
-			e:    HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef", ScopeEnds: []string{"4b13a0fdeadbeef"}},
+			e:    history.HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef", ScopeEnds: []string{"4b13a0fdeadbeef"}},
 			want: "  [E-0003 4b13a0f] [E-0003 ended]",
 		},
 		{
 			name: "terminal-promote ends two scopes",
-			e:    HistoryEvent{Verb: "promote", ScopeEnds: []string{"4b13a0fdeadbeef", "abc1234deadbeef"}},
+			e:    history.HistoryEvent{Verb: "promote", ScopeEnds: []string{"4b13a0fdeadbeef", "abc1234deadbeef"}},
 			want: "  [E-0003 ended] [E-0009 ended]",
 		},
 		{
 			name: "unknown auth-sha falls back to ?",
-			e:    HistoryEvent{AuthorizedBy: "ffffffffeeeeeee"},
+			e:    history.HistoryEvent{AuthorizedBy: "ffffffffeeeeeee"},
 			want: "  [? fffffff]",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := renderScopeChips(tt.e, scopeEntities, tt.showAuth); got != tt.want {
+			if got := history.RenderScopeChips(tt.e, scopeEntities, tt.showAuth); got != tt.want {
 				t.Errorf("renderScopeChips = %q, want %q", got, tt.want)
 			}
 		})

@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/template"
+
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 )
@@ -88,7 +90,7 @@ func TestRunTemplate_JSONEnvelope(t *testing.T) {
 		Version string `json:"version"`
 		Status  string `json:"status"`
 		Result  struct {
-			Templates []templateOut `json:"templates"`
+			Templates []template.TemplateOut `json:"templates"`
 		} `json:"result"`
 	}
 	if err := json.Unmarshal(out, &env); err != nil {
@@ -121,7 +123,7 @@ func TestRunTemplate_JSONOneKind(t *testing.T) {
 	})
 	var env struct {
 		Result struct {
-			Templates []templateOut `json:"templates"`
+			Templates []template.TemplateOut `json:"templates"`
 		} `json:"result"`
 	}
 	if err := json.Unmarshal(out, &env); err != nil {
@@ -134,7 +136,7 @@ func TestRunTemplate_JSONOneKind(t *testing.T) {
 
 func TestWriteTemplateText_WriterError(t *testing.T) {
 	t.Parallel()
-	got := writeTemplateText(brokenWriter{}, []templateOut{{Kind: entity.KindEpic, Body: "x"}}, true)
+	got := template.WriteTemplateText(brokenWriter{}, []template.TemplateOut{{Kind: entity.KindEpic, Body: "x"}}, true)
 	if got == nil {
 		t.Error("expected error from broken writer")
 	}

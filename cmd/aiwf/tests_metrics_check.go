@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/23min/aiwf/internal/check"
-	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )

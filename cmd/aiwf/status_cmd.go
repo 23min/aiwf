@@ -15,8 +15,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
-	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
@@ -34,15 +34,15 @@ const recentActivityLimit = 5
 // internal/ because it is purely a presentational read view — adding a
 // package boundary would be over-engineering for one verb.
 type statusReport struct {
-	Date           string              `json:"date"`
-	InFlightEpics  []statusEpic        `json:"in_flight_epics"`
-	PlannedEpics   []statusEpic        `json:"planned_epics"`
-	OpenDecisions  []statusEntity      `json:"open_decisions"`
-	OpenGaps       []statusGap         `json:"open_gaps"`
-	Warnings       []statusFinding     `json:"warnings"`
-	RecentActivity []history.HistoryEvent      `json:"recent_activity"`
-	SweepPending   *statusSweepPending `json:"sweep_pending,omitempty"`
-	Health         statusHealthCounts  `json:"health"`
+	Date           string                 `json:"date"`
+	InFlightEpics  []statusEpic           `json:"in_flight_epics"`
+	PlannedEpics   []statusEpic           `json:"planned_epics"`
+	OpenDecisions  []statusEntity         `json:"open_decisions"`
+	OpenGaps       []statusGap            `json:"open_gaps"`
+	Warnings       []statusFinding        `json:"warnings"`
+	RecentActivity []history.HistoryEvent `json:"recent_activity"`
+	SweepPending   *statusSweepPending    `json:"sweep_pending,omitempty"`
+	Health         statusHealthCounts     `json:"health"`
 }
 
 // statusSweepPending is the tree-health one-liner for terminal-status

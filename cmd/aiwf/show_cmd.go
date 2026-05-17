@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
-	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
@@ -145,19 +145,19 @@ func runShowCmd(id, root, format string, pretty bool, historyLimit int) int {
 // specifically; the parent milestone's referrers are not rolled in
 // (use `aiwf show M-NNN` for that).
 type ShowView struct {
-	ID           string            `json:"id"`
-	Kind         string            `json:"kind"`
-	Title        string            `json:"title"`
-	Status       string            `json:"status"`
-	Path         string            `json:"path,omitempty"`
-	Parent       string            `json:"parent,omitempty"`
-	TDD          string            `json:"tdd,omitempty"`
-	ACs          []ShowAC          `json:"acs,omitempty"`
-	Body         map[string]string `json:"body,omitempty"`
-	History      []history.HistoryEvent    `json:"history,omitempty"`
-	Findings     []check.Finding   `json:"findings,omitempty"`
-	ReferencedBy []string          `json:"referenced_by"`
-	Scopes       []ScopeView       `json:"scopes,omitempty"`
+	ID           string                 `json:"id"`
+	Kind         string                 `json:"kind"`
+	Title        string                 `json:"title"`
+	Status       string                 `json:"status"`
+	Path         string                 `json:"path,omitempty"`
+	Parent       string                 `json:"parent,omitempty"`
+	TDD          string                 `json:"tdd,omitempty"`
+	ACs          []ShowAC               `json:"acs,omitempty"`
+	Body         map[string]string      `json:"body,omitempty"`
+	History      []history.HistoryEvent `json:"history,omitempty"`
+	Findings     []check.Finding        `json:"findings,omitempty"`
+	ReferencedBy []string               `json:"referenced_by"`
+	Scopes       []ScopeView            `json:"scopes,omitempty"`
 
 	// Archived is true when the resolved entity's path lives under a
 	// per-kind `archive/` subdirectory per ADR-0004. JSON shape uses

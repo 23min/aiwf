@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/history"
+
 	"github.com/23min/aiwf/internal/scope"
 )
 
@@ -162,7 +164,7 @@ func TestSplitMultiValueTrailer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := splitMultiValueTrailer(tt.in)
+			got := history.SplitMultiValueTrailer(tt.in)
 			if len(got) != len(tt.want) {
 				t.Fatalf("len = %d, want %d (got %v)", len(got), len(tt.want), got)
 			}
