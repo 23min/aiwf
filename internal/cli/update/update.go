@@ -1,4 +1,4 @@
-package main
+package update
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/23min/aiwf/internal/initrepo"
 )
 
-// newUpdateCmd builds `aiwf update`: refreshes every marker-managed
+// NewCmd builds `aiwf update`: refreshes every marker-managed
 // framework artifact the consumer is opted into. The pipeline is the
 // same one `aiwf init` runs after first-time scaffolding —
 // `initrepo.RefreshArtifacts` — so init and update converge to the
@@ -28,7 +28,7 @@ import (
 // Hook conflicts (a non-marker hook already in place) are reported
 // in the per-step ledger and surface a remediation block, mirroring
 // `aiwf init`'s conflict path.
-func newUpdateCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var root string
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -39,14 +39,14 @@ func newUpdateCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runUpdateCmd(root))
+			return cliutil.WrapExitCode(Run(root))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	return cmd
 }
 
-func runUpdateCmd(root string) int {
+func Run(root string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
