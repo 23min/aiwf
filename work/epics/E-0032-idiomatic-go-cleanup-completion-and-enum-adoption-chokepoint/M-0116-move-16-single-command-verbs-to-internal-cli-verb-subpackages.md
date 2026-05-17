@@ -65,7 +65,7 @@ acs:
       tdd_phase: done
     - id: AC-15
       title: internal/cli/upgrade/ carries upgrade verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-16
       title: internal/cli/whoami/ carries whoami verb
