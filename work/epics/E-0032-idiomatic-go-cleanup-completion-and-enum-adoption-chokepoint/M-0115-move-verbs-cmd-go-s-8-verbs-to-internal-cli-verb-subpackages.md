@@ -21,7 +21,7 @@ acs:
       tdd_phase: red
     - id: AC-4
       title: internal/cli/cancel/ carries cancel verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: internal/cli/rename/ carries rename verb
