@@ -4,6 +4,11 @@ title: Consolidate trailer parser
 status: draft
 parent: E-0032
 tdd: required
+acs:
+    - id: AC-1
+      title: Single canonical exported gitops.ParseTrailers
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -36,3 +41,6 @@ Rename `parseTrailers` → `ParseTrailers` in gitops; the existing tests at [`in
 ## Dependencies
 
 - None.
+
+### AC-1 — Single canonical exported gitops.ParseTrailers
+
