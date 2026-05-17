@@ -15,6 +15,10 @@ acs:
       title: internal/cli/promote/ carries promote verb
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: internal/cli/editbody/ carries edit-body verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -59,4 +63,6 @@ Shared helpers (`parseKind`, `parseTestsFlag`, `readBodyFile`, `splitCommaList` 
 ### AC-1 — internal/cli/add/ carries add and add ac verbs
 
 ### AC-2 — internal/cli/promote/ carries promote verb
+
+### AC-3 — internal/cli/editbody/ carries edit-body verb
 
