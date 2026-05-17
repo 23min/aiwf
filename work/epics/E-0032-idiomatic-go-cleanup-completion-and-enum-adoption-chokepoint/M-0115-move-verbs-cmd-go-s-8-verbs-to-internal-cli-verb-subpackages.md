@@ -27,6 +27,10 @@ acs:
       title: internal/cli/rename/ carries rename verb
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: internal/cli/move/ carries move verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -77,4 +81,6 @@ Shared helpers (`parseKind`, `parseTestsFlag`, `readBodyFile`, `splitCommaList` 
 ### AC-4 — internal/cli/cancel/ carries cancel verb
 
 ### AC-5 — internal/cli/rename/ carries rename verb
+
+### AC-6 — internal/cli/move/ carries move verb
 
