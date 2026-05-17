@@ -50,7 +50,7 @@ acs:
     - id: AC-11
       title: internal/cli/show/ carries show verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-12
       title: internal/cli/status/ carries status verb
       status: met
