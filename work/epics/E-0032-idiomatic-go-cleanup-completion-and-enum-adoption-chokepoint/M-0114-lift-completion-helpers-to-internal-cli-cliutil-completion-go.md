@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Completion helpers and resolveRoot exported from internal/cli/cliutil/
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: cmd/aiwf has no local definitions; all callers consume cliutil exports
