@@ -11,6 +11,10 @@ acs:
       title: internal/cli/add/ carries add and add ac verbs
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: internal/cli/promote/ carries promote verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -53,4 +57,6 @@ Shared helpers (`parseKind`, `parseTestsFlag`, `readBodyFile`, `splitCommaList` 
 - M-2 (cliutil completion helpers must be in place before per-verb packages can import them as `cliutil.*`).
 
 ### AC-1 — internal/cli/add/ carries add and add ac verbs
+
+### AC-2 — internal/cli/promote/ carries promote verb
 
