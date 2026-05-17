@@ -31,6 +31,10 @@ acs:
       title: internal/cli/list/ carries list verb
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: internal/cli/render/ carries render verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -79,4 +83,6 @@ Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/ren
 ### AC-5 — internal/cli/init/ carries init verb
 
 ### AC-6 — internal/cli/list/ carries list verb
+
+### AC-7 — internal/cli/render/ carries render verb
 
