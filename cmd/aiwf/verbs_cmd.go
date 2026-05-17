@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -12,7 +11,6 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -61,7 +59,7 @@ func newAddCmd() *cobra.Command {
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			kindArg := args[0]
-			k, ok := parseKind(kindArg)
+			k, ok := cliutil.ParseKind(kindArg)
 			if !ok {
 				fmt.Fprintf(os.Stderr, "aiwf add: unknown kind %q\n", kindArg)
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
@@ -153,12 +151,12 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 		BindFixtures:   bindFixtures,
 		TitleMaxLength: cliutil.ConfiguredTitleMaxLength(rootDir),
 	}
-	opts.RelatesTo = splitCommaList(relatesTo)
-	opts.LinkedADRs = splitCommaList(linkedADRs)
-	opts.DependsOn = splitCommaList(dependsOn)
+	opts.RelatesTo = cliutil.SplitCommaList(relatesTo)
+	opts.LinkedADRs = cliutil.SplitCommaList(linkedADRs)
+	opts.DependsOn = cliutil.SplitCommaList(dependsOn)
 
 	if bodyFile != "" {
-		body, readErr := readBodyFile(bodyFile)
+		body, readErr := cliutil.ReadBodyFile(bodyFile)
 		if readErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", readErr)
 			return cliutil.ExitUsage
@@ -283,7 +281,7 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 			}
 		}
 	}
-	metrics, err := parseTestsFlag(tests, "aiwf add ac")
+	metrics, err := cliutil.ParseTestsFlag(tests, "aiwf add ac")
 	if err != nil {
 		return cliutil.ExitUsage
 	}
@@ -292,7 +290,7 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 	if len(bodyFiles) > 0 {
 		bodies = make([][]byte, len(bodyFiles))
 		for i, path := range bodyFiles {
-			b, readErr := readBodyFile(path)
+			b, readErr := cliutil.ReadBodyFile(path)
 			if readErr != nil {
 				fmt.Fprintf(os.Stderr, "aiwf add ac: --body-file[%d] %s: %v\n", i, path, readErr)
 				return cliutil.ExitUsage
@@ -347,62 +345,6 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 		CreationRefs: []string{parentID},
 	}
 	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx)
-}
-
-// parseTestsFlag parses a `--tests` value at the verb dispatcher
-// boundary. Empty input returns (nil, nil) — the flag wasn't set.
-// Otherwise applies the strict on-wire grammar (pass/fail/skip/total
-// keys, non-negative integers) and returns a *gitops.TestMetrics; on
-// any malformed input writes a one-line error to stderr (prefixed
-// with verbLabel) and returns the parse error so the dispatcher exits
-// with cliutil.ExitUsage.
-func parseTestsFlag(raw, verbLabel string) (*gitops.TestMetrics, error) {
-	if strings.TrimSpace(raw) == "" {
-		return nil, nil
-	}
-	m, err := gitops.ParseStrictTestMetrics(raw)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", verbLabel, err)
-		return nil, err
-	}
-	if m == (gitops.TestMetrics{}) {
-		// Empty after parse — defensive; ParseStrict returns zero
-		// metrics for empty input but here the trimmed input was
-		// non-empty so this shouldn't fire. If it does, treat the
-		// flag as not set to avoid emitting a meaningless trailer.
-		return nil, nil
-	}
-	return &m, nil
-}
-
-// readBodyFile loads body content for `aiwf add --body-file`. A path
-// of "-" reads stdin (so callers can pipe body text without a temp
-// file). Any other value is read as a regular file. Returns the raw
-// bytes; the verb-side resolveAddBody is the rule-checking layer
-// (it refuses content that begins with a frontmatter delimiter so
-// the create commit can't accidentally produce a double-frontmatter
-// file).
-func readBodyFile(path string) ([]byte, error) {
-	if path == "-" {
-		return io.ReadAll(os.Stdin)
-	}
-	return os.ReadFile(path)
-}
-
-// splitCommaList parses comma-separated CLI values into a clean slice
-// (trimmed, empty entries dropped). Shared between --relates-to and
-// --linked-adr.
-func splitCommaList(s string) []string {
-	if s == "" {
-		return nil
-	}
-	var out []string
-	for _, item := range strings.Split(s, ",") {
-		if item = strings.TrimSpace(item); item != "" {
-			out = append(out, item)
-		}
-	}
-	return out
 }
 
 // newPromoteCmd builds `aiwf promote <id> <new-status>` and the I2
@@ -516,8 +458,8 @@ func runPromoteCmd(args []string, actor, principal, root, reason,
 	}
 
 	resolverOpts := verb.PromoteOptions{
-		AddressedBy:       splitCommaList(by),
-		AddressedByCommit: splitCommaList(byCommit),
+		AddressedBy:       cliutil.SplitCommaList(by),
+		AddressedByCommit: cliutil.SplitCommaList(byCommit),
 		SupersededBy:      strings.TrimSpace(supersededBy),
 	}
 	resolverSet := len(resolverOpts.AddressedBy) > 0 || len(resolverOpts.AddressedByCommit) > 0 || resolverOpts.SupersededBy != ""
@@ -562,7 +504,7 @@ func runPromoteCmd(args []string, actor, principal, root, reason,
 	}
 
 	if phaseMode {
-		metrics, mErr := parseTestsFlag(tests, "aiwf promote")
+		metrics, mErr := cliutil.ParseTestsFlag(tests, "aiwf promote")
 		if mErr != nil {
 			return cliutil.ExitUsage
 		}
@@ -642,7 +584,7 @@ func runEditBodyCmd(id, actor, principal, root, reason, bodyFile string) int {
 	var body []byte
 	if bodyFile != "" {
 		var readErr error
-		body, readErr = readBodyFile(bodyFile)
+		body, readErr = cliutil.ReadBodyFile(bodyFile)
 		if readErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", readErr)
 			return cliutil.ExitUsage
@@ -964,15 +906,4 @@ func runReallocateCmd(target, actor, principal, root string) int {
 		TargetID:  target,
 	}
 	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx)
-}
-
-// parseKind parses a CLI kind argument (lowercase string) into the
-// entity.Kind constant.
-func parseKind(s string) (entity.Kind, bool) {
-	for _, k := range entity.AllKinds() {
-		if string(k) == s {
-			return k, true
-		}
-	}
-	return "", false
 }

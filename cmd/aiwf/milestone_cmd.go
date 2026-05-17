@@ -106,7 +106,7 @@ func runMilestoneDependsOnCmd(id, actor, principal, root, reason, on string, cle
 		return cliutil.ExitInternal
 	}
 
-	deps := splitCommaList(on)
+	deps := cliutil.SplitCommaList(on)
 	pctx := cliutil.ProvenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),
