@@ -88,7 +88,15 @@ Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/ren
 
 ## Acceptance criteria
 
-<!-- ACs are added at aiwfx-start-milestone via `aiwf add ac <M-id> --title "..."`. -->
+16 per-verb ACs, one per subpackage. Each verb's subpackage exports `NewCmd` (and `Run` where applicable) as the canonical Cobra constructor; `setup_test.go` carries the GIT identity env-var seeding per CLAUDE.md test discipline; a smoke test pins each NewCmd's exported shape (Use string, flag set, ValidArgsFunction wiring where present). Behavioral coverage stays with the existing cross-verb integration tests under `cmd/aiwf/` (binary-integration tests spawn the aiwf binary via `aiwfBinary(t)` and dispatch through the new subpackage's NewCmd transparently).
+
+Three verb migrations carried sibling files alongside them (the spec was conservative; the deps proved clean for a joint move):
+
+- **init + rituals.go** → `internal/cli/initcmd/` (package name `initcmd` because `init` is a Go-reserved identifier — the package-level init() function name)
+- **show + show_scopes.go** → `internal/cli/show/`
+- **render + render_resolver.go** → `internal/cli/render/`
+
+`import` is also renamed at the package level: `internal/cli/importcmd/` because `import` is a Go reserved word. The CLI verb name remains `import`.
 
 ## Surfaces touched
 
@@ -108,9 +116,54 @@ Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/ren
 
 - M-3 (pattern-setter must land first).
 
-### AC-1 — internal/cli/archive/ carries archive verb
+---
 
-### AC-2 — internal/cli/authorize/ carries authorize verb
+## Work log
+
+All 16 verbs migrated. Each AC's code commit follows the M-0115 pattern: `git mv` the source file, sed-rename `package main` → `package <verb>` and `new<Verb>Cmd` → `NewCmd` / `run<Verb>Cmd` → `Run`, add `setup_test.go`, write smoke test, update `cmd/aiwf/main.go`'s `newRootCmd`, fix any cross-file references that broke. Phase transitions follow: red → green → done → met per AC.
+
+Sibling-file moves recorded inline at AC-5 (init+rituals), AC-7 (render+resolver), AC-11 (show+scopes). Two verbs use special package names because the verb name is Go-reserved: AC-4 `importcmd`, AC-5 `initcmd`.
+
+Cross-cut symbol exports forced by the moves (formerly cmd/aiwf-internal helpers that now had to be reachable from subpackages or stay in cmd/aiwf):
+- `history.{HistoryEvent, ReadHistory, ReadHistoryChain, StripTrailers, ShortHash, RenderTo, RenderActor, RenderScopeChips, BuildScopeEntityMap, SplitMultiValueTrailer}`
+- `schema.WriteSchemaText`, `template.{TemplateOut, WriteTemplateText}`
+- `list.{ListSummary, ListCounts, BuildListRows, BuildListCounts, RenderListCountsText, RenderListRowsText, ComputeTitleBudget, MinTitleColumnRunes, UnionAllStatuses, IsKnownKind}`
+- `status.{StatusReport, StatusEpic, StatusMilestone, StatusEntity, StatusGap, StatusFinding, StatusHealthCounts, StatusACProgress, StatusSweepPending, SummarizeACs, RenderACProgress, BuildStatus, ParseSweepPending, ReadRecentActivity, RenderStatusText, RenderStatusMarkdown, WriteStatusEpicText, WriteStatusEpicMarkdown, TruncStatusTitle, MdEscape, RecentActivityLimit}`
+- `upgrade.{RenderVersionLabel, ResolveTarget, GoBinDir, InstallLocationHint, PathChangedFromStderr}`
+- `show.{ShowView, BuildShowView, BuildCompositeShowView, LoadEntityScopeViews, ReadEntityBody, LookupCommitDateCached, LastEventSHA}`
+- `render.{NewRenderResolver, Resolver, PluralToEntityKind, TitleForKindIndex, RunSite, RunRoadmap}`
+- `cliutil.{LoadContractsDoc, LoadContractsBlock, JoinKinds}` (lifted in earlier milestones; consumed by add and the migrated verbs above)
+
+`internal/policies/read_only.go` was extended to track each read-only verb by (FuncName, FilePrefix) so it finds the verb's body in either `cmd/aiwf/run<Verb>Cmd` (legacy) or `internal/cli/<verb>/Run` (M-0115+). As each read-only verb migrated, the policy entry switched. Without this extension every read-only verb migration would have failed the policy at pre-commit.
+
+`internal/render` is aliased as `baserender` in main.go, internal/cli/render/render.go, internal/cli/render/resolver.go, and canonicalize_render_test.go — the new `internal/cli/render` package collides with the existing `internal/render` package on the bare `render` import name.
+
+## Decisions made during implementation
+
+- **import → importcmd.** `import` is a Go reserved word — can't use as a package name. The directory and package are both `importcmd`; the CLI verb stays `import`.
+- **init → initcmd.** Similar reasoning. `init` is Go's package-level initialization function name — using it as a package name technically compiles but creates ambiguity. Renamed to `initcmd`.
+- **Sibling files moved with their verb.** The spec was cautious about `rituals.go` / `show_scopes.go` / `render_resolver.go` having "cross-verb concerns." In practice each has exactly one verb-side caller and a small handful of test references. Moving them with the verb shrinks M-0118's scope; the relevant test refs are exposed via package exports.
+- **Test relocation policy.** Binary-integration tests that drive the aiwf binary via `aiwfBinary(t)` stay in `cmd/aiwf/` (they need access to package-internal test helpers like `setupCLITestRepo`, `runGit`, `runBin`, `captureStdout`). Unit tests that exercise the verb's now-exported symbols are updated in place with the `<pkg>.X` prefix. New per-subpackage smoke tests pin each NewCmd's exported shape.
+- **Bulk via sed + perl.** Mechanical renames (`newXCmd` → `NewCmd`, `runXCmd` → `Run`, internal lowercase helpers → capitalized) were applied per-file with `perl -i -pe 's/\bfoo\b/Foo/g'` (BSD sed doesn't support `\b`). Each verb's migration was a coordinated patch covering the source file + every dependent file in cmd/aiwf in one commit.
+
+## Validation
+
+- **Build.** `go build ./...` green at every commit.
+- **Tests (per-package isolation).** Each new subpackage's smoke test passes. `internal/policies/` passes after each read-only verb migration's policy update.
+- **Tests (full module).** Same documented macOS git-subprocess contention flake as M-0113-M-0115 — flakes only at full-module `-parallel 8` with cmd/aiwf in the mix. Isolated package targets are reliably green.
+- **Lint.** `golangci-lint run ./...` 0 issues at every commit (gofumpt + revive package-doc-comment + exported-function doc-comment cleanups applied incrementally).
+- **aiwf check.** Zero error-severity findings on M-0116 or its 16 ACs.
+- **Branch-coverage audit.** Clean. Each verb migration is a relocation + caller substitution; no new branches in production code. The policy extension in `read_only.go` switched lowercase per-verb entries to package-prefix-based entries; both arms (Ident vs SelectorExpr equivalents in policy walking) are exercised by the mixed cmd/aiwf + internal/cli/* tree.
+
+## Deferrals
+
+- None.
+
+## Reviewer notes
+
+- The pattern works but each verb's migration uncovered a unique set of cross-file helper references (test fixtures, sibling helper functions, cross-verb integration tests) that needed individual export decisions. Per-verb commits average ~5-10 file changes due to these cascades.
+- The read-only policy's per-verb entry shape (`{FuncName, FilePrefix}`) is a deliberate trade-off: each verb migration requires one targeted policy edit rather than the verb appearing in a single list. The alternative was a generic "walk every package and find a Run function in any internal/cli/* subpackage" implementation that risked false negatives. The targeted shape is mechanical and reviewable.
+- M-0118 (next per spec) shrinks `cmd/aiwf/main.go` to entry-only and finds homes for any remaining supporting files. After M-0116, the only cmd/aiwf files left that aren't `main.go` are: `contract_cmd.go`, `doctor_cmd.go`, `milestone_cmd.go` (M-0117 handles), plus the supporting siblings `selfcheck.go`, `tests_metrics_check.go`, `provenance_check.go`, and the cross-verb integration tests + drift-tests. M-0118 picks up from there.
 
 ### AC-3 — internal/cli/history/ carries history verb
 
