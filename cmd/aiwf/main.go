@@ -35,6 +35,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/schema"
 	"github.com/23min/aiwf/internal/cli/template"
 	"github.com/23min/aiwf/internal/cli/update"
+	"github.com/23min/aiwf/internal/cli/upgrade"
 	"github.com/23min/aiwf/internal/cli/whoami"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/render"
@@ -162,7 +163,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(archive.NewCmd())
 	cmd.AddCommand(newInitCmd())
 	cmd.AddCommand(update.NewCmd())
-	cmd.AddCommand(newUpgradeCmd())
+	cmd.AddCommand(upgrade.NewCmd())
 	cmd.AddCommand(history.NewCmd())
 	cmd.AddCommand(newDoctorCmd())
 	cmd.AddCommand(newRenderCmd())

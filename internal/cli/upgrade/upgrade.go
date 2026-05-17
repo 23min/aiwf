@@ -1,4 +1,6 @@
-package main
+// Package upgrade implements the `aiwf upgrade` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go newRootCmd wires it via NewCmd).
+package upgrade
 
 import (
 	"bytes"
@@ -19,7 +21,7 @@ import (
 	"github.com/23min/aiwf/internal/version"
 )
 
-// newUpgradeCmd builds `aiwf upgrade`: a one-command flow that fetches
+// NewCmd builds `aiwf upgrade`: a one-command flow that fetches
 // a newer (or specified) aiwf binary via `go install` and re-execs
 // the new binary to refresh the consumer repo's framework artifacts
 // via `aiwf update`.
@@ -34,7 +36,7 @@ import (
 //   - AIWF_NO_REEXEC: when set to a non-empty value, skip the
 //     syscall.Exec into the new binary after install. Lets tests
 //     verify install succeeds without overlaying the test process.
-func newUpgradeCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		root      string
 		target    string
@@ -55,7 +57,7 @@ func newUpgradeCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runUpgradeCmd(root, target, checkOnly))
+			return cliutil.WrapExitCode(Run(root, target, checkOnly))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root for the post-install `aiwf update` step (default: cwd)")
@@ -64,7 +66,8 @@ func newUpgradeCmd() *cobra.Command {
 	return cmd
 }
 
-func runUpgradeCmd(root, target string, checkOnly bool) int {
+// Run executes `aiwf upgrade`. Returns one of the cliutil.Exit* codes.
+func Run(root, target string, checkOnly bool) int {
 	pkg := version.PackagePath()
 	if pkg == "" {
 		fmt.Fprintln(os.Stderr, "aiwf upgrade: package path unavailable from build info — run `go install <pkg>@latest` manually")
@@ -72,12 +75,12 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 	}
 
 	current := version.Current()
-	fmt.Printf("current:  %s\n", renderVersionLabel(current))
+	fmt.Printf("current:  %s\n", RenderVersionLabel(current))
 
-	resolved, latestErr := resolveTarget(target)
+	resolved, latestErr := ResolveTarget(target)
 	switch {
 	case latestErr == nil:
-		fmt.Printf("target:   %s\n", renderVersionLabel(resolved))
+		fmt.Printf("target:   %s\n", RenderVersionLabel(resolved))
 	case errors.Is(latestErr, version.ErrProxyDisabled):
 		fmt.Printf("target:   %s (proxy disabled — go install will resolve at install time)\n", target)
 	default:
@@ -118,7 +121,7 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 		// the module. Without remediation the user sees only the raw
 		// `go install` error and has to figure out the recovery
 		// command themselves.
-		if missingPkg, ok := pathChangedFromStderr(stderrBuf); ok {
+		if missingPkg, ok := PathChangedFromStderr(stderrBuf); ok {
 			printPackagePathChangedHint(pkg, target, missingPkg)
 		}
 		return cliutil.ExitInternal
@@ -127,7 +130,7 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 	newBinary, err := installedBinaryPath(context.Background(), pkg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf upgrade: install succeeded, but locating the new binary failed: %v\n", err)
-		if hint := installLocationHint(pkg); hint != "" {
+		if hint := InstallLocationHint(pkg); hint != "" {
 			fmt.Fprintf(os.Stderr, "                the new binary is most likely at %s\n", hint)
 			fmt.Fprintf(os.Stderr, "                run `%s update --root %s` to refresh consumer artifacts\n", hint, rootDir)
 		} else {
@@ -155,12 +158,12 @@ func runUpgradeCmd(root, target string, checkOnly bool) int {
 	return cliutil.ExitInternal
 }
 
-// renderVersionLabel formats an Info for human display: the version
+// RenderVersionLabel formats an Info for human display: the version
 // itself plus a parenthetical state ("tagged", "working-tree build",
 // "pseudo-version"). The `+dirty` suffix that Go appends to working-
 // tree builds with uncommitted changes is always rendered as a
 // working-tree build, regardless of the base version shape.
-func renderVersionLabel(info version.Info) string {
+func RenderVersionLabel(info version.Info) string {
 	switch {
 	case info.Version == version.DevelVersion:
 		return info.Version + " (working-tree build)"
@@ -173,11 +176,11 @@ func renderVersionLabel(info version.Info) string {
 	}
 }
 
-// resolveTarget turns the --version flag value into a concrete Info.
+// ResolveTarget turns the --version flag value into a concrete Info.
 // The literal "latest" routes through the module proxy; an explicit
 // semver is taken at face value (the install step is the eventual
 // authority on whether the tag exists).
-func resolveTarget(target string) (version.Info, error) {
+func ResolveTarget(target string) (version.Info, error) {
 	if target != "latest" {
 		return version.Parse(target), nil
 	}
@@ -220,10 +223,10 @@ func runGoInstall(ctx context.Context, arg string) (capturedStderr string, err e
 // The capture group is the missing package path.
 var pathChangedRE = regexp.MustCompile(`module .+ found .+, but does not contain package (\S+)`)
 
-// pathChangedFromStderr scans `go install` stderr for the package-
+// PathChangedFromStderr scans `go install` stderr for the package-
 // path-change signature. Returns the missing package path and true
 // when matched; ("", false) otherwise. Filed under G46.
-func pathChangedFromStderr(stderr string) (string, bool) {
+func PathChangedFromStderr(stderr string) (string, bool) {
 	m := pathChangedRE.FindStringSubmatch(stderr)
 	if len(m) < 2 {
 		return "", false
@@ -275,7 +278,7 @@ func goBinaryPath() (string, error) {
 // falls back to `$GOPATH/bin` (then `$HOME/go/bin`). The binary name
 // is the last segment of pkg.
 func installedBinaryPath(ctx context.Context, pkg string) (string, error) {
-	binDir, err := goBinDir(ctx)
+	binDir, err := GoBinDir(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -287,7 +290,7 @@ func installedBinaryPath(ctx context.Context, pkg string) (string, error) {
 	return full, nil
 }
 
-// goBinDir returns the directory `go install` writes binaries into.
+// GoBinDir returns the directory `go install` writes binaries into.
 // Resolution order matches `go install`'s own logic: GOBIN if set,
 // else GOPATH/bin (where GOPATH defaults to $HOME/go).
 //
@@ -296,7 +299,7 @@ func installedBinaryPath(ctx context.Context, pkg string) (string, error) {
 // with empty values rendered as a blank line, and the leading blank
 // for an unset GOBIN was being silently consumed by strings.TrimSpace
 // — see G39 in docs/pocv3/gaps.md for the upgrade-flow regression.
-func goBinDir(ctx context.Context) (string, error) {
+func GoBinDir(ctx context.Context) (string, error) {
 	goBin, err := goBinaryPath()
 	if err != nil {
 		return "", err
@@ -329,13 +332,13 @@ func goEnv(ctx context.Context, goBin, name string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// installLocationHint returns a best-guess absolute path to the
+// InstallLocationHint returns a best-guess absolute path to the
 // binary `go install <pkg>` would have produced, derived from the
 // caller's environment without invoking `go env`. Used only to help
 // the user recover after locateBinary failed; never load-bearing.
 // Returns an empty string when neither GOBIN/GOPATH nor a home
 // directory can be resolved.
-func installLocationHint(pkg string) string {
+func InstallLocationHint(pkg string) string {
 	name := filepath.Base(pkg)
 	if gobin := os.Getenv("GOBIN"); gobin != "" {
 		return filepath.Join(gobin, name)

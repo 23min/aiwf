@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/upgrade"
+
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/version"
 )
@@ -210,7 +212,7 @@ func TestGoBinDir_Matrix(t *testing.T) {
 			t.Setenv("AIWF_TEST_GOBIN", tc.gobin)
 			t.Setenv("AIWF_TEST_GOPATH", tc.gopath)
 
-			got, err := goBinDir(context.Background())
+			got, err := upgrade.GoBinDir(context.Background())
 			switch {
 			case tc.wantErr && err == nil:
 				t.Fatalf("got = %q, want error containing %q", got, tc.errSubstr)
@@ -226,7 +228,7 @@ func TestGoBinDir_Matrix(t *testing.T) {
 }
 
 // TestInstallLocationHint covers the env-var precedence the hint
-// helper uses to suggest a recovery path when goBinDir resolution
+// helper uses to suggest a recovery path when upgrade.GoBinDir resolution
 // fails. The home-fallback branch is exercised through GOPATH=""
 // with HOME set.
 func TestInstallLocationHint(t *testing.T) {
@@ -248,9 +250,9 @@ func TestInstallLocationHint(t *testing.T) {
 			t.Setenv("GOBIN", tc.gobin)
 			t.Setenv("GOPATH", tc.gopath)
 			t.Setenv("HOME", tc.home)
-			got := installLocationHint(pkg)
+			got := upgrade.InstallLocationHint(pkg)
 			if got != tc.want {
-				t.Errorf("installLocationHint = %q, want %q", got, tc.want)
+				t.Errorf("upgrade.InstallLocationHint = %q, want %q", got, tc.want)
 			}
 		})
 	}
@@ -306,7 +308,7 @@ func TestPathChangedFromStderr(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, ok := pathChangedFromStderr(tc.stderr)
+			got, ok := upgrade.PathChangedFromStderr(tc.stderr)
 			if ok != tc.ok {
 				t.Errorf("ok = %v, want %v", ok, tc.ok)
 			}
@@ -409,7 +411,7 @@ esac
 //   - AIWF_TEST_GOPATH: value the shim returns for `go env GOPATH`.
 //   - AIWF_TEST_INSTALL_DIR: directory `go install` copies the test
 //     binary into. Tests must align this with whichever directory
-//     goBinDir would resolve to under the chosen GOBIN/GOPATH.
+//     upgrade.GoBinDir would resolve to under the chosen GOBIN/GOPATH.
 //
 // Each invocation is appended to logPath so callers can assert on
 // the exact subcommands the upgrade flow issued.
@@ -463,9 +465,9 @@ func TestRenderVersionLabel(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := renderVersionLabel(version.Parse(tc.ver))
+			got := upgrade.RenderVersionLabel(version.Parse(tc.ver))
 			if got != tc.want {
-				t.Errorf("renderVersionLabel(%q) = %q, want %q", tc.ver, got, tc.want)
+				t.Errorf("upgrade.RenderVersionLabel(%q) = %q, want %q", tc.ver, got, tc.want)
 			}
 		})
 	}
