@@ -239,7 +239,7 @@ func TestSortedTrailers_RoundTripsThroughCommit(t *testing.T) {
 func TestParseTrailers_ToleratesAbsentI25Keys(t *testing.T) {
 	t.Parallel()
 	preI25 := "aiwf-verb: promote\naiwf-entity: M-007\naiwf-actor: human/peter\n"
-	got := parseTrailers(preI25)
+	got := ParseTrailers(preI25)
 	if len(got) != 3 {
 		t.Errorf("expected 3 trailers, got %d: %+v", len(got), got)
 	}
@@ -261,7 +261,7 @@ func TestParseTrailers_ToleratesAbsentI25Keys(t *testing.T) {
 func TestParseTrailers_ToleratesUnknownFutureKeys(t *testing.T) {
 	t.Parallel()
 	future := "aiwf-verb: promote\naiwf-future-key: future-value\naiwf-actor: human/peter\n"
-	got := parseTrailers(future)
+	got := ParseTrailers(future)
 	if len(got) != 3 {
 		t.Errorf("expected 3 trailers (unknown should still parse), got %d: %+v", len(got), got)
 	}

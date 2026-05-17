@@ -56,7 +56,7 @@ func TestCommitMessage_BodyTrimmed(t *testing.T) {
 func TestParseTrailers(t *testing.T) {
 	t.Parallel()
 	out := "aiwf-verb: add\naiwf-entity: M-007\n\naiwf-actor: human/peter\n"
-	got := parseTrailers(out)
+	got := ParseTrailers(out)
 	want := []Trailer{
 		{Key: "aiwf-verb", Value: "add"},
 		{Key: "aiwf-entity", Value: "M-007"},

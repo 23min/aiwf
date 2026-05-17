@@ -3,8 +3,9 @@ package gitops_test
 import (
 	"testing"
 
-	"github.com/23min/aiwf/internal/gitops"
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // TestParseTrailers_IsExported pins M-0113/AC-1: the trailer parser

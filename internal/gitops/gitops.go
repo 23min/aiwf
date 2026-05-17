@@ -265,7 +265,7 @@ func HeadTrailers(ctx context.Context, workdir string) ([]Trailer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return parseTrailers(out), nil
+	return ParseTrailers(out), nil
 }
 
 // ReadFromHEAD returns the bytes of relPath as it exists in the
@@ -309,7 +309,13 @@ func ReadFromHEAD(ctx context.Context, workdir, relPath string) ([]byte, error) 
 	return out, nil
 }
 
-func parseTrailers(out string) []Trailer {
+// ParseTrailers parses a `git log %(trailers:only=true,unfold=true)`
+// block into structured Trailer values. The format is one trailer per
+// line, `Key: value`, possibly followed by a trailing newline; empty
+// lines and malformed lines (missing colon, or starting with colon)
+// are skipped. This is the canonical exported home for trailer-line
+// parsing across the module.
+func ParseTrailers(out string) []Trailer {
 	var trailers []Trailer
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)

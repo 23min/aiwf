@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// FuzzParseTrailers drives parseTrailers with arbitrary string input
+// FuzzParseTrailers drives ParseTrailers with arbitrary string input
 // and checks invariants that the production code relies on.
 // Filed under G44 item 1.
 func FuzzParseTrailers(f *testing.F) {
@@ -24,8 +24,8 @@ func FuzzParseTrailers(f *testing.F) {
 		f.Add(seed)
 	}
 	f.Fuzz(func(t *testing.T, in string) {
-		trailers := parseTrailers(in)
-		// Output count must not exceed input line count: parseTrailers
+		trailers := ParseTrailers(in)
+		// Output count must not exceed input line count: ParseTrailers
 		// emits at most one Trailer per input line.
 		inputLines := strings.Count(in, "\n") + 1
 		if len(trailers) > inputLines {
@@ -45,7 +45,7 @@ func FuzzParseTrailers(f *testing.F) {
 				t.Fatalf("emitted trailer with empty key; in=%q", in)
 			}
 			// Keys never contain a literal LF — that's the splitter's
-			// boundary token. Mid-line CR is not asserted: parseTrailers'
+			// boundary token. Mid-line CR is not asserted: ParseTrailers'
 			// input contract is `git log` trailer output, which strips
 			// CRs at line ends via TrimSpace; mid-line CRs are an
 			// out-of-contract input the parser does not promise to
