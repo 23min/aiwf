@@ -34,6 +34,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/retitle"
 	"github.com/23min/aiwf/internal/cli/rewidth"
 	"github.com/23min/aiwf/internal/cli/schema"
+	"github.com/23min/aiwf/internal/cli/show"
 	"github.com/23min/aiwf/internal/cli/status"
 	"github.com/23min/aiwf/internal/cli/template"
 	"github.com/23min/aiwf/internal/cli/update"
@@ -174,7 +175,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(status.NewCmd())
 	cmd.AddCommand(list.NewCmd())
 	cmd.AddCommand(schema.NewCmd())
-	cmd.AddCommand(newShowCmd())
+	cmd.AddCommand(show.NewCmd())
 	cmd.AddCommand(template.NewCmd())
 	cmd.AddCommand(newContractCmd())
 	cmd.AddCommand(newMilestoneCmd())

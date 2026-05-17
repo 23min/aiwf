@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/show"
+
 	"github.com/23min/aiwf/internal/cli/history"
 
 	"github.com/23min/aiwf/internal/scope"
@@ -57,8 +59,8 @@ func TestLastEventSHA(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := lastEventSHA(tt.s, tt.match); got != tt.want {
-				t.Errorf("lastEventSHA = %q, want %q", got, tt.want)
+			if got := show.LastEventSHA(tt.s, tt.match); got != tt.want {
+				t.Errorf("show.LastEventSHA = %q, want %q", got, tt.want)
 			}
 		})
 	}
@@ -73,7 +75,7 @@ func TestLookupCommitDateCached_CacheReuse(t *testing.T) {
 	cache := map[string]string{
 		"deadbeef": "2026-05-02T10:00:00+00:00",
 	}
-	got := lookupCommitDateCached(context.Background(),
+	got := show.LookupCommitDateCached(context.Background(),
 		"/nonexistent/path/that/does/not/exist", "deadbeef", cache)
 	if got != "2026-05-02T10:00:00+00:00" {
 		t.Errorf("cached lookup = %q, want the seeded value", got)
@@ -88,7 +90,7 @@ func TestLookupCommitDateCached_ErrorFallback(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir() // not a git repo
 	cache := map[string]string{}
-	if got := lookupCommitDateCached(context.Background(), tmp, "deadbeef", cache); got != "" {
+	if got := show.LookupCommitDateCached(context.Background(), tmp, "deadbeef", cache); got != "" {
 		t.Errorf("first lookup = %q, want empty (git show fails)", got)
 	}
 	if v, ok := cache["deadbeef"]; !ok || v != "" {
@@ -123,7 +125,7 @@ func TestLookupCommitDateCached_HappyPath(t *testing.T) {
 	}
 	sha := strings.TrimSpace(out)
 	cache := map[string]string{}
-	d := lookupCommitDateCached(context.Background(), root, sha, cache)
+	d := show.LookupCommitDateCached(context.Background(), root, sha, cache)
 	if d == "" {
 		t.Fatalf("first lookup returned empty; expected ISO-8601 date")
 	}
@@ -132,7 +134,7 @@ func TestLookupCommitDateCached_HappyPath(t *testing.T) {
 	}
 	// Second call should hit the cache. Confirm the value matches —
 	// the underlying git access doesn't matter once cached.
-	if d2 := lookupCommitDateCached(context.Background(), root, sha, cache); d2 != d {
+	if d2 := show.LookupCommitDateCached(context.Background(), root, sha, cache); d2 != d {
 		t.Errorf("second lookup = %q, want cached %q", d2, d)
 	}
 }
@@ -456,9 +458,9 @@ func TestLoadEntityScopeViews_NoCommits(t *testing.T) {
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
-	got, err := loadEntityScopeViews(context.Background(), root, "E-0001")
+	got, err := show.LoadEntityScopeViews(context.Background(), root, "E-0001")
 	if err != nil {
-		t.Fatalf("loadEntityScopeViews: %v", err)
+		t.Fatalf("show.LoadEntityScopeViews: %v", err)
 	}
 	if got != nil {
 		t.Errorf("got %v, want nil (no commits)", got)
@@ -471,9 +473,9 @@ func TestLoadEntityScopeViews_NoCommits(t *testing.T) {
 func TestLoadEntityScopeViews_NotInGitRepo(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir()
-	got, err := loadEntityScopeViews(context.Background(), tmp, "E-0001")
+	got, err := show.LoadEntityScopeViews(context.Background(), tmp, "E-0001")
 	if err != nil {
-		t.Fatalf("loadEntityScopeViews: %v", err)
+		t.Fatalf("show.LoadEntityScopeViews: %v", err)
 	}
 	if got != nil {
 		t.Errorf("got %v, want nil (no repo)", got)
@@ -502,9 +504,9 @@ func TestLoadEntityScopeViews_NoScopesTouchEntity(t *testing.T) {
 	if out, err := runGit(root, "commit", "--allow-empty", "-m", msg); err != nil {
 		t.Fatalf("git commit: %v\n%s", err, out)
 	}
-	got, err := loadEntityScopeViews(context.Background(), root, "E-0001")
+	got, err := show.LoadEntityScopeViews(context.Background(), root, "E-0001")
 	if err != nil {
-		t.Fatalf("loadEntityScopeViews: %v", err)
+		t.Fatalf("show.LoadEntityScopeViews: %v", err)
 	}
 	if got != nil {
 		t.Errorf("got %v, want nil (no scopes touch E-01)", got)

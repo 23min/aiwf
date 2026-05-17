@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/show"
 )
 
 // TestShow_ScopesView_AuthorizationFlow walks the load-bearing
@@ -52,7 +54,7 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 		t.Fatalf("show E-01 json: %v\n%s", err, out)
 	}
 	var env struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if err := json.Unmarshal([]byte(out), &env); err != nil {
 		t.Fatalf("parse JSON: %v\n%s", err, out)
@@ -87,7 +89,7 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 		t.Fatalf("show M-001 json: %v\n%s", mErr, mout)
 	}
 	var envM struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if jErr := json.Unmarshal([]byte(mout), &envM); jErr != nil {
 		t.Fatalf("parse JSON M-001: %v\n%s", jErr, mout)
@@ -112,7 +114,7 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 		t.Fatalf("show E-01 json post-end: %v\n%s", endErr, endOut)
 	}
 	var envEnd struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if jErr := json.Unmarshal([]byte(endOut), &envEnd); jErr != nil {
 		t.Fatalf("parse JSON post-end: %v\n%s", jErr, endOut)

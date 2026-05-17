@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/cli/show"
 )
 
 // TestRenderHistory_PreI2_5BackwardsCompat: a history.HistoryEvent with no
@@ -93,7 +94,7 @@ func TestShow_CompositeIdWithScopes(t *testing.T) {
 		t.Fatalf("show composite: %v\n%s", err, out)
 	}
 	var env struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if jErr := json.Unmarshal([]byte(out), &env); jErr != nil {
 		t.Fatalf("parse JSON: %v\n%s", jErr, out)
@@ -162,7 +163,7 @@ func TestShow_AncestorScopeNotInheritedWithoutAct(t *testing.T) {
 		t.Fatalf("show E-01: %v\n%s", err, out)
 	}
 	var envE struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if jErr := json.Unmarshal([]byte(out), &envE); jErr != nil {
 		t.Fatalf("parse E-01 JSON: %v\n%s", jErr, out)
@@ -178,7 +179,7 @@ func TestShow_AncestorScopeNotInheritedWithoutAct(t *testing.T) {
 		t.Fatalf("show M-001: %v\n%s", mErr, mout)
 	}
 	var envM struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if jErr := json.Unmarshal([]byte(mout), &envM); jErr != nil {
 		t.Fatalf("parse M-001 JSON: %v\n%s", jErr, mout)
@@ -234,7 +235,7 @@ func TestShow_MultipleScopesSorted(t *testing.T) {
 		t.Fatalf("show E-01: %v\n%s", err, out)
 	}
 	var env struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if jErr := json.Unmarshal([]byte(out), &env); jErr != nil {
 		t.Fatalf("parse JSON: %v\n%s", jErr, out)

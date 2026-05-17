@@ -1,4 +1,6 @@
-package main
+// Package show implements the `aiwf show` verb (per-verb subpackage of M-0116;
+// includes the show-scopes helpers moved from show_scopes.go).
+package show
 
 import (
 	"context"
@@ -14,9 +16,10 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/version"
 )
 
-// readEntityBody reads the entity file at root/relPath and returns the
+// ReadEntityBody reads the entity file at root/relPath and returns the
 // body bytes (the prose after the closing `---`). Errors are
 // swallowed — `aiwf show` already emits findings for unreadable /
 // malformed entities via the load-error finding; surfacing the same
@@ -26,7 +29,7 @@ import (
 // Entity.Path is repo-relative (the loader normalizes it that way) so
 // callers must join with root before hitting the filesystem; doing
 // the join in this helper keeps each caller from re-deriving it.
-func readEntityBody(root, relPath string) []byte {
+func ReadEntityBody(root, relPath string) []byte {
 	if relPath == "" {
 		return nil
 	}
@@ -45,14 +48,14 @@ func readEntityBody(root, relPath string) []byte {
 	return body
 }
 
-// newShowCmd builds `aiwf show <id>`. Aggregates per-entity state from
+// NewCmd builds `aiwf show <id>`. Aggregates per-entity state from
 // the existing data sources — frontmatter (entity), git log (history),
 // aiwf check (findings) — into one human-readable view (or one JSON
 // envelope when --format=json). No new state; pure projection.
 //
 // For composite ids (M-NNN/AC-N), renders just the AC's slice of the
 // parent milestone plus its history.
-func newShowCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		root         string
 		format       string
@@ -74,7 +77,7 @@ func newShowCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runShowCmd(args[0], root, format, pretty, historyLimit))
+			return cliutil.WrapExitCode(Run(args[0], root, format, pretty, historyLimit))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -86,7 +89,8 @@ func newShowCmd() *cobra.Command {
 	return cmd
 }
 
-func runShowCmd(id, root, format string, pretty bool, historyLimit int) int {
+// Run executes `aiwf show`. Returns one of the cliutil.Exit* codes.
+func Run(id, root, format string, pretty bool, historyLimit int) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf show: --format must be text or json, got %q\n", format)
 		return cliutil.ExitUsage
@@ -105,7 +109,7 @@ func runShowCmd(id, root, format string, pretty bool, historyLimit int) int {
 		return cliutil.ExitInternal
 	}
 
-	view, ok := buildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
+	view, ok := BuildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
 	if !ok {
 		fmt.Fprintf(os.Stderr, "aiwf show: %s not found\n", id)
 		return cliutil.ExitUsage
@@ -117,7 +121,7 @@ func runShowCmd(id, root, format string, pretty bool, historyLimit int) int {
 	case "json":
 		env := render.Envelope{
 			Tool:    "aiwf",
-			Version: Version,
+			Version: version.Current().Version,
 			Status:  "ok",
 			Result:  view,
 			Metadata: map[string]any{
@@ -187,18 +191,18 @@ type ShowAC struct {
 	Description string `json:"description,omitempty"`
 }
 
-// buildShowView assembles the view for id; ok=false when no entity
+// BuildShowView assembles the view for id; ok=false when no entity
 // (or AC) matches. Composite ids resolve via the parent milestone's
 // ACs slice.
-func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool) {
+func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool) {
 	if entity.IsCompositeID(id) {
-		return buildCompositeShowView(ctx, root, t, loadErrs, id, historyLimit)
+		return BuildCompositeShowView(ctx, root, t, loadErrs, id, historyLimit)
 	}
 	e := t.ByID(id)
 	if e == nil {
 		return ShowView{}, false
 	}
-	body := readEntityBody(root, e.Path)
+	body := ReadEntityBody(root, e.Path)
 	// Emit canonical ids per AC-3 in M-081 — display surfaces are
 	// uniform-width regardless of on-disk filename.
 	view := ShowView{
@@ -231,7 +235,7 @@ func buildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 	if err == nil {
 		view.History = limitEvents(events, historyLimit)
 	}
-	if scopes, err := loadEntityScopeViews(ctx, root, id); err == nil {
+	if scopes, err := LoadEntityScopeViews(ctx, root, id); err == nil {
 		view.Scopes = scopes
 	}
 
@@ -252,9 +256,9 @@ func nonNilStrings(s []string) []string {
 	return s
 }
 
-// buildCompositeShowView handles `aiwf show M-NNN/AC-N`. Returns
+// BuildCompositeShowView handles `aiwf show M-NNN/AC-N`. Returns
 // ok=false when the parent or AC doesn't exist.
-func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool) {
+func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool) {
 	parentID, subID, _ := entity.ParseCompositeID(id)
 	parent := t.ByID(parentID)
 	if parent == nil {
@@ -270,7 +274,7 @@ func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 	if found == nil {
 		return ShowView{}, false
 	}
-	desc := entity.ParseACSections(readEntityBody(root, parent.Path))[found.ID]
+	desc := entity.ParseACSections(ReadEntityBody(root, parent.Path))[found.ID]
 	// Emit canonical ids per AC-3 in M-081.
 	view := ShowView{
 		ID:       entity.Canonicalize(id),
@@ -297,7 +301,7 @@ func buildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 	if err == nil {
 		view.History = limitEvents(events, historyLimit)
 	}
-	if scopes, err := loadEntityScopeViews(ctx, root, id); err == nil {
+	if scopes, err := LoadEntityScopeViews(ctx, root, id); err == nil {
 		view.Scopes = scopes
 	}
 

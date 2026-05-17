@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/show"
+
 	"github.com/23min/aiwf/internal/cli/history"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
@@ -15,7 +17,7 @@ import (
 )
 
 // TestRun_ShowArchivedIndicatorJSON — M-0087/AC-5 (JSON side): for an
-// archived entity, the JSON envelope's ShowView carries `archived:
+// archived entity, the JSON envelope's show.ShowView carries `archived:
 // true`; for an active entity, the field is omitted (omitempty)
 // rather than emitted as `archived: false`. The terse JSON shape
 // keeps the indicator unambiguous for downstream tooling without
@@ -154,7 +156,7 @@ Archived gap body.
 // to do so" as separate mechanical assertions.
 func TestShowCmd_NoArchivedFlag(t *testing.T) {
 	t.Parallel()
-	cmd := newShowCmd()
+	cmd := show.NewCmd()
 	if cmd.Flags().Lookup("archived") != nil {
 		t.Errorf("show has --archived flag; archived ids resolve without flag opt-in per ADR-0004 §\"Display surfaces\"")
 	}
@@ -163,7 +165,7 @@ func TestShowCmd_NoArchivedFlag(t *testing.T) {
 // TestRun_ShowResolvesArchivedID — M-0084 AC-4: `aiwf show <id>`
 // resolves an entity living under <kind>/archive/ identically to one
 // in the active dir, without flag opt-in. Drives through the in-process
-// dispatcher (`run`) so the seam from Cobra → tree.Load → buildShowView
+// dispatcher (`run`) so the seam from Cobra → tree.Load → show.BuildShowView
 // → t.ByID is exercised end-to-end on a tree carrying both an active
 // and an archived entity.
 func TestRun_ShowResolvesArchivedID(t *testing.T) {
@@ -217,7 +219,7 @@ Archived gap body.
 		}
 	})
 	var env struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if err := json.Unmarshal(out, &env); err != nil {
 		t.Fatalf("parse JSON: %v\n%s", err, out)
@@ -495,7 +497,7 @@ func TestRun_ShowUnknownIDIsUsageError(t *testing.T) {
 }
 
 // TestRun_ShowReferencedByPopulated: an entity referenced by others
-// surfaces them in ShowView.ReferencedBy and in the text "Referenced by"
+// surfaces them in show.ShowView.ReferencedBy and in the text "Referenced by"
 // block. Inversion follows entity.ForwardRefs; composite-id rollup is
 // covered by tree.TestLoad_ReverseRefs.
 func TestRun_ShowReferencedByPopulated(t *testing.T) {
@@ -623,7 +625,7 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tree.Load: %v", err)
 	}
-	view, ok := buildShowView(context.Background(), root, tr, nil, "M-0001", 5)
+	view, ok := show.BuildShowView(context.Background(), root, tr, nil, "M-0001", 5)
 	if !ok {
 		t.Fatal("show view missing")
 	}
@@ -642,7 +644,7 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 }
 
 // TestRun_ShowEpicBodySectionsParsed: hand-editing the epic file with
-// populated body sections must surface them on ShowView.Body keyed by
+// populated body sections must surface them on show.ShowView.Body keyed by
 // the slugified `## ` heading. Load-bearing for the HTML render in I3
 // step 5, which reads these slugs to populate the per-tab content.
 func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {

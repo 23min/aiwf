@@ -9,6 +9,7 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/cli/show"
 	"github.com/23min/aiwf/internal/cli/status"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
@@ -585,7 +586,7 @@ func (r *renderResolver) linkedEntitiesFor(e *entity.Entity) []htmlrender.Linked
 // scope-table + chronological timeline.
 func (r *renderResolver) provenanceFor(m *entity.Entity) htmlrender.ProvenanceData {
 	var data htmlrender.ProvenanceData
-	scopes, err := loadEntityScopeViews(r.ctx, r.root, m.ID)
+	scopes, err := show.LoadEntityScopeViews(r.ctx, r.root, m.ID)
 	if err == nil {
 		for _, s := range scopes {
 			data.Scopes = append(data.Scopes, htmlrender.ScopeRow{
@@ -618,7 +619,7 @@ func (r *renderResolver) bodyForEntity(relPath string) []byte {
 	if !filepath.IsAbs(abs) {
 		abs = filepath.Join(r.root, relPath)
 	}
-	return readEntityBody(r.root, abs)
+	return show.ReadEntityBody(r.root, abs)
 }
 
 // historyEventToRow maps a cmd-side history.HistoryEvent to the renderer's

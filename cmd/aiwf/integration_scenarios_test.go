@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/show"
+
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -129,7 +131,7 @@ func TestScenario_TerminalPromoteEndsMultipleParallelScopes(t *testing.T) {
 		t.Fatalf("show E-01: %v\n%s", err, out)
 	}
 	var env struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if jErr := json.Unmarshal([]byte(out), &env); jErr != nil {
 		t.Fatalf("parse JSON: %v\n%s", jErr, out)
@@ -444,7 +446,7 @@ func TestScenario_RepeatedPauseResumeCycle(t *testing.T) {
 		t.Fatalf("show: %v\n%s", err, out)
 	}
 	var env struct {
-		Result ShowView `json:"result"`
+		Result show.ShowView `json:"result"`
 	}
 	if jErr := json.Unmarshal([]byte(out), &env); jErr != nil {
 		t.Fatalf("parse JSON: %v\n%s", jErr, out)

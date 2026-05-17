@@ -1,4 +1,4 @@
-package main
+package show
 
 import (
 	"context"
@@ -35,7 +35,7 @@ type ScopeView struct {
 	EventCount int    `json:"event_count"`
 }
 
-// loadEntityScopeViews returns every scope that ever applied to id —
+// LoadEntityScopeViews returns every scope that ever applied to id —
 // scopes opened ON id (directly), plus scopes from elsewhere that
 // authorized work touching id (via `aiwf-authorized-by:`).
 //
@@ -48,7 +48,7 @@ type ScopeView struct {
 // convert to ScopeView.
 //
 // Empty / pre-aiwf repos return (nil, nil).
-func loadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, error) {
+func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -98,11 +98,11 @@ func loadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 		if _, ok := interested[s.AuthSHA]; !ok {
 			continue
 		}
-		opened := lookupCommitDateCached(ctx, root, s.AuthSHA, dateCache)
+		opened := LookupCommitDateCached(ctx, root, s.AuthSHA, dateCache)
 		var ended string
 		if s.State == scope.StateEnded {
-			if last := lastEventSHA(s, scope.StateEnded); last != "" {
-				ended = lookupCommitDateCached(ctx, root, last, dateCache)
+			if last := LastEventSHA(s, scope.StateEnded); last != "" {
+				ended = LookupCommitDateCached(ctx, root, last, dateCache)
 			}
 		}
 		views = append(views, ScopeView{
@@ -165,11 +165,11 @@ func readAllAuthorizeOpeners(ctx context.Context, root string) (map[string]strin
 	return result, nil
 }
 
-// lookupCommitDateCached returns the ISO-8601 author date of the
+// LookupCommitDateCached returns the ISO-8601 author date of the
 // commit at sha, caching results so we never hit `git show` twice
 // for the same SHA in one show call. Errors fall back to an empty
 // string (the caller renders dates as omitempty in JSON).
-func lookupCommitDateCached(ctx context.Context, root, sha string, cache map[string]string) string {
+func LookupCommitDateCached(ctx context.Context, root, sha string, cache map[string]string) string {
 	if d, ok := cache[sha]; ok {
 		return d
 	}
@@ -185,10 +185,10 @@ func lookupCommitDateCached(ctx context.Context, root, sha string, cache map[str
 	return d
 }
 
-// lastEventSHA returns the SHA of the latest event in s whose state
+// LastEventSHA returns the SHA of the latest event in s whose state
 // equals match, or "" when none. Used by ScopeView assembly to look
 // up the ending commit's date (when the scope is ended).
-func lastEventSHA(s *scope.Scope, match scope.State) string {
+func LastEventSHA(s *scope.Scope, match scope.State) string {
 	for i := len(s.Events) - 1; i >= 0; i-- {
 		if s.Events[i].State == match {
 			return s.Events[i].SHA

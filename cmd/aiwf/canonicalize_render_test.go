@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/show"
+
 	"github.com/23min/aiwf/internal/cli/status"
 
 	"github.com/23min/aiwf/internal/cli/list"
@@ -264,9 +266,9 @@ func TestShow_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 	}
 
 	// Narrow input — AC-2 parser-tolerance test by design.
-	view, ok := buildShowView(context.Background(), root, tr, loadErrs, "M-007", 0)
+	view, ok := show.BuildShowView(context.Background(), root, tr, loadErrs, "M-007", 0)
 	if !ok {
-		t.Fatalf("buildShowView(M-007) returned ok=false on narrow tree")
+		t.Fatalf("show.BuildShowView(M-007) returned ok=false on narrow tree")
 	}
 	if view.ID != "M-0007" {
 		t.Errorf("view.ID = %q, want canonical M-0007", view.ID)
@@ -276,9 +278,9 @@ func TestShow_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 	}
 
 	// Composite id — narrow input, canonical output.
-	acView, ok := buildShowView(context.Background(), root, tr, loadErrs, "M-007/AC-1", 0)
+	acView, ok := show.BuildShowView(context.Background(), root, tr, loadErrs, "M-007/AC-1", 0)
 	if !ok {
-		t.Fatalf("buildShowView(M-007/AC-1) returned ok=false")
+		t.Fatalf("show.BuildShowView(M-007/AC-1) returned ok=false")
 	}
 	if acView.ID != "M-0007/AC-1" {
 		t.Errorf("composite view.ID = %q, want M-0007/AC-1", acView.ID)
