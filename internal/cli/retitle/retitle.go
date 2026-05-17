@@ -1,4 +1,4 @@
-package main
+package retitle
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// newRetitleCmd builds `aiwf retitle <id|composite-id> <new-title>
+// NewCmd builds `aiwf retitle <id|composite-id> <new-title>
 // [--reason "..."]`. Title mutation: updates the entity's frontmatter
 // `title:`; for top-level entities also re-derives the on-disk slug
 // (G-0108) and syncs a canonical `# <ID> — <title>` body H1 if one is
@@ -26,7 +26,7 @@ import (
 // id (or M-NNN/AC-N), new-title. The optional `--reason` flag lands
 // in the commit body and surfaces in `aiwf history`, matching the
 // pattern from `aiwf promote`/`cancel`/`authorize`/`edit-body`.
-func newRetitleCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -45,7 +45,7 @@ func newRetitleCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runRetitleCmd(args[0], args[1], actor, principal, root, reason))
+			return cliutil.WrapExitCode(Run(args[0], args[1], actor, principal, root, reason))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -56,7 +56,7 @@ func newRetitleCmd() *cobra.Command {
 	return cmd
 }
 
-func runRetitleCmd(id, newTitle, actor, principal, root, reason string) int {
+func Run(id, newTitle, actor, principal, root, reason string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf retitle: %v\n", err)
