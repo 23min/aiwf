@@ -59,6 +59,10 @@ acs:
       title: internal/cli/template/ carries template verb
       status: open
       tdd_phase: red
+    - id: AC-14
+      title: internal/cli/update/ carries update verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -121,4 +125,6 @@ Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/ren
 ### AC-12 — internal/cli/status/ carries status verb
 
 ### AC-13 — internal/cli/template/ carries template verb
+
+### AC-14 — internal/cli/update/ carries update verb
 
