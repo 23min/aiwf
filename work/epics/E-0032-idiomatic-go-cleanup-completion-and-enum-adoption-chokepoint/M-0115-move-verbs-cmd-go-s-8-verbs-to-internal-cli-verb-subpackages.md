@@ -34,7 +34,7 @@ acs:
     - id: AC-7
       title: internal/cli/reallocate/ carries reallocate verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-8
       title: Shared helpers lifted to cliutil; verbs_cmd.go deleted; rootCmd wired
       status: open
