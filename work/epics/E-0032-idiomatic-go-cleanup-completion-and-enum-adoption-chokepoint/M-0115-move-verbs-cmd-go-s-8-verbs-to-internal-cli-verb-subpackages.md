@@ -35,6 +35,10 @@ acs:
       title: internal/cli/reallocate/ carries reallocate verb
       status: open
       tdd_phase: red
+    - id: AC-8
+      title: Shared helpers lifted to cliutil; verbs_cmd.go deleted; rootCmd wired
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -89,4 +93,6 @@ Shared helpers (`parseKind`, `parseTestsFlag`, `readBodyFile`, `splitCommaList` 
 ### AC-6 — internal/cli/move/ carries move verb
 
 ### AC-7 — internal/cli/reallocate/ carries reallocate verb
+
+### AC-8 — Shared helpers lifted to cliutil; verbs_cmd.go deleted; rootCmd wired
 
