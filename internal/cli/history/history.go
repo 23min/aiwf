@@ -1,4 +1,4 @@
-package main
+package history
 
 import (
 	"context"
@@ -16,11 +16,12 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/version"
 )
 
-// newHistoryCmd builds `aiwf history <id>`: filters git log for the
+// NewCmd builds `aiwf history <id>`: filters git log for the
 // entity's structured trailers and prints one line per event.
-func newHistoryCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		root     string
 		format   string
@@ -39,7 +40,7 @@ func newHistoryCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runHistoryCmd(args[0], root, format, pretty, showAuth))
+			return cliutil.WrapExitCode(Run(args[0], root, format, pretty, showAuth))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -51,7 +52,7 @@ func newHistoryCmd() *cobra.Command {
 	return cmd
 }
 
-func runHistoryCmd(id, root, format string, pretty, showAuth bool) int {
+func Run(id, root, format string, pretty, showAuth bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf history: --format must be text or json, got %q\n", format)
 		return cliutil.ExitUsage
@@ -128,7 +129,7 @@ func runHistoryCmd(id, root, format string, pretty, showAuth bool) int {
 	case "json":
 		env := render.Envelope{
 			Tool:    "aiwf",
-			Version: Version,
+			Version: version.Current().Version,
 			Status:  "ok",
 			Result:  map[string]any{"id": id, "events": events},
 			Metadata: map[string]any{
