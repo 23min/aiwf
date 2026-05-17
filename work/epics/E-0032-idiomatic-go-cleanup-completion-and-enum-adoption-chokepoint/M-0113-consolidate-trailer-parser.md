@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: All callers consume gitops.ParseTrailers; cliutil duplicate deleted
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
