@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: internal/cli/history/ carries history verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: internal/cli/importcmd/ carries import verb
       status: open
