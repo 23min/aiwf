@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/add"
 	"github.com/23min/aiwf/internal/cli/cancel"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/editbody"
@@ -138,7 +139,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newVersionCmd())
 
 	cmd.AddCommand(newCheckCmd())
-	cmd.AddCommand(newAddCmd())
+	cmd.AddCommand(add.NewCmd())
 	cmd.AddCommand(promote.NewCmd())
 	cmd.AddCommand(cancel.NewCmd())
 	cmd.AddCommand(rename.NewCmd())
@@ -344,7 +345,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 
 	findings := check.Run(tr, loadErrs)
 
-	contracts, contractErr := loadContractsBlock(resolved)
+	contracts, contractErr := cliutil.LoadContractsBlock(resolved)
 	if contractErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", contractErr)
 		return cliutil.ExitInternal

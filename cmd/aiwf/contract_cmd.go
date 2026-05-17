@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/aiwfyaml"
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/contractcheck"
 	"github.com/23min/aiwf/internal/contractverify"
 	"github.com/23min/aiwf/internal/entity"
@@ -89,7 +87,7 @@ func runContractVerifyCmd(root, format string, pretty bool) int {
 		fmt.Fprintf(os.Stderr, "aiwf contract verify: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
-	contracts, err := loadContractsBlock(rootDir)
+	contracts, err := cliutil.LoadContractsBlock(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract verify: %v\n", err)
 		return cliutil.ExitInternal
@@ -187,37 +185,6 @@ func bindingCount(c *aiwfyaml.Contracts) int {
 	return len(c.Entries)
 }
 
-// loadContractsBlock reads aiwf.yaml from rootDir and returns the
-// contracts: block (nil if absent or if the file itself is absent).
-// A malformed contracts: block is an internal error — the verb can't
-// proceed without trustworthy bindings.
-func loadContractsBlock(rootDir string) (*aiwfyaml.Contracts, error) {
-	cfgPath := filepath.Join(rootDir, config.FileName)
-	if _, err := os.Stat(cfgPath); err != nil {
-		return nil, nil
-	}
-	_, contracts, err := aiwfyaml.Read(cfgPath)
-	if err != nil {
-		return nil, fmt.Errorf("reading aiwf.yaml: %w", err)
-	}
-	return contracts, nil
-}
-
-// loadContractsDoc reads aiwf.yaml and returns both the editable
-// Doc and the parsed contracts block. Used by mutating verbs that
-// need to splice the block back into the source.
-func loadContractsDoc(rootDir string) (*aiwfyaml.Doc, *aiwfyaml.Contracts, error) {
-	cfgPath := filepath.Join(rootDir, config.FileName)
-	if _, err := os.Stat(cfgPath); err != nil {
-		return nil, nil, fmt.Errorf("aiwf.yaml not found at %s; run 'aiwf init' first", cfgPath)
-	}
-	doc, contracts, err := aiwfyaml.Read(cfgPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("reading aiwf.yaml: %w", err)
-	}
-	return doc, contracts, nil
-}
-
 // newContractBindCmd builds `aiwf contract bind <C-id> --validator
 // <name> --schema <path> --fixtures <path> [--force]`.
 func newContractBindCmd() *cobra.Command {
@@ -279,7 +246,7 @@ func runContractBindCmd(id, root, actor, validator, schema, fixtures string, for
 		fmt.Fprintf(os.Stderr, "aiwf contract bind: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
-	doc, contracts, err := loadContractsDoc(rootDir)
+	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
 		return cliutil.ExitUsage
@@ -337,7 +304,7 @@ func runContractUnbindCmd(id, root, actor string) int {
 	defer release()
 
 	ctx := context.Background()
-	doc, contracts, err := loadContractsDoc(rootDir)
+	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
 		return cliutil.ExitUsage
@@ -381,7 +348,7 @@ func runContractRecipesCmd(root string) int {
 		return cliutil.ExitInternal
 	}
 
-	contracts, err := loadContractsBlock(rootDir)
+	contracts, err := cliutil.LoadContractsBlock(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
 		return cliutil.ExitInternal
@@ -530,7 +497,7 @@ func runContractRecipeInstallCmd(args []string, root, actor, from string, force 
 	}
 	defer release()
 
-	doc, contracts, err := loadContractsDoc(rootDir)
+	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
 		return cliutil.ExitUsage
@@ -585,7 +552,7 @@ func runContractRecipeRemoveCmd(name, root, actor string) int {
 	}
 	defer release()
 
-	doc, contracts, err := loadContractsDoc(rootDir)
+	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
 		return cliutil.ExitUsage
@@ -640,7 +607,7 @@ func declaredValidatorNames() []string {
 	if err != nil {
 		return nil
 	}
-	contracts, err := loadContractsBlock(rootDir)
+	contracts, err := cliutil.LoadContractsBlock(rootDir)
 	if err != nil || contracts == nil || len(contracts.Validators) == 0 {
 		return nil
 	}

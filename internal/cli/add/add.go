@@ -1,4 +1,9 @@
-package main
+// Package add implements the `aiwf add` verb and its `aiwf add ac`
+// subcommand (per-verb subpackage of M-0115; cmd/aiwf/main.go's
+// newRootCmd wires it via NewCmd). Both verbs share the package so
+// the Cobra subcommand wiring (`add ac` as a child of `add`) and the
+// PersistentFlag-sharing pattern remain intact.
+package add
 
 import (
 	"bytes"
@@ -15,13 +20,13 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// newAddCmd builds `aiwf add <kind> --title "..." [kind-specific flags]`
+// NewCmd builds `aiwf add <kind> --title "..." [kind-specific flags]`
 // and the `aiwf add ac <milestone-id> --title "..."` sub-shape. ACs are
 // modeled as a Cobra subcommand of add (matching their composite-id
 // status as sub-elements of a milestone, not a kind in the schema
 // sense). For the six top-level kinds, args[0] is the kind and the
 // runtime validates kind-vs-flag relevance — same shape as pre-Cobra.
-func newAddCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		titles        []string
 		actor         string
@@ -72,7 +77,7 @@ func newAddCmd() *cobra.Command {
 			if len(titles) == 1 {
 				title = titles[0]
 			}
-			return cliutil.WrapExitCode(runAddCmd(k, title, actor, principal, root,
+			return cliutil.WrapExitCode(Run(k, title, actor, principal, root,
 				epicID, tddPolicy, dependsOn, discoveredIn, relatesTo, linkedADRs,
 				bindValidator, bindSchema, bindFixtures, bodyFile))
 		},
@@ -110,11 +115,12 @@ func newAddCmd() *cobra.Command {
 	_ = cmd.RegisterFlagCompletionFunc("relates-to", cliutil.CompleteEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("linked-adr", cliutil.CompleteEntityIDFlag(entity.KindADR))
 
-	cmd.AddCommand(newAddACCmd(&titles, &actor, &principal, &root))
+	cmd.AddCommand(newACCmd(&titles, &actor, &principal, &root))
 	return cmd
 }
 
-func runAddCmd(k entity.Kind, title, actor, principal, root,
+// Run executes `aiwf add <kind>`. Returns one of the cliutil.Exit* codes.
+func Run(k entity.Kind, title, actor, principal, root,
 	epicID, tddPolicy, dependsOn, discoveredIn, relatesTo, linkedADRs,
 	bindValidator, bindSchema, bindFixtures, bodyFile string,
 ) int {
@@ -165,7 +171,7 @@ func runAddCmd(k entity.Kind, title, actor, principal, root,
 	}
 
 	if k == entity.KindContract && bindValidator != "" {
-		doc, contracts, loadErr := loadContractsDoc(rootDir)
+		doc, contracts, loadErr := cliutil.LoadContractsDoc(rootDir)
 		if loadErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", loadErr)
 			return cliutil.ExitUsage
@@ -210,7 +216,7 @@ func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
 	return refs
 }
 
-// newAddACCmd builds `aiwf add ac <milestone-id> --title "..." [--title
+// newACCmd builds `aiwf add ac <milestone-id> --title "..." [--title
 // "..."] [--body-file <path>] [--body-file <path>]`. ACs are sub-elements
 // (composite id M-NNN/AC-N), not a kind in the schema sense, so they're
 // modeled as a child Cobra command. The pointers to the parent's flag
@@ -218,7 +224,7 @@ func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
 // typical pattern with cobra child cmds). --body-file is a separate
 // repeatable flag local to the ac subcommand: positional pairing with
 // --title (the Nth --body-file populates the body of the Nth AC).
-func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
+func newACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
 	var (
 		tests     string
 		bodyFiles []string
@@ -240,7 +246,7 @@ func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Comman
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runAddACCmd(args[0], *titles, bodyFiles, *actor, *principal, *root, tests))
+			return cliutil.WrapExitCode(runAC(args[0], *titles, bodyFiles, *actor, *principal, *root, tests))
 		},
 	}
 	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
@@ -249,7 +255,7 @@ func newAddACCmd(titles *[]string, actor, principal, root *string) *cobra.Comman
 	return cmd
 }
 
-func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, root, tests string) int {
+func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, tests string) int {
 	if len(titles) == 0 {
 		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
 		return cliutil.ExitUsage
@@ -346,6 +352,3 @@ func runAddACCmd(parentID string, titles, bodyFiles []string, actor, principal, 
 	}
 	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx)
 }
-
-
-
