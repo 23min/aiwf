@@ -1,4 +1,6 @@
-package main
+// Package rewidth implements the `aiwf rewidth` verb (per-verb subpackage of M-0116;
+// cmd/aiwf/main.go newRootCmd wires it via NewCmd).
+package rewidth
 
 import (
 	"context"
@@ -16,7 +18,7 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// newRewidthCmd builds `aiwf rewidth [--apply] [--root <path>]`.
+// NewCmd builds `aiwf rewidth [--apply] [--root <path>]`.
 //
 // Default invocation (no `--apply`) is dry-run: the verb computes a
 // Plan and the dispatcher prints a per-kind summary of what would
@@ -30,7 +32,7 @@ import (
 // runs it at most once after upgrading past the kernel version that
 // declares the canonical-width policy. Idempotent re-runs are
 // no-ops.
-func newRewidthCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var (
 		actor      string
 		principal  string
@@ -70,7 +72,7 @@ runs.`,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runRewidthCmd(actor, principal, root, apply, skipChecks))
+			return cliutil.WrapExitCode(Run(actor, principal, root, apply, skipChecks))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -81,7 +83,8 @@ runs.`,
 	return cmd
 }
 
-func runRewidthCmd(actor, principal, root string, apply, skipChecks bool) int {
+// Run executes `aiwf rewidth`. Returns one of the cliutil.Exit* codes.
+func Run(actor, principal, root string, apply, skipChecks bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
 		fmt.Fprintf(os.Stderr, "aiwf rewidth: %v\n", err)

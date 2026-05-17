@@ -30,6 +30,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/reallocate"
 	"github.com/23min/aiwf/internal/cli/rename"
 	"github.com/23min/aiwf/internal/cli/retitle"
+	"github.com/23min/aiwf/internal/cli/rewidth"
 	"github.com/23min/aiwf/internal/cli/schema"
 	"github.com/23min/aiwf/internal/cli/template"
 	"github.com/23min/aiwf/internal/cli/update"
@@ -156,7 +157,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(editbody.NewCmd())
 	cmd.AddCommand(move.NewCmd())
 	cmd.AddCommand(reallocate.NewCmd())
-	cmd.AddCommand(newRewidthCmd())
+	cmd.AddCommand(rewidth.NewCmd())
 	cmd.AddCommand(archive.NewCmd())
 	cmd.AddCommand(newInitCmd())
 	cmd.AddCommand(update.NewCmd())
