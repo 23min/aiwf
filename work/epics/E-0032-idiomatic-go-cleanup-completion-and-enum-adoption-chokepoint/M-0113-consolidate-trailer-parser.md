@@ -1,7 +1,7 @@
 ---
 id: M-0113
 title: Consolidate trailer parser
-status: draft
+status: in_progress
 parent: E-0032
 tdd: required
 acs:
