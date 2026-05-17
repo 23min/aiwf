@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: internal/cli/render/ carries render verb
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-8
       title: internal/cli/retitle/ carries retitle verb
