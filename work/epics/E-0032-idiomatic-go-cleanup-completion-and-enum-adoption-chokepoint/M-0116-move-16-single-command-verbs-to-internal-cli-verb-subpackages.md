@@ -6,6 +6,11 @@ parent: E-0032
 depends_on:
     - M-0115
 tdd: required
+acs:
+    - id: AC-1
+      title: internal/cli/archive/ carries archive verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -42,3 +47,6 @@ Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/ren
 ## Dependencies
 
 - M-3 (pattern-setter must land first).
+
+### AC-1 — internal/cli/archive/ carries archive verb
+
