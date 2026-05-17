@@ -35,6 +35,10 @@ acs:
       title: internal/cli/render/ carries render verb
       status: open
       tdd_phase: red
+    - id: AC-8
+      title: internal/cli/retitle/ carries retitle verb
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -85,4 +89,6 @@ Note: `render_cmd.go` has a sibling [`render_resolver.go`](../../../cmd/aiwf/ren
 ### AC-6 — internal/cli/list/ carries list verb
 
 ### AC-7 — internal/cli/render/ carries render verb
+
+### AC-8 — internal/cli/retitle/ carries retitle verb
 
