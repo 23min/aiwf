@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: internal/cli/editbody/ carries edit-body verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: internal/cli/cancel/ carries cancel verb
       status: met
