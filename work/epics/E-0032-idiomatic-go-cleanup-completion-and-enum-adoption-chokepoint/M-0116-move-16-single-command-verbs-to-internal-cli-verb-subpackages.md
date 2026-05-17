@@ -46,7 +46,7 @@ acs:
     - id: AC-10
       title: internal/cli/schema/ carries schema verb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-11
       title: internal/cli/show/ carries show verb
       status: open
