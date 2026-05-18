@@ -38,7 +38,7 @@ acs:
     - id: AC-8
       title: 'Policies updated: read-only doctor location; skill coverage all 3 verbs'
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
