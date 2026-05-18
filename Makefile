@@ -6,7 +6,7 @@
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
 AIWF_VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)@$(shell git describe --always --dirty 2>/dev/null)
-LDFLAGS := -X main.Version=$(AIWF_VERSION)
+LDFLAGS := -X github.com/23min/aiwf/internal/cli.Version=$(AIWF_VERSION)
 
 help:
 	@echo "Targets:"

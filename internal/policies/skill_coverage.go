@@ -306,15 +306,18 @@ func parseSkillMarkdown(data []byte) embeddedSkillEntry {
 }
 
 // findTopLevelVerbs returns the set of top-level verb names registered
-// at the root of newRootCmd. Each is mapped to the builder function
+// at the root of NewRootCmd. Each is mapped to the builder function
 // that constructs it (used in error messages so a violation points at
 // the right file).
 //
-// The walk: AST-parse main.go, find newRootCmd, collect every
-// `cmd.AddCommand(...)` call. Two builder shapes are recognized:
-//   - Ident form `newXCmd()` — the legacy in-cmd/aiwf shape, where the
-//     builder lives in cmd/aiwf/*.go.
-//   - Selector form `pkg.NewCmd()` — the M-0115 per-verb subpackage
+// The walk: AST-parse internal/cli/root.go (the post-M-0118 home of
+// NewRootCmd; cmd/aiwf/main.go is entry-only now), find NewRootCmd,
+// collect every `cmd.AddCommand(...)` call. Two builder shapes are
+// recognized:
+//   - Ident form `newXCmd()` — the legacy in-cmd/aiwf shape, kept for
+//     symmetry; no verbs use it anymore (M-0115 + M-0117 + M-0118
+//     completed the migration).
+//   - Selector form `pkg.NewCmd()` — the canonical per-verb subpackage
 //     shape, where the builder lives in internal/cli/<pkg>/*.go.
 //
 // For each builder, the relevant directory is walked for the FuncDecl
@@ -322,20 +325,20 @@ func parseSkillMarkdown(data []byte) embeddedSkillEntry {
 // `&cobra.Command{...}` is the verb name as the user types it.
 func findTopLevelVerbs(root string) (map[string]string, error) {
 	cmdDir := filepath.Join(root, "cmd", "aiwf")
-	mainPath := filepath.Join(cmdDir, "main.go")
+	rootCmdPath := filepath.Join(root, "internal", "cli", "root.go")
 	fset := token.NewFileSet()
-	mainAST, err := parser.ParseFile(fset, mainPath, nil, parser.AllErrors)
+	mainAST, err := parser.ParseFile(fset, rootCmdPath, nil, parser.AllErrors)
 	if err != nil {
 		return nil, err
 	}
 
-	// identBuilders: builder name → true (legacy cmd/aiwf form).
-	// pkgBuilders: subpackage name → builder funcdecl name (M-0115 form).
+	// identBuilders: builder name → true (legacy form, currently empty).
+	// pkgBuilders: subpackage name → builder funcdecl name (canonical).
 	identBuilders := map[string]bool{}
 	pkgBuilders := map[string]string{}
 	ast.Inspect(mainAST, func(n ast.Node) bool {
 		fn, ok := n.(*ast.FuncDecl)
-		if !ok || fn.Name == nil || fn.Name.Name != "newRootCmd" {
+		if !ok || fn.Name == nil || fn.Name.Name != "NewRootCmd" {
 			return true
 		}
 		ast.Inspect(fn, func(node ast.Node) bool {

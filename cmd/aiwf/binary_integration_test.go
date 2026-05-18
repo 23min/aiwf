@@ -28,15 +28,21 @@ import (
 // in, faster local iterations skip via `-short`.
 
 // TestBinary_VersionVerb_RespectsLdflags pins the ldflags-stamped
-// path: a binary built with `-ldflags="-X main.Version=v0.99.0-…"`
+// path: a binary built with `-ldflags="-X .../internal/cli.Version=v0.99.0-…"`
 // must report that exact value from `aiwf version`. This is the
 // `make install` path the kernel-dev repo uses today.
+//
+// The ldflags target moved from `main.Version` to
+// `github.com/23min/aiwf/internal/cli.Version` in M-0118/AC-1
+// when newRootCmd and the Version package-global both relocated to
+// internal/cli/root.go (the cmd-package is entry-only now and has
+// no Version global of its own).
 func TestBinary_VersionVerb_RespectsLdflags(t *testing.T) {
 	t.Parallel()
 	skipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	const stampedVersion = "v0.99.0-binary-integration-test"
-	bin := buildBinary(t, tmp, "-ldflags=-X main.Version="+stampedVersion)
+	bin := buildBinary(t, tmp, "-ldflags=-X github.com/23min/aiwf/internal/cli.Version="+stampedVersion)
 
 	out, err := runBinary(bin, "version")
 	if err != nil {

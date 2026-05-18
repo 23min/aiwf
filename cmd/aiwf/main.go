@@ -1,303 +1,37 @@
 // Command aiwf is the ai-workflow framework's single binary.
 //
-// Dispatch is built on github.com/spf13/cobra: every verb, subverb,
-// flag, and closed-set value is exposed to shell tab-completion. The
-// command tree is assembled by newRootCmd; the drift test in
-// completion_drift_test.go is the chokepoint that fails CI when a
-// flag lands without completion wiring or an opt-out entry.
+// The binary's entry point is intentionally minimal — main() defers
+// every concern (OS preflight, dispatch, error rendering) to
+// internal/cli.Execute. The Cobra command tree, version helpers, and
+// help text all live in internal/cli/; per-verb implementations live
+// in internal/cli/<verb>/.
+//
+// The two thin wrappers below — run and newRootCmd — exist solely so
+// the M-0118-era cmd/aiwf/*_test.go files keep compiling. M-0118/AC-6
+// relocates those tests to internal/cli/integration/ where they call
+// cli.Execute / cli.NewRootCmd directly; M-0118/AC-5 then deletes
+// these wrappers and main.go is just `func main`.
 package main
 
 import (
-	"errors"
-	"fmt"
 	"os"
-	"runtime"
 
+	"github.com/23min/aiwf/internal/cli"
 	"github.com/spf13/cobra"
-
-	"github.com/23min/aiwf/internal/cli/add"
-	"github.com/23min/aiwf/internal/cli/archive"
-	"github.com/23min/aiwf/internal/cli/authorize"
-	"github.com/23min/aiwf/internal/cli/cancel"
-	"github.com/23min/aiwf/internal/cli/check"
-	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/cli/contract"
-	"github.com/23min/aiwf/internal/cli/doctor"
-	"github.com/23min/aiwf/internal/cli/editbody"
-	"github.com/23min/aiwf/internal/cli/history"
-	"github.com/23min/aiwf/internal/cli/importcmd"
-	"github.com/23min/aiwf/internal/cli/initcmd"
-	"github.com/23min/aiwf/internal/cli/list"
-	"github.com/23min/aiwf/internal/cli/milestone"
-	"github.com/23min/aiwf/internal/cli/move"
-	"github.com/23min/aiwf/internal/cli/promote"
-	"github.com/23min/aiwf/internal/cli/reallocate"
-	"github.com/23min/aiwf/internal/cli/rename"
-	"github.com/23min/aiwf/internal/cli/render"
-	"github.com/23min/aiwf/internal/cli/retitle"
-	"github.com/23min/aiwf/internal/cli/rewidth"
-	"github.com/23min/aiwf/internal/cli/schema"
-	"github.com/23min/aiwf/internal/cli/show"
-	"github.com/23min/aiwf/internal/cli/status"
-	"github.com/23min/aiwf/internal/cli/template"
-	"github.com/23min/aiwf/internal/cli/update"
-	"github.com/23min/aiwf/internal/cli/upgrade"
-	"github.com/23min/aiwf/internal/cli/whoami"
-	"github.com/23min/aiwf/internal/version"
 )
 
-// Version is the binary's reported version. The ldflags-stamped value
-// takes precedence (used by `make install` for branch+SHA stamping
-// during local development); when left at the default `"dev"`, the
-// `aiwf version` verb falls back to runtime/debug.ReadBuildInfo via
-// version.Current() so a `go install …@v0.1.0` binary correctly
-// reports its tag.
-var Version = "dev"
-
-// init wires the doctor package's in-process Dispatcher seam to the
-// cmd/aiwf run dispatcher. The doctor package's --self-check mode
-// drives every aiwf verb against a throwaway repo and cannot import
-// cmd/aiwf, so the wiring is a package-level variable assignment.
-// When cmd/aiwf shrinks to entry-only in M-0118 and newRootCmd
-// moves to internal/cli/root, the wiring follows it.
-func init() {
-	doctor.Dispatcher = run
-}
-
-// resolvedVersion returns the version to display in user output.
-// Prefers the ldflags-stamped Version global when set to anything
-// other than the default sentinel, otherwise defers to buildinfo via
-// version.Current. The two paths surface different conventions for
-// "no version known" (Version="dev" vs DevelVersion="(devel)"); we
-// normalize by always returning the buildinfo-style value when no
-// ldflags stamp is present, so `aiwf version` and `aiwf doctor`'s
-// binary: row stay byte-coherent for the same binary.
-func resolvedVersion() string {
-	if Version != "dev" && Version != "" {
-		return Version
-	}
-	return version.Current().Version
-}
-
 func main() {
-	if err := cliutil.AssertSupportedOS(runtime.GOOS); err != nil {
-		fmt.Fprintln(os.Stderr, "aiwf:", err)
-		os.Exit(cliutil.ExitUsage)
-	}
-	os.Exit(run(os.Args[1:]))
+	os.Exit(cli.Execute(os.Args[1:]))
 }
 
-// run dispatches one CLI invocation through the Cobra root command.
-// Args here are the args after the binary name (i.e., os.Args[1:]).
-// The command tree is built fresh per call so tests can drive run() in
-// parallel without any shared mutable state.
+// run is a test-compat shim around cli.Execute. Removed at AC-5 once
+// AC-6 has relocated every cmd/aiwf-side test off it.
 func run(args []string) int {
-	rootCmd := newRootCmd()
-	rootCmd.SetArgs(args)
-
-	err := rootCmd.Execute()
-	if err == nil {
-		return cliutil.ExitOK
-	}
-	var ee *cliutil.ExitError
-	if errors.As(err, &ee) {
-		return ee.Code
-	}
-	// Non-cliutil.ExitError means Cobra surfaced a usage problem (unknown verb,
-	// bad flag, missing required arg). With SilenceErrors:true on the
-	// root, Cobra didn't print; we print here in the existing house style.
-	fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
-	return cliutil.ExitUsage
+	return cli.Execute(args)
 }
 
-// newRootCmd assembles the Cobra command tree. Every verb is a
-// native Cobra command (E-14 left no passthrough adapters); each
-// verb's flags are tab-completable per the drift-prevention rule
-// in completion_drift_test.go.
+// newRootCmd is a test-compat shim around cli.NewRootCmd. Removed at
+// AC-5 once AC-6 has relocated every cmd/aiwf-side test off it.
 func newRootCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:           "aiwf",
-		Short:         "ai-workflow framework CLI",
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		RunE: func(c *cobra.Command, args []string) error {
-			if v, _ := c.Flags().GetBool("version"); v {
-				fmt.Println(resolvedVersion())
-				return nil
-			}
-			fmt.Fprintln(os.Stderr, "aiwf: missing verb. Try 'aiwf help'.")
-			return cliutil.WrapExitCode(cliutil.ExitUsage)
-		},
-	}
-	// Manual --version/-v registration (rather than cmd.Version) lets
-	// us bind both the long form and the -v shorthand without relying
-	// on Cobra's auto-add timing — the auto-flag is added during
-	// Execute, after construction, so its Shorthand can't be set here.
-	cmd.Flags().BoolP("version", "v", false, "print version and exit")
-
-	// Until subsequent milestones populate per-verb metadata, the
-	// hand-curated printHelp() text continues to be authoritative for
-	// `aiwf`, `aiwf help`, `aiwf -h`, `aiwf --help`. Subverb help still
-	// flows through the legacy handler via the passthrough adapter
-	// (DisableFlagParsing leaves --help in args).
-	cmd.SetHelpFunc(func(c *cobra.Command, _ []string) {
-		if c == cmd {
-			printHelp()
-			return
-		}
-		// Non-root descendants render Cobra's standard usage block.
-		// We can't call c.Help() here because SetHelpFunc on root is
-		// inherited by every descendant — c.Help() would re-enter
-		// this function and recurse until stack overflow.
-		out := c.OutOrStderr()
-		switch {
-		case c.Long != "":
-			_, _ = fmt.Fprintln(out, c.Long)
-			_, _ = fmt.Fprintln(out)
-		case c.Short != "":
-			_, _ = fmt.Fprintln(out, c.Short)
-			_, _ = fmt.Fprintln(out)
-		}
-		_, _ = fmt.Fprint(out, c.UsageString())
-	})
-
-	cmd.AddCommand(newVersionCmd())
-
-	cmd.AddCommand(check.NewCmd())
-	cmd.AddCommand(add.NewCmd())
-	cmd.AddCommand(promote.NewCmd())
-	cmd.AddCommand(cancel.NewCmd())
-	cmd.AddCommand(rename.NewCmd())
-	cmd.AddCommand(retitle.NewCmd())
-	cmd.AddCommand(editbody.NewCmd())
-	cmd.AddCommand(move.NewCmd())
-	cmd.AddCommand(reallocate.NewCmd())
-	cmd.AddCommand(rewidth.NewCmd())
-	cmd.AddCommand(archive.NewCmd())
-	cmd.AddCommand(initcmd.NewCmd())
-	cmd.AddCommand(update.NewCmd())
-	cmd.AddCommand(upgrade.NewCmd())
-	cmd.AddCommand(history.NewCmd())
-	cmd.AddCommand(doctor.NewCmd())
-	cmd.AddCommand(render.NewCmd())
-	cmd.AddCommand(importcmd.NewCmd())
-	cmd.AddCommand(whoami.NewCmd())
-	cmd.AddCommand(status.NewCmd())
-	cmd.AddCommand(list.NewCmd())
-	cmd.AddCommand(schema.NewCmd())
-	cmd.AddCommand(show.NewCmd())
-	cmd.AddCommand(template.NewCmd())
-	cmd.AddCommand(contract.NewCmd())
-	cmd.AddCommand(milestone.NewCmd())
-	cmd.AddCommand(authorize.NewCmd())
-
-	return cmd
+	return cli.NewRootCmd()
 }
-
-// newVersionCmd is the M-049 reference shape: a native Cobra command
-// whose RunE writes a single-line version string to stdout. It must
-// stay byte-coherent with `aiwf -v` / `aiwf --version` (both backed by
-// resolvedVersion via the root RunE).
-func newVersionCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "version",
-		Short: "Print the binary version",
-		Example: `  # Print the installed binary's version
-  aiwf version`,
-		Args:          cobra.NoArgs,
-		SilenceErrors: true,
-		SilenceUsage:  true,
-		RunE: func(c *cobra.Command, args []string) error {
-			fmt.Println(resolvedVersion())
-			return nil
-		},
-	}
-}
-
-func printHelp() {
-	fmt.Println(`aiwf — ai-workflow framework CLI
-
-Usage: aiwf <verb> [args]
-
-Verbs:
-  check                          validate the consumer repo's planning state; with aiwf.yaml tdd.require_test_metrics=true (default false), warns on ACs at tdd_phase=done whose history carries no aiwf-tests trailer
-  add <kind> --title "..."       create a new entity of the given kind
-  promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status); --tests "pass=N fail=N skip=N [total=N]" attaches an aiwf-tests trailer in phase mode (recognized keys only; non-negative integers)
-  cancel <id>                    promote to the kind's terminal-cancel status (optional --reason "..."; --force --reason "..." records the cancellation as an audit event)
-  rename <id> <new-slug>         rename the file/dir slug; id preserved
-  edit-body <id> [--body-file <p>] replace the entity's markdown body (frontmatter untouched); omit --body-file to bless current working-copy edits, or use --body-file - for stdin; --reason "..." optional
-  move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
-  reallocate <id-or-path>        renumber the entity; rewrite refs in others
-  authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope; human-only verb
-  init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
-  update                         re-materialize embedded skills into .claude/skills/aiwf-*/
-  upgrade [--version vX.Y.Z]     fetch a newer (or specified) aiwf binary via 'go install' and re-exec into 'aiwf update' (default: latest)
-  history <id>                   show the entity's lifecycle from git log trailers
-  doctor [--self-check] [--check-latest]  drift / version / id-collision health check; --self-check drives every verb against a temp repo; --check-latest hits the Go module proxy for the latest published aiwf version (advisory)
-  render roadmap [--write]       print ROADMAP.md (markdown of epics + milestones); --write commits it
-  render --format=html [--out <dir>] [--pretty]  render the static-site governance page (index + per-epic + per-milestone HTML) under aiwf.yaml.html.out_dir (default 'site') or --out; emits a JSON envelope on stdout with out_dir/files_written/elapsed_ms
-  import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
-  whoami                         print the resolved actor and the source it came from
-  status                         project snapshot: in-flight work, open decisions, gaps, recent activity
-  show <id>                      aggregate view: frontmatter + acs + recent history + active findings + referenced_by (the ids of entities that name this one as a reference target); JSON also carries body (map of section-heading slug to prose: epic goal/scope/out_of_scope; milestone goal/acceptance_criteria; adr context/decision/consequences; gap what_s_missing/why_it_matters; decision question/decision/reasoning; contract purpose/stability) and per-AC description (the AC-N body section) on milestones; history events carry tests {pass,fail,skip,total} when the commit had an aiwf-tests trailer; composite ids (M-NNN/AC-N) accepted
-  schema [kind]                  print the frontmatter contract for one kind (or all six); read-only
-  template [kind]                print the body-section template 'aiwf add' would scaffold for the kind; read-only
-  contract verify                run the verify and evolve passes for every contract binding in aiwf.yaml
-  contract bind <C-id>           add or replace a binding in aiwf.yaml (--validator, --schema, --fixtures; --force to replace)
-  contract unbind <C-id>         remove a binding from aiwf.yaml (entity status untouched)
-  contract recipes               list embedded validator recipes and currently declared validators
-  contract recipe show <name>    print an embedded recipe's markdown
-  contract recipe install <name|--from <path>> [--force]  install a validator from the embedded set or from a YAML file
-  contract recipe remove <name>  remove a declared validator (errors when bindings still reference it)
-  completion <bash|zsh|fish|powershell>  emit a sourceable shell-completion script (kubectl/gh idiom)
-  help, --help                   show this message
-  version, --version             print the binary version
-
-Common flags:
-  --root <path>                  consumer repo root (default: walk up looking for aiwf.yaml, else cwd)
-  --actor <role>/<identifier>    actor for the commit trailer (default: derived from git config user.email)
-  --principal human/<id>         the human accountable for the act; required when --actor is non-human (ai/..., bot/...), forbidden when --actor is human/...
-
-Provenance:
-  When the operator is non-human, --principal must be supplied; the kernel stamps aiwf-principal: on the commit. To delegate autonomous work, run 'aiwf authorize <id> --to <agent>' first; subsequent agent verbs match the active scope and the kernel adds aiwf-on-behalf-of: + aiwf-authorized-by: trailers automatically. See the aiwf-authorize skill or docs/pocv3/design/provenance-model.md.
-
-Flags for 'add':
-  --epic <id>                    parent epic id (milestone)
-  --depends-on <id,id,...>       milestones the new milestone depends on (milestone)
-  --discovered-in <id>           discovery context (gap)
-  --relates-to <id,id,...>       related entities (decision)
-  --linked-adr <id,id,...>       ADRs motivating the contract (contract)
-  --validator <name>             validator name to bind (contract; with --schema, --fixtures: atomic add+bind)
-  --schema <path>                schema path (contract; pairs with --validator and --fixtures)
-  --fixtures <path>              fixtures-tree root (contract; pairs with --validator and --schema)
-  --tests "pass=N fail=N ..."    test metrics for the seeded red phase (ac; only when parent milestone is tdd: required); recognized keys: pass, fail, skip, total; non-negative integers
-
-Flags for 'check', 'history', and 'contract verify':
-  --format <fmt>                 output format: text (default) or json
-  --pretty                       indent JSON output (only with --format=json)
-
-Flags for 'history':
-  --show-authorization           include the full aiwf-authorized-by SHA on scope-authorized rows (text format)
-
-Flags for 'promote' and 'cancel':
-  --audit-only --reason "..."    backfill an audit trail when state was reached via a manual commit; verb writes an empty-diff commit carrying aiwf-audit-only:; entity must already be at the target state (no FSM transition); mutually exclusive with --force; human-only
-
-Flags for 'authorize':
-  --to <agent>                   open scope (e.g. ai/claude); refused on terminal scope-entity unless --force --reason
-  --pause "<reason>"             pause the most-recently-opened active scope on <id>
-  --resume "<reason>"            resume the most-recently-paused scope on <id>
-
-Flags for 'import':
-  --on-collision <mode>          fail (default) | skip | update — behavior when an explicit id already exists
-  --dry-run                      validate the projection and print the would-be plans without writing
-
-Flags for 'upgrade':
-  --version <semver|latest>      version to install (default: latest); a 'v'-prefixed semver tag pins to a specific release
-  --check                        print the current/target comparison and exit; does not invoke 'go install'
-  --root <path>                  consumer repo root for the post-install 'aiwf update' step (default: cwd)
-
-Exit codes: 0 = no errors, 1 = errors found, 2 = usage error, 3 = internal error.
-
-Docs: docs/pocv3/archive/poc-plan-pre-migration.md and docs/pocv3/design/design-decisions.md.`)
-}
-
