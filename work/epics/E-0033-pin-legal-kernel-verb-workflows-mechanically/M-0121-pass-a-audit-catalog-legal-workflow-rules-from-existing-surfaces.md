@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: All nine audit sources covered with at least one rule or explicit no-rules note
       status: open
+    - id: AC-3
+      title: Each rule row has the six-column schema with non-empty fields
+      status: open
 ---
 ## Goal
 
@@ -64,4 +67,6 @@ The rule ids are sequential within the audit doc (R-AUDIT-001..N) — they are *
 ### AC-1 — Audit catalog exists at canonical path with per-source sections in spec order
 
 ### AC-2 — All nine audit sources covered with at least one rule or explicit no-rules note
+
+### AC-3 — Each rule row has the six-column schema with non-empty fields
 
