@@ -28,7 +28,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-6
-      title: Move milestone_depends_on tests to internal/cli/milestone package; green
+      title: Milestone Run-level smoke tests cover depends-on subcommand
       status: open
       tdd_phase: red
     - id: AC-7
@@ -92,7 +92,7 @@ Per-package `_test.go` carries the previously-passing `cmd/aiwf/contract_cmd_tes
 
 ### AC-5 — Move milestone verb + depends-on subcommand to internal/cli/milestone subpkg
 
-### AC-6 — Move milestone_depends_on tests to internal/cli/milestone package; green
+### AC-6 — Milestone Run-level smoke tests cover depends-on subcommand
 
 ### AC-7 — Delete contract_cmd.go, doctor_cmd.go, milestone_cmd.go, selfcheck.go
 
