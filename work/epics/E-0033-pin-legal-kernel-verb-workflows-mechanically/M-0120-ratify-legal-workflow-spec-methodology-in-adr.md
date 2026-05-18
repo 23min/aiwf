@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: ADR exists, is loaded as adr kind, initially proposed, cross-references E-0033
-      status: open
+      status: met
     - id: AC-2
       title: Structural test asserts seven decision-point sections with non-empty content
       status: open
