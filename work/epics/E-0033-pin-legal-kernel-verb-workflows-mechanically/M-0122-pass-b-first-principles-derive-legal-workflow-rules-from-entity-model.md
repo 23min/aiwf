@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Catalog has per-kind lifecycle section for each entity kind
-      status: open
+      status: met
     - id: AC-3
       title: R-FP-NNNN rule rows have non-empty schema fields
       status: open
