@@ -73,6 +73,11 @@ func TestPolicy_CaptureStdoutSingleton(t *testing.T) {
 	runPolicy(t, PolicyCaptureStdoutSingleton)
 }
 
+func TestPolicy_EnvelopeVersionSource(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyEnvelopeVersionSource)
+}
+
 func TestPolicy_FindingCodesAreDiscoverable(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyFindingCodesAreDiscoverable)
