@@ -11,6 +11,10 @@ acs:
       title: Move contract verb + all 6 subcommands to internal/cli/contract subpackage
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Move contract tests to internal/cli/contract package; tests green
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -55,4 +59,6 @@ Per-package `_test.go` carries the previously-passing `cmd/aiwf/contract_cmd_tes
 - M-4 (single-command pattern must stabilize before tackling subcommand wiring).
 
 ### AC-1 — Move contract verb + all 6 subcommands to internal/cli/contract subpackage
+
+### AC-2 — Move contract tests to internal/cli/contract package; tests green
 
