@@ -13,6 +13,10 @@ acs:
       title: Policy fires on == or != BinaryExpr with status literal
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: Policy fires on switch/case clauses with status literals
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -60,4 +64,6 @@ New file [`internal/policies/enum_literal_adoption.go`](../../../internal/polici
 ### AC-1 — Policy auto-enumerates Status constants from internal/entity/entity.go
 
 ### AC-2 — Policy fires on == or != BinaryExpr with status literal
+
+### AC-3 — Policy fires on switch/case clauses with status literals
 
