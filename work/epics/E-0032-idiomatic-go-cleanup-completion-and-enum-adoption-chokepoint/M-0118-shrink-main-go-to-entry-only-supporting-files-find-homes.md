@@ -21,7 +21,7 @@ The capstone milestone of G-0107 step 3. M-0115 and M-0116 moved verbs to per-ve
 2. **Supporting files find their owning packages:**
    - `tests_metrics_check.go` → `internal/cli/check/` or fold into `internal/check/` since it's a check-rule.
    - `provenance_check.go` → `internal/cli/check/` or fold into `internal/check/` similarly.
-   - `selfcheck.go` → fold into `internal/cli/doctor/` (it's `aiwf doctor --self-check`'s body) — added to scope as the only `cmd/aiwf/*.go` non-test file the original spec missed.
+   - (`selfcheck.go` moves with `doctor` in M-0117, not here.)
 3. **`main.go` final shape:**
 
    ```go
@@ -46,11 +46,11 @@ The capstone milestone of G-0107 step 3. M-0115 and M-0116 moved verbs to per-ve
 ## Surfaces touched
 
 - `cmd/aiwf/main.go` — massive shrink to entry-only
-- `cmd/aiwf/tests_metrics_check.go`, `provenance_check.go`, `selfcheck.go` — delete (relocated to owning packages)
+- `cmd/aiwf/tests_metrics_check.go`, `provenance_check.go` — delete (relocated to owning packages; `selfcheck.go` moves with `doctor` in M-0117)
 - `cmd/aiwf/helpers_test.go` — `captureStdout` lifted out; cmd/aiwf-side definition deleted
 - `internal/cli/initcmd/helpers_test.go` — deleted entirely once `captureStdout` lives in the shared testutil
 - `internal/cli/root.go` — new (newRootCmd, Execute)
-- `internal/cli/check/` (or `internal/check/`), `internal/cli/doctor/` — gain the supporting files
+- `internal/cli/check/` (or `internal/check/`) — gains `tests_metrics_check.go` + `provenance_check.go`
 - `internal/cli/cliutil/testutil/` (or `internal/testutil/`) — new home for `captureStdout` (the destination is settled when item 4's integration-test relocation lands)
 - `internal/cli/integration/` (or named cross-verb test home) — gains the integration tests
 - `internal/policies/` — new drift policy forbidding per-package `captureStdout` copies
