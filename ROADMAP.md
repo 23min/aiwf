@@ -349,7 +349,7 @@ Workflow legality — the multi-step procedures contributors walk through to shi
 | M-0111 | Skill-citation discipline and skill-spec drift-prevention test | cancelled |
 | M-0112 | Verb-sequence fuzz harness with spec-derived seeds | cancelled |
 
-## E-0032 — Idiomatic-Go cleanup completion and enum-adoption chokepoint (active)
+## E-0032 — Idiomatic-Go cleanup completion and enum-adoption chokepoint (done)
 
 ### Goal
 
