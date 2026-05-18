@@ -1,7 +1,7 @@
 ---
 id: M-0112
 title: Verb-sequence fuzz harness with spec-derived seeds
-status: draft
+status: cancelled
 parent: E-0031
 depends_on:
     - M-0108
