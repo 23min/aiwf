@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Structural test asserts seven decision-point sections with non-empty content
-      status: open
+      status: met
     - id: AC-3
       title: ADR promoted to accepted via aiwf promote
       status: open
