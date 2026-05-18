@@ -31,6 +31,10 @@ acs:
       title: cobra integration tests relocate to internal/cli/integration/
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: captureStdout lifted to shared testutil; per-package duplicates forbidden
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -102,4 +106,6 @@ The capstone milestone of G-0107 step 3. M-0115 and M-0116 moved verbs to per-ve
 ### AC-5 — cmd/aiwf/main.go shrunk to entry-only shape (function main only)
 
 ### AC-6 — cobra integration tests relocate to internal/cli/integration/
+
+### AC-7 — captureStdout lifted to shared testutil; per-package duplicates forbidden
 
