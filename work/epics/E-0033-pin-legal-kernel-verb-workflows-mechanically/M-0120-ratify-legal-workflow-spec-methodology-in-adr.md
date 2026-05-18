@@ -33,7 +33,11 @@ Seven decisions, each its own section in the ADR body:
 
 ## Acceptance criteria
 
-(Populated by `aiwf add ac` after this body lands.)
+### AC-1 — ADR exists, is loaded as adr kind, initially proposed, cross-references E-0033
+
+### AC-2 — Structural test asserts seven decision-point sections with non-empty content
+
+### AC-3 — ADR promoted to accepted via aiwf promote
 
 ## Approach
 
@@ -55,9 +59,40 @@ Seven decisions, each its own section in the ADR body:
 - **Risk: the structural test is too lenient.** Mitigation: assert section *content* is non-empty, not just heading presence. Use `golang.org/x/text` or markdown-AST walking — not `strings.Contains` (per CLAUDE.md: substring assertions are not structural assertions).
 - **Risk: the methodology ADR introduces gate language.** Mitigation: the ADR ratifies the *methodology* now; M-0121..M-0125 act on it on their own schedule. No "ratify after X happens" phrasing in the body.
 
-### AC-1 — ADR exists, is loaded as adr kind, initially proposed, cross-references E-0033
+## Work log
 
-### AC-2 — Structural test asserts seven decision-point sections with non-empty content
+### AC-1 — ADR allocation and cross-reference
 
-### AC-3 — ADR promoted to accepted via aiwf promote
+ADR-0011 allocated via `aiwf add adr --title "Legal-workflow spec methodology"` (commit `ddcdce4f`). Body cross-references E-0033 in both prose and the trailing References block. Verified by `TestADR0011_AC1_AllocationAndCrossReference` which asserts frontmatter `id: ADR-0011` matches and the body contains the string `E-0033`.
 
+### AC-2 — Seven decision-section structural test
+
+`internal/policies/adr_0011_test.go` added with three test functions, three helpers (`extractSubsection`, `hasNonEmptyProse`, `countLevel3Headings`), and the canonical seven section names enumerated in `required []string`. `TestADR0011_AC2_SevenDecisionSections` walks the markdown section hierarchy under `## Decision`, asserts each named subsection exists with non-empty prose, and includes a drift-guard count of `### `-level headings (`countLevel3Headings == 7`) so an 8th decision can't be added silently without updating the test.
+
+### AC-3 — Promotion to accepted
+
+`aiwf promote ADR-0011 accepted` ran cleanly through the FSM (`proposed → accepted`); commit `dae719ed`. `TestADR0011_AC3_StatusAccepted` regex-matches the frontmatter `status: accepted` line.
+
+## Decisions made during implementation
+
+No mid-flight architectural decisions surfaced beyond what the ADR itself ratifies. The three minor choices made during the work — package layout, test-helper signatures, the prose-vs-list shape of the ADR — were all routine implementation details, not architectural calls that warrant a separate decision entity.
+
+## Validation
+
+- `aiwf check --root .` — 0 errors, 21 warnings. Three new `acs-tdd-audit` warnings are advisory consequences of `tdd: advisory` policy with ACs at `phase: -` (expected; the audit fires as warning, not error). Remaining 18 warnings are pre-existing and unrelated.
+- `go test -parallel 8 -short ./...` — all packages green. ~25 seconds total. Race detector deliberately omitted on macOS per G-0127 — race coverage runs in CI on Linux only.
+- `golangci-lint run ./internal/policies/` — 0 issues.
+- `go build -o /tmp/aiwf-e0033 ./cmd/aiwf` — green.
+- Targeted run `go test -run TestADR0011 ./internal/policies/` — 3/3 passing, ~0.3s.
+
+## Deferrals
+
+- **G-0127** — opened during milestone preflight. Integration tests fork/exec deadlock on macOS under `-race -parallel 8`. Documented mitigation (don't run `-race` on macOS; CI runs Linux-race coverage). Root-cause investigation deferred. Cross-references this milestone via `discovered-in`.
+
+## Reviewer notes
+
+- The ADR deliberately commits to Go-as-canonical-form at the methodology level, not at M-0123 (when the schema lands). This is a load-bearing choice: deferring it to M-0123 would mean each downstream milestone reconsiders representation, defeating the "fixed point" property the ADR exists to provide. The trade-off: M-0123 has less design freedom than it would otherwise.
+- The structural test for AC-2 walks the markdown section hierarchy with a hand-rolled scanner rather than a full markdown AST library. The existing `extractMarkdownSection` helper from `adr_0007_test.go` already does this; the new `extractSubsection`, `hasNonEmptyProse`, and `countLevel3Headings` helpers follow the same idiom. If future ADR-test work warrants it, these could be promoted to a shared `mdsection` package, but YAGNI for now — three helpers, one consumer.
+- The drift-guard (`countLevel3Headings == 7`) intentionally fails CI when an 8th decision is added without updating the test. That's a feature, not friction: it forces explicit ratification of any new commitment rather than letting one slip in via a silent body edit.
+- ADR-0011 dropped the `## References` markdown anchor convention used in some older ADRs — the cross-references are written as bullets at the bottom of the document, matching ADR-0010's more recent shape. No mechanical drift involved.
+- The pre-existing `entity-body-empty` warning for M-0102 is unrelated to this milestone; leaving it alone.
