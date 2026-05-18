@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Move doctor verb + selfcheck.go to internal/cli/doctor; --self-check works
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Doctor Run-level smoke tests cover --self-check + bare paths
       status: open
