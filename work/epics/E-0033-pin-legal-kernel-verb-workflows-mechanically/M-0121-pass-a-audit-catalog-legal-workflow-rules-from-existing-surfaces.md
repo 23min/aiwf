@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: All nine audit sources covered with at least one rule or explicit no-rules note
-      status: open
+      status: met
     - id: AC-3
       title: Each rule row has the six-column schema with non-empty fields
       status: open
