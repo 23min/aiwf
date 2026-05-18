@@ -1,0 +1,240 @@
+package check
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/contract"
+	"github.com/23min/aiwf/internal/config"
+	baserender "github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/version"
+)
+
+// NewCmd builds `aiwf check`: validate the consumer repo's planning
+// state. Read-only; produces no commit. The pre-push git hook runs
+// this verb — its findings + exit code are the framework's
+// authoritative correctness gate.
+func NewCmd() *cobra.Command {
+	var (
+		root      string
+		format    string
+		pretty    bool
+		since     string
+		shapeOnly bool
+		verbose   bool
+	)
+	cmd := &cobra.Command{
+		Use:   "check",
+		Short: "Validate the consumer repo's planning state",
+		Example: `  # Default: errors per-instance, warnings collapsed to a per-code summary
+  aiwf check
+
+  # Restore the full per-instance shape (one line per finding) for warnings too
+  aiwf check --verbose
+
+  # Emit a JSON envelope for CI scripts (always per-instance regardless of --verbose)
+  aiwf check --format=json --pretty`,
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return cliutil.WrapExitCode(Run(root, format, pretty, since, shapeOnly, verbose))
+		},
+	}
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
+	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
+	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
+	cmd.Flags().BoolVar(&verbose, "verbose", false, "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless")
+	cliutil.RegisterFormatCompletion(cmd)
+	return cmd
+}
+
+// Run is the check verb's body. Loads the tree, runs every rule
+// (pure-tree + provenance + tests-metrics + contracts + tree
+// discipline), applies aiwf.yaml-driven severity bumps, renders the
+// findings in the chosen format, and returns the exit code.
+func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool) int {
+	if format != "text" && format != "json" {
+		fmt.Fprintf(os.Stderr, "aiwf check: --format must be 'text' or 'json', got %q\n", format)
+		return cliutil.ExitUsage
+	}
+	if pretty && format != "json" {
+		fmt.Fprintln(os.Stderr, "aiwf check: --pretty has no effect without --format=json")
+	}
+
+	resolved, err := cliutil.ResolveRoot(root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", err)
+		return cliutil.ExitUsage
+	}
+
+	ctx := context.Background()
+	if shapeOnly {
+		return runShapeOnly(ctx, resolved, format, pretty)
+	}
+
+	tr, loadErrs, err := cliutil.LoadTreeWithTrunk(ctx, resolved)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
+		return cliutil.ExitInternal
+	}
+
+	findings := check.Run(tr, loadErrs)
+
+	contracts, contractErr := cliutil.LoadContractsBlock(resolved)
+	if contractErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", contractErr)
+		return cliutil.ExitInternal
+	}
+	contractFindings := contract.RunValidation(ctx, tr, resolved, contracts)
+	findings = append(findings, contractFindings...)
+
+	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since)
+	if pErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
+		return cliutil.ExitInternal
+	}
+	findings = append(findings, provenanceFindings...)
+
+	requireMetrics := false
+	var treeAllow []string
+	treeStrict := false
+	tddStrict := false
+	archiveThreshold := 0
+	archiveThresholdSet := false
+	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
+		requireMetrics = cfg.TDD.RequireTestMetrics
+		treeAllow = cfg.Tree.AllowPaths
+		treeStrict = cfg.Tree.Strict
+		tddStrict = cfg.TDD.Strict
+		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
+	}
+	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
+	if mErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", mErr)
+		return cliutil.ExitInternal
+	}
+	findings = append(findings, metricsFindings...)
+
+	findings = append(findings, check.TreeDiscipline(tr, treeAllow, treeStrict)...)
+
+	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
+	// (and any future TDD-strict-covered finding) from warning to
+	// error so the pre-push hook blocks the push.
+	check.ApplyTDDStrict(findings, tddStrict)
+
+	// M-0088/AC-2: aiwf.yaml: archive.sweep_threshold bumps the
+	// aggregate `archive-sweep-pending` finding from warning to
+	// error when the pending-sweep count exceeds the consumer's
+	// declared ceiling. The count is the same value the rule's
+	// Message already names — computed once via CountPendingSweep
+	// so the bumper does not re-iterate the tree.
+	check.ApplyArchiveSweepThreshold(findings, archiveThreshold, archiveThresholdSet, check.CountPendingSweep(tr))
+
+	contract.ApplyHintsLikeRun(findings)
+	check.SortFindings(findings)
+
+	switch format {
+	case "text":
+		// M-0089 AC-1/AC-2/AC-3: default text mode collapses warnings
+		// into a per-code summary while keeping errors per-instance;
+		// --verbose restores the full per-instance shape (byte-for-byte
+		// identical to the pre-M-0089 output). JSON is never affected
+		// (AC-4).
+		writeText := baserender.TextSummary
+		if verbose {
+			writeText = baserender.Text
+		}
+		if err := writeText(os.Stdout, findings); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return cliutil.ExitInternal
+		}
+	case "json":
+		env := baserender.Envelope{
+			Tool:     "aiwf",
+			Version:  version.Current().Version,
+			Status:   baserender.StatusFor(findings),
+			Findings: findings,
+			Metadata: map[string]any{
+				"root":     resolved,
+				"entities": len(tr.Entities),
+				"bindings": contract.BindingCount(contracts),
+				"findings": len(findings),
+			},
+		}
+		if err := baserender.JSON(os.Stdout, env, pretty); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return cliutil.ExitInternal
+		}
+	}
+
+	if check.HasErrors(findings) {
+		return cliutil.ExitFindings
+	}
+	return cliutil.ExitOK
+}
+
+// runShapeOnly runs the tree-discipline rule and nothing else.
+// Used by the pre-commit hook to give the LLM a fast, in-loop signal
+// when a stray file lands under work/ — the full check.Run pipeline
+// (trunk read, provenance walk, contract validation) is too slow and
+// too noisy to fire on every commit, but the tree-discipline rule is
+// cheap and exact. Honors `aiwf.yaml: tree.{allow_paths,strict}` the
+// same way the full check does.
+//
+// Exit codes match `aiwf check`'s contract: 0 ok, 1 findings (errors
+// present — only fires when tree.strict: true), 3 internal.
+func runShapeOnly(ctx context.Context, root, format string, pretty bool) int {
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
+		return cliutil.ExitInternal
+	}
+	var allow []string
+	strict := false
+	if cfg, cfgErr := config.Load(root); cfgErr == nil && cfg != nil {
+		allow = cfg.Tree.AllowPaths
+		strict = cfg.Tree.Strict
+	}
+	findings := check.TreeDiscipline(tr, allow, strict)
+	contract.ApplyHintsLikeRun(findings)
+	check.SortFindings(findings)
+
+	switch format {
+	case "text":
+		if err := baserender.Text(os.Stdout, findings); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return cliutil.ExitInternal
+		}
+	case "json":
+		env := baserender.Envelope{
+			Tool:     "aiwf",
+			Version:  version.Current().Version,
+			Status:   baserender.StatusFor(findings),
+			Findings: findings,
+			Metadata: map[string]any{
+				"root":       root,
+				"entities":   len(tr.Entities),
+				"shape_only": true,
+				"findings":   len(findings),
+			},
+		}
+		if err := baserender.JSON(os.Stdout, env, pretty); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return cliutil.ExitInternal
+		}
+	}
+
+	if check.HasErrors(findings) {
+		return cliutil.ExitFindings
+	}
+	return cliutil.ExitOK
+}

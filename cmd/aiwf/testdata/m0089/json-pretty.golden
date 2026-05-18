@@ -1,6 +1,6 @@
 {
   "tool": "aiwf",
-  "version": "dev",
+  "version": "(devel)",
   "status": "findings",
   "findings": [
     {
