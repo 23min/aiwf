@@ -33,6 +33,7 @@ type readOnlyVerb struct {
 // dedicated RenderRoadmap policy). Only the site path is listed.
 var readOnlyVerbs = []readOnlyVerb{
 	{FuncName: "runCheckCmd", FilePrefix: "cmd/aiwf/"},
+	{FuncName: "Run", FilePrefix: "internal/cli/contract/"},
 	{FuncName: "Run", FilePrefix: "internal/cli/history/"},
 	{FuncName: "Run", FilePrefix: "internal/cli/show/"},
 	{FuncName: "Run", FilePrefix: "internal/cli/doctor/"},

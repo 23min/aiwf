@@ -36,7 +36,7 @@ func newVerifyCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runVerify(root, format, pretty))
+			return cliutil.WrapExitCode(Run(root, format, pretty))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -46,14 +46,14 @@ func newVerifyCmd() *cobra.Command {
 	return cmd
 }
 
-// Run is the exported entry point for `aiwf contract verify`. Exists
-// so the M-0117 PolicyReadOnlyVerbsDoNotMutate entry can pin the
-// verify path's location at internal/cli/contract/.
+// Run is the exported entry point for `aiwf contract verify`.
+// `contract verify` is read-only — it loads the tree, runs the
+// contractcheck (config correspondence) and contractverify
+// (subprocess validators) passes, and prints findings. The
+// internal/policies/read_only.go entry pins this path so a future
+// regression that adds gitops.Commit / verb.Apply / os.WriteFile to
+// the verify body fails CI.
 func Run(root, format string, pretty bool) int {
-	return runVerify(root, format, pretty)
-}
-
-func runVerify(root, format string, pretty bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf contract verify: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
