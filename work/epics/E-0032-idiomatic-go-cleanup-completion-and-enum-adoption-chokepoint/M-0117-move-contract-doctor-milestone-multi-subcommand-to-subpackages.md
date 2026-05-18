@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: Delete contract_cmd.go, doctor_cmd.go, milestone_cmd.go, selfcheck.go
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-8
       title: 'Policies updated: read-only doctor location; skill coverage all 3 verbs'
