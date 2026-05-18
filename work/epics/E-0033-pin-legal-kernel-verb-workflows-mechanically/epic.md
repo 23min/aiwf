@@ -41,14 +41,14 @@ Then:
 
 | # | Id | Title |
 |---|----|-------|
-| M-α₀ | tbd | Ratify legal-workflow spec methodology in ADR |
-| M-α₁ | tbd | Pass A audit: catalog legal-workflow rules from existing surfaces |
-| M-β  | tbd | Pass B first-principles: derive legal-workflow rules from entity model |
-| M-γ  | tbd | Pass C reconcile to canonical Go spec table + drift policy |
-| M-δ  | tbd | Positive cell coverage: legal workflows succeed with expected post-state |
-| M-ε  | tbd | Negative cell coverage: illegal workflows rejected with named errors |
-
-(Ids fill in as `aiwf add milestone` allocates them.)
+| Label | Id | Title | Depends on |
+|-------|----|-------|-----------|
+| M-α₀ | M-0120 | Ratify legal-workflow spec methodology in ADR | — |
+| M-α₁ | M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | M-0120 |
+| M-β  | M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | M-0120 |
+| M-γ  | M-0123 | Pass C reconcile to canonical Go spec table + drift policy | M-0121, M-0122 |
+| M-δ  | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | M-0123 |
+| M-ε  | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | M-0123 |
 
 ## What this epic deliberately does *not* do
 
