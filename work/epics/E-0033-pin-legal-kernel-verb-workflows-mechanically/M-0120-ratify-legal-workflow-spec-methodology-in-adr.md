@@ -4,6 +4,10 @@ title: Ratify legal-workflow spec methodology in ADR
 status: draft
 parent: E-0033
 tdd: advisory
+acs:
+    - id: AC-1
+      title: ADR exists, is loaded as adr kind, initially proposed, cross-references E-0033
+      status: open
 ---
 ## Goal
 
@@ -44,3 +48,6 @@ Seven decisions, each its own section in the ADR body:
 - **Risk: the ADR over-commits.** Mitigation: each of the seven decisions is at the load-bearing level (what shape vs. what content). Schema details, package names, exact rule-row layouts are deferred to M-0123. The ADR should be readable in 5 minutes; if it grows to 20 minutes, it's accreting detail that belongs elsewhere.
 - **Risk: the structural test is too lenient.** Mitigation: assert section *content* is non-empty, not just heading presence. Use `golang.org/x/text` or markdown-AST walking — not `strings.Contains` (per CLAUDE.md: substring assertions are not structural assertions).
 - **Risk: the methodology ADR introduces gate language.** Mitigation: the ADR ratifies the *methodology* now; M-0121..M-0125 act on it on their own schedule. No "ratify after X happens" phrasing in the body.
+
+### AC-1 — ADR exists, is loaded as adr kind, initially proposed, cross-references E-0033
+
