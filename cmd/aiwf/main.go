@@ -22,6 +22,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/authorize"
 	"github.com/23min/aiwf/internal/cli/cancel"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/contract"
 	"github.com/23min/aiwf/internal/cli/editbody"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/importcmd"
@@ -178,7 +179,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(schema.NewCmd())
 	cmd.AddCommand(show.NewCmd())
 	cmd.AddCommand(template.NewCmd())
-	cmd.AddCommand(newContractCmd())
+	cmd.AddCommand(contract.NewCmd())
 	cmd.AddCommand(newMilestoneCmd())
 	cmd.AddCommand(authorize.NewCmd())
 
@@ -366,7 +367,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", contractErr)
 		return cliutil.ExitInternal
 	}
-	contractFindings := runContractValidation(ctx, tr, resolved, contracts)
+	contractFindings := contract.RunValidation(ctx, tr, resolved, contracts)
 	findings = append(findings, contractFindings...)
 
 	provenanceFindings, pErr := runProvenanceCheck(ctx, resolved, tr, since)
@@ -411,7 +412,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 	// so the bumper does not re-iterate the tree.
 	check.ApplyArchiveSweepThreshold(findings, archiveThreshold, archiveThresholdSet, check.CountPendingSweep(tr))
 
-	applyHintsLikeRun(findings)
+	contract.ApplyHintsLikeRun(findings)
 	check.SortFindings(findings)
 
 	switch format {
@@ -438,7 +439,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 			Metadata: map[string]any{
 				"root":     resolved,
 				"entities": len(tr.Entities),
-				"bindings": bindingCount(contracts),
+				"bindings": contract.BindingCount(contracts),
 				"findings": len(findings),
 			},
 		}
@@ -477,7 +478,7 @@ func runCheckShapeOnly(ctx context.Context, root, format string, pretty bool) in
 		strict = cfg.Tree.Strict
 	}
 	findings := check.TreeDiscipline(tr, allow, strict)
-	applyHintsLikeRun(findings)
+	contract.ApplyHintsLikeRun(findings)
 	check.SortFindings(findings)
 
 	switch format {
