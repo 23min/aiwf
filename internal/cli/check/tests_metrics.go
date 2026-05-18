@@ -1,4 +1,9 @@
-package main
+// Package check holds the check verb's body and the verb-level
+// check-rule helpers that need git access. The pure-tree rules live
+// in internal/check; this package composes them with history walks
+// (runTestsMetricsCheck, runProvenanceCheck) and renders the
+// final output envelope.
+package check
 
 import (
 	"context"
@@ -11,7 +16,7 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
-// runTestsMetricsCheck emits an `acs-tdd-tests-missing` warning for
+// RunTestsMetricsCheck emits an `acs-tdd-tests-missing` warning for
 // every AC at `tdd_phase: done` under a `tdd: required` milestone
 // whose `aiwf history` carries no `aiwf-tests:` trailer on any
 // commit. Gated on require: when false (the default), returns nil
@@ -21,10 +26,9 @@ import (
 // Why the check lives here rather than in package check: the rule
 // requires git access (a history walk per qualifying AC) which the
 // pure-tree check.Run intentionally does not have. Composing this
-// pass in cmd/aiwf is the same shape as runProvenanceCheck: both
-// take (root, tree) and produce findings, and both are stitched into
-// runCheck's findings slice before sorting.
-func runTestsMetricsCheck(ctx context.Context, root string, t *tree.Tree, require bool) ([]check.Finding, error) {
+// pass in the check verb's package keeps the rule's runtime cost
+// scoped to invocations that opt in via aiwf.yaml.
+func RunTestsMetricsCheck(ctx context.Context, root string, t *tree.Tree, require bool) ([]check.Finding, error) {
 	if !require {
 		return nil, nil
 	}

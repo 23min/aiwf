@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
+	clicheck "github.com/23min/aiwf/internal/cli/check"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -22,7 +23,7 @@ func TestRunTestsMetricsCheck_DefaultIsSilent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tree.Load: %v", err)
 	}
-	findings, err := runTestsMetricsCheck(context.Background(), root, tr, false)
+	findings, err := clicheck.RunTestsMetricsCheck(context.Background(), root, tr, false)
 	if err != nil {
 		t.Fatalf("runTestsMetricsCheck: %v", err)
 	}
@@ -42,7 +43,7 @@ func TestRunTestsMetricsCheck_WarnsWhenRequireOnAndTrailerMissing(t *testing.T) 
 	if err != nil {
 		t.Fatalf("tree.Load: %v", err)
 	}
-	findings, err := runTestsMetricsCheck(context.Background(), root, tr, true)
+	findings, err := clicheck.RunTestsMetricsCheck(context.Background(), root, tr, true)
 	if err != nil {
 		t.Fatalf("runTestsMetricsCheck: %v", err)
 	}
@@ -82,7 +83,7 @@ func TestRunTestsMetricsCheck_SilentWhenTrailerOnHistory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tree.Load: %v", err)
 	}
-	findings, err := runTestsMetricsCheck(context.Background(), root, tr, true)
+	findings, err := clicheck.RunTestsMetricsCheck(context.Background(), root, tr, true)
 	if err != nil {
 		t.Fatalf("runTestsMetricsCheck: %v", err)
 	}
@@ -110,7 +111,7 @@ func TestRunTestsMetricsCheck_SilentForNonRequiredMilestone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tree.Load: %v", err)
 	}
-	findings, err := runTestsMetricsCheck(context.Background(), root, tr, true)
+	findings, err := clicheck.RunTestsMetricsCheck(context.Background(), root, tr, true)
 	if err != nil {
 		t.Fatalf("runTestsMetricsCheck: %v", err)
 	}

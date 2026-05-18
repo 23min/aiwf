@@ -21,6 +21,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/archive"
 	"github.com/23min/aiwf/internal/cli/authorize"
 	"github.com/23min/aiwf/internal/cli/cancel"
+	clicheck "github.com/23min/aiwf/internal/cli/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/contract"
 	"github.com/23min/aiwf/internal/cli/doctor"
@@ -402,7 +403,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 		tddStrict = cfg.TDD.Strict
 		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
 	}
-	metricsFindings, mErr := runTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
+	metricsFindings, mErr := clicheck.RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", mErr)
 		return cliutil.ExitInternal
