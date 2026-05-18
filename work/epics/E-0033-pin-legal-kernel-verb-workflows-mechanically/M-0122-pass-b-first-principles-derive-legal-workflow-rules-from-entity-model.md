@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: R-FP-NNNN rule rows have non-empty schema fields
       status: open
+    - id: AC-4
+      title: R-FP-NNNN ids unique and contiguous starting at R-FP-0001
+      status: open
 ---
 ## Goal
 
@@ -72,4 +75,6 @@ Rule ids are R-FP-001..N (separate id-space from R-AUDIT-NNN) so Pass C can refe
 ### AC-2 — Catalog has per-kind lifecycle section for each entity kind
 
 ### AC-3 — R-FP-NNNN rule rows have non-empty schema fields
+
+### AC-4 — R-FP-NNNN ids unique and contiguous starting at R-FP-0001
 
