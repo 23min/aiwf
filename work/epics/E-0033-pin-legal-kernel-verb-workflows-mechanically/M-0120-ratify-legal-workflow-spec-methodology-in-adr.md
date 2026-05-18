@@ -1,7 +1,7 @@
 ---
 id: M-0120
 title: Ratify legal-workflow spec methodology in ADR
-status: draft
+status: in_progress
 parent: E-0033
 tdd: advisory
 acs:
