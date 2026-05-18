@@ -21,6 +21,10 @@ acs:
       title: //enums:ignore line-suffix allowlist suppresses violations
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Surfaced literal sites fixed and CLAUDE.md row added
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -72,4 +76,6 @@ New file [`internal/policies/enum_literal_adoption.go`](../../../internal/polici
 ### AC-3 — Policy fires on switch/case clauses with status literals
 
 ### AC-4 — //enums:ignore line-suffix allowlist suppresses violations
+
+### AC-5 — Surfaced literal sites fixed and CLAUDE.md row added
 
