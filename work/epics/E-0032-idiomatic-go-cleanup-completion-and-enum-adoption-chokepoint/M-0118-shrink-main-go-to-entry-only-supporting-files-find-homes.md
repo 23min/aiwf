@@ -37,7 +37,7 @@ acs:
       tdd_phase: done
     - id: AC-8
       title: JSON-envelope version-source drift policy added
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
