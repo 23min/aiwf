@@ -16,7 +16,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-3
-      title: tests_metrics_check moves to internal/check/
+      title: tests_metrics_check moves to internal/cli/check/
       status: open
       tdd_phase: red
     - id: AC-4
@@ -103,7 +103,7 @@ The capstone milestone of G-0107 step 3. M-0115 and M-0116 moved verbs to per-ve
 
 ### AC-2 — check verb body moves to internal/cli/check/
 
-### AC-3 — tests_metrics_check moves to internal/check/
+### AC-3 — tests_metrics_check moves to internal/cli/check/
 
 ### AC-4 — provenance_check moves to internal/check/
 
