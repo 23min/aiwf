@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: internal/cli/root.go assembles root command and exports Execute
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: check verb body moves to internal/cli/check/
       status: met
