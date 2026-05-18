@@ -27,6 +27,10 @@ acs:
       title: Move milestone verb + depends-on subcommand to internal/cli/milestone subpkg
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: Move milestone_depends_on tests to internal/cli/milestone package; green
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -79,4 +83,6 @@ Per-package `_test.go` carries the previously-passing `cmd/aiwf/contract_cmd_tes
 ### AC-4 — Move doctor tests to internal/cli/doctor package; tests green
 
 ### AC-5 — Move milestone verb + depends-on subcommand to internal/cli/milestone subpkg
+
+### AC-6 — Move milestone_depends_on tests to internal/cli/milestone package; green
 
