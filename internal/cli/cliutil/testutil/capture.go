@@ -53,3 +53,58 @@ func CaptureStdout(t *testing.T, fn func()) []byte {
 	_ = w.Close()
 	return <-done
 }
+
+// CaptureStderr is the os.Stderr sibling of CaptureStdout. Used by
+// tests that assert on verb-level error messages — verbs write usage
+// errors to stderr while findings/data go to stdout, so separate
+// capture is needed.
+func CaptureStderr(t *testing.T, fn func()) []byte {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	orig := os.Stderr
+	os.Stderr = w
+	defer func() { os.Stderr = orig }()
+
+	done := make(chan []byte, 1)
+	go func() {
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, r)
+		done <- buf.Bytes()
+	}()
+
+	fn()
+	_ = w.Close()
+	return <-done
+}
+
+// CaptureRun redirects os.Stdout and os.Stderr around fn, returning
+// the exit code and both captured streams. Used by tests that need
+// both — typically `aiwf upgrade` where success/failure surface
+// across both streams.
+func CaptureRun(t *testing.T, fn func() int) (rc int, stdout, stderr string) {
+	t.Helper()
+	origOut, origErr := os.Stdout, os.Stderr
+	or, ow, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	er, ew, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout, os.Stderr = ow, ew
+	defer func() {
+		os.Stdout, os.Stderr = origOut, origErr
+	}()
+
+	rc = fn()
+
+	_ = ow.Close()
+	_ = ew.Close()
+	o, _ := io.ReadAll(or)
+	e, _ := io.ReadAll(er)
+	return rc, string(o), string(e)
+}
