@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Move contract verb + all 6 subcommands to internal/cli/contract subpackage
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Move contract tests to internal/cli/contract package; tests green
