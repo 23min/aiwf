@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: Catalog has per-kind lifecycle section for each entity kind
       status: open
+    - id: AC-3
+      title: R-FP-NNNN rule rows have non-empty schema fields
+      status: open
 ---
 ## Goal
 
@@ -67,4 +70,6 @@ Rule ids are R-FP-001..N (separate id-space from R-AUDIT-NNN) so Pass C can refe
 ### AC-1 — Catalog file exists at canonical path with top-level sections
 
 ### AC-2 — Catalog has per-kind lifecycle section for each entity kind
+
+### AC-3 — R-FP-NNNN rule rows have non-empty schema fields
 
