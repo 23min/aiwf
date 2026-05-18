@@ -29,7 +29,7 @@ acs:
       tdd_phase: red
     - id: AC-6
       title: cobra integration tests relocate to internal/cli/integration/
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-7
       title: captureStdout lifted to shared testutil; per-package duplicates forbidden
