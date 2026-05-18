@@ -17,6 +17,10 @@ acs:
       title: Policy fires on switch/case clauses with status literals
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: //enums:ignore line-suffix allowlist suppresses violations
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -66,4 +70,6 @@ New file [`internal/policies/enum_literal_adoption.go`](../../../internal/polici
 ### AC-2 — Policy fires on == or != BinaryExpr with status literal
 
 ### AC-3 — Policy fires on switch/case clauses with status literals
+
+### AC-4 — //enums:ignore line-suffix allowlist suppresses violations
 
