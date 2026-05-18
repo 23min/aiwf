@@ -44,6 +44,14 @@ func aiwfBinary(t *testing.T) string {
 			buildErr = &buildError{err: err, output: string(out)}
 			return
 		}
+		// macOS Gatekeeper crashes on unsigned Mach-O headers (Sonoma 14.8.x syspolicyd bug); ad-hoc sign to route around.
+		if runtime.GOOS == "darwin" {
+			signOut, signErr := exec.Command("codesign", "--sign", "-", "--force", bin).CombinedOutput()
+			if signErr != nil {
+				buildErr = &buildError{err: signErr, output: string(signOut)}
+				return
+			}
+		}
 		builtPath = bin
 	})
 	if buildErr != nil {

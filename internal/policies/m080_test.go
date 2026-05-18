@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -230,6 +231,12 @@ func TestM080_AC6_NoUnexpectedTreeFileWarning(t *testing.T) {
 		buildCmd.Dir = root
 		if out, buildErr := buildCmd.CombinedOutput(); buildErr != nil {
 			t.Fatalf("AC-6: building aiwf binary: %v\n%s", buildErr, out)
+		}
+		// macOS Gatekeeper crashes on unsigned Mach-O headers (Sonoma 14.8.x syspolicyd bug); ad-hoc sign to route around.
+		if runtime.GOOS == "darwin" {
+			if out, signErr := exec.Command("codesign", "--sign", "-", "--force", bin).CombinedOutput(); signErr != nil {
+				t.Fatalf("AC-6: codesign aiwf binary: %v\n%s", signErr, out)
+			}
 		}
 	}
 
