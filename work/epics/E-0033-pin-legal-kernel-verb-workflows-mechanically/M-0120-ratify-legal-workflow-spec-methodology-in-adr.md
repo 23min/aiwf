@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: Structural test asserts seven decision-point sections with non-empty content
       status: open
+    - id: AC-3
+      title: ADR promoted to accepted via aiwf promote
+      status: open
 ---
 ## Goal
 
@@ -55,4 +58,6 @@ Seven decisions, each its own section in the ADR body:
 ### AC-1 — ADR exists, is loaded as adr kind, initially proposed, cross-references E-0033
 
 ### AC-2 — Structural test asserts seven decision-point sections with non-empty content
+
+### AC-3 — ADR promoted to accepted via aiwf promote
 
