@@ -377,7 +377,7 @@ This epic replaces the cancelled E-0031, whose first attempt produced a prose ca
 |---|---|---|
 | M-0120 | Ratify legal-workflow spec methodology in ADR | done |
 | M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | done |
-| M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | draft |
+| M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | done |
 | M-0123 | Pass C reconcile to canonical Go spec table + drift policy | draft |
 | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | draft |
 | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | draft |
