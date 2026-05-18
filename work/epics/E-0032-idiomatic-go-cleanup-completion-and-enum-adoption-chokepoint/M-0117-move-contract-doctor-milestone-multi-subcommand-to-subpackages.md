@@ -1,7 +1,7 @@
 ---
 id: M-0117
 title: Move contract, doctor, milestone (multi-subcommand) to subpackages
-status: draft
+status: in_progress
 parent: E-0032
 depends_on:
     - M-0116
