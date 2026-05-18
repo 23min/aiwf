@@ -376,9 +376,11 @@ This epic replaces the cancelled E-0031, whose first attempt produced a prose ca
 | Milestone | Title | Status |
 |---|---|---|
 | M-0120 | Ratify legal-workflow spec methodology in ADR | done |
-| M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | draft |
+| M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | done |
 | M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | draft |
 | M-0123 | Pass C reconcile to canonical Go spec table + drift policy | draft |
 | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | draft |
 | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | draft |
+| M-0126 | Implement fsm-history-consistent check rule for FSM tree-invariant | draft |
+| M-0127 | State-aware CancelTarget for Contract: cancel deprecated targets retired | draft |
 
