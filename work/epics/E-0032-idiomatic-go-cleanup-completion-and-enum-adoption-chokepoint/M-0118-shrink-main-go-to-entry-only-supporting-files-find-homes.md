@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: tests_metrics_check moves to internal/cli/check/
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: provenance_check moves to internal/cli/check/
       status: open
