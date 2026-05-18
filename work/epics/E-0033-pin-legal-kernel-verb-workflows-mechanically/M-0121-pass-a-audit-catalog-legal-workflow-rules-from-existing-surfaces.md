@@ -19,7 +19,7 @@ In order of mechanical authority (most rigorous first):
 |---|---|---|
 | `internal/entity/transition.go` | Go maps | Per-kind FSM tables; (state, event, next-state) triples |
 | `internal/policies/*.go` | Go tests | Each policy = a legality rule already mechanized in CI |
-| `internal/checks/*.go` | Go code | Each finding code = a class of illegal state |
+| `internal/check/*.go` | Go code | Each finding code = a class of illegal state |
 | Cobra verb definitions under `cmd/aiwf/` and `internal/cli/<verb>/` | Go code | Per-verb pre/postconditions surfaced in flag validation and RunE bodies |
 | ADRs under `docs/adr/` | Markdown | Cross-cutting workflow constraints (ADR-0004 archive, ADR-0008 ids, etc.) |
 | `docs/pocv3/design/design-decisions.md` | Markdown | The 10 kernel commitments |
