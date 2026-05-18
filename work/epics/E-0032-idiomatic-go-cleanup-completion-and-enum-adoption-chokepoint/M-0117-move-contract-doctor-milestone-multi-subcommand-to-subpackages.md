@@ -12,7 +12,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-2
-      title: Move contract tests to internal/cli/contract package; tests green
+      title: Contract Run-level smoke tests cover each subcommand path
       status: open
       tdd_phase: red
     - id: AC-3
@@ -84,7 +84,7 @@ Per-package `_test.go` carries the previously-passing `cmd/aiwf/contract_cmd_tes
 
 ### AC-1 — Move contract verb + all 6 subcommands to internal/cli/contract subpackage
 
-### AC-2 — Move contract tests to internal/cli/contract package; tests green
+### AC-2 — Contract Run-level smoke tests cover each subcommand path
 
 ### AC-3 — Move doctor verb + selfcheck.go to internal/cli/doctor; --self-check works
 
