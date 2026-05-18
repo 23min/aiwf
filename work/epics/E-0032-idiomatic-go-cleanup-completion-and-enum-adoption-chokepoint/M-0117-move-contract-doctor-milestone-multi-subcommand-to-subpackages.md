@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Move milestone verb + depends-on subcommand to internal/cli/milestone subpkg
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: Milestone Run-level smoke tests cover depends-on subcommand
       status: open
