@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: ADR exists, is loaded as adr kind, initially proposed, cross-references E-0033
       status: open
+    - id: AC-2
+      title: Structural test asserts seven decision-point sections with non-empty content
+      status: open
 ---
 ## Goal
 
@@ -50,4 +53,6 @@ Seven decisions, each its own section in the ADR body:
 - **Risk: the methodology ADR introduces gate language.** Mitigation: the ADR ratifies the *methodology* now; M-0121..M-0125 act on it on their own schedule. No "ratify after X happens" phrasing in the body.
 
 ### AC-1 — ADR exists, is loaded as adr kind, initially proposed, cross-references E-0033
+
+### AC-2 — Structural test asserts seven decision-point sections with non-empty content
 
