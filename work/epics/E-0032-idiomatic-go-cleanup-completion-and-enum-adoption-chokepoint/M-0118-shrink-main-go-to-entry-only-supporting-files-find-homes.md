@@ -38,7 +38,7 @@ acs:
     - id: AC-8
       title: JSON-envelope version-source drift policy added
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
