@@ -21,7 +21,7 @@ acs:
       status: met
     - id: AC-5
       title: Open questions for Pass C section present and non-empty
-      status: open
+      status: met
 ---
 ## Goal
 
