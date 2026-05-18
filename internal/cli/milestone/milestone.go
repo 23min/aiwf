@@ -1,4 +1,9 @@
-package main
+// Package milestone implements the `aiwf milestone` verb namespace.
+// Currently it carries one child — depends-on — that sets or clears
+// a milestone's depends_on list. The parent itself is non-Runnable
+// (the kind-scoped namespace is forward-compatible with G-073's
+// eventual cross-kind generalisation).
+package milestone
 
 import (
 	"context"
@@ -14,13 +19,9 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// newMilestoneCmd builds the `aiwf milestone` parent command — a
-// kind-prefixed verb namespace whose first child is `depends-on`. The
-// shape is forward-compatible with G-073's eventual cross-kind
-// generalisation: `aiwf <kind> depends-on <id> --on <ids>` extends to
-// other kinds without renaming the verb. The parent is non-Runnable —
-// `aiwf milestone` with no subcommand prints help.
-func newMilestoneCmd() *cobra.Command {
+// NewCmd builds the `aiwf milestone` parent command. One child today
+// (depends-on). The parent itself is non-Runnable.
+func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "milestone",
 		Short:         "Milestone-scoped verbs",
@@ -28,16 +29,16 @@ func newMilestoneCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
-	cmd.AddCommand(newMilestoneDependsOnCmd())
+	cmd.AddCommand(newDependsOnCmd())
 	return cmd
 }
 
-// newMilestoneDependsOnCmd builds `aiwf milestone depends-on M-NNN
-// --on M-PPP[,M-QQQ] [--clear]`. Closes the post-allocation half of
-// G-072 (the create-time half is the --depends-on flag on `aiwf add
-// milestone`). Replace-not-append semantics; --on and --clear are
-// mutually exclusive.
-func newMilestoneDependsOnCmd() *cobra.Command {
+// newDependsOnCmd builds `aiwf milestone depends-on M-NNN --on
+// M-PPP[,M-QQQ] [--clear]`. Closes the post-allocation half of
+// G-072 (the create-time half is the --depends-on flag on
+// `aiwf add milestone`). Replace-not-append semantics; --on and
+// --clear are mutually exclusive.
+func newDependsOnCmd() *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -58,7 +59,7 @@ func newMilestoneDependsOnCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runMilestoneDependsOnCmd(args[0], actor, principal, root, reason, on, clearList))
+			return cliutil.WrapExitCode(runDependsOn(args[0], actor, principal, root, reason, on, clearList))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -72,7 +73,7 @@ func newMilestoneDependsOnCmd() *cobra.Command {
 	return cmd
 }
 
-func runMilestoneDependsOnCmd(id, actor, principal, root, reason, on string, clearList bool) int {
+func runDependsOn(id, actor, principal, root, reason, on string, clearList bool) int {
 	if on != "" && clearList {
 		fmt.Fprintln(os.Stderr, "aiwf milestone depends-on: --on and --clear are mutually exclusive")
 		return cliutil.ExitUsage
