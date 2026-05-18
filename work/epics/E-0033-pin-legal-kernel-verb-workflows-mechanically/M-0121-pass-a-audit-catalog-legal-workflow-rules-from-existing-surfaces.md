@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: Audit catalog exists at canonical path with per-source sections in spec order
       status: open
+    - id: AC-2
+      title: All nine audit sources covered with at least one rule or explicit no-rules note
+      status: open
 ---
 ## Goal
 
@@ -59,4 +62,6 @@ The rule ids are sequential within the audit doc (R-AUDIT-001..N) — they are *
 - Does not produce Go code.
 
 ### AC-1 — Audit catalog exists at canonical path with per-source sections in spec order
+
+### AC-2 — All nine audit sources covered with at least one rule or explicit no-rules note
 
