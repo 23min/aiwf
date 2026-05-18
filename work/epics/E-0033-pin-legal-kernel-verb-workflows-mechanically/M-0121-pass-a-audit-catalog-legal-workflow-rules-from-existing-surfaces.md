@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Each rule row has the six-column schema with non-empty fields
-      status: open
+      status: met
     - id: AC-4
       title: 'Catalog schema internally consistent: unique sequential ids, totals match'
       status: open
