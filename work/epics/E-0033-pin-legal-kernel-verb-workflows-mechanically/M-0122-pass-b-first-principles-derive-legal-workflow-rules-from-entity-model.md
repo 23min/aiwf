@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-4
       title: R-FP-NNNN ids unique and contiguous starting at R-FP-0001
-      status: open
+      status: met
     - id: AC-5
       title: Open questions for Pass C section present and non-empty
       status: open
