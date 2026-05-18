@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Policy fires on == or != BinaryExpr with status literal
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Policy fires on switch/case clauses with status literals
       status: open
