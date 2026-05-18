@@ -1,7 +1,7 @@
 ---
 id: M-0122
 title: 'Pass B first-principles: derive legal-workflow rules from entity model'
-status: draft
+status: in_progress
 parent: E-0033
 depends_on:
     - M-0120
