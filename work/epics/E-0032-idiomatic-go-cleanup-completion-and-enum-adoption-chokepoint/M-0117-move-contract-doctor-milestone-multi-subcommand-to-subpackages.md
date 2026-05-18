@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Contract Run-level smoke tests cover each subcommand path
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Move doctor verb + selfcheck.go to internal/cli/doctor; --self-check works
