@@ -1,7 +1,7 @@
 ---
 id: M-0119
 title: Add enum_literal_adoption policy; fix surfaced literal sites
-status: draft
+status: in_progress
 parent: E-0032
 tdd: required
 ---
