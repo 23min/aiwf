@@ -1,7 +1,9 @@
 ---
 id: G-0126
 title: Enum-constant adoption has no mechanical chokepoint
-status: open
+status: addressed
+addressed_by:
+    - M-0119
 ---
 ## Problem
 
