@@ -19,6 +19,9 @@ acs:
     - id: AC-4
       title: R-FP-NNNN ids unique and contiguous starting at R-FP-0001
       status: open
+    - id: AC-5
+      title: Open questions for Pass C section present and non-empty
+      status: open
 ---
 ## Goal
 
@@ -77,4 +80,6 @@ Rule ids are R-FP-001..N (separate id-space from R-AUDIT-NNN) so Pass C can refe
 ### AC-3 — R-FP-NNNN rule rows have non-empty schema fields
 
 ### AC-4 — R-FP-NNNN ids unique and contiguous starting at R-FP-0001
+
+### AC-5 — Open questions for Pass C section present and non-empty
 
