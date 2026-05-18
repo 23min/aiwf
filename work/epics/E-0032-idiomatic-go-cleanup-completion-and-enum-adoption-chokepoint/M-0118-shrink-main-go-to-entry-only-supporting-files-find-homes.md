@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: provenance_check moves to internal/cli/check/
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: cmd/aiwf/main.go shrunk to entry-only shape (function main only)
