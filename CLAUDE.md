@@ -441,6 +441,7 @@ The kernel's "framework correctness must not depend on LLM behavior" principle a
 | Every verb has skill coverage or an allowlist entry; every `aiwf <verb>` mention in a skill resolves | `internal/policies/skill_coverage.go` — runs as a Go test (M-074) | Blocking via CI test    |
 | Every `internal/*` test-bearing package has a `setup_test.go` with `TestMain` | `internal/policies/test_setup_presence.go` — runs as a Go test (M-0093) | Blocking via CI test    |
 | Race-mode `go test` invocations carry `-parallel 8` uniformly across Makefile + workflows | `internal/policies/race_parallel_cap.go` — runs as a Go test (M-0091/AC-1) | Blocking via CI test    |
+| Closed-set `Status*` constants are used at comparison sites (no `s == "open"` outside `internal/entity/`) | `internal/policies/enum_literal_adoption.go` — runs as a Go test (M-0119) | Blocking via CI test    |
 | `context.Context` as first arg of new IO function            | Code review                                                      | Advisory                |
 | No new package-level mutable state                           | Code review                                                      | Advisory                |
 | Each new dep has a one-line justification                    | Code review (commit message / PR description)                    | Advisory                |

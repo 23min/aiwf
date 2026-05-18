@@ -78,6 +78,11 @@ func TestPolicy_EnvelopeVersionSource(t *testing.T) {
 	runPolicy(t, PolicyEnvelopeVersionSource)
 }
 
+func TestPolicy_EnumLiteralAdoption(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyEnumLiteralAdoption)
+}
+
 func TestPolicy_FindingCodesAreDiscoverable(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyFindingCodesAreDiscoverable)

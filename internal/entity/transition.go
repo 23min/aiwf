@@ -195,7 +195,7 @@ func MilestoneCanGoDone(m *Entity) (canGoDone bool, openACs []string) {
 		return true, nil
 	}
 	for _, ac := range m.ACs {
-		if ac.Status == "open" {
+		if ac.Status == StatusOpen {
 			openACs = append(openACs, ac.ID)
 		}
 	}

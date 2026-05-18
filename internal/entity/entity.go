@@ -97,7 +97,7 @@ func IsAllowedStatus(k Kind, status string) bool {
 // ordered as the FSM reads: open → met (or deferred/cancelled), met can
 // move to deferred or cancelled if scope changes after the fact. Both
 // deferred and cancelled are terminal.
-var acAllowedStatuses = []string{"open", "met", "deferred", "cancelled"}
+var acAllowedStatuses = []string{StatusOpen, StatusMet, StatusDeferred, StatusCancelled}
 
 // AllowedACStatuses returns the closed status set for an acceptance
 // criterion. The returned slice shares memory with the package-level
@@ -446,13 +446,13 @@ var schemas = map[Kind]Schema{
 	KindEpic: {
 		Kind:            KindEpic,
 		IDFormat:        "E-NN",
-		AllowedStatuses: []string{"proposed", "active", "done", "cancelled"},
+		AllowedStatuses: []string{StatusProposed, StatusActive, StatusDone, StatusCancelled},
 		RequiredFields:  commonRequired,
 	},
 	KindMilestone: {
 		Kind:            KindMilestone,
 		IDFormat:        "M-NNN",
-		AllowedStatuses: []string{"draft", "in_progress", "done", "cancelled"},
+		AllowedStatuses: []string{StatusDraft, StatusInProgress, StatusDone, StatusCancelled},
 		RequiredFields:  append(append([]string(nil), commonRequired...), "parent"),
 		OptionalFields:  []string{"depends_on", "tdd", "acs"},
 		References: []RefField{
@@ -463,7 +463,7 @@ var schemas = map[Kind]Schema{
 	KindADR: {
 		Kind:            KindADR,
 		IDFormat:        "ADR-NNNN",
-		AllowedStatuses: []string{"proposed", "accepted", "superseded", "rejected"},
+		AllowedStatuses: []string{StatusProposed, StatusAccepted, StatusSuperseded, StatusRejected},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"supersedes", "superseded_by"},
 		References: []RefField{
@@ -474,7 +474,7 @@ var schemas = map[Kind]Schema{
 	KindGap: {
 		Kind:            KindGap,
 		IDFormat:        "G-NNN",
-		AllowedStatuses: []string{"open", "addressed", "wontfix"},
+		AllowedStatuses: []string{StatusOpen, StatusAddressed, StatusWontfix},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"discovered_in", "addressed_by", "addressed_by_commit"},
 		References: []RefField{
@@ -489,7 +489,7 @@ var schemas = map[Kind]Schema{
 	KindDecision: {
 		Kind:            KindDecision,
 		IDFormat:        "D-NNN",
-		AllowedStatuses: []string{"proposed", "accepted", "superseded", "rejected"},
+		AllowedStatuses: []string{StatusProposed, StatusAccepted, StatusSuperseded, StatusRejected},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"relates_to"},
 		References: []RefField{
@@ -500,7 +500,7 @@ var schemas = map[Kind]Schema{
 	KindContract: {
 		Kind:            KindContract,
 		IDFormat:        "C-NNN",
-		AllowedStatuses: []string{"proposed", "accepted", "deprecated", "retired", "rejected"},
+		AllowedStatuses: []string{StatusProposed, StatusAccepted, StatusDeprecated, StatusRetired, StatusRejected},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"linked_adrs"},
 		References: []RefField{

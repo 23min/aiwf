@@ -1,5 +1,7 @@
 package render
 
+import "github.com/23min/aiwf/internal/entity"
+
 // StatusGlyph returns the canonical glyph for a kernel status string,
 // or "" when the status is unrecognised (e.g. a value loaded from a
 // pre-canonical commit, or a typo). The palette is per G-0080's
@@ -24,16 +26,16 @@ package render
 func StatusGlyph(status string) string {
 	switch status {
 	// ✓ — finished
-	case "done", "met", "addressed", "accepted":
+	case entity.StatusDone, entity.StatusMet, entity.StatusAddressed, entity.StatusAccepted:
 		return "✓"
 	// → — moving
-	case "in_progress", "active":
+	case entity.StatusInProgress, entity.StatusActive:
 		return "→"
 	// ○ — not started
-	case "open", "draft", "proposed":
+	case entity.StatusOpen, entity.StatusDraft, entity.StatusProposed:
 		return "○"
 	// ✗ — closed off
-	case "cancelled", "wontfix", "rejected", "retired", "superseded":
+	case entity.StatusCancelled, entity.StatusWontfix, entity.StatusRejected, entity.StatusRetired, entity.StatusSuperseded:
 		return "✗"
 	default:
 		return ""

@@ -265,7 +265,7 @@ func terminalStatusesForKind(k entity.Kind) []string {
 // (open / met / deferred / cancelled).
 func isKnownACStatus(status string) bool {
 	switch status {
-	case "open", "met", "deferred", "cancelled":
+	case entity.StatusOpen, entity.StatusMet, entity.StatusDeferred, entity.StatusCancelled:
 		return true
 	}
 	return false
@@ -276,7 +276,7 @@ func isKnownACStatus(status string) bool {
 // is intentionally NOT acceptable as an audit-only target).
 func isKnownTDDPhase(phase string) bool {
 	switch phase {
-	case "red", "green", "refactor", "done":
+	case entity.TDDPhaseRed, entity.TDDPhaseGreen, entity.TDDPhaseRefactor, entity.TDDPhaseDone:
 		return true
 	}
 	return false
