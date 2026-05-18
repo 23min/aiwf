@@ -20,7 +20,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-4
-      title: provenance_check moves to internal/check/
+      title: provenance_check moves to internal/cli/check/
       status: open
       tdd_phase: red
     - id: AC-5
@@ -105,7 +105,7 @@ The capstone milestone of G-0107 step 3. M-0115 and M-0116 moved verbs to per-ve
 
 ### AC-3 — tests_metrics_check moves to internal/cli/check/
 
-### AC-4 — provenance_check moves to internal/check/
+### AC-4 — provenance_check moves to internal/cli/check/
 
 ### AC-5 — cmd/aiwf/main.go shrunk to entry-only shape (function main only)
 
