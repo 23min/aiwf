@@ -33,7 +33,7 @@ acs:
       tdd_phase: red
     - id: AC-7
       title: captureStdout lifted to shared testutil; per-package duplicates forbidden
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-8
       title: JSON-envelope version-source drift policy added
