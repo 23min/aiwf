@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Doctor Run-level smoke tests cover --self-check + bare paths
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Move milestone verb + depends-on subcommand to internal/cli/milestone subpkg
       status: open
