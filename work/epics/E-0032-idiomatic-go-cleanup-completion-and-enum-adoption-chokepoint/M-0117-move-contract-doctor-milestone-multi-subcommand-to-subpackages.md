@@ -23,6 +23,10 @@ acs:
       title: Move doctor tests to internal/cli/doctor package; tests green
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Move milestone verb + depends-on subcommand to internal/cli/milestone subpkg
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -73,4 +77,6 @@ Per-package `_test.go` carries the previously-passing `cmd/aiwf/contract_cmd_tes
 ### AC-3 — Move doctor verb + selfcheck.go to internal/cli/doctor; --self-check works
 
 ### AC-4 — Move doctor tests to internal/cli/doctor package; tests green
+
+### AC-5 — Move milestone verb + depends-on subcommand to internal/cli/milestone subpkg
 
