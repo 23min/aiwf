@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Catalog file exists at canonical path with top-level sections
-      status: open
+      status: met
     - id: AC-2
       title: Catalog has per-kind lifecycle section for each entity kind
       status: open
