@@ -13,7 +13,7 @@ acs:
       tdd_phase: red
     - id: AC-2
       title: check verb body moves to internal/cli/check/
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: tests_metrics_check moves to internal/cli/check/
