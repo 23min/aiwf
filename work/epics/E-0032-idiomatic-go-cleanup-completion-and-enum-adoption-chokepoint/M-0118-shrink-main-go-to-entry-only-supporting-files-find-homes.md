@@ -1,7 +1,7 @@
 ---
 id: M-0118
 title: Shrink main.go to entry-only; supporting files find homes
-status: in_progress
+status: done
 parent: E-0032
 depends_on:
     - M-0117
