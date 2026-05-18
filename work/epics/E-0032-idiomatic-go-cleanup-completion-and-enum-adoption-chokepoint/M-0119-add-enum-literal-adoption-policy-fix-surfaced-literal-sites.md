@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: //enums:ignore line-suffix allowlist suppresses violations
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Surfaced literal sites fixed and CLAUDE.md row added
