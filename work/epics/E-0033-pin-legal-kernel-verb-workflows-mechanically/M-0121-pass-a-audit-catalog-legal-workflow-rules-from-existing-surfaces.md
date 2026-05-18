@@ -6,6 +6,10 @@ parent: E-0033
 depends_on:
     - M-0120
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Audit catalog exists at canonical path with per-source sections in spec order
+      status: open
 ---
 ## Goal
 
@@ -53,3 +57,6 @@ The rule ids are sequential within the audit doc (R-AUDIT-001..N) — they are *
 - Does not invent new legality rules (that's M-0122).
 - Does not reconcile contradictions between sources (that's M-0123).
 - Does not produce Go code.
+
+### AC-1 — Audit catalog exists at canonical path with per-source sections in spec order
+
