@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Milestone Run-level smoke tests cover depends-on subcommand
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-7
       title: Delete contract_cmd.go, doctor_cmd.go, milestone_cmd.go, selfcheck.go
