@@ -23,6 +23,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cancel"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/contract"
+	"github.com/23min/aiwf/internal/cli/doctor"
 	"github.com/23min/aiwf/internal/cli/editbody"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/importcmd"
@@ -55,6 +56,16 @@ import (
 // version.Current() so a `go install …@v0.1.0` binary correctly
 // reports its tag.
 var Version = "dev"
+
+// init wires the doctor package's in-process Dispatcher seam to the
+// cmd/aiwf run dispatcher. The doctor package's --self-check mode
+// drives every aiwf verb against a throwaway repo and cannot import
+// cmd/aiwf, so the wiring is a package-level variable assignment.
+// When cmd/aiwf shrinks to entry-only in M-0118 and newRootCmd
+// moves to internal/cli/root, the wiring follows it.
+func init() {
+	doctor.Dispatcher = run
+}
 
 // resolvedVersion returns the version to display in user output.
 // Prefers the ldflags-stamped Version global when set to anything
@@ -170,7 +181,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(update.NewCmd())
 	cmd.AddCommand(upgrade.NewCmd())
 	cmd.AddCommand(history.NewCmd())
-	cmd.AddCommand(newDoctorCmd())
+	cmd.AddCommand(doctor.NewCmd())
 	cmd.AddCommand(render.NewCmd())
 	cmd.AddCommand(importcmd.NewCmd())
 	cmd.AddCommand(whoami.NewCmd())

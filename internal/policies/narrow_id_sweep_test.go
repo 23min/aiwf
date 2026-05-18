@@ -103,8 +103,9 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 
 		// selfcheck drives every verb against a throwaway repo using
 		// narrow legacy id inputs by design (exercises AC-2 parser
-		// tolerance end-to-end through the binary).
-		"cmd/aiwf/selfcheck.go": "self-check drives verbs with narrow inputs to exercise parser tolerance",
+		// tolerance end-to-end through the binary). Moved with the
+		// doctor verb to internal/cli/doctor/ in M-0117/AC-3.
+		"internal/cli/doctor/selfcheck.go": "self-check drives verbs with narrow inputs to exercise parser tolerance",
 
 		// M-082: aiwf rewidth verb's tests fixture narrow inputs by
 		// design — that's the verb's input space (the very migration

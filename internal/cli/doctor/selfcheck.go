@@ -1,4 +1,4 @@
-package main
+package doctor
 
 import (
 	"bytes"
@@ -21,10 +21,14 @@ import (
 // on failure, it is retained and the path is printed so the user can
 // inspect what went wrong.
 //
-// Each step is run through the same `run` dispatcher real users hit,
-// so a self-check failure points at the same code path the user would
-// trip over.
+// Each step is run through the in-process Dispatcher (wired by
+// cmd/aiwf/main.go) so a self-check failure points at the same code
+// path the user would trip over.
 func runSelfCheck() int {
+	if Dispatcher == nil {
+		fmt.Fprintln(os.Stderr, "aiwf doctor --self-check: in-process Dispatcher unset (wiring bug in cmd/aiwf/main.go's init); cannot run")
+		return cliutil.ExitInternal
+	}
 	const actor = "human/self-check"
 
 	tmp, err := os.MkdirTemp("", "aiwf-self-check-")
@@ -41,9 +45,7 @@ func runSelfCheck() int {
 	}()
 
 	// Force GOPROXY=off for the duration of self-check so the
-	// upgrade-check and check-latest steps are deterministic offline
-	// (CI environments often have no network). Saved and restored so
-	// the unit-test process that wraps run() is not polluted.
+	// upgrade-check and check-latest steps are deterministic offline.
 	prevGOPROXY, hadGOPROXY := os.LookupEnv("GOPROXY")
 	_ = os.Setenv("GOPROXY", "off")
 	defer func() {
@@ -54,23 +56,15 @@ func runSelfCheck() int {
 		}
 	}()
 
-	// Redirect HOME to a fresh temp dir for the duration of the
-	// self-check so the M-070 recommended-plugins steps below can
-	// construct a synthetic `~/.claude/plugins/installed_plugins.json`
-	// without leaking into the operator's real home dir. Saved and
-	// restored on exit. Doctor is the only verb that consults $HOME
-	// today; redirecting it here keeps the rest of the self-check
-	// unaffected.
+	// Redirect HOME to a fresh temp dir so the recommended-plugins
+	// steps can construct a synthetic installed_plugins.json without
+	// leaking into the operator's real home dir.
 	fakeHome, err := os.MkdirTemp("", "aiwf-self-check-home-")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	defer func() { _ = os.RemoveAll(fakeHome) }()
-	// Seed a synthetic ~/.gitconfig so identity-resolution
-	// (`exec.Command("git", "config", "user.email")` in cliutil.ResolveActor)
-	// still produces a valid actor under the redirected HOME — every
-	// step that runs a mutating verb depends on this.
 	gitconfig := []byte("[user]\n\temail = self-check@aiwf.local\n\tname = aiwf self-check\n")
 	if err := os.WriteFile(filepath.Join(fakeHome, ".gitconfig"), gitconfig, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
@@ -101,11 +95,6 @@ func runSelfCheck() int {
 	preCommitHook := filepath.Join(tmp, ".git", "hooks", "pre-commit")
 	postCommitHook := filepath.Join(tmp, ".git", "hooks", "post-commit")
 
-	// Each step optionally carries a `setup` hook that runs before
-	// the CLI invocation, a `verify` hook that runs after (used to
-	// assert filesystem state the verb's exit code alone doesn't
-	// capture), and a `verifyOutput` hook that receives the verb's
-	// captured stdout/stderr so an output substring can be asserted.
 	steps := []struct {
 		label        string
 		args         []string
@@ -187,13 +176,6 @@ func runSelfCheck() int {
 			},
 		},
 		{label: "check", args: []string{"check", "--root", tmp}},
-		// G33: end-to-end coverage of the audit-only recovery loop.
-		// Adds a fresh gap, then synthesizes a manual untrailered
-		// commit that flips its status, then asserts `aiwf check`
-		// surfaces the warning, then runs `aiwf cancel --audit-only`
-		// to backfill, then asserts the warning has cleared. The
-		// `--since` flag scopes the audit deterministically without
-		// requiring a bare-repo upstream in the self-check fixture.
 		{
 			label: "add gap (audit-only fixture)",
 			args:  []string{"add", "gap", "--title", "audit-only fixture", "--actor", actor, "--root", tmp},
@@ -208,8 +190,6 @@ func runSelfCheck() int {
 				if !strings.Contains(out, "provenance-untrailered-entity-commit") {
 					return fmt.Errorf("expected provenance-untrailered-entity-commit to fire after manual flip; got:\n%s", out)
 				}
-				// Canonical-width id per AC-3 — display surfaces emit
-				// the canonical form regardless of input width.
 				if !strings.Contains(out, "G-0002") {
 					return fmt.Errorf("warning should name G-0002 as the affected entity; got:\n%s", out)
 				}
@@ -224,11 +204,6 @@ func runSelfCheck() int {
 			label: "audit-only fixture: check no longer fires for G-002",
 			args:  []string{"check", "--root", tmp, "--since", "HEAD~3"},
 			verifyOutput: func(out string) error {
-				// Other untrailered findings (G-001 was cancelled
-				// via the verb, so no warning for it; the only
-				// candidate is G-002). The repair must have cleared
-				// it; the substring "G-0002 with no aiwf-verb" must
-				// be absent.
 				if strings.Contains(out, "G-0002 with no aiwf-verb") {
 					return fmt.Errorf("audit-only failed to clear G-002 warning; got:\n%s", out)
 				}
@@ -237,26 +212,13 @@ func runSelfCheck() int {
 		},
 		{label: "doctor", args: []string{"doctor", "--root", tmp}},
 		{
-			// upgrade --check exercises version.Current() and the
-			// proxy-disabled fallback path. The function-level
-			// GOPROXY=off makes the "proxy disabled" advisory
-			// deterministic offline; an error here means version
-			// resolution itself broke, not network.
 			label: "upgrade --check",
 			args:  []string{"upgrade", "--check", "--root", tmp},
 		},
 		{
-			// doctor --check-latest exercises the opt-in network row;
-			// with GOPROXY=off the row renders as "unavailable" and
-			// increments no problem counter.
 			label: "doctor --check-latest",
 			args:  []string{"doctor", "--check-latest", "--root", tmp},
 		},
-		// M-070/AC-7: end-to-end coverage of the recommended-plugin
-		// check. The fake HOME redirect at the top of runSelfCheck
-		// scopes the synthetic installed_plugins.json fixture to this
-		// process. The synthetic plugin name avoids coupling to real
-		// marketplace state.
 		{
 			label: "doctor recommended-plugins fixture: declare in aiwf.yaml",
 			setup: func() error {
@@ -308,8 +270,6 @@ func runSelfCheck() int {
 			if captured != "" {
 				fmt.Println(indent(captured, "        "))
 			}
-			// Stop at the first failure: later verbs build on earlier
-			// state, so cascading failures aren't useful.
 			fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
 			keep = true
 			return cliutil.ExitFindings
@@ -338,10 +298,8 @@ func runSelfCheck() int {
 }
 
 // appendDoctorRecommendedPlugins appends a `doctor:` /
-// `recommended_plugins:` block to <repo>/aiwf.yaml if absent. Used
-// by the M-070 self-check step to drive the new check via the verb
-// surface (rather than synthetically calling the helper). Idempotent:
-// a second invocation with the same plugin set is a no-op.
+// `recommended_plugins:` block to <repo>/aiwf.yaml if absent.
+// Idempotent: a second invocation with the same plugin set is a no-op.
 func appendDoctorRecommendedPlugins(repo string, plugins []string) error {
 	path := filepath.Join(repo, "aiwf.yaml")
 	raw, err := os.ReadFile(path)
@@ -370,9 +328,7 @@ func appendDoctorRecommendedPlugins(repo string, plugins []string) error {
 // writeInstalledPluginsForSelfCheck writes the synthetic
 // installed_plugins.json under <home>/.claude/plugins/ with one
 // project-scope entry for `plugin` whose `projectPath` matches the
-// self-check repo `repo`. The fixture mirrors the real Claude Code
-// JSON shape so the matcher exercises the same parse + match path
-// it would in a real install.
+// self-check repo `repo`.
 func writeInstalledPluginsForSelfCheck(home, plugin, repo string) error {
 	dir := filepath.Join(home, ".claude", "plugins")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -393,19 +349,13 @@ func writeInstalledPluginsForSelfCheck(home, plugin, repo string) error {
 }
 
 // rewriteAiwfYAMLAutoUpdate rewrites <repo>/aiwf.yaml so that
-// status_md.auto_update == auto. Used by the self-check to drive
-// the install / uninstall transition through the verb surface
-// rather than a synthetic in-memory call.
+// status_md.auto_update == auto.
 func rewriteAiwfYAMLAutoUpdate(repo string, auto bool) error {
 	path := filepath.Join(repo, "aiwf.yaml")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", path, err)
 	}
-	// The selfcheck repo is initialised by Init in the same run, so
-	// aiwf.yaml has the canonical two-line shape (aiwf_version,
-	// actor) plus whatever any prior step appended. Any prior
-	// status_md block is dropped before the new one is appended.
 	lines := strings.Split(strings.TrimRight(string(raw), "\n"), "\n")
 	out := make([]string, 0, len(lines)+3)
 	skipBlock := false
@@ -431,22 +381,13 @@ func rewriteAiwfYAMLAutoUpdate(repo string, auto bool) error {
 // synthesizeUntrailedFlip simulates the G24 hand-edit case: the
 // gap with id `gapID` has its frontmatter status flipped to the
 // named target via direct file edit and a plain `git commit` —
-// no aiwf trailers — so the next `aiwf check` surfaces the
-// untrailered-entity warning. Used by the G33 self-check step
-// that drives the audit-only recovery loop end to end.
-//
-// The gap file lives at `work/gaps/<gapID>-<slug>.md`; we glob
-// the directory to find the slug rather than reproducing the
-// kernel's slug-derivation rules here.
+// no aiwf trailers.
 func synthesizeUntrailedFlip(ctx context.Context, repo, gapID, target string) error {
 	gapDir := filepath.Join(repo, "work", "gaps")
 	entries, err := os.ReadDir(gapDir)
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", gapDir, err)
 	}
-	// Match candidate filenames by canonical id so a self-check
-	// driven with a narrow legacy id (`G-002`) finds the canonical
-	// on-disk file (`G-0002-...`) per AC-2's parser-tolerance rule.
 	canonGap := entity.Canonicalize(gapID)
 	var path string
 	for _, e := range entries {
@@ -457,8 +398,6 @@ func synthesizeUntrailedFlip(ctx context.Context, repo, gapID, target string) er
 		if !strings.HasSuffix(name, ".md") {
 			continue
 		}
-		// Reuse entity.IDFromPath against the gap's repo-relative
-		// path; canonicalizing both sides handles the width mismatch.
 		relPath := filepath.Join("work", "gaps", name)
 		idPortion, ok := entity.IDFromPath(relPath, entity.KindGap)
 		if !ok {
@@ -500,9 +439,10 @@ func synthesizeUntrailedFlip(ctx context.Context, repo, gapID, target string) er
 	return nil
 }
 
-// runCaptured invokes run(args) with os.Stdout and os.Stderr swapped
-// out for an in-memory pipe so the caller can decide whether to echo
-// the verb's chatter. Returns the exit code and the combined output.
+// runCaptured invokes the in-process Dispatcher with os.Stdout and
+// os.Stderr swapped out for an in-memory pipe so the caller can
+// decide whether to echo the verb's chatter. Returns the exit code
+// and the combined output.
 func runCaptured(args []string) (rc int, output string) {
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -519,7 +459,7 @@ func runCaptured(args []string) (rc int, output string) {
 		done <- buf.Bytes()
 	}()
 
-	rc = run(args)
+	rc = Dispatcher(args)
 
 	_ = w.Close()
 	os.Stdout = origOut
@@ -529,9 +469,7 @@ func runCaptured(args []string) (rc int, output string) {
 }
 
 // setLocalGitIdentity writes a local user.email/user.name to the
-// throwaway repo. Doing this in repo-local config (not the user's
-// global config or process env) keeps the rest of the system
-// untouched.
+// throwaway repo.
 func setLocalGitIdentity(ctx context.Context, repo string) error {
 	for _, args := range [][]string{
 		{"config", "user.email", "self-check@aiwf.local"},
