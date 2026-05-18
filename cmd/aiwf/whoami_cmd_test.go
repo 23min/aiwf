@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 func TestRunWhoami_FromFlag(t *testing.T) {
-	out := string(captureStdout(t, func() {
+	out := string(testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"whoami", "--actor", "human/peter"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
@@ -43,7 +44,7 @@ func TestRunWhoami_LegacyConfigActorIgnored(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out := string(captureStdout(t, func() {
+	out := string(testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"whoami", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
@@ -75,7 +76,7 @@ func TestRunWhoami_FromGitConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out := string(captureStdout(t, func() {
+	out := string(testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"whoami"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}

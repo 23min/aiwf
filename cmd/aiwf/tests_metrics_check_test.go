@@ -9,6 +9,7 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	clicheck "github.com/23min/aiwf/internal/cli/check"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -139,7 +140,7 @@ func TestRunCheck_TestsMetricsWarningSurfacesViaDispatcher(t *testing.T) {
 		t.Fatalf("write aiwf.yaml: %v", err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		// rc=1 expected because the warning fires; check exits 1 on
 		// any findings.
 		_ = run([]string{"check", "--root", root})

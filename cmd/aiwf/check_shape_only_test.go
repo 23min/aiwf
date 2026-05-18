@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // TestRun_CheckShapeOnly_CleanTree exits 0 with no findings on a
@@ -20,7 +21,7 @@ func TestRun_CheckShapeOnly_CleanTree(t *testing.T) {
 		t.Fatalf("add gap: %d", rc)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != cliutil.ExitOK {
 			t.Errorf("got rc=%d, want %d (clean)", rc, cliutil.ExitOK)
 		}
@@ -45,7 +46,7 @@ func TestRun_CheckShapeOnly_StrayWarning_ExitOK(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != cliutil.ExitOK {
 			t.Errorf("got rc=%d, want %d (warning, not blocking)", rc, cliutil.ExitOK)
 		}
@@ -83,7 +84,7 @@ func TestRun_CheckShapeOnly_StrayStrict_ExitFindings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != cliutil.ExitFindings {
 			t.Errorf("got rc=%d, want %d (strict mode must block)", rc, cliutil.ExitFindings)
 		}
@@ -117,7 +118,7 @@ func TestRun_CheckShapeOnly_AllowPathsExempt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"check", "--shape-only", "--root", root}); rc != cliutil.ExitOK {
 			t.Errorf("got rc=%d, want %d (allow_paths must exempt)", rc, cliutil.ExitOK)
 		}

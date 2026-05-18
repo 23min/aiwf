@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // TestCheck_ArchiveSweepThreshold_EscalatesAggregate pins M-0088/AC-2's
@@ -112,7 +113,7 @@ func TestCheck_ArchiveSweepThreshold_MessageNamesThresholdAndCount(t *testing.T)
 	}
 
 	var rc int
-	outBytes := captureStdout(t, func() {
+	outBytes := testutil.CaptureStdout(t, func() {
 		rc = run([]string{"check", "--root", root})
 	})
 	out := string(outBytes)

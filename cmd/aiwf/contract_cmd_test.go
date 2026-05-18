@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // fakeValidatorCLI writes the same fake validator the contractverify
@@ -67,7 +68,7 @@ contracts:
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitOK {
 			t.Errorf("got rc=%d, want %d", rc, cliutil.ExitOK)
 		}
@@ -116,7 +117,7 @@ contracts:
 	}
 
 	captured := captureStderr(t, func() {
-		_ = captureStdout(t, func() {
+		_ = testutil.CaptureStdout(t, func() {
 			if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitFindings {
 				t.Errorf("got rc=%d, want %d (findings)", rc, cliutil.ExitFindings)
 			}
@@ -161,7 +162,7 @@ contracts:
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitFindings {
 			t.Errorf("got rc=%d, want %d (findings)", rc, cliutil.ExitFindings)
 		}
@@ -208,7 +209,7 @@ contracts:
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"check", "--root", root}); rc != cliutil.ExitOK {
 			t.Errorf("got rc=%d, want %d (terminal contract skipped)", rc, cliutil.ExitOK)
 		}
@@ -254,7 +255,7 @@ contracts:
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitFindings {
 			t.Errorf("got rc=%d, want %d (findings)", rc, cliutil.ExitFindings)
 		}
@@ -299,7 +300,7 @@ contracts:
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitOK {
 			t.Errorf("got rc=%d, want %d (warning should NOT block)", rc, cliutil.ExitOK)
 		}
@@ -346,7 +347,7 @@ contracts:
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"contract", "verify", "--root", root}); rc != cliutil.ExitFindings {
 			t.Errorf("got rc=%d, want %d (strict mode must block)", rc, cliutil.ExitFindings)
 		}
@@ -472,7 +473,7 @@ args:
 	if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("recipe install (first): %d", rc)
 	}
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 			t.Errorf("recipe install (second, idempotent): %d", rc)
 		}

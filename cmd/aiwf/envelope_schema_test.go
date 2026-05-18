@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // M-069 AC-1 — Envelope conforms to documented schema for every
@@ -196,7 +197,7 @@ func TestEnvelopeSchemaConformance_AllJSONVerbs(t *testing.T) {
 				}
 			}
 
-			captured := captureStdout(t, func() {
+			captured := testutil.CaptureStdout(t, func() {
 				if rc := run(args); rc != cliutil.ExitOK && rc != cliutil.ExitFindings {
 					t.Fatalf("run %v = %d (want ok or findings)", args, rc)
 				}

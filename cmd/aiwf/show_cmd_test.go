@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/show"
 
 	"github.com/23min/aiwf/internal/cli/history"
@@ -32,7 +33,7 @@ func TestRun_ShowArchivedIndicatorJSON(t *testing.T) {
 	mkActiveAndArchivedGaps(t, root)
 
 	// Archived id renders archived: true.
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--format=json", "--root", root, "G-0099"}); rc != cliutil.ExitOK {
 			t.Fatalf("show G-0099 (archived): rc = %d", rc)
 		}
@@ -51,7 +52,7 @@ func TestRun_ShowArchivedIndicatorJSON(t *testing.T) {
 	}
 
 	// Active id has no archived field in the envelope (omitempty).
-	out2 := captureStdout(t, func() {
+	out2 := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--format=json", "--root", root, "G-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show G-0001 (active): rc = %d", rc)
 		}
@@ -75,7 +76,7 @@ func TestRun_ShowArchivedIndicatorTextHeader(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mkActiveAndArchivedGaps(t, root)
 
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "G-0099"}); rc != cliutil.ExitOK {
 			t.Fatalf("show G-0099 (archived) text: rc = %d", rc)
 		}
@@ -85,7 +86,7 @@ func TestRun_ShowArchivedIndicatorTextHeader(t *testing.T) {
 		t.Errorf("archived id: header line missing `archived` marker:\nheader: %q\nfull output:\n%s", header, out)
 	}
 
-	out2 := captureStdout(t, func() {
+	out2 := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "G-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show G-0001 (active) text: rc = %d", rc)
 		}
@@ -208,7 +209,7 @@ Archived gap body.
 		t.Fatal(err)
 	}
 
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		// JSON output exposes the resolved entity's `path` field,
 		// which structurally proves the lookup landed on the archived
 		// file (not, e.g., a same-id active file that shadowed it).
@@ -311,7 +312,7 @@ Body.
 	// JSON output exposes the events array structurally — substring
 	// matches on text format would not distinguish "both events
 	// present" from "one event present twice."
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"history", "--format=json", "--root", root, "G-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("history G-0001: rc = %d", rc)
 		}
@@ -385,7 +386,7 @@ func TestRun_ShowMilestoneAggregatesACsHistoryFindings(t *testing.T) {
 		t.Fatalf("promote: %d", rc)
 	}
 
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "M-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
@@ -427,7 +428,7 @@ func TestRun_ShowCompositeIDRendersACSlice(t *testing.T) {
 		t.Fatalf("promote phase: %d", rc)
 	}
 
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "M-0001/AC-1"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
@@ -457,7 +458,7 @@ func TestRun_ShowJSONEnvelope(t *testing.T) {
 		t.Fatalf("add epic: %d", rc)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
@@ -517,7 +518,7 @@ func TestRun_ShowReferencedByPopulated(t *testing.T) {
 
 	// Text path: showing E-01 must surface both milestones in the
 	// "Referenced by" block.
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
@@ -534,7 +535,7 @@ func TestRun_ShowReferencedByPopulated(t *testing.T) {
 	}
 
 	// JSON path: result.referenced_by is the sorted referrer list.
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show json: %d", rc)
 		}
@@ -570,7 +571,7 @@ func TestRun_ShowReferencedByEmptyIsPresent(t *testing.T) {
 		t.Fatalf("add epic: %d", rc)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show json: %d", rc)
 		}
@@ -670,7 +671,7 @@ func TestRun_ShowEpicBodySectionsParsed(t *testing.T) {
 		t.Fatalf("write epic: %v", writeErr)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show json: %d", rc)
 		}
@@ -733,7 +734,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 		t.Fatalf("write milestone: %v", writeErr)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}
@@ -758,7 +759,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 
 	// Composite-id show should also surface description on the AC
 	// payload.
-	captured = captureStdout(t, func() {
+	captured = testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001/AC-1"}); rc != cliutil.ExitOK {
 			t.Fatalf("composite show: %d", rc)
 		}
@@ -812,7 +813,7 @@ func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
 		t.Fatalf("git commit --allow-empty: %v", err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"show", "--root", root, "--format=json", "M-0001/AC-1"}); rc != cliutil.ExitOK {
 			t.Fatalf("show: %d", rc)
 		}

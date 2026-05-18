@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/template"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestRunTemplate_OneKindRaw(t *testing.T) {
-	out := string(captureStdout(t, func() {
+	out := string(testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"template", "epic"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
@@ -27,7 +28,7 @@ func TestRunTemplate_OneKindRaw(t *testing.T) {
 }
 
 func TestRunTemplate_AllKindsHasHeaders(t *testing.T) {
-	out := string(captureStdout(t, func() {
+	out := string(testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"template"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
@@ -80,7 +81,7 @@ func TestRunTemplate_PrettyWithoutJSONIsHarmless(t *testing.T) {
 }
 
 func TestRunTemplate_JSONEnvelope(t *testing.T) {
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"template", "--format", "json"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
@@ -116,7 +117,7 @@ func TestRunTemplate_JSONEnvelope(t *testing.T) {
 }
 
 func TestRunTemplate_JSONOneKind(t *testing.T) {
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"template", "--format", "json", "epic"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}

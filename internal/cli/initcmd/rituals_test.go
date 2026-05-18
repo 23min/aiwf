@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // TestRitualsPluginInstalled_DetectsProjectScope verifies the heuristic
@@ -80,7 +82,7 @@ func TestRitualsPluginInstalled_OtherPluginsOnly(t *testing.T) {
 // scope (per G-0069 — the CLI install form defaults to user scope and
 // doesn't satisfy `aiwf doctor`'s recommended-plugins check).
 func TestPrintRitualsSuggestion_ContainsKeyLines(t *testing.T) {
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		printRitualsSuggestion()
 	})
 	got := string(out)
@@ -107,7 +109,7 @@ func TestPrintRitualsSuggestion_ContainsKeyLines(t *testing.T) {
 // stuck warning. The fix is to steer operators to the interactive
 // menu instead.
 func TestPrintRitualsSuggestion_DoesNotRecommendCLIInstallForm(t *testing.T) {
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		printRitualsSuggestion()
 	})
 	got := string(out)

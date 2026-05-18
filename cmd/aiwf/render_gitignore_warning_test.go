@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // TestRun_RenderHTML_WarnsWhenOutDirNotGitignored: when --out points
@@ -18,7 +20,7 @@ func TestRun_RenderHTML_WarnsWhenOutDirNotGitignored(t *testing.T) {
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 
 	stderr := captureStderr(t, func() {
-		_ = captureStdout(t, func() {
+		_ = testutil.CaptureStdout(t, func() {
 			mustRun(t, "render", "--root", root, "--format", "html", "--out", "custom-render-dir")
 		})
 	})
@@ -48,7 +50,7 @@ func TestRun_RenderHTML_SilentWhenOutDirGitignored(t *testing.T) {
 	}
 
 	stderr := captureStderr(t, func() {
-		_ = captureStdout(t, func() {
+		_ = testutil.CaptureStdout(t, func() {
 			mustRun(t, "render", "--root", root, "--format", "html")
 		})
 	})
@@ -70,7 +72,7 @@ func TestRun_RenderHTML_SilentWhenOutDirOutsideRoot(t *testing.T) {
 
 	out := filepath.Join(t.TempDir(), "site-elsewhere")
 	stderr := captureStderr(t, func() {
-		_ = captureStdout(t, func() {
+		_ = testutil.CaptureStdout(t, func() {
 			mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
 		})
 	})
@@ -104,7 +106,7 @@ func TestRun_RenderHTML_SilentWhenCommitOutputTrue(t *testing.T) {
 	mustRun(t, "update", "--root", root)
 
 	stderr := captureStderr(t, func() {
-		_ = captureStdout(t, func() {
+		_ = testutil.CaptureStdout(t, func() {
 			mustRun(t, "render", "--root", root, "--format", "html")
 		})
 	})

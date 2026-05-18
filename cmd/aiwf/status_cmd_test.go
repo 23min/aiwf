@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/status"
 
 	"github.com/23min/aiwf/internal/cli/history"
@@ -137,7 +138,7 @@ func TestRenderStatusText_MarksInProgress(t *testing.T) {
 		}},
 		Health: status.StatusHealthCounts{Entities: 4},
 	}
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if err := status.RenderStatusText(os.Stdout, &r, 0, false); err != nil {
 			t.Fatalf("status.RenderStatusText: %v", err)
 		}
@@ -275,7 +276,7 @@ func TestRenderStatusText_SweepPendingLineAppearsInHealthSection(t *testing.T) {
 		},
 		Health: status.StatusHealthCounts{Entities: 5},
 	}
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if err := status.RenderStatusText(os.Stdout, &r, 0, false); err != nil {
 			t.Fatalf("status.RenderStatusText: %v", err)
 		}
@@ -306,7 +307,7 @@ func TestRenderStatusText_SweepPendingLineHiddenWhenNil(t *testing.T) {
 		SweepPending: nil,
 		Health:       status.StatusHealthCounts{Entities: 5},
 	}
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if err := status.RenderStatusText(os.Stdout, &r, 0, false); err != nil {
 			t.Fatalf("status.RenderStatusText: %v", err)
 		}
@@ -362,7 +363,7 @@ Closed-but-active gap body.
 		t.Fatal(err)
 	}
 
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"status", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("status: rc = %d", rc)
 		}
@@ -429,7 +430,7 @@ func TestRenderStatusText_Warnings(t *testing.T) {
 		},
 		Health: status.StatusHealthCounts{Entities: 1, Warnings: 1},
 	}
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if err := status.RenderStatusText(os.Stdout, &r, 0, false); err != nil {
 			t.Fatalf("status.RenderStatusText: %v", err)
 		}
@@ -481,7 +482,7 @@ func TestRenderStatusMarkdown_FullReport(t *testing.T) {
 		},
 		Health: status.StatusHealthCounts{Entities: 7, Errors: 0, Warnings: 1},
 	}
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if err := status.RenderStatusMarkdown(os.Stdout, &r); err != nil {
 			t.Fatalf("status.RenderStatusMarkdown: %v", err)
 		}
@@ -518,7 +519,7 @@ func TestRenderStatusMarkdown_FullReport(t *testing.T) {
 // italic empty-state line and no orphan mermaid block leaks.
 func TestRenderStatusMarkdown_EmptyReport(t *testing.T) {
 	r := status.StatusReport{Date: "2026-05-01"}
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if err := status.RenderStatusMarkdown(os.Stdout, &r); err != nil {
 			t.Fatalf("status.RenderStatusMarkdown: %v", err)
 		}

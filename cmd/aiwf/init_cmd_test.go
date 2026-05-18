@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // TestRun_InitThroughDispatcher confirms `aiwf init` wires through the
@@ -46,7 +47,7 @@ func TestRun_InitThroughDispatcher(t *testing.T) {
 func TestRun_InitDryRun(t *testing.T) {
 	root := setupCLITestRepo(t)
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook", "--dry-run"}); rc != cliutil.ExitOK {
 			t.Errorf("got rc=%d, want %d", rc, cliutil.ExitOK)
 		}
@@ -81,7 +82,7 @@ func TestRun_InitDryRun(t *testing.T) {
 func TestRun_InitSkipHook(t *testing.T) {
 	root := setupCLITestRepo(t)
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 			t.Errorf("got rc=%d, want %d", rc, cliutil.ExitOK)
 		}
@@ -120,7 +121,7 @@ func TestRun_InitMigratesAlienHook(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		// No --skip-hook here: this test exercises the G45 hook
 		// migration path and needs init to actually install (and
 		// migrate) the hook. The test does not trigger any commits,

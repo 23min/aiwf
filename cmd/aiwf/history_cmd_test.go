@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/history"
 )
 
@@ -62,7 +63,7 @@ func TestRun_HistoryJSON(t *testing.T) {
 		t.Fatalf("promote: %d", rc)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"history", "--root", root, "--format=json", "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("history: %d", rc)
 		}
@@ -249,7 +250,7 @@ func TestRun_HistoryTextOutputIncludesForceLine(t *testing.T) {
 		t.Fatalf("forced promote: %d", rc)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"history", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
 			t.Fatalf("history: %d", rc)
 		}

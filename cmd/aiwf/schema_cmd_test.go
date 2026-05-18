@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/schema"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
@@ -15,7 +16,7 @@ import (
 var errBroken = errors.New("broken writer")
 
 func TestRunSchema_AllKindsText(t *testing.T) {
-	out := string(captureStdout(t, func() {
+	out := string(testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"schema"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
@@ -28,7 +29,7 @@ func TestRunSchema_AllKindsText(t *testing.T) {
 }
 
 func TestRunSchema_OneKindText(t *testing.T) {
-	out := string(captureStdout(t, func() {
+	out := string(testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"schema", "milestone"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
@@ -68,7 +69,7 @@ func TestRunSchema_BadFormat(t *testing.T) {
 }
 
 func TestRunSchema_JSONEnvelope(t *testing.T) {
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"schema", "--format", "json"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}
@@ -125,7 +126,7 @@ type brokenWriter struct{}
 func (brokenWriter) Write([]byte) (int, error) { return 0, errBroken }
 
 func TestRunSchema_JSONOneKind(t *testing.T) {
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"schema", "--format", "json", "epic"}); rc != cliutil.ExitOK {
 			t.Fatalf("rc = %d", rc)
 		}

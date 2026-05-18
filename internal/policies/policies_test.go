@@ -68,6 +68,11 @@ func TestPolicy_ReadOnlyVerbsDoNotMutate(t *testing.T) {
 	runPolicy(t, PolicyReadOnlyVerbsDoNotMutate)
 }
 
+func TestPolicy_CaptureStdoutSingleton(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyCaptureStdoutSingleton)
+}
+
 func TestPolicy_FindingCodesAreDiscoverable(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyFindingCodesAreDiscoverable)

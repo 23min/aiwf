@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/status"
 
 	"github.com/23min/aiwf/internal/cli/list"
@@ -55,7 +56,7 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 
 	t.Run("no-args prints per-kind counts", func(t *testing.T) {
 		var rc int
-		out := captureStdout(t, func() {
+		out := testutil.CaptureStdout(t, func() {
 			rc = run([]string{"list", "--root", root})
 		})
 		if rc != cliutil.ExitOK {
@@ -84,7 +85,7 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 
 	t.Run("--kind milestone lists only milestones", func(t *testing.T) {
 		var rc int
-		out := captureStdout(t, func() {
+		out := testutil.CaptureStdout(t, func() {
 			rc = run([]string{"list", "--kind", "milestone", "--root", root})
 		})
 		if rc != cliutil.ExitOK {
@@ -105,7 +106,7 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 
 	t.Run("--status active scopes by status", func(t *testing.T) {
 		var rc int
-		out := captureStdout(t, func() {
+		out := testutil.CaptureStdout(t, func() {
 			rc = run([]string{"list", "--kind", "epic", "--status", "active", "--root", root})
 		})
 		if rc != cliutil.ExitOK {
@@ -122,7 +123,7 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 
 	t.Run("--parent scopes to children of an epic", func(t *testing.T) {
 		var rc int
-		out := captureStdout(t, func() {
+		out := testutil.CaptureStdout(t, func() {
 			rc = run([]string{"list", "--kind", "milestone", "--parent", "E-0001", "--root", root})
 		})
 		if rc != cliutil.ExitOK {
@@ -139,7 +140,7 @@ func TestRun_List_CoreFlagsEndToEnd(t *testing.T) {
 
 	t.Run("--format=json --pretty parses as a JSON envelope", func(t *testing.T) {
 		var rc int
-		out := captureStdout(t, func() {
+		out := testutil.CaptureStdout(t, func() {
 			rc = run([]string{"list", "--kind", "milestone", "--format=json", "--pretty", "--root", root})
 		})
 		if rc != cliutil.ExitOK {
@@ -200,7 +201,7 @@ func TestRun_List_JSONResultIsArrayOfSummaryObjects(t *testing.T) {
 		t.Fatalf("add milestone: %d", rc)
 	}
 
-	out := captureStdout(t, func() {
+	out := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"list", "--kind", "milestone", "--format=json", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("list rc != cliutil.ExitOK")
 		}
@@ -286,7 +287,7 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 	}
 
 	t.Run("default excludes terminal-status entities", func(t *testing.T) {
-		out := captureStdout(t, func() {
+		out := testutil.CaptureStdout(t, func() {
 			if rc := run([]string{"list", "--kind", "milestone", "--root", root}); rc != cliutil.ExitOK {
 				t.Fatalf("list rc != cliutil.ExitOK")
 			}
@@ -301,7 +302,7 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 	})
 
 	t.Run("--archived includes terminal-status entities", func(t *testing.T) {
-		out := captureStdout(t, func() {
+		out := testutil.CaptureStdout(t, func() {
 			if rc := run([]string{"list", "--kind", "milestone", "--archived", "--root", root}); rc != cliutil.ExitOK {
 				t.Fatalf("list --archived rc != cliutil.ExitOK")
 			}
@@ -316,7 +317,7 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 	})
 
 	t.Run("no-args counts exclude terminal entities", func(t *testing.T) {
-		out := captureStdout(t, func() {
+		out := testutil.CaptureStdout(t, func() {
 			if rc := run([]string{"list", "--root", root}); rc != cliutil.ExitOK {
 				t.Fatalf("no-args rc != cliutil.ExitOK")
 			}

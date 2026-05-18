@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // TestRun_RenderHTML_DispatchesToSite: `aiwf render --format=html`
@@ -22,7 +23,7 @@ func TestRun_RenderHTML_DispatchesToSite(t *testing.T) {
 	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema", "--actor", "human/test", "--root", root)
 
 	out := filepath.Join(t.TempDir(), "site")
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		mustRun(t, "render", "--root", root, "--format", "html", "--out", out)
 	})
 
@@ -80,7 +81,7 @@ func TestRun_RenderHTML_HonorsAiwfYAMLOutDir(t *testing.T) {
 		t.Fatalf("write aiwf.yaml: %v", err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		mustRun(t, "render", "--root", root, "--format", "html")
 	})
 	var env struct {
@@ -136,7 +137,7 @@ func TestRun_Render_DispatcherDistinguishesSubcommandFromFormat(t *testing.T) {
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 
 	// roadmap subcommand still emits markdown on stdout.
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		mustRun(t, "render", "roadmap", "--root", root)
 	})
 	if !strings.Contains(string(captured), "# Roadmap") {
@@ -173,7 +174,7 @@ func TestRun_Render_HelpFlag(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var rc int
-			captured := captureStdout(t, func() {
+			captured := testutil.CaptureStdout(t, func() {
 				rc = run([]string{"render", tc.arg})
 			})
 			if rc != cliutil.ExitOK {

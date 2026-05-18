@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // TestRun_DoctorReportsRenderConfig: a freshly-init'd repo (default
@@ -15,7 +17,7 @@ func TestRun_DoctorReportsRenderConfig(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		// Ignore rc: --skip-hook means hooks are missing, so doctor
 		// reports problems and exits non-zero. The test only
 		// inspects render-config output, not the exit code.
@@ -57,7 +59,7 @@ func TestRun_DoctorDetectsCommitOutputDrift(t *testing.T) {
 		t.Fatalf("write aiwf.yaml: %v", err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		// rc==1 expected (drift is a problem).
 		_ = run([]string{"doctor", "--root", root})
 	})

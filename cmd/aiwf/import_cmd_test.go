@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // writeManifest is a helper that writes a YAML manifest into the test
@@ -39,7 +40,7 @@ entities:
     frontmatter: {title: "Bake", status: draft, parent: E-0001}
 `)
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"import", "--root", root, "--actor", "human/test", manifest}); rc != cliutil.ExitOK {
 			t.Errorf("import rc != ok")
 		}
@@ -75,7 +76,7 @@ entities:
     frontmatter: {title: "Cake", status: active}
 `)
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"import", "--root", root, "--actor", "human/test", "--dry-run", manifest}); rc != cliutil.ExitOK {
 			t.Errorf("import --dry-run rc != ok")
 		}

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -31,7 +32,7 @@ func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"render", "roadmap", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("render roadmap: %d", rc)
 		}
@@ -141,7 +142,7 @@ func TestRun_RenderRoadmap_UnknownSubcommand(t *testing.T) {
 // without errors and without writing a commit.
 func TestRun_RenderRoadmap_EmptyRepo(t *testing.T) {
 	root := setupCLITestRepo(t)
-	captured := captureStdout(t, func() {
+	captured := testutil.CaptureStdout(t, func() {
 		if rc := run([]string{"render", "roadmap", "--root", root}); rc != cliutil.ExitOK {
 			t.Fatalf("render: %d", rc)
 		}

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 func TestRun_NoArgs_UsageError(t *testing.T) {
@@ -60,7 +61,7 @@ func TestRun_SubverbHelpDoesNotRecurse(t *testing.T) {
 	}
 	for _, args := range cases {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
-			captureStdout(t, func() {
+			testutil.CaptureStdout(t, func() {
 				if rc := run(args); rc != cliutil.ExitOK {
 					t.Errorf("run(%v) = %d, want cliutil.ExitOK", args, rc)
 				}
