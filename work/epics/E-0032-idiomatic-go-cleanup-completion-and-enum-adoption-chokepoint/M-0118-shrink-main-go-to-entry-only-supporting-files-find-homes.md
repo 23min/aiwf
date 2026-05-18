@@ -6,6 +6,11 @@ parent: E-0032
 depends_on:
     - M-0117
 tdd: required
+acs:
+    - id: AC-1
+      title: internal/cli/root.go assembles root command and exports Execute
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -65,3 +70,6 @@ The capstone milestone of G-0107 step 3. M-0115 and M-0116 moved verbs to per-ve
 ## Dependencies
 
 - M-0117 (the multi-subcommand verbs must move out of `cmd/aiwf/` before `main.go` can shrink to entry-only).
+
+### AC-1 — internal/cli/root.go assembles root command and exports Execute
+
