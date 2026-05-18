@@ -1,7 +1,7 @@
 ---
 id: ADR-0011
 title: Legal-workflow spec methodology
-status: proposed
+status: accepted
 ---
 
 # ADR-0011 — Legal-workflow spec methodology
