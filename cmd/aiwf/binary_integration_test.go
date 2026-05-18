@@ -391,6 +391,12 @@ func buildBinary(t *testing.T, tmp string, extraArgs ...string) string {
 	if buildOut, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("go build: %v\n%s", err, buildOut)
 	}
+	// macOS Gatekeeper crashes on unsigned Mach-O headers (Sonoma 14.8.x syspolicyd bug); ad-hoc sign to route around.
+	if runtime.GOOS == "darwin" {
+		if signOut, err := exec.Command("codesign", "--sign", "-", "--force", out).CombinedOutput(); err != nil {
+			t.Fatalf("codesign: %v\n%s", err, signOut)
+		}
+	}
 	return out
 }
 
