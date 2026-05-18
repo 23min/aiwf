@@ -14,7 +14,7 @@ aiwf is a kernel that pins planning-tree invariants through a small set of mutat
 
 - `internal/entity/transition.go` carries the per-kind FSM tables.
 - `internal/policies/` carries mechanical invariants enforced as Go tests.
-- `internal/checks/` carries the runtime check rules that surface as findings.
+- `internal/check/` carries the runtime check rules that surface as findings.
 
 Plus prose-only sources: ADRs, `docs/pocv3/design/design-decisions.md`, `CLAUDE.md`, skills in `.claude/skills/` and the rituals plugin, and `aiwf <verb> --help` output. No source today expresses the **closed-set frontier between legal and illegal verb sequences** as a single machine-readable table. The verbs work, the FSM is right *as far as we know*, but there is no chokepoint that catches the failure mode "the implementation silently permits a workflow it shouldn't" or "the implementation silently rejects one it should permit."
 
