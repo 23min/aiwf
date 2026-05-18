@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Policy auto-enumerates Status constants from internal/entity/entity.go
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Policy fires on == or != BinaryExpr with status literal
       status: open
