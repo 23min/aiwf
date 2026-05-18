@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Policy fires on switch/case clauses with status literals
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: //enums:ignore line-suffix allowlist suppresses violations
       status: open
