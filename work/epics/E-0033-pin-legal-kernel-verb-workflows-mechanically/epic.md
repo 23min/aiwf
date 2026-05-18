@@ -28,7 +28,7 @@ Three of the four legal-workflow layers identified during planning:
 
 The spec is built via a three-pass approach (ratified in the ADR landed by M-α₀):
 
-- **Pass A (M-α₁)** — audit existing surfaces (`entity/transition.go`, `internal/policies/`, `internal/checks/`, ADRs, `design-decisions.md`, `CLAUDE.md`, skills, `--help` text) and extract every legality statement with citations.
+- **Pass A (M-α₁)** — audit existing surfaces (`entity/transition.go`, `internal/policies/`, `internal/check/`, ADRs, `design-decisions.md`, `CLAUDE.md`, skills, `--help` text) and extract every legality statement with citations.
 - **Pass B (M-β)** — independently derive workflows from the entity model (lifecycles, ownership relations, cross-entity invariants), without reading Pass A's output.
 - **Pass C (M-γ)** — reconcile A vs B into a canonical Go spec table under `internal/workflows/spec/` (exact package name TBD), plus a drift policy ensuring no impl FSM transition escapes the table.
 
