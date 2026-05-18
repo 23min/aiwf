@@ -35,6 +35,10 @@ acs:
       title: captureStdout lifted to shared testutil; per-package duplicates forbidden
       status: open
       tdd_phase: red
+    - id: AC-8
+      title: JSON-envelope version-source drift policy added
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -108,4 +112,6 @@ The capstone milestone of G-0107 step 3. M-0115 and M-0116 moved verbs to per-ve
 ### AC-6 — cobra integration tests relocate to internal/cli/integration/
 
 ### AC-7 — captureStdout lifted to shared testutil; per-package duplicates forbidden
+
+### AC-8 — JSON-envelope version-source drift policy added
 
