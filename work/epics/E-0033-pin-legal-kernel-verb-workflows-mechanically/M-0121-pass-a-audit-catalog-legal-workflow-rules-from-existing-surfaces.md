@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-4
       title: 'Catalog schema internally consistent: unique sequential ids, totals match'
-      status: open
+      status: met
 ---
 ## Goal
 
