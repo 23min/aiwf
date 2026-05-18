@@ -9,6 +9,10 @@ acs:
       title: Policy auto-enumerates Status constants from internal/entity/entity.go
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Policy fires on == or != BinaryExpr with status literal
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -54,4 +58,6 @@ New file [`internal/policies/enum_literal_adoption.go`](../../../internal/polici
 - None (orthogonal to verb-move work).
 
 ### AC-1 — Policy auto-enumerates Status constants from internal/entity/entity.go
+
+### AC-2 — Policy fires on == or != BinaryExpr with status literal
 
