@@ -4,6 +4,11 @@ title: Add enum_literal_adoption policy; fix surfaced literal sites
 status: in_progress
 parent: E-0032
 tdd: required
+acs:
+    - id: AC-1
+      title: Policy auto-enumerates Status constants from internal/entity/entity.go
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -47,3 +52,6 @@ New file [`internal/policies/enum_literal_adoption.go`](../../../internal/polici
 ## Dependencies
 
 - None (orthogonal to verb-move work).
+
+### AC-1 — Policy auto-enumerates Status constants from internal/entity/entity.go
+
