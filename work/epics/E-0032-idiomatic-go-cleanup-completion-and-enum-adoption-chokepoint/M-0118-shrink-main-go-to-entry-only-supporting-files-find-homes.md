@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: cmd/aiwf/main.go shrunk to entry-only shape (function main only)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: cobra integration tests relocate to internal/cli/integration/
       status: met
