@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: ADR promoted to accepted via aiwf promote
-      status: open
+      status: met
 ---
 ## Goal
 
