@@ -1,7 +1,7 @@
 ---
 id: E-0032
 title: Idiomatic-Go cleanup completion and enum-adoption chokepoint
-status: active
+status: done
 ---
 ## Goal
 
