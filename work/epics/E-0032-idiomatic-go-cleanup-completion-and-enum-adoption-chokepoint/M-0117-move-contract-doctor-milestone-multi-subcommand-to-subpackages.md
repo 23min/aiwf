@@ -19,6 +19,10 @@ acs:
       title: Move doctor verb + selfcheck.go to internal/cli/doctor; --self-check works
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: Move doctor tests to internal/cli/doctor package; tests green
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -67,4 +71,6 @@ Per-package `_test.go` carries the previously-passing `cmd/aiwf/contract_cmd_tes
 ### AC-2 — Move contract tests to internal/cli/contract package; tests green
 
 ### AC-3 — Move doctor verb + selfcheck.go to internal/cli/doctor; --self-check works
+
+### AC-4 — Move doctor tests to internal/cli/doctor package; tests green
 
