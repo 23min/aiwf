@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Move contract verb + all 6 subcommands to internal/cli/contract subpackage
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Move contract tests to internal/cli/contract package; tests green
       status: open
