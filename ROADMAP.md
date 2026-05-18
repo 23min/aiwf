@@ -363,7 +363,7 @@ Close G-0107 by moving every top-level verb in `cmd/aiwf/` (~27 verbs across 19 
 | M-0116 | Move 16 single-command verbs to internal/cli/<verb>/ subpackages | done |
 | M-0117 | Move contract, doctor, milestone (multi-subcommand) to subpackages | done |
 | M-0118 | Shrink main.go to entry-only; supporting files find homes | done |
-| M-0119 | Add enum_literal_adoption policy; fix surfaced literal sites | draft |
+| M-0119 | Add enum_literal_adoption policy; fix surfaced literal sites | done |
 
 ## E-0033 — Pin legal kernel-verb workflows mechanically (proposed)
 
