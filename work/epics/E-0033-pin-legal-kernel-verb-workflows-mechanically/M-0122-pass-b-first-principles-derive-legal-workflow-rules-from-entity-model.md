@@ -6,6 +6,10 @@ parent: E-0033
 depends_on:
     - M-0120
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Catalog file exists at canonical path with top-level sections
+      status: open
 ---
 ## Goal
 
@@ -56,3 +60,6 @@ Rule ids are R-FP-001..N (separate id-space from R-AUDIT-NNN) so Pass C can refe
 - Does not read M-0121's catalog.
 - Does not reconcile (that's M-0123).
 - Does not produce Go code.
+
+### AC-1 — Catalog file exists at canonical path with top-level sections
+
