@@ -35,6 +35,10 @@ acs:
       title: Delete contract_cmd.go, doctor_cmd.go, milestone_cmd.go, selfcheck.go
       status: open
       tdd_phase: red
+    - id: AC-8
+      title: 'Policies updated: read-only doctor location; skill coverage all 3 verbs'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -91,4 +95,6 @@ Per-package `_test.go` carries the previously-passing `cmd/aiwf/contract_cmd_tes
 ### AC-6 — Move milestone_depends_on tests to internal/cli/milestone package; green
 
 ### AC-7 — Delete contract_cmd.go, doctor_cmd.go, milestone_cmd.go, selfcheck.go
+
+### AC-8 — Policies updated: read-only doctor location; skill coverage all 3 verbs
 
