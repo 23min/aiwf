@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: Catalog file exists at canonical path with top-level sections
       status: open
+    - id: AC-2
+      title: Catalog has per-kind lifecycle section for each entity kind
+      status: open
 ---
 ## Goal
 
@@ -62,4 +65,6 @@ Rule ids are R-FP-001..N (separate id-space from R-AUDIT-NNN) so Pass C can refe
 - Does not produce Go code.
 
 ### AC-1 — Catalog file exists at canonical path with top-level sections
+
+### AC-2 — Catalog has per-kind lifecycle section for each entity kind
 
