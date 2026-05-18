@@ -11,6 +11,10 @@ acs:
       title: internal/cli/root.go assembles root command and exports Execute
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: check verb body moves to internal/cli/check/
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -72,4 +76,6 @@ The capstone milestone of G-0107 step 3. M-0115 and M-0116 moved verbs to per-ve
 - M-0117 (the multi-subcommand verbs must move out of `cmd/aiwf/` before `main.go` can shrink to entry-only).
 
 ### AC-1 — internal/cli/root.go assembles root command and exports Execute
+
+### AC-2 — check verb body moves to internal/cli/check/
 
