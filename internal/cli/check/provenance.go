@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"context"
@@ -14,10 +14,10 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
-// runProvenanceCheck walks every commit reachable from HEAD that
+// RunProvenanceCheck walks every commit reachable from HEAD that
 // carries any `aiwf-*` trailer and runs the I2.5 standing rules
 // against the result. It also runs the step-7b untrailered-entity-
-// commit warning, scoped per the rules in resolveUntrailedRange:
+// commit warning, scoped per the rules in ResolveUntrailedRange:
 //   - --since <ref> on the verb wins.
 //   - Otherwise `@{u}..HEAD` when an upstream is configured.
 //   - Otherwise the audit is SKIPPED with a single
@@ -32,9 +32,9 @@ import (
 // Why grep on `^aiwf-` for the standing rules: every rule is keyed
 // on at least one aiwf trailer (actor, principal, scope-ends, etc.).
 // Untrailered commits are handled by the separate step-7b audit pass,
-// which uses a different filter (range scoped per resolveUntrailedRange,
+// which uses a different filter (range scoped per ResolveUntrailedRange,
 // no trailer grep).
-func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string) ([]check.Finding, error) {
+func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string) ([]check.Finding, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -44,7 +44,7 @@ func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	}
 	findings := check.RunProvenance(commits, t)
 
-	rangeArg, advisory, rErr := resolveUntrailedRange(ctx, root, since)
+	rangeArg, advisory, rErr := ResolveUntrailedRange(ctx, root, since)
 	if rErr != nil {
 		return nil, rErr
 	}
@@ -52,7 +52,7 @@ func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		findings = append(findings, *advisory)
 		return findings, nil
 	}
-	untrailed, uErr := readUntrailedCommits(ctx, root, rangeArg)
+	untrailed, uErr := ReadUntrailedCommits(ctx, root, rangeArg)
 	if uErr != nil {
 		return nil, uErr
 	}
@@ -60,7 +60,7 @@ func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	return findings, nil
 }
 
-// resolveUntrailedRange picks the `git log` range for the step-7b
+// ResolveUntrailedRange picks the `git log` range for the step-7b
 // untrailered-entity audit. Three branches:
 //
 //  1. since != "" — the operator's explicit choice wins. Validates
@@ -70,7 +70,7 @@ func runProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 //  2. else, an upstream is configured — return `@{u}..HEAD`.
 //  3. else — return ("", advisory) so the caller skips the scan
 //     and surfaces the undefined-scope warning.
-func resolveUntrailedRange(ctx context.Context, root, since string) (string, *check.Finding, error) {
+func ResolveUntrailedRange(ctx context.Context, root, since string) (string, *check.Finding, error) {
 	if since != "" {
 		// Verify the ref before trusting it: a typo in `--since`
 		// would otherwise cause a `git log` failure that aborts
@@ -101,12 +101,12 @@ func resolveUntrailedRange(ctx context.Context, root, since string) (string, *ch
 	return "", advisory, nil
 }
 
-// readUntrailedCommits returns the commits in rangeArg (e.g.
+// ReadUntrailedCommits returns the commits in rangeArg (e.g.
 // `@{u}..HEAD`, or `<sha>..HEAD` from --since) along with their
 // trailer set and the relative paths each commit touched.
 //
-// The range is supplied by the caller (resolveUntrailedRange);
-// readUntrailedCommits is purely the git-log invocation +
+// The range is supplied by the caller (ResolveUntrailedRange);
+// ReadUntrailedCommits is purely the git-log invocation +
 // parsing. An empty range (HEAD == @{u}) returns no commits,
 // no findings.
 //
@@ -119,7 +119,7 @@ func resolveUntrailedRange(ctx context.Context, root, since string) (string, *ch
 // branch's). Without `-m` the default is "show no diff for merge
 // commits," which silently bypassed the audit for merges that
 // absorbed entity-file changes from a feature branch.
-func readUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.UntrailedCommit, error) {
+func ReadUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.UntrailedCommit, error) {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e"
 	args := []string{
@@ -141,11 +141,11 @@ func readUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.U
 		}
 		return nil, fmt.Errorf("git log: %w", err)
 	}
-	return parseUntrailedCommits(string(out)), nil
+	return ParseUntrailedCommits(string(out)), nil
 }
 
-// parseUntrailedCommits unpacks the multi-record stream produced by
-// readUntrailedCommits. The format is:
+// ParseUntrailedCommits unpacks the multi-record stream produced by
+// ReadUntrailedCommits. The format is:
 //
 //	<RS>{SHA}<US>{subject}<US>{trailers}<US>
 //	{file1}
@@ -156,7 +156,7 @@ func readUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.U
 // Trailers and file lists are both newline-delimited. Subject is
 // the commit's first line, used for the squash-merge specialization
 // (G31). Empty input (no unpushed commits) returns nil.
-func parseUntrailedCommits(s string) []check.UntrailedCommit {
+func ParseUntrailedCommits(s string) []check.UntrailedCommit {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e"
 	var out []check.UntrailedCommit

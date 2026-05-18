@@ -383,7 +383,7 @@ func runCheckCmd(root, format string, pretty bool, since string, shapeOnly, verb
 	contractFindings := contract.RunValidation(ctx, tr, resolved, contracts)
 	findings = append(findings, contractFindings...)
 
-	provenanceFindings, pErr := runProvenanceCheck(ctx, resolved, tr, since)
+	provenanceFindings, pErr := clicheck.RunProvenanceCheck(ctx, resolved, tr, since)
 	if pErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
 		return cliutil.ExitInternal

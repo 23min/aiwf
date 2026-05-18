@@ -7,10 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli/show"
-
+	clicheck "github.com/23min/aiwf/internal/cli/check"
 	"github.com/23min/aiwf/internal/cli/history"
-
+	"github.com/23min/aiwf/internal/cli/show"
 	"github.com/23min/aiwf/internal/scope"
 )
 
@@ -190,7 +189,7 @@ func TestResolveUntrailedRange_NoUpstream(t *testing.T) {
 	if out, err := runGit(root, "init", "-q"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
-	rangeArg, advisory, err := resolveUntrailedRange(context.Background(), root, "")
+	rangeArg, advisory, err := clicheck.ResolveUntrailedRange(context.Background(), root, "")
 	if err != nil {
 		t.Fatalf("resolveUntrailedRange: %v", err)
 	}
@@ -233,7 +232,7 @@ func TestResolveUntrailedRange_WithUpstream(t *testing.T) {
 	if out, err := runGit(root, "push", "-u", "origin", "HEAD:main"); err != nil {
 		t.Fatalf("git push: %v\n%s", err, out)
 	}
-	rangeArg, advisory, err := resolveUntrailedRange(context.Background(), root, "")
+	rangeArg, advisory, err := clicheck.ResolveUntrailedRange(context.Background(), root, "")
 	if err != nil {
 		t.Fatalf("resolveUntrailedRange: %v", err)
 	}
@@ -267,7 +266,7 @@ func TestResolveUntrailedRange_SinceWins(t *testing.T) {
 		t.Fatalf("git commit: %v\n%s", err, out)
 	}
 	// Valid ref → "<ref>..HEAD" range, no advisory.
-	rangeArg, advisory, err := resolveUntrailedRange(context.Background(), root, "HEAD")
+	rangeArg, advisory, err := clicheck.ResolveUntrailedRange(context.Background(), root, "HEAD")
 	if err != nil {
 		t.Fatalf("resolveUntrailedRange (valid since): %v", err)
 	}
@@ -275,7 +274,7 @@ func TestResolveUntrailedRange_SinceWins(t *testing.T) {
 		t.Errorf("valid since: rangeArg=%q advisory=%+v; want HEAD..HEAD, nil", rangeArg, advisory)
 	}
 	// Unknown ref → empty range + advisory.
-	rangeArg, advisory, err = resolveUntrailedRange(context.Background(), root, "no-such-ref")
+	rangeArg, advisory, err = clicheck.ResolveUntrailedRange(context.Background(), root, "no-such-ref")
 	if err != nil {
 		t.Fatalf("resolveUntrailedRange (bad since): %v", err)
 	}
@@ -316,7 +315,7 @@ func TestReadUntrailedCommits_EmptyRange(t *testing.T) {
 	if out, err := runGit(root, "push", "-u", "origin", "HEAD:main"); err != nil {
 		t.Fatalf("git push: %v\n%s", err, out)
 	}
-	got, err := readUntrailedCommits(context.Background(), root, "@{u}..HEAD")
+	got, err := clicheck.ReadUntrailedCommits(context.Background(), root, "@{u}..HEAD")
 	if err != nil {
 		t.Fatalf("readUntrailedCommits: %v", err)
 	}
@@ -389,7 +388,7 @@ func TestReadUntrailedCommits_MergeCommitSurface(t *testing.T) {
 	// is excluded by --first-parent which means the only candidate
 	// is the merge itself, and without -m it has no paths). Post-
 	// fix: the merge commit appears with G-001's path attached.
-	commits, err := readUntrailedCommits(context.Background(), root, base+"..HEAD")
+	commits, err := clicheck.ReadUntrailedCommits(context.Background(), root, base+"..HEAD")
 	if err != nil {
 		t.Fatalf("readUntrailedCommits: %v", err)
 	}
@@ -442,7 +441,7 @@ func TestParseUntrailedCommits_Malformed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := parseUntrailedCommits(tt.input)
+			got := clicheck.ParseUntrailedCommits(tt.input)
 			if len(got) != tt.want {
 				t.Errorf("len = %d, want %d (got %+v)", len(got), tt.want, got)
 			}
