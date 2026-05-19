@@ -207,14 +207,13 @@ func GitDir(ctx context.Context, workdir string) (string, error) {
 // HooksDir returns the effective hooks directory for workdir. When
 // `core.hooksPath` is set in the repo's git config, it is honored
 // (relative paths resolve against workdir); otherwise the default
-// `<gitDir>/hooks` is returned. The result is always an absolute
-// path with symlinks resolved, matching git's own canonicalization
-// (via `--absolute-git-dir`).
+// `<commonGitDir>/hooks` is returned — the *shared* git dir, not the
+// per-worktree one. From a linked worktree, git only fires hooks from
+// the shared dir (per G-0136 / M-0133 / AC-2: writes to
+// `.git/worktrees/<id>/hooks/` are inert).
 //
 // `git config --get` exits 1 when the key is unset, which `output`
-// surfaces as an error; we treat any error as "fall back to
-// default." If git is genuinely broken, the GitDir call below
-// surfaces the same underlying issue with a clearer message.
+// surfaces as an error; we treat any error as "fall back to default."
 //
 // Symlink resolution matters on macOS: `t.TempDir()` returns
 // `/var/folders/...` but git resolves it to `/private/var/folders/...`.
@@ -235,11 +234,48 @@ func HooksDir(ctx context.Context, workdir string) (string, error) {
 			return filepath.Join(canonical, configured), nil
 		}
 	}
-	gitDir, err := GitDir(ctx, workdir)
+	commonDir, err := commonGitDir(ctx, workdir)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(gitDir, "hooks"), nil
+	return filepath.Join(commonDir, "hooks"), nil
+}
+
+// commonGitDir returns the absolute path to the *shared* git
+// directory for workdir. In a main checkout this matches GitDir.
+// In a linked worktree this is the main repo's `.git/`, not the
+// worktree's `.git/worktrees/<id>/` — the directory git consults
+// for hooks, packed refs, and other shared state.
+//
+// Uses `--path-format=absolute` (git 2.31+) to skip our own
+// relative-path resolution; the modern flag is present on every
+// supported toolchain in this repo's CI matrix.
+func commonGitDir(ctx context.Context, workdir string) (string, error) {
+	out, err := output(ctx, workdir, "rev-parse", "--path-format=absolute", "--git-common-dir")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
+}
+
+// InWorktree reports whether workdir is inside a linked git worktree
+// (vs. the main checkout). True when the per-worktree git dir
+// differs from the shared common dir. Useful for operator-facing
+// messages that want to flag "this action affects all worktrees of
+// the repo" when run from a linked worktree.
+//
+// Returns false (no error) when workdir is the main checkout, and a
+// non-nil error when git is not reachable from workdir.
+func InWorktree(ctx context.Context, workdir string) (bool, error) {
+	gitDir, err := GitDir(ctx, workdir)
+	if err != nil {
+		return false, err
+	}
+	commonDir, err := commonGitDir(ctx, workdir)
+	if err != nil {
+		return false, err
+	}
+	return gitDir != commonDir, nil
 }
 
 // HeadSubject returns the subject line of HEAD's commit. Used by tests

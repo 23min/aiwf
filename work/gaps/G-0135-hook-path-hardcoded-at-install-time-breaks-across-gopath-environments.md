@@ -1,7 +1,9 @@
 ---
 id: G-0135
 title: Hook path hardcoded at install time; breaks across GOPATH environments
-status: open
+status: addressed
+addressed_by:
+    - M-0133
 ---
 ## Problem
 

@@ -61,8 +61,10 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 		t.Errorf("aiwf.yaml contains aiwf_version: (post-G47 init must omit it): %s", cfg)
 	}
 
-	// pre-push hook exists, is executable, and bakes in the absolute
-	// path of the binary (so it doesn't depend on $PATH at push time).
+	// pre-push hook exists, is executable, and resolves the aiwf
+	// binary via PATH lookup at hook-fire time (G-0135 / M-0133 /
+	// AC-1: install-time absolute-path bake broke across multi-context
+	// dev, replaced with `command -v aiwf`).
 	hookPath := filepath.Join(root, ".git", "hooks", "pre-push")
 	info, err := os.Stat(hookPath)
 	if err != nil {
@@ -75,8 +77,8 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(hookContent), bin) {
-		t.Errorf("hook should contain absolute binary path %q; got:\n%s", bin, hookContent)
+	if !strings.Contains(string(hookContent), "command -v aiwf") {
+		t.Errorf("hook should resolve aiwf via `command -v aiwf` (post-G-0135); got:\n%s", hookContent)
 	}
 
 	// 2. add an epic — should succeed and produce one commit.
@@ -84,28 +86,26 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 		t.Fatalf("aiwf add: %v\n%s", addErr, addOut)
 	}
 
-	// 3. Run the installed hook directly *without* the binary dir on
-	// PATH. The hook bakes in the absolute path, so this should still
-	// work — that's the entire point of fix-#1.
-	if hookOut, hookErr := runHook(t, root, ""); hookErr != nil {
+	// 3. Run the installed hook directly with the test-built binary
+	// dir on PATH. The hook resolves aiwf via `command -v aiwf` per
+	// AC-1, so the binary must be reachable on PATH at hook-fire time.
+	if hookOut, hookErr := runHook(t, root, binDir); hookErr != nil {
 		t.Fatalf("hook on clean tree should pass; got %v\n%s", hookErr, hookOut)
 	}
 
 	// 4. Break the tree by introducing a milestone with an unresolved
-	// parent reference. The hook should fail, again with no PATH help.
+	// parent reference. The hook should fail with the same PATH setup.
 	bad := []byte("---\nid: M-001\ntitle: Broken\nstatus: draft\nparent: E-99\n---\n")
 	if wErr := os.WriteFile(filepath.Join(root, "work", "epics", "E-0001-foundations", "M-0001-bad.md"), bad, 0o644); wErr != nil {
 		t.Fatal(wErr)
 	}
-	out, hookErr := runHook(t, root, "")
+	out, hookErr := runHook(t, root, binDir)
 	if hookErr == nil {
 		t.Fatalf("hook should have failed on broken tree; output:\n%s", out)
 	}
 	if !strings.Contains(out, "refs-resolve") {
 		t.Errorf("hook output should mention the failing check; got:\n%s", out)
 	}
-	// Silence linter on now-unused binDir variable.
-	_ = binDir
 }
 
 // TestIntegration_HonorsCoreHooksPath (G48): when the consumer has
@@ -245,10 +245,11 @@ func TestIntegration_TrunkExplicitMissingIsHardError(t *testing.T) {
 // runHook executes the installed pre-push hook script directly. We
 // invoke via /bin/sh to honor the shebang on platforms where the
 // file mode might not survive (it does on macOS/Linux test runners,
-// but defensive is fine). When extraPath is empty, the host's
-// existing PATH is used unchanged — the hook should not depend on
-// it because `aiwf init` bakes the absolute binary path into the
-// hook script.
+// but defensive is fine). When extraPath is non-empty, that directory
+// is prepended to PATH so the hook's `command -v aiwf` resolves to
+// the test-built binary (per G-0135 / M-0133 / AC-1: hooks resolve
+// aiwf at hook-fire time, not install time). When extraPath is empty,
+// the host's existing PATH is used.
 func runHook(t *testing.T, root, extraPath string) (string, error) {
 	t.Helper()
 	cmd := exec.Command("/bin/sh", filepath.Join(root, ".git", "hooks", "pre-push"))

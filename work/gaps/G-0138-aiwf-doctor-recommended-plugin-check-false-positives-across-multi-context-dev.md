@@ -1,7 +1,9 @@
 ---
 id: G-0138
 title: 'aiwf doctor recommended-plugin check: false positives across multi-context dev'
-status: open
+status: addressed
+addressed_by:
+    - M-0133
 ---
 ## What's missing
 

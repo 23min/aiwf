@@ -11,6 +11,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/initrepo"
 )
 
@@ -82,6 +83,16 @@ func Run(root string) int {
 		} else {
 			fmt.Printf("  %-9s  %s\n", s.Action, s.What)
 		}
+	}
+
+	// G-0136 / M-0133 / AC-2: when invoked from a linked worktree,
+	// the hook writes land in the shared `<main>/.git/hooks/` (which
+	// git actually fires). Flag the affects-all-worktrees scope so
+	// the operator isn't surprised that an update from worktree A
+	// changes the hook chain used by worktree B and the main checkout.
+	if inWT, err := gitops.InWorktree(context.Background(), rootDir); err == nil && inWT {
+		fmt.Println("\nNote: running from a linked worktree. Hook writes go to the shared")
+		fmt.Println("`.git/hooks/` directory; this update affects all worktrees of the repo.")
 	}
 
 	if conflict {

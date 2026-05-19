@@ -493,6 +493,58 @@ func TestHooksDir(t *testing.T) {
 		}
 	})
 
+	t.Run("non-git workdir surfaces error (not silent)", func(t *testing.T) {
+		// commonGitDir and InWorktree are reached only via HooksDir
+		// (and update.Run for InWorktree). When git can't resolve the
+		// workdir, the error propagates rather than silently falling
+		// back. Covers commonGitDir's error return and InWorktree's
+		// GitDir-error branch.
+		notARepo := t.TempDir()
+		if _, err := HooksDir(ctx, notARepo); err == nil {
+			t.Errorf("HooksDir against non-git workdir should error, got nil")
+		}
+		if _, err := InWorktree(ctx, notARepo); err == nil {
+			t.Errorf("InWorktree against non-git workdir should error, got nil")
+		}
+	})
+
+	t.Run("worktree falls back to common-dir hooks (G-0136)", func(t *testing.T) {
+		main := t.TempDir()
+		if err := Init(ctx, main); err != nil {
+			t.Fatalf("init main: %v", err)
+		}
+		// Worktree creation needs HEAD; seed an initial commit.
+		if err := os.WriteFile(filepath.Join(main, "README.md"), []byte("seed\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		for _, args := range [][]string{
+			{"config", "user.email", "test@example.com"},
+			{"config", "user.name", "test"},
+			{"add", "README.md"},
+			{"commit", "-m", "seed"},
+		} {
+			if err := run(ctx, main, args...); err != nil {
+				t.Fatalf("git %v: %v", args, err)
+			}
+		}
+		worktreePath := filepath.Join(t.TempDir(), "wt")
+		if err := run(ctx, main, "worktree", "add", "-b", "feat", worktreePath); err != nil {
+			t.Fatalf("worktree add: %v", err)
+		}
+		got, err := HooksDir(ctx, worktreePath)
+		if err != nil {
+			t.Fatalf("HooksDir from worktree: %v", err)
+		}
+		mainGitDir, err := GitDir(ctx, main)
+		if err != nil {
+			t.Fatalf("GitDir main: %v", err)
+		}
+		want := filepath.Join(mainGitDir, "hooks")
+		if got != want {
+			t.Errorf("HooksDir from worktree = %q, want %q (shared hooks dir per G-0136; the per-worktree path is inert)", got, want)
+		}
+	})
+
 	t.Run("empty value falls back to gitDir/hooks", func(t *testing.T) {
 		root := t.TempDir()
 		if err := Init(ctx, root); err != nil {
