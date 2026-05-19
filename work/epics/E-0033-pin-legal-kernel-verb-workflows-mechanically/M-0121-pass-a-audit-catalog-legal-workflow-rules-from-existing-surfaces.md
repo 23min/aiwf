@@ -93,9 +93,9 @@ R-AUDIT ids run R-AUDIT-0001 through R-AUDIT-0226 contiguously; no gaps. Each id
 
 ## Decisions made during implementation
 
-- **External review integration (Revision 2, 2026-05-18).** A separate session reviewed the audit catalog and surfaced 8 conflicts. All were addressed: FSM-as-tree-invariant adopted, state-aware CancelTarget endorsed, conditional-severity schema, sovereign rationale, reallocate exception, self-transitions explicit, two-step `--force` pattern, R-RULE-019 restated. Two new gaps filed (G-0130, G-0129). Documented in §10's revision banner.
+- **External review integration (Revision 2, 2026-05-18).** A separate session reviewed the audit catalog and surfaced 8 conflicts. All were addressed: FSM-as-tree-invariant adopted, state-aware CancelTarget endorsed, conditional-severity schema, sovereign rationale, reallocate exception, self-transitions explicit, two-step `--force` pattern, R-RULE-019 restated. Two new gaps filed (G-0130, G-0131). Documented in §10's revision banner.
 - **Pass A independence preservation (R1 snapshot).** A second-session review pointed out that Revision 2's interpretive amendments compromised the methodology ADR's load-bearing A/B independence. Resolution: snapshot the pristine pre-revision Pass A as `legal-workflows-audit-r1.md` (§§1-9 only); keep R2 (`legal-workflows-audit.md`) as the working catalog including reconciliation work. Pass B (M-0122) reads R1 only. Pass C (M-0123) reconciles R1 + Pass B's first-principles + R2's pre-reconciliation work as inputs.
-- **G-0130 absorbed as M-0130; G-0129 absorbed as M-0131.** Both new milestones inserted between M-0123 (Pass C) and M-0124/M-0125 (cell coverage), so the cell tests run against the actually-enforced spec. M-0124 and M-0125 dependencies updated accordingly.
+- **G-0130 absorbed as M-0130; G-0131 absorbed as M-0131.** Both new milestones inserted between M-0123 (Pass C) and M-0124/M-0125 (cell coverage), so the cell tests run against the actually-enforced spec. M-0124 and M-0125 dependencies updated accordingly.
 - **Conditional-severity schema design constraint** captured in M-0123's body: the `Rule` struct must model conditional severity natively (e.g., `[]ConditionalSeverity{Predicate, Escalated}`), not via duplicate rows or Notes-column smuggling. Affects ≥4 rules (acs-tdd-audit, unexpected-tree-file, archive-sweep-pending, validator-unavailable).
 
 ## Validation
@@ -109,7 +109,7 @@ R-AUDIT ids run R-AUDIT-0001 through R-AUDIT-0226 contiguously; no gaps. Each id
 ## Deferrals
 
 - **G-0130** — `fsm-history-consistent` check implementation. Absorbed as **M-0130** in E-0033 (inserted before M-0124/M-0125). Without it, R-RULE-001..018 in the catalog read as target severity rather than current. M-0124 and M-0125 depend on M-0130.
-- **G-0129** — state-aware `CancelTarget` for Contract. Absorbed as **M-0131** in E-0033 (same insertion point). Without it, `aiwf cancel C-NNN` on a deprecated contract fails with an FSM-illegal-transition error. M-0124 and M-0125 depend on M-0131.
+- **G-0131** — state-aware `CancelTarget` for Contract. Absorbed as **M-0131** in E-0033 (same insertion point). Without it, `aiwf cancel C-NNN` on a deprecated contract fails with an FSM-illegal-transition error. M-0124 and M-0125 depend on M-0131.
 - **ADR-0001 + ADR-0009 ratification status.** Two long-proposed ADRs whose `unenforced (ADR proposed)` severity in the catalog (R-RULE-145, R-RULE-147) is doing real semantic work. Process call surfaced to the operator separately (not catalog work); each ADR should be ratified or rejected per CLAUDE.md's "decision is decision" rule.
 
 ## Reviewer notes

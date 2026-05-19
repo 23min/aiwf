@@ -1,7 +1,9 @@
 ---
-id: G-0129
+id: G-0131
 title: 'CancelTarget is not state-aware: cancel of deprecated Contract violates FSM'
 status: open
+prior_ids:
+    - G-0129
 discovered_in: M-0121
 ---
 ## What's missing

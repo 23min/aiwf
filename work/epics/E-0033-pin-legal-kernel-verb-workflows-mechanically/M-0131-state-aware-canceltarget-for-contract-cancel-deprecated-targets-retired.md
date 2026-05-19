@@ -11,7 +11,7 @@ tdd: required
 ---
 ## Goal
 
-Make `CancelTarget(kind)` in `internal/entity/transition.go` state-aware so that `aiwf cancel C-NNNN` on a deprecated contract targets `retired` (the natural lifecycle terminal) instead of `rejected` (an FSM-illegal target from `deprecated`). Closes gap **G-0129** (filed during M-0121's audit). Addresses the catalog's R-RULE-021 endorsement.
+Make `CancelTarget(kind)` in `internal/entity/transition.go` state-aware so that `aiwf cancel C-NNNN` on a deprecated contract targets `retired` (the natural lifecycle terminal) instead of `rejected` (an FSM-illegal target from `deprecated`). Closes gap **G-0131** (filed during M-0121's audit). Addresses the catalog's R-RULE-021 endorsement.
 
 ## The bug
 
@@ -46,7 +46,7 @@ But the Contract FSM has no `deprecated → rejected` edge. So `aiwf cancel C-NN
 
 3. **Update the cancel-verb call site** to pass `entity.Status` as the new argument.
 4. **Tests** under `internal/entity/transition_test.go` (and the cancel-verb integration test) covering every (kind, current-state) → cancel-target mapping, plus a negative case for `CancelTarget(KindContract, "retired")` returning `""` (already terminal).
-5. **Update audit catalog**: remove "code bug" qualifier from R-RULE-021's Notes column; remove the "G-0129" qualifier from the source line.
+5. **Update audit catalog**: remove "code bug" qualifier from R-RULE-021's Notes column; remove the "G-0131" qualifier from the source line.
 
 ## What this milestone does *not* do
 
@@ -55,17 +55,17 @@ But the Contract FSM has no `deprecated → rejected` edge. So `aiwf cancel C-NN
 
 ## At wrap
 
-Promote G-0129 to `addressed`:
+Promote G-0131 to `addressed`:
 
 ```
-aiwf promote G-0129 addressed
+aiwf promote G-0131 addressed
 ```
 
-Add `addressed_by: [M-0131]` to G-0129's frontmatter in the same wrap commit.
+Add `addressed_by: [M-0131]` to G-0131's frontmatter in the same wrap commit.
 
 ## Related
 
-- **G-0129** — the gap this milestone closes
+- **G-0131** — the gap this milestone closes
 - **R-RULE-021** in `legal-workflows-audit.md` — the spec entry
 - **R-AUDIT-0031/0032/0033** — the per-source rules in §1
 - `internal/entity/transition.go::CancelTarget`
