@@ -288,6 +288,29 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 		lines = append(lines, "hook:      present but not aiwf-managed (no `# aiwf:pre-push` marker); aiwf check is not running pre-push")
 		return lines, problems
 	}
+
+	// Post-G-0135 / M-0133 / AC-1: hooks resolve aiwf via PATH lookup
+	// at hook-fire time. Validate the binary is reachable on PATH via
+	// exec.LookPath rather than stat'ing a baked path.
+	if strings.Contains(string(raw), "command -v aiwf") {
+		found, lookErr := exec.LookPath("aiwf")
+		if lookErr != nil {
+			lines = append(lines, "hook:      aiwf binary not found on PATH (hook would fail at push time); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH")
+			problems++
+			return lines, problems
+		}
+		chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "pre-push")
+		if chainProblem {
+			problems++
+		}
+		lines = append(lines, fmt.Sprintf("hook:      ok (resolves to %s)%s", found, chainSuffix))
+		return lines, problems
+	}
+
+	// Pre-G-0135 shape: absolute path baked at install time. Detect
+	// the baked path; if it no longer exists, report stale and
+	// recommend `aiwf update` (which refreshes to the PATH-lookup
+	// shape).
 	embedded := extractHookExecPath(string(raw))
 	if embedded == "" {
 		lines = append(lines, "hook:      aiwf-managed but malformed (no exec line found); run `aiwf init` to refresh")
@@ -295,7 +318,7 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 		return lines, problems
 	}
 	if _, statErr := os.Stat(embedded); statErr != nil {
-		lines = append(lines, fmt.Sprintf("hook:      stale path %s — binary moved or removed; run `aiwf init` to refresh", embedded))
+		lines = append(lines, fmt.Sprintf("hook:      stale path %s — binary moved or removed; run `aiwf update` to refresh (post-G-0135 hooks resolve aiwf via PATH)", embedded))
 		problems++
 		return lines, problems
 	}
@@ -303,7 +326,7 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 	if chainProblem {
 		problems++
 	}
-	lines = append(lines, fmt.Sprintf("hook:      ok (%s)%s", embedded, chainSuffix))
+	lines = append(lines, fmt.Sprintf("hook:      ok (%s; pre-G-0135 shape, run `aiwf update` to switch to PATH lookup)%s", embedded, chainSuffix))
 	return lines, problems
 }
 
@@ -374,6 +397,33 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		lines = append(lines, "pre-commit: present but not aiwf-managed (no `# aiwf:pre-commit` marker); tree-discipline gate is not enforced")
 		return lines, problems
 	}
+
+	// Post-G-0135 / M-0133 / AC-1: hook resolves aiwf via PATH at
+	// hook-fire time. Validate via exec.LookPath.
+	if strings.Contains(string(raw), "command -v aiwf") {
+		found, lookErr := exec.LookPath("aiwf")
+		if lookErr != nil {
+			lines = append(lines, "pre-commit: aiwf binary not found on PATH (hook would fail at commit time); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH")
+			problems++
+			return lines, problems
+		}
+		// G-0112 drift check (regen step in pre-commit is a regression).
+		if strings.Contains(string(raw), "status --root") {
+			lines = append(lines, "pre-commit: present with stale STATUS.md regen step (G-0112: regen moved to post-commit); run `aiwf update` to refresh")
+			problems++
+			return lines, problems
+		}
+		chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "pre-commit")
+		if chainProblem {
+			problems++
+		}
+		lines = append(lines, fmt.Sprintf("pre-commit: ok (resolves to %s)%s", found, chainSuffix))
+		return lines, problems
+	}
+
+	// Pre-G-0135: absolute path baked at install time. Stale-path
+	// check takes precedence over the G-0112 drift check because a
+	// stale path means the hook can't run at all.
 	embedded := extractPreCommitExecPath(string(raw))
 	if embedded == "" {
 		lines = append(lines, "pre-commit: aiwf-managed but malformed (no aiwf invocation found); run `aiwf update` to refresh")
@@ -381,7 +431,7 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		return lines, problems
 	}
 	if _, statErr := os.Stat(embedded); statErr != nil {
-		lines = append(lines, fmt.Sprintf("pre-commit: stale path %s — binary moved or removed; run `aiwf update` to refresh", embedded))
+		lines = append(lines, fmt.Sprintf("pre-commit: stale path %s — binary moved or removed; run `aiwf update` to refresh (post-G-0135 hooks resolve aiwf via PATH)", embedded))
 		problems++
 		return lines, problems
 	}
@@ -394,7 +444,7 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		problems++
 		return lines, problems
 	}
-	lines = append(lines, fmt.Sprintf("pre-commit: ok (%s)%s", embedded, chainSuffix))
+	lines = append(lines, fmt.Sprintf("pre-commit: ok (%s; pre-G-0135 shape, run `aiwf update` to switch to PATH lookup)%s", embedded, chainSuffix))
 	return lines, problems
 }
 
@@ -436,6 +486,24 @@ func appendPostCommitHookReport(in []string, problemsIn int, rootDir string) (li
 		problems++
 		return lines, problems
 	}
+	// Post-G-0135 / M-0133 / AC-1: hook resolves aiwf via PATH at
+	// hook-fire time. Validate via exec.LookPath.
+	if strings.Contains(string(raw), "command -v aiwf") {
+		found, lookErr := exec.LookPath("aiwf")
+		if lookErr != nil {
+			lines = append(lines, "post-commit: aiwf binary not found on PATH (STATUS.md regen will skip silently); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH")
+			problems++
+			return lines, problems
+		}
+		chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "post-commit")
+		if chainProblem {
+			problems++
+		}
+		lines = append(lines, fmt.Sprintf("post-commit: ok (resolves to %s)%s", found, chainSuffix))
+		return lines, problems
+	}
+
+	// Pre-G-0135: absolute path baked at install time.
 	embedded := extractPreCommitExecPath(string(raw))
 	if embedded == "" {
 		lines = append(lines, "post-commit: aiwf-managed but malformed (no aiwf invocation found); run `aiwf update` to refresh")
@@ -443,7 +511,7 @@ func appendPostCommitHookReport(in []string, problemsIn int, rootDir string) (li
 		return lines, problems
 	}
 	if _, statErr := os.Stat(embedded); statErr != nil {
-		lines = append(lines, fmt.Sprintf("post-commit: stale path %s — binary moved or removed; run `aiwf update` to refresh", embedded))
+		lines = append(lines, fmt.Sprintf("post-commit: stale path %s — binary moved or removed; run `aiwf update` to refresh (post-G-0135 hooks resolve aiwf via PATH)", embedded))
 		problems++
 		return lines, problems
 	}
@@ -451,7 +519,7 @@ func appendPostCommitHookReport(in []string, problemsIn int, rootDir string) (li
 	if chainProblem {
 		problems++
 	}
-	lines = append(lines, fmt.Sprintf("post-commit: ok (%s)%s", embedded, chainSuffix))
+	lines = append(lines, fmt.Sprintf("post-commit: ok (%s; pre-G-0135 shape, run `aiwf update` to switch to PATH lookup)%s", embedded, chainSuffix))
 	return lines, problems
 }
 

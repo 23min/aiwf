@@ -1027,9 +1027,11 @@ func TestIntegrationG37_PrePushHookCatchesCollision(t *testing.T) {
 	pushAll(t, cloneA)
 	fetchOrigin(t, cloneB)
 
-	// Run the hook directly; the build-in absolute-path invocation
-	// was already pinned by TestIntegration_FreshRepoLifecycle.
-	hookOut, hookErr := runHook(t, cloneB, "")
+	// Run the hook directly; the PATH-relative aiwf resolution shape
+	// (post-G-0135 / M-0133 / AC-1) was already pinned by
+	// TestIntegration_FreshRepoLifecycle. Pass binDir so the
+	// test-built binary is on PATH for the hook's `command -v aiwf`.
+	hookOut, hookErr := runHook(t, cloneB, binDir)
 	if hookErr == nil {
 		t.Fatalf("pre-push hook on B should have failed (cross-tree G-001); output:\n%s", hookOut)
 	}

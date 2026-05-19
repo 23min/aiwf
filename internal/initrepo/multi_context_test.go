@@ -14,13 +14,13 @@ import (
 // G-0135 / M-0133 fix.
 //
 // Three assertions per hook:
-//   1. Contains `command -v aiwf` — the PATH-lookup shape at hook-fire.
-//   2. Contains a fail-loud not-found message — silent skip is wrong;
-//      operators need to know if the hook can't find aiwf.
-//   3. Does NOT contain the sentinel execPath value passed in — proves
-//      the template no longer bakes the install-time path into the
-//      hook body. (Once the execPath parameter is removed in refactor,
-//      this assertion becomes vacuous but documents the invariant.)
+//  1. Contains `command -v aiwf` — the PATH-lookup shape at hook-fire.
+//  2. Contains a fail-loud not-found message — silent skip is wrong;
+//     operators need to know if the hook can't find aiwf.
+//  3. Does NOT contain the sentinel execPath value passed in — proves
+//     the template no longer bakes the install-time path into the
+//     hook body. (Once the execPath parameter is removed in refactor,
+//     this assertion becomes vacuous but documents the invariant.)
 func TestHookScripts_UsePATHResolution(t *testing.T) {
 	t.Parallel()
 	const sentinel = "/SENTINEL_PATH_AIWF"

@@ -455,6 +455,11 @@ func TestRefreshArtifacts_FlipOnInstallsPostCommit(t *testing.T) {
 // `git status` after a commit shows STATUS.md as untracked-but-gitignored
 // (or, equivalently, the file is regenerated and git silently ignores it
 // because of .gitignore).
+//
+// G-0135 / M-0133 / AC-1: the hook resolves aiwf via `command -v
+// aiwf` at hook-fire time, so the stub binary is placed on PATH
+// (named `aiwf` in a dedicated shimDir prepended to PATH) rather
+// than passed via execPath, which is now ignored.
 func TestPostCommitHook_RegeneratesStatusMd(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == "windows" {
@@ -462,8 +467,10 @@ func TestPostCommitHook_RegeneratesStatusMd(t *testing.T) {
 	}
 	root := freshGitRepo(t)
 
-	// Stub binary mimics `aiwf status --format=md`.
-	stubBin := filepath.Join(t.TempDir(), "aiwf-stub.sh")
+	// Stub binary mimics `aiwf status --format=md`. Placed on PATH
+	// as `aiwf` so the hook's `command -v aiwf` resolves to it.
+	shimDir := t.TempDir()
+	stubBin := filepath.Join(shimDir, "aiwf")
 	stubScript := "#!/bin/sh\n" +
 		"case \"$1\" in\n" +
 		"  status) printf '# regen content\\n'; exit 0 ;;\n" +
@@ -477,7 +484,7 @@ func TestPostCommitHook_RegeneratesStatusMd(t *testing.T) {
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	hookBody := postCommitHookScript(stubBin)
+	hookBody := postCommitHookScript("")
 	hookPath := filepath.Join(hooksDir, "post-commit")
 	if err := os.WriteFile(hookPath, []byte(hookBody), 0o755); err != nil {
 		t.Fatal(err)
@@ -488,6 +495,7 @@ func TestPostCommitHook_RegeneratesStatusMd(t *testing.T) {
 
 	cmd := exec.Command("sh", hookPath)
 	cmd.Dir = root
+	cmd.Env = append(os.Environ(), "PATH="+shimDir+":"+os.Getenv("PATH"))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("post-commit hook exited non-zero: %v\n%s", err, out)

@@ -343,6 +343,11 @@ func bytesEqual(a, b []byte) bool {
 // .local hook returns 0. A non-zero .local exit aborts before
 // aiwf is invoked. Drives the script as `sh <hook> ...` so the test
 // is portable; the chain prelude is plain POSIX sh.
+//
+// G-0135 / M-0133 / AC-1: the hook resolves aiwf via `command -v
+// aiwf` at hook-fire time, so the stub is placed on PATH (as a file
+// named `aiwf` in a dedicated shimDir prepended to PATH) rather
+// than passed via execPath, which is now ignored.
 func TestPreCommitHook_ChainsToLocalAtRuntime(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == "windows" {
@@ -351,18 +356,20 @@ func TestPreCommitHook_ChainsToLocalAtRuntime(t *testing.T) {
 	root := freshGitRepo(t)
 	hooksDir := filepath.Join(root, ".git", "hooks")
 
-	// Install aiwf's chain-aware hook with a stub for the aiwf binary
-	// path (the test cares only about the chain prelude, not the
-	// aiwf step that follows). Use a shell-script "binary" that
-	// records being called.
-	stubBin := filepath.Join(t.TempDir(), "aiwf-stub.sh")
+	// Install aiwf's chain-aware hook. The aiwf step that follows the
+	// chain resolves the binary via `command -v aiwf` at hook-fire
+	// time; we put a tracer shim named `aiwf` in shimDir and prepend
+	// that dir to PATH so the resolved binary is our shim.
+	shimDir := t.TempDir()
+	stubBin := filepath.Join(shimDir, "aiwf")
 	stubMarker := filepath.Join(t.TempDir(), "aiwf-stub.called")
 	stubScript := "#!/bin/sh\ntouch '" + stubMarker + "'\nexit 0\n"
 	if err := os.WriteFile(stubBin, []byte(stubScript), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	shimPATH := "PATH=" + shimDir + ":" + os.Getenv("PATH")
 
-	hookBody := preCommitHookScript(stubBin)
+	hookBody := preCommitHookScript("")
 	hookPath := filepath.Join(hooksDir, "pre-commit")
 	if err := os.WriteFile(hookPath, []byte(hookBody), 0o755); err != nil {
 		t.Fatal(err)
@@ -377,6 +384,7 @@ func TestPreCommitHook_ChainsToLocalAtRuntime(t *testing.T) {
 		_ = os.Remove(stubMarker)
 		cmd := exec.Command("sh", hookPath)
 		cmd.Dir = root
+		cmd.Env = append(os.Environ(), shimPATH)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("hook exited non-zero: %v\n%s", err, out)
 		}
@@ -397,6 +405,7 @@ func TestPreCommitHook_ChainsToLocalAtRuntime(t *testing.T) {
 
 		cmd := exec.Command("sh", hookPath)
 		cmd.Dir = root
+		cmd.Env = append(os.Environ(), shimPATH)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("hook exited non-zero: %v\n%s", err, out)
 		}

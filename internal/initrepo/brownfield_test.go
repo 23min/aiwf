@@ -17,7 +17,7 @@ func TestPreHookScript_HasBrownfieldGuard(t *testing.T) {
 	if !strings.Contains(body, `[ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0`) {
 		t.Errorf("pre-push hook missing brownfield guard:\n%s", body)
 	}
-	if !strings.Contains(body, "exec '/some/aiwf' check") {
+	if !strings.Contains(body, `exec "$AIWF" check`) {
 		t.Errorf("pre-push hook missing exec line:\n%s", body)
 	}
 }
@@ -59,9 +59,11 @@ func TestPreHookScript_NoAiwfYamlExitsSilently(t *testing.T) {
 }
 
 // TestPreHookScript_AiwfYamlExitsViaExec asserts the guard does not
-// short-circuit when aiwf.yaml IS present — the hook proceeds to
-// the exec line. We use /bin/false so the test exits non-zero
-// (proving the exec ran) without depending on a real aiwf.
+// short-circuit when aiwf.yaml IS present — the hook proceeds past
+// the guard to the aiwf invocation. We put a fail-shim named `aiwf`
+// on PATH (the hook resolves the binary via `command -v aiwf` per
+// G-0135 / M-0133 / AC-1) so the exec exits non-zero, proving the
+// hook reached the binary call.
 func TestPreHookScript_AiwfYamlExitsViaExec(t *testing.T) {
 	t.Parallel()
 	root := freshGitRepo(t)
@@ -69,15 +71,21 @@ func TestPreHookScript_AiwfYamlExitsViaExec(t *testing.T) {
 		[]byte("aiwf_version: 0.1.0\nactor: human/peter\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	shimDir := t.TempDir()
+	shim := filepath.Join(shimDir, "aiwf")
+	if err := os.WriteFile(shim, []byte("#!/bin/sh\nexit 1\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	hookPath := filepath.Join(t.TempDir(), "pre-push.sh")
-	if err := os.WriteFile(hookPath, []byte(preHookScript("/bin/false")), 0o755); err != nil {
+	if err := os.WriteFile(hookPath, []byte(preHookScript("")), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	cmd := exec.Command("/bin/sh", hookPath)
 	cmd.Dir = root
+	cmd.Env = append(os.Environ(), "PATH="+shimDir+":"+os.Getenv("PATH"))
 	if err := cmd.Run(); err == nil {
-		t.Errorf("pre-push hook exited 0; expected non-zero (guard let exec /bin/false through)")
+		t.Errorf("pre-push hook exited 0; expected non-zero (guard let fail-shim exec through)")
 	}
 }
 
@@ -104,8 +112,12 @@ func TestPreCommitHookScript_NoAiwfYamlExitsSilently(t *testing.T) {
 // TestPreCommitHookScript_AiwfYamlPresentRunsGate asserts the guard
 // passes through to the gate when aiwf.yaml exists. Per G-0112 the
 // pre-commit hook no longer regenerates STATUS.md, so the only body
-// reach we test is the gate (a succeed-shim exits 0; if the gate
-// runs, the hook itself exits 0).
+// reach we test is the gate (a succeed-shim named `aiwf` on PATH
+// exits 0; if the gate runs, the hook itself exits 0).
+//
+// G-0135 / M-0133 / AC-1: the hook resolves aiwf via `command -v
+// aiwf` at hook-fire time, so the shim must be on PATH (not passed
+// via execPath, which is ignored).
 func TestPreCommitHookScript_AiwfYamlPresentRunsGate(t *testing.T) {
 	t.Parallel()
 	root := freshGitRepo(t)
@@ -113,17 +125,19 @@ func TestPreCommitHookScript_AiwfYamlPresentRunsGate(t *testing.T) {
 		[]byte("aiwf_version: 0.1.0\nactor: human/peter\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	shim := filepath.Join(t.TempDir(), "succeed-shim")
+	shimDir := t.TempDir()
+	shim := filepath.Join(shimDir, "aiwf")
 	if err := os.WriteFile(shim, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	hookPath := filepath.Join(t.TempDir(), "pre-commit.sh")
-	if err := os.WriteFile(hookPath, []byte(preCommitHookScript(shim)), 0o755); err != nil {
+	if err := os.WriteFile(hookPath, []byte(preCommitHookScript("")), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	cmd := exec.Command("/bin/sh", hookPath)
 	cmd.Dir = root
+	cmd.Env = append(os.Environ(), "PATH="+shimDir+":"+os.Getenv("PATH"))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("pre-commit hook exited non-zero with aiwf.yaml present:\n%s\nerr: %v", out, err)
@@ -136,11 +150,15 @@ func TestPreCommitHookScript_AiwfYamlPresentRunsGate(t *testing.T) {
 
 // TestPreCommitHookScript_CheckFailureBlocksCommit pins G41's
 // load-bearing behavior: when `aiwf check --shape-only` fails (here
-// simulated with a fail-shim that always exits 1), the pre-commit
-// hook exits non-zero and blocks the commit. Without this, the
-// kernel's tree-discipline guarantee would still only fire at
-// pre-push time — the LLM-loop signal G41 added would be silently
-// dropped.
+// simulated with a fail-shim named `aiwf` on PATH that always exits
+// 1), the pre-commit hook exits non-zero and blocks the commit.
+// Without this, the kernel's tree-discipline guarantee would still
+// only fire at pre-push time — the LLM-loop signal G41 added would
+// be silently dropped.
+//
+// G-0135 / M-0133 / AC-1: the hook resolves aiwf via `command -v
+// aiwf` at hook-fire time, so the fail-shim must be on PATH (not
+// passed via execPath, which is ignored).
 func TestPreCommitHookScript_CheckFailureBlocksCommit(t *testing.T) {
 	t.Parallel()
 	root := freshGitRepo(t)
@@ -148,17 +166,19 @@ func TestPreCommitHookScript_CheckFailureBlocksCommit(t *testing.T) {
 		[]byte("aiwf_version: 0.1.0\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	shim := filepath.Join(t.TempDir(), "fail-shim")
+	shimDir := t.TempDir()
+	shim := filepath.Join(shimDir, "aiwf")
 	if err := os.WriteFile(shim, []byte("#!/bin/sh\nexit 1\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	hookPath := filepath.Join(t.TempDir(), "pre-commit.sh")
-	if err := os.WriteFile(hookPath, []byte(preCommitHookScript(shim)), 0o755); err != nil {
+	if err := os.WriteFile(hookPath, []byte(preCommitHookScript("")), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	cmd := exec.Command("/bin/sh", hookPath)
 	cmd.Dir = root
+	cmd.Env = append(os.Environ(), "PATH="+shimDir+":"+os.Getenv("PATH"))
 	if err := cmd.Run(); err == nil {
 		t.Fatal("pre-commit hook exited 0; expected non-zero (tree-discipline gate must block)")
 	}

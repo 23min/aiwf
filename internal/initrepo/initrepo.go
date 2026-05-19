@@ -46,14 +46,6 @@ const preCommitHookMarker = "# aiwf:pre-commit"
 // post-commit hook is left untouched.
 const postCommitHookMarker = "# aiwf:post-commit"
 
-// shellQuoteSingle wraps s in single quotes for safe /bin/sh
-// interpolation. Single quotes prevent every shell expansion; to
-// embed a literal single quote we close the quote, write a
-// backslash-escaped quote, then reopen — see POSIX shell quoting.
-func shellQuoteSingle(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
-}
-
 // CLAUDETemplate is the boilerplate written to CLAUDE.md when no file
 // exists. Short by design — consumers customize it freely.
 const CLAUDETemplate = `# CLAUDE.md
@@ -73,12 +65,11 @@ Skills under ` + "`.claude/skills/aiwf-*/`" + ` are gitignored and regenerated o
 `
 
 // preHookScript renders the body of the pre-push hook installed by
-// init, with the absolute path of the binary baked in. Hardcoding
-// the path is more robust than relying on `$PATH` at push time —
-// `git push` runs hooks under whatever shell git chose, and the
-// user's interactive PATH may not match. Re-running `aiwf init`
-// after a binary upgrade refreshes the path (idempotent because the
-// marker tells us we own the hook).
+// init. The hook resolves the aiwf binary via `command -v aiwf` at
+// hook-fire time (PATH-relative) rather than baking an absolute path
+// at install time — install-time bake broke across multi-context dev
+// (host ↔ devcontainer ↔ worktree) where install paths differ. Fail
+// loud on not-found: pre-push validation must not silently skip.
 //
 // Brownfield guard on the first content line: if no `aiwf.yaml` is
 // present at the repo root, exit 0 silently rather than run `aiwf
@@ -96,7 +87,11 @@ Skills under ` + "`.claude/skills/aiwf-*/`" + ` are gitignored and regenerated o
 // A `.local` that exists but is not executable fails loud rather
 // than silently skipping (the latter would let the user think they
 // have hook coverage when they don't).
+//
+// The execPath parameter is retained transitionally and ignored in
+// the rendered body.
 func preHookScript(execPath string) string {
+	_ = execPath
 	return `#!/bin/sh
 ` + preHookMarker + `
 # Installed by aiwf init. Chains to the pre-push.local sibling in
@@ -104,7 +99,12 @@ func preHookScript(execPath string) string {
 # compose rather than collide.
 [ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
 ` + chainPrelude("pre-push") + `
-exec ` + shellQuoteSingle(execPath) + ` check
+AIWF="$(command -v aiwf 2>/dev/null)"
+if [ -z "$AIWF" ]; then
+    echo "aiwf pre-push: aiwf binary not found on PATH" >&2
+    exit 1
+fi
+exec "$AIWF" check
 `
 }
 
@@ -141,17 +141,20 @@ fi`
 // the commit produces unresolvable three-way merge conflicts at every
 // merge of two planning-touching branches.
 //
-// The aiwf binary's absolute path is baked in (same rationale as
-// preHookScript: hooks should not depend on the user's interactive
-// `$PATH`). Drift between the installed body and this template is
-// detected by `aiwf doctor` and remediated by `aiwf update`.
+// The aiwf binary resolves via `command -v aiwf` at hook-fire time
+// (see preHookScript for the multi-context rationale). Drift between
+// the installed body and this template is detected by `aiwf doctor`
+// and remediated by `aiwf update`.
 //
 // Brownfield guard mirrors preHookScript's: if no `aiwf.yaml` is
 // present at the repo root the hook exits 0 immediately. Without
 // this guard the hook would fire on every commit in a brownfield
 // repo that has not yet adopted aiwf — invasive and surprising.
+//
+// The execPath parameter is retained transitionally and ignored in
+// the rendered body.
 func preCommitHookScript(execPath string) string {
-	bin := shellQuoteSingle(execPath)
+	_ = execPath
 	return `#!/bin/sh
 ` + preCommitHookMarker + `
 # Installed by aiwf init/update. Chains to the pre-commit.local
@@ -169,10 +172,16 @@ repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
 ` + chainPrelude("pre-commit") + `
 
+AIWF="$(command -v aiwf 2>/dev/null)"
+if [ -z "$AIWF" ]; then
+    echo "aiwf pre-commit: aiwf binary not found on PATH" >&2
+    exit 1
+fi
+
 # (1) Tree-discipline. Output goes to stderr so the user sees it
 # during commit. Non-zero exit blocks (only fires under
 # tree.strict: true; warnings still print but exit 0).
-if ! ` + bin + ` check --shape-only --root "$repo_root" >&2; then
+if ! "$AIWF" check --shape-only --root "$repo_root" >&2; then
     exit 1
 fi
 exit 0
@@ -190,16 +199,22 @@ exit 0
 // does NOT call `git add` (the just-finished commit cannot be amended
 // from here, and the file is gitignored anyway).
 //
-// The hook is tolerant by design: a failed `aiwf status` (binary
-// missing, parse error) deletes the tmp file and exits 0 so the
-// user's commit completes cleanly. Drift between the installed body
-// and this template is detected by `aiwf doctor` and remediated by
-// `aiwf update`.
+// The aiwf binary resolves via `command -v aiwf` at hook-fire time
+// (see preHookScript for the multi-context rationale). The hook is
+// tolerant by design: missing aiwf binary on PATH, parse errors, or
+// a failed `aiwf status` invocation all exit 0 so the user's commit
+// completes cleanly. The missing-binary case logs to stderr (visible
+// during git commit) so an operator can investigate without losing
+// their commit. Drift between the installed body and this template
+// is detected by `aiwf doctor` and remediated by `aiwf update`.
 //
 // Brownfield guard mirrors the other hooks': no aiwf.yaml at the
 // root → exit 0 silently.
+//
+// The execPath parameter is retained transitionally and ignored in
+// the rendered body.
 func postCommitHookScript(execPath string) string {
-	bin := shellQuoteSingle(execPath)
+	_ = execPath
 	return `#!/bin/sh
 ` + postCommitHookMarker + `
 # Installed by aiwf init/update. Chains to the post-commit.local
@@ -213,9 +228,18 @@ repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
 ` + chainPrelude("post-commit") + `
 
+AIWF="$(command -v aiwf 2>/dev/null)"
+if [ -z "$AIWF" ]; then
+    # Tolerant: aiwf binary not found on PATH should not disturb a
+    # successful commit. Log to stderr so the operator sees the
+    # skip; exit 0 to leave the commit alone.
+    echo "aiwf post-commit: aiwf binary not found on PATH (skipping STATUS.md regen)" >&2
+    exit 0
+fi
+
 # STATUS.md regen. Tolerant — never disturbs the user's commit.
 tmp="$repo_root/STATUS.md.tmp"
-if ` + bin + ` status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
+if "$AIWF" status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
     mv "$tmp" "$repo_root/STATUS.md"
 else
     rm -f "$tmp"
@@ -422,7 +446,8 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 			preCommitReport = hookReportPath(root, filepath.Join(hooksDir, "pre-commit"))
 			postCommitReport = hookReportPath(root, filepath.Join(hooksDir, "post-commit"))
 		}
-		steps = append(steps,
+		steps = append(
+			steps,
 			StepResult{
 				What:   prePushReport,
 				Action: ActionSkipped,
