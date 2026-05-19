@@ -17,26 +17,39 @@ failure modes.
 
 ## Build
 
-Prerequisites on the host:
+Two paths to build the container image:
 
-- Docker Desktop running (or another OCI runtime).
-- `@devcontainers/cli` installed: `npm install -g @devcontainers/cli`.
-- This repo cloned at `~/Projects/aiwf/` (or any sibling-tree path —
-  the workspace mount goes one level up so siblings like
-  `~/Projects/ai-workflow-rituals/` are reachable inside).
+**VS Code (primary path).** Install Docker Desktop and the
+[Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+extension. Open this repo in VS Code, then Command Palette →
+"Dev Containers: Reopen in Container". The extension drives image
+build, container start, and `init.sh` execution. **No standalone
+CLI install needed** — the extension carries the devcontainer spec
+implementation internally.
 
-To build the container image from the host without VS Code:
+**Standalone CLI (terminal-first builds, future CI).** Install
+Docker Desktop and `@devcontainers/cli`:
 
 ```
+npm install -g @devcontainers/cli
 devcontainer build --workspace-folder /path/to/aiwf
 ```
 
-The first build downloads the base image
+Only needed when scripting the build outside VS Code. The future
+CI matrix (sibling milestone under E-0035) uses this path; the
+operator path doesn't need it.
+
+Either path: the first build downloads the base image
 (`mcr.microsoft.com/devcontainers/go:1-1.25-bookworm`) and the three
 declared features. Subsequent builds use cached layers. The build
 generates `.devcontainer/devcontainer-lock.json` pinning resolved
 feature SHAs — commit this file once it lands so future builds
 reproduce exactly.
+
+Repo location: this repo cloned at `~/Projects/aiwf/` (or any
+sibling-tree path — the workspace mount goes one level up so
+siblings like `~/Projects/ai-workflow-rituals/` are reachable
+inside).
 
 ## Reopen in Container
 
