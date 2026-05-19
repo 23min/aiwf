@@ -375,10 +375,25 @@ This epic replaces the cancelled E-0031, whose first attempt produced a prose ca
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0120 | Ratify legal-workflow spec methodology in ADR | draft |
-| M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | draft |
-| M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | draft |
-| M-0123 | Pass C reconcile to canonical Go spec table + drift policy | draft |
+| M-0120 | Ratify legal-workflow spec methodology in ADR | done |
+| M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | done |
+| M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | done |
+| M-0123 | Pass C reconcile to canonical Go spec table + drift policy | done |
 | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | draft |
 | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | draft |
+| M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant | draft |
+| M-0131 | State-aware CancelTarget for Contract: cancel deprecated targets retired | draft |
+
+## E-0034 — Retire docs/pocv3/ and declare doc-authority hierarchy (proposed)
+
+### Goal
+
+Refactor `docs/` so a reader (human or LLM) can identify each file's authority tier from its path. Retire the historical `docs/pocv3/` directory by relocating its surviving content, archiving its pre-dogfooding artifacts, and declaring the resulting hierarchy in CLAUDE.md.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0126 | Triage docs/pocv3/ into per-file disposition table | draft |
+| M-0127 | Relocate docs/pocv3/ contents and sweep cross-references | draft |
+| M-0128 | Declare doc-authority hierarchy in CLAUDE.md | draft |
+| M-0129 | Drift chokepoint: forbid docs/pocv3/ literals in Go code | draft |
 
