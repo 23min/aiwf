@@ -8,6 +8,11 @@ parent: E-0033
 depends_on:
     - M-0123
 tdd: required
+acs:
+    - id: AC-1
+      title: fsm-history-consistent check rule registered; walks git log per entity
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -68,3 +73,6 @@ aiwf promote G-0132 addressed
 - **R-RULE-149** in `legal-workflows-audit.md` — the spec entry
 - **ADR-0011** — methodology committing FSM-as-tree-invariant
 - **CLAUDE.md §Engineering principles** — *"framework correctness must not depend on the LLM choosing to enforce"*
+
+### AC-1 — fsm-history-consistent check rule registered; walks git log per entity
+
