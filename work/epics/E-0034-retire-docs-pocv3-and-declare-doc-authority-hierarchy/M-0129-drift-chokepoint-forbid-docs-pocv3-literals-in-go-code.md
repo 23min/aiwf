@@ -14,7 +14,7 @@ Land an `internal/policies/` rule that fails CI if any Go source file under `int
 
 ## Context
 
-**Conditional milestone.** Decision deferred to M-0128 wrap per the epic spec — include this milestone in the epic, or extract as a follow-up gap, based on whether residual `docs/pocv3/` references survived M-0127's sweep. If the sweep was complete and the pattern is unlikely to recur (no consumer-side scripts, no skill-bodies citing the old path), this milestone may be cancelled with a one-line rationale and a follow-up gap filed instead.
+**Conditional milestone.** Decision deferred to M-0128 wrap per the epic spec — include this milestone in the epic, or extract as a follow-up gap, based on whether residual `docs/pocv3/` references survived M-0131's sweep. If the sweep was complete and the pattern is unlikely to recur (no consumer-side scripts, no skill-bodies citing the old path), this milestone may be cancelled with a one-line rationale and a follow-up gap filed instead.
 
 If kept, this is a textbook TDD milestone: write a Go test that scans the relevant trees for the literal pattern and asserts no matches; verify the test fails against a planted fixture; remove the fixture; green. Red → green → refactor.
 

@@ -1,7 +1,9 @@
 ---
-id: M-0127
+id: M-0131
 title: 'State-aware CancelTarget for Contract: cancel deprecated targets retired'
 status: draft
+prior_ids:
+    - M-0127
 parent: E-0033
 depends_on:
     - M-0123
@@ -59,7 +61,7 @@ Promote G-0129 to `addressed`:
 aiwf promote G-0129 addressed
 ```
 
-Add `addressed_by: [M-0127]` to G-0129's frontmatter in the same wrap commit.
+Add `addressed_by: [M-0131]` to G-0129's frontmatter in the same wrap commit.
 
 ## Related
 

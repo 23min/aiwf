@@ -77,8 +77,8 @@ ADR-0004 flagged this inline: *"The broader question of which `docs/` trees are 
 | Label | Id | Title | Depends on |
 |-------|----|-------|-----------|
 | Triage | [M-0130](M-0130-triage-docs-pocv3-into-per-file-disposition-table.md) | Triage docs/pocv3/ into per-file disposition table | — |
-| Relocate | [M-0127](M-0127-relocate-docs-pocv3-contents-and-sweep-cross-references.md) | Relocate docs/pocv3/ contents and sweep cross-references | M-0130; gated on E-0033 wrap |
-| Hierarchy | [M-0128](M-0128-declare-doc-authority-hierarchy-in-claude-md.md) | Declare doc-authority hierarchy in CLAUDE.md | M-0127 |
+| Relocate | [M-0131](M-0131-relocate-docs-pocv3-contents-and-sweep-cross-references.md) | Relocate docs/pocv3/ contents and sweep cross-references | M-0130; gated on E-0033 wrap |
+| Hierarchy | [M-0128](M-0128-declare-doc-authority-hierarchy-in-claude-md.md) | Declare doc-authority hierarchy in CLAUDE.md | M-0131 |
 | Drift chokepoint (optional) | [M-0129](M-0129-drift-chokepoint-forbid-docs-pocv3-literals-in-go-code.md) | Drift chokepoint: forbid docs/pocv3/ literals in Go code | M-0128; conditional, decision at M-0128 wrap |
 
 ## Supersedes

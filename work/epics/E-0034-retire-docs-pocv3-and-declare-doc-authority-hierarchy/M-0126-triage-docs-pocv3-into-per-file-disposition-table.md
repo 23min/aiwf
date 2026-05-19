@@ -8,7 +8,7 @@ tdd: none
 
 ## Goal
 
-Produce a per-file disposition table for every file under `docs/pocv3/`. Each row records one of {`relocate`, `archive`, `supersede-with-entity`, `delete`} plus a target path (for `relocate`/`archive`) or entity id (for `supersede-with-entity`) and a one-line rationale. The table is the contract that M-0127 (Relocate) executes against verbatim.
+Produce a per-file disposition table for every file under `docs/pocv3/`. Each row records one of {`relocate`, `archive`, `supersede-with-entity`, `delete`} plus a target path (for `relocate`/`archive`) or entity id (for `supersede-with-entity`) and a one-line rationale. The table is the contract that M-0131 (Relocate) executes against verbatim.
 
 ## Context
 
@@ -35,7 +35,7 @@ Triage is markdown-only — no Go source touched. It can run in parallel with E-
 
 ## Out of scope
 
-- Executing any file moves (M-0127's job).
+- Executing any file moves (M-0131's job).
 - Writing the CLAUDE.md hierarchy section (M-0128's job).
 - Renaming top-level `docs/` subdirs not under `docs/pocv3/`. The current top-level `docs/archive/` may receive content from `docs/pocv3/archive/` but is not itself renamed in this milestone.
 
