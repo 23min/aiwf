@@ -13,21 +13,21 @@ tdd: required
 
 For every **illegal** cell in M-0123's spec table, write a test under `internal/policies/` that drives the real `aiwf` binary against a fixture tree, attempts the cell's verb, and asserts:
 
-- Non-zero exit code (matching the rule's expected severity tier)
-- The error or finding code matches the rule's `ExpectedErrorCode`
+- Non-zero exit code (matching the rule's expected severity), or
+- The expected finding code appears in `aiwf check --format=json` output (for check-time cells)
 - The pre-state is unchanged (or the planning tree is otherwise in the rule's `ExpectedRollbackState`)
 
 This is the closing chokepoint: if the impl ever silently *allows* an illegal workflow, the corresponding negative test fails and CI blocks.
 
-## Severity tiers
+## Severity model
 
-The spec table's illegal cells will fall into severity tiers (decided in M-0123):
+The spec table's illegal cells carry a two-axis severity model (decided in M-0123): `RejectionLayer` (verb-time | check-time) + `BlockingStrict` (bool). The test shape derives from the layer:
 
-- **Hard reject** — verb returns non-zero exit, no commit, no side effect. Tested via subprocess invocation + exit-code assertion.
-- **Aiwf-check error** — verb succeeds but `aiwf check --strict` returns non-zero with a specific finding code. Tested via verb → check → finding inspection.
-- **Aiwf-check warning** — verb succeeds, `aiwf check` returns 0 but emits a warning-severity finding. Tested via finding inspection.
+- **Verb-time rejection** — verb returns non-zero exit, no commit, no side effect. Tested via subprocess invocation + exit-code assertion + `git status` rollback verification.
+- **Check-time rejection (blocking)** — verb succeeds; `aiwf check --strict` returns non-zero with a specific finding code. Tested via verb → check → finding-code inspection.
+- **Check-time advisory** — verb succeeds; `aiwf check` returns 0 but emits a warning-severity finding. Tested via finding-code inspection without exit-code assertion.
 
-Each illegal cell carries one of these three tiers in its spec entry.
+If M-0123's reconciliation walk surfaces too few `(check-time, advisory)` cells to justify the second axis and the model collapses to a single `Severity` enum (`HardReject | CheckError | CheckWarning`), the three test shapes above remain — only the field they key off changes. M-0125 consumes whichever shape M-0123 lands on.
 
 ## Test shape
 
@@ -35,13 +35,13 @@ Per illegal cell:
 
 1. Build a fixture tree that satisfies the cell's preconditions.
 2. Attempt the verb.
-3. Assert the expected severity-tier behavior.
-4. Confirm rollback / no-side-effect for hard-rejects.
-5. Confirm finding code via `aiwf check --format=json` for check-tier cells.
+3. Assert the expected severity behavior (verb exit code, check exit code, or finding code presence per the cell's `RejectionLayer` / `BlockingStrict`).
+4. Confirm rollback / no-side-effect for verb-time-rejection cells.
+5. Confirm finding code via `aiwf check --format=json` for check-time cells.
 
 ## Coverage commitment
 
-Every illegal cell in `Rules()` has at least one negative test. The meta-test from M-0124 extends to require negative coverage as well — `Expected = illegal` rules without a matching test fail CI.
+Every illegal cell in `Rules()` has at least one negative test. The meta-test from M-0124 extends to require negative coverage as well — `Outcome = illegal` rules without a matching test fail CI.
 
 ## Acceptance criteria
 
@@ -50,8 +50,8 @@ Every illegal cell in `Rules()` has at least one negative test. The meta-test fr
 ## Approach
 
 - Reuse the fixture builder from M-0124 with helpers that *deliberately* establish forbidden preconditions.
-- For hard-reject cells: subprocess invocation + exit-code check + `git status` rollback verification.
-- For check-tier cells: structured envelope parsing of `aiwf check --format=json`.
+- For verb-time-rejection cells: subprocess invocation + exit-code check + `git status` rollback verification.
+- For check-time cells (blocking or advisory): structured envelope parsing of `aiwf check --format=json`.
 - Negative tests are often shorter than positive ones (just assert rejection) but more diverse (every illegal cell is its own scenario).
 
 ## What this milestone does *not* do
