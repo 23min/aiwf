@@ -47,15 +47,28 @@ if [ -f .git ]; then
       echo "gitdir: ${relative_gitdir}" > .git
       # Also rewrite the reverse pointer (main repo's
       # .git/worktrees/<n>/gitdir → worktree's .git) to a relative
-      # path. Same portability win.
+      # path. Position is 4 levels deep under /workspaces/, so 4 ups
+      # reach the /workspaces/ parent before stepping into the
+      # worktree dir.
       self_dir=$(basename "$PWD")
       rev_file="../${main_name}/.git/worktrees/${wt_name}/gitdir"
       if [ -f "$rev_file" ]; then
-        echo "../../../${self_dir}/.git" > "$rev_file"
+        echo "../../../../${self_dir}/.git" > "$rev_file"
       fi
       ;;
   esac
 fi
+
+# --- stale core.hooksPath unset ------------------------------------
+# Pre-G38 install-hooks invocations could leave an absolute
+# `core.hooksPath` in the repo config that mirrors the default
+# `<gitdir>/hooks` value but as a host-side absolute path
+# (`/Users/.../`). Inside the container that path doesn't exist;
+# `aiwf init` and any hook-resolving verb crashes with a mkdir
+# permission-denied on `/Users`. Unset defensively so git's
+# default `<gitdir>/hooks` discovery (which works correctly across
+# host + container with relative .git pointers) kicks in.
+git config --unset core.hooksPath 2>/dev/null || true
 
 # --- git config ----------------------------------------------------
 # Match host identity so aiwf commit trailers stay consistent across

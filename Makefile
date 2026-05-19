@@ -84,9 +84,10 @@ clean:
 # consumer: aiwf owns .git/hooks/<name>, kernel-specific logic lives
 # at .git/hooks/<name>.local, both compose via G45's chain.
 install-hooks:
-	mkdir -p .git/hooks
-	ln -sf ../../scripts/git-hooks/pre-commit .git/hooks/pre-commit.local
-	@echo "Symlinked scripts/git-hooks/pre-commit -> .git/hooks/pre-commit.local"
+	@HOOKS_DIR=$$(git rev-parse --git-path hooks); \
+	mkdir -p "$$HOOKS_DIR"; \
+	ln -sfn ../../scripts/git-hooks/pre-commit "$$HOOKS_DIR/pre-commit.local"; \
+	echo "Symlinked scripts/git-hooks/pre-commit -> $$HOOKS_DIR/pre-commit.local"
 	@echo "Run 'aiwf init' (if not already done) so the chain-aware aiwf hook calls it."
 
 # Playwright browser-level tests for the HTML render. Opt-in: not
