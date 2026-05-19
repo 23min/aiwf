@@ -1,7 +1,7 @@
 ---
 id: M-0123
 title: Pass C reconcile to canonical Go spec table + drift policy
-status: draft
+status: in_progress
 parent: E-0033
 depends_on:
     - M-0121
