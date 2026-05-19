@@ -1,7 +1,9 @@
 ---
-id: G-0134
+id: G-0137
 title: aiwf init bakes absolute aiwf path in hooks; survives multi-context dev poorly
 status: open
+prior_ids:
+    - G-0134
 ---
 ## What's missing
 
