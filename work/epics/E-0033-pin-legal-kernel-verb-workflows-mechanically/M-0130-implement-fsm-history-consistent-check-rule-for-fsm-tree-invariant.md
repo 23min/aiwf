@@ -13,6 +13,10 @@ acs:
       title: fsm-history-consistent check rule registered; walks git log per entity
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: 'manual-edit subcode: status-change commit lacks aiwf-verb trailer entirely'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -75,4 +79,6 @@ aiwf promote G-0132 addressed
 - **CLAUDE.md §Engineering principles** — *"framework correctness must not depend on the LLM choosing to enforce"*
 
 ### AC-1 — fsm-history-consistent check rule registered; walks git log per entity
+
+### AC-2 — manual-edit subcode: status-change commit lacks aiwf-verb trailer entirely
 
