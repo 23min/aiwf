@@ -14,7 +14,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-2
-      title: 'manual-edit subcode: status-change commit lacks aiwf-verb trailer entirely'
+      title: 'illegal-transition subcode: change outside FSM, no force trailer'
       status: open
       tdd_phase: red
     - id: AC-3
@@ -88,7 +88,7 @@ aiwf promote G-0132 addressed
 
 ### AC-1 — fsm-history-consistent check rule registered; walks git log per entity
 
-### AC-2 — manual-edit subcode: status-change commit lacks aiwf-verb trailer entirely
+### AC-2 — illegal-transition subcode: change outside FSM, no force trailer
 
 ### AC-3 — Hint table entry for fsm-history-consistent and each subcode
 
