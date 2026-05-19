@@ -4,13 +4,13 @@ title: Relocate docs/pocv3/ contents and sweep cross-references
 status: draft
 parent: E-0034
 depends_on:
-    - M-0126
+    - M-0130
 tdd: none
 ---
 
 ## Goal
 
-Execute the moves recorded in M-0126's triage table. Update every cross-reference to `docs/pocv3/` across the repo (~163 files at planning time including markdown, Go source under `internal/`, and embedded skill markdown). At milestone close, `docs/pocv3/` no longer exists, `aiwf check` is clean, and a repo-wide link check is clean.
+Execute the moves recorded in M-0130's triage table. Update every cross-reference to `docs/pocv3/` across the repo (~163 files at planning time including markdown, Go source under `internal/`, and embedded skill markdown). At milestone close, `docs/pocv3/` no longer exists, `aiwf check` is clean, and a repo-wide link check is clean.
 
 ## Context
 
@@ -20,13 +20,13 @@ Full AC body, design notes, and surfaces-touched section drafted at `aiwfx-start
 
 ## Out of scope
 
-- Re-classifying any file beyond what M-0126's table records. If triage was wrong, file a gap; do not silently revise during the sweep.
+- Re-classifying any file beyond what M-0130's table records. If triage was wrong, file a gap; do not silently revise during the sweep.
 - Writing the CLAUDE.md hierarchy section (M-0128's job).
 - Landing the drift chokepoint (M-0129's job).
 
 ## Dependencies
 
-- M-0126 (Triage) — done. Provides the disposition table this milestone executes.
+- M-0130 (Triage) — done. Provides the disposition table this milestone executes.
 - E-0033 (Pin legal kernel-verb workflows mechanically) — wrapped. Removes the file-conflict window.
 
 ## References

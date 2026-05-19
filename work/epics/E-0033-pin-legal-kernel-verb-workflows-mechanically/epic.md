@@ -47,12 +47,12 @@ Then:
 | M-α₁ | M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | M-0120 |
 | M-β  | M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | M-0120 |
 | M-γ  | M-0123 | Pass C reconcile to canonical Go spec table + drift policy | M-0121, M-0122 |
-| M-ζ  | M-0126 | Implement fsm-history-consistent check rule for FSM tree-invariant (closes G-0130) | M-0123 |
+| M-ζ  | M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant (closes G-0130) | M-0123 |
 | M-η  | M-0127 | State-aware CancelTarget for Contract: cancel deprecated targets retired (closes G-0129) | M-0123 |
-| M-δ  | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | M-0123, M-0126, M-0127 |
-| M-ε  | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | M-0123, M-0126, M-0127 |
+| M-δ  | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | M-0123, M-0130, M-0127 |
+| M-ε  | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | M-0123, M-0130, M-0127 |
 
-**M-ζ and M-η** were inserted between Pass C and the cell-coverage milestones (2026-05-18) so that M-0124/M-0125's tests run against the actually-enforced spec, not a partially-aspirational one. The decision was driven by an external review of M-0121's audit catalog (review finding #3): committing the catalog to FSM-as-tree-invariant in R-RULE-019/R-RULE-001..018 without implementing the `fsm-history-consistent` chokepoint leaves the cell tests testing only verb-time enforcement. M-0126 closes the gap; M-0127 fixes a state-aware `CancelTarget` bug surfaced in the same review (review finding #1).
+**M-ζ and M-η** were inserted between Pass C and the cell-coverage milestones (2026-05-18) so that M-0124/M-0125's tests run against the actually-enforced spec, not a partially-aspirational one. The decision was driven by an external review of M-0121's audit catalog (review finding #3): committing the catalog to FSM-as-tree-invariant in R-RULE-019/R-RULE-001..018 without implementing the `fsm-history-consistent` chokepoint leaves the cell tests testing only verb-time enforcement. M-0130 closes the gap; M-0127 fixes a state-aware `CancelTarget` bug surfaced in the same review (review finding #1).
 
 ## What this epic deliberately does *not* do
 

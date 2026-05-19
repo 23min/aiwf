@@ -18,7 +18,7 @@ Triage is markdown-only — no Go source touched. It can run in parallel with E-
 
 ## Acceptance criteria
 
-<!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac M-0126 --title "..."`.
+<!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac M-0130 --title "..."`.
      Candidate AC titles, drafted here as prose hints (not yet kernel state): -->
 
 - **AC-1 candidate** — A triage table file (e.g. `TRIAGE.md` under this milestone's directory) exists and lists every regular file currently under `docs/pocv3/`, one row per file.

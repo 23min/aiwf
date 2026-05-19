@@ -1,7 +1,9 @@
 ---
-id: M-0126
+id: M-0130
 title: Implement fsm-history-consistent check rule for FSM tree-invariant
 status: draft
+prior_ids:
+    - M-0126
 parent: E-0033
 depends_on:
     - M-0123
@@ -58,7 +60,7 @@ Promote G-0130 to `addressed`:
 aiwf promote G-0130 addressed
 ```
 
-(Per the gap FSM: `open → addressed | wontfix`.) Add `addressed_by: [M-0126]` to G-0130's frontmatter in the same wrap commit.
+(Per the gap FSM: `open → addressed | wontfix`.) Add `addressed_by: [M-0130]` to G-0130's frontmatter in the same wrap commit.
 
 ## Related
 
