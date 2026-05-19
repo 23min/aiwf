@@ -19,7 +19,7 @@ acs:
       status: met
     - id: AC-5
       title: .devcontainer/README.md ships operator-facing usage with named sections
-      status: open
+      status: met
     - id: AC-6
       title: CLAUDE.md Operator setup gains Devcontainer subsection with shadow-mount note
       status: open
