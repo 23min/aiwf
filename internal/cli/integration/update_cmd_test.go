@@ -2,12 +2,14 @@ package integration
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/initrepo"
 )
 
@@ -155,5 +157,67 @@ func TestRun_UpdateMissingConfig(t *testing.T) {
 	// No init: aiwf.yaml is absent.
 	if rc := cli.Execute([]string{"update", "--root", root}); rc != cliutil.ExitInternal {
 		t.Errorf("rc = %d, want cliutil.ExitInternal (%d)", rc, cliutil.ExitInternal)
+	}
+}
+
+// TestRun_UpdateFromWorktree_WritesSharedHooks (G-0136 / M-0133 /
+// AC-2): when `aiwf update` runs from a linked git worktree, the
+// hook write goes to the shared `<main>/.git/hooks/` (which git
+// actually fires) and NOT the per-worktree `.git/worktrees/<id>/hooks/`
+// (inert — pre-fix behavior). Output names the affects-all-worktrees
+// scope so the operator isn't surprised.
+//
+// Uses testutil.CaptureRun (cannot t.Parallel — os.Stdout mutation).
+func TestRun_UpdateFromWorktree_WritesSharedHooks(t *testing.T) {
+	main := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", main, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	// Commit init's artifacts (aiwf.yaml, CLAUDE.md, .gitignore) so
+	// the worktree's checkout sees them.
+	for _, args := range [][]string{
+		{"add", "."},
+		{"commit", "-m", "aiwf init artifacts"},
+	} {
+		c := exec.Command("git", args...)
+		c.Dir = main
+		if out, err := c.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	// Create a linked worktree off the main checkout.
+	worktreePath := filepath.Join(t.TempDir(), "wt")
+	wtCmd := exec.Command("git", "worktree", "add", "-b", "feat", worktreePath)
+	wtCmd.Dir = main
+	if out, err := wtCmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add: %v\n%s", err, out)
+	}
+	// Remove the pre-push hook so update has visible work to do.
+	prePushSharedPath := filepath.Join(main, ".git", "hooks", "pre-push")
+	if err := os.Remove(prePushSharedPath); err != nil {
+		t.Fatalf("remove pre-push hook: %v", err)
+	}
+	// Run aiwf update from the worktree.
+	rc, stdout, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"update", "--root", worktreePath})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("update from worktree: rc=%d\nstdout: %s\nstderr: %s", rc, stdout, stderr)
+	}
+	// (a) Shared hooks dir was touched — pre-push hook reinstalled.
+	if _, err := os.Stat(prePushSharedPath); err != nil {
+		t.Errorf("shared pre-push hook not present after update from worktree: %v", err)
+	}
+	// (b) Per-worktree hooks dir was NOT touched. git's worktree
+	// metadata lives at <main>/.git/worktrees/<id>/; the hooks/
+	// subdir under it is what HooksDir incorrectly returned pre-fix.
+	perWorktreeHooks := filepath.Join(main, ".git", "worktrees", "wt", "hooks")
+	if _, err := os.Stat(filepath.Join(perWorktreeHooks, "pre-push")); !os.IsNotExist(err) {
+		t.Errorf("per-worktree pre-push hook should not be created (stat err=%v); update from a worktree must write only to the shared dir per G-0136", err)
+	}
+	// (c) Output names the affects-all-worktrees scope.
+	combined := stdout + stderr
+	if !strings.Contains(combined, "affects all worktrees") {
+		t.Errorf("update output should mention 'affects all worktrees' notice when run from a worktree:\nstdout: %s\nstderr: %s", stdout, stderr)
 	}
 }
