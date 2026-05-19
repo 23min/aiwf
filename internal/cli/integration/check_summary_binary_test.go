@@ -516,14 +516,25 @@ func parseEnvelope(t *testing.T, raw string) map[string]any {
 
 // assertEnvelopesEqualModuloRoot compares two envelopes for AC-4.
 // Everything in `findings` and the top-level envelope keys must match
-// exactly; `metadata.root` is permitted to vary (legitimately
-// environmental — the absolute path of the resolved consumer repo).
+// exactly; two fields are permitted to vary because they're
+// legitimately environmental:
+//
+//   - `metadata.root` — the absolute path of the resolved consumer
+//     repo (varies per tempdir per test).
+//   - `version` — sourced from `version.Current().Version` after
+//     M-0118/AC-2 converged every verb's envelope onto the buildinfo
+//     reader. Buildinfo returns the latest reachable tag for a
+//     `go install <pkg>@v0.1.0` binary, the literal `(devel)` for a
+//     plain `go test` build with no VCS info, or a pseudo-version
+//     of the shape `vX.Y.Z-0.<date>-<sha>` for a `go test` build
+//     past the latest tag — three legitimate shapes depending on
+//     build environment. The byte-identical test pins structure
+//     and content of `findings`, not the build-time version.
 //
 // Per AC-4 in M-0089: "byte-identical to a saved pre-M-0089 baseline".
-// The literal reading is impossible for the metadata.root slot, so
-// the assertion compares everything else exactly and asserts that
-// metadata.root is non-empty (the field is present and populated,
-// just not pinnable in a portable golden).
+// The literal reading is impossible for environmental fields, so the
+// assertion compares everything else exactly and asserts that those
+// fields are present and non-empty.
 func assertEnvelopesEqualModuloRoot(t *testing.T, want, got map[string]any, rawGot string) {
 	t.Helper()
 	wantClone := cloneEnvelope(want)
@@ -542,6 +553,16 @@ func assertEnvelopesEqualModuloRoot(t *testing.T, want, got map[string]any, rawG
 	if md, ok := wantClone["metadata"].(map[string]any); ok {
 		md["root"] = "<env-specific>"
 		wantClone["metadata"] = md
+	}
+
+	// Version is environmental post-M-0118/AC-2; same pattern as root.
+	if v, ok := gotClone["version"].(string); ok && v != "" {
+		gotClone["version"] = "<env-specific>"
+	} else {
+		t.Errorf("version field missing or empty:\n%s", rawGot)
+	}
+	if _, ok := wantClone["version"].(string); ok {
+		wantClone["version"] = "<env-specific>"
 	}
 
 	if diff := cmp.Diff(wantClone, gotClone); diff != "" {
