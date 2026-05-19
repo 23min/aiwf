@@ -3,8 +3,9 @@ package integration
 import (
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli"
 	"github.com/spf13/cobra"
+
+	"github.com/23min/aiwf/internal/cli"
 )
 
 // M-076/AC-5: closed-set completion for the new `--depends-on` flag

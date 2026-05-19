@@ -4,8 +4,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli"
 	"github.com/spf13/cobra"
+
+	"github.com/23min/aiwf/internal/cli"
 )
 
 // M-069 AC-6 — Native-Cobra drift test fails CI on

@@ -12,8 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
 // M-0089: binary-level integration tests for `aiwf check` per-code

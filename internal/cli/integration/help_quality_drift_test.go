@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli"
 	"github.com/spf13/cobra"
+
+	"github.com/23min/aiwf/internal/cli"
 )
 
 // M-069 AC-7 — Help-quality drift asserts Example present and no

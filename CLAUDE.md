@@ -108,6 +108,10 @@ In a Claude Code session at this repo's root:
 
 Install both `aiwf-extensions@ai-workflow-rituals` and `wf-rituals@ai-workflow-rituals`. **The CLI form `claude /plugin install <name>@<marketplace>` defaults to *user* scope** — only the interactive `/plugin` menu offers a project-scope choice. Verify with `aiwf doctor`: once both are project-scope-installed, the `recommended-plugin-not-installed:` warnings go silent. (Closes G-064 via M-071, which lives under E-18.)
 
+### Devcontainer
+
+If you use the devcontainer (see [`.devcontainer/README.md`](.devcontainer/README.md)), the same plugin-install instruction above applies inside the container — but with one additional concern. Claude Code's plugin index stores absolute host paths ([anthropics/claude-code#31388](https://github.com/anthropics/claude-code/issues/31388)), so a macOS-pathed index breaks inside a Linux container and a Linux-pathed index breaks back on the host. The devcontainer works around this with a **plugin index shadow-mount**: `~/.claude-linux/plugins` on the host backs `/home/vscode/.claude/plugins` in the container, so the container has its own Linux-pathed parallel index while the host's macOS-pathed index stays untouched. The mechanics live in [`.devcontainer/initialize.sh`](.devcontainer/initialize.sh) (host-side, sets up the symlinks) and [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) (the mount entry). Once #31388 ships a fix that resolves plugin paths relative to `$HOME`, the shadow-mount can be removed across this repo plus Liminara and FlowTime (each carries the same workaround). Per M-0132 in E-0035.
+
 ---
 
 ## Working in this repo

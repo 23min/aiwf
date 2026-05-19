@@ -1,34 +1,34 @@
 ---
 id: M-0132
 title: Land .devcontainer skeleton (features-first, Go base, project-scope plugins)
-status: draft
+status: done
 parent: E-0035
 tdd: none
 acs:
     - id: AC-1
       title: devcontainer.json declares base image, features, mounts, workspace mount
-      status: open
+      status: met
     - id: AC-2
       title: devcontainer-lock.json pins feature SHAs
-      status: open
+      status: met
     - id: AC-3
       title: initialize.sh creates host-side symlinks and cites claude-code#31388
-      status: open
+      status: met
     - id: AC-4
       title: init.sh runs idempotently with the agreed install + banner blocks
-      status: open
+      status: met
     - id: AC-5
       title: .devcontainer/README.md ships operator-facing usage with named sections
-      status: open
+      status: met
     - id: AC-6
       title: CLAUDE.md Operator setup gains Devcontainer subsection with shadow-mount note
-      status: open
+      status: met
     - id: AC-7
       title: devcontainer-build-smoke.sh exists with build + Go-version check
-      status: open
+      status: cancelled
     - id: AC-8
       title: devcontainer-ci-smoke.sh exists with make-ci-inside-container check
-      status: open
+      status: cancelled
 ---
 ## Goal
 
@@ -47,7 +47,7 @@ host-side symlink dance per the FlowTime precedent, postcreate
 banner for the one manual plugin-install step per the
 claude-code#31388 workaround. Concretely:
 
-- **Base image:** `mcr.microsoft.com/devcontainers/go:1-1.25-bookworm`.
+- **Base image:** `mcr.microsoft.com/devcontainers/go:2-1.25-bookworm`.
   First-party Go image avoids the FlowTime pain of installing Go
   on a stranger base image.
 - **Features:** `common-utils:2` (zsh + oh-my-zsh + vscode user),
@@ -110,84 +110,38 @@ claude-code#31388 workaround. Concretely:
   `scripts/sign-and-run.sh`, the in-test `codesign` blocks, the
   `-parallel 8` cap all remain; the CLAUDE.md DO/DON'T section
   is reframed in a later milestone.
+- **Operator path is VS Code "Reopen in Container".** The
+  Dev Containers extension drives image build + container start
+  + `init.sh` execution; no standalone `@devcontainers/cli`
+  install needed on the host for day-to-day use. The smoke
+  scripts originally planned for AC-7/AC-8 belong with the
+  future CI matrix (sibling milestone under E-0035, which does
+  need the standalone CLI).
 
 ## Acceptance criteria
 
-Eight ACs cover the structural shape of the .devcontainer/ files,
-the CLAUDE.md operator-setup subsection, and two operator-run
-smoke scripts under `scripts/` that exercise image build and
-in-container `make ci`. Six are pure structural assertions
-mechanized via `internal/policies/`; two are smoke scripts whose
-existence + shell-line structure is asserted, with their
-runtime green-ness deferred to operator verification (CI
-integration is a sibling milestone under this epic). ACs scaffold
-below as `### AC-N — <title>` sub-elements; each carries its own
-pass criterion, edge cases, and code references.
+Six ACs cover the structural shape of the .devcontainer/ files
+and the CLAUDE.md operator-setup subsection. All six are pure
+structural assertions mechanized via `internal/policies/`. ACs
+scaffold below as `### AC-N — <title>` sub-elements; each
+carries its own pass criterion, edge cases, and code references.
 
-## First-boot recovery
-
-Anticipated failure modes for the first "Reopen in Container"
-attempt. A clean Claude session in the container reads this
-section to act on *"this happened, fix it"* prompts. **When a
-new failure mode surfaces, add an entry here before fixing**,
-so the next failure of the same shape is one-shot.
-
-- **Image build fails on `devcontainer-lock.json` SHA
-  mismatch.** Symptom: `devcontainer build` errors with
-  "feature SHA does not match lock". Fix: delete
-  `devcontainer-lock.json` and rebuild — it regenerates from
-  `features:` declarations. Commit the new lock file.
-- **`initializeCommand` symlinks already exist with wrong
-  target.** Symptom: `ln -sfn` succeeds but mount points to a
-  stale directory. Fix:
-  `rm /tmp/.claude-mount /tmp/.claude-plugins-mount /tmp/.gh-mount`
-  on host, then "Rebuild Container."
-- **`postCreateCommand` fails on golangci-lint install
-  (network or version drift).** Symptom: install step errors;
-  container is up but unusable. Fix: re-run
-  `bash .devcontainer/init.sh` inside the container; the
-  script is idempotent. If the v2.11.4 release is gone from
-  the install endpoint, bump the pin in `init.sh` to match
-  CI's current pin (`.github/workflows/go.yml`).
-- **`aiwf doctor` still warns after plugin install.** Symptom:
-  both plugins appear in `/plugin list` but `aiwf doctor`
-  keeps reporting `recommended-plugin-not-installed`.
-  Diagnosis: plugins installed at USER scope instead of
-  PROJECT scope (the CLI form defaults to USER). Fix:
-  uninstall via `/plugin`, re-install via the interactive
-  `/plugin` menu choosing PROJECT scope explicitly.
-- **`git push` from inside the container prompts for
-  credentials.** Symptom: HTTPS push challenges for a
-  username/token. Diagnosis: gh credential helper config
-  didn't apply (init.sh failed or was re-run before
-  `~/.config/gh` mount populated). Fix: confirm the mount
-  via `ls /home/vscode/.config/gh`; re-run the credential
-  helper config block from `init.sh`; `gh auth status` should
-  show the host token.
-- **Workspace mount missing siblings.** Symptom:
-  `ls /workspaces` shows only `aiwf/`, not the sibling
-  repos. Diagnosis: `workspaceMount` resolved against
-  `${localWorkspaceFolder}` rather than
-  `${localWorkspaceFolder}/..`. Fix: confirm the `..` in
-  `devcontainer.json`'s `workspaceMount` source string;
-  rebuild.
-- **Shadow-mount conflict (host plugin index corrupted by
-  container write).** Symptom: after container session,
-  host's `~/.claude/plugins/<index>` has Linux paths and
-  Claude on the host can't find plugins. Diagnosis:
-  `~/.claude/plugins` mount didn't shadow correctly
-  (initializeCommand symlink wrong, or the `mounts:` order
-  in `devcontainer.json` didn't override). Fix: on host,
-  restore `~/.claude/plugins` from `~/.claude-linux/plugins`'s
-  inverse, or re-run `/plugin` on host. Long-term fix is
-  upstream via claude-code#31388.
+AC-7 and AC-8 (smoke scripts for `devcontainer build` and
+in-container `make ci`) were cancelled mid-implementation when
+the design conversation surfaced that the canonical operator
+path is VS Code's "Reopen in Container" + integrated-terminal
+`make ci` — no standalone `@devcontainers/cli` install needed
+on the host. The smoke-script work moves to the sibling "CI
+matrix integration (Docker-in-Docker)" milestone under E-0035,
+where the standalone CLI is genuinely required by a CI runner
+that has no VS Code.
 
 ### AC-1 — devcontainer.json declares base image, features, mounts, workspace mount
 
 The verb-time projection of `.devcontainer/devcontainer.json`
 JSON-parses cleanly and contains the agreed structural shape.
 **Pass criterion**: file parses as JSON; `image` is
-`mcr.microsoft.com/devcontainers/go:1-1.25-bookworm`; `features`
+`mcr.microsoft.com/devcontainers/go:2-1.25-bookworm`; `features`
 contains entries for
 `ghcr.io/devcontainers/features/common-utils:2`,
 `ghcr.io/devcontainers/features/github-cli:1`, and
@@ -393,3 +347,109 @@ shell-line patterns (`devcontainer exec`, `make ci`, and exit
 code propagation via `set -e` or explicit `exit "$?"`). Script
 lives at `scripts/devcontainer-ci-smoke.sh`.
 
+## First-boot recovery
+
+Anticipated failure modes for the first "Reopen in Container"
+attempt. A clean Claude session in the container reads this
+section to act on *"this happened, fix it"* prompts. **When a
+new failure mode surfaces, add an entry here before fixing**,
+so the next failure of the same shape is one-shot.
+
+- **Image build fails on `devcontainer-lock.json` SHA
+  mismatch.** Symptom: `devcontainer build` errors with
+  "feature SHA does not match lock". Fix: delete
+  `devcontainer-lock.json` and rebuild — it regenerates from
+  `features:` declarations. Commit the new lock file.
+- **`initializeCommand` symlinks already exist with wrong
+  target.** Symptom: `ln -sfn` succeeds but mount points to a
+  stale directory. Fix:
+  `rm /tmp/.claude-mount /tmp/.claude-plugins-mount /tmp/.gh-mount`
+  on host, then "Rebuild Container."
+- **`postCreateCommand` fails on golangci-lint install
+  (network or version drift).** Symptom: install step errors;
+  container is up but unusable. Fix: re-run
+  `bash .devcontainer/init.sh` inside the container; the
+  script is idempotent. If the v2.11.4 release is gone from
+  the install endpoint, bump the pin in `init.sh` to match
+  CI's current pin (`.github/workflows/go.yml`).
+- **`aiwf doctor` still warns after plugin install.** Symptom:
+  both plugins appear in `/plugin list` but `aiwf doctor`
+  keeps reporting `recommended-plugin-not-installed`.
+  Diagnosis: plugins installed at USER scope instead of
+  PROJECT scope (the CLI form defaults to USER). Fix:
+  uninstall via `/plugin`, re-install via the interactive
+  `/plugin` menu choosing PROJECT scope explicitly.
+- **`git push` from inside the container prompts for
+  credentials.** Symptom: HTTPS push challenges for a
+  username/token. Diagnosis: gh credential helper config
+  didn't apply (init.sh failed or was re-run before
+  `~/.config/gh` mount populated). Fix: confirm the mount
+  via `ls /home/vscode/.config/gh`; re-run the credential
+  helper config block from `init.sh`; `gh auth status` should
+  show the host token.
+- **Workspace mount missing siblings.** Symptom:
+  `ls /workspaces` shows only `aiwf/`, not the sibling
+  repos. Diagnosis: `workspaceMount` resolved against
+  `${localWorkspaceFolder}` rather than
+  `${localWorkspaceFolder}/..`. Fix: confirm the `..` in
+  `devcontainer.json`'s `workspaceMount` source string;
+  rebuild.
+- **Shadow-mount conflict (host plugin index corrupted by
+  container write).** Symptom: after container session,
+  host's `~/.claude/plugins/<index>` has Linux paths and
+  Claude on the host can't find plugins. Diagnosis:
+  `~/.claude/plugins` mount didn't shadow correctly
+  (initializeCommand symlink wrong, or the `mounts:` order
+  in `devcontainer.json` didn't override). Fix: on host,
+  restore `~/.claude/plugins` from `~/.claude-linux/plugins`'s
+  inverse, or re-run `/plugin` on host. Long-term fix is
+  upstream via claude-code#31388.
+- **`fatal: not a git repository: (null)` on first
+  `git config --global` call.** Symptom: init.sh dies
+  immediately at "Configuring git identity"; even
+  `git config --global` (which shouldn't need a repo) fails.
+  Diagnosis: stray `GIT_DIR`, `GIT_WORK_TREE`, or
+  `GIT_COMMON_DIR` in the container env, set by VS Code's
+  dev-containers extension's git probe. Fix: `unset GIT_DIR
+  GIT_WORK_TREE GIT_COMMON_DIR` at the top of init.sh
+  (already in place since commit `ba2abe5e`). This entry
+  documents the failure shape so the next clean Claude
+  session diagnosing it has a one-shot answer.
+- **`aiwf init: creating hooks dir: mkdir /Users: permission
+  denied`.** Symptom: aiwf init step of postcreate fails on
+  mkdir of `/Users`. Diagnosis: stale absolute
+  `core.hooksPath = /Users/.../<repo>/.git/hooks` in the
+  repo's `.git/config` (legacy from pre-G38 install-hooks;
+  redundant with git's default in any case). Inside the
+  container the absolute host path can't be created. Fix:
+  defensive `git config --unset core.hooksPath` early in
+  init.sh (already in place since commit `00d798f4`). On
+  the host this is a no-op (value mirrored git's default).
+- **`make install-hooks` → `mkdir: cannot create directory
+  '.git': Not a directory`.** Symptom: make install-hooks
+  fails on mkdir of `.git/hooks`. Diagnosis: the original
+  Makefile target hardcoded `.git/hooks` as a relative
+  path, which breaks when `.git` is a worktree pointer
+  *file* (not a directory). Fix: Makefile install-hooks
+  now uses `HOOKS_DIR=$(git rev-parse --git-path hooks)`
+  which returns the common hooks dir correctly for both
+  main checkouts and worktrees (already in place since
+  commit `00d798f4`).
+- **Pre-commit hook fails with `<wrong-context>/aiwf: not
+  found` after switching between host and container.**
+  Symptom: in the container, `git commit` errors with
+  `/Users/.../go/bin/aiwf: not found`. On the host (after
+  a container-side aiwf init), it errors with
+  `/go/bin/aiwf: not found`. Diagnosis: `aiwf init` bakes
+  an absolute path to the current shell's aiwf binary into
+  the hooks (`/Users/.../go/bin/aiwf` on host,
+  `/go/bin/aiwf` in container). Git fires hooks from the
+  common `.git/hooks/` dir for worktrees by default (NOT
+  the per-worktree dir aiwf init also writes to), so the
+  hook last baked by one environment fails in the other.
+  Immediate fix: re-run `aiwf init` from the environment
+  you're committing from — it re-bakes the absolute path
+  to that environment's aiwf. Recurring tax: a sibling
+  gap tracks the structural fix (have aiwf init write a
+  hook that probes multiple known paths, or use PATH
+  lookup with a deterministic fallback chain).
