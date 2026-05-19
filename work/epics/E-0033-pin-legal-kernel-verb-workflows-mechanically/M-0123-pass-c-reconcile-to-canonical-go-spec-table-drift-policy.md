@@ -18,7 +18,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: AntiRules() carries 12 entries (Pass B §10 plus Q10 addition)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: 'LookupRule helper: hit, miss, no-duplicates semantics'
