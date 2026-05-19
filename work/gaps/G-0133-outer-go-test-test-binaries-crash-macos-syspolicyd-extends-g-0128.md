@@ -7,12 +7,13 @@ discovered_in: M-0120
 ## What's wrong
 
 G-0128 (archived) closed the first layer of the macOS Sonoma 14.8.x syspolicyd
-crash by ad-hoc signing the `aiwf` binaries that `aiwfBinary`, `buildBinary`,
-and the M-080 AC-6 helper build under `$TMPDIR` for in-process test
-orchestration. The fix was incomplete: **Go's `go test` compiles the per-package
-test binary itself (`<pkg>.test`) and exec's it directly**. Those outer binaries
-are unsigned on Intel macOS by default — Apple Silicon auto-ad-hoc-signs, Intel
-does not.
+crash by ad-hoc signing the `aiwf` binaries that `AiwfBinary` and `BuildBinary`
+(centralized in `internal/cli/cliutil/testutil/proc.go` after M-0118's test
+relocation), and the M-080 AC-6 helper at `internal/policies/m080_test.go`,
+build under `$TMPDIR` for in-process test orchestration. The fix was incomplete:
+**Go's `go test` compiles the per-package test binary itself (`<pkg>.test`) and
+exec's it directly**. Those outer binaries are unsigned on Intel macOS by
+default — Apple Silicon auto-ad-hoc-signs, Intel does not.
 
 When the kernel asks syspolicyd to assess an unsigned `aiwf.test` or
 `policies.test` binary, the same `Security::CodeSigning::MachORep::signingData`
@@ -62,9 +63,10 @@ exec "$@"
 
 Wiring:
 
-- `Makefile` test targets pass `-exec=$(REPO_ROOT)/scripts/sign-and-run.sh`
-- `.github/workflows/*.yml` test invocations carry the same flag (Linux no-ops
-  via the `uname` check)
+- `Makefile` test targets pass `-exec=$(TEST_EXEC)` where
+  `TEST_EXEC := $(CURDIR)/scripts/sign-and-run.sh`
+- `.github/workflows/{go,flake-hunt,fuzz}.yml` test invocations carry
+  `-exec=./scripts/sign-and-run.sh` (Linux no-ops via the `uname` check)
 - `CLAUDE.md` under *Go conventions → Testing* describes the wrapper and links
   back to this gap
 
@@ -77,10 +79,11 @@ the documented surface. The drift-prevention chokepoint is the Makefile /
 workflow files; tests run via `make test`, `make test-race`, or CI all carry
 the wrap.
 
-The inline codesign step from G-0128's fix (in `aiwfBinary`, `buildBinary`,
-m080's `/tmp/aiwf-m080`) becomes redundant once this wrap lands but stays for
-now — ~50ms per build, harmless. A follow-up gap can remove it if the
-duplication earns the entry.
+The inline codesign step from G-0128's fix (in `AiwfBinary` / `BuildBinary`
+at `internal/cli/cliutil/testutil/proc.go` and the m080 AC-6 build at
+`internal/policies/m080_test.go`) becomes redundant once this wrap lands but
+stays for now — ~50ms per build, harmless. A follow-up gap can remove it if
+the duplication earns the entry.
 
 ## Related
 
