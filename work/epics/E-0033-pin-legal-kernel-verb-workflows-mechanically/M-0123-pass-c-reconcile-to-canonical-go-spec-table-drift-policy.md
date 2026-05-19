@@ -11,7 +11,7 @@ acs:
     - id: AC-1
       title: spec package declares Rule, enums, Predicate, RuleSource, AntiRule types
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Rules() covers Q1-Q15 cells; schema invariants hold
       status: open
