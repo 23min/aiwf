@@ -66,17 +66,23 @@ fi
 # `go install ./cmd/aiwf` is idempotent (it overwrites the prior
 # binary); `aiwf init` is idempotent (regenerates the chain-aware
 # pre-commit hook and the gitignored skill adapters).
+#
+# postCreateCommand runs with CWD = workspaceFolder (a devcontainer
+# spec guarantee), and workspaceFolder is templated to
+# /workspaces/${localWorkspaceFolderBasename} in devcontainer.json,
+# so all paths below are relative to the opened folder — main
+# checkout, worktree, or any other clone path works without edit.
 echo "==> Installing aiwf binary and materializing framework hooks"
-(cd "/workspaces/aiwf" && go install ./cmd/aiwf)
+go install ./cmd/aiwf
 export PATH="$(go env GOPATH)/bin:$PATH"
-(cd "/workspaces/aiwf" && aiwf init || true)
+aiwf init || true
 
 # --- kernel pre-commit chain ---------------------------------------
 # `make install-hooks` symlinks scripts/git-hooks/pre-commit into
 # .git/hooks/pre-commit.local — the chain target invoked by aiwf's
 # chain-aware pre-commit. Idempotent (ln -sf).
 echo "==> Installing kernel pre-commit chain"
-(cd "/workspaces/aiwf" && make install-hooks)
+make install-hooks
 
 # --- Playwright (env-gated) ----------------------------------------
 # Default off — most contributors aren't touching the HTML renderer.
@@ -84,7 +90,7 @@ echo "==> Installing kernel pre-commit chain"
 # in. Per Q4 of the design conversation.
 if [[ "${AIWF_DEVCONTAINER_E2E:-false}" == "true" ]]; then
   echo "==> Installing Playwright + Chromium (AIWF_DEVCONTAINER_E2E=true)"
-  (cd "/workspaces/aiwf/e2e/playwright" && npm install && npx playwright install chromium)
+  (cd e2e/playwright && npm install && npx playwright install chromium)
 fi
 
 # --- post-install banner -------------------------------------------

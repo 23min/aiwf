@@ -1,7 +1,7 @@
 {
   "name": "aiwf Dev",
   "image": "mcr.microsoft.com/devcontainers/go:1-1.25-bookworm",
-  "workspaceFolder": "/workspaces/aiwf",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces,type=bind,consistency=cached",
   "initializeCommand": "bash .devcontainer/initialize.sh",
   "mounts": [
