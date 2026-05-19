@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: aiwf doctor recommended-plugins reads enabledPlugins not installed-plugins
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
