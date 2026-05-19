@@ -22,7 +22,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-4
-      title: 'Audit catalog updated: R-RULE-149 and section 10.1 pending-G-0132 notes removed'
+      title: 'manual-edit subcode: status-change commit lacks aiwf-verb trailer'
       status: open
       tdd_phase: red
 ---
@@ -92,5 +92,5 @@ aiwf promote G-0132 addressed
 
 ### AC-3 — forced-untrailered subcode: sovereign-act shape, force trailer absent
 
-### AC-4 — Audit catalog updated: R-RULE-149 and section 10.1 pending-G-0132 notes removed
+### AC-4 — manual-edit subcode: status-change commit lacks aiwf-verb trailer
 
