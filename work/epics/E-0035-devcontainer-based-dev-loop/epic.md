@@ -27,9 +27,21 @@ macOS DO/DON'T rules.
   plugin-index shadow-mount workaround for
   [claude-code#31388](https://github.com/anthropics/claude-code/issues/31388).
   Container builds clean from cold cache; `make ci` is green
-  inside it; plugin install completes at PROJECT scope;
+  inside it via VS Code's "Reopen in Container" + integrated
+  terminal; plugin install completes at PROJECT scope;
   shadow-mount preserves the host plugin index across container
   restarts.
+- **Later milestone — CI matrix integration (Docker-in-Docker).**
+  The operator path (VS Code "Reopen in Container") needs no
+  automation. A CI matrix that runs `devcontainer build` +
+  `devcontainer exec ... make ci` against the same `.devcontainer/`
+  shape catches regressions the unit-test suite can't see (a
+  feature-SHA drift, an init.sh idempotency bug, a workspace-mount
+  path change, a stale `image:` reference). This milestone owns
+  the standalone `@devcontainers/cli` install in CI, the smoke
+  scripts the operator path doesn't need, and the workflow YAML
+  wiring them up. Smoke-script content originally drafted as
+  AC-7/AC-8 of the first milestone lands here.
 - **Later milestone — CLAUDE.md DO/DON'T refresh.** Once the
   container is the default surface, demote the macOS host
   wrapper from "primary path with DO/DON'T discipline" to
@@ -37,9 +49,10 @@ macOS DO/DON'T rules.
   landed; the documentation should reflect it.
 - **Later milestone — `aiwf doctor` containerized-env awareness.**
   Recognize when the verb is running inside a devcontainer
-  (e.g., `/.dockerenv` present) and surface container-specific
-  advice (shadow-mount status, plugin-index sanity) instead of
-  the generic host-side guidance.
+  (e.g., `/.dockerenv` present, `AIWF_DEVCONTAINER=1` from
+  containerEnv) and surface container-specific advice
+  (shadow-mount status, plugin-index sanity) instead of the
+  generic host-side guidance.
 - **Later milestone — cross-repo dogfooding hardening.** Verify
   the rituals plugin testing pattern (per CLAUDE.md's
   "Cross-repo plugin testing" section) works inside the
