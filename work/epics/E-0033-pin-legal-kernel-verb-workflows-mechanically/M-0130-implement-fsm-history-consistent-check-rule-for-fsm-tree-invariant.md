@@ -25,6 +25,10 @@ acs:
       title: 'manual-edit subcode: status-change commit lacks aiwf-verb trailer'
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Hint table entry for fsm-history-consistent code
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -93,4 +97,6 @@ aiwf promote G-0132 addressed
 ### AC-3 — forced-untrailered subcode: sovereign-act shape, force trailer absent
 
 ### AC-4 — manual-edit subcode: status-change commit lacks aiwf-verb trailer
+
+### AC-5 — Hint table entry for fsm-history-consistent code
 
