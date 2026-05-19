@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: aiwf doctor recommended-plugins reads enabledPlugins not installed-plugins
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
 ---
 ## Goal
 
