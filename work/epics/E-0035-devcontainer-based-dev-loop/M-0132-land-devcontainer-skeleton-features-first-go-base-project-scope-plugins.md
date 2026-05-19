@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-4
       title: init.sh runs idempotently with the agreed install + banner blocks
-      status: open
+      status: met
     - id: AC-5
       title: .devcontainer/README.md ships operator-facing usage with named sections
       status: open
