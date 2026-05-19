@@ -219,11 +219,21 @@ path-equality semantics no longer apply).
 
 ## Validation
 
-Filled at wrap.
+- `make ci` (the project's operational gate): **30/30 selfcheck steps pass**, including the renamed AC-3 step `doctor recommended-plugins fixture: warning silent after enable in settings.json`. Build green; `golangci-lint` clean; `go vet` clean; full test suite green.
+- `aiwf check`: 0 errors, 23 warnings (all pre-existing — no new findings introduced by this milestone).
+- **Operator smoke in this very worktree** (`/workspaces/aiwf-devcontainer-dev-loop`, a linked worktree of the main repo):
+  - `aiwf doctor` (pre-update): all three hooks reported as `pre-G-0135 shape, run aiwf update to switch to PATH lookup`; no `recommended-plugin-not-installed` warning (AC-3 working — `.claude/settings.json` `enabledPlugins` is the source of truth and matches the recommended set).
+  - `aiwf update` (from the worktree): hook writes land at `../aiwf/.git/hooks/{pre-push,pre-commit,post-commit}` (the shared dir, not the per-worktree path), with `Detail` strings reading `exec` `command -v aiwf` `... (PATH-relative)`. Output ends with the affects-all-worktrees notice: *"running from a linked worktree. Hook writes go to the shared `.git/hooks/` directory; this update affects all worktrees of the repo."*
+  - `aiwf doctor` (post-update): all three hooks reported as `ok (resolves to /go/bin/aiwf)` — the post-G-0135 shape recognized.
+- **`docs/pocv3/design/design-decisions.md`** updated: the `doctor` config block now documents the `<rootDir>/.claude/settings.json` source of truth (replacing the stale `~/.claude/plugins/installed_plugins.json` description).
 
 ## Reviewer notes
 
-Filled at wrap.
+- **Doctor still carries the pre-G-0135 detection path** (in `appendHookReport`, `appendPreCommitHookReport`, `appendPostCommitHookReport`). This is deliberate: consumers with an older `aiwf init` still get an actionable `run aiwf update to switch to PATH lookup` advisory instead of a confusing `malformed` error. The next major version can prune that arm. Tests cover both shapes (`TestDoctorReport_PreG0135ShapeStillValid`).
+- **The `pluginstate` package is no longer imported by `internal/cli/doctor/doctor.go`** but the package and its tests remain alive. It's a small read helper and a future caller may emerge; deletion is deferred (mirrored in Deferrals below).
+- **AC body forward-reference fix.** The original AC bodies (authored at allocation time) pointed at a single test file `internal/policies/multi_context_tax_test.go`. The tests actually distributed across `internal/initrepo/multi_context_test.go`, `internal/gitops/gitops_test.go`, and `internal/cli/integration/{doctor_cmd,update_cmd}_test.go` based on the code surface each AC touches. The body was rewritten via `aiwf edit-body M-0133` to reflect the real test locations.
+- **Branch-coverage stance.** AC-1's new doctor branches (`exec.LookPath` fail + pre-G-0135 shape) and AC-2's new gitops helpers (`commonGitDir`, `InWorktree`) added explicit tests covering the load-bearing paths. The remaining uncovered statements are pure error-wrap pass-throughs (`if err != nil { return err }` shapes) matching the existing pattern in `GitDir`/`HooksDir` — not test theatre, but a deliberate match to the package's tolerance for trivial error-return coverage gaps.
+- **No change to the FSM, no schema bumps, no kernel-surface additions.** The three changes are surgical: a template rewrite, a path resolution swap, and a JSON-source swap. Backwards-compatible for consumers with the new binary.
 
 ## Deferrals
 
