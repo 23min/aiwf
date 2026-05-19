@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: initialize.sh creates host-side symlinks and cites claude-code#31388
-      status: open
+      status: met
     - id: AC-4
       title: init.sh runs idempotently with the agreed install + banner blocks
       status: open
