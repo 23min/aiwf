@@ -1,8 +1,10 @@
 ---
 id: G-0125
 title: cmd/aiwf -race -parallel 8 flakes under subprocess fan-out (macOS)
-status: open
+status: addressed
 discovered_in: M-0092
+addressed_by_commit:
+    - 360387cf
 ---
 
 ## What's missing
