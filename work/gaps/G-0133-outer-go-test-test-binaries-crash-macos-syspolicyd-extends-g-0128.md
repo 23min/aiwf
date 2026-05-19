@@ -1,8 +1,10 @@
 ---
 id: G-0133
 title: Outer go-test .test binaries crash macOS syspolicyd (extends G-0128)
-status: open
+status: addressed
 discovered_in: M-0120
+addressed_by_commit:
+    - 09399b79
 ---
 ## What's wrong
 
