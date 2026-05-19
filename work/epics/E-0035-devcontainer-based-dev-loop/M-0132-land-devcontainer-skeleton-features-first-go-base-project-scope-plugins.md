@@ -25,7 +25,7 @@ acs:
       status: open
     - id: AC-7
       title: devcontainer-build-smoke.sh exists with build + Go-version check
-      status: open
+      status: cancelled
     - id: AC-8
       title: devcontainer-ci-smoke.sh exists with make-ci-inside-container check
       status: open
