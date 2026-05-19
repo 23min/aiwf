@@ -1,0 +1,58 @@
+{
+  "name": "aiwf Dev",
+  "image": "mcr.microsoft.com/devcontainers/go:1-1.25-bookworm",
+  "workspaceFolder": "/workspaces/aiwf",
+  "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces,type=bind,consistency=cached",
+  "initializeCommand": "bash .devcontainer/initialize.sh",
+  "mounts": [
+    "source=/tmp/.claude-mount,target=/home/vscode/.claude,type=bind,consistency=cached",
+    "source=/tmp/.claude-plugins-mount,target=/home/vscode/.claude/plugins,type=bind,consistency=cached",
+    "source=/tmp/.gh-mount,target=/home/vscode/.config/gh,type=bind,consistency=cached"
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "username": "vscode"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  },
+  "updateContentCommand": "bash .devcontainer/init.sh",
+  "postCreateCommand": "bash .devcontainer/init.sh",
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "AIWF_DEVCONTAINER": "1"
+  },
+  "remoteEnv": {
+    "PATH": "/home/vscode/go/bin:/usr/local/go/bin:${containerEnv:PATH}"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnSave": true,
+        "[go]": {
+          "editor.defaultFormatter": "golang.go",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "yaml.validate": true,
+        "yaml.format.enable": true
+      },
+      "extensions": [
+        "golang.go",
+        "redhat.vscode-yaml",
+        "anthropic.claude-code",
+        "mhutchie.git-graph",
+        "editorconfig.editorconfig",
+        "github.vscode-github-actions",
+        "shd101wyy.markdown-preview-enhanced"
+      ]
+    }
+  }
+}
