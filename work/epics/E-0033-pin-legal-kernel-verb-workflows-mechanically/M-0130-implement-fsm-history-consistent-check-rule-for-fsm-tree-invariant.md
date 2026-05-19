@@ -18,7 +18,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-3
-      title: Hint table entry for fsm-history-consistent and each subcode
+      title: 'forced-untrailered subcode: sovereign-act shape, force trailer absent'
       status: open
       tdd_phase: red
     - id: AC-4
@@ -90,7 +90,7 @@ aiwf promote G-0132 addressed
 
 ### AC-2 — illegal-transition subcode: change outside FSM, no force trailer
 
-### AC-3 — Hint table entry for fsm-history-consistent and each subcode
+### AC-3 — forced-untrailered subcode: sovereign-act shape, force trailer absent
 
 ### AC-4 — Audit catalog updated: R-RULE-149 and section 10.1 pending-G-0132 notes removed
 
