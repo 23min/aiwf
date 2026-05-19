@@ -27,7 +27,7 @@ acs:
     - id: AC-5
       title: Bidirectional drift policy (impl->spec and spec->impl)
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: Every Sources.Decision resolves to an existing D-NNNN entity
       status: open
