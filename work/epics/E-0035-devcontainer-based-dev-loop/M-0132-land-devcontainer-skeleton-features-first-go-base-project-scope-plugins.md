@@ -22,7 +22,7 @@ acs:
       status: met
     - id: AC-6
       title: CLAUDE.md Operator setup gains Devcontainer subsection with shadow-mount note
-      status: open
+      status: met
     - id: AC-7
       title: devcontainer-build-smoke.sh exists with build + Go-version check
       status: cancelled
