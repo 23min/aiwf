@@ -11,6 +11,52 @@ set -euo pipefail
 
 echo "==> aiwf devcontainer postcreate"
 
+# --- GIT_* env hygiene ---------------------------------------------
+# Defensively unset GIT_DIR/GIT_WORK_TREE/GIT_COMMON_DIR so the
+# worktree's .git file is the authoritative source. Some
+# devcontainer probe paths leave these set to host paths (or empty
+# values) that don't resolve in the container, producing
+# `fatal: not a git repository: (null)` on later git operations
+# — including `git config --global` calls that have no business
+# touching repo discovery in the first place.
+unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR
+
+# --- worktree .git rewrite -----------------------------------------
+# When the workspaceFolder is a git worktree of a sibling repo also
+# visible under /workspaces/, the worktree's `.git` file holds a
+# host-side absolute path (`gitdir: /Users/.../.git/worktrees/<n>`)
+# that doesn't resolve inside the container. Rewrite to a relative
+# gitdir pointer so it works in both host and container contexts
+# (relative paths resolve from .git's directory).
+#
+# No-op when .git is a directory (main checkout, not a worktree) or
+# already relative.
+if [ -f .git ]; then
+  gitdir_value=$(sed -n 's|^gitdir:[[:space:]]*||p' .git)
+  case "$gitdir_value" in
+    .* | "" )
+      ;;
+    */.git/worktrees/* )
+      main_and_more="${gitdir_value%/.git/worktrees/*}"
+      main_name=$(basename "$main_and_more")
+      wt_name="${gitdir_value##*/}"
+      relative_gitdir="../${main_name}/.git/worktrees/${wt_name}"
+      echo "==> Rewriting worktree .git gitdir to relative path (host+container portable):"
+      echo "       ${gitdir_value}"
+      echo "    -> ${relative_gitdir}"
+      echo "gitdir: ${relative_gitdir}" > .git
+      # Also rewrite the reverse pointer (main repo's
+      # .git/worktrees/<n>/gitdir → worktree's .git) to a relative
+      # path. Same portability win.
+      self_dir=$(basename "$PWD")
+      rev_file="../${main_name}/.git/worktrees/${wt_name}/gitdir"
+      if [ -f "$rev_file" ]; then
+        echo "../../../${self_dir}/.git" > "$rev_file"
+      fi
+      ;;
+  esac
+fi
+
 # --- git config ----------------------------------------------------
 # Match host identity so aiwf commit trailers stay consistent across
 # host and container (the runtime-derived actor reads the localpart
