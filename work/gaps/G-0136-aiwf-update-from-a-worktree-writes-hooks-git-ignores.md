@@ -1,7 +1,9 @@
 ---
 id: G-0136
 title: aiwf update from a worktree writes hooks git ignores
-status: open
+status: addressed
+addressed_by:
+    - M-0133
 ---
 ## Problem
 
