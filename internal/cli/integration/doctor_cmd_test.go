@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -185,7 +184,7 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 		// path. Adding these labels keeps the seam test honest about
 		// what the production self-check actually exercises.
 		"ok    doctor recommended-plugins fixture: declare in aiwf.yaml",
-		"ok    doctor recommended-plugins fixture: warning silent after install",
+		"ok    doctor recommended-plugins fixture: warning silent after enable in settings.json",
 	} {
 		if !strings.Contains(out, label) {
 			t.Errorf("output missing %q:\n%s", label, out)
@@ -771,8 +770,8 @@ func TestDoctorReport_RecommendedPlugins_OneMissing_OneWarningWithInstall(t *tes
 	if !strings.Contains(joined, "aiwf-extensions@ai-workflow-rituals") {
 		t.Errorf("warning missing plugin id; output:\n%s", joined)
 	}
-	if !strings.Contains(joined, "claude /plugin install aiwf-extensions@ai-workflow-rituals") {
-		t.Errorf("warning missing install command; output:\n%s", joined)
+	if !strings.Contains(joined, "PROJECT scope") {
+		t.Errorf("warning missing install advice with PROJECT scope guidance; output:\n%s", joined)
 	}
 }
 
@@ -812,68 +811,15 @@ doctor:
 	}
 }
 
-// TestDoctorReport_RecommendedPlugins_AllInstalledForProject_NoWarning:
-// M-070/AC-5 — every recommended plugin has a project-scope install
-// whose projectPath matches the consumer root → zero
-// `recommended-plugin-not-installed` lines, doctor exits OK on this
-// section. Fixture mirrors the real installed_plugins.json shape.
-func TestDoctorReport_RecommendedPlugins_AllInstalledForProject_NoWarning(t *testing.T) {
-	root := setupCLITestRepo(t)
-	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
-		t.Fatalf("init: %d", rc)
-	}
-	contents := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	home := t.TempDir()
-	writeInstalledPluginsFixture(t, home, fmt.Sprintf(`{
-  "version": 2,
-  "plugins": {
-    "aiwf-extensions@ai-workflow-rituals": [
-      {"scope": "project", "projectPath": %q}
-    ]
-  }
-}`, root))
-	t.Setenv("HOME", home)
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if strings.Contains(joined, "recommended-plugin-not-installed") {
-		t.Errorf("matched install should silence the warning; got:\n%s", joined)
-	}
-}
-
-// TestDoctorReport_RecommendedPlugins_InstalledElsewhereStillWarns:
-// M-070/AC-6 — the session-canonical case: a recommended plugin is
-// installed for ANOTHER repo's project scope (and possibly user scope
-// too), but not for THIS consumer's root. Warning still fires;
-// installation elsewhere does not silence it.
-func TestDoctorReport_RecommendedPlugins_InstalledElsewhereStillWarns(t *testing.T) {
-	root := setupCLITestRepo(t)
-	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
-		t.Fatalf("init: %d", rc)
-	}
-	contents := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	home := t.TempDir()
-	writeInstalledPluginsFixture(t, home, `{
-  "version": 2,
-  "plugins": {
-    "aiwf-extensions@ai-workflow-rituals": [
-      {"scope": "project", "projectPath": "/Users/x/Projects/some-other-repo"},
-      {"scope": "user"}
-    ]
-  }
-}`)
-	t.Setenv("HOME", home)
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if c := strings.Count(joined, "recommended-plugin-not-installed"); c != 1 {
-		t.Errorf("install elsewhere must not silence warning: count=%d; output:\n%s", c, joined)
-	}
-}
+// TestDoctorReport_RecommendedPlugins_AllInstalledForProject_NoWarning
+// and TestDoctorReport_RecommendedPlugins_InstalledElsewhereStillWarns
+// were removed in G-0138 / M-0133 / AC-3: their setup used
+// installed_plugins.json's projectPath equality (the path-strict
+// check that produced the false-positive class fixed by AC-3). The
+// new source of truth is <rootDir>/.claude/settings.json's
+// enabledPlugins map (path-independent), tested by
+// TestDoctorReport_RecommendedPlugins_EnabledInSettings_NoWarning
+// below.
 
 // TestDoctorReport_RecommendedPlugins_AreSoftWarning_DoNotIncrementProblems:
 // per M-070 spec: "Severity: warning. Plugins are advisory; refusing on
@@ -911,47 +857,14 @@ func TestDoctorReport_RecommendedPlugins_AreSoftWarning_DoNotIncrementProblems(t
 // helper is unexported in its new home, so the test rebases as a
 // same-package test there.
 
-// TestDoctorReport_RecommendedPlugins_CorruptedIndex_EmitsAdvisory:
-// when installed_plugins.json exists but isn't valid JSON, the helper
-// emits a single advisory line naming the failure and skips the
-// per-plugin checks (no warnings, no panic). Mirrors how the existing
-// validator/render checks treat unrecoverable read failures.
-func TestDoctorReport_RecommendedPlugins_CorruptedIndex_EmitsAdvisory(t *testing.T) {
-	root := setupCLITestRepo(t)
-	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
-		t.Fatalf("init: %d", rc)
-	}
-	contents := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	home := t.TempDir()
-	writeInstalledPluginsFixture(t, home, "{not json")
-	t.Setenv("HOME", home)
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if strings.Contains(joined, "recommended-plugin-not-installed") {
-		t.Errorf("corrupted index should not produce per-plugin warnings:\n%s", joined)
-	}
-	if !strings.Contains(joined, "installed_plugins.json") {
-		t.Errorf("advisory line should name installed_plugins.json:\n%s", joined)
-	}
-}
-
-// writeInstalledPluginsFixture writes a synthetic installed_plugins.json
-// under <home>/.claude/plugins/ so a t.Setenv("HOME", home) test
-// configures the doctor's plugin lookup deterministically. Used by the
-// AC-5 / AC-6 tests above.
-func writeInstalledPluginsFixture(t *testing.T, home, body string) {
-	t.Helper()
-	dir := filepath.Join(home, ".claude", "plugins")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "installed_plugins.json"), []byte(body), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
+// TestDoctorReport_RecommendedPlugins_CorruptedIndex_EmitsAdvisory was
+// removed in G-0138 / M-0133 / AC-3: doctor no longer reads
+// installed_plugins.json, so a corrupt index can't surface here. The
+// equivalent test for the new source of truth is
+// TestDoctorReport_RecommendedPlugins_MalformedSettings_Error
+// (malformed .claude/settings.json surfaces as a clear plugins: line
+// naming the file). writeInstalledPluginsFixture was deleted with
+// its last caller.
 
 // TestDoctorReport_ValidatorAvailability_StrictIncrementsProblems:
 // strict_validators=true makes a missing validator a hard problem

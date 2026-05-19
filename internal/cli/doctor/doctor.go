@@ -10,6 +10,7 @@ package doctor
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -25,7 +26,6 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/pluginstate"
 	"github.com/23min/aiwf/internal/skills"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -193,8 +193,14 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 }
 
 // appendRecommendedPluginsReport emits one warning per recommended
-// plugin not installed for the consumer's project scope. The check
+// plugin not declared in the project's committed
+// `<rootDir>/.claude/settings.json` `enabledPlugins` map. The check
 // is opt-in via aiwf.yaml's `doctor.recommended_plugins` list.
+//
+// G-0138 / M-0133 / AC-3: the source of truth is the project-
+// committed settings.json (path-independent), not the machine-local
+// `~/.claude/plugins/installed_plugins.json` (path-strict; false-
+// positives across worktrees, devcontainers, and re-clones).
 //
 // Warnings are soft: the function does not return a problem count
 // because the M-070 spec forbids them from contributing to the
@@ -203,26 +209,47 @@ func appendRecommendedPluginsReport(in []string, cfg *config.Config, rootDir str
 	if cfg == nil || len(cfg.Doctor.RecommendedPlugins) == 0 {
 		return in
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return append(in, "plugins:   "+err.Error())
-	}
-	idx, err := pluginstate.Load(home)
+	enabled, err := loadEnabledPlugins(rootDir)
 	if err != nil {
 		return append(in, "plugins:   "+err.Error())
 	}
 	out := in
 	for _, plugin := range cfg.Doctor.RecommendedPlugins {
-		ok, _ := idx.HasProjectScope(plugin, rootDir)
-		if ok {
+		if enabled[plugin] {
 			continue
 		}
 		out = append(out,
 			fmt.Sprintf("plugins:   recommended-plugin-not-installed: %s", plugin),
-			fmt.Sprintf("             install: claude /plugin install %s", plugin),
+			fmt.Sprintf("             install at PROJECT scope: open the interactive `/plugin` menu and choose %s (the bare `claude /plugin install %s` CLI form defaults to user scope)", plugin, plugin),
 		)
 	}
 	return out
+}
+
+// loadEnabledPlugins reads the project's `.claude/settings.json` and
+// returns its `enabledPlugins` map. The map key is `name@marketplace`;
+// the value is true when the project declares the plugin enabled.
+//
+// Missing file returns an empty map (no plugins declared) without
+// error; malformed JSON returns a wrapped error so doctor can surface
+// it as a configuration issue rather than silently treating it as
+// "no plugins enabled."
+func loadEnabledPlugins(rootDir string) (map[string]bool, error) {
+	path := filepath.Join(rootDir, ".claude", "settings.json")
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return map[string]bool{}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("reading .claude/settings.json: %w", err)
+	}
+	var doc struct {
+		EnabledPlugins map[string]bool `json:"enabledPlugins"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		return nil, fmt.Errorf("parsing .claude/settings.json: %w", err)
+	}
+	return doc.EnabledPlugins, nil
 }
 
 // appendRenderReport surfaces the consumer's HTML render
