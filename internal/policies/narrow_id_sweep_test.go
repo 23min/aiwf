@@ -61,8 +61,8 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// AC-2 parser-tolerance — the load-bearing tests for both-widths
 		// equivalence at the lookup seam. Narrow inputs are required
 		// by design.
-		"internal/entity/canonicalize_test.go":  "AC-2 parser-tolerance test (Canonicalize, IDGrepAlternation)",
-		"internal/tree/tree_test.go":            "AC-2 lookup-seam test (TestTree_ByID_AcceptsBothWidths, TestTree_ByPriorID_AcceptsBothWidths)",
+		"internal/entity/canonicalize_test.go":                  "AC-2 parser-tolerance test (Canonicalize, IDGrepAlternation)",
+		"internal/tree/tree_test.go":                            "AC-2 lookup-seam test (TestTree_ByID_AcceptsBothWidths, TestTree_ByPriorID_AcceptsBothWidths)",
 		"internal/cli/integration/canonicalize_render_test.go":  "AC-3 narrow-tree fixture exercising canonical render output (relocated from cmd/aiwf in M-0118/AC-6)",
 		"internal/cli/integration/canonicalize_history_test.go": "AC-4 narrow trailer matches canonical query (relocated from cmd/aiwf in M-0118/AC-6)",
 

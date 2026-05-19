@@ -5,38 +5,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
-// buildOnce caches the path to a freshly-built `aiwf` binary so the
-// integration tests in this file share one compile.
-var (
-	buildOnce sync.Once
-	builtPath string
-	buildErr  error
-)
-
-// aiwfBinary returns the absolute path to a built `aiwf` binary,
-// compiling on the first call. The binary lives in a per-process temp
-// dir so concurrent `go test` runs don't fight over it.
-
-type buildError struct {
-	err    error
-	output string
-}
-
-func (e *buildError) Error() string { return e.err.Error() + "\n" + e.output }
-
-// runBin runs the built binary with args in workdir, prepending
-// extraPath onto PATH. Returns combined output and exit error.
-
-// runBinStdin is the stdin-bearing variant of runBin: pipes the
-// supplied reader to the binary's stdin so tests can exercise
-// `--body-file -` and similar shorthands. Otherwise identical to
-// runBin (env, working dir, combined stdout+stderr).
+// Binary build + runner helpers live in testutil (relocated by
+// M-0118). This file just exercises the integration paths via
+// testutil.AiwfBinary, testutil.RunBin, testutil.RunGit.
 
 // TestIntegration_FreshRepoLifecycle is the end-to-end smoke test:
 // build the binary, init a fresh consumer repo, add an entity, run

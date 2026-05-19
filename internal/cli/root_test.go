@@ -15,7 +15,7 @@ import (
 // (stdoutBytes, exitCode). os.Stdout is mutated, so this test (and
 // the captured-stderr variant below) sit on the serial-skip list per
 // the package's setup_test.go comment.
-func captureExecuteOutput(t *testing.T, args []string) ([]byte, int) {
+func captureExecuteOutput(t *testing.T, args []string) (out []byte, exitCode int) {
 	t.Helper()
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -32,10 +32,10 @@ func captureExecuteOutput(t *testing.T, args []string) ([]byte, int) {
 		done <- buf.Bytes()
 	}()
 
-	code := Execute(args)
+	exitCode = Execute(args)
 	_ = w.Close()
-	out := <-done
-	return out, code
+	out = <-done
+	return out, exitCode
 }
 
 // TestExecute_Version asserts that `aiwf --version` prints a single

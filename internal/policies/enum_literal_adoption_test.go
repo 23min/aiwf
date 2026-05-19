@@ -234,4 +234,3 @@ func good(status string) bool {
 		}
 	}
 }
-

@@ -4,9 +4,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.com/23min/aiwf/internal/cli"
 )
 
 // TestPolicy_FlagsHaveCompletion is the drift-prevention chokepoint
