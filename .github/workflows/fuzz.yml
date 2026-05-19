@@ -49,7 +49,7 @@ jobs:
           git config --global user.name "aiwf-ci"
           git config --global user.email "ci@example.com"
       - name: Fuzz ${{ matrix.target.fn }} in ${{ matrix.target.pkg }}
-        run: go test -exec=./scripts/sign-and-run.sh -run='^$' -fuzz=${{ matrix.target.fn }} -fuzztime=2m ${{ matrix.target.pkg }}
+        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run='^$' -fuzz=${{ matrix.target.fn }} -fuzztime=2m ${{ matrix.target.pkg }}
       - name: Upload corpus on failure
         if: failure()
         uses: actions/upload-artifact@v4
