@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: devcontainer.json declares base image, features, mounts, workspace mount
-      status: open
+      status: met
     - id: AC-2
       title: devcontainer-lock.json pins feature SHAs
       status: open
