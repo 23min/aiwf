@@ -4,6 +4,31 @@ title: Land .devcontainer skeleton (features-first, Go base, project-scope plugi
 status: draft
 parent: E-0035
 tdd: none
+acs:
+    - id: AC-1
+      title: devcontainer.json declares base image, features, mounts, workspace mount
+      status: open
+    - id: AC-2
+      title: devcontainer-lock.json pins feature SHAs
+      status: open
+    - id: AC-3
+      title: initialize.sh creates host-side symlinks and cites claude-code#31388
+      status: open
+    - id: AC-4
+      title: init.sh runs idempotently with the agreed install + banner blocks
+      status: open
+    - id: AC-5
+      title: .devcontainer/README.md ships operator-facing usage with named sections
+      status: open
+    - id: AC-6
+      title: CLAUDE.md Operator setup gains Devcontainer subsection with shadow-mount note
+      status: open
+    - id: AC-7
+      title: devcontainer-build-smoke.sh exists with build + Go-version check
+      status: open
+    - id: AC-8
+      title: devcontainer-ci-smoke.sh exists with make-ci-inside-container check
+      status: open
 ---
 ## Goal
 
@@ -156,3 +181,215 @@ so the next failure of the same shape is one-shot.
   restore `~/.claude/plugins` from `~/.claude-linux/plugins`'s
   inverse, or re-run `/plugin` on host. Long-term fix is
   upstream via claude-code#31388.
+
+### AC-1 — devcontainer.json declares base image, features, mounts, workspace mount
+
+The verb-time projection of `.devcontainer/devcontainer.json`
+JSON-parses cleanly and contains the agreed structural shape.
+**Pass criterion**: file parses as JSON; `image` is
+`mcr.microsoft.com/devcontainers/go:1-1.25-bookworm`; `features`
+contains entries for
+`ghcr.io/devcontainers/features/common-utils:2`,
+`ghcr.io/devcontainers/features/github-cli:1`, and
+`ghcr.io/devcontainers/features/node:1`; `workspaceMount.source`
+expands to `${localWorkspaceFolder}/..` (siblings visible);
+`mounts` contains entries for `/tmp/.claude-mount`,
+`/tmp/.claude-plugins-mount`, and `/tmp/.gh-mount` targeting the
+three named in-container paths; `remoteUser` is `vscode`.
+**Edge cases**: extra entries fine; missing any of the three named
+features fails; image string mismatch fails; mount target paths
+inverted (host vs. container side) fails; `workspaceMount.source`
+expanding only to `${localWorkspaceFolder}` (no `..`) fails because
+sibling repos would be invisible.
+**Code references**: assertion at
+`internal/policies/devcontainer_shape_test.go` (new); reads the
+file via `os.ReadFile`, parses via `encoding/json`, asserts each
+named field via structured navigation (not flat substring match).
+
+### AC-2 — devcontainer-lock.json pins feature SHAs
+
+`.devcontainer/devcontainer-lock.json` exists and pins resolved
+SHAs for every feature declared in `devcontainer.json`, matching
+FlowTime's reproducibility precedent.
+**Pass criterion**: file parses as JSON; the `features` object
+contains a key for each feature declared in `devcontainer.json`;
+each entry has non-empty `version`, `resolved` (with `@sha256:...`
+suffix), and `integrity` fields.
+**Edge cases**: missing feature in lockfile fails; lockfile entry
+without `resolved` SHA fails; mismatch between feature ids in
+`devcontainer.json` and `devcontainer-lock.json` (e.g., feature
+added in `.json` but not regenerated into `-lock.json`) fails.
+**Code references**: assertion at
+`internal/policies/devcontainer_lock_test.go` (new);
+cross-validates the two files by walking `devcontainer.json`'s
+`features` keys and asserting each is present and pinned in the
+lockfile.
+
+### AC-3 — initialize.sh creates host-side symlinks and cites claude-code#31388
+
+`.devcontainer/initialize.sh` is the host-side `initializeCommand`
+hook. It must create the stable `/tmp` symlinks the devcontainer
+mounts reference, and document the shadow-mount workaround inline.
+**Pass criterion**: file exists with mode `0755`; bash header
+(`#!/usr/bin/env bash` + `set -euo pipefail`); contains three
+`ln -sfn "$HOME/..." /tmp/<name>` lines for `.claude-mount`,
+`.claude-plugins-mount`, and `.gh-mount`; contains a comment block
+above the symlink section that names
+`anthropics/claude-code#31388` by URL, names the macOS-vs-Linux
+plugin-index path mismatch as the cause, and instructs the reader
+to remove the shadow-mount once #31388 ships a fix.
+**Edge cases**: missing any of the three symlinks fails; comment
+block in wrong location (e.g., at file end, after the symlinks)
+fails per the structural-assertion rule; missing the upstream URL
+literal fails; comment present but not naming "shadow-mount" or
+"plugin index" as the concept fails the structural intent check.
+**Code references**: assertion at
+`internal/policies/devcontainer_initialize_script_test.go` (new);
+reads the file, asserts mode via `os.Stat`, asserts the three
+`ln -sfn` lines via structured regex anchored to the symlink
+section, asserts the comment block precedes them and contains
+the upstream URL.
+
+### AC-4 — init.sh runs idempotently with the agreed install + banner blocks
+
+`.devcontainer/init.sh` is the in-container `postCreateCommand`
+hook. It performs the install and configuration sequence the
+milestone Approach section enumerates, idempotently (safe to
+re-run on `updateContentCommand` rebuilds).
+**Pass criterion**: file exists with mode `0755`; contains
+named-section comments for each of: git config (user.name +
+user.email matching the host identity), gh credential helper
+(`!gh auth git-credential` rewrite per Liminara's precedent),
+golangci-lint install pinned to the same version as
+`.github/workflows/go.yml`, gofumpt install, govulncheck install,
+Claude Code CLI install (the `claude.ai/install.sh` curl, guarded
+by `command -v claude`), `make install-hooks`,
+`go install ./cmd/aiwf` + `aiwf init`, env-gated Playwright
+install keyed on `AIWF_DEVCONTAINER_E2E`, and the final banner
+block containing the literal strings "23min/ai-workflow-rituals",
+"PROJECT scope", "aiwf-extensions", and "wf-rituals".
+**Edge cases**: any block present but not idempotent (no
+`command -v` guard or equivalent re-run safety) fails; banner
+block missing any of the four literal strings fails; the
+golangci-lint version literal in `init.sh` not matching the one
+in `.github/workflows/go.yml` (which is the CI source of truth)
+fails the cross-file consistency check; env-gating syntax that
+doesn't default to `false` when unset fails (would silently
+turn the Playwright install on for everyone).
+**Code references**: assertion at
+`internal/policies/devcontainer_init_script_test.go` (new);
+reads the file, asserts each named section via anchored regex,
+cross-validates the golangci-lint version against
+`.github/workflows/go.yml`.
+
+### AC-5 — .devcontainer/README.md ships operator-facing usage with named sections
+
+`.devcontainer/README.md` is the in-repo operator documentation
+for the devcontainer. A future contributor opening the
+`.devcontainer/` directory should find this file first and have
+enough context to use the container without reading CLAUDE.md.
+**Pass criterion**: markdown file present; parsed via the
+project's existing markdown-AST walker (the same helper
+`internal/policies/` uses elsewhere for markdown structural
+checks); contains H2 sections titled `Build`,
+`Reopen in Container`, `Environment variables`, and
+`Recovery prompt` (or close-equivalent canonical names — the
+assertion matches against the canonical set declared in the test);
+each section has non-empty body content.
+**Edge cases**: any of the four named sections absent fails;
+section present but with empty body content fails per the
+`entity-body-empty` analog; substring-flat assertion is rejected
+per CLAUDE.md's "substring assertions are not structural
+assertions" rule — the test must walk the heading hierarchy
+rather than grep over the whole file.
+**Code references**: assertion at
+`internal/policies/devcontainer_readme_shape_test.go` (new);
+markdown-AST walk via the existing project parser. If a shared
+helper for "assert these H2 sections exist with non-empty
+bodies" already exists in `internal/policies/`, reuse it;
+otherwise extract one in the same commit.
+
+### AC-6 — CLAUDE.md Operator setup gains Devcontainer subsection with shadow-mount note
+
+CLAUDE.md's existing `## Operator setup` section documents how
+operators install the rituals plugins on the host. This AC adds a
+subsection that documents the devcontainer-on-macOS additional
+step (the shadow-mount), so a reader following the operator-setup
+instructions inside a devcontainer finds the relevant guidance.
+**Pass criterion**: parse CLAUDE.md; find the `## Operator setup`
+section; assert a `### Devcontainer` (or equivalent-named)
+subsection exists within it; assert the subsection body contains
+the literal URL
+`https://github.com/anthropics/claude-code/issues/31388`; assert
+the subsection body contains the literal phrase "shadow-mount" or
+"plugin index shadow".
+**Edge cases**: subsection present in CLAUDE.md but outside the
+`## Operator setup` parent fails (structural scoping per
+CLAUDE.md's anti-pattern); URL present in CLAUDE.md but outside
+the subsection fails; subsection title close but not canonical
+(e.g., `### Dev container` with a space) acceptable iff the test
+declares the canonical set; missing the workaround-cleanup
+guidance (the "remove once #31388 ships" framing) is acceptable
+in this AC — that's covered by the inline comment in
+`initialize.sh` per AC-3.
+**Code references**: assertion at
+`internal/policies/claude_md_devcontainer_section_test.go` (new);
+markdown-AST walk asserting the subsection's parent is the
+expected H2.
+
+### AC-7 — devcontainer-build-smoke.sh exists with build + Go-version check
+
+A smoke script lives in `scripts/` that exercises the container
+image build end-to-end. Currently operator-run (no Docker in CI);
+CI integration is deferred to a sibling milestone under this
+epic. The script's existence + executability + structural shape
+is the mechanical assertion this AC pins.
+**Pass criterion**: `scripts/devcontainer-build-smoke.sh` exists
+with mode `0755`; runs
+`devcontainer build --workspace-folder ...` against the repo; on
+success, runs the built image to invoke `go version` and greps
+for `go1.25`; exits 0 on success, non-zero with a diagnostic on
+failure; documents in its header comment that it is "operator-run
+today, CI-integration pending sibling milestone."
+**Edge cases**: script present but missing the version-grep step
+fails (we'd be asserting "build succeeded" without verifying the
+right Go landed); script missing the header comment about
+operator-run-status fails; running the script on a host without
+the `devcontainer` CLI installed should exit non-zero with a
+clear error pointing at `npm install -g @devcontainers/cli`
+(asserted via dry-read of the script's preflight section).
+**Code references**: structural assertion at
+`internal/policies/devcontainer_smoke_scripts_test.go` (new);
+asserts file presence, mode, and the key shell-line patterns
+(`devcontainer build`, `go version`, `go1.25`, the preflight
+check for `devcontainer` CLI presence). The script itself lives
+at `scripts/devcontainer-build-smoke.sh`.
+
+### AC-8 — devcontainer-ci-smoke.sh exists with make-ci-inside-container check
+
+The end-to-end smoke for "the dev loop actually works in the
+container." Same operator-run posture as AC-7 today; CI
+integration deferred to a sibling milestone under this epic.
+**Pass criterion**: `scripts/devcontainer-ci-smoke.sh` exists
+with mode `0755`; uses `devcontainer up` +
+`devcontainer exec` against this repo; runs `make ci` inside;
+exits 0 only if all `make ci` sub-targets (vet, lint, test-race,
+coverage, selfcheck) exit 0; non-zero with a captured stderr
+tail on failure; documents the operator-run-status in its
+header comment.
+**Edge cases**: script that runs `make ci` but doesn't
+propagate the exit code fails the "green means green"
+requirement; missing header comment about operator-run-status
+fails; running on a host without Docker daemon should exit
+non-zero with a clear error (asserted via dry-read of the
+script's preflight section); failure on any sub-target
+(specifically `selfcheck`, which depends on aiwf binary install
+inside the container per init.sh step 6) must propagate as a
+non-zero exit, not be silently swallowed.
+**Code references**: structural assertion at
+`internal/policies/devcontainer_smoke_scripts_test.go` (shared
+file with AC-7); asserts file presence, mode, and the key
+shell-line patterns (`devcontainer exec`, `make ci`, and exit
+code propagation via `set -e` or explicit `exit "$?"`). Script
+lives at `scripts/devcontainer-ci-smoke.sh`.
+
