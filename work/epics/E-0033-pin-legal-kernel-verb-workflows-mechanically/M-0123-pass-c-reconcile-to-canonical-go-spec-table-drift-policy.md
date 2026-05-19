@@ -22,7 +22,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: 'LookupRule helper: hit, miss, no-duplicates semantics'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Bidirectional drift policy (impl->spec and spec->impl)
