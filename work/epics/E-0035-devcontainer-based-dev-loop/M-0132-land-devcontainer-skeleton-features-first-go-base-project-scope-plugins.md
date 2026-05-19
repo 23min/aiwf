@@ -404,3 +404,52 @@ so the next failure of the same shape is one-shot.
   restore `~/.claude/plugins` from `~/.claude-linux/plugins`'s
   inverse, or re-run `/plugin` on host. Long-term fix is
   upstream via claude-code#31388.
+- **`fatal: not a git repository: (null)` on first
+  `git config --global` call.** Symptom: init.sh dies
+  immediately at "Configuring git identity"; even
+  `git config --global` (which shouldn't need a repo) fails.
+  Diagnosis: stray `GIT_DIR`, `GIT_WORK_TREE`, or
+  `GIT_COMMON_DIR` in the container env, set by VS Code's
+  dev-containers extension's git probe. Fix: `unset GIT_DIR
+  GIT_WORK_TREE GIT_COMMON_DIR` at the top of init.sh
+  (already in place since commit `ba2abe5e`). This entry
+  documents the failure shape so the next clean Claude
+  session diagnosing it has a one-shot answer.
+- **`aiwf init: creating hooks dir: mkdir /Users: permission
+  denied`.** Symptom: aiwf init step of postcreate fails on
+  mkdir of `/Users`. Diagnosis: stale absolute
+  `core.hooksPath = /Users/.../<repo>/.git/hooks` in the
+  repo's `.git/config` (legacy from pre-G38 install-hooks;
+  redundant with git's default in any case). Inside the
+  container the absolute host path can't be created. Fix:
+  defensive `git config --unset core.hooksPath` early in
+  init.sh (already in place since commit `00d798f4`). On
+  the host this is a no-op (value mirrored git's default).
+- **`make install-hooks` → `mkdir: cannot create directory
+  '.git': Not a directory`.** Symptom: make install-hooks
+  fails on mkdir of `.git/hooks`. Diagnosis: the original
+  Makefile target hardcoded `.git/hooks` as a relative
+  path, which breaks when `.git` is a worktree pointer
+  *file* (not a directory). Fix: Makefile install-hooks
+  now uses `HOOKS_DIR=$(git rev-parse --git-path hooks)`
+  which returns the common hooks dir correctly for both
+  main checkouts and worktrees (already in place since
+  commit `00d798f4`).
+- **Pre-commit hook fails with `<wrong-context>/aiwf: not
+  found` after switching between host and container.**
+  Symptom: in the container, `git commit` errors with
+  `/Users/.../go/bin/aiwf: not found`. On the host (after
+  a container-side aiwf init), it errors with
+  `/go/bin/aiwf: not found`. Diagnosis: `aiwf init` bakes
+  an absolute path to the current shell's aiwf binary into
+  the hooks (`/Users/.../go/bin/aiwf` on host,
+  `/go/bin/aiwf` in container). Git fires hooks from the
+  common `.git/hooks/` dir for worktrees by default (NOT
+  the per-worktree dir aiwf init also writes to), so the
+  hook last baked by one environment fails in the other.
+  Immediate fix: re-run `aiwf init` from the environment
+  you're committing from — it re-bakes the absolute path
+  to that environment's aiwf. Recurring tax: a sibling
+  gap tracks the structural fix (have aiwf init write a
+  hook that probes multiple known paths, or use PATH
+  lookup with a deterministic fallback chain).
