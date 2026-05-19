@@ -7,6 +7,35 @@ depends_on:
     - M-0121
     - M-0122
 tdd: required
+acs:
+    - id: AC-1
+      title: spec package declares Rule, enums, Predicate, RuleSource, AntiRule types
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Rules() covers Q1-Q15 cells; schema invariants hold
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: AntiRules() carries 12 entries (Pass B §10 plus Q10 addition)
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: 'LookupRule helper: hit, miss, no-duplicates semantics'
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: Bidirectional drift policy (impl->spec and spec->impl)
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: Every Sources.Decision resolves to an existing D-NNNN entity
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: Rules() slice not exported; LookupRule is the only access
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -166,3 +195,18 @@ Enforcement is reviewer-level. A structural finding-rule under `internal/check/`
 ## Open question to settle here
 
 The "negative-of-undefined" posture (cells the spec deliberately leaves silent) is decided in this milestone, based on whether reconciliation actually surfaces any genuinely undecidable cells. Default lean: closed spec (every cell decided one way or the other). Decide otherwise only if forced by reality; record the call via `aiwf add decision --relates-to E-0033`.
+
+### AC-1 — spec package declares Rule, enums, Predicate, RuleSource, AntiRule types
+
+### AC-2 — Rules() covers Q1-Q15 cells; schema invariants hold
+
+### AC-3 — AntiRules() carries 12 entries (Pass B §10 plus Q10 addition)
+
+### AC-4 — LookupRule helper: hit, miss, no-duplicates semantics
+
+### AC-5 — Bidirectional drift policy (impl->spec and spec->impl)
+
+### AC-6 — Every Sources.Decision resolves to an existing D-NNNN entity
+
+### AC-7 — Rules() slice not exported; LookupRule is the only access
+
