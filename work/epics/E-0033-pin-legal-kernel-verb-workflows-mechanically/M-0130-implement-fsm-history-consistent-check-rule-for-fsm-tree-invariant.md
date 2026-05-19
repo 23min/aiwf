@@ -1,7 +1,7 @@
 ---
 id: M-0130
 title: Implement fsm-history-consistent check rule for FSM tree-invariant
-status: draft
+status: in_progress
 prior_ids:
     - M-0126
 parent: E-0033
