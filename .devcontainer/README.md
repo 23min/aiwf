@@ -40,7 +40,7 @@ CI matrix (sibling milestone under E-0035) uses this path; the
 operator path doesn't need it.
 
 Either path: the first build downloads the base image
-(`mcr.microsoft.com/devcontainers/go:1-1.25-bookworm`) and the three
+(`mcr.microsoft.com/devcontainers/go:2-1.25-bookworm`) and the three
 declared features. Subsequent builds use cached layers. The build
 generates `.devcontainer/devcontainer-lock.json` pinning resolved
 feature SHAs — commit this file once it lands so future builds

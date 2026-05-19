@@ -60,7 +60,7 @@ func PolicyM0132DevcontainerShape(root string) ([]Violation, error) {
 		})
 	}
 
-	const wantImage = "mcr.microsoft.com/devcontainers/go:1-1.25-bookworm"
+	const wantImage = "mcr.microsoft.com/devcontainers/go:2-1.25-bookworm"
 	if cfg.Image != wantImage {
 		report(fmt.Sprintf("image = %q, want %q (Microsoft first-party Go base image per M-0132 Approach / Q6)", cfg.Image, wantImage))
 	}
