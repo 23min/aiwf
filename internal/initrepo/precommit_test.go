@@ -369,7 +369,7 @@ func TestPreCommitHook_ChainsToLocalAtRuntime(t *testing.T) {
 	}
 	shimPATH := "PATH=" + shimDir + ":" + os.Getenv("PATH")
 
-	hookBody := preCommitHookScript("")
+	hookBody := preCommitHookScript()
 	hookPath := filepath.Join(hooksDir, "pre-commit")
 	if err := os.WriteFile(hookPath, []byte(hookBody), 0o755); err != nil {
 		t.Fatal(err)

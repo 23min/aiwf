@@ -23,7 +23,7 @@ import (
 // overwrite, breaking idempotent updates.
 func TestPostCommitHookScript_HasMarker(t *testing.T) {
 	t.Parallel()
-	body := postCommitHookScript("/some/aiwf")
+	body := postCommitHookScript()
 	if !strings.Contains(body, PostCommitHookMarker()) {
 		t.Errorf("post-commit hook missing marker line %q:\n%s", PostCommitHookMarker(), body)
 	}
@@ -34,7 +34,7 @@ func TestPostCommitHookScript_HasMarker(t *testing.T) {
 // brownfield repo and the hook is a no-op for it.
 func TestPostCommitHookScript_HasBrownfieldGuard(t *testing.T) {
 	t.Parallel()
-	body := postCommitHookScript("/some/aiwf")
+	body := postCommitHookScript()
 	if !strings.Contains(body, `[ -f "$repo_root/aiwf.yaml" ] || exit 0`) {
 		t.Errorf("post-commit hook missing brownfield guard:\n%s", body)
 	}
@@ -44,7 +44,7 @@ func TestPostCommitHookScript_HasBrownfieldGuard(t *testing.T) {
 // invocation. This is the hook's whole point.
 func TestPostCommitHookScript_RegeneratesStatusMd(t *testing.T) {
 	t.Parallel()
-	body := postCommitHookScript("/some/aiwf")
+	body := postCommitHookScript()
 	if !strings.Contains(body, "status --root") {
 		t.Errorf("post-commit hook missing `aiwf status --root` invocation:\n%s", body)
 	}
@@ -67,7 +67,7 @@ func TestPostCommitHookScript_RegeneratesStatusMd(t *testing.T) {
 // dragged the line over from the old pre-commit body.
 func TestPostCommitHookScript_NoGitAdd(t *testing.T) {
 	t.Parallel()
-	body := postCommitHookScript("/some/aiwf")
+	body := postCommitHookScript()
 	if strings.Contains(body, "git add") {
 		t.Errorf("post-commit hook must not `git add` (STATUS.md is gitignored; post-commit can't amend the commit):\n%s", body)
 	}
@@ -85,7 +85,7 @@ func TestPostCommitHookScript_NoGitAdd(t *testing.T) {
 // documentation, not a regression.
 func TestPreCommitHookScript_HasNoRegen(t *testing.T) {
 	t.Parallel()
-	body := preCommitHookScript("/some/aiwf")
+	body := preCommitHookScript()
 	if !strings.Contains(body, "check --shape-only") {
 		t.Errorf("pre-commit hook missing tree-discipline gate:\n%s", body)
 	}
@@ -484,7 +484,7 @@ func TestPostCommitHook_RegeneratesStatusMd(t *testing.T) {
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	hookBody := postCommitHookScript("")
+	hookBody := postCommitHookScript()
 	hookPath := filepath.Join(hooksDir, "post-commit")
 	if err := os.WriteFile(hookPath, []byte(hookBody), 0o755); err != nil {
 		t.Fatal(err)
@@ -520,7 +520,7 @@ func TestPostCommitHook_BrownfieldShortCircuits(t *testing.T) {
 	}
 	root := freshGitRepo(t)
 	hookPath := filepath.Join(t.TempDir(), "post-commit.sh")
-	if err := os.WriteFile(hookPath, []byte(postCommitHookScript("/bin/false")), 0o755); err != nil {
+	if err := os.WriteFile(hookPath, []byte(postCommitHookScript()), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	cmd := exec.Command("/bin/sh", hookPath)

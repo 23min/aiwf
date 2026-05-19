@@ -46,14 +46,12 @@ import (
 //
 //  2. TestPreHookScript_TemplateEqualsInstalled — runs `Init` in a
 //     fresh tempdir, reads the installed `.git/hooks/pre-push` bytes,
-//     re-renders `preHookScript(exePath)` with the same path init
+//     re-renders `preHookScript()` with the same path init
 //     used, and asserts byte-equality. This catches a regression
 //     where the install path took a different code branch than the
 //     template function (a parallel source of truth — the failure
 //     mode CLAUDE.md `Test the seam, not just the layer` warns
 //     about).
-
-const sentinelBinaryPath = "/AIWF_BIN"
 
 // TestPreHookScript_ByteGolden pins the rendered template against
 // the golden file. A failure means the template body changed; either
@@ -62,7 +60,7 @@ const sentinelBinaryPath = "/AIWF_BIN"
 // (revert the change).
 func TestPreHookScript_ByteGolden(t *testing.T) {
 	t.Parallel()
-	got := preHookScript(sentinelBinaryPath)
+	got := preHookScript()
 
 	want, err := os.ReadFile("testdata/pre-push.golden")
 	if err != nil {
@@ -76,10 +74,9 @@ func TestPreHookScript_ByteGolden(t *testing.T) {
 
 // TestPreHookScript_TemplateEqualsInstalled runs aiwf init in a fresh
 // tempdir, reads the installed pre-push hook, and asserts byte-equality
-// against `preHookScript(exePath)` rendered with the same path init
-// resolved. Cross-checks that ensurePreHook writes whatever the
-// template function returns and nothing else — no parallel source of
-// truth.
+// against `preHookScript()`. Cross-checks that ensurePreHook writes
+// whatever the template function returns and nothing else — no
+// parallel source of truth.
 func TestPreHookScript_TemplateEqualsInstalled(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir()
@@ -115,14 +112,10 @@ func TestPreHookScript_TemplateEqualsInstalled(t *testing.T) {
 		t.Fatalf("read installed hook %s: %v", hookPath, err)
 	}
 
-	exePath, err := resolveExecutable()
-	if err != nil {
-		t.Fatalf("resolveExecutable: %v", err)
-	}
-	rendered := preHookScript(exePath)
+	rendered := preHookScript()
 
 	if diff := cmp.Diff(rendered, string(installed)); diff != "" {
-		t.Errorf("installed pre-push hook differs from preHookScript(exePath) — parallel source of truth (-template +installed):\n%s", diff)
+		t.Errorf("installed pre-push hook differs from preHookScript() — parallel source of truth (-template +installed):\n%s", diff)
 	}
 
 	// The installed hook must also be executable (mode 0o755).

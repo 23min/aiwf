@@ -87,11 +87,7 @@ Skills under ` + "`.claude/skills/aiwf-*/`" + ` are gitignored and regenerated o
 // A `.local` that exists but is not executable fails loud rather
 // than silently skipping (the latter would let the user think they
 // have hook coverage when they don't).
-//
-// The execPath parameter is retained transitionally and ignored in
-// the rendered body.
-func preHookScript(execPath string) string {
-	_ = execPath
+func preHookScript() string {
 	return `#!/bin/sh
 ` + preHookMarker + `
 # Installed by aiwf init. Chains to the pre-push.local sibling in
@@ -150,11 +146,7 @@ fi`
 // present at the repo root the hook exits 0 immediately. Without
 // this guard the hook would fire on every commit in a brownfield
 // repo that has not yet adopted aiwf — invasive and surprising.
-//
-// The execPath parameter is retained transitionally and ignored in
-// the rendered body.
-func preCommitHookScript(execPath string) string {
-	_ = execPath
+func preCommitHookScript() string {
 	return `#!/bin/sh
 ` + preCommitHookMarker + `
 # Installed by aiwf init/update. Chains to the pre-commit.local
@@ -210,11 +202,7 @@ exit 0
 //
 // Brownfield guard mirrors the other hooks': no aiwf.yaml at the
 // root → exit 0 silently.
-//
-// The execPath parameter is retained transitionally and ignored in
-// the rendered body.
-func postCommitHookScript(execPath string) string {
-	_ = execPath
+func postCommitHookScript() string {
 	return `#!/bin/sh
 ` + postCommitHookMarker + `
 # Installed by aiwf init/update. Chains to the post-commit.local
@@ -1029,10 +1017,6 @@ func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, b
 		migrated = true
 	}
 
-	exePath, err := resolveExecutable()
-	if err != nil {
-		return StepResult{}, false, fmt.Errorf("resolving aiwf binary path: %w", err)
-	}
 	action := ActionCreated
 	switch {
 	case migrated:
@@ -1041,13 +1025,13 @@ func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, b
 		action = ActionUpdated
 	}
 	if !dryRun {
-		if err := os.WriteFile(hookPath, []byte(preHookScript(exePath)), 0o755); err != nil {
+		if err := os.WriteFile(hookPath, []byte(preHookScript()), 0o755); err != nil {
 			return StepResult{}, false, fmt.Errorf("writing pre-push hook: %w", err)
 		}
 	}
-	detail := "exec " + exePath
+	detail := "exec `command -v aiwf` check (PATH-relative)"
 	if migrated {
-		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before " + exePath + " check"
+		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before `command -v aiwf` check"
 	}
 	return StepResult{
 		What:   what,
@@ -1070,25 +1054,6 @@ func migrateHookToLocal(src, dst string) error {
 	// pointing at a tracked directory whose files are non-+x) might
 	// not be. Forcing 0o755 here is safe — hooks are user-private.
 	return os.Chmod(dst, 0o755)
-}
-
-// resolveExecutable returns the absolute, symlink-resolved path of
-// the running binary. The hook bakes this in so push-time hook
-// execution never depends on `$PATH`.
-func resolveExecutable() (string, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return "", err
-	}
-	resolved, err := filepath.EvalSymlinks(exe)
-	if err != nil {
-		// Symlink resolution can fail on some platforms or for
-		// unusual paths; fall back to the unresolved exe rather than
-		// failing init outright. Re-running init after a `mv` will
-		// fix it.
-		return exe, nil
-	}
-	return resolved, nil
 }
 
 // HookMarker exposes the marker line for tests that assert the hook
@@ -1154,11 +1119,6 @@ func ensurePreCommitHook(ctx context.Context, root string, dryRun bool) (StepRes
 		}
 	}
 
-	exePath, err := resolveExecutable()
-	if err != nil {
-		return StepResult{}, false, fmt.Errorf("resolving aiwf binary path: %w", err)
-	}
-
 	action := ActionCreated
 	switch {
 	case migrated:
@@ -1167,13 +1127,13 @@ func ensurePreCommitHook(ctx context.Context, root string, dryRun bool) (StepRes
 		action = ActionUpdated
 	}
 	if !dryRun {
-		if err := os.WriteFile(hookPath, []byte(preCommitHookScript(exePath)), 0o755); err != nil {
+		if err := os.WriteFile(hookPath, []byte(preCommitHookScript()), 0o755); err != nil {
 			return StepResult{}, false, fmt.Errorf("writing pre-commit hook: %w", err)
 		}
 	}
-	detail := "exec " + exePath + " check --shape-only"
+	detail := "exec `command -v aiwf` check --shape-only (PATH-relative)"
 	if migrated {
-		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before " + exePath + " check --shape-only"
+		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before `command -v aiwf` check --shape-only"
 	}
 	return StepResult{
 		What:   what,
@@ -1275,11 +1235,6 @@ func ensurePostCommitHook(ctx context.Context, root string, regenStatus, dryRun 
 		}
 	}
 
-	exePath, err := resolveExecutable()
-	if err != nil {
-		return StepResult{}, false, fmt.Errorf("resolving aiwf binary path: %w", err)
-	}
-
 	action := ActionCreated
 	switch {
 	case migrated:
@@ -1288,13 +1243,13 @@ func ensurePostCommitHook(ctx context.Context, root string, regenStatus, dryRun 
 		action = ActionUpdated
 	}
 	if !dryRun {
-		if err := os.WriteFile(hookPath, []byte(postCommitHookScript(exePath)), 0o755); err != nil {
+		if err := os.WriteFile(hookPath, []byte(postCommitHookScript()), 0o755); err != nil {
 			return StepResult{}, false, fmt.Errorf("writing post-commit hook: %w", err)
 		}
 	}
-	detail := "exec " + exePath + " status --format=md"
+	detail := "exec `command -v aiwf` status --format=md (PATH-relative)"
 	if migrated {
-		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before " + exePath + " status --format=md"
+		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before `command -v aiwf` status --format=md"
 	}
 	return StepResult{
 		What:   what,
