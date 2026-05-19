@@ -493,6 +493,21 @@ func TestHooksDir(t *testing.T) {
 		}
 	})
 
+	t.Run("non-git workdir surfaces error (not silent)", func(t *testing.T) {
+		// commonGitDir and InWorktree are reached only via HooksDir
+		// (and update.Run for InWorktree). When git can't resolve the
+		// workdir, the error propagates rather than silently falling
+		// back. Covers commonGitDir's error return and InWorktree's
+		// GitDir-error branch.
+		notARepo := t.TempDir()
+		if _, err := HooksDir(ctx, notARepo); err == nil {
+			t.Errorf("HooksDir against non-git workdir should error, got nil")
+		}
+		if _, err := InWorktree(ctx, notARepo); err == nil {
+			t.Errorf("InWorktree against non-git workdir should error, got nil")
+		}
+	})
+
 	t.Run("worktree falls back to common-dir hooks (G-0136)", func(t *testing.T) {
 		main := t.TempDir()
 		if err := Init(ctx, main); err != nil {
