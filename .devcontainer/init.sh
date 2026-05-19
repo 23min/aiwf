@@ -106,6 +106,11 @@ if ! command -v gofumpt >/dev/null 2>&1; then
   go install mvdan.cc/gofumpt@latest
 fi
 
+if ! command -v goimports >/dev/null 2>&1; then
+  echo "==> Installing goimports"
+  go install golang.org/x/tools/cmd/goimports@latest
+fi
+
 if ! command -v govulncheck >/dev/null 2>&1; then
   echo "==> Installing govulncheck"
   go install golang.org/x/vuln/cmd/govulncheck@latest
