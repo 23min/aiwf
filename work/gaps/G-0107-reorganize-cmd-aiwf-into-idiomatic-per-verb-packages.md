@@ -1,7 +1,9 @@
 ---
 id: G-0107
 title: reorganize cmd/aiwf into idiomatic per-verb packages
-status: open
+status: addressed
+addressed_by:
+    - M-0118
 ---
 ## What's missing
 
