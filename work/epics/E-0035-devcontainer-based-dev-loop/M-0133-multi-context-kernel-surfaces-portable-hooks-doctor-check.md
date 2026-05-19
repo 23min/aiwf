@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: aiwf update from a worktree writes to shared hooks directory
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: aiwf doctor recommended-plugins reads enabledPlugins not installed-plugins
       status: open
