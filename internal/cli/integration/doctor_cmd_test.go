@@ -981,3 +981,107 @@ contracts:
 		t.Error("strict_validators=true must make missing validator a problem")
 	}
 }
+
+// G-0135 / M-0133 / AC-1 branch-coverage tests for the doctor's hook
+// reports. Post-G-0135 hooks resolve aiwf via `command -v aiwf` at
+// hook-fire time; doctor validates via exec.LookPath. The branches
+// below are: (a) lookup fails (binary not on PATH), and (b) the
+// pre-G-0135 shape with a still-valid baked path (operator hasn't
+// run `aiwf update` yet but their old install still works).
+//
+// The "binary not on PATH" tests use t.Setenv to clear PATH; they
+// cannot run under t.Parallel because t.Setenv panics in parallel
+// tests.
+
+// TestDoctorReport_HookOK_AiwfNotOnPATH: fresh init produces the
+// new (command -v) shape. When PATH does not contain aiwf, doctor
+// reports the not-found diagnostic and increments problems.
+func TestDoctorReport_HookOK_AiwfNotOnPATH(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", filepath.Join(t.TempDir(), "no-aiwf-here"))
+	lines, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "hook:      aiwf binary not found on PATH") {
+		t.Errorf("expected pre-push 'aiwf binary not found on PATH' diagnostic:\n%s", joined)
+	}
+	if !strings.Contains(joined, "pre-commit: aiwf binary not found on PATH") {
+		t.Errorf("expected pre-commit 'aiwf binary not found on PATH' diagnostic:\n%s", joined)
+	}
+	if !strings.Contains(joined, "post-commit: aiwf binary not found on PATH") {
+		t.Errorf("expected post-commit 'aiwf binary not found on PATH' diagnostic:\n%s", joined)
+	}
+	if problems == 0 {
+		t.Errorf("not-found-on-PATH should increment problems for all three hooks; got 0:\n%s", joined)
+	}
+}
+
+// TestDoctorReport_PreG0135ShapeStillValid: a hand-written old-shape
+// hook (absolute path baked at install time) whose baked path still
+// exists. Doctor recognizes the old shape and reports `ok (...; run
+// aiwf update to switch to PATH lookup)` without incrementing
+// problems — the install still works, but the operator should
+// migrate via `aiwf update`.
+func TestDoctorReport_PreG0135ShapeStillValid(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// Hand-write the three hooks in pre-G-0135 shape with /bin/sh as
+	// the baked binary (guaranteed to exist on Unix test runners).
+	hooksDir := filepath.Join(root, ".git", "hooks")
+	prePush := []byte(`#!/bin/sh
+# aiwf:pre-push
+[ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
+exec '/bin/sh' check
+`)
+	if err := os.WriteFile(filepath.Join(hooksDir, "pre-push"), prePush, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	preCommit := []byte(`#!/bin/sh
+# aiwf:pre-commit
+set -e
+repo_root="$(git rev-parse --show-toplevel)"
+[ -f "$repo_root/aiwf.yaml" ] || exit 0
+if ! '/bin/sh' check --shape-only --root "$repo_root" >&2; then
+    exit 1
+fi
+exit 0
+`)
+	if err := os.WriteFile(filepath.Join(hooksDir, "pre-commit"), preCommit, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	postCommit := []byte(`#!/bin/sh
+# aiwf:post-commit
+repo_root="$(git rev-parse --show-toplevel)"
+[ -f "$repo_root/aiwf.yaml" ] || exit 0
+tmp="$repo_root/STATUS.md.tmp"
+if '/bin/sh' status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
+    mv "$tmp" "$repo_root/STATUS.md"
+else
+    rm -f "$tmp"
+fi
+exit 0
+`)
+	if err := os.WriteFile(filepath.Join(hooksDir, "post-commit"), postCommit, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	joined := strings.Join(lines, "\n")
+	for _, want := range []string{
+		"hook:      ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
+		"pre-commit: ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
+		"post-commit: ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("expected line containing %q in doctor report:\n%s", want, joined)
+		}
+	}
+}
