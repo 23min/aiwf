@@ -175,6 +175,12 @@ These rules apply to all Go code in the module. The repo-wide engineering princi
 - **Golden files** under `testdata/` for snapshot assertions. Synthetic content only — fixtures must read as obviously fictional, not as anonymized copies of real projects.
 - **Race detector on every CI run:** `go test -race ./...`.
 
+#### Test binaries are ad-hoc signed on Darwin (G-0133)
+
+`go test` runs through [`scripts/sign-and-run.sh`](scripts/sign-and-run.sh) via `-exec`, pinned in the Makefile and every workflow. The wrapper ad-hoc signs each per-package `<pkg>.test` binary on Darwin before exec'ing it; no-op on Linux. This dodges a macOS Sonoma 14.8.x syspolicyd crash parsing unsigned Mach-O code-signing data — G-0128 closed the inner-helper-binary layer; G-0133 closes the outer `<pkg>.test` layer.
+
+Local developers running `go test ./...` bare (not via `make`) bypass the wrap. On Intel macOS that means the bug can resurface — prefer `make test` / `make test-race`, or set `GOFLAGS="-exec=$(pwd)/scripts/sign-and-run.sh"` in your shell.
+
 #### Test the seam, not just the layer
 
 When a new helper, package, or shared function is wired into an existing caller (verb, dispatcher, hook), the test set must cover **both** the helper's behavior *and* the seam where it integrates. A unit test of the helper alone is necessary but not sufficient — it doesn't catch the case where the caller has a parallel source of truth and never adopts the helper.

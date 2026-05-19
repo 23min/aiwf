@@ -8,6 +8,11 @@
 AIWF_VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)@$(shell git describe --always --dirty 2>/dev/null)
 LDFLAGS := -X github.com/23min/aiwf/internal/cli.Version=$(AIWF_VERSION)
 
+# Test-binary wrapper that ad-hoc signs Darwin test binaries before exec'ing
+# them, to dodge the macOS Sonoma 14.8.x syspolicyd crash on unsigned Mach-O
+# headers. No-op on Linux/CI. See work/gaps/G-0133.
+TEST_EXEC := $(CURDIR)/scripts/sign-and-run.sh
+
 help:
 	@echo "Targets:"
 	@echo "  build     - build the aiwf binary into ./bin/ (with embedded version)"
@@ -33,10 +38,10 @@ install:
 	CGO_ENABLED=0 go install -ldflags "$(LDFLAGS)" ./cmd/aiwf
 
 test:
-	go test -parallel 8 ./...
+	go test -exec=$(TEST_EXEC) -parallel 8 ./...
 
 test-race:
-	go test -race -parallel 8 ./...
+	go test -exec=$(TEST_EXEC) -race -parallel 8 ./...
 
 vet:
 	go vet ./...
@@ -48,7 +53,7 @@ fmt:
 	gofumpt -l -w .
 
 coverage:
-	go test -coverprofile=coverage.out -coverpkg=./internal/... ./...
+	go test -exec=$(TEST_EXEC) -coverprofile=coverage.out -coverpkg=./internal/... ./...
 	go tool cover -func=coverage.out | tail -n 1
 
 # selfcheck builds the binary and drives every verb against a temp
