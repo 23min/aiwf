@@ -30,7 +30,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Every Sources.Decision resolves to an existing D-NNNN entity
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-7
       title: Rules() slice not exported; LookupRule is the only access
