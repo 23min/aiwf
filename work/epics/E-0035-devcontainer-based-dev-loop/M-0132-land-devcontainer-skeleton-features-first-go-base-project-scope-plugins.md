@@ -28,7 +28,7 @@ acs:
       status: cancelled
     - id: AC-8
       title: devcontainer-ci-smoke.sh exists with make-ci-inside-container check
-      status: open
+      status: cancelled
 ---
 ## Goal
 
