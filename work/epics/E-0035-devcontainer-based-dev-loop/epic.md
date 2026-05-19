@@ -1,7 +1,7 @@
 ---
 id: E-0035
 title: Devcontainer-based dev loop
-status: proposed
+status: active
 ---
 ## Goal
 
