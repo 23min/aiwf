@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Portable hook binary lookup via PATH at hook execution time
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-2
       title: aiwf update from a worktree writes to shared hooks directory
       status: open
