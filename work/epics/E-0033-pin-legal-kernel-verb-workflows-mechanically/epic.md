@@ -47,7 +47,7 @@ Then:
 | M-α₁ | M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | M-0120 |
 | M-β  | M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | M-0120 |
 | M-γ  | M-0123 | Pass C reconcile to canonical Go spec table + drift policy | M-0121, M-0122 |
-| M-ζ  | M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant (closes G-0130) | M-0123 |
+| M-ζ  | M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant (closes G-0132) | M-0123 |
 | M-η  | M-0131 | State-aware CancelTarget for Contract: cancel deprecated targets retired (closes G-0131) | M-0123 |
 | M-δ  | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | M-0123, M-0130, M-0131 |
 | M-ε  | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | M-0123, M-0130, M-0131 |

@@ -11,7 +11,7 @@ tdd: required
 ---
 ## Goal
 
-Implement the `fsm-history-consistent` check rule that makes the per-entity status FSM a **tree-invariant** rather than just a verb-precondition. Closes gap **G-0130** (filed during M-0121's audit). Addresses the catalog's R-RULE-149 placeholder.
+Implement the `fsm-history-consistent` check rule that makes the per-entity status FSM a **tree-invariant** rather than just a verb-precondition. Closes gap **G-0132** (filed during M-0121's audit). Addresses the catalog's R-RULE-149 placeholder.
 
 Without this check rule, R-RULE-019 and R-RULE-001..018 (the entity FSM rules in §10.1 of `legal-workflows-audit.md`) have a "hard-reject" severity that is **aspirational for manual-edit cases** — the verb-time chokepoint catches verb-mediated illegal transitions, but a direct markdown edit that flips a status without going through `aiwf promote` bypasses the FSM entirely. The closest existing chokepoint is `provenance-untrailered-entity-commit` (warning) which catches the *trailer absence* but not the specific FSM violation.
 
@@ -40,7 +40,7 @@ A new check rule under `internal/check/`, e.g. `fsm_history_consistent.go`:
    - Subcode `manual-edit` — change has no `aiwf-verb:` trailer at all (overlaps with `provenance-untrailered-entity-commit` but with FSM-specific framing)
 4. **Hint entry** in `internal/check/hint.go` for the new code, per policies/finding_hints.go.
 5. **Test fixtures** under `internal/check/testdata/fsm-history-consistent/` with at least one case per subcode plus a positive (clean) baseline.
-6. **Update the audit catalog** (`docs/pocv3/design/legal-workflows-audit.md`) to remove R-RULE-149's "currently unimplemented" qualifier and remove the "pending G-0130" note from §10.1's enforcement-status legend.
+6. **Update the audit catalog** (`docs/pocv3/design/legal-workflows-audit.md`) to remove R-RULE-149's "currently unimplemented" qualifier and remove the "pending G-0132" note from §10.1's enforcement-status legend.
 
 ## Severity escalation (optional follow-up)
 
@@ -54,17 +54,17 @@ Once `fsm-history-consistent` lands, the existing `provenance-untrailered-entity
 
 ## At wrap
 
-Promote G-0130 to `addressed`:
+Promote G-0132 to `addressed`:
 
 ```
-aiwf promote G-0130 addressed
+aiwf promote G-0132 addressed
 ```
 
-(Per the gap FSM: `open → addressed | wontfix`.) Add `addressed_by: [M-0130]` to G-0130's frontmatter in the same wrap commit.
+(Per the gap FSM: `open → addressed | wontfix`.) Add `addressed_by: [M-0130]` to G-0132's frontmatter in the same wrap commit.
 
 ## Related
 
-- **G-0130** — the gap this milestone closes
+- **G-0132** — the gap this milestone closes
 - **R-RULE-149** in `legal-workflows-audit.md` — the spec entry
 - **ADR-0011** — methodology committing FSM-as-tree-invariant
 - **CLAUDE.md §Engineering principles** — *"framework correctness must not depend on the LLM choosing to enforce"*

@@ -21,7 +21,7 @@ If kept, this is a textbook TDD milestone: write a Go test that scans the releva
 ## Out of scope
 
 - Forbidding `docs/pocv3/` literals in markdown files — the post-Relocate state has none and the sweep should have been comprehensive; if drift recurs in markdown, a separate finding-rule covers it.
-- Forbidding all stale doc paths globally. This milestone targets `docs/pocv3/` specifically; the broader "no dangling doc references" class is the existing `PolicyNoDanglingEntityRefsInNarrativeDocs` plus G-0130's renderer fix.
+- Forbidding all stale doc paths globally. This milestone targets `docs/pocv3/` specifically; the broader "no dangling doc references" class is the existing `PolicyNoDanglingEntityRefsInNarrativeDocs` plus G-0132's renderer fix.
 
 ## Dependencies
 

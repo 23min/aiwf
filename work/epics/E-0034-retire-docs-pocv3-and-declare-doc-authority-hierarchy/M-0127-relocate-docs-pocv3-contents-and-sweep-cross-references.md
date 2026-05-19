@@ -32,4 +32,4 @@ Full AC body, design notes, and surfaces-touched section drafted at `aiwfx-start
 ## References
 
 - **E-0034** — parent epic.
-- **G-0130** — `aiwf render roadmap --write` blocked by dangling refs in source epic bodies. Worth resolving alongside the sweep if the renderer-canonicalization fix is in scope, since this milestone is sweeping cross-references anyway.
+- **G-0132** — `aiwf render roadmap --write` blocked by dangling refs in source epic bodies. Worth resolving alongside the sweep if the renderer-canonicalization fix is in scope, since this milestone is sweeping cross-references anyway.
