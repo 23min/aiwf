@@ -175,11 +175,31 @@ These rules apply to all Go code in the module. The repo-wide engineering princi
 - **Golden files** under `testdata/` for snapshot assertions. Synthetic content only — fixtures must read as obviously fictional, not as anonymized copies of real projects.
 - **Race detector on every CI run:** `go test -race ./...`.
 
-#### Test binaries are ad-hoc signed on Darwin (G-0133)
+#### Running tests on macOS — use the wrapper
 
-`go test` runs through [`scripts/sign-and-run.sh`](scripts/sign-and-run.sh) via `-exec`, pinned in the Makefile and every workflow. The wrapper ad-hoc signs each per-package `<pkg>.test` binary on Darwin before exec'ing it; no-op on Linux. This dodges a macOS Sonoma 14.8.x syspolicyd crash parsing unsigned Mach-O code-signing data — G-0128 closed the inner-helper-binary layer; G-0133 closes the outer `<pkg>.test` layer.
+`go test` on macOS must route the per-package test binary through
+[`scripts/sign-and-run.sh`](scripts/sign-and-run.sh) via `-exec`. The wrapper
+ad-hoc signs the binary on Darwin before exec; no-op on Linux/CI. Skipping it
+lands you in a Sonoma 14.8.x syspolicyd crash loop that stalls every new
+process launch on the host until launchd's throttle expires. See G-0128 /
+G-0133 for the diagnostic record.
 
-Local developers running `go test ./...` bare (not via `make`) bypass the wrap. On Intel macOS that means the bug can resurface — prefer `make test` / `make test-race`, or set `GOFLAGS="-exec=$(pwd)/scripts/sign-and-run.sh"` in your shell.
+**Do** — `make test`, `make test-race`, `make coverage`. CI (`go.yml`,
+`flake-hunt.yml`, `fuzz.yml`) carries `-exec=./scripts/sign-and-run.sh`
+equivalently.
+
+**Don't** — bare `go test ./...` (any scope). Bypasses the wrap. `-race`
+additionally hits the G-0127 fork/exec deadlock zone.
+
+**Focused runs outside `make`:** export `GOFLAGS` for the shell session and
+bare `go test` rides the wrap:
+
+    export GOFLAGS="-exec=$(pwd)/scripts/sign-and-run.sh"
+    go test -run TestX -count=1 ./pkg/...
+
+**Defaults, not a chokepoint.** Nothing catches a bare `go test`. Trust
+boundary is the documented commands above. Structural fix (Linux devcontainer)
+is parked.
 
 #### Test the seam, not just the layer
 
