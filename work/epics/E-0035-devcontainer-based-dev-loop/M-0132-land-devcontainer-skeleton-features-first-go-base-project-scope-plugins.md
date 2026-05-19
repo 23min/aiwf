@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: devcontainer-lock.json pins feature SHAs
-      status: open
+      status: met
     - id: AC-3
       title: initialize.sh creates host-side symlinks and cites claude-code#31388
       status: open
