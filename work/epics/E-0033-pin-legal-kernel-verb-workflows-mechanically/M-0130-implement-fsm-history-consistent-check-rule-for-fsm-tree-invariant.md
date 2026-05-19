@@ -29,6 +29,10 @@ acs:
       title: Hint table entry for fsm-history-consistent code
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: 'Audit catalog: R-RULE-149 unimplemented qualifier removed'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -99,4 +103,6 @@ aiwf promote G-0132 addressed
 ### AC-4 — manual-edit subcode: status-change commit lacks aiwf-verb trailer
 
 ### AC-5 — Hint table entry for fsm-history-consistent code
+
+### AC-6 — Audit catalog: R-RULE-149 unimplemented qualifier removed
 
