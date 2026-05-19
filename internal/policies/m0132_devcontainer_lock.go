@@ -43,11 +43,11 @@ func PolicyM0132DevcontainerLock(root string) ([]Violation, error) {
 			Integrity string `json:"integrity"`
 		} `json:"features"`
 	}
-	if err := json.Unmarshal(rawLock, &lock); err != nil {
+	if uerr := json.Unmarshal(rawLock, &lock); uerr != nil {
 		return []Violation{{
 			Policy: "m0132-devcontainer-lock",
 			File:   relLock,
-			Detail: fmt.Sprintf("not valid JSON: %v", err),
+			Detail: fmt.Sprintf("not valid JSON: %v", uerr),
 		}}, nil
 	}
 
@@ -64,11 +64,11 @@ func PolicyM0132DevcontainerLock(root string) ([]Violation, error) {
 	var cfg struct {
 		Features map[string]any `json:"features"`
 	}
-	if err := json.Unmarshal(rawJSON, &cfg); err != nil {
+	if uerr := json.Unmarshal(rawJSON, &cfg); uerr != nil {
 		return []Violation{{
 			Policy: "m0132-devcontainer-lock",
 			File:   relLock,
-			Detail: fmt.Sprintf("can't parse %s for cross-reference: %v", relJSON, err),
+			Detail: fmt.Sprintf("can't parse %s for cross-reference: %v", relJSON, uerr),
 		}}, nil
 	}
 
