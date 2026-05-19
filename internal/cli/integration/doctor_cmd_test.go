@@ -982,6 +982,97 @@ contracts:
 	}
 }
 
+// G-0138 / M-0133 / AC-3: the doctor's recommended-plugins check
+// sources truth from the project's committed `.claude/settings.json`
+// `enabledPlugins` map (path-independent), not the machine-local
+// `~/.claude/plugins/installed_plugins.json` (path-strict; false-
+// positives across worktrees, devcontainers, and re-clones).
+
+// TestDoctorReport_RecommendedPlugins_EnabledInSettings_NoWarning:
+// a plugin declared in <rootDir>/.claude/settings.json's
+// `enabledPlugins` map silences the warning, regardless of
+// installed_plugins.json state.
+func TestDoctorReport_RecommendedPlugins_EnabledInSettings_NoWarning(t *testing.T) {
+	// t.Setenv below precludes t.Parallel.
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	yaml := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	settings := []byte(`{"enabledPlugins":{"aiwf-extensions@ai-workflow-rituals":true}}`)
+	if err := os.MkdirAll(filepath.Join(root, ".claude"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".claude", "settings.json"), settings, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Deliberately set HOME to an empty dir to prove the check
+	// does NOT depend on installed_plugins.json — settings.json
+	// alone silences the warning.
+	t.Setenv("HOME", t.TempDir())
+	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	joined := strings.Join(lines, "\n")
+	if strings.Contains(joined, "recommended-plugin-not-installed") {
+		t.Errorf("enabledPlugins=true should silence the warning regardless of installed_plugins.json state; got:\n%s", joined)
+	}
+}
+
+// TestDoctorReport_RecommendedPlugins_AdviceMentionsProjectScope:
+// the warning's install advice tells the operator how to install
+// at PROJECT scope (the bare CLI form defaults to user scope per
+// Claude Code docs; the doctor's advice must steer the user toward
+// the right scope).
+func TestDoctorReport_RecommendedPlugins_AdviceMentionsProjectScope(t *testing.T) {
+	// t.Setenv below precludes t.Parallel.
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	yaml := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", t.TempDir())
+	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "recommended-plugin-not-installed") {
+		t.Fatalf("warning should fire (no enabledPlugins); got:\n%s", joined)
+	}
+	if !strings.Contains(joined, "PROJECT scope") {
+		t.Errorf("install advice should mention 'PROJECT scope' (vs default user scope); got:\n%s", joined)
+	}
+}
+
+// TestDoctorReport_RecommendedPlugins_MalformedSettings_Error:
+// invalid JSON in .claude/settings.json surfaces as a clear error
+// in the report, not a silent skip.
+func TestDoctorReport_RecommendedPlugins_MalformedSettings_Error(t *testing.T) {
+	// t.Setenv below precludes t.Parallel.
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	yaml := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".claude"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".claude", "settings.json"), []byte("{not-json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", t.TempDir())
+	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, ".claude/settings.json") {
+		t.Errorf("malformed settings.json should surface in plugins: line with filename; got:\n%s", joined)
+	}
+}
+
 // G-0135 / M-0133 / AC-1 branch-coverage tests for the doctor's hook
 // reports. Post-G-0135 hooks resolve aiwf via `command -v aiwf` at
 // hook-fire time; doctor validates via exec.LookPath. The branches
