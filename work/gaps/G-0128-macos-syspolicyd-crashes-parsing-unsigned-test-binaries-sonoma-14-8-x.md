@@ -1,8 +1,10 @@
 ---
 id: G-0128
 title: macOS syspolicyd crashes parsing unsigned test binaries (Sonoma 14.8.x)
-status: open
+status: addressed
 discovered_in: M-0120
+addressed_by_commit:
+    - 360387cf
 ---
 ## What's wrong
 
