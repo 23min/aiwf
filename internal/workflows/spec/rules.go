@@ -442,6 +442,19 @@ func acRules() []Rule {
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0039"}, FP: []string{"R-FP-0051"}},
 		},
+		// cancelled is terminal (AC FSM symmetric with deferred) — explicit
+		// illegal cell so M-0123/AC-5's impl→spec coverage holds for every
+		// AC FSM state. Surfaced by the drift test during AC-5 authoring.
+		{
+			Kind:              KindAC,
+			FromState:         "cancelled",
+			Verb:              "promote",
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "fsm-transition-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0036"}, FP: []string{"R-FP-0048"}},
+		},
 		// AC met under tdd:required requires phase=done per R-FP-0060 / R-AUDIT-0073.
 		// Encoded as a precondition on met-from-open and as a check-time finding.
 		{

@@ -26,9 +26,11 @@ import (
 // when answering "is this verb legal here?".
 func LookupRules(kind entity.Kind, fromState, verb string) []Rule {
 	var out []Rule
-	for _, r := range Rules() {
+	rules := Rules()
+	for i := range rules {
+		r := &rules[i]
 		if r.Kind == kind && r.FromState == fromState && r.Verb == verb {
-			out = append(out, r)
+			out = append(out, *r)
 		}
 	}
 	return out
