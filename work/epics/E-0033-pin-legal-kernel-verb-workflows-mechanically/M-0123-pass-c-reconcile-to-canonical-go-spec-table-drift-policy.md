@@ -34,7 +34,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: Rules() slice not exported; LookupRule is the only access
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
