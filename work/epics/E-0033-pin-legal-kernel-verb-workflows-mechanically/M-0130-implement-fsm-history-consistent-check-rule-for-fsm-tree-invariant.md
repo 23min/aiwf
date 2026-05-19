@@ -17,6 +17,10 @@ acs:
       title: 'manual-edit subcode: status-change commit lacks aiwf-verb trailer entirely'
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: Hint table entry for fsm-history-consistent and each subcode
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -81,4 +85,6 @@ aiwf promote G-0132 addressed
 ### AC-1 — fsm-history-consistent check rule registered; walks git log per entity
 
 ### AC-2 — manual-edit subcode: status-change commit lacks aiwf-verb trailer entirely
+
+### AC-3 — Hint table entry for fsm-history-consistent and each subcode
 
