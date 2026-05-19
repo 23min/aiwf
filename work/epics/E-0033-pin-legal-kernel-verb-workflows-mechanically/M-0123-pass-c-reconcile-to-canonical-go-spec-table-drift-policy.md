@@ -64,3 +64,39 @@ Failure of any of these is a hard CI block — the impl cannot grow a new verb/s
 ## Open question to settle here
 
 The "negative-of-undefined" posture (cells the spec deliberately leaves silent) is decided in this milestone, based on whether reconciliation actually surfaces any genuinely undecidable cells. Default lean: closed spec (every cell decided one way or the other). Decide otherwise only if forced by reality.
+
+## Design constraint (from M-0121 external review)
+
+The `Rule` struct must model **conditional severity** as a first-class field, not via duplicate rows or Notes-column smuggling. M-0121's audit catalog already surfaced 4 rules where severity flips on `aiwf.yaml` config:
+
+- `acs-tdd-audit` — `check-warning [milestone.tdd == "required" → check-error]`
+- `unexpected-tree-file` — `check-warning [aiwf.yaml.tree.strict == true → check-error]`
+- `archive-sweep-pending` — `check-warning [pending_count > aiwf.yaml.archive.sweep_threshold → check-error]`
+- `validator-unavailable` — `check-warning [aiwf.yaml.contracts.strict_validators == true → check-error]`
+
+Settle the schema during this milestone, not when M-0124's tests start hitting it. Suggested shape (subject to refinement when the catalogs are concrete):
+
+```go
+type Rule struct {
+    ID              string
+    Kind            entity.Kind
+    FromState       string
+    Verb            string
+    Preconditions   []Predicate
+    Expected        Outcome
+    ExpectedErrorCode string  // for illegal cells
+
+    Severity        SeverityValue            // base severity
+    Escalations     []ConditionalSeverity    // config-dependent escalations
+    // ...
+}
+
+type ConditionalSeverity struct {
+    Predicate  Predicate    // typed expression over aiwf.yaml config
+    Escalated  SeverityValue
+}
+```
+
+Predicates are typed expressions over `aiwf.yaml` config and entity-context (e.g., `MilestoneTDD == "required"`, `AiwfYAML.Tree.Strict == true`, `ArchivePendingCount > AiwfYAML.Archive.SweepThreshold`). Pass C reconciliation walks the predicate tree as part of cell coverage.
+
+This is a small-but-load-bearing call. Lock the schema *early* in M-0123 so M-0124's tests can rely on it.

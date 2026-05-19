@@ -28,7 +28,7 @@ Three of the four legal-workflow layers identified during planning:
 
 The spec is built via a three-pass approach (ratified in the ADR landed by M-α₀):
 
-- **Pass A (M-α₁)** — audit existing surfaces (`entity/transition.go`, `internal/policies/`, `internal/checks/`, ADRs, `design-decisions.md`, `CLAUDE.md`, skills, `--help` text) and extract every legality statement with citations.
+- **Pass A (M-α₁)** — audit existing surfaces (`entity/transition.go`, `internal/policies/`, `internal/check/`, ADRs, `design-decisions.md`, `CLAUDE.md`, skills, `--help` text) and extract every legality statement with citations.
 - **Pass B (M-β)** — independently derive workflows from the entity model (lifecycles, ownership relations, cross-entity invariants), without reading Pass A's output.
 - **Pass C (M-γ)** — reconcile A vs B into a canonical Go spec table under `internal/workflows/spec/` (exact package name TBD), plus a drift policy ensuring no impl FSM transition escapes the table.
 
@@ -47,8 +47,12 @@ Then:
 | M-α₁ | M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | M-0120 |
 | M-β  | M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | M-0120 |
 | M-γ  | M-0123 | Pass C reconcile to canonical Go spec table + drift policy | M-0121, M-0122 |
-| M-δ  | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | M-0123 |
-| M-ε  | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | M-0123 |
+| M-ζ  | M-0126 | Implement fsm-history-consistent check rule for FSM tree-invariant (closes G-0130) | M-0123 |
+| M-η  | M-0127 | State-aware CancelTarget for Contract: cancel deprecated targets retired (closes G-0129) | M-0123 |
+| M-δ  | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | M-0123, M-0126, M-0127 |
+| M-ε  | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | M-0123, M-0126, M-0127 |
+
+**M-ζ and M-η** were inserted between Pass C and the cell-coverage milestones (2026-05-18) so that M-0124/M-0125's tests run against the actually-enforced spec, not a partially-aspirational one. The decision was driven by an external review of M-0121's audit catalog (review finding #3): committing the catalog to FSM-as-tree-invariant in R-RULE-019/R-RULE-001..018 without implementing the `fsm-history-consistent` chokepoint leaves the cell tests testing only verb-time enforcement. M-0126 closes the gap; M-0127 fixes a state-aware `CancelTarget` bug surfaced in the same review (review finding #1).
 
 ## What this epic deliberately does *not* do
 

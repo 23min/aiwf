@@ -5,6 +5,8 @@ status: draft
 parent: E-0033
 depends_on:
     - M-0123
+    - M-0126
+    - M-0127
 tdd: required
 ---
 ## Goal
