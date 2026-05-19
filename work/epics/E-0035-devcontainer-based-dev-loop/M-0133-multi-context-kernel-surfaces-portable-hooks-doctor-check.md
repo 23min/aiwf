@@ -1,7 +1,7 @@
 ---
 id: M-0133
 title: 'Multi-context kernel surfaces: portable hooks + doctor check'
-status: in_progress
+status: done
 parent: E-0035
 tdd: required
 acs:
