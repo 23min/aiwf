@@ -1,7 +1,7 @@
 ---
 id: M-0132
 title: Land .devcontainer skeleton (features-first, Go base, project-scope plugins)
-status: in_progress
+status: done
 parent: E-0035
 tdd: none
 acs:
