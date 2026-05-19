@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Portable hook binary lookup via PATH at hook execution time
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: aiwf update from a worktree writes to shared hooks directory
