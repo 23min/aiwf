@@ -4,6 +4,11 @@ title: 'CLAUDE.md DO/DON''T refresh: container primary, macOS host fallback'
 status: draft
 parent: E-0035
 tdd: required
+acs:
+    - id: AC-1
+      title: 'CLAUDE.md test-running guidance: container-primary, macOS-host fallback'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -75,3 +80,50 @@ Design choices locked at scoping time (kept for reviewer context):
 ## Acceptance criteria
 
 ACs land via `aiwf add ac M-NNNN`.
+
+### AC-1 — CLAUDE.md test-running guidance: container-primary, macOS-host fallback
+
+**Pass criterion**: `CLAUDE.md`'s `## Go conventions → ### Testing`
+area carries two adjacent subsections in this order:
+`#### Running tests in the devcontainer (primary)` first,
+`#### Running tests on macOS host (fallback)` second.
+
+The devcontainer subsection's body indicates explicitly that no
+test wrapper is required on Linux (any `go test` invocation works
+because there is no signing requirement), references
+`.devcontainer/README.md` for operational setup, and does not
+duplicate the operational instructions. The macOS-host subsection's
+body carries the demoted wrapper-discipline content —
+`scripts/sign-and-run.sh`, the `make test` / `make test-race` /
+`make coverage` Do list, the bare `go test` Don't, the `GOFLAGS`
+export pattern for focused runs outside `make`, the "Defaults, not
+a chokepoint" caveat (scoped here, not floating at file scope), and
+at least one of the G-0127 / G-0128 / G-0133 diagnostic gap ids.
+The literal string "Structural fix (Linux devcontainer) is parked."
+is absent from the entire file.
+
+A Go test under `internal/policies/` walks `CLAUDE.md`'s markdown
+heading hierarchy and pins the above structurally — assertions
+resolve to specific parsed sub-trees under each named heading, not
+flat substring matches against the file body (per CLAUDE.md
+*"Substring assertions are not structural assertions"*). The test
+runs against the live `CLAUDE.md` (not a fixture) following the
+`sharedRepoTree`-style pattern already in `internal/policies/`.
+
+**Edge cases**: tolerate `\r\n` line endings and trailing whitespace
+on heading lines; if the test cannot locate either subsection,
+fail with a message naming the expected heading shape so the
+operator knows what to add. Don't touch the existing `## Operator
+setup → ### Devcontainer` subsection (separate concern; scope-creep
+risk). Preserve the existing Do / Don't formatting (markdown bold
+labels) in the fallback block. The wrapper-discipline content
+stays substantively unchanged — only its position and framing
+move.
+
+**Code references**: `CLAUDE.md` (the test-running subsection in
+the Go-conventions Testing area, currently `#### Running tests on
+macOS — use the wrapper`); new policy + test under
+`internal/policies/` (e.g., `m0134_claude_md_test_section.go` +
+`_test.go`, following the `m0132_*` precedent for CLAUDE.md
+section assertions).
+
