@@ -107,6 +107,12 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// doctor verb to internal/cli/doctor/ in M-0117/AC-3.
 		"internal/cli/doctor/selfcheck.go": "self-check drives verbs with narrow inputs to exercise parser tolerance",
 
+		// worktree-view branch-parser tolerance: tests the parser on
+		// both narrow (`epic/E-33-...`) and canonical (`epic/E-0033-...`)
+		// branch-name shapes — narrow-legacy branches still exist on
+		// long-lived consumer trees and must continue to parse (G-0122).
+		"internal/cli/status/worktrees_test.go": "branch-parser tolerance: narrow vs canonical id widths in branch names",
+
 		// M-082: aiwf rewidth verb's tests fixture narrow inputs by
 		// design — that's the verb's input space (the very migration
 		// from narrow to canonical that the verb performs).
