@@ -141,7 +141,7 @@ func TestCheckSkillFrontmatter_FiresOnEmptyName(t *testing.T) {
 			description:     "valid description",
 		},
 	}
-	got := checkSkillFrontmatter(skills)
+	got := checkSkillFrontmatter(skills, "aiwf-")
 	mustHaveViolation(t, got, "missing a `name:` frontmatter")
 }
 
@@ -157,7 +157,7 @@ func TestCheckSkillFrontmatter_FiresOnEmptyDescription(t *testing.T) {
 			description:     "   \t\n   ",
 		},
 	}
-	got := checkSkillFrontmatter(skills)
+	got := checkSkillFrontmatter(skills, "aiwf-")
 	mustHaveViolation(t, got, "missing a `description:` frontmatter")
 }
 
@@ -174,7 +174,7 @@ func TestCheckSkillFrontmatter_FiresOnNameDirMismatch(t *testing.T) {
 			description:     "x",
 		},
 	}
-	got := checkSkillFrontmatter(skills)
+	got := checkSkillFrontmatter(skills, "aiwf-")
 	mustHaveViolation(t, got, "does not match its directory")
 }
 
@@ -192,7 +192,7 @@ func TestCheckSkillFrontmatter_FiresOnAiwfPrefixMissing(t *testing.T) {
 			description:     "x",
 		},
 	}
-	got := checkSkillFrontmatter(skills)
+	got := checkSkillFrontmatter(skills, "aiwf-")
 	mustHaveViolation(t, got, "does not match the `aiwf-<topic>` convention")
 }
 
@@ -209,7 +209,7 @@ func TestCheckSkillFrontmatter_FiresOnAiwfPrefixOnly(t *testing.T) {
 			description:     "x",
 		},
 	}
-	got := checkSkillFrontmatter(skills)
+	got := checkSkillFrontmatter(skills, "aiwf-")
 	mustHaveViolation(t, got, "does not match the `aiwf-<topic>` convention")
 }
 
@@ -226,7 +226,7 @@ func TestCheckSkillFrontmatter_NoFalsePositive(t *testing.T) {
 			description:     "use to filter the planning tree",
 		},
 	}
-	got := checkSkillFrontmatter(skills)
+	got := checkSkillFrontmatter(skills, "aiwf-")
 	if len(got) != 0 {
 		t.Errorf("valid skill should produce no violations; got: %+v", got)
 	}
@@ -381,12 +381,25 @@ func TestRunSkillCoverageChecks_FullDriftFiresAllAxes(t *testing.T) {
 	}
 	allowlist := map[string]string{}
 
-	got := runSkillCoverageChecks(skills, verbs, allowlist)
+	// Plugin skill fixture with broken verb mention — G-0088 added
+	// plugin-skill coverage; this confirms the policy walks both sets.
+	pluginSkills := []embeddedSkillEntry{
+		{
+			relPath:         "internal/policies/testdata/aiwfx-broken/SKILL.md",
+			dirName:         "aiwfx-broken",
+			frontmatterName: "aiwfx-broken",
+			description:     "fine",
+			body:            "Run `aiwf pluginphantom` for the thing.",
+		},
+	}
+
+	got := runSkillCoverageChecks(skills, pluginSkills, verbs, allowlist)
 	mustHaveViolation(t, got, "missing a `name:` frontmatter")        // AC-2 (name)
 	mustHaveViolation(t, got, "missing a `description:` frontmatter") // AC-2 (description)
 	mustHaveViolation(t, got, "does not match its directory")         // AC-3
 	mustHaveViolation(t, got, "\"widget\" has no embedded skill")     // AC-4
-	mustHaveViolation(t, got, "`aiwf phantom`")                       // AC-5
+	mustHaveViolation(t, got, "`aiwf phantom`")                       // AC-5 (kernel)
+	mustHaveViolation(t, got, "`aiwf pluginphantom`")                 // G-0088: plugin-skill body mention resolved
 }
 
 // mustHaveViolation asserts that vs contains at least one Violation

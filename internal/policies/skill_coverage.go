@@ -36,7 +36,11 @@ import (
 // companion ADR and CLAUDE.md `Skills policy` section. This policy
 // captures only the mechanical companion.
 func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
-	skills, err := loadEmbeddedSkillsForPolicy(root)
+	kernelSkills, err := loadEmbeddedSkillsForPolicy(root)
+	if err != nil {
+		return nil, err
+	}
+	pluginSkills, err := loadPluginSkillFixturesForPolicy(root)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +48,7 @@ func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 	if err != nil {
 		return nil, err
 	}
-	return runSkillCoverageChecks(skills, verbs, skillCoverageAllowlist), nil
+	return runSkillCoverageChecks(kernelSkills, pluginSkills, verbs, skillCoverageAllowlist), nil
 }
 
 // runSkillCoverageChecks applies every skill-coverage invariant to the
@@ -53,23 +57,36 @@ func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 // without a tempdir fixture (CLAUDE.md §"Test untested code paths"
 // — a positive-only test of the full policy proves nothing about
 // whether the policy fires on real drift).
+//
+// kernelSkills: in-repo embedded skills at internal/skills/embedded/aiwf-*/.
+// pluginSkills: in-repo plugin-skill fixtures at internal/policies/testdata/aiwfx-*/.
+// Frontmatter invariants apply to both with the respective prefix.
+// Verb-coverage check is kernel-only (plugin skills don't define
+// top-level verbs). Body-mention resolution applies to the union.
+// G-0088 added plugin-skill coverage to this policy.
 func runSkillCoverageChecks(
-	skills []embeddedSkillEntry,
+	kernelSkills, pluginSkills []embeddedSkillEntry,
 	verbs map[string]string,
 	allowlist map[string]string,
 ) []Violation {
 	var out []Violation
-	out = append(out, checkSkillFrontmatter(skills)...)
-	out = append(out, checkVerbCoverage(skills, verbs, allowlist)...)
-	out = append(out, checkSkillBodyMentionsResolve(skills, verbs)...)
+	out = append(out, checkSkillFrontmatter(kernelSkills, "aiwf-")...)
+	out = append(out, checkSkillFrontmatter(pluginSkills, "aiwfx-")...)
+	out = append(out, checkVerbCoverage(kernelSkills, verbs, allowlist)...)
+	allSkills := make([]embeddedSkillEntry, 0, len(kernelSkills)+len(pluginSkills))
+	allSkills = append(allSkills, kernelSkills...)
+	allSkills = append(allSkills, pluginSkills...)
+	out = append(out, checkSkillBodyMentionsResolve(allSkills, verbs)...)
 	return out
 }
 
-// checkSkillFrontmatter enforces M-074 AC-2 and AC-3: every embedded
-// skill carries a non-empty `name:` matching its directory and the
-// `aiwf-<topic>` convention, and a non-empty `description:` (the host's
-// match-scoring depends on it).
-func checkSkillFrontmatter(skills []embeddedSkillEntry) []Violation {
+// checkSkillFrontmatter enforces M-074 AC-2 and AC-3: every skill
+// carries a non-empty `name:` matching its directory and the
+// `<prefix><topic>` convention, and a non-empty `description:` (the
+// host's match-scoring depends on it). prefix is the expected name-
+// prefix (e.g. "aiwf-" for kernel-embedded skills, "aiwfx-" for plugin
+// skill fixtures). G-0088 extended the policy to both surfaces.
+func checkSkillFrontmatter(skills []embeddedSkillEntry, prefix string) []Violation {
 	var out []Violation
 	for _, s := range skills {
 		switch {
@@ -77,26 +94,26 @@ func checkSkillFrontmatter(skills []embeddedSkillEntry) []Violation {
 			out = append(out, Violation{
 				Policy: "skill-coverage",
 				File:   s.relPath,
-				Detail: "embedded skill is missing a `name:` frontmatter field",
+				Detail: "skill is missing a `name:` frontmatter field",
 			})
 		case s.frontmatterName != s.dirName:
 			out = append(out, Violation{
 				Policy: "skill-coverage",
 				File:   s.relPath,
-				Detail: fmt.Sprintf("embedded skill `name: %s` does not match its directory %q", s.frontmatterName, s.dirName),
+				Detail: fmt.Sprintf("skill `name: %s` does not match its directory %q", s.frontmatterName, s.dirName),
 			})
-		case !strings.HasPrefix(s.frontmatterName, "aiwf-") || len(s.frontmatterName) <= len("aiwf-"):
+		case !strings.HasPrefix(s.frontmatterName, prefix) || len(s.frontmatterName) <= len(prefix):
 			out = append(out, Violation{
 				Policy: "skill-coverage",
 				File:   s.relPath,
-				Detail: fmt.Sprintf("embedded skill name %q does not match the `aiwf-<topic>` convention", s.frontmatterName),
+				Detail: fmt.Sprintf("skill name %q does not match the `%s<topic>` convention", s.frontmatterName, prefix),
 			})
 		}
 		if strings.TrimSpace(s.description) == "" {
 			out = append(out, Violation{
 				Policy: "skill-coverage",
 				File:   s.relPath,
-				Detail: "embedded skill is missing a `description:` frontmatter field — the host's match-scoring depends on it",
+				Detail: "skill is missing a `description:` frontmatter field — the host's match-scoring depends on it",
 			})
 		}
 	}
@@ -240,6 +257,45 @@ func loadEmbeddedSkillsForPolicy(root string) ([]embeddedSkillEntry, error) {
 		}
 		entry := parseSkillMarkdown(data)
 		entry.relPath = filepath.ToSlash(filepath.Join("internal", "skills", "embedded", d.Name(), "SKILL.md"))
+		entry.dirName = d.Name()
+		out = append(out, entry)
+	}
+	return out, nil
+}
+
+// loadPluginSkillFixturesForPolicy reads every SKILL.md fixture under
+// internal/policies/testdata/aiwfx-*/ — the in-repo authoring copies
+// of plugin skills used for cross-repo TDD per CLAUDE.md §"Cross-repo
+// plugin testing". Returns in directory-name-sorted order. Filters
+// strictly to `aiwfx-*` so other testdata subdirs (entity fixtures,
+// drift-check inputs, etc.) are not scanned. G-0088 closure.
+func loadPluginSkillFixturesForPolicy(root string) ([]embeddedSkillEntry, error) {
+	testdataRoot := filepath.Join(root, "internal", "policies", "testdata")
+	dirs, err := os.ReadDir(testdataRoot)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var out []embeddedSkillEntry
+	for _, d := range dirs {
+		if !d.IsDir() || !strings.HasPrefix(d.Name(), "aiwfx-") {
+			continue
+		}
+		path := filepath.Join(testdataRoot, d.Name(), "SKILL.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				// aiwfx-*/ without a SKILL.md isn't a plugin-skill
+				// fixture — skip silently (might be a verb-specific
+				// testdata subdir that happens to share the prefix).
+				continue
+			}
+			return nil, err
+		}
+		entry := parseSkillMarkdown(data)
+		entry.relPath = filepath.ToSlash(filepath.Join("internal", "policies", "testdata", d.Name(), "SKILL.md"))
 		entry.dirName = d.Name()
 		out = append(out, entry)
 	}
