@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: 'forced-untrailered subcode: sovereign-act shape, force trailer absent'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: 'manual-edit subcode: status-change commit lacks aiwf-verb trailer'
