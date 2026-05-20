@@ -15,7 +15,7 @@ acs:
       tdd_phase: red
     - id: AC-2
       title: 'illegal-transition subcode: change outside FSM, no force trailer'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: 'forced-untrailered subcode: sovereign-act shape, force trailer absent'
