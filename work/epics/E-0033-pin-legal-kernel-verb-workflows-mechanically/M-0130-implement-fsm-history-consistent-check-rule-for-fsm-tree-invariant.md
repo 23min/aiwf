@@ -12,7 +12,7 @@ acs:
     - id: AC-1
       title: fsm-history-consistent check rule registered; walks git log per entity
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: 'illegal-transition subcode: change outside FSM, no force trailer'
       status: met
