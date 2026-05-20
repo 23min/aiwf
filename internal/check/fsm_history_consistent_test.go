@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -660,6 +661,50 @@ func (r *repoFixture) commitEntityWithBody(id string, kind entity.Kind, status, 
 	r.writeEntityAtRel(relPath, id, kind, status, body)
 	r.gitAddAll()
 	return r.gitCommit(msg)
+}
+
+// commitEntityWithTrailers writes the entity at its canonical kind-
+// derived path, stages, and commits with the given trailers appended
+// to the message in `Key: Value` form (one per line, after a blank-
+// line separator from the subject). Returns the new commit's SHA.
+//
+// Used by AC-3 / AC-4 tests that need to exercise trailer-based
+// exemption predicates (aiwf-force for sovereign-act overrides,
+// aiwf-verb for verb-mediated provenance).
+func (r *repoFixture) commitEntityWithTrailers(id string, kind entity.Kind, status, msg string, trailers map[string]string) string {
+	r.t.Helper()
+	relPath := canonicalEntityPath(id, kind)
+	r.writeEntityAtRel(relPath, id, kind, status, "")
+	r.gitAddAll()
+	return r.gitCommitWithTrailers(msg, trailers)
+}
+
+// gitCommitWithTrailers creates a commit whose message is the subject
+// plus a trailers block (each trailer on its own line, sorted by key
+// for deterministic output, after a blank line). Returns the new
+// commit's SHA. Skips the trailers block entirely when the map is
+// empty so the message shape matches gitCommit's output.
+func (r *repoFixture) gitCommitWithTrailers(msg string, trailers map[string]string) string {
+	r.t.Helper()
+	var b strings.Builder
+	b.WriteString(msg)
+	if len(trailers) > 0 {
+		b.WriteString("\n\n")
+		keys := make([]string, 0, len(trailers))
+		for k := range trailers {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			b.WriteString(k)
+			b.WriteString(": ")
+			b.WriteString(trailers[k])
+			b.WriteString("\n")
+		}
+	}
+	r.run("git", "commit", "-q", "--allow-empty", "-m", b.String())
+	out := r.run("git", "rev-parse", "HEAD")
+	return strings.TrimSpace(out)
 }
 
 func (r *repoFixture) gitCheckoutBranch(branch string) {

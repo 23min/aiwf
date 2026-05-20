@@ -77,9 +77,9 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 	}
 	var findings []Finding
 	findings = append(findings, illegalTransitionFindings(observations)...)
-	// AC-3 will append forcedUntraileredFindings (skipping merge
-	// observations per D-0010). AC-4 will append manualEditFindings
-	// (skipping merges + audit-only suppression per D-0008).
+	findings = append(findings, forcedUntraileredFindings(observations)...)
+	// AC-4 will append manualEditFindings (skipping merges + audit-
+	// only suppression per D-0008).
 	return findings
 }
 
@@ -511,4 +511,80 @@ func shortHash(sha string) string {
 		return sha[:8]
 	}
 	return sha
+}
+
+// forcedUntraileredFindings emits one fsm-history-consistent finding
+// per observation whose (Prior, Next) is a sovereign-act-shape (per
+// entity.IsSovereignActShape), whose commit's aiwf-actor trailer is
+// NOT human/-prefixed, whose commit lacks an aiwf-force trailer, AND
+// whose commit is not a merge.
+//
+// M-0130/AC-3 predicate per the spec body §3:
+//
+//	"Subcode forced-untrailered — change matches a sovereign-act shape
+//	 (e.g., epic proposed → active) but lacks the force trailer"
+//
+// The spec body's framing is shorthand; the predicate mirrors M-0095's
+// verb gate (requireHumanActorForSovereignAct), which the kernel's
+// provenance doctrine ratifies via entity/sovereign.go's defining
+// comment: a sovereign-act-shape transition requires "a `human/` actor
+// by default, or `--force --reason \"...\"` from a non-human actor."
+// Either gesture satisfies the discipline; both gates exempt
+// accordingly. AC-3 is the tree-level audit chokepoint behind the
+// verb gate, so the predicates must agree.
+//
+// Per D-0010 (supersedes D-0009), the predicate SKIPS merge-commit
+// observations. The rationale carries over from AC-2: merges produce
+// per-parent integration noise that doesn't represent a real edit;
+// sovereign-act-shape edits routed across a feature branch will be
+// caught at the original commit by the non-merge per-parent edge.
+//
+// Disjoint with AC-2's illegal-transition by construction (D-0008's
+// closed-set invariant): every entry in entity.SovereignActShapes is
+// FSM-legal — sovereign-act-shape is a property over legal transitions,
+// never below them. So a single observation can satisfy at most one of
+// the two predicates' core gates.
+//
+// The aiwf-verb trailer's presence is NOT part of the predicate. A
+// verb-mediated activation by a non-human actor without `--force`
+// still fires — that is precisely the case the rule was authored to
+// catch (older binary, sloppy bot, etc.).
+//
+// Trust-model note: both human-actor and --force are honor-system
+// trailers — the operator (LLM or human) writes them based on
+// runtime-derived identity (`git config user.email`). The kernel's
+// provenance model accepts adversarial subversion as out of scope and
+// relies on the transparent git-log audit trail as backstop. The
+// predicate's job is surfacing visible discipline gaps, not blocking
+// adversarial behavior.
+func forcedUntraileredFindings(observations []statusChange) []Finding {
+	var out []Finding
+	for i := range observations {
+		o := &observations[i]
+		if o.IsMergeCommit {
+			continue
+		}
+		if !entity.IsSovereignActShape(o.EntityKind, o.Prior, o.Next) {
+			continue
+		}
+		if _, hasForce := o.Trailers[gitops.TrailerForce]; hasForce {
+			continue
+		}
+		if strings.HasPrefix(o.Trailers[gitops.TrailerActor], "human/") {
+			continue
+		}
+		out = append(out, Finding{
+			Code:     "fsm-history-consistent",
+			Subcode:  "forced-untrailered",
+			Severity: SeverityError,
+			Message: "entity " + o.EntityID + " status changed " + o.Prior + " → " + o.Next +
+				" in commit " + shortHash(o.Commit) +
+				" — sovereign-act-shape " + string(o.EntityKind) +
+				" transition by non-human actor without aiwf-force trailer",
+			Path:     o.Path,
+			EntityID: o.EntityID,
+			Field:    "status",
+		})
+	}
+	return out
 }

@@ -346,21 +346,31 @@ func TestFSMHistoryConsistent_LegalFeatureBranchMergeNoFire_PerD0010(t *testing.
 }
 
 // TestFSMHistoryConsistent_MergeResolvingToLegalNoFire — a merge that
-// integrates a feature branch's LEGAL promote produces NO illegal-
-// transition finding. The original promote may itself produce an
-// observation (also legal — no fire). The merge integration is also
-// legal vs each parent — no fire.
+// integrates a feature branch's LEGAL promote produces NO finding from
+// any AC-2..4 subcode. The original promote is legal in the FSM (so
+// AC-2 doesn't fire), is NOT a sovereign-act-shape (so AC-3 doesn't
+// fire — milestone draft → in_progress is FSM-legal but not
+// sovereign), and the merge integration is skipped per D-0010 across
+// all subcodes.
+//
+// Uses milestone draft → in_progress (rather than epic
+// proposed → active) precisely to keep the test focused on merge-
+// integration silence — epic proposed → active is a sovereign-act-
+// shape and would entangle this test with AC-3's force-trailer
+// exemption surface, which has its own dedicated tests in
+// fsm_history_forced_untrailered_test.go.
 func TestFSMHistoryConsistent_MergeResolvingToLegalNoFire(t *testing.T) {
 	t.Parallel()
 	r := newRepoFixture(t)
-	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add")
+	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
+	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDraft, "add milestone")
 	r.gitCheckoutBranch("branch-good")
-	r.commitEntity("E-0001", entity.KindEpic, entity.StatusActive, "promote proposed -> active (legal)")
+	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "promote draft -> in_progress (legal, non-sovereign)")
 	r.gitCheckout("main")
 	r.gitMerge("branch-good", "merge branch-good into main")
 
 	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
 	if len(got) != 0 {
-		t.Errorf("expected 0 findings (legal transition, even when integrated via merge); got %d: %+v", len(got), got)
+		t.Errorf("expected 0 findings (legal non-sovereign transition, integrated via merge); got %d: %+v", len(got), got)
 	}
 }
