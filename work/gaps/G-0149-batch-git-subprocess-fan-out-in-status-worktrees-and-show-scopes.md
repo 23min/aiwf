@@ -45,6 +45,6 @@ Performance / scalability gap. Not blocking on current repo shape; becomes user-
 
 ## Related
 
-- **M-0130** — shipped with naive per-entity walk; one of three adoption targets for the helpers G-0148 introduces.
+- **M-0130** — shipped with naive per-entity walk; one of three adoption targets for the helpers G-0150 introduces.
 - **G-0125** (archived, addressed) — first surfaced the observation that aiwf's per-verb git fan-out is an OS-resource concern on macOS; this gap is the runtime-verb analog.
 - `internal/cli/history/history.go:283, :515` — existing example of the single-walk shape that should be templated.

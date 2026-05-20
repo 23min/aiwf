@@ -1,7 +1,9 @@
 ---
-id: G-0148
+id: G-0150
 title: 'fsm-history-consistent: per-subcode merge-commit observation policy'
 status: addressed
+prior_ids:
+    - G-0148
 discovered_in: M-0130
 addressed_by:
     - M-0130
