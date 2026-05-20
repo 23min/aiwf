@@ -4,7 +4,7 @@ title: Wide-table verbs wrap mid-row; no TTY-aware sizing or truncation
 status: open
 discovered_in: M-0076
 ---
-## Problem
+## Problem (historical, 2026-05-08)
 
 aiwf's wide-table verbs (`aiwf status` today; `aiwf list` once E-0020 lands) render via `text/tabwriter`, which has no notion of terminal width. When the title or description column overflows, tabwriter wraps the second column into the first column's gutter, breaking the visual scan of the id column — the very anchor users rely on for navigation.
 
@@ -17,9 +17,7 @@ Adjacent issues that surfaced in the same discussion:
 - **No truncation surface.** Verbs have no `--no-trunc` / `--wide` escape hatch for users who want full text when the terminal is narrow.
 - **Inconsistent header treatment.** No bold or underline anchor; the eye has to find columns by counting whitespace.
 
-## Resolution sketch
-
-The design space was discussed and the agreed shape is:
+## Resolution sketch (the original design that landed)
 
 1. **TTY-aware sizing using stdlib only.** `golang.org/x/term` for `IsTerminal` + `GetSize`; keep `text/tabwriter` for the rendering. No `lipgloss`, no `go-pretty`, no new deps.
 2. **One-flex-column-per-verb truncation.** Designate one column (title in `aiwf status`, description in `aiwf list`) as the flex column. When natural widths overflow available terminal width, the flex column shrinks and truncates with `…`; fixed columns (id, status, dates) never shrink.
@@ -28,15 +26,36 @@ The design space was discussed and the agreed shape is:
 5. **No gridlines.** Whitespace separation; reflow on terminal resize is a non-issue when nothing is being drawn that resize could break.
 6. **`--no-trunc` flag** on wide-table verbs for the escape hatch.
 
-## Out of scope (deferred)
+## Disposition (2026-05-20, organic close)
 
-- **Progress bars** for long-running verbs (`aiwf render` is the only candidate today); revisit when there's a second consumer or when render's runtime warrants it. A stdlib spinner is the likely first move, not a `go-pretty` dep.
-- **Wide-character support** (emoji, CJK). `text/tabwriter` counts runes, not display cells; current glyph palette is all 1-cell BMP so this works. If output ever needs to include emoji or CJK, `github.com/mattn/go-runewidth` is the de facto fix — note it as a known limitation, don't pull the dep speculatively.
-- **Auto-pager** for long output. `git log` does this; tasteful default but a separate decision from column UX. Defer until there's a verb whose output regularly exceeds terminal height.
+Every item in the Resolution sketch landed across two "partial G-0080" commits, plus subsequent housekeeping. As of HEAD:
 
-## Why this is a gap, not a milestone
+- **(1) TTY-aware sizing**: `internal/render/term.go` wraps `golang.org/x/term`'s `IsTerminal` + `GetSize`; consumers call `render.TermWidth(os.Stdout)` and get 0 when stdout is piped.
+- **(2) One-flex-column truncation**: `aiwf list` calls `ComputeTitleBudget(rows, statuses, termWidth)` to derive a per-row rune cap with a `MinTitleColumnRunes` floor; `aiwf status` calls `TruncStatusTitle(title, termWidth, prefix, tail)` reusing the same floor. Both gate on `termWidth > 0`, so piped output is full-text.
+- **(3) Bold headers**: `render.Bold(s, colorEnabled)` emits ANSI `\033[1m…\033[0m`; `colorEnabled` is computed once per verb call from TTY + `NO_COLOR` env. `aiwf list` bolds its header row; `aiwf status` bolds section labels. Test coverage in `internal/render/color_test.go` pins NO_COLOR behavior across set/unset/empty cases.
+- **(4) Glyph palette**: `render.StatusGlyph(status)` maps the closed kernel-status vocabulary to the four-glyph palette as documented. Glyphs are content (visible in piped output too), not style.
+- **(5) No gridlines**: tabwriter is configured with `' '` padding and 0 flags — whitespace-only separation.
+- **(6) `--no-trunc` flag**: wired on both `aiwf list` and `aiwf status`; sets `termWidth = 0` for the render path so truncation is skipped regardless of TTY.
 
-The fix is a self-contained UX layer over existing verbs; it doesn't touch the kernel's correctness commitments (entity vocabulary, FSM, provenance, validation) and has no `aiwf check` finding to gate on. Once a consumer is willing to absorb the change, this can be picked up as a small milestone under a future UX-focused epic, or as a one-shot patch via `wf-patch` if the implementation lands in a single commit.
+Load-bearing commits: `774090e1` (truncation), `02c349f6` (bold section labels + glyph palette extension). Followed by `61672339` which moved `aiwf list` into its own subpackage with the helpers exported for cross-verb use.
+
+## What's NOT in the original Resolution sketch
+
+The original gap explicitly deferred:
+
+- Progress bars for long-running verbs (still deferred — no second consumer)
+- Wide-character support (still deferred — emoji/CJK not needed; `go-runewidth` noted but not pulled)
+- Auto-pager (still deferred — no verb output regularly exceeds terminal height)
+
+These remain valid defer-until-forcing-function candidates. None opens as a new gap at close time per the closure-without-successor pattern; if any becomes attractive, file fresh then.
+
+## References
+
+- `internal/render/term.go` — TTY sizing
+- `internal/render/color.go` + `internal/render/color_test.go` — NO_COLOR contract
+- `internal/cli/list/list.go` `RenderListRowsText` + `ComputeTitleBudget` + `MinTitleColumnRunes`
+- `internal/cli/status/status.go` `TruncStatusTitle`
+- E-0022 / M-0076 — review session 2026-05-08 where the gap was filed.
 
 ## Discovered in
 
