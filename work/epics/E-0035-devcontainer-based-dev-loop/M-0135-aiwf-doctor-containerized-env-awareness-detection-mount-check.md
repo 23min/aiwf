@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Shadow-mount status check in aiwf doctor (in container only)
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
