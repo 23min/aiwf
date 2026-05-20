@@ -61,8 +61,8 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// AC-2 parser-tolerance — the load-bearing tests for both-widths
 		// equivalence at the lookup seam. Narrow inputs are required
 		// by design.
-		"internal/entity/canonicalize_test.go":  "AC-2 parser-tolerance test (Canonicalize, IDGrepAlternation)",
-		"internal/tree/tree_test.go":            "AC-2 lookup-seam test (TestTree_ByID_AcceptsBothWidths, TestTree_ByPriorID_AcceptsBothWidths)",
+		"internal/entity/canonicalize_test.go":                  "AC-2 parser-tolerance test (Canonicalize, IDGrepAlternation)",
+		"internal/tree/tree_test.go":                            "AC-2 lookup-seam test (TestTree_ByID_AcceptsBothWidths, TestTree_ByPriorID_AcceptsBothWidths)",
 		"internal/cli/integration/canonicalize_render_test.go":  "AC-3 narrow-tree fixture exercising canonical render output (relocated from cmd/aiwf in M-0118/AC-6)",
 		"internal/cli/integration/canonicalize_history_test.go": "AC-4 narrow trailer matches canonical query (relocated from cmd/aiwf in M-0118/AC-6)",
 
@@ -106,6 +106,12 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// tolerance end-to-end through the binary). Moved with the
 		// doctor verb to internal/cli/doctor/ in M-0117/AC-3.
 		"internal/cli/doctor/selfcheck.go": "self-check drives verbs with narrow inputs to exercise parser tolerance",
+
+		// worktree-view branch-parser tolerance: tests the parser on
+		// both narrow (`epic/E-33-...`) and canonical (`epic/E-0033-...`)
+		// branch-name shapes — narrow-legacy branches still exist on
+		// long-lived consumer trees and must continue to parse (G-0122).
+		"internal/cli/status/worktrees_test.go": "branch-parser tolerance: narrow vs canonical id widths in branch names",
 
 		// M-082: aiwf rewidth verb's tests fixture narrow inputs by
 		// design — that's the verb's input space (the very migration

@@ -1,7 +1,9 @@
 ---
 id: G-0122
 title: Worktree-aware view of in-flight work
-status: open
+status: addressed
+addressed_by_commit:
+    - e25fd62d
 ---
 ## What's missing
 

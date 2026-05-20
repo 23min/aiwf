@@ -1,8 +1,10 @@
 ---
 id: G-0087
 title: No aiwf-show embedded skill
-status: open
+status: addressed
 discovered_in: M-0074
+addressed_by_commit:
+    - 2d87b8f4
 ---
 
 ## What's missing

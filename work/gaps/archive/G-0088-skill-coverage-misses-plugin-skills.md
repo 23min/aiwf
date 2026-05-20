@@ -1,8 +1,10 @@
 ---
 id: G-0088
 title: Skill-coverage policy doesn't police plugin skills under aiwf-extensions/
-status: open
+status: addressed
 discovered_in: M-0079
+addressed_by_commit:
+    - 5a3ba16a
 ---
 `internal/policies/skill_coverage.go`'s `PolicySkillCoverageMatchesVerbs` (added in M-0074) walks `internal/skills/embedded/` exclusively. Plugin-side skills under `aiwf-extensions/skills/aiwfx-*` are not policed by the kernel — the policy doesn't see them, and any drift in a plugin skill (name doesn't match directory, description empty, broken `aiwf <verb>` references in body prose) goes undetected by `go test ./internal/policies/`.
 

@@ -13,4 +13,9 @@ if [ -e "$local_hook" ]; then
     fi
     "$local_hook" "$@" || exit $?
 fi
-exec '/AIWF_BIN' check
+AIWF="$(command -v aiwf 2>/dev/null)"
+if [ -z "$AIWF" ]; then
+    echo "aiwf pre-push: aiwf binary not found on PATH" >&2
+    exit 1
+fi
+exec "$AIWF" check

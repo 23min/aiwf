@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install test test-race lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install
+.PHONY: help build install diag-aiwf test test-race lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
@@ -17,6 +17,7 @@ help:
 	@echo "Targets:"
 	@echo "  build     - build the aiwf binary into ./bin/ (with embedded version)"
 	@echo "  install   - go install the aiwf binary into \$$GOBIN (with embedded version)"
+	@echo "  diag-aiwf - build a worktree-scoped binary at ./bin/aiwf-diag and print its absolute path (G-0147)"
 	@echo "  test      - run unit tests"
 	@echo "  test-race - run unit tests with -race"
 	@echo "  lint      - run golangci-lint"
@@ -28,6 +29,7 @@ help:
 	@echo "  install-hooks - point git at scripts/git-hooks/ via core.hooksPath (one-shot, idempotent)"
 	@echo "  e2e-install - one-shot: install Playwright npm deps + Chromium browser"
 	@echo "  e2e       - run the Playwright HTML-render browser tests (opt-in, requires e2e-install)"
+	@echo "  copy-skill-fixture SKILL=<name> - copy testdata/<name>/SKILL.md into the sibling rituals repo"
 	@echo "  clean     - remove build artifacts"
 
 build:
@@ -36,6 +38,17 @@ build:
 
 install:
 	CGO_ENABLED=0 go install -ldflags "$(LDFLAGS)" ./cmd/aiwf
+
+# Build a worktree-scoped aiwf binary at ./bin/aiwf-diag and print its
+# absolute path. The convention (per CLAUDE.md *Worktree binary discipline*):
+# when diagnosing aiwf behavior against the current worktree source, run
+# `make diag-aiwf` and invoke the printed path. Avoids the silent-stale
+# PATH-binary trap that prompted G-0147.
+diag-aiwf:
+	@mkdir -p bin
+	@CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/aiwf-diag ./cmd/aiwf
+	@echo "Built: $(CURDIR)/bin/aiwf-diag"
+	@echo "Invoke as: $(CURDIR)/bin/aiwf-diag <verb> [args...]"
 
 test:
 	go test -exec=$(TEST_EXEC) -parallel 8 ./...
@@ -84,9 +97,10 @@ clean:
 # consumer: aiwf owns .git/hooks/<name>, kernel-specific logic lives
 # at .git/hooks/<name>.local, both compose via G45's chain.
 install-hooks:
-	mkdir -p .git/hooks
-	ln -sf ../../scripts/git-hooks/pre-commit .git/hooks/pre-commit.local
-	@echo "Symlinked scripts/git-hooks/pre-commit -> .git/hooks/pre-commit.local"
+	@HOOKS_DIR=$$(git rev-parse --git-path hooks); \
+	mkdir -p "$$HOOKS_DIR"; \
+	ln -sfn ../../scripts/git-hooks/pre-commit "$$HOOKS_DIR/pre-commit.local"; \
+	echo "Symlinked scripts/git-hooks/pre-commit -> $$HOOKS_DIR/pre-commit.local"
 	@echo "Run 'aiwf init' (if not already done) so the chain-aware aiwf hook calls it."
 
 # Playwright browser-level tests for the HTML render. Opt-in: not
@@ -102,3 +116,31 @@ e2e-install:
 
 e2e:
 	cd e2e/playwright && npx playwright test
+
+# Copy a SKILL.md fixture from this repo's testdata into the sibling
+# ai-workflow-rituals repo at the path Claude Code expects. Closes
+# the cross-repo flow's "construct a 6-segment path by hand" step
+# per CLAUDE.md *Cross-repo plugin testing* and
+# .devcontainer/README.md *Cross-repo plugin testing (rituals repo)*.
+#
+# Usage:  make copy-skill-fixture SKILL=aiwfx-start-epic
+#
+# Refuses (exit 2) with a clear stderr message if: SKILL is unset,
+# the fixture doesn't exist, the sibling rituals repo isn't
+# reachable at ../ai-workflow-rituals, or the destination skill
+# directory isn't present in the rituals repo. No partial copies.
+#
+# G-0146 / E-0035 deferral closure (half-step). End-to-end smoke
+# is deferred to a successor gap.
+copy-skill-fixture:
+	@test -n "$(SKILL)" || { echo "ERROR: SKILL=<name> required (e.g. make copy-skill-fixture SKILL=aiwfx-start-epic)" >&2; exit 2; }
+	@test -f internal/policies/testdata/$(SKILL)/SKILL.md || { echo "ERROR: fixture missing: internal/policies/testdata/$(SKILL)/SKILL.md" >&2; exit 2; }
+	@test -d ../ai-workflow-rituals || { echo "ERROR: sibling rituals repo not reachable at ../ai-workflow-rituals — see .devcontainer/README.md *Cross-repo plugin testing*" >&2; exit 2; }
+	@TARGET=$$(find ../ai-workflow-rituals -path "*/skills/$(SKILL)/SKILL.md" -type f | head -n 1); \
+	if [ -z "$$TARGET" ]; then \
+		echo "ERROR: target skill dir not found under ../ai-workflow-rituals/plugins/*/skills/$(SKILL)/ — does the skill exist in the rituals repo?" >&2; \
+		exit 2; \
+	fi; \
+	cp internal/policies/testdata/$(SKILL)/SKILL.md "$$TARGET"; \
+	echo "Copied internal/policies/testdata/$(SKILL)/SKILL.md -> $$TARGET"; \
+	echo "Next: cd ../ai-workflow-rituals && git diff && git commit + git push"

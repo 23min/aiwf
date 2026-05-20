@@ -108,6 +108,10 @@ In a Claude Code session at this repo's root:
 
 Install both `aiwf-extensions@ai-workflow-rituals` and `wf-rituals@ai-workflow-rituals`. **The CLI form `claude /plugin install <name>@<marketplace>` defaults to *user* scope** — only the interactive `/plugin` menu offers a project-scope choice. Verify with `aiwf doctor`: once both are project-scope-installed, the `recommended-plugin-not-installed:` warnings go silent. (Closes G-064 via M-071, which lives under E-18.)
 
+### Devcontainer
+
+If you use the devcontainer (see [`.devcontainer/README.md`](.devcontainer/README.md)), the same plugin-install instruction above applies inside the container — but with one additional concern. Claude Code's plugin index stores absolute host paths ([anthropics/claude-code#31388](https://github.com/anthropics/claude-code/issues/31388)), so a macOS-pathed index breaks inside a Linux container and a Linux-pathed index breaks back on the host. The devcontainer works around this with a **plugin index shadow-mount**: `~/.claude-linux/plugins` on the host backs `/home/vscode/.claude/plugins` in the container, so the container has its own Linux-pathed parallel index while the host's macOS-pathed index stays untouched. The mechanics live in [`.devcontainer/initialize.sh`](.devcontainer/initialize.sh) (host-side, sets up the symlinks) and [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) (the mount entry). Once #31388 ships a fix that resolves plugin paths relative to `$HOME`, the shadow-mount can be removed across this repo plus Liminara and FlowTime (each carries the same workaround). Per M-0132 in E-0035.
+
 ---
 
 ## Working in this repo
@@ -147,6 +151,28 @@ This is the session-layer guard (tier 3, partial-closes G-0099). The full kernel
 
 ---
 
+## Worktree binary discipline
+
+When you work in a git worktree on a branch with uncommitted or unmerged code changes that affect `aiwf`'s own behavior — kernel-rule milestones, check additions, verb-gate changes, FSM extensions — the `aiwf` binary on PATH (typically `/go/bin/aiwf` from a prior `go install`) was built from some earlier state. Invoking `aiwf check`, `aiwf doctor`, or any other verb against the worktree using that binary produces results computed from stale code: false positives, false negatives, or both, and the output looks authoritative either way.
+
+The discipline: when diagnosing `aiwf` behavior against your current worktree source, **build a worktree-scoped binary explicitly and invoke it by path**. Do not rely on PATH. Use `make diag-aiwf` — it builds `./bin/aiwf-diag` from the current worktree source and prints its absolute path:
+
+```bash
+$ make diag-aiwf
+Built: /workspaces/aiwf/bin/aiwf-diag
+Invoke as: /workspaces/aiwf/bin/aiwf-diag <verb> [args...]
+```
+
+Then invoke the printed path explicitly throughout the session (`/workspaces/aiwf/bin/aiwf-diag check`, etc.). Rebuild after any commit that touches packages the diagnosis depends on (typically `internal/check/`, `internal/entity/`, `internal/cli/`, or `internal/verb/`) by re-running `make diag-aiwf`.
+
+For AI assistant sessions running in `$CLAUDE_JOB_DIR`, the session's job dir is an equally good home for the diag binary if the per-session sandbox is preferred: `go build -o "$CLAUDE_JOB_DIR/aiwf" ./cmd/aiwf`, then invoke `"$CLAUDE_JOB_DIR/aiwf"` explicitly.
+
+This is operator discipline — the `make diag-aiwf` target is the recommended convention but nothing mechanically blocks a stale-PATH `aiwf` call in a worktree. The bug pattern is fully general: worktree branch A has code X; PATH `aiwf` was built from code Y at some prior time; the operator runs `aiwf check` thinking they're testing X and gets results computed against Y. The mismatch is silent. The chokepoint is the named target, not a hook — operators have to reach for it deliberately when working against uncommitted kernel source.
+
+History: G-0147 introduced the `make diag-aiwf` target as the recommended chokepoint.
+
+---
+
 ## Cross-repo plugin testing
 
 When a milestone's deliverable is a `SKILL.md` (or other content) that lives in the rituals plugin repo at `/Users/peterbru/Projects/ai-workflow-rituals/` (distributed via the Claude Code marketplace), the **canonical authoring location during the milestone is a fixture in this repo** at `internal/policies/testdata/<skill-name>/SKILL.md`. AC tests under `internal/policies/` assert content claims against the fixture; red→green TDD iteration happens against it.
@@ -175,9 +201,22 @@ These rules apply to all Go code in the module. The repo-wide engineering princi
 - **Golden files** under `testdata/` for snapshot assertions. Synthetic content only — fixtures must read as obviously fictional, not as anonymized copies of real projects.
 - **Race detector on every CI run:** `go test -race ./...`.
 
-#### Running tests on macOS — use the wrapper
+#### Running tests in the devcontainer (primary)
 
-`go test` on macOS must route the per-package test binary through
+Inside the E-0035 devcontainer (Linux), there is no signing requirement and
+`go test` works unwrapped. Use any of:
+
+- `make test`, `make test-race`, `make coverage`
+- bare `go test ./pkg/...`
+- focused `go test -run TestX -count=1 ./pkg/...`
+
+See [`.devcontainer/README.md`](.devcontainer/README.md) for container setup.
+
+#### Running tests on macOS host (fallback)
+
+If you must run tests on the macOS host instead of the container, the
+wrapper discipline below applies. `go test` on macOS must route the
+per-package test binary through
 [`scripts/sign-and-run.sh`](scripts/sign-and-run.sh) via `-exec`. The wrapper
 ad-hoc signs the binary on Darwin before exec; no-op on Linux/CI. Skipping it
 lands you in a Sonoma 14.8.x syspolicyd crash loop that stalls every new
@@ -197,9 +236,8 @@ bare `go test` rides the wrap:
     export GOFLAGS="-exec=$(pwd)/scripts/sign-and-run.sh"
     go test -run TestX -count=1 ./pkg/...
 
-**Defaults, not a chokepoint.** Nothing catches a bare `go test`. Trust
-boundary is the documented commands above. Structural fix (Linux devcontainer)
-is parked.
+**Defaults, not a chokepoint.** Nothing catches a bare `go test` on the
+host. Trust boundary is the documented commands above.
 
 #### Test the seam, not just the layer
 

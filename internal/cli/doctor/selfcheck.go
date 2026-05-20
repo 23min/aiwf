@@ -227,26 +227,26 @@ func runSelfCheck() int {
 			args: []string{"doctor", "--root", tmp},
 			verifyOutput: func(out string) error {
 				if !strings.Contains(out, "recommended-plugin-not-installed") {
-					return fmt.Errorf("expected recommended-plugin-not-installed warning before install fixture; got:\n%s", out)
+					return fmt.Errorf("expected recommended-plugin-not-installed warning before enable fixture; got:\n%s", out)
 				}
 				if !strings.Contains(out, "aiwf-self-check@synthetic-marketplace") {
 					return fmt.Errorf("warning should name the synthetic plugin id; got:\n%s", out)
 				}
-				if !strings.Contains(out, "claude /plugin install aiwf-self-check@synthetic-marketplace") {
-					return fmt.Errorf("warning should include install command; got:\n%s", out)
+				if !strings.Contains(out, "PROJECT scope") {
+					return fmt.Errorf("warning should include PROJECT-scope install advice (post-G-0138); got:\n%s", out)
 				}
 				return nil
 			},
 		},
 		{
-			label: "doctor recommended-plugins fixture: warning silent after install",
+			label: "doctor recommended-plugins fixture: warning silent after enable in settings.json",
 			setup: func() error {
-				return writeInstalledPluginsForSelfCheck(fakeHome, "aiwf-self-check@synthetic-marketplace", tmp)
+				return writeEnabledPluginsForSelfCheck(tmp, "aiwf-self-check@synthetic-marketplace")
 			},
 			args: []string{"doctor", "--root", tmp},
 			verifyOutput: func(out string) error {
 				if strings.Contains(out, "recommended-plugin-not-installed") {
-					return fmt.Errorf("matching install fixture should silence the warning; got:\n%s", out)
+					return fmt.Errorf("enabledPlugins=true should silence the warning; got:\n%s", out)
 				}
 				return nil
 			},
@@ -325,25 +325,17 @@ func appendDoctorRecommendedPlugins(repo string, plugins []string) error {
 	return nil
 }
 
-// writeInstalledPluginsForSelfCheck writes the synthetic
-// installed_plugins.json under <home>/.claude/plugins/ with one
-// project-scope entry for `plugin` whose `projectPath` matches the
-// self-check repo `repo`.
-func writeInstalledPluginsForSelfCheck(home, plugin, repo string) error {
-	dir := filepath.Join(home, ".claude", "plugins")
+// writeEnabledPluginsForSelfCheck writes <repo>/.claude/settings.json
+// declaring `plugin` enabled, so the doctor's recommended-plugins
+// check (post-G-0138 / M-0133 / AC-3) reads it as satisfied.
+func writeEnabledPluginsForSelfCheck(repo, plugin string) error {
+	dir := filepath.Join(repo, ".claude")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("mkdir %s: %w", dir, err)
 	}
-	body := fmt.Sprintf(`{
-  "version": 2,
-  "plugins": {
-    %q: [
-      {"scope": "project", "projectPath": %q, "installPath": "/synthetic/cache", "version": "self-check"}
-    ]
-  }
-}`, plugin, repo)
-	if err := os.WriteFile(filepath.Join(dir, "installed_plugins.json"), []byte(body), 0o644); err != nil {
-		return fmt.Errorf("writing %s: %w", dir, err)
+	body := fmt.Sprintf(`{%q: {%q: true}}`, "enabledPlugins", plugin)
+	if err := os.WriteFile(filepath.Join(dir, "settings.json"), []byte(body), 0o644); err != nil {
+		return fmt.Errorf("writing settings.json: %w", err)
 	}
 	return nil
 }

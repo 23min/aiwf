@@ -41,7 +41,8 @@ func PolicyEnumLiteralAdoption(root string) ([]Violation, error) {
 	if err != nil {
 		return nil, err
 	}
-	files, err := WalkGoFiles(root, true) // excludeTests=true
+	const excludeTests = true
+	files, err := WalkGoFiles(root, excludeTests)
 	if err != nil {
 		return nil, err
 	}

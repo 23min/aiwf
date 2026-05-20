@@ -381,8 +381,9 @@ This epic replaces the cancelled E-0031, whose first attempt produced a prose ca
 | M-0123 | Pass C reconcile to canonical Go spec table + drift policy | done |
 | M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | draft |
 | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | draft |
-| M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant | draft |
+| M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant | done |
 | M-0131 | State-aware CancelTarget for Contract: cancel deprecated targets retired | draft |
+| M-0136 | aiwf acknowledge-illegal: retroactive force trailer for historical violations | draft |
 
 ## E-0034 — Retire docs/pocv3/ and declare doc-authority hierarchy (proposed)
 
@@ -396,4 +397,27 @@ Refactor `docs/` so a reader (human or LLM) can identify each file's authority t
 | M-0127 | Relocate docs/pocv3/ contents and sweep cross-references | draft |
 | M-0128 | Declare doc-authority hierarchy in CLAUDE.md | draft |
 | M-0129 | Drift chokepoint: forbid docs/pocv3/ literals in Go code | draft |
+
+## E-0035 — Devcontainer-based dev loop (done)
+
+### Goal
+
+Move aiwf's primary dev loop from the macOS host into a reproducible
+Linux devcontainer, where macOS-specific bugs (G-0127 fork/exec
+deadlock under `-race` + parallel; G-0128/G-0133 syspolicyd crashes
+on unsigned Mach-O binaries) simply don't exist. The existing
+host-side workarounds — `scripts/sign-and-run.sh`, in-test
+`codesign` blocks, the `-parallel 8` cap — stay as graceful
+fallbacks for the rare case where host execution is necessary,
+but the canonical dev surface becomes the container. Success
+means a fresh checkout + "Reopen in Container" gives any
+contributor the same green `make ci` without remembering the
+macOS DO/DON'T rules.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0132 | Land .devcontainer skeleton (features-first, Go base, project-scope plugins) | done |
+| M-0133 | Multi-context kernel surfaces: portable hooks + doctor check | done |
+| M-0134 | CLAUDE.md DO/DON'T refresh: container primary, macOS host fallback | done |
+| M-0135 | aiwf doctor containerized-env awareness: detection + mount check | done |
 
