@@ -1,7 +1,9 @@
 ---
 id: G-0130
 title: aiwf render roadmap --write blocked by dangling refs in source epic bodies
-status: open
+status: addressed
+addressed_by:
+    - ADR-0010
 ---
 `aiwf render roadmap --write` composes `ROADMAP.md` by copying entity references out of source epic bodies. When those bodies contain pre-uniform-width (narrow-id) paths or references to files that have since moved or never existed, the regenerated `ROADMAP.md` inherits the dangling refs verbatim. The verb then attempts a single commit, the pre-commit policy hook (`PolicyNoDanglingEntityRefsInNarrativeDocs` under `internal/policies/`) fires on `ROADMAP.md`, and the commit aborts.
 
