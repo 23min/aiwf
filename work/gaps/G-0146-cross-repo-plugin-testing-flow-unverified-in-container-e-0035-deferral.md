@@ -1,8 +1,10 @@
 ---
 id: G-0146
 title: Cross-repo plugin testing flow unverified in container (E-0035 deferral)
-status: open
+status: addressed
 discovered_in: M-0132
+addressed_by_commit:
+    - 6a7225f2
 ---
 ## What's missing
 
