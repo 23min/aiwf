@@ -86,6 +86,61 @@ The container reads these from the host VS Code session or from
 Outside those, the container inherits `$PATH` and standard host
 environment from VS Code's remote session.
 
+## Cross-repo plugin testing (rituals repo)
+
+The rituals + `aiwfx-*` skills change frequently. Their canonical
+location is the sibling repo at `~/Projects/ai-workflow-rituals/`
+on the host, distributed via the Claude Code marketplace. Iteration
+is fixture-first in this repo per CLAUDE.md *"Cross-repo plugin
+testing"* — author the SKILL.md change at
+`internal/policies/testdata/<skill-name>/SKILL.md`, TDD against the
+fixture here, then copy the fixture into the rituals repo at wrap
+time.
+
+**The mount is free.** `devcontainer.json`'s `workspaceMount`
+binds `${localWorkspaceFolder}/..` onto `/workspaces/`, so any
+sibling repo under `~/Projects/` on the host is reachable inside
+the container by name. With the rituals repo cloned at
+`~/Projects/ai-workflow-rituals/`, the container sees it at
+`/workspaces/ai-workflow-rituals/`. No additional `devcontainer.json`
+config needed; M-0132's `PolicyM0132DevcontainerShape` pins the
+`${localWorkspaceFolder}/..` pattern explicitly for this use case.
+
+Sanity check inside the container:
+
+```
+ls /workspaces/ai-workflow-rituals/plugins/   # should list aiwf-extensions + wf-rituals
+aiwf doctor | grep plugin-index-mount         # should report `ok (N plugin entries cached)`
+gh auth status                                # inherited via the gh credential mount
+```
+
+**The wrap-side copy step is one command** (closes the
+[CLAUDE.md flow](../CLAUDE.md) step that previously asked the
+operator to construct a 6-segment path by hand):
+
+```
+make copy-skill-fixture SKILL=aiwfx-start-epic
+```
+
+The target asserts: the `SKILL` variable is set, the fixture
+exists at `internal/policies/testdata/$(SKILL)/SKILL.md`, the
+sibling rituals repo is reachable at `../ai-workflow-rituals`, and
+the destination `plugins/<plugin>/skills/$(SKILL)/SKILL.md` exists
+under it. Refuses with a clear stderr message if any precondition
+fails — no partial copies.
+
+After the copy: `cd ../ai-workflow-rituals && git diff && git
+commit + git push` from the rituals repo. The container's gh
+credential helper (set up by `.devcontainer/init.sh`) handles the
+push; no extra auth step.
+
+**G-0146 status.** Half-step closure: the mount + the docs + the
+copy-step automation make the flow reachable end-to-end in the
+container. The full end-to-end smoke (a script gating CI on
+fixture → rituals-copy → drift-check round-trip) is deferred
+until a forcing function names what shape the smoke assertion
+should take. See G-0146 archive for the original problem framing.
+
 ## Recovery prompt
 
 If the container fails to start, fails postcreate, or otherwise hits
