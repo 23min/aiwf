@@ -1,7 +1,7 @@
 ---
 id: D-0009
 title: 'fsm-history-consistent merge-commit policy: per-subcode, no dedup'
-status: proposed
+status: accepted
 relates_to:
     - G-0148
 ---
