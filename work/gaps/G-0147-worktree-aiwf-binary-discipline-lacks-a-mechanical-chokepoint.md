@@ -1,8 +1,10 @@
 ---
 id: G-0147
 title: Worktree aiwf binary discipline lacks a mechanical chokepoint
-status: open
+status: addressed
 discovered_in: M-0130
+addressed_by_commit:
+    - 53bdb2261f38cc87553869e6498cbf228b158885
 ---
 ## What's missing
 
