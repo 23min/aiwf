@@ -418,5 +418,5 @@ macOS DO/DON'T rules.
 | M-0132 | Land .devcontainer skeleton (features-first, Go base, project-scope plugins) | done |
 | M-0133 | Multi-context kernel surfaces: portable hooks + doctor check | done |
 | M-0134 | CLAUDE.md DO/DON'T refresh: container primary, macOS host fallback | done |
-| M-0135 | aiwf doctor containerized-env awareness: detection + mount check | draft |
+| M-0135 | aiwf doctor containerized-env awareness: detection + mount check | done |
 
