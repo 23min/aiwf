@@ -37,6 +37,42 @@ Both helpers are general — `aiwf history` (`internal/cli/history/history.go:28
 - **Cheap win for `status` (small commit, low risk).** Parallelize the inner loop at `worktrees.go:102` with an `errgroup` capped at 8. Cuts wall time ~3–4× without touching the subprocess count. Lands independently of the helpers.
 - **Full fix.** Build the two `internal/gitops/` helpers in their own milestone (template from `aiwf history`'s existing single-walk shape), then retrofit all three call sites — `status` worktree views, `show` scope views, and the `fsm-history-consistent` check rule from M-0130. Retrofitting M-0130 separately keeps that milestone's wrap on its current trajectory and lets the helpers be designed against three real callers instead of one.
 
+## Silent-swallow correctness constraint on the M-0130 retrofit
+
+The `fsm-history-consistent` retrofit must **also fix a load-bearing silent-failure path** at `internal/check/fsm_history_consistent.go:70-77`:
+
+```go
+observations, err := walkStatusChanges(ctx, root, t)
+if err != nil {
+    // "AC-3/4 may route walker errors into the finding stream
+    //  (e.g., a 'history-walk-error' subcode). For now the rule
+    //  is a clean no-op for trees where the per-entity git log
+    //  fails (rare; usually permission issues or transient
+    //  cancellation)."
+    return nil
+}
+```
+
+And `walkStatusChanges:153-156` fails fast on the first per-entity error:
+
+```go
+changes, err := walkOneEntity(ctx, root, e)
+if err != nil {
+    return nil, err
+}
+```
+
+**Symptom in this session (2026-05-20):** the same binary on the same content produced "4 errors" on one worktree and "0 fsm-history-consistent findings" on a sibling worktree during a heavily-concurrent merge phase. One transient subprocess failure (under exactly the load this gap targets) collapsed all findings — invisibly. The operator sees a green check, pushes broken state, and never knows. Diagnosis recorded inline because the bug interleaves with this gap's perf work.
+
+Collapsing 3,000 fork/execs into ~2 long-running subprocesses (G-0148's primary fix) reduces the silent-swallow's blast surface by ~1500× but does not eliminate it — a single batched `git log` can still error under load, and the swallow still hides it. The retrofit must therefore additionally:
+
+1. **Replace the swallow with a finding.** `FSMHistoryConsistent` emits a `fsm-history-consistent/history-walk-error` finding (severity `error`) when the walker returns an error, naming the offending entity (or the batched walk's scope) and the underlying git error. The author's docstring already promised this subcode; landing it pins the contract.
+2. **Continue past per-entity failures.** `walkStatusChanges` (or its batched successor) accumulates partial observations across entities and a separate `[]error` slice rather than fail-fast. Successful entities still produce findings; failed entities each produce one `history-walk-error` finding. A single transient failure no longer wipes the rule.
+
+This contract aligns the rule with CLAUDE.md §*Engineering principles* — "Errors are findings, not parse failures." The current silent-no-op is exactly the principle the kernel forbids, hidden under exactly the load this gap targets.
+
+**Negative test the retrofit must ship:** an `internal/check/` fixture that arranges a per-entity git-walk failure (e.g., delete `.git/objects/<sha>` for one referenced commit) and asserts the rule still emits findings for the remaining entities + a `history-walk-error` finding for the broken one. Without that test, the swallow can return as a regression — it currently passes every test because every test is structured to succeed end-to-end.
+
 ## Class
 
 Performance / scalability gap. Not blocking on current repo shape; becomes user-visible as repos grow or as M-0130's check rule sees larger consumer trees. Audit performed 2026-05-20 via grep over all 31 non-test `exec.Command("git", ...)` sites in `internal/` and `cmd/`.
