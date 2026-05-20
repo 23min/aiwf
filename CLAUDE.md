@@ -179,9 +179,22 @@ These rules apply to all Go code in the module. The repo-wide engineering princi
 - **Golden files** under `testdata/` for snapshot assertions. Synthetic content only — fixtures must read as obviously fictional, not as anonymized copies of real projects.
 - **Race detector on every CI run:** `go test -race ./...`.
 
-#### Running tests on macOS — use the wrapper
+#### Running tests in the devcontainer (primary)
 
-`go test` on macOS must route the per-package test binary through
+Inside the E-0035 devcontainer (Linux), there is no signing requirement and
+`go test` works unwrapped. Use any of:
+
+- `make test`, `make test-race`, `make coverage`
+- bare `go test ./pkg/...`
+- focused `go test -run TestX -count=1 ./pkg/...`
+
+See [`.devcontainer/README.md`](.devcontainer/README.md) for container setup.
+
+#### Running tests on macOS host (fallback)
+
+If you must run tests on the macOS host instead of the container, the
+wrapper discipline below applies. `go test` on macOS must route the
+per-package test binary through
 [`scripts/sign-and-run.sh`](scripts/sign-and-run.sh) via `-exec`. The wrapper
 ad-hoc signs the binary on Darwin before exec; no-op on Linux/CI. Skipping it
 lands you in a Sonoma 14.8.x syspolicyd crash loop that stalls every new
@@ -201,9 +214,8 @@ bare `go test` rides the wrap:
     export GOFLAGS="-exec=$(pwd)/scripts/sign-and-run.sh"
     go test -run TestX -count=1 ./pkg/...
 
-**Defaults, not a chokepoint.** Nothing catches a bare `go test`. Trust
-boundary is the documented commands above. Structural fix (Linux devcontainer)
-is parked.
+**Defaults, not a chokepoint.** Nothing catches a bare `go test` on the
+host. Trust boundary is the documented commands above.
 
 #### Test the seam, not just the layer
 
