@@ -200,9 +200,6 @@ var skillCoverageAllowlist = map[string]string{
 
 	// Kind-namespace parent commands — non-Runnable; subverbs are documented elsewhere.
 	"milestone": "kind-namespace parent (subverb `depends-on` for cross-milestone deps); the surrounding `aiwf-add` and `aiwf-promote` skills cover the flow",
-
-	// Deferred — explicitly tracked, not papered over.
-	"show": "deferred — see G-087 (a per-entity inspection skill warrants its own design pass; --help covers the surface mechanically in the meantime)",
 }
 
 // embeddedSkillEntry is the parsed shape of one

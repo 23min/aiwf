@@ -89,22 +89,18 @@ func TestBacktickedAiwfMentions_FlagOnlyDoesNotMatch(t *testing.T) {
 	}
 }
 
-// TestSkillCoverageAllowlist_HasShowEntry guards the deferred-skill
-// invariant: AC-7 of M-074 files a follow-up gap for the absent
-// aiwf-show skill, and AC-6 demands the allowlist's `show` entry
-// reference that gap by id. A future change that drops the entry or
-// the rationale fails here.
-func TestSkillCoverageAllowlist_HasShowEntry(t *testing.T) {
+// TestSkillCoverageAllowlist_ShowEntryRemoved is the inverse of the
+// original M-074/AC-6 guard: that test pinned the deferred `show`
+// allowlist entry pointing at G-0087. G-0087 closed when the
+// aiwf-show SKILL.md shipped; the allowlist entry must come away
+// with it so the skill coverage's "every verb has either a same-
+// named skill or an allowlist rationale" invariant resolves to the
+// skill, not a stale deferral pointer. A future change that re-
+// adds the entry (or fails to remove it) fails here.
+func TestSkillCoverageAllowlist_ShowEntryRemoved(t *testing.T) {
 	t.Parallel()
-	rationale, ok := skillCoverageAllowlist["show"]
-	if !ok {
-		t.Fatal("skillCoverageAllowlist missing entry for `show` (AC-6)")
-	}
-	if !strings.Contains(strings.ToLower(rationale), "deferred") {
-		t.Errorf("show rationale must mark as deferred; got %q", rationale)
-	}
-	if !strings.Contains(rationale, "G-") {
-		t.Errorf("show rationale must reference the follow-up gap by id; got %q", rationale)
+	if _, ok := skillCoverageAllowlist["show"]; ok {
+		t.Errorf("skillCoverageAllowlist still has an entry for `show` — should have been removed when aiwf-show SKILL.md shipped (closes G-0087)")
 	}
 }
 
