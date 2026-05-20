@@ -108,7 +108,7 @@ resolve to specific parsed sub-trees under each named heading, not
 flat substring matches against the file body (per CLAUDE.md
 *"Substring assertions are not structural assertions"*). The test
 runs against the live `CLAUDE.md` (not a fixture) following the
-`sharedRepoTree`-style pattern already in `internal/policies/`.
+`m0132_*` policy precedent in `internal/policies/`.
 
 **Edge cases**: tolerate `\r\n` line endings and trailing whitespace
 on heading lines; if the test cannot locate either subsection,
@@ -121,9 +121,84 @@ stays substantively unchanged — only its position and framing
 move.
 
 **Code references**: `CLAUDE.md` (the test-running subsection in
-the Go-conventions Testing area, currently `#### Running tests on
-macOS — use the wrapper`); new policy + test under
-`internal/policies/` (e.g., `m0134_claude_md_test_section.go` +
-`_test.go`, following the `m0132_*` precedent for CLAUDE.md
-section assertions).
+the Go-conventions Testing area, post-rewrite). Policy +
+test under `internal/policies/m0134_claude_md_test_running_sections.go`
++ `_test.go`, following the `m0132_*` precedent for CLAUDE.md
+section assertions. New `markdownSection(content, heading)` helper
+in the policy file (line-scan walker, no markdown parser).
 
+## Work log
+
+### AC-1 — CLAUDE.md test-running guidance refresh
+
+- Red→green bundled (`bab91223`): policy + CLAUDE.md rewrite landed
+  in one commit. Red-phase visible in dev-loop output before
+  commit (both `#### Running tests in the devcontainer (primary)`
+  and `#### Running tests on macOS host (fallback)` subsections
+  reported missing). Green confirmed against the new state. The
+  bundling is forced by the pre-commit.local hook, which runs
+  `go test ./internal/policies/...` and would block a separate
+  red-phase commit (the new policy fires by design until the doc
+  change lands). Phase walked `red → green → refactor → done`;
+  status promoted `open → met`.
+
+## Decisions made during implementation
+
+- **Red→green bundled into one commit.** For policy-shaped ACs
+  where the policy IS the test, the pre-commit.local
+  `internal/policies/` hook would block a separate red-phase commit
+  (the new policy fires by design before the green doc change
+  lands). Bundling preserves the kernel's "no `--no-verify` unless
+  explicitly requested" rule while keeping the red→green
+  progression visible in the dev loop. Future policy-shaped ACs
+  in this repo follow the same pattern unless we add a hook
+  exception for policy red commits (separate question).
+- **Goldmark deferred.** The `markdownSection` helper is a
+  line-scan walker, not a real markdown parser. Adopting goldmark
+  (or another markdown library) across all CLAUDE.md-walking
+  policies is a cross-cutting refactor better landed once we have
+  two or three policies of this shape. Discussed during scoping;
+  not blocking M-0134's correctness.
+
+## Validation
+
+- `make test`: full suite green (exit 0, no failures).
+- `aiwf check`: 0 errors (25 warnings, all pre-existing — none
+  introduced by this milestone).
+- `golangci-lint run ./internal/policies/`: 0 issues.
+- Policy `TestPolicy_M0134ClaudeMdTestRunningSections` exercises
+  the live `CLAUDE.md` and confirms the structure pinned post-
+  rewrite (all 7 structural assertions pass: section presence,
+  section order, devcontainer body Linux+no-wrapper claim,
+  macOS-host body sign-and-run.sh + make test + diagnostic gap id,
+  caveat scoped to fallback, stale "parked" phrase absent).
+
+## Reviewer notes
+
+- The red→green bundling is intentional and documented in the
+  commit body of `bab91223`. The dev-loop captured the red phase
+  before the commit went out; the audit trail lives in
+  conversation/PR text rather than a separate commit. For
+  policy-shaped doc-changes in this repo, this is the cleanest
+  shape given the pre-commit.local gating.
+- `markdownSection` helper is intentionally minimal (line-scan,
+  supports arbitrary heading levels via `#`-count). It coexists
+  with the existing `sectionBody` helper in
+  `m0121_audit_catalog_test.go` (which scopes to level-2/3
+  headings only) — the two have non-overlapping responsibilities.
+  If a third CLAUDE.md-walking policy appears, consider extracting
+  a shared helper (or adopting goldmark) at that point, not now.
+- **Branch coverage on the policy** follows the `m0132_*`
+  precedent: the policy is tested against the live `CLAUDE.md`
+  only; the individual `report()` branches fire only when
+  `CLAUDE.md` regresses (which is what the policy exists to catch).
+  No fixture-based broken-state tests; this matches the existing
+  pattern across `internal/policies/m0132_*_test.go`.
+- **No CHANGELOG entry needed** — this is internal doc hygiene,
+  not a user-facing behavior change. Future contributors reading
+  CLAUDE.md fresh land on the container-primary guidance
+  immediately; that's the user-observable effect.
+
+## Deferrals
+
+- None this milestone.
