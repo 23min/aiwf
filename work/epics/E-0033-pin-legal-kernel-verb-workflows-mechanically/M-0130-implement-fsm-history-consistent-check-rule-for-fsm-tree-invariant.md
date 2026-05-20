@@ -24,7 +24,7 @@ acs:
     - id: AC-4
       title: 'manual-edit subcode: status-change commit lacks aiwf-verb trailer'
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Hint table entry for fsm-history-consistent code
       status: met
