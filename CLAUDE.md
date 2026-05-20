@@ -151,6 +151,25 @@ This is the session-layer guard (tier 3, partial-closes G-0099). The full kernel
 
 ---
 
+## Worktree binary discipline
+
+When you work in a git worktree on a branch with uncommitted or unmerged code changes that affect `aiwf`'s own behavior — kernel-rule milestones, check additions, verb-gate changes, FSM extensions — the `aiwf` binary on PATH (typically `/go/bin/aiwf` from a prior `go install`) was built from some earlier state. Invoking `aiwf check`, `aiwf doctor`, or any other verb against the worktree using that binary produces results computed from stale code: false positives, false negatives, or both, and the output looks authoritative either way.
+
+The discipline: when diagnosing `aiwf` behavior against your current worktree source, **build a worktree-scoped binary explicitly and invoke it by path**. Do not rely on PATH.
+
+```bash
+go build -o ./bin/aiwf-diag ./cmd/aiwf
+./bin/aiwf-diag check        # or any other verb
+```
+
+For AI assistant sessions running in `$CLAUDE_JOB_DIR`, the session's job dir is the natural home for the diag binary: `go build -o "$CLAUDE_JOB_DIR/aiwf" ./cmd/aiwf`, then invoke `"$CLAUDE_JOB_DIR/aiwf"` explicitly throughout the session. Rebuild after any commit that touches packages the diagnosis depends on (typically `internal/check/`, `internal/entity/`, `internal/cli/`, or `internal/verb/`).
+
+This is operator discipline today — there is no mechanical chokepoint that forces explicit-path invocations or blocks stale-PATH `aiwf` calls in a worktree. The bug pattern is fully general: worktree branch A has code X; PATH `aiwf` was built from code Y at some prior time; the operator runs `aiwf check` thinking they're testing X and gets results computed against Y. The mismatch is silent.
+
+Tracked under [G-0147](work/gaps/G-0147-worktree-aiwf-binary-discipline-lacks-a-mechanical-chokepoint.md) — recommended mechanical next step is a `make diag-aiwf` target that builds the worktree-scoped binary and prints its absolute path, so the convention becomes "for diagnostic work against uncommitted source, run `make diag-aiwf` and use the printed path."
+
+---
+
 ## Cross-repo plugin testing
 
 When a milestone's deliverable is a `SKILL.md` (or other content) that lives in the rituals plugin repo at `/Users/peterbru/Projects/ai-workflow-rituals/` (distributed via the Claude Code marketplace), the **canonical authoring location during the milestone is a fixture in this repo** at `internal/policies/testdata/<skill-name>/SKILL.md`. AC tests under `internal/policies/` assert content claims against the fixture; red→green TDD iteration happens against it.
