@@ -1,7 +1,7 @@
 ---
 id: D-0008
 title: fsm-history-consistent subcodes disjoint; audit-only only on manual-edit
-status: proposed
+status: accepted
 relates_to:
     - M-0130
 ---
