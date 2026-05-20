@@ -64,7 +64,7 @@ func isTruthy(s string) bool {
 
 // mountState enumerates the observable shapes of the shadow-mount
 // target at `<home>/.claude/plugins/`. Used by shadowMountStatus and
-// rendered into the doctor `plugin-index-mount:` line.
+// rendered into the doctor `plugin-mount:` line.
 //
 // M-0135/AC-2.
 type mountState int
@@ -137,7 +137,7 @@ func pluginsTargetPath(home string) string {
 	return filepath.Join(home, ".claude", "plugins")
 }
 
-// renderMountLine formats the plugin-index-mount: line for the
+// renderMountLine formats the plugin-mount: line for the
 // doctor report. Caller separates the gating (only emit when
 // InContainer()) from the rendering (always-safe to call).
 //
@@ -146,16 +146,16 @@ func renderMountLine(state mountState, count int, errMsg string) string {
 	switch state {
 	case mountStateOK:
 		if count >= shadowMountCountCap {
-			return fmt.Sprintf("plugin-index-mount: ok (%d+ plugin entries cached)", count)
+			return fmt.Sprintf("plugin-mount: ok (%d+ plugin entries cached)", count)
 		}
-		return fmt.Sprintf("plugin-index-mount: ok (%d plugin entries cached)", count)
+		return fmt.Sprintf("plugin-mount: ok (%d plugin entries cached)", count)
 	case mountStateEmpty:
-		return "plugin-index-mount: empty (mount target exists but no plugin entries — first rebuild before initialize.sh, or shadow-mount not yet seeded)"
+		return "plugin-mount: empty (mount target exists but no plugin entries — first rebuild before initialize.sh, or shadow-mount not yet seeded)"
 	case mountStateMissing:
-		return "plugin-index-mount: missing (mount target does not exist — devcontainer.json mount entry stripped or container rebuild failed mid-postcreate)"
+		return "plugin-mount: missing (mount target does not exist — devcontainer.json mount entry stripped or container rebuild failed mid-postcreate)"
 	case mountStateError:
-		return "plugin-index-mount: " + errMsg
+		return "plugin-mount: " + errMsg
 	default:
-		return "plugin-index-mount: unknown"
+		return "plugin-mount: unknown"
 	}
 }

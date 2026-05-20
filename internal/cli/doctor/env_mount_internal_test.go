@@ -130,12 +130,12 @@ func TestRenderMountLine(t *testing.T) {
 		errMsg string
 		want   string
 	}{
-		{name: "ok 1", state: mountStateOK, count: 1, want: "plugin-index-mount: ok (1 plugin entries cached)"},
-		{name: "ok 7", state: mountStateOK, count: 7, want: "plugin-index-mount: ok (7 plugin entries cached)"},
-		{name: "ok capped", state: mountStateOK, count: 100, want: "plugin-index-mount: ok (100+ plugin entries cached)"},
-		{name: "empty", state: mountStateEmpty, count: 0, want: "plugin-index-mount: empty (mount target exists but no plugin entries — first rebuild before initialize.sh, or shadow-mount not yet seeded)"},
-		{name: "missing", state: mountStateMissing, count: 0, want: "plugin-index-mount: missing (mount target does not exist — devcontainer.json mount entry stripped or container rebuild failed mid-postcreate)"},
-		{name: "errmsg", state: mountStateError, errMsg: "boom", want: "plugin-index-mount: boom"},
+		{name: "ok 1", state: mountStateOK, count: 1, want: "plugin-mount: ok (1 plugin entries cached)"},
+		{name: "ok 7", state: mountStateOK, count: 7, want: "plugin-mount: ok (7 plugin entries cached)"},
+		{name: "ok capped", state: mountStateOK, count: 100, want: "plugin-mount: ok (100+ plugin entries cached)"},
+		{name: "empty", state: mountStateEmpty, count: 0, want: "plugin-mount: empty (mount target exists but no plugin entries — first rebuild before initialize.sh, or shadow-mount not yet seeded)"},
+		{name: "missing", state: mountStateMissing, count: 0, want: "plugin-mount: missing (mount target does not exist — devcontainer.json mount entry stripped or container rebuild failed mid-postcreate)"},
+		{name: "errmsg", state: mountStateError, errMsg: "boom", want: "plugin-mount: boom"},
 	}
 	for _, tc := range cases {
 		tc := tc

@@ -244,10 +244,10 @@ func TestDoctor_HonorsCoreHooksPath(t *testing.T) {
 	// The hook line should report ok against the configured path,
 	// not the default. We don't pin the exact phrasing — just
 	// confirm doctor isn't lying about a missing hook.
-	if strings.Contains(joined, "hook:      missing") {
+	if strings.Contains(joined, "hook:         missing") {
 		t.Errorf("doctor reports pre-push hook missing despite install at configured path:\n%s", joined)
 	}
-	if strings.Contains(joined, "pre-commit: missing") {
+	if strings.Contains(joined, "pre-commit:   missing") {
 		t.Errorf("doctor reports pre-commit hook missing despite install at configured path:\n%s", joined)
 	}
 }
@@ -406,7 +406,7 @@ func TestDoctorReport_HookOK(t *testing.T) {
 	if !strings.Contains(joined, "hook:") {
 		t.Errorf("doctor should include a hook: line:\n%s", joined)
 	}
-	if !strings.Contains(joined, "hook:      ok") {
+	if !strings.Contains(joined, "hook:         ok") {
 		t.Errorf("hook line should report ok on a fresh init:\n%s", joined)
 	}
 	if problems != 0 {
@@ -484,7 +484,7 @@ func TestDoctorReport_PreCommitHookOK(t *testing.T) {
 	}
 	lines, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "pre-commit: ok") {
+	if !strings.Contains(joined, "pre-commit:   ok") {
 		t.Errorf("pre-commit line should report ok on a fresh init:\n%s", joined)
 	}
 	if problems != 0 {
@@ -495,7 +495,7 @@ func TestDoctorReport_PreCommitHookOK(t *testing.T) {
 // TestDoctorReport_PreCommitHookGateOnly (G42 + G-0112): with
 // status_md.auto_update false, the pre-commit hook is installed
 // gate-only. Per G-0112 gate-only is now the *only* shape of the
-// pre-commit body, so doctor reports plain "pre-commit: ok" (no
+// pre-commit body, so doctor reports plain "pre-commit:   ok" (no
 // "gate-only" qualifier). Doctor counts no problems — that's the
 // desired-and-actual-agree state.
 func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
@@ -515,12 +515,12 @@ func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
 	}
 	lines, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "pre-commit: ok") {
+	if !strings.Contains(joined, "pre-commit:   ok") {
 		t.Errorf("expected 'pre-commit: ok' line under G-0112:\n%s", joined)
 	}
 	// Post-commit should be absent under opt-out — that's the new
 	// surface where auto_update flips behavior.
-	if !strings.Contains(joined, "post-commit: not installed") {
+	if !strings.Contains(joined, "post-commit:  not installed") {
 		t.Errorf("expected 'post-commit: not installed' under opt-out (G-0112):\n%s", joined)
 	}
 	if problems != 0 {
@@ -544,7 +544,7 @@ func TestDoctorReport_PreCommitHookMissingButFlagOn(t *testing.T) {
 	}
 	lines, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "pre-commit: missing") {
+	if !strings.Contains(joined, "pre-commit:   missing") {
 		t.Errorf("expected 'pre-commit: missing' line:\n%s", joined)
 	}
 	if problems == 0 {
@@ -578,7 +578,7 @@ status_md:
 	}
 	lines, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "post-commit: present") || !strings.Contains(joined, "config says off") {
+	if !strings.Contains(joined, "post-commit:  present") || !strings.Contains(joined, "config says off") {
 		t.Errorf("expected post-commit 'present ... config says off' diagnostic:\n%s", joined)
 	}
 	if problems == 0 {
@@ -604,7 +604,7 @@ func TestDoctorReport_PreCommitHookAlien(t *testing.T) {
 	}
 	lines, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "pre-commit: present but not aiwf-managed") {
+	if !strings.Contains(joined, "pre-commit:   present but not aiwf-managed") {
 		t.Errorf("expected 'not aiwf-managed' diagnostic:\n%s", joined)
 	}
 	if problems != 0 {
@@ -642,7 +642,7 @@ exit 0
 	}
 	lines, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "pre-commit: stale path") {
+	if !strings.Contains(joined, "pre-commit:   stale path") {
 		t.Errorf("expected 'pre-commit: stale path' line:\n%s", joined)
 	}
 	if problems == 0 {
@@ -696,10 +696,10 @@ contracts:
 	}
 	lines, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "validator: cue-missing missing") {
+	if !strings.Contains(joined, "validator:    cue-missing missing") {
 		t.Errorf("missing validator should be reported:\n%s", joined)
 	}
-	if !strings.Contains(joined, "validator: echo-ok ok") {
+	if !strings.Contains(joined, "validator:    echo-ok ok") {
 		t.Errorf("present validator should be reported:\n%s", joined)
 	}
 	if problems != 0 {
@@ -1010,13 +1010,13 @@ func TestDoctorReport_HookOK_AiwfNotOnPATH(t *testing.T) {
 	t.Setenv("PATH", filepath.Join(t.TempDir(), "no-aiwf-here"))
 	lines, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "hook:      aiwf binary not found on PATH") {
+	if !strings.Contains(joined, "hook:         aiwf binary not found on PATH") {
 		t.Errorf("expected pre-push 'aiwf binary not found on PATH' diagnostic:\n%s", joined)
 	}
-	if !strings.Contains(joined, "pre-commit: aiwf binary not found on PATH") {
+	if !strings.Contains(joined, "pre-commit:   aiwf binary not found on PATH") {
 		t.Errorf("expected pre-commit 'aiwf binary not found on PATH' diagnostic:\n%s", joined)
 	}
-	if !strings.Contains(joined, "post-commit: aiwf binary not found on PATH") {
+	if !strings.Contains(joined, "post-commit:  aiwf binary not found on PATH") {
 		t.Errorf("expected post-commit 'aiwf binary not found on PATH' diagnostic:\n%s", joined)
 	}
 	if problems == 0 {
@@ -1080,9 +1080,9 @@ exit 0
 	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
 	for _, want := range []string{
-		"hook:      ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
-		"pre-commit: ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
-		"post-commit: ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
+		"hook:         ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
+		"pre-commit:   ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
+		"post-commit:  ok (/bin/sh; pre-G-0135 shape, run `aiwf update`",
 	} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("expected line containing %q in doctor report:\n%s", want, joined)
@@ -1166,7 +1166,7 @@ func TestDoctorReport_EnvLine_InformationalOnly(t *testing.T) {
 }
 
 // TestDoctorReport_ShadowMount_PluginIndexLineGatedOnContainer asserts
-// the `plugin-index-mount:` line appears in DoctorReport output when
+// the `plugin-mount:` line appears in DoctorReport output when
 // InContainer() returns true, and is omitted when it returns false.
 // Exhaustive state coverage (ok / empty / missing) is in the unit
 // test TestShadowMountStatus; this integration test only confirms
@@ -1187,8 +1187,8 @@ func TestDoctorReport_ShadowMount_PluginIndexLineGatedOnContainer(t *testing.T) 
 	}
 	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "plugin-index-mount:") {
-		t.Errorf("expected `plugin-index-mount:` line when in container:\n%s", joined)
+	if !strings.Contains(joined, "plugin-mount:") {
+		t.Errorf("expected `plugin-mount:` line when in container:\n%s", joined)
 	}
 }
 
@@ -1210,8 +1210,8 @@ func TestDoctorReport_ShadowMount_ReportsMissingAndOK(t *testing.T) {
 	}
 	linesA, _ := doctor.DoctorReport(rootA, doctor.DoctorOptions{})
 	joinedA := strings.Join(linesA, "\n")
-	if !strings.Contains(joinedA, "plugin-index-mount: missing") {
-		t.Errorf("expected `plugin-index-mount: missing` when ~/.claude/plugins absent:\n%s", joinedA)
+	if !strings.Contains(joinedA, "plugin-mount: missing") {
+		t.Errorf("expected `plugin-mount: missing` when ~/.claude/plugins absent:\n%s", joinedA)
 	}
 
 	// ok case: seed plugins/<one entry>
@@ -1226,7 +1226,7 @@ func TestDoctorReport_ShadowMount_ReportsMissingAndOK(t *testing.T) {
 	}
 	linesB, _ := doctor.DoctorReport(rootB, doctor.DoctorOptions{})
 	joinedB := strings.Join(linesB, "\n")
-	if !strings.Contains(joinedB, "plugin-index-mount: ok (1 plugin entries cached)") {
-		t.Errorf("expected `plugin-index-mount: ok (1 plugin entries cached)`:\n%s", joinedB)
+	if !strings.Contains(joinedB, "plugin-mount: ok (1 plugin entries cached)") {
+		t.Errorf("expected `plugin-mount: ok (1 plugin entries cached)`:\n%s", joinedB)
 	}
 }

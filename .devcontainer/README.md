@@ -110,7 +110,7 @@ Sanity check inside the container:
 
 ```
 ls /workspaces/ai-workflow-rituals/plugins/   # should list aiwf-extensions + wf-rituals
-aiwf doctor | grep plugin-index-mount         # should report `ok (N plugin entries cached)`
+aiwf doctor | grep plugin-mount               # should report `ok (N plugin entries cached)`
 gh auth status                                # inherited via the gh credential mount
 ```
 
