@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: 'CLAUDE.md test-running guidance: container-primary, macOS-host fallback'
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
