@@ -1164,3 +1164,69 @@ func TestDoctorReport_EnvLine_InformationalOnly(t *testing.T) {
 		t.Errorf("env: line should never increment problems; got %d", problems)
 	}
 }
+
+// TestDoctorReport_ShadowMount_PluginIndexLineGatedOnContainer asserts
+// the `plugin-index-mount:` line appears in DoctorReport output when
+// InContainer() returns true, and is omitted when it returns false.
+// Exhaustive state coverage (ok / empty / missing) is in the unit
+// test TestShadowMountStatus; this integration test only confirms
+// wiring.
+//
+// Serial (no t.Parallel) because both AIWF_DEVCONTAINER mutation
+// (t.Setenv) and HOME redirection are process-global.
+//
+// Pins M-0135/AC-2.
+func TestDoctorReport_ShadowMount_PluginIndexLineGatedOnContainer(t *testing.T) {
+	t.Setenv("AIWF_DEVCONTAINER", "1")
+	t.Setenv("HOME", t.TempDir())
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "plugin-index-mount:") {
+		t.Errorf("expected `plugin-index-mount:` line when in container:\n%s", joined)
+	}
+}
+
+// TestDoctorReport_ShadowMount_ReportsMissingAndOK confirms the
+// missing and ok states observed via DoctorReport — sanity check
+// of the integration wiring across two dir shapes that differ in
+// what the operator sees.
+//
+// Pins M-0135/AC-2.
+func TestDoctorReport_ShadowMount_ReportsMissingAndOK(t *testing.T) {
+	t.Setenv("AIWF_DEVCONTAINER", "1")
+
+	// missing case: home has no .claude/plugins
+	missingHome := t.TempDir()
+	t.Setenv("HOME", missingHome)
+	rootA := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), rootA, initrepo.Options{ActorOverride: "human/test"}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	linesA, _ := doctor.DoctorReport(rootA, doctor.DoctorOptions{})
+	joinedA := strings.Join(linesA, "\n")
+	if !strings.Contains(joinedA, "plugin-index-mount: missing") {
+		t.Errorf("expected `plugin-index-mount: missing` when ~/.claude/plugins absent:\n%s", joinedA)
+	}
+
+	// ok case: seed plugins/<one entry>
+	okHome := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(okHome, ".claude", "plugins", "some-plugin"), 0o755); err != nil {
+		t.Fatalf("seed plugin entry: %v", err)
+	}
+	t.Setenv("HOME", okHome)
+	rootB := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), rootB, initrepo.Options{ActorOverride: "human/test"}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	linesB, _ := doctor.DoctorReport(rootB, doctor.DoctorOptions{})
+	joinedB := strings.Join(linesB, "\n")
+	if !strings.Contains(joinedB, "plugin-index-mount: ok (1 plugin entries cached)") {
+		t.Errorf("expected `plugin-index-mount: ok (1 plugin entries cached)`:\n%s", joinedB)
+	}
+}
