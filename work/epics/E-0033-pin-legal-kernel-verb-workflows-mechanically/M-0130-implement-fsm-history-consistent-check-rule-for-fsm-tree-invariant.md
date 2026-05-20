@@ -32,7 +32,7 @@ acs:
     - id: AC-6
       title: 'Audit catalog: R-RULE-149 unimplemented qualifier removed'
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
