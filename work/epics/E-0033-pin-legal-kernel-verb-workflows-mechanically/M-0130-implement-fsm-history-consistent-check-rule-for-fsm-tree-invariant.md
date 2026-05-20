@@ -27,7 +27,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: Hint table entry for fsm-history-consistent code
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: 'Audit catalog: R-RULE-149 unimplemented qualifier removed'
