@@ -67,7 +67,7 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 	if t == nil || root == "" {
 		return nil
 	}
-	_, err := walkStatusChanges(ctx, root, t)
+	observations, err := walkStatusChanges(ctx, root, t)
 	if err != nil {
 		// AC-3/4 may route walker errors into the finding stream
 		// (e.g., a "history-walk-error" subcode). For now the rule is
@@ -75,10 +75,12 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 		// (rare; usually permission issues or transient cancellation).
 		return nil
 	}
-	// AC-1 emits no findings — the walker's job is just to enumerate
-	// observations. AC-2 / AC-3 / AC-4 will append per-subcode
-	// predicate results here.
-	return nil
+	var findings []Finding
+	findings = append(findings, illegalTransitionFindings(observations)...)
+	// AC-3 will append forcedUntraileredFindings (skipping merge
+	// observations per D-0010). AC-4 will append manualEditFindings
+	// (skipping merges + audit-only suppression per D-0008).
+	return findings
 }
 
 // statusChange records one observed status-change for an entity at
@@ -115,6 +117,13 @@ type statusChange struct {
 	Prior      string
 	Next       string
 	Trailers   map[string]string
+	// IsMergeCommit is true when Commit has more than one parent —
+	// a merge commit. Set uniformly by the walker; predicates apply
+	// per-subcode policy per D-0010 (supersedes D-0009): all three
+	// subcodes skip merge-commit observations. The walker emits
+	// them so future predicates with different policies can opt in
+	// without revisiting the walker.
+	IsMergeCommit bool
 }
 
 // walkStatusChanges enumerates DAG-aware status-change observations
@@ -203,6 +212,7 @@ func walkOneEntity(ctx context.Context, root string, e *entity.Entity) ([]status
 			continue
 		}
 		var trailers map[string]string
+		isMerge := len(parents) > 1
 		for _, parent := range parents {
 			prior := statusAtCommitPath(ctx, root, parent, p.Path)
 			if prior == "" || prior == next {
@@ -212,14 +222,15 @@ func walkOneEntity(ctx context.Context, root string, e *entity.Entity) ([]status
 				trailers = commitTrailers(ctx, root, p.Commit)
 			}
 			out = append(out, statusChange{
-				EntityID:   e.ID,
-				EntityKind: e.Kind,
-				Commit:     p.Commit,
-				Parent:     parent,
-				Path:       p.Path,
-				Prior:      prior,
-				Next:       next,
-				Trailers:   trailers,
+				EntityID:      e.ID,
+				EntityKind:    e.Kind,
+				Commit:        p.Commit,
+				Parent:        parent,
+				Path:          p.Path,
+				Prior:         prior,
+				Next:          next,
+				Trailers:      trailers,
+				IsMergeCommit: isMerge,
 			})
 		}
 	}
@@ -236,10 +247,22 @@ type commitPathPair struct {
 }
 
 // listCommitPathPairs returns (commit SHA, path-at-commit) pairs for
-// every commit that touched currentPath. Uses --follow so renames
-// are tracked across the path's history; --name-only gives the
-// path-at-each-commit, parsed alongside the COMMIT-prefixed SHA
-// lines.
+// every commit that touched currentPath, INCLUDING merge commits.
+// Uses --follow so renames are tracked across the path's history;
+// --name-only gives the path-at-each-commit, parsed alongside the
+// COMMIT-prefixed SHA lines.
+//
+// The `-m` flag is load-bearing for D-0009's merge-policy contract:
+// without it, `git log --follow` silently excludes merge commits
+// (`--follow` defaults to first-parent semantics; merges are
+// invisible). `-m` treats each merge as a patch against each parent,
+// which makes the merge commit appear in `--name-only` whenever the
+// file differs from at least one parent. The walker's per-parent
+// comparison (via commitParents) then emits observations relative
+// to each parent, and AC-2 fires on illegal-transition merges per
+// D-0009. Confirmed empirically: without -m, a merge that integrates
+// an illegal feature-branch state into trunk produces zero merge-
+// commit observations and AC-2 cannot catch the integration.
 //
 // The custom "COMMIT %H" prefix distinguishes the SHA lines from the
 // path lines without relying on whitespace heuristics (git's default
@@ -254,7 +277,7 @@ type commitPathPair struct {
 // that very adjacency assumption.)
 func listCommitPathPairs(ctx context.Context, root, currentPath string) ([]commitPathPair, error) {
 	cmd := exec.CommandContext(ctx, "git", "log",
-		"--follow", "--name-only",
+		"--follow", "-m", "--name-only",
 		"--pretty=format:COMMIT %H",
 		"--", currentPath)
 	cmd.Dir = root
@@ -262,6 +285,15 @@ func listCommitPathPairs(ctx context.Context, root, currentPath string) ([]commi
 	if err != nil {
 		return nil, err
 	}
+	// Dedupe by (commit, path): with -m, a merge commit whose content
+	// differs from BOTH parents appears twice in the output (once
+	// per parent diff). The walker's per-parent comparison runs
+	// inside walkOneEntity, so the duplicate listing would emit
+	// duplicate observations and inflate AC-2's finding count.
+	// Deduping at the pair level collapses to one entry per
+	// (commit, path) — the per-parent fan-out then happens once,
+	// downstream.
+	seen := make(map[string]struct{})
 	var pairs []commitPathPair
 	var pendingCommit string
 	for _, line := range strings.Split(string(out), "\n") {
@@ -276,6 +308,12 @@ func listCommitPathPairs(ctx context.Context, root, currentPath string) ([]commi
 		if pendingCommit == "" {
 			continue
 		}
+		key := pendingCommit + "\x00" + line
+		if _, dup := seen[key]; dup {
+			pendingCommit = ""
+			continue
+		}
+		seen[key] = struct{}{}
 		pairs = append(pairs, commitPathPair{Commit: pendingCommit, Path: line})
 		pendingCommit = ""
 	}
@@ -385,4 +423,92 @@ func hasGitCommits(ctx context.Context, root string) bool {
 	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "--quiet", "HEAD")
 	cmd.Dir = root
 	return cmd.Run() == nil
+}
+
+// illegalTransitionFindings emits one fsm-history-consistent finding
+// per observation whose (Prior, Next) is not an edge in the kind's
+// FSM AND whose commit lacks an aiwf-force trailer AND whose commit
+// is not a merge.
+//
+// M-0130/AC-2 predicate per the spec body §3:
+//
+//	"Subcode illegal-transition — change is not in the FSM and no force trailer"
+//
+// Per D-0010 (supersedes D-0009), the predicate SKIPS merge-commit
+// observations. The rationale: merge commits emit per-parent
+// observations that produce routine noise on every feature-branch
+// integration (main's pre-merge view of a milestone at `draft` vs
+// the merge result at `done` looks like an illegal `draft → done`
+// even though the actual progression on the feature branch was
+// `draft → in_progress → done`, all legal). Non-merge commits still
+// audit normally — a direct hand-edit, a buggy verb, or an attempted
+// skip-ahead promote on any branch is caught by per-parent comparison
+// at the original commit.
+//
+// The aiwf-verb trailer's presence is not part of the predicate —
+// illegal is illegal regardless of who tried to make the change. A
+// verb-routed illegal transition without force is the "verb's FSM
+// check drifted from entity.AllowedTransitions" case, which this
+// rule deliberately catches as the tree-level chokepoint.
+//
+// Force-trailer presence (key-present; value irrelevant) exempts
+// the transition: it's the kernel's sovereign override and the
+// trailer records the human's accountability per the provenance
+// model.
+func illegalTransitionFindings(observations []statusChange) []Finding {
+	var out []Finding
+	for i := range observations {
+		o := &observations[i]
+		if o.IsMergeCommit {
+			continue
+		}
+		if isLegalTransition(o.EntityKind, o.Prior, o.Next) {
+			continue
+		}
+		if _, hasForce := o.Trailers[gitops.TrailerForce]; hasForce {
+			continue
+		}
+		out = append(out, Finding{
+			Code:     "fsm-history-consistent",
+			Subcode:  "illegal-transition",
+			Severity: SeverityError,
+			Message: "entity " + o.EntityID + " status changed " + o.Prior + " → " + o.Next +
+				" in commit " + shortHash(o.Commit) +
+				" — not a legal " + string(o.EntityKind) +
+				" FSM transition and no aiwf-force trailer",
+			Path:     o.Path,
+			EntityID: o.EntityID,
+			Field:    "status",
+		})
+	}
+	return out
+}
+
+// isLegalTransition reports whether (prior → next) is an edge in
+// the kind's FSM. Returns false when the kind is unrecognized (no
+// FSM to validate against), when prior is not a recognized state
+// for the kind, or when next is not in prior's outgoing edge set.
+//
+// Sub-FSM kinds (KindAC, KindTDDPhase declared in the
+// workflows/spec package) are not reachable here today: the walker
+// enumerates only entity-level file paths, and AC / TDD-phase
+// state lives in milestone frontmatter, not in its own files. If
+// a future kind extension adds per-AC files (or similar), this
+// helper widens accordingly.
+func isLegalTransition(k entity.Kind, prior, next string) bool {
+	for _, allowed := range entity.AllowedTransitions(k, prior) {
+		if allowed == next {
+			return true
+		}
+	}
+	return false
+}
+
+// shortHash returns the 8-character abbreviated form of a commit
+// SHA. Falls back to the original string when shorter than 8 chars.
+func shortHash(sha string) string {
+	if len(sha) > 8 {
+		return sha[:8]
+	}
+	return sha
 }

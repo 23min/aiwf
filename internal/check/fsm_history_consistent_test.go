@@ -110,11 +110,13 @@ func TestWalkStatusChanges_CancelledContext(t *testing.T) {
 	}
 }
 
-// TestFSMHistoryConsistent_AC1EmitsNoFindings pins AC-1's contract:
-// the rule wires the walker, but emits no findings until AC-2/3/4
-// land their per-subcode predicates. A fixture with a clear FSM-
-// illegal transition should produce zero findings from the rule.
-func TestFSMHistoryConsistent_AC1EmitsNoFindings(t *testing.T) {
+// TestFSMHistoryConsistent_FiresOnIllegalTransition pins AC-2's
+// contract end-to-end: a fixture with an FSM-illegal transition
+// produces a finding with code=fsm-history-consistent,
+// subcode=illegal-transition, severity=error, with a message naming
+// the entity, the (prior → next) pair, the commit short hash, the
+// kind, and the missing aiwf-force trailer (the override path).
+func TestFSMHistoryConsistent_FiresOnIllegalTransition(t *testing.T) {
 	t.Parallel()
 	r := newRepoFixture(t)
 	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add")
@@ -122,8 +124,30 @@ func TestFSMHistoryConsistent_AC1EmitsNoFindings(t *testing.T) {
 
 	tr := r.tree()
 	got := FSMHistoryConsistent(context.Background(), r.root, tr)
-	if len(got) != 0 {
-		t.Errorf("AC-1 must emit no findings; got %d: %+v", len(got), got)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
+	}
+	f := got[0]
+	if f.Code != "fsm-history-consistent" {
+		t.Errorf("code = %q, want fsm-history-consistent", f.Code)
+	}
+	if f.Subcode != "illegal-transition" {
+		t.Errorf("subcode = %q, want illegal-transition", f.Subcode)
+	}
+	if f.Severity != SeverityError {
+		t.Errorf("severity = %q, want error", f.Severity)
+	}
+	if f.EntityID != "E-0001" {
+		t.Errorf("entity = %q, want E-0001", f.EntityID)
+	}
+	if !strings.Contains(f.Message, "proposed → done") {
+		t.Errorf("message should name the transition; got %q", f.Message)
+	}
+	if !strings.Contains(f.Message, "epic") {
+		t.Errorf("message should name the kind; got %q", f.Message)
+	}
+	if !strings.Contains(f.Message, "aiwf-force") {
+		t.Errorf("message should mention the missing force trailer as the override path; got %q", f.Message)
 	}
 }
 
@@ -440,6 +464,57 @@ func TestWalkStatusChanges_TrailerCapture(t *testing.T) {
 	}
 	if obs[0].Trailers["aiwf-actor"] != "human/peter" {
 		t.Errorf("aiwf-actor trailer missing or wrong; got %q", obs[0].Trailers["aiwf-actor"])
+	}
+}
+
+// TestListCommitPathPairs_DedupesMergeWithBothParentsDiffering pins
+// the dedup invariant in listCommitPathPairs: `git log --follow -m
+// --name-only` lists a merge commit ONCE PER PARENT WHOSE DIFF IS
+// NON-EMPTY. When a merge resolves to content different from BOTH
+// parents (e.g., a conflict-resolution that adopts a third state),
+// the merge appears twice in the raw output. The walker must
+// dedupe — otherwise per-parent comparison fires twice for each
+// (commit, parent) pair, inflating finding counts.
+//
+// This test constructs that exact shape and asserts each (commit,
+// path) appears at most once in the returned pairs.
+func TestListCommitPathPairs_DedupesMergeWithBothParentsDiffering(t *testing.T) {
+	t.Parallel()
+	r := newRepoFixture(t)
+	// Add at proposed on main.
+	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add")
+	// branch-a: status=active.
+	r.gitCheckoutBranch("branch-a")
+	relPath := canonicalEntityPath("E-0001", entity.KindEpic)
+	r.writeEntityAtRel(relPath, "E-0001", entity.KindEpic, entity.StatusActive, "")
+	r.gitAddAll()
+	r.gitCommit("a: status=active")
+	// main: status=done (FSM-illegal vs proposed but irrelevant for this
+	// structural test — we write the file directly rather than going
+	// through aiwf verbs).
+	r.gitCheckout("main")
+	r.writeEntityAtRel(relPath, "E-0001", entity.KindEpic, entity.StatusDone, "")
+	r.gitAddAll()
+	r.gitCommit("main: status=done")
+	// Merge branch-a with conflict; resolve to a THIRD state (cancelled)
+	// that differs from both parents.
+	r.gitMergeWithResolution("branch-a", "merge a (resolved to cancelled)", func(abs string) {
+		r.writeEntityAt(abs, "E-0001", entity.KindEpic, entity.StatusCancelled, "")
+	})
+
+	pairs, err := listCommitPathPairs(context.Background(), r.root, relPath)
+	if err != nil {
+		t.Fatalf("listCommitPathPairs: %v", err)
+	}
+	seen := map[string]int{}
+	for _, p := range pairs {
+		key := p.Commit + "::" + p.Path
+		seen[key]++
+	}
+	for key, count := range seen {
+		if count > 1 {
+			t.Errorf("(commit, path) %q appears %d times in pairs; dedup should collapse to 1", key, count)
+		}
 	}
 }
 
