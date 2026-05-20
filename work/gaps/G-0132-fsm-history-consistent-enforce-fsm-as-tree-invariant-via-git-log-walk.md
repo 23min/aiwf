@@ -1,11 +1,13 @@
 ---
 id: G-0132
 title: 'fsm-history-consistent: enforce FSM as tree-invariant via git-log walk'
-status: open
+status: addressed
 prior_ids:
     - G-0128
     - G-0130
 discovered_in: M-0121
+addressed_by:
+    - M-0130
 ---
 ## What's missing
 
