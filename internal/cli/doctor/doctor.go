@@ -107,6 +107,10 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 		lines = append(lines, "latest:    "+renderLatestPublished(current))
 	}
 
+	// env: line — informational, never increments problems. M-0135/AC-1.
+	_, envLabel := InContainer()
+	lines = append(lines, fmt.Sprintf("env:       %s", envLabel))
+
 	cfg, err := config.Load(rootDir)
 	switch {
 	case errors.Is(err, config.ErrNotFound):

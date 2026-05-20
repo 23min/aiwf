@@ -1089,3 +1089,78 @@ exit 0
 		}
 	}
 }
+
+// TestDoctorReport_EnvLinePresent_DevcontainerCase asserts the
+// `env:` line appears in DoctorReport output. The unit test
+// `TestDetectContainer` in internal/cli/doctor/ covers the four
+// signal combinations exhaustively; this integration test only
+// confirms the line is wired into DoctorReport.
+//
+// Test is serial (no t.Parallel) because it mutates AIWF_DEVCONTAINER
+// via t.Setenv to make the assertion deterministic regardless of the
+// host's incoming env.
+//
+// Pins M-0135/AC-1.
+func TestDoctorReport_EnvLinePresent_DevcontainerCase(t *testing.T) {
+	t.Setenv("AIWF_DEVCONTAINER", "1")
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "env:") {
+		t.Errorf("expected `env:` line in doctor report:\n%s", joined)
+	}
+	if !strings.Contains(joined, "AIWF_DEVCONTAINER") {
+		t.Errorf("expected `env:` line to mention AIWF_DEVCONTAINER signal:\n%s", joined)
+	}
+}
+
+// TestDoctorReport_EnvLine_HostCase asserts the env: line reports
+// `host` when neither container signal fires. Test clears
+// AIWF_DEVCONTAINER explicitly; the dockerenv-path side is fixed at
+// the FS root and not controllable from the integration boundary, so
+// this test only asserts the env-var side via t.Setenv("AIWF_DEVCONTAINER", "0")
+// — the dockerenv part is covered by the unit test in
+// internal/cli/doctor/env_internal_test.go.
+//
+// Pins M-0135/AC-1.
+func TestDoctorReport_EnvLine_RespectsFalsyEnvVar(t *testing.T) {
+	t.Setenv("AIWF_DEVCONTAINER", "0")
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "env:") {
+		t.Errorf("expected `env:` line in doctor report:\n%s", joined)
+	}
+	if strings.Contains(joined, "AIWF_DEVCONTAINER") {
+		t.Errorf("expected `env:` line to NOT mention AIWF_DEVCONTAINER when value is falsy:\n%s", joined)
+	}
+}
+
+// TestDoctorReport_EnvLine_InformationalOnly asserts the env: line
+// never increments problems on its own. Pinning the "informational"
+// contract from the AC-1 pass criterion.
+//
+// Pins M-0135/AC-1.
+func TestDoctorReport_EnvLine_InformationalOnly(t *testing.T) {
+	t.Setenv("AIWF_DEVCONTAINER", "1")
+	root := setupCLITestRepo(t)
+	if _, err := initrepo.Init(context.Background(), root, initrepo.Options{
+		ActorOverride: "human/test",
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	_, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	if problems != 0 {
+		t.Errorf("env: line should never increment problems; got %d", problems)
+	}
+}
