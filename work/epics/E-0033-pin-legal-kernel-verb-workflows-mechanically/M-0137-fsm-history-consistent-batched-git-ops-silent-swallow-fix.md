@@ -44,26 +44,53 @@ acs:
       status: open
       tdd_phase: red
 ---
-
 ## Goal
 
-## Acceptance criteria
+Retrofit `internal/check/fsm_history_consistent.go` to use batched git operations and fix the silent-swallow correctness path that lets a single transient per-entity walker failure return zero findings. Lands two general-purpose helpers in `internal/gitops/` along the way.
 
-### AC-1 — internal/gitops/ bulk-revwalk helper streams (commit, parent, paths, trailers)
+## Background
 
-### AC-2 — internal/gitops/ cat-file --batch content-reader pump
+M-0130 shipped `fsm-history-consistent` as the kernel chokepoint that makes the per-entity status FSM a tree-invariant. Two issues were discovered after wrap, recorded in G-0148:
 
-### AC-3 — fsm-history-consistent: no per-entity exec.Command — routes through helpers
+1. **Subprocess fan-out.** The rule shells out per-entity: `git log --follow -m --name-only` per entity, plus `git show <commit>:<path>` per (commit, parent) pair. On a 331-entity tree that's ~3,000 fork/execs per `aiwf check`. Pre-push latency scales with consumer tree size; on macOS the cost is OS-resource-bound (see G-0125, archived).
+2. **Silent-swallow on walker failure.** `FSMHistoryConsistent` returns `nil` when `walkStatusChanges` errors, and `walkStatusChanges` fail-fasts on the first per-entity error. One transient git subprocess failure under load wipes every finding from the rule — invisibly. The operator sees a green check; real FSM violations slip through. Diagnosed empirically in the M-0130 session: same binary, same content, intermittent "4 errors" vs "0 findings" on sibling worktrees under concurrent test load.
 
-### AC-4 — history-walk-error subcode emits per failed entity (severity error)
+The silent-swallow violates CLAUDE.md §*Engineering principles* ("Errors are findings, not parse failures") and silently negates the kernel's "framework correctness must not depend on the LLM's behavior" commitment — the chokepoint can turn off under exactly the load it was designed to police.
 
-### AC-5 — Walker continues past per-entity errors; partial findings preserved
+## Approach
 
-### AC-6 — Negative test: per-entity walk failure surfaces history-walk-error
+1. **Build two helpers in `internal/gitops/`** templated on `internal/cli/history/history.go`'s existing single-walk shape:
+   - **Bulk-revwalk helper** — one `git log --all --name-status -M --pretty=...` subprocess that streams `(commit-sha, parent-sha, paths-touched, trailers)` tuples. Replaces the per-entity `git log --follow` loop.
+   - **`cat-file --batch` content-reader pump** — one long-lived subprocess for entity-blob reads. Replaces N short-lived `git show <commit>:<path>` calls. `cat-file --batch-check` for trailer-only queries.
+2. **Retrofit `fsm-history-consistent`** to route through the helpers. No more `exec.Command("git", ...)` in the rule's hot path; all reads go through the helpers' long-lived subprocesses.
+3. **Replace the silent-swallow** at `FSMHistoryConsistent:71-77`:
+   - Emit `fsm-history-consistent/history-walk-error` findings (severity `error`) per failed entity, naming the entity and the underlying error.
+   - Stop fail-fast in `walkStatusChanges` (or its batched successor); accumulate partial observations + a per-entity error slice. Successful entities still produce findings; failed entities each produce one `history-walk-error` finding.
+4. **Test the partial-failure path mechanically** — fixture that arranges a per-entity walk failure (e.g., delete a referenced blob, cancel mid-walk for one entity), asserts the rule still emits findings for healthy entities AND surfaces a `history-walk-error` for the broken one. This is the negative test that pins the new contract; without it, the swallow can return as a regression because every existing test is structured to succeed end-to-end.
+5. **Measure perf before and after.** Baseline the kernel-tree `aiwf check` runtime; the retrofit should reduce wall time substantially (3,000 fork/execs → ~2 long-running subprocesses). Pin a regression budget the perf test asserts.
+6. **Reconcile R-RULE-149 in `docs/pocv3/design/legal-workflows-audit.md`** to list four subcodes: `illegal-transition` (error), `forced-untrailered` (error), `manual-edit` (warning), `history-walk-error` (error). Note the partial-failure semantics.
+7. **Update G-0148's body** to record that this milestone closes the fsm-history slice; reframe remaining scope as the two interactive-verb retrofits (`aiwf status` worktree views, `aiwf show` scope views).
 
-### AC-7 — Perf regression test: kernel tree aiwf check completes within baseline budget
+## What this milestone does *not* do
 
-### AC-8 — Audit catalog R-RULE-149 updated to list all four subcodes with severities
+- Does **not** retrofit `aiwf status` worktree views (G-0148's call site #1). Separate scope; perf-only; no kernel-chokepoint correctness angle.
+- Does **not** retrofit `aiwf show` scope views (G-0148's call site #2). Same reason.
+- Does **not** change the M-0130 ACs or audit catalog beyond the R-RULE-149 row reconciliation. M-0130 is `done`; this milestone is a follow-up retrofit, not a redo.
+- Does **not** address M-0136's historical-error backlog. The `aiwf acknowledge-illegal` verb is M-0136's deliverable; this milestone only fixes how the rule reports errors, not how operators retroactively clear them.
 
-### AC-9 — G-0148 body updated: fsm-history slice closed; perf retrofits remain open
+## Inserted between M-0130 and M-0136
 
+M-0136 (`aiwf acknowledge-illegal`) ships the verb that clears the 4 historical `illegal-transition` errors from `f4ea7329`. Its correctness depends on `fsm-history-consistent` firing reliably — i.e., the silent-swallow being gone. Sequencing this milestone before M-0136 means M-0136's tests run against a rule that doesn't intermittently lie.
+
+## At wrap
+
+Promote G-0148 body to record the partial close; G-0148 itself stays `open` because the two interactive-verb retrofits remain. The `aiwf-tests:` metric for the perf AC names a number (chosen at AC-7 design time) so future regressions are detectable.
+
+## Related
+
+- **G-0148** — the gap this milestone partial-closes (the fsm-history-consistent slice).
+- **M-0130** — the milestone whose deliverable this retrofits.
+- **D-0008 / D-0010** — the per-subcode disjointness + merge-skip decisions that constrain the predicate logic; preserved unchanged.
+- **CLAUDE.md §Engineering principles** — *"Errors are findings, not parse failures."* The silent-swallow is the exact pattern that principle forbids.
+- **G-0125** (archived) — first surfaced the macOS subprocess-fan-out angle that G-0148 inherits.
+- **`internal/cli/history/history.go:283, :515`** — single-walk template the new helpers should mirror.
