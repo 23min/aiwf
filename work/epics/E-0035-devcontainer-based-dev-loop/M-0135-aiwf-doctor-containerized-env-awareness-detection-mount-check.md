@@ -1,7 +1,7 @@
 ---
 id: M-0135
 title: 'aiwf doctor containerized-env awareness: detection + mount check'
-status: in_progress
+status: done
 parent: E-0035
 tdd: required
 acs:
