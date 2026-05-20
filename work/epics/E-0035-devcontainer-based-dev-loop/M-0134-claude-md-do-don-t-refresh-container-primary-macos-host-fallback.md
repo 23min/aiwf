@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: 'CLAUDE.md test-running guidance: container-primary, macOS-host fallback'
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
 ---
 ## Goal
 
