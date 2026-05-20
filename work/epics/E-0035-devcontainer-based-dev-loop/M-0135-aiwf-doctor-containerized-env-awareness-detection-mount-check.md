@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Container detection one-liner in aiwf doctor output
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-2
       title: Shadow-mount status check in aiwf doctor (in container only)
       status: open
