@@ -1,7 +1,7 @@
 ---
 id: M-0134
 title: 'CLAUDE.md DO/DON''T refresh: container primary, macOS host fallback'
-status: draft
+status: in_progress
 parent: E-0035
 tdd: required
 acs:
