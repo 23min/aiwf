@@ -64,7 +64,37 @@ Health
   9 entities · 0 errors · 1 warnings · run `aiwf check` for details
 ```
 
-For scripting: `aiwf status --format=json --pretty`. JSON envelope with the same data, structured.
+For scripting: `aiwf status --format=json --pretty`. JSON envelope with the same data, structured. The envelope's `worktrees` array is always populated when ≥1 worktree exists (omitted from default JSON via `omitempty` when zero); structured consumers see the same data the human-narrative output surfaces, no flag needed.
+
+## Worktrees in the default output (G-0122)
+
+When ≥2 git worktrees exist for the repo, `aiwf status` inserts a one-line-per-worktree `Worktrees` section directly under `In flight`. Each row names the entity each worktree is driving (epic / milestone / gap) with its status, the relative age of the last commit, and a `dirty` flag when the working tree has uncommitted changes. Single-worktree projects see no section (no value to add).
+
+The trunk worktree (`main`) gets its own row at the end with a compact `path  •  main  •  trunk (no in-flight scope)` form so the operator can see at a glance that no entity is being driven on trunk.
+
+The short view points at `aiwf status --worktrees` for the full breakdown.
+
+## Worktree-organized view (`--worktrees`)
+
+`aiwf status --worktrees` swaps the text output for a worktree-organized layout — per-worktree sections with full entity expansion. Reach for it when the user asks *"where's my work?"*, *"which worktree is on what?"*, *"what's in flight where?"*, or after the user just used `git worktree list` and wants to join that against entity state.
+
+The output uses a per-worktree section shape:
+
+- **Header**: `Worktree: <path>` (bold)
+- **Branch + age + dirty**: `⎇ <branch>  •  last commit <age>  •  dirty` (dimmed; `dirty` highlighted when applicable)
+- **Optional metadata line**: `created <age>  •  last entity touch <age>` (only when those differ from `last commit`)
+- **Driver row** depends on entity kind:
+  - **Epic-driver worktrees** expand the full epic: every milestone (including completed) and every gap the epic closes or whose milestones surfaced.
+  - **Milestone-driver worktrees** show the parent epic as a breadcrumb header, then the driven milestone with `→ (driven)` marker, then the milestone's `depends on:`, `ACs:`, and `Surfaced gaps:` lists.
+  - **Gap-driver worktrees** (typical for wf-patch worktrees on `patch/g-NNNN-...` branches) show just the gap row.
+- **Stale worktrees** (driver entity is terminal): same shape with an inline `STALE — driver is terminal; cleanup: git worktree remove <path>` marker.
+- **Trunk worktrees** (no driver correlation, typically `main`): one-line `No in-flight scope (trunk)` — or, when in-flight entities exist with no worktree driving them, an `Other in-flight:` sub-section listing each (branch + age when a non-checked-out branch exists for it, else `(no branch, on trunk)`).
+
+The worktree → entity correlation uses a hybrid cascade: first the worktree's `git log main..<branch>` is walked for scope-defining `aiwf-verb:` events (`authorize`, `promote → in_progress/active`, `promote --phase`); among multiple candidates the most-recent active-state event wins. If no scope events, the most recent `aiwf-entity:` trailer wins. If no aiwf commits at all, the branch name is parsed against the conventional shapes (`epic/E-NNNN-...`, `milestone/M-NNNN-...`, `patch/g-NNNN-...`).
+
+Worktrees are sorted: in-flight first, then trunk, then stale at the end. Status glyphs and badges are colored (green met/done, yellow in_progress, cyan open/draft/proposed, red cancelled), so the eye lands on activity first.
+
+The `--worktrees` flag affects only the text output; the JSON envelope already carries the same `worktrees` array by default.
 
 ## After reading the output
 

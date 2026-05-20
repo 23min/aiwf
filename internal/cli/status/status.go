@@ -46,6 +46,10 @@ type StatusReport struct {
 	RecentActivity []history.HistoryEvent `json:"recent_activity"`
 	SweepPending   *StatusSweepPending    `json:"sweep_pending,omitempty"`
 	Health         StatusHealthCounts     `json:"health"`
+	// Worktrees is populated only when `--worktrees` is set (G-0122).
+	// Always omitted from the JSON envelope when nil so the default
+	// shape stays unchanged for existing JSON consumers.
+	Worktrees []WorktreeView `json:"worktrees,omitempty"`
 }
 
 // StatusSweepPending is the tree-health one-liner for terminal-status
@@ -180,13 +184,16 @@ type StatusHealthCounts struct {
 // NewCmd builds `aiwf status`: a project-wide snapshot of in-flight
 // work, open decisions, open gaps, and recent activity. Read-only;
 // produces no commit. Use it to answer "what's next?", "where are we?",
-// "what are we working on?".
+// "what are we working on?". With --worktrees, swaps the output to a
+// worktree-organized layout (G-0122): per-worktree section, full epic
+// expansion for epic-branch worktrees, stale/trunk catch-alls.
 func NewCmd() *cobra.Command {
 	var (
-		root    string
-		format  string
-		pretty  bool
-		noTrunc bool
+		root      string
+		format    string
+		pretty    bool
+		noTrunc   bool
+		worktrees bool
 	)
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -199,18 +206,23 @@ func NewCmd() *cobra.Command {
 
   # Full titles even in a narrow terminal (default truncates long titles
   # when stdout is a TTY narrower than the row)
-  aiwf status --no-trunc`,
+  aiwf status --no-trunc
+
+  # Worktree-organized view (G-0122): per-worktree section with full
+  # epic expansion when a worktree is on an epic branch
+  aiwf status --worktrees`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, format, pretty, noTrunc))
+			return cliutil.WrapExitCode(Run(root, format, pretty, noTrunc, worktrees))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text, json, or md")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().BoolVar(&noTrunc, "no-trunc", false, "do not truncate long titles when stdout is a terminal narrower than the row")
+	cmd.Flags().BoolVar(&worktrees, "worktrees", false, "render worktree-organized layout: per-worktree section, epic expansion, stale/trunk catch-alls (G-0122)")
 	_ = cmd.RegisterFlagCompletionFunc("format", cobra.FixedCompletions(
 		[]string{"text", "json", "md"},
 		cobra.ShellCompDirectiveNoFileComp,
@@ -219,7 +231,11 @@ func NewCmd() *cobra.Command {
 }
 
 // Run executes `aiwf status`. Returns one of the cliutil.Exit* codes.
-func Run(root, format string, pretty, noTrunc bool) int {
+// When worktrees is true, the output switches to the G-0122 worktree-
+// organized layout (text format only renders the worktree sections;
+// json format adds a `worktrees` key to the result envelope; md
+// format ignores the flag for now).
+func Run(root, format string, pretty, noTrunc, worktrees bool) int {
 	if format != "text" && format != "json" && format != "md" {
 		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
 		return cliutil.ExitUsage
@@ -246,6 +262,26 @@ func Run(root, format string, pretty, noTrunc bool) int {
 		return cliutil.ExitInternal
 	}
 	report.RecentActivity = recent
+
+	// G-0122: populate Worktrees on every status call (regardless of
+	// --worktrees flag) so default text + JSON output surface the
+	// worktree summaries. The Worktrees field is `omitempty`-tagged
+	// so single-worktree projects see no JSON delta. --worktrees
+	// remains meaningful as "swap text output to the full
+	// worktree-organized layout."
+	views, vErr := BuildWorktreeViews(ctx, rootDir, tr)
+	if vErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf status: building worktree view: %v\n", vErr)
+		return cliutil.ExitInternal
+	}
+	report.Worktrees = views
+	if worktrees && format == "text" {
+		if rErr := RenderWorktreeViews(os.Stdout, views, render.ColorEnabled(os.Stdout)); rErr != nil {
+			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", rErr)
+			return cliutil.ExitInternal
+		}
+		return cliutil.ExitOK
+	}
 
 	switch format {
 	case "text":
@@ -460,7 +496,8 @@ func ReadRecentActivity(ctx context.Context, root string, limit int) ([]history.
 	if fetchN < limit {
 		fetchN = limit
 	}
-	cmd := exec.CommandContext(ctx, "git", "log",
+	cmd := exec.CommandContext(
+		ctx, "git", "log",
 		"-n", fmt.Sprintf("%d", fetchN),
 		"--grep", "^aiwf-verb: ",
 		"--pretty=tformat:%H"+sep+"%aI"+sep+"%s"+sep+"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"+sep+"%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"+sep+"%b\x1e",
@@ -589,6 +626,18 @@ func RenderStatusText(w io.Writer, r *StatusReport, termWidth int, colorEnabled 
 	}
 	for _, e := range r.InFlightEpics {
 		WriteStatusEpicText(&b, e, termWidth)
+	}
+
+	// Worktrees: one-line-per-worktree short view, placed directly
+	// under "In flight" since both sections answer "what's being
+	// worked on now." Shown only when ≥2 worktrees exist (single-
+	// worktree projects don't need it). G-0122 option 1.
+	if len(r.Worktrees) >= 2 {
+		b.WriteByte('\n')
+		b.WriteString(render.Bold("Worktrees", colorEnabled) + "\n")
+		renderWorktreeShortLines(&b, r.Worktrees, termWidth, colorEnabled)
+		b.WriteString(render.Dim("  for the full per-worktree view: aiwf status --worktrees", colorEnabled))
+		b.WriteByte('\n')
 	}
 	b.WriteByte('\n')
 
