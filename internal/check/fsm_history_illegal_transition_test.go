@@ -386,3 +386,47 @@ func TestFSMHistoryConsistent_MergeResolvingToLegalNoFire(t *testing.T) {
 		t.Errorf("expected 0 findings (legal non-sovereign transition with verb trailer, integrated via merge); got %d: %+v", len(got), got)
 	}
 }
+
+// TestFSMHistoryConsistent_LegalUntraileredFeatureBranchMerge_OnlyAC4Fires
+// covers the complement to the two trailered-feature-branch tests
+// above: when the feature branch's legal-non-sovereign progression
+// commits LACK aiwf-verb trailers (i.e., manual hand-edits on a
+// branch, not aiwf-verb-routed), AC-4 fires per branch commit (the
+// only signal that the kernel was bypassed), AC-2 and AC-3 stay
+// silent (legal, non-sovereign), and the merge integration stays
+// silent across all three subcodes per D-0010.
+//
+// This separates the merge-skip property (load-bearing in D-0010)
+// from the trailer-presence property — the trailered tests above
+// could mask a regression in merge-skip-for-AC-4 if both properties
+// were tested together. Here the trailer is deliberately absent so
+// the only thing keeping AC-4 from firing on the merge commit is the
+// merge skip itself.
+func TestFSMHistoryConsistent_LegalUntraileredFeatureBranchMerge_OnlyAC4Fires(t *testing.T) {
+	t.Parallel()
+	r := newRepoFixture(t)
+	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
+	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDraft, "add milestone")
+	r.gitCheckoutBranch("branch-untrailered")
+	// Two legal-non-sovereign promotes on the branch, untrailered.
+	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "hand-edit draft -> in_progress on branch (no verb trailer)")
+	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDone, "hand-edit in_progress -> done on branch (no verb trailer)")
+	r.gitCheckout("main")
+	r.gitMerge("branch-untrailered", "merge branch-untrailered into main")
+
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	// Expected: AC-4 fires on the two branch commits; the merge
+	// integration is silent per D-0010; no AC-2 or AC-3 findings.
+	if len(got) != 2 {
+		t.Fatalf("expected 2 findings (manual-edit on both branch commits; merge skipped per D-0010); got %d: %+v",
+			len(got), got)
+	}
+	for _, f := range got {
+		if f.Subcode != "manual-edit" {
+			t.Errorf("subcode = %q, want manual-edit (AC-2 and AC-3 must stay silent for legal-non-sovereign)", f.Subcode)
+		}
+		if f.Severity != SeverityWarning {
+			t.Errorf("severity = %q, want warning (AC-4 is warning per the audit-only cooperation pattern)", f.Severity)
+		}
+	}
+}

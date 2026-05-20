@@ -59,10 +59,10 @@ A new check rule under `internal/check/`, e.g. `fsm_history_consistent.go`:
    - Parse the prior status (from the parent commit's blob via `git show <parent>:<path>`).
    - Parse the new status (from this commit's blob).
    - If they differ, verify `(prior, new) ∈ entity.AllowedTransitions(kind, prior)` OR the commit carries a non-empty `aiwf-force:` trailer.
-3. **Emit `fsm-history-consistent` findings** (severity `error`) per violation:
-   - Subcode `illegal-transition` — change is not in the FSM and no force trailer
-   - Subcode `forced-untrailered` — change matches a sovereign-act shape (e.g., epic `proposed → active`) but lacks the force trailer
-   - Subcode `manual-edit` — change has no `aiwf-verb:` trailer at all (overlaps with `provenance-untrailered-entity-commit` but with FSM-specific framing)
+3. **Emit `fsm-history-consistent` findings** per violation. Per-subcode severity:
+   - Subcode `illegal-transition` (severity `error`) — change is not in the FSM and no force trailer
+   - Subcode `forced-untrailered` (severity `error`) — change matches a sovereign-act shape (e.g., epic `proposed → active`) by a non-human actor without the force trailer (the predicate mirrors M-0095's `requireHumanActorForSovereignAct` verb gate: a `human/` actor OR `--force` satisfies the discipline)
+   - Subcode `manual-edit` (severity `warning`) — change has no `aiwf-verb:` trailer at all. Aligned with the parallel `provenance-untrailered-entity-commit` rule (also warning): the audit-only backfill (`aiwf <verb> --audit-only --reason "..."`) is the intended cure, and error severity would block pushes for state already correct on disk pending acknowledgment. The audit-only commit clears the finding via cross-history walking (a separate later commit carrying `aiwf-audit-only` + `aiwf-entity` for the same entity is the suppression channel; the predicate consults the pre-collected ack set).
 4. **Hint entry** in `internal/check/hint.go` for the new code, per policies/finding_hints.go.
 5. **Test fixtures** under `internal/check/testdata/fsm-history-consistent/` with at least one case per subcode plus a positive (clean) baseline.
 6. **Update the audit catalog** (`docs/pocv3/design/legal-workflows-audit.md`) to remove R-RULE-149's "currently unimplemented" qualifier and remove the "pending G-0132" note from §10.1's enforcement-status legend.

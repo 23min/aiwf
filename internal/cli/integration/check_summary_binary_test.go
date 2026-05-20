@@ -296,6 +296,63 @@ func TestBinary_CheckDefault_KernelTreeShortOutput(t *testing.T) {
 	}
 }
 
+// TestKernelTreeShortOutput_StructuralAssertion_CatchesPerInstanceWarnings
+// is a meta-test for the assertion in
+// TestBinary_CheckDefault_KernelTreeShortOutput. It synthesizes a
+// "what a warning-collapse regression looks like" output and asserts
+// the regex used by that test would catch it, so we have evidence
+// the structural assertion actually fires on the regression class it
+// claims to detect — closing the "green-test-is-not-proof-of-catch"
+// gap.
+//
+// The pre-M-0089 wall-of-warnings shape (which we never want to
+// regress to) looks like per-instance lines: `<path>: warning <code>:
+// <message>`. The structural assertion's regex is
+// `^\S+: warning ` (with multi-line flag). This test feeds three
+// hand-crafted regression shapes and asserts each is caught.
+func TestKernelTreeShortOutput_StructuralAssertion_CatchesPerInstanceWarnings(t *testing.T) {
+	t.Parallel()
+	warningPerInstanceRE := regexp.MustCompile(`(?m)^\S+: warning `)
+	cases := []struct {
+		name     string
+		line     string
+		wantHits int
+	}{
+		{
+			name:     "single per-instance warning regression",
+			line:     "work/epics/E-0001-x/epic.md: warning terminal-entity-not-archived: entity E-0001 has terminal status\n",
+			wantHits: 1,
+		},
+		{
+			name: "multiple per-instance warnings regression",
+			line: "work/epics/E-0001-x/epic.md: warning code-a: msg\n" +
+				"work/gaps/G-0001-x.md: warning code-b: msg\n" +
+				"docs/adr/ADR-0001-x.md: warning code-c: msg\n",
+			wantHits: 3,
+		},
+		{
+			name:     "no warnings (the healthy collapse-working shape) must not match",
+			line:     "work/epics/E-0001-x/epic.md: error fsm-history-consistent/illegal-transition: msg\n",
+			wantHits: 0,
+		},
+		{
+			name: "healthy summary lines must not match",
+			line: "acs-tdd-audit (warning) × 12 — M-0120/AC-1 status: met under tdd: advisory but tdd_phase is (absent) (expected done)\n" +
+				"entity-body-empty (warning) × 11 — M-0102 body section is empty\n",
+			wantHits: 0,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			got := len(warningPerInstanceRE.FindAllString(c.line, -1))
+			if got != c.wantHits {
+				t.Errorf("regex hits = %d, want %d (input: %q)", got, c.wantHits, c.line)
+			}
+		})
+	}
+}
+
 // TestBinary_CheckHelp_DocumentsVerbose (M-0089 AC-5):
 // `aiwf check --help` names the --verbose flag with a one-line
 // description, and the Example block shows the default vs.

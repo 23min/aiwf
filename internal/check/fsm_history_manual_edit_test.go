@@ -105,23 +105,15 @@ func TestManualEditFindings_VerbTrailerExempts(t *testing.T) {
 	}
 }
 
-// TestManualEditFindings_AckedEntityExempted — per D-0008, an entity
-// in the audit-only ack set is exempt from the finding. The ack set
-// is built by walkAuditOnlyAckedEntities from a SEPARATE later commit
-// carrying aiwf-audit-only + aiwf-entity; the predicate consults the
-// set via the second arg.
+// TestManualEditFindings_AckedObservationExempted — at the predicate
+// level, the second arg is keyed by observation commit SHA (not by
+// entity ID): the chrono-aware DAG check happens upstream in
+// computeAckedObservations. The predicate just checks set membership.
 //
-// At the predicate level we don't care HOW the ack got into the set —
-// only that the entity is in it. The walker's correctness (composite
-// rollup, canonicalization) is tested end-to-end below in
-// TestFSMHistoryConsistent_ManualEditClearedByLaterAuditOnlyCommit.
-//
-// Important: aiwf-audit-only on the same commit as the flip does NOT
-// exempt — only a later separate ack commit does. This is the
-// retrospective-acknowledgment semantics the verb layer produces (the
-// audit-only verbs emit empty commits; they never co-locate with a
-// status flip).
-func TestManualEditFindings_AckedEntityExempted(t *testing.T) {
+// This separation keeps the predicate pure (no I/O) and centralizes
+// the topology-aware logic where it belongs (the wiring layer that
+// knows about git).
+func TestManualEditFindings_AckedObservationExempted(t *testing.T) {
 	t.Parallel()
 	obs := []statusChange{
 		{
@@ -134,32 +126,33 @@ func TestManualEditFindings_AckedEntityExempted(t *testing.T) {
 			Trailers:   nil, // no aiwf-verb on the flip itself
 		},
 	}
-	acked := map[string]bool{"M-0001": true}
-	got := manualEditFindings(obs, acked)
+	ackedObs := map[string]bool{"abc1234567890def": true}
+	got := manualEditFindings(obs, ackedObs)
 	if len(got) != 0 {
-		t.Errorf("expected 0 findings (entity acked via audit-only ack set), got %+v", got)
+		t.Errorf("expected 0 findings (observation commit acked), got %+v", got)
 	}
 }
 
-// TestManualEditFindings_AckedDifferentEntity_DoesNotExempt — the
-// ack set is per-entity; an ack for M-0001 does not exempt M-0002.
-func TestManualEditFindings_AckedDifferentEntity_DoesNotExempt(t *testing.T) {
+// TestManualEditFindings_AckedDifferentObservation_DoesNotExempt —
+// the ack set is keyed by observation commit SHA; an ack for SHA-X
+// does not exempt observations with different SHAs.
+func TestManualEditFindings_AckedDifferentObservation_DoesNotExempt(t *testing.T) {
 	t.Parallel()
 	obs := []statusChange{
 		{
 			EntityID:   "M-0002",
 			EntityKind: entity.KindMilestone,
-			Commit:     "abc1234567890def",
+			Commit:     "different-sha-here",
 			Path:       "work/epics/E-0001-x/M-0002-x.md",
 			Prior:      entity.StatusDraft,
 			Next:       entity.StatusInProgress,
 			Trailers:   nil,
 		},
 	}
-	acked := map[string]bool{"M-0001": true} // wrong entity
-	got := manualEditFindings(obs, acked)
+	ackedObs := map[string]bool{"abc1234567890def": true} // wrong SHA
+	got := manualEditFindings(obs, ackedObs)
 	if len(got) != 1 {
-		t.Errorf("expected 1 finding (ack for different entity does not transfer), got %d: %+v", len(got), got)
+		t.Errorf("expected 1 finding (ack for different observation does not transfer), got %d: %+v", len(got), got)
 	}
 }
 
@@ -287,8 +280,11 @@ func TestManualEditFindings_MultipleObservations(t *testing.T) {
 			Next:       entity.StatusDone, // illegal → AC-2's territory, not AC-4
 		},
 	}
-	acked := map[string]bool{"M-0004": true}
-	got := manualEditFindings(obs, acked)
+	// Key by observation commit SHA, not entity ID (the predicate's
+	// new signature; entity-level + chrono filtering happens upstream
+	// in computeAckedObservations).
+	ackedObs := map[string]bool{"ddd1111122223333": true}
+	got := manualEditFindings(obs, ackedObs)
 	if len(got) != 2 {
 		t.Fatalf("expected 2 findings (M-0001 and M-0002; M-0003 verb-exempt, M-0004 ack-exempt, E-0001 illegal); got %d: %+v",
 			len(got), got)
@@ -557,16 +553,16 @@ func TestFSMHistoryConsistent_AuditOnlyDoesNotClearIllegalTransition(t *testing.
 // TestWalkAuditOnlyAckedEntities_PicksUpAcks pins the walker's
 // behavior end-to-end: a repo with one ack commit produces a non-empty
 // set; a repo with none produces an empty set; composite ids roll up.
-func TestWalkAuditOnlyAckedEntities_PicksUpAcks(t *testing.T) {
+func TestWalkAuditOnlyAcksByEntity_PicksUpAcks(t *testing.T) {
 	t.Parallel()
 
-	t.Run("no acks → empty set", func(t *testing.T) {
+	t.Run("no acks → empty map", func(t *testing.T) {
 		t.Parallel()
 		r := newRepoFixture(t)
 		r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
-		acked := walkAuditOnlyAckedEntities(context.Background(), r.root)
-		if len(acked) != 0 {
-			t.Errorf("expected empty ack set; got %+v", acked)
+		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		if len(acks) != 0 {
+			t.Errorf("expected empty ack map; got %+v", acks)
 		}
 	})
 
@@ -581,9 +577,28 @@ func TestWalkAuditOnlyAckedEntities_PicksUpAcks(t *testing.T) {
 				gitops.TrailerActor:     "human/peter",
 				gitops.TrailerAuditOnly: "test ack",
 			})
-		acked := walkAuditOnlyAckedEntities(context.Background(), r.root)
-		if !acked["G-0042"] {
-			t.Errorf("expected G-0042 in ack set; got %+v", acked)
+		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		if len(acks["G-0042"]) != 1 {
+			t.Errorf("expected G-0042 to have 1 ack; got %+v", acks)
+		}
+	})
+
+	t.Run("multiple acks for same entity all collected", func(t *testing.T) {
+		t.Parallel()
+		r := newRepoFixture(t)
+		r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
+		for i := 0; i < 3; i++ {
+			r.gitCommitWithTrailers("aiwf cancel G-0042 [audit-only]",
+				map[string]string{
+					gitops.TrailerVerb:      "cancel",
+					gitops.TrailerEntity:    "G-0042",
+					gitops.TrailerActor:     "human/peter",
+					gitops.TrailerAuditOnly: "test ack",
+				})
+		}
+		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		if len(acks["G-0042"]) != 3 {
+			t.Errorf("expected G-0042 to have 3 acks; got %+v", acks)
 		}
 	})
 
@@ -591,7 +606,7 @@ func TestWalkAuditOnlyAckedEntities_PicksUpAcks(t *testing.T) {
 		t.Parallel()
 		r := newRepoFixture(t)
 		r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
-		// Audit-only on M-0001/AC-1 should map to M-0001 in the ack set
+		// Audit-only on M-0001/AC-1 should map to M-0001 in the ack map
 		// (mirrors the existing RunUntrailedAudit's compositeRoot rollup).
 		r.gitCommitWithTrailers("aiwf promote M-0001/AC-1 met [audit-only]",
 			map[string]string{
@@ -600,9 +615,9 @@ func TestWalkAuditOnlyAckedEntities_PicksUpAcks(t *testing.T) {
 				gitops.TrailerActor:     "human/peter",
 				gitops.TrailerAuditOnly: "test ack",
 			})
-		acked := walkAuditOnlyAckedEntities(context.Background(), r.root)
-		if !acked["M-0001"] {
-			t.Errorf("expected M-0001 in ack set (composite rollup); got %+v", acked)
+		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		if len(acks["M-0001"]) != 1 {
+			t.Errorf("expected M-0001 to have 1 ack (composite rollup); got %+v", acks)
 		}
 	})
 
@@ -610,17 +625,124 @@ func TestWalkAuditOnlyAckedEntities_PicksUpAcks(t *testing.T) {
 		t.Parallel()
 		r := newRepoFixture(t)
 		r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
-		// Malformed: audit-only present, aiwf-entity absent. Should be ignored.
 		r.gitCommitWithTrailers("malformed audit-only commit",
 			map[string]string{
 				gitops.TrailerAuditOnly: "no entity trailer",
 				gitops.TrailerActor:     "human/peter",
 			})
-		acked := walkAuditOnlyAckedEntities(context.Background(), r.root)
-		if len(acked) != 0 {
-			t.Errorf("expected empty ack set (audit-only without aiwf-entity ignored); got %+v", acked)
+		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		if len(acks) != 0 {
+			t.Errorf("expected empty ack map (audit-only without aiwf-entity ignored); got %+v", acks)
 		}
 	})
+}
+
+// TestComputeAckedObservations_CherryPickedAckOnParallelBranch_DoesNotSuppress
+// is the load-bearing chrono-correctness test: an audit-only ack that
+// lives on a branch that does NOT include the offending commit must
+// NOT suppress the offence, even if the ack appears in HEAD's
+// reachable history via merge/cherry-pick.
+//
+// Setup:
+//   - main: add entity at draft.
+//   - branch-flip: hand-edit draft -> in_progress (the offence). NOT
+//     merged into main.
+//   - branch-ack: empty audit-only commit for the same entity. Merged
+//     into main.
+//
+// From main's perspective, the ack is reachable but the flip is not —
+// `git rev-list main` includes the ack but not the flip. From the
+// flip's perspective, the ack is NOT an ancestor (the ack's branch
+// never observed the flip). So computeAckedObservations should NOT
+// mark the flip as acked.
+//
+// Without chrono ordering, the entity-level "ack set contains
+// M-0001" would cause false suppression. With the per-pair ancestor
+// check, the cherry-pick scenario is correctly rejected.
+func TestComputeAckedObservations_CherryPickedAckOnParallelBranch_DoesNotSuppress(t *testing.T) {
+	t.Parallel()
+	r := newRepoFixture(t)
+	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
+	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDraft, "add milestone at draft")
+
+	// branch-flip: the offence. Never merged into main.
+	r.gitCheckoutBranch("branch-flip")
+	flipSHA := r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "hand-edit on branch-flip; no aiwf-verb")
+
+	// Back to main, then branch-ack from main.
+	r.gitCheckout("main")
+	r.gitCheckoutBranch("branch-ack")
+	r.gitCommitWithTrailers("aiwf promote M-0001 in_progress [audit-only]",
+		map[string]string{
+			gitops.TrailerVerb:      "promote",
+			gitops.TrailerEntity:    "M-0001",
+			gitops.TrailerActor:     "human/peter",
+			gitops.TrailerAuditOnly: "ack on a parallel branch that never saw the flip",
+		})
+
+	// Merge branch-ack into main. The flip remains unmerged.
+	r.gitCheckout("main")
+	r.gitMerge("branch-ack", "merge branch-ack into main")
+
+	// Now manually construct an observation that uses the flip SHA.
+	// (The walker against main wouldn't see it because the entity file
+	// on main is still at draft — but this test pins the chrono check
+	// directly, not the walker.)
+	observations := []statusChange{
+		{
+			EntityID:   "M-0001",
+			EntityKind: entity.KindMilestone,
+			Commit:     flipSHA,
+			Path:       canonicalEntityPath("M-0001", entity.KindMilestone),
+			Prior:      entity.StatusDraft,
+			Next:       entity.StatusInProgress,
+			Trailers:   nil,
+		},
+	}
+	acksByEntity := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+	if len(acksByEntity["M-0001"]) == 0 {
+		t.Fatal("test setup wrong: expected the ack to be in HEAD's reachable history")
+	}
+
+	ackedObs := computeAckedObservations(context.Background(), r.root, observations, acksByEntity)
+	if ackedObs[flipSHA] {
+		t.Errorf("flip on branch-flip is NOT an ancestor of the ack (which lives on branch-ack); chrono check should refuse to suppress; got ackedObs=%+v", ackedObs)
+	}
+}
+
+// TestComputeAckedObservations_AckIsDescendantOfFlip_Suppresses pins
+// the happy path: an ack commit that's a descendant of the flip
+// (the natural retrospective-acknowledgment direction) correctly
+// suppresses.
+func TestComputeAckedObservations_AckIsDescendantOfFlip_Suppresses(t *testing.T) {
+	t.Parallel()
+	r := newRepoFixture(t)
+	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add")
+	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDraft, "add milestone")
+	flipSHA := r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "hand-edit; no verb")
+	r.gitCommitWithTrailers("aiwf promote M-0001 in_progress [audit-only]",
+		map[string]string{
+			gitops.TrailerVerb:      "promote",
+			gitops.TrailerEntity:    "M-0001",
+			gitops.TrailerActor:     "human/peter",
+			gitops.TrailerAuditOnly: "retrospective ack",
+		})
+
+	observations := []statusChange{
+		{
+			EntityID:   "M-0001",
+			EntityKind: entity.KindMilestone,
+			Commit:     flipSHA,
+			Path:       canonicalEntityPath("M-0001", entity.KindMilestone),
+			Prior:      entity.StatusDraft,
+			Next:       entity.StatusInProgress,
+		},
+	}
+	acksByEntity := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+	ackedObs := computeAckedObservations(context.Background(), r.root, observations, acksByEntity)
+	if !ackedObs[flipSHA] {
+		t.Errorf("flip is an ancestor of the ack (linear history); chrono check should suppress; got ackedObs=%+v", ackedObs)
+	}
 }
 
 // TestFSMHistoryConsistent_ManualEdit_MergeIntegrationSilent pins

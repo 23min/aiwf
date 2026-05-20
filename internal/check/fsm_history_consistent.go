@@ -75,11 +75,12 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 		// (rare; usually permission issues or transient cancellation).
 		return nil
 	}
-	acked := walkAuditOnlyAckedEntities(ctx, root)
+	acksByEntity := walkAuditOnlyAcksByEntity(ctx, root)
+	ackedObs := computeAckedObservations(ctx, root, observations, acksByEntity)
 	var findings []Finding
 	findings = append(findings, illegalTransitionFindings(observations)...)
 	findings = append(findings, forcedUntraileredFindings(observations)...)
-	findings = append(findings, manualEditFindings(observations, acked)...)
+	findings = append(findings, manualEditFindings(observations, ackedObs)...)
 	return findings
 }
 
@@ -516,9 +517,9 @@ func shortHash(sha string) string {
 // manualEditFindings emits one fsm-history-consistent finding per
 // observation whose (Prior, Next) is FSM-legal, NOT a sovereign-act-
 // shape, whose commit lacks an aiwf-verb trailer, is not a merge,
-// and whose entity is not in the audit-only ack set (a separate later
-// commit in HEAD's reachable history that carries aiwf-audit-only +
-// aiwf-entity for this entity).
+// and whose commit is not ack-covered (per ackedObs: an audit-only
+// commit exists in HEAD's reachable history that is a descendant of
+// the offending commit AND carries aiwf-entity matching this entity).
 //
 // M-0130/AC-4 predicate per the spec body §3:
 //
@@ -560,16 +561,14 @@ func shortHash(sha string) string {
 // illegal-transition and forced-untrailered are unaffected (per D-0008,
 // audit-only doesn't claim FSM-legality or sovereign-discipline).
 //
-// Known simplification: the ack check is set membership ("any
-// audit-only commit for this entity exists in HEAD's reachable
-// history"), not chronological-order-aware. A cherry-picked audit-only
-// commit landing BEFORE the offending flip on some branch's
-// linearization is suppressed even though it formally shouldn't be.
-// In practice audit-only is always retrospective; the failure mode is
-// rare enough that YAGNI applies. If a real-world bug surfaces it, the
-// fix is to switch to chrono-index semantics matching
-// RunUntrailedAudit's auditAt map.
-func manualEditFindings(observations []statusChange, acked map[string]bool) []Finding {
+// Ack semantics are DAG-aware: an ack covers an observation only when
+// the ack commit is a descendant of the observation commit (the ack
+// genuinely came AFTER the flip in topology). A cherry-picked ack
+// landing on a branch that doesn't include the offence does NOT
+// suppress the finding. computeAckedObservations does the per-pair
+// ancestor check via cached `git rev-list <ack>` ancestor sets;
+// callers receive the ackedObs map and need only check membership.
+func manualEditFindings(observations []statusChange, ackedObs map[string]bool) []Finding {
 	var out []Finding
 	for i := range observations {
 		o := &observations[i]
@@ -585,7 +584,7 @@ func manualEditFindings(observations []statusChange, acked map[string]bool) []Fi
 		if _, hasVerb := o.Trailers[gitops.TrailerVerb]; hasVerb {
 			continue
 		}
-		if acked[entity.Canonicalize(compositeRoot(o.EntityID))] {
+		if ackedObs[o.Commit] {
 			continue
 		}
 		out = append(out, Finding{
@@ -604,22 +603,22 @@ func manualEditFindings(observations []statusChange, acked map[string]bool) []Fi
 	return out
 }
 
-// walkAuditOnlyAckedEntities walks every commit reachable from HEAD
-// and returns the set of entity IDs that have at least one
-// aiwf-audit-only acknowledgment commit. Returned IDs are canonicalized
-// with composite roots rolled up (e.g., `M-001/AC-1` rolls up to
-// `M-0001`) — same canonicalization the existing provenance audit
-// uses, so a manual flip of a top-level entity is cleared by an audit-
-// only commit that names the same entity or any of its composite
-// children.
+// walkAuditOnlyAcksByEntity walks every commit reachable from HEAD
+// and returns entity ID → list of ack commit SHAs (deduplicated). The
+// entity ID keys are canonicalized with composite roots rolled up
+// (`M-001/AC-1` rolls up to `M-0001`), mirroring the existing
+// provenance audit's compositeRoot+Canonicalize discipline.
 //
-// Used by manualEditFindings to suppress findings for entities the
-// operator has formally acknowledged via `aiwf <verb> --audit-only
-// --reason "..."` per D-0008.
+// computeAckedObservations consumes the per-entity ack lists and
+// performs the per-(obs, ack) ancestor check to produce the
+// observation-level ack set. Returning lists (not a flat set) lets the
+// consumer's ancestor cache amortize: each ack commit's ancestor set
+// is computed once and reused across every observation that might be
+// covered by it.
 //
-// Returns nil for non-git directories and empty histories; predicate
-// callers treat nil and empty as equivalent (no acks).
-func walkAuditOnlyAckedEntities(ctx context.Context, root string) map[string]bool {
+// Returns nil for non-git directories and empty histories; the
+// consumer treats nil and empty as equivalent (no acks).
+func walkAuditOnlyAcksByEntity(ctx context.Context, root string) map[string][]string {
 	if root == "" || !hasGitCommits(ctx, root) {
 		return nil
 	}
@@ -637,10 +636,14 @@ func walkAuditOnlyAckedEntities(ctx context.Context, root string) map[string]boo
 	}
 	parts := strings.Split(string(out), "\x00")
 	// parts layout: [SHA, trailers, SHA, trailers, …, possibly trailing
-	// chunk]. Odd indices are trailer blocks. Iterate i over the SHA
-	// indices and consult i+1 for trailers.
-	acked := make(map[string]bool)
+	// chunk]. Even indices are SHAs, odd are trailer blocks. The first
+	// SHA may have leading whitespace from git's inter-record newline.
+	acks := make(map[string][]string)
 	for i := 0; i+1 < len(parts); i += 2 {
+		sha := strings.TrimSpace(parts[i])
+		if sha == "" {
+			continue
+		}
 		parsed := gitops.ParseTrailers(parts[i+1])
 		var hasAuditOnly bool
 		var entID string
@@ -652,11 +655,82 @@ func walkAuditOnlyAckedEntities(ctx context.Context, root string) map[string]boo
 				entID = strings.TrimSpace(t.Value)
 			}
 		}
-		if hasAuditOnly && entID != "" {
-			acked[entity.Canonicalize(compositeRoot(entID))] = true
+		if !hasAuditOnly || entID == "" {
+			continue
+		}
+		canonID := entity.Canonicalize(compositeRoot(entID))
+		acks[canonID] = append(acks[canonID], sha)
+	}
+	return acks
+}
+
+// computeAckedObservations returns the set of observation commit SHAs
+// that are properly ack-covered: for the observation's entity, at
+// least one ack commit exists whose ancestor set includes the
+// observation's commit. "Ancestor of the ack" means the offending
+// commit is reachable from the ack — i.e., the ack came AFTER the
+// flip in DAG topology, the natural retrospective-acknowledgment
+// direction.
+//
+// Why the ancestor check matters: cherry-picking an ack onto a branch
+// that doesn't include the flip would, under naive set-membership
+// semantics, falsely suppress the finding. The ack is FOR a flip that
+// the ack's branch never observed; the ack's content is reused but
+// the topology says it doesn't cover anything on this branch. The
+// ancestor check pins the suppression to "the operator saw the flip
+// and acknowledged it" — i.e., the ack commit's history actually
+// contains the flip.
+//
+// Performance: each ack's ancestor set is computed once via
+// `git rev-list <ack-sha>`, then reused across every observation in
+// the same entity. For a tree with M acks and N observations, that's
+// M `git rev-list` calls + N×M map lookups. The rev-list per ack is
+// O(reachable-commits); for the kernel tree (~thousand commits, a
+// handful of acks) the overhead is well under a second.
+func computeAckedObservations(ctx context.Context, root string, observations []statusChange, acksByEntity map[string][]string) map[string]bool {
+	if len(acksByEntity) == 0 || len(observations) == 0 {
+		return nil
+	}
+	ancestorCache := make(map[string]map[string]bool)
+	ackedObs := make(map[string]bool)
+	for i := range observations {
+		o := &observations[i]
+		canonID := entity.Canonicalize(compositeRoot(o.EntityID))
+		acks := acksByEntity[canonID]
+		for _, ackSHA := range acks {
+			ancestors, cached := ancestorCache[ackSHA]
+			if !cached {
+				ancestors = revListAncestors(ctx, root, ackSHA)
+				ancestorCache[ackSHA] = ancestors
+			}
+			if ancestors[o.Commit] {
+				ackedObs[o.Commit] = true
+				break
+			}
 		}
 	}
-	return acked
+	return ackedObs
+}
+
+// revListAncestors returns the set of commit SHAs reachable from sha
+// (sha itself plus all of its ancestors), via `git rev-list <sha>`.
+// Returns nil on any read failure; callers treat nil as the empty set
+// (no ancestors → no suppression).
+func revListAncestors(ctx context.Context, root, sha string) map[string]bool {
+	cmd := exec.CommandContext(ctx, "git", "rev-list", sha)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	ancestors := make(map[string]bool)
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			ancestors[line] = true
+		}
+	}
+	return ancestors
 }
 
 // forcedUntraileredFindings emits one fsm-history-consistent finding
