@@ -280,50 +280,15 @@ func TestAiwfxWhiteboard_AC6_AntiPatterns(t *testing.T) {
 	}
 }
 
-// TestAiwfxWhiteboard_AC7_SkillCoveragePolicyEquivalent asserts
-// AC-7: the skill conforms to the same invariants the kernel's
-// PolicySkillCoverageMatchesVerbs (M-074) enforces for embedded
-// skills. The kernel policy walks `internal/skills/embedded/`
-// only — it does not walk plugin paths today — so this test
-// applies the equivalent invariants directly to the fixture.
-//
-// This is the AC-7 "plugin equivalent" path the spec sanctions
-// when M-074's policy is kernel-only. The follow-up gap to expand
-// the kernel policy to plugin skills is captured under the
-// milestone's *Deferrals* section.
-func TestAiwfxWhiteboard_AC7_SkillCoveragePolicyEquivalent(t *testing.T) {
-	t.Parallel()
-	body := loadAiwfxWhiteboardFixture(t)
-
-	// Frontmatter shape: name matches dir, description non-empty,
-	// name follows aiwfx-<topic> convention.
-	name := frontmatterField(body, "name")
-	if name != "aiwfx-whiteboard" {
-		t.Errorf("AC-7: skill name must equal dir basename `aiwfx-whiteboard` (got %q)", name)
-	}
-	if !strings.HasPrefix(name, "aiwfx-") {
-		t.Errorf("AC-7: skill name %q must follow aiwfx-<topic> convention", name)
-	}
-	if frontmatterField(body, "description") == "" {
-		t.Error("AC-7: description must be non-empty")
-	}
-
-	// No-verb-invention: every backticked `aiwf <verb>` mention in
-	// the body resolves to a real top-level Cobra verb. This is
-	// the load-bearing AC-7 assertion — it catches the same
-	// failure mode that would have fired G-061's repro on a
-	// kernel-side skill.
-	verbs, err := findTopLevelVerbs(repoRoot(t))
-	if err != nil {
-		t.Fatalf("findTopLevelVerbs: %v", err)
-	}
-	mentions := backtickedAiwfMentions(body)
-	for _, m := range mentions {
-		if _, ok := verbs[m.verb]; !ok {
-			t.Errorf("AC-7: skill body mentions `aiwf %s` but no such top-level verb is registered", m.verb)
-		}
-	}
-}
+// AC-7's per-aiwfx-skill equivalent-invariants test was removed
+// when G-0088 lifted skill-coverage invariants into the kernel
+// policy itself. PolicySkillCoverageMatchesVerbs now walks both
+// internal/skills/embedded/aiwf-*/ and
+// internal/policies/testdata/aiwfx-*/, applying the same
+// frontmatter + body-mention invariants to both. The aiwfx-
+// whiteboard fixture is therefore covered by the live policy run
+// in TestPolicy_SkillCoverageMatchesVerbs — no per-fixture
+// duplicate needed.
 
 // TestAiwfxWhiteboard_AC8_MaterialisationDriftCheck asserts AC-8:
 // the skill is materialised by the marketplace install (the
