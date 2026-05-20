@@ -16,9 +16,10 @@ import (
 // (added with the v0.2.0 HTML render), aiwf-edit-body (added in
 // M-058 of E-15), aiwf-retitle (added in M-077 of E-22 for the
 // title-mutation verb that closes G-065), aiwf-list (added in
-// M-073 of E-20 for the planning-tree filter primitive), and
+// M-073 of E-20 for the planning-tree filter primitive),
 // aiwf-archive (added in M-0088 of E-0024 for the uniform archive
-// convention per ADR-0004).
+// convention per ADR-0004), and aiwf-show (added via G-0087 patch
+// — closes the last "deferred" skill-coverage allowlist entry).
 func TestList_AllShippedSkillsPresent(t *testing.T) {
 	t.Parallel()
 	skills, err := List()
@@ -29,7 +30,7 @@ func TestList_AllShippedSkillsPresent(t *testing.T) {
 	for i, s := range skills {
 		got[i] = s.Name
 	}
-	want := []string{"aiwf-add", "aiwf-archive", "aiwf-authorize", "aiwf-check", "aiwf-contract", "aiwf-edit-body", "aiwf-history", "aiwf-list", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-render", "aiwf-retitle", "aiwf-status"}
+	want := []string{"aiwf-add", "aiwf-archive", "aiwf-authorize", "aiwf-check", "aiwf-contract", "aiwf-edit-body", "aiwf-history", "aiwf-list", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-render", "aiwf-retitle", "aiwf-show", "aiwf-status"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d skills, want %d (%v vs %v)", len(got), len(want), got, want)
 	}
