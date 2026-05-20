@@ -28,6 +28,15 @@ var idPrefix = map[Kind]string{
 	KindContract:  "C-",
 }
 
+// IDPrefix returns the literal id prefix for kind k ("E-", "M-",
+// "ADR-", etc.). Returns "" for unknown kinds. The mapping is the
+// kernel's single source of truth for id-prefix lookup; consumers
+// that need to construct or match ids of a given kind call this
+// rather than re-hardcoding the prefix strings.
+func IDPrefix(k Kind) string {
+	return idPrefix[k]
+}
+
 // AllocateID picks the next free id for the kind, scanning the union
 // of (a) entities — the caller's working tree — and (b) trunkIDs —
 // id strings already present in the configured trunk ref's tree.

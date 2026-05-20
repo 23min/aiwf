@@ -17,7 +17,7 @@ Behavior matches across `--diff main` and `--diff origin/main`, ruling out a mis
 
 CLAUDE.md §"Beyond line coverage" prescribes mutation testing "before tagging a release or after a substantive test-suite change." When a milestone adds new logic to a large package, scoping the mutation run to the milestone's diff is the natural way to keep the run fast and the survivor triage relevant. With `--diff` broken for new files, the operator either runs the full package (slow, noisy triage) or skips mutation testing entirely (loses the evidence).
 
-The M-0097 self-review fell back to **manual mutation analysis** on the three affected files (`internal/check/epic_active_drafts.go`, `internal/verb/promote_sovereign_epic_active.go`, `internal/policies/aiwf_promote_epic_active_audit.go`). Each branch was walked against the existing AC tests and found to be KILLED by at least one named test. Documented in M-0097's *Validation* section. This is acceptable evidence for the milestone but does not scale — operators need a working diff-scoped mutation run for future milestones.
+The M-0097 self-review fell back to **manual mutation analysis** on the three affected files (`internal/check/epic_active_drafts.go`, `internal/verb/promote_sovereign_epic_active.go` — renamed to `promote_sovereign_act.go` per M-0130's kernel-property consolidation, `internal/policies/aiwf_promote_epic_active_audit.go`). Each branch was walked against the existing AC tests and found to be KILLED by at least one named test. Documented in M-0097's *Validation* section. This is acceptable evidence for the milestone but does not scale — operators need a working diff-scoped mutation run for future milestones.
 
 ## Resolution paths
 
