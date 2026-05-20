@@ -315,10 +315,14 @@ func TestFSMHistoryConsistent_IllegalOnBranchPlusMergeFiresOnlyOnOriginal_PerD00
 // is the load-bearing positive test for D-0010: a normal feature-
 // branch workflow (add at draft on main → branch off → progress
 // through legal FSM steps on the branch → merge back to main)
-// emits zero illegal-transition findings, even though main's pre-
+// emits zero findings across AC-2/3/4, even though main's pre-
 // merge view of the entity differs from the merge result. This
 // pattern is the source of the 44 false positives D-0009 produced
 // on aiwf's own repo.
+//
+// The branch's promote commits carry the aiwf-verb trailer so
+// AC-4's manual-edit predicate doesn't fire (a verb-mediated
+// commit by definition signals the kernel was not bypassed).
 func TestFSMHistoryConsistent_LegalFeatureBranchMergeNoFire_PerD0010(t *testing.T) {
 	t.Parallel()
 	r := newRepoFixture(t)
@@ -327,10 +331,16 @@ func TestFSMHistoryConsistent_LegalFeatureBranchMergeNoFire_PerD0010(t *testing.
 	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
 	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDraft, "add milestone at draft on main")
 
-	// Branch off, progress legally on the branch.
+	// Branch off, progress legally on the branch. Verb trailers
+	// pin the kernel-routed provenance so AC-4 (manual-edit) stays
+	// silent.
 	r.gitCheckoutBranch("feature-branch")
-	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "promote draft -> in_progress on branch")
-	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDone, "promote in_progress -> done on branch")
+	r.commitEntityWithTrailers("M-0001", entity.KindMilestone, entity.StatusInProgress,
+		"aiwf promote M-0001 draft -> in_progress on branch",
+		map[string]string{gitops.TrailerVerb: "promote", gitops.TrailerActor: "human/peter"})
+	r.commitEntityWithTrailers("M-0001", entity.KindMilestone, entity.StatusDone,
+		"aiwf promote M-0001 in_progress -> done on branch",
+		map[string]string{gitops.TrailerVerb: "promote", gitops.TrailerActor: "human/peter"})
 
 	// Merge back to main.
 	r.gitCheckout("main")
@@ -338,8 +348,8 @@ func TestFSMHistoryConsistent_LegalFeatureBranchMergeNoFire_PerD0010(t *testing.
 
 	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
 	// D-0010: every per-commit observation on the branch is legal
-	// (draft -> in_progress, in_progress -> done); the merge
-	// integration is skipped. Total: 0 findings.
+	// (draft -> in_progress, in_progress -> done) with aiwf-verb
+	// trailers; the merge integration is skipped. Total: 0 findings.
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings on routine legal feature-branch merge; got %d: %+v", len(got), got)
 	}
@@ -365,12 +375,14 @@ func TestFSMHistoryConsistent_MergeResolvingToLegalNoFire(t *testing.T) {
 	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
 	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDraft, "add milestone")
 	r.gitCheckoutBranch("branch-good")
-	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "promote draft -> in_progress (legal, non-sovereign)")
+	r.commitEntityWithTrailers("M-0001", entity.KindMilestone, entity.StatusInProgress,
+		"aiwf promote M-0001 draft -> in_progress (legal, non-sovereign)",
+		map[string]string{gitops.TrailerVerb: "promote", gitops.TrailerActor: "human/peter"})
 	r.gitCheckout("main")
 	r.gitMerge("branch-good", "merge branch-good into main")
 
 	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
 	if len(got) != 0 {
-		t.Errorf("expected 0 findings (legal non-sovereign transition, integrated via merge); got %d: %+v", len(got), got)
+		t.Errorf("expected 0 findings (legal non-sovereign transition with verb trailer, integrated via merge); got %d: %+v", len(got), got)
 	}
 }

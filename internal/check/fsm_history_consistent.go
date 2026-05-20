@@ -75,11 +75,11 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 		// (rare; usually permission issues or transient cancellation).
 		return nil
 	}
+	acked := walkAuditOnlyAckedEntities(ctx, root)
 	var findings []Finding
 	findings = append(findings, illegalTransitionFindings(observations)...)
 	findings = append(findings, forcedUntraileredFindings(observations)...)
-	// AC-4 will append manualEditFindings (skipping merges + audit-
-	// only suppression per D-0008).
+	findings = append(findings, manualEditFindings(observations, acked)...)
 	return findings
 }
 
@@ -511,6 +511,152 @@ func shortHash(sha string) string {
 		return sha[:8]
 	}
 	return sha
+}
+
+// manualEditFindings emits one fsm-history-consistent finding per
+// observation whose (Prior, Next) is FSM-legal, NOT a sovereign-act-
+// shape, whose commit lacks an aiwf-verb trailer, is not a merge,
+// and whose entity is not in the audit-only ack set (a separate later
+// commit in HEAD's reachable history that carries aiwf-audit-only +
+// aiwf-entity for this entity).
+//
+// M-0130/AC-4 predicate per the spec body §3:
+//
+//	"Subcode manual-edit — change has no aiwf-verb: trailer at all
+//	 (overlaps with provenance-untrailered-entity-commit but with FSM-
+//	 specific framing)"
+//
+// The predicate is the catch-all of D-0008's disjoint partition:
+//
+//   - AC-2 owns FSM-illegal transitions.
+//   - AC-3 owns FSM-legal sovereign-act-shape transitions.
+//   - AC-4 owns FSM-legal non-sovereign-act-shape transitions where
+//     the kernel was bypassed.
+//
+// The three subcodes partition the legal-status-change observation
+// space; each observation triggers at most one subcode by construction.
+//
+// Per D-0010 (supersedes D-0009), the predicate SKIPS merge-commit
+// observations. Rationale carries over from AC-2/AC-3: merges produce
+// per-parent integration noise that doesn't represent a real edit; a
+// non-aiwf-verb manual edit will be caught at the original commit by
+// the non-merge per-parent edge.
+//
+// Severity is WARNING, aligned with the parallel
+// provenance-untrailered-entity-commit rule that surfaces the same
+// shape from the provenance side. The intended user response is the
+// audit-only backfill (`aiwf <verb> --audit-only --reason "..."`),
+// which records a separate commit acknowledging the manual flip
+// without rewriting history. ERROR severity would block pushes for
+// state that is already correct on disk; warning gives the operator
+// space to backfill the trail.
+//
+// Audit-only suppression per D-0008 + the parallel rule's cooperation
+// pattern: the audit-only commit lives on a SEPARATE, later commit (an
+// empty commit carrying aiwf-audit-only + aiwf-entity), not on the
+// offending status-change commit itself. walkAuditOnlyAckedEntities
+// pre-collects the per-entity ack set; the predicate consults it via
+// the acked map. The suppression is scoped strictly to manual-edit;
+// illegal-transition and forced-untrailered are unaffected (per D-0008,
+// audit-only doesn't claim FSM-legality or sovereign-discipline).
+//
+// Known simplification: the ack check is set membership ("any
+// audit-only commit for this entity exists in HEAD's reachable
+// history"), not chronological-order-aware. A cherry-picked audit-only
+// commit landing BEFORE the offending flip on some branch's
+// linearization is suppressed even though it formally shouldn't be.
+// In practice audit-only is always retrospective; the failure mode is
+// rare enough that YAGNI applies. If a real-world bug surfaces it, the
+// fix is to switch to chrono-index semantics matching
+// RunUntrailedAudit's auditAt map.
+func manualEditFindings(observations []statusChange, acked map[string]bool) []Finding {
+	var out []Finding
+	for i := range observations {
+		o := &observations[i]
+		if o.IsMergeCommit {
+			continue
+		}
+		if !isLegalTransition(o.EntityKind, o.Prior, o.Next) {
+			continue
+		}
+		if entity.IsSovereignActShape(o.EntityKind, o.Prior, o.Next) {
+			continue
+		}
+		if _, hasVerb := o.Trailers[gitops.TrailerVerb]; hasVerb {
+			continue
+		}
+		if acked[entity.Canonicalize(compositeRoot(o.EntityID))] {
+			continue
+		}
+		out = append(out, Finding{
+			Code:     "fsm-history-consistent",
+			Subcode:  "manual-edit",
+			Severity: SeverityWarning,
+			Message: "entity " + o.EntityID + " status changed " + o.Prior + " → " + o.Next +
+				" in commit " + shortHash(o.Commit) +
+				" — legal " + string(o.EntityKind) +
+				" FSM transition but commit has no aiwf-verb trailer (kernel bypassed)",
+			Path:     o.Path,
+			EntityID: o.EntityID,
+			Field:    "status",
+		})
+	}
+	return out
+}
+
+// walkAuditOnlyAckedEntities walks every commit reachable from HEAD
+// and returns the set of entity IDs that have at least one
+// aiwf-audit-only acknowledgment commit. Returned IDs are canonicalized
+// with composite roots rolled up (e.g., `M-001/AC-1` rolls up to
+// `M-0001`) — same canonicalization the existing provenance audit
+// uses, so a manual flip of a top-level entity is cleared by an audit-
+// only commit that names the same entity or any of its composite
+// children.
+//
+// Used by manualEditFindings to suppress findings for entities the
+// operator has formally acknowledged via `aiwf <verb> --audit-only
+// --reason "..."` per D-0008.
+//
+// Returns nil for non-git directories and empty histories; predicate
+// callers treat nil and empty as equivalent (no acks).
+func walkAuditOnlyAckedEntities(ctx context.Context, root string) map[string]bool {
+	if root == "" || !hasGitCommits(ctx, root) {
+		return nil
+	}
+	// %x00 between fields keeps trailer blocks (which contain newlines)
+	// distinguishable from the SHA boundary. The trailing %x00 closes
+	// the last commit's trailer block so the parser doesn't drift into
+	// the next SHA.
+	cmd := exec.CommandContext(ctx, "git", "log",
+		"--pretty=format:%H%x00%(trailers:unfold=true)%x00",
+		"HEAD")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	parts := strings.Split(string(out), "\x00")
+	// parts layout: [SHA, trailers, SHA, trailers, …, possibly trailing
+	// chunk]. Odd indices are trailer blocks. Iterate i over the SHA
+	// indices and consult i+1 for trailers.
+	acked := make(map[string]bool)
+	for i := 0; i+1 < len(parts); i += 2 {
+		parsed := gitops.ParseTrailers(parts[i+1])
+		var hasAuditOnly bool
+		var entID string
+		for _, t := range parsed {
+			switch t.Key {
+			case gitops.TrailerAuditOnly:
+				hasAuditOnly = true
+			case gitops.TrailerEntity:
+				entID = strings.TrimSpace(t.Value)
+			}
+		}
+		if hasAuditOnly && entID != "" {
+			acked[entity.Canonicalize(compositeRoot(entID))] = true
+		}
+	}
+	return acked
 }
 
 // forcedUntraileredFindings emits one fsm-history-consistent finding
