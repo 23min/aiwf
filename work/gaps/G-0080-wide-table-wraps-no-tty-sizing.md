@@ -1,8 +1,11 @@
 ---
 id: G-0080
 title: Wide-table verbs wrap mid-row; no TTY-aware sizing or truncation
-status: open
+status: addressed
 discovered_in: M-0076
+addressed_by_commit:
+    - "774090e1"
+    - 02c349f6
 ---
 ## Problem (historical, 2026-05-08)
 
