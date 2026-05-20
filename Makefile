@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install test test-race lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
+.PHONY: help build install diag-aiwf test test-race lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
@@ -17,6 +17,7 @@ help:
 	@echo "Targets:"
 	@echo "  build     - build the aiwf binary into ./bin/ (with embedded version)"
 	@echo "  install   - go install the aiwf binary into \$$GOBIN (with embedded version)"
+	@echo "  diag-aiwf - build a worktree-scoped binary at ./bin/aiwf-diag and print its absolute path (G-0147)"
 	@echo "  test      - run unit tests"
 	@echo "  test-race - run unit tests with -race"
 	@echo "  lint      - run golangci-lint"
@@ -37,6 +38,17 @@ build:
 
 install:
 	CGO_ENABLED=0 go install -ldflags "$(LDFLAGS)" ./cmd/aiwf
+
+# Build a worktree-scoped aiwf binary at ./bin/aiwf-diag and print its
+# absolute path. The convention (per CLAUDE.md *Worktree binary discipline*):
+# when diagnosing aiwf behavior against the current worktree source, run
+# `make diag-aiwf` and invoke the printed path. Avoids the silent-stale
+# PATH-binary trap that prompted G-0147.
+diag-aiwf:
+	@mkdir -p bin
+	@CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/aiwf-diag ./cmd/aiwf
+	@echo "Built: $(CURDIR)/bin/aiwf-diag"
+	@echo "Invoke as: $(CURDIR)/bin/aiwf-diag <verb> [args...]"
 
 test:
 	go test -exec=$(TEST_EXEC) -parallel 8 ./...

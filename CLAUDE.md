@@ -155,18 +155,21 @@ This is the session-layer guard (tier 3, partial-closes G-0099). The full kernel
 
 When you work in a git worktree on a branch with uncommitted or unmerged code changes that affect `aiwf`'s own behavior — kernel-rule milestones, check additions, verb-gate changes, FSM extensions — the `aiwf` binary on PATH (typically `/go/bin/aiwf` from a prior `go install`) was built from some earlier state. Invoking `aiwf check`, `aiwf doctor`, or any other verb against the worktree using that binary produces results computed from stale code: false positives, false negatives, or both, and the output looks authoritative either way.
 
-The discipline: when diagnosing `aiwf` behavior against your current worktree source, **build a worktree-scoped binary explicitly and invoke it by path**. Do not rely on PATH.
+The discipline: when diagnosing `aiwf` behavior against your current worktree source, **build a worktree-scoped binary explicitly and invoke it by path**. Do not rely on PATH. Use `make diag-aiwf` — it builds `./bin/aiwf-diag` from the current worktree source and prints its absolute path:
 
 ```bash
-go build -o ./bin/aiwf-diag ./cmd/aiwf
-./bin/aiwf-diag check        # or any other verb
+$ make diag-aiwf
+Built: /workspaces/aiwf/bin/aiwf-diag
+Invoke as: /workspaces/aiwf/bin/aiwf-diag <verb> [args...]
 ```
 
-For AI assistant sessions running in `$CLAUDE_JOB_DIR`, the session's job dir is the natural home for the diag binary: `go build -o "$CLAUDE_JOB_DIR/aiwf" ./cmd/aiwf`, then invoke `"$CLAUDE_JOB_DIR/aiwf"` explicitly throughout the session. Rebuild after any commit that touches packages the diagnosis depends on (typically `internal/check/`, `internal/entity/`, `internal/cli/`, or `internal/verb/`).
+Then invoke the printed path explicitly throughout the session (`/workspaces/aiwf/bin/aiwf-diag check`, etc.). Rebuild after any commit that touches packages the diagnosis depends on (typically `internal/check/`, `internal/entity/`, `internal/cli/`, or `internal/verb/`) by re-running `make diag-aiwf`.
 
-This is operator discipline today — there is no mechanical chokepoint that forces explicit-path invocations or blocks stale-PATH `aiwf` calls in a worktree. The bug pattern is fully general: worktree branch A has code X; PATH `aiwf` was built from code Y at some prior time; the operator runs `aiwf check` thinking they're testing X and gets results computed against Y. The mismatch is silent.
+For AI assistant sessions running in `$CLAUDE_JOB_DIR`, the session's job dir is an equally good home for the diag binary if the per-session sandbox is preferred: `go build -o "$CLAUDE_JOB_DIR/aiwf" ./cmd/aiwf`, then invoke `"$CLAUDE_JOB_DIR/aiwf"` explicitly.
 
-Tracked under [G-0147](work/gaps/G-0147-worktree-aiwf-binary-discipline-lacks-a-mechanical-chokepoint.md) — recommended mechanical next step is a `make diag-aiwf` target that builds the worktree-scoped binary and prints its absolute path, so the convention becomes "for diagnostic work against uncommitted source, run `make diag-aiwf` and use the printed path."
+This is operator discipline — the `make diag-aiwf` target is the recommended convention but nothing mechanically blocks a stale-PATH `aiwf` call in a worktree. The bug pattern is fully general: worktree branch A has code X; PATH `aiwf` was built from code Y at some prior time; the operator runs `aiwf check` thinking they're testing X and gets results computed against Y. The mismatch is silent. The chokepoint is the named target, not a hook — operators have to reach for it deliberately when working against uncommitted kernel source.
+
+History: G-0147 introduced the `make diag-aiwf` target as the recommended chokepoint.
 
 ---
 
