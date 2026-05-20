@@ -107,6 +107,25 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 		lines = append(lines, "latest:    "+renderLatestPublished(current))
 	}
 
+	// env: line — informational, never increments problems. M-0135/AC-1.
+	inContainer, envLabel := InContainer()
+	lines = append(lines, fmt.Sprintf("env:       %s", envLabel))
+
+	// plugin-index-mount: line — gated on in-container, never
+	// increments problems. M-0135/AC-2.
+	if inContainer {
+		if home, homeErr := os.UserHomeDir(); homeErr != nil {
+			lines = append(lines, renderMountLine(mountStateError, 0, homeErr.Error()))
+		} else {
+			state, count, mountErr := shadowMountStatus(home)
+			if mountErr != nil {
+				lines = append(lines, renderMountLine(mountStateError, 0, mountErr.Error()))
+			} else {
+				lines = append(lines, renderMountLine(state, count, ""))
+			}
+		}
+	}
+
 	cfg, err := config.Load(rootDir)
 	switch {
 	case errors.Is(err, config.ErrNotFound):
