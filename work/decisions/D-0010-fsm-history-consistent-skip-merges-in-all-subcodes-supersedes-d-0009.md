@@ -1,7 +1,7 @@
 ---
 id: D-0010
 title: 'fsm-history-consistent: skip merges in all subcodes (supersedes D-0009)'
-status: proposed
+status: accepted
 relates_to:
     - D-0009
 ---
