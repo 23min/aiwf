@@ -23,7 +23,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: verb name + --reason auto-completion wired
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: skill coverage per ADR-0006
