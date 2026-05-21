@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: internal/gitops/ bulk-revwalk helper streams (commit, parent, paths, trailers)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: internal/gitops/ cat-file --batch content-reader pump
       status: open
