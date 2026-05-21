@@ -408,10 +408,37 @@ func walkAcknowledgedSHAs(ctx context.Context, root string) map[string]bool {
 			if sha == "" {
 				continue
 			}
-			acked[sha] = true
+			// Expand short SHAs to full SHAs so map lookups against
+			// observation.Commit (always 40 hex) match. `git rev-parse
+			// --verify <sha>` returns the canonical 40-char form; if
+			// the lookup fails (acknowledgment targets a SHA not in
+			// the local object database), the entry is dropped — the
+			// predicate then falls through and fires normally, which
+			// is the safe behavior.
+			fullSHA := resolveFullSHA(ctx, root, sha)
+			if fullSHA == "" {
+				continue
+			}
+			acked[fullSHA] = true
 		}
 	}
 	return acked
+}
+
+// resolveFullSHA expands a short SHA (7-39 hex) to its full 40-char
+// form via `git rev-parse --verify <sha>`. Returns the input unchanged
+// when already 40 chars; returns "" when git can't resolve the SHA.
+func resolveFullSHA(ctx context.Context, root, sha string) string {
+	if len(sha) == 40 {
+		return sha
+	}
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", sha+"^{commit}")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 // isLegalTransition reports whether (prior → next) is an edge in
