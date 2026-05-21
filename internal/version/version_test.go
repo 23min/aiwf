@@ -112,6 +112,58 @@ func TestCompare(t *testing.T) {
 	}
 }
 
+func TestPseudoBase(t *testing.T) {
+	t.Parallel()
+	// Inputs sourced from the Go module spec — see
+	// https://go.dev/ref/mod#pseudo-versions for the three
+	// pseudo-version forms and the +dirty VCS-stamping suffix.
+	// Per CLAUDE.md "Spec-sourced inputs": the table covers the full
+	// enumerated space, not just one example per form.
+	cases := []struct {
+		name     string
+		in       string
+		wantBase string
+		wantOK   bool
+	}{
+		// Form 1: no parent tag — base is the v0.0.0 placeholder.
+		{"form1 basic", "v0.0.0-20260503120000-abcdef123456", "v0.0.0", true},
+
+		// Form 2: commits after vX.Y.Z — base is vX.Y.(Z+1).
+		{"form2 post-v0.8.0", "v0.8.1-0.20260516161658-02c349f629d7", "v0.8.1", true},
+		{"form2 post-v1.2.3", "v1.2.4-0.20060102150405-abcdef123456", "v1.2.4", true},
+
+		// Form 3: between vX.Y.Z-pre and vX.Y.Z — base is vX.Y.Z-pre.
+		{"form3 single-segment pre", "v0.1.0-pre.0.20060102150405-abcdef123456", "v0.1.0-pre", true},
+		{"form3 multi-segment pre", "v1.0.0-rc.1.0.20060102150405-abcdef123456", "v1.0.0-rc.1", true},
+
+		// Tagged-clean values are not pseudo-versions.
+		{"clean tag patch", "v0.1.0", "", false},
+		{"clean tag prerelease", "v0.1.0-rc1", "", false},
+		{"clean tag build", "v0.1.0+build.5", "", false},
+
+		// Non-version strings.
+		{"devel sentinel", "(devel)", "", false},
+		{"empty", "", "", false},
+		{"branch name", "main", "", false},
+
+		// +dirty suffix breaks the trailing-SHA shape, so PseudoBase
+		// rejects it. A +dirty binary is by definition not a pseudo-
+		// version of any committed state.
+		{"dirty form1", "v0.0.0-20260503120000-abcdef123456+dirty", "", false},
+		{"dirty form2", "v0.8.1-0.20260516161658-02c349f629d7+dirty", "", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			gotBase, gotOK := PseudoBase(tc.in)
+			if gotBase != tc.wantBase || gotOK != tc.wantOK {
+				t.Errorf("PseudoBase(%q) = (%q, %v), want (%q, %v)",
+					tc.in, gotBase, gotOK, tc.wantBase, tc.wantOK)
+			}
+		})
+	}
+}
+
 func TestSkewString(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
