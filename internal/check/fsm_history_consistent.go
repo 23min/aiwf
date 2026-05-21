@@ -97,7 +97,7 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 			Field:    "status",
 		}}
 	}
-	defer br.Close()
+	defer func() { _ = br.Close() }()
 	return fsmHistoryConsistentWithDeps(ctx, root, t, br)
 }
 
@@ -236,7 +236,7 @@ func walkStatusChanges(ctx context.Context, root string, t *tree.Tree) ([]status
 	if err != nil {
 		return nil, err
 	}
-	defer br.Close()
+	defer func() { _ = br.Close() }()
 	observations, _, fatalErr := batchedWalkStatusChanges(ctx, root, t, br)
 	return observations, fatalErr
 }

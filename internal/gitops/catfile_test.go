@@ -1,6 +1,7 @@
 package gitops_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -165,8 +166,8 @@ func TestBlobReader_PostCloseReadFails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBlobReader: %v", err)
 	}
-	if err := br.Close(); err != nil {
-		t.Fatalf("Close: %v", err)
+	if closeErr := br.Close(); closeErr != nil {
+		t.Fatalf("Close: %v", closeErr)
 	}
 
 	_, err = br.Read(head, "alpha.md")
@@ -229,7 +230,7 @@ func TestBlobReader_BinaryBlobContentPreserved(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
-	if string(got) != string(payload) {
+	if !bytes.Equal(got, payload) {
 		t.Errorf("blob content roundtrip mismatch:\n got %q\nwant %q", string(got), string(payload))
 	}
 }
