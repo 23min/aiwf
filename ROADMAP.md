@@ -384,6 +384,7 @@ This epic replaces the cancelled E-0031, whose first attempt produced a prose ca
 | M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant | done |
 | M-0131 | State-aware CancelTarget for Contract: cancel deprecated targets retired | draft |
 | M-0136 | aiwf acknowledge-illegal: retroactive force trailer for historical violations | draft |
+| M-0137 | fsm-history-consistent: batched git ops + silent-swallow fix | done |
 
 ## E-0034 — Retire docs/pocv3/ and declare doc-authority hierarchy (proposed)
 
