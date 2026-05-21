@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Walker continues past per-entity errors; partial findings preserved
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: 'Negative test: per-entity walk failure surfaces history-walk-error'
       status: open
