@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: skill coverage per ADR-0006
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## What this milestone delivers
 
