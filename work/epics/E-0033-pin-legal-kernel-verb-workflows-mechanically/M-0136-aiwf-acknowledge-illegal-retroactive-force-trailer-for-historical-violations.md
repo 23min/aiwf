@@ -133,3 +133,34 @@ Per the spec's wrap-time instruction, ran `aiwf acknowledge-illegal f4ea7329 --a
 
 `aiwf check` post-acknowledgment: **24 findings (0 errors, 24 warnings)** — down from 28 / 4 errors / 24 warnings. The 24 warnings (acs-tdd-audit on legacy M-0120-style ACs, entity-body-empty on M-0102's stub ACs, fsm-history-consistent's `manual-edit` subcode on G-0061's pre-rule trailer-less status flip, provenance-untrailered-scope-undefined) are all pre-existing and unrelated to M-0136. The pre-push hook no longer blocks on the historical errors.
 
+## Decisions made during implementation
+
+No formal ADRs / `D-NNNN` entities required — the design space was tightly bounded by the spec's existing sketch + the M-0150 design conversation already captured the "why not aiwf.yaml" tradeoff. Informal design choices recorded inline in the code + comments:
+
+- **One-way operation by deliberate design** (CLAUDE.md §"Designing a new verb" — "What verb undoes this?"). There is no companion `aiwf un-acknowledge-illegal`. If an operator regrets an acknowledgment they rewrite history (destructive, hostile to shared trunks), add a counter-acknowledgment via a future verb (not designed), or live with it. The skill body says so explicitly so AI assistants reading it don't try to invent a reversal path.
+- **Per-SHA exemption, not per-entity** (M-0136/AC-2). One acknowledgment clears every entity affected by the historical SHA. Picked because the offending commit is the natural identifier — `f4ea7329` touches 4 entities, not because of any per-entity property, but because the squash-merge collapsed them simultaneously. Per-entity scoping would require N acknowledgments for N entities; per-SHA scoping is one.
+- **DAG-scoped walk (HEAD-reachable, not --all).** `walkAcknowledgedSHAs` walks HEAD's reachable history rather than all refs. A cherry-picked acknowledgment on a branch that doesn't include the original violation must not exempt findings on this branch — the exemption only honors acknowledgments whose history actually contains the offending commit. Mirrors the M-0130 `walkAuditOnlyAcksByEntity` pattern.
+- **Short-SHA expansion at exemption-set-construction time.** `aiwf acknowledge-illegal f4ea7329` records the short form (human-readable). `walkAcknowledgedSHAs` calls `git rev-parse --verify <sha>^{commit}` to canonicalize to 40 hex so map lookups against `observation.Commit` match. Surfaced during the kernel-repo housekeeping self-review (the verb landed cleanly but the predicate didn't match until expansion was added; commit `ea93f82d`).
+- **`TrailerForceFor` joins `TrailerScope` + `TrailerAuditOnly`** as a third recognized marker for intentionally-empty verb commits. `PolicyEmptyDiffCommitsCarryMarker` extended in lockstep so the new verb's `AllowEmpty: true` doesn't trigger the empty-commit-no-marker guard.
+- **Non-FSM verb** — acknowledge-illegal operates on the rule's finding stream, not on entity FSM state. Allowlisted in `nonLegalityVerbAllowlist` (M-0123/AC-5) with a one-line rationale.
+
+## Validation
+
+- **Test suite:** `make test-race` green across all packages (last run on the wrap-ready commit). 6 new tests: 3 in `internal/verb/acknowledgeillegal_test.go` (CommitShape + RequiresReason × 3 + RequiresHumanActor × 4 + AC-4 reachability), 3 in `internal/check/fsm_history_acknowledgment_test.go` (AC-2 exempt + AC-3 still-fires + AC-2 scoped).
+- **Build:** `CGO_ENABLED=0 go build ./...` green.
+- **Lint:** `golangci-lint run ./...` clean (0 issues).
+- **`aiwf check`:** zero M-0136-specific findings. Repo-wide 20 findings (0 errors, 20 warnings) — all pre-existing, unrelated. Down from 28 / 4 errors at the milestone's start.
+- **Kernel-tree housekeeping:** `aiwf acknowledge-illegal f4ea7329` cleared the 4 historical illegal-transition errors. Acknowledgment commit `fdc539b8`. The pre-push hook on this repo's mainline no longer blocks on those errors.
+- **Coverage:** new helpers' branches exercised through the integration tests. Defensive subprocess-error paths follow the established `internal/gitops/` / `internal/check/` pattern.
+
+## Deferrals
+
+None. All 6 ACs landed within this milestone's scope. The spec's "Kernel-repo housekeeping" wrap-time step was executed inline as part of self-review (commit `fdc539b8` — the actual `aiwf acknowledge-illegal f4ea7329` invocation against the kernel tree).
+
+## Reviewer notes
+
+- **Short-SHA expansion was a self-review find, not a planned scope item.** The spec sketch didn't call out the short-vs-full SHA mismatch between the verb's input shape (short, human-readable) and the walker's observation shape (full, 40 hex). The fix landed in commit `ea93f82d` after the housekeeping step failed to clear findings on first run. The integration test (running the verb against the actual kernel tree) caught what unit-level coverage missed — same lesson the M-0137 retrofit work surfaced about end-to-end validation against real fixtures.
+- **The verb is deliberately one-way.** Per CLAUDE.md §"Designing a new verb" the answer to "what undoes this?" is "you can't, and that's deliberate — here's why" (the skill body explains the rationale). If a future operator regrets an acknowledgment, rebasing the commit out of history is the only reversal path, and that's hostile to shared trunks by design. A future milestone could add a counter-acknowledgment verb if real friction emerges; for now the deliberate restriction matches the kernel's sovereign-act framing.
+- **No formal ADR/D-NNN entities filed during work.** The design space was bounded enough that informal-decision-in-spec-body sufficed. The "Decisions made during implementation" section above captures the six choices that would otherwise have wanted ADR-grade records; if a reviewer thinks any of them warrants an ADR for posterity, that's a follow-up — none block the wrap.
+- **The acknowledgment commit (`fdc539b8`) lives in this milestone branch's history.** When the branch merges into `epic/E-0033-…`, the ack commit goes along; from then on every operator on the kernel tree benefits from the exemption. The acknowledgment is itself queryable via `aiwf history` (any commit with the `acknowledge-illegal` verb trailer surfaces), so the audit trail is git-native.
+
