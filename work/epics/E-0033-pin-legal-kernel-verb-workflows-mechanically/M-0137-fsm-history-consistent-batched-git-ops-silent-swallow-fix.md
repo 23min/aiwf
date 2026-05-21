@@ -86,12 +86,6 @@ M-0136 (`aiwf acknowledge-illegal`) ships the verb that clears the 4 historical 
 
 Promote G-0149 body to record the partial close; G-0149 itself stays `open` because the two interactive-verb retrofits remain. The `aiwf-tests:` metric for the perf AC names a number (chosen at AC-7 design time) so future regressions are detectable.
 
-## Work log
-
-### AC-1 — internal/gitops/ bulk-revwalk helper streams (commit, parent, paths, trailers)
-
-`BulkRevwalk(ctx, root, fn)` streams `CommitRecord{Commit, Parents, Paths, Trailers}` via one `git log --all --name-status -M -m --pretty=...` subprocess; printable `===AIWF-REC===` / `===AIWF-PATHS===` record markers + `\x1f` field separators; `bufio.Scanner`-backed parsing; helper-test coverage at 100% on splitOnMarker / parseBulkChunk / parseBulkTrailers / parsePathsBlock. · commit `d83a1d30` · 35 tests + subtests passing
-
 ## Related
 
 - **G-0149** — the gap this milestone partial-closes (the fsm-history-consistent slice). Filed on main as G-0148; reallocated to G-0149 on epic/E-0033 after the merge id-collision.
@@ -101,7 +95,13 @@ Promote G-0149 body to record the partial close; G-0149 itself stays `open` beca
 - **G-0125** (archived) — first surfaced the macOS subprocess-fan-out angle that G-0149 inherits.
 - **`internal/cli/history/history.go:283, :515`** — single-walk template the new helpers should mirror.
 
+## Work log
+
+Per-AC outcome notes. Phase + status timeline lives in `aiwf history M-0137/AC-<N>` — not duplicated here.
+
 ### AC-1 — internal/gitops/ bulk-revwalk helper streams (commit, parent, paths, trailers)
+
+`BulkRevwalk(ctx, root, fn)` streams `CommitRecord{Commit, Parents, Paths, Trailers}` via one `git log --all --name-status -M -m --pretty=...` subprocess; printable `===AIWF-REC===` / `===AIWF-PATHS===` record markers + `\x1f` field separators; `bufio.Scanner`-backed parsing; helper-test coverage at 100% on splitOnMarker / parseBulkChunk / parseBulkTrailers / parsePathsBlock. · commit `d83a1d30` · 35 tests + subtests passing
 
 ### AC-2 — internal/gitops/ cat-file --batch content-reader pump
 
