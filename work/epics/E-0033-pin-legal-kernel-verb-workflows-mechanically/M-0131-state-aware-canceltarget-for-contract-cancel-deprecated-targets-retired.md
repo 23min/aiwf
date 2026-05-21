@@ -1,7 +1,7 @@
 ---
 id: M-0131
 title: 'State-aware CancelTarget for Contract: cancel deprecated targets retired'
-status: in_progress
+status: done
 prior_ids:
     - M-0127
 parent: E-0033
