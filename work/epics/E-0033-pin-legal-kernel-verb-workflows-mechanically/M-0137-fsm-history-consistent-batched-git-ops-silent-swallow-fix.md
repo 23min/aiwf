@@ -34,7 +34,7 @@ acs:
     - id: AC-7
       title: 'Perf regression test: kernel tree aiwf check completes within baseline budget'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-8
       title: Audit catalog R-RULE-149 updated to list all four subcodes with severities
       status: open
