@@ -468,18 +468,22 @@ func TestWalkStatusChanges_TrailerCapture(t *testing.T) {
 	}
 }
 
-// TestListCommitPathPairs_DedupesMergeWithBothParentsDiffering pins
-// the dedup invariant in listCommitPathPairs: `git log --follow -m
-// --name-only` lists a merge commit ONCE PER PARENT WHOSE DIFF IS
-// NON-EMPTY. When a merge resolves to content different from BOTH
-// parents (e.g., a conflict-resolution that adopts a third state),
-// the merge appears twice in the raw output. The walker must
-// dedupe — otherwise per-parent comparison fires twice for each
-// (commit, parent) pair, inflating finding counts.
+// TestWalkStatusChanges_MergeWithBothParentsDiffering pins the merge-
+// commit invariant the M-0137 batched walker inherits from M-0130:
+// when a merge resolves to content different from BOTH parents (e.g.,
+// a conflict-resolution that adopts a third state), the walker emits
+// per-parent observations for the merge without inflating the count.
 //
-// This test constructs that exact shape and asserts each (commit,
-// path) appears at most once in the returned pairs.
-func TestListCommitPathPairs_DedupesMergeWithBothParentsDiffering(t *testing.T) {
+// Under M-0130's listCommitPathPairs, the underlying `git log --follow
+// -m --name-only` listed the merge once per parent diff and required
+// explicit dedup. Under M-0137's gitops.BulkRevwalk, the same -m fan-
+// out is now handled by the helper: BulkRevwalk emits one
+// CommitRecord per parent diff, and the walker's per-touch path
+// lookup attributes each to the entity once. The behavior the
+// original test pinned (no inflated finding count for conflict-
+// resolution merges) is now exercised end-to-end through
+// walkStatusChanges itself.
+func TestWalkStatusChanges_MergeWithBothParentsDiffering(t *testing.T) {
 	t.Parallel()
 	r := newRepoFixture(t)
 	// Add at proposed on main.
@@ -490,9 +494,7 @@ func TestListCommitPathPairs_DedupesMergeWithBothParentsDiffering(t *testing.T) 
 	r.writeEntityAtRel(relPath, "E-0001", entity.KindEpic, entity.StatusActive, "")
 	r.gitAddAll()
 	r.gitCommit("a: status=active")
-	// main: status=done (FSM-illegal vs proposed but irrelevant for this
-	// structural test — we write the file directly rather than going
-	// through aiwf verbs).
+	// main: status=done.
 	r.gitCheckout("main")
 	r.writeEntityAtRel(relPath, "E-0001", entity.KindEpic, entity.StatusDone, "")
 	r.gitAddAll()
@@ -503,18 +505,23 @@ func TestListCommitPathPairs_DedupesMergeWithBothParentsDiffering(t *testing.T) 
 		r.writeEntityAt(abs, "E-0001", entity.KindEpic, entity.StatusCancelled, "")
 	})
 
-	pairs, err := listCommitPathPairs(context.Background(), r.root, relPath)
+	tr := r.tree()
+	obs, err := walkStatusChanges(context.Background(), r.root, tr)
 	if err != nil {
-		t.Fatalf("listCommitPathPairs: %v", err)
+		t.Fatalf("walkStatusChanges: %v", err)
 	}
+	// Each (commit, parent) tuple should appear at most once in the
+	// observations slice. With the conflict-resolution shape, the
+	// merge has two distinct (commit, parent) tuples (cancelled vs.
+	// done parent, cancelled vs. active parent), both legitimate.
 	seen := map[string]int{}
-	for _, p := range pairs {
-		key := p.Commit + "::" + p.Path
+	for _, o := range obs {
+		key := o.Commit + "::" + o.Parent
 		seen[key]++
 	}
 	for key, count := range seen {
 		if count > 1 {
-			t.Errorf("(commit, path) %q appears %d times in pairs; dedup should collapse to 1", key, count)
+			t.Errorf("(commit, parent) %q appears %d times; dedup should collapse to 1", key, count)
 		}
 	}
 }
@@ -547,38 +554,15 @@ func TestParseStatusFromFrontmatter(t *testing.T) {
 	}
 }
 
-// TestCommitParents pins parent-SHA extraction on root, single-
-// parent, and merge commits.
-func TestCommitParents(t *testing.T) {
-	t.Parallel()
-	r := newRepoFixture(t)
-	rootSHA := r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "root")
-	singleSHA := r.commitEntity("E-0001", entity.KindEpic, entity.StatusActive, "single-parent")
-
-	r.gitCheckoutBranch("side")
-	r.commitEntity("E-0001", entity.KindEpic, entity.StatusDone, "side-branch head")
-	r.gitCheckout("main")
-	mergeSHA := r.gitMerge("side", "merge side into main")
-
-	cases := []struct {
-		name string
-		sha  string
-		want int
-	}{
-		{"root commit has no parents", rootSHA, 0},
-		{"single-parent has one parent", singleSHA, 1},
-		{"merge has two parents", mergeSHA, 2},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-			got := commitParents(context.Background(), r.root, c.sha)
-			if len(got) != c.want {
-				t.Errorf("commitParents(%s) returned %d parents, want %d: %+v", c.sha[:8], len(got), c.want, got)
-			}
-		})
-	}
-}
+// TestCommitParents and TestListCommitPathPairs_* were deleted by
+// the M-0137 retrofit: the per-entity helpers commitParents and
+// listCommitPathPairs were replaced by gitops.BulkRevwalk's
+// CommitRecord (which carries Parents directly). Parent-SHA
+// correctness is now exercised by the BulkRevwalk tests in
+// internal/gitops/revwalk_test.go (TestBulkRevwalk_MergeCommit
+// asserts merges emit both parents). The merge-dedup invariant the
+// listCommitPathPairs test pinned is now exercised end-to-end by
+// TestWalkStatusChanges_MergeWithBothParentsDiffering above.
 
 // ---------------------------------------------------------------------
 // Repo fixture helpers — initialize a tmp git repo, write entity

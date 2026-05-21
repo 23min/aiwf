@@ -3,7 +3,9 @@ package check
 import (
 	"bytes"
 	"context"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -67,17 +69,103 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 	if t == nil || root == "" {
 		return nil
 	}
-	observations, err := walkStatusChanges(ctx, root, t)
+	// Don't short-circuit on `hasGitCommits` here: under a cancelled
+	// context, hasGitCommits' subprocess fails and returns false,
+	// which would false-negative as "empty repo" and silently swallow
+	// the cancellation. Let NewBlobReader's IsRepo check surface the
+	// failure as a history-walk-error finding instead. Empty repos
+	// flow harmlessly through batchedWalkStatusChanges (the inner
+	// BulkRevwalk has its own empty-repo short-circuit).
+	br, err := gitops.NewBlobReader(ctx, root)
 	if err != nil {
-		// AC-3/4 may route walker errors into the finding stream
-		// (e.g., a "history-walk-error" subcode). For now the rule is
-		// a clean no-op for trees where the per-entity git log fails
-		// (rare; usually permission issues or transient cancellation).
+		// Could not open the cat-file --batch subprocess (ctx
+		// cancelled, not a git repo, or fork failure). Surface as a
+		// single history-walk-error rather than silently swallowing —
+		// the operator sees the failure rather than a green check that
+		// hides it. Pre-existing non-repo dirs (no .git) also land
+		// here; the M-0130 hasGitCommits short-circuit returned (nil,
+		// nil) for them, which we preserve by checking the "repo
+		// doesn't exist" shape explicitly.
+		if !isRepoPath(ctx, root) {
+			return nil
+		}
+		return []Finding{{
+			Code:     "fsm-history-consistent",
+			Subcode:  "history-walk-error",
+			Severity: SeverityError,
+			Message:  "could not open git cat-file --batch subprocess: " + err.Error(),
+			Field:    "status",
+		}}
+	}
+	defer func() { _ = br.Close() }()
+	return fsmHistoryConsistentWithDeps(ctx, root, t, br)
+}
+
+// isRepoPath reports whether root is a git repo via the .git
+// directory or worktree-pointer file's existence. Used as the cheap
+// pre-flight check that distinguishes "not a repo" (silent return)
+// from "subprocess failed" (history-walk-error finding) when
+// NewBlobReader errors.
+//
+// Doesn't use exec — pure filesystem check so a cancelled context
+// doesn't false-negative on this branch the way it would on the
+// gitops.IsRepo subprocess call.
+func isRepoPath(_ context.Context, root string) bool {
+	_, err := os.Stat(filepath.Join(root, ".git"))
+	return err == nil
+}
+
+// blobReader is the rule's blob-reading dep seam introduced in
+// M-0137/AC-3+5 to let tests provoke per-blob failure modes that
+// real subprocesses don't reliably produce (corrupting a single blob
+// is fs-dependent; cancellation kills the whole walk). Production
+// satisfies this via *gitops.BlobReader's Read/Close methods.
+//
+// Kept unexported because the dep injection is rule-internal; no
+// outside consumer needs it.
+type blobReader interface {
+	Read(commit, path string) ([]byte, error)
+	Close() error
+}
+
+// fsmHistoryConsistentWithDeps is the testable variant of
+// FSMHistoryConsistent: it accepts an explicit blobReader the test
+// can substitute. The production entry-point opens a real
+// *gitops.BlobReader and calls this function.
+//
+// Walker errors surface as `fsm-history-consistent/history-walk-
+// error` findings (severity error) — partial walks still produce
+// findings for the entities/commits that read successfully, while
+// the failed (entity, commit) pairs each surface a walk-error
+// finding. The M-0130 silent-swallow at the old FSMHistoryConsistent
+// path is gone (closes the load-bearing correctness issue G-0149
+// flagged).
+//
+// Kept unexported; tests live in package check (internal).
+func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree, br blobReader) []Finding {
+	if t == nil || root == "" {
 		return nil
 	}
+	observations, walkErrors, fatalErr := batchedWalkStatusChanges(ctx, root, t, br)
+
+	var findings []Finding
+	if fatalErr != nil {
+		// Walker-level failure (BulkRevwalk subprocess crash, ctx
+		// cancelled). Emit a single rule-scoped history-walk-error;
+		// per-blob walkErrors collected before the fatal are still
+		// surfaced below alongside.
+		findings = append(findings, Finding{
+			Code:     "fsm-history-consistent",
+			Subcode:  "history-walk-error",
+			Severity: SeverityError,
+			Message:  "walker failed: " + fatalErr.Error(),
+			Field:    "status",
+		})
+	}
+	findings = append(findings, historyWalkErrorFindings(walkErrors)...)
+
 	acksByEntity := walkAuditOnlyAcksByEntity(ctx, root)
 	ackedObs := computeAckedObservations(ctx, root, observations, acksByEntity)
-	var findings []Finding
 	findings = append(findings, illegalTransitionFindings(observations)...)
 	findings = append(findings, forcedUntraileredFindings(observations)...)
 	findings = append(findings, manualEditFindings(observations, ackedObs)...)
@@ -127,17 +215,16 @@ type statusChange struct {
 	IsMergeCommit bool
 }
 
-// walkStatusChanges enumerates DAG-aware status-change observations
-// across every entity in t. Returns one observation per (entity,
-// commit, parent) tuple where the entity's status at the parent
-// (under the same on-disk path) differs from its value at the commit
-// itself.
+// walkStatusChanges is a thin adapter retained for the existing
+// unit tests that pre-date the M-0137 retrofit. It opens a real
+// *gitops.BlobReader and delegates to batchedWalkStatusChanges,
+// returning (observations, fatalErr) and dropping per-blob
+// walkErrors — those are surfaced as findings only via the
+// FSMHistoryConsistent / fsmHistoryConsistentWithDeps entry-points.
 //
-// Returns (nil, nil) when t is nil, root is empty, or root is not a
-// git repo with at least one commit reachable from HEAD. Per-entity
-// walker errors propagate as (nil, err) — callers can choose to
-// swallow or route them as findings (FSMHistoryConsistent swallows
-// for AC-1).
+// New callers should use the entry-points directly; this helper
+// stays only so M-0130's test fixtures continue to drive the same
+// observation shape.
 func walkStatusChanges(ctx context.Context, root string, t *tree.Tree) ([]statusChange, error) {
 	if t == nil || root == "" {
 		return nil, nil
@@ -145,216 +232,13 @@ func walkStatusChanges(ctx context.Context, root string, t *tree.Tree) ([]status
 	if !hasGitCommits(ctx, root) {
 		return nil, nil
 	}
-	var out []statusChange
-	for _, e := range t.Entities {
-		if e == nil || e.Path == "" {
-			continue
-		}
-		changes, err := walkOneEntity(ctx, root, e)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, changes...)
-	}
-	return out, nil
-}
-
-// walkOneEntity returns DAG-aware status-change observations for a
-// single entity.
-//
-// For each commit C in the entity's `git log --follow` history:
-//
-//  1. Enumerate C's parents (`git log -1 --pretty=format:%P C`).
-//  2. For each parent P, read the entity file at (P, path-at-C) via
-//     `git show P:<path>`. If the read fails — the file doesn't
-//     exist at P under path-at-C (P pre-dates an add, or C is a
-//     rename and P has the file under the OLD name), or the file
-//     has no parseable frontmatter — the (P, C) pair is silently
-//     skipped.
-//  3. Read C's own status at path-at-C.
-//  4. Emit one observation when both statuses are non-empty and
-//     differ.
-//
-// Rename handling: `git log --follow` traverses the rename, so the
-// entity's pre-rename commits appear in the touches list with their
-// OLD path, and post-rename commits with their NEW path. Each commit
-// is compared against its actual parent at the parent's own path
-// (which matches the file's path AT that parent). The (rename
-// commit, its parent) pair itself produces no observation — the
-// parent has the file at the OLD name, `git show P:<NEW-name>`
-// fails, the pair is skipped. Pure renames don't change status, so
-// no observation is lost. The rare commit that both renames AND
-// changes status is unobserved — accepted as a known non-handling.
-//
-// Multi-parent (merge) commits emit per-parent observations: if M
-// has parents P1 and P2 with different statuses, M produces up to
-// two observations. Whether merges count as "real" predicate events
-// is left to the AC-2/3/4 predicates' filtering. This avoids
-// baking merge semantics into the walker.
-func walkOneEntity(ctx context.Context, root string, e *entity.Entity) ([]statusChange, error) {
-	pairs, err := listCommitPathPairs(ctx, root, e.Path)
+	br, err := gitops.NewBlobReader(ctx, root)
 	if err != nil {
 		return nil, err
 	}
-	if len(pairs) == 0 {
-		return nil, nil
-	}
-	var out []statusChange
-	for _, p := range pairs {
-		parents := commitParents(ctx, root, p.Commit)
-		if len(parents) == 0 {
-			// Root commit: no parent to compare against. The file may
-			// have appeared at this commit (the initial import) — no
-			// prior status to compute a delta against. Skip.
-			continue
-		}
-		next := statusAtCommitPath(ctx, root, p.Commit, p.Path)
-		if next == "" {
-			continue
-		}
-		var trailers map[string]string
-		isMerge := len(parents) > 1
-		for _, parent := range parents {
-			prior := statusAtCommitPath(ctx, root, parent, p.Path)
-			if prior == "" || prior == next {
-				continue
-			}
-			if trailers == nil {
-				trailers = commitTrailers(ctx, root, p.Commit)
-			}
-			out = append(out, statusChange{
-				EntityID:      e.ID,
-				EntityKind:    e.Kind,
-				Commit:        p.Commit,
-				Parent:        parent,
-				Path:          p.Path,
-				Prior:         prior,
-				Next:          next,
-				Trailers:      trailers,
-				IsMergeCommit: isMerge,
-			})
-		}
-	}
-	return out, nil
-}
-
-// commitPathPair couples a commit SHA with the file path at that
-// commit. The path may differ across pairs when --follow has
-// traversed a rename; reading the file's content at a given commit
-// requires both values (`git show <sha>:<path>`).
-type commitPathPair struct {
-	Commit string
-	Path   string
-}
-
-// listCommitPathPairs returns (commit SHA, path-at-commit) pairs for
-// every commit that touched currentPath, INCLUDING merge commits.
-// Uses --follow so renames are tracked across the path's history;
-// --name-only gives the path-at-each-commit, parsed alongside the
-// COMMIT-prefixed SHA lines.
-//
-// The `-m` flag is load-bearing for D-0009's merge-policy contract:
-// without it, `git log --follow` silently excludes merge commits
-// (`--follow` defaults to first-parent semantics; merges are
-// invisible). `-m` treats each merge as a patch against each parent,
-// which makes the merge commit appear in `--name-only` whenever the
-// file differs from at least one parent. The walker's per-parent
-// comparison (via commitParents) then emits observations relative
-// to each parent, and AC-2 fires on illegal-transition merges per
-// D-0009. Confirmed empirically: without -m, a merge that integrates
-// an illegal feature-branch state into trunk produces zero merge-
-// commit observations and AC-2 cannot catch the integration.
-//
-// The custom "COMMIT %H" prefix distinguishes the SHA lines from the
-// path lines without relying on whitespace heuristics (git's default
-// --pretty output mixes blank lines and metadata in ways that break
-// naive parsing).
-//
-// Order doesn't matter to the DAG-aware walker — each pair is
-// compared against its commit's actual git parents independently —
-// so we deliberately do not reverse the result. (The original AC-1
-// design relied on adjacency-in-list semantics and needed reverse-
-// ordering; the bug that triggered M-0130's AC-1 redo originated in
-// that very adjacency assumption.)
-func listCommitPathPairs(ctx context.Context, root, currentPath string) ([]commitPathPair, error) {
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"--follow", "-m", "--name-only",
-		"--pretty=format:COMMIT %H",
-		"--", currentPath)
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-	// Dedupe by (commit, path): with -m, a merge commit whose content
-	// differs from BOTH parents appears twice in the output (once
-	// per parent diff). The walker's per-parent comparison runs
-	// inside walkOneEntity, so the duplicate listing would emit
-	// duplicate observations and inflate AC-2's finding count.
-	// Deduping at the pair level collapses to one entry per
-	// (commit, path) — the per-parent fan-out then happens once,
-	// downstream.
-	seen := make(map[string]struct{})
-	var pairs []commitPathPair
-	var pendingCommit string
-	for _, line := range strings.Split(string(out), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		if rest, ok := strings.CutPrefix(line, "COMMIT "); ok {
-			pendingCommit = rest
-			continue
-		}
-		if pendingCommit == "" {
-			continue
-		}
-		key := pendingCommit + "\x00" + line
-		if _, dup := seen[key]; dup {
-			pendingCommit = ""
-			continue
-		}
-		seen[key] = struct{}{}
-		pairs = append(pairs, commitPathPair{Commit: pendingCommit, Path: line})
-		pendingCommit = ""
-	}
-	return pairs, nil
-}
-
-// commitParents returns the parent SHAs of the named commit. Returns
-// nil for the root commit (no parents) and for any read failure.
-// Multi-parent (merge) commits return all parents in git's declared
-// order — first-parent is conventionally the mainline-being-merged-
-// into; the walker treats all parents uniformly.
-func commitParents(ctx context.Context, root, commit string) []string {
-	cmd := exec.CommandContext(ctx, "git", "log", "-1",
-		"--pretty=format:%P", commit)
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(string(out))
-	if trimmed == "" {
-		return nil
-	}
-	return strings.Fields(trimmed)
-}
-
-// statusAtCommitPath reads the entity file at the named commit +
-// path via `git show <commit>:<path>` and parses the status field
-// from its YAML frontmatter. Returns "" when the file doesn't exist
-// at that commit, has no frontmatter delimiter, has no status field,
-// or fails YAML parsing — all four "I can't determine the status
-// here" cases collapse to the same skip-this-pair signal.
-func statusAtCommitPath(ctx context.Context, root, commit, path string) string {
-	cmd := exec.CommandContext(ctx, "git", "show", commit+":"+path)
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return parseStatusFromFrontmatter(out)
+	defer func() { _ = br.Close() }()
+	observations, _, fatalErr := batchedWalkStatusChanges(ctx, root, t, br)
+	return observations, fatalErr
 }
 
 // parseStatusFromFrontmatter extracts the status field from an
@@ -386,34 +270,6 @@ func parseStatusFromFrontmatter(content []byte) string {
 		return ""
 	}
 	return meta.Status
-}
-
-// commitTrailers reads the commit's aiwf-* trailers (and any other
-// trailer-shaped lines) and returns them as a key → value map.
-// Returns nil when git emits no trailers or the read fails.
-//
-// Multiple trailers with the same key collapse to the last value,
-// which is sufficient for the AC-2/3/4 predicates' boolean-ish use
-// ("is aiwf-verb present?", "is aiwf-force present?"). If a future
-// subcode needs multi-value-per-key semantics, switch to the slice
-// form.
-func commitTrailers(ctx context.Context, root, commit string) map[string]string {
-	cmd := exec.CommandContext(ctx, "git", "log", "-1",
-		"--pretty=%(trailers:only=true,unfold=true)", commit)
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		return nil
-	}
-	parsed := gitops.ParseTrailers(string(out))
-	if len(parsed) == 0 {
-		return nil
-	}
-	m := make(map[string]string, len(parsed))
-	for _, tr := range parsed {
-		m[tr.Key] = tr.Value
-	}
-	return m
 }
 
 // hasGitCommits reports whether root is a git repo with at least one
