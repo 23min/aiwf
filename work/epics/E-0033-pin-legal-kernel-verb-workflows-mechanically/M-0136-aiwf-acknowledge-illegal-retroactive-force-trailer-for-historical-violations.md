@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: rejects out-of-history SHA with typed error
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: verb name + --reason auto-completion wired
       status: met
