@@ -25,6 +25,10 @@ acs:
       title: verb name + --reason auto-completion wired
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: skill coverage per ADR-0006
+      status: open
+      tdd_phase: red
 ---
 ## What this milestone delivers
 
@@ -104,4 +108,6 @@ After that, `aiwf check` on the kernel repo returns 0 errors, and pre-push is un
 ### AC-4 — rejects out-of-history SHA with typed error
 
 ### AC-5 — verb name + --reason auto-completion wired
+
+### AC-6 — skill coverage per ADR-0006
 
