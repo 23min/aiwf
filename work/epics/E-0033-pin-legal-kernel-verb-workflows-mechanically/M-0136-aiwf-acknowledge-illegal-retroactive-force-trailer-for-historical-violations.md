@@ -4,6 +4,11 @@ title: 'aiwf acknowledge-illegal: retroactive force trailer for historical viola
 status: draft
 parent: E-0033
 tdd: required
+acs:
+    - id: AC-1
+      title: 'commit shape: trailers correct, human actor + reason required'
+      status: open
+      tdd_phase: red
 ---
 ## What this milestone delivers
 
@@ -73,3 +78,6 @@ After that, `aiwf check` on the kernel repo returns 0 errors, and pre-push is un
 - Out of scope: rewriting history (destructive); reverting the offending commits (impractical).
 - Out of scope: a generic "exemption list" in `aiwf.yaml`. The acknowledgment must be a sovereign git-history event, not a config-file entry.
 - Out of scope: extending the mechanism to other check rules. If a future rule wants similar retroactive override, design it then.
+
+### AC-1 — commit shape: trailers correct, human actor + reason required
+
