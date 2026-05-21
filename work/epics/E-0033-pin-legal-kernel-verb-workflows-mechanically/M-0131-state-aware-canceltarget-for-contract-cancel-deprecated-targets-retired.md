@@ -11,7 +11,7 @@ tdd: required
 acs:
     - id: AC-1
       title: CancelTarget(kind, currentStatus) returns retired for deprecated contracts
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: aiwf cancel on deprecated contract lands at retired without FSM error
