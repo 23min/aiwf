@@ -183,6 +183,35 @@ Subtree and submodule are wrong for this: the rituals repo is the upstream, and 
 
 ---
 
+## Id-collision resolution at merge time
+
+When `aiwf check` reports `ids-unique/trunk-collision` (or the pre-push hook blocks for the same reason) after a merge, resolve via **`aiwf reallocate <id>`**, not via `git mv` + a manual frontmatter edit.
+
+The trunk-aware allocator (`aiwf add <kind>`) unions the current branch's ids with `refs/remotes/origin/main`. It does **not** scan parallel feature branches. Two branches that allocate the same id while neither has pushed to trunk both succeed locally; the collision is invisible until one of them lands on trunk and the *other's next push* hits its pre-push hook. Solo operators with several long-lived worktrees see this more often than the design's "parallel devs racing through trunk" model predicts — same brain, different sessions, hours apart, neither pushed yet.
+
+At merge time the move that compiles is:
+
+```sh
+git mv work/gaps/G-NNNN-old-slug.md work/gaps/G-MMMM-old-slug.md
+# + frontmatter edit: id: G-MMMM, prior_ids: [G-NNNN]
+```
+
+The kernel's `gitops.RenamesFromRef` (used by the trunk-collision check) does `git diff -M` and picks the pair up, so the immediate finding clears. **It is not the canonical path.** It leaves the renumber invisible to anything that reads kernel-trailer history (`aiwf history`, the audit catalog, any future check rule keyed on `aiwf-verb: reallocate`); cross-references in other entities aren't auto-rewritten; the commit has no `aiwf-verb: reallocate` or `aiwf-prior-entity:` trailer. If you missed a reference in another file, no test catches it.
+
+The discipline: **collision detected → `aiwf reallocate <id>`, not `git mv`.** The verb:
+
+- Renames the file and rewrites the frontmatter atomically.
+- Walks the tree and rewrites every cross-reference to the old id (entity bodies, frontmatter `parent:`/`depends_on:`/`addressed_by:`, etc.) in the same commit.
+- Stamps the commit with `aiwf-verb: reallocate` + `aiwf-prior-entity:` trailers so `aiwf history G-MMMM` and any kernel rule keyed on the renumber event sees it.
+
+This applies whether the collision surfaces *during* the merge (resolve it now, before the merge commit lands) or *after* the merge pushed cleanly (trunk caught up later via someone else's push and your next push now sees the collision). In both cases the verb path is the same.
+
+Tracked as operator discipline only: no mechanical chokepoint blocks a `git mv` outside the verb path. If the pattern keeps recurring, a kernel-side check that flags "id-renames missing reallocate trailers" (or "trunk-collision findings cleared without a reallocate commit since merge-base") would be the chokepoint to add — file a gap if you see this happen more than once.
+
+History: surfaced after the main → epic merge in E-0033 where two G-0148 entities had been independently allocated on parallel branches; the inline-`git mv` resolution cleared the immediate `git diff -M` pair but left a second real collision that only surfaced on the next epic push, *after* trunk caught up via the main push of one side. Resolution: a follow-up `aiwf reallocate G-0148 → G-0150` on the epic branch.
+
+---
+
 ## Go conventions
 
 These rules apply to all Go code in the module. The repo-wide engineering principles above (KISS, YAGNI, no half-finished implementations, errors-as-findings) cascade in on top of these.
