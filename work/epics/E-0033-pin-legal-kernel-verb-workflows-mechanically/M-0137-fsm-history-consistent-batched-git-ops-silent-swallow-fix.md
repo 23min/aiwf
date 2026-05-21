@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: 'Negative test: per-entity walk failure surfaces history-walk-error'
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: 'Perf regression test: kernel tree aiwf check completes within baseline budget'
       status: met
