@@ -2,7 +2,10 @@ package verb
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // AcknowledgeIllegal records a retroactive sovereign override for a
@@ -23,20 +26,45 @@ import (
 //     written rationale).
 //   - actor must be `human/...` (sovereign acts trace to a named
 //     human; no LLM / bot ack).
-//   - sha must resolve to a commit reachable from HEAD (M-0136/AC-4 —
-//     out-of-history SHAs reject with a typed error rather than
-//     silently accumulating no-op acknowledgments).
+//   - sha must match the 7-40-hex SHA pattern (the trailer's value
+//     constraint, enforced via gitops.ValidateTrailer).
+//
+// AC-4 will extend this with a reachability check (sha must resolve
+// to a commit reachable from HEAD); that gate is deferred to keep
+// AC-1 focused on commit shape.
 //
 // Returns a Result with a Plan carrying the empty commit's trailers.
 // The Apply pipeline materializes the `git commit --allow-empty` once
 // the human gate clears.
-//
-// Stub for M-0136/AC-1 red phase. Implementation lands in green.
 func AcknowledgeIllegal(ctx context.Context, root, sha, actor, reason string) (*Result, error) {
 	_ = ctx
 	_ = root
-	_ = sha
-	_ = actor
-	_ = reason
-	return nil, errors.New("aiwf acknowledge-illegal: verb not implemented (M-0136/AC-1 red phase)")
+	if strings.TrimSpace(reason) == "" {
+		return nil, fmt.Errorf("aiwf acknowledge-illegal: --reason is required (non-empty after trim)")
+	}
+	if !strings.HasPrefix(actor, "human/") {
+		return nil, fmt.Errorf("aiwf acknowledge-illegal: --actor must be human/<name> (got %q; sovereign acts trace to a named human)", actor)
+	}
+	cleanedReason := strings.TrimSpace(reason)
+	trailers := []gitops.Trailer{
+		{Key: gitops.TrailerVerb, Value: "acknowledge-illegal"},
+		{Key: gitops.TrailerForceFor, Value: sha},
+		{Key: gitops.TrailerActor, Value: actor},
+		{Key: gitops.TrailerReason, Value: cleanedReason},
+	}
+	for _, tr := range trailers {
+		if err := gitops.ValidateTrailer(tr.Key, tr.Value); err != nil {
+			return nil, fmt.Errorf("aiwf acknowledge-illegal: %w", err)
+		}
+	}
+	short := sha
+	if len(short) > 8 {
+		short = short[:8]
+	}
+	return plan(&Plan{
+		Subject:    fmt.Sprintf("aiwf acknowledge-illegal %s", short),
+		Body:       cleanedReason,
+		Trailers:   trailers,
+		AllowEmpty: true,
+	}), nil
 }
