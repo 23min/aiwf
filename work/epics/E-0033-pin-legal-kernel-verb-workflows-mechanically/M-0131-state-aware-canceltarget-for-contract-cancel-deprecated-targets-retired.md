@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: aiwf cancel on deprecated contract lands at retired without FSM error
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: legal-workflows-audit.md R-RULE-021 drops code-bug + G-0131 qualifiers
