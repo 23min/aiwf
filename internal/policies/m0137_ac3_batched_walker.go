@@ -29,12 +29,28 @@ import (
 // alone wouldn't catch a refactor that re-introduces per-entity
 // exec.Command while happening to stay under the budget.
 func PolicyM0137AC3BatchedWalker(root string) ([]Violation, error) {
-	target := filepath.Join(root, "internal", "check", "fsm_history_consistent.go")
-	src, err := os.ReadFile(target)
-	if err != nil {
-		return nil, err
+	// The rule's code lives across two files post-retrofit:
+	// fsm_history_consistent.go (the entry-points + per-subcode
+	// predicates) and fsm_history_walker.go (the batched walker).
+	// Concatenate both for the presence/absence checks.
+	checkDir := filepath.Join(root, "internal", "check")
+	ruleFiles := []string{"fsm_history_consistent.go", "fsm_history_walker.go"}
+	var combined strings.Builder
+	for _, name := range ruleFiles {
+		src, err := os.ReadFile(filepath.Join(checkDir, name))
+		if err != nil {
+			// fsm_history_walker.go may not exist in the M-0130
+			// shape; tolerate that branch but record an error if the
+			// canonical entry-point file is missing.
+			if name == "fsm_history_consistent.go" {
+				return nil, err
+			}
+			continue
+		}
+		combined.Write(src)
+		combined.WriteString("\n")
 	}
-	content := string(src)
+	content := combined.String()
 	var out []Violation
 
 	// (1) Must reference gitops.BulkRevwalk — the per-commit batched
@@ -44,7 +60,7 @@ func PolicyM0137AC3BatchedWalker(root string) ([]Violation, error) {
 	if !strings.Contains(content, "gitops.BulkRevwalk") {
 		out = append(out, Violation{
 			Policy: "m0137-ac3-batched-walker",
-			File:   "internal/check/fsm_history_consistent.go",
+			File:   "internal/check/fsm_history_*.go",
 			Detail: "does not reference gitops.BulkRevwalk — the M-0137/AC-1 batched commit walker is not in use; the hot path is still per-entity",
 		})
 	}
@@ -56,7 +72,7 @@ func PolicyM0137AC3BatchedWalker(root string) ([]Violation, error) {
 	if !strings.Contains(content, "gitops.NewBlobReader") && !strings.Contains(content, "gitops.BlobReader") {
 		out = append(out, Violation{
 			Policy: "m0137-ac3-batched-walker",
-			File:   "internal/check/fsm_history_consistent.go",
+			File:   "internal/check/fsm_history_*.go",
 			Detail: "does not reference gitops.NewBlobReader / gitops.BlobReader — the M-0137/AC-2 cat-file batch pump is not in use; status reads still fan out per (commit, path) via git show",
 		})
 	}
@@ -77,7 +93,7 @@ func PolicyM0137AC3BatchedWalker(root string) ([]Violation, error) {
 			name := strings.TrimSuffix(strings.TrimPrefix(banned, "func "), "(")
 			out = append(out, Violation{
 				Policy: "m0137-ac3-batched-walker",
-				File:   "internal/check/fsm_history_consistent.go",
+				File:   "internal/check/fsm_history_*.go",
 				Detail: "still defines " + name + " — the M-0130 per-entity helper should be deleted by the M-0137/AC-3 retrofit (its callers route through gitops.BulkRevwalk + gitops.BlobReader instead)",
 			})
 		}
