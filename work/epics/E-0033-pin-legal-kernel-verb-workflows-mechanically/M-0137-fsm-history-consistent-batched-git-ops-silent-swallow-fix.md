@@ -134,3 +134,43 @@ Contract pinned by `TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFin
 ### AC-9 — G-0149 body updated: fsm-history slice closed; perf retrofits remain open
 
 `aiwf edit-body G-0149` rewrites the gap's body to record the partial close. New top-level **Status** section explicitly marks the fsm-history-consistent slice CLOSED in M-0137 (with the AC-7 perf number cited) and the two remaining sites (`aiwf status` worktree views, `aiwf show` scope views) OPEN with perf-only framing. The original "Silent-swallow correctness constraint" section becomes a "Closed slice retrospective" section recording the M-0130 → M-0137 arc and the negative test (AC-5) that pins the new contract. G-0149 itself stays `open` because the two interactive-verb retrofits remain — they're future small-milestone work, not blocked on anything.
+
+## Decisions made during implementation
+
+No formal ADRs / `D-NNNN` entities surfaced — the design space was bounded by the spec's `## Approach` enumeration. Informal design choices recorded inline in the code + comments:
+
+- **Printable sentinels (`===AIWF-REC===` / `===AIWF-PATHS===`) in BulkRevwalk's pretty-format** rather than `\x1e` record separators. Rationale: human-readable when dumping raw `git log` output for debugging, robust against future flag combinations that strip low bytes. Collision risk against legitimate commit-body content accepted as negligible (matches `internal/cli/history`'s `\x1e` risk profile).
+- **Walker structure: per-commit-record callback in BulkRevwalk + per-blob-read calls into BlobReader**, rather than fan-out batching. The single-subprocess invariant comes from the two helpers; the rule's hot path stays small.
+- **Dedup at the (commit, parent, path) tuple** in `batchedWalkStatusChanges`. BulkRevwalk emits per-parent CommitRecords under `-m`, so a merge whose path differs from both parents emerges twice; dedup collapses to one observation per real edge.
+- **`blobReader` interface dep seam** for test injection (per CLAUDE.md "production code uses constructor injection"). The unexported interface keeps the dep injection rule-internal; production satisfies via `*gitops.BlobReader`'s `Read`/`Close`.
+- **`isRepoPath` filesystem check** (new helper) to distinguish "not a repo" (silent return) from "subprocess failed" (history-walk-error finding) when NewBlobReader errors under a cancelled context.
+- **Perf budget: 10 seconds against a 50-entity fixture.** 80× headroom over the measured post-retrofit runtime (~122ms); intentionally generous to absorb CI runner variance without flaking. A catastrophic regression (re-introduction of per-entity fan-out) would fire; subtle drift wouldn't.
+
+## Validation
+
+- **Test suite:** `make test-race` green across all packages (last run on the wrap-ready commit `c13a6bc2`). New tests: 18 in `internal/gitops/` (BulkRevwalk + BlobReader + helpers), 5 in `internal/check/` (AC-4 cancelled-context, AC-5 partial-failure, AC-7 perf budget, AC-merge-dedup, AC-rename-chain, AC-isRepoPath).
+- **Build:** `CGO_ENABLED=0 go build ./...` green.
+- **Lint:** `golangci-lint run ./...` clean (0 issues in this worktree). Lint fixes landed: `defer br.Close()` wrapped in lambda for errcheck; `bytes.Equal` swap for gocritic stringXbytes; `closeErr` rename for govet shadow.
+- **Doc-lint:** clean. One historical reference (`FSMHistoryConsistent:71-77` in `legal-workflows-audit.md`) is deliberate — it describes M-0130's pre-retrofit code location for retrospective context; line numbers no longer match current code, which is the point.
+- **`aiwf check`:** zero M-0137-specific findings. Repo-wide 25 findings (4 pre-existing historical `f4ea7329` errors — M-0136's backlog; 21 pre-existing warnings unrelated to this milestone).
+- **Perf:** TestFSMHistoryConsistent_PerfBudget logs `122.74ms elapsed, 99 findings (budget: 10s)` on devcontainer hardware. 80× under budget.
+- **Coverage:** helpers in `internal/gitops/` (BulkRevwalk parser, BlobReader parser) at 100%. Production paths in `FSMHistoryConsistent` / `NewBlobReader` carry `//coverage:ignore` markers on defensive subprocess-error paths per the established `internal/gitops/` pattern.
+
+## Deferrals
+
+None. All 9 ACs landed within this milestone's scope.
+
+The spec deliberately defers two adjacent concerns to follow-up milestones, both tracked under the still-open G-0149:
+
+- **`aiwf status` worktree views retrofit** — perf-only, no kernel correctness angle. Site #1 in G-0149's body.
+- **`aiwf show` scope views retrofit** — perf-only. Site #2 in G-0149's body.
+
+Both are future small-milestone work using the helpers M-0137 landed; G-0149 stays `open` to track them.
+
+## Reviewer notes
+
+- **AC-3 policy is source-grep-based.** `PolicyM0137AC3BatchedWalker` scans `fsm_history_consistent.go` + `fsm_history_walker.go` for the literal strings `gitops.BulkRevwalk` / `gitops.NewBlobReader` / `gitops.BlobReader` + the absence of `func walkOneEntity(` etc. A future refactor that renames `BulkRevwalk` would surface as a policy violation — explicitly, not silently — so the brittleness is acceptable. If a more robust AST-based check is wanted later, it lives at the same call site and the contract doesn't change.
+- **No end-to-end stress validation under macOS concurrent-merge load.** The original M-0130 silent-swallow surfaced in exactly that environment. AC-4 (cancelled context) and AC-5 (fake blobReader via the dep seam) both route through the same error-handling code paths a real transient subprocess crash would, so the synthetic tests pin the same code paths — but I can't claim end-to-end stress validation. Acceptable per the spec's intent; if regressions surface later, they go through the same finding stream now.
+- **`FSMHistoryConsistent:71-77` historical reference.** `docs/pocv3/design/legal-workflows-audit.md`'s R-RULE-149 row mentions the M-0130 silent-swallow at line 71-77. The line numbers don't match current code (M-0137 replaced that body); the reference is retrospective for context. Reviewer can `git blame` at M-0130's wrap SHA if they want exact code-state recovery.
+- **Octopus-merge test exercises the conflict-resolution shape only.** `TestBatchedWalker_OctopusMerge` sets up a 3-parent shape via `git merge --no-commit feat-a feat-b` with conflict-resolution. Some git versions sequence the merges instead of producing a true octopus commit; either shape exercises the (commit, parent, path) dedup invariant, so the test stays correct under both. Criss-cross merges and very-large-fan-out shapes aren't exercised — same gap M-0130 had; not a regression.
+- **`walkStatusChanges` retained as a thin adapter.** M-0130's tests called it directly with the `(observations, error)` signature; the new walker uses `(observations, walkErrors, fatalErr)`. The adapter drops walkErrors so existing tests pass. New tests use `FSMHistoryConsistent` / `fsmHistoryConsistentWithDeps` directly; a future cleanup could delete the adapter once all callers are migrated. Not blocking.
