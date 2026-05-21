@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: 'commit shape: trailers correct, human actor + reason required'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: predicate exempts SHAs targeted by aiwf-force-for trailer
