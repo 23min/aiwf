@@ -8,6 +8,11 @@ depends_on:
     - M-0130
     - M-0131
 tdd: required
+acs:
+    - id: AC-1
+      title: 'Shared test infrastructure: aiwfBinary via sync.Once + fixture-builder helper'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -50,3 +55,6 @@ Every legal cell in `Rules()` has at least one corresponding positive test. A me
 - Does not cover illegal cells (M-0125's scope).
 - Does not test branch-context preconditions (E-0030's scope).
 - Does not exercise random sequences (deliberately deferred).
+
+### AC-1 — Shared test infrastructure: aiwfBinary via sync.Once + fixture-builder helper
+
