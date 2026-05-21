@@ -13,6 +13,10 @@ acs:
       title: 'Shared test infrastructure: aiwfBinary via sync.Once + fixture-builder helper'
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: 'Per-cell positive driver: table-driven over spec.Rules() Legal cells'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -57,4 +61,6 @@ Every legal cell in `Rules()` has at least one corresponding positive test. A me
 - Does not exercise random sequences (deliberately deferred).
 
 ### AC-1 — Shared test infrastructure: aiwfBinary via sync.Once + fixture-builder helper
+
+### AC-2 — Per-cell positive driver: table-driven over spec.Rules() Legal cells
 
