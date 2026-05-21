@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: 'fsm-history-consistent: no per-entity exec.Command — routes through helpers'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: history-walk-error subcode emits per failed entity (severity error)
       status: open
