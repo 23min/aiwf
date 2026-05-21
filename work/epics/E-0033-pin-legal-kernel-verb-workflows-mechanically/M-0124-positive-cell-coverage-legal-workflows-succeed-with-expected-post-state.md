@@ -17,6 +17,10 @@ acs:
       title: 'Per-cell positive driver: table-driven over spec.Rules() Legal cells'
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: 'Coverage meta-test: every Legal rule has a corresponding positive subtest'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -63,4 +67,6 @@ Every legal cell in `Rules()` has at least one corresponding positive test. A me
 ### AC-1 — Shared test infrastructure: aiwfBinary via sync.Once + fixture-builder helper
 
 ### AC-2 — Per-cell positive driver: table-driven over spec.Rules() Legal cells
+
+### AC-3 — Coverage meta-test: every Legal rule has a corresponding positive subtest
 
