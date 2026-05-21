@@ -1,7 +1,7 @@
 ---
 id: M-0137
 title: 'fsm-history-consistent: batched git ops + silent-swallow fix'
-status: in_progress
+status: done
 parent: E-0033
 depends_on:
     - M-0130
