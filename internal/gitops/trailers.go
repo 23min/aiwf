@@ -32,6 +32,14 @@ const (
 
 	// I2.5 audit-only recovery (G24, plan step 5b).
 	TrailerAuditOnly = "aiwf-audit-only"
+
+	// M-0136 acknowledge-illegal — retroactive sovereign override for
+	// historical FSM-illegal commits surfaced by
+	// fsm-history-consistent's illegal-transition predicate. The value
+	// is the target commit's SHA (7-40 hex); the acknowledgment
+	// commit's other trailers (aiwf-verb: acknowledge-illegal,
+	// aiwf-actor: human/..., aiwf-reason: ...) carry the audit trail.
+	TrailerForceFor = "aiwf-force-for"
 )
 
 // trailerOrder is the canonical write order for known trailers. The
@@ -55,6 +63,7 @@ var trailerOrder = []string{
 	TrailerScopeEnds,
 	TrailerReason,
 	TrailerAuditOnly,
+	TrailerForceFor,
 }
 
 // trailerOrderIndex maps each known key to its position in the
@@ -146,7 +155,7 @@ func ValidateTrailer(key, value string) error {
 		if !strings.HasPrefix(value, "human/") {
 			return fmt.Errorf("%s: role must be human/ (got %q)", key, value)
 		}
-	case TrailerAuthorizedBy, TrailerScopeEnds:
+	case TrailerAuthorizedBy, TrailerScopeEnds, TrailerForceFor:
 		if !shaPattern.MatchString(value) {
 			return fmt.Errorf("%s: %q must be 7–40 hex", key, value)
 		}

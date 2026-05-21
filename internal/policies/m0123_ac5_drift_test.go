@@ -133,6 +133,8 @@ var nonLegalityVerbAllowlist = map[string]string{
 	"template":   "scaffold-prose query; no entity mutation",
 	"contract":   "topical verb group; sub-verbs handle their own non-FSM lifecycle",
 	"milestone":  "topical verb group for sub-verbs (depends-on); each sub-verb has its own non-FSM mutation",
+
+	"acknowledge-illegal": "sovereign retroactive override (M-0136); records aiwf-force-for: <historical-sha> on an empty commit — operates on the fsm-history-consistent rule's finding stream, not on entity FSM state",
 }
 
 // TestM0123_AC5_ImplToSpec_VerbsCovered asserts every top-level Cobra verb
