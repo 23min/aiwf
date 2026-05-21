@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: history-walk-error subcode emits per failed entity (severity error)
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Walker continues past per-entity errors; partial findings preserved
       status: open
