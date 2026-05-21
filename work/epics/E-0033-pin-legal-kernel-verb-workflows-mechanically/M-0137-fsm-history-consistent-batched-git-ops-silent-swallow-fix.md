@@ -50,7 +50,7 @@ Retrofit `internal/check/fsm_history_consistent.go` to use batched git operation
 
 ## Background
 
-M-0130 shipped `fsm-history-consistent` as the kernel chokepoint that makes the per-entity status FSM a tree-invariant. Two issues were discovered after wrap, recorded in G-0149:
+M-0130 shipped `fsm-history-consistent` as the kernel chokepoint that makes the per-entity status FSM a tree-invariant. Two issues were discovered after wrap, recorded in G-0151:
 
 1. **Subprocess fan-out.** The rule shells out per-entity: `git log --follow -m --name-only` per entity, plus `git show <commit>:<path>` per (commit, parent) pair. On a 331-entity tree that's ~3,000 fork/execs per `aiwf check`. Pre-push latency scales with consumer tree size; on macOS the cost is OS-resource-bound (see G-0125, archived).
 2. **Silent-swallow on walker failure.** `FSMHistoryConsistent` returns `nil` when `walkStatusChanges` errors, and `walkStatusChanges` fail-fasts on the first per-entity error. One transient git subprocess failure under load wipes every finding from the rule — invisibly. The operator sees a green check; real FSM violations slip through. Diagnosed empirically in the M-0130 session: same binary, same content, intermittent "4 errors" vs "0 findings" on sibling worktrees under concurrent test load.
@@ -69,12 +69,12 @@ The silent-swallow violates CLAUDE.md §*Engineering principles* ("Errors are fi
 4. **Test the partial-failure path mechanically** — fixture that arranges a per-entity walk failure (e.g., delete a referenced blob, cancel mid-walk for one entity), asserts the rule still emits findings for healthy entities AND surfaces a `history-walk-error` for the broken one. This is the negative test that pins the new contract; without it, the swallow can return as a regression because every existing test is structured to succeed end-to-end.
 5. **Measure perf before and after.** Baseline the kernel-tree `aiwf check` runtime; the retrofit should reduce wall time substantially (3,000 fork/execs → ~2 long-running subprocesses). Pin a regression budget the perf test asserts.
 6. **Reconcile R-RULE-149 in `docs/pocv3/design/legal-workflows-audit.md`** to list four subcodes: `illegal-transition` (error), `forced-untrailered` (error), `manual-edit` (warning), `history-walk-error` (error). Note the partial-failure semantics.
-7. **Update G-0149's body** to record that this milestone closes the fsm-history slice; reframe remaining scope as the two interactive-verb retrofits (`aiwf status` worktree views, `aiwf show` scope views).
+7. **Update G-0151's body** to record that this milestone closes the fsm-history slice; reframe remaining scope as the two interactive-verb retrofits (`aiwf status` worktree views, `aiwf show` scope views).
 
 ## What this milestone does *not* do
 
-- Does **not** retrofit `aiwf status` worktree views (G-0149's call site #1). Separate scope; perf-only; no kernel-chokepoint correctness angle.
-- Does **not** retrofit `aiwf show` scope views (G-0149's call site #2). Same reason.
+- Does **not** retrofit `aiwf status` worktree views (G-0151's call site #1). Separate scope; perf-only; no kernel-chokepoint correctness angle.
+- Does **not** retrofit `aiwf show` scope views (G-0151's call site #2). Same reason.
 - Does **not** change the M-0130 ACs or audit catalog beyond the R-RULE-149 row reconciliation. M-0130 is `done`; this milestone is a follow-up retrofit, not a redo.
 - Does **not** address M-0136's historical-error backlog. The `aiwf acknowledge-illegal` verb is M-0136's deliverable; this milestone only fixes how the rule reports errors, not how operators retroactively clear them.
 
@@ -84,15 +84,15 @@ M-0136 (`aiwf acknowledge-illegal`) ships the verb that clears the 4 historical 
 
 ## At wrap
 
-Promote G-0149 body to record the partial close; G-0149 itself stays `open` because the two interactive-verb retrofits remain. The `aiwf-tests:` metric for the perf AC names a number (chosen at AC-7 design time) so future regressions are detectable.
+Promote G-0151 body to record the partial close; G-0151 itself stays `open` because the two interactive-verb retrofits remain. The `aiwf-tests:` metric for the perf AC names a number (chosen at AC-7 design time) so future regressions are detectable.
 
 ## Related
 
-- **G-0149** — the gap this milestone partial-closes (the fsm-history-consistent slice). Filed on main as G-0148; reallocated to G-0149 on epic/E-0033 after the merge id-collision.
+- **G-0151** — the gap this milestone partial-closes (the fsm-history-consistent slice). Filed on main as G-0148; reallocated to G-0151 on epic/E-0033 after the merge id-collision.
 - **M-0130** — the milestone whose deliverable this retrofits.
 - **D-0008 / D-0010** — the per-subcode disjointness + merge-skip decisions that constrain the predicate logic; preserved unchanged.
 - **CLAUDE.md §Engineering principles** — *"Errors are findings, not parse failures."* The silent-swallow is the exact pattern that principle forbids.
-- **G-0125** (archived) — first surfaced the macOS subprocess-fan-out angle that G-0149 inherits.
+- **G-0125** (archived) — first surfaced the macOS subprocess-fan-out angle that G-0151 inherits.
 - **`internal/cli/history/history.go:283, :515`** — single-walk template the new helpers should mirror.
 
 ## Work log
@@ -117,7 +117,7 @@ Per-AC outcome notes. Phase + status timeline lives in `aiwf history M-0137/AC-<
 
 ### AC-5 — Walker continues past per-entity errors; partial findings preserved
 
-Partial-failure preservation pinned by `TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFindings`: a fake blobReader errors on E-0002's paths while delegating to a real BlobReader for E-0001's. The walker emits `illegal-transition` for E-0001 (good portion preserved) AND `history-walk-error` for E-0002 (failed portion surfaced) — proving the M-0130 fail-fast + entry-point swallow is gone. Closes the silent-swallow load-bearing correctness issue G-0149 flagged. · commit `5a31e6e7` · 1 RED→GREEN test
+Partial-failure preservation pinned by `TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFindings`: a fake blobReader errors on E-0002's paths while delegating to a real BlobReader for E-0001's. The walker emits `illegal-transition` for E-0001 (good portion preserved) AND `history-walk-error` for E-0002 (failed portion surfaced) — proving the M-0130 fail-fast + entry-point swallow is gone. Closes the silent-swallow load-bearing correctness issue G-0151 flagged. · commit `5a31e6e7` · 1 RED→GREEN test
 
 ### AC-6 — Negative test: per-entity walk failure surfaces history-walk-error
 
@@ -129,11 +129,11 @@ Contract pinned by `TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFin
 
 ### AC-8 — Audit catalog R-RULE-149 updated to list all four subcodes with severities
 
-`docs/pocv3/design/legal-workflows-audit.md` §10.x R-RULE-149 row rewritten: cites the batched walker explicitly (`gitops.BulkRevwalk` + `gitops.BlobReader`); lists all four subcodes (`illegal-transition`, `forced-untrailered`, `manual-edit`, `history-walk-error`) with per-subcode severities; notes the three legal-status-change subcodes partition disjointly per D-0008 while `history-walk-error` is orthogonal (walker-failure mode); records M-0137's closure of the fsm-history slice of G-0149 alongside M-0130's original implementation. · commit `5be66bce`
+`docs/pocv3/design/legal-workflows-audit.md` §10.x R-RULE-149 row rewritten: cites the batched walker explicitly (`gitops.BulkRevwalk` + `gitops.BlobReader`); lists all four subcodes (`illegal-transition`, `forced-untrailered`, `manual-edit`, `history-walk-error`) with per-subcode severities; notes the three legal-status-change subcodes partition disjointly per D-0008 while `history-walk-error` is orthogonal (walker-failure mode); records M-0137's closure of the fsm-history slice of G-0151 alongside M-0130's original implementation. · commit `5be66bce`
 
-### AC-9 — G-0149 body updated: fsm-history slice closed; perf retrofits remain open
+### AC-9 — G-0151 body updated: fsm-history slice closed; perf retrofits remain open
 
-`aiwf edit-body G-0149` rewrites the gap's body to record the partial close. New top-level **Status** section explicitly marks the fsm-history-consistent slice CLOSED in M-0137 (with the AC-7 perf number cited) and the two remaining sites (`aiwf status` worktree views, `aiwf show` scope views) OPEN with perf-only framing. The original "Silent-swallow correctness constraint" section becomes a "Closed slice retrospective" section recording the M-0130 → M-0137 arc and the negative test (AC-5) that pins the new contract. G-0149 itself stays `open` because the two interactive-verb retrofits remain — they're future small-milestone work, not blocked on anything.
+`aiwf edit-body G-0151` rewrites the gap's body to record the partial close. New top-level **Status** section explicitly marks the fsm-history-consistent slice CLOSED in M-0137 (with the AC-7 perf number cited) and the two remaining sites (`aiwf status` worktree views, `aiwf show` scope views) OPEN with perf-only framing. The original "Silent-swallow correctness constraint" section becomes a "Closed slice retrospective" section recording the M-0130 → M-0137 arc and the negative test (AC-5) that pins the new contract. G-0151 itself stays `open` because the two interactive-verb retrofits remain — they're future small-milestone work, not blocked on anything.
 
 ## Decisions made during implementation
 
@@ -160,12 +160,12 @@ No formal ADRs / `D-NNNN` entities surfaced — the design space was bounded by 
 
 None. All 9 ACs landed within this milestone's scope.
 
-The spec deliberately defers two adjacent concerns to follow-up milestones, both tracked under the still-open G-0149:
+The spec deliberately defers two adjacent concerns to follow-up milestones, both tracked under the still-open G-0151:
 
-- **`aiwf status` worktree views retrofit** — perf-only, no kernel correctness angle. Site #1 in G-0149's body.
-- **`aiwf show` scope views retrofit** — perf-only. Site #2 in G-0149's body.
+- **`aiwf status` worktree views retrofit** — perf-only, no kernel correctness angle. Site #1 in G-0151's body.
+- **`aiwf show` scope views retrofit** — perf-only. Site #2 in G-0151's body.
 
-Both are future small-milestone work using the helpers M-0137 landed; G-0149 stays `open` to track them.
+Both are future small-milestone work using the helpers M-0137 landed; G-0151 stays `open` to track them.
 
 ## Reviewer notes
 

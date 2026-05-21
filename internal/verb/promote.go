@@ -172,9 +172,21 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	target := entity.CancelTarget(e.Kind)
+	// Pre-flight terminal check. Cancel never makes sense on an entity
+	// already at a terminal status — there's nothing to project to.
+	// Without this guard, the older code silently constructed
+	// FSM-illegal projections (e.g., Cancel on a `done` epic set
+	// status to `cancelled` even though Epic.done has no outgoing
+	// edges); since M-0131's state-aware CancelTarget the trap moved
+	// to the empty-return path with a less informative message. This
+	// catches the case once, at the verb boundary, with a clear
+	// "already at terminal X" error.
+	if entity.IsTerminal(e.Kind, e.Status) {
+		return nil, fmt.Errorf("%s is already at terminal status %q; nothing to cancel", id, e.Status)
+	}
+	target := entity.CancelTarget(e.Kind, e.Status)
 	if target == "" {
-		return nil, fmt.Errorf("kind %q has no cancel target", e.Kind)
+		return nil, fmt.Errorf("%s (kind %q, status %q) has no cancel target", id, e.Kind, e.Status)
 	}
 	if e.Status == target {
 		return nil, fmt.Errorf("%s is already %s", id, target)

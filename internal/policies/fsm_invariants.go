@@ -90,26 +90,40 @@ func PolicyFSMInvariants(_ string) ([]Violation, error) {
 			}
 		}
 
-		// Drift mode 3: CancelTarget returns a status that is not in
-		// the closed set or is non-terminal. This pins the cancel
-		// verb's commitment that "any non-terminal entity can be
-		// cancelled to a terminal state in one step."
-		target := entity.CancelTarget(kind)
-		if target == "" {
-			out = append(out, Violation{
-				Policy: "fsm-invariants",
-				Detail: fmt.Sprintf("kind %q: CancelTarget returns empty; cancel verb has no terminal to project to", kind),
-			})
-		} else if !entity.IsAllowedStatus(kind, target) {
-			out = append(out, Violation{
-				Policy: "fsm-invariants",
-				Detail: fmt.Sprintf("kind %q: CancelTarget %q not in AllowedStatuses", kind, target),
-			})
-		} else if outs := entity.AllowedTransitions(kind, target); len(outs) != 0 {
-			out = append(out, Violation{
-				Policy: "fsm-invariants",
-				Detail: fmt.Sprintf("kind %q: CancelTarget %q has outgoing transitions %v; must be terminal", kind, target, outs),
-			})
+		// Drift mode 3: CancelTarget pins the cancel verb's commitment
+		// that "any non-terminal entity can be cancelled to a terminal
+		// state in one step." Since M-0131 the signature is
+		// state-aware (`(kind, currentStatus) string`); walk every
+		// non-terminal status of the kind and assert the returned
+		// target is (a) non-empty, (b) in AllowedStatuses, and (c)
+		// itself terminal. Terminal current-states are skipped — the
+		// verb's "already at target" guard handles them and an empty
+		// return there is correct.
+		for _, from := range statuses {
+			if entity.IsTerminal(kind, from) {
+				continue
+			}
+			target := entity.CancelTarget(kind, from)
+			if target == "" {
+				out = append(out, Violation{
+					Policy: "fsm-invariants",
+					Detail: fmt.Sprintf("kind %q at %q: CancelTarget returns empty; cancel verb has no terminal to project to from this status", kind, from),
+				})
+				continue
+			}
+			if !entity.IsAllowedStatus(kind, target) {
+				out = append(out, Violation{
+					Policy: "fsm-invariants",
+					Detail: fmt.Sprintf("kind %q at %q: CancelTarget %q not in AllowedStatuses", kind, from, target),
+				})
+				continue
+			}
+			if outs := entity.AllowedTransitions(kind, target); len(outs) != 0 {
+				out = append(out, Violation{
+					Policy: "fsm-invariants",
+					Detail: fmt.Sprintf("kind %q at %q: CancelTarget %q has outgoing transitions %v; must be terminal", kind, from, target, outs),
+				})
+			}
 		}
 
 		// Drift mode 4: FSM contains a cycle. Kernel commitment 1

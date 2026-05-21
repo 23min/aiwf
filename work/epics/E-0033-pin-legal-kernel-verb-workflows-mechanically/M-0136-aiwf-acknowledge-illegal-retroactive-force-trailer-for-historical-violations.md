@@ -90,7 +90,7 @@ After that, `aiwf check` on the kernel repo returns 0 errors, and pre-push is un
 
 - M-0130 (parent dependency — lands the rule whose findings this verb exempts).
 - D-0010 (the merge-commit policy that left these single-parent illegal commits as the residual real-finding class).
-- G-0150 (the design question that led to D-0010 and surfaced this need).
+- G-0152 (the design question that led to D-0010 and surfaced this need).
 - D-0008 (the audit-only design that explicitly excluded illegal-transition from the existing audit-only suppression; this milestone introduces a *separate*, more deliberate retroactive-force mechanism without contradicting D-0008's framing).
 
 ## Scope boundaries

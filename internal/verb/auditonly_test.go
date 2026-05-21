@@ -164,6 +164,48 @@ func TestCancelAuditOnly_RefusesWhenNotAtTerminal(t *testing.T) {
 	}
 }
 
+// TestCancelAuditOnly_AcceptsBothContractTerminals: since M-0131 the
+// Contract FSM has two cancel-class terminals — rejected (from
+// proposed/accepted) and retired (from deprecated). Audit-only accepts
+// either; reverse-lookup over CancelTarget(kind, non-terminal-from)
+// keeps auditonly's allow-set in lock-step with the cancel verb's
+// projection map without duplicating the per-kind data. The retired
+// case is the regression guard against the pre-M-0131 latent gap
+// (retired contracts couldn't be audit-only-recorded as cancelled).
+func TestCancelAuditOnly_AcceptsBothContractTerminals(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name           string
+		terminalStatus string
+	}{
+		{"rejected", entity.StatusRejected},
+		{"retired", entity.StatusRetired},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := newRunner(t)
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Schema "+tc.name, testActor, verb.AddOptions{}))
+			r.must(verb.Promote(r.ctx, r.tree(), "C-0001", tc.terminalStatus, testActor, "test setup", true, verb.PromoteOptions{}))
+
+			res, err := verb.CancelAuditOnly(r.ctx, r.tree(), "C-0001", testActor, "backfilling manual flip")
+			if err != nil {
+				t.Fatalf("CancelAuditOnly at %s: %v", tc.terminalStatus, err)
+			}
+			if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+				t.Fatalf("apply: %v", applyErr)
+			}
+			tr, err := gitops.HeadTrailers(r.ctx, r.root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mustHaveTrailer(t, tr, "aiwf-verb", "cancel")
+			mustHaveTrailer(t, tr, "aiwf-entity", "C-0001")
+			mustHaveTrailer(t, tr, "aiwf-audit-only", "backfilling manual flip")
+		})
+	}
+}
+
 // TestPromoteACAuditOnly_HappyPath: composite-id audit-only on AC
 // status. The AC is already at `met`; the verb records the audit.
 func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
