@@ -17,6 +17,10 @@ acs:
       title: aiwf cancel on deprecated contract lands at retired without FSM error
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: legal-workflows-audit.md R-RULE-021 drops code-bug + G-0131 qualifiers
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -82,4 +86,6 @@ Add `addressed_by: [M-0131]` to G-0131's frontmatter in the same wrap commit.
 ### AC-1 — CancelTarget(kind, currentStatus) returns retired for deprecated contracts
 
 ### AC-2 — aiwf cancel on deprecated contract lands at retired without FSM error
+
+### AC-3 — legal-workflows-audit.md R-RULE-021 drops code-bug + G-0131 qualifiers
 
