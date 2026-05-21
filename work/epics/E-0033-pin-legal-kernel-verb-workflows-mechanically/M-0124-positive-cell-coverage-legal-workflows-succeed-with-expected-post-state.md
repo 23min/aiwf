@@ -10,7 +10,7 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: 'Shared test infrastructure: aiwfBinary via sync.Once + fixture-builder helper'
+      title: 'spec.EvaluatePredicate primitive: closed Subject + Op vocabulary over Predicate'
       status: open
       tdd_phase: red
     - id: AC-2
@@ -64,7 +64,7 @@ Every legal cell in `Rules()` has at least one corresponding positive test. A me
 - Does not test branch-context preconditions (E-0030's scope).
 - Does not exercise random sequences (deliberately deferred).
 
-### AC-1 — Shared test infrastructure: aiwfBinary via sync.Once + fixture-builder helper
+### AC-1 — spec.EvaluatePredicate primitive: closed Subject + Op vocabulary over Predicate
 
 ### AC-2 — Per-cell positive driver: table-driven over spec.Rules() Legal cells
 
