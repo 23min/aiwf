@@ -8,6 +8,11 @@ parent: E-0033
 depends_on:
     - M-0123
 tdd: required
+acs:
+    - id: AC-1
+      title: CancelTarget(kind, currentStatus) returns retired for deprecated contracts
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -69,3 +74,6 @@ Add `addressed_by: [M-0131]` to G-0131's frontmatter in the same wrap commit.
 - **R-RULE-021** in `legal-workflows-audit.md` — the spec entry
 - **R-AUDIT-0031/0032/0033** — the per-source rules in §1
 - `internal/entity/transition.go::CancelTarget`
+
+### AC-1 — CancelTarget(kind, currentStatus) returns retired for deprecated contracts
+
