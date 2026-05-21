@@ -109,9 +109,15 @@ Per-AC outcome notes. Phase + status timeline lives in `aiwf history M-0137/AC-<
 
 ### AC-3 — fsm-history-consistent: no per-entity exec.Command — routes through helpers
 
+`batchedWalkStatusChanges` in `internal/check/fsm_history_walker.go` consumes one `gitops.BulkRevwalk` stream (whole-repo commit log) and one `gitops.BlobReader` cat-file pump for all status reads. Deleted from the rule: `walkOneEntity`, `listCommitPathPairs`, `commitParents`, `statusAtCommitPath`, `commitTrailers` — the five M-0130 per-entity helpers that each fanned out one or more `exec.Command` calls per entity. `walkStatusChanges` retained as a thin adapter so the existing M-0130 test fixtures continue to drive the same observation shape. Mechanical evidence via `internal/policies/m0137_ac3_batched_walker.go` — source-check policy asserting both files reference the batched helpers and no longer define the per-entity helpers. · commit `5a31e6e7` · policy passes
+
 ### AC-4 — history-walk-error subcode emits per failed entity (severity error)
 
+`fsm-history-consistent/history-walk-error` finding (severity error) emits per failed (entity, commit, side) read. Source: `historyWalkErrorFindings` in `internal/check/fsm_history_walker.go`; deduped per (entity, commit, side) so a multi-parent merge with the same parent-side read failing doesn't inflate the count. Test: `TestFSMHistoryConsistent_AC4_CancelledContext_EmitsWalkError` (pre-cancelled context → walker fails → finding emerges). Hint table entry + SKILL.md row landed for AI-discoverability. · commit `5a31e6e7` · 1 RED→GREEN test
+
 ### AC-5 — Walker continues past per-entity errors; partial findings preserved
+
+Partial-failure preservation pinned by `TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFindings`: a fake blobReader errors on E-0002's paths while delegating to a real BlobReader for E-0001's. The walker emits `illegal-transition` for E-0001 (good portion preserved) AND `history-walk-error` for E-0002 (failed portion surfaced) — proving the M-0130 fail-fast + entry-point swallow is gone. Closes the silent-swallow load-bearing correctness issue G-0149 flagged. · commit `5a31e6e7` · 1 RED→GREEN test
 
 ### AC-6 — Negative test: per-entity walk failure surfaces history-walk-error
 
