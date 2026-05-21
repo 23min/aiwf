@@ -207,3 +207,27 @@ func TestPolicy_FSMInvariants(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyFSMInvariants)
 }
+
+// TestPolicy_M0137AC3BatchedWalker is the mechanical evidence for
+// M-0137/AC-3: source-check that fsm_history_consistent.go uses the
+// batched gitops helpers (BulkRevwalk + BlobReader) and no longer
+// defines the per-entity walker helpers shipped with M-0130.
+//
+// SKIPPED during M-0137/AC-3+4+5 RED phase: pre-commit.local runs
+// `go test ./internal/policies/...` and blocks any failing policy
+// — a deliberately-failing RED test is indistinguishable from a
+// broken policy at the hook level. The policy itself
+// (PolicyM0137AC3BatchedWalker) is fully implemented; this test
+// merely defers activation until the GREEN phase lands the
+// retrofit. At that point the t.Skip line below is deleted and the
+// test starts enforcing.
+//
+// Until then, the policy's 6 violations against the current rule
+// source can be inspected manually via
+// `go run ./internal/policies/...` or by temporarily un-skipping
+// the test in a private session.
+func TestPolicy_M0137AC3BatchedWalker(t *testing.T) {
+	t.Parallel()
+	t.Skip("M-0137/AC-3 RED: policy deferred until GREEN retrofit; remove this Skip when fsm_history_consistent.go starts using gitops.BulkRevwalk + BlobReader and deletes the per-entity helpers")
+	runPolicy(t, PolicyM0137AC3BatchedWalker)
+}

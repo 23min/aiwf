@@ -84,6 +84,32 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 	return findings
 }
 
+// blobReader is the rule's blob-reading dep seam introduced in
+// M-0137/AC-3+5 RED phase to let tests provoke per-blob failure modes
+// that real subprocesses don't reliably produce (corrupting a single
+// blob is fs-dependent; cancellation kills the whole walk). Production
+// satisfies this via *gitops.BlobReader's Read/Close methods.
+//
+// Kept unexported because the dep injection is rule-internal; no
+// outside consumer needs it.
+type blobReader interface {
+	Read(commit, path string) ([]byte, error)
+	Close() error
+}
+
+// fsmHistoryConsistentWithDeps is the testable variant of
+// FSMHistoryConsistent: it accepts an explicit blobReader the test
+// can substitute. In M-0137/AC-3+4+5 RED phase this delegates to
+// FSMHistoryConsistent and ignores the dep — the AC-4/AC-5 test
+// suites assert findings the current rule does not emit, so the
+// dep's behavior is observed only after GREEN swaps in the new
+// batched walker.
+//
+// Kept unexported; tests live in package check (internal).
+func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree, _ blobReader) []Finding {
+	return FSMHistoryConsistent(ctx, root, t)
+}
+
 // statusChange records one observed status-change for an entity at
 // one commit, relative to one of the commit's parents. Multi-parent
 // (merge) commits may yield one observation per parent where the
