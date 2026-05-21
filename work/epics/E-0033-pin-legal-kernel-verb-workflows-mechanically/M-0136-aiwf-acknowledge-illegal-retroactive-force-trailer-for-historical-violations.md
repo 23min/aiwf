@@ -9,6 +9,10 @@ acs:
       title: 'commit shape: trailers correct, human actor + reason required'
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: predicate exempts SHAs targeted by aiwf-force-for trailer
+      status: open
+      tdd_phase: red
 ---
 ## What this milestone delivers
 
@@ -80,4 +84,6 @@ After that, `aiwf check` on the kernel repo returns 0 errors, and pre-push is un
 - Out of scope: extending the mechanism to other check rules. If a future rule wants similar retroactive override, design it then.
 
 ### AC-1 — commit shape: trailers correct, human actor + reason required
+
+### AC-2 — predicate exempts SHAs targeted by aiwf-force-for trailer
 
