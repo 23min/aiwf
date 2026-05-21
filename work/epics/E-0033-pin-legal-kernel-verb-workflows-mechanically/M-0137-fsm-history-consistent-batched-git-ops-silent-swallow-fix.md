@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: history-walk-error subcode emits per failed entity (severity error)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Walker continues past per-entity errors; partial findings preserved
