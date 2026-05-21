@@ -121,8 +121,16 @@ Partial-failure preservation pinned by `TestFSMHistoryConsistent_AC5_PartialFail
 
 ### AC-6 — Negative test: per-entity walk failure surfaces history-walk-error
 
+Contract pinned by `TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFindings` (the AC-5 test). The fake blobReader provokes a per-entity walk failure synthetically (via the `blobReader` dep seam) and asserts the rule emits a `history-walk-error` finding for the broken entity. AC-6 is the contract name; AC-5 is the implementation that pins it. Both ACs cleared by the same mechanical evidence — no additional test needed.
+
 ### AC-7 — Perf regression test: kernel tree aiwf check completes within baseline budget
+
+`TestFSMHistoryConsistent_PerfBudget` (`internal/check/fsm_history_perf_test.go`) builds a 50-entity synthetic fixture (4 status-change commits each = 200 commits) and asserts `FSMHistoryConsistent` completes within 10 seconds. Post-retrofit measured runtime on devcontainer hardware: **~122ms** — 80× under the budget. The budget is intentionally generous to absorb CI runner variance; a regression that re-introduces per-entity exec.Command at this fixture's scale would push runtime past 10s and fire the assertion. · commit `0124be73` · 1 perf test
 
 ### AC-8 — Audit catalog R-RULE-149 updated to list all four subcodes with severities
 
+`docs/pocv3/design/legal-workflows-audit.md` §10.x R-RULE-149 row rewritten: cites the batched walker explicitly (`gitops.BulkRevwalk` + `gitops.BlobReader`); lists all four subcodes (`illegal-transition`, `forced-untrailered`, `manual-edit`, `history-walk-error`) with per-subcode severities; notes the three legal-status-change subcodes partition disjointly per D-0008 while `history-walk-error` is orthogonal (walker-failure mode); records M-0137's closure of the fsm-history slice of G-0149 alongside M-0130's original implementation. · commit `5be66bce`
+
 ### AC-9 — G-0149 body updated: fsm-history slice closed; perf retrofits remain open
+
+`aiwf edit-body G-0149` rewrites the gap's body to record the partial close. New top-level **Status** section explicitly marks the fsm-history-consistent slice CLOSED in M-0137 (with the AC-7 perf number cited) and the two remaining sites (`aiwf status` worktree views, `aiwf show` scope views) OPEN with perf-only framing. The original "Silent-swallow correctness constraint" section becomes a "Closed slice retrospective" section recording the M-0130 → M-0137 arc and the negative test (AC-5) that pins the new contract. G-0149 itself stays `open` because the two interactive-verb retrofits remain — they're future small-milestone work, not blocked on anything.
