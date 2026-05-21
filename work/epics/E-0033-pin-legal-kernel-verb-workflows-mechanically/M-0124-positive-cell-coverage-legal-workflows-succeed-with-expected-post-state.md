@@ -1,7 +1,7 @@
 ---
 id: M-0124
 title: 'Positive cell coverage: legal workflows succeed with expected post-state'
-status: draft
+status: in_progress
 parent: E-0033
 depends_on:
     - M-0123
