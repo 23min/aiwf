@@ -105,6 +105,8 @@ Per-AC outcome notes. Phase + status timeline lives in `aiwf history M-0137/AC-<
 
 ### AC-2 — internal/gitops/ cat-file --batch content-reader pump
 
+`BlobReader` wraps a long-lived `git cat-file --batch` subprocess (one StdinPipe + StdoutPipe pair); `Read(commit, path)` writes one `<commit>:<path>\n` request, parses the `<sha> <type> <size>` (or `<input> missing`) header, reads exactly `size` bytes of content + the trailing LF. `ErrBlobMissing` sentinel for the not-found branch; binary content roundtrips exactly (NUL bytes + mid-content newlines preserved). `parseBatchHeader` at 100% coverage (table-driven over found / missing / wrong-field-count / non-integer-size / negative-size). · commit `54c7c24d` · 9 BlobReader tests + 8 parseBatchHeader subtests passing
+
 ### AC-3 — fsm-history-consistent: no per-entity exec.Command — routes through helpers
 
 ### AC-4 — history-walk-error subcode emits per failed entity (severity error)
