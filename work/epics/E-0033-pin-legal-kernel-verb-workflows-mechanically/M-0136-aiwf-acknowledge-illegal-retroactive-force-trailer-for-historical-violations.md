@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: 'commit shape: trailers correct, human actor + reason required'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: predicate exempts SHAs targeted by aiwf-force-for trailer
       status: open
