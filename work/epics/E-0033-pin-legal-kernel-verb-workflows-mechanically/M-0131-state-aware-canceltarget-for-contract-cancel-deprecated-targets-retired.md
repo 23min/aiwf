@@ -13,6 +13,10 @@ acs:
       title: CancelTarget(kind, currentStatus) returns retired for deprecated contracts
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: aiwf cancel on deprecated contract lands at retired without FSM error
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -76,4 +80,6 @@ Add `addressed_by: [M-0131]` to G-0131's frontmatter in the same wrap commit.
 - `internal/entity/transition.go::CancelTarget`
 
 ### AC-1 — CancelTarget(kind, currentStatus) returns retired for deprecated contracts
+
+### AC-2 — aiwf cancel on deprecated contract lands at retired without FSM error
 
