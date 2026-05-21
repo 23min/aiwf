@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: rejects out-of-history SHA with typed error
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: verb name + --reason auto-completion wired
