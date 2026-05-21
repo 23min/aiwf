@@ -40,7 +40,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-9
-      title: 'G-0148 body updated: fsm-history slice closed; perf retrofits remain open'
+      title: 'G-0149 body updated: fsm-history slice closed; perf retrofits remain open'
       status: open
       tdd_phase: red
 ---
@@ -111,4 +111,4 @@ Promote G-0149 body to record the partial close; G-0149 itself stays `open` beca
 
 ### AC-8 — Audit catalog R-RULE-149 updated to list all four subcodes with severities
 
-### AC-9 — G-0148 body updated: fsm-history slice closed; perf retrofits remain open
+### AC-9 — G-0149 body updated: fsm-history slice closed; perf retrofits remain open
