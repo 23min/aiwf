@@ -99,7 +99,13 @@ After that, `aiwf check` on the kernel repo returns 0 errors, and pre-push is un
 - Out of scope: a generic "exemption list" in `aiwf.yaml`. The acknowledgment must be a sovereign git-history event, not a config-file entry.
 - Out of scope: extending the mechanism to other check rules. If a future rule wants similar retroactive override, design it then.
 
+## Work log
+
+Per-AC outcome notes. Phase + status timeline lives in `aiwf history M-0136/AC-<N>` — not duplicated here.
+
 ### AC-1 — commit shape: trailers correct, human actor + reason required
+
+`verb.AcknowledgeIllegal(ctx, root, sha, actor, reason)` in `internal/verb/acknowledgeillegal.go` validates `--reason` non-empty + `--actor` `human/` prefix + the SHA pattern (via `gitops.ValidateTrailer`), then emits an `AllowEmpty` plan with the four trailers (`aiwf-verb: acknowledge-illegal`, `aiwf-force-for: <sha>`, `aiwf-actor: human/<name>`, `aiwf-reason: <text>`). New `TrailerForceFor = "aiwf-force-for"` constant in `internal/gitops/trailers.go` wired into `trailerOrder` + `ValidateTrailer` (7-40 hex). CLI dispatcher in `internal/cli/acknowledgeillegal/` (uses `FinishVerb`, not `DecorateAndFinish`, because the verb operates on a commit SHA not on entity FSM state). Wired into `internal/cli/root.go`. Policy extensions: `PolicyEmptyDiffCommitsCarryMarker` admits `TrailerForceFor` as a third recognized marker for intentionally-empty verb commits; `nonLegalityVerbAllowlist` records the verb's non-FSM nature. · commit `04484ee4` · 3 verb tests (CommitShape + RequiresReason × 3 sub + RequiresHumanActor × 4 sub) passing
 
 ### AC-2 — predicate exempts SHAs targeted by aiwf-force-for trailer
 
@@ -110,4 +116,6 @@ After that, `aiwf check` on the kernel repo returns 0 errors, and pre-push is un
 ### AC-5 — verb name + --reason auto-completion wired
 
 ### AC-6 — skill coverage per ADR-0006
+
+Per-verb embedded skill at `internal/skills/embedded/aiwf-acknowledge-illegal/SKILL.md` per ADR-0006. Documents when to use (and when NOT — fresh / FSM-legal-but-untrailered / non-human-actor cases route elsewhere), the four-trailer commit shape, the DAG-scoped predicate semantics (HEAD-reachable acknowledgments only, per-SHA not per-entity, disjoint from the `manual-edit` and `forced-untrailered` resolution paths), and the deliberate one-way design (CLAUDE.md §Designing a new verb — "what verb undoes this?" answer is *"you can't, and that's deliberate"*). Co-bundled with AC-1 because `PolicySkillCoverageMatchesVerbs` blocks pre-commit otherwise; this entry records the satisfied state. · commit `04484ee4` · PolicySkillCoverageMatchesVerbs passes
 
