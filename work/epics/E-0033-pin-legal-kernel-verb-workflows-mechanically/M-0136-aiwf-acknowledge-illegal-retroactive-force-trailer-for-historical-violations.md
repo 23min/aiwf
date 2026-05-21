@@ -109,13 +109,27 @@ Per-AC outcome notes. Phase + status timeline lives in `aiwf history M-0136/AC-<
 
 ### AC-2 — predicate exempts SHAs targeted by aiwf-force-for trailer
 
+`walkAcknowledgedSHAs` (in `internal/check/fsm_history_consistent.go`) walks HEAD's reachable history for commits carrying `aiwf-force-for: <sha>` trailers; the result feeds an `ackedSHAs map[string]bool` consumed by `illegalTransitionFindings`. Short SHAs (8-char human-readable form) expand to full 40-char SHAs via `git rev-parse --verify <sha>^{commit}` so map lookups against `observation.Commit` (always 40 hex) match. The walk is HEAD-reachable (not --all) so cherry-picked acknowledgments on branches that don't include the original violation can't exempt findings on this branch — DAG-scoped per the design. · commit `5c2f283f` (predicate extension) + `ea93f82d` (short-SHA fix surfaced during housekeeping) · 2 RED→GREEN tests + 1 scoped exemption test passing
+
 ### AC-3 — predicate still fires on un-acknowledged historical illegals
+
+Pinned by `TestFSMHistoryConsistent_AC3_NoAcknowledgmentStillFires`: an illegal-transition commit with NO corresponding `aiwf-force-for` ack still produces a finding. The AC-2 scoped exemption test (`TestFSMHistoryConsistent_AC2_AcknowledgmentScopedToTarget`) is the direct guardrail against the false-negative regression — it sets up two illegal commits, acknowledges only one, and asserts the un-acknowledged one's finding still emerges. The exemption is per-SHA, not per-entity, not blanket. · commit `5c2f283f` · 1 RED→GREEN test (passes today because the predicate always fires; persists as a regression guard once GREEN ships)
 
 ### AC-4 — rejects out-of-history SHA with typed error
 
+`shaReachableFromHEAD` helper (in `internal/verb/acknowledgeillegal.go`) runs `git merge-base --is-ancestor <sha> HEAD` before plan emission. Exit 0 → reachable (accept); exit 1 → not an ancestor; exit 128 → unknown SHA. Both non-zero cases surface as a typed error mentioning "not reachable from HEAD". Pinned by `TestAcknowledgeIllegal_AC4_RejectsOutOfHistorySHA` using a `deadbeefdeadbeef...` 40-hex SHA. · commit `5c2f283f` · 1 RED→GREEN test
+
 ### AC-5 — verb name + --reason auto-completion wired
+
+The verb's positional argument is a commit SHA (no closed set worth enumerating dynamically) and all three flags (`--actor`, `--root`, `--reason`) are covered by the existing global opt-outs in `TestPolicy_FlagsHaveCompletion` (role/identifier, filesystem path, free-form prose respectively). Added a one-line entry to `optOutPositional` in `completion_drift_test.go` mirroring the established pattern (e.g., `aiwf import`'s manifest path). · commit `5b10ba87` · `TestPolicy_PositionalsHaveCompletion` + `TestPolicy_FlagsHaveCompletion` both pass
 
 ### AC-6 — skill coverage per ADR-0006
 
 Per-verb embedded skill at `internal/skills/embedded/aiwf-acknowledge-illegal/SKILL.md` per ADR-0006. Documents when to use (and when NOT — fresh / FSM-legal-but-untrailered / non-human-actor cases route elsewhere), the four-trailer commit shape, the DAG-scoped predicate semantics (HEAD-reachable acknowledgments only, per-SHA not per-entity, disjoint from the `manual-edit` and `forced-untrailered` resolution paths), and the deliberate one-way design (CLAUDE.md §Designing a new verb — "what verb undoes this?" answer is *"you can't, and that's deliberate"*). Co-bundled with AC-1 because `PolicySkillCoverageMatchesVerbs` blocks pre-commit otherwise; this entry records the satisfied state. · commit `04484ee4` · PolicySkillCoverageMatchesVerbs passes
+
+## Kernel-repo housekeeping outcome
+
+Per the spec's wrap-time instruction, ran `aiwf acknowledge-illegal f4ea7329 --actor human/peter --reason "..."` against the kernel tree to clear the 4 historical `illegal-transition` errors from the pre-AC-2-era squash-merge that affected E-0020, M-0072, M-0073, M-0074. The acknowledgment commit (`fdc539b8`) carries the canonical four-trailer shape; the rule's predicate now exempts findings against `f4ea7329` while still firing on any future illegal transitions.
+
+`aiwf check` post-acknowledgment: **24 findings (0 errors, 24 warnings)** — down from 28 / 4 errors / 24 warnings. The 24 warnings (acs-tdd-audit on legacy M-0120-style ACs, entity-body-empty on M-0102's stub ACs, fsm-history-consistent's `manual-edit` subcode on G-0061's pre-rule trailer-less status flip, provenance-untrailered-scope-undefined) are all pre-existing and unrelated to M-0136. The pre-push hook no longer blocks on the historical errors.
 
