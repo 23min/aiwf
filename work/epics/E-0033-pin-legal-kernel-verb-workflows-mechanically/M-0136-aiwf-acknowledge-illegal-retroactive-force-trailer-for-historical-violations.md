@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: predicate exempts SHAs targeted by aiwf-force-for trailer
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: predicate still fires on un-acknowledged historical illegals
