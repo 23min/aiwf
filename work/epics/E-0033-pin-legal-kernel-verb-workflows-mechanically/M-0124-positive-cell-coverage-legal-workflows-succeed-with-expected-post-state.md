@@ -21,6 +21,10 @@ acs:
       title: 'Per-cell positive driver: table-driven over spec.Rules() Legal cells'
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: 'Coverage meta-test: every Legal rule has a corresponding positive subtest'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -69,4 +73,6 @@ Every legal cell in `Rules()` has at least one corresponding positive test. A me
 ### AC-2 — Fixture helpers + satisfyPredicate self-verification
 
 ### AC-3 — Per-cell positive driver: table-driven over spec.Rules() Legal cells
+
+### AC-4 — Coverage meta-test: every Legal rule has a corresponding positive subtest
 
