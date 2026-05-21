@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: internal/gitops/ cat-file --batch content-reader pump
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: 'fsm-history-consistent: no per-entity exec.Command — routes through helpers'
       status: open
