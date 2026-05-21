@@ -1107,6 +1107,47 @@ func TestCancel_OnAlreadyDoneEpic(t *testing.T) {
 	}
 }
 
+// TestCancel_DeprecatedContractLandsAtRetired is M-0131's headline
+// integration test: cancelling a deprecated contract via the cancel
+// verb lands at `retired`, not at the FSM-illegal `rejected` (which
+// was the pre-M-0131 behavior). This pins the seam where the AC-1
+// state-aware CancelTarget helper integrates with the Cancel verb.
+// A future refactor that decoupled the verb body from CancelTarget
+// (e.g., hardcoded a different cancel target inline) would be
+// caught here.
+//
+// Closes G-0131's user-visible failure: `aiwf cancel C-NNNN` on a
+// deprecated contract previously emitted "contract status
+// `deprecated` cannot transition to `rejected`"; it now succeeds
+// silently and writes the retired status to disk.
+func TestCancel_DeprecatedContractLandsAtRetired(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{}))
+	// Drive proposed -> accepted -> deprecated via force-promote.
+	// Real proposed -> accepted requires ContractBind, which is
+	// orthogonal to the cancel projection under test.
+	r.must(verb.Promote(r.ctx, r.tree(), "C-0001", entity.StatusAccepted, testActor, "test setup", true, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "C-0001", entity.StatusDeprecated, testActor, "test setup", true, verb.PromoteOptions{}))
+
+	r.must(verb.Cancel(r.ctx, r.tree(), "C-0001", testActor, "end-of-life", false))
+
+	c := r.tree().ByID("C-0001")
+	if c == nil {
+		t.Fatal("C-0001 not found after cancel")
+	}
+	if c.Status != entity.StatusRetired {
+		t.Errorf("post-cancel status = %q, want %q (deprecated -> retired is the M-0131 fix)", c.Status, entity.StatusRetired)
+	}
+
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-verb", "cancel")
+	mustHaveTrailer(t, tr, "aiwf-entity", "C-0001")
+}
+
 // TestCancel_OnAlreadyTerminalContract is the Contract-side
 // counterpart of TestCancel_OnAlreadyDoneEpic. Contract has two
 // terminal statuses (rejected = cancel-class; retired = natural-
