@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: predicate still fires on un-acknowledged historical illegals
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: rejects out-of-history SHA with typed error
