@@ -365,26 +365,41 @@ func TestTDDPhaseFSM_IsLegalTDDPhaseTransition_TotalOverClosedSet(t *testing.T) 
 	}
 }
 
-// TestCancelTarget_AllKinds: CancelTarget returns a status that is
-// (a) in the kind's closed set, and (b) terminal in the kind's FSM.
-// This pins the cancel verb's commitment that "any non-terminal
-// entity can be cancelled to a terminal state in one step."
+// TestCancelTarget_AllKinds: CancelTarget(kind, currentStatus) returns
+// a status that is (a) in the kind's closed set, and (b) terminal in
+// the kind's FSM — for every non-terminal current status. Since the
+// M-0131 state-aware signature, the invariant is per (kind ×
+// non-terminal status) cell rather than per kind. This pins the
+// cancel verb's commitment that "any non-terminal entity can be
+// cancelled to a terminal state in one step" while permitting
+// state-aware target selection (e.g., Contract.deprecated → retired).
+//
+// Terminal current statuses are exempt — the verb's "already at
+// target" guard handles them and an empty CancelTarget there is
+// correct.
 func TestCancelTarget_AllKinds(t *testing.T) {
 	t.Parallel()
 	for kind := range transitions {
-		t.Run(string(kind), func(t *testing.T) {
-			t.Parallel()
-			target := CancelTarget(kind)
-			if target == "" {
-				t.Fatalf("%s: CancelTarget returned empty", kind)
+		for from := range transitions[kind] {
+			if IsTerminal(kind, from) {
+				continue
 			}
-			if !IsAllowedStatus(kind, target) {
-				t.Errorf("%s: CancelTarget %q not in AllowedStatuses", kind, target)
-			}
-			if outs := transitions[kind][target]; len(outs) != 0 {
-				t.Errorf("%s: CancelTarget %q is not terminal (outgoing: %v)", kind, target, outs)
-			}
-		})
+			name := string(kind) + "/" + from
+			currentStatus := from
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+				target := CancelTarget(kind, currentStatus)
+				if target == "" {
+					t.Fatalf("%s/%s: CancelTarget returned empty for a non-terminal current status", kind, currentStatus)
+				}
+				if !IsAllowedStatus(kind, target) {
+					t.Errorf("%s/%s: CancelTarget %q not in AllowedStatuses", kind, currentStatus, target)
+				}
+				if outs := transitions[kind][target]; len(outs) != 0 {
+					t.Errorf("%s/%s: CancelTarget %q is not terminal (outgoing: %v)", kind, currentStatus, target, outs)
+				}
+			})
+		}
 	}
 }
 

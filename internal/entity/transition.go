@@ -103,18 +103,46 @@ func IsTerminal(k Kind, status string) bool {
 }
 
 // CancelTarget returns the kind's terminal-cancel status — the one
-// `aiwf cancel` promotes any non-terminal entity to. Used by the cancel
-// verb to know which terminal status maps to "discarded": cancelled
-// for epic/milestone, rejected for adr/decision/contract, wontfix for
-// gap.
-func CancelTarget(k Kind) string {
+// `aiwf cancel` promotes any non-terminal entity to. Used by the
+// cancel verb to know which terminal status maps to "discarded".
+//
+// Five kinds are status-agnostic; their `currentStatus` argument is
+// ignored:
+//   - epic / milestone → "cancelled"
+//   - adr / decision   → "rejected"
+//   - gap              → "wontfix"
+//
+// Contract is state-aware (M-0131 / G-0131): its FSM has no
+// `deprecated → rejected` edge, so cancelling a deprecated contract
+// must target `retired` (the natural lifecycle terminal from
+// `deprecated`), not `rejected`. The earlier status-agnostic shape
+// returned "rejected" unconditionally and left operators unable to
+// cancel a deprecated contract through the verb.
+//
+//	contract.proposed   → rejected
+//	contract.accepted   → rejected
+//	contract.deprecated → retired
+//	contract.{retired,rejected,unknown} → ""  (caller surfaces "no
+//	    cancel target" rather than picking an FSM-illegal target)
+//
+// Unknown kinds return "" — defensive against future kind additions
+// where CancelTarget hasn't been wired yet.
+func CancelTarget(k Kind, currentStatus string) string {
 	switch k {
 	case KindEpic, KindMilestone:
-		return "cancelled"
-	case KindADR, KindDecision, KindContract:
-		return "rejected"
+		return StatusCancelled
+	case KindADR, KindDecision:
+		return StatusRejected
 	case KindGap:
-		return "wontfix"
+		return StatusWontfix
+	case KindContract:
+		switch currentStatus {
+		case StatusProposed, StatusAccepted:
+			return StatusRejected
+		case StatusDeprecated:
+			return StatusRetired
+		}
+		return ""
 	}
 	return ""
 }

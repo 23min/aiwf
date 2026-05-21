@@ -69,24 +69,54 @@ func TestValidateTransition_Forbidden(t *testing.T) {
 	}
 }
 
+// TestCancelTarget covers the (kind, currentStatus) → terminal-cancel
+// mapping. Five kinds are status-agnostic (the second arg is ignored);
+// Contract is state-aware (M-0131 / G-0131): cancelling a deprecated
+// contract lands at `retired`, not the FSM-illegal `rejected`. Terminal
+// states return "" — there's no cancel target for an already-terminal
+// entity.
 func TestCancelTarget(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		kind Kind
-		want string
+		name          string
+		kind          Kind
+		currentStatus string
+		want          string
 	}{
-		{KindEpic, "cancelled"},
-		{KindMilestone, "cancelled"},
-		{KindADR, "rejected"},
-		{KindDecision, "rejected"},
-		{KindGap, "wontfix"},
-		{KindContract, "rejected"},
+		// Epic / Milestone / ADR / Decision / Gap — status-agnostic;
+		// the second arg is ignored. The verb's `if e.Status == target`
+		// guard handles "already at target"; FSM legality of the move
+		// is upstream of CancelTarget's contract.
+		{"epic-from-proposed", KindEpic, StatusProposed, StatusCancelled},
+		{"epic-from-active", KindEpic, StatusActive, StatusCancelled},
+		{"milestone-from-draft", KindMilestone, StatusDraft, StatusCancelled},
+		{"milestone-from-in_progress", KindMilestone, StatusInProgress, StatusCancelled},
+		{"adr-from-proposed", KindADR, StatusProposed, StatusRejected},
+		{"adr-from-accepted", KindADR, StatusAccepted, StatusRejected},
+		{"decision-from-proposed", KindDecision, StatusProposed, StatusRejected},
+		{"decision-from-accepted", KindDecision, StatusAccepted, StatusRejected},
+		{"gap-from-open", KindGap, StatusOpen, StatusWontfix},
+		// Contract — state-aware (M-0131 / G-0131). The deprecated-
+		// from case is the bug-fix; the others match historical
+		// behavior.
+		{"contract-from-proposed", KindContract, StatusProposed, StatusRejected},
+		{"contract-from-accepted", KindContract, StatusAccepted, StatusRejected},
+		{"contract-from-deprecated", KindContract, StatusDeprecated, StatusRetired},
+		// Contract terminal-or-unknown current status — no cancel
+		// target. The verb caller surfaces the absence as "no cancel
+		// target for this kind/status" rather than picking an
+		// FSM-illegal projection.
+		{"contract-already-retired", KindContract, StatusRetired, ""},
+		{"contract-already-rejected", KindContract, StatusRejected, ""},
+		{"contract-unknown-status", KindContract, "junk", ""},
+		// Unknown kind — empty regardless of status.
+		{"unknown-kind", Kind("bogus"), StatusProposed, ""},
 	}
 	for _, tt := range tests {
-		t.Run(string(tt.kind), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := CancelTarget(tt.kind); got != tt.want {
-				t.Errorf("CancelTarget(%s) = %q, want %q", tt.kind, got, tt.want)
+			if got := CancelTarget(tt.kind, tt.currentStatus); got != tt.want {
+				t.Errorf("CancelTarget(%s, %q) = %q, want %q", tt.kind, tt.currentStatus, got, tt.want)
 			}
 		})
 	}

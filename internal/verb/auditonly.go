@@ -118,12 +118,28 @@ func CancelAuditOnly(ctx context.Context, t *tree.Tree, id, actor, reason string
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	target := entity.CancelTarget(e.Kind)
-	if target == "" {
-		return nil, fmt.Errorf("kind %q has no cancel target", e.Kind)
+	// Audit-only precondition: the entity must already be at one of
+	// the kind's cancel-class terminal statuses. Since M-0131 the
+	// cancel projection is state-aware (Contract.deprecated →
+	// retired), so the set of cancel-class terminals can be larger
+	// than one (Contract: {rejected, retired}). Compute the set by
+	// reverse-lookup — every non-terminal predecessor contributes its
+	// CancelTarget — so auditonly stays in lock-step with the cancel
+	// verb's projection map without duplicating the per-kind data.
+	cancelTerminals := make(map[string]struct{})
+	for _, predecessor := range entity.AllowedStatuses(e.Kind) {
+		if entity.IsTerminal(e.Kind, predecessor) {
+			continue
+		}
+		if t := entity.CancelTarget(e.Kind, predecessor); t != "" {
+			cancelTerminals[t] = struct{}{}
+		}
 	}
-	if e.Status != target {
-		return nil, fmt.Errorf("aiwf cancel --audit-only: %s is at %q, not the terminal-cancel target %q (audit-only records what's already true)", id, e.Status, target)
+	if len(cancelTerminals) == 0 {
+		return nil, fmt.Errorf("kind %q has no cancel-class terminals", e.Kind)
+	}
+	if _, ok := cancelTerminals[e.Status]; !ok {
+		return nil, fmt.Errorf("aiwf cancel --audit-only: %s is at %q, which is not a cancel-class terminal for kind %s (audit-only records what's already true)", id, e.Status, e.Kind)
 	}
 	// Cancel does not emit aiwf-to: per the existing convention; the
 	// terminal target is implicit per kind.
