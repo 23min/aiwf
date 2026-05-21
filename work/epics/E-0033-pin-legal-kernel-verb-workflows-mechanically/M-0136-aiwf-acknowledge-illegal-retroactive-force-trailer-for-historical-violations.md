@@ -13,6 +13,10 @@ acs:
       title: predicate exempts SHAs targeted by aiwf-force-for trailer
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: predicate still fires on un-acknowledged historical illegals
+      status: open
+      tdd_phase: red
 ---
 ## What this milestone delivers
 
@@ -86,4 +90,6 @@ After that, `aiwf check` on the kernel repo returns 0 errors, and pre-push is un
 ### AC-1 — commit shape: trailers correct, human actor + reason required
 
 ### AC-2 — predicate exempts SHAs targeted by aiwf-force-for trailer
+
+### AC-3 — predicate still fires on un-acknowledged historical illegals
 
