@@ -14,7 +14,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-2
-      title: 'Per-cell positive driver: table-driven over spec.Rules() Legal cells'
+      title: Fixture helpers + satisfyPredicate self-verification
       status: open
       tdd_phase: red
     - id: AC-3
@@ -66,7 +66,7 @@ Every legal cell in `Rules()` has at least one corresponding positive test. A me
 
 ### AC-1 — spec.EvaluatePredicate primitive: closed Subject + Op vocabulary over Predicate
 
-### AC-2 — Per-cell positive driver: table-driven over spec.Rules() Legal cells
+### AC-2 — Fixture helpers + satisfyPredicate self-verification
 
 ### AC-3 — Coverage meta-test: every Legal rule has a corresponding positive subtest
 
