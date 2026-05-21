@@ -137,3 +137,33 @@ func mustHaveTrailerInPlanList(t *testing.T, trailers []gitops.Trailer, key, val
 	}
 	t.Errorf("trailer %s=%q not present in plan; got %+v", key, value, trailers)
 }
+
+// TestAcknowledgeIllegal_AC4_RejectsOutOfHistorySHA pins M-0136/AC-4:
+// a SHA that doesn't resolve to a commit reachable from HEAD is
+// rejected with a typed error mentioning "not reachable". Prevents
+// silent accumulation of no-op acknowledgments (typos, copy-paste
+// errors, SHAs from orphaned branches).
+//
+// RED today: the verb only validates the SHA's hex shape, not its
+// reachability. Any valid-shape SHA passes; the test asserts an
+// error mentioning "reachable" and FAILS because the verb succeeds
+// in producing a plan.
+func TestAcknowledgeIllegal_AC4_RejectsOutOfHistorySHA(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	// Need at least one commit so HEAD exists for the reachability
+	// check (otherwise "no commits" is the failure mode, not
+	// "not reachable").
+	commitOne(t, r.root, "alpha.md", "alpha v1\n", "real commit")
+
+	// 40-hex SHA with the right shape but not in HEAD's history.
+	const bogusSHA = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+
+	_, err := verb.AcknowledgeIllegal(r.ctx, r.root, bogusSHA, testActor, "typo in the SHA")
+	if err == nil {
+		t.Fatal("expected error for out-of-history SHA; got nil")
+	}
+	if !strings.Contains(err.Error(), "reachable") {
+		t.Errorf("expected error mentioning reachability for SHA %s; got %v", bogusSHA, err)
+	}
+}

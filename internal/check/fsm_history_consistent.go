@@ -166,7 +166,8 @@ func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree
 
 	acksByEntity := walkAuditOnlyAcksByEntity(ctx, root)
 	ackedObs := computeAckedObservations(ctx, root, observations, acksByEntity)
-	findings = append(findings, illegalTransitionFindings(observations)...)
+	ackedSHAs := walkAcknowledgedSHAs(ctx, root)
+	findings = append(findings, illegalTransitionFindings(observations, ackedSHAs)...)
 	findings = append(findings, forcedUntraileredFindings(observations)...)
 	findings = append(findings, manualEditFindings(observations, ackedObs)...)
 	return findings
@@ -312,7 +313,21 @@ func hasGitCommits(ctx context.Context, root string) bool {
 // the transition: it's the kernel's sovereign override and the
 // trailer records the human's accountability per the provenance
 // model.
-func illegalTransitionFindings(observations []statusChange) []Finding {
+//
+// M-0136/AC-2 extension: ackedSHAs carries the set of commit SHAs
+// that have been retroactively acknowledged via `aiwf
+// acknowledge-illegal` — current-day commits with an
+// `aiwf-force-for: <historical-sha>` trailer in HEAD's reachable
+// history. Observations whose Commit appears in ackedSHAs are
+// exempted (same shape as the inline aiwf-force exemption, but
+// recorded out-of-band so the historical commit doesn't need to be
+// rewritten).
+//
+// The exemption is per-SHA (M-0136/AC-2 scoped): an acknowledgment
+// for one SHA does NOT exempt findings against other illegal
+// commits. Per-SHA scoping is the closed-set guarantee — there is
+// no "exempt everything" knob.
+func illegalTransitionFindings(observations []statusChange, ackedSHAs map[string]bool) []Finding {
 	var out []Finding
 	for i := range observations {
 		o := &observations[i]
@@ -323,6 +338,9 @@ func illegalTransitionFindings(observations []statusChange) []Finding {
 			continue
 		}
 		if _, hasForce := o.Trailers[gitops.TrailerForce]; hasForce {
+			continue
+		}
+		if ackedSHAs[o.Commit] {
 			continue
 		}
 		out = append(out, Finding{
@@ -339,6 +357,61 @@ func illegalTransitionFindings(observations []statusChange) []Finding {
 		})
 	}
 	return out
+}
+
+// walkAcknowledgedSHAs walks HEAD's reachable history for commits
+// carrying an `aiwf-force-for: <sha>` trailer (per M-0136) and
+// returns the set of target SHAs. The set is consumed by
+// illegalTransitionFindings to exempt acknowledged illegal-transition
+// observations.
+//
+// Returns nil for non-git directories and empty histories; the
+// consumer treats nil and an empty map identically (no exemptions).
+//
+// The walk is HEAD-reachable (not --all) because the exemption is
+// DAG-scoped: a cherry-picked acknowledgment on a branch that
+// doesn't include the original violation must not exempt findings
+// on this branch. HEAD's reachable set is precisely the set of
+// commits this branch sees, so the exemption only applies when the
+// acknowledgment's history actually contains the offending commit.
+//
+// Reads via one `git log` subprocess + the gitops.ParseTrailers
+// helper. Performance: O(reachable-commits) once per check
+// invocation; for kernel-tree-sized repos under a second.
+func walkAcknowledgedSHAs(ctx context.Context, root string) map[string]bool {
+	if root == "" || !hasGitCommits(ctx, root) {
+		return nil
+	}
+	cmd := exec.CommandContext(ctx, "git", "log",
+		"--pretty=format:%H%x00%(trailers:unfold=true)%x00",
+		"HEAD")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	acked := map[string]bool{}
+	parts := strings.Split(string(out), "\x00")
+	for i := 0; i+1 < len(parts); i += 2 {
+		// parts[i] is the commit SHA (one acknowledged each); parts[i+1]
+		// is its trailer block.
+		trailerBlock := parts[i+1]
+		if trailerBlock == "" {
+			continue
+		}
+		parsed := gitops.ParseTrailers(trailerBlock)
+		for _, tr := range parsed {
+			if tr.Key != gitops.TrailerForceFor {
+				continue
+			}
+			sha := strings.TrimSpace(tr.Value)
+			if sha == "" {
+				continue
+			}
+			acked[sha] = true
+		}
+	}
+	return acked
 }
 
 // isLegalTransition reports whether (prior → next) is an edge in

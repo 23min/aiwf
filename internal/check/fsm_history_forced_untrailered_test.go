@@ -397,7 +397,7 @@ func TestForcedUntraileredAndIllegal_DisjointPerD0008(t *testing.T) {
 					Trailers:   nil,
 				},
 			}
-			illegal := illegalTransitionFindings(obs)
+			illegal := illegalTransitionFindings(obs, nil)
 			forced := forcedUntraileredFindings(obs)
 			if len(illegal) != 0 {
 				t.Errorf("sovereign-act-shape %s %s->%s should be FSM-legal (no illegal-transition finding); got %+v",

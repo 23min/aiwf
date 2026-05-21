@@ -391,7 +391,7 @@ func TestThreeSubcodes_Disjoint_PerD0008(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			obs := []statusChange{c.obs}
-			illegal := illegalTransitionFindings(obs)
+			illegal := illegalTransitionFindings(obs, nil)
 			forced := forcedUntraileredFindings(obs)
 			manual := manualEditFindings(obs, nil)
 			total := len(illegal) + len(forced) + len(manual)
