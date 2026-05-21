@@ -42,7 +42,7 @@ acs:
     - id: AC-9
       title: 'G-0149 body updated: fsm-history slice closed; perf retrofits remain open'
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
