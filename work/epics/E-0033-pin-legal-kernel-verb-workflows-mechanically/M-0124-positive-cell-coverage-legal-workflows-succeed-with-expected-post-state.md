@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: 'Per-cell positive driver: table-driven over spec.Rules() Legal cells'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: 'Coverage meta-test: every Legal rule has a corresponding positive subtest'
