@@ -12,7 +12,7 @@ acs:
     - id: AC-1
       title: 'spec.EvaluatePredicate primitive: closed Subject + Op vocabulary over Predicate'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Fixture helpers + satisfyPredicate self-verification
       status: open
