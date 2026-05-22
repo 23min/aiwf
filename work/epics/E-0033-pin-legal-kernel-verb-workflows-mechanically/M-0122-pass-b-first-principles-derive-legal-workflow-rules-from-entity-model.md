@@ -17,6 +17,7 @@ acs:
     - id: AC-3
       title: R-FP-NNNN rule rows have non-empty schema fields
       status: met
+      tdd_phase: done
     - id: AC-4
       title: R-FP-NNNN ids unique and contiguous starting at R-FP-0001
       status: met
