@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,6 +33,13 @@ type WorktreeView struct {
 	DriverStatus   string    `json:"driver_status,omitempty"`
 	DriverTitle    string    `json:"driver_title,omitempty"`
 	Stale          bool      `json:"stale,omitempty"`
+	// AheadOfTrunk is the count of commits on this worktree's branch
+	// that are ahead of main. Zero on git failure or when the branch
+	// is fully merged into trunk. Used by the stale-rendering arm to
+	// distinguish wrap-pending (driver terminal + ahead > 0; merge
+	// before removal) from safe-to-remove (driver terminal + ahead = 0;
+	// commits are on trunk so the worktree can be removed). G-0153.
+	AheadOfTrunk int `json:"ahead_of_trunk,omitempty"`
 	// Populated only when DriverKind == "epic": milestones under this
 	// epic + gaps the epic (or its milestones) closes + gaps the epic
 	// (or its milestones) surfaced.
@@ -133,6 +141,10 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 			if t, err := branchFirstAheadCommitTime(ctx, rootDir, wt.Branch); err == nil {
 				v.CreatedTime = t
 			}
+			// Ahead-of-trunk count: drives the stale-arm's
+			// wrap-pending-vs-safe-to-remove decision when the driver
+			// is terminal. Best-effort; zero on any git failure. G-0153.
+			v.AheadOfTrunk = branchAheadOfTrunkCount(ctx, rootDir, wt.Branch)
 			// Last entity touch: most recent commit on the branch
 			// with an aiwf-verb trailer. Best-effort; zero when no
 			// aiwf-verb commits exist on the branch.
@@ -635,18 +647,15 @@ func renderWorktreeSection(w io.Writer, v *WorktreeView, colorEnabled bool) erro
 		_, err := fmt.Fprintln(w, render.Dim("  No in-flight scope (trunk)", colorEnabled))
 		return err
 	}
-	// Stale worktrees: render the driver row + STALE marker; no
-	// kind-specific expansion (the worktree's job is done; the
-	// operator just needs to clean up). Print the standard driver
-	// row regardless of kind for stale.
+	// Stale worktrees branch three ways (G-0153):
+	//   - cancelled / rejected / wontfix → "abandoned"; safe to remove
+	//   - positive terminal + branch ahead of trunk → "wrap pending";
+	//     the operator must merge before removing. Full body context
+	//     (parent epic, ACs, depends_on, surfaced gaps) is preserved
+	//     because the wrap step is still in front of them.
+	//   - positive terminal + branch fully merged → "safe to remove"
 	if v.Stale {
-		if _, err := fmt.Fprintf(w, "  %s — %s %s\n", v.DriverEntityID, v.DriverTitle, render.StatusColor("["+v.DriverStatus+"]", v.DriverStatus, colorEnabled)); err != nil {
-			return err
-		}
-		_, err := fmt.Fprintf(w, "  %s — driver is terminal; cleanup: %s\n",
-			render.Bold("STALE", colorEnabled),
-			render.Dim("git worktree remove "+v.Path, colorEnabled))
-		return err
+		return renderStaleSection(w, v, colorEnabled)
 	}
 	switch v.DriverKind {
 	case string(entity.KindEpic):
@@ -675,6 +684,103 @@ func renderWorktreeSection(w io.Writer, v *WorktreeView, colorEnabled bool) erro
 			render.StatusColor("["+v.DriverStatus+"]", v.DriverStatus, colorEnabled))
 		return err
 	}
+}
+
+// renderStaleSection handles the three terminal-driver cases per G-0153.
+// The shape of each case is driven by two questions:
+//
+//  1. Was the driver positively terminal (done/addressed/etc.) or
+//     negatively terminal (cancelled/rejected/wontfix)? Negative
+//     terminal is "abandoned" — the work isn't landing, so the
+//     worktree can be cleaned up regardless of ahead-of-trunk count.
+//  2. For positive terminal: are the branch's commits on trunk yet
+//     (AheadOfTrunk == 0) or still local (> 0)? "Still local" means
+//     the wrap step is pending — removing the worktree would drop
+//     the working tree before the merge, so the cleanup hint is
+//     inverted ("merge first" not "remove now").
+//
+// In all three cases the parent-epic breadcrumb is restored vs the
+// prior implementation: terminal driver status doesn't change the
+// fact that the worktree belongs under E-NNNN, and the active parent
+// epic is exactly the context the operator wants while reading a
+// done-but-not-yet-merged milestone ("right, this is the wrap step
+// in E-NNNN").
+func renderStaleSection(w io.Writer, v *WorktreeView, colorEnabled bool) error {
+	cancelledFlavor := v.DriverStatus == entity.StatusCancelled ||
+		v.DriverStatus == entity.StatusRejected ||
+		v.DriverStatus == entity.StatusWontfix
+
+	// Wrap-pending: positively terminal driver with unmerged commits.
+	// Preserve the full body layout (parent epic, ACs, depends_on,
+	// surfaced gaps) by delegating to the kind-specific in-flight
+	// renderer, then append a WRAP PENDING marker that names the
+	// pending step explicitly. No `git worktree remove` suggestion —
+	// running it now would drop the wrap-step working tree.
+	if !cancelledFlavor && v.AheadOfTrunk > 0 {
+		switch v.DriverKind {
+		case string(entity.KindEpic):
+			if _, err := fmt.Fprintf(w, "  %s — %s %s\n",
+				render.Bold(v.DriverEntityID, colorEnabled),
+				v.DriverTitle,
+				render.StatusColor("["+v.DriverStatus+"]", v.DriverStatus, colorEnabled)); err != nil {
+				return err
+			}
+			if err := renderEpicExpansion(w, v, colorEnabled); err != nil {
+				return err
+			}
+		case string(entity.KindMilestone):
+			if err := renderMilestoneDriver(w, v, colorEnabled); err != nil {
+				return err
+			}
+		default:
+			if _, err := fmt.Fprintf(w, "  %s — %s %s\n",
+				render.Bold(v.DriverEntityID, colorEnabled),
+				v.DriverTitle,
+				render.StatusColor("["+v.DriverStatus+"]", v.DriverStatus, colorEnabled)); err != nil {
+				return err
+			}
+		}
+		commitsWord := "commits"
+		if v.AheadOfTrunk == 1 {
+			commitsWord = "commit"
+		}
+		_, err := fmt.Fprintf(w, "  %s — driver %s but branch ahead of trunk by %d %s; merge to trunk before removing\n",
+			render.Bold("WRAP PENDING", colorEnabled),
+			v.DriverStatus,
+			v.AheadOfTrunk,
+			commitsWord)
+		return err
+	}
+
+	// Compact rendering for safe-to-remove and abandoned cases.
+	// Parent-epic breadcrumb comes first (when applicable) so the
+	// operator sees the structural context before the cleanup hint.
+	if v.DriverKind == string(entity.KindMilestone) && v.ParentEpicID != "" {
+		if _, err := fmt.Fprintf(w, "  %s — %s %s\n",
+			render.Bold(v.ParentEpicID, colorEnabled),
+			v.ParentEpicTitle,
+			render.StatusColor("["+v.ParentEpicStatus+"]", v.ParentEpicStatus, colorEnabled)); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(w, "  %s — %s %s\n",
+		v.DriverEntityID,
+		v.DriverTitle,
+		render.StatusColor("["+v.DriverStatus+"]", v.DriverStatus, colorEnabled)); err != nil {
+		return err
+	}
+	if cancelledFlavor {
+		_, err := fmt.Fprintf(w, "  %s — driver was %s; cleanup: %s\n",
+			render.Bold("ABANDONED", colorEnabled),
+			v.DriverStatus,
+			render.Dim("git worktree remove "+v.Path, colorEnabled))
+		return err
+	}
+	_, err := fmt.Fprintf(w, "  %s — driver %s and branch merged to trunk; cleanup: %s\n",
+		render.Bold("SAFE TO REMOVE", colorEnabled),
+		v.DriverStatus,
+		render.Dim("git worktree remove "+v.Path, colorEnabled))
+	return err
 }
 
 func renderEpicExpansion(w io.Writer, v *WorktreeView, colorEnabled bool) error {
@@ -1076,6 +1182,29 @@ func branchLastEntityCommitTime(ctx context.Context, rootDir, branch string) (ti
 		return time.Time{}, nil
 	}
 	return time.Parse(time.RFC3339, s)
+}
+
+// branchAheadOfTrunkCount returns the count of commits on `branch`
+// that are ahead of main — i.e. the number of unmerged commits this
+// worktree carries. Zero on any git failure or when the branch is
+// fully merged into trunk (or doesn't exist).
+//
+// Used by the stale-rendering arm to distinguish wrap-pending (count
+// > 0; the operator must merge before removing) from safe-to-remove
+// (count == 0; commits live on trunk so removal is non-destructive).
+// G-0153.
+func branchAheadOfTrunkCount(ctx context.Context, rootDir, branch string) int {
+	cmd := exec.CommandContext(ctx, "git", "rev-list", "--count", "main.."+branch)
+	cmd.Dir = rootDir
+	out, err := cmd.Output()
+	if err != nil {
+		return 0
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(string(out)))
+	if err != nil {
+		return 0
+	}
+	return n
 }
 
 // branchAge is one local branch's name + its HEAD commit time. Used

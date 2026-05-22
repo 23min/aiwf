@@ -413,20 +413,137 @@ func TestRenderWorktreeViews(t *testing.T) {
 			mustNot: []string{"No in-flight scope (trunk)"},
 		},
 		{
-			name: "stale worktree inline marker + cleanup hint",
+			// G-0153: safe-to-remove case. Positively-terminal driver with
+			// zero ahead-of-trunk commits means the work is on trunk;
+			// removing the worktree is non-destructive. Parent-epic
+			// breadcrumb is restored (vs the pre-fix stale arm which
+			// elided it). Cleanup hint suggests the remove command.
+			name: "stale milestone, branch merged to trunk: SAFE TO REMOVE with parent epic",
 			views: []WorktreeView{
 				{
-					Path: "/repo/wt-old", Branch: "milestone/M-0099-old",
+					Path: "/repo/wt-merged", Branch: "milestone/M-0099-old",
 					DriverEntityID: "M-0099", DriverKind: "milestone",
 					DriverStatus: "done", DriverTitle: "Old work", Stale: true,
+					AheadOfTrunk:    0,
+					ParentEpicID:    "E-0042",
+					ParentEpicTitle: "Closed Epic",
+					ParentEpicStatus: "done",
 				},
 			},
 			mustHave: []string{
-				"Worktree: /repo/wt-old",
+				"Worktree: /repo/wt-merged",
 				"⎇ milestone/M-0099-old",
+				"E-0042 — Closed Epic [done]",
 				"M-0099 — Old work [done]",
+				"SAFE TO REMOVE",
+				"driver done and branch merged to trunk",
+				"git worktree remove /repo/wt-merged",
+			},
+			mustNot: []string{
+				"STALE — driver is terminal", // old phrasing must be gone
+				"WRAP PENDING",
+				"ABANDONED",
+			},
+		},
+		{
+			// G-0153: wrap-pending case. Positively-terminal driver with
+			// ahead-of-trunk > 0 means the merge step is still pending;
+			// removing the worktree would drop the working tree mid-wrap.
+			// Full body context (parent epic + ACs + depends_on + surfaced
+			// gaps) is preserved, no `git worktree remove` hint emitted.
+			name: "stale milestone, branch ahead of trunk: WRAP PENDING preserves body, no remove hint",
+			views: []WorktreeView{
+				{
+					Path: "/repo/wt-wrap", Branch: "milestone/M-0124-wrap",
+					DriverEntityID: "M-0124", DriverKind: "milestone",
+					DriverStatus: "done", DriverTitle: "Wrap pending", Stale: true,
+					AheadOfTrunk:    5,
+					ParentEpicID:    "E-0033",
+					ParentEpicTitle: "Pin legal workflows",
+					ParentEpicStatus: "active",
+					ACs: []ACRow{
+						{ID: "AC-1", Title: "First AC", Status: "met", TDDPhase: "done"},
+					},
+					DependsOn: []EpicChildRow{
+						{ID: "M-0123", Title: "Reconcile", Status: "done"},
+					},
+					SurfacedGaps: []EpicChildRow{
+						{ID: "G-0151", Title: "worktree-tree resolution", Status: "open"},
+					},
+				},
+			},
+			mustHave: []string{
+				"E-0033 — Pin legal workflows [active]",
+				"→ M-0124 — Wrap pending [done]  (driven)",
+				"depends on:",
+				"M-0123 — Reconcile [done]",
+				"ACs:",
+				"AC-1 — First AC [met, done]",
+				"Surfaced gaps:",
+				"G-0151 — worktree-tree resolution [open]",
+				"WRAP PENDING",
+				"driver done but branch ahead of trunk by 5 commits",
+				"merge to trunk before removing",
+			},
+			mustNot: []string{
 				"STALE — driver is terminal",
-				"git worktree remove /repo/wt-old",
+				"SAFE TO REMOVE",
+				"ABANDONED",
+				"git worktree remove", // critical: this hint must NOT appear
+			},
+		},
+		{
+			// G-0153: wrap-pending uses singular "commit" when ahead-of-
+			// trunk is 1, plural "commits" otherwise. Anchors the
+			// pluralization helper.
+			name: "wrap-pending singular form when AheadOfTrunk == 1",
+			views: []WorktreeView{
+				{
+					Path: "/repo/wt-one", Branch: "milestone/M-0100-one",
+					DriverEntityID: "M-0100", DriverKind: "milestone",
+					DriverStatus: "done", DriverTitle: "Just one", Stale: true,
+					AheadOfTrunk: 1,
+				},
+			},
+			mustHave: []string{
+				"WRAP PENDING",
+				"branch ahead of trunk by 1 commit;",
+			},
+			mustNot: []string{
+				"by 1 commits",
+				"by 0 commit",
+			},
+		},
+		{
+			// G-0153: abandoned case. Negatively-terminal driver
+			// (cancelled / rejected / wontfix) is always "abandoned"
+			// regardless of ahead-of-trunk — the work isn't landing, so
+			// the worktree can be cleaned up. Parent-epic breadcrumb
+			// still renders for context.
+			name: "stale milestone, cancelled driver: ABANDONED with parent epic, ignoring ahead-count",
+			views: []WorktreeView{
+				{
+					Path: "/repo/wt-abandoned", Branch: "milestone/M-0066-dropped",
+					DriverEntityID: "M-0066", DriverKind: "milestone",
+					DriverStatus: "cancelled", DriverTitle: "Dropped work", Stale: true,
+					AheadOfTrunk:    3, // intentional: irrelevant for abandoned
+					ParentEpicID:    "E-0050",
+					ParentEpicTitle: "Older epic",
+					ParentEpicStatus: "active",
+				},
+			},
+			mustHave: []string{
+				"E-0050 — Older epic [active]",
+				"M-0066 — Dropped work [cancelled]",
+				"ABANDONED",
+				"driver was cancelled",
+				"git worktree remove /repo/wt-abandoned",
+			},
+			mustNot: []string{
+				"STALE — driver is terminal",
+				"WRAP PENDING",
+				"SAFE TO REMOVE",
+				"merge to trunk before removing",
 			},
 		},
 		{
