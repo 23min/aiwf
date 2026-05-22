@@ -1,7 +1,9 @@
 ---
-id: G-0155
+id: G-0160
 title: per-edge FSM coverage drift unpoliced (spec table vs entity.transitions)
 status: open
+prior_ids:
+    - G-0155
 discovered_in: M-0124
 ---
 ## Problem
