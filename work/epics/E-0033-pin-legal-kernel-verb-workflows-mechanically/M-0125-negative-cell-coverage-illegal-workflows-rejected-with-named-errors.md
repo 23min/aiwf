@@ -1,7 +1,7 @@
 ---
 id: M-0125
 title: 'Negative cell coverage: illegal workflows rejected with named errors'
-status: draft
+status: in_progress
 parent: E-0033
 depends_on:
     - M-0123
