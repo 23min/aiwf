@@ -185,6 +185,43 @@ func Compare(a, b Info) Skew {
 	return SkewEqual
 }
 
+// PseudoBase extracts the base version from a Go module pseudo-version
+// string per https://go.dev/ref/mod#pseudo-versions. The base is what
+// the proxy would resolve as the "would-be next release" — the tag the
+// pseudo-version's commit implies it could be a pre-release of:
+//
+//	v0.0.0-DATE-SHA          → "v0.0.0"     (no parent tag)
+//	vX.Y.(Z+1)-0.DATE-SHA    → "vX.Y.(Z+1)" (commits after vX.Y.Z)
+//	vX.Y.Z-pre.0.DATE-SHA    → "vX.Y.Z-pre" (between vX.Y.Z-pre and vX.Y.Z)
+//
+// Returns ok=false when v does not match the pseudo-version shape. Used
+// by aiwf upgrade --check to detect the "freshly-pushed tag not yet
+// visible via the proxy CDN" case, where the resolved target is older
+// than what the running binary's pseudo-base implies.
+func PseudoBase(v string) (string, bool) {
+	loc := pseudoVersionRE.FindStringIndex(v)
+	if loc == nil {
+		return "", false
+	}
+	start := loc[0]
+	if start == 0 {
+		return "", false
+	}
+	switch v[start] {
+	case '-':
+		return v[:start], true
+	case '.':
+		base := v[:start]
+		if len(base) < 2 {
+			return "", false
+		}
+		return base[:len(base)-2], true
+	default:
+		//coverage:ignore unreachable per pseudoVersionRE's leading [-.] class
+		return "", false
+	}
+}
+
 // isTagged reports whether v is a clean tagged semver value rather
 // than a pseudo-version. Pseudo-versions match the timestamp+sha
 // suffix regardless of the base version they're attached to.

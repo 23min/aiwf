@@ -9,12 +9,20 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
-// TreeDiscipline reports any file under work/* that the loader walked
-// but could not classify as a recognized entity file. This is the
-// G40 mechanical guarantee: the LLM must not write directly to the
-// entity tree — tree-shape changes go through verbs, body-prose
+// TreeDiscipline reports any file under work/{epics,gaps,decisions,
+// contracts}/ that the loader walked but could not classify as a
+// recognized entity file. This is the G40 mechanical guarantee for
+// the entity-bearing subtrees: the LLM must not write directly
+// inside them — tree-shape changes go through verbs, body-prose
 // edits stay inside existing entity files, and stray hand-written
-// files are flagged at validation time.
+// files in those subtrees are flagged at validation time.
+//
+// Scope is the four entity-bearing subdirs, not all of work/. Files
+// at the work/ root or under non-entity sibling dirs (work/migration/,
+// work/scratch/, etc.) are outside the loader's walk roots, never
+// registered as strays, and never flagged here. The threat model is
+// the LLM mistaking the entity tree as a scratch space, not the
+// operator parking a transient file alongside it.
 //
 // Filtering, in order:
 //
