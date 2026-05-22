@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -279,6 +280,142 @@ func TestRenamesFromRef_DetectsCommittedRename(t *testing.T) {
 	want := map[string]string{oldPath: newPath}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("RenamesFromRef mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestRenamesFromRef_DetectsTrailerDrivenRenameAcrossBodyEdits pins
+// the G-0167 fix: when an entity is retitled (file rename + slug
+// change) in one commit AND its body is substantially enriched in
+// separate commits within the same branch, the cumulative
+// merge-base..HEAD diff falls below the -M50 similarity threshold
+// and git's default rename detection misses it. The kernel falls
+// back to operator intent via the `aiwf-verb: retitle` commit
+// trailer — the retitle commit's per-commit diff (which has high
+// similarity since the body is unchanged in that commit) tells the
+// rule definitively "this was a rename of entity X."
+//
+// Scenario authored to mirror the M-0125 G-0139 case: rename + 3×
+// body growth. Without the trailer-driven detection, git's default
+// 50% similarity heuristic misses the rename and the
+// ids-unique/trunk-collision rule fires a false positive. With it,
+// the rename is captured from the retitle commit's trailer.
+func TestRenamesFromRef_DetectsTrailerDrivenRenameAcrossBodyEdits(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	const oldPath = "work/gaps/G-0050-original-short-slug.md"
+	const newPath = "work/gaps/G-0050-new-much-longer-slug-after-retitle-and-enrichment.md"
+
+	originalBody := `---
+id: G-0050
+title: original title
+status: open
+---
+
+## Problem
+
+Short original body, a few lines of prose to establish the gap's
+diagnostic surface. Nothing elaborate; just the seed.
+`
+	commitFile(t, ctx, dir, oldPath, originalBody)
+	mustRun(t, ctx, dir, "branch", "trunk")
+
+	// Commit 1: retitle (slug change only; frontmatter title also
+	// changed in real retitle, but for the rename map only the path
+	// change matters here). Stamp the kernel trailer.
+	mustRun(t, ctx, dir, "mv", oldPath, newPath)
+	// Update frontmatter title in the file at newPath (real retitle
+	// touches both slug and frontmatter title).
+	retitleBody := strings.Replace(originalBody, "title: original title", "title: new much longer title with substantially more detail", 1)
+	if err := os.WriteFile(filepath.Join(dir, newPath), []byte(retitleBody), 0o644); err != nil {
+		t.Fatalf("writing retitle body: %v", err)
+	}
+	mustRun(t, ctx, dir, "add", newPath)
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "aiwf retitle G-0050 -> new title\n\naiwf-verb: retitle\naiwf-entity: G-0050\naiwf-actor: human/test")
+
+	// Commit 2: substantial body enrichment in a separate commit.
+	// This is the change that pushes cumulative similarity below
+	// -M50 in the M-0125 G-0139 scenario.
+	enrichedBody := retitleBody + `
+
+## Why it matters
+
+The first enrichment section adds rationale — why the gap matters,
+who's affected, what the failure mode looks like in practice. This
+is content that the original gap didn't carry but reviewers and
+downstream consumers want to see.
+
+## Proposed fix shape
+
+A second enrichment section sketches the impl path. Multiple
+sub-points, code references, file pointers, and the closing
+checklist. Substantial content, mostly net-new relative to the
+original body.
+
+  - Sub-point one: identify the chokepoint.
+  - Sub-point two: design the fix.
+  - Sub-point three: test the fix.
+  - Sub-point four: land the fix.
+  - Sub-point five: close the gap.
+
+## History
+
+A third enrichment section captures the consolidation history —
+prior duplicates, retitle rationale, related decisions.
+
+## Closing this gap
+
+Final section enumerates the cleanup steps when the impl lands.
+`
+	if err := os.WriteFile(filepath.Join(dir, newPath), []byte(enrichedBody), 0o644); err != nil {
+		t.Fatalf("writing enriched body: %v", err)
+	}
+	mustRun(t, ctx, dir, "add", newPath)
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "aiwf edit-body G-0050\n\naiwf-verb: edit-body\naiwf-entity: G-0050\naiwf-actor: human/test")
+
+	got, err := RenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("RenamesFromRef: %v", err)
+	}
+	want := map[string]string{oldPath: newPath}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("expected trailer-driven rename detection (G-0167 fix); mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestRenamesFromRef_ChainsForwardThroughMultipleRetitles pins the
+// chain-forward semantics of the trailer-driven detection. When an
+// entity is retitled multiple times in a single branch (A→B in
+// commit X, B→C in commit Y), the cumulative rename map records
+// A→C, not {A:B, B:C}. Without chaining, the trunk-collision rule
+// would look up A (trunk-side path) and find B (which doesn't
+// exist on the branch), failing the rename match.
+func TestRenamesFromRef_ChainsForwardThroughMultipleRetitles(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	const pathA = "work/gaps/G-0060-first-slug.md"
+	const pathB = "work/gaps/G-0060-second-slug.md"
+	const pathC = "work/gaps/G-0060-third-slug.md"
+	body := "---\nid: G-0060\ntitle: a\nstatus: open\n---\nbody\n"
+	commitFile(t, ctx, dir, pathA, body)
+	mustRun(t, ctx, dir, "branch", "trunk")
+
+	// Retitle 1: A → B.
+	mustRun(t, ctx, dir, "mv", pathA, pathB)
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "aiwf retitle G-0060 -> b\n\naiwf-verb: retitle\naiwf-entity: G-0060\naiwf-actor: human/test")
+
+	// Retitle 2: B → C.
+	mustRun(t, ctx, dir, "mv", pathB, pathC)
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "aiwf retitle G-0060 -> c\n\naiwf-verb: retitle\naiwf-entity: G-0060\naiwf-actor: human/test")
+
+	got, err := RenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("RenamesFromRef: %v", err)
+	}
+	want := map[string]string{pathA: pathC}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("expected chained rename A→C, not {A:B, B:C}; mismatch (-want +got):\n%s", diff)
 	}
 }
 

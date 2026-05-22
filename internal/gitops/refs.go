@@ -180,11 +180,43 @@ func RenamesFromRef(ctx context.Context, workdir, ref string) (map[string]string
 	if mergeBase == "" {
 		return map[string]string{}, nil
 	}
+	renames := make(map[string]string)
+
+	// Pass 1: trailer-driven rename detection (G-0167).
+	//
+	// Walk commits on merge-base..HEAD with rename-shaped aiwf-verb
+	// trailers (retitle, rename, reallocate, archive, move) and
+	// record their file moves. The kernel's verbs stamp explicit
+	// trailers naming the operator's intent; that intent is ground
+	// truth for "this was a rename" — strictly better than git's
+	// similarity heuristic, which can miss real renames when body
+	// changes pile up (e.g., retitle + 3× body enrichment in
+	// separate commits drops cumulative similarity below the -M50
+	// threshold).
+	//
+	// Chains forward: if commit X renames A→B and a later commit Y
+	// renames B→C, the cumulative map records A→C.
+	trailerRenames, err := renamesFromAiwfVerbTrailers(ctx, workdir, mergeBase)
+	if err != nil {
+		return nil, fmt.Errorf("detecting trailer-driven renames since merge-base with %s: %w", ref, err)
+	}
+	for k, v := range trailerRenames {
+		renames[k] = v
+	}
+
+	// Pass 2: cumulative -M default similarity detection.
+	//
+	// Catches non-trailered renames (legacy git-mv operations,
+	// externally committed file moves, third-party-tool moves). The
+	// default 50% threshold is preserved here to keep the G-0109
+	// parallel-collision behavior intact — two unrelated entities
+	// that share frontmatter shape but distinctive body content
+	// stay below 50% similarity and are correctly NOT paired as a
+	// rename.
 	out, err := output(ctx, workdir, "diff", "-M", "--diff-filter=R", "--name-status", "-z", mergeBase, "HEAD")
 	if err != nil {
 		return nil, fmt.Errorf("detecting renames since merge-base with %s: %w", ref, err)
 	}
-	renames := make(map[string]string)
 	if out == "" {
 		return renames, nil
 	}
@@ -192,6 +224,142 @@ func RenamesFromRef(ctx context.Context, workdir, ref string) (map[string]string
 	// fields: "R<score>", oldPath, newPath. A trailing NUL after the
 	// last newPath is typical but not guaranteed; TrimRight handles
 	// either form.
+	fields := strings.Split(strings.TrimRight(out, "\x00"), "\x00")
+	for i := 0; i+2 < len(fields); i += 3 {
+		status := fields[i]
+		if status == "" || status[0] != 'R' {
+			continue
+		}
+		oldPath := fields[i+1]
+		newPath := fields[i+2]
+		if oldPath == "" || newPath == "" {
+			continue
+		}
+		// Trailer-driven entries take precedence — they reflect the
+		// operator's stated intent. The cumulative diff fills in
+		// non-trailered renames only.
+		if _, alreadyTrailered := renames[oldPath]; alreadyTrailered {
+			continue
+		}
+		renames[oldPath] = newPath
+	}
+	return renames, nil
+}
+
+// renameVerbs is the closed set of aiwf-verb trailer values whose
+// commits move entity files. Used by renamesFromAiwfVerbTrailers to
+// scope the trailer walk. The values are checked against the literal
+// strings emitted by the corresponding verbs in internal/verb/.
+//
+// Closed set intentionally — adding a new rename-shaped verb to the
+// kernel without adding it here would silently regress G-0167's
+// trailer-driven detection for that verb's renames.
+var renameVerbs = map[string]bool{
+	"retitle":    true, // changes slug + frontmatter title
+	"rename":     true, // changes slug only
+	"reallocate": true, // changes id + slug (entity renumber)
+	"archive":    true, // sweeps to per-kind archive/ subdir
+	"move":       true, // milestone changes parent epic
+}
+
+// renamesFromAiwfVerbTrailers walks commits on mergeBase..HEAD and
+// returns the cumulative file-rename map produced by aiwf-verb
+// commits whose verb value is in renameVerbs. Chains forward: an
+// A→B rename in commit X followed by a B→C rename in commit Y
+// collapses to A→C in the returned map.
+//
+// Returns an empty map when no rename-shaped trailers exist in the
+// range.
+func renamesFromAiwfVerbTrailers(ctx context.Context, workdir, mergeBase string) (map[string]string, error) {
+	// Walk commits oldest-first so per-commit renames apply in
+	// chronological order; chain-forward updates downstream entries
+	// when a later commit re-renames an earlier rename's destination.
+	//
+	// Format: each commit produces "COMMIT <sha>" followed by trailer
+	// lines (one per line, "Key: value"), terminated by a literal
+	// "END_COMMIT" marker. The marker pattern is the simplest way to
+	// frame multi-line trailer blocks without ambiguity around blank
+	// lines inside trailers (which `unfold=true` already collapses).
+	const recordSeparator = "END_COMMIT"
+	out, err := output(ctx, workdir, "log", "--reverse",
+		"--format=COMMIT %H%n%(trailers:only=true,unfold=true)"+recordSeparator,
+		mergeBase+"..HEAD")
+	if err != nil {
+		return nil, fmt.Errorf("walking aiwf-verb trailers: %w", err)
+	}
+	renames := map[string]string{}
+	for _, record := range strings.Split(out, recordSeparator) {
+		record = strings.TrimSpace(record)
+		if record == "" {
+			continue
+		}
+		lines := strings.Split(record, "\n")
+		if len(lines) == 0 || !strings.HasPrefix(lines[0], "COMMIT ") {
+			continue
+		}
+		sha := strings.TrimSpace(strings.TrimPrefix(lines[0], "COMMIT "))
+		if sha == "" {
+			continue
+		}
+		trailers := ParseTrailers(strings.Join(lines[1:], "\n"))
+		verb := ""
+		for _, tr := range trailers {
+			if tr.Key == TrailerVerb {
+				verb = tr.Value
+				break
+			}
+		}
+		if !renameVerbs[verb] {
+			continue
+		}
+		perCommitRenames, err := renamesInCommit(ctx, workdir, sha)
+		if err != nil {
+			return nil, fmt.Errorf("reading per-commit renames for %s: %w", sha, err)
+		}
+		for src, dst := range perCommitRenames {
+			// Chain forward: if any existing entry's value equals
+			// the new src, that entry now points to dst instead.
+			// Without chaining, a multi-step rename (A→B in commit
+			// X, B→C in commit Y) would be recorded as {A:B, B:C}
+			// instead of {A:C}, and the consumer (trunk-collision
+			// rule) would look up A and find B (which doesn't
+			// exist on the branch).
+			chained := false
+			for oldKey, oldDst := range renames {
+				if oldDst == src {
+					renames[oldKey] = dst
+					chained = true
+					// Don't break — a later rename could be the
+					// destination of multiple earlier renames if
+					// two entities were merged into one, though
+					// the kernel verbs don't do that today. Safe
+					// to continue scanning.
+				}
+			}
+			if !chained {
+				renames[src] = dst
+			}
+		}
+	}
+	return renames, nil
+}
+
+// renamesInCommit returns the file renames recorded by a single
+// commit. Uses git's per-commit `-M` similarity at the default
+// threshold; per-commit diffs are typically very high-similarity
+// (the kernel verbs that move files don't simultaneously rewrite
+// the body), so the default threshold reliably catches them.
+func renamesInCommit(ctx context.Context, workdir, sha string) (map[string]string, error) {
+	out, err := output(ctx, workdir, "show", "-M", "--diff-filter=R", "--name-status", "-z",
+		"--format=", // suppress commit header — we only want the diff
+		sha)
+	if err != nil {
+		return nil, err
+	}
+	renames := map[string]string{}
+	if out == "" {
+		return renames, nil
+	}
 	fields := strings.Split(strings.TrimRight(out, "\x00"), "\x00")
 	for i := 0; i+2 < len(fields); i += 3 {
 		status := fields[i]
