@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-05-21
+
 ### Added — E-0035: Devcontainer-based dev loop (dogfooded on this repo)
 
 The devcontainer is now the default dev surface. `make ci` runs green from VS Code's "Reopen in Container" without macOS-specific setup; `CLAUDE.md` leads with the container-primary test-running path and demotes the macOS host wrapper (`scripts/sign-and-run.sh` + `-parallel 8` cap + G-0127/G-0128/G-0133 diagnostic discipline) to a clearly-labeled fallback. The kernel surfaces that broke under multi-context use (PATH-relative hook resolution, worktree-aware `aiwf update`, `aiwf doctor` reading `enabledPlugins` from `.claude/settings.json` instead of path-strict `installed_plugins.json`) now hold across worktrees, devcontainers, and re-clones. `aiwf doctor` gains two informational lines — `env:` (container vs host) and `plugin-mount:` (shadow-mount health) — so operators land on a quick "where am I + is the workaround healthy" signal. Cross-repo dogfooding (Liminara, FlowTime) deferred to G-0146 once the dogfooding loop proved itself on this repo.
@@ -42,6 +44,26 @@ Two follow-ups carried forward: G-0125 (the macOS subprocess fan-out reliability
 The rendered governance site (`aiwf render --format=html`) becomes usable for current-state synthesis at a glance. Body fills the viewport (no more `max-width: 78rem` cap) with 1rem uniform padding; sidebar widens to 285px and sits flush-left; prose blocks inside `main` cap at 50rem for readability while tables, code, and AC cards stretch with the panel (M-0098). Per-kind index pages (`gaps.html`, `decisions.html`, `adrs.html`, `contracts.html`) collapse from active/all-pair to a single file per kind with a `:target`-driven `[Active] [All]` chip strip at the top; archived rows are hidden by default and revealed via `#all`; `*-all.html` cousins no longer emit (M-0099). The sidebar gains a `Gaps (N)` entry (non-archived count) in its top section and its own `[Active] [All]` chip strip with the distinct `#sidebar-all` fragment so the sidebar archive filter and kind-index page filter toggle independently — archived epics hide by default, closing the "all 29 epics drown the in-flight ones" half of the glanceability issue (M-0100). Tab clicks (M-0098/AC-5) and chip clicks (M-0100/AC-4) no longer scroll the page on hash change — `scroll-margin-top: 100vh` clamps the page at top. Playwright e2e suite repaired across three independent rot layers (repo reorg paths, kernel `aiwf init` hook-installation change, ID width migration) and the G-0055 `--tdd` chokepoint — 55 passing tests covering layout, chip filters, sidebar, and no-scroll-on-click (M-0107, renumbered from M-0102 at wrap due to concurrent allocation on main). M-0101 (in-page status hierarchy in `gaps.html`) deferred: mechanism choice (server-side sort vs CSS `order:` vs grouped sections vs hybrid) needs more design thought; cancelled-milestone body preserved for a future iteration.
 
 Two follow-up gaps filed during the epic: G-0115 (`aiwf render roadmap --write` rewrites entity refs in epic prose to broken paths — blocks the roadmap-regen step at wrap until fixed) and G-0116 (the rituals-plugin `aiwfx-start-epic` skill orders worktree creation before promote/authorize, producing the wrong commit topology for trunk-based projects). Both survive the epic for future attention.
+
+### Added — `aiwf status --worktrees` worktree-aware view (closes G-0122)
+
+`aiwf status --worktrees` lists every git worktree against the repo (including the main checkout) alongside the in-flight epics and milestones for each. Surfaces the "what am I working on in which worktree?" question for operators juggling multiple feature branches in sibling worktrees. Read-only.
+
+### Added — `aiwf-show` embedded skill (closes G-0087)
+
+The `aiwf show <id>` verb gains a same-named embedded skill so AI assistants reach for it on prompts like "show me M-NN" or "what's the body of G-NN?". Materializes via `aiwf init` / `aiwf update`. Closes the deferred follow-up flagged in E-18's M-074 allowlist rationale.
+
+### Added — `make diag-aiwf` operator target for worktree binary discipline (closes G-0147)
+
+New `Makefile` target builds `./bin/aiwf-diag` from the current worktree source and prints its absolute path so operators diagnose kernel behavior against the in-flight code, not against the stale `/go/bin/aiwf` they happened to install earlier. CLAUDE.md *Worktree binary discipline* documents the convention. Operator discipline only — nothing mechanically blocks a stale-PATH `aiwf` call in a worktree.
+
+### Changed — `aiwf list` / `aiwf status` use bold labels + uniform status glyphs (partial G-0080)
+
+Headers and section labels render bold when stdout is a TTY and `NO_COLOR` is unset; pipes and redirected output stay escape-free. The status palette is uniform across both verbs: `✓` for done/accepted/addressed, `→` for active/in_progress, `○` for draft/open/proposed, `✗` for cancelled/wontfix/rejected/retired/superseded. `aiwf list` gains a per-row glyph prefix on the `STATUS` column; `aiwf status`'s milestone marker extends to cover the previously-unmarked draft and cancelled states. Glyphs are content (always emitted); only the ANSI bold attribute is TTY-gated.
+
+### Changed — `aiwf doctor` label-column alignment + `plugin-mount` rename (closes G-0130)
+
+Doctor's per-line label column aligns visually. The container-only `plugin-index-mount:` line renames to `plugin-mount:` to match what the underlying mount actually is (a full plugin store, not just the index).
 
 ## [0.8.0] — 2026-05-11
 

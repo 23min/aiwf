@@ -138,7 +138,7 @@ type blobReader interface {
 // findings for the entities/commits that read successfully, while
 // the failed (entity, commit) pairs each surface a walk-error
 // finding. The M-0130 silent-swallow at the old FSMHistoryConsistent
-// path is gone (closes the load-bearing correctness issue G-0149
+// path is gone (closes the load-bearing correctness issue G-0151
 // flagged).
 //
 // Kept unexported; tests live in package check (internal).

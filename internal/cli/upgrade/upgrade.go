@@ -99,6 +99,9 @@ func Run(root, target string, checkOnly bool) int {
 		default:
 			fmt.Println("status:   skew unknown (devel or pre-release on either side)")
 		}
+		if hint := proxyStaleHint(current, resolved); hint != "" {
+			fmt.Print(hint)
+		}
 	}
 
 	if checkOnly {
@@ -156,6 +159,40 @@ func Run(root, target string, checkOnly bool) int {
 	//coverage:ignore Reached only when reexecUpdate's syscall.Exec
 	// returns without overlaying the process — kernel-level oddity.
 	return cliutil.ExitInternal
+}
+
+// proxyStaleHint returns a multi-line hint when the running binary's
+// pseudo-version base is newer than the resolved target — the
+// signature of a freshly-pushed tag that the Go module proxy CDN has
+// not yet propagated to every edge. Empty string when no hint applies.
+//
+// The Go module proxy's edge cache propagates new tags non-uniformly;
+// a tag visible from one POP may take several minutes to surface at
+// another. The pseudo-version base (e.g. v0.8.1 in
+// v0.8.1-0.<date>-<sha>) is the proxy's *predicted* next tag for the
+// binary's commit; when the resolved latest is older than that base,
+// the user is almost certainly hitting stale-edge propagation rather
+// than a real downgrade. The hint points at the GOPROXY=direct
+// workaround and the "retry in a few minutes" path.
+//
+// Closes G-0149.
+func proxyStaleHint(current, resolved version.Info) string {
+	if current.Tagged {
+		return ""
+	}
+	base, ok := version.PseudoBase(current.Version)
+	if !ok {
+		return ""
+	}
+	baseInfo := version.Parse(base)
+	if version.Compare(baseInfo, resolved) != version.SkewAhead {
+		return ""
+	}
+	return fmt.Sprintf(
+		"hint:     pseudo-base %s is newer than target %s; the Go module\n"+
+			"          proxy CDN may not have propagated the freshest tag yet.\n"+
+			"          retry in a few minutes, or set GOPROXY=direct to bypass.\n",
+		base, resolved.Version)
 }
 
 // RenderVersionLabel formats an Info for human display: the version

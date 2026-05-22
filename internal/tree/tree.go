@@ -93,17 +93,22 @@ type Tree struct {
 	// surfaces as a collision, modulo the archive-sweep exception).
 	TrunkRenames map[string]string
 	// Strays holds repo-relative file paths (forward-slash form) that
-	// the loader walked under work/* but could not classify as a
-	// recognized entity file via entity.PathKind. The tree-discipline
-	// check (G40) reports each as `unexpected-tree-file`; without that
-	// field the loader's silent skip would let any LLM-written stray
-	// linger under work/ undetected.
+	// the loader walked under work/{epics,gaps,decisions,contracts}/
+	// but could not classify as a recognized entity file via
+	// entity.PathKind. The tree-discipline check (G40) reports each as
+	// `unexpected-tree-file`; without that field the loader's silent
+	// skip would let any LLM-written stray inside those subtrees
+	// linger undetected.
 	//
-	// Strays are tracked only under work/*; docs/adr/ is conventionally
-	// permissive (READMEs, templates, etc.) and is left alone. Files
-	// inside a contract's directory (work/contracts/C-NNN-*/) are
-	// recorded here but filtered by the check rule, since contracts
-	// legitimately carry schema/fixture artifacts alongside contract.md.
+	// Scope is the four entity-bearing subdirs, not all of work/.
+	// Files at the work/ root or under non-entity sibling dirs
+	// (work/migration/, work/scratch/, etc.) are outside the loader's
+	// walk roots and never appear here. docs/adr/ is walked but
+	// conventionally permissive (READMEs, templates, etc.), so its
+	// strays are not tracked. Files inside a contract's directory
+	// (work/contracts/C-NNN-*/) are recorded here but filtered by the
+	// check rule, since contracts legitimately carry schema/fixture
+	// artifacts alongside contract.md.
 	Strays []string
 }
 
