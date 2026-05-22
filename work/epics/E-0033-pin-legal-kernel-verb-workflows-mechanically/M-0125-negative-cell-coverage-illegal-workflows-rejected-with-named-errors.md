@@ -24,7 +24,7 @@ acs:
     - id: AC-4
       title: 'Coverage meta-test: every Illegal cell has a negative subtest'
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
