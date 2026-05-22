@@ -16,6 +16,37 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0033: Pin legal kernel-verb workflows mechanically
+
+The kernel now commits to a spec table for legal and illegal verb workflows.
+`internal/workflows/spec/rules.go` enumerates every (Kind, FromState, Verb)
+cell with `Outcome ∈ {Legal, Illegal}`, an `ExpectedErrorCode` for illegals,
+and a `RejectionLayer` (verb-time vs check-time) axis. Positive and negative
+drivers under `internal/policies/` exercise every cell end-to-end against
+the real `aiwf` binary; AC-4 meta-tests on both sides enforce coverage
+parity with the spec, including an AST-based assertion-strength tooth on
+the negative driver that catches silent-skip regressions on impl-gap cells.
+ADR-0011 documents the methodology. Separately, M-0130 added the
+`fsm-history-consistent` check rule (per-entity git history walk that emits
+findings for FSM-illegal status transitions) and M-0136 added
+`aiwf acknowledge-illegal` so kernel-repo legacy violations get explicit
+ack commits instead of history rewrites; M-0131 fixed Contract's
+`CancelTarget` mapping (`deprecated → retired`, not `accepted → retired`);
+M-0137 closed the batched git-ops silent-swallow path that M-0130 surfaced.
+
+- **M-0120 — Ratify legal-workflow spec methodology in ADR.** ADR-0011 ratifies the three-pass methodology (audit → first-principles → reconcile) and commits the kernel to Go-as-canonical-form for the spec table. Structural test pins the ADR's seven decision sections.
+- **M-0121 — Pass A audit: catalog legal-workflow rules from existing surfaces.** Markdown catalog of every rule observed in the impl (FSM transitions, verb guards, check-rule findings) without first-principles reasoning. 191 rules catalogued under `docs/pocv3/design/legal-workflows-audit.md`.
+- **M-0122 — Pass B first-principles: derive legal-workflow rules from entity model.** Independent first-principles derivation, blind to Pass A's output, surfacing 84 rules from the entity model. The blind-derivation discipline produced the cross-check that Pass C reconciles against.
+- **M-0123 — Pass C reconcile to canonical Go spec table + drift policy.** `internal/workflows/spec/rules.go` lands as the closed-set spec table. Drift policies under `internal/policies/m0123_ac*` enforce: every FSM transition / verb / finding code is referenced; every illegal cell has either an impl-side `Code: "..."` literal or a `deferredImplErrorCodes` entry with a tracking gap. Six decisions captured: D-0002 through D-0007.
+- **M-0124 — Positive cell coverage: legal workflows succeed with expected post-state.** Per-cell driver that enumerates every legal cell and drives the real `aiwf` binary against a per-cell fixture, asserting verb success + post-state matches the cell's contract. AC-4 meta-test (`TestM0124_AC4_*`) enforces full enumeration + name uniqueness + target-derivation invariants.
+- **M-0125 — Negative cell coverage: illegal workflows rejected with named errors.** Per-cell drivers for both verb-time (≥27 cells) and check-time (≥2 cells) illegal cells. Two-way staleness teeth track impl-gap divergences (kernel under-rejects → assertion fires when kernel learns to reject; kernel over-rejects → assertion fires if kernel softens). Five meta-tests including an AST-based no-`t.Skip` tooth on the driver files. Authorize-kind allowlist guard (D-0007 verb-time refusal) landed as part of the milestone; G-0166 documents the spec/impl axis mismatch on the two check-time cells.
+- **M-0130 — Implement `fsm-history-consistent` check rule for FSM tree-invariant.** New check rule under `internal/check/fsm_history_consistent.go` walks per-entity git history in DAG order (per-parent comparison, not linearization adjacency) and emits findings for status transitions that violate the per-kind FSM. Lives in the CLI layer (not `check.Run`) so the per-entity git walk doesn't stall the pre-commit hook's shape-only policy path.
+- **M-0131 — State-aware `CancelTarget` for Contract: cancel deprecated targets retired.** `entity.CancelTarget(KindContract, "deprecated")` now returns `"retired"`. Previously returned `"retired"` only for `accepted`; the deprecated→retired transition is the operationally correct path (D-0002 codifies why operational kinds admit abrupt-stop).
+- **M-0136 — `aiwf acknowledge-illegal`: retroactive force trailer for historical violations.** New verb that emits `aiwf-force-for: <sha>` trailers exempting specific historical commits from the `fsm-history-consistent` check rule. Kernel repo's 4 legacy squash-merge violations are now ack'd explicitly; future operators can ack their own legacy state without history rewrites or `aiwf.yaml` pollution.
+- **M-0137 — `fsm-history-consistent`: batched git ops + silent-swallow fix.** Per-entity history walk now uses a single batched git invocation (one `git log` call per entity instead of one per entity-commit-pair) so the check rule is tractable on real kernel-sized trees; the silent-swallow path where a missing entity raised an error that the rule dropped instead of surfacing is now an explicit finding.
+
+Five M-0123-era deferred-impl gaps remain open as a deliberate carry-forward: G-0139 (cancel refusal on non-terminal children/ACs per D-0003/D-0004), G-0140 (`--evidence` flag per D-0005), G-0141 Phase 2 (structured-code emission for verb errors per D-0007 follow-up — Phase 1 verb-time refusal landed in M-0125), G-0142 (structured `fsm-transition-illegal` error), G-0143 (scope-tree three-edge reachability per D-0006). Plus M-0125-session discoveries: G-0144 (rename `gap-resolved-has-resolver` semantics), G-0145 (legality-pertinent finding-code classifier), G-0160 (per-edge FSM coverage drift), G-0161 (antirules negative coverage), G-0166 (RejectionLayerCheckTime spec/impl axis mismatch), G-0167 (ids-unique trunk-collision false positive on retitle + body enrichment — fix in flight on `fix/trunk-collision-rename-threshold`), G-0168 (kernel missing mutation verbs for set-at-create frontmatter fields).
+
 ## [0.8.1] — 2026-05-21
 
 ### Added — E-0035: Devcontainer-based dev loop (dogfooded on this repo)
