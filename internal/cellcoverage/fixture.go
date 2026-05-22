@@ -363,11 +363,20 @@ func (f *CellFixture) acAt(t *testing.T, fromState string, opts BringOpts) strin
 // is verb-arg-shaped (self.target-state, self.evidence).
 func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID string, evalCtx *spec.EvalContext) {
 	t.Helper()
+	// Each Subject case lists the Ops it knows how to materialize.
+	// Any Op outside the listed set lands on the per-case default arm
+	// (G-0156): t.Fatalf with the exact (Subject, Op) pair so a future
+	// rule widening surfaces the gap directly rather than falling
+	// through to the silent-drift guard with a misleading
+	// "fixture does not satisfy ..." message.
 	switch p.Subject {
 	case "self.target-state":
-		if p.Op == "==" {
+		switch p.Op {
+		case "==":
 			evalCtx.TargetState = p.Value
 			return
+		default:
+			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
 		}
 	case "self.evidence":
 		switch p.Op {
@@ -375,6 +384,8 @@ func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID 
 			evalCtx.Evidence = "fixture-provided evidence"
 		case "==":
 			evalCtx.Evidence = p.Value
+		default:
+			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
 		}
 		return
 	case "self.addressed_by":
@@ -384,6 +395,8 @@ func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID 
 		case "==":
 			// Default state after `aiwf add gap`: AddressedBy empty.
 			// No mutation needed; the gap exists with the default.
+		default:
+			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
 		}
 	case "self.superseded_by":
 		switch p.Op {
@@ -392,16 +405,25 @@ func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID 
 		case "==":
 			// Default state after `aiwf add adr`: SupersededBy empty.
 			// No mutation needed; the ADR exists with the default.
+		default:
+			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
 		}
 	case "self.tdd_phase":
 		// AC slot. Default phase after `aiwf add ac` is "red" under
 		// tdd:required (matches != done by default) or "" under
 		// tdd:none / advisory. For `== done`, walk the phase along
-		// the TDD FSM via PromoteACPhase.
-		f.populateEvalCtxAC(t, entityID, evalCtx)
-		if p.Op == "==" && p.Value == entity.TDDPhaseDone {
-			f.walkACToPhase(t, entityID, entity.TDDPhaseDone)
+		// the TDD FSM via PromoteACPhase. != Op + arbitrary value
+		// is satisfied trivially by the seeded red phase (any
+		// p.Value other than "red" holds).
+		switch p.Op {
+		case "==", "!=":
 			f.populateEvalCtxAC(t, entityID, evalCtx)
+			if p.Op == "==" && p.Value == entity.TDDPhaseDone {
+				f.walkACToPhase(t, entityID, entity.TDDPhaseDone)
+				f.populateEvalCtxAC(t, entityID, evalCtx)
+			}
+		default:
+			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
 		}
 	case "parent.tdd":
 		// Parent.tdd is fixed at BringEntityToState time. The driver
@@ -409,23 +431,47 @@ func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID 
 		// fixture build, so by the time SatisfyPredicate runs the
 		// milestone's TDD field already matches. The silent-drift
 		// guard below confirms.
+		switch p.Op {
+		case "==", "!=":
+			// Supported; no per-Op mutation since fixture is already
+			// built with the right policy.
+		default:
+			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
+		}
 	case "any-child.status":
-		// Epic with any non-terminal child. Default state after
-		// epicAt + milestoneAt: epic has a draft milestone child
-		// (non-terminal). Already satisfies any-child.status not in
-		// terminal-set. Mutation: ensure a milestone child exists.
-		f.ensureNonTerminalMilestoneChild(t, entityID)
+		switch p.Op {
+		case "∈", "∉":
+			// Epic with any non-terminal child. Default state after
+			// epicAt + milestoneAt: epic has a draft milestone child
+			// (non-terminal). Already satisfies any-child.status not in
+			// terminal-set. Mutation: ensure a milestone child exists.
+			f.ensureNonTerminalMilestoneChild(t, entityID)
+		default:
+			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
+		}
 	case "any-child-ac.status":
-		// Milestone with at least one open AC. Mutation: add an AC.
-		if p.Op == "==" && p.Value == entity.StatusOpen {
-			f.ensureOpenACChild(t, entityID)
+		switch p.Op {
+		case "==":
+			if p.Value == entity.StatusOpen {
+				f.ensureOpenACChild(t, entityID)
+			}
+		default:
+			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
 		}
 	case "all-children-acs.status":
 		// Milestone with zero ACs (vacuous) OR all ACs at met. The
 		// zero-AC path is the default for Milestone.done per the
 		// spec AntiRule — a fresh milestone with no ACs vacuously
 		// satisfies "all children ACs have status != open." No
-		// mutation needed.
+		// mutation needed for the supported Ops.
+		switch p.Op {
+		case "==", "!=":
+			// Vacuous-by-default; no mutation.
+		default:
+			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
+		}
+	default:
+		t.Fatalf("SatisfyPredicate: Subject=%q not implemented (Op=%q)", p.Subject, p.Op)
 	}
 	// Self-verify: re-load tree, ensure the predicate now holds.
 	tr := f.Tree()
@@ -502,7 +548,7 @@ func (f *CellFixture) walkACToPhase(t *testing.T, compositeID, target string) {
 	t.Helper()
 	for {
 		tr := f.Tree()
-		_, ac, err := lookupComposite(tr, compositeID)
+		_, ac, err := LookupComposite(tr, compositeID)
 		if err != nil {
 			t.Fatalf("walkACToPhase: %v", err)
 		}
@@ -568,18 +614,20 @@ func (f *CellFixture) ensureOpenACChild(t *testing.T, milestoneID string) {
 func (f *CellFixture) populateEvalCtxAC(t *testing.T, compositeID string, evalCtx *spec.EvalContext) {
 	t.Helper()
 	tr := f.Tree()
-	_, ac, err := lookupComposite(tr, compositeID)
+	_, ac, err := LookupComposite(tr, compositeID)
 	if err != nil {
 		t.Fatalf("populateEvalCtxAC: %v", err)
 	}
 	evalCtx.AC = ac
 }
 
-// lookupComposite resolves a composite id (M-NNNN/AC-N) to its
+// LookupComposite resolves a composite id (M-NNNN/AC-N) to its
 // parent milestone + the specific AC slot. Returns an error when
 // the id shape is malformed, the milestone is missing, or the AC
-// slot doesn't exist.
-func lookupComposite(tr *tree.Tree, compositeID string) (*entity.Entity, *entity.AcceptanceCriterion, error) {
+// slot doesn't exist. Exported so per-cell drivers (M-0124's
+// positive driver, M-0125's negative driver) reuse the same logic
+// rather than carrying their own copies — closes G-0159.
+func LookupComposite(tr *tree.Tree, compositeID string) (*entity.Entity, *entity.AcceptanceCriterion, error) {
 	if !entity.IsCompositeID(compositeID) {
 		return nil, nil, fmt.Errorf("not a composite id: %q", compositeID)
 	}
@@ -603,7 +651,7 @@ func lookupComposite(tr *tree.Tree, compositeID string) (*entity.Entity, *entity
 // evalCtx is augmented with the AC slot.
 func resolveForEval(tr *tree.Tree, id string, evalCtx spec.EvalContext) (*entity.Entity, spec.EvalContext, error) {
 	if entity.IsCompositeID(id) {
-		_, ac, err := lookupComposite(tr, id)
+		_, ac, err := LookupComposite(tr, id)
 		if err != nil {
 			return nil, evalCtx, err
 		}

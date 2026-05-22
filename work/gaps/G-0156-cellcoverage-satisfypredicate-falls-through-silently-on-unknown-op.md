@@ -1,8 +1,10 @@
 ---
 id: G-0156
 title: cellcoverage.SatisfyPredicate falls through silently on unknown Op
-status: open
+status: addressed
 discovered_in: M-0124
+addressed_by:
+    - M-0124
 ---
 ## Problem
 

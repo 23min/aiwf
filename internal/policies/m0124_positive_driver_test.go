@@ -429,7 +429,7 @@ func assertPostState(t *testing.T, f *cellcoverage.CellFixture, tc positiveCase,
 	t.Helper()
 	tr := f.Tree()
 	if tc.rule.Kind == spec.KindTDDPhase {
-		_, ac, err := lookupCompositeForDriver(tr, id)
+		_, ac, err := cellcoverage.LookupComposite(tr, id)
 		if err != nil {
 			t.Fatalf("lookup composite %q after verb: %v", id, err)
 		}
@@ -439,7 +439,7 @@ func assertPostState(t *testing.T, f *cellcoverage.CellFixture, tc positiveCase,
 		return
 	}
 	if entity.IsCompositeID(id) {
-		_, ac, err := lookupCompositeForDriver(tr, id)
+		_, ac, err := cellcoverage.LookupComposite(tr, id)
 		if err != nil {
 			t.Fatalf("lookup composite %q after verb: %v", id, err)
 		}
@@ -478,29 +478,4 @@ func assertHeadTrailers(t *testing.T, root, wantVerb, wantEntity string) {
 	if !sawEntity {
 		t.Errorf("HEAD missing aiwf-entity: %q trailer; got %v", wantEntity, tr)
 	}
-}
-
-// lookupCompositeForDriver is a thin wrapper around tree lookup that
-// resolves M-NNNN/AC-N → (parent, AC slot). Mirrors the cellcoverage
-// helper but lives here so the driver doesn't depend on cellcoverage's
-// internals.
-func lookupCompositeForDriver(tr interface {
-	ByID(string) *entity.Entity
-}, compositeID string,
-) (*entity.Entity, *entity.AcceptanceCriterion, error) {
-	if !entity.IsCompositeID(compositeID) {
-		return nil, nil, fmt.Errorf("not a composite id: %q", compositeID)
-	}
-	parts := strings.SplitN(compositeID, "/", 2)
-	parentID, slot := parts[0], parts[1]
-	m := tr.ByID(parentID)
-	if m == nil {
-		return nil, nil, fmt.Errorf("milestone %q not found", parentID)
-	}
-	for i := range m.ACs {
-		if m.ACs[i].ID == slot {
-			return m, &m.ACs[i], nil
-		}
-	}
-	return nil, nil, fmt.Errorf("AC slot %q not found on %q", slot, parentID)
 }
