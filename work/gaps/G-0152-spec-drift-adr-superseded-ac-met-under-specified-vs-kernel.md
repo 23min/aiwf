@@ -1,7 +1,9 @@
 ---
-id: G-0151
+id: G-0152
 title: 'spec drift: ADR.superseded + AC.met under-specified vs kernel'
 status: open
+prior_ids:
+    - G-0151
 ---
 ## Problem
 
