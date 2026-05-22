@@ -1,6 +1,6 @@
 ---
 id: G-0139
-title: Implement cancel-cascade per D-0003 and D-0004
+title: Implement cancel refusal on non-terminal children/ACs per D-0003 and D-0004
 status: open
 discovered_in: M-0123
 ---
