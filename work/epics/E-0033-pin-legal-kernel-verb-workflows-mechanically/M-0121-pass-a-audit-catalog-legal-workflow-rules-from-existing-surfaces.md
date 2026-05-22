@@ -22,6 +22,7 @@ acs:
     - id: AC-4
       title: 'Catalog schema internally consistent: unique sequential ids, totals match'
       status: met
+      tdd_phase: done
 ---
 ## Goal
 
