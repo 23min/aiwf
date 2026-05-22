@@ -80,7 +80,7 @@ Landed the `EvaluatePredicate(p, e, t, ctx)` primitive over the closed (Subject,
 Landed `internal/cellcoverage` with `CellFixture`, `BringEntityToState` (per-kind FSM walks for the 7 kinds × non-terminal states), and `SatisfyPredicate` (per-atom fixture mutations + silent-drift self-verification via `EvaluatePredicate`). Fixture setup is in-process via the verb library (M-0137 optimization); subprocess fork is reserved for the cell-under-test. · commit 71d9ffdc · 27 subtests
 
 ### AC-3 — Per-cell positive driver
-Landed `internal/policies/m0124_positive_driver_test.go` — the per-cell positive driver that iterates `spec.Rules()` filtered to Legal cells, derives target(s) via target-state precondition / `CancelTarget` / `AllowedTransitions` / TDD-phase FSM, and executes each cell via subprocess. 39 subtests pass (31 Legal cells × FSM multi-target expansion). Two spec drift findings closed via G-0153: ADR.superseded precondition pair (`self.superseded_by non-empty` Legal + `== ""` Illegal `adr-supersession-mutual`) and the AC.met split on `parent.tdd` so the converse of `acs-tdd-audit` is encoded as explicit preconditions on two Legal cells rather than relying on implicit overlap. · commit b6072a16 (rebased; trailer fix), closes G-0153
+Landed `internal/policies/m0124_positive_driver_test.go` — the per-cell positive driver that iterates `spec.Rules()` filtered to Legal cells, derives target(s) via target-state precondition / `CancelTarget` / `AllowedTransitions` / TDD-phase FSM, and executes each cell via subprocess. 39 subtests pass (31 Legal cells × FSM multi-target expansion). Two spec drift findings closed via G-0152: ADR.superseded precondition pair (`self.superseded_by non-empty` Legal + `== ""` Illegal `adr-supersession-mutual`) and the AC.met split on `parent.tdd` so the converse of `acs-tdd-audit` is encoded as explicit preconditions on two Legal cells rather than relying on implicit overlap. · commit b6072a16 (rebased; trailer fix), closes G-0152
 
 ### AC-4 — Coverage meta-test
 Landed `internal/policies/m0124_coverage_meta_test.go` — four meta-assertions over `enumerateLegalCases`:
@@ -101,13 +101,13 @@ Sanity-checked by temporarily filtering out epic cells in `enumerateLegalCases` 
 
 - **In-process fixture, subprocess cell-under-test.** Fixture setup uses the verb library directly (~10ms/operation); the cell-under-test runs via `testutil.RunBin` (subprocess, the integration seam) — ~80ms/operation. This M-0137 optimization keeps the 39-subtest run under 1.5s wall-time at parallel 8 (race-mode: ~6.8s).
 
-- **Spec drift fix over driver workaround (G-0153).** Initial AC-3 carried a `prepareKernelPreconditions` function that papered over two cells the kernel rejects with flags the spec didn't encode (ADR `--superseded-by`, AC.met `tdd_phase=done` under `tdd:required`). Per user pushback ("workarounds = skimping"), the spec was corrected: ADR cell gained the precondition pair, AC.met cell was split on `parent.tdd` into two converse-of-audit Legal cells. The driver's `defeatOverlappingIllegalCells` function was removed; the unified predicate-materialization loop handles everything.
+- **Spec drift fix over driver workaround (G-0152).** Initial AC-3 carried a `prepareKernelPreconditions` function that papered over two cells the kernel rejects with flags the spec didn't encode (ADR `--superseded-by`, AC.met `tdd_phase=done` under `tdd:required`). Per user pushback ("workarounds = skimping"), the spec was corrected: ADR cell gained the precondition pair, AC.met cell was split on `parent.tdd` into two converse-of-audit Legal cells. The driver's `defeatOverlappingIllegalCells` function was removed; the unified predicate-materialization loop handles everything.
 
 ## Validation
 
 - `go test -race -parallel 8 ./...` — all packages clean, `internal/policies` 6.8s (39 driver subtests + 4 meta-test subtests + the rest of the policies suite).
 - `go test ./internal/policies/ -cover` — 78.9% coverage.
-- `go test ./internal/cellcoverage/ -cover` — 75.2% coverage.
+- `go test ./internal/cellcoverage/ -cover` — 81.4% coverage (after the self-review pass added direct test cases for `satisfyADRSuperseded`, `walkACToPhase`, and `nextTDDPhaseTowards`; the originals had zero exercise).
 - `go test ./internal/workflows/spec/ -cover` — 68.4% coverage.
 - `golangci-lint run ./internal/...` — 0 new issues (2 pre-existing `revive` warnings in `spec.go` unrelated).
 - `aiwf check` — 0 errors, 27 warnings (all pre-existing).
@@ -119,7 +119,7 @@ None. The remaining E-0033 scope (negative cell coverage, branch-context precond
 
 ## Reviewer notes
 
-- **Spec corrected, not skimped.** The mid-stream G-0153 fix re-shaped two spec cells (ADR.superseded + AC.met) so the kernel's real preconditions are encoded as explicit Legal-cell preconditions rather than implicit "and the Illegal companion doesn't fire." The driver's design rule is now universal — every precondition materialized via predicate-driven setup, no per-cell special cases. `defeatOverlappingIllegalCells` was removed entirely after the fix; if a reviewer sees that function referenced anywhere, it's stale.
+- **Spec corrected, not skimped.** The mid-stream G-0152 fix re-shaped two spec cells (ADR.superseded + AC.met) so the kernel's real preconditions are encoded as explicit Legal-cell preconditions rather than implicit "and the Illegal companion doesn't fire." The driver's design rule is now universal — every precondition materialized via predicate-driven setup, no per-cell special cases. `defeatOverlappingIllegalCells` was removed entirely after the fix; if a reviewer sees that function referenced anywhere, it's stale.
 
 - **Predicate vocabulary widened by one atom.** `self.superseded_by` (symmetric to `self.addressed_by`, single-string field on the ADR entity) is now part of the closed Subject vocabulary. `spec.EvaluatePredicate` handles it via the existing `cmpString` op family; `evaluate_test.go` covers positive + negative cases for both `non-empty` and `== ""`.
 
@@ -129,4 +129,8 @@ None. The remaining E-0033 scope (negative cell coverage, branch-context precond
 
 - **Case-name disambiguator.** `caseName` appends a precondition signature (`shortAtom` representation of each precondition outside the `(Kind, FromState, Verb, target)` quadruple) when distinct Legal cells share the same key — currently only AC.met's split on `parent.tdd`. Examples: `ac-open-promote-to-met-ptddnerequired` vs `ac-open-promote-to-met-ptddeqrequired-tddphaseeqdone`. The names are functional, not pretty; if the spec grows more overlaps the signature scheme stays mechanical.
 
-- **G-0153 closed inline.** The spec drift gap was filed on `main` then merged in via `chore/spec-drift-gap`. ID reallocation: gap-side `G-0151` → `G-0152` (main collision with `aiwf-status-worktrees` gap), then worktree-side `G-0152` → `G-0153` (archive collision with `fsm-history-consistent` gap). The fix lands within M-0124's diff (`spec/rules.go`, `spec/evaluate.go`, `spec/evaluate_test.go`).
+- **G-0152 closed inline.** The spec drift gap was filed on `main` then merged in via `chore/spec-drift-gap`. ID reallocation: gap-side `G-0151` → `G-0152` (main collision with `aiwf-status-worktrees` gap), then worktree-side reallocate ran when origin/main merged in (the archived `fsm-history-consistent` gap was at G-0152 too; the reallocate moved the *archive* file to G-0153, leaving the spec-drift gap at G-0152). The fix lands within M-0124's diff (`spec/rules.go`, `spec/evaluate.go`, `spec/evaluate_test.go`). G-0152 promoted to `addressed` with `addressed_by: M-0124` at wrap time.
+
+- **AC-3 commit-message id discrepancy.** The AC-3 feat commit message body (commit `b6072a16`) reads "closes G-0153" — written before the second reallocate's direction was clear. The actual gap is **G-0152**; references in the code (`rules.go`, `m0124_positive_driver_test.go`) and this spec body are correct. The commit message stays as-is (rebasing twice in one milestone is excessive); future grep-by-id readers should consult this note.
+
+- **Self-review caught four 0%-covered helpers.** Initial wrap claimed AC-3 complete; the user's "are you 100% confident?" question triggered a coverage audit that found `satisfyADRSuperseded`, `trailerValue`, `walkACToPhase`, and `nextTDDPhaseTowards` at 0% line coverage — the symmetric library additions for `self.superseded_by` and `self.tdd_phase == done` predicates that no test exercised. Added explicit test cases to `TestSatisfyPredicate` plus a focused `TestNextTDDPhaseTowards` table-driven test. Coverage rose from 75.2% → 81.4%. The lesson: predicates added to the spec vocabulary must have matching SatisfyPredicate test cases, not just spec.EvaluatePredicate test cases.
