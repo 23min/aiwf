@@ -199,6 +199,99 @@ func TestMostRecentEntity(t *testing.T) {
 	}
 }
 
+// TestCorrelateBranchToEntity_RitualBranchPrecedence pins G-0154's
+// invariant: when a branch follows one of the ritual shapes (epic/
+// E-NNN-..., milestone/M-NNN-..., patch/[Gg]-NNN-...), the function
+// returns the branch-name-parsed id without consulting trailer events.
+//
+// Before G-0154 the cascade walked scope-events first, which let a
+// merged-in child milestone's `aiwf-verb: promote ... aiwf-to: done`
+// trailer beat the branch-name parser and mislabel epic worktrees.
+// Branch-name parsing now runs first; trailers only matter for non-
+// ritual branches.
+//
+// The function shells to git internally for the non-ritual path, so we
+// validate the ritual-branch path via the public function directly
+// (it returns before the git call) and the non-ritual fallback via the
+// factored-out correlateFromTrailerEvents pure function below.
+func TestCorrelateBranchToEntity_RitualBranchPrecedence(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		branch string
+		want   string
+	}{
+		{"epic branch", "epic/E-0033-pin-legal-workflows", "E-0033"},
+		{"milestone branch", "milestone/M-0124-positive-cell-coverage", "M-0124"},
+		{"patch branch lowercase gap", "patch/g-0151-resolve-status", "G-0151"},
+		{"patch branch uppercase gap", "patch/G-0153-stale-arm", "G-0153"},
+		{"main short-circuits to empty", "main", ""},
+	}
+	// rootDir is unused on the ritual-branch path (early return); pass
+	// an empty string to make that explicit. The function would shell
+	// to git only for the non-ritual fallback path, which these cases
+	// never reach.
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := correlateBranchToEntity(t.Context(), "", tc.branch)
+			if got != tc.want {
+				t.Errorf("correlateBranchToEntity(%q) = %q, want %q", tc.branch, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestCorrelateFromTrailerEvents covers the non-ritual-branch fallback
+// path: when branch-name parsing returns nothing, the trailer cascade
+// (scope-defining first, then most-recent) decides the driver. G-0154
+// factored this out as a pure function so the cascade ordering pins
+// without git-fixture overhead.
+func TestCorrelateFromTrailerEvents(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		events []branchAiwfEventRecord
+		want   string
+	}{
+		{"no events", nil, ""},
+		{
+			"scope event wins over plain trailer",
+			[]branchAiwfEventRecord{
+				{Verb: "edit-body", Entity: "G-0099"}, // most recent, but no scope
+				{Verb: "authorize", Entity: "E-0042"}, // older but scope-defining
+			},
+			"E-0042",
+		},
+		{
+			"most-recent trailer fallback when no scope event",
+			[]branchAiwfEventRecord{
+				{Verb: "add", Entity: "G-0099"},
+				{Verb: "edit-body", Entity: "M-0070"},
+			},
+			"G-0099",
+		},
+		{
+			"composite id strips through cascade",
+			[]branchAiwfEventRecord{
+				{Verb: "promote", Entity: "M-0070/AC-1", To: "green"},
+			},
+			"M-0070",
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := correlateFromTrailerEvents(tc.events)
+			if got != tc.want {
+				t.Errorf("correlateFromTrailerEvents = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 // TestRenderAge covers the relative-time formatting across the grain
 // breakpoints (just-now, minutes, hours, days, months, years) plus
 // the clock-skew (future-time) and zero-time edge cases.

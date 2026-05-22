@@ -277,16 +277,26 @@ func worktreeTree(ctx context.Context, path, rootDir string, mainTree *tree.Tree
 	return loaded
 }
 
-// correlateBranchToEntity runs the hybrid cascade per G-0122 design:
+// correlateBranchToEntity correlates a worktree's branch to the entity
+// it drives. Per G-0154, branch-name parsing is the *primary* signal
+// when the branch follows a ritual shape (epic/E-NNN-…,
+// milestone/M-NNN-…, patch/[Gg]-NNN-…); the operator named it
+// deliberately and that intent must beat any trailer-derived
+// inference. The trailer cascade is the fallback for non-ritual
+// branches where the entity scope must be inferred from work history:
 //
-//  1. Walk `git log main..<branch>` for scope-defining `aiwf-verb:`
-//     events (authorize, promote-to-active/in_progress, --phase
-//     promotes). Single-entity match wins; multi-entity prefers the
-//     most-recent active-state event.
-//  2. If no scope events, fall back to the most recent `aiwf-entity:`
+//  1. **Branch-name parse** (G-0154): if `branchEntityPattern` matches,
+//     return that entity. Ritual branch shapes are deliberate operator
+//     intent; honoring them avoids the post-merge mislabeling where a
+//     child milestone's promote-trailer (pulled onto the epic branch by
+//     a merge) would otherwise beat the epic's branch name.
+//  2. **Scope-defining events** (G-0122): walk `git log main..<branch>`
+//     for `aiwf-verb:` trailers (authorize, promote-to-active/
+//     in_progress, --phase promotes). Single-entity match wins;
+//     multi-entity prefers the most-recent active-state event.
+//  3. **Trailer recency** (G-0122): the most recent `aiwf-entity:`
 //     trailer on any ahead-of-trunk commit.
-//  3. If no aiwf trailers at all, fall back to branch-name parsing.
-//  4. Return "" if all three fail.
+//  4. Return "" when none of the above resolve.
 //
 // "main" is the trunk reference; if it doesn't exist (a repo whose
 // trunk is named differently, or a fresh worktree before main exists),
@@ -300,14 +310,26 @@ func correlateBranchToEntity(ctx context.Context, rootDir, branch string) string
 		// nothing.
 		return ""
 	}
-	events := branchAiwfEvents(ctx, rootDir, branch)
+	// G-0154: ritual branch names are the operator's deliberate
+	// declaration of intent. Honor them ahead of trailer inference so
+	// an `epic/E-NNN-...` worktree that has just merged its child
+	// milestones is still labeled as driving E-NNN.
+	if id := parseEntityFromBranch(branch); id != "" {
+		return id
+	}
+	return correlateFromTrailerEvents(branchAiwfEvents(ctx, rootDir, branch))
+}
+
+// correlateFromTrailerEvents derives an entity id from the trailer
+// cascade alone — the fallback path of correlateBranchToEntity for
+// non-ritual branches where the branch name carries no entity.
+// Factored out as a pure function so the cascade ordering can be
+// unit-tested without shelling to git. G-0154.
+func correlateFromTrailerEvents(events []branchAiwfEventRecord) string {
 	if id := scopeDefiningEntity(events); id != "" {
 		return id
 	}
-	if id := mostRecentEntity(events); id != "" {
-		return id
-	}
-	return parseEntityFromBranch(branch)
+	return mostRecentEntity(events)
 }
 
 // branchAiwfEventRecord is one ahead-of-trunk commit with the trailers
