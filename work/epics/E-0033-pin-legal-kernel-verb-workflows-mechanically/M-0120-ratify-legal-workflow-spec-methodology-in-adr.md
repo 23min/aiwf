@@ -3,7 +3,7 @@ id: M-0120
 title: Ratify legal-workflow spec methodology in ADR
 status: done
 parent: E-0033
-tdd: advisory
+tdd: none
 acs:
     - id: AC-1
       title: ADR exists, is loaded as adr kind, initially proposed, cross-references E-0033
