@@ -40,7 +40,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-9
-      title: 'G-0149 body updated: fsm-history slice closed; perf retrofits remain open'
+      title: 'G-0151 body updated: fsm-history slice closed; perf retrofits remain open'
       status: met
       tdd_phase: done
 ---
