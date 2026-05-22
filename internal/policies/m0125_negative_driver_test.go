@@ -106,18 +106,20 @@ func TestM0125_AC2_NegativeDriver_VerbTimeRejection(t *testing.T) {
 var ac2KnownImplGaps = map[string]string{
 	// Cross-entity non-terminal-child/AC checks — verb proceeds with the
 	// cancel even when the spec's precondition (non-terminal child or
-	// open AC) holds. Tracked by G-0162.
-	"epic-proposed-cancel-anychildstatusnotinmilestoneterminalset": "G-0162",
-	"epic-active-cancel-anychildstatusnotinmilestoneterminalset":   "G-0162",
-	"milestone-draft-cancel-anychildacstatuseqopen":                "G-0162",
-	"milestone-in_progress-cancel-anychildacstatuseqopen":          "G-0162",
+	// open AC) holds. Tracked by G-0139 (filed at M-0123 wrap referencing
+	// D-0003 + D-0004; G-0162 was a duplicate filed at M-0125 and
+	// cancelled wontfix on consolidation).
+	"epic-proposed-cancel-anychildstatusnotinmilestoneterminalset": "G-0139",
+	"epic-active-cancel-anychildstatusnotinmilestoneterminalset":   "G-0139",
+	"milestone-draft-cancel-anychildacstatuseqopen":                "G-0139",
+	"milestone-in_progress-cancel-anychildacstatuseqopen":          "G-0139",
 	// CancelTarget(ADR/Decision, accepted) returns "rejected" but the
 	// FSM forbids accepted→rejected. The verb's cancel path bypasses
 	// FSM. Tracked by G-0163.
 	"adr-accepted-cancel": "G-0163",
 	// ac-evidence-missing is unsupported by the verb — no --evidence
 	// flag, no PromoteOptions.Evidence, no validation. Tracked by G-0140
-	// (filed at M-0123 wrap referencing D-0005; G-0140 was a duplicate
+	// (filed at M-0123 wrap referencing D-0005; G-0164 was a duplicate
 	// filed at M-0125 and cancelled wontfix on consolidation).
 	"ac-open-promote": "G-0140",
 }
