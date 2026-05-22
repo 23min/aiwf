@@ -1,7 +1,9 @@
 ---
-id: G-0156
+id: G-0165
 title: cellcoverage.SatisfyPredicate falls through silently on unknown Op
 status: addressed
+prior_ids:
+    - G-0156
 discovered_in: M-0124
 addressed_by:
     - M-0124

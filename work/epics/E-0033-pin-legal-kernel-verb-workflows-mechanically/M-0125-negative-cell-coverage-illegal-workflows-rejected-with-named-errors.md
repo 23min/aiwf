@@ -1,13 +1,30 @@
 ---
 id: M-0125
 title: 'Negative cell coverage: illegal workflows rejected with named errors'
-status: draft
+status: done
 parent: E-0033
 depends_on:
     - M-0123
     - M-0130
     - M-0131
 tdd: required
+acs:
+    - id: AC-1
+      title: Negative-precondition fixture helpers + self-verification
+      status: met
+      tdd_phase: done
+    - id: AC-2
+      title: 'Per-cell negative driver: verb-time rejection (exit-code + rollback)'
+      status: met
+      tdd_phase: done
+    - id: AC-3
+      title: 'Per-cell negative driver: check-time rejection (finding-code present)'
+      status: met
+      tdd_phase: done
+    - id: AC-4
+      title: 'Coverage meta-test: every Illegal cell has a negative subtest'
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -43,10 +60,6 @@ Per illegal cell:
 
 Every illegal cell in `Rules()` has at least one negative test. The meta-test from M-0124 extends to require negative coverage as well — `Outcome = illegal` rules without a matching test fail CI.
 
-## Acceptance criteria
-
-(Added via `aiwf add ac` after M-0124 lands the positive test scaffolding, since the negative tests reuse the fixture helpers.)
-
 ## Approach
 
 - Reuse the fixture builder from M-0124 with helpers that *deliberately* establish forbidden preconditions.
@@ -59,3 +72,12 @@ Every illegal cell in `Rules()` has at least one negative test. The meta-test fr
 - Does not test branch-context illegality (E-0030's scope).
 - Does not include fuzz / random walks.
 - Does not extend the spec table — only consumes M-0123's output.
+
+### AC-1 — Negative-precondition fixture helpers + self-verification
+
+### AC-2 — Per-cell negative driver: verb-time rejection (exit-code + rollback)
+
+### AC-3 — Per-cell negative driver: check-time rejection (finding-code present)
+
+### AC-4 — Coverage meta-test: every Illegal cell has a negative subtest
+

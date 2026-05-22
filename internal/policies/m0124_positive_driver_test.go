@@ -373,6 +373,8 @@ func bringTDDPhaseAC(t *testing.T, f *cellcoverage.CellFixture, fromPhase string
 		advanceTo = []string{entity.TDDPhaseGreen}
 	case entity.TDDPhaseRefactor:
 		advanceTo = []string{entity.TDDPhaseGreen, entity.TDDPhaseRefactor}
+	case entity.TDDPhaseDone:
+		advanceTo = []string{entity.TDDPhaseGreen, entity.TDDPhaseDone}
 	default:
 		t.Fatalf("bringTDDPhaseAC: unsupported fromPhase %q", fromPhase)
 	}

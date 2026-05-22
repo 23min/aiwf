@@ -92,6 +92,15 @@ func Authorize(ctx context.Context, t *tree.Tree, id, actor string, opts Authori
 }
 
 func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Result, error) {
+	// Kind allowlist: per D-0007 (authorize-scope) only scope-entities
+	// (Epic + Milestone) carry autonomous-work scopes. Gap, Decision,
+	// Contract, and ADR are kernel ledgers — they have no notion of
+	// "open scope for an agent." Spec cell R-AUDIT-0122 / R-FP-0133 /
+	// D-0007 captures the rule; this guard is its verb-time chokepoint.
+	if e.Kind != entity.KindEpic && e.Kind != entity.KindMilestone {
+		return nil, fmt.Errorf("aiwf authorize: kind %q is not allowed (authorize-kind-not-allowed); only epic and milestone carry autonomous-work scopes", e.Kind)
+	}
+
 	agent := strings.TrimSpace(opts.Agent)
 	if agent == "" {
 		return nil, fmt.Errorf("aiwf authorize --to <agent>: agent is required")
