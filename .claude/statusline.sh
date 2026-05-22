@@ -23,6 +23,11 @@ model="$(jq_get '.model.display_name')"
 [ -z "$model" ] && model="$(jq_get '.model.id')"
 [ -z "$model" ] && model="?"
 
+# Compress "Opus 4.7 (1M context)" → "Opus 4.7". The "(1M context)" suffix
+# is implicit in the high ctx_max threshold + colored ball; redundant now
+# that the token count sits inline next to the model name.
+model_short="${model% (*}"
+
 # Detect 1M-context variant from the display name.
 case "$model" in
   *"1M"*|*"1m"*) ctx_max=1000000 ;;
@@ -65,9 +70,37 @@ else                         color=$'\033[31m'   # red
 fi
 red=$'\033[31m'
 blue=$'\033[34m'
+yellow=$'\033[33m'
+green=$'\033[32m'
 reset=$'\033[0m'
 ball="${color}●${reset}"
-tokens_fmt="${color}$(fmt_tokens "$tokens") tokens${reset}"
+tokens_fmt="${color}$(fmt_tokens "$tokens")${reset}"
+
+# entity_color maps an aiwf entity status to the four-color status palette:
+#   blue   = proposed
+#   yellow = in-flight / not-yet-terminal (draft/active/in_progress/open)
+#   green  = terminal-success (done/addressed/accepted/met/retired)
+#   red    = terminal-failure (cancelled/wontfix/rejected/deprecated/superseded)
+# Unrecognized statuses return empty (id renders in the default terminal color).
+entity_color() {
+  case "$1" in
+    proposed) printf '%s' "$blue" ;;
+    draft|active|in_progress|open) printf '%s' "$yellow" ;;
+    done|addressed|accepted|met|retired) printf '%s' "$green" ;;
+    cancelled|wontfix|rejected|deprecated|superseded) printf '%s' "$red" ;;
+  esac
+}
+
+# read_status pulls the `status:` value from an entity file's frontmatter.
+# Unquoted values only (the aiwf writer emits unquoted statuses).
+read_status() {
+  awk '/^status:/{
+    sub(/^status:[[:space:]]*/, "")
+    sub(/[[:space:]]+$/, "")
+    print
+    exit
+  }' "$1" 2>/dev/null
+}
 
 # --- Repo name --------------------------------------------------------------
 
@@ -105,34 +138,85 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   fi
 fi
 
-# --- Epic + milestone (derived from branch + file layout) ------------------
+# --- Epic + milestone + gap (derived from branch + file layout) ------------
 #
 # When on a `milestone/M-NNN-<slug>` branch, show both the milestone id and
 # its parent epic id. When on an `epic/E-NN-<slug>` branch, show only the
-# epic id. On main and other branches, drop both segments — the kernel's
+# epic id. When on a `patch/g-NNN-<slug>` branch (wf-patch flow), show the
+# gap id. On main and other branches, drop the entity segments — the kernel's
 # branch policy ties in-flight work to ritual branches, so there's nothing
 # meaningful to derive when we're not on one.
+#
+# Each id is color-coded by its current `status:` (entity_color above).
+# Frontmatter is read from the worktree's own checked-out files via
+# `git ls-files` — so the badge reflects the branch's view, matching the
+# `aiwf status --worktrees` per-worktree-tree resolution.
 
 epic_seg=""
 milestone_seg=""
+gap_seg=""
+e_color=""
+m_color=""
+g_color=""
 case "$cur_branch" in
   milestone/M-*)
     m_id="$(printf '%s' "$cur_branch" | sed -E 's|^milestone/(M-[0-9]+).*|\1|')"
     if [ -n "$m_id" ]; then
       milestone_seg="$m_id"
-      # Find parent epic by locating the milestone spec under work/epics/.
-      m_file="$(git ls-files "work/epics/*/${m_id}-*.md" 2>/dev/null | head -1)"
+      m_file="$(git ls-files "work/epics/*/${m_id}-*.md" "work/epics/archive/*/${m_id}-*.md" 2>/dev/null | head -1)"
       if [ -n "$m_file" ]; then
-        e_id="$(printf '%s' "$m_file" | sed -E 's|^work/epics/(E-[0-9]+).*|\1|')"
-        [ -n "$e_id" ] && epic_seg="$e_id"
+        e_id="$(printf '%s' "$m_file" | sed -E 's|^work/epics/(archive/)?(E-[0-9]+).*|\2|')"
+        if [ -n "$e_id" ]; then
+          epic_seg="$e_id"
+          e_file="$(git ls-files "work/epics/${e_id}-*/epic.md" "work/epics/archive/${e_id}-*/epic.md" 2>/dev/null | head -1)"
+          [ -n "$e_file" ] && e_color="$(entity_color "$(read_status "$e_file")")"
+        fi
+        m_color="$(entity_color "$(read_status "$m_file")")"
       fi
     fi
     ;;
   epic/E-*)
     e_id="$(printf '%s' "$cur_branch" | sed -E 's|^epic/(E-[0-9]+).*|\1|')"
-    [ -n "$e_id" ] && epic_seg="$e_id"
+    if [ -n "$e_id" ]; then
+      epic_seg="$e_id"
+      e_file="$(git ls-files "work/epics/${e_id}-*/epic.md" "work/epics/archive/${e_id}-*/epic.md" 2>/dev/null | head -1)"
+      [ -n "$e_file" ] && e_color="$(entity_color "$(read_status "$e_file")")"
+    fi
+    ;;
+  patch/[Gg]-*)
+    g_id="$(printf '%s' "$cur_branch" | sed -E 's|^patch/[Gg]-([0-9]+).*|G-\1|')"
+    if [ -n "$g_id" ]; then
+      gap_seg="$g_id"
+      g_file="$(git ls-files "work/gaps/${g_id}-*.md" "work/gaps/archive/${g_id}-*.md" 2>/dev/null | head -1)"
+      [ -n "$g_file" ] && g_color="$(entity_color "$(read_status "$g_file")")"
+    fi
     ;;
 esac
+
+# --- Other in-flight ritual worktrees count (+N⎇) --------------------------
+#
+# Counts other worktrees on ritual branches (epic/E-*, milestone/M-*,
+# patch/[Gg]-*). The current session's worktree is excluded — the segment
+# answers "is parallel work happening?" not "what's in flight overall".
+# Omitted entirely when zero so single-session repos see no chrome.
+
+other_wt_count=0
+cur_wt="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -n "$cur_wt" ]; then
+  while IFS= read -r line; do
+    case "$line" in
+      "worktree "*) wt_path="${line#worktree }" ;;
+      "branch refs/heads/"*)
+        wt_branch="${line#branch refs/heads/}"
+        case "$wt_branch" in
+          epic/E-*|milestone/M-*|patch/[Gg]-*)
+            [ "$wt_path" != "$cur_wt" ] && other_wt_count=$((other_wt_count + 1))
+            ;;
+        esac
+        ;;
+    esac
+  done < <(git worktree list --porcelain 2>/dev/null)
+fi
 
 # --- CI status (cached) -----------------------------------------------------
 
@@ -164,7 +248,7 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
 
   use_cache=false
   if [ -r "$cache_file" ]; then
-    age=$(( $(date +%s) - $(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null || echo 0) ))
+    age=$(( $(date +%s) - $(stat -c %Y "$cache_file" 2>/dev/null || stat -f %m "$cache_file" 2>/dev/null || echo 0) ))
     [ "$age" -lt "$ttl" ] && use_cache=true
   fi
 
@@ -198,12 +282,14 @@ fi
 
 # --- Compose ----------------------------------------------------------------
 
-parts=("$ball $model")
-[ -n "$epic_seg" ]      && parts+=("${blue}${epic_seg}${reset}")
-[ -n "$milestone_seg" ] && parts+=("${blue}${milestone_seg}${reset}")
+parts=("$ball $model_short ▸ $tokens_fmt")
+[ -n "$epic_seg" ]      && parts+=("${e_color}${epic_seg}${reset}")
+[ -n "$milestone_seg" ] && parts+=("${m_color}${milestone_seg}${reset}")
+[ -n "$gap_seg" ]       && parts+=("${g_color}${gap_seg}${reset}")
 parts+=("$repo")
 [ -n "$branch_seg" ]    && parts+=("$branch_seg")
-parts+=("$ci_fmt" "$tokens_fmt")
+[ "$other_wt_count" -gt 0 ] && parts+=("+${other_wt_count}⎇")
+parts+=("$ci_fmt")
 
 # Join with " · ".
 out=""
