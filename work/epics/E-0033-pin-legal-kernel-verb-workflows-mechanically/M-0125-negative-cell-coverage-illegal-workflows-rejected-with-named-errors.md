@@ -20,7 +20,7 @@ acs:
     - id: AC-3
       title: 'Per-cell negative driver: check-time rejection (finding-code present)'
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: 'Coverage meta-test: every Illegal cell has a negative subtest'
       status: open
