@@ -25,6 +25,7 @@ acs:
     - id: AC-5
       title: Open questions for Pass C section present and non-empty
       status: met
+      tdd_phase: done
 ---
 ## Goal
 
