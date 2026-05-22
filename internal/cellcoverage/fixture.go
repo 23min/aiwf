@@ -385,19 +385,30 @@ func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID 
 			// Default state after `aiwf add gap`: AddressedBy empty.
 			// No mutation needed; the gap exists with the default.
 		}
-	case "self.tdd_phase":
-		// AC slot, default phase is "red" after add when parent
-		// milestone is tdd: required. Satisfies != entity.StatusDone by default.
-		// If a future test needs to force phase to a specific value,
-		// extend here.
-		f.populateEvalCtxAC(t, entityID, evalCtx)
-	case "parent.tdd":
-		// Parent.tdd was set at BringEntityToState time (default
-		// "required"); no mutation needed if the value already
-		// matches.
-		if p.Value != "required" {
-			t.Fatalf("SatisfyPredicate: parent.tdd == %q not supported (only \"required\")", p.Value)
+	case "self.superseded_by":
+		switch p.Op {
+		case "non-empty":
+			f.satisfyADRSuperseded(t, entityID)
+		case "==":
+			// Default state after `aiwf add adr`: SupersededBy empty.
+			// No mutation needed; the ADR exists with the default.
 		}
+	case "self.tdd_phase":
+		// AC slot. Default phase after `aiwf add ac` is "red" under
+		// tdd:required (matches != done by default) or "" under
+		// tdd:none / advisory. For `== done`, walk the phase along
+		// the TDD FSM via PromoteACPhase.
+		f.populateEvalCtxAC(t, entityID, evalCtx)
+		if p.Op == "==" && p.Value == entity.TDDPhaseDone {
+			f.walkACToPhase(t, entityID, entity.TDDPhaseDone)
+			f.populateEvalCtxAC(t, entityID, evalCtx)
+		}
+	case "parent.tdd":
+		// Parent.tdd is fixed at BringEntityToState time. The driver
+		// derives BringOpts.ParentTDD from this predicate before
+		// fixture build, so by the time SatisfyPredicate runs the
+		// milestone's TDD field already matches. The silent-drift
+		// guard below confirms.
 	case "any-child.status":
 		// Epic with any non-terminal child. Default state after
 		// epicAt + milestoneAt: epic has a draft milestone child
@@ -444,6 +455,87 @@ func (f *CellFixture) satisfyGapAddressed(t *testing.T, gapID string) {
 		f.Must(verb.Add(f.ctx, f.Tree(), entity.KindMilestone, "Resolver Milestone", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	}
 	f.Must(verb.Promote(f.ctx, f.Tree(), gapID, entity.StatusAddressed, testActor, "", false, verb.PromoteOptions{AddressedBy: []string{"M-0001"}}))
+}
+
+// satisfyADRSuperseded supersedes the named ADR by a sibling ADR
+// allocated for this purpose. Mirrors satisfyGapAddressed's shape:
+// builds the support entity (a second ADR), then runs the verb that
+// populates SupersededBy atomically with the transition.
+//
+// The sibling ADR must reach `accepted` first because the FSM only
+// allows accepted → superseded — but the supersession target itself
+// doesn't need to be accepted (the trailer just records the id). In
+// practice though, the kernel doesn't gate target-state, so the
+// sibling stays at proposed.
+func (f *CellFixture) satisfyADRSuperseded(t *testing.T, adrID string) {
+	t.Helper()
+	// Allocate a sibling ADR to serve as the supersession target.
+	// Determine its id by reading the aiwf-entity trailer the verb
+	// stamps on its plan.
+	res, err := verb.Add(f.ctx, f.Tree(), entity.KindADR, "Superseding ADR", testActor, verb.AddOptions{})
+	f.Must(res, err)
+	supersedingID := trailerValue(res.Plan, gitops.TrailerEntity)
+	if supersedingID == "" {
+		t.Fatalf("satisfyADRSuperseded: no %s trailer on Add plan", gitops.TrailerEntity)
+	}
+	f.Must(verb.Promote(f.ctx, f.Tree(), adrID, entity.StatusSuperseded, testActor, "", false, verb.PromoteOptions{SupersededBy: supersedingID}))
+}
+
+// trailerValue returns the value of the first trailer matching key in
+// the plan, or "" if absent.
+func trailerValue(plan *verb.Plan, key string) string {
+	if plan == nil {
+		return ""
+	}
+	for _, tr := range plan.Trailers {
+		if tr.Key == key {
+			return tr.Value
+		}
+	}
+	return ""
+}
+
+// walkACToPhase advances the AC's tdd_phase to target via the TDD
+// FSM (“ → red → green → {refactor, done}; refactor → done).
+// Skips no-op transitions; tolerates the AC already being at target.
+func (f *CellFixture) walkACToPhase(t *testing.T, compositeID, target string) {
+	t.Helper()
+	for {
+		tr := f.Tree()
+		_, ac, err := lookupComposite(tr, compositeID)
+		if err != nil {
+			t.Fatalf("walkACToPhase: %v", err)
+		}
+		if ac.TDDPhase == target {
+			return
+		}
+		next := nextTDDPhaseTowards(ac.TDDPhase, target)
+		if next == "" {
+			t.Fatalf("walkACToPhase: no TDD path from %q to %q", ac.TDDPhase, target)
+		}
+		f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), compositeID, next, testActor, "", false, nil))
+	}
+}
+
+// nextTDDPhaseTowards returns the next phase to advance to given a
+// current phase and a target. The TDD FSM is linear with a single
+// branch at green ({refactor, done}); when target is done, the
+// helper picks the green→done shortcut.
+func nextTDDPhaseTowards(current, target string) string {
+	switch current {
+	case "":
+		return entity.TDDPhaseRed
+	case entity.TDDPhaseRed:
+		return entity.TDDPhaseGreen
+	case entity.TDDPhaseGreen:
+		if target == entity.TDDPhaseRefactor {
+			return entity.TDDPhaseRefactor
+		}
+		return entity.TDDPhaseDone
+	case entity.TDDPhaseRefactor:
+		return entity.TDDPhaseDone
+	}
+	return ""
 }
 
 func (f *CellFixture) ensureNonTerminalMilestoneChild(t *testing.T, epicID string) {

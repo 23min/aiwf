@@ -220,13 +220,31 @@ func adrRules() []Rule {
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0012"}, FP: []string{"R-FP-0017"}},
 		},
-		// accepted → superseded
+		// accepted → superseded (preconditioned on self.superseded_by
+		// non-empty per adr-supersession-mutual; mirrors the gap
+		// open→addressed shape from R-AUDIT-0089). G-0153 records the
+		// spec-vs-kernel drift this pair closes.
 		{
-			Kind:      entity.KindADR,
-			FromState: "accepted",
-			Verb:      "promote",
-			Outcome:   OutcomeLegal,
-			Sources:   RuleSource{Audit: []string{"R-AUDIT-0013"}, FP: []string{"R-FP-0018"}},
+			Kind:          entity.KindADR,
+			FromState:     "accepted",
+			Verb:          "promote",
+			Preconditions: []Predicate{{Subject: "self.superseded_by", Op: "non-empty"}},
+			Outcome:       OutcomeLegal,
+			Sources:       RuleSource{Audit: []string{"R-AUDIT-0013"}, FP: []string{"R-FP-0018"}},
+		},
+		// adr-supersession-mutual illegal companion: missing
+		// --superseded-by triggers verb-time refusal. Surfaced via
+		// M-0124/AC-3's per-cell positive driver (gap G-0153).
+		{
+			Kind:              entity.KindADR,
+			FromState:         "accepted",
+			Verb:              "promote",
+			Preconditions:     []Predicate{{Subject: "self.superseded_by", Op: "==", Value: ""}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "adr-supersession-mutual",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Audit: []string{"R-AUDIT-0013"}, FP: []string{"R-FP-0018"}},
 		},
 		// Q3 explicit illegal: accepted → rejected is not legal (supersession only).
 		{
@@ -372,14 +390,36 @@ func contractRules() []Rule {
 // Q2 (self-promote illegal globally) is captured by no FromState-to-same-state cells.
 func acRules() []Rule {
 	return []Rule{
-		// open → met (preconditioned on self.evidence non-empty per D-0005)
+		// open → met (preconditioned on self.evidence non-empty per
+		// D-0005). The Legal cell is split on parent.tdd: when the
+		// parent milestone is tdd != required, evidence alone suffices;
+		// when parent.tdd == required, the kernel's acs-tdd-audit
+		// (Illegal companion below) demands tdd_phase == done. Splitting
+		// here keeps every Legal cell's preconditions enumerable as flat
+		// AND (no implicit "and the audit doesn't fire") — closes
+		// G-0153's overlapping-cells skimp.
 		{
-			Kind:          KindAC,
-			FromState:     "open",
-			Verb:          "promote",
-			Preconditions: []Predicate{{Subject: "self.evidence", Op: "non-empty"}},
-			Outcome:       OutcomeLegal,
-			Sources:       RuleSource{Audit: []string{"R-AUDIT-0034", "R-AUDIT-0195"}, FP: []string{"R-FP-0046", "R-FP-0066"}, Decision: "D-0005"},
+			Kind:      KindAC,
+			FromState: "open",
+			Verb:      "promote",
+			Preconditions: []Predicate{
+				{Subject: "self.evidence", Op: "non-empty"},
+				{Subject: "parent.tdd", Op: "!=", Value: "required"},
+			},
+			Outcome: OutcomeLegal,
+			Sources: RuleSource{Audit: []string{"R-AUDIT-0034", "R-AUDIT-0195"}, FP: []string{"R-FP-0046", "R-FP-0066"}, Decision: "D-0005"},
+		},
+		{
+			Kind:      KindAC,
+			FromState: "open",
+			Verb:      "promote",
+			Preconditions: []Predicate{
+				{Subject: "self.evidence", Op: "non-empty"},
+				{Subject: "parent.tdd", Op: "==", Value: "required"},
+				{Subject: "self.tdd_phase", Op: "==", Value: "done"},
+			},
+			Outcome: OutcomeLegal,
+			Sources: RuleSource{Audit: []string{"R-AUDIT-0034", "R-AUDIT-0195"}, FP: []string{"R-FP-0046", "R-FP-0066"}, Decision: "D-0005"},
 		},
 		// Q7 / D-0005 illegal companion: missing --evidence triggers verb-time refusal.
 		{

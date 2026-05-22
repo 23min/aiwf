@@ -42,6 +42,8 @@ type EvalContext struct {
 //	self.evidence == ""
 //	self.addressed_by non-empty
 //	self.addressed_by == ""
+//	self.superseded_by non-empty
+//	self.superseded_by == ""
 //	self.tdd_phase != <phase>
 //	parent.tdd == <policy>
 //	any-child.status ∉ <named-set>
@@ -64,6 +66,8 @@ func EvaluatePredicate(p Predicate, e *entity.Entity, t *tree.Tree, ctx EvalCont
 		return cmpString(p.Op, ctx.Evidence, p.Value)
 	case "self.addressed_by":
 		return cmpStringSlice(p.Op, e.AddressedBy, p.Value)
+	case "self.superseded_by":
+		return cmpString(p.Op, e.SupersededBy, p.Value)
 	case "self.tdd_phase":
 		if ctx.AC == nil {
 			return false, fmt.Errorf("evaluate predicate: self.tdd_phase requires ctx.AC (AC predicate on a milestone slot)")

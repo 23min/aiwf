@@ -40,6 +40,8 @@ func TestEvaluatePredicate(t *testing.T) {
 	milestoneCancelled := &entity.Entity{ID: "M-0004", Kind: entity.KindMilestone, Status: "cancelled", Parent: "E-0001"}
 	gapWithResolver := &entity.Entity{ID: "G-0001", Kind: entity.KindGap, Status: "open", AddressedBy: []string{"M-0001"}}
 	gapNoResolver := &entity.Entity{ID: "G-0002", Kind: entity.KindGap, Status: "open"}
+	adrWithSuperseder := &entity.Entity{ID: "ADR-0010", Kind: entity.KindADR, Status: "accepted", SupersededBy: "ADR-0011"}
+	adrNoSuperseder := &entity.Entity{ID: "ADR-0011", Kind: entity.KindADR, Status: "accepted"}
 
 	milestoneWithOpenAC := &entity.Entity{
 		ID: "M-0010", Kind: entity.KindMilestone, Status: "in_progress", Parent: "E-0001", TDD: "required",
@@ -62,6 +64,7 @@ func TestEvaluatePredicate(t *testing.T) {
 			epicProposed,
 			milestoneDraft, milestoneAdvisory, milestoneDone, milestoneCancelled,
 			gapWithResolver, gapNoResolver,
+			adrWithSuperseder, adrNoSuperseder,
 			milestoneWithOpenAC, milestoneAllACsClosed,
 		},
 	}
@@ -89,6 +92,14 @@ func TestEvaluatePredicate(t *testing.T) {
 		{"addressed_by-non-empty-negative", Predicate{Subject: "self.addressed_by", Op: "non-empty"}, gapNoResolver, EvalContext{}, false, ""},
 		{"addressed_by-empty-positive", Predicate{Subject: "self.addressed_by", Op: "==", Value: ""}, gapNoResolver, EvalContext{}, true, ""},
 		{"addressed_by-empty-negative", Predicate{Subject: "self.addressed_by", Op: "==", Value: ""}, gapWithResolver, EvalContext{}, false, ""},
+
+		// self.superseded_by non-empty / == "" (single-string field on
+		// the ADR entity; populated atomically with the superseded
+		// transition via the verb's --superseded-by flag).
+		{"superseded_by-non-empty-positive", Predicate{Subject: "self.superseded_by", Op: "non-empty"}, adrWithSuperseder, EvalContext{}, true, ""},
+		{"superseded_by-non-empty-negative", Predicate{Subject: "self.superseded_by", Op: "non-empty"}, adrNoSuperseder, EvalContext{}, false, ""},
+		{"superseded_by-empty-positive", Predicate{Subject: "self.superseded_by", Op: "==", Value: ""}, adrNoSuperseder, EvalContext{}, true, ""},
+		{"superseded_by-empty-negative", Predicate{Subject: "self.superseded_by", Op: "==", Value: ""}, adrWithSuperseder, EvalContext{}, false, ""},
 
 		// self.tdd_phase != <phase> — fires on an AC, which is a
 		// sub-element of a milestone's ACs slice, not a tree entity.
