@@ -13,6 +13,10 @@ acs:
       title: Negative-precondition fixture helpers + self-verification
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: 'Per-cell negative driver: verb-time rejection (exit-code + rollback)'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -66,4 +70,6 @@ Every illegal cell in `Rules()` has at least one negative test. The meta-test fr
 - Does not extend the spec table — only consumes M-0123's output.
 
 ### AC-1 — Negative-precondition fixture helpers + self-verification
+
+### AC-2 — Per-cell negative driver: verb-time rejection (exit-code + rollback)
 
