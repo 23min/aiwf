@@ -1,7 +1,7 @@
 ---
 id: E-0033
 title: Pin legal kernel-verb workflows mechanically
-status: active
+status: done
 ---
 ## Goal
 
