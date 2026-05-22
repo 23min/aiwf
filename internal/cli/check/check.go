@@ -104,6 +104,16 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	}
 	findings = append(findings, provenanceFindings...)
 
+	// FSMHistoryConsistent walks per-entity git history in DAG order
+	// (per-parent comparison, not linearization adjacency) and emits
+	// findings for status transitions that violate the per-kind FSM.
+	// Lives in the CLI layer rather than check.Run because the per-
+	// entity git walk is too expensive for the pre-commit hook's
+	// shape-only policy path. M-0130 lands the predicates
+	// incrementally; AC-1 wires the walker without emitting any
+	// findings yet.
+	findings = append(findings, check.FSMHistoryConsistent(ctx, resolved, tr)...)
+
 	requireMetrics := false
 	var treeAllow []string
 	treeStrict := false

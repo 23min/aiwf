@@ -129,6 +129,37 @@ func TestAllocateID_WorkingTreeAheadOfTrunk(t *testing.T) {
 	}
 }
 
+// TestIDPrefix_AllKinds pins the per-kind id prefix mapping. Consumers
+// outside the entity package (notably the static CI/script audit at
+// internal/policies/aiwf_promote_epic_active_audit.go) consult
+// IDPrefix to build regexes that match each kind's id shape, so a
+// future drift between the prefix string and the kernel's ids would
+// silently break those consumers without this test firing.
+func TestIDPrefix_AllKinds(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		kind Kind
+		want string
+	}{
+		{KindEpic, "E-"},
+		{KindMilestone, "M-"},
+		{KindADR, "ADR-"},
+		{KindGap, "G-"},
+		{KindDecision, "D-"},
+		{KindContract, "C-"},
+		{Kind("widget"), ""},
+		{Kind(""), ""},
+	}
+	for _, c := range cases {
+		t.Run(string(c.kind), func(t *testing.T) {
+			t.Parallel()
+			if got := IDPrefix(c.kind); got != c.want {
+				t.Errorf("IDPrefix(%q) = %q, want %q", c.kind, got, c.want)
+			}
+		})
+	}
+}
+
 func TestAllocateID_TrunkIDsKindFiltered(t *testing.T) {
 	t.Parallel()
 	// Trunk ids of other kinds should not affect this kind's allocation.

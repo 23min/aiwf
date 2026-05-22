@@ -151,6 +151,7 @@ func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 		"aiwf render roadmap":        "no positional args",
 		"aiwf render help":           "hidden help alias; no positional args",
 		"aiwf import":                "<manifest> is a filesystem path; default file completion is correct",
+		"aiwf acknowledge-illegal":   "<sha> is a commit SHA; no closed set worth enumerating (operator looks up the offending SHA from aiwf check / git log output)",
 		"aiwf rewidth":               "no positional args (one-shot migration; --apply is a flag)",
 		"aiwf archive":               "no positional args (sweep is by status, not by id; per ADR-0004)",
 		"aiwf completion":            "Cobra completion script generator; out of E-14 scope",

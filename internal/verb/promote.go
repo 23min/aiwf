@@ -108,12 +108,14 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		if err := requireResolverForResolutionClass(e.Kind, newStatus, opts); err != nil {
 			return nil, err
 		}
-		// M-0095: the `epic / proposed → active` edge is a sovereign
-		// act per G-0063. Non-human actors are refused; --force is the
-		// explicit override (and itself enforces human-only via the
-		// existing provenance coherence rule, so non-human + --force
-		// already fails at the coherence chokepoint).
-		if err := requireHumanActorForEpicActivation(e.Kind, newStatus, actor); err != nil {
+		// Sovereign-act-shape transitions are human-only by default
+		// (the closed-set list lives at entity.IsSovereignActShape;
+		// M-0095 is the first entry — epic proposed → active per
+		// G-0063). --force is the explicit override (and itself
+		// enforces human-only via the existing provenance coherence
+		// rule, so non-human + --force already fails at the coherence
+		// chokepoint).
+		if err := requireHumanActorForSovereignAct(e.Kind, e.Status, newStatus, actor); err != nil {
 			return nil, err
 		}
 	}
@@ -170,9 +172,21 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	target := entity.CancelTarget(e.Kind)
+	// Pre-flight terminal check. Cancel never makes sense on an entity
+	// already at a terminal status — there's nothing to project to.
+	// Without this guard, the older code silently constructed
+	// FSM-illegal projections (e.g., Cancel on a `done` epic set
+	// status to `cancelled` even though Epic.done has no outgoing
+	// edges); since M-0131's state-aware CancelTarget the trap moved
+	// to the empty-return path with a less informative message. This
+	// catches the case once, at the verb boundary, with a clear
+	// "already at terminal X" error.
+	if entity.IsTerminal(e.Kind, e.Status) {
+		return nil, fmt.Errorf("%s is already at terminal status %q; nothing to cancel", id, e.Status)
+	}
+	target := entity.CancelTarget(e.Kind, e.Status)
 	if target == "" {
-		return nil, fmt.Errorf("kind %q has no cancel target", e.Kind)
+		return nil, fmt.Errorf("%s (kind %q, status %q) has no cancel target", id, e.Kind, e.Status)
 	}
 	if e.Status == target {
 		return nil, fmt.Errorf("%s is already %s", id, target)

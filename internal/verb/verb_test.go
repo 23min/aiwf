@@ -1088,6 +1088,100 @@ func TestCancel_AlreadyTerminal(t *testing.T) {
 	}
 }
 
+// TestCancel_OnAlreadyDoneEpic pins the M-0131 pre-flight IsTerminal
+// guard: cancelling an epic at `done` (the natural-success terminal,
+// not the cancel-class terminal `cancelled`) errors before the verb
+// constructs an FSM-illegal projection. Without the guard, the older
+// code would set status to `cancelled` even though Epic.done has no
+// outgoing FSM edges — a silent FSM violation.
+func TestCancel_OnAlreadyDoneEpic(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Shipped", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "", false, verb.PromoteOptions{}))
+
+	_, err := verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false)
+	if err == nil || !strings.Contains(err.Error(), "already at terminal") {
+		t.Errorf("expected 'already at terminal' refusal; got %v", err)
+	}
+}
+
+// TestCancel_DeprecatedContractLandsAtRetired is M-0131's headline
+// integration test: cancelling a deprecated contract via the cancel
+// verb lands at `retired`, not at the FSM-illegal `rejected` (which
+// was the pre-M-0131 behavior). This pins the seam where the AC-1
+// state-aware CancelTarget helper integrates with the Cancel verb.
+// A future refactor that decoupled the verb body from CancelTarget
+// (e.g., hardcoded a different cancel target inline) would be
+// caught here.
+//
+// Closes G-0131's user-visible failure: `aiwf cancel C-NNNN` on a
+// deprecated contract previously emitted "contract status
+// `deprecated` cannot transition to `rejected`"; it now succeeds
+// silently and writes the retired status to disk.
+func TestCancel_DeprecatedContractLandsAtRetired(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{}))
+	// Drive proposed -> accepted -> deprecated via force-promote.
+	// Real proposed -> accepted requires ContractBind, which is
+	// orthogonal to the cancel projection under test.
+	r.must(verb.Promote(r.ctx, r.tree(), "C-0001", entity.StatusAccepted, testActor, "test setup", true, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "C-0001", entity.StatusDeprecated, testActor, "test setup", true, verb.PromoteOptions{}))
+
+	r.must(verb.Cancel(r.ctx, r.tree(), "C-0001", testActor, "end-of-life", false))
+
+	c := r.tree().ByID("C-0001")
+	if c == nil {
+		t.Fatal("C-0001 not found after cancel")
+	}
+	if c.Status != entity.StatusRetired {
+		t.Errorf("post-cancel status = %q, want %q (deprecated -> retired is the M-0131 fix)", c.Status, entity.StatusRetired)
+	}
+
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-verb", "cancel")
+	mustHaveTrailer(t, tr, "aiwf-entity", "C-0001")
+}
+
+// TestCancel_OnAlreadyTerminalContract is the Contract-side
+// counterpart of TestCancel_OnAlreadyDoneEpic. Contract has two
+// terminal statuses (rejected = cancel-class; retired = natural-
+// success-after-deprecated); cancel on either errors. The retired
+// case is the one the M-0131 state-aware CancelTarget makes
+// reachable through the cancel verb — without the IsTerminal
+// guard the verb would error with the vague "has no cancel target"
+// because CancelTarget(KindContract, "retired") = "".
+func TestCancel_OnAlreadyTerminalContract(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name           string
+		terminalStatus string
+	}{
+		{"rejected", entity.StatusRejected},
+		{"retired", entity.StatusRetired},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := newRunner(t)
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Schema "+tc.name, testActor, verb.AddOptions{}))
+			// Force into the terminal status. The non-FSM intermediate
+			// hops aren't relevant to the assertion under test.
+			r.must(verb.Promote(r.ctx, r.tree(), "C-0001", tc.terminalStatus, testActor, "test setup", true, verb.PromoteOptions{}))
+
+			_, err := verb.Cancel(r.ctx, r.tree(), "C-0001", testActor, "", false)
+			if err == nil || !strings.Contains(err.Error(), "already at terminal") {
+				t.Errorf("expected 'already at terminal' refusal; got %v", err)
+			}
+		})
+	}
+}
+
 // TestRename_SameSlug returns an error rather than producing a no-op
 // commit.
 func TestRename_SameSlug(t *testing.T) {

@@ -84,6 +84,24 @@ var hintTable = map[string]string{
 	"entity-body-empty/decision":  "write prose for the named section in the decision body via `aiwf edit-body D-NNN`; Question/Decision/Reasoning are the load-bearing record",
 	"entity-body-empty/contract":  "write prose for the named section in the contract body via `aiwf edit-body C-NNN`; Purpose/Stability are the load-bearing record",
 
+	// M-0130/AC-5: fsm-history-consistent fires when a status-change
+	// commit bypasses the kernel's FSM in a way the per-subcode predicate
+	// catches. Three subcodes cover the territory: illegal-transition
+	// (change outside the FSM), forced-untrailered (sovereign-act-shape
+	// change without aiwf-force), manual-edit (legal FSM step but no
+	// aiwf-verb trailer at all). Hints land here ahead of M-0130/AC-2/3/4
+	// per the A2 sequencing decision: PolicyFindingCodesHaveHints is
+	// one-directional (fires on emitted codes lacking hints, not on hints
+	// lacking codes), so landing the hints first is safe.
+	"fsm-history-consistent/illegal-transition": "the status change is not a legal step in the kind's FSM and the commit has no `aiwf-force:` trailer; re-route through `aiwf promote <id> <to>` (which only accepts legal moves), or wield sovereign override via `aiwf <verb> --force --reason \"...\"` when the exceptional flip is genuinely warranted",
+	"fsm-history-consistent/forced-untrailered": "the status change matches a sovereign-act shape (e.g., epic `proposed → active`) that requires explicit override but the commit has no `aiwf-force:` trailer; re-run the verb with `--force --reason \"...\"` so the override is recorded in the trailers, or undo the change via the corresponding inverse verb",
+	"fsm-history-consistent/manual-edit":        "the status change has no `aiwf-verb:` trailer (manual `git commit` bypassed the kernel); re-route through the appropriate verb (`aiwf promote`, `aiwf cancel`), or record the exceptional flip via `aiwf <verb> --audit-only --reason \"...\"` after correcting the file by hand — the audit-only commit clears the finding",
+	// M-0137/AC-4: history-walk-error subcode. The M-0130 walker
+	// silently swallowed walker failures; M-0137 surfaces them as
+	// findings so one transient subprocess error doesn't wipe the
+	// rule's output (per CLAUDE.md §Engineering principles).
+	"fsm-history-consistent/history-walk-error": "the walker hit a real failure reading the named entity's commit history (subprocess crash, blob read error, context cancelled mid-walk); other entities' findings are still surfaced alongside per the partial-preservation contract. Re-run `aiwf check` to confirm whether the failure is transient; if it repeats, inspect git's reachable-objects health (`git fsck`) or the consumer-repo permissions on `.git/objects/`",
+
 	"contract-config/missing-entity":        "create a contract entity for this id (`aiwf add contract`), or remove the entry from aiwf.yaml.contracts.entries[]",
 	"contract-config/missing-schema":        "fix the `schema:` path in aiwf.yaml.contracts.entries[], or create the file at that location",
 	"contract-config/missing-fixtures":      "fix the `fixtures:` path in aiwf.yaml.contracts.entries[], or create the directory",

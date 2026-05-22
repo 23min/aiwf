@@ -30,7 +30,7 @@ func TestList_AllShippedSkillsPresent(t *testing.T) {
 	for i, s := range skills {
 		got[i] = s.Name
 	}
-	want := []string{"aiwf-add", "aiwf-archive", "aiwf-authorize", "aiwf-check", "aiwf-contract", "aiwf-edit-body", "aiwf-history", "aiwf-list", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-render", "aiwf-retitle", "aiwf-show", "aiwf-status"}
+	want := []string{"aiwf-acknowledge-illegal", "aiwf-add", "aiwf-archive", "aiwf-authorize", "aiwf-check", "aiwf-contract", "aiwf-edit-body", "aiwf-history", "aiwf-list", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-render", "aiwf-retitle", "aiwf-show", "aiwf-status"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d skills, want %d (%v vs %v)", len(got), len(want), got, want)
 	}

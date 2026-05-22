@@ -1,12 +1,41 @@
 ---
 id: M-0123
 title: Pass C reconcile to canonical Go spec table + drift policy
-status: draft
+status: done
 parent: E-0033
 depends_on:
     - M-0121
     - M-0122
 tdd: required
+acs:
+    - id: AC-1
+      title: spec package declares Rule, enums, Predicate, RuleSource, AntiRule types
+      status: met
+      tdd_phase: done
+    - id: AC-2
+      title: Rules() covers Q1-Q15 cells; schema invariants hold
+      status: met
+      tdd_phase: done
+    - id: AC-3
+      title: AntiRules() carries 12 entries (Pass B §10 plus Q10 addition)
+      status: met
+      tdd_phase: done
+    - id: AC-4
+      title: 'LookupRule helper: hit, miss, no-duplicates semantics'
+      status: met
+      tdd_phase: done
+    - id: AC-5
+      title: Bidirectional drift policy (impl->spec and spec->impl)
+      status: met
+      tdd_phase: done
+    - id: AC-6
+      title: Every Sources.Decision resolves to an existing D-NNNN entity
+      status: met
+      tdd_phase: done
+    - id: AC-7
+      title: Rules() slice not exported; LookupRule is the only access
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -166,3 +195,83 @@ Enforcement is reviewer-level. A structural finding-rule under `internal/check/`
 ## Open question to settle here
 
 The "negative-of-undefined" posture (cells the spec deliberately leaves silent) is decided in this milestone, based on whether reconciliation actually surfaces any genuinely undecidable cells. Default lean: closed spec (every cell decided one way or the other). Decide otherwise only if forced by reality; record the call via `aiwf add decision --relates-to E-0033`.
+
+### AC-1 — spec package declares Rule, enums, Predicate, RuleSource, AntiRule types
+
+### AC-2 — Rules() covers Q1-Q15 cells; schema invariants hold
+
+### AC-3 — AntiRules() carries 12 entries (Pass B §10 plus Q10 addition)
+
+### AC-4 — LookupRule helper: hit, miss, no-duplicates semantics
+
+### AC-5 — Bidirectional drift policy (impl->spec and spec->impl)
+
+### AC-6 — Every Sources.Decision resolves to an existing D-NNNN entity
+
+### AC-7 — Rules() slice not exported; LookupRule is the only access
+
+
+## Work log
+
+### AC-1 — spec package declares Rule, enums, Predicate, RuleSource, AntiRule types
+
+`internal/workflows/spec/spec.go` declares the type system: `Rule` struct (9 fields, declaration order pinned by structural test); `Outcome` enum with `OutcomeUnspecified` zero-sentinel; `RejectionLayer` enum with `RejectionLayerNone` zero-sentinel; `Predicate`, `RuleSource`, `AntiRule` structs; and the two `entity.Kind`-typed extensions `KindAC` and `KindTDDPhase` for sub-FSM cells. Schema invariants pinned in the package doc; their enforcement is AC-5's drift-policy concern. Mechanical evidence: 7 reflect-based structural tests in `internal/policies/m0123_ac1_spec_types_test.go` covering field-order, enum-distinctness, and the two `Kind*` constants. Commit `11662cdc`.
+
+### AC-2 — Rules() covers Q1-Q15 cells; schema invariants hold
+
+`internal/workflows/spec/rules.go` populated with ~60 cells covering every (Kind, FromState) the kernel FSM recognizes plus 12 terminal-state illegal cells via the `terminalIllegal` helper. Schema adjustment from phase 1: the cell uniqueness key relaxed from `(Kind, FromState, Verb)` to `(Kind, FromState, Verb, Outcome, Preconditions)` to admit the preconditioned-pair pattern (Q5/Q6/Q7/Q8 each have legal + illegal companion cells at the same key, distinguished by Preconditions). 9 invariant tests in `internal/policies/m0123_ac2_rules_test.go`. Commit `93846e75`.
+
+### AC-3 — AntiRules() carries 12 entries (Pass B §10 plus Q10 addition)
+
+`internal/workflows/spec/antirules.go` returns 12 entries (ANTI-0001..ANTI-0012). ANTI-0001..ANTI-0011 mirror R-FP-0166..R-FP-0176 from Pass B §10. ANTI-0012 is the Q10 reconciliation addition: an epic MAY transition `proposed → active` with zero milestones, distinct from the `epic-active-no-drafted-milestones` warning whose guard ("all milestones drafts") is satisfied vacuously by the zero case but is deliberately allowed. 5 structural tests in `internal/policies/m0123_ac3_antirules_test.go`. Commit `e5ad99e5`.
+
+### AC-4 — LookupRule helper: hit, miss, no-duplicates semantics
+
+`internal/workflows/spec/lookup.go` declares `LookupRules(kind, fromState, verb string) []Rule`. Plural slice return per the AC-2 schema relaxation; the caller resolves which cell applies by walking `Preconditions`. 5 tests in `internal/policies/m0123_ac4_lookuprules_test.go`: hit-single, hit-preconditioned-pair, miss (3 sub-cases), match-all-inputs, no-duplicates-within-result. One sharp edge: the no-duplicates test initially asserted "at most 1 per Outcome" which broke on `(KindAC, open, promote)`'s two-legal-cell shape (open→met and open→deferred, distinguished by Preconditions); corrected to mirror AC-2's actual `(Outcome, Preconditions)` uniqueness contract. Commit `e1c19562`.
+
+### AC-5 — Bidirectional drift policy (impl→spec and spec→impl)
+
+`internal/policies/m0123_ac5_drift_test.go` with 8 sub-tests across two arms. **impl→spec:** every kind/from-state in `entity.AllKinds() × AllowedStatuses()` covered (strengthens AC-2's hardcoded list by walking the exported enumerators); every AC status in `AllowedACStatuses()` covered; every TDD phase in `AllowedTDDPhases() ∪ {""}` covered; every top-level Cobra verb covered or in `nonLegalityVerbAllowlist` (25 entries, each with one-line rationale). **spec→impl:** every Rule's Kind, FromState, Verb, and ExpectedErrorCode resolves. The error-code resolver walks `Code: "..."` literals across `internal/` and admits a `deferredImplErrorCodes` allowlist of 5 codes citing the tracking D-NNNN. Two drift findings surfaced during authoring: (a) spec missing the `(KindAC, "cancelled", "promote")` terminal cell — fixed; (b) allowlist key bug `editbody` vs Cobra-Use `edit-body` — fixed. Commit `070bd761`.
+
+### AC-6 — Every Sources.Decision resolves to an existing D-NNNN entity
+
+`internal/policies/m0123_ac6_decision_resolves_test.go` with two tests: one over `spec.Rules()` and one over `spec.AntiRules()`. Both use the existing `sharedRepoTree` helper for loader-based resolution per CLAUDE.md "Policy tests that read entity files must resolve via the loader" rule — `Tree.ByID` transparently resolves active and archive paths (ADR-0004). Tests passed green on first run because D-0002..D-0007 were committed during phase 1; the assertion's bite is for future deletion / rename / wrong-kind drift. Commit `bc553f59`.
+
+### AC-7 — Rules() slice not exported; LookupRule is the only access
+
+`internal/policies/m0123_ac7_rules_encapsulation_test.go` enforces the encapsulation invariant via static analysis rather than Go visibility. Given AC-2/5/6 were already authored as out-of-package drift tests that legitimately iterate `spec.Rules()`, the "Rules() slice not exported" AC text is read as a behavioral contract ("Rules() is not the consumer-facing access path"). The walker AST-parses every non-test `.go` file under `internal/` outside `internal/workflows/spec/` and `internal/policies/`, tracks the local name of the workflows/spec import (honoring aliases), and reports any `SelectorExpr` to `Rules` or `AntiRules`. Five tests: live-repo positive (zero production callers today), synthetic violation detection, alias honoring, LookupRules exemption, _test.go exemption. Commit `a833744f`.
+
+## Decisions made during implementation
+
+- **AC-2 schema relaxation: `(Kind, FromState, Verb, Outcome, Preconditions)` uniqueness key.** The phase 1 concretization doc specified `(Kind, FromState, Verb)` uniqueness. Reality (Q5/Q6/Q7/Q8 preconditioned-pair pattern) required loosening: same key + different Outcome + identical Preconditions is a duplicate (bad); same key + different Preconditions is a legitimate refined-cell. `LookupRule` adapted to `LookupRules` (plural, slice) to accommodate. Captured in AC-2's commit body.
+- **AC-7 encapsulation reading: static policy, not Go visibility.** Three readings considered (rename to lowercase + move tests in-package; iterator-only API; static policy). Chose option 3 because the literal-unexport reading would retroactively break AC-2/5/6's already-shipped out-of-package tests. The "Rules() not exported" AC text is read as a behavioral guarantee enforced by `internal/policies/m0123_ac7_rules_encapsulation_test.go`. Captured in AC-7's commit body.
+- **AC-5 deferred impl-side classifier.** The "impl→spec finding-code coverage" arm of the bidirectional drift policy (every legality-pertinent finding code referenced by ≥1 illegal-outcome Rule) requires a classifier distinguishing "verb-time legality" findings from "structural integrity" findings — wider than M-0123. Deferred via gap (G-0145) and documented in the test file's package-comment block.
+
+## Validation
+
+- `aiwf check` against the milestone branch — 0 errors, 24 warnings, none pertaining to M-0123 (all pre-existing on the branch).
+- `make test-race` against the full module — every package green; `?` for `internal/workflows/spec/` (no test files in the spec package itself; tests live in `internal/policies/`).
+- `golangci-lint run ./internal/policies/ ./internal/workflows/spec/...` — no findings on M-0123-authored files.
+- `go build ./...` — green.
+- Per-AC test counts: AC-1 (7 reflect tests), AC-2 (9 invariants), AC-3 (5 structural), AC-4 (5 hit/miss), AC-5 (8 drift sub-tests), AC-6 (2 resolver), AC-7 (5 encapsulation including 4 fixture-driven branch-coverage tests). Total: 41 tests across the seven ACs.
+
+## Deferrals
+
+All deferrals are tracked on `main` as follow-up gaps with `discovered_in: M-0123`:
+
+- **G-0139** — Implement cancel-cascade per D-0003 and D-0004. The spec table references `epic-cancel-non-terminal-children` and `milestone-cancel-non-terminal-acs` as verb-time refusal codes; impl emits neither today. Listed in AC-5's `deferredImplErrorCodes` allowlist.
+- **G-0140** — Implement `--evidence` flag on `aiwf promote AC met` per D-0005. The spec encodes the preconditioned legal + illegal companion cells; impl doesn't yet enforce the evidence binding. Listed in AC-5's `deferredImplErrorCodes` allowlist.
+- **G-0141** — Implement `authorize-kind-not-allowed` verb-time refusal per D-0007. Spec encodes four illegal cells (one per disallowed kind); impl accepts authorize for any kind. Listed in AC-5's `deferredImplErrorCodes` allowlist.
+- **G-0142** — Structured `fsm-transition-illegal` error from `entity.ValidateTransition`. Today's free-form `fmt.Errorf` doesn't carry the structured code; every terminal-illegal spec cell references it. Listed in AC-5's `deferredImplErrorCodes` allowlist.
+- **G-0143** — Implement scope-tree three-edge reachability per D-0006. The spec's `scope-reach` predicate references the formal model; impl in `internal/scope/` not yet reconciled.
+- **G-0144** — Rename `gap-resolved-has-resolver` to match Q8 addressed-by semantics. The code name predates the gap FSM's vocabulary shift from "resolved" to "addressed"; impl-side rename + spec-cell update + hint update needed.
+- **G-0145** — Classifier for legality-pertinent finding codes (AC-5 impl→spec arm). Required to close the fourth arm of the bidirectional drift policy.
+
+## Reviewer notes
+
+- **Pacing.** Phase 2 ran end-to-end per-AC: ~4 commits per AC (feat + phase-green + phase-done + AC-met). Human approval at the AC-met boundary; the user signed off on each AC before the next started. The total commit count on this branch is 28 (7 ACs × 4 commits each) plus phase 1 setup commits.
+- **Host → devcontainer handoff at AC-2 met.** Phase 1 + AC-1 + AC-2 landed on a macOS host. Sonoma 14.8.x syspolicyd throttle (G-0134) and hook-path ping-pong (G-0135) made further work slow and fragile; AC-3..AC-7 completed in the Linux devcontainer (E-0035 / M-0132). Branch state was clean at the handoff boundary (no work-in-progress).
+- **Drift policy surfaced two real spec gaps during AC-5 authoring.** (a) `(KindAC, "cancelled", "promote")` terminal cell missing — the spec had the symmetric `deferred` terminal cell but not `cancelled`. (b) `nonLegalityVerbAllowlist` keyed by package name `editbody` rather than Cobra `Use: "edit-body"`. Both fixed in AC-5's feat commit. The drift tests working as designed.
+- **`deferredImplErrorCodes` allowlist is the chokepoint for spec-vs-impl impedance.** Five codes (fsm-transition-illegal, epic-cancel-non-terminal-children, milestone-cancel-non-terminal-acs, ac-evidence-missing, authorize-kind-not-allowed) sit in the allowlist with D-NNNN justification. As each follow-up gap (G-0139..G-0142) lands, the allowlist entry comes out and the M-0123/AC-5 drift test re-binds the spec cell to the impl-side `Code: "..."` literal. The wiring is mechanical; the test fires automatically on PRs that don't remove the allowlist entry when the impl lands.
+- **AC-7 is the most interpretive of the seven.** "Rules() slice not exported" had three defensible readings; the chosen one (static policy, not Go visibility) is documented in the AC-7 commit body and in the test file's package comment. A future contributor who disagrees can move the drift tests in-package and unexport — but that work was outside M-0123's scope and would have been a non-trivial reorganization.
+- **`aiwf list --kind ac --status met` doesn't surface the work log structure.** The Work log section above is hand-maintained narrative; the structured truth is in `aiwf history M-0123/AC-N`. The narrative complements the history with the "why this commit" framing the trailers don't carry.

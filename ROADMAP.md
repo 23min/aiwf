@@ -378,11 +378,13 @@ This epic replaces the cancelled E-0031, whose first attempt produced a prose ca
 | M-0120 | Ratify legal-workflow spec methodology in ADR | done |
 | M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | done |
 | M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | done |
-| M-0123 | Pass C reconcile to canonical Go spec table + drift policy | draft |
-| M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | draft |
+| M-0123 | Pass C reconcile to canonical Go spec table + drift policy | done |
+| M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | done |
 | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | draft |
-| M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant | draft |
-| M-0131 | State-aware CancelTarget for Contract: cancel deprecated targets retired | draft |
+| M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant | done |
+| M-0131 | State-aware CancelTarget for Contract: cancel deprecated targets retired | done |
+| M-0136 | aiwf acknowledge-illegal: retroactive force trailer for historical violations | done |
+| M-0137 | fsm-history-consistent: batched git ops + silent-swallow fix | done |
 
 ## E-0034 — Retire docs/pocv3/ and declare doc-authority hierarchy (proposed)
 

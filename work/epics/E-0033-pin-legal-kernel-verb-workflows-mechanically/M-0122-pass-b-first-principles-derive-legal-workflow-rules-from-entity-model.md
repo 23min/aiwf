@@ -10,18 +10,23 @@ acs:
     - id: AC-1
       title: Catalog file exists at canonical path with top-level sections
       status: met
+      tdd_phase: done
     - id: AC-2
       title: Catalog has per-kind lifecycle section for each entity kind
       status: met
+      tdd_phase: done
     - id: AC-3
       title: R-FP-NNNN rule rows have non-empty schema fields
       status: met
+      tdd_phase: done
     - id: AC-4
       title: R-FP-NNNN ids unique and contiguous starting at R-FP-0001
       status: met
+      tdd_phase: done
     - id: AC-5
       title: Open questions for Pass C section present and non-empty
       status: met
+      tdd_phase: done
 ---
 ## Goal
 

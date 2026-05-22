@@ -231,17 +231,24 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 
 // TestBinary_CheckDefault_KernelTreeShortOutput (M-0089 AC-7):
 // run the binary against this repo's actual planning tree and assert
-// the default-mode output is short (≤10 lines). The kernel tree
-// currently has only a couple of distinct warning codes generating
-// nearly all the noise, so the summary collapses ~180+ findings into
-// a handful of lines. The exact count is environmental (depends on
-// how many distinct codes are present), so the assertion is a bound,
-// not a fixed value.
+// the structural property M-0089 actually promises — warnings collapse
+// into per-code summary lines, errors print per-instance.
 //
-// Per CLAUDE.md "Render output must be human-verified before the
-// iteration closes": this test pins the *bound*; the human pass at
-// wrap also reads the actual output and confirms it scans cleanly.
-// The two checks are complementary, not redundant.
+// Originally the test asserted a soft ≤10-line bound. The bound was a
+// proxy for "default mode keeps output scannable," sized when the
+// kernel tree had zero errors and the post-collapse baseline was 5
+// lines. M-0130's FSM-history check surfaced real per-instance errors
+// from historical squash-merges, and the soft bound started straining
+// against legitimate growth. Per the CLAUDE.md *"Test the seam, not
+// just the layer"* and *"Substring assertions are not structural
+// assertions"* discipline, this test now pins the actual regression
+// class (warning collapse breaks → warnings appear per-instance)
+// directly, not via a brittle line count.
+//
+// Per CLAUDE.md *"Render output must be human-verified before the
+// iteration closes"*: this test pins the structural shape; the human
+// pass at wrap also reads the actual output and confirms it scans
+// cleanly. The two checks are complementary, not redundant.
 func TestBinary_CheckDefault_KernelTreeShortOutput(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
@@ -254,21 +261,96 @@ func TestBinary_CheckDefault_KernelTreeShortOutput(t *testing.T) {
 		t.Fatalf("aiwf check (kernel tree): %v\n%s", err, out)
 	}
 
-	lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
-	if len(lines) > 10 {
-		t.Errorf("kernel-tree default output should be ≤10 lines, got %d (AC-7 violation):\n%s",
-			len(lines), out)
+	// Structural: no per-instance warning lines. Warnings must always
+	// collapse into the per-code summary form in default mode (errors
+	// print per-instance by design). A regression that breaks the
+	// collapse path would surface here as `<path>: warning <code>: ...`
+	// lines, recreating the pre-M-0089 wall-of-warnings UX. This is
+	// the actual property AC-7 was sized for.
+	warningPerInstanceRE := regexp.MustCompile(`(?m)^\S+: warning `)
+	if matches := warningPerInstanceRE.FindAllString(out, -1); len(matches) > 0 {
+		t.Errorf("default mode leaked %d per-instance warning lines (warning-collapse regression):\n%s",
+			len(matches), strings.Join(matches, "\n"))
 	}
 
-	// Sanity: at least one summary line is present and the footer line
-	// names the total finding count. If neither holds, something
-	// structural broke and the size bound is moot.
+	// Sanity: at least one summary line is present and every summary
+	// line is severity=warning. The kernel tree always has warnings
+	// (chronic codes like acs-tdd-audit, entity-body-empty), so a
+	// zero-summary state means the collapse path is broken or the
+	// renderer accidentally dropped warnings altogether. Errors must
+	// not collapse into summary form — they are per-instance-actionable
+	// per M-0089's contract.
 	summaries := parseSummaryLines(t, out)
 	if len(summaries) == 0 {
 		t.Errorf("expected at least one summary line; got none:\n%s", out)
 	}
+	for _, s := range summaries {
+		if s.severity != "warning" {
+			t.Errorf("summary line has unexpected severity %q (errors must print per-instance, not in summary form): %+v",
+				s.severity, s)
+		}
+	}
+
+	// Footer line must be present so the human knows totals.
 	if !regexp.MustCompile(`\d+ findings \(\d+ errors, \d+ warnings\)`).MatchString(out) {
 		t.Errorf("footer line missing:\n%s", out)
+	}
+}
+
+// TestKernelTreeShortOutput_StructuralAssertion_CatchesPerInstanceWarnings
+// is a meta-test for the assertion in
+// TestBinary_CheckDefault_KernelTreeShortOutput. It synthesizes a
+// "what a warning-collapse regression looks like" output and asserts
+// the regex used by that test would catch it, so we have evidence
+// the structural assertion actually fires on the regression class it
+// claims to detect — closing the "green-test-is-not-proof-of-catch"
+// gap.
+//
+// The pre-M-0089 wall-of-warnings shape (which we never want to
+// regress to) looks like per-instance lines: `<path>: warning <code>:
+// <message>`. The structural assertion's regex is
+// `^\S+: warning ` (with multi-line flag). This test feeds three
+// hand-crafted regression shapes and asserts each is caught.
+func TestKernelTreeShortOutput_StructuralAssertion_CatchesPerInstanceWarnings(t *testing.T) {
+	t.Parallel()
+	warningPerInstanceRE := regexp.MustCompile(`(?m)^\S+: warning `)
+	cases := []struct {
+		name     string
+		line     string
+		wantHits int
+	}{
+		{
+			name:     "single per-instance warning regression",
+			line:     "work/epics/E-0001-x/epic.md: warning terminal-entity-not-archived: entity E-0001 has terminal status\n",
+			wantHits: 1,
+		},
+		{
+			name: "multiple per-instance warnings regression",
+			line: "work/epics/E-0001-x/epic.md: warning code-a: msg\n" +
+				"work/gaps/G-0001-x.md: warning code-b: msg\n" +
+				"docs/adr/ADR-0001-x.md: warning code-c: msg\n",
+			wantHits: 3,
+		},
+		{
+			name:     "no warnings (the healthy collapse-working shape) must not match",
+			line:     "work/epics/E-0001-x/epic.md: error fsm-history-consistent/illegal-transition: msg\n",
+			wantHits: 0,
+		},
+		{
+			name: "healthy summary lines must not match",
+			line: "acs-tdd-audit (warning) × 12 — M-0120/AC-1 status: met under tdd: advisory but tdd_phase is (absent) (expected done)\n" +
+				"entity-body-empty (warning) × 11 — M-0102 body section is empty\n",
+			wantHits: 0,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			got := len(warningPerInstanceRE.FindAllString(c.line, -1))
+			if got != c.wantHits {
+				t.Errorf("regex hits = %d, want %d (input: %q)", got, c.wantHits, c.line)
+			}
+		})
 	}
 }
 

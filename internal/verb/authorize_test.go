@@ -102,6 +102,73 @@ func TestAuthorize_Open_RefusesNonHumanActor(t *testing.T) {
 	}
 }
 
+// TestAuthorize_Open_RefusesNonScopeEntityKind: per D-0007 only
+// scope-entities (epic + milestone) carry autonomous-work scopes.
+// Authorize on gap/decision/contract/adr is refused at the verb gate
+// with the authorize-kind-not-allowed token in the error message.
+// Closes the gap surfaced by M-0125/AC-2 dry-run; spec cells
+// R-AUDIT-0122 / R-FP-0133.
+func TestAuthorize_Open_RefusesNonScopeEntityKind(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		kind entity.Kind
+		id   string
+		add  func(r *runner)
+	}{
+		{
+			name: "gap",
+			kind: entity.KindGap,
+			id:   "G-0001",
+			add: func(r *runner) {
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Test Gap", testActor, verb.AddOptions{}))
+			},
+		},
+		{
+			name: "decision",
+			kind: entity.KindDecision,
+			id:   "D-0001",
+			add: func(r *runner) {
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindDecision, "Test Decision", testActor, verb.AddOptions{}))
+			},
+		},
+		{
+			name: "contract",
+			kind: entity.KindContract,
+			id:   "C-0001",
+			add: func(r *runner) {
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Test Contract", testActor, verb.AddOptions{}))
+			},
+		},
+		{
+			name: "adr",
+			kind: entity.KindADR,
+			id:   "ADR-0001",
+			add: func(r *runner) {
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Test ADR", testActor, verb.AddOptions{}))
+			},
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := newRunner(t)
+			tc.add(r)
+			_, err := verb.Authorize(r.ctx, r.tree(), tc.id, testActor, verb.AuthorizeOptions{
+				Mode:  verb.AuthorizeOpen,
+				Agent: "ai/claude",
+			})
+			if err == nil {
+				t.Fatalf("expected refusal for kind %q; got nil", tc.kind)
+			}
+			if !strings.Contains(err.Error(), "authorize-kind-not-allowed") {
+				t.Errorf("error %q does not name authorize-kind-not-allowed", err.Error())
+			}
+		})
+	}
+}
+
 // TestAuthorize_Open_RefusesTerminalEntity: a `done` or `cancelled`
 // epic refuses --to without --force.
 func TestAuthorize_Open_RefusesTerminalEntity(t *testing.T) {

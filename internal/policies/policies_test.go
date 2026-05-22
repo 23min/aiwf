@@ -207,3 +207,13 @@ func TestPolicy_FSMInvariants(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyFSMInvariants)
 }
+
+// TestPolicy_M0137AC3BatchedWalker is the mechanical evidence for
+// M-0137/AC-3: source-check that fsm_history_consistent.go uses the
+// batched gitops helpers (BulkRevwalk + BlobReader) and no longer
+// defines the per-entity walker helpers shipped with M-0130. GREEN
+// state after the M-0137 retrofit.
+func TestPolicy_M0137AC3BatchedWalker(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyM0137AC3BatchedWalker)
+}

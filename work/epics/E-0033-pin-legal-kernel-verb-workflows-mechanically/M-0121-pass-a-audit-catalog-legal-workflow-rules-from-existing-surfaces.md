@@ -10,15 +10,19 @@ acs:
     - id: AC-1
       title: Audit catalog exists at canonical path with per-source sections in spec order
       status: met
+      tdd_phase: done
     - id: AC-2
       title: All nine audit sources covered with at least one rule or explicit no-rules note
       status: met
+      tdd_phase: done
     - id: AC-3
       title: Each rule row has the six-column schema with non-empty fields
       status: met
+      tdd_phase: done
     - id: AC-4
       title: 'Catalog schema internally consistent: unique sequential ids, totals match'
       status: met
+      tdd_phase: done
 ---
 ## Goal
 
