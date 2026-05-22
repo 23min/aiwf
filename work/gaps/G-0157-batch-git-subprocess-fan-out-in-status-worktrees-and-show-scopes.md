@@ -1,10 +1,11 @@
 ---
-id: G-0151
+id: G-0157
 title: Batch git subprocess fan-out in status worktrees and show scopes
 status: open
 prior_ids:
     - G-0148
     - G-0149
+    - G-0151
 ---
 ## Status
 
