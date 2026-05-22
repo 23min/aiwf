@@ -11,7 +11,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Negative-precondition fixture helpers + self-verification
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: 'Per-cell negative driver: verb-time rejection (exit-code + rollback)'
