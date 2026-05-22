@@ -11,7 +11,7 @@ tdd: required
 acs:
     - id: AC-1
       title: 'spec.EvaluatePredicate primitive: closed Subject + Op vocabulary over Predicate'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Fixture helpers + satisfyPredicate self-verification
