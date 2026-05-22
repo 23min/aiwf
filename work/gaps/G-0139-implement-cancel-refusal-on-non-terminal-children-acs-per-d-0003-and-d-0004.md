@@ -26,16 +26,6 @@ Both codes are listed in `internal/policies/m0123_ac5_drift_test.go`'s
 the impl lands, the allowlist entries come out and the M-0123/AC-5 drift test
 re-binds the spec cells to the impl-side `Code: "..."` literals.
 
-> **Naming note.** The title's "cancel-cascade" wording is mildly misleading
-> — the behavior the spec actually requires is **refusal**, not cascading
-> the cancel to children. The verb should refuse to cancel an epic with
-> non-terminal milestone children (the operator promotes/cancels the
-> children first) rather than auto-cancel them on the parent's cancel.
-> A retitle to e.g. "Implement cancel refusal on non-terminal children
-> per D-0003 and D-0004" would be more accurate; left unchanged here
-> only to avoid breaking links from `deferredImplErrorCodes` comments and
-> earlier `aiwf history` walks.
-
 ## Why it matters
 
 Without the guards, an operator can cancel an epic mid-flight and orphan
@@ -90,7 +80,7 @@ The same caveat that applies to G-0141 applies here: emitting the error
 code in `fmt.Errorf` text doesn't satisfy AC-5's `Code: "..."` literal
 scanner. Closing G-0139 fully requires the same structured-emission
 pattern that's been deferred for all the entries in
-`deferredImplErrorCodes` (G-0141 phase 2 — possibly a new umbrella
+`deferredImplErrorCodes` (G-0141 Phase 2 — possibly a new umbrella
 gap/epic).
 
 ## Test surface
@@ -129,12 +119,19 @@ When the impl lands:
 ## History
 
 - **M-0123 (filed):** G-0139 filed at M-0123 wrap as a follow-up to
-  D-0003 + D-0004, citing `deferredImplErrorCodes`.
+  D-0003 + D-0004, citing `deferredImplErrorCodes`. Original title:
+  *"Implement cancel-cascade per D-0003 and D-0004"*.
 - **M-0125 (refined):** G-0162 was filed at M-0125 unaware that G-0139
   already existed (duplicate). G-0162's value-add — the 4-cell table,
   the `internal/verb/promote.go::Cancel` line-number reference, the
   `validateCancelChildren` helper name, the closing-this-gap checklist
   — was merged into this body and G-0162 was cancelled as a duplicate.
+- **M-0125 (retitled):** the original "cancel-cascade" wording was
+  misleading — the behavior the spec actually requires is *refusal*,
+  not cascading the cancel to children. Retitled to *"Implement cancel
+  refusal on non-terminal children/ACs per D-0003 and D-0004"* (see
+  `aiwf history G-0139` for the retitle commit) so future readers
+  aren't misdirected toward auto-cancel semantics.
 - **Confirmed:** M-0125/AC-2's negative driver dry-run confirmed at
   the cell level that all 4 cells are unguarded today (verb succeeds
   when spec says it should refuse with the structured code).
