@@ -90,9 +90,18 @@ type ACRow struct {
 // trailer-recency → branch-name parsing), and returns one WorktreeView
 // per worktree.
 //
+// Status fields on each row (driver, parent epic, depends_on, ACs,
+// surfaced gaps, epic-expansion children) are resolved from the
+// *worktree's own* loaded tree — entity files as they exist on that
+// worktree's branch, not on main. The main-checkout worktree's path
+// equals rootDir so it reuses the passed-in tr without re-loading.
+// If a worktree-side load fails the worktree falls back to tr; the
+// renderer degrades to "main-tree status" rather than dropping the
+// worktree section.
+//
 // rootDir is the consumer repo root (any worktree's path resolves the
-// shared git dir). tr is the loaded entity tree. ctx scopes the git
-// subprocess calls.
+// shared git dir). tr is the loaded entity tree for the main checkout.
+// ctx scopes the git subprocess calls.
 func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]WorktreeView, error) {
 	worktrees, err := gitops.ListWorktrees(ctx, rootDir)
 	if err != nil {
@@ -101,6 +110,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 	views := make([]WorktreeView, 0, len(worktrees))
 	for _, wt := range worktrees {
 		v := WorktreeView{Path: wt.Path, Branch: wt.Branch}
+		wtTree := worktreeTree(ctx, wt.Path, rootDir, tr)
 		// HEAD time: author-date of the most recent commit on this
 		// worktree's branch. Best-effort — git failure leaves
 		// HeadTime zero and the renderer omits the line. Use the
@@ -140,7 +150,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 			views = append(views, v)
 			continue
 		}
-		e := tr.ByID(driverID)
+		e := wtTree.ByID(driverID)
 		if e == nil {
 			// Correlated to an id that's not in the tree (renamed, archived
 			// beyond the current load, or otherwise unresolvable). Treat as
@@ -156,9 +166,9 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 		v.Stale = isTerminalStatus(e.Kind, e.Status)
 		switch e.Kind {
 		case entity.KindEpic:
-			v.EpicMilestones, v.EpicClosesGaps, v.EpicSurfacedGaps = epicExpansion(tr, e.ID, worktrees)
+			v.EpicMilestones, v.EpicClosesGaps, v.EpicSurfacedGaps = epicExpansion(wtTree, e.ID, worktrees)
 		case entity.KindMilestone:
-			if parent := tr.ByID(e.Parent); parent != nil {
+			if parent := wtTree.ByID(e.Parent); parent != nil {
 				v.ParentEpicID = parent.ID
 				v.ParentEpicTitle = parent.Title
 				v.ParentEpicStatus = parent.Status
@@ -167,9 +177,19 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 				v.ACs = append(v.ACs, ACRow{ID: ac.ID, Title: ac.Title, Status: ac.Status, TDDPhase: ac.TDDPhase})
 			}
 			// depends_on enumeration with resolved title/status.
+			// Try the worktree tree first (the operator cares about
+			// state on their branch); fall back to the main tree when
+			// the dep isn't present locally (typical case: the dep
+			// milestone was added on main after this worktree branched,
+			// or the dep lives on another worktree that may never merge,
+			// so the main tree is the only safe public reference).
 			for _, depID := range e.DependsOn {
 				row := EpicChildRow{ID: depID, Title: "(unknown)", Status: "?"}
-				if dep := tr.ByID(depID); dep != nil {
+				dep := wtTree.ByID(depID)
+				if dep == nil && wtTree != tr {
+					dep = tr.ByID(depID)
+				}
+				if dep != nil {
 					row.ID = dep.ID
 					row.Title = dep.Title
 					row.Status = dep.Status
@@ -180,7 +200,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 			// this milestone. Both narrow and canonical id widths
 			// resolve via entity.Canonicalize.
 			driverCanonical := entity.Canonicalize(e.ID)
-			for _, g := range tr.ByKind(entity.KindGap) {
+			for _, g := range wtTree.ByKind(entity.KindGap) {
 				if g.DiscoveredIn == "" {
 					continue
 				}
@@ -219,6 +239,30 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 		}
 	}
 	return views, nil
+}
+
+// worktreeTree returns the loaded entity tree for the worktree at path.
+// The main checkout's path equals rootDir so the passed-in main tree is
+// reused without a duplicate disk walk. For non-main worktrees, the
+// tree is loaded from the worktree's path so per-row status reflects
+// the worktree's branch — what the operator has actually committed
+// there — rather than the main-tree's stale view.
+//
+// Best-effort: on load failure (missing work/ dir, malformed
+// frontmatter, etc.) the worktree falls back to the main tree. The
+// load's findings/loadErrs are discarded — the main tree's load already
+// surfaced repo-level errors to the operator via BuildStatus, and a
+// per-worktree degradation should not block the wider --worktrees
+// output.
+func worktreeTree(ctx context.Context, path, rootDir string, mainTree *tree.Tree) *tree.Tree {
+	if path == "" || path == rootDir {
+		return mainTree
+	}
+	loaded, _, err := tree.Load(ctx, path)
+	if err != nil {
+		return mainTree
+	}
+	return loaded
 }
 
 // correlateBranchToEntity runs the hybrid cascade per G-0122 design:
