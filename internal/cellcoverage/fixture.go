@@ -239,6 +239,10 @@ func (f *CellFixture) adrAt(t *testing.T, fromState string) string {
 	case entity.StatusAccepted:
 		f.Must(verb.Promote(f.ctx, f.Tree(), "ADR-0001", entity.StatusAccepted, testActor, "", false, verb.PromoteOptions{}))
 		return "ADR-0001"
+	case entity.StatusSuperseded:
+		f.Must(verb.Promote(f.ctx, f.Tree(), "ADR-0001", entity.StatusAccepted, testActor, "", false, verb.PromoteOptions{}))
+		f.satisfyADRSuperseded(t, "ADR-0001")
+		return "ADR-0001"
 	case entity.StatusRejected:
 		f.Must(verb.Cancel(f.ctx, f.Tree(), "ADR-0001", testActor, "", false))
 		return "ADR-0001"
@@ -277,6 +281,10 @@ func (f *CellFixture) decisionAt(t *testing.T, fromState string) string {
 		return "D-0001"
 	case entity.StatusAccepted:
 		f.Must(verb.Promote(f.ctx, f.Tree(), "D-0001", entity.StatusAccepted, testActor, "", false, verb.PromoteOptions{}))
+		return "D-0001"
+	case entity.StatusSuperseded:
+		f.Must(verb.Promote(f.ctx, f.Tree(), "D-0001", entity.StatusAccepted, testActor, "", false, verb.PromoteOptions{}))
+		f.satisfyDecisionSuperseded(t, "D-0001")
 		return "D-0001"
 	case entity.StatusRejected:
 		f.Must(verb.Cancel(f.ctx, f.Tree(), "D-0001", testActor, "", false))
@@ -525,6 +533,17 @@ func (f *CellFixture) satisfyADRSuperseded(t *testing.T, adrID string) {
 		t.Fatalf("satisfyADRSuperseded: no %s trailer on Add plan", gitops.TrailerEntity)
 	}
 	f.Must(verb.Promote(f.ctx, f.Tree(), adrID, entity.StatusSuperseded, testActor, "", false, verb.PromoteOptions{SupersededBy: supersedingID}))
+}
+
+// satisfyDecisionSuperseded promotes a Decision into the terminal
+// superseded state. Unlike ADR, Decision's superseded state carries
+// no SupersededBy pointer field — the kernel's promote verb rejects
+// --superseded-by for non-ADR kinds (see internal/verb/promote.go).
+// The Decision FSM allows accepted → superseded as a plain status
+// flip; no support entity is required.
+func (f *CellFixture) satisfyDecisionSuperseded(t *testing.T, decisionID string) {
+	t.Helper()
+	f.Must(verb.Promote(f.ctx, f.Tree(), decisionID, entity.StatusSuperseded, testActor, "", false, verb.PromoteOptions{}))
 }
 
 // trailerValue returns the value of the first trailer matching key in
