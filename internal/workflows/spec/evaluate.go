@@ -70,6 +70,15 @@ func EvaluatePredicate(p Predicate, e *entity.Entity, t *tree.Tree, ctx EvalCont
 		}
 		return cmpString(p.Op, ctx.AC.TDDPhase, p.Value)
 	case "parent.tdd":
+		// When evaluating an AC predicate (ctx.AC != nil), the
+		// "parent" is the milestone that holds the AC slot — and
+		// the caller hands that milestone in as `e`. For top-level
+		// entity predicates, "parent" is the entity's frontmatter
+		// Parent field (a milestone's epic, a gap's discovered-in
+		// context).
+		if ctx.AC != nil {
+			return cmpString(p.Op, e.TDD, p.Value)
+		}
 		parent := t.ByID(e.Parent)
 		if parent == nil {
 			return false, nil
