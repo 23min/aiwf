@@ -21,6 +21,7 @@ acs:
     - id: AC-4
       title: R-FP-NNNN ids unique and contiguous starting at R-FP-0001
       status: met
+      tdd_phase: done
     - id: AC-5
       title: Open questions for Pass C section present and non-empty
       status: met
