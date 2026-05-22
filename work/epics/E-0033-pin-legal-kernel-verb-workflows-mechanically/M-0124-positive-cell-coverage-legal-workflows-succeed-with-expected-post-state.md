@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: 'Coverage meta-test: every Legal rule has a corresponding positive subtest'
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
