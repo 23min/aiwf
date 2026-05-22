@@ -54,6 +54,13 @@ jobs:
         run: |
           git config --global user.name "aiwf-ci"
           git config --global user.email "ci@example.com"
+      # G-0156: hooks materialized by `aiwf init` in integration tests
+      # resolve `aiwf` via PATH at hook execution time (post-M-0133 /
+      # G-0135 portable-hooks design). Without aiwf on PATH every
+      # in-test `git commit` fails. `actions/setup-go` puts
+      # `$(go env GOPATH)/bin` on PATH automatically.
+      - name: Install aiwf to PATH (required for hooks in tests)
+        run: go install ./cmd/aiwf
       - run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -race -parallel 8 -coverprofile=coverage.out -coverpkg=./internal/... ./...
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -n 1
@@ -109,5 +116,11 @@ jobs:
         run: |
           git config --global user.name "aiwf-ci"
           git config --global user.email "ci@example.com"
+      # G-0156: aiwf doctor --self-check materializes hooks in its temp
+      # repo that resolve `aiwf` via PATH at hook execution time. Without
+      # aiwf on PATH the self-check fails at step 3 (add epic) when the
+      # pre-commit hook can't find the binary.
+      - name: Install aiwf to PATH (required for hooks in selfcheck repo)
+        run: go install ./cmd/aiwf
       - name: Build and run aiwf doctor --self-check
         run: make selfcheck
