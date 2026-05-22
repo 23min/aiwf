@@ -379,7 +379,7 @@ This epic replaces the cancelled E-0031, whose first attempt produced a prose ca
 | M-0121 | Pass A audit: catalog legal-workflow rules from existing surfaces | done |
 | M-0122 | Pass B first-principles: derive legal-workflow rules from entity model | done |
 | M-0123 | Pass C reconcile to canonical Go spec table + drift policy | done |
-| M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | in_progress |
+| M-0124 | Positive cell coverage: legal workflows succeed with expected post-state | done |
 | M-0125 | Negative cell coverage: illegal workflows rejected with named errors | draft |
 | M-0130 | Implement fsm-history-consistent check rule for FSM tree-invariant | done |
 | M-0131 | State-aware CancelTarget for Contract: cancel deprecated targets retired | done |
