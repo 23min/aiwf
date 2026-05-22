@@ -86,7 +86,7 @@ func TestBringEntityToState(t *testing.T) {
 			tr := f.Tree()
 			if entity.IsCompositeID(id) {
 				// AC: navigate to the slot.
-				milestone, ac, err := lookupComposite(tr, id)
+				milestone, ac, err := LookupComposite(tr, id)
 				if err != nil {
 					t.Fatalf("lookup composite %q: %v", id, err)
 				}

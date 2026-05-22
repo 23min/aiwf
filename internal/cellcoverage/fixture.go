@@ -502,7 +502,7 @@ func (f *CellFixture) walkACToPhase(t *testing.T, compositeID, target string) {
 	t.Helper()
 	for {
 		tr := f.Tree()
-		_, ac, err := lookupComposite(tr, compositeID)
+		_, ac, err := LookupComposite(tr, compositeID)
 		if err != nil {
 			t.Fatalf("walkACToPhase: %v", err)
 		}
@@ -568,18 +568,20 @@ func (f *CellFixture) ensureOpenACChild(t *testing.T, milestoneID string) {
 func (f *CellFixture) populateEvalCtxAC(t *testing.T, compositeID string, evalCtx *spec.EvalContext) {
 	t.Helper()
 	tr := f.Tree()
-	_, ac, err := lookupComposite(tr, compositeID)
+	_, ac, err := LookupComposite(tr, compositeID)
 	if err != nil {
 		t.Fatalf("populateEvalCtxAC: %v", err)
 	}
 	evalCtx.AC = ac
 }
 
-// lookupComposite resolves a composite id (M-NNNN/AC-N) to its
+// LookupComposite resolves a composite id (M-NNNN/AC-N) to its
 // parent milestone + the specific AC slot. Returns an error when
 // the id shape is malformed, the milestone is missing, or the AC
-// slot doesn't exist.
-func lookupComposite(tr *tree.Tree, compositeID string) (*entity.Entity, *entity.AcceptanceCriterion, error) {
+// slot doesn't exist. Exported so per-cell drivers (M-0124's
+// positive driver, M-0125's negative driver) reuse the same logic
+// rather than carrying their own copies — closes G-0159.
+func LookupComposite(tr *tree.Tree, compositeID string) (*entity.Entity, *entity.AcceptanceCriterion, error) {
 	if !entity.IsCompositeID(compositeID) {
 		return nil, nil, fmt.Errorf("not a composite id: %q", compositeID)
 	}
@@ -603,7 +605,7 @@ func lookupComposite(tr *tree.Tree, compositeID string) (*entity.Entity, *entity
 // evalCtx is augmented with the AC slot.
 func resolveForEval(tr *tree.Tree, id string, evalCtx spec.EvalContext) (*entity.Entity, spec.EvalContext, error) {
 	if entity.IsCompositeID(id) {
-		_, ac, err := lookupComposite(tr, id)
+		_, ac, err := LookupComposite(tr, id)
 		if err != nil {
 			return nil, evalCtx, err
 		}
