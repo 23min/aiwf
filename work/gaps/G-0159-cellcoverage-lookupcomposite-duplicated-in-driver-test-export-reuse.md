@@ -1,7 +1,9 @@
 ---
-id: G-0154
+id: G-0159
 title: cellcoverage.lookupComposite duplicated in driver test (export + reuse)
 status: open
+prior_ids:
+    - G-0154
 discovered_in: M-0124
 ---
 ## Problem
