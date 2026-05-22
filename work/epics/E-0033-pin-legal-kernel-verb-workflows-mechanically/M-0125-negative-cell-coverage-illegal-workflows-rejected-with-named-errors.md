@@ -8,6 +8,11 @@ depends_on:
     - M-0130
     - M-0131
 tdd: required
+acs:
+    - id: AC-1
+      title: Negative-precondition fixture helpers + self-verification
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -59,3 +64,6 @@ Every illegal cell in `Rules()` has at least one negative test. The meta-test fr
 - Does not test branch-context illegality (E-0030's scope).
 - Does not include fuzz / random walks.
 - Does not extend the spec table — only consumes M-0123's output.
+
+### AC-1 — Negative-precondition fixture helpers + self-verification
+
