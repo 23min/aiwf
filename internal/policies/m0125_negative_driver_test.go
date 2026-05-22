@@ -116,8 +116,10 @@ var ac2KnownImplGaps = map[string]string{
 	// FSM. Tracked by G-0163.
 	"adr-accepted-cancel": "G-0163",
 	// ac-evidence-missing is unsupported by the verb — no --evidence
-	// flag, no PromoteOptions.Evidence, no validation. Tracked by G-0164.
-	"ac-open-promote": "G-0164",
+	// flag, no PromoteOptions.Evidence, no validation. Tracked by G-0140
+	// (filed at M-0123 wrap referencing D-0005; G-0140 was a duplicate
+	// filed at M-0125 and cancelled wontfix on consolidation).
+	"ac-open-promote": "G-0140",
 }
 
 func enumerateVerbTimeIllegalCases(t *testing.T) []illegalCase {
@@ -355,12 +357,12 @@ func runImplGapStalenessVerbTime(t *testing.T, tc illegalCase, gap string) {
 // History: introduced during the AC-4 retrofit (replacing t.Skipf
 // with staleness teeth surfaced that ac-open-promote was incidentally
 // rejected via projectionFindings's acs-tdd-audit error, even though
-// G-0164's missing chokepoint — `--evidence` flag at verb time — is
+// G-0140's missing chokepoint — `--evidence` flag at verb time — is
 // still genuinely absent. Without this customization the naive
 // staleness check would fire false-positive for ac-open-promote, when
 // in fact the gap is still open).
 var ac2ImplGapFixtureSetup = map[string]func(t *testing.T, f *cellcoverage.CellFixture, id string){
-	// ac-open-promote (G-0164): cell is "AC.open.promote with
+	// ac-open-promote (G-0140): cell is "AC.open.promote with
 	// self.evidence empty" — verb-time chokepoint at the evidence
 	// flag is missing. But the default fixture (acAt(open)) seeds AC
 	// at phase=red under parent.tdd=required, and finalizeACPlan's
@@ -368,7 +370,7 @@ var ac2ImplGapFixtureSetup = map[string]func(t *testing.T, f *cellcoverage.CellF
 	// non-zero before the (missing) evidence chokepoint would fire.
 	// Advance phase to done so the projection finding doesn't fire
 	// and the staleness check correctly asserts "verb still succeeds
-	// = G-0164 still open." When G-0164 closes (verb gains an
+	// = G-0140 still open." When G-0140 closes (verb gains an
 	// --evidence chokepoint), the verb will reject for the cell's
 	// actual reason and the staleness check will fire red as
 	// designed.
