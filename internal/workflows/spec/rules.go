@@ -222,7 +222,7 @@ func adrRules() []Rule {
 		},
 		// accepted → superseded (preconditioned on self.superseded_by
 		// non-empty per adr-supersession-mutual; mirrors the gap
-		// open→addressed shape from R-AUDIT-0089). G-0153 records the
+		// open→addressed shape from R-AUDIT-0089). G-0152 records the
 		// spec-vs-kernel drift this pair closes.
 		{
 			Kind:          entity.KindADR,
@@ -234,7 +234,7 @@ func adrRules() []Rule {
 		},
 		// adr-supersession-mutual illegal companion: missing
 		// --superseded-by triggers verb-time refusal. Surfaced via
-		// M-0124/AC-3's per-cell positive driver (gap G-0153).
+		// M-0124/AC-3's per-cell positive driver (gap G-0152).
 		{
 			Kind:              entity.KindADR,
 			FromState:         "accepted",
@@ -397,7 +397,7 @@ func acRules() []Rule {
 		// (Illegal companion below) demands tdd_phase == done. Splitting
 		// here keeps every Legal cell's preconditions enumerable as flat
 		// AND (no implicit "and the audit doesn't fire") — closes
-		// G-0153's overlapping-cells skimp.
+		// G-0152's overlapping-cells skimp.
 		{
 			Kind:      KindAC,
 			FromState: "open",

@@ -107,6 +107,43 @@ func TestBringEntityToState(t *testing.T) {
 	}
 }
 
+// TestNextTDDPhaseTowards covers the TDD-phase FSM walker's branches
+// per CLAUDE.md "every reachable conditional branch in the diff has
+// an explicit test." The walker only walks toward done in practice
+// (the SatisfyPredicate use site), but the function table covers all
+// FSM source-target pairs because future predicates (or direct
+// callers) may exercise them.
+func TestNextTDDPhaseTowards(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		current string
+		target  string
+		want    string
+	}{
+		// Per https://go.dev/ — covering each branch of the tddPhase FSM:
+		// `` → red, red → green, green → {refactor, done}, refactor → done.
+		{"empty-to-red", "", "red", "red"},
+		{"red-to-green", "red", "green", "green"},
+		{"green-to-refactor", "green", "refactor", "refactor"},
+		{"green-to-done", "green", "done", "done"},
+		{"refactor-to-done", "refactor", "done", "done"},
+		// Unknown source returns "" (no progress).
+		{"unknown-source", "done", "anywhere", ""},
+		{"junk-source", "junk", "done", ""},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := nextTDDPhaseTowards(tc.current, tc.target)
+			if got != tc.want {
+				t.Errorf("nextTDDPhaseTowards(%q, %q) = %q, want %q", tc.current, tc.target, got, tc.want)
+			}
+		})
+	}
+}
+
 // TestBringEntityToState_MilestoneDoneWithACs covers the populated-
 // fixture variant for the Milestone.done cell: BringOpts.ACs = N
 // seeds N met-status ACs (phase done so acs-tdd-audit doesn't fire)
@@ -170,6 +207,17 @@ func TestSatisfyPredicate(t *testing.T) {
 		{"all-children-acs-non-open", entity.KindMilestone, "in_progress", spec.Predicate{Subject: "all-children-acs.status", Op: "!=", Value: "open"}, spec.EvalContext{}},
 		// self.tdd_phase != done (AC at red/green; ctx.AC populated)
 		{"tdd_phase-not-done", spec.KindAC, "open", spec.Predicate{Subject: "self.tdd_phase", Op: "!=", Value: "done"}, spec.EvalContext{}},
+		// self.tdd_phase == done — walkACToPhase walks the TDD FSM
+		// from red → green → done. Exercises walkACToPhase + nextTDDPhaseTowards.
+		{"tdd_phase-eq-done", spec.KindAC, "open", spec.Predicate{Subject: "self.tdd_phase", Op: "==", Value: "done"}, spec.EvalContext{}},
+		// self.superseded_by non-empty — satisfyADRSuperseded
+		// builds a sibling ADR and runs the supersession verb,
+		// populating SupersededBy atomically. Exercises
+		// satisfyADRSuperseded + trailerValue.
+		{"superseded_by-non-empty", entity.KindADR, "accepted", spec.Predicate{Subject: "self.superseded_by", Op: "non-empty"}, spec.EvalContext{}},
+		// self.superseded_by == "" — no mutation needed; the ADR
+		// is at accepted with SupersededBy empty by default.
+		{"superseded_by-empty", entity.KindADR, "accepted", spec.Predicate{Subject: "self.superseded_by", Op: "==", Value: ""}, spec.EvalContext{}},
 	}
 	for _, tc := range cases {
 		tc := tc

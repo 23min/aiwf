@@ -94,7 +94,7 @@ func caseName(rule spec.Rule, target string) string {
 	name := fmt.Sprintf("%s-%s-%s-to-%s", rule.Kind, from, rule.Verb, target)
 	// Append a precondition signature when distinct Legal cells share
 	// the same (Kind, FromState, Verb, target) quadruple — happens for
-	// AC.met where the cell splits on parent.tdd (G-0153). Without
+	// AC.met where the cell splits on parent.tdd (G-0152). Without
 	// this, the two split cells collide on t.Run subtest names.
 	if sig := preconditionSignature(rule); sig != "" {
 		name = name + "-" + sig
