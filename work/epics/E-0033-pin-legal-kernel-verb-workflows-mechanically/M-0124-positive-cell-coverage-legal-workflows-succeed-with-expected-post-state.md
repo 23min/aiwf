@@ -115,7 +115,15 @@ Sanity-checked by temporarily filtering out epic cells in `enumerateLegalCases` 
 
 ## Deferrals
 
-None. The remaining E-0033 scope (negative cell coverage, branch-context preconditions, random-sequence exercise) is captured in dependent milestones, not deferred from M-0124.
+Three follow-up gaps filed during wrap-time reviewer-agent audit (none blocking M-0124's deliverable; all surfaced *because* M-0124's tests are sharp enough to expose them):
+
+- **G-0154** — `cellcoverage.lookupComposite` duplicated in driver test (export + reuse).
+- **G-0155** — Per-edge FSM coverage drift unpoliced (spec table vs `entity.transitions`). M-0123 catches per-state; per-edge addition without per-state addition slips through.
+- **G-0156** — `cellcoverage.SatisfyPredicate` falls through silently on unknown Op (works, but the failure message is indirect via the silent-drift guard rather than direct).
+
+A fourth observation from the reviewer (fabricated `aiwf-verb:` trailer values — `edit-code`, `edit-doc`, `merge` — in three pre-existing commits on this branch's history) is already captured by **G-0152**'s sister gap on main and is exactly the chokepoint it describes; no new gap needed.
+
+The remaining E-0033 scope (negative cell coverage, branch-context preconditions, random-sequence exercise) is captured in dependent milestones, not deferred from M-0124.
 
 ## Reviewer notes
 
@@ -134,3 +142,5 @@ None. The remaining E-0033 scope (negative cell coverage, branch-context precond
 - **AC-3 commit-message id discrepancy.** The AC-3 feat commit message body (commit `b6072a16`) reads "closes G-0153" — written before the second reallocate's direction was clear. The actual gap is **G-0152**; references in the code (`rules.go`, `m0124_positive_driver_test.go`) and this spec body are correct. The commit message stays as-is (rebasing twice in one milestone is excessive); future grep-by-id readers should consult this note.
 
 - **Self-review caught four 0%-covered helpers.** Initial wrap claimed AC-3 complete; the user's "are you 100% confident?" question triggered a coverage audit that found `satisfyADRSuperseded`, `trailerValue`, `walkACToPhase`, and `nextTDDPhaseTowards` at 0% line coverage — the symmetric library additions for `self.superseded_by` and `self.tdd_phase == done` predicates that no test exercised. Added explicit test cases to `TestSatisfyPredicate` plus a focused `TestNextTDDPhaseTowards` table-driven test. Coverage rose from 75.2% → 81.4%. The lesson: predicates added to the spec vocabulary must have matching SatisfyPredicate test cases, not just spec.EvaluatePredicate test cases.
+
+- **Reviewer-agent audit before merge.** A `aiwf-extensions:reviewer` subagent with a clean context audited the M-0124 + earlier-E-0033 surface for skimps, half-implementations, duplicate implementations, workarounds, duct tape, vacuous claims, and tautologic tests. **Verdict: APPROVE WITH NOTES** — no blocking findings. Three warnings landed inline (stale `G-0149` → `G-0151` references in `docs/pocv3/design/legal-workflows-audit.md`, `internal/check/fsm_history_consistent.go`, and M-0137/AC-9's title from earlier reallocates). Four notes filed as follow-up gaps (G-0154, G-0155, G-0156; the fourth note maps to existing G-0152). The reviewer explicitly verified that the per-cell driver is **not** tautologic (the verb takes target as user input, not from the FSM table the driver derives from), the spec evaluate tests set up explicit entity fields rather than deriving expectations from `EvaluatePredicate` itself, and the uncovered lines in `cellcoverage` are exclusively defensive `t.Fatalf` defaults.
