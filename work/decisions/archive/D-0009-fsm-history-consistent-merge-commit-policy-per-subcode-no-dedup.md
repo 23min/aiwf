@@ -3,12 +3,12 @@ id: D-0009
 title: 'fsm-history-consistent merge-commit policy: per-subcode, no dedup'
 status: superseded
 relates_to:
-    - G-0152
+    - G-0153
 ---
 ## Sources
 
 - M-0130/AC-1 redo (commit `649bdc5a`): the DAG-aware walker emits one observation per (entity, commit, parent) tuple where status differs. Multi-parent (merge) commits naturally produce per-parent observations — up to one per parent where the status differs. The walker deliberately stays merge-policy-free; the function comment defers per-subcode decisions to AC-2/3/4.
-- [G-0152](work/gaps/G-0152-fsm-history-consistent-per-subcode-merge-commit-observation-policy.md) filed alongside AC-1 redo as the open design question this decision now closes.
+- [G-0153](work/gaps/G-0153-fsm-history-consistent-per-subcode-merge-commit-observation-policy.md) filed alongside AC-1 redo as the open design question this decision now closes.
 - Class: design-completeness gap. Discovered during AC-1 redo's confidence audit; affects AC-2/3/4 predicate semantics.
 
 ## Resolution
