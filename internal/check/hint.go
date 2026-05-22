@@ -24,6 +24,14 @@ var hintTable = map[string]string{
 	"adr-supersession-mutual":           "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
 	"gap-resolved-has-resolver":         "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
 
+	// G-0155: misset core.worktree silently redirects every git op
+	// against the wrong worktree. The hint points at the precise
+	// remediation (unset the override) — that's the right move in the
+	// overwhelmingly common case; bare-repo workflows that intentionally
+	// set core.worktree are rare and the operator who set it will know
+	// to disregard the hint.
+	"git-config-core-worktree-misset": "run `git config --local --unset core.worktree` from the repo root (only override if your workflow specifically requires it, e.g. bare repos — see gap G-0155)",
+
 	// M-0094: start-epic preflight signal per G-0063. The aiwfx-start-epic
 	// skill consumes this finding to surface "no work queued" before
 	// activation; post-activation, drafting the next milestone (or wrapping

@@ -124,6 +124,11 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	}
 	findings = append(findings, metricsFindings...)
 
+	// G-0155: detect misset `core.worktree` before any verb can be
+	// confused by it. The chokepoint catches the silent failure mode
+	// where git operations get redirected against the wrong worktree.
+	findings = append(findings, RunGitConfigCheck(ctx, resolved)...)
+
 	findings = append(findings, check.TreeDiscipline(tr, treeAllow, treeStrict)...)
 
 	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
