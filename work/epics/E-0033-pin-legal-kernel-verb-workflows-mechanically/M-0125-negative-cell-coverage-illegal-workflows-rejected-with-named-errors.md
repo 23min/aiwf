@@ -60,10 +60,6 @@ Per illegal cell:
 
 Every illegal cell in `Rules()` has at least one negative test. The meta-test from M-0124 extends to require negative coverage as well — `Outcome = illegal` rules without a matching test fail CI.
 
-## Acceptance criteria
-
-(Added via `aiwf add ac` after M-0124 lands the positive test scaffolding, since the negative tests reuse the fixture helpers.)
-
 ## Approach
 
 - Reuse the fixture builder from M-0124 with helpers that *deliberately* establish forbidden preconditions.
