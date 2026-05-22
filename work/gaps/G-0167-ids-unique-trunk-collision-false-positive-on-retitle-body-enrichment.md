@@ -1,8 +1,10 @@
 ---
 id: G-0167
 title: ids-unique trunk-collision false positive on retitle + body enrichment
-status: open
+status: addressed
 discovered_in: M-0125
+addressed_by_commit:
+    - 8b56ba1c
 ---
 ## What's missing
 
