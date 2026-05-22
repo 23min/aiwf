@@ -16,7 +16,7 @@ acs:
     - id: AC-2
       title: Fixture helpers + satisfyPredicate self-verification
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: 'Per-cell positive driver: table-driven over spec.Rules() Legal cells'
       status: open
