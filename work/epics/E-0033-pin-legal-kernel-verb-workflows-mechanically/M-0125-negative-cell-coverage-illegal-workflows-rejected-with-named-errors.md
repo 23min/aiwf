@@ -21,6 +21,10 @@ acs:
       title: 'Per-cell negative driver: check-time rejection (finding-code present)'
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: 'Coverage meta-test: every Illegal cell has a negative subtest'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -78,4 +82,6 @@ Every illegal cell in `Rules()` has at least one negative test. The meta-test fr
 ### AC-2 — Per-cell negative driver: verb-time rejection (exit-code + rollback)
 
 ### AC-3 — Per-cell negative driver: check-time rejection (finding-code present)
+
+### AC-4 — Coverage meta-test: every Illegal cell has a negative subtest
 
