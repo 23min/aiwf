@@ -83,3 +83,7 @@ None. Closes G-0142 and G-0141.
 
 `entity.Coded` behavioral interface (`error` + `Code() string`) + `entity.Code(err)` helper that extracts the code structurally by walking the `%w` chain with `errors.As`. Anti-cheat test confirms a code present only in an error's *message text* does not resolve. `coded.go` `Code()` at 100% branch coverage (both `errors.As` arms). commit `bdfd26e3` · tests: `TestCodedError_ErrorsAs` (7 cases) + `TestCode_EmptyCodeStillFound`.
 
+### AC-2 — ValidateTransition emits structured fsm-transition-illegal on illegal moves
+
+`ValidateTransition` now returns a typed `FSMTransitionError{Kind,From,To,Allowed}` (implements `Coded`; `Code()` → `CodeFSMTransitionIllegal`) for illegal transitions of a recognized `(kind, from)`; `Error()` preserves the kernel's terminal/not-allowed message text verbatim. Malformed input (unknown kind / unrecognized from) stays a plain, non-`Coded` error. Seam verified: only caller `verb/promote.go:93` returns the error unwrapped, and `verb` + M-0125's binary driver stay green (no flattening). `ValidateTransition`/`Error`/`Code` at 100% branch coverage. commit `325b49a6` · tests: `TestValidateTransition_FSMTransitionIllegalCode` (cross-kind: not-allowed, terminal, legal, malformed).
+
