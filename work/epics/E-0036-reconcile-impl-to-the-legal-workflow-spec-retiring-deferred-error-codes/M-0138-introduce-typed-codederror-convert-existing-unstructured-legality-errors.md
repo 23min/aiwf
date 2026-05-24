@@ -36,11 +36,27 @@ E-0033's spec names `ExpectedErrorCode`s the verbs don't emit as structured data
 
 ## Acceptance criteria
 
-- **AC1** — A `CodedError` type carries a structured code reachable via `errors.As`. *Evidence:* `entity.TestCodedError_ErrorsAs` — constructs the error, asserts `errors.As` extracts the code as data; fails if the code isn't reachable structurally.
-- **AC2** — `entity.ValidateTransition` returns a `CodedError` whose code is `fsm-transition-illegal` for an illegal transition and `nil` for a legal one. *Evidence:* table test across kinds, ≥1 legal + ≥1 illegal arm each; asserts the structured code on the illegal arm and no error on the legal arm (structural, not substring).
-- **AC3** — `aiwf authorize <gap|decision|contract|adr> --to <agent>` refuses at verb-time carrying structured `authorize-kind-not-allowed`. *Evidence:* the M-0125 negative driver cells for the four authorize-kind cells un-skipped; binary-level assertion of non-zero exit + structured code + HEAD unchanged; the four authorize entries removed from `ac2KnownImplGaps`.
-- **AC4** — `fsm-transition-illegal` and `authorize-kind-not-allowed` are removed from `deferredImplErrorCodes` and resolve as impl-side codes. *Evidence:* `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` stays green *after* removal — only possible if the codes appear as real structured literals. (The closure that can't be claimed, only earned.)
-- **AC5** — An ADR records the `CodedError` pattern (shape; scope limited to legality-pertinent verb errors) as `accepted`. *Evidence:* structural assertion that the ADR exists with its named decision sections (scoped to the section, per CLAUDE.md doc-AC rule).
+Each AC carries an explicit **Evidence** gate — the named test, driver cell, or drift policy that fails if the claim breaks. "Looks right" is not evidence.
+
+### AC-1 — CodedError carries a structured code reachable via errors.As
+
+A `CodedError` type carries a structured code reachable via `errors.As`. *Evidence:* `entity.TestCodedError_ErrorsAs` — constructs the error, asserts `errors.As` extracts the code as data; fails if the code isn't reachable structurally.
+
+### AC-2 — ValidateTransition emits structured fsm-transition-illegal on illegal moves
+
+`entity.ValidateTransition` returns a `CodedError` whose code is `fsm-transition-illegal` for an illegal transition and `nil` for a legal one. *Evidence:* table test across kinds, ≥1 legal + ≥1 illegal arm each; asserts the structured code on the illegal arm and no error on the legal arm (structural, not substring).
+
+### AC-3 — authorize refuses non-epic/milestone kinds with structured code
+
+`aiwf authorize <gap|decision|contract|adr> --to <agent>` refuses at verb-time carrying structured `authorize-kind-not-allowed`. *Evidence:* the M-0125 negative driver cells for the four authorize-kind cells un-skipped; binary-level assertion of non-zero exit + structured code + HEAD unchanged; the four authorize entries removed from `ac2KnownImplGaps`.
+
+### AC-4 — fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
+
+`fsm-transition-illegal` and `authorize-kind-not-allowed` are removed from `deferredImplErrorCodes` and resolve as impl-side codes. *Evidence:* `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` stays green *after* removal — only possible if the codes appear as real structured literals. (The closure that can't be claimed, only earned.)
+
+### AC-5 — ADR records the CodedError pattern as accepted
+
+An ADR records the `CodedError` pattern (shape; scope limited to legality-pertinent verb errors) as `accepted`. *Evidence:* structural assertion that the ADR exists with its named decision sections (scoped to the section, per CLAUDE.md doc-AC rule).
 
 ## Constraints
 
@@ -61,13 +77,7 @@ Cancel guards (M2), the legality classifier (M3), the code rename (M4), scope re
 
 None. Closes G-0142 and G-0141.
 
-### AC-1 — CodedError carries a structured code reachable via errors.As
+## Work log
 
-### AC-2 — ValidateTransition emits structured fsm-transition-illegal on illegal moves
-
-### AC-3 — authorize refuses non-epic/milestone kinds with structured code
-
-### AC-4 — fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
-
-### AC-5 — ADR records the CodedError pattern as accepted
+_(One entry per AC as it lands: `### AC-N — <title>` · outcome · commit SHA · tests N/M. The authoritative phase timeline is `aiwf history M-0138/AC-N`.)_
 
