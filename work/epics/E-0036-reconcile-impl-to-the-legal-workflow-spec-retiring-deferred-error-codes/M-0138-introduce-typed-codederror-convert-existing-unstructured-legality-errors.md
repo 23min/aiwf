@@ -4,6 +4,27 @@ title: Introduce typed CodedError; convert existing unstructured legality errors
 status: draft
 parent: E-0036
 tdd: required
+acs:
+    - id: AC-1
+      title: CodedError carries a structured code reachable via errors.As
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: ValidateTransition emits structured fsm-transition-illegal on illegal moves
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: authorize refuses non-epic/milestone kinds with structured code
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: ADR records the CodedError pattern as accepted
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -39,3 +60,14 @@ Cancel guards (M2), the legality classifier (M3), the code rename (M4), scope re
 ## Dependencies
 
 None. Closes G-0142 and G-0141.
+
+### AC-1 — CodedError carries a structured code reachable via errors.As
+
+### AC-2 — ValidateTransition emits structured fsm-transition-illegal on illegal moves
+
+### AC-3 — authorize refuses non-epic/milestone kinds with structured code
+
+### AC-4 — fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
+
+### AC-5 — ADR records the CodedError pattern as accepted
+
