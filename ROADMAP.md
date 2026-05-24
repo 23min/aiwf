@@ -422,7 +422,7 @@ macOS DO/DON'T rules.
 | M-0134 | CLAUDE.md DO/DON'T refresh: container primary, macOS host fallback | done |
 | M-0135 | aiwf doctor containerized-env awareness: detection + mount check | done |
 
-## E-0036 — Reconcile impl to the legal-workflow spec, retiring deferred error codes (proposed)
+## E-0036 — Reconcile impl to the legal-workflow spec, retiring deferred error codes (active)
 
 ### Goal
 
@@ -430,9 +430,10 @@ Make E-0033's legal-workflow spec a *fully* verified source of truth by reconcil
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0138 | Introduce typed CodedError; convert existing unstructured legality errors | draft |
+| M-0138 | Introduce typed CodedError; convert existing unstructured legality errors | in_progress |
 | M-0139 | Refuse cancel of parents with non-terminal children/ACs via coded errors | draft |
 | M-0140 | Classify legality finding codes; close AC-5 bidirectional arm | draft |
 | M-0141 | Enforce three-edge scope reachability at verb-time | draft |
 | M-0142 | Rename gap-resolved-has-resolver to match the gap FSM vocabulary | draft |
+| M-0143 | Surface Coded error codes in the JSON envelope | draft |
 
