@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: ADR records the CodedError pattern as accepted
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
