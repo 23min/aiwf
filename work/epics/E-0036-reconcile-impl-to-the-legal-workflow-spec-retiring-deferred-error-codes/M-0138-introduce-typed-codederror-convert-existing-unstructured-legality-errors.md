@@ -79,5 +79,7 @@ None. Closes G-0142 and G-0141.
 
 ## Work log
 
-_(One entry per AC as it lands: `### AC-N — <title>` · outcome · commit SHA · tests N/M. The authoritative phase timeline is `aiwf history M-0138/AC-N`.)_
+### AC-1 — CodedError carries a structured code reachable via errors.As
+
+`entity.Coded` behavioral interface (`error` + `Code() string`) + `entity.Code(err)` helper that extracts the code structurally by walking the `%w` chain with `errors.As`. Anti-cheat test confirms a code present only in an error's *message text* does not resolve. `coded.go` `Code()` at 100% branch coverage (both `errors.As` arms). commit `bdfd26e3` · tests: `TestCodedError_ErrorsAs` (7 cases) + `TestCode_EmptyCodeStillFound`.
 
