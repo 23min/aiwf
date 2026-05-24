@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: ValidateTransition emits structured fsm-transition-illegal on illegal moves
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: authorize refuses non-epic/milestone kinds with structured code
