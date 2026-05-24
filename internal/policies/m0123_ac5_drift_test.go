@@ -254,11 +254,9 @@ func TestM0123_AC5_SpecToImpl_VerbsResolve(t *testing.T) {
 // by codeAppearsInImplSource. Forgetting to remove the entry is the
 // only failure mode and it's a one-line edit.
 var deferredImplErrorCodes = map[string]string{
-	"fsm-transition-illegal":            "entity.ValidateTransition returns free-form errors today; structured-code wrap is a follow-up gap (filed at M-0123 wrap)",
 	"epic-cancel-non-terminal-children": "D-0003 cancel-cascade impl is a follow-up gap (filed at M-0123 wrap)",
 	"milestone-cancel-non-terminal-acs": "D-0004 cancel-cascade impl is a follow-up gap (filed at M-0123 wrap)",
 	"ac-evidence-missing":               "D-0005 AC mechanical-evidence mechanism is a follow-up gap (filed at M-0123 wrap)",
-	"authorize-kind-not-allowed":        "D-0007 authorize kind restriction impl is a follow-up gap (filed at M-0123 wrap)",
 }
 
 // TestM0123_AC5_SpecToImpl_ErrorCodesResolve asserts every illegal Rule's
@@ -313,10 +311,17 @@ func buildSpecCoverageMap() map[entity.Kind]map[string]bool {
 
 // collectImplFindingCodes walks every non-test .go file under
 // <root>/internal (excluding internal/workflows/spec, which is what the
-// drift test resolves against) and returns the set of distinct string
-// literals appearing as the value of a `Code` field in a composite
-// literal (any struct shape — check.Finding plus any pseudo-finding type
-// used in tests/fixtures, all use the same field name).
+// drift test resolves against) and returns the set of distinct impl-side
+// finding/error codes. Two declaration shapes are collected:
+//
+//   - `Code: "..."` field values in composite literals (any struct shape —
+//     check.Finding plus any pseudo-finding type used in tests/fixtures,
+//     all use the same field name).
+//   - `const Code... = "..."` kernel code constants, whose value reaches
+//     callers through a Coded.Code() method rather than a struct field
+//     (e.g. entity.CodeFSMTransitionIllegal, verb.CodeAuthorizeKindNotAllowed).
+//     The `Code` name prefix scopes the match so unrelated string consts
+//     are not swept in.
 //
 // Mirrors the AST walk in finding_hints.go but returns a set instead of
 // a slice of (file, line) tuples — AC-5 needs membership, not source
@@ -347,22 +352,54 @@ func collectImplFindingCodes(root string) (map[string]bool, error) {
 			return nil
 		}
 		ast.Inspect(astFile, func(n ast.Node) bool {
-			cl, ok := n.(*ast.CompositeLit)
-			if !ok {
-				return true
-			}
-			for _, elt := range cl.Elts {
-				kv, ok := elt.(*ast.KeyValueExpr)
-				if !ok {
-					continue
+			switch node := n.(type) {
+			case *ast.CompositeLit:
+				// `Code: "..."` field in any struct literal (check.Finding
+				// and friends all share the field name).
+				for _, elt := range node.Elts {
+					kv, ok := elt.(*ast.KeyValueExpr)
+					if !ok {
+						continue
+					}
+					ident, ok := kv.Key.(*ast.Ident)
+					if !ok || ident.Name != "Code" {
+						continue
+					}
+					if bl, ok := kv.Value.(*ast.BasicLit); ok && bl.Kind == token.STRING {
+						if s, err := strconv.Unquote(bl.Value); err == nil && s != "" {
+							out[s] = true
+						}
+					}
 				}
-				ident, ok := kv.Key.(*ast.Ident)
-				if !ok || ident.Name != "Code" {
-					continue
+			case *ast.GenDecl:
+				// Kernel code constants — `const Code... = "..."` — which
+				// emit their value through a Coded.Code() method rather than
+				// a `Code:` struct field (e.g. CodeFSMTransitionIllegal,
+				// CodeAuthorizeKindNotAllowed). Matching the `Code` name
+				// prefix keeps the set tight and aligns with G-0129's
+				// typed-code-constant direction.
+				if node.Tok != token.CONST {
+					return true
 				}
-				if bl, ok := kv.Value.(*ast.BasicLit); ok && bl.Kind == token.STRING {
-					if s, err := strconv.Unquote(bl.Value); err == nil && s != "" {
-						out[s] = true
+				for _, spc := range node.Specs {
+					vs, ok := spc.(*ast.ValueSpec)
+					if !ok {
+						continue
+					}
+					for i, name := range vs.Names {
+						if !strings.HasPrefix(name.Name, "Code") {
+							continue
+						}
+						if i >= len(vs.Values) {
+							continue
+						}
+						bl, ok := vs.Values[i].(*ast.BasicLit)
+						if !ok || bl.Kind != token.STRING {
+							continue
+						}
+						if s, err := strconv.Unquote(bl.Value); err == nil && s != "" {
+							out[s] = true
+						}
 					}
 				}
 			}
