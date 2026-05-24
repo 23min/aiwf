@@ -1,7 +1,9 @@
 ---
 id: G-0156
 title: CI workflow doesn't install aiwf to PATH; tests fail since M-0133 portable hooks
-status: open
+status: addressed
+addressed_by_commit:
+    - 6a7b62d6
 ---
 ## What's missing
 
