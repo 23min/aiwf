@@ -1,7 +1,7 @@
 ---
 id: D-0003
 title: Epic cancel refuses with listing when any milestone is non-terminal
-status: proposed
+status: accepted
 relates_to:
     - E-0033
 ---
