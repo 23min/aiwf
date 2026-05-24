@@ -165,6 +165,11 @@ func TestAuthorize_Open_RefusesNonScopeEntityKind(t *testing.T) {
 			if !strings.Contains(err.Error(), "authorize-kind-not-allowed") {
 				t.Errorf("error %q does not name authorize-kind-not-allowed", err.Error())
 			}
+			// AC-3: the code is carried as structured data, extracted
+			// via errors.As, not merely present in the message text.
+			if code, ok := entity.Code(err); !ok || code != verb.CodeAuthorizeKindNotAllowed {
+				t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodeAuthorizeKindNotAllowed)
+			}
 		})
 	}
 }
