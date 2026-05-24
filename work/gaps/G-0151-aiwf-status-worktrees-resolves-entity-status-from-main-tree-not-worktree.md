@@ -1,8 +1,10 @@
 ---
 id: G-0151
 title: aiwf status --worktrees resolves entity status from main tree, not worktree
-status: open
+status: addressed
 discovered_in: M-0124
+addressed_by_commit:
+    - 367a146b
 ---
 ## What's missing
 
