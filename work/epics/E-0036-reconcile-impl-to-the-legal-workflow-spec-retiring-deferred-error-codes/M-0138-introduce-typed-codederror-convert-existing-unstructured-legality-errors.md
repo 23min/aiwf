@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: CodedError carries a structured code reachable via errors.As
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: ValidateTransition emits structured fsm-transition-illegal on illegal moves
