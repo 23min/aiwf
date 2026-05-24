@@ -74,18 +74,17 @@ Ratify at epic start (promote `proposed → accepted`; independent of impl seque
 
 ## Milestones
 
-Candidate decomposition — refine and sequence via `aiwfx-plan-milestones`.
+Decomposed and allocated via `aiwfx-plan-milestones`. G-0141 folded into the foundation milestone (its remaining work is the same transformation as the G-0142 pilot — convert an existing `fmt.Errorf` legality error to `CodedError`). G-0143 kept as one milestone here, not split to its own epic (D-0006 supplies the design, so no new ADR); revisit the split at `aiwfx-start-milestone` only if it exceeds ~one milestone of impl.
 
-| Label | Likely scope | Closes | Depends on |
-|-------|--------------|--------|-----------|
-| M1 — Foundation | typed `CodedError` pattern + ADR; pilot on `fsm-transition-illegal`; extend the AC-5 scanner | G-0142 | — |
-| M2 — Cancel refusal | verb-time guards in `verb.Cancel`; emit codes via M1; un-skip driver cells | G-0139 | M1 |
-| M3 — authorize-kind emission | re-emit the landed refusal via M1 | G-0141 | M1 |
-| M4 — Legality classifier | `Class` on `Finding`; close AC-5's fourth arm | G-0145 | M1 |
-| M5 — Code rename | pre-decision D-NNNN + atomic rename | G-0144 | — |
-| M6 — Scope reachability | three-edge traversal + verb-time refusal (greenfield) | G-0143 | M1 |
+| Id | Title | Closes | Depends on |
+|----|-------|--------|-----------|
+| [M-0138](M-0138-introduce-typed-codederror-convert-existing-unstructured-legality-errors.md) | Introduce typed `CodedError`; convert existing unstructured legality errors | G-0142, G-0141 | — |
+| [M-0140](M-0140-classify-legality-finding-codes-close-ac-5-bidirectional-arm.md) | Classify legality finding codes; close AC-5 bidirectional arm | G-0145 | M-0138 |
+| [M-0139](M-0139-refuse-cancel-of-parents-with-non-terminal-children-acs-via-coded-errors.md) | Refuse `cancel` of parents with non-terminal children/ACs via coded errors | G-0139 | M-0138 |
+| [M-0142](M-0142-rename-gap-resolved-has-resolver-to-match-the-gap-fsm-vocabulary.md) | Rename `gap-resolved-has-resolver` to match the gap FSM vocabulary | G-0144 | — |
+| [M-0141](M-0141-enforce-three-edge-scope-reachability-at-verb-time.md) | Enforce three-edge scope reachability at verb-time | G-0143 | M-0138 |
 
-M1 is the keystone — M2/M3/M4 depend on its pattern for clean closure. M5 and M6 are independent; M6 is the split candidate.
+**M-0138 is the keystone** — M-0139/0140/0141 emit their codes through its pattern. Recommended execution order: **M-0138 → M-0140** (stand up the legality-classifier *chokepoint* early, so later code-adding milestones must satisfy it) **→ M-0139 → M-0141** (greenfield, heaviest, last). **M-0142** is independent — slot it after M-0140 so the rename updates the classified set in one pass. Only the M-0138 edges are hard; the rest is soft ordering.
 
 ## What this epic deliberately does *not* do
 
