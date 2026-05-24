@@ -1,7 +1,9 @@
 ---
 id: G-0155
 title: 'aiwf check: detect misset core.worktree (silent failure footgun)'
-status: open
+status: addressed
+addressed_by_commit:
+    - d6a4a2bb
 ---
 ## What's missing
 
