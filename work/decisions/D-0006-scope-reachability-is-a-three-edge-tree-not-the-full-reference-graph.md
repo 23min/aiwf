@@ -1,7 +1,7 @@
 ---
 id: D-0006
 title: Scope reachability is a three-edge tree, not the full reference graph
-status: proposed
+status: accepted
 relates_to:
     - E-0033
 ---
