@@ -1,7 +1,7 @@
 ---
 id: D-0004
 title: Milestone cancel refuses with listing when any AC is non-terminal
-status: proposed
+status: accepted
 relates_to:
     - E-0033
 ---
