@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: authorize refuses non-epic/milestone kinds with structured code
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
       status: open
