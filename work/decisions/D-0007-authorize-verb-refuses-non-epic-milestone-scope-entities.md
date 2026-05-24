@@ -1,7 +1,7 @@
 ---
 id: D-0007
 title: Authorize verb refuses non-{epic, milestone} scope-entities
-status: proposed
+status: accepted
 relates_to:
     - E-0033
 ---
