@@ -1,8 +1,10 @@
 ---
 id: G-0153
 title: aiwf status --worktrees stale rendering misleads and elides parent epic
-status: open
+status: addressed
 discovered_in: M-0124
+addressed_by_commit:
+    - fdac205c
 ---
 ## What's missing
 
