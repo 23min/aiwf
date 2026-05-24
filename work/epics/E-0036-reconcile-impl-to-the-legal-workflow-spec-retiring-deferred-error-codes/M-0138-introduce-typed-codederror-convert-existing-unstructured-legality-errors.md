@@ -1,7 +1,7 @@
 ---
 id: M-0138
 title: Introduce typed CodedError; convert existing unstructured legality errors
-status: in_progress
+status: done
 parent: E-0036
 tdd: required
 acs:
