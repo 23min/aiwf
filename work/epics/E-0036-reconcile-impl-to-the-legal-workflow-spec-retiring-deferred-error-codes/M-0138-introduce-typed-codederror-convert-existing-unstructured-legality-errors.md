@@ -48,7 +48,9 @@ A `CodedError` type carries a structured code reachable via `errors.As`. *Eviden
 
 ### AC-3 — authorize refuses non-epic/milestone kinds with structured code
 
-`aiwf authorize <gap|decision|contract|adr> --to <agent>` refuses at verb-time carrying structured `authorize-kind-not-allowed`. *Evidence:* the M-0125 negative driver cells for the four authorize-kind cells un-skipped; binary-level assertion of non-zero exit + structured code + HEAD unchanged; the four authorize entries removed from `ac2KnownImplGaps`.
+`aiwf authorize <gap|decision|contract|adr> --to <agent>` refuses at verb-time with a typed `AuthorizeKindError` carrying structured `authorize-kind-not-allowed` (extractable via `entity.Code`). *Evidence:* `verb.TestAuthorize_Open_RefusesNonScopeEntityKind` extended to assert `entity.Code(err) == verb.CodeAuthorizeKindNotAllowed` structurally across all four disallowed kinds; M-0125's existing authorize cells stay green on the preserved message text.
+
+*Evidence correction (made during implementation):* the originally-drafted gate — "un-skip the four authorize cells in `ac2KnownImplGaps`; binary-level structured-code assertion" — was inaccurate. Those cells were **never** in `ac2KnownImplGaps` (they have run end-to-end since G-0141 Phase 1, asserting substrings), and the `--format=json` envelope surfaces **no** code today. Surfacing the code in the envelope (E-0036's "errors.As-able for the JSON envelope" goal clause) is split to its own milestone **M-0143**, where the envelope representation + exit-code treatment is settled via a D-NNNN. AC-3 here is scoped to verb-layer `errors.As` extractability, which is the part actually mechanically checked.
 
 ### AC-4 — fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
 
@@ -86,4 +88,8 @@ None. Closes G-0142 and G-0141.
 ### AC-2 — ValidateTransition emits structured fsm-transition-illegal on illegal moves
 
 `ValidateTransition` now returns a typed `FSMTransitionError{Kind,From,To,Allowed}` (implements `Coded`; `Code()` → `CodeFSMTransitionIllegal`) for illegal transitions of a recognized `(kind, from)`; `Error()` preserves the kernel's terminal/not-allowed message text verbatim. Malformed input (unknown kind / unrecognized from) stays a plain, non-`Coded` error. Seam verified: only caller `verb/promote.go:93` returns the error unwrapped, and `verb` + M-0125's binary driver stay green (no flattening). `ValidateTransition`/`Error`/`Code` at 100% branch coverage. commit `325b49a6` · tests: `TestValidateTransition_FSMTransitionIllegalCode` (cross-kind: not-allowed, terminal, legal, malformed).
+
+### AC-3 — authorize refuses non-epic/milestone kinds with structured code
+
+`verb.AuthorizeKindError{Kind}` (implements `entity.Coded`; `Code()` → `CodeAuthorizeKindNotAllowed`) replaces the prior `fmt.Errorf`; `Error()` builds the message from the constant, so the text — including `(authorize-kind-not-allowed)` — is preserved and M-0125's substring driver stays green. `Error`/`Code` at 100% coverage. Scoping discovery: the envelope-surfacing (E-0036 goal clause) was not actually part of this AC and is split to **M-0143**; the original AC-3 evidence wording was corrected (see the AC-3 section above). commit `1d499b38` · tests: `TestAuthorize_Open_RefusesNonScopeEntityKind` (extended with the structural `entity.Code` assertion, 4 kinds).
 
