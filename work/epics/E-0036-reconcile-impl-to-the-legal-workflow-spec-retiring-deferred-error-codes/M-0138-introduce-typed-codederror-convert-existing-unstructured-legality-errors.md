@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: ADR records the CodedError pattern as accepted
       status: open
