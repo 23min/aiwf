@@ -428,5 +428,11 @@ macOS DO/DON'T rules.
 
 Make E-0033's legal-workflow spec a *fully* verified source of truth by reconciling the kernel impl to it. Concretely: retire the `deferredImplErrorCodes` IOU list so every illegal cell the spec names actually **fails-verified** through the binary, and every legality-pertinent finding code is provably referenced by a spec rule (the bidirectional-completeness guarantee). The enabling deliverable is a **typed `CodedError` pattern** that lets verb-time refusals carry a first-class, structured error code — `errors.As`-able for the JSON envelope and visible to the AC-5 spec↔impl scanner, mirroring the existing `check.Finding{Code}` shape.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0138 | Introduce typed CodedError; convert existing unstructured legality errors | draft |
+| M-0139 | Refuse cancel of parents with non-terminal children/ACs via coded errors | draft |
+| M-0140 | Classify legality finding codes; close AC-5 bidirectional arm | draft |
+| M-0141 | Enforce three-edge scope reachability at verb-time | draft |
+| M-0142 | Rename gap-resolved-has-resolver to match the gap FSM vocabulary | draft |
 
