@@ -1,7 +1,7 @@
 ---
 id: ADR-0012
 title: Typed Coded error pattern for legality-pertinent verb refusals
-status: proposed
+status: accepted
 ---
 # ADR-0012 — Typed Coded error pattern for legality-pertinent verb refusals
 
