@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: ADR records the CodedError pattern as accepted
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
