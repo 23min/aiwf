@@ -1,8 +1,10 @@
 ---
 id: G-0154
 title: epic-branch worktree mislabeled as milestone via post-merge trailer cascade
-status: open
+status: addressed
 discovered_in: M-0124
+addressed_by_commit:
+    - a6b6e339
 ---
 ## What's missing
 
