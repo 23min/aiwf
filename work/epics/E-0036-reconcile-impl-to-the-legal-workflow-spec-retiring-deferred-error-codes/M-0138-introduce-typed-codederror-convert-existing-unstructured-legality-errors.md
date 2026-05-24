@@ -101,3 +101,32 @@ None. Closes G-0142 and G-0141.
 
 ADR-0012 records the realized `Coded` pattern — behavioral interface (`Coded interface { error; Code() string }` + `entity.Code` via `errors.As`), concrete typed errors that preserve message text, named `Code*` constants (G-0129), scope limited to legality-pertinent verb refusals (malformed input stays non-`Coded`), and the AC-4 scanner extension — promoted `accepted`. The structural test asserts the five named `## Decision` subsections section-scoped (drift-guarded at exactly five level-3 headings) plus the bare-id cross-references; deliberately **no** `status: accepted` pin, per CLAUDE.md's ADR rule that the FSM is the only surface constraining ADR status (ADR-0007 removed such a pin). RED proven by the `aiwf-extensions:builder` subagent (test fails only at the missing-entity `t.Fatal`); GREEN proven parent-side both via a throwaway placement and against the real allocated ADR before promotion. ADR added at `31711dda`, accepted; test at `bc7b9854` · tests: `TestADR0012_AC5_Allocation` + `TestADR0012_AC5_DecisionSections`.
 
+## Decisions made during implementation
+
+- **ADR-0012 — Typed `Coded` error pattern for legality-pertinent verb refusals** (`accepted`). Settles E-0036 open question 2 (shape: single struct vs interface) in favour of the behavioral interface `Coded interface { error; Code() string }`. Authored as AC-5's deliverable; it governs every legality-pertinent verb error going forward.
+- **M-0143 created mid-implementation.** AC-3 surfaced that surfacing the code in the `--format=json` envelope — an E-0036 goal clause — is not part of the verb-layer `errors.As` extractability this milestone delivers, and its representation + exit-code treatment is a genuine design decision. Rather than bolt it on, it was carved into its own milestone (M-0143) with a pre-decision, mirroring M-0142's pattern. The original AC-3 evidence wording was corrected to match (see the AC-3 section).
+
+## Validation
+
+```
+CGO_ENABLED=0 go build -o /tmp/aiwf ./cmd/aiwf   # exit 0
+go test ./... -count=1                            # 56 packages ok · 0 failures
+golangci-lint run                                 # 0 issues
+aiwf check                                        # 0 errors · 15 warnings (all pre-existing, unrelated)
+```
+
+Per-AC mechanical evidence (all green): `TestCodedError_ErrorsAs` + `TestCode_EmptyCodeStillFound` (AC-1); `TestValidateTransition_FSMTransitionIllegalCode` (AC-2); `TestAuthorize_Open_RefusesNonScopeEntityKind` (AC-3); `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` (AC-4); `TestADR0012_AC5_Allocation` + `TestADR0012_AC5_DecisionSections` (AC-5). Branch-coverage audited per AC; `coded.go`/`transition.go` coded paths at 100% branch coverage.
+
+## Deferrals
+
+- **JSON-envelope code surfacing → M-0143** (milestone, not gap). Fulfils the epic goal's *"errors.As-able for the JSON envelope"* clause that the original milestone set omitted; created mid-implementation as first-class scoped epic work with its own ACs, so it is tracked as a milestone rather than a deferral-gap.
+- No deferred or cancelled ACs — all five reached `met`.
+
+## Reviewer notes
+
+- **No `status: accepted` pin for ADR-0012 (deliberate).** AC-5's evidence gate is the named `## Decision` subsections; per CLAUDE.md's ADR rule the FSM / `aiwf promote` are the only surfaces that should constrain ADR status (ADR-0007 removed exactly such a pin). The `accepted` outcome is real via the promote, not pinned by a bespoke test.
+- **Malformed input stays non-`Coded`.** `ValidateTransition` returns a plain `fmt.Errorf` for unknown kind / unrecognized `from` — only spec-enumerated legality refusals carry codes. Pinned by the "malformed input is not a coded FSM error" arm.
+- **Scanner generalization.** AC-4's `const Code*` collector recognizes all 23 impl code constants, not only the two retired here — harmless to the spec→impl arm, aligned with G-0129's single-declaration-site direction, and gives M-0139/0140/0141 code-recognition for free.
+- **Message-text preservation.** Both typed errors' `Error()` reproduce the prior prose verbatim, so M-0125's substring drivers and operator-facing CLI output are unchanged; the structured code is purely additive.
+- **Subagent division of labor.** AC-4 and AC-5 authoring ran in the `aiwf-extensions:builder` subagent on this worktree (no `isolation` kwarg, per G-0099); every commit was parent-side under human approval, with independent re-verification (diff review, full suite green, RED-load-bearing confirmation) before each.
+
