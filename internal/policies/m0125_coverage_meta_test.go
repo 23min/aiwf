@@ -132,11 +132,13 @@ func TestM0125_AC4_EnumerationsMutuallyExclusive(t *testing.T) {
 func enumeratedIllegalCellKeys(t *testing.T) map[string]bool {
 	t.Helper()
 	out := map[string]bool{}
-	for _, c := range enumerateVerbTimeIllegalCases(t) {
-		out[cellKey(c.rule)] = true
+	verbCases := enumerateVerbTimeIllegalCases(t)
+	for i := range verbCases {
+		out[cellKey(verbCases[i].rule)] = true
 	}
-	for _, c := range enumerateCheckTimeIllegalCases(t) {
-		out[cellKey(c.rule)] = true
+	checkCases := enumerateCheckTimeIllegalCases(t)
+	for i := range checkCases {
+		out[cellKey(checkCases[i].rule)] = true
 	}
 	return out
 }

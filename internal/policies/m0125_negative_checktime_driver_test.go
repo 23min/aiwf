@@ -213,8 +213,8 @@ func runNegativeCheckTimeCell(t *testing.T, tc illegalCase) {
 	want := tc.rule.ExpectedErrorCode
 	if !envelopeHasFindingForEntity(env.Findings, want, id) {
 		var got []string
-		for _, fnd := range env.Findings {
-			got = append(got, fnd.Code+"@"+fnd.EntityID)
+		for i := range env.Findings {
+			got = append(got, env.Findings[i].Code+"@"+env.Findings[i].EntityID)
 		}
 		t.Errorf("expected finding code %q for entity %q in check envelope; got code@entity pairs: %v\nargs: %v\nverb output:\n%s\ncheck envelope:\n%s",
 			want, id, got, args, verbOut, checkOut)

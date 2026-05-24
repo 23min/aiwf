@@ -47,6 +47,7 @@ const (
 // asserts no cell carries OutcomeUnspecified).
 type Outcome int
 
+// Outcome values.
 const (
 	OutcomeUnspecified Outcome = iota
 	OutcomeLegal
@@ -63,6 +64,7 @@ const (
 // illegal cells carry a non-zero RejectionLayer.
 type RejectionLayer int
 
+// RejectionLayer values.
 const (
 	RejectionLayerNone RejectionLayer = iota
 	RejectionLayerVerbTime
