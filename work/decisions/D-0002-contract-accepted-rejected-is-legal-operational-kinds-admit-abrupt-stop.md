@@ -1,7 +1,7 @@
 ---
 id: D-0002
 title: 'Contract accepted->rejected is legal: operational kinds admit abrupt-stop'
-status: proposed
+status: accepted
 relates_to:
     - E-0033
 ---
