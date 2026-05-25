@@ -81,7 +81,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, noCycles(t)...)
 	findings = append(findings, titlesNonempty(t)...)
 	findings = append(findings, adrSupersessionMutual(t)...)
-	findings = append(findings, gapResolvedHasResolver(t)...)
+	findings = append(findings, gapAddressedHasResolver(t)...)
 	// M-0094: epic-active preflight signal per G-0063.
 	findings = append(findings, epicActiveNoDraftedMilestones(t)...)
 	// I2: AC and TDD checks.
@@ -723,7 +723,7 @@ func adrSupersessionMutual(t *tree.Tree) []Finding {
 	return findings
 }
 
-// gapResolvedHasResolver (warning) reports any gap with status
+// gapAddressedHasResolver (warning) reports any gap with status
 // "addressed" but no resolver — neither an entity reference in
 // addressed_by nor a commit SHA in addressed_by_commit. A wontfix
 // gap doesn't need a resolver: it's discarded by decision, not
@@ -734,12 +734,12 @@ func adrSupersessionMutual(t *tree.Tree) []Finding {
 // legacy gaps (G38) use this — most were closed by a single
 // post-iteration hardening commit, not as part of a planned
 // milestone, and pointing at a milestone would be revisionist.
-func gapResolvedHasResolver(t *tree.Tree) []Finding {
+func gapAddressedHasResolver(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, g := range t.ByKind(entity.KindGap) {
 		if g.Status == entity.StatusAddressed && len(g.AddressedBy) == 0 && len(g.AddressedByCommit) == 0 {
 			findings = append(findings, Finding{
-				Code:     "gap-resolved-has-resolver",
+				Code:     "gap-addressed-has-resolver",
 				Severity: SeverityWarning,
 				Message:  "gap is marked addressed but addressed_by and addressed_by_commit are both empty",
 				Path:     g.Path,

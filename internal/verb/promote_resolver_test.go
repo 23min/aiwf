@@ -11,7 +11,7 @@ import (
 
 // TestPromote_GapAddressedBy: gap → addressed with PromoteOptions.AddressedBy
 // writes addressed_by atomically with the status change (M-059/AC-1, AC-3).
-// After promotion the gap-resolved-has-resolver check is silent — the verb
+// After promotion the gap-addressed-has-resolver check is silent — the verb
 // route alone is enough; no follow-up hand-edit needed (M-059/AC-4).
 func TestPromote_GapAddressedBy(t *testing.T) {
 	t.Parallel()
@@ -35,10 +35,10 @@ func TestPromote_GapAddressedBy(t *testing.T) {
 	}
 
 	// AC-4 closure: the resolver-flag path leaves the tree clean — no
-	// gap-resolved-has-resolver finding requires a hand-edit follow-up.
+	// gap-addressed-has-resolver finding requires a hand-edit follow-up.
 	for _, f := range check.Run(r.tree(), nil) {
-		if f.Code == "gap-resolved-has-resolver" {
-			t.Errorf("verb route should satisfy gap-resolved-has-resolver; finding still present: %+v", f)
+		if f.Code == "gap-addressed-has-resolver" {
+			t.Errorf("verb route should satisfy gap-addressed-has-resolver; finding still present: %+v", f)
 		}
 	}
 }
@@ -86,8 +86,8 @@ func TestPromote_GapAddressedByCommit(t *testing.T) {
 		t.Errorf("addressed_by_commit = %v, want [abcdef1234]", g.AddressedByCommit)
 	}
 	for _, f := range check.Run(r.tree(), nil) {
-		if f.Code == "gap-resolved-has-resolver" {
-			t.Errorf("commit-resolver path should silence gap-resolved-has-resolver; got %+v", f)
+		if f.Code == "gap-addressed-has-resolver" {
+			t.Errorf("commit-resolver path should silence gap-addressed-has-resolver; got %+v", f)
 		}
 	}
 }

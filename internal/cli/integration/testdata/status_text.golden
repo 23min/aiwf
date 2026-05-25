@@ -18,7 +18,7 @@ Open gaps
   G-0901 — Refactor leaves a seam    (discovered in M-0902)
 
 Warnings
-  gap-resolved-has-resolver  [G-0902]  gap is marked addressed but addressed_by is empty
+  gap-addressed-has-resolver  [G-0902]  gap is marked addressed but addressed_by is empty
 
 Recent activity
   2026-05-09  human/golden      promote     aiwf promote M-902 in_progress

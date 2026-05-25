@@ -67,7 +67,7 @@ func canonicalStatusReport() status.StatusReport {
 		},
 		Warnings: []status.StatusFinding{
 			{
-				Code:     "gap-resolved-has-resolver",
+				Code:     "gap-addressed-has-resolver",
 				EntityID: "G-0902",
 				Path:     "work/gaps/G-902-fictional-fix.md",
 				Message:  "gap is marked addressed but addressed_by is empty",

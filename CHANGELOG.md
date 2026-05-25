@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0036: Reconcile impl to the legal-workflow spec
+
+- **M-0142 — Rename finding code `gap-resolved-has-resolver` → `gap-addressed-has-resolver`.** Matches the gap FSM's `addressed` terminal; the old name referenced a `resolved` state the FSM no longer has. **Breaking change to the `aiwf check --format=json` `findings[].code` surface:** any downstream tool that pins the literal `gap-resolved-has-resolver` must refresh to `gap-addressed-has-resolver`. The break is narrow — no `aiwf.yaml` knob and no committed rendered artifact (`STATUS.md`, `ROADMAP.md`) references finding codes, so only a hand-written JSON-parsing script is affected, and the rename is upgrade-gated per consumer. D-0012 records the decision and the per-repo confirmation step; closes G-0144.
+
 ### Added — E-0033: Pin legal kernel-verb workflows mechanically
 
 The kernel now commits to a spec table for legal and illegal verb workflows.

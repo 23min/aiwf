@@ -276,14 +276,14 @@ func gapRules() []Rule {
 			Outcome:       OutcomeLegal,
 			Sources:       RuleSource{Audit: []string{"R-AUDIT-0015", "R-AUDIT-0089"}, FP: []string{"R-FP-0023", "R-FP-0087"}},
 		},
-		// Q8 illegal companion: gap-resolved-has-resolver fires when addressed_by is empty.
+		// Q8 illegal companion: gap-addressed-has-resolver fires when addressed_by is empty.
 		{
 			Kind:              entity.KindGap,
 			FromState:         "open",
 			Verb:              "promote",
 			Preconditions:     []Predicate{{Subject: "self.addressed_by", Op: "==", Value: ""}},
 			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "gap-resolved-has-resolver",
+			ExpectedErrorCode: "gap-addressed-has-resolver",
 			RejectionLayer:    RejectionLayerCheckTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0089"}, FP: []string{"R-FP-0087"}},

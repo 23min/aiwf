@@ -68,7 +68,7 @@ func TestFixture_Messy(t *testing.T) {
 		"no-cycles/supersedes",
 		"titles-nonempty",
 		"adr-supersession-mutual",
-		"gap-resolved-has-resolver",
+		"gap-addressed-has-resolver",
 		"epic-active-no-drafted-milestones",
 	}
 	var missing []string

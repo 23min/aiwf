@@ -75,7 +75,7 @@
     ],
     "warnings": [
       {
-        "code": "gap-resolved-has-resolver",
+        "code": "gap-addressed-has-resolver",
         "entity_id": "G-0902",
         "path": "work/gaps/G-902-fictional-fix.md",
         "message": "gap is marked addressed but addressed_by is empty"

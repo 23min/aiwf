@@ -118,7 +118,7 @@ func TestBinary_ArchiveKernelMigration_LeavesCheckClean(t *testing.T) {
 	}
 
 	// Post-sweep: aiwf check has 0 error-severity findings. Warnings
-	// may remain (e.g., the kernel's gap-resolved-has-resolver
+	// may remain (e.g., the kernel's gap-addressed-has-resolver
 	// finding on G-0093); this AC scopes to errors only.
 	postOut, postErr := testutil.RunBinary(bin, "check", "--root", repo)
 	// Exit 0 means clean; exit 1 means findings (warnings or errors).
