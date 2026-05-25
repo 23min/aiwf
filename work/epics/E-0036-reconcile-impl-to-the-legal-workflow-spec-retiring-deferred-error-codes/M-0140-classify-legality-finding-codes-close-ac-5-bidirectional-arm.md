@@ -1,7 +1,7 @@
 ---
 id: M-0140
 title: Classify legality finding codes; close AC-5 bidirectional arm
-status: draft
+status: in_progress
 parent: E-0036
 depends_on:
     - M-0138
