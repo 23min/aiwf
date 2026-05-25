@@ -61,3 +61,9 @@ M-0138. Best executed after M2 so it certifies the cancel codes too (soft orderi
 
 - **D-0011 — Classify codes with a typed `Code` descriptor carrying a `Class` field** (`accepted`). Resolves E-0036 open question 4 / G-0145's mechanism choice. A legality code becomes a `Code{ID, Class}` value (class intrinsic to the declaration); the closed legality set is enumerated by the existing AST scanner reading the `Class:` field; the behavioral `Class()` on `Coded` errors derives from the same descriptor. Realizes ADR-0012's named-code-constant decision along G-0129's typed-code trajectory. Rejected: behavioral-method + parallel list (dual source of truth), and a central `map[string]Class` registry (side-table divorced from the code).
 
+## Work log
+
+### AC-1 — Legality codes carry a structural Class marker enumerable in code
+
+New leaf package `internal/codes`: `Class` enum (`ClassStructural` zero-value / `ClassLegality`) + `Code{ID, Class}` descriptor (D-0011). The two legality codes (`CodeFSMTransitionIllegal`, `CodeAuthorizeKindNotAllowed`) became descriptor `var`s carrying `ClassLegality`; `Code()` returns `.ID`, so the `Coded` interface and the preserved message text are unchanged. The AC-5 scanner `collectImplFindingCodes` now returns `map[string]codes.Class` and reads the descriptor form via `descriptorCode`/`typeNamedCode`/`classValueIsLegality`, so a single scan yields both the full code set (AC-4) and the legality subset (AC-1) — the class is a property of the declaration, no parallel allowlist. `Class()` on the errors deliberately not added (YAGNI; derivable when M-0143 needs it). RED proven load-bearing (pre-conversion `fsm-transition-illegal` classified `ClassStructural`). Implemented by the `aiwf-extensions:builder` subagent; diff + build/vet/lint/suite re-verified parent-side. commit `b035dc21` · tests: `TestFindingClass_LegalityEnumerable` + `TestDescriptorCode_Branches`; AC-4 + M-0138 stay green.
+
