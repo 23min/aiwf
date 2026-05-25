@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/codes"
+	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
 // TestFindingClass_LegalityEnumerable is M-0140 / AC-1's evidence: the
@@ -73,6 +74,45 @@ func TestFindingClass_LegalityEnumerable(t *testing.T) {
 	}
 	if legalitySet[structuralCode] {
 		t.Errorf("derived legality set wrongly contains structural code %q", structuralCode)
+	}
+}
+
+// TestM0140_AC3_M0138LegalityCodesRoundTrip is M-0140/AC-3: the two
+// legality codes that exist at this milestone round-trip end to end —
+// each is codes.ClassLegality on the impl side (the AC-1 descriptor
+// marker) AND is the ExpectedErrorCode of >=1 OutcomeIllegal spec Rule on
+// the spec side. It pins the concrete codes' full loop, so the AC-1
+// descriptor migration or a spec edit that broke either half fails here.
+//
+// The epic's AC-3 also names the two cancel codes; those are emitted by
+// M-0139 and certified there (the AC-2 fourth arm auto-includes them once
+// M-0139 classifies them as ClassLegality) — chokepoint-first ordering,
+// per D-0011 and the AC-3 spec note.
+func TestM0140_AC3_M0138LegalityCodesRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	implCodes, err := collectImplFindingCodes(repoRoot(t))
+	if err != nil {
+		t.Fatalf("collectImplFindingCodes: %v", err)
+	}
+
+	rules := spec.Rules()
+	for _, code := range []string{"fsm-transition-illegal", "authorize-kind-not-allowed"} {
+		// Impl side: the descriptor marks it ClassLegality.
+		if got := implCodes[code]; got != codes.ClassLegality {
+			t.Errorf("impl side: code %q classified %v, want ClassLegality", code, got)
+		}
+		// Spec side: >=1 illegal-outcome Rule names it as ExpectedErrorCode.
+		n := 0
+		for i := range rules {
+			r := &rules[i]
+			if r.Outcome == spec.OutcomeIllegal && r.ExpectedErrorCode == code {
+				n++
+			}
+		}
+		if n == 0 {
+			t.Errorf("spec side: code %q is the ExpectedErrorCode of no illegal-outcome spec Rule", code)
+		}
 	}
 }
 
