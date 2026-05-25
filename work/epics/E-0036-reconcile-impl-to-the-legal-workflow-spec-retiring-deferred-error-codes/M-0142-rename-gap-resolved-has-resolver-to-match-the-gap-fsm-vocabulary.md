@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Decision D-0012 records the rename and downstream-consumer caveat
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Finding fires under the new code; old literal absent from impl/spec/hint
       status: open
