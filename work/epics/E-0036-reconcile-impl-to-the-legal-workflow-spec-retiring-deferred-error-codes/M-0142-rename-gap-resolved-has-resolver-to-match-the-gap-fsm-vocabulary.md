@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Finding fires under the new code; old literal absent from impl/spec/hint
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Hint table carries an entry for the new code name
       status: open
