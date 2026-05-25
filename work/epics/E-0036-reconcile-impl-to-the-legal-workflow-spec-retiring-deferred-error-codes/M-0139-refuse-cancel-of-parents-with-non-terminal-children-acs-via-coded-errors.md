@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Cancel of a milestone with open ACs refuses (coded)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Cancel still succeeds when all children/ACs are terminal
       status: open
