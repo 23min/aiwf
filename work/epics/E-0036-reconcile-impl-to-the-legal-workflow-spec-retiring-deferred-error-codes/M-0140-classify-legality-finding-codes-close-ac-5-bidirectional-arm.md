@@ -30,9 +30,19 @@ AC-5 closes three of four drift arms; the impl→spec arm — "every legality-pe
 
 ## Acceptance criteria
 
-- **AC1** — Legality-pertinent codes carry a structural `Class` marker enumerable in code (not a hand-maintained test allowlist). *Evidence:* `TestFindingClass_LegalityEnumerable` — asserts the closed legality set is derived from the marker, and a structural-integrity code is *not* in it.
-- **AC2** — The AC-5 drift test asserts every legality-classed impl code is referenced by ≥1 illegal-outcome spec Rule, and **fails when a legality code lacks a spec reference**. *Evidence:* the new drift arm in `m0123_ac5_drift_test.go`; a negative-of-the-policy fixture (a deliberately orphaned legality code) makes it red — proving the policy actually fires, not just passes vacuously.
-- **AC3** — The codes emitted by M-0138/M2 (`fsm-transition-illegal`, `authorize-kind-not-allowed`, the two cancel codes) round-trip as legality and resolve to spec rules. *Evidence:* assertion they appear in the legality set and each maps to ≥1 Rule.
+Each AC carries an explicit **Evidence** gate — the named test or drift arm that fails if the claim breaks. "Looks right" is not evidence.
+
+### AC-1 — Legality codes carry a structural Class marker enumerable in code
+
+Legality-pertinent codes carry a structural `Class` marker (e.g. `ClassLegality`) that is programmatically enumerable in code — a property of the code, not a hand-maintained test allowlist (G-0145 option 2). *Evidence:* `TestFindingClass_LegalityEnumerable` — asserts the closed legality set is derived from the marker, and that a structural-integrity code (frontmatter-shape / id-collision / ref-resolution class) is *not* in it.
+
+### AC-2 — AC-5 drift fails when a legality-classed code lacks a spec reference
+
+The AC-5 drift test gains its deferred fourth arm: every legality-classed impl code is referenced by ≥1 illegal-outcome spec `Rule`, and the arm **fails when a legality code lacks a spec reference**. *Evidence:* the new arm in `m0123_ac5_drift_test.go`; a negative-of-the-policy fixture (a deliberately orphaned legality-classed code) drives it red — proving the policy actually fires, not just passes vacuously. A policy that cannot fail is not a chokepoint.
+
+### AC-3 — Existing M-0138 legality codes round-trip and resolve to spec rules
+
+The two legality codes that exist at this milestone — `fsm-transition-illegal` and `authorize-kind-not-allowed` (both M-0138) — round-trip as legality and each resolves to ≥1 illegal-outcome spec `Rule`. *Evidence:* assertion they appear in the legality set and each maps to ≥1 `Rule`. The epic's AC-3 also names the two cancel codes; those are emitted by **M-0139**, and AC-2's mechanism auto-includes them once M-0139 classifies them — chokepoint-first ordering, so they are certified there, not here. Until then the cancel codes' spec→impl direction stays covered by `deferredImplErrorCodes`.
 
 ## Constraints
 
@@ -46,10 +56,4 @@ Emitting the codes (M-0138/M2); the rename (M4); reachability (M5).
 ## Dependencies
 
 M-0138. Best executed after M2 so it certifies the cancel codes too (soft ordering). Closes G-0145.
-
-### AC-1 — Legality codes carry a structural Class marker enumerable in code
-
-### AC-2 — AC-5 drift fails when a legality-classed code lacks a spec reference
-
-### AC-3 — Existing M-0138 legality codes round-trip and resolve to spec rules
 
