@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: AC-5 drift fails when a legality-classed code lacks a spec reference
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Existing M-0138 legality codes round-trip and resolve to spec rules
