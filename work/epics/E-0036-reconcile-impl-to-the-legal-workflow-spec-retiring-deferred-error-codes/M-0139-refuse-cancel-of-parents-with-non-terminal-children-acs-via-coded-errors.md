@@ -87,3 +87,26 @@ The guards fire only on non-terminal children, so a legal cancel (epic whose mil
 
 Both codes removed from `deferredImplErrorCodes`; the four cancel cells removed from `ac2KnownImplGaps` (left `adr-accepted-cancel`/G-0163, `ac-open-promote`/G-0140). The codes now resolve as real `ClassLegality` descriptors, so `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` stays green; and M-0140's `TestM0123_AC5_ImplToSpec_LegalityCodesReferenced` auto-verifies they're spec-referenced — the chokepoint-first payoff. commit `15a06f0e` · tests: AC-5 spec→impl + M-0140 fourth arm + M-0124/M-0125 drivers all green with the cells live.
 
+## Validation
+
+```
+CGO_ENABLED=0 go build ./...            # exit 0
+go test ./... -count=1 -parallel 8      # 56 packages ok · 0 failures (incl. cmd/aiwf)
+golangci-lint run                       # 0 issues
+aiwf check                              # 0 errors · 8 warnings (pre-existing, unrelated)
+```
+
+Per-AC mechanical evidence: `TestCancel_EpicWithNonTerminalChildMilestone_Refuses` (AC-1), `TestCancel_MilestoneWithOpenAC_Refuses` (AC-2), `TestCancel_AllChildrenTerminal_Succeeds` (AC-3) — all in `internal/verb/`; plus the four M-0125 negative-driver cancel cells now live (`--- PASS` on the refusal path), the M-0124 positive-driver legal-cancel cell, `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` and M-0140's `TestM0123_AC5_ImplToSpec_LegalityCodesReferenced` (AC-4). M-0138's coded-error tests unaffected.
+
+## Deferrals
+
+No deferral-gaps; no deferred or cancelled ACs (all four `met`). No new decisions surfaced — D-0003 and D-0004 (ratified at epic start) were re-confirmed before implementing, per the reviewed-reconcile constraint.
+
+## Reviewer notes
+
+- **Refuse-with-listing, no auto-cascade.** Both guards just refuse and list offenders (D-0003/D-0004); the operator disposes each child first. Auto-cascade was rejected in the decisions (multi-entity verb / lost per-child audit narrative; schema has no postconditions).
+- **Reused `entity.MilestoneCanGoDone` for the milestone guard** rather than re-walking the ACs — the open-AC enumerator already existed for the milestone→done precondition. One source of truth for "which ACs are open."
+- **Codes as `ClassLegality` descriptors (D-0011) → free chokepoint satisfaction.** Because M-0140 ran first, the two cancel codes had to be declared `Code{…, Class: ClassLegality}` *and* be spec-referenced or M-0140's fourth arm fails CI — both held with zero extra work. This is the designed payoff of the chokepoint-first ordering, observed in practice.
+- **One coherent commit for four ACs.** The guards, the M-0125 `ac2KnownImplGaps` un-skips, and the `deferredImplErrorCodes` cleanup must co-land for the suite to stay green (M-0125's two-way tracking flips the moment a guard refuses). Splitting would be artificial; per-AC RED→GREEN was demonstrated individually before committing.
+- **Subagent authored; parent re-verified.** Full module suite (incl. `cmd/aiwf`), the live driver cells, and the chokepoint independently re-run parent-side before commit (the "are you 100% confident" pass).
+
