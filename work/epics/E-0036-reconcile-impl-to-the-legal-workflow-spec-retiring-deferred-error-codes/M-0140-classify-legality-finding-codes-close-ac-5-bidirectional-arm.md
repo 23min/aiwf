@@ -57,3 +57,7 @@ Emitting the codes (M-0138/M2); the rename (M4); reachability (M5).
 
 M-0138. Best executed after M2 so it certifies the cancel codes too (soft ordering). Closes G-0145.
 
+## Decisions made during implementation
+
+- **D-0011 — Classify codes with a typed `Code` descriptor carrying a `Class` field** (`accepted`). Resolves E-0036 open question 4 / G-0145's mechanism choice. A legality code becomes a `Code{ID, Class}` value (class intrinsic to the declaration); the closed legality set is enumerated by the existing AST scanner reading the `Class:` field; the behavioral `Class()` on `Coded` errors derives from the same descriptor. Realizes ADR-0012's named-code-constant decision along G-0129's typed-code trajectory. Rejected: behavioral-method + parallel list (dual source of truth), and a central `map[string]Class` registry (side-table divorced from the code).
+
