@@ -432,7 +432,7 @@ Make E-0033's legal-workflow spec a *fully* verified source of truth by reconcil
 |---|---|---|
 | M-0138 | Introduce typed CodedError; convert existing unstructured legality errors | done |
 | M-0139 | Refuse cancel of parents with non-terminal children/ACs via coded errors | draft |
-| M-0140 | Classify legality finding codes; close AC-5 bidirectional arm | draft |
+| M-0140 | Classify legality finding codes; close AC-5 bidirectional arm | done |
 | M-0141 | Enforce three-edge scope reachability at verb-time | draft |
 | M-0142 | Rename gap-resolved-has-resolver to match the gap FSM vocabulary | draft |
 | M-0143 | Surface Coded error codes in the JSON envelope | draft |
