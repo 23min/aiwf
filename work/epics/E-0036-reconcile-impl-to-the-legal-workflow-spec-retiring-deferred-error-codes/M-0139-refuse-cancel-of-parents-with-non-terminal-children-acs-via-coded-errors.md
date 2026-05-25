@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Cancel still succeeds when all children/ACs are terminal
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Cancel codes retired from deferred and ac2KnownImplGaps lists
