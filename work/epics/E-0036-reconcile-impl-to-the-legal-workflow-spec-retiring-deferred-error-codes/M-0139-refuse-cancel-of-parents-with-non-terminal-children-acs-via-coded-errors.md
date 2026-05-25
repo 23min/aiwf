@@ -34,10 +34,23 @@ Today both cancels succeed regardless of child state; M-0125's negative driver c
 
 ## Acceptance criteria
 
-- **AC1** — `aiwf cancel E-NNNN` with a non-terminal (`draft`/`in_progress`) child milestone refuses with structured `epic-cancel-non-terminal-children`, listing the offending milestone id(s). *Evidence:* M-0125 negative cell (epic-cancel) un-skipped; binary-level assertion of non-zero exit + structured code + HEAD unchanged + the listing.
-- **AC2** — `aiwf cancel M-NNNN` with an `open` AC refuses with structured `milestone-cancel-non-terminal-acs`, listing the offending composite id(s). *Evidence:* M-0125 negative cell (milestone-cancel) un-skipped; same assertion shape.
-- **AC3** — `aiwf cancel` of an epic/milestone whose children are all terminal still succeeds with the expected post-state. *Evidence:* the M-0124 positive driver cell for the legal cancel; binary-level success assertion (guards against "just refuse everything").
-- **AC4** — The two codes are removed from `deferredImplErrorCodes`; the four cancel cells removed from `ac2KnownImplGaps`. *Evidence:* `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` green after removal; M-0125 driver green with the four cells live.
+Each AC carries an explicit **Evidence** gate — the named test, driver cell, or drift policy that fails if the claim breaks. "Looks right" is not evidence.
+
+### AC-1 — Cancel of an epic with non-terminal child milestones refuses (coded)
+
+`aiwf cancel E-NNNN` with a non-terminal (`draft`/`in_progress`) child milestone refuses with the structured `epic-cancel-non-terminal-children` code, listing the offending milestone id(s), and leaves HEAD unchanged. The code is a `codes.Code{Class: codes.ClassLegality}` descriptor (D-0011), extractable via `entity.Code`. *Evidence:* the M-0125 negative driver's epic-cancel cell un-skipped (its `ac2KnownImplGaps` entries removed, an `errorSubstringsFor` mapping added) — binary-level assertion of non-zero exit + the listing + HEAD unchanged.
+
+### AC-2 — Cancel of a milestone with open ACs refuses (coded)
+
+`aiwf cancel M-NNNN` with an `open` AC refuses with the structured `milestone-cancel-non-terminal-acs` code, listing the offending composite id(s) `M-NNNN/AC-N`, and leaves HEAD unchanged. Reuses `entity.MilestoneCanGoDone` (the existing open-AC enumerator). The code is a `ClassLegality` descriptor. *Evidence:* the M-0125 negative driver's milestone-cancel cell un-skipped; same assertion shape.
+
+### AC-3 — Cancel still succeeds when all children/ACs are terminal
+
+`aiwf cancel` of an epic whose milestones are all terminal, or a milestone whose ACs are all terminal, still succeeds with the expected `cancelled` post-state. *Evidence:* the M-0124 positive driver cell for the legal cancel; binary-level success assertion — guards against a "just refuse everything" implementation.
+
+### AC-4 — Cancel codes retired from deferred and ac2KnownImplGaps lists
+
+The two codes (`epic-cancel-non-terminal-children`, `milestone-cancel-non-terminal-acs`) are removed from `deferredImplErrorCodes`, and the four cancel cells removed from `ac2KnownImplGaps`. *Evidence:* `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` stays green after removal (the codes now resolve as real `ClassLegality` descriptors), and the M-0125 negative + M-0124 positive drivers stay green with the four cells live. (The closure that can't be claimed, only earned.)
 
 ## Constraints
 
@@ -53,12 +66,4 @@ The `CodedError` pattern itself (M-0138); classifier (M3), rename (M4), reachabi
 ## Dependencies
 
 M-0138. Closes G-0139.
-
-### AC-1 — Cancel of an epic with non-terminal child milestones refuses (coded)
-
-### AC-2 — Cancel of a milestone with open ACs refuses (coded)
-
-### AC-3 — Cancel still succeeds when all children/ACs are terminal
-
-### AC-4 — Cancel codes retired from deferred and ac2KnownImplGaps lists
 
