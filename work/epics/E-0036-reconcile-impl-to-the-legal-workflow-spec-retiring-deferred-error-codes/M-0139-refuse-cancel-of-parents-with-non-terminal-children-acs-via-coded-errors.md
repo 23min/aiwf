@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Cancel of an epic with non-terminal child milestones refuses (coded)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Cancel of a milestone with open ACs refuses (coded)
