@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Legality codes carry a structural Class marker enumerable in code
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: AC-5 drift fails when a legality-classed code lacks a spec reference
       status: open
