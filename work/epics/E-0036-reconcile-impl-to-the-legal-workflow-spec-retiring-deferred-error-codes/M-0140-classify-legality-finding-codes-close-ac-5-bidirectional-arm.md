@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Existing M-0138 legality codes round-trip and resolve to spec rules
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
