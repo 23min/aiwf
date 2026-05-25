@@ -1,7 +1,7 @@
 ---
 id: D-0011
 title: Classify codes with a typed Code descriptor carrying a Class field
-status: proposed
+status: accepted
 relates_to:
     - ADR-0012
     - M-0140
