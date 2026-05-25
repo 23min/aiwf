@@ -104,15 +104,14 @@ func TestM0125_AC2_NegativeDriver_VerbTimeRejection(t *testing.T) {
 // verb-time chokepoints (per D-0003, D-0004, D-0007, and the audit
 // catalog citations on each cell).
 var ac2KnownImplGaps = map[string]string{
-	// Cross-entity non-terminal-child/AC checks — verb proceeds with the
-	// cancel even when the spec's precondition (non-terminal child or
-	// open AC) holds. Tracked by G-0139 (filed at M-0123 wrap referencing
-	// D-0003 + D-0004; G-0162 was a duplicate filed at M-0125 and
-	// cancelled wontfix on consolidation).
-	"epic-proposed-cancel-anychildstatusnotinmilestoneterminalset": "G-0139",
-	"epic-active-cancel-anychildstatusnotinmilestoneterminalset":   "G-0139",
-	"milestone-draft-cancel-anychildacstatuseqopen":                "G-0139",
-	"milestone-in_progress-cancel-anychildacstatuseqopen":          "G-0139",
+	// The four cancel-cascade cells (epic-cancel-non-terminal-children
+	// ×2 FromStates, milestone-cancel-non-terminal-acs ×2 FromStates,
+	// tracked by G-0139 via D-0003 + D-0004) graduated to live coverage
+	// in M-0139: verb.Cancel now refuses with the structured codes. Their
+	// entries were removed here; the cells run through
+	// runNegativeVerbTimeCell, asserting the refusal end-to-end via the
+	// errorSubstringsFor mappings below.
+	//
 	// CancelTarget(ADR/Decision, accepted) returns "rejected" but the
 	// FSM forbids accepted→rejected. The verb's cancel path bypasses
 	// FSM. Tracked by G-0163.
@@ -170,6 +169,12 @@ func errorSubstringsFor(code string) []string {
 		return []string{"supersede", "mutual"}
 	case "authorize-kind-not-allowed":
 		return []string{"authorize", "not allowed"}
+	case "epic-cancel-non-terminal-children":
+		// M-0139 guard: EpicCancelNonTerminalChildrenError.Error().
+		return []string{"non-terminal child milestone", "epic-cancel-non-terminal-children"}
+	case "milestone-cancel-non-terminal-acs":
+		// M-0139 guard: MilestoneCancelNonTerminalACsError.Error().
+		return []string{"open acceptance criterion", "milestone-cancel-non-terminal-acs"}
 	}
 	return nil
 }

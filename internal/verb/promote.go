@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/check"
@@ -190,6 +191,37 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	}
 	if e.Status == target {
 		return nil, fmt.Errorf("%s is already %s", id, target)
+	}
+
+	// Cancel-cascade guards (D-0003 / D-0004): refuse-with-listing when a
+	// parent still owns non-terminal children. No auto-cascade — the
+	// operator disposes each child first. Runs after the terminal/target
+	// checks so "already terminal" / "no cancel target" win, and before
+	// any projection so the refusal is a clean typed error, not a finding.
+	switch e.Kind {
+	case entity.KindEpic:
+		var nonTerminal []string
+		for _, m := range t.ByKind(entity.KindMilestone) {
+			if m.Parent == e.ID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
+				nonTerminal = append(nonTerminal, m.ID)
+			}
+		}
+		if len(nonTerminal) > 0 {
+			sort.Strings(nonTerminal)
+			return nil, &EpicCancelNonTerminalChildrenError{Epic: e.ID, Children: nonTerminal}
+		}
+	case entity.KindMilestone:
+		if ok, openACs := entity.MilestoneCanGoDone(e); !ok {
+			composite := make([]string, 0, len(openACs))
+			for _, ac := range openACs {
+				composite = append(composite, e.ID+"/"+ac)
+			}
+			return nil, &MilestoneCancelNonTerminalACsError{Milestone: e.ID, ACs: composite}
+		}
+	default:
+		// Other kinds (ADR, gap, decision, contract) own no child
+		// entities or ACs, so cancel carries no cascade precondition —
+		// the terminal/target checks above are the only guards they need.
 	}
 
 	modified := *e

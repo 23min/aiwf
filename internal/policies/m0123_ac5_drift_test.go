@@ -256,9 +256,12 @@ func TestM0123_AC5_SpecToImpl_VerbsResolve(t *testing.T) {
 // by codeAppearsInImplSource. Forgetting to remove the entry is the
 // only failure mode and it's a one-line edit.
 var deferredImplErrorCodes = map[string]string{
-	"epic-cancel-non-terminal-children": "D-0003 cancel-cascade impl is a follow-up gap (filed at M-0123 wrap)",
-	"milestone-cancel-non-terminal-acs": "D-0004 cancel-cascade impl is a follow-up gap (filed at M-0123 wrap)",
-	"ac-evidence-missing":               "D-0005 AC mechanical-evidence mechanism is a follow-up gap (filed at M-0123 wrap)",
+	// epic-cancel-non-terminal-children (D-0003) and
+	// milestone-cancel-non-terminal-acs (D-0004) graduated to real
+	// codes.ClassLegality descriptors in M-0139 (internal/verb/
+	// cancel_guards.go); they now resolve via the impl-side scan, so
+	// their deferred entries are gone.
+	"ac-evidence-missing": "D-0005 AC mechanical-evidence mechanism is a follow-up gap (filed at M-0123 wrap)",
 }
 
 // TestM0123_AC5_SpecToImpl_ErrorCodesResolve asserts every illegal Rule's
