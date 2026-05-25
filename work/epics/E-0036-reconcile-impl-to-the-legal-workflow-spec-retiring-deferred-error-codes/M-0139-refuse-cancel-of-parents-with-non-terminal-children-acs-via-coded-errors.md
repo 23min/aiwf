@@ -6,6 +6,23 @@ parent: E-0036
 depends_on:
     - M-0138
 tdd: required
+acs:
+    - id: AC-1
+      title: Cancel of an epic with non-terminal child milestones refuses (coded)
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Cancel of a milestone with open ACs refuses (coded)
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Cancel still succeeds when all children/ACs are terminal
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Cancel codes retired from deferred and ac2KnownImplGaps lists
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -36,3 +53,12 @@ The `CodedError` pattern itself (M-0138); classifier (M3), rename (M4), reachabi
 ## Dependencies
 
 M-0138. Closes G-0139.
+
+### AC-1 — Cancel of an epic with non-terminal child milestones refuses (coded)
+
+### AC-2 — Cancel of a milestone with open ACs refuses (coded)
+
+### AC-3 — Cancel still succeeds when all children/ACs are terminal
+
+### AC-4 — Cancel codes retired from deferred and ac2KnownImplGaps lists
+
