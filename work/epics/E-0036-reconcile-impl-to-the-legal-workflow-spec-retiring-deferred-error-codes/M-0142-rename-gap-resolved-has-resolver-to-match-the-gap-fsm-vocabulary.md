@@ -1,7 +1,7 @@
 ---
 id: M-0142
 title: Rename gap-resolved-has-resolver to match the gap FSM vocabulary
-status: draft
+status: in_progress
 parent: E-0036
 tdd: required
 ---
