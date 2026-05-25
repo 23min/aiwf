@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Hint table carries an entry for the new code name
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
