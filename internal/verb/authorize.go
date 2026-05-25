@@ -5,16 +5,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/23min/aiwf/internal/codes"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
 	"github.com/23min/aiwf/internal/tree"
 )
 
-// CodeAuthorizeKindNotAllowed is the kernel error code carried by
-// [AuthorizeKindError] when aiwf authorize refuses a scope-entity that
-// is not an epic or milestone (D-0007).
-const CodeAuthorizeKindNotAllowed = "authorize-kind-not-allowed"
+// CodeAuthorizeKindNotAllowed is the typed kernel-code descriptor carried
+// by [AuthorizeKindError] when aiwf authorize refuses a scope-entity that
+// is not an epic or milestone (D-0007). It declares [codes.ClassLegality],
+// the marker the closed legality set is enumerated from (D-0011).
+// Consumers see its [codes.Code.ID] string via [AuthorizeKindError.Code]
+// and in the message text.
+var CodeAuthorizeKindNotAllowed = codes.Code{ID: "authorize-kind-not-allowed", Class: codes.ClassLegality}
 
 // AuthorizeKindError reports an aiwf authorize refused because the
 // scope-entity is not an epic or milestone (D-0007). It implements
@@ -27,11 +31,11 @@ type AuthorizeKindError struct {
 
 // Error implements error.
 func (e *AuthorizeKindError) Error() string {
-	return fmt.Sprintf("aiwf authorize: kind %q is not allowed (%s); only epic and milestone carry autonomous-work scopes", e.Kind, CodeAuthorizeKindNotAllowed)
+	return fmt.Sprintf("aiwf authorize: kind %q is not allowed (%s); only epic and milestone carry autonomous-work scopes", e.Kind, CodeAuthorizeKindNotAllowed.ID)
 }
 
-// Code returns CodeAuthorizeKindNotAllowed, satisfying [entity.Coded].
-func (e *AuthorizeKindError) Code() string { return CodeAuthorizeKindNotAllowed }
+// Code returns CodeAuthorizeKindNotAllowed's ID, satisfying [entity.Coded].
+func (e *AuthorizeKindError) Code() string { return CodeAuthorizeKindNotAllowed.ID }
 
 // AuthorizeMode picks one of the three sub-verbs of `aiwf authorize`.
 // Each mode produces exactly one commit; mixing modes is a usage error

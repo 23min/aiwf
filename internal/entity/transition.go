@@ -1,6 +1,10 @@
 package entity
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/23min/aiwf/internal/codes"
+)
 
 // transitions encodes the per-kind status FSM as a map from current
 // status to the set of statuses you can move to via `aiwf promote` or
@@ -58,10 +62,13 @@ func AllowedTransitions(k Kind, from string) []string {
 	return kindTransitions[from]
 }
 
-// CodeFSMTransitionIllegal is the kernel error code carried by
+// CodeFSMTransitionIllegal is the typed kernel-code descriptor carried by
 // [FSMTransitionError]: the structured code the legal-workflow spec
-// references for every illegal FSM-transition cell.
-const CodeFSMTransitionIllegal = "fsm-transition-illegal"
+// references for every illegal FSM-transition cell. It declares
+// [codes.ClassLegality], the marker from which the closed legality set is
+// enumerated (D-0011). Consumers see its [codes.Code.ID] string via
+// [FSMTransitionError.Code].
+var CodeFSMTransitionIllegal = codes.Code{ID: "fsm-transition-illegal", Class: codes.ClassLegality}
 
 // ValidateTransition reports nil when (kind, from, to) is a legal step.
 // Returns a descriptive error when from is unknown to the kind, when
@@ -108,8 +115,8 @@ func (e *FSMTransitionError) Error() string {
 	return fmt.Sprintf("%s status %q cannot transition to %q (allowed: %v)", e.Kind, e.From, e.To, e.Allowed)
 }
 
-// Code returns CodeFSMTransitionIllegal, satisfying [Coded].
-func (e *FSMTransitionError) Code() string { return CodeFSMTransitionIllegal }
+// Code returns CodeFSMTransitionIllegal's ID, satisfying [Coded].
+func (e *FSMTransitionError) Code() string { return CodeFSMTransitionIllegal.ID }
 
 // IsTerminal reports whether (kind, status) names a terminal state in
 // the kind's FSM — i.e., a state with no outgoing transitions. Returns

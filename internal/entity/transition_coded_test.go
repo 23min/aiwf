@@ -37,8 +37,8 @@ func TestValidateTransition_FSMTransitionIllegalCode(t *testing.T) {
 				t.Parallel()
 				err := ValidateTransition(tc.kind, tc.from, tc.to)
 				code, ok := Code(err)
-				if !ok || code != CodeFSMTransitionIllegal {
-					t.Fatalf("Code(%v) = (%q, %v), want (%q, true)", err, code, ok, CodeFSMTransitionIllegal)
+				if !ok || code != CodeFSMTransitionIllegal.ID {
+					t.Fatalf("Code(%v) = (%q, %v), want (%q, true)", err, code, ok, CodeFSMTransitionIllegal.ID)
 				}
 				if msg := err.Error(); !strings.Contains(msg, "cannot transition to") || !strings.Contains(msg, "allowed:") {
 					t.Errorf("not-allowed message %q missing expected shape", msg)
@@ -66,8 +66,8 @@ func TestValidateTransition_FSMTransitionIllegalCode(t *testing.T) {
 				t.Parallel()
 				err := ValidateTransition(tc.kind, tc.from, tc.to)
 				code, ok := Code(err)
-				if !ok || code != CodeFSMTransitionIllegal {
-					t.Fatalf("Code(%v) = (%q, %v), want (%q, true)", err, code, ok, CodeFSMTransitionIllegal)
+				if !ok || code != CodeFSMTransitionIllegal.ID {
+					t.Fatalf("Code(%v) = (%q, %v), want (%q, true)", err, code, ok, CodeFSMTransitionIllegal.ID)
 				}
 				if msg := err.Error(); !strings.Contains(msg, "is terminal") {
 					t.Errorf("terminal message %q missing 'is terminal'", msg)
