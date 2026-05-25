@@ -4,6 +4,19 @@ title: Rename gap-resolved-has-resolver to match the gap FSM vocabulary
 status: in_progress
 parent: E-0036
 tdd: required
+acs:
+    - id: AC-1
+      title: Decision D-0012 records the rename and downstream-consumer caveat
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Finding fires under the new code; old literal absent from impl/spec/hint
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Hint table carries an entry for the new code name
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -32,3 +45,10 @@ Other finding codes; the classifier (M3) — though if M3 has landed, this renam
 ## Dependencies
 
 None (independent). Best executed after M3 so the classified legality set is renamed in one pass (soft). Closes G-0144.
+
+### AC-1 — Decision D-0012 records the rename and downstream-consumer caveat
+
+### AC-2 — Finding fires under the new code; old literal absent from impl/spec/hint
+
+### AC-3 — Hint table carries an entry for the new code name
+
