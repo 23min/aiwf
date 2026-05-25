@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -291,6 +292,92 @@ func TestM0123_AC5_SpecToImpl_ErrorCodesResolve(t *testing.T) {
 		}
 		t.Errorf("Rules()[%d] (Kind=%q, FromState=%q, Verb=%q): ExpectedErrorCode=%q resolves to neither an impl `Code: \"...\"` literal nor a deferredImplErrorCodes entry — implement the code or add a deferred entry with the tracking D-NNNN reason",
 			i, r.Kind, r.FromState, r.Verb, code)
+	}
+}
+
+// AC-5 fourth arm (M-0140/AC-2): impl→spec finding-code coverage for the
+// legality class. Every legality-classed impl code (codes.ClassLegality)
+// must be named by ≥1 illegal-outcome spec Rule. The arm is the deferred
+// fourth direction of AC-5 (G-0145) — now live because AC-1 made the
+// legality set enumerable from the code declarations themselves.
+
+// unreferencedLegalityCodes returns the legality codes that no illegal
+// spec Rule names — the AC-5 fourth-arm violation set. Sorted for a
+// stable failure message. Empty result = the arm passes.
+func unreferencedLegalityCodes(legality []string, specIllegalCodes map[string]bool) []string {
+	var unreferenced []string
+	for _, code := range legality {
+		if specIllegalCodes[code] {
+			continue
+		}
+		unreferenced = append(unreferenced, code)
+	}
+	sort.Strings(unreferenced)
+	return unreferenced
+}
+
+// specIllegalErrorCodes returns the set of non-empty ExpectedErrorCodes
+// across all OutcomeIllegal spec Rules.
+func specIllegalErrorCodes() map[string]bool {
+	out := map[string]bool{}
+	rules := spec.Rules()
+	for i := range rules {
+		r := &rules[i]
+		if r.Outcome != spec.OutcomeIllegal || r.ExpectedErrorCode == "" {
+			continue
+		}
+		out[r.ExpectedErrorCode] = true
+	}
+	return out
+}
+
+// TestM0123_AC5_ImplToSpec_LegalityCodesReferenced asserts every
+// legality-classed impl code (codes.ClassLegality) is named by ≥1
+// illegal-outcome spec Rule — the AC-5 fourth arm. The legality set is
+// derived from the same scan that AC-1/AC-4 use (collectImplFindingCodes),
+// so a code reclassified to ClassLegality without a matching illegal spec
+// cell fails here.
+func TestM0123_AC5_ImplToSpec_LegalityCodesReferenced(t *testing.T) {
+	t.Parallel()
+
+	implCodes, err := collectImplFindingCodes(repoRoot(t))
+	if err != nil {
+		t.Fatalf("collectImplFindingCodes: %v", err)
+	}
+
+	var legality []string
+	for code, class := range implCodes {
+		if class == codes.ClassLegality {
+			legality = append(legality, code)
+		}
+	}
+
+	if orphans := unreferencedLegalityCodes(legality, specIllegalErrorCodes()); len(orphans) > 0 {
+		t.Errorf("legality-classed impl code(s) %v are referenced by no illegal-outcome spec Rule — add an illegal spec cell naming each code (Outcome=OutcomeIllegal, ExpectedErrorCode=<code>) or reclassify the code away from codes.ClassLegality", orphans)
+	}
+}
+
+// TestUnreferencedLegalityCodes_FiresOnOrphan is the negative-of-the-policy
+// test (M-0140/AC-2): a policy that cannot fail is not a chokepoint. It
+// proves unreferencedLegalityCodes both fires on an orphan and does not
+// over-fire on a genuinely-referenced code.
+func TestUnreferencedLegalityCodes_FiresOnOrphan(t *testing.T) {
+	t.Parallel()
+
+	specIllegal := specIllegalErrorCodes()
+
+	// Fires: a synthetic legality code that no illegal spec cell names is
+	// flagged.
+	got := unreferencedLegalityCodes([]string{"synthetic-orphan-legality-code"}, specIllegal)
+	want := []string{"synthetic-orphan-legality-code"}
+	if len(got) != 1 || got[0] != want[0] {
+		t.Errorf("orphan legality code not flagged: got %v, want %v", got, want)
+	}
+
+	// Does not over-fire: a real, spec-referenced legality code is not
+	// flagged. Guards against a vacuous "return everything" implementation.
+	if got := unreferencedLegalityCodes([]string{"fsm-transition-illegal"}, specIllegal); len(got) != 0 {
+		t.Errorf("referenced legality code wrongly flagged: got %v, want []", got)
 	}
 }
 
