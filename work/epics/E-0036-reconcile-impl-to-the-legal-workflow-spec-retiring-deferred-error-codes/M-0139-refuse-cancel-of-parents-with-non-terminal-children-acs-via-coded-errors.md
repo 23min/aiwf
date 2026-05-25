@@ -67,3 +67,23 @@ The `CodedError` pattern itself (M-0138); classifier (M3), rename (M4), reachabi
 
 M-0138. Closes G-0139.
 
+## Work log
+
+All four ACs landed in one coherent feature commit `15a06f0e` — the cancel-guard change (guards + driver un-skips + deferred cleanup) must co-land for the suite to stay green (M-0125's two-way tracking forces the `ac2KnownImplGaps` removal the moment the guard refuses). Per-AC RED→GREEN was still demonstrated individually before the commit. Implemented by the `aiwf-extensions:builder` subagent; build/vet/lint, full module suite (`-parallel 8`, 56 pkgs, 0 failures incl. `cmd/aiwf`), the four M-0125 cancel cells live (`--- PASS`), the M-0124 positive driver, and M-0140's fourth-arm chokepoint all re-verified parent-side.
+
+### AC-1 — Cancel of an epic with non-terminal child milestones refuses (coded)
+
+`verb.Cancel`'s epic arm walks child milestones (`t.ByKind(KindMilestone)` filtered by `Parent` + `!entity.IsTerminal`), and on any non-terminal child returns `*EpicCancelNonTerminalChildrenError` (implements `entity.Coded`; code `CodeEpicCancelNonTerminalChildren`, a `codes.Code{Class: ClassLegality}` descriptor) listing the sorted offender ids — no auto-cascade (D-0003). RED proven (verb succeeded pre-guard). commit `15a06f0e` · tests: `TestCancel_EpicWithNonTerminalChildMilestone_Refuses` + M-0125 `epic-{proposed,active}-cancel` cells live.
+
+### AC-2 — Cancel of a milestone with open ACs refuses (coded)
+
+The milestone arm reuses `entity.MilestoneCanGoDone(e)` (the existing open-AC enumerator) and returns `*MilestoneCancelNonTerminalACsError` (code `CodeMilestoneCancelNonTerminalACs`, `ClassLegality` descriptor) listing the offending composite ids `M-NNNN/AC-N` (D-0004). RED proven. commit `15a06f0e` · tests: `TestCancel_MilestoneWithOpenAC_Refuses` + M-0125 `milestone-{draft,in_progress}-cancel` cells live.
+
+### AC-3 — Cancel still succeeds when all children/ACs are terminal
+
+The guards fire only on non-terminal children, so a legal cancel (epic whose milestones are terminal; milestone with no/terminal ACs) still reaches `cancelled`. Characterization against a "refuse everything" regression. commit `15a06f0e` · tests: `TestCancel_AllChildrenTerminal_Succeeds` (2 subtests) + the M-0124 positive driver legal-cancel cell.
+
+### AC-4 — Cancel codes retired from deferred and ac2KnownImplGaps lists
+
+Both codes removed from `deferredImplErrorCodes`; the four cancel cells removed from `ac2KnownImplGaps` (left `adr-accepted-cancel`/G-0163, `ac-open-promote`/G-0140). The codes now resolve as real `ClassLegality` descriptors, so `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` stays green; and M-0140's `TestM0123_AC5_ImplToSpec_LegalityCodesReferenced` auto-verifies they're spec-referenced — the chokepoint-first payoff. commit `15a06f0e` · tests: AC-5 spec→impl + M-0140 fourth arm + M-0124/M-0125 drivers all green with the cells live.
+
