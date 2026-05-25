@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Cancel codes retired from deferred and ac2KnownImplGaps lists
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
