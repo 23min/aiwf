@@ -75,3 +75,26 @@ The deferred fourth arm landed. `specIllegalErrorCodes()` collects the `Expected
 
 `TestM0140_AC3_M0138LegalityCodesRoundTrip` certifies the two codes that exist at this milestone (`fsm-transition-illegal`, `authorize-kind-not-allowed`) round-trip end to end: each is `codes.ClassLegality` on the impl side (the AC-1 descriptor marker) AND is the `ExpectedErrorCode` of ≥1 `OutcomeIllegal` spec `Rule` on the spec side. A characterization test (AC-1+AC-2 already produced the behavior), so no red-first; instead load-bearingness was proven empirically by a throwaway mutation — flipping `CodeFSMTransitionIllegal` to `ClassStructural` drove the impl-side assertion red (`classified 0, want ClassLegality`), then reverted green. The epic's AC-3 also names the two cancel codes; those are M-0139's and are certified there via the AC-2 fourth arm (chokepoint-first). commit `b5ece291` · tests: `TestM0140_AC3_M0138LegalityCodesRoundTrip`.
 
+## Validation
+
+```
+CGO_ENABLED=0 go build ./...            # exit 0
+go test ./... -count=1 -parallel 8      # 56 packages ok · 0 failures
+golangci-lint run                       # 0 issues
+aiwf check                              # 0 errors · 8 warnings (pre-existing, unrelated)
+```
+
+Per-AC mechanical evidence (all green): `TestFindingClass_LegalityEnumerable` + `TestDescriptorCode_Branches` (AC-1); `TestM0123_AC5_ImplToSpec_LegalityCodesReferenced` + `TestUnreferencedLegalityCodes_FiresOnOrphan` (AC-2); `TestM0140_AC3_M0138LegalityCodesRoundTrip` (AC-3). AC-4's `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` and M-0138's tests stay green through the descriptor migration. Note: `internal/check`'s `TestFSMHistoryConsistent_PerfBudget` flaked once under full-GOMAXPROCS parallelism (git object-store contention, the G-0097/G-0127 class); the isolated re-run and the `-parallel 8` full run are both green — environmental, not a regression.
+
+## Deferrals
+
+No deferral-gaps; no deferred or cancelled ACs (all three `met`). The epic's AC-3 also named the two cancel codes (`epic-cancel-non-terminal-children`, `milestone-cancel-non-terminal-acs`); their legality certification is not deferred-as-debt but **sequenced** to M-0139, where they become impl constants. The AC-2 fourth-arm chokepoint built here auto-includes them the moment M-0139 declares them `Code{..., Class: codes.ClassLegality}` — and fails CI if M-0139 omits the matching illegal spec cell.
+
+## Reviewer notes
+
+- **Typed `Code` descriptor (D-0011), not a registry or behavioral-method-plus-list.** Chosen for purity: the class is a property of the code declaration, enumerated by the same AST scan that resolves codes (AC-4) — single source, no parallel allowlist, no consistency band-aid. Cost was bounded (legality `const`→`var`, `Code()` returns `.ID`, two `.ID` comparison fixes, the scanner learned a third shape). Structural-integrity codes deliberately stay bare strings (YAGNI).
+- **`Class()` on the errors not added.** D-0011 records it as *derivable* from the descriptor; the enumeration is AST-based and no consumer needs runtime per-instance classification yet. Add it when M-0143's envelope surfacing needs it.
+- **One scanner, two outputs.** `collectImplFindingCodes` now returns `map[string]codes.Class`, feeding both the spec→impl arm (AC-4, membership) and the legality enumeration (AC-1/AC-2, filter by class) — extended, not duplicated.
+- **Chokepoint-first ordering is load-bearing.** M-0140 runs before M-0139 so the AC-2 arm exists before the cancel codes do; M-0139 cannot add a `ClassLegality` cancel code without a naming illegal spec cell, or CI fails. This is the whole reason the epic sequenced the classifier early.
+- **Subagent division.** AC-1 and AC-2 authored by the `aiwf-extensions:builder` subagent on this worktree (no isolation kwarg, G-0099); AC-3 and the load-bearing mutation proof done parent-side. Every commit parent-side under human approval, with independent diff review + suite/lint re-verification.
+
