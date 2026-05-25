@@ -6,6 +6,19 @@ parent: E-0036
 depends_on:
     - M-0138
 tdd: required
+acs:
+    - id: AC-1
+      title: Legality codes carry a structural Class marker enumerable in code
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: AC-5 drift fails when a legality-classed code lacks a spec reference
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Existing M-0138 legality codes round-trip and resolve to spec rules
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -33,3 +46,10 @@ Emitting the codes (M-0138/M2); the rename (M4); reachability (M5).
 ## Dependencies
 
 M-0138. Best executed after M2 so it certifies the cancel codes too (soft ordering). Closes G-0145.
+
+### AC-1 — Legality codes carry a structural Class marker enumerable in code
+
+### AC-2 — AC-5 drift fails when a legality-classed code lacks a spec reference
+
+### AC-3 — Existing M-0138 legality codes round-trip and resolve to spec rules
+
