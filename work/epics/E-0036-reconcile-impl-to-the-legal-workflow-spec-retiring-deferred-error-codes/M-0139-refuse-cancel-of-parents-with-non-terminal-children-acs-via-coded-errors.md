@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Cancel codes retired from deferred and ac2KnownImplGaps lists
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
