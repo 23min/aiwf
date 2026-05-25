@@ -1,7 +1,7 @@
 ---
 id: D-0012
 title: Rename gap-resolved-has-resolver to gap-addressed-has-resolver
-status: proposed
+status: accepted
 relates_to:
     - M-0142
     - G-0144
