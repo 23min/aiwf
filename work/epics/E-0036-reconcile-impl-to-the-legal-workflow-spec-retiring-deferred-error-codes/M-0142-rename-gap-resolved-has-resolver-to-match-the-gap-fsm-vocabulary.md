@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Finding fires under the new code; old literal absent from impl/spec/hint
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Hint table carries an entry for the new code name
