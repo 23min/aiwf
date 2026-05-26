@@ -11,7 +11,7 @@ acs:
     - id: AC-1
       title: Fixture framework builds an authorized-scope context a driver consumes
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Positive and negative scope-reach scenarios exercisable via the driver path
       status: open
