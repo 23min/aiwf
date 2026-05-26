@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: ADR classifies out-of-scope as ClassLegality with dual-emission rationale
-      status: open
+      status: met
     - id: AC-3
       title: ADR sizes cellcoverage extension and states explicit fallback condition
       status: open
