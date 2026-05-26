@@ -422,7 +422,7 @@ macOS DO/DON'T rules.
 | M-0134 | CLAUDE.md DO/DON'T refresh: container primary, macOS host fallback | done |
 | M-0135 | aiwf doctor containerized-env awareness: detection + mount check | done |
 
-## E-0036 — Reconcile impl to the legal-workflow spec, retiring deferred error codes (active)
+## E-0036 — Reconcile impl to the legal-workflow spec, retiring deferred error codes (done)
 
 ### Goal
 
