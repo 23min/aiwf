@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`aiwf status --worktrees` no longer reports merged worktrees as in-flight (G-0172).** A worktree whose branch is fully merged into trunk and whose driver entity is terminal on trunk now renders under the existing "SAFE TO REMOVE" path instead of as phantom in-flight work. `BuildWorktreeViews` resolves driver terminality against the main-checkout's tree (trunk) when the branch carries no ahead-of-trunk commits; the merged-branch gate and trunk-terminal check are layered so a freshly-forked worktree (also zero-ahead, but active on trunk) is never mis-flagged.
+
 ### Changed — E-0036: Reconcile impl to the legal-workflow spec
 
 - **M-0138 — Typed `Coded` error pattern for legality-pertinent verb refusals.** Introduced `entity.Coded` (`interface { error; Code() string }`) + `entity.Code` (`errors.As`-based extraction) and the `codes.Code{ID, Class}` descriptor, piloted on `fsm-transition-illegal` (`FSMTransitionError`). Verb-time legality errors now carry a first-class structured code, mirroring `check.Finding{Code}`. ADR-0012 ratifies the pattern; D-0011 records the descriptor-class decision. Closes G-0142.
