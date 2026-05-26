@@ -1,8 +1,10 @@
 ---
 id: G-0143
 title: Implement scope-tree three-edge reachability per D-0006
-status: open
+status: addressed
 discovered_in: M-0123
+addressed_by:
+    - M-0141
 ---
 ## What's missing
 
