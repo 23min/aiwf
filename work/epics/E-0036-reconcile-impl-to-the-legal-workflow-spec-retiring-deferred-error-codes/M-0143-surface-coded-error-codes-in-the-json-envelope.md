@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Decision D-0013 records the envelope representation and exit-code
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Coded verb refusal with --format=json emits status:error + error.code, exit 1
