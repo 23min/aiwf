@@ -1,7 +1,9 @@
 ---
 id: G-0172
 title: status --worktrees reports merged worktree branches as in-flight work
-status: open
+status: addressed
+addressed_by_commit:
+    - fea72d26
 ---
 ## What's missing
 
