@@ -17,7 +17,7 @@ acs:
       tdd_phase: red
     - id: AC-3
       title: 'discovered_in reverse: agent promotes a gap it filed in scope'
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
