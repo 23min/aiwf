@@ -1,8 +1,10 @@
 ---
 id: G-0142
 title: Structured fsm-transition-illegal error from entity.ValidateTransition
-status: open
+status: addressed
 discovered_in: M-0123
+addressed_by:
+    - M-0138
 ---
 ## What's missing
 
