@@ -30,6 +30,7 @@ func NewCmd() *cobra.Command {
 		reason    string
 		force     bool
 		auditOnly bool
+		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "cancel <id>",
@@ -40,7 +41,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], actor, principal, root, reason, force, auditOnly))
+			return cliutil.WrapExitCode(Run(args[0], actor, principal, root, reason, force, auditOnly, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -49,6 +50,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().BoolVar(&force, "force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
@@ -57,7 +59,7 @@ func NewCmd() *cobra.Command {
 // the caller (RunE in NewCmd) wraps the int in cliutil.WrapExitCode
 // so Cobra's RunE channel preserves the exit code through the run()
 // dispatcher.
-func Run(id, actor, principal, root, reason string, force, auditOnly bool) int {
+func Run(id, actor, principal, root, reason string, force, auditOnly bool, out cliutil.OutputFormat) int {
 	if force && auditOnly {
 		fmt.Fprintln(os.Stderr, "aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
 		return cliutil.ExitUsage
@@ -103,8 +105,8 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool) int {
 	}
 	if auditOnly {
 		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, reason)
-		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
+		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
 	}
 	result, vErr := verb.Cancel(ctx, tr, id, actorStr, reason, force)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
 }

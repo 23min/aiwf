@@ -17,6 +17,12 @@
 //	          //   - check    → omitted (findings is the result)
 //	          //   - history  → { id, events: [...] }
 //	          //   - future verbs → their own shape
+//	error     // { code, message } — present only on status:"error".
+//	          // code is the structured code of a Coded verb error
+//	          // (entity.Code via errors.As), omitted for non-coded
+//	          // errors; message is the error text. Additive (M-0143 /
+//	          // D-0013): consumers reading tool/status/findings/result
+//	          // are unaffected.
 //	metadata  // counts, timing, root path, correlation_id when
 //	          // present — auxiliary data, not load-bearing
 //
@@ -47,7 +53,19 @@ type Envelope struct {
 	Status   string          `json:"status"`
 	Findings []check.Finding `json:"findings"`
 	Result   any             `json:"result,omitempty"`
+	Error    *EnvelopeError  `json:"error,omitempty"`
 	Metadata map[string]any  `json:"metadata,omitempty"`
+}
+
+// EnvelopeError carries a verb's terminal error in the JSON envelope
+// under status:"error" (M-0143 / D-0013). Code is the structured code of
+// a Coded verb error (resolved via entity.Code's errors.As walk), omitted
+// when the error is not Coded. Message is the error's text. The object is
+// additive — present only on the error path — so existing consumers that
+// read tool/status/findings/result keep working unchanged.
+type EnvelopeError struct {
+	Code    string `json:"code,omitempty"`
+	Message string `json:"message"`
 }
 
 // StatusFor returns the canonical envelope status string for a given

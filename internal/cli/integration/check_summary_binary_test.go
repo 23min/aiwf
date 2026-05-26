@@ -177,7 +177,7 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 		"adr-supersession-mutual":           2,
 		"archive-sweep-pending":             1,
 		"epic-active-no-drafted-milestones": 1,
-		"gap-addressed-has-resolver":         1,
+		"gap-addressed-has-resolver":        1,
 		"terminal-entity-not-archived":      3,
 		"titles-nonempty":                   1,
 	}

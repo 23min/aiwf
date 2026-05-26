@@ -30,6 +30,7 @@ func NewCmd() *cobra.Command {
 		root      string
 		reason    string
 		bodyFile  string
+		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "edit-body <id>",
@@ -43,7 +44,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], actor, principal, root, reason, bodyFile))
+			return cliutil.WrapExitCode(Run(args[0], actor, principal, root, reason, bodyFile, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -51,12 +52,13 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity's new body (use "-" to read from stdin); the file must contain body content only — leading "---" is refused. Omit to use bless mode: commit whatever the user edited in the working copy of the entity file`)
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
 
 // Run executes `aiwf edit-body`. Returns one of the cliutil.Exit* codes.
-func Run(id, actor, principal, root, reason, bodyFile string) int {
+func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.OutputFormat) int {
 	// Bless mode (M-060): when --body-file is absent, pass nil bytes
 	// so the verb reads working-copy and HEAD itself and commits the
 	// diff. Explicit mode (M-058): when --body-file is set, read the
@@ -105,5 +107,5 @@ func Run(id, actor, principal, root, reason, bodyFile string) int {
 		TargetID:  id,
 	}
 	result, vErr := verb.EditBody(ctx, tr, id, body, actorStr, reason)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx, out)
 }

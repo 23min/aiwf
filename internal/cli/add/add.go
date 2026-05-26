@@ -42,6 +42,7 @@ func NewCmd() *cobra.Command {
 		bindSchema    string
 		bindFixtures  string
 		bodyFile      string
+		out           *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "add <kind> [...]",
@@ -79,7 +80,7 @@ func NewCmd() *cobra.Command {
 			}
 			return cliutil.WrapExitCode(Run(k, title, actor, principal, root,
 				epicID, tddPolicy, dependsOn, discoveredIn, relatesTo, linkedADRs,
-				bindValidator, bindSchema, bindFixtures, bodyFile))
+				bindValidator, bindSchema, bindFixtures, bodyFile, *out))
 		},
 	}
 	// PersistentFlags are inherited by the `add ac` child so the shared
@@ -99,6 +100,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&bindSchema, "schema", "", "repo-relative path to the schema (contract only; pairs with --validator and --fixtures)")
 	cmd.Flags().StringVar(&bindFixtures, "fixtures", "", "repo-relative path to the fixtures-tree root (contract only; pairs with --validator and --schema)")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter (use "-" to read from stdin); replaces the per-kind default template; the file must contain body content only — leading "---" is refused`)
+	out = cliutil.AddFormatFlags(cmd)
 
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 		if len(args) > 0 {
@@ -122,7 +124,7 @@ func NewCmd() *cobra.Command {
 // Run executes `aiwf add <kind>`. Returns one of the cliutil.Exit* codes.
 func Run(k entity.Kind, title, actor, principal, root,
 	epicID, tddPolicy, dependsOn, discoveredIn, relatesTo, linkedADRs,
-	bindValidator, bindSchema, bindFixtures, bodyFile string,
+	bindValidator, bindSchema, bindFixtures, bodyFile string, out cliutil.OutputFormat,
 ) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
@@ -188,7 +190,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: addCreationRefs(k, opts),
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx, out)
 }
 
 // addCreationRefs returns the new entity's outbound references for
@@ -228,6 +230,7 @@ func newACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
 	var (
 		tests     string
 		bodyFiles []string
+		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "ac <milestone-id>",
@@ -246,16 +249,17 @@ func newACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runAC(args[0], *titles, bodyFiles, *actor, *principal, *root, tests))
+			return cliutil.WrapExitCode(runAC(args[0], *titles, bodyFiles, *actor, *principal, *root, tests, *out))
 		},
 	}
 	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
 	cmd.Flags().StringArrayVar(&bodyFiles, "body-file", nil, `path to a file whose content becomes the AC body section under "### AC-N — <title>" (use "-" to read from stdin; only valid with single --title); positionally paired with --title — the Nth --body-file populates the Nth AC; the file must contain body content only — leading "---" is refused`)
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
 	return cmd
 }
 
-func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, tests string) int {
+func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, tests string, out cliutil.OutputFormat) int {
 	if len(titles) == 0 {
 		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
 		return cliutil.ExitUsage
@@ -350,5 +354,5 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: []string{parentID},
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx, out)
 }

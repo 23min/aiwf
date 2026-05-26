@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -282,13 +281,15 @@ func DecorateAndFinish(
 	result *verb.Result,
 	vErr error,
 	pctx ProvenanceContext,
+	out OutputFormat,
 ) int {
 	if vErr != nil || result == nil || result.Plan == nil {
-		return FinishVerb(ctx, root, label, result, vErr)
+		return FinishVerb(ctx, root, label, result, vErr, out)
 	}
 	if err := gateAndDecorate(ctx, root, t, result.Plan, pctx); err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", label, err)
+		code, _ := entity.Code(err)
+		out.emitErrorEnvelope(label, code, err.Error())
 		return ExitFindings
 	}
-	return FinishVerb(ctx, root, label, result, nil)
+	return FinishVerb(ctx, root, label, result, nil, out)
 }

@@ -46,6 +46,7 @@ func newDependsOnCmd() *cobra.Command {
 		reason    string
 		on        string
 		clearList bool
+		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "depends-on <milestone-id>",
@@ -59,7 +60,7 @@ func newDependsOnCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runDependsOn(args[0], actor, principal, root, reason, on, clearList))
+			return cliutil.WrapExitCode(runDependsOn(args[0], actor, principal, root, reason, on, clearList, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -68,12 +69,13 @@ func newDependsOnCmd() *cobra.Command {
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&on, "on", "", "comma-separated milestone ids the target depends on; replace-not-append semantics")
 	cmd.Flags().BoolVar(&clearList, "clear", false, "empty the depends_on list (mutually exclusive with --on)")
+	out = cliutil.AddFormatFlags(cmd)
 	_ = cmd.RegisterFlagCompletionFunc("on", cliutil.CompleteEntityIDFlag(entity.KindMilestone))
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
 	return cmd
 }
 
-func runDependsOn(id, actor, principal, root, reason, on string, clearList bool) int {
+func runDependsOn(id, actor, principal, root, reason, on string, clearList bool, out cliutil.OutputFormat) int {
 	if on != "" && clearList {
 		fmt.Fprintln(os.Stderr, "aiwf milestone depends-on: --on and --clear are mutually exclusive")
 		return cliutil.ExitUsage
@@ -115,5 +117,5 @@ func runDependsOn(id, actor, principal, root, reason, on string, clearList bool)
 		TargetID:  id,
 	}
 	result, vErr := verb.MilestoneDependsOn(ctx, tr, id, deps, clearList, actorStr, reason)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx, out)
 }
