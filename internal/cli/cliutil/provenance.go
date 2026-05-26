@@ -88,7 +88,10 @@ func gateAndDecorate(ctx context.Context, root string, t *tree.Tree, plan *verb.
 		Tree:         t,
 	})
 	if !allow.Allowed {
-		return fmt.Errorf("provenance refused: %s", allow.Reason)
+		// %w (not %s): keeps a Coded denial (ScopeOutOfReachError /
+		// NoActiveScopeError) in the error chain so entity.Code extracts
+		// its code for the envelope. Allow guarantees Err is non-nil here.
+		return fmt.Errorf("provenance refused: %w", allow.Err)
 	}
 
 	// Decorate trailers. Order is irrelevant — gitops.SortedTrailers

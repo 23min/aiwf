@@ -141,8 +141,8 @@ func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected refusal; got success:\n%s", out)
 	}
-	if !strings.Contains(out, "no active scope") {
-		t.Errorf("expected no-active-scope message; got:\n%s", out)
+	if !strings.Contains(out, "provenance-authorization-out-of-scope") {
+		t.Errorf("expected out-of-scope refusal (provenance-authorization-out-of-scope); got:\n%s", out)
 	}
 }
 
@@ -282,8 +282,8 @@ func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
 	if runErr == nil {
 		t.Fatalf("expected refusal for out-of-scope add; got success:\n%s", out)
 	}
-	if !strings.Contains(out, "no active scope") {
-		t.Errorf("expected no-active-scope message; got:\n%s", out)
+	if !strings.Contains(out, "provenance-authorization-out-of-scope") {
+		t.Errorf("expected out-of-scope refusal (provenance-authorization-out-of-scope); got:\n%s", out)
 	}
 }
 
