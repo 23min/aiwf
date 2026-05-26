@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: EvaluatePredicate evaluates scope-reach for reachable and unreachable inputs
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: scope-reach predicate agrees with tree.ReachesScope across the fixture set
       status: open
