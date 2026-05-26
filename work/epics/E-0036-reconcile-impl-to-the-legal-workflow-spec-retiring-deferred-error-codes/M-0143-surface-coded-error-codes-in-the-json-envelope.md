@@ -32,21 +32,35 @@ Surface the structured code carried by a `Coded` verb error in the `aiwf --forma
 
 M-0138 introduced `entity.Coded` plus the typed errors `FSMTransitionError` and `AuthorizeKindError`, each carrying a structured code extractable via `entity.Code(err)`. But the CLI `--format=json` envelope does not yet surface that code: a verb-time refusal appears as an unstructured error. The epic's goal names the envelope as the consumer; this milestone keeps that promise. The wiring is uniform — it surfaces every `Coded` error, including M-0139's cancel codes once they land.
 
-## Decision required (before implementation)
+## Decision (recorded: D-0013)
 
-How a coded verb-refusal is represented in the envelope — and its exit code — is a genuine design decision, not just a field. The envelope `status` enum is `ok | findings | error`; exit codes are `0 ok / 1 findings / 2 usage / 3 internal`. A legality refusal is none of those cleanly. Candidate shapes:
+The representation + exit-code question is settled by **D-0013** (`accepted`). The key realization: every `Coded` error originates in a *mutating* verb, none of which surface `--format=json` today (the flag lives only on read verbs) and all of which route through `cliutil.FinishVerb` printing plain text + `ExitUsage`. D-0013 chooses:
 
-- **(a)** a structured `error: {code, message}` object under `status: error`;
-- **(b)** promote the refusal into `findings[]` (which already carries `code`), with a findings-like exit;
-- **(c)** a top-level `code` field on the error envelope.
+- **A2 (uniform flag)** — `--format`/`--pretty` on every mutating verb via a shared `cliutil.AddFormatFlags` registrar, threaded into the single `FinishVerb`/`DecorateAndFinish` chokepoint.
+- **(a) structured error object** — an additive `error: {code, message}` slot on `render.Envelope` under `status: "error"`; `code` from `entity.Code` (`errors.As`), `message` from `err.Error()`.
+- **C2 (exit unification)** — a `Coded` (legality) refusal exits `ExitFindings` (1), matching the check-time exit for the same violation class; non-`Coded` verb errors stay `ExitUsage` (2), internal failures `ExitInternal` (3).
 
-Author a **D-NNNN** recording the chosen representation and exit-code treatment before writing the wiring (mirrors M-0142's pre-decision pattern).
+Pre-dispatch flag-usage errors stay plain-text `ExitUsage` (out of envelope scope).
 
-## Acceptance criteria (candidate — refined at start)
+## Acceptance criteria
 
-- **AC-1** — A D-NNNN records the envelope representation + exit-code decision for coded verb refusals. *Evidence:* structural assertion the decision entity exists with its named sections.
-- **AC-2** — Running a verb that returns a `Coded` error with `--format=json` emits an envelope carrying the structured code. *Evidence:* binary-level test that parses the JSON envelope and asserts the code in the decided location (structural parse, not a substring match).
-- **AC-3** — A non-`Coded` verb error still produces a well-formed envelope (no/empty code), so the change is additive. *Evidence:* binary-level test of a non-coded error path.
+Each AC carries an explicit **Evidence** gate — the named test or assertion that fails if the claim breaks. "Looks right" is not evidence.
+
+### AC-1 — Decision D-0013 records the envelope representation and exit-code
+
+D-0013 (`accepted`) records the A2 / (a) / C2 choice with the realization that drove it. *Evidence:* a `internal/policies/` structural assertion that D-0013 resolves via the loader, is `accepted`, carries `## Context` / `## Resolution` / `## Consequences` with non-empty prose, and names the representation (`status:error` + an `error` object) and the exit-code (`ExitFindings`) inside the Resolution section (scoped, not a flat grep).
+
+### AC-2 — Coded verb refusal with --format=json emits status:error + error.code, exit 1
+
+Running a mutating verb that returns a `Coded` error with `--format=json` emits an envelope with `status: "error"`, `error.code` = the structured code (via `entity.Code`), `error.message` = the error text, and exits `1`. *Evidence:* a binary-level test (`internal/cli/integration/`) that runs the built `aiwf` binary on an FSM-illegal `promote` with `--format=json`, JSON-parses stdout, and asserts `status` + `error.code` by **structural field access** (not substring) + the exit code via `ExitedWithCode`.
+
+### AC-3 — Non-coded verb error emits a well-formed envelope (message, no code)
+
+A non-`Coded` verb error (e.g. an unknown entity id) with `--format=json` still emits a well-formed envelope: `status: "error"`, `error.message` set, `error.code` empty/omitted, exit `2` — proving the change is additive and the code field is optional. *Evidence:* a binary-level test parsing the envelope on a non-coded error path, asserting the absent code and the `2` exit.
+
+### AC-4 — Every mutating verb accepts --format=json (uniform rollout)
+
+Every mutating verb accepts `--format=json` — the A2 uniform-rollout guarantee. *Evidence:* a `cmd/aiwf` test that walks the assembled root command tree and asserts every leaf command either registers a `--format` flag or is named in an explicit read-only/exempt allowlist (with rationale); a new mutating verb shipped without the flag fails CI unless consciously exempted.
 
 ## Constraints
 
@@ -61,12 +75,4 @@ The `Coded` pattern and the typed errors themselves (M-0138); the cancel codes (
 ## Dependencies
 
 M-0138 (the `Coded` pattern + the first codes). Closes the envelope clause of E-0036's goal.
-
-### AC-1 — Decision D-0013 records the envelope representation and exit-code
-
-### AC-2 — Coded verb refusal with --format=json emits status:error + error.code, exit 1
-
-### AC-3 — Non-coded verb error emits a well-formed envelope (message, no code)
-
-### AC-4 — Every mutating verb accepts --format=json (uniform rollout)
 
