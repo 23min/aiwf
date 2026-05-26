@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: EvalContext carries the scope-entity and target the scope-reach arm needs
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
