@@ -1,8 +1,10 @@
 ---
 id: G-0139
 title: Implement cancel refusal on non-terminal children/ACs per D-0003 and D-0004
-status: open
+status: addressed
 discovered_in: M-0123
+addressed_by:
+    - M-0139
 ---
 ## What's missing
 
