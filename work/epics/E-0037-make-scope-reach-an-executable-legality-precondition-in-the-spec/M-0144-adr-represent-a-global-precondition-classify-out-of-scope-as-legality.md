@@ -1,7 +1,7 @@
 ---
 id: M-0144
 title: 'ADR: represent a global precondition; classify out-of-scope as legality'
-status: in_progress
+status: done
 parent: E-0037
 tdd: none
 acs:
