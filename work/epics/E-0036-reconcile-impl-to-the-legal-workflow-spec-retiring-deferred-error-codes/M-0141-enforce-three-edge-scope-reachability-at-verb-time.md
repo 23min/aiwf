@@ -6,6 +6,19 @@ parent: E-0036
 depends_on:
     - M-0138
 tdd: required
+acs:
+    - id: AC-1
+      title: Scope reachability traverses exactly D-0006's three edges
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Out-of-scope authorized-agent verb refuses with structured code
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: 'discovered_in reverse: agent promotes a gap it filed in scope'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -40,3 +53,10 @@ If at `aiwfx-start-milestone` this proves to need its own ADR or more than ~one 
 ## Dependencies
 
 M-0138 (and M3 for the classifier arm — soft). Closes G-0143.
+
+### AC-1 — Scope reachability traverses exactly D-0006's three edges
+
+### AC-2 — Out-of-scope authorized-agent verb refuses with structured code
+
+### AC-3 — discovered_in reverse: agent promotes a gap it filed in scope
+
