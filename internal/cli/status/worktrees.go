@@ -115,6 +115,11 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 	if err != nil {
 		return nil, fmt.Errorf("listing worktrees: %w", err)
 	}
+	// G-0172: the `main`-branch checkout's tree is the authoritative
+	// "trunk" view. Used below to detect worktrees whose branch has
+	// merged into trunk but whose branch tree lags it. nil when no
+	// worktree is on main — the override then no-ops.
+	trunkTree := trunkTreeOf(ctx, worktrees, rootDir, tr)
 	views := make([]WorktreeView, 0, len(worktrees))
 	for _, wt := range worktrees {
 		v := WorktreeView{Path: wt.Path, Branch: wt.Branch}
@@ -176,6 +181,22 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 		v.DriverStatus = e.Status
 		v.DriverTitle = e.Title
 		v.Stale = isTerminalStatus(e.Kind, e.Status)
+		// G-0172: a worktree branch fully merged into trunk carries
+		// nothing that isn't already on trunk; its branch tree can lag
+		// trunk (e.g. the epic's promote-to-done landed on main *after*
+		// the epic branch merged, so the branch tree still shows the
+		// driver active while trunk has it terminal). When trunk's view
+		// of the driver is terminal, trust it so the worktree renders as
+		// merged-and-safe-to-remove rather than phantom in-flight work.
+		// Skip when the branch tree already considers the driver terminal
+		// — the existing stale path (G-0153) handles that case.
+		if !v.Stale && trunkTree != nil {
+			if st, title, stale := mergedStaleOverride(v.AheadOfTrunk, trunkTree.ByID(driverID)); stale {
+				v.DriverStatus = st
+				v.DriverTitle = title
+				v.Stale = true
+			}
+		}
 		switch e.Kind {
 		case entity.KindEpic:
 			v.EpicMilestones, v.EpicClosesGaps, v.EpicSurfacedGaps = epicExpansion(wtTree, e.ID, worktrees)
@@ -468,6 +489,52 @@ func parseEntityFromBranch(branch string) string {
 	}
 	id := strings.ToUpper(m[1])
 	return id
+}
+
+// trunkTreeOf returns the loaded entity tree of the `main`-branch
+// checkout among the worktrees — the authoritative "trunk" view used to
+// detect merged-but-unpruned worktrees (G-0172). git's worktree set
+// almost always includes the main checkout; when it's on `main`, its
+// tree is trunk. In the canonical from-main invocation the main
+// checkout's path equals rootDir, so worktreeTree reuses the passed-in
+// tr without a duplicate disk walk.
+//
+// Returns nil when no worktree is on `main` (e.g. every worktree is on a
+// feature branch). The caller then falls back to branch-local
+// terminality and the G-0172 override is simply skipped — no regression
+// versus the pre-fix behavior. The `main` literal matches the trunk
+// reference the rest of this file uses for `main..<branch>` topology.
+func trunkTreeOf(ctx context.Context, worktrees []gitops.Worktree, rootDir string, tr *tree.Tree) *tree.Tree {
+	for _, wt := range worktrees {
+		if wt.Branch == "main" {
+			return worktreeTree(ctx, wt.Path, rootDir, tr)
+		}
+	}
+	return nil
+}
+
+// mergedStaleOverride decides whether a fully-merged worktree branch
+// should be re-classified as a merged-and-retire-able leftover (G-0172),
+// returning trunk's authoritative driver status + title and stale=true
+// when so. It fires only when the branch carries no commits ahead of
+// trunk (aheadOfTrunk == 0 — nothing is lost by removing the worktree)
+// AND trunk's view of the driver is terminal.
+//
+// The aheadOfTrunk==0 gate is the safety condition; the trunk-terminal
+// check is the disambiguator. A merged branch alone is ambiguous — a
+// freshly-forked epic worktree that hasn't committed yet also has
+// aheadOfTrunk==0, but its driver is still active on trunk, so the
+// override correctly declines. trunkEntity is nil when trunk is
+// unavailable (no main worktree) or doesn't carry the driver; both skip
+// the override.
+func mergedStaleOverride(aheadOfTrunk int, trunkEntity *entity.Entity) (status, title string, stale bool) {
+	if aheadOfTrunk != 0 || trunkEntity == nil {
+		return "", "", false
+	}
+	if !isTerminalStatus(trunkEntity.Kind, trunkEntity.Status) {
+		return "", "", false
+	}
+	return trunkEntity.Status, trunkEntity.Title, true
 }
 
 // isTerminalStatus reports whether the kind's status is a terminal
