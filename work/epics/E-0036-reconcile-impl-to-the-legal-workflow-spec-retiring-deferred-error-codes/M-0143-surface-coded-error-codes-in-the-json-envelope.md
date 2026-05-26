@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Non-coded verb error emits a well-formed envelope (message, no code)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Every mutating verb accepts --format=json (uniform rollout)
       status: open
