@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Every mutating verb accepts --format=json (uniform rollout)
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
