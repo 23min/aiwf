@@ -437,3 +437,11 @@ Make E-0033's legal-workflow spec a *fully* verified source of truth by reconcil
 | M-0142 | Rename gap-resolved-has-resolver to match the gap FSM vocabulary | done |
 | M-0143 | Surface Coded error codes in the JSON envelope | done |
 
+## E-0037 — Make scope-reach an executable legality precondition in the spec (proposed)
+
+### Goal
+
+Make `scope-reach` (D-0006's three-edge scope reachability) an **executable, legality-classed predicate** in the legal-workflow spec, so the verb-time out-of-scope refusal lands inside the spec's bidirectional drift net — completing the formal-model certification M-0141 deliberately deferred.
+
+_No milestones yet._
+
