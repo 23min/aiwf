@@ -1,7 +1,7 @@
 ---
 id: D-0014
 title: Narrow scope reachability to D-0006 three edges; split formal-model arm
-status: proposed
+status: accepted
 ---
 ## Context
 
