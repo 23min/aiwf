@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Coded verb refusal with --format=json emits status:error + error.code, exit 1
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Non-coded verb error emits a well-formed envelope (message, no code)
