@@ -1,7 +1,7 @@
 ---
 id: M-0141
 title: Enforce three-edge scope reachability at verb-time
-status: draft
+status: in_progress
 parent: E-0036
 depends_on:
     - M-0138
