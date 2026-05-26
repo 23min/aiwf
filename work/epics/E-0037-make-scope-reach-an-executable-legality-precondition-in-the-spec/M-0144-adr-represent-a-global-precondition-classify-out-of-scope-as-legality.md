@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: ADR ratifies global-rule representation and its meta-test composition
-      status: open
+      status: met
     - id: AC-2
       title: ADR classifies out-of-scope as ClassLegality with dual-emission rationale
       status: open
