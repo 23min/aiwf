@@ -14,7 +14,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Positive and negative scope-reach scenarios exercisable via the driver path
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
