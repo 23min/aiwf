@@ -7,6 +7,15 @@ depends_on:
     - M-0144
     - M-0145
 tdd: required
+acs:
+    - id: AC-1
+      title: Fixture framework builds an authorized-scope context a driver consumes
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Positive and negative scope-reach scenarios exercisable via the driver path
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -33,3 +42,16 @@ The global `scope-reach` rule + the reclassification + AC-5 (M-0147). This miles
 ## Dependencies
 
 M-0144 (ADR sizing), M-0145 (the evaluable predicate the driver exercises).
+
+### AC-1 — Fixture framework builds an authorized-scope context a driver consumes
+
+The fixture framework can build an authorized-scope context (an open `aiwf authorize` scope on an entity + an agent actor) that a driver consumes.
+
+*Evidence:* a test that builds the scope fixture and asserts the scope is active / loadable.
+
+### AC-2 — Positive and negative scope-reach scenarios exercisable via the driver path
+
+A positive and a negative `scope-reach` scenario are exercisable through the driver path (in-scope agent verb succeeds; out-of-scope refused).
+
+*Evidence:* a driver-level test exercising both arms against the real binary. The global rule itself lands in M-0147; this milestone proves the *machinery* exercises a scope-gated cell (via the existing runtime `provenance-authorization-out-of-scope` gate).
+
