@@ -1,7 +1,7 @@
 ---
 id: M-0145
 title: Implement scope-reach in EvaluatePredicate with verb-invocation context
-status: draft
+status: in_progress
 parent: E-0037
 depends_on:
     - M-0144
