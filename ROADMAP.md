@@ -435,5 +435,5 @@ Make E-0033's legal-workflow spec a *fully* verified source of truth by reconcil
 | M-0140 | Classify legality finding codes; close AC-5 bidirectional arm | done |
 | M-0141 | Enforce three-edge scope reachability at verb-time | draft |
 | M-0142 | Rename gap-resolved-has-resolver to match the gap FSM vocabulary | done |
-| M-0143 | Surface Coded error codes in the JSON envelope | draft |
+| M-0143 | Surface Coded error codes in the JSON envelope | done |
 
