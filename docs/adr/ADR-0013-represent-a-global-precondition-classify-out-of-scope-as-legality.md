@@ -1,7 +1,7 @@
 ---
 id: ADR-0013
 title: Represent a global precondition; classify out-of-scope as legality
-status: proposed
+status: accepted
 ---
 ## Context
 
