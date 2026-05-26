@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Out-of-scope authorized-agent verb refuses with structured code
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: 'discovered_in reverse: agent promotes a gap it filed in scope'
