@@ -443,5 +443,10 @@ Make E-0033's legal-workflow spec a *fully* verified source of truth by reconcil
 
 Make `scope-reach` (D-0006's three-edge scope reachability) an **executable, legality-classed predicate** in the legal-workflow spec, so the verb-time out-of-scope refusal lands inside the spec's bidirectional drift net — completing the formal-model certification M-0141 deliberately deferred.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0144 | ADR: represent a global precondition; classify out-of-scope as legality | draft |
+| M-0145 | Implement scope-reach in EvaluatePredicate with verb-invocation context | draft |
+| M-0146 | Extend cellcoverage with authorized-scope fixtures | draft |
+| M-0147 | Land global scope-reach rule; reclassify code; AC-5 fourth arm green | draft |
 
