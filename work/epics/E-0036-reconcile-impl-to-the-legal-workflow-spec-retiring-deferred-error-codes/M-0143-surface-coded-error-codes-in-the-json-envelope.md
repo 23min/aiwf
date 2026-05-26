@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Every mutating verb accepts --format=json (uniform rollout)
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
