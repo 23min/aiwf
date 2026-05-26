@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Scope reachability traverses exactly D-0006's three edges
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Out-of-scope authorized-agent verb refuses with structured code
       status: open
