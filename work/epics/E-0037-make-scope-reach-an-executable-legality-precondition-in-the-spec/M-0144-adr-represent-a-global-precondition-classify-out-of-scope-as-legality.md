@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: ADR sizes cellcoverage extension and states explicit fallback condition
-      status: open
+      status: met
 ---
 ## Goal
 
