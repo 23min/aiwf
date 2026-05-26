@@ -4,6 +4,16 @@ title: 'ADR: represent a global precondition; classify out-of-scope as legality'
 status: draft
 parent: E-0037
 tdd: none
+acs:
+    - id: AC-1
+      title: ADR ratifies global-rule representation and its meta-test composition
+      status: open
+    - id: AC-2
+      title: ADR classifies out-of-scope as ClassLegality with dual-emission rationale
+      status: open
+    - id: AC-3
+      title: ADR sizes cellcoverage extension and states explicit fallback condition
+      status: open
 ---
 ## Goal
 
@@ -30,3 +40,22 @@ The implementation (M-0145/M-0146/M-0147). This milestone produces the decision,
 ## Dependencies
 
 None — keystone. M-0145/M-0146/M-0147 depend on it.
+
+### AC-1 — ADR ratifies global-rule representation and its meta-test composition
+
+The ADR ratifies the global-rule representation mechanism (e.g. a `KindAny` sentinel vs. a `Global` flag on `Rule`) and states how it composes with the `Rule` key-uniqueness + coverage meta-tests (`m0123_ac2/ac4`, `m0124/m0125`) and how the AC-5 fourth arm recognizes it.
+
+*Evidence:* a structural policy assertion that the ADR resolves via the loader, is `accepted`, and its Decision section names the chosen mechanism.
+
+### AC-2 — ADR classifies out-of-scope as ClassLegality with dual-emission rationale
+
+The ADR records out-of-scope as `ClassLegality` with the dual-emission rationale (verb-time refusal + check-time audit are one violation at two surfaces) and the `codes.go` carve-out note.
+
+*Evidence:* structural assertion on the named section.
+
+### AC-3 — ADR sizes cellcoverage extension and states explicit fallback condition
+
+The ADR sizes the cellcoverage extension and states the explicit fallback condition (dedicated test + recorded exemption only if the extension proves its own epic).
+
+*Evidence:* structural assertion the sizing + fallback are present.
+
