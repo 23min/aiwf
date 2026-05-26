@@ -1,8 +1,10 @@
 ---
 id: G-0144
 title: Rename gap-resolved-has-resolver to match Q8 addressed-by semantics
-status: open
+status: addressed
 discovered_in: M-0123
+addressed_by:
+    - M-0142
 ---
 ## What's missing
 
