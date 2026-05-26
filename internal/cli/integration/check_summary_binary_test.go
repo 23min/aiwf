@@ -171,13 +171,13 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	// The kernel test for the fixture pins this: adr-supersession-mutual,
 	// archive-sweep-pending, epic-active-no-drafted-milestones (added
 	// by M-0094 alongside the E-02-no-drafts fixture entity),
-	// gap-resolved-has-resolver, terminal-entity-not-archived,
+	// gap-addressed-has-resolver, terminal-entity-not-archived,
 	// titles-nonempty.
 	wantCodes := map[string]int{
 		"adr-supersession-mutual":           2,
 		"archive-sweep-pending":             1,
 		"epic-active-no-drafted-milestones": 1,
-		"gap-resolved-has-resolver":         1,
+		"gap-addressed-has-resolver":        1,
 		"terminal-entity-not-archived":      3,
 		"titles-nonempty":                   1,
 	}
@@ -203,14 +203,14 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	// AC-1 ordering pin: count desc, alphabetic tie-break.
 	// Expected order: terminal-entity-not-archived (3),
 	// adr-supersession-mutual (2), archive-sweep-pending (1),
-	// epic-active-no-drafted-milestones (1), gap-resolved-has-resolver (1),
+	// epic-active-no-drafted-milestones (1), gap-addressed-has-resolver (1),
 	// titles-nonempty (1).
 	wantOrder := []string{
 		"terminal-entity-not-archived",
 		"adr-supersession-mutual",
 		"archive-sweep-pending",
 		"epic-active-no-drafted-milestones",
-		"gap-resolved-has-resolver",
+		"gap-addressed-has-resolver",
 		"titles-nonempty",
 	}
 	if len(summaries) != len(wantOrder) {

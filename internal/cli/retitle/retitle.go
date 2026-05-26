@@ -34,6 +34,7 @@ func NewCmd() *cobra.Command {
 		principal string
 		root      string
 		reason    string
+		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "retitle <id> <new-title>",
@@ -47,19 +48,20 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], args[1], actor, principal, root, reason))
+			return cliutil.WrapExitCode(Run(args[0], args[1], actor, principal, root, reason, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
 
 // Run executes `aiwf retitle`. Returns one of the cliutil.Exit* codes.
-func Run(id, newTitle, actor, principal, root, reason string) int {
+func Run(id, newTitle, actor, principal, root, reason string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf retitle: %v\n", err)
@@ -90,5 +92,5 @@ func Run(id, newTitle, actor, principal, root, reason string) int {
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf retitle", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf retitle", tr, result, vErr, pctx, out)
 }

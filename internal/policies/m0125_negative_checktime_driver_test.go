@@ -133,7 +133,7 @@ var ac3ForceBypass = map[string]string{
 	// gap.open → addressed with self.addressed_by == "" — verb-time
 	// rejection via requireResolverForResolutionClass (G-0096) is
 	// gated on `if !force`; the warning-severity finding
-	// gap-resolved-has-resolver does not trip projectionFindings'
+	// gap-addressed-has-resolver does not trip projectionFindings'
 	// HasErrors check. --force --reason "<rationale>" passes both
 	// gates and the verb writes the illegal state, then aiwf check
 	// fires the rule post-write.

@@ -133,7 +133,7 @@
       "hint": "draft the next milestone with `aiwf add milestone --epic E-NN --tdd \u003cpolicy\u003e --title \"...\"`, or wrap the epic if all planned work is in flight or done — the rule is the start-epic preflight signal from G-0063"
     },
     {
-      "code": "gap-resolved-has-resolver",
+      "code": "gap-addressed-has-resolver",
       "severity": "warning",
       "message": "gap is marked addressed but addressed_by and addressed_by_commit are both empty",
       "path": "work/gaps/G-001-addressed-no-resolver.md",

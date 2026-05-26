@@ -916,7 +916,7 @@ func TestADRSupersessionMutual(t *testing.T) {
 	}
 }
 
-func TestGapResolvedHasResolver(t *testing.T) {
+func TestGapAddressedHasResolver(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(
 		// Open gap: no constraint.
@@ -928,9 +928,14 @@ func TestGapResolvedHasResolver(t *testing.T) {
 		// Addressed with resolver.
 		&entity.Entity{ID: "G-0004", Kind: entity.KindGap, Status: "addressed", AddressedBy: []string{"M-0001"}},
 	)
-	got := gapResolvedHasResolver(tr)
+	got := gapAddressedHasResolver(tr)
 	if len(got) != 1 || got[0].EntityID != "G-0003" {
-		t.Errorf("got %+v", got)
+		t.Fatalf("got %+v", got)
+	}
+	// M-0142/AC-2: the emitted code matches the gap FSM vocabulary
+	// (`addressed` terminal), not the retired `resolved` term.
+	if got[0].Code != "gap-addressed-has-resolver" {
+		t.Errorf("Code = %q, want %q", got[0].Code, "gap-addressed-has-resolver")
 	}
 }
 

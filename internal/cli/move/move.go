@@ -24,6 +24,7 @@ func NewCmd() *cobra.Command {
 		principal string
 		root      string
 		epic      string
+		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "move <M-id> --epic <E-id>",
@@ -38,20 +39,21 @@ func NewCmd() *cobra.Command {
 				fmt.Fprintln(os.Stderr, "aiwf move: --epic <E-id> is required")
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
-			return cliutil.WrapExitCode(Run(args[0], epic, actor, principal, root))
+			return cliutil.WrapExitCode(Run(args[0], epic, actor, principal, root, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&epic, "epic", "", "target epic id (e.g., E-04)")
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
 	_ = cmd.RegisterFlagCompletionFunc("epic", cliutil.CompleteEntityIDFlag(entity.KindEpic))
 	return cmd
 }
 
 // Run executes `aiwf move`. Returns one of the cliutil.Exit* codes.
-func Run(id, epic, actor, principal, root string) int {
+func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
@@ -90,5 +92,5 @@ func Run(id, epic, actor, principal, root string) int {
 		TargetID:   epic,
 		MoveSource: moveSource,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx, out)
 }

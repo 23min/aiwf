@@ -1,9 +1,30 @@
 ---
 id: M-0138
 title: Introduce typed CodedError; convert existing unstructured legality errors
-status: draft
+status: done
 parent: E-0036
 tdd: required
+acs:
+    - id: AC-1
+      title: CodedError carries a structured code reachable via errors.As
+      status: met
+      tdd_phase: done
+    - id: AC-2
+      title: ValidateTransition emits structured fsm-transition-illegal on illegal moves
+      status: met
+      tdd_phase: done
+    - id: AC-3
+      title: authorize refuses non-epic/milestone kinds with structured code
+      status: met
+      tdd_phase: done
+    - id: AC-4
+      title: fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
+      status: met
+      tdd_phase: done
+    - id: AC-5
+      title: ADR records the CodedError pattern as accepted
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -15,11 +36,29 @@ E-0033's spec names `ExpectedErrorCode`s the verbs don't emit as structured data
 
 ## Acceptance criteria
 
-- **AC1** — A `CodedError` type carries a structured code reachable via `errors.As`. *Evidence:* `entity.TestCodedError_ErrorsAs` — constructs the error, asserts `errors.As` extracts the code as data; fails if the code isn't reachable structurally.
-- **AC2** — `entity.ValidateTransition` returns a `CodedError` whose code is `fsm-transition-illegal` for an illegal transition and `nil` for a legal one. *Evidence:* table test across kinds, ≥1 legal + ≥1 illegal arm each; asserts the structured code on the illegal arm and no error on the legal arm (structural, not substring).
-- **AC3** — `aiwf authorize <gap|decision|contract|adr> --to <agent>` refuses at verb-time carrying structured `authorize-kind-not-allowed`. *Evidence:* the M-0125 negative driver cells for the four authorize-kind cells un-skipped; binary-level assertion of non-zero exit + structured code + HEAD unchanged; the four authorize entries removed from `ac2KnownImplGaps`.
-- **AC4** — `fsm-transition-illegal` and `authorize-kind-not-allowed` are removed from `deferredImplErrorCodes` and resolve as impl-side codes. *Evidence:* `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` stays green *after* removal — only possible if the codes appear as real structured literals. (The closure that can't be claimed, only earned.)
-- **AC5** — An ADR records the `CodedError` pattern (shape; scope limited to legality-pertinent verb errors) as `accepted`. *Evidence:* structural assertion that the ADR exists with its named decision sections (scoped to the section, per CLAUDE.md doc-AC rule).
+Each AC carries an explicit **Evidence** gate — the named test, driver cell, or drift policy that fails if the claim breaks. "Looks right" is not evidence.
+
+### AC-1 — CodedError carries a structured code reachable via errors.As
+
+A `CodedError` type carries a structured code reachable via `errors.As`. *Evidence:* `entity.TestCodedError_ErrorsAs` — constructs the error, asserts `errors.As` extracts the code as data; fails if the code isn't reachable structurally.
+
+### AC-2 — ValidateTransition emits structured fsm-transition-illegal on illegal moves
+
+`entity.ValidateTransition` returns a `CodedError` whose code is `fsm-transition-illegal` for an illegal transition and `nil` for a legal one. *Evidence:* table test across kinds, ≥1 legal + ≥1 illegal arm each; asserts the structured code on the illegal arm and no error on the legal arm (structural, not substring).
+
+### AC-3 — authorize refuses non-epic/milestone kinds with structured code
+
+`aiwf authorize <gap|decision|contract|adr> --to <agent>` refuses at verb-time with a typed `AuthorizeKindError` carrying structured `authorize-kind-not-allowed` (extractable via `entity.Code`). *Evidence:* `verb.TestAuthorize_Open_RefusesNonScopeEntityKind` extended to assert `entity.Code(err) == verb.CodeAuthorizeKindNotAllowed` structurally across all four disallowed kinds; M-0125's existing authorize cells stay green on the preserved message text.
+
+*Evidence correction (made during implementation):* the originally-drafted gate — "un-skip the four authorize cells in `ac2KnownImplGaps`; binary-level structured-code assertion" — was inaccurate. Those cells were **never** in `ac2KnownImplGaps` (they have run end-to-end since G-0141 Phase 1, asserting substrings), and the `--format=json` envelope surfaces **no** code today. Surfacing the code in the envelope (E-0036's "errors.As-able for the JSON envelope" goal clause) is split to its own milestone **M-0143**, where the envelope representation + exit-code treatment is settled via a D-NNNN. AC-3 here is scoped to verb-layer `errors.As` extractability, which is the part actually mechanically checked.
+
+### AC-4 — fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
+
+`fsm-transition-illegal` and `authorize-kind-not-allowed` are removed from `deferredImplErrorCodes` and resolve as impl-side codes. *Evidence:* `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` stays green *after* removal — only possible if the codes appear as real structured literals. (The closure that can't be claimed, only earned.)
+
+### AC-5 — ADR records the CodedError pattern as accepted
+
+An ADR records the `CodedError` pattern (shape; scope limited to legality-pertinent verb errors) as `accepted`. *Evidence:* structural assertion that the ADR exists with its named decision sections (scoped to the section, per CLAUDE.md doc-AC rule).
 
 ## Constraints
 
@@ -39,3 +78,55 @@ Cancel guards (M2), the legality classifier (M3), the code rename (M4), scope re
 ## Dependencies
 
 None. Closes G-0142 and G-0141.
+
+## Work log
+
+### AC-1 — CodedError carries a structured code reachable via errors.As
+
+`entity.Coded` behavioral interface (`error` + `Code() string`) + `entity.Code(err)` helper that extracts the code structurally by walking the `%w` chain with `errors.As`. Anti-cheat test confirms a code present only in an error's *message text* does not resolve. `coded.go` `Code()` at 100% branch coverage (both `errors.As` arms). commit `bdfd26e3` · tests: `TestCodedError_ErrorsAs` (7 cases) + `TestCode_EmptyCodeStillFound`.
+
+### AC-2 — ValidateTransition emits structured fsm-transition-illegal on illegal moves
+
+`ValidateTransition` now returns a typed `FSMTransitionError{Kind,From,To,Allowed}` (implements `Coded`; `Code()` → `CodeFSMTransitionIllegal`) for illegal transitions of a recognized `(kind, from)`; `Error()` preserves the kernel's terminal/not-allowed message text verbatim. Malformed input (unknown kind / unrecognized from) stays a plain, non-`Coded` error. Seam verified: only caller `verb/promote.go:93` returns the error unwrapped, and `verb` + M-0125's binary driver stay green (no flattening). `ValidateTransition`/`Error`/`Code` at 100% branch coverage. commit `325b49a6` · tests: `TestValidateTransition_FSMTransitionIllegalCode` (cross-kind: not-allowed, terminal, legal, malformed).
+
+### AC-3 — authorize refuses non-epic/milestone kinds with structured code
+
+`verb.AuthorizeKindError{Kind}` (implements `entity.Coded`; `Code()` → `CodeAuthorizeKindNotAllowed`) replaces the prior `fmt.Errorf`; `Error()` builds the message from the constant, so the text — including `(authorize-kind-not-allowed)` — is preserved and M-0125's substring driver stays green. `Error`/`Code` at 100% coverage. Scoping discovery: the envelope-surfacing (E-0036 goal clause) was not actually part of this AC and is split to **M-0143**; the original AC-3 evidence wording was corrected (see the AC-3 section above). commit `1d499b38` · tests: `TestAuthorize_Open_RefusesNonScopeEntityKind` (extended with the structural `entity.Code` assertion, 4 kinds).
+
+### AC-4 — fsm-transition-illegal and authorize-kind-not-allowed resolve as impl codes
+
+`collectImplFindingCodes` (the AC-5 spec→impl scanner in `m0123_ac5_drift_test.go`) gained a `*ast.GenDecl` arm collecting `const Code* = "..."` string constants alongside the existing `Code: "..."` field literals; the two codes are removed from `deferredImplErrorCodes`. `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` stays green **only because** the scanner now sees the consts — verified load-bearing (the codes appear as no `Code:` field literal in non-spec impl; removing the deferred entries without the scanner change fails the test naming exactly those codes). The `Code` name-prefix match generalizes cleanly to all 23 impl code constants (incl. `contractverify`/`provenance`) — harmless to the spec→impl arm and aligned with G-0129. Implemented by the `aiwf-extensions:builder` subagent in this worktree; diff + full `policies` suite re-verified green independently before commit. commit `a8f8a157` · tests: `TestM0123_AC5_SpecToImpl_ErrorCodesResolve`.
+
+### AC-5 — ADR records the CodedError pattern as accepted
+
+ADR-0012 records the realized `Coded` pattern — behavioral interface (`Coded interface { error; Code() string }` + `entity.Code` via `errors.As`), concrete typed errors that preserve message text, named `Code*` constants (G-0129), scope limited to legality-pertinent verb refusals (malformed input stays non-`Coded`), and the AC-4 scanner extension — promoted `accepted`. The structural test asserts the five named `## Decision` subsections section-scoped (drift-guarded at exactly five level-3 headings) plus the bare-id cross-references; deliberately **no** `status: accepted` pin, per CLAUDE.md's ADR rule that the FSM is the only surface constraining ADR status (ADR-0007 removed such a pin). RED proven by the `aiwf-extensions:builder` subagent (test fails only at the missing-entity `t.Fatal`); GREEN proven parent-side both via a throwaway placement and against the real allocated ADR before promotion. ADR added at `31711dda`, accepted; test at `bc7b9854` · tests: `TestADR0012_AC5_Allocation` + `TestADR0012_AC5_DecisionSections`.
+
+## Decisions made during implementation
+
+- **ADR-0012 — Typed `Coded` error pattern for legality-pertinent verb refusals** (`accepted`). Settles E-0036 open question 2 (shape: single struct vs interface) in favour of the behavioral interface `Coded interface { error; Code() string }`. Authored as AC-5's deliverable; it governs every legality-pertinent verb error going forward.
+- **M-0143 created mid-implementation.** AC-3 surfaced that surfacing the code in the `--format=json` envelope — an E-0036 goal clause — is not part of the verb-layer `errors.As` extractability this milestone delivers, and its representation + exit-code treatment is a genuine design decision. Rather than bolt it on, it was carved into its own milestone (M-0143) with a pre-decision, mirroring M-0142's pattern. The original AC-3 evidence wording was corrected to match (see the AC-3 section).
+
+## Validation
+
+```
+CGO_ENABLED=0 go build -o /tmp/aiwf ./cmd/aiwf   # exit 0
+go test ./... -count=1                            # 56 packages ok · 0 failures
+golangci-lint run                                 # 0 issues
+aiwf check                                        # 0 errors · 15 warnings (all pre-existing, unrelated)
+```
+
+Per-AC mechanical evidence (all green): `TestCodedError_ErrorsAs` + `TestCode_EmptyCodeStillFound` (AC-1); `TestValidateTransition_FSMTransitionIllegalCode` (AC-2); `TestAuthorize_Open_RefusesNonScopeEntityKind` (AC-3); `TestM0123_AC5_SpecToImpl_ErrorCodesResolve` (AC-4); `TestADR0012_AC5_Allocation` + `TestADR0012_AC5_DecisionSections` (AC-5). Branch-coverage audited per AC; `coded.go`/`transition.go` coded paths at 100% branch coverage.
+
+## Deferrals
+
+- **JSON-envelope code surfacing → M-0143** (milestone, not gap). Fulfils the epic goal's *"errors.As-able for the JSON envelope"* clause that the original milestone set omitted; created mid-implementation as first-class scoped epic work with its own ACs, so it is tracked as a milestone rather than a deferral-gap.
+- No deferred or cancelled ACs — all five reached `met`.
+
+## Reviewer notes
+
+- **No `status: accepted` pin for ADR-0012 (deliberate).** AC-5's evidence gate is the named `## Decision` subsections; per CLAUDE.md's ADR rule the FSM / `aiwf promote` are the only surfaces that should constrain ADR status (ADR-0007 removed exactly such a pin). The `accepted` outcome is real via the promote, not pinned by a bespoke test.
+- **Malformed input stays non-`Coded`.** `ValidateTransition` returns a plain `fmt.Errorf` for unknown kind / unrecognized `from` — only spec-enumerated legality refusals carry codes. Pinned by the "malformed input is not a coded FSM error" arm.
+- **Scanner generalization.** AC-4's `const Code*` collector recognizes all 23 impl code constants, not only the two retired here — harmless to the spec→impl arm, aligned with G-0129's single-declaration-site direction, and gives M-0139/0140/0141 code-recognition for free.
+- **Message-text preservation.** Both typed errors' `Error()` reproduce the prior prose verbatim, so M-0125's substring drivers and operator-facing CLI output are unchanged; the structured code is purely additive.
+- **Subagent division of labor.** AC-4 and AC-5 authoring ran in the `aiwf-extensions:builder` subagent on this worktree (no `isolation` kwarg, per G-0099); every commit was parent-side under human approval, with independent re-verification (diff review, full suite green, RED-load-bearing confirmation) before each.
+

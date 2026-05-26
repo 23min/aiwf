@@ -378,7 +378,7 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 | `id-path-consistent` | error | Path-encoded id matches the frontmatter id. |
 | `titles-nonempty` | warning | Every entity has a non-empty title. |
 | `adr-supersession-mutual` | warning | If A.superseded_by = B, then B.supersedes ⊇ {A}. |
-| `gap-resolved-has-resolver` | warning | A gap with status `addressed` has a non-empty `addressed_by`. |
+| `gap-addressed-has-resolver` | warning | A gap with status `addressed` names a resolver — `addressed_by` (entity) or `addressed_by_commit` (SHA). |
 | `case-paths` | error | Two paths differ only in case (footgun on case-insensitive volumes). |
 | `load-error` | error | Frontmatter or file-load failure for an entity (with stub registration so referrers don't cascade). |
 

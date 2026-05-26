@@ -31,6 +31,7 @@ func NewCmd() *cobra.Command {
 		actor  string
 		root   string
 		reason string
+		out    *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "acknowledge-illegal <sha>",
@@ -60,12 +61,13 @@ Both --reason (non-empty after trim) and a human/... actor are required
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], actor, root, reason))
+			return cliutil.WrapExitCode(Run(args[0], actor, root, reason, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (must be human/...; derived from git config if unset)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining the acknowledgment; required, non-empty after trim")
+	out = cliutil.AddFormatFlags(cmd)
 	return cmd
 }
 
@@ -73,7 +75,7 @@ Both --reason (non-empty after trim) and a human/... actor are required
 // cliutil.Exit* codes; the caller (RunE in NewCmd) wraps the int in
 // cliutil.WrapExitCode so Cobra's RunE channel preserves the exit code
 // through the run() dispatcher.
-func Run(sha, actor, root, reason string) int {
+func Run(sha, actor, root, reason string, out cliutil.OutputFormat) int {
 	if strings.TrimSpace(reason) == "" {
 		fmt.Fprintln(os.Stderr, "aiwf acknowledge-illegal: --reason \"...\" is required (non-empty after trim)")
 		return cliutil.ExitUsage
@@ -95,5 +97,5 @@ func Run(sha, actor, root, reason string) int {
 	defer release()
 	ctx := context.Background()
 	result, vErr := verb.AcknowledgeIllegal(ctx, rootDir, sha, actorStr, reason)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge-illegal", result, vErr)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge-illegal", result, vErr, out)
 }

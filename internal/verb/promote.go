@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/check"
@@ -16,7 +17,7 @@ import (
 // PromoteOptions carries optional fields for Promote — resolver
 // pointers (gap.addressed_by / gap.addressed_by_commit, adr.superseded_by)
 // that need to be written atomically with the status change so the
-// matching check rule (gap-resolved-has-resolver, adr-supersession-mutual)
+// matching check rule (gap-addressed-has-resolver, adr-supersession-mutual)
 // is satisfied without a follow-up hand-edit.
 //
 // AddressedBy / AddressedByCommit are valid only when the target is a
@@ -100,7 +101,7 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 	// (G-0096): without this, gaps and ADRs can land in the
 	// `addressed`/`superseded` terminal state with no resolver and no
 	// way back without --force. The check rules
-	// gap-resolved-has-resolver and adr-supersession-mutual surface the
+	// gap-addressed-has-resolver and adr-supersession-mutual surface the
 	// problem post-hoc but they are warnings, not errors, so the
 	// pre-push hook does not block. Verb-time enforcement is the
 	// chokepoint. --force bypasses for sovereign overrides.
@@ -190,6 +191,37 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	}
 	if e.Status == target {
 		return nil, fmt.Errorf("%s is already %s", id, target)
+	}
+
+	// Cancel-cascade guards (D-0003 / D-0004): refuse-with-listing when a
+	// parent still owns non-terminal children. No auto-cascade — the
+	// operator disposes each child first. Runs after the terminal/target
+	// checks so "already terminal" / "no cancel target" win, and before
+	// any projection so the refusal is a clean typed error, not a finding.
+	switch e.Kind {
+	case entity.KindEpic:
+		var nonTerminal []string
+		for _, m := range t.ByKind(entity.KindMilestone) {
+			if m.Parent == e.ID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
+				nonTerminal = append(nonTerminal, m.ID)
+			}
+		}
+		if len(nonTerminal) > 0 {
+			sort.Strings(nonTerminal)
+			return nil, &EpicCancelNonTerminalChildrenError{Epic: e.ID, Children: nonTerminal}
+		}
+	case entity.KindMilestone:
+		if ok, openACs := entity.MilestoneCanGoDone(e); !ok {
+			composite := make([]string, 0, len(openACs))
+			for _, ac := range openACs {
+				composite = append(composite, e.ID+"/"+ac)
+			}
+			return nil, &MilestoneCancelNonTerminalACsError{Milestone: e.ID, ACs: composite}
+		}
+	default:
+		// Other kinds (ADR, gap, decision, contract) own no child
+		// entities or ACs, so cancel carries no cascade precondition —
+		// the terminal/target checks above are the only guards they need.
 	}
 
 	modified := *e
@@ -315,7 +347,7 @@ func needsResolverBackfill(e *entity.Entity, opts PromoteOptions) bool {
 // requireResolverForResolutionClass returns an error when the target
 // (kind, newStatus) is a resolution-class terminal but opts carries no
 // matching resolver flag. M-059 made the flags possible; G-0096 makes
-// them mandatory at the verb chokepoint so the gap-resolved-has-resolver
+// them mandatory at the verb chokepoint so the gap-addressed-has-resolver
 // and adr-supersession-mutual warnings cannot be reached via the verb.
 // --force bypasses (sovereign override path); the caller checks force
 // before invoking this.
@@ -323,7 +355,7 @@ func requireResolverForResolutionClass(k entity.Kind, newStatus string, opts Pro
 	switch {
 	case k == entity.KindGap && newStatus == entity.StatusAddressed:
 		if len(opts.AddressedBy) == 0 && len(opts.AddressedByCommit) == 0 {
-			return fmt.Errorf("promoting a gap to %q requires --by <entity-id> or --by-commit <sha> so the gap-resolved-has-resolver rule is satisfied; pass --force to override", entity.StatusAddressed)
+			return fmt.Errorf("promoting a gap to %q requires --by <entity-id> or --by-commit <sha> so the gap-addressed-has-resolver rule is satisfied; pass --force to override", entity.StatusAddressed)
 		}
 	case k == entity.KindADR && newStatus == entity.StatusSuperseded:
 		if opts.SupersededBy == "" {

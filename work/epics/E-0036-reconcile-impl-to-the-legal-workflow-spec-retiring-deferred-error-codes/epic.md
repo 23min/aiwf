@@ -83,8 +83,9 @@ Decomposed and allocated via `aiwfx-plan-milestones`. G-0141 folded into the fou
 | [M-0139](M-0139-refuse-cancel-of-parents-with-non-terminal-children-acs-via-coded-errors.md) | Refuse `cancel` of parents with non-terminal children/ACs via coded errors | G-0139 | M-0138 |
 | [M-0142](M-0142-rename-gap-resolved-has-resolver-to-match-the-gap-fsm-vocabulary.md) | Rename `gap-resolved-has-resolver` to match the gap FSM vocabulary | G-0144 | — |
 | [M-0141](M-0141-enforce-three-edge-scope-reachability-at-verb-time.md) | Enforce three-edge scope reachability at verb-time | G-0143 | M-0138 |
+| [M-0143](M-0143-surface-coded-error-codes-in-the-json-envelope.md) | Surface `Coded` error codes in the JSON envelope | — (E-0036 goal clause) | M-0138 |
 
-**M-0138 is the keystone** — M-0139/0140/0141 emit their codes through its pattern. Recommended execution order: **M-0138 → M-0140** (stand up the legality-classifier *chokepoint* early, so later code-adding milestones must satisfy it) **→ M-0139 → M-0141** (greenfield, heaviest, last). **M-0142** is independent — slot it after M-0140 so the rename updates the classified set in one pass. Only the M-0138 edges are hard; the rest is soft ordering.
+**M-0138 is the keystone** — M-0139/0140/0141 emit their codes through its pattern. Recommended execution order: **M-0138 → M-0140** (stand up the legality-classifier *chokepoint* early, so later code-adding milestones must satisfy it) **→ M-0139 → M-0141** (greenfield, heaviest, last). **M-0142** is independent — slot it after M-0140 so the rename updates the classified set in one pass. **M-0143** (added mid-implementation — it fulfils the epic goal's "errors.As-able for the JSON envelope" clause, which the original milestone set omitted) depends only on the codes existing; sequence it after M-0138 (and ideally after M-0139 so it surfaces the cancel codes too). Only the M-0138 edges are hard; the rest is soft ordering.
 
 ## What this epic deliberately does *not* do
 

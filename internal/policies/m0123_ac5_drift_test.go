@@ -6,10 +6,12 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/codes"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
@@ -254,11 +256,12 @@ func TestM0123_AC5_SpecToImpl_VerbsResolve(t *testing.T) {
 // by codeAppearsInImplSource. Forgetting to remove the entry is the
 // only failure mode and it's a one-line edit.
 var deferredImplErrorCodes = map[string]string{
-	"fsm-transition-illegal":            "entity.ValidateTransition returns free-form errors today; structured-code wrap is a follow-up gap (filed at M-0123 wrap)",
-	"epic-cancel-non-terminal-children": "D-0003 cancel-cascade impl is a follow-up gap (filed at M-0123 wrap)",
-	"milestone-cancel-non-terminal-acs": "D-0004 cancel-cascade impl is a follow-up gap (filed at M-0123 wrap)",
-	"ac-evidence-missing":               "D-0005 AC mechanical-evidence mechanism is a follow-up gap (filed at M-0123 wrap)",
-	"authorize-kind-not-allowed":        "D-0007 authorize kind restriction impl is a follow-up gap (filed at M-0123 wrap)",
+	// epic-cancel-non-terminal-children (D-0003) and
+	// milestone-cancel-non-terminal-acs (D-0004) graduated to real
+	// codes.ClassLegality descriptors in M-0139 (internal/verb/
+	// cancel_guards.go); they now resolve via the impl-side scan, so
+	// their deferred entries are gone.
+	"ac-evidence-missing": "D-0005 AC mechanical-evidence mechanism is a follow-up gap (filed at M-0123 wrap)",
 }
 
 // TestM0123_AC5_SpecToImpl_ErrorCodesResolve asserts every illegal Rule's
@@ -284,7 +287,7 @@ func TestM0123_AC5_SpecToImpl_ErrorCodesResolve(t *testing.T) {
 			continue
 		}
 		code := r.ExpectedErrorCode
-		if implCodes[code] {
+		if _, ok := implCodes[code]; ok {
 			continue
 		}
 		if _, deferred := deferredImplErrorCodes[code]; deferred {
@@ -292,6 +295,92 @@ func TestM0123_AC5_SpecToImpl_ErrorCodesResolve(t *testing.T) {
 		}
 		t.Errorf("Rules()[%d] (Kind=%q, FromState=%q, Verb=%q): ExpectedErrorCode=%q resolves to neither an impl `Code: \"...\"` literal nor a deferredImplErrorCodes entry — implement the code or add a deferred entry with the tracking D-NNNN reason",
 			i, r.Kind, r.FromState, r.Verb, code)
+	}
+}
+
+// AC-5 fourth arm (M-0140/AC-2): impl→spec finding-code coverage for the
+// legality class. Every legality-classed impl code (codes.ClassLegality)
+// must be named by ≥1 illegal-outcome spec Rule. The arm is the deferred
+// fourth direction of AC-5 (G-0145) — now live because AC-1 made the
+// legality set enumerable from the code declarations themselves.
+
+// unreferencedLegalityCodes returns the legality codes that no illegal
+// spec Rule names — the AC-5 fourth-arm violation set. Sorted for a
+// stable failure message. Empty result = the arm passes.
+func unreferencedLegalityCodes(legality []string, specIllegalCodes map[string]bool) []string {
+	var unreferenced []string
+	for _, code := range legality {
+		if specIllegalCodes[code] {
+			continue
+		}
+		unreferenced = append(unreferenced, code)
+	}
+	sort.Strings(unreferenced)
+	return unreferenced
+}
+
+// specIllegalErrorCodes returns the set of non-empty ExpectedErrorCodes
+// across all OutcomeIllegal spec Rules.
+func specIllegalErrorCodes() map[string]bool {
+	out := map[string]bool{}
+	rules := spec.Rules()
+	for i := range rules {
+		r := &rules[i]
+		if r.Outcome != spec.OutcomeIllegal || r.ExpectedErrorCode == "" {
+			continue
+		}
+		out[r.ExpectedErrorCode] = true
+	}
+	return out
+}
+
+// TestM0123_AC5_ImplToSpec_LegalityCodesReferenced asserts every
+// legality-classed impl code (codes.ClassLegality) is named by ≥1
+// illegal-outcome spec Rule — the AC-5 fourth arm. The legality set is
+// derived from the same scan that AC-1/AC-4 use (collectImplFindingCodes),
+// so a code reclassified to ClassLegality without a matching illegal spec
+// cell fails here.
+func TestM0123_AC5_ImplToSpec_LegalityCodesReferenced(t *testing.T) {
+	t.Parallel()
+
+	implCodes, err := collectImplFindingCodes(repoRoot(t))
+	if err != nil {
+		t.Fatalf("collectImplFindingCodes: %v", err)
+	}
+
+	var legality []string
+	for code, class := range implCodes {
+		if class == codes.ClassLegality {
+			legality = append(legality, code)
+		}
+	}
+
+	if orphans := unreferencedLegalityCodes(legality, specIllegalErrorCodes()); len(orphans) > 0 {
+		t.Errorf("legality-classed impl code(s) %v are referenced by no illegal-outcome spec Rule — add an illegal spec cell naming each code (Outcome=OutcomeIllegal, ExpectedErrorCode=<code>) or reclassify the code away from codes.ClassLegality", orphans)
+	}
+}
+
+// TestUnreferencedLegalityCodes_FiresOnOrphan is the negative-of-the-policy
+// test (M-0140/AC-2): a policy that cannot fail is not a chokepoint. It
+// proves unreferencedLegalityCodes both fires on an orphan and does not
+// over-fire on a genuinely-referenced code.
+func TestUnreferencedLegalityCodes_FiresOnOrphan(t *testing.T) {
+	t.Parallel()
+
+	specIllegal := specIllegalErrorCodes()
+
+	// Fires: a synthetic legality code that no illegal spec cell names is
+	// flagged.
+	got := unreferencedLegalityCodes([]string{"synthetic-orphan-legality-code"}, specIllegal)
+	want := []string{"synthetic-orphan-legality-code"}
+	if len(got) != 1 || got[0] != want[0] {
+		t.Errorf("orphan legality code not flagged: got %v, want %v", got, want)
+	}
+
+	// Does not over-fire: a real, spec-referenced legality code is not
+	// flagged. Guards against a vacuous "return everything" implementation.
+	if got := unreferencedLegalityCodes([]string{"fsm-transition-illegal"}, specIllegal); len(got) != 0 {
+		t.Errorf("referenced legality code wrongly flagged: got %v, want []", got)
 	}
 }
 
@@ -313,17 +402,33 @@ func buildSpecCoverageMap() map[entity.Kind]map[string]bool {
 
 // collectImplFindingCodes walks every non-test .go file under
 // <root>/internal (excluding internal/workflows/spec, which is what the
-// drift test resolves against) and returns the set of distinct string
-// literals appearing as the value of a `Code` field in a composite
-// literal (any struct shape — check.Finding plus any pseudo-finding type
-// used in tests/fixtures, all use the same field name).
+// drift test resolves against) and returns a map from each distinct
+// impl-side finding/error code to its structural [codes.Class]. Three
+// declaration shapes are collected:
 //
-// Mirrors the AST walk in finding_hints.go but returns a set instead of
-// a slice of (file, line) tuples — AC-5 needs membership, not source
-// position.
-func collectImplFindingCodes(root string) (map[string]bool, error) {
+//   - `Code: "..."` field values in composite literals (any struct shape —
+//     check.Finding plus any pseudo-finding type used in tests/fixtures,
+//     all use the same field name). Classified ClassStructural.
+//   - `const Code... = "..."` bare-string kernel code constants, whose
+//     value reaches callers through a Coded.Code() method rather than a
+//     struct field (structural-integrity codes that have not migrated to
+//     the descriptor form). The `Code` name prefix scopes the match so
+//     unrelated string consts are not swept in. Classified ClassStructural.
+//   - `Code{ID: "...", Class: ...}` typed descriptor composite literals
+//     (D-0011) — the legality-code form. The descriptor's `ID` field is
+//     the code string and its `Class` field carries the class:
+//     ClassLegality when the value is the `ClassLegality` identifier
+//     (bare or `codes.ClassLegality` selector), else ClassStructural.
+//     This is what lets the legality enumeration derive from the same
+//     declaration it classifies — one scan yields both the full code set
+//     and the legality subset.
+//
+// Mirrors the AST walk in finding_hints.go but returns a class-keyed map
+// instead of a slice of (file, line) tuples — AC-4 needs membership and
+// AC-1 needs the per-code class.
+func collectImplFindingCodes(root string) (map[string]codes.Class, error) {
 	internalDir := filepath.Join(root, "internal")
-	out := map[string]bool{}
+	out := map[string]codes.Class{}
 	fset := token.NewFileSet()
 
 	err := filepath.Walk(internalDir, func(path string, info os.FileInfo, walkErr error) error {
@@ -347,22 +452,66 @@ func collectImplFindingCodes(root string) (map[string]bool, error) {
 			return nil
 		}
 		ast.Inspect(astFile, func(n ast.Node) bool {
-			cl, ok := n.(*ast.CompositeLit)
-			if !ok {
-				return true
-			}
-			for _, elt := range cl.Elts {
-				kv, ok := elt.(*ast.KeyValueExpr)
-				if !ok {
-					continue
+			switch node := n.(type) {
+			case *ast.CompositeLit:
+				// Typed descriptor form (D-0011): `Code{ID: "...", Class:
+				// ...}` — the literal's own type is `Code` or `<pkg>.Code`.
+				// Read its ID and Class fields; ClassLegality wins when the
+				// Class value is the `ClassLegality` identifier (bare or a
+				// `codes.ClassLegality` selector), else ClassStructural.
+				if id, class, ok := descriptorCode(node); ok {
+					out[id] = class
+					// A descriptor literal's elements are not also `Code:`
+					// struct fields; skip the field arm below for it.
+					return true
 				}
-				ident, ok := kv.Key.(*ast.Ident)
-				if !ok || ident.Name != "Code" {
-					continue
+				// `Code: "..."` field in any struct literal (check.Finding
+				// and friends all share the field name). Structural class.
+				for _, elt := range node.Elts {
+					kv, ok := elt.(*ast.KeyValueExpr)
+					if !ok {
+						continue
+					}
+					ident, ok := kv.Key.(*ast.Ident)
+					if !ok || ident.Name != "Code" {
+						continue
+					}
+					if bl, ok := kv.Value.(*ast.BasicLit); ok && bl.Kind == token.STRING {
+						if s, err := strconv.Unquote(bl.Value); err == nil && s != "" {
+							out[s] = codes.ClassStructural
+						}
+					}
 				}
-				if bl, ok := kv.Value.(*ast.BasicLit); ok && bl.Kind == token.STRING {
-					if s, err := strconv.Unquote(bl.Value); err == nil && s != "" {
-						out[s] = true
+			case *ast.GenDecl:
+				// Bare-string kernel code constants — `const Code... = "..."`
+				// — which emit their value through a Coded.Code() method
+				// rather than a `Code:` struct field. These are the
+				// structural-integrity codes that have not migrated to the
+				// descriptor form. Matching the `Code` name prefix keeps the
+				// set tight. (Legality codes are now descriptor `var`s,
+				// picked up by the CompositeLit arm above.)
+				if node.Tok != token.CONST {
+					return true
+				}
+				for _, spc := range node.Specs {
+					vs, ok := spc.(*ast.ValueSpec)
+					if !ok {
+						continue
+					}
+					for i, name := range vs.Names {
+						if !strings.HasPrefix(name.Name, "Code") {
+							continue
+						}
+						if i >= len(vs.Values) {
+							continue
+						}
+						bl, ok := vs.Values[i].(*ast.BasicLit)
+						if !ok || bl.Kind != token.STRING {
+							continue
+						}
+						if s, err := strconv.Unquote(bl.Value); err == nil && s != "" {
+							out[s] = codes.ClassStructural
+						}
 					}
 				}
 			}
@@ -374,4 +523,75 @@ func collectImplFindingCodes(root string) (map[string]bool, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// descriptorCode reports whether lit is a typed code descriptor composite
+// literal (`Code{ID: "...", Class: ...}` or `<pkg>.Code{...}`, D-0011)
+// and, if so, returns its code ID and structural class. The Class is
+// ClassLegality when the `Class:` field's value is the `ClassLegality`
+// identifier — bare or a `codes.ClassLegality` selector — and
+// ClassStructural otherwise (including when the field is absent or
+// oddly shaped). ok is false when lit's type is not named `Code`, or when
+// it carries no non-empty string `ID:` field.
+func descriptorCode(lit *ast.CompositeLit) (id string, class codes.Class, ok bool) {
+	if !typeNamedCode(lit.Type) {
+		return "", codes.ClassStructural, false
+	}
+	var gotID string
+	class = codes.ClassStructural
+	for _, elt := range lit.Elts {
+		kv, isKV := elt.(*ast.KeyValueExpr)
+		if !isKV {
+			continue
+		}
+		key, isIdent := kv.Key.(*ast.Ident)
+		if !isIdent {
+			continue
+		}
+		switch key.Name {
+		case "ID":
+			if bl, isLit := kv.Value.(*ast.BasicLit); isLit && bl.Kind == token.STRING {
+				if s, err := strconv.Unquote(bl.Value); err == nil {
+					gotID = s
+				}
+			}
+		case "Class":
+			if classValueIsLegality(kv.Value) {
+				class = codes.ClassLegality
+			}
+		}
+	}
+	if gotID == "" {
+		return "", codes.ClassStructural, false
+	}
+	return gotID, class, true
+}
+
+// typeNamedCode reports whether the composite-literal type expression
+// names `Code` — either a bare `Code` identifier or a `<pkg>.Code`
+// selector. A nil type (elided in a nested literal) is not a match.
+func typeNamedCode(t ast.Expr) bool {
+	switch tt := t.(type) {
+	case *ast.Ident:
+		return tt.Name == "Code"
+	case *ast.SelectorExpr:
+		return tt.Sel != nil && tt.Sel.Name == "Code"
+	default:
+		return false
+	}
+}
+
+// classValueIsLegality reports whether a `Class:` field value names the
+// ClassLegality enum value — bare (`ClassLegality`) or qualified
+// (`codes.ClassLegality`). Any other expression (ClassStructural, an
+// unexpected identifier, a non-ident) reads as not-legality.
+func classValueIsLegality(v ast.Expr) bool {
+	switch vv := v.(type) {
+	case *ast.Ident:
+		return vv.Name == "ClassLegality"
+	case *ast.SelectorExpr:
+		return vv.Sel != nil && vv.Sel.Name == "ClassLegality"
+	default:
+		return false
+	}
 }

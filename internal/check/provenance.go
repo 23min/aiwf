@@ -291,11 +291,13 @@ func provenanceAuthorizationFindings(
 	}
 
 	// -authorization-out-of-scope: the verb's target entity must reach
-	// the scope-entity through forward refs (parent / depends_on /
-	// addressed_by / etc.). Reachability is forward from target to
-	// scope, not the inverse — see verb.scopeAllowsAct for the same
-	// rule. The scope-entity id is resolved through the rename chain
-	// so a reallocated entity keeps its scopes valid.
+	// the scope-entity through D-0006's three-edge scope tree
+	// (parent-forward / composite-id containment / discovered_in-
+	// reverse) — NOT the full reference graph; governance edges do not
+	// cross a scope boundary. Same rule as verb.scopeAllowsAct (one
+	// predicate, two enforcement times). The scope-entity id is
+	// resolved through the rename chain so a reallocated entity keeps
+	// its scopes valid.
 	openerIdx := indexCommitTrailersForProvenance(opener.Trailers)
 	scopeEntity := openerIdx[gitops.TrailerEntity]
 	scopeEntity = walkRenameChain(scopeEntity, renameChain)
@@ -304,7 +306,7 @@ func provenanceAuthorizationFindings(
 	if scopeEntity != "" && target != "" && t != nil {
 		from := resolveViaPriorIDs(compositeRoot(target), t)
 		to := compositeRoot(scopeEntity)
-		if from != to && !t.Reaches(from, to) {
+		if from != to && !t.ReachesScope(from, to) {
 			findings = append(findings, Finding{
 				Code:     CodeProvenanceAuthorizationOutOfScope,
 				Severity: SeverityError,

@@ -1,6 +1,10 @@
 package entity
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/23min/aiwf/internal/codes"
+)
 
 // transitions encodes the per-kind status FSM as a map from current
 // status to the set of statuses you can move to via `aiwf promote` or
@@ -58,9 +62,20 @@ func AllowedTransitions(k Kind, from string) []string {
 	return kindTransitions[from]
 }
 
+// CodeFSMTransitionIllegal is the typed kernel-code descriptor carried by
+// [FSMTransitionError]: the structured code the legal-workflow spec
+// references for every illegal FSM-transition cell. It declares
+// [codes.ClassLegality], the marker from which the closed legality set is
+// enumerated (D-0011). Consumers see its [codes.Code.ID] string via
+// [FSMTransitionError.Code].
+var CodeFSMTransitionIllegal = codes.Code{ID: "fsm-transition-illegal", Class: codes.ClassLegality}
+
 // ValidateTransition reports nil when (kind, from, to) is a legal step.
 // Returns a descriptive error when from is unknown to the kind, when
 // the kind itself is unknown, or when no transition from→to exists.
+// An illegal transition of a *recognized* (kind, from) is reported as
+// an [FSMTransitionError] carrying CodeFSMTransitionIllegal; malformed
+// input (unknown kind, unrecognized from) returns a plain error.
 func ValidateTransition(k Kind, from, to string) error {
 	kindTransitions, ok := transitions[k]
 	if !ok {
@@ -75,11 +90,33 @@ func ValidateTransition(k Kind, from, to string) error {
 			return nil
 		}
 	}
-	if len(allowed) == 0 {
-		return fmt.Errorf("%s status %q is terminal; cannot transition to %q", k, from, to)
-	}
-	return fmt.Errorf("%s status %q cannot transition to %q (allowed: %v)", k, from, to, allowed)
+	return &FSMTransitionError{Kind: k, From: from, To: to, Allowed: allowed}
 }
+
+// FSMTransitionError reports an attempted status transition that the
+// kind's FSM does not permit for a recognized (kind, from). It carries
+// the structured CodeFSMTransitionIllegal via [FSMTransitionError.Code]
+// and the transition's coordinates. An empty Allowed slice means From
+// is a terminal state. Error preserves the kernel's long-standing
+// message text so message-matching consumers keep working.
+type FSMTransitionError struct {
+	Kind    Kind
+	From    string
+	To      string
+	Allowed []string
+}
+
+// Error implements error, preserving the kernel's established phrasing
+// for terminal vs. not-allowed refusals.
+func (e *FSMTransitionError) Error() string {
+	if len(e.Allowed) == 0 {
+		return fmt.Sprintf("%s status %q is terminal; cannot transition to %q", e.Kind, e.From, e.To)
+	}
+	return fmt.Sprintf("%s status %q cannot transition to %q (allowed: %v)", e.Kind, e.From, e.To, e.Allowed)
+}
+
+// Code returns CodeFSMTransitionIllegal's ID, satisfying [Coded].
+func (e *FSMTransitionError) Code() string { return CodeFSMTransitionIllegal.ID }
 
 // IsTerminal reports whether (kind, status) names a terminal state in
 // the kind's FSM — i.e., a state with no outgoing transitions. Returns

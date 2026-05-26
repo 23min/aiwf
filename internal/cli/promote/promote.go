@@ -39,6 +39,7 @@ func NewCmd() *cobra.Command {
 		supersededBy string
 		force        bool
 		auditOnly    bool
+		out          *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "promote <id> [new-status]",
@@ -56,7 +57,7 @@ func NewCmd() *cobra.Command {
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
 			return cliutil.WrapExitCode(Run(args, actor, principal, root, reason,
-				phase, tests, by, byCommit, supersededBy, force, auditOnly))
+				phase, tests, by, byCommit, supersededBy, force, auditOnly, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -65,11 +66,12 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&phase, "phase", "", "advance an AC's tdd_phase (composite ids only; mutex with positional new-status)")
 	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for a phase promotion (composite + --phase only); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
-	cmd.Flags().StringVar(&by, "by", "", "comma-separated entity ids to write into addressed_by (gap → addressed only); satisfies gap-resolved-has-resolver atomically with the status change")
+	cmd.Flags().StringVar(&by, "by", "", "comma-separated entity ids to write into addressed_by (gap → addressed only); satisfies gap-addressed-has-resolver atomically with the status change")
 	cmd.Flags().StringVar(&byCommit, "by-commit", "", "comma-separated commit SHAs to write into addressed_by_commit (gap → addressed only); use when the gap was closed by a specific commit rather than a milestone")
 	cmd.Flags().StringVar(&supersededBy, "superseded-by", "", "ADR id to write into superseded_by (adr → superseded only); satisfies adr-supersession-mutual atomically with the status change")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 		switch len(args) {
 		case 0:
@@ -97,7 +99,7 @@ func NewCmd() *cobra.Command {
 
 // Run executes `aiwf promote`. Returns one of the cliutil.Exit* codes.
 func Run(args []string, actor, principal, root, reason,
-	phase, tests, by, byCommit, supersededBy string, force, auditOnly bool,
+	phase, tests, by, byCommit, supersededBy string, force, auditOnly bool, out cliutil.OutputFormat,
 ) int {
 	id := args[0]
 
@@ -189,7 +191,7 @@ func Run(args []string, actor, principal, root, reason,
 		} else {
 			result, vErr = verb.PromoteACPhase(ctx, tr, id, phase, actorStr, reason, force, metrics)
 		}
-		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
+		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
 	}
 	if strings.TrimSpace(tests) != "" {
 		fmt.Fprintln(os.Stderr, "aiwf promote: --tests is only valid in phase mode (composite id with --phase <p>)")
@@ -203,8 +205,8 @@ func Run(args []string, actor, principal, root, reason,
 	}
 	if auditOnly {
 		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, reason)
-		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
+		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
 	}
 	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, reason, force, resolverOpts)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx)
+	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
 }

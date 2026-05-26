@@ -4,4 +4,4 @@ title: Addressed but no resolver listed
 status: addressed
 ---
 
-Triggers gap-resolved-has-resolver (warning).
+Triggers gap-addressed-has-resolver (warning).

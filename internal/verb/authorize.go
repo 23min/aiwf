@@ -5,11 +5,37 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/23min/aiwf/internal/codes"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
 	"github.com/23min/aiwf/internal/tree"
 )
+
+// CodeAuthorizeKindNotAllowed is the typed kernel-code descriptor carried
+// by [AuthorizeKindError] when aiwf authorize refuses a scope-entity that
+// is not an epic or milestone (D-0007). It declares [codes.ClassLegality],
+// the marker the closed legality set is enumerated from (D-0011).
+// Consumers see its [codes.Code.ID] string via [AuthorizeKindError.Code]
+// and in the message text.
+var CodeAuthorizeKindNotAllowed = codes.Code{ID: "authorize-kind-not-allowed", Class: codes.ClassLegality}
+
+// AuthorizeKindError reports an aiwf authorize refused because the
+// scope-entity is not an epic or milestone (D-0007). It implements
+// [entity.Coded], carrying CodeAuthorizeKindNotAllowed. Error preserves
+// the established message text (including the code) so message-matching
+// consumers keep working while machine consumers use Code.
+type AuthorizeKindError struct {
+	Kind entity.Kind
+}
+
+// Error implements error.
+func (e *AuthorizeKindError) Error() string {
+	return fmt.Sprintf("aiwf authorize: kind %q is not allowed (%s); only epic and milestone carry autonomous-work scopes", e.Kind, CodeAuthorizeKindNotAllowed.ID)
+}
+
+// Code returns CodeAuthorizeKindNotAllowed's ID, satisfying [entity.Coded].
+func (e *AuthorizeKindError) Code() string { return CodeAuthorizeKindNotAllowed.ID }
 
 // AuthorizeMode picks one of the three sub-verbs of `aiwf authorize`.
 // Each mode produces exactly one commit; mixing modes is a usage error
@@ -98,7 +124,7 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 	// "open scope for an agent." Spec cell R-AUDIT-0122 / R-FP-0133 /
 	// D-0007 captures the rule; this guard is its verb-time chokepoint.
 	if e.Kind != entity.KindEpic && e.Kind != entity.KindMilestone {
-		return nil, fmt.Errorf("aiwf authorize: kind %q is not allowed (authorize-kind-not-allowed); only epic and milestone carry autonomous-work scopes", e.Kind)
+		return nil, &AuthorizeKindError{Kind: e.Kind}
 	}
 
 	agent := strings.TrimSpace(opts.Agent)

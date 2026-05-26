@@ -383,7 +383,7 @@ Closed-but-active gap body.
 }
 
 // TestBuildStatus_Warnings: a tree that trips a known warning rule
-// (gap-resolved-has-resolver) populates the Warnings slice with the
+// (gap-addressed-has-resolver) populates the Warnings slice with the
 // relevant fields, and Health.Warnings is incremented in lockstep.
 //
 // Path is under archive/ so the M-0086 terminal-entity-not-archived
@@ -410,8 +410,8 @@ func TestBuildStatus_Warnings(t *testing.T) {
 		t.Fatalf("Warnings = %d, want 1", len(r.Warnings))
 	}
 	w := r.Warnings[0]
-	if w.Code != "gap-resolved-has-resolver" {
-		t.Errorf("Warnings[0].Code = %q, want %q", w.Code, "gap-resolved-has-resolver")
+	if w.Code != "gap-addressed-has-resolver" {
+		t.Errorf("Warnings[0].Code = %q, want %q", w.Code, "gap-addressed-has-resolver")
 	}
 	if w.EntityID != "G-0001" {
 		t.Errorf("Warnings[0].EntityID = %q, want G-0001", w.EntityID)
@@ -427,7 +427,7 @@ func TestRenderStatusText_Warnings(t *testing.T) {
 	r := status.StatusReport{
 		Date: "2026-05-01",
 		Warnings: []status.StatusFinding{
-			{Code: "gap-resolved-has-resolver", EntityID: "G-0001", Message: "gap is marked addressed but addressed_by is empty"},
+			{Code: "gap-addressed-has-resolver", EntityID: "G-0001", Message: "gap is marked addressed but addressed_by is empty"},
 		},
 		Health: status.StatusHealthCounts{Entities: 1, Warnings: 1},
 	}
@@ -440,7 +440,7 @@ func TestRenderStatusText_Warnings(t *testing.T) {
 
 	for _, want := range []string{
 		"Warnings",
-		"gap-resolved-has-resolver",
+		"gap-addressed-has-resolver",
 		"[G-0001]",
 		"gap is marked addressed",
 		"run `aiwf check` for details",
@@ -479,7 +479,7 @@ func TestRenderStatusMarkdown_FullReport(t *testing.T) {
 			{ID: "G-0001", Title: "Edge case", DiscoveredIn: "M-0002"},
 		},
 		Warnings: []status.StatusFinding{
-			{Code: "gap-resolved-has-resolver", EntityID: "G-0002", Message: "gap is marked addressed but addressed_by is empty"},
+			{Code: "gap-addressed-has-resolver", EntityID: "G-0002", Message: "gap is marked addressed but addressed_by is empty"},
 		},
 		Health: status.StatusHealthCounts{Entities: 7, Errors: 0, Warnings: 1},
 	}
@@ -507,7 +507,7 @@ func TestRenderStatusMarkdown_FullReport(t *testing.T) {
 		"## Open gaps",
 		"| G-0001 | Edge case | M-0002 |",
 		"## Warnings",
-		"| gap-resolved-has-resolver | G-0002 |  | gap is marked addressed but addressed_by is empty |",
+		"| gap-addressed-has-resolver | G-0002 |  | gap is marked addressed but addressed_by is empty |",
 		"## Recent activity",
 	} {
 		if !strings.Contains(got, want) {

@@ -23,6 +23,7 @@ func newBindCmd() *cobra.Command {
 		schema    string
 		fixtures  string
 		force     bool
+		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "bind <C-id>",
@@ -36,7 +37,7 @@ func newBindCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runBind(args[0], root, actor, validator, schema, fixtures, force))
+			return cliutil.WrapExitCode(runBind(args[0], root, actor, validator, schema, fixtures, force, *out))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -45,12 +46,13 @@ func newBindCmd() *cobra.Command {
 	cmd.Flags().StringVar(&schema, "schema", "", "repo-relative path to the schema file")
 	cmd.Flags().StringVar(&fixtures, "fixtures", "", "repo-relative path to the fixtures-tree root")
 	cmd.Flags().BoolVar(&force, "force", false, "replace an existing binding even when values differ")
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindContract, 0)
 	_ = cmd.RegisterFlagCompletionFunc("validator", completeDeclaredValidators)
 	return cmd
 }
 
-func runBind(id, root, actor, validator, schema, fixtures string, force bool) int {
+func runBind(id, root, actor, validator, schema, fixtures string, force bool, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
@@ -86,5 +88,5 @@ func runBind(id, root, actor, validator, schema, fixtures string, force bool) in
 		Fixtures:  fixtures,
 		Force:     force,
 	})
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract bind", result, err)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract bind", result, err, out)
 }

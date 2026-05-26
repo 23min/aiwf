@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/scope"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
@@ -270,6 +271,67 @@ func TestAllow_EmptyActorRefused(t *testing.T) {
 	}
 	if !strings.Contains(res.Reason, "actor is required") {
 		t.Errorf("Reason = %q, want actor-required message", res.Reason)
+	}
+}
+
+// TestAllow_DenialCodes is M-0141/AC-2 (unit arm): the two scope
+// denials carry distinct, errors.As-extractable codes — out-of-reach
+// vs. no-active-scope — so the cmd dispatcher surfaces the right code in
+// the envelope. Guards against collapsing them back into one generic
+// reason (the pre-D-0014 behavior).
+func TestAllow_DenialCodes(t *testing.T) {
+	t.Parallel()
+	tr := buildAllowTree(t)
+
+	// Out-of-reach: an active scope exists (on E-09) but M-001 does not
+	// reach it -> ScopeOutOfReachError.
+	out := verb.Allow(verb.AllowInput{
+		Kind:      verb.VerbAct,
+		TargetID:  "M-0001",
+		Actor:     "ai/claude",
+		Principal: "human/peter",
+		Tree:      tr,
+		Scopes:    []*scope.Scope{{AuthSHA: "outscope", Entity: "E-0009", State: scope.StateActive}},
+	})
+	if out.Allowed {
+		t.Fatal("out-of-reach: Allowed = true, want false")
+	}
+	if got, ok := entity.Code(out.Err); !ok || got != "provenance-authorization-out-of-scope" {
+		t.Errorf("out-of-reach code = (%q, %v), want (provenance-authorization-out-of-scope, true)", got, ok)
+	}
+
+	// No active scope at all -> NoActiveScopeError, a different code.
+	none := verb.Allow(verb.AllowInput{
+		Kind:      verb.VerbAct,
+		TargetID:  "M-0001",
+		Actor:     "ai/claude",
+		Principal: "human/peter",
+		Tree:      tr,
+		Scopes:    nil,
+	})
+	if none.Allowed {
+		t.Fatal("no-scope: Allowed = true, want false")
+	}
+	if got, ok := entity.Code(none.Err); !ok || got != "provenance-no-active-scope" {
+		t.Errorf("no-scope code = (%q, %v), want (provenance-no-active-scope, true)", got, ok)
+	}
+}
+
+// TestAllow_NilTreeRefuses covers scopeAllowsAct's defensive nil-tree
+// guard: with an active scope but no loaded tree, reachability cannot be
+// computed, so the act is refused (out-of-reach rather than crash).
+func TestAllow_NilTreeRefuses(t *testing.T) {
+	t.Parallel()
+	res := verb.Allow(verb.AllowInput{
+		Kind:      verb.VerbAct,
+		TargetID:  "M-0001",
+		Actor:     "ai/claude",
+		Principal: "human/peter",
+		Tree:      nil,
+		Scopes:    []*scope.Scope{{AuthSHA: "s", Entity: "E-0001", State: scope.StateActive}},
+	})
+	if res.Allowed {
+		t.Error("Allowed = true; want false (nil tree cannot prove reachability)")
 	}
 }
 

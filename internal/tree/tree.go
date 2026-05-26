@@ -298,59 +298,66 @@ func (t *Tree) ReferencedBy(id string) []string {
 	return t.ReverseRefs[entity.Canonicalize(id)]
 }
 
-// Reaches reports whether `from` can reach `to` by walking forward
-// references (parent, depends_on, addressed_by, relates_to,
-// supersedes, discovered_in, linked_adrs, etc.) through the tree.
-// Self-loop returns true (an entity reaches itself trivially).
+// ReachesScope reports whether `target` is within the scope-tree rooted
+// at `scopeEntity`, per D-0006's three-edge reachability model. Unlike
+// the (deprecated) full-graph Reaches, exactly three edges traverse:
 //
-// Composite ids are resolved to their parent before traversal: an
-// AC walks under the milestone's reference graph, and reaching the
-// milestone counts as reaching one of its ACs. This matches the
-// scope-reachability rule in docs/pocv3/design/provenance-model.md
-// §"Scope check": "addressed_by: M-007/AC-1" makes the gap reach
-// M-007 (and therefore anything M-007 reaches via parent etc.).
+//  1. parent forward    — target's parent chain reaches scopeEntity.
+//  2. composite rollup  — an AC `M/AC-N` is reachable iff M is.
+//  3. discovered_in rev — target's discovered_in points into the
+//     scope subtree (one hop, then parent-climb).
 //
-// The walk is bounded by the existing entity set; an unresolved id
-// (referenced but not in the tree) is a dead end. Used by the I2.5
-// allow-rule (verb.Allow) to gate non-human-actor verbs against an
-// active scope's scope-entity.
-func (t *Tree) Reaches(from, to string) bool {
-	from = compositeParentOrSame(from)
-	to = compositeParentOrSame(to)
-	if from == to {
+// No governance edge (depends_on, addressed_by, relates_to, supersedes,
+// superseded_by, linked_adrs) traverses — scope is a governance
+// boundary, not the full reference grammar. The function reads
+// e.Parent / e.DiscoveredIn directly rather than filtering ForwardRefs,
+// so a future governance edge cannot silently re-broaden it.
+func (t *Tree) ReachesScope(target, scopeEntity string) bool {
+	target = compositeParentOrSame(target)
+	scope := compositeParentOrSame(scopeEntity)
+	// Edges 1 + 2: parent chain (composite already rolled up above).
+	if t.parentChainReaches(target, scope) {
 		return true
 	}
-	visited := map[string]bool{from: true}
-	queue := []string{from}
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
-		e := t.ByID(cur)
-		if e == nil {
-			continue
-		}
-		for _, ref := range entity.ForwardRefs(e) {
-			target := compositeParentOrSame(ref.Target)
-			if target == to {
-				return true
-			}
-			if !visited[target] {
-				visited[target] = true
-				queue = append(queue, target)
-			}
+	// Edge 3: one discovered_in hop, then parent-climb into the subtree.
+	if e := t.ByID(target); e != nil && e.DiscoveredIn != "" {
+		if t.parentChainReaches(compositeParentOrSame(e.DiscoveredIn), scope) {
+			return true
 		}
 	}
 	return false
 }
 
-// ReachesAny reports whether any of `froms` reaches `to`. Used by
-// the allow-rule's creation-act branch: a new entity's outbound
-// references are evaluated as a set against the scope-entity.
-func (t *Tree) ReachesAny(froms []string, to string) bool {
-	for _, from := range froms {
-		if t.Reaches(from, to) {
+// ReachesScopeAny reports whether any of `targets` is within the
+// scope-tree rooted at `scopeEntity` (the creation-act variant: a new
+// entity's proposed outbound references are evaluated as a set).
+func (t *Tree) ReachesScopeAny(targets []string, scopeEntity string) bool {
+	for _, target := range targets {
+		if t.ReachesScope(target, scopeEntity) {
 			return true
 		}
+	}
+	return false
+}
+
+// parentChainReaches climbs `from`'s parent chain — canonicalizing each
+// hop — and reports whether it reaches `to`. The visited guard
+// terminates on a malformed parent cycle: the loader tolerates invalid
+// parent edges (errors-are-findings) that the FSM/ref checks flag
+// separately, so reachability must not assume an acyclic chain.
+func (t *Tree) parentChainReaches(from, to string) bool {
+	cur := from
+	visited := map[string]bool{}
+	for cur != "" && !visited[cur] {
+		if cur == to {
+			return true
+		}
+		visited[cur] = true
+		e := t.ByID(cur)
+		if e == nil {
+			return false
+		}
+		cur = compositeParentOrSame(e.Parent)
 	}
 	return false
 }

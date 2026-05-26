@@ -17,6 +17,7 @@ func newUnbindCmd() *cobra.Command {
 	var (
 		root  string
 		actor string
+		out   *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "unbind <C-id>",
@@ -27,16 +28,17 @@ func newUnbindCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runUnbind(args[0], root, actor))
+			return cliutil.WrapExitCode(runUnbind(args[0], root, actor, *out))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindContract, 0)
 	return cmd
 }
 
-func runUnbind(id, root, actor string) int {
+func runUnbind(id, root, actor string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
@@ -62,5 +64,5 @@ func runUnbind(id, root, actor string) int {
 	}
 
 	result, err := verb.ContractUnbind(ctx, doc, contracts, id, actorStr)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err, out)
 }

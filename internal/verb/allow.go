@@ -21,6 +21,7 @@
 package verb
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/23min/aiwf/internal/scope"
@@ -92,6 +93,14 @@ type AllowResult struct {
 	Allowed bool
 	Scope   *scope.Scope
 	Reason  string
+	// Err is the denial error when Allowed is false (nil when allowed).
+	// For the scope-reachability and no-active-scope denials it is a
+	// Coded error (entity.Code-extractable: *ScopeOutOfReachError /
+	// *NoActiveScopeError); the pre-scope usage denials carry a plain
+	// error. The cmd dispatcher returns it (wrapped with %w) so a Coded
+	// refusal surfaces as error.code in the --format=json envelope.
+	// Invariant: every Allowed==false return sets Err.
+	Err error
 }
 
 // Allow runs the I2.5 allow-rule over the given inputs. Pure: no
@@ -116,9 +125,12 @@ type AllowResult struct {
 //     -> Iterate Scopes (the union of active scopes attached to this
 //     actor). Pick the most-recently-opened that satisfies
 //     scopeAllows for the given (Kind, TargetID). On match: Allowed
-//     = true, Scope = the matching scope. On no match: denied with
-//     "no active scope authorizes this act" (corresponds to finding
-//     code provenance-no-active-scope).
+//     = true, Scope = the matching scope. On no match the denial is
+//     split (D-0014): if at least one active scope existed but none
+//     reached the target, Err is a *ScopeOutOfReachError
+//     (provenance-authorization-out-of-scope); if there was no active
+//     scope at all, Err is a *NoActiveScopeError
+//     (provenance-no-active-scope).
 //
 // Per the design's "if multiple match, pick the most-recently-opened
 // deterministically" rule, scopes are walked in reverse insertion
@@ -126,27 +138,43 @@ type AllowResult struct {
 func Allow(in AllowInput) AllowResult {
 	actor := strings.TrimSpace(in.Actor)
 	if actor == "" {
-		return AllowResult{Reason: "actor is required"}
+		return denied(errors.New("actor is required"))
 	}
 	if strings.HasPrefix(actor, "human/") {
 		if in.Principal != "" {
-			return AllowResult{Reason: "principal forbidden for human/ actor (humans act directly)"}
+			return denied(errors.New("principal forbidden for human/ actor (humans act directly)"))
 		}
 		return AllowResult{Allowed: true}
 	}
 	if in.Principal == "" {
-		return AllowResult{Reason: "principal required for non-human actor (set --principal human/<id>)"}
+		return denied(errors.New("principal required for non-human actor (set --principal human/<id>)"))
 	}
+	// Distinguish the two scope-denial cases (D-0014): an active scope
+	// exists but none reach the target (out-of-reach) vs. no active scope
+	// at all. Each carries its own structured code.
+	hasActive := false
 	for i := len(in.Scopes) - 1; i >= 0; i-- {
 		s := in.Scopes[i]
 		if s == nil || s.State != scope.StateActive {
 			continue
 		}
+		hasActive = true
 		if scopeAllowsAct(s, in) {
 			return AllowResult{Allowed: true, Scope: s}
 		}
 	}
-	return AllowResult{Reason: "no active scope authorizes this act"}
+	if hasActive {
+		return denied(&ScopeOutOfReachError{Actor: actor, Target: in.TargetID, Refs: in.CreationRefs})
+	}
+	return denied(&NoActiveScopeError{Actor: actor})
+}
+
+// denied builds a refusal AllowResult from a denial error, mirroring the
+// error text into Reason for callers that surface the reason string
+// directly. Every Allowed==false path routes through here so the Err
+// invariant (AllowResult.Err non-nil on denial) holds by construction.
+func denied(err error) AllowResult {
+	return AllowResult{Reason: err.Error(), Err: err}
 }
 
 // scopeAllowsAct mirrors the scopeAllows function in
@@ -158,10 +186,11 @@ func Allow(in AllowInput) AllowResult {
 //   - VerbCreate: any of CreationRefs must reach Scope.Entity.
 //   - VerbMove: both MoveSource and TargetID must reach Scope.Entity.
 //
-// Reachability is forward through the entity reference graph
-// (parent / depends_on / addressed_by / relates_to / discovered_in /
-// supersedes / linked_adrs); composite ids roll up to their parent
-// for traversal. tree.Reaches encapsulates the walk.
+// Reachability is D-0006's three-edge scope tree — parent-forward,
+// composite-id containment, discovered_in-reverse — and explicitly NOT
+// the full reference graph: governance edges (depends_on, addressed_by,
+// relates_to, supersedes, superseded_by, linked_adrs) do not punch
+// through a scope boundary. tree.ReachesScope encapsulates the walk.
 func scopeAllowsAct(s *scope.Scope, in AllowInput) bool {
 	t := in.Tree
 	if t == nil {
@@ -169,10 +198,10 @@ func scopeAllowsAct(s *scope.Scope, in AllowInput) bool {
 	}
 	switch in.Kind {
 	case VerbCreate:
-		return t.ReachesAny(in.CreationRefs, s.Entity)
+		return t.ReachesScopeAny(in.CreationRefs, s.Entity)
 	case VerbMove:
-		return t.Reaches(in.MoveSource, s.Entity) && t.Reaches(in.TargetID, s.Entity)
+		return t.ReachesScope(in.MoveSource, s.Entity) && t.ReachesScope(in.TargetID, s.Entity)
 	default: // VerbAct
-		return t.Reaches(in.TargetID, s.Entity)
+		return t.ReachesScope(in.TargetID, s.Entity)
 	}
 }

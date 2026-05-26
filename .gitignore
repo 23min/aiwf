@@ -71,3 +71,7 @@ WHITEBOARD.md
 
 # aiwf: post-commit-regenerated STATUS.md (G-0112)
 STATUS.md
+
+# lychee link-checker cache (cache = true in .lychee.toml); a local
+# run artifact, regenerated each invocation, never committed.
+.lycheecache

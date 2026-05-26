@@ -65,7 +65,7 @@ aiwf promote ADR-NNNN superseded --superseded-by ADR-NNNN
 
 A flag/kind/status mismatch is a usage error (Go-error before any disk work), not a finding. The flags are mutex with `--audit-only` (audit-only is empty-diff by definition; resolver flags imply a mutation) and not valid in phase mode (resolver fields apply to entity status, not AC tdd_phase).
 
-Use the verb route, not hand-editing: the gap-resolved-has-resolver and adr-supersession-mutual checks fire whenever the field is missing, and the verb route writes the field atomically with the status change so the standing check goes silent immediately.
+Use the verb route, not hand-editing: the gap-addressed-has-resolver and adr-supersession-mutual checks fire whenever the field is missing, and the verb route writes the field atomically with the status change so the standing check goes silent immediately.
 
 ## --audit-only --reason for backfilling state already reached
 

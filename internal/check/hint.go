@@ -22,7 +22,7 @@ var hintTable = map[string]string{
 	"no-cycles/supersedes":              "remove the loop in the supersedes/superseded_by chain",
 	"titles-nonempty":                   "set a non-empty `title:` in the frontmatter",
 	"adr-supersession-mutual":           "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
-	"gap-resolved-has-resolver":         "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
+	"gap-addressed-has-resolver":        "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
 
 	// G-0155: misset core.worktree silently redirects every git op
 	// against the wrong worktree. The hint points at the precise

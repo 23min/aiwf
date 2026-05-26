@@ -2,50 +2,57 @@ package cliutil
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/23min/aiwf/internal/check"
-	"github.com/23min/aiwf/internal/render"
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/verb"
 )
 
 // FinishVerb is the post-verb handler shared by every mutating
-// subcommand: it surfaces a Go error as a usage error, renders any
-// findings, applies the plan when present, and prints a one-line
-// summary on success. NoOp results bypass the apply path entirely
-// and print NoOpMessage on stdout.
-func FinishVerb(ctx context.Context, root, label string, result *verb.Result, err error) int {
+// subcommand: it surfaces the verb's outcome in the chosen output format
+// (text by default, a JSON envelope under --format=json per D-0013),
+// applies the plan when present, and reports the exit code.
+//
+// Exit-code contract (format-independent):
+//   - a Coded error (entity.Code resolves) → ExitFindings (1): a
+//     legality refusal, unified with the check-time exit for the same
+//     violation class (D-0013, decision C2);
+//   - any other verb error → ExitUsage (2);
+//   - nil result / no plan / apply failure → ExitInternal (3);
+//   - error-severity findings → ExitFindings (1);
+//   - success (incl. NoOp, warnings) → ExitOK (0).
+func FinishVerb(ctx context.Context, root, label string, result *verb.Result, err error, out OutputFormat) int {
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", label, err)
+		code, isCoded := entity.Code(err)
+		out.emitErrorEnvelope(label, code, err.Error())
+		if isCoded {
+			return ExitFindings
+		}
 		return ExitUsage
 	}
 	if result == nil {
-		fmt.Fprintf(os.Stderr, "%s: no result returned\n", label)
+		out.emitErrorEnvelope(label, "", "no result returned")
 		return ExitInternal
 	}
 	if check.HasErrors(result.Findings) {
-		_ = render.Text(os.Stderr, result.Findings)
+		out.emitFindings(result.Findings)
 		return ExitFindings
 	}
 	if result.NoOp {
-		fmt.Println(result.NoOpMessage)
+		out.emitSuccess(result.NoOpMessage, nil)
 		return ExitOK
 	}
 	if result.Plan == nil {
-		fmt.Fprintf(os.Stderr, "%s: validation passed but no plan produced\n", label)
+		out.emitErrorEnvelope(label, "", "validation passed but no plan produced")
 		return ExitInternal
 	}
 	if applyErr := verb.Apply(ctx, root, result.Plan); applyErr != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", label, applyErr)
+		out.emitErrorEnvelope(label, "", applyErr.Error())
 		return ExitInternal
 	}
-	if len(result.Findings) > 0 {
-		// Warning-level findings travel with a successful plan
-		// (e.g., reallocate body-prose mentions). Surface them but
-		// keep the exit code clean.
-		_ = render.Text(os.Stderr, result.Findings)
-	}
-	fmt.Println(result.Plan.Subject)
+	// Warning-level findings may travel with a successful plan (e.g.,
+	// reallocate body-prose mentions); emitSuccess surfaces them but the
+	// exit code stays clean.
+	out.emitSuccess(result.Plan.Subject, result.Findings)
 	return ExitOK
 }

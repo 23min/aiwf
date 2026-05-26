@@ -19,7 +19,7 @@ import (
 // This is the M-059 closure check: after `aiwf promote G-NNN
 // addressed --by <id>`, the addressed_by frontmatter is set, the
 // commit subject + trailers are correct, and the post-promote tree
-// validates clean (no gap-resolved-has-resolver hint).
+// validates clean (no gap-addressed-has-resolver hint).
 func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)
@@ -65,13 +65,13 @@ func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 
 	// Post-promote tree validates clean — the resolver write happened
 	// in the same commit as the status flip, so the standing
-	// gap-resolved-has-resolver finding never fires.
+	// gap-addressed-has-resolver finding never fires.
 	checkOut, err := testutil.RunBin(t, root, binDir, nil, "check")
 	if err != nil {
 		t.Fatalf("aiwf check after resolver promote: %v\n%s", err, checkOut)
 	}
-	if strings.Contains(checkOut, "gap-resolved-has-resolver") {
-		t.Errorf("post-promote check still surfaces gap-resolved-has-resolver:\n%s", checkOut)
+	if strings.Contains(checkOut, "gap-addressed-has-resolver") {
+		t.Errorf("post-promote check still surfaces gap-addressed-has-resolver:\n%s", checkOut)
 	}
 }
 

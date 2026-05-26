@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -89,7 +88,10 @@ func gateAndDecorate(ctx context.Context, root string, t *tree.Tree, plan *verb.
 		Tree:         t,
 	})
 	if !allow.Allowed {
-		return fmt.Errorf("provenance refused: %s", allow.Reason)
+		// %w (not %s): keeps a Coded denial (ScopeOutOfReachError /
+		// NoActiveScopeError) in the error chain so entity.Code extracts
+		// its code for the envelope. Allow guarantees Err is non-nil here.
+		return fmt.Errorf("provenance refused: %w", allow.Err)
 	}
 
 	// Decorate trailers. Order is irrelevant — gitops.SortedTrailers
@@ -282,13 +284,15 @@ func DecorateAndFinish(
 	result *verb.Result,
 	vErr error,
 	pctx ProvenanceContext,
+	out OutputFormat,
 ) int {
 	if vErr != nil || result == nil || result.Plan == nil {
-		return FinishVerb(ctx, root, label, result, vErr)
+		return FinishVerb(ctx, root, label, result, vErr, out)
 	}
 	if err := gateAndDecorate(ctx, root, t, result.Plan, pctx); err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", label, err)
+		code, _ := entity.Code(err)
+		out.emitErrorEnvelope(label, code, err.Error())
 		return ExitFindings
 	}
-	return FinishVerb(ctx, root, label, result, nil)
+	return FinishVerb(ctx, root, label, result, nil, out)
 }

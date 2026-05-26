@@ -41,6 +41,7 @@ func NewCmd() *cobra.Command {
 		resume string
 		reason string
 		force  bool
+		out    *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "authorize <id>",
@@ -57,7 +58,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], actor, root, to, pause, resume, reason, force))
+			return cliutil.WrapExitCode(Run(args[0], actor, root, to, pause, resume, reason, force, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (default: derived from git config user.email; must be human/...)")
@@ -67,12 +68,13 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&resume, "resume", "", "resume the most-recently-paused scope on <id>; the argument is the reason")
 	cmd.Flags().StringVar(&reason, "reason", "", "rationale text for --to (optional) / --force (required); ignored by --pause and --resume (their argument is the reason)")
 	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason)")
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
 
 // Run executes `aiwf authorize`. Returns one of the cliutil.Exit* codes.
-func Run(id, actor, root, to, pause, resume, reason string, force bool) int {
+func Run(id, actor, root, to, pause, resume, reason string, force bool, out cliutil.OutputFormat) int {
 	modes := 0
 	if to != "" {
 		modes++
@@ -151,5 +153,5 @@ func Run(id, actor, root, to, pause, resume, reason string, force bool) int {
 	}
 
 	result, vErr := verb.Authorize(ctx, tr, id, actorStr, opts)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf authorize", result, vErr)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf authorize", result, vErr, out)
 }

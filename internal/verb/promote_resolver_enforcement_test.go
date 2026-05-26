@@ -12,7 +12,7 @@ import (
 // TestPromote_GapAddressedRequiresResolver pins G-0096's verb-time
 // invariant: `aiwf promote <gap> addressed` is rejected when neither
 // `--by` nor `--by-commit` is set. Before this fix, the verb accepted
-// the empty case and the gap-resolved-has-resolver warning surfaced
+// the empty case and the gap-addressed-has-resolver warning surfaced
 // post-hoc — but warnings don't block the pre-push hook, so the gap
 // landed in `addressed` with no resolver and no path back without
 // --force (since `addressed` is terminal in the gap FSM). G-0096
@@ -53,7 +53,7 @@ func TestPromote_ADRSupersededRequiresResolver(t *testing.T) {
 // TestPromote_ResolverRequirementBypassedByForce pins the sovereign-
 // override path: even with the verb-time enforcement, --force lets
 // the empty-resolver promote land. The user takes the consequence
-// (a follow-up gap-resolved-has-resolver warning) but the option is
+// (a follow-up gap-addressed-has-resolver warning) but the option is
 // preserved for genuine exceptional cases.
 func TestPromote_ResolverRequirementBypassedByForce(t *testing.T) {
 	t.Parallel()
@@ -100,10 +100,10 @@ func TestPromote_BackfillResolverOnAddressedGap(t *testing.T) {
 		t.Errorf("addressed_by = %v, want [E-0001]", g.AddressedBy)
 	}
 
-	// Closure: gap-resolved-has-resolver is silent after back-fill.
+	// Closure: gap-addressed-has-resolver is silent after back-fill.
 	for _, f := range check.Run(r.tree(), nil) {
-		if f.Code == "gap-resolved-has-resolver" {
-			t.Errorf("back-fill should silence gap-resolved-has-resolver; finding still present: %+v", f)
+		if f.Code == "gap-addressed-has-resolver" {
+			t.Errorf("back-fill should silence gap-addressed-has-resolver; finding still present: %+v", f)
 		}
 	}
 }

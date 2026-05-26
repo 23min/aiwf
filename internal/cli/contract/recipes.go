@@ -133,6 +133,7 @@ func newRecipeInstallCmd() *cobra.Command {
 		actor string
 		from  string
 		force bool
+		out   *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "install <name|--from <path>>",
@@ -146,18 +147,19 @@ func newRecipeInstallCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runRecipeInstall(args, root, actor, from, force))
+			return cliutil.WrapExitCode(runRecipeInstall(args, root, actor, from, force, *out))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	cmd.Flags().StringVar(&from, "from", "", "path to a custom-validator YAML file")
 	cmd.Flags().BoolVar(&force, "force", false, "replace an existing validator with a different definition")
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = completeEmbeddedRecipeNamesArg
 	return cmd
 }
 
-func runRecipeInstall(args []string, root, actor, from string, force bool) int {
+func runRecipeInstall(args []string, root, actor, from string, force bool, out cliutil.OutputFormat) int {
 	var (
 		r       recipe.Recipe
 		loadErr error
@@ -204,7 +206,7 @@ func runRecipeInstall(args []string, root, actor, from string, force bool) int {
 
 	ctx := context.Background()
 	result, err := verb.RecipeInstall(ctx, doc, contracts, r.Name, r.Validator, actorStr, verb.RecipeInstallOptions{Force: force})
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe install", result, err)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe install", result, err, out)
 }
 
 // newRecipeRemoveCmd builds `aiwf contract recipe remove <name>`.
@@ -214,6 +216,7 @@ func newRecipeRemoveCmd() *cobra.Command {
 	var (
 		root  string
 		actor string
+		out   *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "remove <name>",
@@ -224,16 +227,17 @@ func newRecipeRemoveCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runRecipeRemove(args[0], root, actor))
+			return cliutil.WrapExitCode(runRecipeRemove(args[0], root, actor, *out))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = completeDeclaredValidatorsArg
 	return cmd
 }
 
-func runRecipeRemove(name, root, actor string) int {
+func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
@@ -259,5 +263,5 @@ func runRecipeRemove(name, root, actor string) int {
 
 	ctx := context.Background()
 	result, err := verb.RecipeRemove(ctx, doc, contracts, name, actorStr)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err, out)
 }
