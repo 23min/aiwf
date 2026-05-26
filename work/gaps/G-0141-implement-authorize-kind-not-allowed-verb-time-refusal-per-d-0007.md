@@ -1,8 +1,10 @@
 ---
 id: G-0141
 title: Implement authorize-kind-not-allowed verb-time refusal per D-0007
-status: open
+status: addressed
 discovered_in: M-0123
+addressed_by:
+    - M-0138
 ---
 ## What's missing
 
