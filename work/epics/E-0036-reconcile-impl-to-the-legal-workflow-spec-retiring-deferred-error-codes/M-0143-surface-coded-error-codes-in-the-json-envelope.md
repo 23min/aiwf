@@ -6,6 +6,23 @@ parent: E-0036
 depends_on:
     - M-0138
 tdd: required
+acs:
+    - id: AC-1
+      title: Decision D-0013 records the envelope representation and exit-code
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Coded verb refusal with --format=json emits status:error + error.code, exit 1
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Non-coded verb error emits a well-formed envelope (message, no code)
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Every mutating verb accepts --format=json (uniform rollout)
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -44,3 +61,12 @@ The `Coded` pattern and the typed errors themselves (M-0138); the cancel codes (
 ## Dependencies
 
 M-0138 (the `Coded` pattern + the first codes). Closes the envelope clause of E-0036's goal.
+
+### AC-1 — Decision D-0013 records the envelope representation and exit-code
+
+### AC-2 — Coded verb refusal with --format=json emits status:error + error.code, exit 1
+
+### AC-3 — Non-coded verb error emits a well-formed envelope (message, no code)
+
+### AC-4 — Every mutating verb accepts --format=json (uniform rollout)
+
