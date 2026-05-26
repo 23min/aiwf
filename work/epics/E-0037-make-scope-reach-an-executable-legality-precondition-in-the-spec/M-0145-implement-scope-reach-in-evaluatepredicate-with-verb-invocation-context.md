@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: scope-reach predicate agrees with tree.ReachesScope across the fixture set
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: EvalContext carries the scope-entity and target the scope-reach arm needs
