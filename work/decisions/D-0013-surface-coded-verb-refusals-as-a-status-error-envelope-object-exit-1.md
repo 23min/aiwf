@@ -1,7 +1,7 @@
 ---
 id: D-0013
 title: Surface Coded verb refusals as a status:error envelope object, exit 1
-status: proposed
+status: accepted
 relates_to:
     - M-0143
     - E-0036
