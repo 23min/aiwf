@@ -15,9 +15,7 @@ D-0014 / G-0171 set the *directions* during E-0037 planning: a single marked glo
 
 ## Acceptance criteria
 
-- **AC1** — The ADR ratifies the global-rule representation mechanism (e.g. a `KindAny` sentinel vs. a `Global` flag on `Rule`) and states how it composes with the `Rule` key-uniqueness + coverage meta-tests (`m0123_ac2/ac4`, `m0124/m0125`) and how the AC-5 fourth arm recognizes it. *Evidence:* a structural policy assertion that the ADR resolves via the loader, is `accepted`, and its Decision section names the chosen mechanism.
-- **AC2** — The ADR records out-of-scope as `ClassLegality` with the dual-emission rationale (verb-time refusal + check-time audit are one violation at two surfaces) and the `codes.go` carve-out note. *Evidence:* structural assertion on the named section.
-- **AC3** — The ADR sizes the cellcoverage extension and states the explicit fallback condition (dedicated test + recorded exemption only if the extension proves its own epic). *Evidence:* structural assertion the sizing + fallback are present.
+(ACs allocated separately via `aiwf add ac` after milestone creation; bodies seeded at allocation time.)
 
 ## Constraints
 
