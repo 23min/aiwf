@@ -1,7 +1,7 @@
 ---
 id: M-0143
 title: Surface Coded error codes in the JSON envelope
-status: draft
+status: in_progress
 parent: E-0036
 depends_on:
     - M-0138
