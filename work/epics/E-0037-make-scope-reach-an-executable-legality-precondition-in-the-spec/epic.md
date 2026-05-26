@@ -58,12 +58,14 @@ Out:
 
 - The `cellcoverage` framework extension (standing up authorized-scope fixtures) is the unsized piece and may be the bulk of the epic. Mitigation: the ADR (M1) sizes it explicitly with a documented fallback before the implementation milestone commits.
 
-## Milestones (candidates — refine via `aiwfx-plan-milestones`)
+## Milestones
 
-- **M1 — ADR: global-precondition representation + out-of-scope legality classification.** Resolves open question 1 + the classification; sizes the cellcoverage extension (open question 3). Keystone — the implementation milestones depend on it.
-- **M2 — Implement `scope-reach` in `EvaluatePredicate` + `EvalContext` threading.** The predicate delegates to `tree.ReachesScope`; unit + seam tests. Depends M1.
-- **M3 — Land the marked global rule + reclassify the code to `ClassLegality`; AC-5 fourth arm green.** Depends M1, M2.
-- **M4 — cellcoverage authorized-scope fixtures: drivers exercise the global rule.** The unsized-risk milestone, per M1's sizing; falls back to a dedicated test + recorded exemption only if M1 sizes the extension as its own epic. Depends M2, M3.
+Sequenced so the global rule lands **last**, atop a ready evaluator + cellcoverage support — no broken-CI intermediate (reclassifying or landing the rule before its consumers exist would turn the drivers or the AC-5 arm red).
+
+- **M-0144 — ADR: represent a global precondition; classify out-of-scope as legality.** Keystone — resolves the representation mechanism, the legality classification, and the cellcoverage sizing. No deps.
+- **M-0145 — Implement `scope-reach` in `EvaluatePredicate` with verb-invocation context.** Adds the evaluator arm, delegating to `tree.ReachesScope`. Depends M-0144.
+- **M-0146 — Extend cellcoverage with authorized-scope fixtures.** The unsized-risk piece; sized by M-0144. Depends M-0144, M-0145.
+- **M-0147 — Land global `scope-reach` rule; reclassify code; AC-5 fourth arm green.** Rule lands atop the ready evaluator + cellcoverage support; drivers exercise it. Closes G-0171. Depends M-0145, M-0146.
 
 ## Decisions
 
