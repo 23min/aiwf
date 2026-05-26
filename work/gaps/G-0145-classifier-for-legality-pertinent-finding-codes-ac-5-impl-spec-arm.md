@@ -1,8 +1,10 @@
 ---
 id: G-0145
 title: Classifier for legality-pertinent finding codes (AC-5 impl->spec arm)
-status: open
+status: addressed
 discovered_in: M-0123
+addressed_by:
+    - M-0140
 ---
 ## What's missing
 
