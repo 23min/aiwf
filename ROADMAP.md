@@ -448,5 +448,5 @@ Make `scope-reach` (D-0006's three-edge scope reachability) an **executable, leg
 | M-0144 | ADR: represent a global precondition; classify out-of-scope as legality | done |
 | M-0145 | Implement scope-reach in EvaluatePredicate with verb-invocation context | done |
 | M-0146 | Extend cellcoverage with authorized-scope fixtures | done |
-| M-0147 | Land global scope-reach rule; reclassify code; AC-5 fourth arm green | draft |
+| M-0147 | Land global scope-reach rule; reclassify code; AC-5 fourth arm green | done |
 
