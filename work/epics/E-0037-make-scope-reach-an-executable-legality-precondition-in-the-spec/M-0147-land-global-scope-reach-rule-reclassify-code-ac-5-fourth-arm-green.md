@@ -18,7 +18,7 @@ acs:
       tdd_phase: green
     - id: AC-3
       title: Cellcoverage machinery exercises the global rule positive and negative
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
