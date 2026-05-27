@@ -1,7 +1,7 @@
 ---
 id: M-0147
 title: Land global scope-reach rule; reclassify code; AC-5 fourth arm green
-status: in_progress
+status: done
 parent: E-0037
 depends_on:
     - M-0145
