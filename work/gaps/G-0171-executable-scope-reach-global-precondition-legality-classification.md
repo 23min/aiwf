@@ -1,8 +1,10 @@
 ---
 id: G-0171
 title: Executable scope-reach global precondition + legality classification
-status: open
+status: addressed
 discovered_in: M-0141
+addressed_by:
+    - M-0147
 ---
 ## What's missing
 
