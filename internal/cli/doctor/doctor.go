@@ -136,8 +136,9 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	inContainer, envLabel := InContainer()
 	lines = append(lines, label("env:")+envLabel)
 
-	// plugin-mount: line — gated on in-container, never
-	// increments problems. M-0135/AC-2.
+	// plugin-mount: + plugin-paths: lines — gated on in-container,
+	// never increment problems. M-0135/AC-2; plugin-paths: closes
+	// G-0174.
 	if inContainer {
 		if home, homeErr := os.UserHomeDir(); homeErr != nil {
 			lines = append(lines, renderMountLine(mountStateError, 0, homeErr.Error()))
@@ -147,6 +148,13 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 				lines = append(lines, renderMountLine(mountStateError, 0, mountErr.Error()))
 			} else {
 				lines = append(lines, renderMountLine(state, count, ""))
+			}
+			// plugin-paths: advisory hint — the plugin-mount probe
+			// above checks the target's presence, not the OS-correctness
+			// of the paths inside the index. This catches the
+			// claude-code#31388 leak the presence check reports as `ok`.
+			if sample, found := foreignPluginPaths(home, foreignHomePrefix()); found {
+				lines = append(lines, renderPluginPathHintLine(sample))
 			}
 		}
 	}
