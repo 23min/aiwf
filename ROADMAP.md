@@ -437,7 +437,7 @@ Make E-0033's legal-workflow spec a *fully* verified source of truth by reconcil
 | M-0142 | Rename gap-resolved-has-resolver to match the gap FSM vocabulary | done |
 | M-0143 | Surface Coded error codes in the JSON envelope | done |
 
-## E-0037 — Make scope-reach an executable legality precondition in the spec (active)
+## E-0037 — Make scope-reach an executable legality precondition in the spec (done)
 
 ### Goal
 
