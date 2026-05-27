@@ -7,6 +7,19 @@ depends_on:
     - M-0145
     - M-0146
 tdd: required
+acs:
+    - id: AC-1
+      title: Global scope-reach rule present; key-uniqueness and coverage meta-tests green
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: provenance-authorization-out-of-scope is ClassLegality; AC-5 fourth arm green
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Cellcoverage machinery exercises the global rule positive and negative
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -35,3 +48,22 @@ Any change to runtime reachability (`tree.ReachesScope`) — M-0141 owns it; thi
 ## Dependencies
 
 M-0145 (evaluator), M-0146 (cellcoverage support). Closes **G-0171**.
+
+### AC-1 — Global scope-reach rule present; key-uniqueness and coverage meta-tests green
+
+The marked global rule exists per M-0144's mechanism (`Global: true`, `Outcome: Illegal`, `ExpectedErrorCode: provenance-authorization-out-of-scope`, the `scope-reach` precondition); the `Rule` key-uniqueness + coverage meta-tests stay green.
+
+*Evidence:* a spec assertion the rule is present with the right shape + the existing `m0123` meta-tests green.
+
+### AC-2 — provenance-authorization-out-of-scope is ClassLegality; AC-5 fourth arm green
+
+`provenance-authorization-out-of-scope` is `codes.ClassLegality` (a typed `codes.Code` descriptor per D-0011) and the AC-5 fourth arm (`TestM0123_AC5_ImplToSpec_LegalityCodesReferenced`) is green with the code included.
+
+*Evidence:* the legality-class scan (`collectImplFindingCodes`) classifies the code `ClassLegality` + the AC-5 fourth-arm policy passes.
+
+### AC-3 — Cellcoverage machinery exercises the global rule positive and negative
+
+The global rule is exercised both ways through the M-0146 authorized-scope machinery (positive: in-scope agent verb succeeds; negative: out-of-scope refused with the rule's `ExpectedErrorCode`), and the per-cell `m0124`/`m0125` drivers skip it (no cell coordinate) — full integration per M-0144, not the recorded fallback.
+
+*Evidence:* a test reading the global rule's code from `spec.Rules()` and asserting the authorized-scope machinery refuses out-of-scope with exactly that code; the `m0124`/`m0125` skip keeps them green.
+
