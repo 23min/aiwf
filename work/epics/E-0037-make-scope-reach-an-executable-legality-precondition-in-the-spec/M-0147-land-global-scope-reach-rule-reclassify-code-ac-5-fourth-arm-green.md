@@ -15,7 +15,7 @@ acs:
     - id: AC-2
       title: provenance-authorization-out-of-scope is ClassLegality; AC-5 fourth arm green
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Cellcoverage machinery exercises the global rule positive and negative
       status: open
