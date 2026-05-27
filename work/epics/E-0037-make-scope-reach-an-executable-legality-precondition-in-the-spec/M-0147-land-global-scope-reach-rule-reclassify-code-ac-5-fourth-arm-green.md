@@ -11,7 +11,7 @@ acs:
     - id: AC-1
       title: Global scope-reach rule present; key-uniqueness and coverage meta-tests green
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: provenance-authorization-out-of-scope is ClassLegality; AC-5 fourth arm green
       status: open
