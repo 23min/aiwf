@@ -1,7 +1,7 @@
 ---
 id: M-0146
 title: Extend cellcoverage with authorized-scope fixtures
-status: in_progress
+status: done
 parent: E-0037
 depends_on:
     - M-0144
