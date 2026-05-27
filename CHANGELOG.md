@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0037: scope-reach as an executable legality precondition in the spec
+
+`scope-reach` (D-0006's three-edge scope reachability) is now an executable, legality-classed predicate in the legal-workflow spec — the verb-time out-of-scope refusal, previously enforced only in hand-written Go (M-0141), now lives inside the spec's bidirectional drift net. **No runtime reachability behavior changed**; this completes the formal-model certification M-0141 deferred (closes G-0171).
+
+- **M-0144 — ADR-0013: global-precondition representation + out-of-scope legality classification.** Decides how a cross-cutting precondition is represented in the spec and sizes the cellcoverage extension. (Amended at M-0147 to the separate-`GlobalRules()`-accessor mechanism after the originally-ratified `Global` flag proved to fan skip-exceptions across the per-cell meta-tests.)
+- **M-0145 — `scope-reach` evaluable in `EvaluatePredicate`.** The spec predicate evaluates reachability by delegating to `tree.ReachesScope` (no re-derivation of D-0006), with `EvalContext` carrying the actor scope-entity + target. Provably agrees with the runtime gate.
+- **M-0146 — authorized-scope cellcoverage fixtures.** `CellFixture.AuthorizeScope` stands up a real `aiwf authorize` scope so the driver path can exercise a scope-gated cell (in-scope succeeds; out-of-scope refused).
+- **M-0147 — global `scope-reach` rule + legality reclassification.** A `spec.GlobalRules()` rule carries the precondition; `provenance-authorization-out-of-scope` is reclassified to a `codes.Code{ClassLegality}` descriptor (D-0011 pattern), so the AC-5 fourth arm covers it. Closes G-0171.
+
 ### Fixed
 
 - **`aiwf status --worktrees` no longer reports merged worktrees as in-flight (G-0172).** A worktree whose branch is fully merged into trunk and whose driver entity is terminal on trunk now renders under the existing "SAFE TO REMOVE" path instead of as phantom in-flight work. `BuildWorktreeViews` resolves driver terminality against the main-checkout's tree (trunk) when the branch carries no ahead-of-trunk commits; the merged-branch gate and trunk-terminal check are layered so a freshly-forked worktree (also zero-ahead, but active on trunk) is never mis-flagged.
