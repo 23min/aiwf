@@ -1,7 +1,9 @@
 ---
 id: G-0174
 title: 'aiwf doctor: hint on cross-platform plugin-index path corruption'
-status: open
+status: addressed
+addressed_by_commit:
+    - a39d7f22
 ---
 ## What's missing
 
