@@ -33,12 +33,12 @@ func (e *ScopeOutOfReachError) Error() string {
 		subject = strings.Join(e.Refs, ", ")
 	}
 	return fmt.Sprintf("actor %q: target %s is outside the reach of every active scope (%s)",
-		e.Actor, subject, check.CodeProvenanceAuthorizationOutOfScope)
+		e.Actor, subject, check.CodeProvenanceAuthorizationOutOfScope.ID)
 }
 
-// Code returns check.CodeProvenanceAuthorizationOutOfScope, satisfying
+// Code returns check.CodeProvenanceAuthorizationOutOfScope.ID, satisfying
 // [entity.Coded].
-func (e *ScopeOutOfReachError) Code() string { return check.CodeProvenanceAuthorizationOutOfScope }
+func (e *ScopeOutOfReachError) Code() string { return check.CodeProvenanceAuthorizationOutOfScope.ID }
 
 // NoActiveScopeError reports that a non-human actor attempted a verb
 // with no active scope at all — distinct from out-of-reach, where a

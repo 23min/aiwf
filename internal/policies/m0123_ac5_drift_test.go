@@ -274,6 +274,10 @@ var deferredImplErrorCodes = map[string]string{
 // `Code: "..."` composite-literal fields. The set is the canonical
 // impl-side surface for finding codes; AC-5's spec→impl arm closes the
 // reverse direction.
+//
+// Cells AND global rules (spec.GlobalRules(), ADR-0013) are both checked:
+// a code-oriented arm must see every illegal rule's code regardless of
+// whether it carries a cell coordinate.
 func TestM0123_AC5_SpecToImpl_ErrorCodesResolve(t *testing.T) {
 	t.Parallel()
 
@@ -282,7 +286,7 @@ func TestM0123_AC5_SpecToImpl_ErrorCodesResolve(t *testing.T) {
 		t.Fatalf("collectImplFindingCodes: %v", err)
 	}
 
-	for i, r := range spec.Rules() {
+	for i, r := range append(spec.Rules(), spec.GlobalRules()...) {
 		if r.Outcome != spec.OutcomeIllegal || r.ExpectedErrorCode == "" {
 			continue
 		}
@@ -320,10 +324,13 @@ func unreferencedLegalityCodes(legality []string, specIllegalCodes map[string]bo
 }
 
 // specIllegalErrorCodes returns the set of non-empty ExpectedErrorCodes
-// across all OutcomeIllegal spec Rules.
+// across all OutcomeIllegal spec rules — cells (spec.Rules()) AND global
+// rules (spec.GlobalRules(), ADR-0013). The fourth arm needs every
+// illegal rule's code regardless of cell coordinate, so the reclassified
+// legality code carried by the global scope-reach rule is covered.
 func specIllegalErrorCodes() map[string]bool {
 	out := map[string]bool{}
-	rules := spec.Rules()
+	rules := append(spec.Rules(), spec.GlobalRules()...)
 	for i := range rules {
 		r := &rules[i]
 		if r.Outcome != spec.OutcomeIllegal || r.ExpectedErrorCode == "" {

@@ -120,6 +120,12 @@ type RuleSource struct {
 // Sources records the catalogs that motivated the cell — Audit (R-AUDIT-NNNN
 // ids), FP (R-FP-NNNN ids), Decision (D-NNNN, populated only for FP-only and
 // Conflict classes).
+//
+// Cross-cutting precondition rules that are NOT (Kind, FromState, Verb)
+// cells (ADR-0013, e.g. the scope-reach rule) live in [GlobalRules], a
+// separate accessor — they are deliberately absent from [Rules] so every
+// per-cell consumer iterates cells only, with no per-rule exclusion. Only
+// the code-oriented AC-5 drift arms union the two.
 type Rule struct {
 	Kind              entity.Kind
 	FromState         string

@@ -30,6 +30,16 @@ type EvalContext struct {
 	TargetState string
 	Evidence    string
 	AC          *entity.AcceptanceCriterion
+
+	// Target and ScopeEntity carry verb-invocation context for the
+	// scope-reach predicate (M-0145) — the first subject that is not
+	// entity-side. Target is the entity the verb acts on; ScopeEntity
+	// is the actor's active authorization scope-entity. The scope-reach
+	// arm delegates to tree.ReachesScope(Target, ScopeEntity) — D-0006's
+	// source of truth — rather than re-deriving reachability. Both are
+	// empty for the entity-side predicates (self.*/parent.*/*-child*).
+	Target      string
+	ScopeEntity string
 }
 
 // EvaluatePredicate reports whether p holds against e in t, with
@@ -49,6 +59,9 @@ type EvalContext struct {
 //	any-child.status ∉ <named-set>
 //	any-child-ac.status == <state>
 //	all-children-acs.status != <state>
+//	scope-reach == true / scope-reach == false (verb-invocation;
+//	    reads ctx.Target + ctx.ScopeEntity, delegates to
+//	    tree.ReachesScope)
 //
 // Unknown Subject, Op, or named-set Value return a typed error so a
 // future rule that widens the vocabulary fails the matching atom's
@@ -100,6 +113,13 @@ func EvaluatePredicate(p Predicate, e *entity.Entity, t *tree.Tree, ctx EvalCont
 		return allChildrenACs(e, func(ac entity.AcceptanceCriterion) (bool, error) {
 			return cmpString(p.Op, ac.Status, p.Value)
 		})
+	case "scope-reach":
+		// Verb-invocation predicate: does the actor's active scope-entity
+		// reach the target via D-0006's three edges? Delegates to
+		// tree.ReachesScope (the M-0141 source of truth) — no re-derivation.
+		// The Op/Value express polarity so an illegal rule can assert the
+		// out-of-scope condition as `scope-reach == false`.
+		return cmpBool(p.Op, t.ReachesScope(ctx.Target, ctx.ScopeEntity), p.Value)
 	}
 	return false, fmt.Errorf("evaluate predicate: unknown subject %q", p.Subject)
 }
@@ -117,6 +137,32 @@ func cmpString(op, got, want string) (bool, error) {
 		return got != "", nil
 	}
 	return false, fmt.Errorf("evaluate predicate: unknown op %q for string subject", op)
+}
+
+// cmpBool applies an Op to a boolean predicate result against a
+// "true"/"false" Value. The closed Op set is {==, !=}; the Value must
+// be exactly "true" or "false". Used by the scope-reach subject, whose
+// reachability verdict an illegal rule negates (`scope-reach == false`)
+// to assert the out-of-scope condition. Unknown op or non-bool value
+// return a typed error, matching the evaluator's closed-vocabulary
+// discipline.
+func cmpBool(op string, got bool, want string) (bool, error) {
+	var wantBool bool
+	switch want {
+	case "true":
+		wantBool = true
+	case "false":
+		wantBool = false
+	default:
+		return false, fmt.Errorf("evaluate predicate: scope-reach requires Value true/false (got %q)", want)
+	}
+	switch op {
+	case "==":
+		return got == wantBool, nil
+	case "!=":
+		return got != wantBool, nil
+	}
+	return false, fmt.Errorf("evaluate predicate: unknown op %q for bool subject", op)
 }
 
 // cmpStringSlice is the string-slice variant: "==" with want "" means
