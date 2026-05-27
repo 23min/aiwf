@@ -291,8 +291,8 @@ func TestRunProvenance_AuthorizationOutOfScope(t *testing.T) {
 		agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
-	if !hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
-		t.Fatalf("findings = %v, want %q", findingCodes(got), CodeProvenanceAuthorizationOutOfScope)
+	if !hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
+		t.Fatalf("findings = %v, want %q", findingCodes(got), CodeProvenanceAuthorizationOutOfScope.ID)
 	}
 }
 
@@ -323,7 +323,7 @@ func TestRunProvenance_PriorEntityChainResolves(t *testing.T) {
 		agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
-	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("findings = %v, did not expect out-of-scope after rename chain", findingCodes(got))
 	}
 }
@@ -353,7 +353,7 @@ func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs(t *testing.T) {
 		agentCommit("bbbb222", "promote", "M-0099", "ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
-	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("findings = %v; old-id target should resolve via prior_ids and reach scope-entity",
 			findingCodes(got))
 	}
@@ -379,7 +379,7 @@ func TestRunProvenance_OutOfScope_TargetResolvedViaPriorIDs_CollisionCase(t *tes
 		agentCommit("ccc1234", "promote", "M-0099", "ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
-	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("findings = %v; renamed-target with collision must resolve via prior_ids",
 			findingCodes(got))
 	}
@@ -404,7 +404,7 @@ func TestRunProvenance_OutOfScope_PriorIDsDoesNotMaskGenuineOutOfScope(t *testin
 		agentCommit("dddd444", "promote", "M-0099", "ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
-	if !hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+	if !hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("findings = %v; prior_ids lookup must not mask a genuine out-of-scope target",
 			findingCodes(got))
 	}
@@ -870,7 +870,7 @@ func TestRunProvenance_CompositeTargetRollsUp(t *testing.T) {
 			"ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
-	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("out-of-scope fired on composite target that rolls up correctly: %v", findingCodes(got))
 	}
 }
@@ -889,7 +889,7 @@ func TestRunProvenance_SelfReferentialOutOfScope(t *testing.T) {
 			"ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)
-	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope) {
+	if hasFinding(got, CodeProvenanceAuthorizationOutOfScope.ID) {
 		t.Fatalf("out-of-scope fired on self-referential target: %v", findingCodes(got))
 	}
 }

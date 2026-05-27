@@ -5,6 +5,9 @@ import (
 	"regexp"
 	"strings"
 
+	// Aliased: the check package has a top-level codes() test helper that
+	// would clash with a plain `codes` import name.
+	codespkg "github.com/23min/aiwf/internal/codes"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
@@ -25,17 +28,16 @@ var squashMergeSubjectRE = regexp.MustCompile(`\s\(#\d+\)$`)
 // docs/pocv3/design/provenance-model.md §"`aiwf check` rules". Each
 // fires on commit-history audit, not on tree state.
 const (
-	CodeProvenanceTrailerIncoherent       = "provenance-trailer-incoherent"
-	CodeProvenanceForceNonHuman           = "provenance-force-non-human"
-	CodeProvenanceActorMalformed          = "provenance-actor-malformed"
-	CodeProvenancePrincipalNonHuman       = "provenance-principal-non-human"
-	CodeProvenanceOnBehalfOfNonHuman      = "provenance-on-behalf-of-non-human"
-	CodeProvenanceAuthorizedByMalformed   = "provenance-authorized-by-malformed"
-	CodeProvenanceAuthorizationMissing    = "provenance-authorization-missing"
-	CodeProvenanceAuthorizationOutOfScope = "provenance-authorization-out-of-scope"
-	CodeProvenanceAuthorizationEnded      = "provenance-authorization-ended"
-	CodeProvenanceNoActiveScope           = "provenance-no-active-scope"
-	CodeProvenanceAuditOnlyNonHuman       = "provenance-audit-only-non-human"
+	CodeProvenanceTrailerIncoherent     = "provenance-trailer-incoherent"
+	CodeProvenanceForceNonHuman         = "provenance-force-non-human"
+	CodeProvenanceActorMalformed        = "provenance-actor-malformed"
+	CodeProvenancePrincipalNonHuman     = "provenance-principal-non-human"
+	CodeProvenanceOnBehalfOfNonHuman    = "provenance-on-behalf-of-non-human"
+	CodeProvenanceAuthorizedByMalformed = "provenance-authorized-by-malformed"
+	CodeProvenanceAuthorizationMissing  = "provenance-authorization-missing"
+	CodeProvenanceAuthorizationEnded    = "provenance-authorization-ended"
+	CodeProvenanceNoActiveScope         = "provenance-no-active-scope"
+	CodeProvenanceAuditOnlyNonHuman     = "provenance-audit-only-non-human"
 
 	// I2.5 step 7b: pre-push trailer audit (G24). Surfaces the
 	// audit-trail hole when a manual `git commit` lands on entity
@@ -54,6 +56,21 @@ const (
 	// --since) so the operator can re-enable a deliberate scan.
 	CodeProvenanceUntrailedScopeUndefined = "provenance-untrailered-scope-undefined"
 )
+
+// CodeProvenanceAuthorizationOutOfScope is the typed kernel-code
+// descriptor for the out-of-scope refusal: an authorized agent's verb is
+// refused when the target is not reachable from the active scope-entity
+// via D-0006's three edges. It declares [codes.ClassLegality] (D-0011 /
+// ADR-0012) — the marker the legality set is enumerated from — because
+// the refusal is a verb-time legality violation named by the global
+// scope-reach spec rule (ADR-0013, E-0037).
+//
+// The code is dual-emitted: the verb-time gate ([verb.ScopeOutOfReachError])
+// and this package's check-time audit (below) raise the same code for the
+// same violation at two surfaces. Consumers read the [codes.Code.ID]
+// string; the .ID suffix at use sites is the only change from the prior
+// bare-string-const era.
+var CodeProvenanceAuthorizationOutOfScope = codespkg.Code{ID: "provenance-authorization-out-of-scope", Class: codespkg.ClassLegality}
 
 // RunProvenance returns provenance findings for the given commit
 // history. commits must be ordered oldest-first (`git log --reverse`)
@@ -308,7 +325,7 @@ func provenanceAuthorizationFindings(
 		to := compositeRoot(scopeEntity)
 		if from != to && !t.ReachesScope(from, to) {
 			findings = append(findings, Finding{
-				Code:     CodeProvenanceAuthorizationOutOfScope,
+				Code:     CodeProvenanceAuthorizationOutOfScope.ID,
 				Severity: SeverityError,
 				Message: fmt.Sprintf("commit %s: aiwf-authorized-by: %s — target %s does not reach scope-entity %s",
 					short(c.SHA), short(authSHA), target, scopeEntity),

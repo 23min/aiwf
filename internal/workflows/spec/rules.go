@@ -33,6 +33,33 @@ func Rules() []Rule {
 	return out
 }
 
+// GlobalRules returns the cross-cutting precondition rules that are NOT
+// (Kind, FromState, Verb) cells (ADR-0013) — kept out of [Rules] so every
+// per-cell consumer (the m0124/m0125 coverage drivers, the coordinate-
+// resolution drift arms, key-uniqueness) iterates cells only, with no
+// per-rule exclusion. Only the code-oriented AC-5 drift arms union
+// Rules() and GlobalRules().
+//
+// Today there is exactly one global rule: the scope-reach rule — an
+// authorized agent's verb is refused when the target is out of scope
+// (D-0006). The scope-reach predicate returns reachability (M-0145), so
+// the out-of-scope violation is expressed as `scope-reach == false`. The
+// coordinate fields are intentionally zero; this rule has no cell
+// position. It mirrors the M-0141 runtime gate into the spec's
+// bidirectional drift net and changes no runtime behavior.
+func GlobalRules() []Rule {
+	return []Rule{
+		{
+			Preconditions:     []Predicate{{Subject: "scope-reach", Op: "==", Value: "false"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "provenance-authorization-out-of-scope",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Decision: "D-0006"},
+		},
+	}
+}
+
 // terminalIllegal is the common shape for the per-(kind, terminal-state) cell
 // that pins "this state is terminal; FSM-transition verbs from here are
 // illegal." Encodes the no-outgoing-transitions truth in the spec so the

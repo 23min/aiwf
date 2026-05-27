@@ -77,15 +77,17 @@ func TestADR0013_M0144_AC1_GlobalRuleRepresentation(t *testing.T) {
 		t.Error("AC-1: ADR-0013 must be ratified (`status: accepted`)")
 	}
 
+	// Per the M-0147 amendment, the ratified mechanism is the separate
+	// GlobalRules() accessor (not a Global flag in Rules()).
 	assertDecisionSubsection(t, body, "Global-rule representation",
 		[]string{
-			"Global", "Rule", "scope-reach", "OutcomeIllegal",
+			"GlobalRules()", "scope-reach", "OutcomeIllegal",
 			"RejectionLayerVerbTime", "BlockingStrict",
 			"ExpectedErrorCode", "provenance-authorization-out-of-scope",
-			"globalRules()", "(Kind, FromState, Verb, Outcome)", "LookupRules",
+			"D-0006", "tree.ReachesScope", "LookupRules",
 			"m0123_ac2", "m0123_ac4", "m0124", "m0125", "m0123_ac5",
 		},
-		[]string{"single source of truth", "uniqueness key", "fourth arm"},
+		[]string{"structurally", "fourth arm"},
 	)
 }
 
