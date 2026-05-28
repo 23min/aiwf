@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/gitops"
@@ -53,15 +54,70 @@ func TestRollback_RemoveError(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(parent, 0o755) })
 
+	rel := filepath.Join("locked", "file.md")
 	tx := &applyTx{
 		root:         root,
 		ctx:          context.Background(),
-		createdFiles: []string{filepath.Join("locked", "file.md")},
+		touchedPaths: []string{rel},
+		preApply:     map[string][]byte{rel: nil}, // absent pre-Apply → rollback removes
 	}
-	// Restore succeeds (no touched paths to restore); the remove path
-	// is what fails.
 	if err := tx.rollback(); err == nil {
 		t.Error("expected rollback to capture remove error")
+	}
+}
+
+// TestRollback_RemoveErrorIsCapturedWhenRestoreSucceeds pins the
+// rollback branch where restorePaths succeeds (the file is in HEAD)
+// but the captured-absent Remove fails (its parent is locked). The
+// existing TestApply_WrapsErrorWhenRollbackAlsoFails pins the
+// restore-also-fails arm; this is the remove-only arm.
+func TestRollback_RemoveErrorIsCapturedWhenRestoreSucceeds(t *testing.T) {
+	t.Parallel()
+	if os.Geteuid() == 0 {
+		t.Skip("root bypasses permission checks")
+	}
+	root := t.TempDir()
+	ctx := context.Background()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatal(err)
+	}
+	parent := filepath.Join(root, "locked")
+	if err := os.Mkdir(parent, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rel := filepath.Join("locked", "file.md")
+	full := filepath.Join(parent, "file.md")
+	// Commit the file at HEAD so restorePaths' git restore succeeds.
+	if err := os.WriteFile(full, []byte("HEAD content\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, rel); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	// Lock the parent to read-only. Overwriting the existing file's
+	// content (what git restore does) still succeeds because the file's
+	// own perm is writable; unlinking the file (what Remove does)
+	// requires write on the parent and fails with EACCES.
+	if err := os.Chmod(parent, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(parent, 0o755) })
+
+	tx := &applyTx{
+		root:         root,
+		ctx:          ctx,
+		touchedPaths: []string{rel},
+		preApply:     map[string][]byte{rel: nil}, // forces the Remove arm
+	}
+	err := tx.rollback()
+	if err == nil {
+		t.Fatal("expected rollback to capture Remove error")
+	}
+	if !strings.Contains(err.Error(), "removing") {
+		t.Errorf("expected error to mention 'removing'; got: %v", err)
 	}
 }
 
@@ -69,7 +125,7 @@ func TestRollback_RemoveError(t *testing.T) {
 // rollback does nothing.
 func TestRollback_NoOpWhenCommitted(t *testing.T) {
 	t.Parallel()
-	tx := &applyTx{committed: true, touchedPaths: []string{"x"}, createdFiles: []string{"y"}}
+	tx := &applyTx{committed: true, touchedPaths: []string{"x"}, preApply: map[string][]byte{"x": nil}}
 	if err := tx.rollback(); err != nil {
 		t.Errorf("committed rollback should be no-op; got %v", err)
 	}
@@ -127,8 +183,8 @@ func TestApply_WrapsErrorWhenRollbackAlsoFails(t *testing.T) {
 	// rollback-also-fails branch by making the post-failure restore
 	// hit a worktree where .git has been removed. We do this by
 	// running rollback() directly on an applyTx whose root is a
-	// non-git dir AND whose createdFiles points at a locked-parent
-	// path so both restore and remove fail.
+	// non-git dir AND whose preApply records an absent entry at a
+	// locked-parent path, so both restore and remove fail.
 	bareDir := t.TempDir()
 	parent := filepath.Join(bareDir, "locked")
 	if err := os.Mkdir(parent, 0o755); err != nil {
@@ -143,11 +199,12 @@ func TestApply_WrapsErrorWhenRollbackAlsoFails(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(parent, 0o755) })
 
+	rel := filepath.Join("locked", "x.md")
 	tx := &applyTx{
 		root:         bareDir,
 		ctx:          context.Background(),
-		touchedPaths: []string{filepath.Join("locked", "x.md")},
-		createdFiles: []string{filepath.Join("locked", "x.md")},
+		touchedPaths: []string{rel},
+		preApply:     map[string][]byte{rel: nil}, // absent pre-Apply → rollback removes (and fails)
 	}
 	if err := tx.rollback(); err == nil {
 		t.Error("expected rollback to fail (both restore and remove broken)")

@@ -55,7 +55,7 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		return conflictErr
 	}
 
-	tx := &applyTx{root: root, ctx: ctx}
+	tx := &applyTx{root: root, ctx: ctx, preApply: make(map[string][]byte)}
 	if len(staged) > 0 {
 		stashMsg := fmt.Sprintf("aiwf pre-verb stash: %s", p.Subject)
 		if stashErr := gitops.StashStaged(ctx, root, stashMsg); stashErr != nil {
@@ -102,6 +102,15 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		if op.Type != OpMove {
 			continue
 		}
+		// Capture pre-Apply worktree state of BOTH endpoints before
+		// `git mv` mutates the tree, so a rollback restores src's bytes
+		// and removes dest if dest didn't exist pre-Apply. G-0170.
+		if capErr := tx.capturePreApply(op.Path); capErr != nil { //coverage:ignore requires concurrent FS mutation: capturePreApply only errors when Lstat or post-IsRegular ReadFile race the file
+			return capErr
+		}
+		if capErr := tx.capturePreApply(op.NewPath); capErr != nil { //coverage:ignore requires concurrent FS mutation: capturePreApply only errors when Lstat or post-IsRegular ReadFile race the file
+			return capErr
+		}
 		destFull := filepath.Join(root, op.NewPath)
 		if mkdirErr := os.MkdirAll(filepath.Dir(destFull), 0o755); mkdirErr != nil {
 			return fmt.Errorf("creating parent of %s: %w", op.NewPath, mkdirErr)
@@ -118,8 +127,13 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		if op.Type != OpWrite {
 			continue
 		}
+		// Capture pre-Apply worktree bytes (or absent marker) BEFORE
+		// overwriting on disk so rollback can restore the exact pre-Apply
+		// state — not HEAD — when the commit fails. G-0170.
+		if capErr := tx.capturePreApply(op.Path); capErr != nil { //coverage:ignore requires concurrent FS mutation: capturePreApply only errors when Lstat or post-IsRegular ReadFile race the file
+			return capErr
+		}
 		full := filepath.Join(root, op.Path)
-		preexisted := fileExists(full)
 		if mkdirErr := os.MkdirAll(filepath.Dir(full), 0o755); mkdirErr != nil {
 			return fmt.Errorf("creating %s: %w", filepath.Dir(op.Path), mkdirErr)
 		}
@@ -128,9 +142,6 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		}
 		writtenPaths = append(writtenPaths, op.Path)
 		tx.touchedPaths = append(tx.touchedPaths, op.Path)
-		if !preexisted {
-			tx.createdFiles = append(tx.createdFiles, op.Path)
-		}
 	}
 
 	if len(writtenPaths) > 0 {
@@ -337,44 +348,106 @@ func parseLsof(out string) (pid, name string) {
 
 // applyTx tracks the paths a partial Apply has touched so the
 // deferred rollback can restore the repo to its pre-call state.
+//
+// preApply holds the captured pre-Apply worktree state of each touched
+// path, populated by capturePreApply *before* any mutation runs: nil
+// bytes encode "path was absent on disk pre-Apply" (its rollback is a
+// remove), non-nil bytes encode "path's worktree content pre-Apply"
+// (its rollback is a write-back of those bytes). This makes a failed
+// commit leave the worktree exactly as the operator left it — including
+// uncommitted edits at touched paths — rather than reverting to HEAD.
+// G-0170.
 type applyTx struct {
 	root         string
 	ctx          context.Context
-	touchedPaths []string // every path that may need restoring (sources + dests)
-	createdFiles []string // brand-new files that didn't exist at HEAD; remove on rollback
-	committed    bool     // when true, rollback is a no-op for the verb's mutations
-	stashed      bool     // when true, the user's pre-existing stage was pushed; rollback pops it
+	touchedPaths []string          // every path that may need restoring (sources + dests)
+	preApply     map[string][]byte // captured pre-Apply worktree state; nil = absent
+	committed    bool              // when true, rollback is a no-op for the verb's mutations
+	stashed      bool              // when true, the user's pre-existing stage was pushed; rollback pops it
 }
 
-// rollback restores the worktree and index to HEAD for every touched
-// path, removes any brand-new files, and (if the user's stage was
-// pushed for verb isolation) pops it back into the index. Safe to
+// capturePreApply records the worktree bytes (or an absent marker) of
+// rel BEFORE Apply touches it, so rollback can restore the exact
+// pre-Apply state for that path. Idempotent: a second call for the
+// same path is a no-op so that an intermediate-mutation read can't
+// overwrite the genuine pre-Apply snapshot.
+//
+// G-0170.
+func (t *applyTx) capturePreApply(rel string) error {
+	if _, already := t.preApply[rel]; already {
+		return nil
+	}
+	full := filepath.Join(t.root, rel)
+	info, err := os.Lstat(full)
+	if errors.Is(err, os.ErrNotExist) {
+		t.preApply[rel] = nil
+		return nil
+	}
+	if err != nil { //coverage:ignore requires concurrent FS mutation: Lstat returns non-ErrNotExist only when the path changes type or perms between the two stat-class calls
+		return fmt.Errorf("capturing pre-apply state of %s: %w", rel, err)
+	}
+	if !info.Mode().IsRegular() {
+		// Directories (aiwf rename/reallocate move epic and contract
+		// dirs) and other non-regular files can't be captured as bytes.
+		// Don't record an entry — rollback then falls through to the
+		// existing `git restore --staged --worktree` path for that
+		// pathspec, which handles tracked directory contents correctly.
+		return nil
+	}
+	data, err := os.ReadFile(full)
+	if err != nil { //coverage:ignore requires concurrent FS mutation: ReadFile fails after a successful IsRegular check only if the file is unlinked or chmoded between the calls
+		return fmt.Errorf("capturing pre-apply state of %s: %w", rel, err)
+	}
+	t.preApply[rel] = data
+	return nil
+}
+
+// rollback restores the worktree and index for every touched path to
+// the operator's pre-Apply state — not HEAD — and, if the user's stage
+// was pushed for verb isolation, pops it back into the index. Safe to
 // call multiple times. Returns the first non-nil error encountered.
+//
+// Two-step restore: first `git restore --staged --worktree -- <paths>`
+// clears the verb's staged entries (the worktree side reverts to HEAD,
+// which is fine because the next step overwrites it). Then each touched
+// path is restored to its captured pre-Apply state — write back the
+// captured bytes, or remove the file if it didn't exist pre-Apply.
+// This is the load-bearing step that closes G-0170: pre-existing
+// uncommitted edits at touched paths survive a failed commit.
 //
 // Stash pop runs even when committed=true is false, because a partial
 // failure between stash-push and commit-success leaves the stash on
 // the stack — we must restore the user's index regardless of whether
 // the verb's mutations rolled back.
 func (t *applyTx) rollback() error {
-	if t == nil {
-		return nil
-	}
 	var firstErr error
-	if !t.committed && (len(t.touchedPaths) > 0 || len(t.createdFiles) > 0) {
+	if !t.committed && len(t.touchedPaths) > 0 {
 		dedup := dedupePaths(t.touchedPaths)
-		// `git restore --staged --worktree -- <paths>` undoes index +
-		// worktree changes for tracked paths. For paths that didn't
-		// exist at HEAD (newly created files) git restore yields a
-		// "pathspec did not match" warning but still resets staged
-		// state for the existing paths. We then explicitly remove the
-		// new files from the worktree and from the index.
+		// Step 1: clear the verb's index entries. The worktree-revert
+		// side-effect (paths revert to HEAD) is harmless — step 2
+		// overwrites the worktree from the captured pre-Apply state.
 		if rErr := restorePaths(t.ctx, t.root, dedup); rErr != nil {
 			firstErr = rErr
 		}
-		for _, p := range t.createdFiles {
+		// Step 2: write each touched path back to its pre-Apply bytes,
+		// or remove it if it was absent on disk pre-Apply. Apply
+		// guarantees every touchedPaths entry is also in preApply
+		// (capture runs before each mutation, append runs after),
+		// so we look up unconditionally.
+		for _, p := range dedup {
+			captured := t.preApply[p]
 			full := filepath.Join(t.root, p)
-			if rmErr := os.Remove(full); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) && firstErr == nil {
-				firstErr = fmt.Errorf("removing %s: %w", p, rmErr)
+			if captured == nil {
+				if rmErr := os.Remove(full); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) && firstErr == nil {
+					firstErr = fmt.Errorf("removing %s on rollback: %w", p, rmErr)
+				}
+				continue
+			}
+			if mkErr := os.MkdirAll(filepath.Dir(full), 0o755); mkErr != nil && firstErr == nil { //coverage:ignore requires concurrent FS mutation: the parent was readable at capture time
+				firstErr = fmt.Errorf("creating parent of %s on rollback: %w", p, mkErr)
+			}
+			if wErr := os.WriteFile(full, captured, 0o644); wErr != nil && firstErr == nil { //coverage:ignore requires concurrent FS mutation: the path was a regular file readable at capture time
+				firstErr = fmt.Errorf("restoring %s to pre-apply state: %w", p, wErr)
 			}
 		}
 	}
@@ -388,18 +461,6 @@ func (t *applyTx) rollback() error {
 		t.stashed = false
 	}
 	return firstErr
-}
-
-// fileExists reports whether path resolves to a regular file at the
-// time of the call. Used to distinguish "writing to an existing
-// tracked file" from "creating a brand-new file" so rollback knows
-// whether to remove the file or just unstage it.
-func fileExists(path string) bool {
-	info, err := os.Lstat(path)
-	if err != nil {
-		return false
-	}
-	return info.Mode().IsRegular()
 }
 
 // dedupePaths removes duplicates while preserving order.

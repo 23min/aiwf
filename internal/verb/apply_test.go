@@ -300,6 +300,112 @@ func TestApply_RollsBackOnCommitFailure(t *testing.T) {
 	}
 }
 
+// TestApply_RollbackPreservesPreExistingDirtyContent: when a touched
+// path carries uncommitted worktree edits BEFORE Apply runs, a failed
+// commit must leave those edits intact — not silently revert the path
+// to HEAD. The old rollback ran `git restore --worktree` which
+// discarded the pre-Apply bytes; this test pins the fix that captures
+// pre-Apply state and restores from the capture.
+//
+// Closes G-0170.
+func TestApply_RollbackPreservesPreExistingDirtyContent(t *testing.T) {
+	r := newApplyTestRepo(t)
+	// Trigger commit failure deterministically via empty git identity
+	// (same shape as TestApply_RollsBackOnCommitFailure).
+	t.Setenv("GIT_AUTHOR_NAME", "")
+	t.Setenv("GIT_AUTHOR_EMAIL", "")
+	t.Setenv("GIT_COMMITTER_NAME", "")
+	t.Setenv("GIT_COMMITTER_EMAIL", "")
+	t.Setenv("GIT_CONFIG_GLOBAL", "/dev/null")
+	t.Setenv("GIT_CONFIG_SYSTEM", "/dev/null")
+
+	// The tracked path has HEAD content "original body" (seeded by
+	// newApplyTestRepo). Modify the worktree to a pre-Apply
+	// uncommitted edit — simulating the bless-mode case where the
+	// operator's hand-authored prose lives only in the worktree.
+	const dirty = "---\nid: E-01\n---\noriginal body\n\nOperator hand-edit — unsaved.\n"
+	full := filepath.Join(r.root, r.trackedPath)
+	if err := os.WriteFile(full, []byte(dirty), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Apply writes different content to the same path; commit will fail.
+	plan := &verb.Plan{
+		Subject:  "test pre-apply preservation",
+		Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}},
+		Ops: []verb.FileOp{
+			{Type: verb.OpWrite, Path: r.trackedPath, Content: []byte("verb-computed content\n")},
+		},
+	}
+	if err := verb.Apply(r.ctx, r.root, plan); err == nil {
+		t.Fatal("expected commit failure")
+	}
+
+	// The load-bearing assertion: the worktree must hold the
+	// pre-Apply dirty bytes, not HEAD and not the verb's content.
+	got, err := os.ReadFile(full)
+	if err != nil {
+		t.Fatalf("read tracked: %v", err)
+	}
+	if string(got) != dirty {
+		t.Errorf("worktree after rollback = %q\n want %q (pre-Apply dirty bytes — rollback must not revert to HEAD)", got, dirty)
+	}
+	if headSHA(t, r.root) != r.preCommit {
+		t.Error("HEAD must not advance on commit failure")
+	}
+}
+
+// TestApply_RollbackIsFullyClean_G0170Regression: under lock
+// contention the rollback's own `git restore` step also fails (it
+// needs the same lock), yet the touched path must end up at its
+// pre-Apply state — proving the load-bearing property of the G-0170
+// fix: the captured-bytes write-back is pure filesystem and does not
+// depend on git being available for the restoration. Pre-G-0170 this
+// test fails with the verb's intended content still on disk.
+//
+// Closes G-0170.
+func TestApply_RollbackIsFullyClean_G0170Regression(t *testing.T) {
+	t.Parallel()
+	r := newApplyTestRepo(t)
+	// Synthetically hold .git/index.lock for the duration of the test
+	// so every git op Apply attempts (including the rollback's
+	// restorePaths) fails with lock contention.
+	lockPath := filepath.Join(r.root, ".git", "index.lock")
+	if err := os.WriteFile(lockPath, []byte("hold"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Remove(lockPath) })
+
+	plan := &verb.Plan{
+		Subject:  "test fully-clean rollback under lock contention",
+		Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}},
+		Ops: []verb.FileOp{
+			{Type: verb.OpWrite, Path: r.trackedPath, Content: []byte("verb-intended content\n")},
+		},
+	}
+	if err := verb.Apply(r.ctx, r.root, plan); err == nil {
+		t.Fatal("expected lock-contention failure")
+	}
+
+	full := filepath.Join(r.root, r.trackedPath)
+	got, err := os.ReadFile(full)
+	if err != nil {
+		t.Fatalf("read tracked: %v", err)
+	}
+	// Pre-G-0170 regression: the worktree still holds the verb's
+	// content because the rollback's git restore couldn't run.
+	if strings.Contains(string(got), "verb-intended content") {
+		t.Errorf("G-0170 regression: worktree still holds the verb's content after a rollback under lock contention\n got:\n%s", got)
+	}
+	// And the path is at its pre-Apply (== HEAD) state.
+	if !strings.Contains(string(got), "original body") {
+		t.Errorf("expected rollback to restore pre-Apply content; got:\n%s", got)
+	}
+	if headSHA(t, r.root) != r.preCommit {
+		t.Error("HEAD must not advance on lock-contention failure")
+	}
+}
+
 // TestApply_RollsBackOnGitAddFailure: a path that doesn't exist on
 // disk (e.g. write was somehow skipped) makes `git add` fail. We
 // can simulate this by writing a content of length 0 to a path then

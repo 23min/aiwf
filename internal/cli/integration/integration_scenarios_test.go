@@ -349,15 +349,34 @@ func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
 	if !strings.Contains(out, "index.lock") {
 		t.Errorf("expected lock-contention diagnostic to mention index.lock; got:\n%s", out)
 	}
-	// Release the lock. Note: the verb's rollback ALSO ran under the
-	// lock, so it failed too — the file is already at `wontfix` on
-	// disk (the verb's intended write was made; only the commit
-	// failed). The "manual recovery" path is to commit that pending
-	// change, then run --audit-only to backfill the trailers.
-	if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) {
+	// Release the lock. After G-0170, the verb's rollback restores the
+	// touched path to its captured pre-Apply worktree state — pure
+	// filesystem writes, no git lock needed — so the gap file is back
+	// at `status: open`, not the half-applied `wontfix`. Confirm that
+	// (the G-0170 fix is what makes this assertion hold), then perform
+	// the manual mutation that the failed verb would have done, commit
+	// it without trailers, and let --audit-only backfill the trail.
+	if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) { //coverage:ignore defensive: lock file always exists at this point in the scenario
 		t.Fatalf("remove lock: %v", err)
 	}
 	gapRel := mustFindFile(t, root, "G-0001-")
+	gapFull := filepath.Join(root, gapRel)
+	rolledBack, readErr := os.ReadFile(gapFull)
+	if readErr != nil {
+		t.Fatalf("read gap after rollback: %v", readErr)
+	}
+	if !strings.Contains(string(rolledBack), "status: open") {
+		t.Errorf("expected rollback to restore status: open (G-0170); got:\n%s", rolledBack)
+	}
+	if strings.Contains(string(rolledBack), "status: wontfix") {
+		t.Errorf("rollback left the half-applied wontfix on disk (G-0170 regression); got:\n%s", rolledBack)
+	}
+	// Manually re-do the mutation the verb intended: flip the
+	// frontmatter status from open → wontfix.
+	manual := strings.Replace(string(rolledBack), "status: open", "status: wontfix", 1)
+	if writeErr := os.WriteFile(gapFull, []byte(manual), 0o644); writeErr != nil {
+		t.Fatalf("write manual edit: %v", writeErr)
+	}
 	if out, err := testutil.RunGit(root, "add", gapRel); err != nil {
 		t.Fatalf("git add: %v\n%s", err, out)
 	}
