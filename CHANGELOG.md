@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-05-28
+
+### Added — `aiwf doctor` cross-platform plugin-index path-corruption advisory (closes G-0174)
+
+When running in a Linux container, `aiwf doctor` scans the Claude Code plugin index (`known_marketplaces.json`, `installed_plugins.json`) for path values rooted at a foreign-OS prefix (e.g. macOS `/Users/...` inside a Linux container, or the inverse) and emits an advisory `plugin-paths:` line naming [anthropics/claude-code#31388](https://github.com/anthropics/claude-code/issues/31388) and pointing at the shadow-mount remediation. Complements the existing `plugin-mount:` line (which only checks that the in-container target exists and is populated, not that the paths *inside* the index are OS-correct). Advisory only — never increments doctor's problem count, since cached skills often still load while marketplace refresh fails.
+
 ### Added — E-0037: scope-reach as an executable legality precondition in the spec
 
 `scope-reach` (D-0006's three-edge scope reachability) is now an executable, legality-classed predicate in the legal-workflow spec — the verb-time out-of-scope refusal, previously enforced only in hand-written Go (M-0141), now lives inside the spec's bidirectional drift net. **No runtime reachability behavior changed**; this completes the formal-model certification M-0141 deferred (closes G-0171).
