@@ -1,8 +1,10 @@
 ---
 id: G-0150
 title: aiwf-verb trailer values unpoliced against registered-verb closed set
-status: open
+status: addressed
 discovered_in: M-0131
+addressed_by_commit:
+    - f66eb839
 ---
 ## Symptom
 
