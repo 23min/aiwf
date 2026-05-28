@@ -1,8 +1,10 @@
 ---
 id: G-0170
 title: Apply rollback discards pre-existing uncommitted worktree edits at touched paths
-status: open
+status: addressed
 discovered_in: M-0143
+addressed_by_commit:
+    - ed0b5014
 ---
 ## What's missing
 
