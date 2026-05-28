@@ -5,9 +5,12 @@ status: addressed
 addressed_by_commit:
     - "99583366"
 ---
-## Problem
+## Problem (original observation)
 
-`aiwf upgrade --check` on the host (binary built from pseudo-version `v0.8.1-0.20260516161658-02c349f629d7`) reports `target: v0.8.0 (tagged)` for several minutes after `v0.8.1` is pushed to the remote — even though the Go proxy is already serving `v0.8.1` on both endpoints:
+`aiwf upgrade --check` on the host (binary built from pseudo-version
+`v0.8.1-0.20260516161658-02c349f629d7`) reported `target: v0.8.0 (tagged)`
+for several minutes after `v0.8.1` was pushed to the remote — even though
+the Go proxy was already serving `v0.8.1` on both endpoints:
 
 ```
 $ curl -s https://proxy.golang.org/github.com/23min/aiwf/@latest
@@ -18,30 +21,59 @@ $ curl -s https://proxy.golang.org/github.com/23min/aiwf/@v/list
 v0.8.1
 ```
 
-Observed from a Linux devcontainer; the host that reported `target: v0.8.0` is macOS. The kernel's `Latest()` function (`internal/version/version.go:265`) uses `/@v/list`-first per the documented anti-pattern fix, which should pick up `v0.8.1` from the list.
+Observed from a Linux devcontainer; the host that reported `target: v0.8.0`
+was macOS. The kernel's `Latest()` function had already been switched to
+`/@v/list`-first resolution in `32672cda` (2026-05-03), so the resolution
+strategy was already correct at the time of the observation.
 
-## Hypotheses (unverified)
+## Investigation (2026-05-28)
 
-1. **Edge-cache propagation lag.** `proxy.golang.org` is a CDN; different edges propagate the list response at different rates. My devcontainer's curl hits a different POP than the user's host. Several minutes is plausible but not documented anywhere.
-2. **GOPROXY chain on host.** If host has a corporate proxy or `GOPROXY=https://goproxy.cn,direct`, that proxy may be staler than the default. Need to check `go env GOPROXY` on host.
-3. **Host's resolver doesn't actually call `/@v/list`.** Some path other than `internal/version/Latest()` is being used (e.g. an older entry point the upgrade verb calls).
-4. **Local module-download cache on host.** `~/go/pkg/mod/cache/download/github.com/23min/aiwf/@v/list` may have been written by an earlier `go install` and is being served stale by a local-cache layer between the binary and the proxy.
+### Hypotheses verdicts
 
-Resolution likely needs at least one round of host-side diagnostics: `aiwf upgrade --check` with `-v` (if available), `go env GOPROXY`, direct `curl` from the host to the proxy, and inspection of `~/go/pkg/mod/cache/download/`.
+The four hypotheses from the original filing were investigated as follows.
 
-## Why it matters
+| # | Hypothesis | Verdict |
+|---|---|---|
+| 1 | Edge-cache propagation lag on `proxy.golang.org`'s CDN | Confirmed plausible; **already handled** by `proxyStaleHint()` (see *Existing remediation* below). |
+| 2 | Host's `GOPROXY` chain serves a staler view than the default | Confirmed plausible; **already handled** by `proxyStaleHint()` (suggests `GOPROXY=direct` to bypass). |
+| 3 | A code path other than `Latest()` is being used for resolution | **Disproven by code audit.** `version.Latest()` is the only resolver. It is called from exactly two sites: `cli/upgrade/upgrade.go` (`ResolveTarget("latest")` at line 224) and `cli/doctor/doctor.go` (line 728). No alternate path exists. |
+| 4 | Local `~/go/pkg/mod/cache/download/.../@v/list` is being served stale by a cache layer between the binary and the proxy | **Disproven by code audit.** `latestFor()` uses `http.DefaultClient` to hit `proxy.golang.org` over raw HTTP. The Go module-download cache is populated only by `go install` / `go mod download`; our resolver never touches it. |
 
-`aiwf upgrade` is the documented consumer-side upgrade path (CLAUDE.md *Release process*). If a release lands cleanly on the remote but consumers can't see it for an indeterminate time, the "release → consumer picks it up" loop is broken at the user-facing surface — not at the publishing surface. The `--worktrees` motivating example from this session is the canonical symptom.
+### Existing remediation
 
-## Reproduction
+The fix for the observed scenario shipped in `99583366`
+(`fix(upgrade): hint on proxy CDN stale-tag scenario (closes G-0149)`),
+23 minutes after this gap was filed. It added `proxyStaleHint()` in
+`internal/cli/upgrade/upgrade.go`: when the running binary's pseudo-version
+base is newer than the resolved `--check` target — the exact signature of a
+freshly-pushed tag that the proxy CDN has not yet propagated to every edge —
+the verb prints:
 
-1. Cut and push a new tag (e.g. `v0.8.1` on top of v0.8.0).
-2. Verify proxy has it: `curl -s https://proxy.golang.org/github.com/23min/aiwf/@v/list`.
-3. From a host with the previous binary installed: `aiwf upgrade --check`.
-4. Expected: `target: v0.8.1`. Observed: `target: v0.8.0`.
+```
+hint:     pseudo-base <X> is newer than target <Y>; the Go module
+          proxy CDN may not have propagated the freshest tag yet.
+          retry in a few minutes, or set GOPROXY=direct to bypass.
+```
 
-Time-bound the wait — at minute 0 fail is expected; at minute T (TBD) it should succeed.
+That covers both environmental root causes (CDN propagation lag and
+GOPROXY-chain staleness) with the only two remedies the consumer-side
+binary can offer: wait, or bypass the proxy chain.
 
-## Out-of-scope for this gap
+## Why no further code change
 
-- The CI-side `go.yml` red state since 2026-05-19 (separate concern; "aiwf binary not found on PATH" pattern).
+The residual scenarios — edge-cache propagation and operator GOPROXY
+configuration — are outside the binary's control. The kernel already does
+what it reasonably can:
+
+- Correct resolver (`/@v/list`-first, anti-pattern-fix in place).
+- Diagnostic hint when the stale-tag signature is detected (`99583366`).
+
+A `--verbose` / `-v` diagnostic flag on `aiwf upgrade --check` (printing the
+resolved proxy URL, the raw response, and the chosen version) would be a
+reasonable follow-on if this pattern recurs and remote diagnosis becomes
+necessary, but it's not warranted today: live verification at close-out
+confirmed the proxy is consistent and the resolver picks up tags correctly.
+
+This gap stayed `open` only because its status was never promoted after
+`99583366`'s "(closes G-0149)" subject — the same status-hygiene class as
+the E-0036 scope-gaps the whiteboard surfaced on 2026-05-26.
