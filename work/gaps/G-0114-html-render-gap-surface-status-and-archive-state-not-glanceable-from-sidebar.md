@@ -1,7 +1,9 @@
 ---
 id: G-0114
 title: 'HTML render gap surface: status and archive state not glanceable from sidebar'
-status: open
+status: addressed
+addressed_by:
+    - E-0029
 ---
 ## What's missing
 
