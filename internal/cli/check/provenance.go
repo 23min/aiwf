@@ -34,7 +34,7 @@ import (
 // Untrailered commits are handled by the separate step-7b audit pass,
 // which uses a different filter (range scoped per ResolveUntrailedRange,
 // no trailer grep).
-func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string) ([]check.Finding, error) {
+func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}) ([]check.Finding, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -57,7 +57,31 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		return nil, uErr
 	}
 	findings = append(findings, check.RunUntrailedAudit(untrailed)...)
+	// G-0150: warn on any `aiwf-verb:` trailer whose value is not in
+	// the running binary's Cobra command tree, scoped to the same
+	// `@{u}..HEAD` window as the untrailered audit. The chokepoint
+	// catches fabricated trailers (e.g. an LLM-invented
+	// `aiwf-verb: implement` on a hand-rolled `feat(...)` commit) at
+	// pre-push; historical fabrications already on trunk stay out of
+	// scope (rewriting their SHAs would invalidate the kernel's
+	// addressed_by_commit references; the rule's job is to stop the
+	// bleed, not retroactively flag what can't be repaired).
+	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs)...)
 	return findings, nil
+}
+
+// asScopeCommits adapts the untrailered-audit's commit shape to the
+// scope.Commit shape the trailer-verb rule reads. Both carry SHA +
+// parsed trailers; the rule needs nothing else.
+func asScopeCommits(in []check.UntrailedCommit) []scope.Commit {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]scope.Commit, len(in))
+	for i, c := range in {
+		out[i] = scope.Commit{SHA: c.SHA, Trailers: c.Trailers}
+	}
+	return out
 }
 
 // ResolveUntrailedRange picks the `git log` range for the step-7b

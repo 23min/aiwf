@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -214,6 +215,19 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(authorize.NewCmd())
 	cmd.AddCommand(acknowledgeillegal.NewCmd())
 
+	// G-0150: snapshot the explicit verb set into Annotations BEFORE
+	// any caller calls Execute (which is when Cobra's `help` and
+	// `completion` auto-adds enter the tree). The trailer-verb-unknown
+	// rule reads this annotation at RunE time to filter Cobra's
+	// auto-adds out of the closed set without hardcoding their names.
+	if cmd.Annotations == nil {
+		cmd.Annotations = map[string]string{}
+	}
+	explicit := make([]string, 0, len(cmd.Commands()))
+	for _, c := range cmd.Commands() {
+		explicit = append(explicit, c.Name())
+	}
+	cmd.Annotations[cliutil.AnnotationRegisteredVerbs] = strings.Join(explicit, "\n")
 	return cmd
 }
 

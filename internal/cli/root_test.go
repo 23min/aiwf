@@ -104,6 +104,44 @@ func TestNewRootCmd_HasExpectedVerbs(t *testing.T) {
 	}
 }
 
+// TestNewRootCmd_AnnotationRecordsExplicitVerbs pins the principled
+// mechanism behind G-0150's trailer-verb-unknown check: NewRootCmd
+// snapshots every command it explicitly registers into Annotations
+// BEFORE Execute runs (and thus before Cobra's auto-added `help` /
+// `completion` commands enter the tree). The annotation is the
+// single source of truth — adding a new verb to NewRootCmd flows
+// into the annotation automatically; the trailer-value enumerator
+// in internal/cli/check/ reads the same key.
+//
+// Closes G-0150.
+func TestNewRootCmd_AnnotationRecordsExplicitVerbs(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd()
+	raw, ok := root.Annotations[cliutil.AnnotationRegisteredVerbs]
+	if !ok {
+		t.Fatalf("annotation %q missing from root", cliutil.AnnotationRegisteredVerbs)
+	}
+	got := map[string]bool{}
+	for _, name := range strings.Split(raw, "\n") {
+		if name != "" {
+			got[name] = true
+		}
+	}
+	// Spot-check: a stable subset of explicit verbs must appear.
+	for _, want := range []string{"check", "add", "promote", "archive", "version"} {
+		if !got[want] {
+			t.Errorf("annotation missing explicit verb %q", want)
+		}
+	}
+	// Cobra auto-adds run later (during Execute), so they MUST NOT be
+	// in the annotation snapshot.
+	for _, autoAdd := range []string{"help", "completion"} {
+		if got[autoAdd] {
+			t.Errorf("annotation contains Cobra auto-add %q; the snapshot must run before Execute", autoAdd)
+		}
+	}
+}
+
 // TestResolvedVersion_FallsBackToBuildInfo: when the package-level
 // Version is at its default sentinel "dev", ResolvedVersion returns
 // the buildinfo-derived value. Catches the bug class where

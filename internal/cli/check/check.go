@@ -44,7 +44,8 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, format, pretty, since, shapeOnly, verbose))
+			verbs := enumerateRegisteredVerbs(c.Root())
+			return cliutil.WrapExitCode(Run(root, format, pretty, since, shapeOnly, verbose, verbs))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -61,7 +62,7 @@ func NewCmd() *cobra.Command {
 // (pure-tree + provenance + tests-metrics + contracts + tree
 // discipline), applies aiwf.yaml-driven severity bumps, renders the
 // findings in the chosen format, and returns the exit code.
-func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool) int {
+func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool, registeredVerbs map[string]struct{}) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf check: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
@@ -97,7 +98,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	contractFindings := contract.RunValidation(ctx, tr, resolved, contracts)
 	findings = append(findings, contractFindings...)
 
-	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since)
+	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs)
 	if pErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
 		return cliutil.ExitInternal
