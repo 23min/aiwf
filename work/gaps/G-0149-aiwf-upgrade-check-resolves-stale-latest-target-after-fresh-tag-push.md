@@ -1,7 +1,9 @@
 ---
 id: G-0149
 title: aiwf upgrade --check resolves stale latest target after fresh tag push
-status: open
+status: addressed
+addressed_by_commit:
+    - "99583366"
 ---
 ## Problem
 
