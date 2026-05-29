@@ -1,7 +1,7 @@
 ---
 id: M-0151
 title: Agent-target seam in the materializer (Claude writer behind the seam)
-status: draft
+status: in_progress
 parent: E-0038
 depends_on:
     - M-0149
