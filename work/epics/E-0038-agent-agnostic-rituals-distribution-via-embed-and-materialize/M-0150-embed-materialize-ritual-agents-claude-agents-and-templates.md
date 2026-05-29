@@ -1,7 +1,7 @@
 ---
 id: M-0150
 title: Embed + materialize ritual agents (.claude/agents/) and templates
-status: draft
+status: in_progress
 parent: E-0038
 depends_on:
     - M-0149
