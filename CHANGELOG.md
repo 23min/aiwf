@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0038: rituals ship embedded; Claude marketplace retired
+
+The companion rituals — planning/lifecycle skills (`aiwfx-*`), engineering skills (`wf-*`), the role agents (planner/builder/reviewer/deployer), and entity templates — are now **embedded in the `aiwf` binary** from a pinned upstream snapshot and materialized into `.claude/` by `aiwf init` / `aiwf update`, alongside the verb skills. There is no marketplace install and no `/plugin` step; the ritual version always equals the binary version. `aiwf doctor` now reports a `rituals:` line verifying the materialized artifacts (pointing at `aiwf update` if any are missing) and a `marketplace-rituals-overlap` de-dupe guard that instructs operators to disable a still-enabled `ai-workflow-rituals` plugin — without editing `settings.json`. The `doctor.recommended_plugins` config key is retired (old yamls still load; the key is ignored). The materializer is parameterized by agent target, so non-Claude targets (Codex `.agents/skills/`, etc.) become new writers behind the seam. Operator-setup docs (CLAUDE.md, README) are rewritten to the one-command flow. Closes G-0177; see `work/epics/E-0038-*/wrap.md`.
+
 ## [0.9.0] — 2026-05-28
 
 ### Added — `aiwf doctor` cross-platform plugin-index path-corruption advisory (closes G-0174)
