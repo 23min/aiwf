@@ -1,0 +1,95 @@
+# gitleaks configuration for aiwf
+#
+# Closes G-0103: contributor-state path-leak detection.
+#
+# Inherits gitleaks' built-in rule set (secrets, API keys, tokens), then
+# layers project-specific rules for absolute-path / operator-state leaks
+# in committed text. The lint exists because nothing else fires on
+# patterns like `/Users/<name>/...` — they slip past code review and ship
+# quietly, leaking contributor identity and machine layout into a
+# public repo.
+#
+# Rule set (path-leak class):
+#   - macOS home (`/Users/<name>/`)
+#   - Linux home (`/home/<name>/`)
+#   - Windows user (`C:\Users\<name>\`)
+#   - Shell home expansion (`$HOME/...`, `~/`) — only flagged in
+#     prose contexts (markdown), not shell scripts where they're idiomatic.
+#
+# Allowlist policy:
+#   - `archive/` subdirs (per ADR-0004 forget-by-default; historical artifacts)
+#   - `testdata/` fixtures (synthetic by definition)
+#   - `.gitleaks.toml` itself (this file's example patterns)
+#   - `vendor/`, `node_modules/` (external code)
+#
+# Anti-allowlist (NOT allowlisted, will fire):
+#   - Survey docs under `docs/explorations/surveys/` — fix the leaks.
+#   - CLAUDE.md, work/, docs/ in general.
+
+title = "aiwf path-leak lint"
+
+[extend]
+useDefault = true
+
+# ---------- Path-leak rules ----------
+
+[[rules]]
+id = "path-leak-darwin-home"
+description = "Absolute path leak: macOS home directory"
+regex = '''/Users/[A-Za-z][A-Za-z0-9_.-]*/'''
+tags = ["path-leak", "contributor-state"]
+
+[[rules]]
+id = "path-leak-linux-home"
+description = "Absolute path leak: Linux home directory"
+regex = '''/home/[A-Za-z][A-Za-z0-9_.-]*/'''
+tags = ["path-leak", "contributor-state"]
+
+[[rules]]
+id = "path-leak-windows-userprofile"
+description = "Absolute path leak: Windows user directory"
+regex = '''C:\\Users\\[A-Za-z][A-Za-z0-9_.-]*'''
+tags = ["path-leak", "contributor-state"]
+
+# ---------- Global allowlist ----------
+
+[[allowlists]]
+description = "archive/ subdirs are forget-by-default per ADR-0004"
+paths = [
+    '''/archive/''',
+]
+
+[[allowlists]]
+description = "testdata/ fixtures are synthetic; treat as such"
+paths = [
+    '''testdata/''',
+]
+
+[[allowlists]]
+description = "gitleaks config carries example patterns by design"
+paths = [
+    '''\.gitleaks\.toml$''',
+]
+
+[[allowlists]]
+description = "external code, not authored here"
+paths = [
+    '''vendor/''',
+    '''node_modules/''',
+]
+
+[[allowlists]]
+description = "/home/vscode is the devcontainer's well-known user; not a contributor identity"
+regexes = [
+    '''/home/vscode/''',
+]
+
+[[allowlists]]
+description = "synthetic test placeholder (codified fixture user) — test files only"
+condition = "AND"
+paths = [
+    '''_test\.go$''',
+]
+regexes = [
+    '''/Users/x/''',
+]

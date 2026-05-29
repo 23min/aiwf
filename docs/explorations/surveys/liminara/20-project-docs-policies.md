@@ -3,7 +3,7 @@
 Extracted from project docs: governance, ADRs (0001-0008), CUE schemas, operational guides, and architectural documents.  
 Extraction date: 2026-05-03  
 Total candidates: 287  
-Source repos: `/Users/peterbru/Projects/liminara/docs/` (read-only)
+Source repos: `liminara/docs/` (read-only)
 
 ---
 

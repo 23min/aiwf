@@ -175,7 +175,7 @@ History: G-0147 introduced the `make diag-aiwf` target as the recommended chokep
 
 ## Cross-repo plugin testing
 
-When a milestone's deliverable is a `SKILL.md` (or other content) that lives in the rituals plugin repo at `/Users/peterbru/Projects/ai-workflow-rituals/` (distributed via the Claude Code marketplace), the **canonical authoring location during the milestone is a fixture in this repo** at `internal/policies/testdata/<skill-name>/SKILL.md`. AC tests under `internal/policies/` assert content claims against the fixture; red→green TDD iteration happens against it.
+When a milestone's deliverable is a `SKILL.md` (or other content) that lives in the rituals plugin repo at [`https://github.com/23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals) (distributed via the Claude Code marketplace), the **canonical authoring location during the milestone is a fixture in this repo** at `internal/policies/testdata/<skill-name>/SKILL.md`. AC tests under `internal/policies/` assert content claims against the fixture; red→green TDD iteration happens against it.
 
 At wrap, the fixture content is copied into the rituals repo as a separate commit there; the wrap-side spec records the rituals-repo commit SHA in *Validation*. A drift-check test in this repo compares the fixture against the local marketplace cache (`~/.claude/plugins/cache/ai-workflow-rituals/.../SKILL.md`) and fires if they diverge — and skips cleanly when the cache is absent (CI without a plugin install).
 
@@ -565,6 +565,7 @@ The kernel's "framework correctness must not depend on LLM behavior" principle a
 | Each new dep has a one-line justification                    | Code review (commit message / PR description)                    | Advisory                |
 | Mutating-verb commits carry `aiwf-verb` / `aiwf-entity` / `aiwf-actor` trailers | `internal/policies/trailer_keys.go` + the `principal_write_sites` policy + the untrailered-entity audit (G24, G31, G32) | Blocking via CI test    |
 | Bumping the Go floor in `go.mod`                             | Deliberate decision; document rationale in commit message        | Advisory                |
+| Contributor-state / path-leak in committed text (`/Users/<name>/`, `/home/<name>/`, `C:\Users\<name>\`) | `gitleaks git --staged --config=.gitleaks.toml` — pre-commit hook (G-0103) | Blocking pre-commit     |
 
 The four advisory lines are the items where mechanical enforcement is either too noisy (context.Context first arg — generics make a literal regex unreliable), too contextual (package-level mutable state — sometimes legitimate behind a guard), or self-policing (dep justification, deliberate floor bumps). Reviewers and the `Go conventions` section above are the chokepoint there.
 

@@ -1,6 +1,6 @@
 # AI Scaffolding Policy Candidates: Liminara Framework Mining
 
-**Mined:** 2026-05-03 | **Source:** `/Users/peterbru/Projects/liminara/` AI-instruction layer
+**Mined:** 2026-05-03 | **Source:** `liminara/` AI-instruction layer
 
 ---
 

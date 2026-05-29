@@ -29,4 +29,22 @@ if command -v go >/dev/null 2>&1; then
     fi
 fi
 
+# G-0103: contributor-state / path-leak gate via gitleaks.
+# Tolerant: missing gitleaks is a warning, not a block — same shape
+# as the missing-go branch above. CI runs gitleaks independently.
+# Install with `go install github.com/zricethezav/gitleaks/v8@latest`.
+if command -v gitleaks >/dev/null 2>&1; then
+    if ! (cd "$repo_root" && gitleaks git --staged --config=.gitleaks.toml --no-banner >&2); then
+        echo "" >&2
+        echo "pre-commit.local: gitleaks reported path-leak / secret findings." >&2
+        echo "                  Either fix the offender, allowlist it via" >&2
+        echo "                  .gitleaks.toml, or fingerprint-ignore (see" >&2
+        echo "                  gitleaks docs)." >&2
+        exit 1
+    fi
+else
+    echo "pre-commit.local: gitleaks not on PATH — path-leak gate skipped." >&2
+    echo "                  Install: go install github.com/zricethezav/gitleaks/v8@latest" >&2
+fi
+
 exit 0

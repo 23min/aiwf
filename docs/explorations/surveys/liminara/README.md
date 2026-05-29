@@ -1,6 +1,6 @@
 # `.scratch/liminara/` — policy-corpus mining
 
-Output of mining `/Users/peterbru/Projects/liminara` for policy candidates, to feed the policy-substrate PoC. The repo is gitignored (see `.gitignore`); content here is local-only.
+Output of mining `liminara` for policy candidates, to feed the policy-substrate PoC. The repo is gitignored (see `.gitignore`); content here is local-only.
 
 **Why this corpus exists:** to answer "what does a real body of rules / guards / decisions look like in a working repo, and what would it take to express them through the policy primitive sketched in `docs/explorations/policies-design-space.md` and `policy-substrates-and-execution.md`?"
 
@@ -52,7 +52,7 @@ A high-leverage PoC seven-policy slice (each is one runner + one EARS sentence, 
 1. **Mining was structural, not exhaustive.** Every rule in CLAUDE.md, every rule in `.ai-repo/rules/`, every governance doc, every ADR's *Decision* section, every CUE schema's invariants. Sample-only for the 21 framework skills (4 representative ones) and the long-tail architecture docs.
 2. **Candidate format was uniform across mining passes:** ID-shaped slug, one-sentence rule (paraphrase), source path, bindingness (RFC 2119 framing), audience, category guess. The categorization in `40-categorized.md` re-buckets these against the four-buckets-plus-one frame.
 3. **Three mining agents ran in parallel** to keep the main session's context window clean. Each wrote its corpus to its own file. Synthesis happened in the main session.
-4. **Read-only.** Nothing in `/Users/peterbru/Projects/liminara/` was modified.
+4. **Read-only.** Nothing in `liminara/` was modified.
 
 ## Sanitization needed before any of this lands in a public artifact
 

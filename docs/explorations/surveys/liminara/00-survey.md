@@ -1,7 +1,7 @@
 # Liminara Repository — Structural Survey
 
 **Last surveyed:** 2026-05-03  
-**Repository:** `/Users/peterbru/Projects/liminara`  
+**Repository:** `liminara`  
 **Project:** Liminara runtime for reproducible nondeterministic computation  
 **Status:** Pre-alpha, single-maintainer, archived policies visible
 
@@ -113,24 +113,24 @@ Summarizes AI Framework v2, lists agents, skills, templates, key rules.
 
 | Config File | Language | Enforcement | Path |
 |------------|----------|------------|------|
-| `mix.exs` | Elixir | Project definition, dependency management | `/Users/peterbru/Projects/liminara/runtime/mix.exs` |
-| `mix.lock` | Elixir | Locked dependency versions | `/Users/peterbru/Projects/liminara/runtime/mix.lock` |
-| `.formatter.exs` | Elixir | Code formatting rules | `/Users/peterbru/Projects/liminara/runtime/.formatter.exs` |
-| `.credo.exs` | Elixir | Static analysis, code quality checks | `/Users/peterbru/Projects/liminara/runtime/.credo.exs` |
-| `pyproject.toml` | Python | Project metadata, tool config (ruff, pytest) | `/Users/peterbru/Projects/liminara/runtime/python/pyproject.toml` |
-| `uv.lock` | Python | Locked dependency versions via uv | `/Users/peterbru/Projects/liminara/runtime/python/uv.lock` |
-| `tsconfig.json` | TypeScript | TS compiler options for proliminal.net | `/Users/peterbru/Projects/liminara/proliminal.net/tsconfig.json` |
-| `package.json` | Node/TypeScript | Dependencies for dag-map | `/Users/peterbru/Projects/liminara/dag-map/package.json` |
+| `mix.exs` | Elixir | Project definition, dependency management | `liminara/runtime/mix.exs` |
+| `mix.lock` | Elixir | Locked dependency versions | `liminara/runtime/mix.lock` |
+| `.formatter.exs` | Elixir | Code formatting rules | `liminara/runtime/.formatter.exs` |
+| `.credo.exs` | Elixir | Static analysis, code quality checks | `liminara/runtime/.credo.exs` |
+| `pyproject.toml` | Python | Project metadata, tool config (ruff, pytest) | `liminara/runtime/python/pyproject.toml` |
+| `uv.lock` | Python | Locked dependency versions via uv | `liminara/runtime/python/uv.lock` |
+| `tsconfig.json` | TypeScript | TS compiler options for proliminal.net | `liminara/proliminal.net/tsconfig.json` |
+| `package.json` | Node/TypeScript | Dependencies for dag-map | `liminara/dag-map/package.json` |
 
 ### Schema & Contract Validation
 
 | Schema File | Format | Purpose | Path |
 |------------|--------|---------|------|
-| `manifest/schema.cue` | CUE | Pack manifest validation (v1.0.0) | `/Users/peterbru/Projects/liminara/docs/schemas/manifest/schema.cue` |
-| `plan/schema.cue` | CUE | Plan DAG schema | `/Users/peterbru/Projects/liminara/docs/schemas/plan/schema.cue` |
-| `op-execution-spec/schema.cue` | CUE | Op execution specification | `/Users/peterbru/Projects/liminara/docs/schemas/op-execution-spec/schema.cue` |
-| `wire-protocol/schema.cue` | CUE | Port wire protocol | `/Users/peterbru/Projects/liminara/docs/schemas/wire-protocol/schema.cue` |
-| `replay-protocol/schema.cue` | CUE | Replay protocol definition | `/Users/peterbru/Projects/liminara/docs/schemas/replay-protocol/schema.cue` |
+| `manifest/schema.cue` | CUE | Pack manifest validation (v1.0.0) | `liminara/docs/schemas/manifest/schema.cue` |
+| `plan/schema.cue` | CUE | Plan DAG schema | `liminara/docs/schemas/plan/schema.cue` |
+| `op-execution-spec/schema.cue` | CUE | Op execution specification | `liminara/docs/schemas/op-execution-spec/schema.cue` |
+| `wire-protocol/schema.cue` | CUE | Port wire protocol | `liminara/docs/schemas/wire-protocol/schema.cue` |
+| `replay-protocol/schema.cue` | CUE | Replay protocol definition | `liminara/docs/schemas/replay-protocol/schema.cue` |
 
 **Fixtures:** Each schema has `fixtures/v1.0.0/valid/` and `fixtures/v1.0.0/invalid/` directories with example YAML files for validation testing.
 
@@ -138,7 +138,7 @@ Summarizes AI Framework v2, lists agents, skills, templates, key rules.
 
 | File | Trigger | Enforcement | Path |
 |------|---------|------------|------|
-| `wf-graph-ci.yml` | PR/push to work/ or docs/decisions/ | Graph validation (wf-graph tool), roadmap alignment, GitHub issues sync | `/Users/peterbru/Projects/liminara/.github/workflows/wf-graph-ci.yml` |
+| `wf-graph-ci.yml` | PR/push to work/ or docs/decisions/ | Graph validation (wf-graph tool), roadmap alignment, GitHub issues sync | `liminara/.github/workflows/wf-graph-ci.yml` |
 
 **CI Enforcement:** 
 - Scans work/graph.yaml for valid epic/milestone structure
@@ -151,12 +151,12 @@ Summarizes AI Framework v2, lists agents, skills, templates, key rules.
 
 | Script | Language | Purpose | Path |
 |--------|----------|---------|------|
-| `cue-vet` | Bash | Validates CUE schemas against fixtures | `/Users/peterbru/Projects/liminara/scripts/cue-vet` |
-| `pre-commit-cue` | Bash | Pre-commit hook for CUE validation | `/Users/peterbru/Projects/liminara/scripts/pre-commit-cue` |
-| `install-cue-hook` | Bash | Installs pre-commit hook | `/Users/peterbru/Projects/liminara/scripts/install-cue-hook` |
-| `detect-hardwrap-md.py` | Python | Markdown hardwrap detection | `/Users/peterbru/Projects/liminara/scripts/detect-hardwrap-md.py` |
-| `reflow-md.py` | Python | Markdown reflow utility | `/Users/peterbru/Projects/liminara/scripts/reflow-md.py` |
-| `generate_golden_fixtures.py` | Python | Generate test fixtures | `/Users/peterbru/Projects/liminara/scripts/generate_golden_fixtures.py` |
+| `cue-vet` | Bash | Validates CUE schemas against fixtures | `liminara/scripts/cue-vet` |
+| `pre-commit-cue` | Bash | Pre-commit hook for CUE validation | `liminara/scripts/pre-commit-cue` |
+| `install-cue-hook` | Bash | Installs pre-commit hook | `liminara/scripts/install-cue-hook` |
+| `detect-hardwrap-md.py` | Python | Markdown hardwrap detection | `liminara/scripts/detect-hardwrap-md.py` |
+| `reflow-md.py` | Python | Markdown reflow utility | `liminara/scripts/reflow-md.py` |
+| `generate_golden_fixtures.py` | Python | Generate test fixtures | `liminara/scripts/generate_golden_fixtures.py` |
 
 ### Tool Pinning
 

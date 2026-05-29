@@ -54,7 +54,7 @@ func TestForeignPluginPaths(t *testing.T) {
 		home := t.TempDir()
 		seedIndexFile(t, home, "known_marketplaces.json", `{
 		  "ai-workflow-rituals": {
-		    "installLocation": "/Users/peterbru/.claude/plugins/marketplaces/ai-workflow-rituals",
+		    "installLocation": "/Users/x/.claude/plugins/marketplaces/ai-workflow-rituals",
 		    "autoUpdate": true
 		  }
 		}`)
@@ -79,7 +79,7 @@ func TestForeignPluginPaths(t *testing.T) {
 		      {
 		        "scope": "project",
 		        "enabled": true,
-		        "installPath": "/Users/peterbru/.claude/plugins/cache/ai-workflow-rituals/aiwf-extensions/abc123"
+		        "installPath": "/Users/x/.claude/plugins/cache/ai-workflow-rituals/aiwf-extensions/abc123"
 		      }
 		    ]
 		  }
@@ -126,7 +126,7 @@ func TestForeignPluginPaths(t *testing.T) {
 		t.Parallel()
 		home := t.TempDir()
 		seedIndexFile(t, home, "known_marketplaces.json", `{
-		  "m": { "installLocation": "/Users/peterbru/.claude/plugins/marketplaces/m" }
+		  "m": { "installLocation": "/Users/x/.claude/plugins/marketplaces/m" }
 		}`)
 		if _, found := foreignPluginPaths(home, ""); found {
 			t.Error("found = true, want false: an empty foreignPrefix must be a no-op")
@@ -179,7 +179,7 @@ func TestFirstForeignPathLeaf(t *testing.T) {
 // Closes G-0174.
 func TestRenderPluginPathHintLine(t *testing.T) {
 	t.Parallel()
-	sample := "/Users/peterbru/.claude/plugins/marketplaces/ai-workflow-rituals"
+	sample := "/Users/x/.claude/plugins/marketplaces/ai-workflow-rituals"
 	got := renderPluginPathHintLine(sample)
 	for _, want := range []string{
 		"plugin-paths: ",

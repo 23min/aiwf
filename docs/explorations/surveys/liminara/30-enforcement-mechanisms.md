@@ -11,7 +11,7 @@ Liminara implements a **multi-rung, polyglot enforcement stack** that covers sch
 ### Rung 2 — Pattern Lint / Regex / Glob
 
 #### Credo (Elixir code quality)
-- **Source:** `/Users/peterbru/Projects/liminara/runtime/.credo.exs`
+- **Source:** `liminara/runtime/.credo.exs`
 - **What it enforces:** Elixir style consistency (line length ≤120 chars, consistent spacing, no trailing whitespace, proper naming conventions, line-ending consistency). Credo checks span consistency (exception names, operators, parentheses, tabs vs. spaces), readability (function names, module names, predicate names, line length, trailing blanks), design (FIXME/TODO tags, duplicate code disabled), refactoring (cyclomatic complexity, function arity, nesting depth), and warnings (dangerous operations like `IEx.pry` left in code, unused operations). Quokka plugin (enabled) offloads many style checks (alias order, pipe layout, doc strings, module directive order).
 - **Mechanism:** Pattern/lint rules; inline regex constraints for specific checks.
 - **Locus:** IDE (editor.formatOnSave via ElixirLS in .devcontainer), pre-commit (via `credo` binary when invoked), CI (not wired in current CI workflow, but available).
@@ -25,21 +25,21 @@ Liminara implements a **multi-rung, polyglot enforcement stack** that covers sch
 - **Blocking/Warning:** Formatters are typically non-blocking (auto-fix on save); style violations block only if strict mode is enabled and CI gate is in place.
 
 #### Ruff (Python linting + formatting)
-- **Source:** `/Users/peterbru/Projects/liminara/runtime/python/pyproject.toml`
+- **Source:** `liminara/runtime/python/pyproject.toml`
 - **What it enforces:** Python code errors (E, F), imports (I), warnings (W). Line length 100 chars, Python 3.12+ target.
 - **Mechanism:** Regex + static analysis patterns (pycodestyle, PyFlakes, isort).
 - **Locus:** IDE (editor.formatOnSave + source.fixAll in .devcontainer), manual runs.
 - **Blocking/Warning:** Advisory unless gated by CI.
 
 #### Markdown hardwrap detection + reflow (custom Python scripts)
-- **Source:** `/Users/peterbru/Projects/liminara/scripts/detect-hardwrap-md.py`, `/Users/peterbru/Projects/liminara/scripts/reflow-md.py`
+- **Source:** `liminara/scripts/detect-hardwrap-md.py`, `liminara/scripts/reflow-md.py`
 - **What it enforces:** Markdown docs must use soft-wrap (one paragraph per line), not hard-wrap (line breaks within prose). Detection classifies files by median line length + wrap-evidence ratio; reflow collapses hard-wrapped paragraphs into single lines while preserving code blocks, tables, lists, blockquotes, headings. YAML frontmatter is preserved.
 - **Mechanism:** Regex (line classification) + heuristic (median length + wrap-evidence %), string collapsing algorithm.
 - **Locus:** Manual (invoked by developer), not pre-commit or CI.
 - **Blocking/Warning:** Advisory; developer-initiated, not enforced.
 
 #### golangci-lint (Go tools)
-- **Source:** `/Users/peterbru/Projects/liminara/.ai/.golangci.yml`
+- **Source:** `liminara/.ai/.golangci.yml`
 - **What it enforces:** Go code in .ai/tools/: errcheck (error handling), govet (vet checks), ineffassign (unused assignments), staticcheck, unused (dead code), gocritic (style), revive (style + naming), gosec (security — with exceptions for deliberate G301/G304/G306 cases), bodyclose (HTTP response closure), unconvert (redundant conversions), misspell (typos). 5-minute timeout.
 - **Mechanism:** Multiple specialized linters + AST analysis.
 - **Locus:** Manual (make -C tools lint) or CI (not observed in current workflows).
@@ -50,7 +50,7 @@ Liminara implements a **multi-rung, polyglot enforcement stack** that covers sch
 ### Rung 3 — Schema / Type Check
 
 #### CUE Schema Validation (Five topics)
-- **Source:** `/Users/peterbru/Projects/liminara/docs/schemas/{topic}/schema.cue` for each topic:
+- **Source:** `liminara/docs/schemas/{topic}/schema.cue` for each topic:
   1. **op-execution-spec** — ExecutionSpec (identity, determinism, execution, isolation, contracts), OpResult (outputs, decisions, warnings), Warning (severity taxonomy locked at: info/low/medium/high/degraded), RunResult (status, aggregation fields), Terminal events (run_completed / run_partial / run_failed).
   2. **wire-protocol** — Port wire protocol (Liminara.Executor.Port ↔ Python ops over stdio). Request (id, op, inputs, optional context), Response (success with outputs/decisions/warnings or error with message).
   3. **plan** — Pack computation plan (DAG of op invocations). schema_version (integer), nodes (id, op, inputs), InputBinding (literal value or ref to another node's output). Forbids dangling refs and cycles at runtime (Plan.from_map/1), not schema-level.
@@ -101,7 +101,7 @@ Liminara implements a **multi-rung, polyglot enforcement stack** that covers sch
 ### Rung 4 — Runtime / Test-based Contract Verification
 
 #### Property-based tests (ExUnit + ExUnitProperties)
-- **Source:** `/Users/peterbru/Projects/liminara/runtime/apps/liminara_core/test/liminara/property_test.exs`
+- **Source:** `liminara/runtime/apps/liminara_core/test/liminara/property_test.exs`
 - **What it enforces:**
   - DAG generator validity: all generated plans are valid (Plan.validate/1 succeeds).
   - Termination invariant: every plan terminates within 5 seconds.
@@ -112,15 +112,15 @@ Liminara implements a **multi-rung, polyglot enforcement stack** that covers sch
 - **Blocking/Warning:** Test failure blocks the build.
 
 #### Golden fixtures (cross-language hash verification)
-- **Source:** `/Users/peterbru/Projects/liminara/scripts/generate_golden_fixtures.py` generates fixtures in `test_fixtures/golden_run/`
-- **Test:** `/Users/peterbru/Projects/liminara/runtime/apps/liminara_core/test/liminara/golden_fixtures_test.exs`
+- **Source:** `liminara/scripts/generate_golden_fixtures.py` generates fixtures in `test_fixtures/golden_run/`
+- **Test:** `liminara/runtime/apps/liminara_core/test/liminara/golden_fixtures_test.exs`
 - **What it enforces:** Hash chain integrity (event_hash computed from event_type, payload, prev_hash, timestamp matches recorded event_hash). Run seal (seal.run_seal == final_event.event_hash). Decision hash validity. Tampered events (payload modified) fail hash verification.
 - **Mechanism:** Golden fixtures generated by Python SDK (canonical_json, hash_bytes, hash_event functions) + Elixir test recomputes hashes and asserts equality. Contract: both runtimes must produce identical hashes for the same canonical JSON payload.
 - **Locus:** Test suite; runs on mix test.
 - **Blocking/Warning:** Test failure blocks the build.
 
 #### Python op test conventions
-- **Source:** `/Users/peterbru/Projects/liminara/runtime/python/tests/test_*.py` (8 test files: op_runner, radar_cluster, radar_embed_dedup, radar_fetch, radar_llm_dedup, radar_normalize, radar_rank, radar_summarize).
+- **Source:** `liminara/runtime/python/tests/test_*.py` (8 test files: op_runner, radar_cluster, radar_embed_dedup, radar_fetch, radar_llm_dedup, radar_normalize, radar_rank, radar_summarize).
 - **What it enforces:** Op correctness (input → output transformations), LLM dedup logic, clustering, summarization behavior. Tests use pytest + assertions.
 - **Mechanism:** Unit tests with fixtures + assertions.
 - **Locus:** Test suite; runs on pytest (pyproject.toml `test` optional-dependency).
@@ -134,7 +134,7 @@ Liminara implements a **multi-rung, polyglot enforcement stack** that covers sch
 - **Blocking/Warning:** Failure blocks build.
 
 #### wf-graph validators (workflow/roadmap integrity)
-- **Source:** `.github/workflows/wf-graph-ci.yml` invokes wf-graph from `/Users/peterbru/Projects/liminara/.ai-repo/bin/wf-graph` (compiled Go binary from `.ai/tools/cmd/wf-graph/main.go`).
+- **Source:** `.github/workflows/wf-graph-ci.yml` invokes wf-graph from `liminara/.ai-repo/bin/wf-graph` (compiled Go binary from `.ai/tools/cmd/wf-graph/main.go`).
 - **What it validates:**
   - `wf-graph scan`: Walks repo surfaces (work/, docs/decisions, .ai/) and emits raw JSON per surface.
   - `wf-graph validate`: Emits findings (error-severity and warn-severity) on cycles, status/location drift, dangling refs, ghosts. Non-zero exit on error-severity findings.
@@ -145,7 +145,7 @@ Liminara implements a **multi-rung, polyglot enforcement stack** that covers sch
 - **Blocking/Warning:** error-severity findings block the CI job (exit 1); warn-severity flows through as annotations.
 
 #### contract-verify (design-contract schema validation for frameworks)
-- **Source:** `/Users/peterbru/Projects/liminara/.ai-repo/bin/contract-verify` (compiled Go binary from `.ai/tools/cmd/contract-verify/main.go`).
+- **Source:** `liminara/.ai-repo/bin/contract-verify` (compiled Go binary from `.ai/tools/cmd/contract-verify/main.go`).
 - **What it validates:** Schema bundles (CUE or language-specific schemas) with valid/invalid fixture libraries. Verifies every valid fixture passes, every invalid fixture fails, and historical fixtures still validate (schema-evolution loop). Used by framework consumers to gate contract-backed design documents.
 - **Mechanism:** Language-agnostic fixture runner (invokes CUE, JSON Schema, TypeScript type-checker, etc. per configured validator).
 - **Locus:** Manual invocation (CI gating available but not observed in liminara.yml); likely used by design-contract workflows in the parent framework.
