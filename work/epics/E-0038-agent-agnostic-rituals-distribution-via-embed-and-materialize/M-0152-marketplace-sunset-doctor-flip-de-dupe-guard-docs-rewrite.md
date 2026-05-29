@@ -11,7 +11,7 @@ acs:
     - id: AC-1
       title: aiwf doctor verifies materialized artifacts instead of recommending plugin
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: De-dupe guard detects enabled plugin and instructs disable, no settings edit
       status: open
