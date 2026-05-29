@@ -1,7 +1,9 @@
 ---
 id: G-0134
 title: Production aiwf binary not signed on Darwin (parallel to G-0133)
-status: open
+status: addressed
+addressed_by_commit:
+    - 9ad0f5eb
 ---
 ## Problem
 
