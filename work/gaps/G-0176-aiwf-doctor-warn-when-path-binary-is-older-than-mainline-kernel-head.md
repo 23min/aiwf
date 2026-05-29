@@ -1,7 +1,9 @@
 ---
 id: G-0176
 title: 'aiwf doctor: warn when PATH binary is older than mainline kernel HEAD'
-status: open
+status: addressed
+addressed_by_commit:
+    - 78366bdc
 ---
 ## What's missing
 
