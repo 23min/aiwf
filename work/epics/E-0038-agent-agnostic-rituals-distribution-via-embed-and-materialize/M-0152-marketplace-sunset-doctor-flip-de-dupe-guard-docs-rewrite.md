@@ -23,7 +23,7 @@ acs:
     - id: AC-4
       title: Live-repo install smoke after de-dupe guard, human-verified
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
