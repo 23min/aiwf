@@ -1,7 +1,7 @@
 ---
 id: ADR-0014
 title: Embed-and-materialize rituals distribution; retire Claude marketplace
-status: proposed
+status: accepted
 ---
 ## Context
 
