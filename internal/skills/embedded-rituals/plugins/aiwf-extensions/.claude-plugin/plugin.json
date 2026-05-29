@@ -1,0 +1,8 @@
+{
+  "name": "aiwf-extensions",
+  "description": "Milestone-lifecycle skills and role agents for aiwf. Wraps aiwf's planning verbs with opinionated rituals (TDD-driven milestone start, contract-checked milestone wrap, release tagging, in-flow ADR/decision recording).",
+  "homepage": "https://github.com/23min/ai-workflow-rituals",
+  "repository": "https://github.com/23min/ai-workflow-rituals",
+  "license": "Apache-2.0",
+  "keywords": ["aiwf", "planning", "milestone", "rituals", "tdd"]
+}
