@@ -462,5 +462,5 @@ Make `aiwf` itself the distribution mechanism for the rituals — vendor a pinne
 | M-0149 | Embed + materialize ritual skills (aiwfx-/wf-); extend manifest + gitignore | done |
 | M-0150 | Embed + materialize ritual agents (.claude/agents/) and templates | done |
 | M-0151 | Agent-target seam in the materializer (Claude writer behind the seam) | done |
-| M-0152 | Marketplace sunset: doctor flip, de-dupe guard, docs rewrite | draft |
+| M-0152 | Marketplace sunset: doctor flip, de-dupe guard, docs rewrite | done |
 
