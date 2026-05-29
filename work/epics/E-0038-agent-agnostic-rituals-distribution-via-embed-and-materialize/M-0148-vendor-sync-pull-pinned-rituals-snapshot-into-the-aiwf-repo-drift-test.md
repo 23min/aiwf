@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Pin and vendor the upstream rituals into the repo as committed files
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Record the pinned upstream commit SHA in one discoverable location
