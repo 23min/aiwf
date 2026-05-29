@@ -4,6 +4,19 @@ title: 'Vendor-sync: pull pinned rituals snapshot into the aiwf repo + drift tes
 status: draft
 parent: E-0038
 tdd: required
+acs:
+    - id: AC-1
+      title: Pin and vendor the upstream rituals into the repo as committed files
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Record the pinned upstream commit SHA in one discoverable location
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Drift test fails when the snapshot diverges; skips when upstream absent
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -47,3 +60,10 @@ Before this milestone, the rituals reach consumers only via the Claude marketpla
 - **G-0177** — the motivating gap.
 - **E-0038** — parent epic.
 - **CLAUDE.md** § "Cross-repo plugin testing" — the vendoring + drift-test pattern reused.
+
+### AC-1 — Pin and vendor the upstream rituals into the repo as committed files
+
+### AC-2 — Record the pinned upstream commit SHA in one discoverable location
+
+### AC-3 — Drift test fails when the snapshot diverges; skips when upstream absent
+
