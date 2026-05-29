@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: aiwf check is clean against a repo materialized with ritual skills
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
