@@ -450,7 +450,7 @@ Make `scope-reach` (D-0006's three-edge scope reachability) an **executable, leg
 | M-0146 | Extend cellcoverage with authorized-scope fixtures | done |
 | M-0147 | Land global scope-reach rule; reclassify code; AC-5 fourth arm green | done |
 
-## E-0038 — Agent-agnostic rituals distribution via embed-and-materialize (active)
+## E-0038 — Agent-agnostic rituals distribution via embed-and-materialize (done)
 
 ### Goal
 
