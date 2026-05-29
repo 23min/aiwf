@@ -14,7 +14,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Seam contract test asserts target-to-output mapping; accepts a 2nd target
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
