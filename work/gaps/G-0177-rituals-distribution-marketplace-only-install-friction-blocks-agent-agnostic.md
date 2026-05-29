@@ -1,7 +1,9 @@
 ---
 id: G-0177
 title: 'Rituals distribution: marketplace-only install friction blocks agent-agnostic'
-status: open
+status: addressed
+addressed_by:
+    - E-0038
 ---
 ## Problem
 
