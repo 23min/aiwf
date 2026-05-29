@@ -7,6 +7,19 @@ depends_on:
     - M-0150
     - M-0151
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf doctor verifies materialized artifacts instead of recommending plugin
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: De-dupe guard detects enabled plugin and instructs disable, no settings edit
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Operator-setup docs rewritten; recommended_plugins dropped from default yaml
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -43,3 +56,10 @@ Once M2–M4 make the embedded path stable, the marketplace is redundant and Cla
 ## References
 
 - **ADR-0014** (§5), **G-0177**, **E-0038**, **`docs/pocv3/plans/rituals-plugin-plan.md`**.
+
+### AC-1 — aiwf doctor verifies materialized artifacts instead of recommending plugin
+
+### AC-2 — De-dupe guard detects enabled plugin and instructs disable, no settings edit
+
+### AC-3 — Operator-setup docs rewritten; recommended_plugins dropped from default yaml
+
