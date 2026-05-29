@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: aiwf init writes embedded ritual skills to .claude/skills/{aiwfx,wf}-*
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Manifest and gitignore own the skill dirs; update refreshes, no clobber
       status: open
