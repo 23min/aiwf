@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: aiwf init materializes ritual agents to .claude/agents/ and templates
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Manifest owns agents and templates; update refreshes without clobber
       status: open
