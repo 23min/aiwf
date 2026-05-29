@@ -20,6 +20,10 @@ acs:
       title: Operator-setup docs rewritten; recommended_plugins dropped from default yaml
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: Live-repo install smoke after de-dupe guard, human-verified
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -62,4 +66,6 @@ Once M2–M4 make the embedded path stable, the marketplace is redundant and Cla
 ### AC-2 — De-dupe guard detects enabled plugin and instructs disable, no settings edit
 
 ### AC-3 — Operator-setup docs rewritten; recommended_plugins dropped from default yaml
+
+### AC-4 — Live-repo install smoke after de-dupe guard, human-verified
 
