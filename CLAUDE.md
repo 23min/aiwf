@@ -30,6 +30,8 @@ For Go-specific rules (formatting, linting, testing, coverage, error handling, C
 
   Wait for the user's choice before moving to the next item. Once they pick, confirm the decision in one line and move on.
 
+- **Never suggest the user pause.** Do not propose pausing, stopping, breaking, "banking progress and resuming later," picking this up in a fresh session, or any variant. When to stop is the user's call alone — they will decide and say so. Keep working until the user directs otherwise or the requested work is genuinely complete. If you believe there is a real risk in continuing (accumulated context, an unresolved decision, a sequencing hazard), state the risk plainly and keep going / ask what they want next — never frame it as "we should pause." Surface the *information*; the user owns the *decision to stop*.
+
 ---
 
 ## Authoring an ADR
