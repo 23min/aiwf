@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: aiwf check is clean against a repo materialized with ritual skills
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
