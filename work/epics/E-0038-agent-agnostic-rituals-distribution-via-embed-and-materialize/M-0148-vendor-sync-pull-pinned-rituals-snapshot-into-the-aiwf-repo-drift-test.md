@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Drift test fails when the snapshot diverges; skips when upstream absent
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
