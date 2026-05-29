@@ -111,14 +111,10 @@ func Run(root, actor string, dryRun, skipHook bool) int {
 	case skipHook:
 		fmt.Println("\naiwf init: done (pre-push hook skipped). Commit aiwf.yaml when you're ready.")
 		fmt.Println("Run `aiwf init` again later to install the hook, or wire `aiwf check` into your push flow manually.")
-		if !ritualsPluginInstalled(rootDir) {
-			printRitualsSuggestion()
-		}
+		fmt.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
 	default:
 		fmt.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
-		if !ritualsPluginInstalled(rootDir) {
-			printRitualsSuggestion()
-		}
+		fmt.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
 	}
 	return cliutil.ExitOK
 }

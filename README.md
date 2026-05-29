@@ -161,28 +161,22 @@ aiwf status                                               # project snapshot (sa
 
 Identity is derived from `git config user.email` (e.g., `you@example.com` becomes actor `human/you`); `--actor` overrides per invocation. Each mutating verb produces a single git commit with structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`, plus the I2.5 provenance set when relevant). The pre-push hook installed by `aiwf init` runs `aiwf check` on every push so an inconsistent tree never reaches the remote.
 
-### 2. Install the companion rituals plugin
+### 2. The rituals ship embedded — no plugin install
 
-aiwf core is the planning data layer. The end-to-end workflow — milestone-lifecycle skills, the four role agents (planner, builder, reviewer, deployer), and templates — ships separately as a Claude Code plugin marketplace at [`23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals).
+aiwf core is the planning data layer; the end-to-end workflow — milestone-lifecycle skills (`aiwfx-*`), generic engineering skills (`wf-*`: TDD cycle, code review, doc-lint), the four role agents (planner, builder, reviewer, deployer), and templates — is **embedded in the engine binary** from a pinned snapshot of [`23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals) and materialized into `.claude/` by `aiwf init` / `aiwf update` (ADR-0014). There is no marketplace install and no `/plugin` step: the ritual version always equals the binary version, and `aiwf update` refreshes everything in one command.
 
-In a Claude Code session inside the consumer repo:
+`aiwf init` materializes:
 
-```
-/plugin marketplace add 23min/ai-workflow-rituals
-/plugin install aiwf-extensions@ai-workflow-rituals
-```
+- `.claude/skills/aiwf-*` — the kernel verb skills
+- `.claude/skills/aiwfx-*`, `.claude/skills/wf-*` — the ritual skills
+- `.claude/agents/*.md` — the role agents
+- `.claude/templates/*.md` — the entity templates
 
-Pick **Project** scope when Claude Code prompts — it commits `.claude/settings.json` so collaborators on this repo get the same plugins on clone. Other projects on your machine using a different framework stay clean.
+All are gitignored and marker-managed; your own user-authored skills/agents are never touched. You can still use aiwf as a planning data store only — the verbs work without the rituals — but the embedded rituals are what turn it into an end-to-end loop, and they arrive for free with the binary.
 
-Optional second plugin (generic engineering rituals — TDD cycle, code review, doc-lint; works with or without aiwf):
+Run `aiwf doctor` to confirm: the `rituals:` line reports the artifacts materialized. To verify end-to-end, `aiwf doctor --self-check` spins up a throwaway repo, drives every verb, and reports pass/fail per step.
 
-```
-/plugin install wf-rituals@ai-workflow-rituals
-```
-
-You can skip the rituals plugin and use aiwf as a planning data store only — it works alone — but the workflow surface that turns aiwf into an end-to-end loop lives in that plugin.
-
-To verify your install works end-to-end, run `aiwf doctor --self-check` — it spins up a throwaway repo, drives every verb, and reports pass/fail per step.
+> **Migrating from the marketplace plugin?** If you previously installed `ai-workflow-rituals` via `/plugin`, `aiwf doctor` flags a `marketplace-rituals-overlap` (the same skills would be exposed twice). Disable the plugin via the `/plugin` menu — aiwf will not edit your `.claude/settings.json`.
 
 ### Sample of `aiwf check` output
 
@@ -353,8 +347,8 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 
 **What aiwf does *not* touch:**
 
-- Skills outside the `aiwf-*` namespace. Your own user-authored skills sit next to aiwf's and are never overwritten by `aiwf update`. Optional companion plugins (such as the planned [ai-workflow-rituals](https://github.com/23min/ai-workflow-rituals) marketplace, which uses the `aiwfx-*` and `wf-*` namespaces) are installed by Claude Code into separate plugin directories — they don't share `.claude/skills/` with aiwf core.
-- Anything under `.claude/agents/`, `.claude/commands/`, `.claude/output-styles/`, your `.claude/settings.json`, or any other path under `.claude/` outside `skills/aiwf-*/`.
+- User-authored skills, agents, and templates. aiwf owns only the artifacts it materializes — the `aiwf-*` / `aiwfx-*` / `wf-*` skill dirs, the ritual agent files under `.claude/agents/`, and the ritual templates under `.claude/templates/` — each tracked by a per-dir `.aiwf-owned` manifest. Anything you author yourself (a skill outside those prefixes, an agent or template the manifest never claimed) sits next to aiwf's and is never overwritten by `aiwf update`.
+- `.claude/commands/`, `.claude/output-styles/`, your `.claude/settings.json`, or any other path under `.claude/` that aiwf does not materialize. (Note: as of ADR-0014, aiwf *does* materialize the ritual agents and templates — see "The rituals ship embedded" above — so `.claude/agents/` and `.claude/templates/` carry aiwf-owned files alongside any of your own.)
 - An existing `CLAUDE.md`, `.gitignore`, or `aiwf.yaml`.
 - Anything outside the consumer repo. There are no writes to `~/.claude/`, no changes to your MCP server config, and no API settings touched.
 

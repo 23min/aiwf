@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test test-race lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
+.PHONY: help build install diag-aiwf test test-race lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture sync-rituals
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
@@ -30,6 +30,7 @@ help:
 	@echo "  e2e-install - one-shot: install Playwright npm deps + Chromium browser"
 	@echo "  e2e       - run the Playwright HTML-render browser tests (opt-in, requires e2e-install)"
 	@echo "  copy-skill-fixture SKILL=<name> - copy testdata/<name>/SKILL.md into the sibling rituals repo"
+	@echo "  sync-rituals - vendor the ai-workflow-rituals plugins/ at the ref pinned in rituals.lock (E-0038)"
 	@echo "  clean     - remove build artifacts"
 
 build:
@@ -149,3 +150,11 @@ copy-skill-fixture:
 	cp internal/policies/testdata/$(SKILL)/SKILL.md "$$TARGET"; \
 	echo "Copied internal/policies/testdata/$(SKILL)/SKILL.md -> $$TARGET"; \
 	echo "Next: cd ../ai-workflow-rituals && git diff && git commit + git push"
+
+# Vendor the ai-workflow-rituals plugins/ subtree at the ref pinned in
+# rituals.lock into internal/skills/embedded-rituals/ for build-time embed
+# (ADR-0014 / E-0038). Does not commit — review the diff and commit yourself.
+# The drift test (internal/policies/rituals_drift_test.go) catches a forgotten
+# re-sync mechanically.
+sync-rituals:
+	@bash scripts/sync-rituals.sh

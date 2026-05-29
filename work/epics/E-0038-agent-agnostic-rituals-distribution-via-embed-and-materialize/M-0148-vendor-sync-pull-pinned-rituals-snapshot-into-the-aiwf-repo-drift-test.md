@@ -1,22 +1,22 @@
 ---
 id: M-0148
 title: 'Vendor-sync: pull pinned rituals snapshot into the aiwf repo + drift test'
-status: draft
+status: done
 parent: E-0038
 tdd: required
 acs:
     - id: AC-1
       title: Pin and vendor the upstream rituals into the repo as committed files
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Record the pinned upstream commit SHA in one discoverable location
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Drift test fails when the snapshot diverges; skips when upstream absent
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -66,4 +66,30 @@ Before this milestone, the rituals reach consumers only via the Claude marketpla
 ### AC-2 — Record the pinned upstream commit SHA in one discoverable location
 
 ### AC-3 — Drift test fails when the snapshot diverges; skips when upstream absent
+
+## Work log
+
+- **AC-1 — vendor + sync mechanism.** `scripts/sync-rituals.sh` + `make sync-rituals` fetch upstream `plugins/` at the ref in `rituals.lock` and vendor it (committed files, not a submodule) under `internal/skills/embedded-rituals/plugins/` — 24 files (13 skills, 4 agents, 4 templates, 2 plugin.json). · tests: `TestRituals_VendoredSnapshotPresent`
+- **AC-2 — pinned SHA record.** `rituals.lock` records the upstream URL + pinned ref `f72036c4`; trivial `key=value` format parsed by both the shell sync script and the Go drift test. · tests: `TestRituals_LockPinsUpstreamRef`
+- **AC-3 — drift test.** `internal/policies/rituals_drift_test.go` fetches upstream@ref and byte-compares the vendored tree; skips under `-short`/offline; plant-and-revert verified it catches a corrupted vendored byte. · tests: `TestRituals_VendoredMatchesUpstream`, `TestRituals_DiffTrees`
+
+The per-phase timeline (red→green→done→met) is the authoritative record in `aiwf history M-0148/AC-<N>`.
+
+## Validation
+
+- `go test ./...` — all packages pass, 0 failures.
+- `go vet ./internal/policies/` — clean. `gofmt -l` — clean. `golangci-lint run ./internal/policies/` — 0 issues.
+- `aiwf check` (worktree-built `aiwf-diag`) — 0 errors.
+- Drift test plant-and-revert: corrupted a vendored byte → `TestRituals_VendoredMatchesUpstream` failed at the right file; re-synced → green. Confirms the guard is not a false-green.
+
+## Deferrals
+
+- None at the milestone level. (Epic-level: the non-Claude target proof is deferred to **G-0178**; `go:embed` is **M-0149**; materialization into `.claude/` is **M-0150**.)
+
+## Reviewer notes
+
+- **Foundation only.** M-0148 vendors + drift-guards. It deliberately does **not** wire `go:embed` (M-0149) or materialize into a consumer's `.claude/` (M-0150). The freshly-built binary does not yet contain the rituals — confirmed by grep (only the drift test references `embedded-rituals`; `skills.go` still embeds only `embedded`).
+- **Drift test is non-flaky by construction.** It fetches over the network but treats any fetch failure as a *skip*, not a failure (transient network blip → skip; only a successful fetch that differs → fail). Gated off under `-short`. This follows CLAUDE.md § "Contract tests for upstream-cached systems".
+- **Committed files, not a submodule** (ADR-0014 §2): the Go module proxy does not fetch submodule contents, so a submodule would embed empty under `go install`.
+- **End-to-end install smoke is M-0150/AC-4** (human-verified `make install` + `aiwf update` in this repo, eyeballing `.claude/`), since no unit test substitutes for it. Surfaced during this milestone's review.
 

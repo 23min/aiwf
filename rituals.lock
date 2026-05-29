@@ -1,0 +1,17 @@
+# Pinned snapshot of the ai-workflow-rituals plugins.
+#
+# The plugins/ subtree at this ref is vendored under
+# internal/skills/embedded-rituals/plugins/ and embedded into the aiwf
+# binary (E-0038). This file is the single source of truth for which
+# upstream commit the vendored snapshot corresponds to.
+#
+# Refresh the snapshot to a newer upstream ref with:
+#   1. edit `ref` below to the desired commit SHA
+#   2. make sync-rituals
+#   3. review + commit the resulting diff
+#
+# Format: trivial `key=value` lines; `#` comments. The shell sync script
+# and the Go drift test (internal/policies/rituals_drift_test.go) both
+# parse this file — keep it simple enough for both.
+url=https://github.com/23min/ai-workflow-rituals
+ref=f72036c44493687e96e62dcc75c81d7a5230b1b9
