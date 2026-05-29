@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Manifest and gitignore own the skill dirs; update refreshes, no clobber
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: aiwf check is clean against a repo materialized with ritual skills
       status: open
