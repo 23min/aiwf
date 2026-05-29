@@ -1,7 +1,7 @@
 ---
 id: M-0149
 title: Embed + materialize ritual skills (aiwfx-/wf-); extend manifest + gitignore
-status: draft
+status: in_progress
 parent: E-0038
 depends_on:
     - M-0148
