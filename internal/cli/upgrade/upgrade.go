@@ -142,6 +142,18 @@ func Run(root, target string, checkOnly bool) int {
 		return cliutil.ExitInternal
 	}
 
+	// G-0134: ad-hoc sign on Darwin to dodge the Sonoma 14.8.x
+	// syspolicyd crash on unsigned Mach-O binaries. Warn-and-continue
+	// on failure: the binary still runs unsigned (just risks the
+	// syspolicyd crash on stale state); failing the upgrade for a
+	// codesign hiccup would be worse UX than a hint that lets the
+	// operator sign manually later.
+	if signErr := signDarwinBinary(newBinary); signErr != nil {
+		fmt.Fprintf(os.Stderr, "aiwf upgrade: %v\n", signErr)
+		fmt.Fprintf(os.Stderr, "                manually sign with: codesign -s - -f %s\n", newBinary)
+		fmt.Fprintln(os.Stderr, "                continuing (binary works unsigned but may trigger syspolicyd on stale state)")
+	}
+
 	if os.Getenv("AIWF_NO_REEXEC") != "" {
 		fmt.Printf("install succeeded; new binary at %s\n", newBinary)
 		fmt.Println("AIWF_NO_REEXEC set — skipping re-exec into `aiwf update`")

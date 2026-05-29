@@ -268,6 +268,31 @@ bare `go test` rides the wrap:
 **Defaults, not a chokepoint.** Nothing catches a bare `go test` on the
 host. Trust boundary is the documented commands above.
 
+#### Installing the aiwf binary on macOS host
+
+The production `aiwf` binary needs the same ad-hoc signing as test
+binaries — same Sonoma 14.8.x syspolicyd crash class, parallel layer
+(G-0134). Three install paths exist, with different behaviors on Darwin:
+
+- **`make install`** — ad-hoc-signs on Darwin automatically. The
+  canonical local-install path. No-op on Linux.
+
+- **`aiwf upgrade`** — re-execs `go install`, then ad-hoc-signs the
+  resulting binary on Darwin before re-execing into `aiwf update`.
+  No-op on Linux. Warns and continues if codesign hiccups (the binary
+  still runs unsigned, just risks the syspolicyd crash on stale state).
+
+- **`go install github.com/23min/aiwf/cmd/aiwf@<version>`** (bare) —
+  **does not** sign on Darwin. The published Go module has no
+  install-time hook (the structural fix is parked, same stance as
+  G-0133's test-binary side). Operators using this path on Darwin
+  must manually sign after install:
+
+      codesign -s - -f "$(go env GOPATH)/bin/aiwf"
+
+  The CLAUDE.md hint plus `make install` / `aiwf upgrade` covering
+  the two common paths is the deliberate trade-off.
+
 #### Test the seam, not just the layer
 
 When a new helper, package, or shared function is wired into an existing caller (verb, dispatcher, hook), the test set must cover **both** the helper's behavior *and* the seam where it integrates. A unit test of the helper alone is necessary but not sufficient — it doesn't catch the case where the caller has a parallel source of truth and never adopts the helper.

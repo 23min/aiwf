@@ -38,6 +38,11 @@ build:
 
 install:
 	CGO_ENABLED=0 go install -ldflags "$(LDFLAGS)" ./cmd/aiwf
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		bin="$${GOBIN:-$$(go env GOPATH)/bin}/aiwf"; \
+		echo "Ad-hoc signing $$bin for Darwin syspolicyd resilience (G-0134)"; \
+		codesign --sign - --force "$$bin" 2>/dev/null || echo "  codesign failed; manually sign with: codesign -s - -f $$bin"; \
+	fi
 
 # Build a worktree-scoped aiwf binary at ./bin/aiwf-diag and print its
 # absolute path. The convention (per CLAUDE.md *Worktree binary discipline*):
