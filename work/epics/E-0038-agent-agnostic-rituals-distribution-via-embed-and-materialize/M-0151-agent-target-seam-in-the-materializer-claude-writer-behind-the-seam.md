@@ -11,7 +11,7 @@ acs:
     - id: AC-1
       title: Materializer takes a target param; Claude target preserves M2/M3 behavior
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Seam contract test asserts target-to-output mapping; accepts a 2nd target
       status: open
