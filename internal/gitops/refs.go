@@ -100,6 +100,19 @@ func IsAncestor(ctx context.Context, workdir, commit, ref string) (bool, error) 
 	return true, nil
 }
 
+// ShortSHA returns the first n hex characters of the commit SHA that
+// ref resolves to, via `git rev-parse --short=n ref`. Returns ""
+// (and a wrapped error) when the ref does not resolve or git fails.
+// Used by the doctor binary-staleness check (G-0176) to compare a
+// pseudo-version's 12-char SHA prefix against the trunk-ref HEAD.
+func ShortSHA(ctx context.Context, workdir, ref string, n int) (string, error) {
+	out, err := output(ctx, workdir, "rev-parse", fmt.Sprintf("--short=%d", n), ref)
+	if err != nil {
+		return "", fmt.Errorf("git rev-parse --short=%d %s: %w", n, ref, err)
+	}
+	return strings.TrimSpace(out), nil
+}
+
 // HasRef reports whether ref resolves to an object in workdir's repo.
 // Returns (false, nil) when the ref is absent — distinguishing it
 // from any other git failure, which propagates as a wrapped error.

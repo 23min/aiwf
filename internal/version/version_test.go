@@ -164,6 +164,56 @@ func TestPseudoBase(t *testing.T) {
 	}
 }
 
+func TestPseudoSHA(t *testing.T) {
+	t.Parallel()
+	// Same spec source as TestPseudoBase — the trailing 12-char hex
+	// component is the commit SHA prefix per
+	// https://go.dev/ref/mod#pseudo-versions. The doctor binary-
+	// staleness check (G-0176) compares this prefix against
+	// `git rev-parse --short=12 refs/remotes/origin/main`.
+	cases := []struct {
+		name    string
+		in      string
+		wantSHA string
+		wantOK  bool
+	}{
+		// Form 1: no parent tag.
+		{"form1 basic", "v0.0.0-20260503120000-abcdef123456", "abcdef123456", true},
+
+		// Form 2: commits after vX.Y.Z.
+		{"form2 post-v0.8.0", "v0.8.1-0.20260516161658-02c349f629d7", "02c349f629d7", true},
+		{"form2 post-v1.2.3", "v1.2.4-0.20060102150405-abcdef123456", "abcdef123456", true},
+
+		// Form 3: between vX.Y.Z-pre and vX.Y.Z.
+		{"form3 single-segment pre", "v0.1.0-pre.0.20060102150405-abcdef123456", "abcdef123456", true},
+		{"form3 multi-segment pre", "v1.0.0-rc.1.0.20060102150405-abcdef123456", "abcdef123456", true},
+
+		// Tagged-clean values are not pseudo-versions.
+		{"clean tag patch", "v0.1.0", "", false},
+		{"clean tag prerelease", "v0.1.0-rc1", "", false},
+		{"clean tag build", "v0.1.0+build.5", "", false},
+
+		// Non-version strings.
+		{"devel sentinel", "(devel)", "", false},
+		{"empty", "", "", false},
+		{"branch name", "main", "", false},
+
+		// +dirty suffix breaks the trailing-SHA shape.
+		{"dirty form1", "v0.0.0-20260503120000-abcdef123456+dirty", "", false},
+		{"dirty form2", "v0.8.1-0.20260516161658-02c349f629d7+dirty", "", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			gotSHA, gotOK := PseudoSHA(tc.in)
+			if gotSHA != tc.wantSHA || gotOK != tc.wantOK {
+				t.Errorf("PseudoSHA(%q) = (%q, %v), want (%q, %v)",
+					tc.in, gotSHA, gotOK, tc.wantSHA, tc.wantOK)
+			}
+		})
+	}
+}
+
 func TestSkewString(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

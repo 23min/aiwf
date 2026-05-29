@@ -222,6 +222,24 @@ func PseudoBase(v string) (string, bool) {
 	}
 }
 
+// PseudoSHA extracts the 12-character commit-SHA prefix from a Go
+// module pseudo-version string. The suffix is always the last 12 hex
+// characters after the 14-digit timestamp; this returns those 12
+// characters as a string with ok=true. Returns ok=false when v does
+// not match the pseudo-version shape (tagged, devel, +dirty, etc.).
+//
+// Used by the doctor binary-staleness check (G-0176): the suffix is
+// what `git rev-parse --short=12 refs/remotes/origin/main` produces,
+// so the two values are directly comparable.
+func PseudoSHA(v string) (string, bool) {
+	loc := pseudoVersionRE.FindStringIndex(v)
+	if loc == nil {
+		return "", false
+	}
+	end := loc[1]
+	return v[end-12 : end], true
+}
+
 // isTagged reports whether v is a clean tagged semver value rather
 // than a pseudo-version. Pseudo-versions match the timestamp+sha
 // suffix regardless of the base version they're attached to.

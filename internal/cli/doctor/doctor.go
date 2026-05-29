@@ -126,7 +126,9 @@ var subIndent = strings.Repeat(" ", labelWidth)
 // strings and returns the count of problems. Pure for testability.
 func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems int) {
 	current := version.Current()
-	lines = append(lines, label("binary:")+renderBinaryVersion(current))
+	binaryRow := label("binary:") + renderBinaryVersion(current)
+	binaryRow += binaryStaleness(context.Background(), rootDir, current, version.ModulePath())
+	lines = append(lines, binaryRow)
 
 	if opts.CheckLatest {
 		lines = append(lines, label("latest:")+renderLatestPublished(current))
