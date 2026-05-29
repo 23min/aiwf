@@ -7,6 +7,15 @@ depends_on:
     - M-0149
     - M-0150
 tdd: required
+acs:
+    - id: AC-1
+      title: Materializer takes a target param; Claude target preserves M2/M3 behavior
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Seam contract test asserts target-to-output mapping; accepts a 2nd target
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -43,3 +52,8 @@ M2/M3 wrote the Claude locations concretely. This milestone extracts the target 
 ## References
 
 - **ADR-0014** (§4), **E-0038**.
+
+### AC-1 — Materializer takes a target param; Claude target preserves M2/M3 behavior
+
+### AC-2 — Seam contract test asserts target-to-output mapping; accepts a 2nd target
+
