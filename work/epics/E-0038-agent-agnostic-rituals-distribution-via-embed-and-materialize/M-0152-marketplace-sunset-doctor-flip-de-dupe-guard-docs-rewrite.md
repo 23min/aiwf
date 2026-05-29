@@ -15,7 +15,7 @@ acs:
     - id: AC-2
       title: De-dupe guard detects enabled plugin and instructs disable, no settings edit
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Operator-setup docs rewritten; recommended_plugins dropped from default yaml
       status: open
