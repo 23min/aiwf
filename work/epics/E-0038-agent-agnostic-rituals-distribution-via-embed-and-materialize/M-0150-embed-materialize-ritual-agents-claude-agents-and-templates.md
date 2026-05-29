@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Manifest owns agents and templates; update refreshes without clobber
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Test asserts no new hook surface beyond aiwf's existing git hooks
       status: open
