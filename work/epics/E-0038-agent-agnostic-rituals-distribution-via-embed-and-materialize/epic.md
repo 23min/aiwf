@@ -51,7 +51,7 @@ This epic carries that work. Per CLAUDE.md § "Authoring an ADR", the decision l
 - [ ] `aiwf update` after a binary upgrade refreshes the rituals to the version vendored in that binary.
 - [ ] The vendored rituals snapshot is present as committed files in the aiwf repo with its pinned upstream SHA recorded; a drift-check test fails if the snapshot diverges from the pinned upstream.
 - [ ] No new hook surface is introduced — only aiwf's existing git hooks are managed (asserted mechanically).
-- [ ] The materializer exposes an agent-target seam; the Claude target is implemented; a non-Claude target is either spiked as a proof or explicitly deferred via a filed gap.
+- [ ] The materializer exposes an agent-target seam; the Claude target is implemented; the non-Claude target proof is deferred to G-0178.
 - [ ] `aiwf doctor` no longer recommends the marketplace plugin and instead verifies materialized artifacts; the de-dupe guard fires with operator guidance when both the plugin and materialized artifacts are present.
 - [ ] CLAUDE.md § "Operator setup" describes the one-command flow; `rituals-plugin-plan.md` is updated or archived to reflect the retired channel.
 - [ ] ADR-0014 is referenced by the implementing milestones; G-0177 is promoted to `addressed` and archived under this epic's wrap.
@@ -62,7 +62,7 @@ This epic carries that work. Per CLAUDE.md § "Authoring an ADR", the decision l
 |---|---|---|
 | Vendor-sync implementation: `git subtree` pull vs scripted copy vs `go:generate` fetch-at-build? | no | Decided at the vendor-sync milestone; default lean: scripted copy + committed snapshot + drift test, matching the cross-repo fixture pattern. |
 | Where the pinned upstream SHA is recorded (a `rituals.lock` file, a Makefile var, the sync commit trailer)? | no | Decided at the vendor-sync milestone. |
-| Does this epic ship a second (non-Claude) target as proof, or only the seam? | no | Decided after the materializer milestone, based on remaining budget; if deferred, file a gap. |
+| Does this epic ship a second (non-Claude) target as proof, or only the seam? | no | **Resolved:** only the seam + Claude writer; the Codex-target proof is deferred to G-0178. |
 | For non-Claude targets, do agents materialize or no-op? | no | Per-target writer decision; Claude materializes agents, targets without a subagent concept no-op. |
 | Hard-remove the marketplace, or keep it as an alternate install path during a transition window? | no | Decided at the sunset milestone; default lean: deprecate-then-remove across two releases. |
 
@@ -76,23 +76,22 @@ This epic carries that work. Per CLAUDE.md § "Authoring an ADR", the decision l
 | Upstream agent/skill format churn (Codex/Cursor) breaks a target writer. | low–medium | The agent-target seam isolates per-target format logic; only the affected writer changes. |
 | Loss of independent ritual versioning surprises a consumer mid-cycle. | low | Documented in ADR-0014 consequences; pinned SHA is the provenance record; `aiwf upgrade` is the single refresh path. |
 
-## Proposed milestones
+## Milestones
 
-> Not yet allocated — decomposition is the next step (`aiwfx-plan-milestones` against this epic). Listed here as the planned sequence, not as existing entities.
+| Label | Id | Title | Depends on |
+|-------|----|-------|-----------|
+| Vendor-sync | [M-0148](M-0148-vendor-sync-pull-pinned-rituals-snapshot-into-the-aiwf-repo-drift-test.md) | Vendor-sync: pull pinned rituals snapshot into the aiwf repo + drift test | — |
+| Skills | [M-0149](M-0149-embed-materialize-ritual-skills-aiwfx-wf-extend-manifest-gitignore.md) | Embed + materialize ritual skills (`aiwfx-*`/`wf-*`); extend manifest + gitignore | M-0148 |
+| Agents + templates | [M-0150](M-0150-embed-materialize-ritual-agents-claude-agents-and-templates.md) | Embed + materialize ritual agents (`.claude/agents/`) and templates | M-0149 |
+| Target seam | [M-0151](M-0151-agent-target-seam-in-the-materializer-claude-writer-behind-the-seam.md) | Agent-target seam in the materializer (Claude writer behind the seam) | M-0149, M-0150 |
+| Marketplace sunset | [M-0152](M-0152-marketplace-sunset-doctor-flip-de-dupe-guard-docs-rewrite.md) | Marketplace sunset: `doctor` flip, de-dupe guard, docs rewrite | M-0150, M-0151 |
 
-| # | Title | Depends on |
-|---|-------|-----------|
-| 1 | Vendor-sync mechanism: pull pinned rituals snapshot into the aiwf repo + drift test | — |
-| 2 | Embed + materialize ritual skills (`aiwfx-*`/`wf-*`); extend manifest + gitignore; coverage tests | 1 |
-| 3 | Embed + materialize agents (`.claude/agents/`) + templates | 2 |
-| 4 | Agent-target abstraction in the materializer (Claude target implemented; seam for others) | 2 |
-| 5 | Marketplace sunset: `doctor` flip, de-dupe guard, docs/CLAUDE.md rewrite, drop `recommended_plugins` default | 3, 4 |
-| 6 (optional) | Non-Claude target proof (e.g. Codex `.agents/skills/`) or a deferral gap | 4 |
+> The optional non-Claude target proof (Codex `.agents/skills/`) is **deferred to G-0178**, not allocated as a milestone here.
 
 ## Supersedes / addresses
 
 - **G-0177** — the friction + agent-agnostic-blocker gap. Promoted to `addressed` and archived at this epic's wrap.
-- **`docs/pocv3/plans/rituals-plugin-plan.md`** — its marketplace distribution design is superseded; updated or archived by milestone 5.
+- **`docs/pocv3/plans/rituals-plugin-plan.md`** — its marketplace distribution design is superseded; updated or archived by M-0152.
 
 ## References
 
@@ -100,4 +99,5 @@ This epic carries that work. Per CLAUDE.md § "Authoring an ADR", the decision l
 - **G-0177** — the motivating gap.
 - **ADR-0007** — placement/authoring layering preserved; only its delivery-channel assumption is revised by ADR-0014.
 - **CLAUDE.md** commitments #5 and #6, § "Operator setup", § "Cross-repo plugin testing", § "Authoring an ADR", § "AC promotion requires mechanical evidence".
+- **G-0178** — the deferred non-Claude target proof (Codex `.agents/skills/`), spun out of this epic's optional M6.
 - **G-0175** — sibling rituals-distribution concern; may be revisited as part of the materialized-ritual trailer story.
