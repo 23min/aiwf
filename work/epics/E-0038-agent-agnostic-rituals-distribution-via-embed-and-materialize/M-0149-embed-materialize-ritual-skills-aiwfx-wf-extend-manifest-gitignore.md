@@ -6,6 +6,19 @@ parent: E-0038
 depends_on:
     - M-0148
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf init writes embedded ritual skills to .claude/skills/{aiwfx,wf}-*
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Manifest and gitignore own the skill dirs; update refreshes, no clobber
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: aiwf check is clean against a repo materialized with ritual skills
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -44,3 +57,10 @@ M1 vendored the snapshot. This milestone makes `aiwf init` / `aiwf update` actua
 ## References
 
 - **ADR-0014** (§1, §3), **G-0177**, **E-0038**.
+
+### AC-1 — aiwf init writes embedded ritual skills to .claude/skills/{aiwfx,wf}-*
+
+### AC-2 — Manifest and gitignore own the skill dirs; update refreshes, no clobber
+
+### AC-3 — aiwf check is clean against a repo materialized with ritual skills
+
