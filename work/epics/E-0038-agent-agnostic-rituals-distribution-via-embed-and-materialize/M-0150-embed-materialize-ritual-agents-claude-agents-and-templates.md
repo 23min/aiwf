@@ -21,7 +21,7 @@ acs:
       tdd_phase: red
     - id: AC-4
       title: make install + aiwf update materializes rituals into .claude/, human-verified
-      status: open
+      status: deferred
       tdd_phase: red
 ---
 ## Goal
