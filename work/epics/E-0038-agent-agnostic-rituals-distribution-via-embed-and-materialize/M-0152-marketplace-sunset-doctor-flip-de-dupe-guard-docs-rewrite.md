@@ -19,7 +19,7 @@ acs:
     - id: AC-3
       title: Operator-setup docs rewritten; recommended_plugins dropped from default yaml
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Live-repo install smoke after de-dupe guard, human-verified
       status: open
