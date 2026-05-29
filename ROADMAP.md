@@ -450,7 +450,7 @@ Make `scope-reach` (D-0006's three-edge scope reachability) an **executable, leg
 | M-0146 | Extend cellcoverage with authorized-scope fixtures | done |
 | M-0147 | Land global scope-reach rule; reclassify code; AC-5 fourth arm green | done |
 
-## E-0038 — Agent-agnostic rituals distribution via embed-and-materialize (proposed)
+## E-0038 — Agent-agnostic rituals distribution via embed-and-materialize (active)
 
 ### Goal
 
@@ -458,7 +458,7 @@ Make `aiwf` itself the distribution mechanism for the rituals — vendor a pinne
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0148 | Vendor-sync: pull pinned rituals snapshot into the aiwf repo + drift test | draft |
+| M-0148 | Vendor-sync: pull pinned rituals snapshot into the aiwf repo + drift test | done |
 | M-0149 | Embed + materialize ritual skills (aiwfx-/wf-); extend manifest + gitignore | draft |
 | M-0150 | Embed + materialize ritual agents (.claude/agents/) and templates | draft |
 | M-0151 | Agent-target seam in the materializer (Claude writer behind the seam) | draft |
