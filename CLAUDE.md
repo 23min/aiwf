@@ -98,21 +98,13 @@ All three should pass before committing. CI runs all of them on every push.
 
 ## Operator setup
 
-After cloning, install the framework's companion plugins **for this project's scope** so the planning skills (`aiwfx-start-milestone`, `wf-tdd-cycle`, etc.) and role agents activate in this repo. Without them, `aiwf` is just the planning data layer and `aiwf doctor` warns (per M-070's recommended-plugin check). The expected set is declared in [`aiwf.yaml`'s `doctor.recommended_plugins`](aiwf.yaml).
+After cloning, run **`aiwf init`** (first time) or **`aiwf update`** (existing repo) at the repo root. That single command materializes everything aiwf ships into `.claude/`: the verb skills (`aiwf-*`), the ritual planning/lifecycle skills (`aiwfx-*`), the engineering skills (`wf-*`), the role agents (`planner` / `builder` / `reviewer` / `deployer`), and the entity templates — all gitignored, marker-managed, and byte-refreshed on every `aiwf update`. The rituals are embedded in the engine binary from a pinned upstream snapshot (ADR-0014, E-0038), so there is **no marketplace install and no `/plugin` dance**, and the ritual version always equals the binary version.
 
-In a Claude Code session at this repo's root:
-
-```
-/plugin marketplace add 23min/ai-workflow-rituals
-/plugin                     # Discover tab → install each at PROJECT scope
-/reload-plugins
-```
-
-Install both `aiwf-extensions@ai-workflow-rituals` and `wf-rituals@ai-workflow-rituals`. **The CLI form `claude /plugin install <name>@<marketplace>` defaults to *user* scope** — only the interactive `/plugin` menu offers a project-scope choice. Verify with `aiwf doctor`: once both are project-scope-installed, the `recommended-plugin-not-installed:` warnings go silent. (Closes G-064 via M-071, which lives under E-18.)
+Verify with `aiwf doctor`: the `rituals:` line confirms the artifacts are materialized (it points you at `aiwf update` if any are missing). If you previously installed the `ai-workflow-rituals` marketplace plugin, `aiwf doctor` flags a `marketplace-rituals-overlap` — the same skill names would otherwise be exposed twice — and asks you to disable the plugin via the `/plugin` menu. aiwf will **not** edit your `.claude/settings.json` for you.
 
 ### Devcontainer
 
-If you use the devcontainer (see [`.devcontainer/README.md`](.devcontainer/README.md)), the same plugin-install instruction above applies inside the container — but with one additional concern. Claude Code's plugin index stores absolute host paths ([anthropics/claude-code#31388](https://github.com/anthropics/claude-code/issues/31388)), so a macOS-pathed index breaks inside a Linux container and a Linux-pathed index breaks back on the host. The devcontainer works around this with a **plugin index shadow-mount**: `~/.claude-linux/plugins` on the host backs `/home/vscode/.claude/plugins` in the container, so the container has its own Linux-pathed parallel index while the host's macOS-pathed index stays untouched. The mechanics live in [`.devcontainer/initialize.sh`](.devcontainer/initialize.sh) (host-side, sets up the symlinks) and [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) (the mount entry). Once #31388 ships a fix that resolves plugin paths relative to `$HOME`, the shadow-mount can be removed across this repo plus Liminara and FlowTime (each carries the same workaround). Per M-0132 in E-0035.
+If you use the devcontainer (see [`.devcontainer/README.md`](.devcontainer/README.md)), no plugin install is needed inside the container either — `aiwf init` / `aiwf update` materializes the rituals into the container's `.claude/` exactly as on the host. The plugin-index shadow-mount the devcontainer still sets up (`~/.claude-linux/plugins` backing `/home/vscode/.claude/plugins`, working around the absolute-host-path bug [anthropics/claude-code#31388](https://github.com/anthropics/claude-code/issues/31388)) is now only relevant if you install *other* Claude plugins; the rituals no longer depend on it. The mechanics live in [`.devcontainer/initialize.sh`](.devcontainer/initialize.sh) and [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json). Per M-0132 in E-0035; superseded for the rituals by ADR-0014 / E-0038.
 
 ---
 

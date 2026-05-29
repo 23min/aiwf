@@ -1,24 +1,42 @@
 package doctor
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
-// TestAppendRecommendedPluginsReport_NilCfg_NoOp: helper called with
-// nil cfg returns input unchanged. Reaches the `cfg == nil`
-// early-return guard the public DoctorReport relies on when
-// config.Load failed for a non-NotFound reason (cfg comes back nil).
-// Same-package (internal) test because the helper is unexported.
-func TestAppendRecommendedPluginsReport_NilCfg_NoOp(t *testing.T) {
+// TestAppendMarketplaceOverlapReport_MalformedSettings surfaces the
+// loadEnabledPlugins error branch of the de-dupe guard: a malformed
+// `.claude/settings.json` produces a `plugins:` error line rather than
+// a silent skip. Same-package (internal) test because the helper is
+// unexported and the error path is awkward to reach end-to-end.
+func TestAppendMarketplaceOverlapReport_MalformedSettings(t *testing.T) {
 	t.Parallel()
-	in := []string{"line a", "line b"}
-	out := appendRecommendedPluginsReport(in, nil, t.TempDir())
-	if len(out) != len(in) {
-		t.Fatalf("len = %d, want %d (helper must not mutate input on nil cfg)", len(out), len(in))
+	root := t.TempDir()
+	dir := filepath.Join(root, ".claude")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
 	}
-	for i, want := range in {
-		if out[i] != want {
-			t.Errorf("[%d] = %q, want %q", i, out[i], want)
-		}
+	if err := os.WriteFile(filepath.Join(dir, "settings.json"), []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := appendMarketplaceOverlapReport(nil, root)
+	joined := strings.Join(out, "\n")
+	if !strings.Contains(joined, "plugins:") {
+		t.Errorf("malformed settings.json should surface a plugins: error line; got:\n%s", joined)
+	}
+}
+
+// TestAppendMaterializedRitualsReport_EmptyRoot exercises the missing
+// branch directly: an empty root reports the artifacts as not
+// materialized and points at `aiwf update`.
+func TestAppendMaterializedRitualsReport_EmptyRoot(t *testing.T) {
+	t.Parallel()
+	out := appendMaterializedRitualsReport(nil, t.TempDir())
+	joined := strings.Join(out, "\n")
+	if !strings.Contains(joined, "not materialized") || !strings.Contains(joined, "aiwf update") {
+		t.Errorf("empty root should report rituals not materialized; got:\n%s", joined)
 	}
 }

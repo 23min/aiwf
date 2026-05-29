@@ -319,6 +319,49 @@ func MaterializeTo(root string, target Target) error {
 	return nil
 }
 
+// MaterializedRituals reports which embedded ritual artifacts (skills,
+// agents, templates) are present on disk under target's dirs and which
+// are missing. `aiwf doctor` uses it to verify materialization — the
+// replacement for the retired marketplace recommendation (ADR-0014 §5).
+// Identifiers are "<kind>/<name>" (e.g. "skills/aiwfx-plan-epic",
+// "agents/planner.md") for display. A target with an empty AgentsDir
+// contributes no agent artifacts (they are never materialized for it).
+func MaterializedRituals(root string, target Target) (present, missing []string, err error) {
+	ritualSkills, err := ListRituals()
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, s := range ritualSkills {
+		recordArtifact(&present, &missing, "skills/"+s.Name, filepath.Join(root, target.SkillsDir, s.Name, "SKILL.md"))
+	}
+	if target.AgentsDir != "" {
+		agents, aErr := ListRitualAgents()
+		if aErr != nil {
+			return nil, nil, aErr
+		}
+		for _, a := range agents {
+			recordArtifact(&present, &missing, "agents/"+a.Name, filepath.Join(root, target.AgentsDir, a.Name))
+		}
+	}
+	templates, tErr := ListRitualTemplates()
+	if tErr != nil {
+		return nil, nil, tErr
+	}
+	for _, t := range templates {
+		recordArtifact(&present, &missing, "templates/"+t.Name, filepath.Join(root, target.TemplatesDir, t.Name))
+	}
+	return present, missing, nil
+}
+
+// recordArtifact stats path and appends id to present or missing.
+func recordArtifact(present, missing *[]string, id, path string) {
+	if _, err := os.Stat(path); err == nil {
+		*present = append(*present, id)
+	} else {
+		*missing = append(*missing, id)
+	}
+}
+
 // materializeFlatFiles writes flat single-file artifacts (agents,
 // templates) into destDir under root, owning them via a per-dir
 // `.aiwf-owned` manifest. It mirrors Materialize's contract for the

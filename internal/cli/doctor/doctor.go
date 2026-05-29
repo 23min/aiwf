@@ -241,41 +241,75 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	lines, problems = appendPreCommitHookReport(lines, problems, rootDir)
 	lines, problems = appendPostCommitHookReport(lines, problems, rootDir)
 	lines, problems = appendRenderReport(lines, problems, rootDir)
-	lines = appendRecommendedPluginsReport(lines, cfg, rootDir)
+	lines = appendMaterializedRitualsReport(lines, rootDir)
+	lines = appendMarketplaceOverlapReport(lines, rootDir)
 
 	return lines, problems
 }
 
-// appendRecommendedPluginsReport emits one warning per recommended
-// plugin not declared in the project's committed
-// `<rootDir>/.claude/settings.json` `enabledPlugins` map. The check
-// is opt-in via aiwf.yaml's `doctor.recommended_plugins` list.
-//
-// G-0138 / M-0133 / AC-3: the source of truth is the project-
-// committed settings.json (path-independent), not the machine-local
-// `~/.claude/plugins/installed_plugins.json` (path-strict; false-
-// positives across worktrees, devcontainers, and re-clones).
-//
-// Warnings are soft: the function does not return a problem count
-// because the M-070 spec forbids them from contributing to the
-// doctor's non-zero exit code.
-func appendRecommendedPluginsReport(in []string, cfg *config.Config, rootDir string) []string {
-	if cfg == nil || len(cfg.Doctor.RecommendedPlugins) == 0 {
-		return in
+// ritualsMarketplaceSuffix is the `@<marketplace>` suffix of a rituals
+// plugin id as it appears in `.claude/settings.json` enabledPlugins
+// (e.g. `aiwf-extensions@ai-workflow-rituals`). Used by the de-dupe
+// guard to recognize an enabled marketplace plugin that overlaps with
+// the materialized rituals.
+const ritualsMarketplaceSuffix = "@ai-workflow-rituals"
+
+// appendMaterializedRitualsReport verifies the embedded ritual
+// artifacts (skills, agents, templates) are materialized under the
+// consumer's `.claude/` tree (ADR-0014 §5 — doctor verifies the
+// materialized artifacts instead of recommending a marketplace plugin).
+// A `rituals:` ok line confirms presence; a soft warning naming the
+// missing artifacts points at `aiwf update`. Rituals are advisory
+// artifacts, so a miss never increments the problem count.
+func appendMaterializedRitualsReport(in []string, rootDir string) []string {
+	present, missing, err := skills.MaterializedRituals(rootDir, skills.ClaudeTarget)
+	if err != nil {
+		return append(in, label("rituals:")+err.Error())
 	}
+	if len(missing) > 0 {
+		out := in
+		out = append(out, fmt.Sprintf("%s%d of %d ritual artifacts not materialized — run `aiwf update`", label("rituals:"), len(missing), len(present)+len(missing)))
+		for _, m := range missing {
+			out = append(out, subIndent+"- "+m)
+		}
+		return out
+	}
+	return append(in, fmt.Sprintf("%sok (%d artifacts materialized)", label("rituals:"), len(present)))
+}
+
+// appendMarketplaceOverlapReport is the de-dupe guard (ADR-0014 §5):
+// when the consumer has a rituals marketplace plugin enabled in
+// `.claude/settings.json` AND the rituals are materialized under
+// `.claude/`, the same skill `name:` is exposed twice. The guard
+// detects the overlap and instructs the operator to disable the
+// plugin — it never edits settings.json itself (quiet mutation of user
+// settings is more invasive than the marker-managed posture allows).
+// Soft (advisory): it does not increment the problem count.
+func appendMarketplaceOverlapReport(in []string, rootDir string) []string {
 	enabled, err := loadEnabledPlugins(rootDir)
 	if err != nil {
 		return append(in, label("plugins:")+err.Error())
 	}
-	out := in
-	for _, plugin := range cfg.Doctor.RecommendedPlugins {
-		if enabled[plugin] {
-			continue
+	var enabledRituals []string
+	for id, on := range enabled {
+		if on && strings.HasSuffix(id, ritualsMarketplaceSuffix) {
+			enabledRituals = append(enabledRituals, id)
 		}
-		out = append(out,
-			fmt.Sprintf("%srecommended-plugin-not-installed: %s", label("plugins:"), plugin),
-			fmt.Sprintf("%sinstall at PROJECT scope: open the interactive `/plugin` menu and choose %s (the bare `claude /plugin install %s` CLI form defaults to user scope)", subIndent, plugin, plugin),
-		)
+	}
+	if len(enabledRituals) == 0 {
+		return in
+	}
+	present, _, mErr := skills.MaterializedRituals(rootDir, skills.ClaudeTarget)
+	if mErr != nil || len(present) == 0 {
+		// No materialized rituals → no duplication hazard (or the
+		// materialized-rituals report above already surfaced mErr).
+		return in
+	}
+	sort.Strings(enabledRituals)
+	out := in
+	out = append(out, fmt.Sprintf("%smarketplace-rituals-overlap: rituals materialized AND %d marketplace plugin(s) enabled — disable the plugin(s) to avoid duplicate skills", label("plugins:"), len(enabledRituals)))
+	for _, id := range enabledRituals {
+		out = append(out, fmt.Sprintf("%s- %s (disable via the `/plugin` menu; aiwf will not edit your settings.json)", subIndent, id))
 	}
 	return out
 }
