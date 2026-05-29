@@ -1,7 +1,7 @@
 ---
 id: M-0152
 title: 'Marketplace sunset: doctor flip, de-dupe guard, docs rewrite'
-status: draft
+status: in_progress
 parent: E-0038
 depends_on:
     - M-0150
