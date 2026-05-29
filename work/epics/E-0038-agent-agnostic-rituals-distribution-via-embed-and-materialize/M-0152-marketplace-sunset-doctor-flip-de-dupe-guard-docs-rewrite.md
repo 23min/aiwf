@@ -1,7 +1,7 @@
 ---
 id: M-0152
 title: 'Marketplace sunset: doctor flip, de-dupe guard, docs rewrite'
-status: in_progress
+status: done
 parent: E-0038
 depends_on:
     - M-0150
@@ -69,3 +69,42 @@ Once M2–M4 make the embedded path stable, the marketplace is redundant and Cla
 
 ### AC-4 — Live-repo install smoke after de-dupe guard, human-verified
 
+(Relocated from M-0150/AC-4; sequenced here so the live smoke runs against the de-dupe guard.)
+
+## Work log
+
+### AC-1 — doctor verifies materialized rituals
+Replaced the `appendRecommendedPluginsReport` recommend-warning with `appendMaterializedRitualsReport`, backed by a new `skills.MaterializedRituals(root, target)` status helper. Doctor now emits a `rituals:` ok line (or a soft "N not materialized — run `aiwf update`" warning). · tests: `TestMaterializedRituals_*` (skills), `TestDoctorReport_RitualsMaterialized_OK`, `TestDoctorReport_RitualsMissing_WarnsSoft`, `TestAppendMaterializedRitualsReport_EmptyRoot`
+
+### AC-2 — de-dupe guard
+Added `appendMarketplaceOverlapReport`: when a rituals marketplace plugin is enabled in `.claude/settings.json` AND rituals are materialized, doctor warns `marketplace-rituals-overlap` and instructs disable — never editing settings.json. · tests: `TestDoctorReport_MarketplaceOverlap_WarnsNoSettingsEdit`, `TestDoctorReport_NoOverlap_WhenPluginDisabled`, `TestDoctorReport_NoOverlap_WhenNotMaterialized`, `TestAppendMarketplaceOverlapReport_MalformedSettings`
+
+### AC-3 — docs rewritten; recommended_plugins retired
+Removed the `Config.Doctor` struct/field + `pluginEntryPattern` + `preCheckTypedShape`; deleted the obsolete init-time marketplace nudge (`rituals.go`); rewrote CLAUDE.md § "Operator setup" and README § 2 to the one-command `aiwf init`/`update` flow; dropped the `doctor:` block from this repo's `aiwf.yaml`. Per D-0016. · tests: `TestLoad_LegacyDoctorBlockIgnored` (back-compat lax decode), `TestM0152_OperatorSetupDocRewritten` (structural, scoped to the named section), `TestM0152_DefaultYamlDropsRecommendedPlugins`
+
+### AC-4 — live-repo install smoke
+`aiwf update` in this repo materialized 21 ritual artifacts (13 skills + 4 agents + 4 templates) → `aiwf doctor` reports `rituals: ok` and the de-dupe guard fires against the real `settings.json`, naming both enabled plugins and instructing disable without modifying the file. The interactive plugin-disable is the guard's standing operator instruction (requires the `/plugin` menu), not an action aiwf performs. · backed by the self-check `doctor de-dupe guard` step + the AC-2 integration tests.
+
+The per-phase red→green→done→met timeline is authoritative in `aiwf history M-0152/AC-<N>`.
+
+## Decisions made during implementation
+
+- **D-0016** — retire the `doctor.recommended_plugins` config surface entirely (struct field, validation, recommend-warning, init nudge). Lax `yaml.Unmarshal` means old consumer yamls that still declare the key load cleanly (key ignored), so no consumer breaks.
+
+## Validation
+
+- `golangci-lint run ./...` — **0 issues** (whole branch); the run surfaced 5 findings mid-flight (gocritic `appendAssign`/`stringXbytes`, gofumpt), all fixed before wrap.
+- `go vet ./...` clean; `go build ./...` clean; `go test ./...` green except `TestFSMHistoryConsistent_PerfBudget` (a heavy-parallel git-tree-contention flake in `internal/check`, unrelated; passes 2/2 in isolation).
+- `aiwf doctor --self-check` passed (30 steps), including the new `doctor verifies rituals materialized` and `doctor de-dupe guard` steps.
+- **Live smoke** (this repo): `aiwf update` → 21 artifacts materialized, `.gitignore` reconciled; `aiwf doctor` → `rituals: ok` + `marketplace-rituals-overlap` naming both plugins, `settings.json` byte-unchanged.
+
+## Deferrals
+
+- None. Non-Claude target *writers* remain out of scope (epic-level), unblocked by M-0151's seam.
+
+## Reviewer notes
+
+- **AC-4 is human-gated by nature.** The install smoke + guard detection are verified live and by tests; the actual plugin-disable is the guard's *instruction* (it requires the interactive `/plugin` menu and changes the running session's active skills), so it is an operator-standing action, not an aiwf step. Promoted met on the install-smoke + guard-detection evidence.
+- **`Config.Validate()` retained empty.** No cross-field rules remain after the recommended_plugins removal; kept as the validation entry point (called by Load/Write) for future rules.
+- **Latent golangci-lint findings keep appearing per milestone** (M-0151 had 9, M-0152 had 5) because CI has never run on this unpushed branch — exactly the class G-0179 tracks. Each was caught by running the full gate at wrap.
+- **`.gitignore` change committed.** Running `aiwf update` in this repo for the live smoke reconciled `.gitignore` with the ritual patterns (M-0149/M-0150) for the first time — a legitimate dogfooding change, bundled into the wrap.
