@@ -19,6 +19,10 @@ acs:
       title: Test asserts no new hook surface beyond aiwf's existing git hooks
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: make install + aiwf update materializes rituals into .claude/, human-verified
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -61,4 +65,6 @@ M2 delivers ritual skills. The rituals also ship four agents (`planner` / `build
 ### AC-2 — Manifest owns agents and templates; update refreshes without clobber
 
 ### AC-3 — Test asserts no new hook surface beyond aiwf's existing git hooks
+
+### AC-4 — make install + aiwf update materializes rituals into .claude/, human-verified
 
