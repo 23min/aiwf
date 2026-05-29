@@ -706,12 +706,21 @@ func TestMaterialize_WritesManifest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
-	skills, err := List()
+	// The manifest is the union of verb skills then ritual skills, in
+	// the order Materialize appends them (each set already name-sorted).
+	verb, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rituals, err := ListRituals()
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := ""
-	for _, s := range skills {
+	for _, s := range verb {
+		want += s.Name + "\n"
+	}
+	for _, s := range rituals {
 		want += s.Name + "\n"
 	}
 	if string(got) != want {
@@ -774,18 +783,24 @@ func TestMaterialize_PreservesNonAiwfDirs(t *testing.T) {
 func TestGitignorePatterns(t *testing.T) {
 	t.Parallel()
 	got := GitignorePatterns()
-	if len(got) != 3 {
-		t.Fatalf("got %d patterns, want 3 (wildcard + manifest + binary); got %v", len(got), got)
+	if len(got) != 5 {
+		t.Fatalf("got %d patterns, want 5 (3 skill wildcards + manifest + binary); got %v", len(got), got)
 	}
-	wantWildcard := SkillsDir + "/aiwf-*/"
+	wantVerbWildcard := SkillsDir + "/aiwf-*/"
+	wantAiwfxWildcard := SkillsDir + "/aiwfx-*/"
+	wantWfWildcard := SkillsDir + "/wf-*/"
 	wantManifest := SkillsDir + "/" + ManifestFile
 	wantBinary := "/aiwf"
 
-	var sawWildcard, sawManifest, sawBinary bool
+	var sawVerb, sawAiwfx, sawWf, sawManifest, sawBinary bool
 	for _, p := range got {
 		switch p {
-		case wantWildcard:
-			sawWildcard = true
+		case wantVerbWildcard:
+			sawVerb = true
+		case wantAiwfxWildcard:
+			sawAiwfx = true
+		case wantWfWildcard:
+			sawWf = true
 		case wantManifest:
 			sawManifest = true
 		case wantBinary:
@@ -794,8 +809,14 @@ func TestGitignorePatterns(t *testing.T) {
 			t.Errorf("unexpected pattern %q", p)
 		}
 	}
-	if !sawWildcard {
-		t.Errorf("missing directory wildcard %q (G19: makes .gitignore future-proof against new aiwf-* skills)", wantWildcard)
+	if !sawVerb {
+		t.Errorf("missing verb-skill wildcard %q (G19: future-proofs .gitignore against new aiwf-* skills)", wantVerbWildcard)
+	}
+	if !sawAiwfx {
+		t.Errorf("missing ritual wildcard %q (E-0038: materialized aiwfx-* skills)", wantAiwfxWildcard)
+	}
+	if !sawWf {
+		t.Errorf("missing ritual wildcard %q (E-0038: materialized wf-* skills)", wantWfWildcard)
 	}
 	if !sawManifest {
 		t.Errorf("missing manifest entry %q (otherwise .aiwf-owned would land in git commits)", wantManifest)
@@ -803,8 +824,10 @@ func TestGitignorePatterns(t *testing.T) {
 	if !sawBinary {
 		t.Errorf("missing binary entry %q (G-0057: bare `go build ./cmd/aiwf` drops a binary at repo root that must not land in commits)", wantBinary)
 	}
-	if !strings.HasSuffix(wantWildcard, "/") {
-		t.Errorf("wildcard %q should end with / so it only matches directories", wantWildcard)
+	for _, w := range []string{wantVerbWildcard, wantAiwfxWildcard, wantWfWildcard} {
+		if !strings.HasSuffix(w, "/") {
+			t.Errorf("wildcard %q should end with / so it only matches directories", w)
+		}
 	}
 	if !strings.HasPrefix(wantBinary, "/") {
 		t.Errorf("binary entry %q should start with / so it only anchors to repo root (cmd/aiwf/ stays trackable)", wantBinary)

@@ -39,6 +39,18 @@ import (
 //go:embed embedded
 var embedFS embed.FS
 
+// ritualsFS holds the vendored ai-workflow-rituals snapshot (E-0038),
+// pinned via rituals.lock and refreshed by `make sync-rituals`. The
+// ritual *skills* under it materialize flattened into
+// `.claude/skills/<skill-name>/` alongside the verb skills; agents and
+// templates in the same snapshot are materialized by a later milestone.
+//
+//go:embed embedded-rituals
+var ritualsFS embed.FS
+
+// ritualsRoot is the embed path of the vendored rituals snapshot.
+const ritualsRoot = "embedded-rituals"
+
 // Skill is one embedded skill: its directory name (e.g. "aiwf-add") and
 // the bytes that should be written to `.claude/skills/<name>/SKILL.md`.
 type Skill struct {
@@ -84,6 +96,43 @@ func List() ([]Skill, error) {
 	return out, nil
 }
 
+// ListRituals returns every embedded ritual *skill* (aiwfx-*, wf-*) in
+// name-sorted order, walking the vendored
+// `embedded-rituals/plugins/<plugin>/skills/<skill>/SKILL.md` tree. The
+// plugin wrapper is flattened away: Name is the skill directory name,
+// which is what materializes under `.claude/skills/`. Agents and
+// templates living in the same snapshot are intentionally not returned —
+// only files literally named SKILL.md under a `skills/` parent qualify.
+func ListRituals() ([]Skill, error) {
+	var out []Skill
+	err := fs.WalkDir(ritualsFS, ritualsRoot, func(p string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() || d.Name() != "SKILL.md" {
+			return nil
+		}
+		// Expect .../skills/<skill>/SKILL.md; anything else (agents,
+		// templates) is skipped.
+		parts := strings.Split(p, "/")
+		if len(parts) < 3 || parts[len(parts)-3] != "skills" {
+			return nil
+		}
+		name := parts[len(parts)-2]
+		content, readErr := fs.ReadFile(ritualsFS, p)
+		if readErr != nil {
+			return fmt.Errorf("reading embedded ritual skill %s: %w", name, readErr)
+		}
+		out = append(out, Skill{Name: name, Content: content})
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walking embedded rituals: %w", err)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
+}
+
 // Materialize writes the embedded skills into `.claude/skills/<name>/`
 // under root. Wipes any directory listed in the prior ownership
 // manifest that is no longer in the current embed (clean up after a
@@ -104,10 +153,20 @@ func Materialize(root string) error {
 		return err
 	}
 
-	skills, err := List()
+	verbSkills, err := List()
 	if err != nil {
 		return err
 	}
+	ritualSkills, err := ListRituals()
+	if err != nil {
+		return err
+	}
+	// Verb skills (aiwf-*) and ritual skills (aiwfx-*, wf-*) share the
+	// `.claude/skills/` namespace and the single ownership manifest. The
+	// prefixes don't overlap, so the union has no name collisions.
+	skills := make([]Skill, 0, len(verbSkills)+len(ritualSkills))
+	skills = append(skills, verbSkills...)
+	skills = append(skills, ritualSkills...)
 
 	currentSet := make(map[string]bool, len(skills))
 	for _, s := range skills {
@@ -188,10 +247,11 @@ func writeManifest(skillsRoot string, skills []Skill) error {
 }
 
 // GitignorePatterns returns the .gitignore lines that mask aiwf-
-// materialized state and aiwf build artifacts in the consumer repo.
-// Three entries:
-//   - a directory wildcard that catches every aiwf-* skill dir
-//     (present and future).
+// materialized state and aiwf build artifacts in the consumer repo:
+//   - directory wildcards that catch every materialized skill dir
+//     (present and future): verb skills (`aiwf-*`) and the vendored
+//     ritual skills (`aiwfx-*`, `wf-*`). The prefixes are distinct, so
+//     three wildcards are needed — `aiwf-*` does not match `aiwfx-*`.
 //   - the ownership manifest.
 //   - `/aiwf` — a stray binary `go build ./cmd/aiwf` drops at the
 //     consumer's repo root (G-0057). The leading slash anchors to
@@ -208,6 +268,8 @@ func writeManifest(skillsRoot string, skills []Skill) error {
 func GitignorePatterns() []string {
 	return []string{
 		SkillsDir + "/aiwf-*/",
+		SkillsDir + "/aiwfx-*/",
+		SkillsDir + "/wf-*/",
 		SkillsDir + "/" + ManifestFile,
 		"/aiwf",
 	}
