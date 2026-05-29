@@ -1,7 +1,7 @@
 ---
 id: M-0148
 title: 'Vendor-sync: pull pinned rituals snapshot into the aiwf repo + drift test'
-status: draft
+status: in_progress
 parent: E-0038
 tdd: required
 acs:
