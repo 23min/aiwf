@@ -149,7 +149,10 @@ func TestMaterialize_DoesNotClobberUserSkills(t *testing.T) {
 // mask the ritual skill dirs alongside the verb skill dirs.
 func TestGitignorePatterns_CoverRituals(t *testing.T) {
 	t.Parallel()
-	pats := GitignorePatterns()
+	pats, err := GitignorePatterns()
+	if err != nil {
+		t.Fatalf("GitignorePatterns: %v", err)
+	}
 	for _, want := range []string{SkillsDir + "/aiwf-*/", SkillsDir + "/aiwfx-*/", SkillsDir + "/wf-*/"} {
 		found := false
 		for _, p := range pats {

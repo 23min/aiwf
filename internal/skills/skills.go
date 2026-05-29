@@ -62,6 +62,17 @@ type Skill struct {
 // into and `aiwf update` rewrites from. Claude Code's convention.
 const SkillsDir = ".claude/skills"
 
+// AgentsDir is the host-relative directory the ritual agents
+// (planner/builder/reviewer/deployer) materialize into. Claude Code's
+// convention, sibling of SkillsDir.
+const AgentsDir = ".claude/agents"
+
+// TemplatesDir is the host-relative directory the ritual templates
+// (adr/decision/epic-spec/milestone-spec) materialize into. Sibling of
+// SkillsDir and AgentsDir per D-0015; ADR-0014 §3 left the location open
+// ("→ their referenced locations") and §4 makes it a per-target value.
+const TemplatesDir = ".claude/templates"
+
 // ManifestFile is the on-disk record of which skill directories aiwf
 // claims ownership of. One name per line, no trailing whitespace.
 // Lives next to the skill dirs so a single stat tells aiwf whether
@@ -133,6 +144,54 @@ func ListRituals() ([]Skill, error) {
 	return out, nil
 }
 
+// listRitualFiles returns every embedded ritual file living directly
+// under a directory named parentDir (e.g. "agents", "templates"), in
+// name-sorted order. Unlike skills, these artifacts materialize flat —
+// the file itself is the unit, so Name carries the `.md` suffix. The
+// `.gitkeep` placeholder under an empty templates/ dir is a dotfile and
+// is excluded from the embed by go:embed's default dot-skip.
+func listRitualFiles(parentDir string) ([]Skill, error) {
+	var out []Skill
+	err := fs.WalkDir(ritualsFS, ritualsRoot, func(p string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+		// Expect .../<parentDir>/<file>; the immediate parent must match.
+		parts := strings.Split(p, "/")
+		if len(parts) < 2 || parts[len(parts)-2] != parentDir {
+			return nil
+		}
+		name := parts[len(parts)-1]
+		content, readErr := fs.ReadFile(ritualsFS, p)
+		if readErr != nil {
+			return fmt.Errorf("reading embedded ritual %s/%s: %w", parentDir, name, readErr)
+		}
+		out = append(out, Skill{Name: name, Content: content})
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walking embedded rituals for %s: %w", parentDir, err)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
+}
+
+// ListRitualAgents returns the vendored ritual agents (planner, builder,
+// reviewer, deployer) that materialize flat into `.claude/agents/`.
+func ListRitualAgents() ([]Skill, error) {
+	return listRitualFiles("agents")
+}
+
+// ListRitualTemplates returns the vendored ritual templates (adr,
+// decision, epic-spec, milestone-spec) that materialize flat into
+// `.claude/templates/` (D-0015).
+func ListRitualTemplates() ([]Skill, error) {
+	return listRitualFiles("templates")
+}
+
 // Materialize writes the embedded skills into `.claude/skills/<name>/`
 // under root. Wipes any directory listed in the prior ownership
 // manifest that is no longer in the current embed (clean up after a
@@ -201,7 +260,65 @@ func Materialize(root string) error {
 	if err := writeManifest(skillsRoot, skills); err != nil {
 		return err
 	}
+
+	// Agents and templates are flat single-file artifacts living in
+	// their own Claude-target dirs, each with its own ownership manifest
+	// (same wipe-and-rewrite contract as the skills above). Agents and
+	// templates have no namespacing prefix, so ownership is tracked
+	// entirely through the manifest — a user-authored file the manifest
+	// never claimed is left untouched.
+	agents, err := ListRitualAgents()
+	if err != nil {
+		return err
+	}
+	if err := materializeFlatFiles(root, AgentsDir, agents); err != nil {
+		return err
+	}
+	templates, err := ListRitualTemplates()
+	if err != nil {
+		return err
+	}
+	if err := materializeFlatFiles(root, TemplatesDir, templates); err != nil {
+		return err
+	}
 	return nil
+}
+
+// materializeFlatFiles writes flat single-file artifacts (agents,
+// templates) into destDir under root, owning them via a per-dir
+// `.aiwf-owned` manifest. It mirrors Materialize's contract for the
+// flat case: wipe any file the prior manifest claimed that the current
+// embed no longer ships, overwrite the currently-embedded files, and
+// leave foreign (non-manifest) files alone. The file basename — carried
+// in each Skill.Name with its `.md` suffix — is the on-disk name.
+func materializeFlatFiles(root, destDir string, files []Skill) error {
+	dir := filepath.Join(root, destDir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("creating %s: %w", destDir, err)
+	}
+
+	prior, err := readManifest(dir)
+	if err != nil {
+		return err
+	}
+	currentSet := make(map[string]bool, len(files))
+	for _, f := range files {
+		currentSet[f.Name] = true
+	}
+	for _, name := range prior {
+		if currentSet[name] {
+			continue
+		}
+		if rmErr := os.RemoveAll(filepath.Join(dir, name)); rmErr != nil {
+			return fmt.Errorf("removing previously-owned file %s: %w", name, rmErr)
+		}
+	}
+	for _, f := range files {
+		if err := os.WriteFile(filepath.Join(dir, f.Name), f.Content, 0o644); err != nil {
+			return fmt.Errorf("writing %s/%s: %w", destDir, f.Name, err)
+		}
+	}
+	return writeManifest(dir, files)
 }
 
 // readManifest returns the list of skill names the prior Materialize
@@ -265,12 +382,38 @@ func writeManifest(skillsRoot string, skills []Skill) error {
 // The trailing slash on the wildcard restricts the match to
 // directories, so a non-aiwf file accidentally named like `aiwf-x.md`
 // at that level would not be silently ignored.
-func GitignorePatterns() []string {
-	return []string{
+//
+// Agents and templates have no namespacing prefix (their basenames are
+// `builder.md`, `adr.md`, …), so a directory wildcard would also mask
+// user-authored files. They are therefore enumerated by exact path,
+// derived from the embed (not hardcoded) so an upstream rename can't
+// silently desync the gitignore from what materializes. ensureGitignore
+// reconciles missing lines on every `aiwf init`/`update`, so a new
+// ritual agent arriving with a binary upgrade has its line appended by
+// the same `update` that materializes it.
+func GitignorePatterns() ([]string, error) {
+	pats := []string{
 		SkillsDir + "/aiwf-*/",
 		SkillsDir + "/aiwfx-*/",
 		SkillsDir + "/wf-*/",
 		SkillsDir + "/" + ManifestFile,
 		"/aiwf",
 	}
+	agents, err := ListRitualAgents()
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range agents {
+		pats = append(pats, AgentsDir+"/"+a.Name)
+	}
+	pats = append(pats, AgentsDir+"/"+ManifestFile)
+	templates, err := ListRitualTemplates()
+	if err != nil {
+		return nil, err
+	}
+	for _, tm := range templates {
+		pats = append(pats, TemplatesDir+"/"+tm.Name)
+	}
+	pats = append(pats, TemplatesDir+"/"+ManifestFile)
+	return pats, nil
 }

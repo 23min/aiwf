@@ -716,7 +716,10 @@ func ensureLegacyAiwfVersionClean(root string, dryRun bool) (StepResult, error) 
 const statusMdGitignoreLine = "STATUS.md"
 
 func ensureGitignore(root string, statusMdAutoUpdate, dryRun bool) (StepResult, error) {
-	paths := skills.GitignorePatterns()
+	paths, err := skills.GitignorePatterns()
+	if err != nil {
+		return StepResult{}, fmt.Errorf("computing gitignore patterns: %w", err)
+	}
 	htmlIgnore, htmlReason := htmlOutDirIgnore(root)
 
 	path := filepath.Join(root, ".gitignore")

@@ -782,48 +782,62 @@ func TestMaterialize_PreservesNonAiwfDirs(t *testing.T) {
 
 func TestGitignorePatterns(t *testing.T) {
 	t.Parallel()
-	got := GitignorePatterns()
-	if len(got) != 5 {
-		t.Fatalf("got %d patterns, want 5 (3 skill wildcards + manifest + binary); got %v", len(got), got)
+	got, err := GitignorePatterns()
+	if err != nil {
+		t.Fatalf("GitignorePatterns: %v", err)
 	}
+
+	// Expected set: the 5 static entries (3 skill wildcards + skills
+	// manifest + binary) plus the enumerated agent/template files and
+	// their per-dir manifests, derived from the embed exactly as the
+	// production helper does.
 	wantVerbWildcard := SkillsDir + "/aiwf-*/"
 	wantAiwfxWildcard := SkillsDir + "/aiwfx-*/"
 	wantWfWildcard := SkillsDir + "/wf-*/"
 	wantManifest := SkillsDir + "/" + ManifestFile
 	wantBinary := "/aiwf"
 
-	var sawVerb, sawAiwfx, sawWf, sawManifest, sawBinary bool
+	want := map[string]bool{
+		wantVerbWildcard:  true,
+		wantAiwfxWildcard: true,
+		wantWfWildcard:    true,
+		wantManifest:      true,
+		wantBinary:        true,
+	}
+	agents, err := ListRitualAgents()
+	if err != nil {
+		t.Fatalf("ListRitualAgents: %v", err)
+	}
+	for _, a := range agents {
+		want[AgentsDir+"/"+a.Name] = true
+	}
+	want[AgentsDir+"/"+ManifestFile] = true
+	tmpls, err := ListRitualTemplates()
+	if err != nil {
+		t.Fatalf("ListRitualTemplates: %v", err)
+	}
+	for _, tm := range tmpls {
+		want[TemplatesDir+"/"+tm.Name] = true
+	}
+	want[TemplatesDir+"/"+ManifestFile] = true
+
+	gotSet := map[string]bool{}
 	for _, p := range got {
-		switch p {
-		case wantVerbWildcard:
-			sawVerb = true
-		case wantAiwfxWildcard:
-			sawAiwfx = true
-		case wantWfWildcard:
-			sawWf = true
-		case wantManifest:
-			sawManifest = true
-		case wantBinary:
-			sawBinary = true
-		default:
+		if gotSet[p] {
+			t.Errorf("duplicate pattern %q", p)
+		}
+		gotSet[p] = true
+		if !want[p] {
 			t.Errorf("unexpected pattern %q", p)
 		}
 	}
-	if !sawVerb {
-		t.Errorf("missing verb-skill wildcard %q (G19: future-proofs .gitignore against new aiwf-* skills)", wantVerbWildcard)
+	for w := range want {
+		if !gotSet[w] {
+			t.Errorf("missing pattern %q", w)
+		}
 	}
-	if !sawAiwfx {
-		t.Errorf("missing ritual wildcard %q (E-0038: materialized aiwfx-* skills)", wantAiwfxWildcard)
-	}
-	if !sawWf {
-		t.Errorf("missing ritual wildcard %q (E-0038: materialized wf-* skills)", wantWfWildcard)
-	}
-	if !sawManifest {
-		t.Errorf("missing manifest entry %q (otherwise .aiwf-owned would land in git commits)", wantManifest)
-	}
-	if !sawBinary {
-		t.Errorf("missing binary entry %q (G-0057: bare `go build ./cmd/aiwf` drops a binary at repo root that must not land in commits)", wantBinary)
-	}
+
+	// Shape invariants that survive the dynamic set.
 	for _, w := range []string{wantVerbWildcard, wantAiwfxWildcard, wantWfWildcard} {
 		if !strings.HasSuffix(w, "/") {
 			t.Errorf("wildcard %q should end with / so it only matches directories", w)
@@ -847,7 +861,11 @@ func TestGitignorePatterns(t *testing.T) {
 // promises to its caller, not about ensureGitignore's other branches.
 func TestGitignorePatterns_BinaryEntryListed(t *testing.T) {
 	t.Parallel()
-	for _, p := range GitignorePatterns() {
+	pats, err := GitignorePatterns()
+	if err != nil {
+		t.Fatalf("GitignorePatterns: %v", err)
+	}
+	for _, p := range pats {
 		if p == "/aiwf" {
 			return
 		}
