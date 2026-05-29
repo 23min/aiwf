@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Test asserts no new hook surface beyond aiwf's existing git hooks
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: make install + aiwf update materializes rituals into .claude/, human-verified
       status: deferred
