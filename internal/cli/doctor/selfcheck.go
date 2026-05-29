@@ -220,33 +220,27 @@ func runSelfCheck() int {
 			args:  []string{"doctor", "--check-latest", "--root", tmp},
 		},
 		{
-			label: "doctor recommended-plugins fixture: declare in aiwf.yaml",
-			setup: func() error {
-				return appendDoctorRecommendedPlugins(tmp, []string{"aiwf-self-check@synthetic-marketplace"})
-			},
-			args: []string{"doctor", "--root", tmp},
+			label: "doctor verifies rituals materialized (ADR-0014 §5)",
+			args:  []string{"doctor", "--root", tmp},
 			verifyOutput: func(out string) error {
-				if !strings.Contains(out, "recommended-plugin-not-installed") {
-					return fmt.Errorf("expected recommended-plugin-not-installed warning before enable fixture; got:\n%s", out)
+				if !strings.Contains(out, "rituals:") {
+					return fmt.Errorf("expected a rituals: verification line; got:\n%s", out)
 				}
-				if !strings.Contains(out, "aiwf-self-check@synthetic-marketplace") {
-					return fmt.Errorf("warning should name the synthetic plugin id; got:\n%s", out)
-				}
-				if !strings.Contains(out, "PROJECT scope") {
-					return fmt.Errorf("warning should include PROJECT-scope install advice (post-G-0138); got:\n%s", out)
+				if strings.Contains(out, "not materialized") {
+					return fmt.Errorf("freshly-inited repo should report rituals materialized, not missing; got:\n%s", out)
 				}
 				return nil
 			},
 		},
 		{
-			label: "doctor recommended-plugins fixture: warning silent after enable in settings.json",
+			label: "doctor de-dupe guard: enabled marketplace plugin overlaps materialized rituals",
 			setup: func() error {
-				return writeEnabledPluginsForSelfCheck(tmp, "aiwf-self-check@synthetic-marketplace")
+				return writeEnabledPluginsForSelfCheck(tmp, "aiwf-extensions@ai-workflow-rituals")
 			},
 			args: []string{"doctor", "--root", tmp},
 			verifyOutput: func(out string) error {
-				if strings.Contains(out, "recommended-plugin-not-installed") {
-					return fmt.Errorf("enabledPlugins=true should silence the warning; got:\n%s", out)
+				if !strings.Contains(out, "marketplace-rituals-overlap") {
+					return fmt.Errorf("an enabled marketplace plugin alongside materialized rituals should trigger the de-dupe guard; got:\n%s", out)
 				}
 				return nil
 			},
@@ -297,37 +291,10 @@ func runSelfCheck() int {
 	return cliutil.ExitOK
 }
 
-// appendDoctorRecommendedPlugins appends a `doctor:` /
-// `recommended_plugins:` block to <repo>/aiwf.yaml if absent.
-// Idempotent: a second invocation with the same plugin set is a no-op.
-func appendDoctorRecommendedPlugins(repo string, plugins []string) error {
-	path := filepath.Join(repo, "aiwf.yaml")
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("reading %s: %w", path, err)
-	}
-	if strings.Contains(string(raw), "recommended_plugins:") {
-		return nil
-	}
-	var block strings.Builder
-	if !strings.HasSuffix(string(raw), "\n") {
-		block.WriteString("\n")
-	}
-	block.WriteString("doctor:\n  recommended_plugins:\n")
-	for _, p := range plugins {
-		block.WriteString("    - " + p + "\n")
-	}
-	out := append([]byte(nil), raw...)
-	out = append(out, []byte(block.String())...)
-	if err := os.WriteFile(path, out, 0o644); err != nil {
-		return fmt.Errorf("writing %s: %w", path, err)
-	}
-	return nil
-}
-
 // writeEnabledPluginsForSelfCheck writes <repo>/.claude/settings.json
-// declaring `plugin` enabled, so the doctor's recommended-plugins
-// check (post-G-0138 / M-0133 / AC-3) reads it as satisfied.
+// declaring `plugin` enabled, so the doctor's de-dupe guard
+// (ADR-0014 §5) sees an enabled marketplace plugin overlapping the
+// materialized rituals.
 func writeEnabledPluginsForSelfCheck(repo, plugin string) error {
 	dir := filepath.Join(repo, ".claude")
 	if err := os.MkdirAll(dir, 0o755); err != nil {

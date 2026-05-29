@@ -179,12 +179,12 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 		"ok    update (status_md.auto_update: true → reinstates post-commit)",
 		"ok    check",
 		"ok    doctor",
-		// M-070/AC-7: end-to-end coverage of the recommended-plugin
-		// check, both the warning-fires path and the install-silences
-		// path. Adding these labels keeps the seam test honest about
-		// what the production self-check actually exercises.
-		"ok    doctor recommended-plugins fixture: declare in aiwf.yaml",
-		"ok    doctor recommended-plugins fixture: warning silent after enable in settings.json",
+		// M-0152: the marketplace recommendation is retired; doctor now
+		// verifies the materialized rituals and runs a de-dupe guard.
+		// These labels keep the seam test honest about what the
+		// production self-check actually exercises.
+		"ok    doctor verifies rituals materialized (ADR-0014 §5)",
+		"ok    doctor de-dupe guard: enabled marketplace plugin overlaps materialized rituals",
 	} {
 		if !strings.Contains(out, label) {
 			t.Errorf("output missing %q:\n%s", label, out)
@@ -707,164 +707,11 @@ contracts:
 	}
 }
 
-// TestDoctorReport_RecommendedPlugins_EmptyConfig_NoOutputNoFileRead:
-// M-070/AC-4 — when `doctor.recommended_plugins` is absent or empty,
-// the new check makes zero observations: no `recommended-plugin-not-installed`
-// line in the output and no problems++. Verified with two configs:
-// the field absent entirely + an explicit `[]`. To make the
-// "no file read" half observable without process tracing, $HOME is
-// set to a directory we did NOT populate; if the check incorrectly
-// tried to read `installed_plugins.json` it would still find nothing
-// and return empty — so this test pairs with the fixture-injected
-// AC-5/AC-6 tests below where the file presence matters.
-func TestDoctorReport_RecommendedPlugins_EmptyConfig_NoOutputNoFileRead(t *testing.T) {
-	cases := []struct {
-		name      string
-		yamlExtra string
-	}{
-		{name: "field absent", yamlExtra: ""},
-		{name: "empty list", yamlExtra: "doctor:\n  recommended_plugins: []\n"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			root := setupCLITestRepo(t)
-			if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
-				t.Fatalf("init: %d", rc)
-			}
-			// Append (or rewrite) aiwf.yaml with the test's extra block.
-			contents := []byte("hosts: [claude-code]\n" + tc.yamlExtra)
-			if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
-				t.Fatal(err)
-			}
-			t.Setenv("HOME", t.TempDir())
-			lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-			joined := strings.Join(lines, "\n")
-			if strings.Contains(joined, "recommended-plugin-not-installed") {
-				t.Errorf("empty config emitted recommended-plugin warnings:\n%s", joined)
-			}
-		})
-	}
-}
-
-// TestDoctorReport_RecommendedPlugins_OneMissing_OneWarningWithInstall:
-// M-070/AC-3 — one declared, none installed. Exactly one warning line
-// per missing plugin; the warning text carries (a) the
-// `recommended-plugin-not-installed` finding code so a script can grep,
-// (b) the plugin id name@marketplace, and (c) the canonical install
-// command `claude /plugin install <id>`.
-func TestDoctorReport_RecommendedPlugins_OneMissing_OneWarningWithInstall(t *testing.T) {
-	root := setupCLITestRepo(t)
-	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
-		t.Fatalf("init: %d", rc)
-	}
-	contents := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("HOME", t.TempDir())
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if c := strings.Count(joined, "recommended-plugin-not-installed"); c != 1 {
-		t.Errorf("count(recommended-plugin-not-installed) = %d, want 1; output:\n%s", c, joined)
-	}
-	if !strings.Contains(joined, "aiwf-extensions@ai-workflow-rituals") {
-		t.Errorf("warning missing plugin id; output:\n%s", joined)
-	}
-	if !strings.Contains(joined, "PROJECT scope") {
-		t.Errorf("warning missing install advice with PROJECT scope guidance; output:\n%s", joined)
-	}
-}
-
-// TestDoctorReport_RecommendedPlugins_NoneInstalled_NWarnings: M-070/AC-3
-// — N declared, none installed produces exactly N warnings (never
-// deduped, never skipped). Order matches declaration order so the user
-// can correlate with their aiwf.yaml.
-func TestDoctorReport_RecommendedPlugins_NoneInstalled_NWarnings(t *testing.T) {
-	root := setupCLITestRepo(t)
-	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
-		t.Fatalf("init: %d", rc)
-	}
-	contents := []byte(`hosts: [claude-code]
-doctor:
-  recommended_plugins:
-    - aiwf-extensions@ai-workflow-rituals
-    - wf-rituals@ai-workflow-rituals
-    - some-third@somewhere
-`)
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("HOME", t.TempDir())
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if c := strings.Count(joined, "recommended-plugin-not-installed"); c != 3 {
-		t.Errorf("count(recommended-plugin-not-installed) = %d, want 3; output:\n%s", c, joined)
-	}
-	for _, plugin := range []string{
-		"aiwf-extensions@ai-workflow-rituals",
-		"wf-rituals@ai-workflow-rituals",
-		"some-third@somewhere",
-	} {
-		if !strings.Contains(joined, plugin) {
-			t.Errorf("warning missing plugin %q; output:\n%s", plugin, joined)
-		}
-	}
-}
-
-// TestDoctorReport_RecommendedPlugins_AllInstalledForProject_NoWarning
-// and TestDoctorReport_RecommendedPlugins_InstalledElsewhereStillWarns
-// were removed in G-0138 / M-0133 / AC-3: their setup used
-// installed_plugins.json's projectPath equality (the path-strict
-// check that produced the false-positive class fixed by AC-3). The
-// new source of truth is <rootDir>/.claude/settings.json's
-// enabledPlugins map (path-independent), tested by
-// TestDoctorReport_RecommendedPlugins_EnabledInSettings_NoWarning
-// below.
-
-// TestDoctorReport_RecommendedPlugins_AreSoftWarning_DoNotIncrementProblems:
-// per M-070 spec: "Severity: warning. Plugins are advisory; refusing on
-// absence is too strong." Even when the warning fires, doctor's exit
-// code stays 0 (problems unchanged). This decoupling is what lets a
-// consumer declare recommended plugins without breaking CI.
-func TestDoctorReport_RecommendedPlugins_AreSoftWarning_DoNotIncrementProblems(t *testing.T) {
-	root := setupCLITestRepo(t)
-	// --skip-hook keeps the test independent of hook installation; but
-	// with skip-hook, doctor reports a missing-hook problem. The
-	// AC-targeted assertion is "the recommended-plugin warning does
-	// not contribute to the problem count" — measured by comparing the
-	// problem count with vs. without the recommended-plugin block.
-	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
-		t.Fatalf("init: %d", rc)
-	}
-	t.Setenv("HOME", t.TempDir())
-	// Baseline problems count with no recommended_plugins declared.
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	_, baseProblems := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	// Add a missing recommended plugin; problems must not increase.
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	_, withProblems := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	if withProblems != baseProblems {
-		t.Errorf("recommended-plugin warning incremented problems: base=%d with=%d (warning must be soft)", baseProblems, withProblems)
-	}
-}
-
-// TestAppendRecommendedPluginsReport_NilCfg_NoOp moved with the doctor
-// verb to internal/cli/doctor/internal_test.go (M-0117/AC-3) — the
-// helper is unexported in its new home, so the test rebases as a
-// same-package test there.
-
-// TestDoctorReport_RecommendedPlugins_CorruptedIndex_EmitsAdvisory was
-// removed in G-0138 / M-0133 / AC-3: doctor no longer reads
-// installed_plugins.json, so a corrupt index can't surface here. The
-// equivalent test for the new source of truth is
-// TestDoctorReport_RecommendedPlugins_MalformedSettings_Error
-// (malformed .claude/settings.json surfaces as a clear plugins: line
-// naming the file). writeInstalledPluginsFixture was deleted with
-// its last caller.
+// The recommended-plugins doctor tests (M-070 / G-0138 / M-0133) were
+// removed in M-0152 when the marketplace channel was retired (ADR-0014
+// §5, D-0016). Doctor now verifies the materialized rituals and runs a
+// de-dupe guard; that behavior is covered by doctor_rituals_test.go and
+// the same-package edge tests in internal/cli/doctor/internal_test.go.
 
 // TestDoctorReport_ValidatorAvailability_StrictIncrementsProblems:
 // strict_validators=true makes a missing validator a hard problem
@@ -892,97 +739,6 @@ contracts:
 	_, problems := doctor.DoctorReport(root, doctor.DoctorOptions{})
 	if problems == 0 {
 		t.Error("strict_validators=true must make missing validator a problem")
-	}
-}
-
-// G-0138 / M-0133 / AC-3: the doctor's recommended-plugins check
-// sources truth from the project's committed `.claude/settings.json`
-// `enabledPlugins` map (path-independent), not the machine-local
-// `~/.claude/plugins/installed_plugins.json` (path-strict; false-
-// positives across worktrees, devcontainers, and re-clones).
-
-// TestDoctorReport_RecommendedPlugins_EnabledInSettings_NoWarning:
-// a plugin declared in <rootDir>/.claude/settings.json's
-// `enabledPlugins` map silences the warning, regardless of
-// installed_plugins.json state.
-func TestDoctorReport_RecommendedPlugins_EnabledInSettings_NoWarning(t *testing.T) {
-	// t.Setenv below precludes t.Parallel.
-	root := setupCLITestRepo(t)
-	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
-		t.Fatalf("init: %d", rc)
-	}
-	yaml := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	settings := []byte(`{"enabledPlugins":{"aiwf-extensions@ai-workflow-rituals":true}}`)
-	if err := os.MkdirAll(filepath.Join(root, ".claude"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(root, ".claude", "settings.json"), settings, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	// Deliberately set HOME to an empty dir to prove the check
-	// does NOT depend on installed_plugins.json — settings.json
-	// alone silences the warning.
-	t.Setenv("HOME", t.TempDir())
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if strings.Contains(joined, "recommended-plugin-not-installed") {
-		t.Errorf("enabledPlugins=true should silence the warning regardless of installed_plugins.json state; got:\n%s", joined)
-	}
-}
-
-// TestDoctorReport_RecommendedPlugins_AdviceMentionsProjectScope:
-// the warning's install advice tells the operator how to install
-// at PROJECT scope (the bare CLI form defaults to user scope per
-// Claude Code docs; the doctor's advice must steer the user toward
-// the right scope).
-func TestDoctorReport_RecommendedPlugins_AdviceMentionsProjectScope(t *testing.T) {
-	// t.Setenv below precludes t.Parallel.
-	root := setupCLITestRepo(t)
-	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
-		t.Fatalf("init: %d", rc)
-	}
-	yaml := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("HOME", t.TempDir())
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "recommended-plugin-not-installed") {
-		t.Fatalf("warning should fire (no enabledPlugins); got:\n%s", joined)
-	}
-	if !strings.Contains(joined, "PROJECT scope") {
-		t.Errorf("install advice should mention 'PROJECT scope' (vs default user scope); got:\n%s", joined)
-	}
-}
-
-// TestDoctorReport_RecommendedPlugins_MalformedSettings_Error:
-// invalid JSON in .claude/settings.json surfaces as a clear error
-// in the report, not a silent skip.
-func TestDoctorReport_RecommendedPlugins_MalformedSettings_Error(t *testing.T) {
-	// t.Setenv below precludes t.Parallel.
-	root := setupCLITestRepo(t)
-	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
-		t.Fatalf("init: %d", rc)
-	}
-	yaml := []byte("hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n")
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(filepath.Join(root, ".claude"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(root, ".claude", "settings.json"), []byte("{not-json"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("HOME", t.TempDir())
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, ".claude/settings.json") {
-		t.Errorf("malformed settings.json should surface in plugins: line with filename; got:\n%s", joined)
 	}
 }
 
