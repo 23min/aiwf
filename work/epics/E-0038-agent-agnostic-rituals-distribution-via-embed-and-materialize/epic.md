@@ -1,7 +1,7 @@
 ---
 id: E-0038
 title: Agent-agnostic rituals distribution via embed-and-materialize
-status: active
+status: done
 ---
 ## Goal
 
