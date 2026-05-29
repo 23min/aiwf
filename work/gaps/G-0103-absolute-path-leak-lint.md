@@ -1,8 +1,10 @@
 ---
 id: G-0103
 title: absolute-path leak lint
-status: open
+status: addressed
 discovered_in: M-0089
+addressed_by_commit:
+    - 3aed5b36
 ---
 
 ## What's missing
