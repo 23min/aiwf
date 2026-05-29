@@ -73,6 +73,29 @@ const AgentsDir = ".claude/agents"
 // ("→ their referenced locations") and §4 makes it a per-target value.
 const TemplatesDir = ".claude/templates"
 
+// Target names an agent's on-disk layout: the host-relative dirs each
+// materializable artifact kind writes into. It is the seam (ADR-0014 §4)
+// that lets a non-Claude agent become a new value rather than a rewrite —
+// Codex writes the same SKILL.md to `.agents/skills/`, etc. An empty
+// AgentsDir means the target has no subagent concept, so the agent writer
+// is a no-op for it (ADR-0014 §4).
+type Target struct {
+	Name         string // display name, e.g. "claude"
+	SkillsDir    string // host-relative skills dir (dir-per-skill)
+	AgentsDir    string // host-relative agents dir (flat); "" = no agents
+	TemplatesDir string // host-relative templates dir (flat)
+}
+
+// ClaudeTarget is the only target with a shipped writer today. It pins
+// the `.claude/{skills,agents,templates}` layout that init/update use, so
+// Materialize(root) and every M-0149/M-0150 consumer see no change.
+var ClaudeTarget = Target{
+	Name:         "claude",
+	SkillsDir:    SkillsDir,
+	AgentsDir:    AgentsDir,
+	TemplatesDir: TemplatesDir,
+}
+
 // ManifestFile is the on-disk record of which skill directories aiwf
 // claims ownership of. One name per line, no trailing whitespace.
 // Lives next to the skill dirs so a single stat tells aiwf whether
@@ -202,9 +225,19 @@ func ListRitualTemplates() ([]Skill, error) {
 // This is the operation behind both `aiwf init` (first-time setup) and
 // `aiwf update` (refresh after a binary upgrade).
 func Materialize(root string) error {
-	skillsRoot := filepath.Join(root, SkillsDir)
+	return MaterializeTo(root, ClaudeTarget)
+}
+
+// MaterializeTo is Materialize parameterized by agent target (ADR-0014
+// §4). It writes the skills (dir-per-skill) into target.SkillsDir, and
+// the agents and templates (flat) into target.AgentsDir /
+// target.TemplatesDir. A target with an empty AgentsDir materializes no
+// agents — the agent writer is a no-op for an agent host with no subagent
+// concept. The Claude target reproduces the exact M-0149/M-0150 layout.
+func MaterializeTo(root string, target Target) error {
+	skillsRoot := filepath.Join(root, target.SkillsDir)
 	if err := os.MkdirAll(skillsRoot, 0o755); err != nil {
-		return fmt.Errorf("creating %s: %w", SkillsDir, err)
+		return fmt.Errorf("creating %s: %w", target.SkillsDir, err)
 	}
 
 	prior, err := readManifest(skillsRoot)
@@ -249,16 +282,16 @@ func Materialize(root string) error {
 	// run against an old aiwf install) get their SKILL.md overwritten.
 	for _, s := range skills {
 		dir := filepath.Join(skillsRoot, s.Name)
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("creating %s: %w", dir, err)
+		if mkErr := os.MkdirAll(dir, 0o755); mkErr != nil {
+			return fmt.Errorf("creating %s: %w", dir, mkErr)
 		}
-		if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), s.Content, 0o644); err != nil {
-			return fmt.Errorf("writing %s/SKILL.md: %w", s.Name, err)
+		if wErr := os.WriteFile(filepath.Join(dir, "SKILL.md"), s.Content, 0o644); wErr != nil {
+			return fmt.Errorf("writing %s/SKILL.md: %w", s.Name, wErr)
 		}
 	}
 
-	if err := writeManifest(skillsRoot, skills); err != nil {
-		return err
+	if wmErr := writeManifest(skillsRoot, skills); wmErr != nil {
+		return wmErr
 	}
 
 	// Agents and templates are flat single-file artifacts living in
@@ -267,19 +300,21 @@ func Materialize(root string) error {
 	// templates have no namespacing prefix, so ownership is tracked
 	// entirely through the manifest — a user-authored file the manifest
 	// never claimed is left untouched.
-	agents, err := ListRitualAgents()
-	if err != nil {
-		return err
-	}
-	if err := materializeFlatFiles(root, AgentsDir, agents); err != nil {
-		return err
+	if target.AgentsDir != "" {
+		agents, aErr := ListRitualAgents()
+		if aErr != nil {
+			return aErr
+		}
+		if mErr := materializeFlatFiles(root, target.AgentsDir, agents); mErr != nil {
+			return mErr
+		}
 	}
 	templates, err := ListRitualTemplates()
 	if err != nil {
 		return err
 	}
-	if err := materializeFlatFiles(root, TemplatesDir, templates); err != nil {
-		return err
+	if mErr := materializeFlatFiles(root, target.TemplatesDir, templates); mErr != nil {
+		return mErr
 	}
 	return nil
 }

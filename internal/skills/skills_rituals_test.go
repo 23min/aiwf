@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"sort"
@@ -66,7 +67,7 @@ func TestMaterialize_WritesRitualSkills(t *testing.T) {
 			t.Errorf("ritual skill %s not materialized: %v", s.Name, err)
 			continue
 		}
-		if string(got) != string(s.Content) {
+		if !bytes.Equal(got, s.Content) {
 			t.Errorf("materialized content mismatch for %s", s.Name)
 		}
 	}
@@ -140,7 +141,7 @@ func TestMaterialize_DoesNotClobberUserSkills(t *testing.T) {
 	if err != nil {
 		t.Fatalf("user skill removed by Materialize: %v", err)
 	}
-	if string(got) != string(body) {
+	if !bytes.Equal(got, body) {
 		t.Errorf("user skill content changed by Materialize")
 	}
 }

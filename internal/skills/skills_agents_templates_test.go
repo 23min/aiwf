@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"bytes"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -105,7 +106,7 @@ func TestMaterialize_WritesRitualAgents(t *testing.T) {
 			t.Errorf("ritual agent %s not materialized: %v", a.Name, err)
 			continue
 		}
-		if string(got) != string(a.Content) {
+		if !bytes.Equal(got, a.Content) {
 			t.Errorf("materialized content mismatch for agent %s", a.Name)
 		}
 	}
@@ -130,7 +131,7 @@ func TestMaterialize_WritesRitualTemplates(t *testing.T) {
 			t.Errorf("ritual template %s not materialized: %v", tm.Name, err)
 			continue
 		}
-		if string(got) != string(tm.Content) {
+		if !bytes.Equal(got, tm.Content) {
 			t.Errorf("materialized content mismatch for template %s", tm.Name)
 		}
 	}
@@ -341,8 +342,8 @@ func TestRituals_NoHookSurface(t *testing.T) {
 
 	// (b) Materialize writes no hook artifact anywhere under .claude/.
 	root := t.TempDir()
-	if err := Materialize(root); err != nil {
-		t.Fatalf("Materialize: %v", err)
+	if mErr := Materialize(root); mErr != nil {
+		t.Fatalf("Materialize: %v", mErr)
 	}
 	claudeDir := filepath.Join(root, ".claude")
 	err = filepath.WalkDir(claudeDir, func(p string, d fs.DirEntry, walkErr error) error {
