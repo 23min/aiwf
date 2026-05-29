@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Record the pinned upstream commit SHA in one discoverable location
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Drift test fails when the snapshot diverges; skips when upstream absent
