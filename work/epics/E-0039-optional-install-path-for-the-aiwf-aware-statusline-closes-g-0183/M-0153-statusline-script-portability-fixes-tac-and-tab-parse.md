@@ -38,6 +38,12 @@ parameter expansion) are absent. The fix is behavior-preserving on Linux.
 - Stays fail-soft on every segment.
 - Mechanical evidence is required for AC promotion even though `tdd: advisory`
   (per CLAUDE.md's AC-promotion rule) — a content assertion over the script.
+- The content assertion is anchored to the specific constructs — it asserts the
+  robust forms are present (the `tail -r … || tac` fallback, the
+  `read -r ahead behind` parse) **and** that the fragile forms (bare `tac`, the
+  literal-tab parameter expansion) are absent. Not a loose whole-file grep, per
+  CLAUDE.md's "substring assertions are not structural assertions" rule, so a
+  later reflow cannot reintroduce a fragile form undetected.
 
 ## Design notes
 
