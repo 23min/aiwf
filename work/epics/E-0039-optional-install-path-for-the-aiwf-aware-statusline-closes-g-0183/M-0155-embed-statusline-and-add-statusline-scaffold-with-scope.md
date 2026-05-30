@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: 'User scope: writes ~/.claude/statusline.sh with absolute-path snippet'
-      status: open
+      status: met
       tdd_phase: done
 ---
 # M-0155 — Embed statusline and add --statusline scaffold with --scope
