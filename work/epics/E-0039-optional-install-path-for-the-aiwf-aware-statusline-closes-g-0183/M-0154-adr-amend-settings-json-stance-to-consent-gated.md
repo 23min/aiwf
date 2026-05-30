@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: ADR-0015 records the consent-gated settings.json stance
-      status: open
+      status: met
     - id: AC-2
       title: CLAUDE.md operator-setup line states the consent-gated stance
       status: open
