@@ -99,3 +99,26 @@ func TestProxyStaleHint(t *testing.T) {
 		})
 	}
 }
+
+// TestProxyLookupFailedHint covers the advisory hint shown when the
+// pre-flight latest-version proxy lookup fails (the v0.10.0 post-release
+// `context deadline exceeded` friction). White-box: the helper is pure;
+// the Run() default branch that calls it requires a proxy timeout that
+// is awkward to provoke under `go test`. Asserts the three remediations
+// are named (retry, pin a version, GOPROXY=direct).
+func TestProxyLookupFailedHint(t *testing.T) {
+	t.Parallel()
+	pkg := "github.com/23min/aiwf/cmd/aiwf"
+	got := proxyLookupFailedHint(pkg)
+	for _, want := range []string{
+		"hint:",
+		pkg + "@vX.Y.Z", // pin-a-version remediation names the package
+		"GOPROXY=direct",
+		"retry",
+		"`,direct` fallback", // explains go install may still succeed
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("proxyLookupFailedHint missing %q; got:\n%s", want, got)
+		}
+	}
+}

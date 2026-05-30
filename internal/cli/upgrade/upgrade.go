@@ -85,6 +85,7 @@ func Run(root, target string, checkOnly bool) int {
 		fmt.Printf("target:   %s (proxy disabled — go install will resolve at install time)\n", target)
 	default:
 		fmt.Printf("target:   %s (proxy lookup failed: %v)\n", target, latestErr)
+		fmt.Print(proxyLookupFailedHint(pkg))
 	}
 
 	if latestErr == nil {
@@ -205,6 +206,23 @@ func proxyStaleHint(current, resolved version.Info) string {
 			"          proxy CDN may not have propagated the freshest tag yet.\n"+
 			"          retry in a few minutes, or set GOPROXY=direct to bypass.\n",
 		base, resolved.Version)
+}
+
+// proxyLookupFailedHint returns operator guidance shown when the
+// pre-flight latest-version lookup to the Go module proxy fails
+// (commonly a `context deadline exceeded` timeout reaching
+// proxy.golang.org's `/@v/list`). It is advisory: the subsequent
+// `go install …@latest` still runs and can succeed via GOPROXY's
+// `,direct` fallback even when the direct proxy GET timed out. If
+// `go install` also fails, the three remediations below apply.
+func proxyLookupFailedHint(pkg string) string {
+	return fmt.Sprintf(
+		"hint:     the latest-version lookup to the Go proxy failed; `go install` will\n"+
+			"          still try (and may resolve via GOPROXY's `,direct` fallback). If it\n"+
+			"          also fails: retry once the proxy warms, pin a version with\n"+
+			"          `go install %s@vX.Y.Z`, or bypass the proxy with\n"+
+			"          `GOPROXY=direct aiwf upgrade`.\n",
+		pkg)
 }
 
 // RenderVersionLabel formats an Info for human display: the version
