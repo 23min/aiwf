@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: 'Project scope: relative-path snippet + scoped .claude/statusline.sh ignore'
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: 'User scope: writes ~/.claude/statusline.sh with absolute-path snippet'
       status: open
