@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Statusline script embedded in the aiwf binary via go:embed
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: init and update grow a --statusline flag with --scope project|user
       status: open
