@@ -473,5 +473,11 @@ via `aiwf init/update --statusline` — portable across Linux and macOS, with
 activation gated by explicit per-invocation consent — without aiwf ever quietly
 editing a settings file.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0153 | Statusline script portability fixes (tac and tab-parse) | draft |
+| M-0154 | ADR: amend settings.json stance to consent-gated | draft |
+| M-0155 | Embed statusline and add --statusline scaffold with --scope | draft |
+| M-0156 | Consent-gated statusline settings wiring | draft |
+| M-0157 | aiwf doctor statusline block | draft |
 
