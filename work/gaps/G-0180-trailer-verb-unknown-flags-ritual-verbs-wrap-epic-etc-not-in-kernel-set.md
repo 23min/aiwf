@@ -1,8 +1,10 @@
 ---
 id: G-0180
 title: trailer-verb-unknown flags ritual verbs (wrap-epic etc.) not in kernel set
-status: open
+status: addressed
 discovered_in: E-0038
+addressed_by_commit:
+    - 089adb25
 ---
 ## What
 
