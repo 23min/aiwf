@@ -1,7 +1,7 @@
 ---
 id: M-0155
 title: Embed statusline and add --statusline scaffold with --scope
-status: in_progress
+status: done
 parent: E-0039
 depends_on:
     - M-0153
