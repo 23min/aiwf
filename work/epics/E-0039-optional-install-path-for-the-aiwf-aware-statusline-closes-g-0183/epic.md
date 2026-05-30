@@ -120,15 +120,13 @@ from the unconditional refresh set**, so a consumer's customizations survive
 
 ## Milestones
 
-<!-- Descriptive until aiwfx-plan-milestones allocates real M-NNNN ids and
-     rewrites this list with edges. Placeholders are the template's M-NNNN
-     stand-in (not invented labels). -->
+<!-- Execution order. Status lives in each milestone's frontmatter, not here. -->
 
-- [M-NNNN](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-NNNN-portability-fixes.md) — Script portability fixes (`tac`→`tail -r`, literal-tab parse→`read -r`) · depends on: —
-- [M-NNNN](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-NNNN-settings-stance-adr.md) — ADR amending the settings.json stance to consent-gated · depends on: —
-- [M-NNNN](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-NNNN-embed-statusline-flag-scaffold.md) — Embed + `--statusline` flag with `--scope`, gitignore, printed snippet (no settings write) · depends on: the portability milestone
-- [M-NNNN](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-NNNN-consent-gated-wiring.md) — Consent-gated settings wiring (TTY prompt + `--wire-settings`, no-clobber) · depends on: the ADR and embed/scaffold milestones
-- [M-NNNN](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-NNNN-doctor-block.md) — `aiwf doctor` statusline block (deps + platform hints, wiring state, drift, container nudge) · depends on: the embed/scaffold milestone
+- [M-0153](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-0153-statusline-script-portability-fixes-tac-and-tab-parse.md) — Script portability fixes (`tac`→`tail -r`, literal-tab parse→`read -r`) · depends on: —
+- [M-0154](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-0154-adr-amend-settings-json-stance-to-consent-gated.md) — ADR amending the settings.json stance to consent-gated · depends on: —
+- [M-0155](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-0155-embed-statusline-and-add-statusline-scaffold-with-scope.md) — Embed + `--statusline` flag with `--scope`, gitignore, printed snippet (no settings write) · depends on: M-0153
+- [M-0156](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-0156-consent-gated-statusline-settings-wiring.md) — Consent-gated settings wiring (TTY prompt + `--wire-settings`, no-clobber) · depends on: M-0154, M-0155
+- [M-0157](work/epics/E-0039-optional-install-path-for-the-aiwf-aware-statusline-closes-g-0183/M-0157-aiwf-doctor-statusline-block.md) — `aiwf doctor` statusline block (deps + platform hints, wiring state, drift, container nudge) · depends on: M-0155
 
 ## ADRs produced
 
