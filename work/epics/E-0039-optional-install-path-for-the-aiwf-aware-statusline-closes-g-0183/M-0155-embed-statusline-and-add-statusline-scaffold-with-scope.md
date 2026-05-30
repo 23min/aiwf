@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: init and update grow a --statusline flag with --scope project|user
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: 'Scaffold-if-absent: bare aiwf update leaves an existing script untouched'
