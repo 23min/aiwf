@@ -7,7 +7,77 @@ depends_on:
     - M-0155
 tdd: required
 ---
+# M-0157 — aiwf doctor statusline block
 
 ## Goal
 
+Have `aiwf doctor`, when the statusline is installed, report missing `jq`/`gh`
+(with platform install hints), installed-but-not-wired state, embedded-vs-
+on-disk drift, and a container user-scope nudge — all advisory, never blocking.
+
+## Context
+
+Requires the scaffold (M-0155): "installed" must be detectable and the embedded
+copy must exist for the drift comparison. Mirrors the existing
+materialized-rituals reporting pattern in `doctor.go`, which is advisory and
+never increments the problem count.
+
 ## Acceptance criteria
+
+<!-- Formal ACs added at start-milestone via `aiwf add ac M-0157`. Intended shape: -->
+
+The block is emitted **only when the statusline is installed**; missing `jq`
+(load-bearing) and `gh` (CI segment) are reported with `runtime.GOOS`-branched
+install hints (`brew` vs `apt-get`); installed-but-not-wired prints the snippet;
+drift is reported when the embedded bytes differ from the on-disk copy; a
+detected devcontainer yields a `--scope user` recommendation; the block never
+increments `problems`. Each branch has a fixture that traverses it.
+
+## Constraints
+
+- Advisory only — never increments the problem count, never blocks push.
+- Platform hints branch on `runtime.GOOS`.
+- Container detection drives a *recommendation*, never a silent action.
+
+## Design notes
+
+- Reuse the `appendMaterializedRitualsReport` / `recordArtifact` shape.
+- Drift = embedded bytes vs on-disk bytes compare.
+
+## Surfaces touched
+
+- `internal/cli/doctor/doctor.go`
+
+## Out of scope
+
+- The wiring itself (M-0156).
+
+## Dependencies
+
+- M-0155 (scaffold).
+
+## References
+
+- [E-0039](epic.md) · `internal/cli/doctor/doctor.go` (materialized-rituals report)
+
+---
+
+## Work log
+
+- (pending)
+
+## Decisions made during implementation
+
+- (none)
+
+## Validation
+
+- (pending)
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
