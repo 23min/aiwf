@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: CLAUDE.md operator-setup line states the consent-gated stance
-      status: open
+      status: met
     - id: AC-3
       title: doctor.go stance surfaces state the consent-gated stance
       status: open
