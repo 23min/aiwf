@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Transcript walk works on macOS and Linux (tail -r with tac fallback)
-      status: open
+      status: met
     - id: AC-2
       title: Ahead/behind parse survives editor tab→space reflow (default-IFS split)
       status: open
