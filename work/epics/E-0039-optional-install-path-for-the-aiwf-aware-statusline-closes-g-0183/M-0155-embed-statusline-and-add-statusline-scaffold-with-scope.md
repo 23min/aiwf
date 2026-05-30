@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: 'Scaffold-if-absent: bare aiwf update leaves an existing script untouched'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: 'Project scope: relative-path snippet + scoped .claude/statusline.sh ignore'
       status: open
