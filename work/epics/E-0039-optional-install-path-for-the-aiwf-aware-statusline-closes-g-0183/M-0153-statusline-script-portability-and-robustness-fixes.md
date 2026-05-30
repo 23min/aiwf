@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: Read-only git calls skip the optional index lock (GIT_OPTIONAL_LOCKS=0)
-      status: open
+      status: met
 ---
 # M-0153 — Statusline script portability and robustness fixes
 
