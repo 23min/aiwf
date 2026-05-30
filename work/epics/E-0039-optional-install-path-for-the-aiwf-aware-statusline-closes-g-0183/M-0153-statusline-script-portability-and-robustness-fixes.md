@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Ahead/behind parse survives editor tab→space reflow (default-IFS split)
-      status: open
+      status: met
     - id: AC-3
       title: Read-only git calls skip the optional index lock (GIT_OPTIONAL_LOCKS=0)
       status: open
