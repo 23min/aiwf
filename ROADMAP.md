@@ -464,7 +464,7 @@ Make `aiwf` itself the distribution mechanism for the rituals — vendor a pinne
 | M-0151 | Agent-target seam in the materializer (Claude writer behind the seam) | done |
 | M-0152 | Marketplace sunset: doctor flip, de-dupe guard, docs rewrite | done |
 
-## E-0039 — Optional install path for the aiwf-aware statusline (closes G-0183) (proposed)
+## E-0039 — Optional install path for the aiwf-aware statusline (closes G-0183) (active)
 
 ### Goal
 
@@ -475,7 +475,7 @@ editing a settings file.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0153 | Statusline script portability fixes (tac and tab-parse) | draft |
+| M-0153 | Statusline script portability and robustness fixes | in_progress |
 | M-0154 | ADR: amend settings.json stance to consent-gated | draft |
 | M-0155 | Embed statusline and add --statusline scaffold with --scope | draft |
 | M-0156 | Consent-gated statusline settings wiring | draft |
