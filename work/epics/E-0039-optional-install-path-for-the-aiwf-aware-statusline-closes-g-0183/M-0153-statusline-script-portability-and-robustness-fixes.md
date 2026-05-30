@@ -1,7 +1,7 @@
 ---
 id: M-0153
 title: Statusline script portability and robustness fixes
-status: draft
+status: in_progress
 parent: E-0039
 tdd: advisory
 acs:
