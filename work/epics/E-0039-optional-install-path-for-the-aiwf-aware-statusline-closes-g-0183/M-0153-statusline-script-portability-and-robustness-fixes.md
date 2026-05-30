@@ -9,9 +9,9 @@ tdd: advisory
 
 ## Goal
 
-Make the shipped statusline render correctly on macOS as well as Linux, and
-survive editor/tooling reflow, by removing two fragile environmental
-assumptions from the script.
+Make the shipped statusline render correctly on macOS as well as Linux, survive
+editor/tooling reflow, and stop contending for the Git index lock on every
+render — by removing three fragile environmental assumptions from the script.
 
 ## Context
 
@@ -19,8 +19,18 @@ assumptions from the script.
 stock macOS → the token segment silently reads zero) and parses git ahead/behind
 by splitting on a literal tab embedded in the source (`${counts%%<TAB>*}`),
 which breaks the instant an editor, copy-paste, or patch tool reflows the tab to
-spaces. Both fail soft to *wrong* output rather than crashing. This milestone
-fixes the tracked script in place; embedding it ships at M-0155.
+spaces. Both fail soft to *wrong* output rather than crashing.
+
+Third, the script runs `git status` (and other read-only git calls) on every
+render, and `git status` opportunistically refreshes the on-disk index — which
+takes `.git/index.lock`. When a render is SIGKILLed mid-refresh (a newer render
+supersedes it) the lock is stranded; and a concurrent `git commit` in the same
+repo can fail with `Unable to create '.git/index.lock': File exists`. Exporting
+`GIT_OPTIONAL_LOCKS=0` makes every git subprocess skip that optional index write
+— correct output, no lock taken — eliminating both the contention and the
+stale-lock risk, since the script only ever reads.
+
+This milestone fixes the tracked script in place; embedding it ships at M-0155.
 
 ## Acceptance criteria
 
@@ -28,10 +38,12 @@ fixes the tracked script in place; embedding it ships at M-0155.
      Intended shape, to be made testable then: -->
 
 The fixed script reads the transcript via a `tail -r … || tac` fallback (BSD/
-macOS first, GNU second) and parses ahead/behind via `read -r ahead behind`
-(default-IFS split on space *or* tab), with a mechanical assertion that the
-robust forms are present and the fragile forms (bare `tac`, literal-tab
-parameter expansion) are absent. The fix is behavior-preserving on Linux.
+macOS first, GNU second), parses ahead/behind via `read -r ahead behind`
+(default-IFS split on space *or* tab), and exports `GIT_OPTIONAL_LOCKS=0` before
+its first git call so no read-only git invocation takes the index lock — with a
+mechanical assertion that all three robust forms are present and the two fragile
+forms (bare `tac`, literal-tab parameter expansion) are absent. The fix is
+behavior-preserving on Linux.
 
 ## Constraints
 
@@ -40,10 +52,11 @@ parameter expansion) are absent. The fix is behavior-preserving on Linux.
   (per CLAUDE.md's AC-promotion rule) — a content assertion over the script.
 - The content assertion is anchored to the specific constructs — it asserts the
   robust forms are present (the `tail -r … || tac` fallback, the
-  `read -r ahead behind` parse) **and** that the fragile forms (bare `tac`, the
-  literal-tab parameter expansion) are absent. Not a loose whole-file grep, per
-  CLAUDE.md's "substring assertions are not structural assertions" rule, so a
-  later reflow cannot reintroduce a fragile form undetected.
+  `read -r ahead behind` parse, the `GIT_OPTIONAL_LOCKS=0` export) **and** that
+  the fragile forms (bare `tac`, the literal-tab parameter expansion) are absent.
+  Not a loose whole-file grep, per CLAUDE.md's "substring assertions are not
+  structural assertions" rule, so a later reflow cannot reintroduce a fragile
+  form undetected.
 
 ## Design notes
 
@@ -51,6 +64,12 @@ parameter expansion) are absent. The fix is behavior-preserving on Linux.
   fallback.
 - `read -r ahead behind <<<"$counts"` — default IFS splits on space or tab;
   the existing `${ahead:-0}` / `${behind:-0}` guards already cover the empty case.
+- `export GIT_OPTIONAL_LOCKS=0` near the top, before the first git call — git
+  then skips the opportunistic index refresh that takes `.git/index.lock`.
+  Equivalent to prefixing each call with `git --no-optional-locks …`; the env
+  export covers them all at once. The script only reads, so there is no downside
+  (a later real git command just re-does the cheap stat-refresh itself). Added
+  in Git 2.15 for exactly this background-consumer case.
 
 ## Surfaces touched
 
