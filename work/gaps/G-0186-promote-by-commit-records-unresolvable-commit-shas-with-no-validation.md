@@ -1,7 +1,9 @@
 ---
 id: G-0186
 title: promote --by-commit records unresolvable commit SHAs with no validation
-status: open
+status: addressed
+addressed_by_commit:
+    - c9689ae1
 ---
 ## Problem
 
