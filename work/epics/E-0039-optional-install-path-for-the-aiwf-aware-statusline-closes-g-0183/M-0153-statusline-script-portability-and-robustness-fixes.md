@@ -1,11 +1,11 @@
 ---
 id: M-0153
-title: Statusline script portability fixes (tac and tab-parse)
+title: Statusline script portability and robustness fixes
 status: draft
 parent: E-0039
 tdd: advisory
 ---
-# M-0153 — Statusline script portability fixes (tac and tab-parse)
+# M-0153 — Statusline script portability and robustness fixes
 
 ## Goal
 
