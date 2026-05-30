@@ -6,6 +6,27 @@ parent: E-0039
 depends_on:
     - M-0153
 tdd: required
+acs:
+    - id: AC-1
+      title: Statusline script embedded in the aiwf binary via go:embed
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: init and update grow a --statusline flag with --scope project|user
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: 'Scaffold-if-absent: bare aiwf update leaves an existing script untouched'
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: 'Project scope: relative-path snippet + scoped .claude/statusline.sh ignore'
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: 'User scope: writes ~/.claude/statusline.sh with absolute-path snippet'
+      status: open
+      tdd_phase: red
 ---
 # M-0155 — Embed statusline and add --statusline scaffold with --scope
 
@@ -100,3 +121,14 @@ targets `~/.claude/statusline.sh` with an absolute-path snippet; both
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — Statusline script embedded in the aiwf binary via go:embed
+
+### AC-2 — init and update grow a --statusline flag with --scope project|user
+
+### AC-3 — Scaffold-if-absent: bare aiwf update leaves an existing script untouched
+
+### AC-4 — Project scope: relative-path snippet + scoped .claude/statusline.sh ignore
+
+### AC-5 — User scope: writes ~/.claude/statusline.sh with absolute-path snippet
+
