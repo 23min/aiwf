@@ -464,3 +464,14 @@ Make `aiwf` itself the distribution mechanism for the rituals — vendor a pinne
 | M-0151 | Agent-target seam in the materializer (Claude writer behind the seam) | done |
 | M-0152 | Marketplace sunset: doctor flip, de-dupe guard, docs rewrite | done |
 
+## E-0039 — Optional install path for the aiwf-aware statusline (closes G-0183) (proposed)
+
+### Goal
+
+Let a downstream aiwf consumer opt into the aiwf-aware Claude Code statusline
+via `aiwf init/update --statusline` — portable across Linux and macOS, with
+activation gated by explicit per-invocation consent — without aiwf ever quietly
+editing a settings file.
+
+_No milestones yet._
+
