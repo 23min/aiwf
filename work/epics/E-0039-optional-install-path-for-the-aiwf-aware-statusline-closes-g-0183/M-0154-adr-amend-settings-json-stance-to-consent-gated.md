@@ -29,8 +29,15 @@ it stays in the planning surface, not in the ADR body.
 An ADR exists under `docs/adr/` with `## Context` / `## Decision` /
 `## Consequences`, naming the consent mechanism (interactive `[y/N]` on a TTY or
 explicit `--wire-settings`) and the `settings.local.json` default for project
-scope; CLAUDE.md and the `doctor.go` comment are updated to the amended stance;
-a structural assertion pins the ADR's named sections and the CLAUDE.md change.
+scope. This milestone is the **sole owner** of the prose stance amendment: it
+updates every surface that today states "aiwf never edits settings.json" — the
+CLAUDE.md operator-setup line, the `doctor.go` marketplace-overlap comment, and
+the `doctor.go` user-facing "aiwf will not edit your settings.json" string — to
+the amended "not without explicit per-invocation consent." (M-0156, the wiring
+milestone, does **not** touch this prose.) Mechanical evidence is a structural
+assertion scoped to the named ADR sections and to each amended surface — asserted
+within its section/string, not via a loose whole-file grep, per CLAUDE.md's
+"substring assertions are not structural assertions" rule.
 
 ## Constraints
 
