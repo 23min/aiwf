@@ -9,6 +9,15 @@
 
 set -u
 
+# Skip the opportunistic `.git/index.lock` write that `git status` (and
+# other "read-only" callers) take to refresh the stat-cache on the way
+# through. The render only reads, so the write is pure cost — and a
+# SIGKILLed render dying mid-rename would orphan the lock, blocking the
+# next real `git commit` in the same repo until someone cleans it up.
+# Equivalent to prefixing every git call with `--no-optional-locks`,
+# but cheaper: one export, every child inherits. Available since git 2.15.
+export GIT_OPTIONAL_LOCKS=0
+
 # Read everything from stdin once (Claude Code passes session JSON).
 input="$(cat 2>/dev/null || true)"
 
@@ -40,7 +49,11 @@ transcript="$(jq_get '.transcript_path')"
 tokens=0
 if [ -n "$transcript" ] && [ -r "$transcript" ]; then
   # Walk transcript bottom-up; first assistant message with usage wins.
-  tokens="$(tac "$transcript" 2>/dev/null \
+  # tail -r is BSD/macOS; tac is GNU. Brace-group so both branches
+  # feed jq — `|` binds tighter than `||`, so without the group a
+  # successful `tail -r` would route its raw output to the command
+  # substitution and bypass the jq filter entirely.
+  tokens="$({ tail -r "$transcript" 2>/dev/null || tac "$transcript" 2>/dev/null; } \
     | jq -r 'select(.message.usage != null)
              | .message.usage
              | (.input_tokens // 0)
@@ -129,8 +142,11 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   # Sync state vs upstream.
   if up="$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)" && [ -n "$up" ]; then
     counts="$(git rev-list --left-right --count HEAD..."$up" 2>/dev/null)"
-    ahead="${counts%%	*}"
-    behind="${counts##*	}"
+    # Default-IFS read splits on space or tab — survives editor / patch-tool
+    # reflow that retabs the source. Empty $counts (no upstream output)
+    # leaves both vars unset; the ${ahead:-0} / ${behind:-0} guards below
+    # cover that case.
+    read -r ahead behind <<<"$counts"
     sync=""
     [ "${ahead:-0}" -gt 0 ] 2>/dev/null && sync="${sync}↑${ahead}"
     [ "${behind:-0}" -gt 0 ] 2>/dev/null && sync="${sync}↓${behind}"
