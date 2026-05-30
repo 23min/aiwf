@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: doctor.go stance surfaces state the consent-gated stance
-      status: open
+      status: met
 ---
 # M-0154 — ADR: amend settings.json stance to consent-gated
 
