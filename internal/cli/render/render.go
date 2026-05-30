@@ -179,12 +179,18 @@ func RunRoadmap(root string, write bool, actor string) int {
 
 	content := roadmap.Render(tr)
 
+	// Reconcile the on-disk roadmap filename across case-sensitive and
+	// case-insensitive filesystems (G-0185). A consumer that tracks a
+	// lowercase `roadmap.md` would otherwise get a second, divergent
+	// `ROADMAP.md` created on Linux/CI while the original stays stale.
+	resolvedName := resolveRoadmapName(rootDir)
+
 	// Preserve a hand-curated `## Candidates` (or `## Backlog`) block
-	// from any existing ROADMAP.md. The section is verbatim user
+	// from any existing roadmap file. The section is verbatim user
 	// content — aiwf doesn't parse it — and survives regenerate
 	// cycles. When --write is off we still merge so stdout matches
 	// what --write would produce.
-	dest := filepath.Join(rootDir, "ROADMAP.md")
+	dest := filepath.Join(rootDir, resolvedName)
 	existing, readErr := os.ReadFile(dest)
 	if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", readErr)
@@ -201,7 +207,7 @@ func RunRoadmap(root string, write bool, actor string) int {
 	}
 
 	if bytes.Equal(existing, content) {
-		fmt.Println("aiwf render roadmap: ROADMAP.md is already up to date.")
+		fmt.Printf("aiwf render roadmap: %s is already up to date.\n", resolvedName)
 		return cliutil.ExitOK
 	}
 
@@ -218,21 +224,24 @@ func RunRoadmap(root string, write bool, actor string) int {
 	defer release()
 
 	// G34: isolate the user's pre-existing staged changes from the
-	// render-roadmap commit. If the user has staged ROADMAP.md
+	// render-roadmap commit. If the user has staged the roadmap file
 	// themselves (manual edit), refuse — we can't pick between their
-	// content and the regenerated content. Other staged paths are
-	// pushed onto the stash for the duration of the commit and
-	// popped after.
+	// content and the regenerated content. The comparison is
+	// case-insensitive (G-0185) so a divergent staged variant (e.g.
+	// `roadmap.md` when we resolved to `ROADMAP.md`, or vice versa) is
+	// also caught. Other staged paths are pushed onto the stash for the
+	// duration of the commit and popped after.
 	staged, err := gitops.StagedPaths(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: checking pre-staged changes: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	for _, p := range staged {
-		if p == "ROADMAP.md" {
+		if strings.EqualFold(p, resolvedName) {
 			fmt.Fprintf(os.Stderr,
-				"aiwf render roadmap: ROADMAP.md is already staged with your own edits.\n"+
-					"  run `git restore --staged ROADMAP.md` (or `git stash`) and re-run.\n")
+				"aiwf render roadmap: %s is already staged with your own edits.\n"+
+					"  run `git restore --staged %s` (or `git stash`) and re-run.\n",
+				resolvedName, resolvedName)
 			return cliutil.ExitUsage
 		}
 	}
@@ -259,7 +268,7 @@ func RunRoadmap(root string, write bool, actor string) int {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return cliutil.ExitInternal
 	}
-	if err := gitops.Add(ctx, rootDir, "ROADMAP.md"); err != nil {
+	if err := gitops.Add(ctx, rootDir, resolvedName); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return cliutil.ExitInternal
 	}
@@ -274,6 +283,54 @@ func RunRoadmap(root string, write bool, actor string) int {
 	}
 	fmt.Println(subject)
 	return cliutil.ExitOK
+}
+
+// canonicalRoadmapName is the casing aiwf writes by default and the
+// name the README and rituals reference. The renderer reconciles to an
+// existing case-variant when the consumer already tracks one.
+const canonicalRoadmapName = "ROADMAP.md"
+
+// resolveRoadmapName picks the basename `aiwf render roadmap` writes to.
+//
+// The roadmap is a generated root artifact, and consumers legitimately
+// track it under different casing (`roadmap.md` is a common convention).
+// On a case-insensitive filesystem (macOS APFS, Windows NTFS) a
+// hardcoded `ROADMAP.md` resolves to whatever variant exists; on a
+// case-sensitive filesystem (Linux, CI) it does not — so the same repo
+// plus the same command would target a different file by filesystem,
+// silently creating a second divergent file and losing the consumer's
+// hand-curated `## Candidates` block (G-0185).
+//
+// To make the behavior filesystem-independent, scan the repo root for a
+// case-insensitive match of the canonical name:
+//   - exactly one match  → return its actual on-disk name (preserve the
+//     consumer's casing);
+//   - zero matches       → return the canonical `ROADMAP.md`;
+//   - more than one match → return the canonical `ROADMAP.md`. This
+//     genuinely-broken state is only physically possible on a
+//     case-sensitive filesystem; reconciliation cannot silently pick
+//     one, so the renderer defaults to canonical and the new
+//     `roadmap-case-collision` check finding flags the divergence.
+//
+// On any directory-read error, fall back to the canonical name.
+func resolveRoadmapName(rootDir string) string {
+	entries, err := os.ReadDir(rootDir)
+	if err != nil {
+		return canonicalRoadmapName
+	}
+	var matches []string
+	for _, ent := range entries {
+		if ent.IsDir() {
+			continue
+		}
+		if strings.EqualFold(ent.Name(), canonicalRoadmapName) {
+			matches = append(matches, ent.Name())
+		}
+	}
+	if len(matches) == 1 {
+		return matches[0]
+	}
+	return canonicalRoadmapName
 }
 
 // RunSite handles `aiwf render --format=html [--out <dir>]

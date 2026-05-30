@@ -43,6 +43,10 @@ The framework is usable end-to-end today: `go install` → `aiwf init` in a targ
 
 A live snapshot of the entity tree (in flight, roadmap, open decisions, open gaps, warnings, recent activity) is available via `aiwf status --format=md`. By default, `aiwf init` installs a post-commit hook that regenerates a gitignored `STATUS.md` after every commit as a working-copy convenience; opt out with `status_md.auto_update: false` in `aiwf.yaml` and re-run `aiwf update`.
 
+## Roadmap
+
+The planned and in-flight work — epics and their milestones — lives in [ROADMAP.md](ROADMAP.md), generated from the planning tree by `aiwf render roadmap --write`. Edit the entities under `work/`, not the file directly; the one hand-maintained part is a `## Candidates` block at the bottom, which survives regenerations.
+
 ---
 
 ## Install

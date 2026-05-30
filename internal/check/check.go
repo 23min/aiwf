@@ -13,6 +13,7 @@ package check
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -74,6 +75,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, loadErrorsToFindings(loadErrs)...)
 	findings = append(findings, idsUnique(t)...)
 	findings = append(findings, casePaths(t)...)
+	findings = append(findings, roadmapCaseCollision(t)...)
 	findings = append(findings, frontmatterShape(t)...)
 	findings = append(findings, idPathConsistent(t)...)
 	findings = append(findings, statusValid(t)...)
@@ -272,6 +274,52 @@ func idsUnique(t *tree.Tree) []Finding {
 		})
 	}
 	return findings
+}
+
+// roadmapCaseCollision (warning) reports when more than one case-variant
+// of the generated `ROADMAP.md` artifact exists at the repo root — e.g.
+// both `ROADMAP.md` and `roadmap.md`. This is the genuinely-broken state
+// that `aiwf render roadmap`'s case-reconciliation (G-0185) cannot
+// silently resolve: with two variants present it can't pick which one is
+// authoritative, so it defaults to the canonical name and leaves the
+// divergence for this advisory finding to surface. The collision is only
+// physically possible on a case-sensitive filesystem (Linux/CI); on a
+// case-insensitive one the two names refer to the same file.
+//
+// Unlike casePaths, this rule reads the repo root directory directly
+// rather than the loaded entity set: the roadmap is a generated root
+// artifact, not an aiwf entity, so it never appears in t.Entities. The
+// scan is skipped (no finding) when the root path is empty or unreadable
+// — checks never fail on IO, they just report what they can see.
+func roadmapCaseCollision(t *tree.Tree) []Finding {
+	if t.Root == "" {
+		return nil
+	}
+	entries, err := os.ReadDir(t.Root)
+	if err != nil {
+		return nil
+	}
+	const canonical = "ROADMAP.md"
+	var variants []string
+	for _, ent := range entries {
+		if ent.IsDir() {
+			continue
+		}
+		if strings.EqualFold(ent.Name(), canonical) {
+			variants = append(variants, ent.Name())
+		}
+	}
+	if len(variants) < 2 {
+		return nil
+	}
+	sort.Strings(variants)
+	return []Finding{{
+		Code:     "roadmap-case-collision",
+		Severity: SeverityWarning,
+		Message: fmt.Sprintf("multiple case-variants of the roadmap artifact exist at the repo root (%s); on a case-sensitive filesystem these are distinct files and `aiwf render roadmap` cannot reconcile them",
+			strings.Join(variants, ", ")),
+		Path: variants[0],
+	}}
 }
 
 // frontmatterShape reports missing required fields and id-format

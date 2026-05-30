@@ -84,6 +84,7 @@ aiwf check --since HEAD~50   # walk the last 50 commits
 | Code | Meaning |
 |---|---|
 | `titles-nonempty` | Title is missing or whitespace-only. |
+| `roadmap-case-collision` | More than one case-variant of the generated roadmap artifact exists at the repo root (e.g. both `ROADMAP.md` and `roadmap.md`). Only physically possible on a case-sensitive filesystem; `aiwf render roadmap --write` reconciles to a single existing variant but cannot pick between two, so it leaves this advisory for you to resolve. Fix: `git rm` one variant so a single canonical `ROADMAP.md` (or the lowercase convention the repo already uses) remains. |
 | `adr-supersession-mutual` | ADR A says it's superseded by B, but B does not list A in its `supersedes`. |
 | `gap-addressed-has-resolver` | Gap is `addressed` but `addressed_by` is empty. |
 | `epic-active-no-drafted-milestones` | An epic at status `active` has zero milestones at status `draft`. The kernel-side preflight signal for `aiwfx-start-epic` (per G-0063): an active epic without queued draft work is a forward-motion gap. **Strict-literal reading** — the rule asks "what's queued next?", not "is anything in flight?", so it stays firing through the epic's lifecycle until either a new milestone is drafted or the epic is wrapped. Fix: `aiwf add milestone --epic E-NN --tdd <policy> --title "..."` to queue the next milestone, or `aiwf promote E-NN done` if all planned work is in flight or done. |

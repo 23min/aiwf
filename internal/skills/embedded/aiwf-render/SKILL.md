@@ -28,7 +28,7 @@ Read-only — no commit. Re-running into the same out_dir overwrites the files; 
 | "build the static site" | `aiwf render --format=html --out <dir>` |
 | "show me the rendered tree" | `aiwf render --format=html` then open `site/index.html` in the browser |
 
-For the markdown roadmap (epics + milestones table), use `aiwf render roadmap` instead — different surface, also a `render` subcommand.
+For the markdown roadmap (epics + milestones table), use `aiwf render roadmap` instead — different surface, also a `render` subcommand. The canonical artifact name is `ROADMAP.md` (uppercase); when the repo already tracks a case-variant such as `roadmap.md`, `aiwf render roadmap --write` reconciles to the existing file rather than creating a second one (so behavior is identical across case-sensitive and case-insensitive filesystems).
 
 ## Configuration
 

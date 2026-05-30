@@ -146,6 +146,14 @@ var hintTable = map[string]string{
 	"slug-dropped-chars":  "the title contained non-ASCII runes that the slug omits; rename via `aiwf rename` if the resulting slug isn't what you want",
 	"import-duplicate-id": "the manifest declares the same id more than once; deduplicate the entries before re-running `aiwf import`",
 	"import-collision":    "the manifest's explicit id is already taken by an existing entity; re-run with `--on-collision skip|update`, or change the manifest's id",
+
+	// G-0185: roadmap-case-collision fires when more than one
+	// case-variant of the generated ROADMAP.md artifact exists at the
+	// repo root. Only physically possible on a case-sensitive filesystem;
+	// `aiwf render roadmap --write` reconciles to a single existing
+	// variant but cannot pick between two, so the renderer leaves this
+	// advisory for the operator to resolve.
+	"roadmap-case-collision": "remove one case-variant of the roadmap file (`git rm`) so a single canonical ROADMAP.md (or the lowercase convention the repo already uses) remains at the repo root",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.
