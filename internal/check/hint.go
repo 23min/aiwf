@@ -133,11 +133,12 @@ var hintTable = map[string]string{
 	"provenance-untrailered-scope-undefined":            "the audit range is undefined; configure an upstream (`git push -u origin <branch>`) or pass `aiwf check --since <ref>` to opt back in",
 
 	// G-0150: trailer-verb-unknown fires when a commit's `aiwf-verb:`
-	// value is not in the running binary's Cobra verb tree — typically
-	// either an LLM-fabricated value (e.g. `aiwf-verb: implement`) on a
-	// hand-rolled Conventional-Commits commit, or a plugin-side ritual
-	// verb (e.g. `wrap-epic`) that lives outside aiwf's CLI.
-	"trailer-verb-unknown": "the commit's `aiwf-verb:` value is not a registered top-level verb or subverb; if it's a typo (or an LLM fabrication), amend the commit and drop the trailer — plain `feat(...)` / `fix(...)` commits don't need an `aiwf-verb:` line; if the value was emitted by a plugin-side ritual, that ritual needs to use a verb name aiwf actually registers",
+	// value is neither in the running binary's Cobra verb tree nor in
+	// the recognized ritual-verb allowlist — typically an LLM-fabricated
+	// value (e.g. `aiwf-verb: implement`) on a hand-rolled Conventional-
+	// Commits commit. Known ritual lifecycle verbs (e.g. `wrap-epic`) are
+	// allowlisted (G-0180) and do not fire.
+	"trailer-verb-unknown": "the commit's `aiwf-verb:` value is not a registered top-level verb or subverb, nor a recognized ritual verb; if it's a typo (or an LLM fabrication), amend the commit and drop the trailer — plain `feat(...)` / `fix(...)` commits don't need an `aiwf-verb:` line; if it's a new ritual verb, add it to the ritualVerbs allowlist in internal/check/trailer_verb_unknown.go",
 
 	// Verb-emitted findings (from internal/verb/).
 	"unexpected-tree-file": "remove the file or move it outside `work/`; if it genuinely belongs there, add a glob to `tree.allow_paths` in aiwf.yaml — but tree-shape changes (new entities, renames, status transitions) go through `aiwf <verb>`, not direct writes",

@@ -160,3 +160,30 @@ func TestRunTrailerVerbUnknown_MultipleCommitsOneFindingEach(t *testing.T) {
 		}
 	}
 }
+
+// TestRunTrailerVerbUnknown_SilentOnRitualVerbs pins G-0180: ritual
+// lifecycle verbs (wrap-epic, wrap-milestone) that the aiwf-extensions
+// rituals stamp as `aiwf-verb:` values are recognized even though they
+// are not kernel Cobra verbs — so a trailered epic-wrap merge does not
+// trip the finding. A genuinely-fabricated verb alongside them still
+// fires (the allowlist does not weaken the fabrication guard).
+func TestRunTrailerVerbUnknown_SilentOnRitualVerbs(t *testing.T) {
+	t.Parallel()
+	registered := map[string]struct{}{"add": {}, "promote": {}}
+	commits := []scope.Commit{
+		commitWithVerb("rit1", "wrap-epic"),      // ritual verb — allowlisted
+		commitWithVerb("rit2", "wrap-milestone"), // ritual verb — allowlisted
+		commitWithVerb("kvb1", "promote"),        // kernel verb
+		commitWithVerb("bad1", "implement"),      // fabricated — must still fire
+	}
+	got := RunTrailerVerbUnknown(commits, registered)
+	if len(got) != 1 {
+		for i := range got {
+			t.Logf("finding: %s", got[i].Message)
+		}
+		t.Fatalf("findings = %d, want 1 (only the fabricated `implement`)", len(got))
+	}
+	if !strings.Contains(got[0].Message, "implement") {
+		t.Errorf("the surviving finding must be the fabricated verb; got %q", got[0].Message)
+	}
+}

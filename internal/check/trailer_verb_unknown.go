@@ -31,10 +31,31 @@ import (
 // Closes G-0150.
 const CodeTrailerVerbUnknown = "trailer-verb-unknown"
 
+// ritualVerbs is the closed set of *ritual* verbs that the
+// aiwf-extensions rituals legitimately stamp as `aiwf-verb:` values
+// even though they are not kernel Cobra verbs. They name ritual
+// lifecycle acts (a trailered epic-wrap merge, etc.) that are
+// meaningful in `aiwf history` but have no kernel command. Recognizing
+// them here keeps `trailer-verb-unknown` from firing on every ritual
+// wrap commit while still catching genuinely-fabricated verbs (G-0180).
+//
+// Source: the `aiwf-verb:` trailers stamped by the embedded rituals
+// under internal/skills/embedded-rituals (today only `wrap-epic` is
+// emitted; `wrap-milestone` is its sibling and is included so the same
+// finding does not recur if a wrap-milestone commit starts carrying
+// the trailer). If a future ritual stamps a new non-kernel verb, extend
+// this set (and ideally derive it from the embedded snapshot — tracked
+// alongside G-0180).
+var ritualVerbs = map[string]struct{}{
+	"wrap-epic":      {},
+	"wrap-milestone": {},
+}
+
 // RunTrailerVerbUnknown returns one finding per commit in commits
-// whose `aiwf-verb:` trailer value is not in registeredVerbs.
-// Commits without an `aiwf-verb:` trailer, with an empty value,
-// or whose value resolves are silent.
+// whose `aiwf-verb:` trailer value is neither in registeredVerbs (the
+// kernel Cobra command tree) nor in the ritualVerbs allowlist (ritual
+// lifecycle verbs like `wrap-epic`). Commits without an `aiwf-verb:`
+// trailer, with an empty value, or whose value resolves are silent.
 //
 // An empty registeredVerbs set short-circuits to no findings —
 // the verb enumeration runs at RunE time and could in principle
@@ -56,6 +77,9 @@ func RunTrailerVerbUnknown(commits []scope.Commit, registeredVerbs map[string]st
 				continue
 			}
 			if _, ok := registeredVerbs[tr.Value]; ok {
+				continue
+			}
+			if _, ok := ritualVerbs[tr.Value]; ok {
 				continue
 			}
 			out = append(out, Finding{
