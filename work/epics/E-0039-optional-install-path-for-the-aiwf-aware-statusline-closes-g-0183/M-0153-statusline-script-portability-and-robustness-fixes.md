@@ -4,6 +4,16 @@ title: Statusline script portability and robustness fixes
 status: draft
 parent: E-0039
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Transcript walk works on macOS and Linux (tail -r with tac fallback)
+      status: open
+    - id: AC-2
+      title: Ahead/behind parse survives editor tab→space reflow (default-IFS split)
+      status: open
+    - id: AC-3
+      title: Read-only git calls skip the optional index lock (GIT_OPTIONAL_LOCKS=0)
+      status: open
 ---
 # M-0153 — Statusline script portability and robustness fixes
 
@@ -109,3 +119,10 @@ behavior-preserving on Linux.
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — Transcript walk works on macOS and Linux (tail -r with tac fallback)
+
+### AC-2 — Ahead/behind parse survives editor tab→space reflow (default-IFS split)
+
+### AC-3 — Read-only git calls skip the optional index lock (GIT_OPTIONAL_LOCKS=0)
+
