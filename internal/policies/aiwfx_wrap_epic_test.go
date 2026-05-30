@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -270,73 +269,6 @@ func TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle(t *testing.T) {
 	// strictly before the push gate.
 	if mergeIdx >= wrapArtefactIdx || wrapArtefactIdx >= promoteIdx || promoteIdx >= pushIdx {
 		t.Errorf("G-0119: wrap-bundle ordering must be merge → wrap-artefact commit → promote → push (got line indices: merge=%d, wrap-artefact=%d, promote=%d, push=%d). The promote must be the last commit before push so the authorize scope is still live for every other wrap commit.", mergeIdx, wrapArtefactIdx, promoteIdx, pushIdx)
-	}
-}
-
-// TestAiwfxWrapEpic_AC3_CacheComparison asserts M-0090 AC-3 / spec
-// AC-4: the fixture content matches the currently-active plugin
-// install per `installed_plugins.json`. Skip semantics follow
-// M-0079's precedent — if the cache is absent (CI without a plugin
-// install) the test skips cleanly; if the plugin is installed but
-// the skill is missing, the test fails ("not materialised"); if
-// the cached content differs from the fixture, the test fails
-// ("drift").
-//
-// AC-3 is the long-term drift-check chokepoint. On the M-0090
-// commit itself it may legitimately stay red — the fixture is
-// authored *here first*, then copied to the rituals repo as
-// part of the wrap (per CLAUDE.md *Cross-repo plugin testing*).
-// Once the wrap-time copy lands and `/reload-plugins` runs, the
-// cache catches up and the test turns green. The acceptance
-// criterion is "the test exists and asserts the right thing,"
-// which holds independent of the cache's current state.
-func TestAiwfxWrapEpic_AC3_CacheComparison(t *testing.T) {
-	t.Parallel()
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatalf("UserHomeDir: %v", err)
-	}
-	manifestPath := filepath.Join(home, ".claude", "plugins", "installed_plugins.json")
-	manifest, err := os.ReadFile(manifestPath)
-	if os.IsNotExist(err) {
-		t.Skipf("AC-3 skip: %q not present; run after plugin install to verify drift-check", manifestPath)
-	}
-	if err != nil {
-		t.Fatalf("AC-3: reading %q: %v", manifestPath, err)
-	}
-
-	// Resolve the *active* install path from installed_plugins.json,
-	// not whichever sha-prefix directory `os.ReadDir` happens to
-	// enumerate first (the cache typically holds several historical
-	// versions).
-	var parsed struct {
-		Plugins map[string][]struct {
-			InstallPath string `json:"installPath"`
-		} `json:"plugins"`
-	}
-	if jsonErr := json.Unmarshal(manifest, &parsed); jsonErr != nil {
-		t.Fatalf("AC-3: parsing %q: %v", manifestPath, jsonErr)
-	}
-	installs, ok := parsed.Plugins["aiwf-extensions@ai-workflow-rituals"]
-	if !ok || len(installs) == 0 {
-		t.Skipf("AC-3 skip: aiwf-extensions@ai-workflow-rituals not installed (no entry in %q)", manifestPath)
-	}
-	skillPath := filepath.Join(installs[0].InstallPath, "skills", "aiwfx-wrap-epic", "SKILL.md")
-	if _, statErr := os.Stat(skillPath); os.IsNotExist(statErr) {
-		t.Errorf("AC-3: aiwfx-wrap-epic not materialised in active install (expected at %q)", skillPath)
-		return
-	} else if statErr != nil {
-		t.Fatalf("AC-3: stat %q: %v", skillPath, statErr)
-	}
-
-	cached, err := os.ReadFile(skillPath)
-	if err != nil {
-		t.Fatalf("AC-3: reading cached skill at %q: %v", skillPath, err)
-	}
-
-	fixture := loadAiwfxWrapEpicFixture(t)
-	if string(cached) != fixture {
-		t.Errorf("AC-3: drift between fixture and cached skill at %q — re-deploy fixture to rituals repo and reload plugins, or update the fixture if the rituals-side is canonical", skillPath)
 	}
 }
 

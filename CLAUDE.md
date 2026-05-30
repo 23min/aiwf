@@ -169,11 +169,15 @@ History: G-0147 introduced the `make diag-aiwf` target as the recommended chokep
 
 ## Cross-repo plugin testing
 
-When a milestone's deliverable is a `SKILL.md` (or other content) that lives in the rituals plugin repo at [`https://github.com/23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals) (distributed via the Claude Code marketplace), the **canonical authoring location during the milestone is a fixture in this repo** at `internal/policies/testdata/<skill-name>/SKILL.md`. AC tests under `internal/policies/` assert content claims against the fixture; red→green TDD iteration happens against it.
+The rituals (`aiwfx-*` / `wf-*` skills, agents, templates) are authored upstream at [`https://github.com/23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals) and **vendored into this repo as a pinned snapshot** under `internal/skills/embedded-rituals/` (pinned in `rituals.lock`, refreshed by `make sync-rituals`), then embedded via `go:embed` and materialized by `aiwf init` / `aiwf update` (ADR-0014, E-0038). The snapshot — not a marketplace install — is canonical in the consumer.
 
-At wrap, the fixture content is copied into the rituals repo as a separate commit there; the wrap-side spec records the rituals-repo commit SHA in *Validation*. A drift-check test in this repo compares the fixture against the local marketplace cache (`~/.claude/plugins/cache/ai-workflow-rituals/.../SKILL.md`) and fires if they diverge — and skips cleanly when the cache is absent (CI without a plugin install).
+The authoritative drift guard is **`internal/policies/rituals_drift_test.go` (`TestRituals_VendoredMatchesUpstream`, M-0148)**: it fetches the upstream repo at the `rituals.lock` ref and byte-compares the vendored snapshot, skipping under `-short`/offline. That is the embed-era replacement for the retired marketplace-cache comparison.
 
-Subtree and submodule are wrong for this: the rituals repo is the upstream, and vendoring it here would invert the relationship and add CI/contributor friction. **No tests live in the rituals repo** — it stays pure markdown.
+When a milestone's deliverable is ritual `SKILL.md` content, the **authoring location is a fixture in this repo** at `internal/policies/testdata/<skill-name>/SKILL.md`; AC tests under `internal/policies/` assert content claims against the fixture (red→green TDD against it). At wrap, the content lands upstream and is re-vendored into `embedded-rituals/`.
+
+> **Retired (E-0038 / M-0152):** the old fixture-vs-marketplace-cache drift tests (`Test*_DriftAgainstCache` / `*_CacheComparison`, comparing the fixture against `~/.claude/plugins/cache/…`) were removed when the marketplace channel was retired. They tested a dead channel and were machine-cache-dependent (a plugin-cache shift could block any commit). The canonical drift check is now `TestRituals_VendoredMatchesUpstream`. The testdata fixtures still back the per-AC *content* assertions; consolidating them onto the embedded snapshot to eliminate the duplication is tracked as a follow-up gap.
+
+Subtree and submodule are wrong for vendoring: the rituals repo is the upstream, and a submodule embeds as an empty dir through the Go module proxy (ADR-0014). **No tests live in the rituals repo** — it stays pure markdown.
 
 ---
 

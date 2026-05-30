@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -289,77 +288,6 @@ func TestAiwfxWhiteboard_AC6_AntiPatterns(t *testing.T) {
 // whiteboard fixture is therefore covered by the live policy run
 // in TestPolicy_SkillCoverageMatchesVerbs — no per-fixture
 // duplicate needed.
-
-// TestAiwfxWhiteboard_AC8_MaterialisationDriftCheck asserts AC-8:
-// the skill is materialised by the marketplace install (the
-// "distribution path" the AC names) and the cached copy matches
-// the fixture authored in this repo. Implements the drift-check
-// pattern from CLAUDE.md §"Cross-repo plugin testing".
-//
-// Skip semantics:
-//   - If the marketplace cache for ai-workflow-rituals is absent
-//     entirely (no plugin install on this machine), the test
-//     skips cleanly. CI without a plugin install therefore
-//     doesn't fail; the AC is verified locally where the cache
-//     lives.
-//   - If the plugin is installed but the aiwfx-whiteboard skill
-//     is missing from the cache, the test FAILS — that's the
-//     "not materialised" condition AC-8 forbids.
-//   - If the skill is present but content differs from the
-//     fixture, the test FAILS — that's the drift condition
-//     CLAUDE.md's pattern is designed to catch.
-func TestAiwfxWhiteboard_AC8_MaterialisationDriftCheck(t *testing.T) {
-	t.Parallel()
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatalf("UserHomeDir: %v", err)
-	}
-	manifestPath := filepath.Join(home, ".claude", "plugins", "installed_plugins.json")
-	manifest, err := os.ReadFile(manifestPath)
-	if os.IsNotExist(err) {
-		t.Skipf("AC-8 skip: %q not present; run after plugin install to verify materialisation", manifestPath)
-	}
-	if err != nil {
-		t.Fatalf("AC-8: reading %q: %v", manifestPath, err)
-	}
-
-	// Resolve the *active* install path from installed_plugins.json
-	// rather than scanning every cached version. The cache typically
-	// holds several historical sha-prefix directories (one per
-	// version that was ever active); the test must verify the
-	// currently-active install matches the fixture, not whichever
-	// stale version `os.ReadDir` happens to enumerate first.
-	var parsed struct {
-		Plugins map[string][]struct {
-			InstallPath string `json:"installPath"`
-		} `json:"plugins"`
-	}
-	if jsonErr := json.Unmarshal(manifest, &parsed); jsonErr != nil {
-		t.Fatalf("AC-8: parsing %q: %v", manifestPath, jsonErr)
-	}
-	installs, ok := parsed.Plugins["aiwf-extensions@ai-workflow-rituals"]
-	if !ok || len(installs) == 0 {
-		t.Skipf("AC-8 skip: aiwf-extensions@ai-workflow-rituals not installed (no entry in %q)", manifestPath)
-	}
-	skillPath := filepath.Join(installs[0].InstallPath, "skills", "aiwfx-whiteboard", "SKILL.md")
-	if _, statErr := os.Stat(skillPath); os.IsNotExist(statErr) {
-		t.Errorf("AC-8: aiwfx-whiteboard not materialised in active install (expected at %q)", skillPath)
-		return
-	} else if statErr != nil {
-		t.Fatalf("AC-8: stat %q: %v", skillPath, statErr)
-	}
-
-	cached, err := os.ReadFile(skillPath)
-	if err != nil {
-		t.Fatalf("AC-8: reading cached skill at %q: %v", skillPath, err)
-	}
-
-	fixture := loadAiwfxWhiteboardFixture(t)
-	if string(cached) != fixture {
-		t.Errorf("AC-8: drift between fixture and cached skill at %q — re-deploy fixture to rituals repo and reload plugins, or update the fixture if the rituals-side is canonical", skillPath)
-	}
-}
-
 // TestAiwfxWhiteboard_AC2_DescriptionPhrasings asserts AC-2: the
 // frontmatter `description:` carries at minimum five of the named
 // natural-language query phrasings the user might type to a

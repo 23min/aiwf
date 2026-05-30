@@ -210,10 +210,6 @@ Local branches are not touched. Operators prune local branches on their own sche
 aiwf render roadmap --write
 ```
 
-### 12. Record learnings
-
-Append to `work/agent-history/<agent>.md` (whoever closed the epic): patterns that worked across the epic, pitfalls, conventions established. 2–5 line entries. Roll up older history if the file exceeds ~200 lines.
-
 ## Constraints
 
 - 🛑 **Never merge or push without explicit approval** (steps 4, 9, 10).

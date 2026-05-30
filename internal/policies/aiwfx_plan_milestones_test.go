@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -343,79 +342,5 @@ func TestAiwfxPlanMilestones_DependsOnUsesVerb_ClosesG0079(t *testing.T) {
 	// must exist somewhere in the body.
 	if !strings.Contains(strings.ToLower(body), "hand-edit") {
 		t.Error("G-0079: skill must explicitly warn against hand-editing `depends_on:` so the verb-based path stays the default")
-	}
-}
-
-// TestAiwfxPlanMilestones_DriftAgainstCache mirrors the M-0096
-// drift-check pattern: the fixture's bytes must match the rituals-repo
-// copy in the active marketplace cache once the upstream side of this
-// patch has landed. Pre-deploy (the rituals-repo edit hasn't shipped
-// yet) the test legitimately *skips* — the cached file still holds
-// the old hand-edit guidance, which the fixture deliberately replaces.
-//
-// Skip semantics:
-//   - `installed_plugins.json` absent → skip (CI without plugin install).
-//   - `aiwf-extensions@ai-workflow-rituals` not installed → skip.
-//   - Skill not yet materialised in the active install → skip.
-//
-// Fail semantics:
-//   - Skill materialised, bytes differ from fixture → FAIL with a
-//     drift message pointing at the cache path so the operator can
-//     either re-deploy the fixture or update it.
-//
-// Until the rituals-repo upstream edit lands and the operator reloads
-// plugins, this test skips with an explanatory message rather than
-// failing on the (intentional) pre-deploy drift.
-func TestAiwfxPlanMilestones_DriftAgainstCache(t *testing.T) {
-	t.Parallel()
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatalf("UserHomeDir: %v", err)
-	}
-	manifestPath := filepath.Join(home, ".claude", "plugins", "installed_plugins.json")
-	manifest, err := os.ReadFile(manifestPath)
-	if os.IsNotExist(err) {
-		t.Skipf("drift-check skip: %q not present; run after plugin install to verify drift-check", manifestPath)
-	}
-	if err != nil {
-		t.Fatalf("reading %q: %v", manifestPath, err)
-	}
-
-	var parsed struct {
-		Plugins map[string][]struct {
-			InstallPath string `json:"installPath"`
-		} `json:"plugins"`
-	}
-	if jsonErr := json.Unmarshal(manifest, &parsed); jsonErr != nil {
-		t.Fatalf("parsing %q: %v", manifestPath, jsonErr)
-	}
-	installs, ok := parsed.Plugins["aiwf-extensions@ai-workflow-rituals"]
-	if !ok || len(installs) == 0 {
-		t.Skipf("drift-check skip: aiwf-extensions@ai-workflow-rituals not installed (no entry in %q)", manifestPath)
-	}
-	skillPath := filepath.Join(installs[0].InstallPath, "skills", "aiwfx-plan-milestones", "SKILL.md")
-	if _, statErr := os.Stat(skillPath); os.IsNotExist(statErr) {
-		t.Skipf("drift-check skip: aiwfx-plan-milestones not materialised in active install (expected at %q)", skillPath)
-	} else if statErr != nil {
-		t.Fatalf("stat %q: %v", skillPath, statErr)
-	}
-
-	cached, err := os.ReadFile(skillPath)
-	if err != nil {
-		t.Fatalf("reading cached skill at %q: %v", skillPath, err)
-	}
-
-	fixture := loadAiwfxPlanMilestonesFixture(t)
-	if err := compareSkillBytes([]byte(fixture), cached, skillPath); err != nil {
-		// Pre-deploy state: the rituals-repo upstream edit has not
-		// landed (or the operator has not reloaded plugins), so the
-		// cached copy still carries the old hand-edit guidance the
-		// fixture replaces. Skip rather than fail until the upstream
-		// commit lands — at which point this becomes an active
-		// drift-detector in both directions.
-		if strings.Contains(string(cached), "depends_on: [M-") {
-			t.Skipf("drift-check skip: cached skill still carries the pre-G-0079 hand-edit guidance (`depends_on: [M-…]`); rituals-repo upstream edit not yet deployed")
-		}
-		t.Errorf("drift-check: %v", err)
 	}
 }
