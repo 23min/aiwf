@@ -6,6 +6,7 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -67,13 +68,28 @@ func TestPromote_GapAddressedByMultiple(t *testing.T) {
 
 // TestPromote_GapAddressedByCommit: --by-commit value lands in
 // addressed_by_commit and satisfies the resolver check on its own.
+//
+// The SHA passed is a *real* commit resolved from the test repo's HEAD
+// (via gitops.ShortSHA), not a fabricated literal. Since G-0186 the verb
+// validates that each --by-commit value resolves to a commit in the repo
+// on the normal (non-force) path; a fake SHA would now be rejected. This
+// test exercises the real-commit happy path the operator actually hits.
 func TestPromote_GapAddressedByCommit(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Closed by hardening commit", testActor, verb.AddOptions{}))
 
+	// Resolve a real commit SHA from the repo. verb.Add committed the
+	// gap, so HEAD points at a genuine commit; ShortSHA returns its
+	// 8-char prefix, which gitops.CommitExists (the verb's validator)
+	// resolves natively.
+	sha, err := gitops.ShortSHA(r.ctx, r.root, "HEAD", 8)
+	if err != nil {
+		t.Fatalf("ShortSHA(HEAD): %v", err)
+	}
+
 	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
-		verb.PromoteOptions{AddressedByCommit: []string{"abcdef1234"}}))
+		verb.PromoteOptions{AddressedByCommit: []string{sha}}))
 
 	g := r.tree().ByID("G-0001")
 	if g == nil {
@@ -82,13 +98,80 @@ func TestPromote_GapAddressedByCommit(t *testing.T) {
 	if g.Status != "addressed" {
 		t.Errorf("status = %q, want addressed", g.Status)
 	}
-	if len(g.AddressedByCommit) != 1 || g.AddressedByCommit[0] != "abcdef1234" {
-		t.Errorf("addressed_by_commit = %v, want [abcdef1234]", g.AddressedByCommit)
+	if len(g.AddressedByCommit) != 1 || g.AddressedByCommit[0] != sha {
+		t.Errorf("addressed_by_commit = %v, want [%s]", g.AddressedByCommit, sha)
 	}
 	for _, f := range check.Run(r.tree(), nil) {
 		if f.Code == "gap-addressed-has-resolver" {
 			t.Errorf("commit-resolver path should silence gap-addressed-has-resolver; got %+v", f)
 		}
+	}
+}
+
+// TestPromote_GapAddressedByCommit_RejectsUnresolvableSHA pins the
+// G-0186 validation: on the normal (non-force) path, a well-formed but
+// fake --by-commit SHA is rejected with an error naming the bad value
+// and --by-commit, and the gap is NOT mutated (status stays open, no
+// resolver written). A pointer that reads as authoritative while
+// pointing at nothing is worse than an empty field — the verb refuses
+// before any disk work.
+func TestPromote_GapAddressedByCommit_RejectsUnresolvableSHA(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Bogus commit ref", testActor, verb.AddOptions{}))
+
+	_, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedByCommit: []string{"deadbeef"}})
+	if err == nil {
+		t.Fatal("expected error for unresolvable --by-commit SHA; got nil")
+	}
+	if !strings.Contains(err.Error(), "deadbeef") {
+		t.Errorf("error should name the bad SHA; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "--by-commit") {
+		t.Errorf("error should mention --by-commit; got %v", err)
+	}
+
+	// Non-mutation: the verb errored before projecting, so the gap is
+	// untouched on disk — still open, no resolver recorded.
+	g := r.tree().ByID("G-0001")
+	if g == nil {
+		t.Fatal("G-0001 missing")
+	}
+	if g.Status != "open" {
+		t.Errorf("status = %q, want open (rejected promote must not mutate)", g.Status)
+	}
+	if len(g.AddressedByCommit) != 0 || len(g.AddressedBy) != 0 {
+		t.Errorf("resolver fields must stay empty after rejection; got addressed_by=%v addressed_by_commit=%v",
+			g.AddressedBy, g.AddressedByCommit)
+	}
+}
+
+// TestPromote_GapAddressedByCommit_ForceBypassesValidation pins the
+// sovereign-override contract: with --force the commit-resolvability
+// validation is skipped, so a fake SHA lands in addressed_by_commit
+// verbatim. An operator may legitimately reference a commit not present
+// locally (an unmerged fixing branch, a cross-repo reference); --force
+// records it on their authority. Force requires a human actor and a
+// non-empty reason — testActor is "human/test", which satisfies the
+// provenance coherence rule.
+func TestPromote_GapAddressedByCommit_ForceBypassesValidation(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Forced commit ref", testActor, verb.AddOptions{}))
+
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "reference an unmerged fix", true,
+		verb.PromoteOptions{AddressedByCommit: []string{"deadbeef"}}))
+
+	g := r.tree().ByID("G-0001")
+	if g == nil {
+		t.Fatal("G-0001 missing")
+	}
+	if g.Status != "addressed" {
+		t.Errorf("status = %q, want addressed (force should let the promote land)", g.Status)
+	}
+	if len(g.AddressedByCommit) != 1 || g.AddressedByCommit[0] != "deadbeef" {
+		t.Errorf("addressed_by_commit = %v, want [deadbeef] (force records the fake SHA verbatim)", g.AddressedByCommit)
 	}
 }
 

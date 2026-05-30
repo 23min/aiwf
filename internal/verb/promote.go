@@ -66,7 +66,6 @@ func (o PromoteOptions) hasResolverFlag() bool {
 // Tree-level findings caused by the change are returned as a Result
 // with non-empty Findings.
 func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason string, force bool, opts PromoteOptions) (*Result, error) {
-	_ = ctx
 	if entity.IsCompositeID(id) {
 		if opts.hasResolverFlag() {
 			return nil, fmt.Errorf("resolver flags (--by/--by-commit/--superseded-by) are not valid for AC promotions")
@@ -107,6 +106,19 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 	// chokepoint. --force bypasses for sovereign overrides.
 	if !force {
 		if err := requireResolverForResolutionClass(e.Kind, newStatus, opts); err != nil {
+			return nil, err
+		}
+		// Validate that each --by-commit SHA resolves to a real commit
+		// in the repo (G-0186), mirroring how --by validates entity ids
+		// via tree.ByID. Without this, a well-formed-but-fake SHA (e.g.
+		// "8f3c2a1") lands in addressed_by_commit verbatim and reads as
+		// authoritative while pointing at nothing. --force bypasses for
+		// sovereign overrides — an operator may legitimately reference a
+		// commit not yet present locally (an unmerged fixing branch, a
+		// cross-repo reference). The validation runs on the normal path
+		// only, matching the --force stance of the resolver-requirement
+		// and sovereign-act checks that bracket it.
+		if err := validateAddressedByCommit(ctx, t.Root, opts); err != nil {
 			return nil, err
 		}
 		// Sovereign-act-shape transitions are human-only by default
@@ -360,6 +372,32 @@ func requireResolverForResolutionClass(k entity.Kind, newStatus string, opts Pro
 	case k == entity.KindADR && newStatus == entity.StatusSuperseded:
 		if opts.SupersededBy == "" {
 			return fmt.Errorf("promoting an ADR to %q requires --superseded-by <ADR-id> so the adr-supersession-mutual rule is satisfied; pass --force to override", entity.StatusSuperseded)
+		}
+	}
+	return nil
+}
+
+// validateAddressedByCommit returns an error if any --by-commit SHA in
+// opts does not resolve to a commit in the repo at root (G-0186). It
+// mirrors the --by entity-id existence check: a resolver pointer that
+// points at nothing is worse than an empty field, since it reads as
+// authoritative. Resolution is done via gitops.CommitExists, which uses
+// `git rev-parse --verify --quiet <sha>^{commit}` and therefore accepts
+// abbreviated SHAs natively (the legitimate value f7fd1f99 is a short
+// SHA). The caller invokes this on the non-force path only; --force is
+// the sovereign override for commits not yet present locally.
+//
+// A nil/empty AddressedByCommit makes this a no-op — the loop body never
+// runs, so a promote without --by-commit is unaffected.
+func validateAddressedByCommit(ctx context.Context, root string, opts PromoteOptions) error {
+	for _, sha := range opts.AddressedByCommit {
+		ok, err := gitops.CommitExists(ctx, root, sha)
+		if err != nil {
+			//coverage:ignore defensive: CommitExists maps an unresolvable sha to (false,nil); a non-nil err needs git absent or a broken workdir, not reachable deterministically in-process
+			return fmt.Errorf("checking --by-commit %q resolves: %w", sha, err)
+		}
+		if !ok {
+			return fmt.Errorf("--by-commit %q does not resolve to a commit in this repo; pass a real commit SHA, or --force to record it anyway (sovereign override)", sha)
 		}
 	}
 	return nil

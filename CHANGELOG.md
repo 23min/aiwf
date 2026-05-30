@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`aiwf render` roadmap reconciles the on-disk `ROADMAP.md` filename**
+  across case-sensitive and case-insensitive filesystems — a repo
+  tracking lowercase `roadmap.md` gets that file updated, not a divergent
+  second `ROADMAP.md`; new `roadmap-case-collision` check finding for the
+  two-variants-present state. Closes G-0185.
+
+- **`aiwf promote --by-commit`** now validates that each commit SHA
+  resolves to a real commit, rejecting unresolvable SHAs (mirrors `--by`
+  entity-id validation); `--force` bypasses for sovereign overrides.
+  Closes G-0186.
+
 ## [0.10.0] — 2026-05-30
 
 ### Changed — E-0038: rituals ship embedded; Claude marketplace retired

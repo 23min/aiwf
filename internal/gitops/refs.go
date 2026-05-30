@@ -130,6 +130,41 @@ func HasRef(ctx context.Context, workdir, ref string) (bool, error) {
 	return true, nil
 }
 
+// CommitExists reports whether ref resolves to a commit object in
+// workdir's repo. It is the commit-existence check behind the
+// promote --by-commit write-time validation (G-0186): an operator can
+// pass a full or abbreviated SHA, a branch name, a tag — anything git
+// understands as a commit-ish — and this returns whether it actually
+// resolves to a commit here and now.
+//
+// Returns (false, nil) when ref does not resolve (the unresolvable-SHA
+// case the validation rejects); (true, nil) when it does. Other git
+// failures (broken workdir, git absent) propagate as wrapped errors so
+// the caller can distinguish "doesn't resolve" from "couldn't check."
+//
+// `git rev-parse --verify --quiet <ref>^{commit}` is the resolution
+// path: the ^{commit} peel forces a commit object specifically (so an
+// existing tree/blob SHA is not mistaken for a commit), --verify
+// guarantees a single unambiguous result, and abbreviated SHAs are
+// handled natively by git's object-name resolver (the legitimate
+// G-0185 value f7fd1f99 is an 8-char prefix). This mirrors HasRef's
+// mechanics; CommitExists exists as a distinct, intention-named verb
+// so call sites read as the commit-resolvability check they are
+// rather than reusing a helper documented for branch/tag refs.
+func CommitExists(ctx context.Context, workdir, ref string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "--quiet", ref+"^{commit}")
+	cmd.Dir = workdir
+	cmd.Env = gitEnv()
+	if err := cmd.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return false, nil
+		}
+		return false, fmt.Errorf("git rev-parse --verify %s^{commit}: %w", ref, err)
+	}
+	return true, nil
+}
+
 // RenamesFromRef returns the set of file renames committed on HEAD
 // since it diverged from ref — i.e., renames in commits reachable from
 // HEAD but not from ref. Keys are pre-rename paths, values are post-

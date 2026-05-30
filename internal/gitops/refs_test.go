@@ -67,6 +67,48 @@ func TestHasRef_Missing(t *testing.T) {
 	}
 }
 
+// TestCommitExists covers the commit-resolvability check behind the
+// promote --by-commit validation (G-0186): a real full SHA resolves,
+// an abbreviated prefix of a real SHA resolves (git handles short
+// SHAs natively), and a well-formed-but-fake SHA does not. A tree
+// object's SHA must NOT resolve, since the ^{commit} peel requires a
+// commit specifically.
+func TestCommitExists(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "a.txt", "hello")
+	fullSHA := mustOutput(t, ctx, dir, "rev-parse", "HEAD")
+	shortSHA := mustOutput(t, ctx, dir, "rev-parse", "--short=8", "HEAD")
+	treeSHA := mustOutput(t, ctx, dir, "rev-parse", "HEAD^{tree}")
+
+	cases := []struct {
+		name string
+		ref  string
+		want bool
+	}{
+		{"full-sha", fullSHA, true},
+		{"abbreviated-sha", shortSHA, true},
+		{"head", "HEAD", true},
+		{"unresolvable-short", "8f3c2a1", false},
+		{"unresolvable-deadbeef", "deadbeef", false},
+		{"tree-not-commit", treeSHA, false},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := CommitExists(ctx, dir, tc.ref)
+			if err != nil {
+				t.Fatalf("CommitExists(%q): %v", tc.ref, err)
+			}
+			if got != tc.want {
+				t.Errorf("CommitExists(%q) = %v, want %v", tc.ref, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestLsTreePaths_FullTree(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
