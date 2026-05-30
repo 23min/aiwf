@@ -274,7 +274,10 @@ func appendMaterializedRitualsReport(in []string, rootDir string) []string {
 		}
 		return out
 	}
-	return append(in, fmt.Sprintf("%sok (%d artifacts materialized)", label("rituals:"), len(present)))
+	return append(in,
+		fmt.Sprintf("%sok (%d artifacts materialized)", label("rituals:"), len(present)),
+		subIndent+"managed by aiwf (skills aiwf-*/aiwfx-*/wf-*, agents, templates); `aiwf update` refreshes — do not hand-edit (see .claude/skills/README.md)",
+	)
 }
 
 // appendMarketplaceOverlapReport is the de-dupe guard (ADR-0014 §5):

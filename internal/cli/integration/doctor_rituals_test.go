@@ -146,3 +146,19 @@ func TestDoctorReport_NoOverlap_WhenNotMaterialized(t *testing.T) {
 		t.Errorf("no overlap expected when rituals are not materialized:\n%s", strings.Join(lines, "\n"))
 	}
 }
+
+// TestDoctorReport_RitualsLine_SurfacesProvenance covers the
+// discoverability enhancement: the rituals: ok line is followed by a
+// note naming aiwf as the manager, the refresh verb, and the
+// do-not-hand-edit contract — so an operator reading `aiwf doctor`
+// learns these skills came from aiwf.
+func TestDoctorReport_RitualsLine_SurfacesProvenance(t *testing.T) {
+	root := initForDoctor(t)
+	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	joined := strings.Join(lines, "\n")
+	for _, want := range []string{"managed by aiwf", "aiwf update", "do not hand-edit"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("doctor rituals provenance note missing %q; got:\n%s", want, joined)
+		}
+	}
+}

@@ -795,6 +795,7 @@ func TestGitignorePatterns(t *testing.T) {
 	wantAiwfxWildcard := SkillsDir + "/aiwfx-*/"
 	wantWfWildcard := SkillsDir + "/wf-*/"
 	wantManifest := SkillsDir + "/" + ManifestFile
+	wantReadme := SkillsDir + "/" + ProvenanceReadme
 	wantBinary := "/aiwf"
 
 	want := map[string]bool{
@@ -802,6 +803,7 @@ func TestGitignorePatterns(t *testing.T) {
 		wantAiwfxWildcard: true,
 		wantWfWildcard:    true,
 		wantManifest:      true,
+		wantReadme:        true,
 		wantBinary:        true,
 	}
 	agents, err := ListRitualAgents()

@@ -359,3 +359,64 @@ func TestRituals_NoHookSurface(t *testing.T) {
 		t.Fatalf("walking materialized .claude: %v", err)
 	}
 }
+
+// TestMaterialize_WritesProvenanceReadme covers the provenance-surface
+// feature: Materialize writes a human-readable README at the root of
+// the skills dir naming the aiwf-managed prefixes, the .aiwf-owned
+// manifest, and the do-not-hand-edit / aiwf-update contract.
+func TestMaterialize_WritesProvenanceReadme(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := Materialize(root); err != nil {
+		t.Fatalf("Materialize: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, SkillsDir, ProvenanceReadme))
+	if err != nil {
+		t.Fatalf("provenance README not materialized: %v", err)
+	}
+	body := string(got)
+	for _, want := range []string{
+		"materialized by",
+		ManifestFile,
+		"aiwf-*",
+		"aiwfx-*",
+		"wf-*",
+		"Do not hand-edit",
+		"aiwf update",
+		"never touched", // the user-authored-is-safe clause
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("provenance README missing %q:\n%s", want, body)
+		}
+	}
+}
+
+// TestMaterialize_ProvenanceReadmeIdempotent covers the update path:
+// re-materialize leaves the README in place (overwritten, not removed).
+func TestMaterialize_ProvenanceReadmeIdempotent(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := Materialize(root); err != nil {
+		t.Fatalf("first Materialize: %v", err)
+	}
+	if err := Materialize(root); err != nil {
+		t.Fatalf("second Materialize: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, SkillsDir, ProvenanceReadme)); err != nil {
+		t.Errorf("provenance README missing after re-materialize: %v", err)
+	}
+}
+
+// TestGitignorePatterns_CoversProvenanceReadme covers that the
+// regenerated README is gitignored (like the manifest) so it never
+// lands in a commit.
+func TestGitignorePatterns_CoversProvenanceReadme(t *testing.T) {
+	t.Parallel()
+	pats, err := GitignorePatterns()
+	if err != nil {
+		t.Fatalf("GitignorePatterns: %v", err)
+	}
+	if !contains(pats, SkillsDir+"/"+ProvenanceReadme) {
+		t.Errorf("GitignorePatterns missing %q; got %v", SkillsDir+"/"+ProvenanceReadme, pats)
+	}
+}
