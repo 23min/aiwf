@@ -4,6 +4,16 @@ title: 'ADR: amend settings.json stance to consent-gated'
 status: in_progress
 parent: E-0039
 tdd: none
+acs:
+    - id: AC-1
+      title: ADR-0015 records the consent-gated settings.json stance
+      status: open
+    - id: AC-2
+      title: CLAUDE.md operator-setup line states the consent-gated stance
+      status: open
+    - id: AC-3
+      title: doctor.go stance surfaces state the consent-gated stance
+      status: open
 ---
 # M-0154 — ADR: amend settings.json stance to consent-gated
 
@@ -85,3 +95,10 @@ within its section/string, not via a loose whole-file grep, per CLAUDE.md's
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — ADR-0015 records the consent-gated settings.json stance
+
+### AC-2 — CLAUDE.md operator-setup line states the consent-gated stance
+
+### AC-3 — doctor.go stance surfaces state the consent-gated stance
+
