@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Statusline block emitted only when the script is installed
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Missing jq/gh reported with platform-branched install hints
