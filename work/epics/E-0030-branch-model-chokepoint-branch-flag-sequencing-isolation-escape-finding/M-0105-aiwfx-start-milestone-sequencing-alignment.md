@@ -7,6 +7,31 @@ depends_on:
     - M-0102
     - M-0103
 tdd: required
+acs:
+    - id: AC-1
+      title: Embedded snapshot reflects new step ordering
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Skill asserts tightened parent-epic-branch precondition
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Silent fallthrough to checkout -b epic/<slug> if missing removed
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Workflow headings structurally appear in new order
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: Skill body names --force --reason override at appropriate step
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: Milestone scope aiwf-branch trailer records milestone branch
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -59,3 +84,16 @@ One edit in one commit. The upstream `ai-workflow-rituals` repo was archived und
 5. The skill body names the override path (`--force --reason "..."`) at the relevant step.
 6. The milestone scope's `aiwf-branch:` trailer records the milestone branch (verified via an end-to-end fixture: run the ritual against a fixture epic, inspect the resulting authorize commit's trailer).
 -->
+
+### AC-1 — Embedded snapshot reflects new step ordering
+
+### AC-2 — Skill asserts tightened parent-epic-branch precondition
+
+### AC-3 — Silent fallthrough to checkout -b epic/<slug> if missing removed
+
+### AC-4 — Workflow headings structurally appear in new order
+
+### AC-5 — Skill body names --force --reason override at appropriate step
+
+### AC-6 — Milestone scope aiwf-branch trailer records milestone branch
+
