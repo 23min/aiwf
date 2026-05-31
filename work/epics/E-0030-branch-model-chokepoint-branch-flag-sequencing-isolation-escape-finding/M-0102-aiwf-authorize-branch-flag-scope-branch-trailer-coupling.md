@@ -8,7 +8,7 @@ tdd: required
 
 ## Goal
 
-Add `aiwf authorize --branch <name>` flag and a new commit trailer key recording the scope-branch coupling on the `authorize` commit. Pure additive: optional flag, new trailer, no behavior change when the flag is absent.
+Add `aiwf authorize --branch <name>` flag and the new `aiwf-branch:` commit trailer key recording the scope-branch coupling on the `authorize` commit. Lift `parseEntityFromBranch` and the ritual-shape regexes from `internal/cli/status/worktrees.go:485` into a new `internal/branchparse/` package so M-0103's preflight and the existing `aiwf status --worktrees` correlation share one regex set. Pure additive: optional flag, new trailer, no behavior change when the flag is absent.
 
 ## Context
 
@@ -16,24 +16,37 @@ Add `aiwf authorize --branch <name>` flag and a new commit trailer key recording
 
 The flag wires through Cobra completion per CLAUDE.md's auto-completion-friendly rule. The trailer key is added to CLAUDE.md § "Commit conventions" so `aiwf history` consumers and downstream tooling see it.
 
+## Pre-decided design
+
+Per E-0030 §"Design decisions":
+
+- **Trailer key:** `aiwf-branch:`. Constant lands in `internal/gitops/trailers.go` alongside `TrailerActor`, `TrailerTo`, `TrailerScope`; included in `trailerOrder` between `TrailerScope` and `TrailerScopeEnds` (the scope's branch is metadata *about* the scope opening). `ValidateTrailer` shape rule: git-ref-shape regex (`^[A-Za-z0-9._/-]+$`, no leading slash, no embedded `..`); a refusal at write time is preferable to a soft find later.
+- **Behavior when `--branch` is absent:** backward-compatible no-op. The trailer is emitted *only when* `--branch <name>` is passed. M-0103's preflight is what enforces the chokepoint — this milestone keeps the surface additive.
+- **Completion behavior:** `RegisterFlagCompletionFunc("branch", ...)` returns local branches matching the ritual-shape regexes from `internal/branchparse/`. Full-branch-list completion is a smaller hammer (better UX when the operator is intentionally naming a custom branch) but defeats the discoverability win; ritual-shape-only is the right default.
+- **`internal/branchparse/` extraction:** lifts `parseEntityFromBranch` and the ritual-shape compiled regexes from `internal/cli/status/worktrees.go:485` plus the helper that maps `branch → (kind, entity-id)`. Both this milestone's flag-completion and M-0103's preflight detection consume it; `worktrees.go` rewires to consume from the new package. One source of truth — by construction, not by review.
+
 ## Out of scope
 
 - Refusing the dispatch when `--branch` is absent (that's M-0103, the preflight).
 - Auto-creating the branch if absent — default is "require the named branch already exists" per ADR-0010's promote-then-cut sequencing rule. Deferred unless friction surfaces.
 - Updates to `aiwfx-start-epic` / `aiwfx-start-milestone` rituals (M-0104 / M-0105).
 - Kernel finding for post-hoc detection (M-0106).
+- Spec-cell registration in `internal/workflows/spec/branch/` — that's M-0107's consolidation.
 - Changes to human-actor `aiwf authorize` flows (sovereignty preserved).
 
 ## Dependencies
 
 None — foundational.
 
-## Open questions for AC drafting
-
-- **Trailer key name:** `aiwf-branch:` or `aiwf-scope-branch:`? Pick one; consistency check: existing trailer keys are `aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`, `aiwf-to:`, `aiwf-scope:`. `aiwf-branch:` is the shorter natural extension; `aiwf-scope-branch:` is more explicit about *whose* branch.
-- **Flag completion behavior:** When the operator tabs through `--branch`, what do they see? Existing local branches matching ritual patterns (`epic/E-*`, `milestone/M-*`, `fix/*`, `patch/*`, `doc/*`, `chore/*`)? Or the full local-branch list?
-- **Behavior when `--branch` is omitted:** Backward-compatible no-op (current behavior, no trailer emitted)? Or always emit the trailer with the current branch name?
-
 ## Acceptance criteria
 
-<!-- Drafted at `aiwfx-start-milestone M-0102` time. -->
+<!-- Drafted at `aiwfx-start-milestone M-0102` time. The catalog below is the AC seed set:
+1. `--branch <name>` flag is wired on `aiwf authorize <id> --to ai/<agent>` and round-trips through Cobra completion.
+2. `aiwf-branch:` trailer constant lands in `internal/gitops/trailers.go` with the git-ref-shape `ValidateTrailer` rule.
+3. The trailer is emitted on the authorize commit iff `--branch` was passed; absent flag = no trailer (backward-compatible).
+4. Trailer ordering: `aiwf-branch:` sorts between `aiwf-scope:` and `aiwf-scope-ends:` per `trailerOrder`.
+5. `internal/branchparse/` package exists; `parseEntityFromBranch` and the ritual-shape regexes are lifted from `internal/cli/status/worktrees.go:485`; `worktrees.go` consumes from the new package.
+6. The flag's completion returns local branches matching ritual-shape regexes from `internal/branchparse/`.
+7. `cmd/aiwf/completion_drift_test.go` recognizes the new flag without an allowlist entry.
+8. `--branch <name>` against a non-existent branch is *not* refused at this milestone — that's M-0103's job. This milestone's behavior is "record whatever name was passed, validated only against trailer-shape rules."
+-->
