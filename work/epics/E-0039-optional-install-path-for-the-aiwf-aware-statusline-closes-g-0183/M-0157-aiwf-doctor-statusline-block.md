@@ -1,7 +1,7 @@
 ---
 id: M-0157
 title: aiwf doctor statusline block
-status: draft
+status: in_progress
 parent: E-0039
 depends_on:
     - M-0155
