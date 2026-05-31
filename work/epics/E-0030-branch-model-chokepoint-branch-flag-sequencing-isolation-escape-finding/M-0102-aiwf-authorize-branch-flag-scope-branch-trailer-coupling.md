@@ -32,7 +32,7 @@ acs:
     - id: AC-7
       title: completion_drift_test passes on new flag without allowlist entry
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-8
       title: --branch against non-existent branch not refused at this milestone
       status: met
