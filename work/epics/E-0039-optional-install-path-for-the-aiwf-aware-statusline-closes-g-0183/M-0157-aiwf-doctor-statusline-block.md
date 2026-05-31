@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Installed-but-not-wired state prints activation snippet
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Embedded-vs-on-disk drift detected and reported
       status: open
