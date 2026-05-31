@@ -1,7 +1,9 @@
 ---
 id: G-0191
 title: wf-patch and siblings hardcode PR-based flow; project-flow belongs in CLAUDE.md
-status: open
+status: addressed
+addressed_by_commit:
+    - 1e529e5f
 ---
 ## What's missing
 
