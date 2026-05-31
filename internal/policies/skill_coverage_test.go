@@ -385,7 +385,7 @@ func TestRunSkillCoverageChecks_FullDriftFiresAllAxes(t *testing.T) {
 	// plugin-skill coverage; this confirms the policy walks both sets.
 	pluginSkills := []embeddedSkillEntry{
 		{
-			relPath:         "internal/policies/testdata/aiwfx-broken/SKILL.md",
+			relPath:         "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-broken/SKILL.md",
 			dirName:         "aiwfx-broken",
 			frontmatterName: "aiwfx-broken",
 			description:     "fine",

@@ -59,7 +59,7 @@ func PolicySkillCoverageMatchesVerbs(root string) ([]Violation, error) {
 // whether the policy fires on real drift).
 //
 // kernelSkills: in-repo embedded skills at internal/skills/embedded/aiwf-*/.
-// pluginSkills: in-repo plugin-skill fixtures at internal/policies/testdata/aiwfx-*/.
+// pluginSkills: embedded ritual plugin skills at internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-*/ (G-0182 consolidated this onto the embedded snapshot; previously a duplicated fixture under internal/policies/testdata/).
 // Frontmatter invariants apply to both with the respective prefix.
 // Verb-coverage check is kernel-only (plugin skills don't define
 // top-level verbs). Body-mention resolution applies to the union.
@@ -263,15 +263,23 @@ func loadEmbeddedSkillsForPolicy(root string) ([]embeddedSkillEntry, error) {
 	return out, nil
 }
 
-// loadPluginSkillFixturesForPolicy reads every SKILL.md fixture under
-// internal/policies/testdata/aiwfx-*/ — the in-repo authoring copies
-// of plugin skills used for cross-repo TDD per CLAUDE.md §"Cross-repo
-// plugin testing". Returns in directory-name-sorted order. Filters
-// strictly to `aiwfx-*` so other testdata subdirs (entity fixtures,
-// drift-check inputs, etc.) are not scanned. G-0088 closure.
+// loadPluginSkillFixturesForPolicy reads every aiwfx-* SKILL.md under
+// the embedded ritual snapshot at
+// internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/. Per
+// G-0182, the embedded snapshot is the canonical authoring location for
+// ritual content (post-ADR-0014 distribution channel and pending
+// ADR-0016 authoring-channel retirement); the per-AC content-assertion
+// tests assert against the same bytes the binary embeds rather than a
+// duplicated fixture under internal/policies/testdata/.
+//
+// Returns in directory-name-sorted order so violations surface
+// deterministically. Filters strictly to `aiwfx-*` so the policy stays
+// scoped to the plugin-skill authoring surface; the wf-* skills under
+// the sibling wf-rituals plugin are a separate surface this policy
+// does not check.
 func loadPluginSkillFixturesForPolicy(root string) ([]embeddedSkillEntry, error) {
-	testdataRoot := filepath.Join(root, "internal", "policies", "testdata")
-	dirs, err := os.ReadDir(testdataRoot)
+	ritualsRoot := filepath.Join(root, "internal", "skills", "embedded-rituals", "plugins", "aiwf-extensions", "skills")
+	dirs, err := os.ReadDir(ritualsRoot)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -283,19 +291,18 @@ func loadPluginSkillFixturesForPolicy(root string) ([]embeddedSkillEntry, error)
 		if !d.IsDir() || !strings.HasPrefix(d.Name(), "aiwfx-") {
 			continue
 		}
-		path := filepath.Join(testdataRoot, d.Name(), "SKILL.md")
+		path := filepath.Join(ritualsRoot, d.Name(), "SKILL.md")
 		data, err := os.ReadFile(path)
 		if err != nil {
 			if os.IsNotExist(err) {
 				// aiwfx-*/ without a SKILL.md isn't a plugin-skill
-				// fixture — skip silently (might be a verb-specific
-				// testdata subdir that happens to share the prefix).
+				// directory — skip silently.
 				continue
 			}
 			return nil, err
 		}
 		entry := parseSkillMarkdown(data)
-		entry.relPath = filepath.ToSlash(filepath.Join("internal", "policies", "testdata", d.Name(), "SKILL.md"))
+		entry.relPath = filepath.ToSlash(filepath.Join("internal", "skills", "embedded-rituals", "plugins", "aiwf-extensions", "skills", d.Name(), "SKILL.md"))
 		entry.dirName = d.Name()
 		out = append(out, entry)
 	}

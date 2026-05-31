@@ -9,12 +9,14 @@ import (
 )
 
 // aiwfxWhiteboardFixturePath is the canonical authoring location
-// for the `aiwfx-whiteboard` skill body during M-079, per CLAUDE.md
-// §"Cross-repo plugin testing". At wrap, the fixture content is
-// copied to the rituals plugin repo (`plugins/aiwf-extensions/
-// skills/aiwfx-whiteboard/SKILL.md` there); a drift-check test
-// guards the long-term coupling.
-const aiwfxWhiteboardFixturePath = "internal/policies/testdata/aiwfx-whiteboard/SKILL.md"
+// for the `aiwfx-whiteboard` skill body — the embedded ritual
+// snapshot the aiwf binary ships. Per G-0182, AC content assertions
+// read the embedded bytes directly rather than a duplicated fixture
+// under internal/policies/testdata/. ADR-0014 retired the
+// marketplace channel; the pending ADR-0016 follow-up retires the
+// upstream authoring channel — in both states, the embedded
+// snapshot is the source of truth.
+const aiwfxWhiteboardFixturePath = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-whiteboard/SKILL.md"
 
 // loadAiwfxWhiteboardFixture reads the fixture relative to repo
 // root. The tests under this file are seam-tests against the
@@ -283,11 +285,13 @@ func TestAiwfxWhiteboard_AC6_AntiPatterns(t *testing.T) {
 // when G-0088 lifted skill-coverage invariants into the kernel
 // policy itself. PolicySkillCoverageMatchesVerbs now walks both
 // internal/skills/embedded/aiwf-*/ and
-// internal/policies/testdata/aiwfx-*/, applying the same
-// frontmatter + body-mention invariants to both. The aiwfx-
-// whiteboard fixture is therefore covered by the live policy run
-// in TestPolicy_SkillCoverageMatchesVerbs — no per-fixture
-// duplicate needed.
+// internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-*/,
+// applying the same frontmatter + body-mention invariants to both
+// (G-0182 consolidated the previously-duplicated testdata fixtures
+// onto the embedded snapshot). The aiwfx-whiteboard skill is
+// therefore covered by the live policy run in
+// TestPolicy_SkillCoverageMatchesVerbs — no per-skill duplicate
+// needed.
 // TestAiwfxWhiteboard_AC2_DescriptionPhrasings asserts AC-2: the
 // frontmatter `description:` carries at minimum five of the named
 // natural-language query phrasings the user might type to a

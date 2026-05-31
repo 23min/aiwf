@@ -9,11 +9,12 @@ import (
 
 // aiwfArchiveSkillPath is the on-disk canonical location of the
 // per-verb skill ADR-0004 calls for (per ADR-0006 "per-verb skill
-// default"). Unlike the aiwfx-* rituals plugin skills that ship from
-// an upstream repo and live as fixtures under
-// `internal/policies/testdata/` until copied at wrap, the kernel's
-// own embedded skills ship from this path directly via
-// `//go:embed embedded` in `internal/skills/skills.go`.
+// default"). Kernel-embedded skills under `internal/skills/embedded/`
+// ship via `//go:embed embedded` in `internal/skills/skills.go`; the
+// aiwfx-* rituals plugin skills ship via the sibling go:embed of
+// `embedded-rituals/` (G-0182 consolidated their authoring onto the
+// same embedded snapshot, eliminating the prior duplicate fixture
+// surface under `internal/policies/testdata/`).
 const aiwfArchiveSkillPath = "internal/skills/embedded/aiwf-archive/SKILL.md"
 
 // loadAiwfArchiveSkill reads the on-disk SKILL.md relative to the

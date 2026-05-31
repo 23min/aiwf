@@ -9,13 +9,14 @@ import (
 )
 
 // aiwfxStartEpicFixturePath is the canonical authoring location for
-// the `aiwfx-start-epic` skill body during M-0096, per CLAUDE.md
-// §"Cross-repo plugin testing". At wrap, the fixture content is
-// copied to the rituals plugin repo (`plugins/aiwf-extensions/
-// skills/aiwfx-start-epic/SKILL.md` there); the drift-check in
-// TestAiwfxStartEpic_AC5_DriftAgainstCache guards the long-term
-// coupling.
-const aiwfxStartEpicFixturePath = "internal/policies/testdata/aiwfx-start-epic/SKILL.md"
+// the `aiwfx-start-epic` skill body — the embedded ritual snapshot
+// the aiwf binary ships. Per G-0182, AC content assertions read the
+// embedded bytes directly rather than a duplicated fixture under
+// internal/policies/testdata/. ADR-0014 retired the marketplace
+// channel; the pending ADR-0016 follow-up retires the upstream
+// authoring channel — in both states, the embedded snapshot is the
+// source of truth.
+const aiwfxStartEpicFixturePath = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-epic/SKILL.md"
 
 // loadAiwfxStartEpicFixture reads the fixture relative to repo root.
 // Tests under this file assert the doctrinal content M-0096's ACs

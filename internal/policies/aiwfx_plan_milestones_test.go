@@ -8,12 +8,14 @@ import (
 )
 
 // aiwfxPlanMilestonesFixturePath is the canonical authoring location
-// for the `aiwfx-plan-milestones` skill body during the G-0079 patch,
-// per CLAUDE.md §"Cross-repo plugin testing". The fixture content is
-// copied to the rituals plugin repo (`plugins/aiwf-extensions/skills/
-// aiwfx-plan-milestones/SKILL.md` there) in a separate commit; the
-// drift-check below guards the long-term coupling.
-const aiwfxPlanMilestonesFixturePath = "internal/policies/testdata/aiwfx-plan-milestones/SKILL.md"
+// for the `aiwfx-plan-milestones` skill body — the embedded ritual
+// snapshot the aiwf binary ships. Per G-0182, AC content assertions
+// read the embedded bytes directly rather than a duplicated fixture
+// under internal/policies/testdata/. ADR-0014 retired the marketplace
+// channel; the pending ADR-0016 follow-up retires the upstream
+// authoring channel — in both states, the embedded snapshot is the
+// source of truth.
+const aiwfxPlanMilestonesFixturePath = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-plan-milestones/SKILL.md"
 
 // loadAiwfxPlanMilestonesFixture reads the fixture relative to repo
 // root. The tests under this file are seam-tests against the authored

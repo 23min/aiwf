@@ -10,12 +10,14 @@ import (
 )
 
 // aiwfxWrapEpicFixturePath is the canonical authoring location for
-// the `aiwfx-wrap-epic` skill body during M-0090, per CLAUDE.md
-// §"Cross-repo plugin testing". At wrap, the fixture content is
-// copied to the rituals plugin repo (`plugins/aiwf-extensions/
-// skills/aiwfx-wrap-epic/SKILL.md` there); the cache-comparison
-// drift-check below guards the long-term coupling.
-const aiwfxWrapEpicFixturePath = "internal/policies/testdata/aiwfx-wrap-epic/SKILL.md"
+// the `aiwfx-wrap-epic` skill body — the embedded ritual snapshot
+// the aiwf binary ships. Per G-0182, AC content assertions read the
+// embedded bytes directly rather than a duplicated fixture under
+// internal/policies/testdata/. ADR-0014 retired the marketplace
+// channel; the pending ADR-0016 follow-up retires the upstream
+// authoring channel — in both states, the embedded snapshot is the
+// source of truth.
+const aiwfxWrapEpicFixturePath = "internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-wrap-epic/SKILL.md"
 
 // loadAiwfxWrapEpicFixture reads the fixture relative to repo root.
 // The tests under this file are seam-tests against the authored
