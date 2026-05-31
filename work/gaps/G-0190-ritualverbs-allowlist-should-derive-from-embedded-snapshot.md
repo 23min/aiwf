@@ -1,8 +1,10 @@
 ---
 id: G-0190
 title: ritualVerbs allowlist should derive from embedded snapshot
-status: open
+status: addressed
 discovered_in: E-0038
+addressed_by_commit:
+    - ab75d376
 ---
 ## What's missing
 
