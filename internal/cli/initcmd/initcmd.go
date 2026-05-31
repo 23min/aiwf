@@ -23,12 +23,13 @@ import (
 // --skip-hook performs every other step but omits hook installation.
 func NewCmd() *cobra.Command {
 	var (
-		root       string
-		actor      string
-		dryRun     bool
-		skipHook   bool
-		statusline bool
-		scope      string
+		root         string
+		actor        string
+		dryRun       bool
+		skipHook     bool
+		statusline   bool
+		scope        string
+		wireSettings bool
 	)
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -46,7 +47,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope))
+			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope, wireSettings))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: cwd)")
@@ -59,6 +60,7 @@ func NewCmd() *cobra.Command {
 		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
+	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
 	return cmd
 }
 
@@ -68,7 +70,7 @@ func NewCmd() *cobra.Command {
 // clobbers a pre-existing copy). The scaffold action runs after the
 // main init pipeline succeeds; a `--dry-run` init reports without
 // scaffolding.
-func Run(root, actor string, dryRun, skipHook, statusline bool, scope string) int {
+func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings bool) int {
 	rootDir, err := resolveInitRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
@@ -136,7 +138,11 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string) in
 	}
 
 	if statusline && !dryRun {
-		if rc := cliutil.RunStatuslineScaffold(rootDir, scope); rc != cliutil.ExitOK {
+		if rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
+			RootDir:      rootDir,
+			Scope:        scope,
+			WireSettings: wireSettings,
+		}); rc != cliutil.ExitOK {
 			return rc
 		}
 	} else if statusline && dryRun {

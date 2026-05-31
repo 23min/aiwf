@@ -57,3 +57,21 @@ func TestTerminalWidth_NilReturnsZero(t *testing.T) {
 		t.Fatalf("TerminalWidth(nil) = %d, want 0", got)
 	}
 }
+
+// TestIsTTY_NonTTYReturnsFalse pins M-0156/AC-1: under `go test`
+// os.Stdout is piped, so IsTTY must return false.
+func TestIsTTY_NonTTYReturnsFalse(t *testing.T) {
+	t.Parallel()
+	if IsTTY(os.Stdout) {
+		t.Fatal("IsTTY(os.Stdout) = true under go test; want false (piped)")
+	}
+}
+
+// TestIsTTY_NilReturnsFalse pins the nil-safety contract: nil must
+// not panic, just return false.
+func TestIsTTY_NilReturnsFalse(t *testing.T) {
+	t.Parallel()
+	if IsTTY(nil) {
+		t.Fatal("IsTTY(nil) = true; want false")
+	}
+}
