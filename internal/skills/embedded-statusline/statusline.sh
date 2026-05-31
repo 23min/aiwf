@@ -2,7 +2,7 @@
 # Status line for Claude Code in the aiwf repo.
 # Reads JSON from stdin (Claude Code's session context), prints one line.
 #
-# Layout: <ball> <model> · <epic?> · <milestone?> · <repo> · <branch>[<dirty>][<sync>] · ci:<state> · <tokens>
+# Layout: <ball> <model> <effort?> ▸ <tokens> · <epic HUD> · <repo> · <branch…>[<dirty>][<sync>] · <ci-glyph> ci
 #
 # All segments fail soft: anything that errors collapses to "?" or is dropped.
 # Network calls are cached in /tmp with a TTL so the script stays sub-100ms.
@@ -85,9 +85,13 @@ red=$'\033[31m'
 blue=$'\033[34m'
 yellow=$'\033[33m'
 green=$'\033[32m'
+gray=$'\033[90m'
+bold=$'\033[1m'
 reset=$'\033[0m'
 ball="${color}●${reset}"
 tokens_fmt="${color}$(fmt_tokens "$tokens")${reset}"
+
+effort="$(jq_get '.effort.level')"
 
 # entity_color maps an aiwf entity status to the four-color status palette:
 #   blue   = proposed
@@ -134,9 +138,14 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
     branch_seg="@${sha:-?}"
   fi
 
-  # Dirty marker.
+  # Truncate long branch names: keep first 30 chars, append …
+  if [ "${#branch_seg}" -gt 30 ]; then
+    branch_seg="${branch_seg:0:30}…"
+  fi
+
+  # Dirty marker: ✎ (pencil) for uncommitted changes, prefixed before branch.
   if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-    branch_seg="${branch_seg}*"
+    branch_seg="✎ ${branch_seg}"
   fi
 
   # Sync state vs upstream.
@@ -154,60 +163,94 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   fi
 fi
 
-# --- Epic + milestone + gap (derived from branch + file layout) ------------
+# --- In-flight epic HUD (G-0188) --------------------------------------------
 #
-# When on a `milestone/M-NNN-<slug>` branch, show both the milestone id and
-# its parent epic id. When on an `epic/E-NN-<slug>` branch, show only the
-# epic id. When on a `patch/g-NNN-<slug>` branch (wf-patch flow), show the
-# gap id. On main and other branches, drop the entity segments — the kernel's
-# branch policy ties in-flight work to ritual branches, so there's nothing
-# meaningful to derive when we're not on one.
+# Scans work/epics/*/epic.md for non-terminal epics and renders each with a
+# canonical status glyph (→ active, ○ proposed/draft) and color. Shows on
+# every branch — not just ritual branches.
 #
-# Each id is color-coded by its current `status:` (entity_color above).
-# Frontmatter is read from the worktree's own checked-out files via
-# `git ls-files` — so the badge reflects the branch's view, matching the
-# `aiwf status --worktrees` per-worktree-tree resolution.
+# On ritual branches, the current epic is accentuated (bold + ▸ pointer)
+# with its milestone shown inline. Other in-flight epics render alongside
+# but visually secondary.
+#
+# Capped at 3 epics shown; +N for overflow.
 
-epic_seg=""
-milestone_seg=""
-gap_seg=""
-e_color=""
-m_color=""
-g_color=""
+status_glyph() {
+  case "$1" in
+    active|in_progress) printf '→' ;;
+    proposed|draft|open) printf '○' ;;
+    done|addressed|accepted|met|retired) printf '✓' ;;
+    cancelled|wontfix|rejected|superseded) printf '✗' ;;
+    *) printf '?' ;;
+  esac
+}
+
+is_terminal() {
+  case "$1" in
+    done|addressed|accepted|met|retired|cancelled|wontfix|rejected|superseded) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Derive the current-branch context (epic id, milestone id).
+ctx_epic_id=""
+ctx_milestone_id=""
 case "$cur_branch" in
   milestone/M-*)
-    m_id="$(printf '%s' "$cur_branch" | sed -E 's|^milestone/(M-[0-9]+).*|\1|')"
-    if [ -n "$m_id" ]; then
-      milestone_seg="$m_id"
-      m_file="$(git ls-files "work/epics/*/${m_id}-*.md" "work/epics/archive/*/${m_id}-*.md" 2>/dev/null | head -1)"
-      if [ -n "$m_file" ]; then
-        e_id="$(printf '%s' "$m_file" | sed -E 's|^work/epics/(archive/)?(E-[0-9]+).*|\2|')"
-        if [ -n "$e_id" ]; then
-          epic_seg="$e_id"
-          e_file="$(git ls-files "work/epics/${e_id}-*/epic.md" "work/epics/archive/${e_id}-*/epic.md" 2>/dev/null | head -1)"
-          [ -n "$e_file" ] && e_color="$(entity_color "$(read_status "$e_file")")"
-        fi
-        m_color="$(entity_color "$(read_status "$m_file")")"
-      fi
+    ctx_milestone_id="$(printf '%s' "$cur_branch" | sed -E 's|^milestone/(M-[0-9]+).*|\1|')"
+    m_file="$(git ls-files "work/epics/*/${ctx_milestone_id}-*.md" "work/epics/archive/*/${ctx_milestone_id}-*.md" 2>/dev/null | head -1)"
+    if [ -n "$m_file" ]; then
+      ctx_epic_id="$(printf '%s' "$m_file" | sed -E 's|^work/epics/(archive/)?(E-[0-9]+).*|\2|')"
     fi
     ;;
   epic/E-*)
-    e_id="$(printf '%s' "$cur_branch" | sed -E 's|^epic/(E-[0-9]+).*|\1|')"
-    if [ -n "$e_id" ]; then
-      epic_seg="$e_id"
-      e_file="$(git ls-files "work/epics/${e_id}-*/epic.md" "work/epics/archive/${e_id}-*/epic.md" 2>/dev/null | head -1)"
-      [ -n "$e_file" ] && e_color="$(entity_color "$(read_status "$e_file")")"
-    fi
-    ;;
-  patch/[Gg]-*)
-    g_id="$(printf '%s' "$cur_branch" | sed -E 's|^patch/[Gg]-([0-9]+).*|G-\1|')"
-    if [ -n "$g_id" ]; then
-      gap_seg="$g_id"
-      g_file="$(git ls-files "work/gaps/${g_id}-*.md" "work/gaps/archive/${g_id}-*.md" 2>/dev/null | head -1)"
-      [ -n "$g_file" ] && g_color="$(entity_color "$(read_status "$g_file")")"
-    fi
+    ctx_epic_id="$(printf '%s' "$cur_branch" | sed -E 's|^epic/(E-[0-9]+).*|\1|')"
     ;;
 esac
+
+# Collect all non-terminal epics.
+epic_hud_parts=()
+epic_hud_count=0
+epic_hud_cap=3
+epic_hud_total=0
+for epic_file in work/epics/E-*/epic.md; do
+  [ -f "$epic_file" ] || continue
+  e_status="$(read_status "$epic_file")"
+  is_terminal "$e_status" && continue
+  e_id="$(printf '%s' "$epic_file" | sed -E 's|^work/epics/(E-[0-9]+).*|\1|')"
+  [ -z "$e_id" ] && continue
+  epic_hud_total=$((epic_hud_total + 1))
+  [ "$epic_hud_count" -ge "$epic_hud_cap" ] && continue
+
+  e_clr="$(entity_color "$e_status")"
+  e_glyph="$(status_glyph "$e_status")"
+
+  if [ "$e_id" = "$ctx_epic_id" ]; then
+    # Current epic: bold + ▸ pointer. Append milestone inline.
+    entry="${bold}${e_clr}▸ ${e_glyph} ${e_id}${reset}"
+    if [ -n "$ctx_milestone_id" ]; then
+      m_file="$(git ls-files "work/epics/*/${ctx_milestone_id}-*.md" "work/epics/archive/*/${ctx_milestone_id}-*.md" 2>/dev/null | head -1)"
+      m_status=""
+      [ -n "$m_file" ] && m_status="$(read_status "$m_file")"
+      m_clr="$(entity_color "$m_status")"
+      m_glyph="$(status_glyph "$m_status")"
+      entry="${entry}${gray}/${reset}${m_clr}${m_glyph} ${ctx_milestone_id}${reset}"
+    fi
+    epic_hud_parts=("$entry" "${epic_hud_parts[@]}")
+  else
+    entry="${e_clr}${e_glyph} ${e_id}${reset}"
+    epic_hud_parts+=("$entry")
+  fi
+  epic_hud_count=$((epic_hud_count + 1))
+done
+
+# Build the epic HUD segment: join parts with space, add overflow.
+epic_hud=""
+for p in "${epic_hud_parts[@]+"${epic_hud_parts[@]}"}"; do
+  if [ -z "$epic_hud" ]; then epic_hud="$p"; else epic_hud="$epic_hud $p"; fi
+done
+overflow=$((epic_hud_total - epic_hud_count))
+[ "$overflow" -gt 0 ] && epic_hud="${epic_hud} ${gray}+${overflow}${reset}"
 
 # --- Other in-flight ritual worktrees count (+N⎇) --------------------------
 #
@@ -245,18 +288,17 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
   ttl=45
 
   fetch_ci() {
-    # Returns "<source>:<state>" where source is "" or "m" (main fallback).
     local b="$1" out conc status
     out="$(gh run list --branch "$b" --limit 1 --json conclusion,status 2>/dev/null)" || return 1
     [ -z "$out" ] || [ "$out" = "[]" ] && return 1
     conc="$(printf '%s' "$out" | jq -r '.[0].conclusion // empty' 2>/dev/null)"
     status="$(printf '%s' "$out" | jq -r '.[0].status // empty' 2>/dev/null)"
     if [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || [ "$status" = "requested" ] || [ "$status" = "waiting" ]; then
-      printf 'run'
+      printf '→'
     else
       case "$conc" in
-        success)  printf 'ok'   ;;
-        failure|cancelled|timed_out|action_required|startup_failure) printf 'fail' ;;
+        success)  printf '✓'    ;;
+        failure|cancelled|timed_out|action_required|startup_failure) printf '✗' ;;
         *)        printf '?'    ;;
       esac
     fi
@@ -288,20 +330,25 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
   fi
 fi
 
-# Color the ci segment red when it's failed; leave other states neutral.
-ci_text="ci:${ci_prefix}${ci_state}"
-if [ "$ci_state" = "fail" ]; then
-  ci_fmt="${red}${ci_text}${reset}"
-else
-  ci_fmt="$ci_text"
-fi
+# CI glyph precedes the label: ✓ ci / ✗ ci / → ci / ? ci.
+# Color matches the glyph's meaning: green ✓, red ✗, yellow →.
+# Main-fallback prefix surfaces as ✓ m:ci.
+ci_label="ci"
+[ -n "$ci_prefix" ] && ci_label="${ci_prefix}${ci_label}"
+case "$ci_state" in
+  '✓') ci_fmt="${green}${ci_state} ${ci_label}${reset}" ;;
+  '✗') ci_fmt="${red}${ci_state} ${ci_label}${reset}" ;;
+  '→') ci_fmt="${yellow}${ci_state} ${ci_label}${reset}" ;;
+  *)   ci_fmt="${ci_state} ${ci_label}" ;;
+esac
 
 # --- Compose ----------------------------------------------------------------
 
-parts=("$ball $model_short ▸ $tokens_fmt")
-[ -n "$epic_seg" ]      && parts+=("${e_color}${epic_seg}${reset}")
-[ -n "$milestone_seg" ] && parts+=("${m_color}${milestone_seg}${reset}")
-[ -n "$gap_seg" ]       && parts+=("${g_color}${gap_seg}${reset}")
+head_seg="$ball $model_short"
+[ -n "$effort" ] && head_seg="$head_seg ${gray}${effort}${reset}"
+head_seg="$head_seg ▸ $tokens_fmt"
+parts=("$head_seg")
+[ -n "$epic_hud" ]      && parts+=("$epic_hud")
 parts+=("$repo")
 [ -n "$branch_seg" ]    && parts+=("$branch_seg")
 [ "$other_wt_count" -gt 0 ] && parts+=("+${other_wt_count}⎇")
