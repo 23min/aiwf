@@ -1,7 +1,9 @@
 ---
 id: G-0194
 title: Remove marketplace-plugin transitional machinery (ADR-0014/0016 completion)
-status: open
+status: addressed
+addressed_by_commit:
+    - debf7f5f
 ---
 ## What's missing
 
