@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-05-31
+
 ### Added — E-0039: optional install path for the aiwf-aware statusline
 
 The aiwf-aware Claude Code statusline (entity badges, token ball, CI state, sync indicators) ships as an optional install via `aiwf init/update --statusline [--scope project|user]`. The script is embedded in the binary (`go:embed`), scaffolded once (never clobbered by `aiwf update`), and activated via consent-gated settings wiring: interactive `[y/N]` prompt on a TTY, or explicit `--wire-settings` flag in non-TTY / CI contexts (ADR-0015). Project scope writes to `settings.local.json`; user scope writes to `~/.claude/settings.json`; a pre-existing `statusLine` key is never overwritten. `aiwf doctor` reports dep availability (`jq`, `gh` with platform-branched install hints), installed-but-not-wired state, embedded-vs-on-disk drift, and a container `--scope user` nudge — all advisory. The shipped script is portable (macOS `tail -r` + GNU `tac` fallback, default-IFS ahead/behind parse) and hardened against Git index-lock contention (`GIT_OPTIONAL_LOCKS=0`). Closes G-0183; see `work/epics/E-0039-*/wrap.md`.
@@ -32,6 +34,13 @@ The aiwf-aware Claude Code statusline (entity badges, token ball, CI state, sync
   resolves to a real commit, rejecting unresolvable SHAs (mirrors `--by`
   entity-id validation); `--force` bypasses for sovereign overrides.
   Closes G-0186.
+
+- **Statusline HUD shows in-flight epics on every branch** with canonical
+  status glyphs (`→` active, `○` proposed) and colors. On ritual branches,
+  the current epic is accentuated (bold `▸`) with its milestone inline.
+  Also adds effort level segment, branch truncation at 30 chars, dirty
+  marker icon (`✎`), and CI glyphs (`✓`/`✗`/`→`) replacing text labels.
+  Closes G-0188.
 
 ## [0.10.0] — 2026-05-30
 
