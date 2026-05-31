@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: --branch flag wired on aiwf authorize with Cobra completion
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: aiwf-branch trailer constant plus git-ref-shape ValidateTrailer rule
       status: met
