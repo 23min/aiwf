@@ -267,19 +267,30 @@ func TestBinary_CheckDefault_KernelTreeShortOutput(t *testing.T) {
 	// print per-instance by design). A regression that breaks the
 	// collapse path would surface here as `<path>: warning <code>: ...`
 	// lines, recreating the pre-M-0089 wall-of-warnings UX. This is
-	// the actual property AC-7 was sized for.
+	// the actual property AC-7 was sized for. Holds unconditionally —
+	// even in the clean-tree state (no findings at all), a per-instance
+	// warning line leaking through would still be a regression.
 	warningPerInstanceRE := regexp.MustCompile(`(?m)^\S+: warning `)
 	if matches := warningPerInstanceRE.FindAllString(out, -1); len(matches) > 0 {
 		t.Errorf("default mode leaked %d per-instance warning lines (warning-collapse regression):\n%s",
 			len(matches), strings.Join(matches, "\n"))
 	}
 
-	// Sanity: at least one summary line is present and every summary
-	// line is severity=warning. The kernel tree always has warnings
-	// (chronic codes like acs-tdd-audit, entity-body-empty), so a
-	// zero-summary state means the collapse path is broken or the
-	// renderer accidentally dropped warnings altogether. Errors must
-	// not collapse into summary form — they are per-instance-actionable
+	// Clean-tree state: when the kernel tree has zero findings the
+	// renderer emits the `ok — no findings` short form with no summary
+	// lines and no footer. That state is legitimate (chronic-warning
+	// codes like acs-tdd-audit and entity-body-empty get resolved over
+	// time), so the with-findings assertions below only run when there
+	// is something to summarize.
+	if strings.TrimSpace(out) == "ok — no findings" {
+		return
+	}
+
+	// With-findings state: at least one summary line is present and
+	// every summary line is severity=warning. A zero-summary state
+	// here means the collapse path is broken or the renderer
+	// accidentally dropped warnings altogether. Errors must not
+	// collapse into summary form — they are per-instance-actionable
 	// per M-0089's contract.
 	summaries := parseSummaryLines(t, out)
 	if len(summaries) == 0 {
