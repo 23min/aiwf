@@ -16,6 +16,10 @@ acs:
       title: --wire-settings flag on init and update with completion
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: Consent-gated write creates .bak and inserts statusLine
+      status: open
+      tdd_phase: red
 ---
 # M-0156 — Consent-gated statusline settings wiring
 
@@ -114,4 +118,6 @@ flag is wired through shell completion (completion-drift test).
 ### AC-1 — render.IsTTY predicate wraps term.IsTerminal
 
 ### AC-2 — --wire-settings flag on init and update with completion
+
+### AC-3 — Consent-gated write creates .bak and inserts statusLine
 
