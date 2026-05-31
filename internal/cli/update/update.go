@@ -34,9 +34,10 @@ import (
 // `aiwf init`'s conflict path.
 func NewCmd() *cobra.Command {
 	var (
-		root       string
-		statusline bool
-		scope      string
+		root         string
+		statusline   bool
+		scope        string
+		wireSettings bool
 	)
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -52,7 +53,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, statusline, scope))
+			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -62,6 +63,7 @@ func NewCmd() *cobra.Command {
 		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
+	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
 	return cmd
 }
 
@@ -70,7 +72,7 @@ func NewCmd() *cobra.Command {
 // (scope-appropriate destination, scaffold-if-absent — never clobbers
 // a pre-existing copy). The scaffold action runs after the artifact
 // refresh succeeds.
-func Run(root string, statusline bool, scope string) int {
+func Run(root string, statusline bool, scope string, wireSettings bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
@@ -128,7 +130,11 @@ func Run(root string, statusline bool, scope string) int {
 	fmt.Println("\naiwf update: done.")
 
 	if statusline {
-		if rc := cliutil.RunStatuslineScaffold(rootDir, scope); rc != cliutil.ExitOK {
+		if rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
+			RootDir:      rootDir,
+			Scope:        scope,
+			WireSettings: wireSettings,
+		}); rc != cliutil.ExitOK {
 			return rc
 		}
 	}
