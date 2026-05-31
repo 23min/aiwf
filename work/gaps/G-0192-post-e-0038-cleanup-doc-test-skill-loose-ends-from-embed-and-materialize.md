@@ -1,7 +1,9 @@
 ---
 id: G-0192
 title: 'Post-E-0038 cleanup: doc/test/skill loose ends from embed-and-materialize'
-status: open
+status: addressed
+addressed_by_commit:
+    - 6a1e70cc
 ---
 ## What's missing
 
