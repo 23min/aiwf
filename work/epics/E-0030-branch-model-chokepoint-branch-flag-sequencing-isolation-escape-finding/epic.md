@@ -1,7 +1,7 @@
 ---
 id: E-0030
 title: 'Branch model chokepoint: --branch flag, sequencing, isolation-escape finding'
-status: proposed
+status: active
 ---
 # E-0030 — Branch model chokepoint: --branch flag, sequencing, isolation-escape finding
 
