@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: aiwf-branch trailer emitted iff --branch passed (backward-compatible)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: aiwf-branch sorts between aiwf-scope and aiwf-scope-ends in trailerOrder
