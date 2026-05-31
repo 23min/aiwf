@@ -35,7 +35,7 @@ acs:
       tdd_phase: red
     - id: AC-8
       title: --branch against non-existent branch not refused at this milestone
-      status: open
+      status: met
       tdd_phase: done
 ---
 
