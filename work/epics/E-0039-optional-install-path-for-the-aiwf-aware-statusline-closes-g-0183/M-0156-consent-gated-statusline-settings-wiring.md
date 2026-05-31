@@ -24,6 +24,10 @@ acs:
       title: Pre-existing statusLine key blocks write with merge guidance
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Non-TTY and JSON paths skip write and emit snippet
+      status: open
+      tdd_phase: red
 ---
 # M-0156 — Consent-gated statusline settings wiring
 
@@ -126,4 +130,6 @@ flag is wired through shell completion (completion-drift test).
 ### AC-3 — Consent-gated write creates .bak and inserts statusLine
 
 ### AC-4 — Pre-existing statusLine key blocks write with merge guidance
+
+### AC-5 — Non-TTY and JSON paths skip write and emit snippet
 
