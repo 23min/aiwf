@@ -1,7 +1,7 @@
 ---
 id: M-0156
 title: Consent-gated statusline settings wiring
-status: in_progress
+status: done
 parent: E-0039
 depends_on:
     - M-0154
