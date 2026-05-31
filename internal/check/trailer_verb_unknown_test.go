@@ -36,7 +36,7 @@ func TestRunTrailerVerbUnknown_FiresOnFabricatedVerb(t *testing.T) {
 	commits := []scope.Commit{
 		commitWithVerb("aaa1111", "implement"), // fabricated
 	}
-	got := RunTrailerVerbUnknown(commits, registered)
+	got := RunTrailerVerbUnknown(commits, registered, nil)
 	if len(got) != 1 {
 		t.Fatalf("findings = %d, want 1", len(got))
 	}
@@ -71,7 +71,7 @@ func TestRunTrailerVerbUnknown_SilentOnRegisteredVerbs(t *testing.T) {
 		commitWithVerb("aaa4", "milestone-depends-on"),
 		commitWithVerb("aaa5", "render-roadmap"),
 	}
-	if got := RunTrailerVerbUnknown(commits, registered); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, registered, nil); len(got) != 0 {
 		for i := range got {
 			t.Logf("unexpected: %s — %s", got[i].Code, got[i].Message)
 		}
@@ -91,7 +91,7 @@ func TestRunTrailerVerbUnknown_SkipsCommitsWithoutAiwfVerb(t *testing.T) {
 		}},
 		{SHA: "plain"}, // no trailers at all
 	}
-	if got := RunTrailerVerbUnknown(commits, registered); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, registered, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (no aiwf-verb trailer present)", len(got))
 	}
 }
@@ -107,7 +107,7 @@ func TestRunTrailerVerbUnknown_EmptyValueIsSilent(t *testing.T) {
 			{Key: gitops.TrailerVerb, Value: ""},
 		}},
 	}
-	if got := RunTrailerVerbUnknown(commits, registered); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, registered, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (empty value is a different rule's domain)", len(got))
 	}
 }
@@ -122,10 +122,10 @@ func TestRunTrailerVerbUnknown_EmptyValueIsSilent(t *testing.T) {
 func TestRunTrailerVerbUnknown_EmptyRegisteredSetIsSilent(t *testing.T) {
 	t.Parallel()
 	commits := []scope.Commit{commitWithVerb("aaa", "implement")}
-	if got := RunTrailerVerbUnknown(commits, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, nil, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (empty registry → skip rather than flood)", len(got))
 	}
-	if got := RunTrailerVerbUnknown(commits, map[string]struct{}{}); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, map[string]struct{}{}, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (empty registry → skip rather than flood)", len(got))
 	}
 }
@@ -142,7 +142,7 @@ func TestRunTrailerVerbUnknown_MultipleCommitsOneFindingEach(t *testing.T) {
 		commitWithVerb("ccc", "add"), // valid; not counted
 		commitWithVerb("ddd", "test"),
 	}
-	got := RunTrailerVerbUnknown(commits, registered)
+	got := RunTrailerVerbUnknown(commits, registered, nil)
 	if len(got) != 3 {
 		t.Fatalf("findings = %d, want 3 (implement, feat, test)", len(got))
 	}
@@ -162,21 +162,28 @@ func TestRunTrailerVerbUnknown_MultipleCommitsOneFindingEach(t *testing.T) {
 }
 
 // TestRunTrailerVerbUnknown_SilentOnRitualVerbs pins G-0180: ritual
-// lifecycle verbs (wrap-epic, wrap-milestone) that the aiwf-extensions
-// rituals stamp as `aiwf-verb:` values are recognized even though they
-// are not kernel Cobra verbs — so a trailered epic-wrap merge does not
-// trip the finding. A genuinely-fabricated verb alongside them still
-// fires (the allowlist does not weaken the fabrication guard).
+// lifecycle verbs that the aiwf-extensions rituals stamp as
+// `aiwf-verb:` values are recognized even though they are not kernel
+// Cobra verbs — so a trailered epic-wrap merge does not trip the
+// finding. A genuinely-fabricated verb alongside them still fires
+// (the allowlist does not weaken the fabrication guard).
+//
+// Per G-0190, the allowlist is derived from the embedded ritual
+// snapshot, so the verb set under test mirrors what the rituals
+// actually stamp today (`wrap-epic` is the only literal --trailer
+// "aiwf-verb: ..." present in the snapshot). The fixture passes the
+// verb in to assert the silent path; the auto-derive is exercised in
+// skills.TestRitualTrailerVerbs_DerivedFromEmbedded.
 func TestRunTrailerVerbUnknown_SilentOnRitualVerbs(t *testing.T) {
 	t.Parallel()
 	registered := map[string]struct{}{"add": {}, "promote": {}}
+	rituals := map[string]struct{}{"wrap-epic": {}}
 	commits := []scope.Commit{
-		commitWithVerb("rit1", "wrap-epic"),      // ritual verb — allowlisted
-		commitWithVerb("rit2", "wrap-milestone"), // ritual verb — allowlisted
-		commitWithVerb("kvb1", "promote"),        // kernel verb
-		commitWithVerb("bad1", "implement"),      // fabricated — must still fire
+		commitWithVerb("rit1", "wrap-epic"), // ritual verb — derived from embedded
+		commitWithVerb("kvb1", "promote"),   // kernel verb
+		commitWithVerb("bad1", "implement"), // fabricated — must still fire
 	}
-	got := RunTrailerVerbUnknown(commits, registered)
+	got := RunTrailerVerbUnknown(commits, registered, rituals)
 	if len(got) != 1 {
 		for i := range got {
 			t.Logf("finding: %s", got[i].Message)

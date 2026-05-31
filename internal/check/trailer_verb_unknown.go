@@ -31,30 +31,10 @@ import (
 // Closes G-0150.
 const CodeTrailerVerbUnknown = "trailer-verb-unknown"
 
-// ritualVerbs is the closed set of *ritual* verbs that the
-// aiwf-extensions rituals legitimately stamp as `aiwf-verb:` values
-// even though they are not kernel Cobra verbs. They name ritual
-// lifecycle acts (a trailered epic-wrap merge, etc.) that are
-// meaningful in `aiwf history` but have no kernel command. Recognizing
-// them here keeps `trailer-verb-unknown` from firing on every ritual
-// wrap commit while still catching genuinely-fabricated verbs (G-0180).
-//
-// Source: the `aiwf-verb:` trailers stamped by the embedded rituals
-// under internal/skills/embedded-rituals (today only `wrap-epic` is
-// emitted; `wrap-milestone` is its sibling and is included so the same
-// finding does not recur if a wrap-milestone commit starts carrying
-// the trailer). If a future ritual stamps a new non-kernel verb, extend
-// this set (and ideally derive it from the embedded snapshot — tracked
-// alongside G-0180).
-var ritualVerbs = map[string]struct{}{
-	"wrap-epic":      {},
-	"wrap-milestone": {},
-}
-
 // RunTrailerVerbUnknown returns one finding per commit in commits
 // whose `aiwf-verb:` trailer value is neither in registeredVerbs (the
-// kernel Cobra command tree) nor in the ritualVerbs allowlist (ritual
-// lifecycle verbs like `wrap-epic`). Commits without an `aiwf-verb:`
+// kernel Cobra command tree) nor in ritualVerbs (the non-kernel verbs
+// stamped by embedded ritual skills). Commits without an `aiwf-verb:`
 // trailer, with an empty value, or whose value resolves are silent.
 //
 // An empty registeredVerbs set short-circuits to no findings —
@@ -62,8 +42,14 @@ var ritualVerbs = map[string]struct{}{
 // return empty (cobra tree wiring failure); we'd rather skip than
 // flood every commit as "unknown."
 //
+// Per G-0190 the caller is expected to derive ritualVerbs from the
+// embedded ritual snapshot (typically via skills.RitualTrailerVerbs)
+// so the allowlist stays in lock-step with what the rituals actually
+// stamp. A nil ritualVerbs is treated as the empty set; the kernel
+// `add`/`promote`/etc. verbs still resolve via registeredVerbs.
+//
 // Closes G-0150.
-func RunTrailerVerbUnknown(commits []scope.Commit, registeredVerbs map[string]struct{}) []Finding {
+func RunTrailerVerbUnknown(commits []scope.Commit, registeredVerbs map[string]struct{}, ritualVerbs map[string]struct{}) []Finding {
 	if len(commits) == 0 || len(registeredVerbs) == 0 {
 		return nil
 	}

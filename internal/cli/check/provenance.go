@@ -11,6 +11,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
+	"github.com/23min/aiwf/internal/skills"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -66,7 +67,15 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// scope (rewriting their SHAs would invalidate the kernel's
 	// addressed_by_commit references; the rule's job is to stop the
 	// bleed, not retroactively flag what can't be repaired).
-	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs)...)
+	//
+	// G-0190: the ritual-verb allowlist is derived from the embedded
+	// ritual snapshot via skills.RitualTrailerVerbs so it stays in
+	// lock-step with what the rituals actually stamp. An extraction
+	// error degrades to the empty set — the rule then flags ritual
+	// stamps as unknown, which is preferable to silently allowing
+	// arbitrary values.
+	ritualVerbs, _ := skills.RitualTrailerVerbs()
+	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs, ritualVerbs)...)
 	return findings, nil
 }
 
