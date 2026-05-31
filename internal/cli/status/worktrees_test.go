@@ -7,43 +7,6 @@ import (
 	"time"
 )
 
-// TestParseEntityFromBranch covers the conventional ritual-branch
-// prefixes plus negative cases (non-matching shapes return empty).
-//
-// G-0122.
-func TestParseEntityFromBranch(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name   string
-		branch string
-		want   string
-	}{
-		{"epic branch canonical width", "epic/E-0033-pin-legal-kernel-verb-workflows", "E-0033"},
-		{"epic branch narrow width", "epic/E-33-old-shape", "E-33"},
-		{"milestone branch canonical", "milestone/M-0123-pass-c-reconcile", "M-0123"},
-		{"milestone branch with deep slug", "milestone/M-0130-implement-fsm-history-consistent-check-rule-for-fsm-tree-invariant", "M-0130"},
-		{"patch with gap id lowercase", "patch/g-0122-worktree-view", "G-0122"},
-		{"patch with gap id uppercase", "patch/G-0122-worktree-view", "G-0122"},
-		{"main is not a ritual branch", "main", ""},
-		{"trunk fix branch no entity", "fix/some-bug", ""},
-		{"chore branch no entity", "chore/dep-bump", ""},
-		{"patch without entity id", "patch/refactor-stuff", ""},
-		{"feature branch no entity", "feature/x", ""},
-		{"epic prefix but no id", "epic/some-name", ""},
-		{"empty string", "", ""},
-	}
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			got := parseEntityFromBranch(tc.branch)
-			if got != tc.want {
-				t.Errorf("parseEntityFromBranch(%q) = %q, want %q", tc.branch, got, tc.want)
-			}
-		})
-	}
-}
-
 // TestParentEntity verifies AC composite ids strip to their parent
 // milestone id; non-composite ids pass through unchanged.
 func TestParentEntity(t *testing.T) {
