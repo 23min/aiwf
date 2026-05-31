@@ -19,7 +19,7 @@ acs:
       tdd_phase: red
     - id: AC-4
       title: aiwf-branch sorts between aiwf-scope and aiwf-scope-ends in trailerOrder
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: internal/branchparse/ package extracted from worktrees.go
