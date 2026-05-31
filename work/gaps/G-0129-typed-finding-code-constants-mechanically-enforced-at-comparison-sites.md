@@ -1,8 +1,10 @@
 ---
 id: G-0129
 title: Typed finding-code constants mechanically enforced at comparison sites
-status: open
+status: addressed
 discovered_in: M-0123
+addressed_by_commit:
+    - 56ad4b84
 ---
 ## Problem
 
