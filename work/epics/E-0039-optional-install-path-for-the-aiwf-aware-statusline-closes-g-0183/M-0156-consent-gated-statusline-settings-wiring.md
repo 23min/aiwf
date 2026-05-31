@@ -23,7 +23,7 @@ acs:
     - id: AC-4
       title: Pre-existing statusLine key blocks write with merge guidance
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Non-TTY and JSON paths skip write and emit snippet
       status: open
