@@ -27,7 +27,7 @@ acs:
     - id: AC-5
       title: Non-TTY and JSON paths skip write and emit snippet
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 # M-0156 — Consent-gated statusline settings wiring
 
