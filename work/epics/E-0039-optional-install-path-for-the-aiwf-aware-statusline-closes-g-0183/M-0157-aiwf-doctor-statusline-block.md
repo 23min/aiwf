@@ -15,6 +15,10 @@ acs:
       title: Missing jq/gh reported with platform-branched install hints
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: Installed-but-not-wired state prints activation snippet
+      status: open
+      tdd_phase: red
 ---
 # M-0157 — aiwf doctor statusline block
 
@@ -94,4 +98,6 @@ increments `problems`. Each branch has a fixture that traverses it.
 ### AC-1 — Statusline block emitted only when the script is installed
 
 ### AC-2 — Missing jq/gh reported with platform-branched install hints
+
+### AC-3 — Installed-but-not-wired state prints activation snippet
 
