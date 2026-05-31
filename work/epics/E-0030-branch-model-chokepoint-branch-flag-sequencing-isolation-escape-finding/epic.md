@@ -34,7 +34,7 @@ This epic ships the six surfaces in dependency order. Each milestone's tests lan
 - **`aiwfx-start-epic` reorder** (closes G-0116): the sovereign promote and the (optional) authorize land on the parent branch *before* the worktree/branch is cut. Edits land at both `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-epic/SKILL.md` (the embedded snapshot, embed-and-materialize source per [ADR-0014](../../../docs/adr/ADR-0014-embed-and-materialize-rituals-distribution-retire-claude-marketplace.md)) and `internal/policies/testdata/aiwfx-start-epic/SKILL.md` (the AC fixture). The stale "G-0059 frames the open question of which branch-model convention aiwf should bless" paragraph in step 6 retires — ADR-0010 is the answer.
 - **`aiwfx-start-milestone` alignment**: the symmetric rule for milestones — `aiwf promote M-NNNN draft → in_progress` lands on the parent epic branch, *then* the milestone branch is cut via `aiwf authorize --branch milestone/M-NNNN-<slug>` (when the work is delegated). The "must be on epic branch already" precondition is tightened in step 3 — silent fallthrough to `git checkout -b epic/E-NNNN-<slug> if missing` is removed. Edits land at the embedded snapshot and the testdata fixture.
 - **Kernel finding `isolation-escape`**: at `aiwf check` (pre-push), detect AI-actor commits whose `aiwf-entity` trailer points at an entity under an active scope whose `aiwf-branch:` doesn't match the commit's branch reachability. Fires only on AI-actor commits per the sovereignty principle. Cherry-pick handling — committer-vs-actor mismatch plus a cherry-pick marker in the commit body is treated as sovereign re-author and suppressed. Closes G-0099 fully.
-- **Layer-4 branch-choreography spec cells**: each milestone's positive and negative cell tests register entries in `internal/workflows/spec/branch/` (exact package layout settled in the final consolidation milestone); the drift policy under `internal/policies/` extends to cover branch-layer coverage closure. The meta-test ("every cell has at least one matching test") is the same shape M-0124 established for layers 1–3.
+- **Layer-4 branch-choreography spec cells**: each milestone's positive and negative cell tests register entries in `internal/workflows/spec/branch/` (exact package layout settled in the final M-0158); the drift policy under `internal/policies/` extends to cover branch-layer coverage closure. The meta-test ("every cell has at least one matching test") is the same shape M-0124 established for layers 1–3.
 - **Test discipline** per CLAUDE.md: every AC under each milestone gets a Go test under `internal/policies/` or an equivalent fixture-validation; branch-coverage audit per milestone; the substring-vs-structural-assertion rule observed for the ritual-fixture milestones.
 
 ### Out of scope
@@ -54,7 +54,7 @@ This epic ships the six surfaces in dependency order. Each milestone's tests lan
 - **Discoverability.** Every new flag, finding code, and trailer key is reachable via `aiwf <verb> --help`, the embedded skills under `.claude/skills/aiwf-*`, this epic's milestone specs, and CLAUDE.md cross-references.
 - **One commit per mutating verb** (kernel invariant). The `aiwf authorize --branch` extension still produces exactly one authorize commit.
 - **AC promotion requires mechanical evidence** (CLAUDE.md). Every AC under this epic's milestones has a Go test, finding-rule, or fixture-validation script that fails if the AC's claim breaks.
-- **Layer-4 cells land in the spec, not as free-standing tests** ([ADR-0011](../../../docs/adr/ADR-0011-legal-workflow-spec-methodology.md) §"Cell-coverage commitment"). Every new positive/negative test exercises a cell in `internal/workflows/spec/branch/`; the final consolidation milestone consolidates the cell table and extends the drift policy. Free-standing tests outside the spec table are a smell — they're either evidence of a missing cell or a redundant test, both of which the drift policy surfaces.
+- **Layer-4 cells land in the spec, not as free-standing tests** ([ADR-0011](../../../docs/adr/ADR-0011-legal-workflow-spec-methodology.md) §"Cell-coverage commitment"). Every new positive/negative test exercises a cell in `internal/workflows/spec/branch/`; the final M-0158 consolidates the cell table and extends the drift policy. Free-standing tests outside the spec table are a smell — they're either evidence of a missing cell or a redundant test, both of which the drift policy surfaces.
 - **No fixture/embedded-snapshot drift.** Ritual edits in M-0104 / M-0105 land at *both* `internal/policies/testdata/<skill>/SKILL.md` (the AC-fixture authoring location, per CLAUDE.md §"Cross-repo plugin testing") and `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/<skill>/SKILL.md` (the embedded snapshot, which `aiwf init` / `aiwf update` materializes), in the same commit. `TestRituals_VendoredMatchesUpstream` validates the embedded snapshot against upstream at the pinned ref; the per-AC fixture validates the content claim. Both are required; G-0182's "consolidate testdata onto embedded" is out of scope here.
 
 ## Design decisions
@@ -68,11 +68,11 @@ These four decisions were the prior "Open questions" entries; they're pre-decide
 | **Finding scope** | Per-commit. One finding per violating commit. | Clear signal; the pre-push range naturally bounds noise (the operator sees only their own about-to-push commits). Per-scope-lifetime aggregation hides which commit is the offender. Defense-in-depth value beats noise concern. |
 | **Finding severity** | Warning at first land. Tighten to error after one full epic of usage, gated on `false_positive_rate < threshold`. | Matches the M-0125 pattern: surface the rule with breathing room, then ratchet. Severity transition is recorded as a D-NNN at the time of tightening, not pre-committed here. |
 
-Three further decisions land in milestone bodies (each is local to one milestone, not cross-cutting): the exact ritual-shape regex set (M-0102), the error message text for the preflight refusal (M-0103), and the spec-table package layout under `internal/workflows/spec/branch/` (consolidation milestone).
+Three further decisions land in milestone bodies (each is local to one milestone, not cross-cutting): the exact ritual-shape regex set (M-0102), the error message text for the preflight refusal (M-0103), and the spec-table package layout under `internal/workflows/spec/branch/` (M-0158).
 
 ## Corner cases — surfaced as spec cells
 
-Per the user's directive *"these corner cases become part of these verifications"*, the corner cases below land as **named cells** in the layer-4 spec table (consolidation milestone), each with paired positive/negative tests. The list is intended to be exhaustive of the cases I'm aware of today; future cases land via the drift-policy mechanism.
+Per the user's directive *"these corner cases become part of these verifications"*, the corner cases below land as **named cells** in the layer-4 spec table (M-0158), each with paired positive/negative tests. The list is intended to be exhaustive of the cases I'm aware of today; future cases land via the drift-policy mechanism.
 
 1. **AI-actor authorize on main, no `--branch`** → preflight rejects (illegal cell, rejection layer = verb-time, error code `branch-context-required`).
 2. **AI-actor authorize with `--branch epic/E-NN-X` on a non-existent branch** → preflight rejects (illegal cell, rejection layer = verb-time, error code `branch-not-found`).
@@ -87,7 +87,7 @@ Per the user's directive *"these corner cases become part of these verifications
 11. **AI-actor commit before any scope has been opened on its entity** → finding silent (legal cell — no scope, no binding; defense lives elsewhere via the existing untrailered-entity audit).
 12. **AI-actor commit on a worktree path that does not match its branch identity** (subagent did `git checkout main` from inside the worktree) → finding fires (illegal cell — branch identity, not path, is the load-bearing axis; case 4 covers this mechanically because the commit's branch is main).
 
-The catalog above is the input to the consolidation milestone's spec-table work, not a normative replacement. The milestone walks the catalog cell-by-cell, registers each as a `Rule` or `AntiRule` entry, pairs it with the test landed by the relevant prior milestone, and extends the drift policy to fail CI when a new branch-layer cell lands without a paired test.
+The catalog above is the input to the M-0158's spec-table work, not a normative replacement. The milestone walks the catalog cell-by-cell, registers each as a `Rule` or `AntiRule` entry, pairs it with the test landed by the relevant prior milestone, and extends the drift policy to fail CI when a new branch-layer cell lands without a paired test.
 
 ## Sovereign override surface — gated, audited, last-resort
 
@@ -133,14 +133,14 @@ This means **E-0030 does not depend on ADR-0009 ratifying.** It also means the f
 | Landing the chokepoint mid-stream breaks an in-flight epic | High | E-0030 lands on main; in-flight epics on their own branches inherit the change at next merge. The other session can adapt at its own pace, and `--force --reason` remains the escape hatch. The finding's *warning*-severity at first land further softens the landing for in-flight work. |
 | The trailer-key extension breaks existing `aiwf history` rendering | Low | The new `aiwf-branch:` key is added alongside existing ones; renderer falls back gracefully when the key is absent (older commits). Drift-test under `internal/policies/trailer_keys.go` catches inconsistent emission. |
 | Branch reachability via first-parent gives a wrong answer for an unusual merge shape (e.g., `git merge -s ours`, octopus merge with the wrong parent ordering) | Low | Per-commit fire + warning severity at first land surfaces the case without blocking the push. The hint text names the override path; the case becomes evidence for a refinement D-NNN if it recurs. |
-| Layer-4 spec table's package layout under `internal/workflows/spec/branch/` differs from layers 1–3 enough to fragment the methodology | Medium | The consolidation milestone's deliverable includes a one-page design note (recorded inline in the milestone body or as a D-NNN if the decision warrants its own entity) explaining the layout choice. The drift policy is shared with layers 1–3 by construction. |
+| Layer-4 spec table's package layout under `internal/workflows/spec/branch/` differs from layers 1–3 enough to fragment the methodology | Medium | The M-0158's deliverable includes a one-page design note (recorded inline in the milestone body or as a D-NNN if the decision warrants its own entity) explaining the layout choice. The drift policy is shared with layers 1–3 by construction. |
 
 ## Milestones
 
 <!--
 Sequenced. M-0104 and M-0105 are siblings and can be parallelized after M-0103.
 M-0106 also depends only on M-0102 + M-0103, so it can run in parallel with the rituals work.
-The consolidation milestone (allocated via `aiwf add milestone --epic E-0030` once this body is committed)
+The M-0158 (allocated via `aiwf add milestone --epic E-0030` once this body is committed)
 consolidates the cells from all prior milestones; it lands last.
 -->
 
@@ -149,7 +149,7 @@ consolidates the cells from all prior milestones; it lands last.
 - [M-0104](M-0104-aiwfx-start-epic-sequencing-fix-closes-g-0116.md) — `aiwfx-start-epic` sequencing fix (closes G-0116); retire stale G-0059 language · depends on: M-0102, M-0103
 - [M-0105](M-0105-aiwfx-start-milestone-sequencing-alignment.md) — `aiwfx-start-milestone` sequencing alignment; tighten "must be on epic branch" precondition · depends on: M-0102, M-0103
 - [M-0106](M-0106-kernel-finding-isolation-escape-closes-g-0099.md) — Kernel finding `isolation-escape` (closes G-0099 fully); cherry-pick recognition; sovereign override surface · depends on: M-0102, M-0103
-- **`<M-CONSOLIDATE>`** *(to be allocated via `aiwf add milestone --epic E-0030 --title "Layer-4 branch-choreography spec cells + drift-policy extension"`)* — Walks the 12 corner cases above + the override-surface cells, registers each as a `Rule` / `AntiRule` in `internal/workflows/spec/branch/`, lands the meta-test and the drift-policy extension. Depends on: M-0102, M-0103, M-0104, M-0105, M-0106.
+- [M-0158](M-0158-layer-4-branch-choreography-spec-cells-drift-policy-extension.md) — Layer-4 branch-choreography spec cells + drift-policy extension · depends on: M-0102, M-0103, M-0104, M-0105, M-0106
 
 ## ADRs produced
 
@@ -164,7 +164,7 @@ This epic produces no new ADRs — it implements [ADR-0010](../../../docs/adr/AD
 - [G-0099](../../gaps/G-0099-worktree-isolation-parent-side-precondition.md) — worktree isolation; tier-3 partial-closed by `.claude/hooks/validate-agent-isolation.sh`; full closure under M-0106
 - [G-0116](../../gaps/G-0116-aiwfx-start-epic-creates-worktree-before-promote-authorize-on-trunk-based-repos.md) — sequencing fix; addressed by M-0104
 - [E-0019](../E-0019-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md) — Parallel TDD subagents; sharpens this epic's `isolation-escape` with per-cycle-commit redundancy
-- `internal/workflows/spec/` — the spec-cell package this epic extends with a `branch/` sub-package (consolidation milestone)
+- `internal/workflows/spec/` — the spec-cell package this epic extends with a `branch/` sub-package (M-0158)
 - `internal/cellcoverage/` — the cell-test fixture helpers (`CellFixture.AuthorizeScope`, etc.) this epic's tests consume
 - `internal/cli/status/worktrees.go:485` — `parseEntityFromBranch`, the helper M-0102 lifts into `internal/branchparse/`
 - `docs/pocv3/design/provenance-model.md` — principal × agent × scope; sovereign override
