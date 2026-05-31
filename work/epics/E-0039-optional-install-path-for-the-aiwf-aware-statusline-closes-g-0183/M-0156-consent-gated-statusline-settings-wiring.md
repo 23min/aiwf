@@ -15,7 +15,7 @@ acs:
     - id: AC-2
       title: --wire-settings flag on init and update with completion
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Consent-gated write creates .bak and inserts statusLine
       status: open
