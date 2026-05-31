@@ -12,6 +12,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/skills"
 )
 
 // NewCmd builds `aiwf init`: writes aiwf.yaml, scaffolds entity
@@ -22,10 +23,12 @@ import (
 // --skip-hook performs every other step but omits hook installation.
 func NewCmd() *cobra.Command {
 	var (
-		root     string
-		actor    string
-		dryRun   bool
-		skipHook bool
+		root       string
+		actor      string
+		dryRun     bool
+		skipHook   bool
+		statusline bool
+		scope      string
 	)
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -34,23 +37,38 @@ func NewCmd() *cobra.Command {
   aiwf init
 
   # Preview what init would do without writing
-  aiwf init --dry-run`,
+  aiwf init --dry-run
+
+  # Same scaffolding plus the aiwf-aware Claude Code statusline
+  aiwf init --statusline
+  aiwf init --statusline --scope user`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook))
+			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: cwd)")
 	cmd.Flags().StringVar(&actor, "actor", "", "default actor for the commit trailer (overrides git config derivation)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what init would do without writing anything")
 	cmd.Flags().BoolVar(&skipHook, "skip-hook", false, "skip installing the pre-push hook (every other step still runs)")
+	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (writes only if absent; never clobbers an existing copy)")
+	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeProject), "where --statusline writes the script: project (<repo>/.claude) or user (~/.claude)")
+	_ = cmd.RegisterFlagCompletionFunc("scope", cobra.FixedCompletions(
+		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},
+		cobra.ShellCompDirectiveNoFileComp,
+	))
 	return cmd
 }
 
 // Run executes `aiwf init`. Returns one of the cliutil.Exit* codes.
-func Run(root, actor string, dryRun, skipHook bool) int {
+// When `statusline` is true, also scaffolds the aiwf-aware Claude Code
+// statusline (scope-appropriate destination; scaffold-if-absent, never
+// clobbers a pre-existing copy). The scaffold action runs after the
+// main init pipeline succeeds; a `--dry-run` init reports without
+// scaffolding.
+func Run(root, actor string, dryRun, skipHook, statusline bool, scope string) int {
 	rootDir, err := resolveInitRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
@@ -115,6 +133,14 @@ func Run(root, actor string, dryRun, skipHook bool) int {
 	default:
 		fmt.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
 		fmt.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
+	}
+
+	if statusline && !dryRun {
+		if rc := cliutil.RunStatuslineScaffold(rootDir, scope); rc != cliutil.ExitOK {
+			return rc
+		}
+	} else if statusline && dryRun {
+		fmt.Println("aiwf init --statusline: dry-run — statusline scaffold skipped.")
 	}
 	return cliutil.ExitOK
 }
