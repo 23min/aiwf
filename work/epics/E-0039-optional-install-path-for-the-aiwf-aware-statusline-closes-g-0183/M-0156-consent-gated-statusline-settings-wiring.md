@@ -10,7 +10,7 @@ tdd: required
 acs:
     - id: AC-1
       title: render.IsTTY predicate wraps term.IsTerminal
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: --wire-settings flag on init and update with completion
