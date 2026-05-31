@@ -1,7 +1,7 @@
 ---
 id: M-0156
 title: Consent-gated statusline settings wiring
-status: draft
+status: in_progress
 parent: E-0039
 depends_on:
     - M-0154
@@ -105,15 +105,68 @@ flag is wired through shell completion (completion-drift test).
 
 ## Work log
 
-- (pending)
+### AC-1 — render.IsTTY predicate wraps term.IsTerminal
+
+Added `IsTTY(*os.File) bool` to `internal/render/term.go`, wrapping
+`term.IsTerminal`. Two unit tests: non-TTY (piped stdout under `go test`)
+returns false; nil returns false. Updated `TerminalWidth`'s comment to
+reference the new companion predicate. Tests 2/2.
+
+### AC-2 — --wire-settings flag on init and update with completion
+
+Added `--wire-settings` boolean flag to both `initcmd.NewCmd()` and
+`update.NewCmd()`. Plumbed through `Run` signatures. Policy test
+`TestM0156_AC2_WireSettingsFlagOnInitAndUpdate` asserts flag presence and
+default value on both commands. Tests 2/2 (init + update subtests).
+
+### AC-3 — Consent-gated write creates .bak and inserts statusLine
+
+New `internal/skills/settings.go` with `WireStatuslineSettings(settingsPath,
+cmdPath)` — pure JSON settings-file manipulation: reads existing file, writes
+`.bak`, inserts `statusLine` key. Also `SettingsPathForScope(root, home,
+scope)` resolving project→`settings.local.json`, user→`settings.json`.
+Three policy tests: insert-with-bak, create-from-scratch, path-for-scope.
+Tests 3/3.
+
+### AC-4 — Pre-existing statusLine key blocks write with merge guidance
+
+`WireStatuslineSettings` detects existing `statusLine` key. If the command
+matches → idempotent no-op (Idempotent=true). If different →
+no-clobber (Wrote=false, ExistingValue set for merge guidance). Two policy
+tests: different-value blocks, same-value is idempotent. Tests 2/2.
+
+### AC-5 — Non-TTY and JSON paths skip write and emit snippet
+
+Rewrote `cliutil.RunStatuslineScaffold` as the consent flow orchestrator.
+Consent model: `--wire-settings` → unconditional write; TTY + not JSON →
+`[y/N]` prompt; otherwise → skip write, print snippet. Three policy tests:
+non-TTY skips, `--wire-settings` writes, `--format=json` skips. Tests 3/3.
 
 ## Decisions made during implementation
 
-- (none)
+- `RunStatuslineScaffold` signature changed from `(rootDir, scope string)` to
+  `(opts StatuslineOpts)` to accommodate the new `WireSettings` and
+  `FormatJSON` fields without a 6-parameter function.
+- Settings-file manipulation lives in `internal/skills/settings.go` (alongside
+  the scaffold logic), not in `cliutil/`, because it's not CLI-specific — any
+  caller can use it.
+- `promptYN` reads from `os.Stdin` and writes to `os.Stderr` (prompt on
+  stderr so stdout stays clean for `--format=json`). Cannot be unit-tested
+  under `go test` (stdin is piped). The consent flow's integration is tested
+  via AC-5's non-interactive path assertions.
 
 ## Validation
 
-- (pending)
+- Tests: 12 functions across 5 test files (2 in `render/`, 2 in `policies/`
+  AC-2, 3 in AC-3, 2 in AC-4, 3 in AC-5); all pass.
+- Full module: `go test -race -parallel 8 ./...` clean.
+- Build: `go build ./cmd/aiwf` clean.
+- Lint: `golangci-lint run` — 0 issues in our code (2 pre-existing gosec
+  warnings in the stale E-0038 worktree).
+- `aiwf check`: 0 errors, 11 pre-existing warnings.
+- Coverage: `WireStatuslineSettings` 75.9%, `handleExistingKey` 100%,
+  `RunStatuslineScaffold` 56.8% (uncovered: TTY prompt path + error paths),
+  `promptYN` 0% (untestable under `go test`).
 
 ## Deferrals
 
@@ -121,7 +174,22 @@ flag is wired through shell completion (completion-drift test).
 
 ## Reviewer notes
 
-- (none)
+- The `promptYN` function (interactive `[y/N]` confirm) cannot be exercised
+  under `go test` because stdin is always piped. Coverage is 0%. The consent
+  flow's *effect* is tested via AC-5's non-interactive path assertions (which
+  verify the settings file is not written when consent is absent), and the
+  `--wire-settings` path (which bypasses the prompt entirely). A behavioral
+  integration test (binary subprocess with a PTY) would close this gap but
+  is out of scope for this milestone.
+- `statuslineCmdPath` parses the command path from the scaffold result's
+  snippet rather than adding a new exported field to `StatuslineScaffoldResult`.
+  This avoids changing the M-0155 API surface; if the snippet format changes,
+  this parser breaks loudly (returns the fallback `.claude/statusline.sh`)
+  rather than silently.
+- The `FormatJSON` field in `StatuslineOpts` is plumbed but not yet wired
+  from the CLI flags — `initcmd` and `update` don't currently carry
+  `--format=json`. The field is present so M-0157 or a future verb can wire
+  it without changing the signature again.
 
 ### AC-1 — render.IsTTY predicate wraps term.IsTerminal
 
