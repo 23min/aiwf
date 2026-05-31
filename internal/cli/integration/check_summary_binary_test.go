@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
@@ -174,12 +175,12 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	// gap-addressed-has-resolver, terminal-entity-not-archived,
 	// titles-nonempty.
 	wantCodes := map[string]int{
-		"adr-supersession-mutual":           2,
-		"archive-sweep-pending":             1,
-		"epic-active-no-drafted-milestones": 1,
-		"gap-addressed-has-resolver":        1,
-		"terminal-entity-not-archived":      3,
-		"titles-nonempty":                   1,
+		check.CodeADRSupersessionMutual:         2,
+		check.CodeArchiveSweepPending:           1,
+		check.CodeEpicActiveNoDraftedMilestones: 1,
+		check.CodeGapAddressedHasResolver:       1,
+		check.CodeTerminalEntityNotArchived:     3,
+		check.CodeTitlesNonempty:                1,
 	}
 	gotCodes := map[string]int{}
 	for _, s := range summaries {
@@ -206,12 +207,12 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	// epic-active-no-drafted-milestones (1), gap-addressed-has-resolver (1),
 	// titles-nonempty (1).
 	wantOrder := []string{
-		"terminal-entity-not-archived",
-		"adr-supersession-mutual",
-		"archive-sweep-pending",
-		"epic-active-no-drafted-milestones",
-		"gap-addressed-has-resolver",
-		"titles-nonempty",
+		check.CodeTerminalEntityNotArchived,
+		check.CodeADRSupersessionMutual,
+		check.CodeArchiveSweepPending,
+		check.CodeEpicActiveNoDraftedMilestones,
+		check.CodeGapAddressedHasResolver,
+		check.CodeTitlesNonempty,
 	}
 	if len(summaries) != len(wantOrder) {
 		t.Fatalf("want %d summary lines, got %d", len(wantOrder), len(summaries))

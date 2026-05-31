@@ -129,7 +129,7 @@ func TestFSMHistoryConsistent_FiresOnIllegalTransition(t *testing.T) {
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}
 	f := got[0]
-	if f.Code != "fsm-history-consistent" {
+	if f.Code != CodeFSMHistoryConsistent {
 		t.Errorf("code = %q, want fsm-history-consistent", f.Code)
 	}
 	if f.Subcode != "illegal-transition" {

@@ -417,7 +417,7 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError) StatusReport {
 			r.Health.Errors++
 		case check.SeverityWarning:
 			r.Health.Warnings++
-			if findings[i].Code == "archive-sweep-pending" {
+			if findings[i].Code == check.CodeArchiveSweepPending {
 				r.SweepPending = ParseSweepPending(findings[i].Message)
 				continue
 			}

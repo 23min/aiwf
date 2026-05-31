@@ -9,6 +9,11 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
+// CodeUnexpectedTreeFile is the finding code emitted by TreeDiscipline
+// for files under work/ that don't match a recognized entity shape.
+// Typed per G-0129.
+const CodeUnexpectedTreeFile = "unexpected-tree-file"
+
 // TreeDiscipline reports any file under work/{epics,gaps,decisions,
 // contracts}/ that the loader walked but could not classify as a
 // recognized entity file. This is the G40 mechanical guarantee for
@@ -77,7 +82,7 @@ func TreeDiscipline(t *tree.Tree, allow []string, strict bool) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Code:     "unexpected-tree-file",
+			Code:     CodeUnexpectedTreeFile,
 			Severity: severity,
 			Message: fmt.Sprintf("file %q is under work/ but is not a recognized entity file; tree-shape changes go through `aiwf <verb>`, not direct writes",
 				p),

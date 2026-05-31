@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
@@ -103,7 +104,7 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 	if hookErr == nil {
 		t.Fatalf("hook should have failed on broken tree; output:\n%s", out)
 	}
-	if !strings.Contains(out, "refs-resolve") {
+	if !strings.Contains(out, check.CodeRefsResolve) {
 		t.Errorf("hook output should mention the failing check; got:\n%s", out)
 	}
 }

@@ -844,7 +844,7 @@ func TestPromote_ForceStillFailsCoherence(t *testing.T) {
 	}
 	foundStatusValid := false
 	for _, f := range result.Findings {
-		if f.Code == "status-valid" {
+		if f.Code == check.CodeStatusValid {
 			foundStatusValid = true
 			break
 		}

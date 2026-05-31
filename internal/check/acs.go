@@ -13,6 +13,16 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
+// Finding codes emitted by this file. Typed per G-0129 so the
+// compiler closes on rename / retire across emit sites and tests.
+const (
+	CodeACsShape                   = "acs-shape"
+	CodeACsTitleProse              = "acs-title-prose"
+	CodeACsTDDAudit                = "acs-tdd-audit"
+	CodeMilestoneDoneIncompleteACs = "milestone-done-incomplete-acs"
+	CodeACsBodyCoherence           = "acs-body-coherence"
+)
+
 // acsShape validates the structure of every milestone's acs[] list and
 // the milestone's own tdd: policy field. Five concerns, each surfaced
 // with its own subcode so callers can filter:
@@ -49,7 +59,7 @@ func acsShape(t *tree.Tree) []Finding {
 		// Validate the milestone's own tdd: policy when present.
 		if e.TDD != "" && !entity.IsAllowedTDDPolicy(e.TDD) {
 			findings = append(findings, Finding{
-				Code:     "acs-shape",
+				Code:     CodeACsShape,
 				Severity: SeverityError,
 				Subcode:  "tdd-policy",
 				Message: fmt.Sprintf("milestone tdd: %q is not allowed (allowed: %s)",
@@ -69,7 +79,7 @@ func acsShape(t *tree.Tree) []Finding {
 			switch {
 			case ac.ID == "":
 				findings = append(findings, Finding{
-					Code:     "acs-shape",
+					Code:     CodeACsShape,
 					Severity: SeverityError,
 					Subcode:  "id",
 					Message:  fmt.Sprintf("acs[%d] missing required field: id (expected %s)", i, expectedID),
@@ -79,7 +89,7 @@ func acsShape(t *tree.Tree) []Finding {
 				})
 			case !acIDPattern.MatchString(ac.ID):
 				findings = append(findings, Finding{
-					Code:     "acs-shape",
+					Code:     CodeACsShape,
 					Severity: SeverityError,
 					Subcode:  "id",
 					Message:  fmt.Sprintf("acs[%d].id %q does not match the AC-N format", i, ac.ID),
@@ -89,7 +99,7 @@ func acsShape(t *tree.Tree) []Finding {
 				})
 			case ac.ID != expectedID:
 				findings = append(findings, Finding{
-					Code:     "acs-shape",
+					Code:     CodeACsShape,
 					Severity: SeverityError,
 					Subcode:  "id",
 					Message: fmt.Sprintf("acs[%d].id %q is at the wrong position; expected %s (position-based, cancelled entries count toward position)",
@@ -103,7 +113,7 @@ func acsShape(t *tree.Tree) []Finding {
 			// title: required.
 			if strings.TrimSpace(ac.Title) == "" {
 				findings = append(findings, Finding{
-					Code:     "acs-shape",
+					Code:     CodeACsShape,
 					Severity: SeverityError,
 					Subcode:  "title",
 					Message:  fmt.Sprintf("%s missing required field: title", composeForMessage(e.ID, ac.ID, i)),
@@ -117,7 +127,7 @@ func acsShape(t *tree.Tree) []Finding {
 			switch {
 			case ac.Status == "":
 				findings = append(findings, Finding{
-					Code:     "acs-shape",
+					Code:     CodeACsShape,
 					Severity: SeverityError,
 					Subcode:  "status",
 					Message:  fmt.Sprintf("%s missing required field: status", composeForMessage(e.ID, ac.ID, i)),
@@ -127,7 +137,7 @@ func acsShape(t *tree.Tree) []Finding {
 				})
 			case !entity.IsAllowedACStatus(ac.Status):
 				findings = append(findings, Finding{
-					Code:     "acs-shape",
+					Code:     CodeACsShape,
 					Severity: SeverityError,
 					Subcode:  "status",
 					Message: fmt.Sprintf("%s status %q is not allowed (allowed: %s)",
@@ -143,7 +153,7 @@ func acsShape(t *tree.Tree) []Finding {
 			switch {
 			case ac.TDDPhase == "" && tddRequired:
 				findings = append(findings, Finding{
-					Code:     "acs-shape",
+					Code:     CodeACsShape,
 					Severity: SeverityError,
 					Subcode:  "tdd-phase",
 					Message: fmt.Sprintf("%s missing required field: tdd_phase (milestone is tdd: required)",
@@ -154,7 +164,7 @@ func acsShape(t *tree.Tree) []Finding {
 				})
 			case ac.TDDPhase != "" && !entity.IsAllowedTDDPhase(ac.TDDPhase):
 				findings = append(findings, Finding{
-					Code:     "acs-shape",
+					Code:     CodeACsShape,
 					Severity: SeverityError,
 					Subcode:  "tdd-phase",
 					Message: fmt.Sprintf("%s tdd_phase %q is not allowed (allowed: %s)",
@@ -211,7 +221,7 @@ func acsTitleProse(t *tree.Tree) []Finding {
 			}
 			compositeID := e.ID + "/" + ac.ID
 			findings = append(findings, Finding{
-				Code:     "acs-title-prose",
+				Code:     CodeACsTitleProse,
 				Severity: SeverityWarning,
 				Message: fmt.Sprintf("%s title looks like prose (long / multi-sentence / contains markdown); shorten the title and move detail prose into the body section under `### %s`",
 					compositeID, ac.ID),
@@ -267,7 +277,7 @@ func acsTDDAudit(t *tree.Tree) []Finding {
 				phase = "(absent)"
 			}
 			findings = append(findings, Finding{
-				Code:     "acs-tdd-audit",
+				Code:     CodeACsTDDAudit,
 				Severity: sev,
 				Message: fmt.Sprintf("%s status: met under tdd: %s but tdd_phase is %s (expected done)",
 					compositeID, e.TDD, phase),
@@ -316,7 +326,7 @@ func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Code:     "milestone-done-incomplete-acs",
+			Code:     CodeMilestoneDoneIncompleteACs,
 			Severity: SeverityError,
 			Message: fmt.Sprintf("milestone %s is done but %d AC(s) still open: %s",
 				e.ID, len(openIDs), strings.Join(openIDs, ", ")),
@@ -384,7 +394,7 @@ func acsBodyCoherence(t *tree.Tree) []Finding {
 			}
 			if !bodyIDs[ac.ID] {
 				findings = append(findings, Finding{
-					Code:     "acs-body-coherence",
+					Code:     CodeACsBodyCoherence,
 					Severity: SeverityWarning,
 					Subcode:  "missing-heading",
 					Message: fmt.Sprintf("%s/%s has no `### %s` heading in the milestone body",
@@ -400,7 +410,7 @@ func acsBodyCoherence(t *tree.Tree) []Finding {
 		for id := range bodyIDs {
 			if !fmIDs[id] {
 				findings = append(findings, Finding{
-					Code:     "acs-body-coherence",
+					Code:     CodeACsBodyCoherence,
 					Severity: SeverityWarning,
 					Subcode:  "orphan-heading",
 					Message: fmt.Sprintf("milestone body has `### %s` heading but acs[] has no matching entry",

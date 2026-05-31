@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
@@ -27,7 +28,7 @@ func TestRun_CheckShapeOnly_CleanTree(t *testing.T) {
 			t.Errorf("got rc=%d, want %d (clean)", rc, cliutil.ExitOK)
 		}
 	})
-	if strings.Contains(string(captured), "unexpected-tree-file") {
+	if strings.Contains(string(captured), check.CodeUnexpectedTreeFile) {
 		t.Errorf("clean tree should not produce findings:\n%s", captured)
 	}
 }
@@ -53,7 +54,7 @@ func TestRun_CheckShapeOnly_StrayWarning_ExitOK(t *testing.T) {
 		}
 	})
 	out := string(captured)
-	if !strings.Contains(out, "unexpected-tree-file") {
+	if !strings.Contains(out, check.CodeUnexpectedTreeFile) {
 		t.Errorf("expected `unexpected-tree-file` finding:\n%s", out)
 	}
 	if !strings.Contains(out, "work/gaps/scratch.md") {
@@ -90,7 +91,7 @@ func TestRun_CheckShapeOnly_StrayStrict_ExitFindings(t *testing.T) {
 			t.Errorf("got rc=%d, want %d (strict mode must block)", rc, cliutil.ExitFindings)
 		}
 	})
-	if !strings.Contains(string(captured), "unexpected-tree-file") {
+	if !strings.Contains(string(captured), check.CodeUnexpectedTreeFile) {
 		t.Errorf("expected `unexpected-tree-file` finding under strict mode:\n%s", captured)
 	}
 }
@@ -124,7 +125,7 @@ func TestRun_CheckShapeOnly_AllowPathsExempt(t *testing.T) {
 			t.Errorf("got rc=%d, want %d (allow_paths must exempt)", rc, cliutil.ExitOK)
 		}
 	})
-	if strings.Contains(string(captured), "unexpected-tree-file") {
+	if strings.Contains(string(captured), check.CodeUnexpectedTreeFile) {
 		t.Errorf("allow_paths exemption did not apply:\n%s", captured)
 	}
 }

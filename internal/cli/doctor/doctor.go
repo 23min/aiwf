@@ -221,7 +221,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 		collisions := 0
 		for i := range findings {
 			f := &findings[i]
-			if f.Code == "ids-unique" {
+			if f.Code == check.CodeIDsUnique {
 				collisions++
 				lines = append(lines, fmt.Sprintf("%scollision %s @ %s", label("ids:"), f.EntityID, f.Path))
 			}

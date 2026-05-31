@@ -58,18 +58,18 @@ func TestFixture_Messy(t *testing.T) {
 	}
 
 	expected := []string{
-		"ids-unique",
-		"frontmatter-shape",
-		"id-path-consistent",
-		"status-valid",
+		check.CodeIDsUnique,
+		check.CodeFrontmatterShape,
+		check.CodeIDPathConsistent,
+		check.CodeStatusValid,
 		"refs-resolve/unresolved",
 		"refs-resolve/wrong-kind",
 		"no-cycles/depends_on",
 		"no-cycles/supersedes",
-		"titles-nonempty",
-		"adr-supersession-mutual",
-		"gap-addressed-has-resolver",
-		"epic-active-no-drafted-milestones",
+		check.CodeTitlesNonempty,
+		check.CodeADRSupersessionMutual,
+		check.CodeGapAddressedHasResolver,
+		check.CodeEpicActiveNoDraftedMilestones,
 	}
 	var missing []string
 	for _, code := range expected {
@@ -169,7 +169,7 @@ relates_to: [E-01]
 	// The one finding must be the load error, not a refs-resolve cascade.
 	if len(got) > 0 {
 		f := got[0]
-		if f.Code != "load-error" {
+		if f.Code != check.CodeLoadError {
 			t.Errorf("the surviving finding should be the load error; got code=%q", f.Code)
 		}
 		if filepath.ToSlash(f.Path) != "work/epics/E-01-platform/epic.md" {
@@ -178,7 +178,7 @@ relates_to: [E-01]
 	}
 	// And: refs-resolve must have suppressed the 12 cascade findings.
 	for _, f := range got {
-		if f.Code == "refs-resolve" {
+		if f.Code == check.CodeRefsResolve {
 			t.Errorf("refs-resolve cascade not suppressed; saw: %+v", f)
 		}
 	}
@@ -251,9 +251,9 @@ relates_to: [E-01, M-001]
 	cascade := 0
 	for _, f := range got {
 		switch f.Code {
-		case "load-error":
+		case check.CodeLoadError:
 			loadErrors++
-		case "refs-resolve":
+		case check.CodeRefsResolve:
 			cascade++
 		}
 	}

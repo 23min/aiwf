@@ -156,7 +156,7 @@ func TestEntityIDNarrowWidth(t *testing.T) {
 			seen := make(map[string]bool, len(got))
 			for _, f := range got {
 				seen[f.EntityID] = true
-				if f.Code != "entity-id-narrow-width" {
+				if f.Code != CodeEntityIDNarrowWidth {
 					t.Errorf("Code = %q, want entity-id-narrow-width", f.Code)
 				}
 				if f.Severity != SeverityWarning {

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
@@ -311,7 +312,7 @@ func TestIntegrationG37_DivergedBranchesCaughtByCheckPostFetch(t *testing.T) {
 	if err == nil {
 		t.Fatalf("aiwf check on B should have reported findings (cross-tree G-001 collision); output was clean:\n%s", out)
 	}
-	if !strings.Contains(out, "ids-unique") {
+	if !strings.Contains(out, check.CodeIDsUnique) {
 		t.Errorf("expected ids-unique finding; got:\n%s", out)
 	}
 	if !strings.Contains(out, "trunk") {
@@ -1035,7 +1036,7 @@ func TestIntegrationG37_PrePushHookCatchesCollision(t *testing.T) {
 	if hookErr == nil {
 		t.Fatalf("pre-push hook on B should have failed (cross-tree G-001); output:\n%s", hookOut)
 	}
-	if !strings.Contains(hookOut, "ids-unique") {
+	if !strings.Contains(hookOut, check.CodeIDsUnique) {
 		t.Errorf("hook output should mention ids-unique; got:\n%s", hookOut)
 	}
 	if !strings.Contains(hookOut, "trunk") {

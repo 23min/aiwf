@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/gitops"
 )
@@ -70,7 +71,7 @@ func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("aiwf check after resolver promote: %v\n%s", err, checkOut)
 	}
-	if strings.Contains(checkOut, "gap-addressed-has-resolver") {
+	if strings.Contains(checkOut, check.CodeGapAddressedHasResolver) {
 		t.Errorf("post-promote check still surfaces gap-addressed-has-resolver:\n%s", checkOut)
 	}
 }

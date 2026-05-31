@@ -68,7 +68,7 @@ func TestBatchedWalker_RenameChainTracking(t *testing.T) {
 	// rule's illegal-transition predicate then fires.
 	var hasFinding bool
 	for _, f := range got {
-		if f.Code == "fsm-history-consistent" &&
+		if f.Code == CodeFSMHistoryConsistent &&
 			f.Subcode == "illegal-transition" &&
 			f.EntityID == "E-0001" {
 			hasFinding = true

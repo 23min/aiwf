@@ -61,7 +61,7 @@ status:
 	// Active entity must fire frontmatter-shape (positive control).
 	activeFired := false
 	for _, f := range got {
-		if f.Code == "frontmatter-shape" && f.EntityID == "G-0050" {
+		if f.Code == CodeFrontmatterShape && f.EntityID == "G-0050" {
 			activeFired = true
 		}
 	}
@@ -71,7 +71,7 @@ status:
 
 	// No frontmatter-shape finding may target an archive path.
 	for _, f := range got {
-		if f.Code == "frontmatter-shape" && strings.Contains(f.Path, "archive/") {
+		if f.Code == CodeFrontmatterShape && strings.Contains(f.Path, "archive/") {
 			t.Errorf("frontmatter-shape fired on archive path %q (must skip per ADR-0004 §Check shape rules): %+v", f.Path, f)
 		}
 	}
@@ -135,10 +135,10 @@ acs:
 	activeFired := false
 	for _, f := range got {
 		// acs-shape uses composite ids (M-NNN/AC-N).
-		if f.Code == "acs-shape" && strings.HasPrefix(f.EntityID, "M-0001") {
+		if f.Code == CodeACsShape && strings.HasPrefix(f.EntityID, "M-0001") {
 			activeFired = true
 		}
-		if f.Code == "acs-shape" && strings.HasPrefix(f.EntityID, "M-0099") {
+		if f.Code == CodeACsShape && strings.HasPrefix(f.EntityID, "M-0099") {
 			t.Errorf("acs-shape fired on archived milestone (must skip): %+v", f)
 		}
 	}
@@ -209,10 +209,10 @@ acs:
 
 	activeFired := false
 	for _, f := range got {
-		if f.Code == "acs-body-coherence" && strings.HasPrefix(f.EntityID, "M-0001") {
+		if f.Code == CodeACsBodyCoherence && strings.HasPrefix(f.EntityID, "M-0001") {
 			activeFired = true
 		}
-		if f.Code == "acs-body-coherence" && strings.HasPrefix(f.EntityID, "M-0099") {
+		if f.Code == CodeACsBodyCoherence && strings.HasPrefix(f.EntityID, "M-0099") {
 			t.Errorf("acs-body-coherence fired on archived milestone (must skip): %+v", f)
 		}
 	}
@@ -288,10 +288,10 @@ Body text.
 
 	activeFired := false
 	for _, f := range got {
-		if f.Code == "acs-tdd-audit" && strings.HasPrefix(f.EntityID, "M-0001") {
+		if f.Code == CodeACsTDDAudit && strings.HasPrefix(f.EntityID, "M-0001") {
 			activeFired = true
 		}
-		if f.Code == "acs-tdd-audit" && strings.HasPrefix(f.EntityID, "M-0099") {
+		if f.Code == CodeACsTDDAudit && strings.HasPrefix(f.EntityID, "M-0099") {
 			t.Errorf("acs-tdd-audit fired on archived milestone (must skip): %+v", f)
 		}
 	}
@@ -365,10 +365,10 @@ Body text.
 
 	activeFired := false
 	for _, f := range got {
-		if f.Code == "milestone-done-incomplete-acs" && f.EntityID == "M-0001" {
+		if f.Code == CodeMilestoneDoneIncompleteACs && f.EntityID == "M-0001" {
 			activeFired = true
 		}
-		if f.Code == "milestone-done-incomplete-acs" && f.EntityID == "M-0099" {
+		if f.Code == CodeMilestoneDoneIncompleteACs && f.EntityID == "M-0099" {
 			t.Errorf("milestone-done-incomplete-acs fired on archived milestone (must skip): %+v", f)
 		}
 	}
@@ -414,10 +414,10 @@ status: addressed
 
 	activeFired := false
 	for _, f := range got {
-		if f.Code == "entity-body-empty" && f.EntityID == "G-0050" {
+		if f.Code == CodeEntityBodyEmpty && f.EntityID == "G-0050" {
 			activeFired = true
 		}
-		if f.Code == "entity-body-empty" && f.EntityID == "G-0099" {
+		if f.Code == CodeEntityBodyEmpty && f.EntityID == "G-0099" {
 			t.Errorf("entity-body-empty fired on archived gap (must skip): %+v", f)
 		}
 	}
@@ -481,10 +481,10 @@ addressed_by:
 
 	activeFired := false
 	for _, f := range got {
-		if f.Code == "refs-resolve" && f.EntityID == "G-0050" {
+		if f.Code == CodeRefsResolve && f.EntityID == "G-0050" {
 			activeFired = true
 		}
-		if f.Code == "refs-resolve" && f.EntityID == "G-0099" {
+		if f.Code == CodeRefsResolve && f.EntityID == "G-0099" {
 			t.Errorf("refs-resolve fired on archived entity (must skip per ADR-0004): %+v", f)
 		}
 	}
@@ -530,7 +530,7 @@ status: addressed
 	got := Run(tr, loadErrs)
 	collisions := 0
 	for _, f := range got {
-		if f.Code == "ids-unique" && f.EntityID == "G-0050" {
+		if f.Code == CodeIDsUnique && f.EntityID == "G-0050" {
 			collisions++
 		}
 	}
@@ -562,7 +562,7 @@ status: addressed
 	got := Run(tr, loadErrs)
 	loadErrorFired := false
 	for _, f := range got {
-		if f.Code == "load-error" && strings.Contains(f.Path, "archive/") {
+		if f.Code == CodeLoadError && strings.Contains(f.Path, "archive/") {
 			loadErrorFired = true
 		}
 	}
@@ -597,10 +597,10 @@ func TestArchiveScoping_UnexpectedTreeFile(t *testing.T) {
 
 	activeFired := false
 	for _, f := range got {
-		if f.Code == "unexpected-tree-file" && strings.HasSuffix(f.Path, "notes.md") && !strings.Contains(f.Path, "archive/") {
+		if f.Code == CodeUnexpectedTreeFile && strings.HasSuffix(f.Path, "notes.md") && !strings.Contains(f.Path, "archive/") {
 			activeFired = true
 		}
-		if f.Code == "unexpected-tree-file" && strings.Contains(f.Path, "archive/") {
+		if f.Code == CodeUnexpectedTreeFile && strings.Contains(f.Path, "archive/") {
 			t.Errorf("unexpected-tree-file fired on archive stray (must skip per ADR-0004): %+v", f)
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
@@ -62,7 +63,7 @@ func TestProvenanceCheck_HandEditedAgentCommit(t *testing.T) {
 	out, _ := testutil.RunBin(t, root, binDir, nil, "check")
 	// `aiwf check` exits 1 on findings, so we ignore the Go error and
 	// inspect stdout.
-	if !strings.Contains(out, "provenance-no-active-scope") {
+	if !strings.Contains(out, check.CodeProvenanceNoActiveScope) {
 		t.Errorf("expected provenance-no-active-scope finding; got:\n%s", out)
 	}
 	if !strings.Contains(out, "provenance-trailer-incoherent") {

@@ -38,7 +38,7 @@ func TestText_PathLineSeverityCodeMessageHint(t *testing.T) {
 	t.Parallel()
 	findings := []check.Finding{
 		{
-			Code:     "refs-resolve",
+			Code:     check.CodeRefsResolve,
 			Severity: check.SeverityError,
 			Subcode:  "unresolved",
 			Message:  `milestone field "parent" references unknown id "E-0099"`,
@@ -48,7 +48,7 @@ func TestText_PathLineSeverityCodeMessageHint(t *testing.T) {
 			Hint:     "check the spelling, or remove the reference if the target was deleted",
 		},
 		{
-			Code:     "titles-nonempty",
+			Code:     check.CodeTitlesNonempty,
 			Severity: check.SeverityWarning,
 			Message:  "title is empty or whitespace-only",
 			Path:     "work/epics/E-01-foo/epic.md",
@@ -78,7 +78,7 @@ func TestText_PathLineSeverityCodeMessageHint(t *testing.T) {
 func TestText_PathWithoutLine(t *testing.T) {
 	t.Parallel()
 	findings := []check.Finding{{
-		Code:     "load-error",
+		Code:     check.CodeLoadError,
 		Severity: check.SeverityError,
 		Message:  "yaml: line 2: malformed",
 		Path:     "work/epics/E-01-foo/epic.md",
@@ -97,7 +97,7 @@ func TestText_PathWithoutLine(t *testing.T) {
 func TestText_NoPath(t *testing.T) {
 	t.Parallel()
 	findings := []check.Finding{{
-		Code:     "load-error",
+		Code:     check.CodeLoadError,
 		Severity: check.SeverityError,
 		Message:  "could not list directory",
 	}}
@@ -116,7 +116,7 @@ func TestText_NoPath(t *testing.T) {
 func TestText_HintOmittedWhenEmpty(t *testing.T) {
 	t.Parallel()
 	findings := []check.Finding{{
-		Code:     "ids-unique",
+		Code:     check.CodeIDsUnique,
 		Severity: check.SeverityError,
 		Message:  `id "M-0001" is also used by other.md`,
 		Path:     "work/epics/dup.md",
@@ -149,11 +149,11 @@ func TestTextSummary_WarningsCollapsedByCode(t *testing.T) {
 	// Constructed in the order Run() would emit (sorted alphabetically by
 	// code, then path) so the "first message" rule is unambiguous.
 	findings := []check.Finding{
-		{Code: "terminal-entity-not-archived", Severity: check.SeverityWarning, Message: "entity ADR-0001 has terminal status \"superseded\" but file is still in the active tree", Path: "docs/adr/ADR-0001.md", Line: 4, Hint: "run `aiwf archive --dry-run`"},
-		{Code: "terminal-entity-not-archived", Severity: check.SeverityWarning, Message: "entity ADR-0002 has terminal status \"superseded\" but file is still in the active tree", Path: "docs/adr/ADR-0002.md", Line: 4, Hint: "run `aiwf archive --dry-run`"},
-		{Code: "terminal-entity-not-archived", Severity: check.SeverityWarning, Message: "entity G-0001 has terminal status \"addressed\" but file is still in the active tree", Path: "work/gaps/G-0001.md", Line: 4, Hint: "run `aiwf archive --dry-run`"},
-		{Code: "titles-nonempty", Severity: check.SeverityWarning, Message: "title is empty or whitespace-only (epic.md)", Path: "work/epics/E-0099/epic.md", Line: 3, Hint: "set a non-empty `title:`"},
-		{Code: "titles-nonempty", Severity: check.SeverityWarning, Message: "title is empty or whitespace-only (M-0099.md)", Path: "work/epics/E-0099/M-0099.md", Line: 3, Hint: "set a non-empty `title:`"},
+		{Code: check.CodeTerminalEntityNotArchived, Severity: check.SeverityWarning, Message: "entity ADR-0001 has terminal status \"superseded\" but file is still in the active tree", Path: "docs/adr/ADR-0001.md", Line: 4, Hint: "run `aiwf archive --dry-run`"},
+		{Code: check.CodeTerminalEntityNotArchived, Severity: check.SeverityWarning, Message: "entity ADR-0002 has terminal status \"superseded\" but file is still in the active tree", Path: "docs/adr/ADR-0002.md", Line: 4, Hint: "run `aiwf archive --dry-run`"},
+		{Code: check.CodeTerminalEntityNotArchived, Severity: check.SeverityWarning, Message: "entity G-0001 has terminal status \"addressed\" but file is still in the active tree", Path: "work/gaps/G-0001.md", Line: 4, Hint: "run `aiwf archive --dry-run`"},
+		{Code: check.CodeTitlesNonempty, Severity: check.SeverityWarning, Message: "title is empty or whitespace-only (epic.md)", Path: "work/epics/E-0099/epic.md", Line: 3, Hint: "set a non-empty `title:`"},
+		{Code: check.CodeTitlesNonempty, Severity: check.SeverityWarning, Message: "title is empty or whitespace-only (M-0099.md)", Path: "work/epics/E-0099/M-0099.md", Line: 3, Hint: "set a non-empty `title:`"},
 	}
 	var buf bytes.Buffer
 	if err := TextSummary(&buf, findings); err != nil {
@@ -171,8 +171,8 @@ func TestTextSummary_WarningsCollapsedByCode(t *testing.T) {
 	// AC-1 ordering: count desc, alphabetic tie-break.
 	// terminal-entity-not-archived (3) comes before titles-nonempty (2).
 	want := []summaryLine{
-		{code: "terminal-entity-not-archived", severity: "warning", count: 3, sample: "entity ADR-0001 has terminal status \"superseded\" but file is still in the active tree"},
-		{code: "titles-nonempty", severity: "warning", count: 2, sample: "title is empty or whitespace-only (epic.md)"},
+		{code: check.CodeTerminalEntityNotArchived, severity: "warning", count: 3, sample: "entity ADR-0001 has terminal status \"superseded\" but file is still in the active tree"},
+		{code: check.CodeTitlesNonempty, severity: "warning", count: 2, sample: "title is empty or whitespace-only (epic.md)"},
 	}
 	if diff := cmp.Diff(want, summaryLines, cmp.AllowUnexported(summaryLine{})); diff != "" {
 		t.Errorf("summary lines mismatch (-want +got):\n%s\nfull output:\n%s", diff, got)
@@ -210,11 +210,11 @@ func TestTextSummary_WarningsCollapsedByCode(t *testing.T) {
 func TestTextSummary_ErrorsPrintPerInstance(t *testing.T) {
 	t.Parallel()
 	findings := []check.Finding{
-		{Code: "refs-resolve", Subcode: "unresolved", Severity: check.SeverityError, Message: `milestone field "parent" references unknown id "E-0099"`, Path: "work/epics/E-0001/M-0001.md", Line: 5, Hint: "check spelling"},
-		{Code: "refs-resolve", Subcode: "unresolved", Severity: check.SeverityError, Message: `milestone field "parent" references unknown id "E-0077"`, Path: "work/epics/E-0001/M-0002.md", Line: 5, Hint: "check spelling"},
-		{Code: "refs-resolve", Subcode: "unresolved", Severity: check.SeverityError, Message: `milestone field "parent" references unknown id "E-0066"`, Path: "work/epics/E-0001/M-0003.md", Line: 5, Hint: "check spelling"},
-		{Code: "titles-nonempty", Severity: check.SeverityWarning, Message: "title is empty (a)", Path: "work/epics/E-0001/M-0004.md", Line: 3, Hint: "set title"},
-		{Code: "titles-nonempty", Severity: check.SeverityWarning, Message: "title is empty (b)", Path: "work/epics/E-0001/M-0005.md", Line: 3, Hint: "set title"},
+		{Code: check.CodeRefsResolve, Subcode: "unresolved", Severity: check.SeverityError, Message: `milestone field "parent" references unknown id "E-0099"`, Path: "work/epics/E-0001/M-0001.md", Line: 5, Hint: "check spelling"},
+		{Code: check.CodeRefsResolve, Subcode: "unresolved", Severity: check.SeverityError, Message: `milestone field "parent" references unknown id "E-0077"`, Path: "work/epics/E-0001/M-0002.md", Line: 5, Hint: "check spelling"},
+		{Code: check.CodeRefsResolve, Subcode: "unresolved", Severity: check.SeverityError, Message: `milestone field "parent" references unknown id "E-0066"`, Path: "work/epics/E-0001/M-0003.md", Line: 5, Hint: "check spelling"},
+		{Code: check.CodeTitlesNonempty, Severity: check.SeverityWarning, Message: "title is empty (a)", Path: "work/epics/E-0001/M-0004.md", Line: 3, Hint: "set title"},
+		{Code: check.CodeTitlesNonempty, Severity: check.SeverityWarning, Message: "title is empty (b)", Path: "work/epics/E-0001/M-0005.md", Line: 3, Hint: "set title"},
 	}
 	var buf bytes.Buffer
 	if err := TextSummary(&buf, findings); err != nil {
@@ -246,7 +246,7 @@ func TestTextSummary_ErrorsPrintPerInstance(t *testing.T) {
 	}
 
 	// Sanity: the warning code still summarizes.
-	if len(summaries) != 1 || summaries[0].code != "titles-nonempty" || summaries[0].count != 2 {
+	if len(summaries) != 1 || summaries[0].code != check.CodeTitlesNonempty || summaries[0].count != 2 {
 		t.Errorf("expected one warning summary (titles-nonempty × 2); got %+v\n%s", summaries, got)
 	}
 
@@ -483,7 +483,7 @@ func TestJSON_RoundTrip(t *testing.T) {
 		Version: "0.1.0",
 		Status:  "findings",
 		Findings: []check.Finding{
-			{Code: "ids-unique", Severity: check.SeverityError, Message: "dup"},
+			{Code: check.CodeIDsUnique, Severity: check.SeverityError, Message: "dup"},
 		},
 		Metadata: map[string]any{"count": float64(1)},
 	}

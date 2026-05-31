@@ -102,7 +102,7 @@ func TestPromote_BackfillResolverOnAddressedGap(t *testing.T) {
 
 	// Closure: gap-addressed-has-resolver is silent after back-fill.
 	for _, f := range check.Run(r.tree(), nil) {
-		if f.Code == "gap-addressed-has-resolver" {
+		if f.Code == check.CodeGapAddressedHasResolver {
 			t.Errorf("back-fill should silence gap-addressed-has-resolver; finding still present: %+v", f)
 		}
 	}

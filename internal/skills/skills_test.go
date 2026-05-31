@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/check"
 )
 
 // TestList_AllShippedSkillsPresent guards the contract that we ship
@@ -595,7 +597,7 @@ func TestSkill_AddDontEntryAgainstEmptyBodies(t *testing.T) {
 		"body",
 		// Finding code so the operator knows what `aiwf check`
 		// will surface.
-		"entity-body-empty",
+		check.CodeEntityBodyEmpty,
 		// Cross-reference to the rule's milestone so the trail
 		// from the Don't entry back to the rule is one click.
 		// Narrow width matches the SKILL.md prose verbatim;

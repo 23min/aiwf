@@ -83,6 +83,11 @@ func TestPolicy_EnumLiteralAdoption(t *testing.T) {
 	runPolicy(t, PolicyEnumLiteralAdoption)
 }
 
+func TestPolicy_FindingCodeAdoption(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyFindingCodeAdoption)
+}
+
 func TestPolicy_FindingCodesAreDiscoverable(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyFindingCodesAreDiscoverable)

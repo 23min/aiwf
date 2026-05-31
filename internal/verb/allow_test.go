@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/scope"
 	"github.com/23min/aiwf/internal/tree"
@@ -312,7 +313,7 @@ func TestAllow_DenialCodes(t *testing.T) {
 	if none.Allowed {
 		t.Fatal("no-scope: Allowed = true, want false")
 	}
-	if got, ok := entity.Code(none.Err); !ok || got != "provenance-no-active-scope" {
+	if got, ok := entity.Code(none.Err); !ok || got != check.CodeProvenanceNoActiveScope {
 		t.Errorf("no-scope code = (%q, %v), want (provenance-no-active-scope, true)", got, ok)
 	}
 }

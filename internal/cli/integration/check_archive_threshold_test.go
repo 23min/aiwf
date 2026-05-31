@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
@@ -126,7 +127,7 @@ func TestCheck_ArchiveSweepThreshold_MessageNamesThresholdAndCount(t *testing.T)
 	if !strings.Contains(out, "archive.sweep_threshold") {
 		t.Errorf("escalated check output must cite `archive.sweep_threshold`; got:\n%s", out)
 	}
-	if !strings.Contains(out, "archive-sweep-pending") {
+	if !strings.Contains(out, check.CodeArchiveSweepPending) {
 		t.Errorf("escalated check output must name the aggregate finding code; got:\n%s", out)
 	}
 	if !strings.Contains(out, "aiwf archive") {

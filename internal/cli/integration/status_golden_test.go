@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/status"
 
 	"github.com/23min/aiwf/internal/cli/history"
@@ -67,7 +68,7 @@ func canonicalStatusReport() status.StatusReport {
 		},
 		Warnings: []status.StatusFinding{
 			{
-				Code:     "gap-addressed-has-resolver",
+				Code:     check.CodeGapAddressedHasResolver,
 				EntityID: "G-0902",
 				Path:     "work/gaps/G-902-fictional-fix.md",
 				Message:  "gap is marked addressed but addressed_by is empty",

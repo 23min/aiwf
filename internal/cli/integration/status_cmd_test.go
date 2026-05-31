@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/status"
@@ -410,8 +411,8 @@ func TestBuildStatus_Warnings(t *testing.T) {
 		t.Fatalf("Warnings = %d, want 1", len(r.Warnings))
 	}
 	w := r.Warnings[0]
-	if w.Code != "gap-addressed-has-resolver" {
-		t.Errorf("Warnings[0].Code = %q, want %q", w.Code, "gap-addressed-has-resolver")
+	if w.Code != check.CodeGapAddressedHasResolver {
+		t.Errorf("Warnings[0].Code = %q, want %q", w.Code, check.CodeGapAddressedHasResolver)
 	}
 	if w.EntityID != "G-0001" {
 		t.Errorf("Warnings[0].EntityID = %q, want G-0001", w.EntityID)
@@ -427,7 +428,7 @@ func TestRenderStatusText_Warnings(t *testing.T) {
 	r := status.StatusReport{
 		Date: "2026-05-01",
 		Warnings: []status.StatusFinding{
-			{Code: "gap-addressed-has-resolver", EntityID: "G-0001", Message: "gap is marked addressed but addressed_by is empty"},
+			{Code: check.CodeGapAddressedHasResolver, EntityID: "G-0001", Message: "gap is marked addressed but addressed_by is empty"},
 		},
 		Health: status.StatusHealthCounts{Entities: 1, Warnings: 1},
 	}
@@ -440,7 +441,7 @@ func TestRenderStatusText_Warnings(t *testing.T) {
 
 	for _, want := range []string{
 		"Warnings",
-		"gap-addressed-has-resolver",
+		check.CodeGapAddressedHasResolver,
 		"[G-0001]",
 		"gap is marked addressed",
 		"run `aiwf check` for details",
@@ -479,7 +480,7 @@ func TestRenderStatusMarkdown_FullReport(t *testing.T) {
 			{ID: "G-0001", Title: "Edge case", DiscoveredIn: "M-0002"},
 		},
 		Warnings: []status.StatusFinding{
-			{Code: "gap-addressed-has-resolver", EntityID: "G-0002", Message: "gap is marked addressed but addressed_by is empty"},
+			{Code: check.CodeGapAddressedHasResolver, EntityID: "G-0002", Message: "gap is marked addressed but addressed_by is empty"},
 		},
 		Health: status.StatusHealthCounts{Entities: 7, Errors: 0, Warnings: 1},
 	}

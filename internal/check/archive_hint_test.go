@@ -35,7 +35,7 @@ import (
 // test before it ships to consumer output.
 func TestHintFor_TerminalEntityNotArchived_ContainsBacktickedVerb(t *testing.T) {
 	t.Parallel()
-	hint := HintFor("terminal-entity-not-archived", "")
+	hint := HintFor(CodeTerminalEntityNotArchived, "")
 	if hint == "" {
 		t.Fatal("HintFor(\"terminal-entity-not-archived\") returned empty string")
 	}
@@ -53,7 +53,7 @@ func TestHintFor_TerminalEntityNotArchived_ContainsBacktickedVerb(t *testing.T) 
 // rule above.
 func TestHintFor_ArchiveSweepPending_ContainsBacktickedVerb(t *testing.T) {
 	t.Parallel()
-	hint := HintFor("archive-sweep-pending", "")
+	hint := HintFor(CodeArchiveSweepPending, "")
 	if hint == "" {
 		t.Fatal("HintFor(\"archive-sweep-pending\") returned empty string")
 	}
@@ -74,8 +74,8 @@ func TestApplyHints_ArchiveFindings_CarryBacktickedHint(t *testing.T) {
 	cases := []struct {
 		code string
 	}{
-		{"terminal-entity-not-archived"},
-		{"archive-sweep-pending"},
+		{CodeTerminalEntityNotArchived},
+		{CodeArchiveSweepPending},
 	}
 	for _, tc := range cases {
 		t.Run(tc.code, func(t *testing.T) {
@@ -116,8 +116,8 @@ func TestSkillCheckSkillMd_ArchiveTableRowsBacktickedVerb(t *testing.T) {
 	cases := []struct {
 		findingCode string
 	}{
-		{"terminal-entity-not-archived"},
-		{"archive-sweep-pending"},
+		{CodeTerminalEntityNotArchived},
+		{CodeArchiveSweepPending},
 	}
 	for _, tc := range cases {
 		t.Run(tc.findingCode, func(t *testing.T) {

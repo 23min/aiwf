@@ -35,7 +35,7 @@ func TestTreeDiscipline_PlainStray_Warning(t *testing.T) {
 		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
 	}
 	f := got[0]
-	if f.Code != "unexpected-tree-file" {
+	if f.Code != CodeUnexpectedTreeFile {
 		t.Errorf("Code = %q, want unexpected-tree-file", f.Code)
 	}
 	if f.Severity != SeverityWarning {

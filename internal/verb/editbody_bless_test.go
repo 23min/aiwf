@@ -296,7 +296,7 @@ func TestEditBody_Bless_AcceptsBodyShapeWarnings_PrePushIsChokepoint(t *testing.
 	postCheck := check.Run(r.tree(), nil)
 	foundCoherence := false
 	for _, f := range postCheck {
-		if f.Code == "acs-body-coherence" {
+		if f.Code == check.CodeACsBodyCoherence {
 			foundCoherence = true
 		}
 	}

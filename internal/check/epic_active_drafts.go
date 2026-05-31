@@ -7,6 +7,10 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
+// CodeEpicActiveNoDraftedMilestones is the finding code emitted by
+// epicActiveNoDraftedMilestones. Typed per G-0129.
+const CodeEpicActiveNoDraftedMilestones = "epic-active-no-drafted-milestones"
+
 // epicActiveNoDraftedMilestones (warning) reports any epic at status
 // `active` with zero child milestones at status `draft`. The rule is
 // the kernel-side preflight signal G-0063 calls out: an active epic
@@ -39,7 +43,7 @@ func epicActiveNoDraftedMilestones(t *tree.Tree) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Code:     "epic-active-no-drafted-milestones",
+			Code:     CodeEpicActiveNoDraftedMilestones,
 			Severity: SeverityWarning,
 			Message:  fmt.Sprintf("epic %s is active but has no milestones at status draft", ep.ID),
 			Path:     ep.Path,

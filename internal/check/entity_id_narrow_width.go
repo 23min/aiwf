@@ -9,6 +9,10 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
+// CodeEntityIDNarrowWidth is the finding code emitted by entityIDNarrowWidth.
+// Typed per G-0129.
+const CodeEntityIDNarrowWidth = "entity-id-narrow-width"
+
 // entityIDNarrowWidth implements the M-083 AC-1 drift-check rule.
 //
 // The rule classifies the active tree (entities outside any
@@ -92,7 +96,7 @@ func entityIDNarrowWidth(t *tree.Tree) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Code:     "entity-id-narrow-width",
+			Code:     CodeEntityIDNarrowWidth,
 			Severity: SeverityWarning,
 			Message: fmt.Sprintf(
 				"narrow-width id %q in mixed-state active tree (canonical width is %d digits per ADR-0008); run `aiwf rewidth` to complete the migration",

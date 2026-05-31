@@ -51,7 +51,7 @@ func TestRoadmapCaseCollision(t *testing.T) {
 		writeRoadmapVariant(t, dir, "ROADMAP.md")
 		writeRoadmapVariant(t, dir, "roadmap.md")
 		got := roadmapCaseCollision(&tree.Tree{Root: dir})
-		hits := findByCode(got, "roadmap-case-collision")
+		hits := findByCode(got, CodeRoadmapCaseCollision)
 		if len(hits) != 1 {
 			t.Fatalf("want exactly 1 roadmap-case-collision finding, got %d: %+v", len(hits), got)
 		}
@@ -129,7 +129,7 @@ func TestRoadmapCaseCollision_ThroughRun(t *testing.T) {
 		writeRoadmapVariant(t, dir, "ROADMAP.md")
 		writeRoadmapVariant(t, dir, "roadmap.md")
 		got := Run(&tree.Tree{Root: dir}, nil)
-		if !hasCode(got, "roadmap-case-collision") {
+		if !hasCode(got, CodeRoadmapCaseCollision) {
 			t.Errorf("Run did not surface roadmap-case-collision: %+v", got)
 		}
 	})
@@ -139,7 +139,7 @@ func TestRoadmapCaseCollision_ThroughRun(t *testing.T) {
 		dir := t.TempDir()
 		writeRoadmapVariant(t, dir, "ROADMAP.md")
 		got := Run(&tree.Tree{Root: dir}, nil)
-		if hasCode(got, "roadmap-case-collision") {
+		if hasCode(got, CodeRoadmapCaseCollision) {
 			t.Errorf("Run reported roadmap-case-collision on a clean tree: %+v", got)
 		}
 	})

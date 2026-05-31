@@ -42,6 +42,10 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
+// CodeEntityBodyEmpty is the finding code emitted by entityBodyEmpty.
+// Typed per G-0129.
+const CodeEntityBodyEmpty = "entity-body-empty"
+
 // requiredSectionsByKind lists the load-bearing top-level body
 // sections for each entity kind. Order is the canonical render order
 // in the kind's spec template. Sub-element kinds (AC) handled
@@ -88,7 +92,7 @@ func ApplyTDDStrict(findings []Finding, strict bool) {
 		return
 	}
 	for i := range findings {
-		if findings[i].Code == "entity-body-empty" {
+		if findings[i].Code == CodeEntityBodyEmpty {
 			findings[i].Severity = SeverityError
 		}
 	}
@@ -149,7 +153,7 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 				}
 				if isAllWhitespaceOrHeadings(content, false) {
 					findings = append(findings, Finding{
-						Code:     "entity-body-empty",
+						Code:     CodeEntityBodyEmpty,
 						Severity: SeverityWarning,
 						Subcode:  string(e.Kind),
 						Message: fmt.Sprintf("%s body section `## %s` is empty",
@@ -180,7 +184,7 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 				}
 				if isAllWhitespaceOrHeadings(content, true) {
 					findings = append(findings, Finding{
-						Code:     "entity-body-empty",
+						Code:     CodeEntityBodyEmpty,
 						Severity: SeverityWarning,
 						Subcode:  "ac",
 						Message: fmt.Sprintf("%s/%s body under `### %s` is empty",

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/show"
@@ -636,7 +637,7 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 	}
 	found := false
 	for _, f := range view.Findings {
-		if f.Code == "milestone-done-incomplete-acs" {
+		if f.Code == check.CodeMilestoneDoneIncompleteACs {
 			found = true
 		}
 	}

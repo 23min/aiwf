@@ -96,7 +96,7 @@ func TestAcsShape_IDProblems(t *testing.T) {
 				Status: "in_progress", Parent: "E-0001", ACs: tt.acs,
 			})
 			got := acsShape(tr)
-			if findingByCode(got, "acs-shape", tt.wantSub) == nil {
+			if findingByCode(got, CodeACsShape, tt.wantSub) == nil {
 				t.Errorf("expected acs-shape/%s; got: %+v", tt.wantSub, got)
 			}
 		})
@@ -115,32 +115,32 @@ func TestAcsShape_TitleStatusTDDPhaseAndPolicy(t *testing.T) {
 		{
 			name:     "title missing",
 			ac:       entity.AcceptanceCriterion{ID: "AC-1", Title: "", Status: "open"},
-			wantCode: "acs-shape",
+			wantCode: CodeACsShape,
 			wantSub:  "title",
 		},
 		{
 			name:     "status missing",
 			ac:       entity.AcceptanceCriterion{ID: "AC-1", Title: "x", Status: ""},
-			wantCode: "acs-shape",
+			wantCode: CodeACsShape,
 			wantSub:  "status",
 		},
 		{
 			name:     "status invalid",
 			ac:       entity.AcceptanceCriterion{ID: "AC-1", Title: "x", Status: "frobnicate"},
-			wantCode: "acs-shape",
+			wantCode: CodeACsShape,
 			wantSub:  "status",
 		},
 		{
 			name:     "tdd_phase invalid",
 			ac:       entity.AcceptanceCriterion{ID: "AC-1", Title: "x", Status: "open", TDDPhase: "blue"},
-			wantCode: "acs-shape",
+			wantCode: CodeACsShape,
 			wantSub:  "tdd-phase",
 		},
 		{
 			name:     "tdd_phase required but absent",
 			ac:       entity.AcceptanceCriterion{ID: "AC-1", Title: "x", Status: "open"},
 			tdd:      "required",
-			wantCode: "acs-shape",
+			wantCode: CodeACsShape,
 			wantSub:  "tdd-phase",
 		},
 	}
@@ -167,7 +167,7 @@ func TestAcsShape_TDDPolicyInvalid(t *testing.T) {
 		Status: "in_progress", Parent: "E-0001", TDD: "strict",
 	})
 	got := acsShape(tr)
-	if findingByCode(got, "acs-shape", "tdd-policy") == nil {
+	if findingByCode(got, CodeACsShape, "tdd-policy") == nil {
 		t.Errorf("expected acs-shape/tdd-policy; got: %+v", got)
 	}
 }
@@ -216,7 +216,7 @@ func TestAcsShape_PositionStableAcrossCancellation(t *testing.T) {
 		},
 	})
 	got := acsShape(bad)
-	if findingByCode(got, "acs-shape", "id") == nil {
+	if findingByCode(got, CodeACsShape, "id") == nil {
 		t.Errorf("expected an acs-shape/id finding for the position-3 duplicate AC-2; got: %+v", got)
 	}
 }
@@ -234,7 +234,7 @@ func TestAcsTitleProse_FlagsLongTitle(t *testing.T) {
 		},
 	})
 	got := acsTitleProse(tr)
-	f := findingByCode(got, "acs-title-prose", "")
+	f := findingByCode(got, CodeACsTitleProse, "")
 	if f == nil {
 		t.Fatalf("expected acs-title-prose; got: %+v", got)
 	}
@@ -276,7 +276,7 @@ func TestAcsTDDAudit_RequiredFiresAsError(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("got %d findings, want 1: %+v", len(got), got)
 	}
-	if got[0].Code != "acs-tdd-audit" {
+	if got[0].Code != CodeACsTDDAudit {
 		t.Errorf("code = %q, want \"acs-tdd-audit\"", got[0].Code)
 	}
 	if got[0].Severity != SeverityError {
@@ -297,7 +297,7 @@ func TestAcsTDDAudit_AdvisoryFiresAsWarning(t *testing.T) {
 		},
 	})
 	got := acsTDDAudit(tr)
-	if len(got) != 1 || got[0].Severity != SeverityWarning || got[0].Code != "acs-tdd-audit" {
+	if len(got) != 1 || got[0].Severity != SeverityWarning || got[0].Code != CodeACsTDDAudit {
 		t.Errorf("expected one warning finding with code \"acs-tdd-audit\", got: %+v", got)
 	}
 }
@@ -505,7 +505,7 @@ only AC-1 has a body heading
 		}},
 	}
 	got := acsBodyCoherence(tr)
-	f := findingByCode(got, "acs-body-coherence", "missing-heading")
+	f := findingByCode(got, CodeACsBodyCoherence, "missing-heading")
 	if f == nil {
 		t.Fatalf("expected acs-body-coherence/missing-heading; got: %+v", got)
 	}
@@ -552,7 +552,7 @@ no frontmatter entry for this one
 		}},
 	}
 	got := acsBodyCoherence(tr)
-	if findingByCode(got, "acs-body-coherence", "orphan-heading") == nil {
+	if findingByCode(got, CodeACsBodyCoherence, "orphan-heading") == nil {
 		t.Errorf("expected acs-body-coherence/orphan-heading; got: %+v", got)
 	}
 }
@@ -679,7 +679,7 @@ func TestRefsResolve_CompositeUnresolvedMilestone(t *testing.T) {
 		},
 	)
 	got := refsResolve(tr)
-	if findingByCode(got, "refs-resolve", "unresolved-milestone") == nil {
+	if findingByCode(got, CodeRefsResolve, "unresolved-milestone") == nil {
 		t.Errorf("expected refs-resolve/unresolved-milestone; got: %+v", got)
 	}
 }
@@ -699,7 +699,7 @@ func TestRefsResolve_CompositeUnresolvedAC(t *testing.T) {
 		},
 	)
 	got := refsResolve(tr)
-	if findingByCode(got, "refs-resolve", "unresolved-ac") == nil {
+	if findingByCode(got, CodeRefsResolve, "unresolved-ac") == nil {
 		t.Errorf("expected refs-resolve/unresolved-ac; got: %+v", got)
 	}
 }
@@ -717,7 +717,7 @@ func TestRefsResolve_CompositeRejectedOnClosedTargetField(t *testing.T) {
 		},
 	)
 	got := refsResolve(tr)
-	if findingByCode(got, "refs-resolve", "unresolved") == nil {
+	if findingByCode(got, CodeRefsResolve, "unresolved") == nil {
 		t.Errorf("expected refs-resolve/unresolved on closed-target composite; got: %+v", got)
 	}
 }

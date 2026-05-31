@@ -46,7 +46,7 @@ status: open
 
 	var found *Finding
 	for i, f := range got {
-		if f.Code == "archived-entity-not-terminal" && f.EntityID == "G-0099" {
+		if f.Code == CodeArchivedEntityNotTerminal && f.EntityID == "G-0099" {
 			found = &got[i]
 			break
 		}
@@ -108,7 +108,7 @@ status: addressed
 
 	got := Run(tr, loadErrs)
 	for _, f := range got {
-		if f.Code == "archived-entity-not-terminal" {
+		if f.Code == CodeArchivedEntityNotTerminal {
 			t.Errorf("unexpected finding: %+v", f)
 		}
 	}
@@ -143,7 +143,7 @@ status:
 
 	got := Run(tr, loadErrs)
 	for _, f := range got {
-		if f.Code == "archived-entity-not-terminal" {
+		if f.Code == CodeArchivedEntityNotTerminal {
 			t.Errorf("rule fired on empty-status entity (must defer): %+v", f)
 		}
 	}
@@ -174,10 +174,10 @@ status: not-a-real-status
 	got := Run(tr, loadErrs)
 	var sawArchive, sawValid bool
 	for _, f := range got {
-		if f.Code == "archived-entity-not-terminal" {
+		if f.Code == CodeArchivedEntityNotTerminal {
 			sawArchive = true
 		}
-		if f.Code == "status-valid" && f.EntityID == "G-0099" {
+		if f.Code == CodeStatusValid && f.EntityID == "G-0099" {
 			sawValid = true
 		}
 	}
@@ -237,7 +237,7 @@ status: open
 
 	terminalFindings := map[string]Finding{}
 	for _, f := range got {
-		if f.Code == "terminal-entity-not-archived" {
+		if f.Code == CodeTerminalEntityNotArchived {
 			terminalFindings[f.EntityID] = f
 		}
 	}
@@ -283,7 +283,7 @@ status:
 
 	got := Run(tr, loadErrs)
 	for _, f := range got {
-		if f.Code == "terminal-entity-not-archived" {
+		if f.Code == CodeTerminalEntityNotArchived {
 			t.Errorf("rule fired on empty-status entity (must defer): %+v", f)
 		}
 	}
@@ -311,7 +311,7 @@ status: addressed
 
 	got := Run(tr, loadErrs)
 	for _, f := range got {
-		if f.Code == "terminal-entity-not-archived" {
+		if f.Code == CodeTerminalEntityNotArchived {
 			t.Errorf("rule fired on archived terminal entity (must skip): %+v", f)
 		}
 	}
@@ -373,7 +373,7 @@ status: addressed
 
 	var milestoneFinding, gapFinding *Finding
 	for i, f := range got {
-		if f.Code != "terminal-entity-not-archived" {
+		if f.Code != CodeTerminalEntityNotArchived {
 			continue
 		}
 		switch f.EntityID {
@@ -395,7 +395,7 @@ status: addressed
 	// milestone false-positive (which would inflate to 2).
 	var aggregate *Finding
 	for i, f := range got {
-		if f.Code == "archive-sweep-pending" {
+		if f.Code == CodeArchiveSweepPending {
 			aggregate = &got[i]
 			break
 		}
@@ -463,9 +463,9 @@ status: open
 	leaves := 0
 	for i, f := range got {
 		switch f.Code {
-		case "archive-sweep-pending":
+		case CodeArchiveSweepPending:
 			aggregate = &got[i]
-		case "terminal-entity-not-archived":
+		case CodeTerminalEntityNotArchived:
 			leaves++
 		}
 	}
@@ -520,7 +520,7 @@ status: addressed
 
 	got := Run(tr, loadErrs)
 	for _, f := range got {
-		if f.Code == "archive-sweep-pending" {
+		if f.Code == CodeArchiveSweepPending {
 			t.Errorf("aggregate fired with zero pending-sweep entities (must be hidden): %+v", f)
 		}
 	}
@@ -550,7 +550,7 @@ status: open
 
 	got := Run(tr, loadErrs)
 	for _, f := range got {
-		if f.Code == "archived-entity-not-terminal" {
+		if f.Code == CodeArchivedEntityNotTerminal {
 			t.Errorf("rule fired on active-dir entity (location-keyed rule must skip): %+v", f)
 		}
 	}
@@ -582,22 +582,22 @@ func TestApplyArchiveSweepThreshold_UnsetIsNoOp(t *testing.T) {
 	t.Parallel()
 	build := func() []Finding {
 		return []Finding{
-			{Code: "archive-sweep-pending", Severity: SeverityWarning, Message: "47 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N"},
-			{Code: "terminal-entity-not-archived", Severity: SeverityWarning, EntityID: "G-0050"},
-			{Code: "refs-resolve", Severity: SeverityError, EntityID: "M-0002"},
+			{Code: CodeArchiveSweepPending, Severity: SeverityWarning, Message: "47 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N"},
+			{Code: CodeTerminalEntityNotArchived, Severity: SeverityWarning, EntityID: "G-0050"},
+			{Code: CodeRefsResolve, Severity: SeverityError, EntityID: "M-0002"},
 		}
 	}
 	findings := build()
 	// set=false, threshold=0 → no escalation regardless of count.
 	ApplyArchiveSweepThreshold(findings, 0, false, 47)
 	for _, f := range findings {
-		if f.Code == "archive-sweep-pending" && f.Severity != SeverityWarning {
+		if f.Code == CodeArchiveSweepPending && f.Severity != SeverityWarning {
 			t.Errorf("set=false: archive-sweep-pending severity = %v, want warning preserved", f.Severity)
 		}
-		if f.Code == "terminal-entity-not-archived" && f.Severity != SeverityWarning {
+		if f.Code == CodeTerminalEntityNotArchived && f.Severity != SeverityWarning {
 			t.Errorf("set=false: leaf severity = %v, want warning preserved", f.Severity)
 		}
-		if f.Code == "refs-resolve" && f.Severity != SeverityError {
+		if f.Code == CodeRefsResolve && f.Severity != SeverityError {
 			t.Errorf("refs-resolve severity = %v, want error preserved", f.Severity)
 		}
 	}
@@ -621,16 +621,16 @@ func TestApplyArchiveSweepThreshold_AtOrBelowStaysAdvisory(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			findings := []Finding{
-				{Code: "archive-sweep-pending", Severity: SeverityWarning},
-				{Code: "terminal-entity-not-archived", Severity: SeverityWarning, EntityID: "G-0050"},
+				{Code: CodeArchiveSweepPending, Severity: SeverityWarning},
+				{Code: CodeTerminalEntityNotArchived, Severity: SeverityWarning, EntityID: "G-0050"},
 			}
 			ApplyArchiveSweepThreshold(findings, 5, true, tc.count)
 			for _, f := range findings {
-				if f.Code == "archive-sweep-pending" && f.Severity != SeverityWarning {
+				if f.Code == CodeArchiveSweepPending && f.Severity != SeverityWarning {
 					t.Errorf("count=%d ≤ threshold=5: archive-sweep-pending severity = %v, want warning",
 						tc.count, f.Severity)
 				}
-				if f.Code == "terminal-entity-not-archived" && f.Severity != SeverityWarning {
+				if f.Code == CodeTerminalEntityNotArchived && f.Severity != SeverityWarning {
 					t.Errorf("leaf severity = %v, want warning preserved (leaves never escalate)", f.Severity)
 				}
 			}
@@ -652,20 +652,20 @@ func TestApplyArchiveSweepThreshold_PastThresholdEscalates(t *testing.T) {
 	t.Parallel()
 	findings := []Finding{
 		{
-			Code:     "archive-sweep-pending",
+			Code:     CodeArchiveSweepPending,
 			Severity: SeverityWarning,
 			Message:  "47 terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N",
 		},
-		{Code: "terminal-entity-not-archived", Severity: SeverityWarning, EntityID: "G-0050"},
-		{Code: "refs-resolve", Severity: SeverityError, EntityID: "M-0002"},
+		{Code: CodeTerminalEntityNotArchived, Severity: SeverityWarning, EntityID: "G-0050"},
+		{Code: CodeRefsResolve, Severity: SeverityError, EntityID: "M-0002"},
 	}
 	ApplyArchiveSweepThreshold(findings, 5, true, 47)
 	var aggregate *Finding
 	for i := range findings {
-		if findings[i].Code == "archive-sweep-pending" {
+		if findings[i].Code == CodeArchiveSweepPending {
 			aggregate = &findings[i]
 		}
-		if findings[i].Code == "terminal-entity-not-archived" && findings[i].Severity != SeverityWarning {
+		if findings[i].Code == CodeTerminalEntityNotArchived && findings[i].Severity != SeverityWarning {
 			t.Errorf("leaf severity = %v, want warning (leaves do not escalate)", findings[i].Severity)
 		}
 	}
@@ -706,7 +706,7 @@ func TestApplyArchiveSweepThreshold_NilFindingsIsNoOp(t *testing.T) {
 func TestApplyArchiveSweepThreshold_NoAggregateInSliceIsNoOp(t *testing.T) {
 	t.Parallel()
 	findings := []Finding{
-		{Code: "refs-resolve", Severity: SeverityError, EntityID: "M-0002"},
+		{Code: CodeRefsResolve, Severity: SeverityError, EntityID: "M-0002"},
 	}
 	ApplyArchiveSweepThreshold(findings, 5, true, 0)
 	if findings[0].Severity != SeverityError {

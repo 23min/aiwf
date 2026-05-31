@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	clicheck "github.com/23min/aiwf/internal/cli/check"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/history"
@@ -200,7 +201,7 @@ func TestResolveUntrailedRange_NoUpstream(t *testing.T) {
 	if advisory == nil {
 		t.Fatal("advisory is nil; want a scope-undefined warning")
 	}
-	if advisory.Code != "provenance-untrailered-scope-undefined" {
+	if advisory.Code != check.CodeProvenanceUntrailedScopeUndefined {
 		t.Errorf("advisory.Code = %q, want provenance-untrailered-scope-undefined", advisory.Code)
 	}
 }
@@ -282,7 +283,7 @@ func TestResolveUntrailedRange_SinceWins(t *testing.T) {
 	if rangeArg != "" {
 		t.Errorf("bad since: rangeArg = %q, want empty", rangeArg)
 	}
-	if advisory == nil || advisory.Code != "provenance-untrailered-scope-undefined" {
+	if advisory == nil || advisory.Code != check.CodeProvenanceUntrailedScopeUndefined {
 		t.Errorf("bad since: advisory = %+v, want scope-undefined", advisory)
 	}
 }

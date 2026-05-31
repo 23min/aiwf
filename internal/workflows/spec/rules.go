@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 )
 
@@ -182,7 +183,7 @@ func milestoneRules() []Rule {
 			Verb:              "promote",
 			Preconditions:     []Predicate{{Subject: "any-child-ac.status", Op: "==", Value: "open"}},
 			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "milestone-done-incomplete-acs",
+			ExpectedErrorCode: check.CodeMilestoneDoneIncompleteACs,
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0049", "R-AUDIT-0081"}, FP: []string{"R-FP-0061"}},
@@ -268,7 +269,7 @@ func adrRules() []Rule {
 			Verb:              "promote",
 			Preconditions:     []Predicate{{Subject: "self.superseded_by", Op: "==", Value: ""}},
 			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "adr-supersession-mutual",
+			ExpectedErrorCode: check.CodeADRSupersessionMutual,
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0013"}, FP: []string{"R-FP-0018"}},
@@ -310,7 +311,7 @@ func gapRules() []Rule {
 			Verb:              "promote",
 			Preconditions:     []Predicate{{Subject: "self.addressed_by", Op: "==", Value: ""}},
 			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "gap-addressed-has-resolver",
+			ExpectedErrorCode: check.CodeGapAddressedHasResolver,
 			RejectionLayer:    RejectionLayerCheckTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0089"}, FP: []string{"R-FP-0087"}},
@@ -530,7 +531,7 @@ func acRules() []Rule {
 			Verb:              "promote",
 			Preconditions:     []Predicate{{Subject: "parent.tdd", Op: "==", Value: "required"}, {Subject: "self.tdd_phase", Op: "!=", Value: "done"}},
 			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "acs-tdd-audit",
+			ExpectedErrorCode: check.CodeACsTDDAudit,
 			RejectionLayer:    RejectionLayerCheckTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Audit: []string{"R-AUDIT-0073"}, FP: []string{"R-FP-0060"}},

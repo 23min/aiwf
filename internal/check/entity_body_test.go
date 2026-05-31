@@ -95,7 +95,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 				t.Fatalf("entityBodyEmpty findings = %d, want 1: %+v", len(got), got)
 			}
 			f := got[0]
-			if f.Code != "entity-body-empty" {
+			if f.Code != CodeEntityBodyEmpty {
 				t.Errorf("Code = %q, want entity-body-empty", f.Code)
 			}
 			if f.Severity != SeverityWarning {
@@ -374,10 +374,10 @@ acs:
 	// Expect exactly one finding for AC-2; AC-1 is non-empty.
 	var sawAC2 bool
 	for _, f := range got {
-		if f.EntityID == "M-0001/AC-2" && f.Code == "entity-body-empty" {
+		if f.EntityID == "M-0001/AC-2" && f.Code == CodeEntityBodyEmpty {
 			sawAC2 = true
 		}
-		if f.EntityID == "M-0001/AC-1" && f.Code == "entity-body-empty" {
+		if f.EntityID == "M-0001/AC-1" && f.Code == CodeEntityBodyEmpty {
 			t.Errorf("AC-1 has prose; should not surface entity-body-empty: %+v", f)
 		}
 	}
@@ -456,10 +456,10 @@ acs:
 	got := entityBodyEmpty(tr)
 	var sawAC2 bool
 	for _, f := range got {
-		if f.EntityID == "M-0001/AC-2" && f.Code == "entity-body-empty" {
+		if f.EntityID == "M-0001/AC-2" && f.Code == CodeEntityBodyEmpty {
 			sawAC2 = true
 		}
-		if f.EntityID == "M-0001/AC-1" && f.Code == "entity-body-empty" {
+		if f.EntityID == "M-0001/AC-1" && f.Code == CodeEntityBodyEmpty {
 			t.Errorf("AC-1 has prose before the sub-heading; should not surface: %+v", f)
 		}
 	}
@@ -484,10 +484,10 @@ func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 	t.Parallel()
 	build := func() []Finding {
 		return []Finding{
-			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "milestone", EntityID: "M-0001"},
-			{Code: "entity-body-empty", Severity: SeverityWarning, Subcode: "ac", EntityID: "M-0001/AC-1"},
-			{Code: "acs-body-coherence", Severity: SeverityWarning, Subcode: "missing-heading", EntityID: "M-0001/AC-2"},
-			{Code: "refs-resolve", Severity: SeverityError, Subcode: "unresolved", EntityID: "M-0002"},
+			{Code: CodeEntityBodyEmpty, Severity: SeverityWarning, Subcode: "milestone", EntityID: "M-0001"},
+			{Code: CodeEntityBodyEmpty, Severity: SeverityWarning, Subcode: "ac", EntityID: "M-0001/AC-1"},
+			{Code: CodeACsBodyCoherence, Severity: SeverityWarning, Subcode: "missing-heading", EntityID: "M-0001/AC-2"},
+			{Code: CodeRefsResolve, Severity: SeverityError, Subcode: "unresolved", EntityID: "M-0002"},
 		}
 	}
 
@@ -496,7 +496,7 @@ func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 		ApplyTDDStrict(findings, true)
 		var sawMilestone, sawAC bool
 		for _, f := range findings {
-			if f.Code == "entity-body-empty" {
+			if f.Code == CodeEntityBodyEmpty {
 				if f.Severity != SeverityError {
 					t.Errorf("entity-body-empty %s severity = %v, want error under strict",
 						f.EntityID, f.Severity)
@@ -508,11 +508,11 @@ func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 					sawAC = true
 				}
 			}
-			if f.Code == "acs-body-coherence" && f.Severity != SeverityWarning {
+			if f.Code == CodeACsBodyCoherence && f.Severity != SeverityWarning {
 				t.Errorf("acs-body-coherence severity = %v, want warning unchanged (strict only escalates entity-body-empty)",
 					f.Severity)
 			}
-			if f.Code == "refs-resolve" && f.Severity != SeverityError {
+			if f.Code == CodeRefsResolve && f.Severity != SeverityError {
 				t.Errorf("refs-resolve severity = %v, want error preserved", f.Severity)
 			}
 		}
@@ -525,11 +525,11 @@ func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 		findings := build()
 		ApplyTDDStrict(findings, false)
 		for _, f := range findings {
-			if f.Code == "entity-body-empty" && f.Severity != SeverityWarning {
+			if f.Code == CodeEntityBodyEmpty && f.Severity != SeverityWarning {
 				t.Errorf("entity-body-empty %s severity = %v, want warning unchanged when strict=false",
 					f.EntityID, f.Severity)
 			}
-			if f.Code == "refs-resolve" && f.Severity != SeverityError {
+			if f.Code == CodeRefsResolve && f.Severity != SeverityError {
 				t.Errorf("refs-resolve severity = %v, want error preserved", f.Severity)
 			}
 		}
@@ -807,7 +807,7 @@ func TestEntityBodyEmpty_DoesNotEngageACSTDDAudit(t *testing.T) {
 			t.Fatalf("acs-tdd-audit findings = %d, want 1 (met+red is the audit's own contract); findings=%+v",
 				len(auditFindings), auditFindings)
 		}
-		if auditFindings[0].Code != "acs-tdd-audit" {
+		if auditFindings[0].Code != CodeACsTDDAudit {
 			t.Errorf("Code = %q, want acs-tdd-audit", auditFindings[0].Code)
 		}
 	})

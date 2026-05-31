@@ -15,6 +15,11 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
+// CodeFSMHistoryConsistent is the finding code emitted by
+// FSMHistoryConsistent (and fsm_history_walker.go's historyWalkErrorFindings).
+// Typed per G-0129.
+const CodeFSMHistoryConsistent = "fsm-history-consistent"
+
 // FSMHistoryConsistent is the kernel chokepoint that makes the per-
 // entity status FSM a tree-invariant rather than just a verb-
 // precondition (closes G-0132 when all of M-0130 lands). The rule
@@ -90,7 +95,7 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 			return nil
 		}
 		return []Finding{{
-			Code:     "fsm-history-consistent",
+			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "history-walk-error",
 			Severity: SeverityError,
 			Message:  "could not open git cat-file --batch subprocess: " + err.Error(),
@@ -155,7 +160,7 @@ func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree
 		// per-blob walkErrors collected before the fatal are still
 		// surfaced below alongside.
 		findings = append(findings, Finding{
-			Code:     "fsm-history-consistent",
+			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "history-walk-error",
 			Severity: SeverityError,
 			Message:  "walker failed: " + fatalErr.Error(),
@@ -344,7 +349,7 @@ func illegalTransitionFindings(observations []statusChange, ackedSHAs map[string
 			continue
 		}
 		out = append(out, Finding{
-			Code:     "fsm-history-consistent",
+			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "illegal-transition",
 			Severity: SeverityError,
 			Message: "entity " + o.EntityID + " status changed " + o.Prior + " → " + o.Next +
@@ -544,7 +549,7 @@ func manualEditFindings(observations []statusChange, ackedObs map[string]bool) [
 			continue
 		}
 		out = append(out, Finding{
-			Code:     "fsm-history-consistent",
+			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "manual-edit",
 			Severity: SeverityWarning,
 			Message: "entity " + o.EntityID + " status changed " + o.Prior + " → " + o.Next +
@@ -750,7 +755,7 @@ func forcedUntraileredFindings(observations []statusChange) []Finding {
 			continue
 		}
 		out = append(out, Finding{
-			Code:     "fsm-history-consistent",
+			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "forced-untrailered",
 			Severity: SeverityError,
 			Message: "entity " + o.EntityID + " status changed " + o.Prior + " → " + o.Next +

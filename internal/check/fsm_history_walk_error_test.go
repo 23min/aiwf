@@ -57,7 +57,7 @@ func TestFSMHistoryConsistent_AC4_CancelledContext_EmitsWalkError(t *testing.T) 
 
 	var hasWalkError bool
 	for _, f := range got {
-		if f.Code == "fsm-history-consistent" && f.Subcode == "history-walk-error" {
+		if f.Code == CodeFSMHistoryConsistent && f.Subcode == "history-walk-error" {
 			if f.Severity != SeverityError {
 				t.Errorf("history-walk-error severity = %q, want error", f.Severity)
 			}
@@ -122,9 +122,9 @@ func TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFindings(t *testin
 	var hasIllegalE0001, hasWalkErrorE0002 bool
 	for _, f := range got {
 		switch {
-		case f.Code == "fsm-history-consistent" && f.Subcode == "illegal-transition" && f.EntityID == "E-0001":
+		case f.Code == CodeFSMHistoryConsistent && f.Subcode == "illegal-transition" && f.EntityID == "E-0001":
 			hasIllegalE0001 = true
-		case f.Code == "fsm-history-consistent" && f.Subcode == "history-walk-error" && f.EntityID == "E-0002":
+		case f.Code == CodeFSMHistoryConsistent && f.Subcode == "history-walk-error" && f.EntityID == "E-0002":
 			hasWalkErrorE0002 = true
 		}
 	}

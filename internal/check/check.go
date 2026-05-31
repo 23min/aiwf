@@ -33,6 +33,23 @@ const (
 	SeverityWarning Severity = "warning"
 )
 
+// Finding codes emitted by this file. Typed per G-0129 so the
+// compiler closes on rename / retire across emit sites and tests.
+const (
+	CodeLoadError               = "load-error"
+	CodeCasePaths               = "case-paths"
+	CodeIDsUnique               = "ids-unique"
+	CodeRoadmapCaseCollision    = "roadmap-case-collision"
+	CodeFrontmatterShape        = "frontmatter-shape"
+	CodeIDPathConsistent        = "id-path-consistent"
+	CodeStatusValid             = "status-valid"
+	CodeRefsResolve             = "refs-resolve"
+	CodeNoCycles                = "no-cycles"
+	CodeTitlesNonempty          = "titles-nonempty"
+	CodeADRSupersessionMutual   = "adr-supersession-mutual"
+	CodeGapAddressedHasResolver = "gap-addressed-has-resolver"
+)
+
 // Finding is one structured report from a check. The finder fills in
 // Code, Severity, and Message; Path and EntityID provide locator
 // context where they apply; Subcode distinguishes variants of the same
@@ -147,7 +164,7 @@ func loadErrorsToFindings(loadErrs []tree.LoadError) []Finding {
 	out := make([]Finding, 0, len(loadErrs))
 	for _, le := range loadErrs {
 		out = append(out, Finding{
-			Code:     "load-error",
+			Code:     CodeLoadError,
 			Severity: SeverityError,
 			Message:  le.Err.Error(),
 			Path:     le.Path,
@@ -185,7 +202,7 @@ func casePaths(t *tree.Tree) []Finding {
 		first := group[0]
 		for _, e := range group[1:] {
 			findings = append(findings, Finding{
-				Code:     "case-paths",
+				Code:     CodeCasePaths,
 				Severity: SeverityError,
 				Message:  fmt.Sprintf("path %q differs only in case from %q; on case-insensitive filesystems they collapse to one entity", e.Path, first.Path),
 				Path:     e.Path,
@@ -213,7 +230,7 @@ func idsUnique(t *tree.Tree) []Finding {
 	check := func(e *entity.Entity) {
 		if existing, ok := seen[e.ID]; ok {
 			findings = append(findings, Finding{
-				Code:     "ids-unique",
+				Code:     CodeIDsUnique,
 				Severity: SeverityError,
 				Message:  fmt.Sprintf("id %q is also used by %s", e.ID, existing.Path),
 				Path:     e.Path,
@@ -264,7 +281,7 @@ func idsUnique(t *tree.Tree) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Code:     "ids-unique",
+			Code:     CodeIDsUnique,
 			Severity: SeverityError,
 			Message:  fmt.Sprintf("id %q is allocated on this branch (%s) and on trunk (%s) for different entities", tid.ID, existing.Path, tid.Path),
 			Path:     existing.Path,
@@ -314,7 +331,7 @@ func roadmapCaseCollision(t *tree.Tree) []Finding {
 	}
 	sort.Strings(variants)
 	return []Finding{{
-		Code:     "roadmap-case-collision",
+		Code:     CodeRoadmapCaseCollision,
 		Severity: SeverityWarning,
 		Message: fmt.Sprintf("multiple case-variants of the roadmap artifact exist at the repo root (%s); on a case-sensitive filesystem these are distinct files and `aiwf render roadmap` cannot reconcile them",
 			strings.Join(variants, ", ")),
@@ -340,7 +357,7 @@ func frontmatterShape(t *tree.Tree) []Finding {
 		}
 		if e.ID == "" {
 			findings = append(findings, Finding{
-				Code:     "frontmatter-shape",
+				Code:     CodeFrontmatterShape,
 				Severity: SeverityError,
 				Message:  "missing required field: id",
 				Path:     e.Path,
@@ -348,7 +365,7 @@ func frontmatterShape(t *tree.Tree) []Finding {
 			})
 		} else if err := entity.ValidateID(e.Kind, e.ID); err != nil {
 			findings = append(findings, Finding{
-				Code:     "frontmatter-shape",
+				Code:     CodeFrontmatterShape,
 				Severity: SeverityError,
 				Message:  err.Error(),
 				Path:     e.Path,
@@ -358,7 +375,7 @@ func frontmatterShape(t *tree.Tree) []Finding {
 		}
 		if e.Status == "" {
 			findings = append(findings, Finding{
-				Code:     "frontmatter-shape",
+				Code:     CodeFrontmatterShape,
 				Severity: SeverityError,
 				Message:  "missing required field: status",
 				Path:     e.Path,
@@ -375,7 +392,7 @@ func perKindRequiredFields(e *entity.Entity) []Finding {
 	var findings []Finding
 	if e.Kind == entity.KindMilestone && e.Parent == "" {
 		findings = append(findings, Finding{
-			Code:     "frontmatter-shape",
+			Code:     CodeFrontmatterShape,
 			Severity: SeverityError,
 			Message:  "milestone missing required field: parent",
 			Path:     e.Path,
@@ -416,7 +433,7 @@ func idPathConsistent(t *tree.Tree) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Code:     "id-path-consistent",
+			Code:     CodeIDPathConsistent,
 			Severity: SeverityError,
 			// Render canonical ids in the user-facing message so
 			// the comparison is unambiguous regardless of on-disk
@@ -442,7 +459,7 @@ func statusValid(t *tree.Tree) []Finding {
 		}
 		if !entity.IsAllowedStatus(e.Kind, e.Status) {
 			findings = append(findings, Finding{
-				Code:     "status-valid",
+				Code:     CodeStatusValid,
 				Severity: SeverityError,
 				Message: fmt.Sprintf("status %q is not allowed for kind %s (allowed: %s)",
 					e.Status, e.Kind, strings.Join(entity.AllowedStatuses(e.Kind), ", ")),
@@ -516,7 +533,7 @@ func refsResolve(t *tree.Tree) []Finding {
 			target, ok := idx[entity.Canonicalize(ref.Target)]
 			if !ok {
 				findings = append(findings, Finding{
-					Code:     "refs-resolve",
+					Code:     CodeRefsResolve,
 					Severity: SeverityError,
 					Subcode:  "unresolved",
 					Message: fmt.Sprintf("%s field %q references unknown id %q",
@@ -539,7 +556,7 @@ func refsResolve(t *tree.Tree) []Finding {
 			}
 			if !matched {
 				findings = append(findings, Finding{
-					Code:     "refs-resolve",
+					Code:     CodeRefsResolve,
 					Severity: SeverityError,
 					Subcode:  "wrong-kind",
 					Message: fmt.Sprintf("%s field %q expects kind in [%s], but %q is %s",
@@ -563,7 +580,7 @@ func resolveCompositeRef(e *entity.Entity, ref entity.ForwardRef, idx map[string
 	parentEntity, parentOK := idx[entity.Canonicalize(parent)]
 	if !parentOK {
 		return Finding{
-			Code:     "refs-resolve",
+			Code:     CodeRefsResolve,
 			Severity: SeverityError,
 			Subcode:  "unresolved-milestone",
 			Message: fmt.Sprintf("%s field %q references composite id %q but parent %q does not exist",
@@ -579,7 +596,7 @@ func resolveCompositeRef(e *entity.Entity, ref entity.ForwardRef, idx map[string
 		}
 	}
 	return Finding{
-		Code:     "refs-resolve",
+		Code:     CodeRefsResolve,
 		Severity: SeverityError,
 		Subcode:  "unresolved-ac",
 		Message: fmt.Sprintf("%s field %q references %q but %s has no %s in acs[]",
@@ -617,7 +634,7 @@ func noCycles(t *tree.Tree) []Finding {
 			path = e.Path
 		}
 		findings = append(findings, Finding{
-			Code:     "no-cycles",
+			Code:     CodeNoCycles,
 			Severity: SeverityError,
 			Subcode:  "depends_on",
 			Message:  fmt.Sprintf("milestone %s is on a depends_on cycle", id),
@@ -641,7 +658,7 @@ func noCycles(t *tree.Tree) []Finding {
 			path = e.Path
 		}
 		findings = append(findings, Finding{
-			Code:     "no-cycles",
+			Code:     CodeNoCycles,
 			Severity: SeverityError,
 			Subcode:  "supersedes",
 			Message:  fmt.Sprintf("ADR %s is on a supersedes/superseded_by cycle", id),
@@ -716,7 +733,7 @@ func titlesNonempty(t *tree.Tree) []Finding {
 	for _, e := range t.Entities {
 		if strings.TrimSpace(e.Title) == "" {
 			findings = append(findings, Finding{
-				Code:     "titles-nonempty",
+				Code:     CodeTitlesNonempty,
 				Severity: SeverityWarning,
 				Message:  "title is empty or whitespace-only",
 				Path:     e.Path,
@@ -758,7 +775,7 @@ func adrSupersessionMutual(t *tree.Tree) []Finding {
 		}
 		if !found {
 			findings = append(findings, Finding{
-				Code:     "adr-supersession-mutual",
+				Code:     CodeADRSupersessionMutual,
 				Severity: SeverityWarning,
 				Message: fmt.Sprintf("ADR %s claims it is superseded by %s, but %s.supersedes does not include %s",
 					a.ID, b.ID, b.ID, a.ID),
@@ -787,7 +804,7 @@ func gapAddressedHasResolver(t *tree.Tree) []Finding {
 	for _, g := range t.ByKind(entity.KindGap) {
 		if g.Status == entity.StatusAddressed && len(g.AddressedBy) == 0 && len(g.AddressedByCommit) == 0 {
 			findings = append(findings, Finding{
-				Code:     "gap-addressed-has-resolver",
+				Code:     CodeGapAddressedHasResolver,
 				Severity: SeverityWarning,
 				Message:  "gap is marked addressed but addressed_by and addressed_by_commit are both empty",
 				Path:     g.Path,

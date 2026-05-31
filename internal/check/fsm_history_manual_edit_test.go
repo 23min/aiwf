@@ -47,7 +47,7 @@ func TestManualEditFindings_FiresOnLegalNonSovereignWithoutVerb(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}
-	if got[0].Code != "fsm-history-consistent" {
+	if got[0].Code != CodeFSMHistoryConsistent {
 		t.Errorf("code = %q, want fsm-history-consistent", got[0].Code)
 	}
 	if got[0].Subcode != "manual-edit" {
@@ -430,7 +430,7 @@ func TestFSMHistoryConsistent_FiresManualEdit_OnLegalUntraileredCommit(t *testin
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}
 	f := got[0]
-	if f.Code != "fsm-history-consistent" {
+	if f.Code != CodeFSMHistoryConsistent {
 		t.Errorf("code = %q, want fsm-history-consistent", f.Code)
 	}
 	if f.Subcode != "manual-edit" {

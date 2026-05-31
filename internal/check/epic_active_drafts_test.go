@@ -32,7 +32,7 @@ func TestEpicActiveNoDraftedMilestones_FiresOnActiveEpicWithNoDrafts(t *testing.
 
 	var found *Finding
 	for i := range got {
-		if got[i].Code == "epic-active-no-drafted-milestones" {
+		if got[i].Code == CodeEpicActiveNoDraftedMilestones {
 			found = &got[i]
 			break
 		}
@@ -61,7 +61,7 @@ func TestEpicActiveNoDraftedMilestones_SilentWhenDraftPresent(t *testing.T) {
 		&entity.Entity{ID: "M-0002", Kind: entity.KindMilestone, Title: "Queued", Status: entity.StatusDraft, Parent: "E-0001"},
 	)
 	got := Run(tr, nil)
-	if hasFindingCode(got, "epic-active-no-drafted-milestones") {
+	if hasFindingCode(got, CodeEpicActiveNoDraftedMilestones) {
 		t.Errorf("rule fired despite a drafted milestone being present; codes: %v", codes(got))
 	}
 }
@@ -88,7 +88,7 @@ func TestEpicActiveNoDraftedMilestones_SilentForNonActiveEpic(t *testing.T) {
 				&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Test", Status: tc.status},
 			)
 			got := Run(tr, nil)
-			if hasFindingCode(got, "epic-active-no-drafted-milestones") {
+			if hasFindingCode(got, CodeEpicActiveNoDraftedMilestones) {
 				t.Errorf("rule fired on status %q; codes: %v", tc.status, codes(got))
 			}
 		})
@@ -108,7 +108,7 @@ func TestEpicActiveNoDraftedMilestones_IgnoresMilestonesUnderOtherEpics(t *testi
 		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "Other epic's draft", Status: entity.StatusDraft, Parent: "E-0002"},
 	)
 	got := Run(tr, nil)
-	if !hasFindingCode(got, "epic-active-no-drafted-milestones") {
+	if !hasFindingCode(got, CodeEpicActiveNoDraftedMilestones) {
 		t.Errorf("rule should fire on E-0001 despite a draft milestone under a different parent; codes: %v", codes(got))
 	}
 }
@@ -129,7 +129,7 @@ func TestEpicActiveNoDraftedMilestones_HintReferencesStartEpicPreflight(t *testi
 
 	var found *Finding
 	for i := range got {
-		if got[i].Code == "epic-active-no-drafted-milestones" {
+		if got[i].Code == CodeEpicActiveNoDraftedMilestones {
 			found = &got[i]
 			break
 		}

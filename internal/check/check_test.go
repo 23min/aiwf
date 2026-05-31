@@ -67,7 +67,7 @@ func TestIDsUnique_TrunkCollision(t *testing.T) {
 		t.Fatalf("idsUnique findings = %d, want 1: %+v", len(got), got)
 	}
 	f := got[0]
-	if f.Code != "ids-unique" {
+	if f.Code != CodeIDsUnique {
 		t.Errorf("Code = %q, want ids-unique", f.Code)
 	}
 	if f.EntityID != "G-0035" {
@@ -280,7 +280,7 @@ func TestCasePaths_ReportsCaseEquivalentEntities(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("casePaths findings = %d, want 1: %+v", len(got), got)
 	}
-	if got[0].Code != "case-paths" {
+	if got[0].Code != CodeCasePaths {
 		t.Errorf("code = %q, want case-paths", got[0].Code)
 	}
 	// Message must name the colliding pair so the user can locate them.
@@ -357,9 +357,9 @@ func TestFrontmatterShape(t *testing.T) {
 	)
 	got := frontmatterShape(tr)
 	want := []string{
-		"frontmatter-shape", // missing id (a.md)
-		"frontmatter-shape", // bad id format (b.md)
-		"frontmatter-shape", // milestone missing parent (c.md)
+		CodeFrontmatterShape, // missing id (a.md)
+		CodeFrontmatterShape, // bad id format (b.md)
+		CodeFrontmatterShape, // milestone missing parent (c.md)
 	}
 	if diff := cmp.Diff(want, codes(got)); diff != "" {
 		t.Errorf("codes mismatch (-want +got):\n%s\nfindings: %+v", diff, got)
@@ -655,7 +655,7 @@ func TestIdPathConsistent_Mismatch(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("want 1 finding, got %+v", got)
 	}
-	if got[0].Code != "id-path-consistent" {
+	if got[0].Code != CodeIDPathConsistent {
 		t.Errorf("Code = %q, want id-path-consistent", got[0].Code)
 	}
 	if got[0].EntityID != "M-0100" {
@@ -832,7 +832,7 @@ func TestNoCycles_DependsOn(t *testing.T) {
 		t.Fatalf("findings = %d, want 3: %+v", len(got), got)
 	}
 	for _, f := range got {
-		if f.Code != "no-cycles" || f.Subcode != "depends_on" {
+		if f.Code != CodeNoCycles || f.Subcode != "depends_on" {
 			t.Errorf("bad finding: %+v", f)
 		}
 	}
@@ -849,7 +849,7 @@ func TestNoCycles_ADRChain(t *testing.T) {
 		t.Fatalf("findings = %d, want 2: %+v", len(got), got)
 	}
 	for _, f := range got {
-		if f.Code != "no-cycles" || f.Subcode != "supersedes" {
+		if f.Code != CodeNoCycles || f.Subcode != "supersedes" {
 			t.Errorf("bad finding: %+v", f)
 		}
 	}
@@ -934,8 +934,8 @@ func TestGapAddressedHasResolver(t *testing.T) {
 	}
 	// M-0142/AC-2: the emitted code matches the gap FSM vocabulary
 	// (`addressed` terminal), not the retired `resolved` term.
-	if got[0].Code != "gap-addressed-has-resolver" {
-		t.Errorf("Code = %q, want %q", got[0].Code, "gap-addressed-has-resolver")
+	if got[0].Code != CodeGapAddressedHasResolver {
+		t.Errorf("Code = %q, want %q", got[0].Code, CodeGapAddressedHasResolver)
 	}
 }
 
@@ -965,7 +965,7 @@ func TestRun_LoadErrorsAreFindings(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("got %d, want 1: %+v", len(got), got)
 	}
-	if got[0].Code != "load-error" {
+	if got[0].Code != CodeLoadError {
 		t.Errorf("got %+v", got[0])
 	}
 }
@@ -1138,7 +1138,7 @@ func TestRun_PopulatesHintsAndLines(t *testing.T) {
 	findings := Run(tr, nil)
 	var refsFinding *Finding
 	for i := range findings {
-		if findings[i].Code == "refs-resolve" {
+		if findings[i].Code == CodeRefsResolve {
 			refsFinding = &findings[i]
 			break
 		}
@@ -1211,10 +1211,10 @@ func TestSortFindings_ErrorsBeforeWarnings(t *testing.T) {
 // TestHintFor_KnownAndUnknown probes the public hint table.
 func TestHintFor_KnownAndUnknown(t *testing.T) {
 	t.Parallel()
-	if HintFor("refs-resolve", "unresolved") == "" {
+	if HintFor(CodeRefsResolve, "unresolved") == "" {
 		t.Errorf("known code+subcode should return a hint")
 	}
-	if HintFor("titles-nonempty", "") == "" {
+	if HintFor(CodeTitlesNonempty, "") == "" {
 		t.Errorf("known code (no subcode) should return a hint")
 	}
 	if HintFor("never-registered", "") != "" {

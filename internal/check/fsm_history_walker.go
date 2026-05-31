@@ -245,7 +245,7 @@ func historyWalkErrorFindings(walkErrors []walkError) []Finding {
 		detail.WriteString(": ")
 		detail.WriteString(we.Err.Error())
 		out = append(out, Finding{
-			Code:     "fsm-history-consistent",
+			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "history-walk-error",
 			Severity: SeverityError,
 			Message:  detail.String(),

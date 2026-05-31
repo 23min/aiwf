@@ -7,6 +7,13 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
+// Finding codes emitted by this file. Typed per G-0129.
+const (
+	CodeTerminalEntityNotArchived = "terminal-entity-not-archived"
+	CodeArchiveSweepPending       = "archive-sweep-pending"
+	CodeArchivedEntityNotTerminal = "archived-entity-not-terminal"
+)
+
 // terminalEntityNotArchived reports any entity whose frontmatter
 // status is terminal but whose file still lives in an active dir
 // (i.e., not yet swept into archive/). This is the normal transient
@@ -31,7 +38,7 @@ func terminalEntityNotArchived(t *tree.Tree) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Code:     "terminal-entity-not-archived",
+			Code:     CodeTerminalEntityNotArchived,
 			Severity: SeverityWarning,
 			Message: fmt.Sprintf("entity %s has terminal status %q but file is still in the active tree; awaiting `aiwf archive --apply` sweep",
 				e.ID, e.Status),
@@ -96,7 +103,7 @@ func archiveSweepPending(t *tree.Tree) []Finding {
 		return nil
 	}
 	return []Finding{{
-		Code:     "archive-sweep-pending",
+		Code:     CodeArchiveSweepPending,
 		Severity: SeverityWarning,
 		Message: fmt.Sprintf("%d terminal entities awaiting `aiwf archive --apply`. Set `archive.sweep_threshold` in aiwf.yaml to escalate to blocking past N",
 			count),
@@ -153,7 +160,7 @@ func ApplyArchiveSweepThreshold(findings []Finding, threshold int, set bool, cou
 		return
 	}
 	for i := range findings {
-		if findings[i].Code != "archive-sweep-pending" {
+		if findings[i].Code != CodeArchiveSweepPending {
 			continue
 		}
 		findings[i].Severity = SeverityError
@@ -200,7 +207,7 @@ func archivedEntityNotTerminal(t *tree.Tree) []Finding {
 			continue
 		}
 		findings = append(findings, Finding{
-			Code:     "archived-entity-not-terminal",
+			Code:     CodeArchivedEntityNotTerminal,
 			Severity: SeverityError,
 			Message: fmt.Sprintf("entity %s lives under archive/ but status %q is not terminal; archive is the structural projection of FSM-terminality (ADR-0004 §Reversal)",
 				e.ID, e.Status),

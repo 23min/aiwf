@@ -81,7 +81,7 @@ func TestOutputFormat_EmitHelpers(t *testing.T) {
 	})
 
 	errFindings := []check.Finding{
-		{Code: "status-valid", Severity: check.SeverityError, Message: "bad status", EntityID: "E-0001"},
+		{Code: check.CodeStatusValid, Severity: check.SeverityError, Message: "bad status", EntityID: "E-0001"},
 	}
 
 	t.Run("emitFindings json carries findings", func(t *testing.T) {
@@ -96,7 +96,7 @@ func TestOutputFormat_EmitHelpers(t *testing.T) {
 		if err := json.Unmarshal([]byte(out), &env); err != nil {
 			t.Fatalf("stdout not JSON: %v\n%s", err, out)
 		}
-		if env.Status != "findings" || len(env.Findings) != 1 || env.Findings[0].Code != "status-valid" {
+		if env.Status != "findings" || len(env.Findings) != 1 || env.Findings[0].Code != check.CodeStatusValid {
 			t.Errorf("unexpected envelope: status=%q findings=%+v", env.Status, env.Findings)
 		}
 	})

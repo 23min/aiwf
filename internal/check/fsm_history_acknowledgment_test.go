@@ -38,7 +38,7 @@ func TestFSMHistoryConsistent_AC2_AcknowledgmentExemptsIllegalTransition(t *test
 
 	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
 	for _, f := range got {
-		if f.Code == "fsm-history-consistent" && f.Subcode == "illegal-transition" && f.EntityID == "E-0001" {
+		if f.Code == CodeFSMHistoryConsistent && f.Subcode == "illegal-transition" && f.EntityID == "E-0001" {
 			t.Errorf("expected no illegal-transition for E-0001 (acknowledged via aiwf-force-for: %s); got finding %+v",
 				illegalSHA[:8], f)
 		}
@@ -64,7 +64,7 @@ func TestFSMHistoryConsistent_AC3_NoAcknowledgmentStillFires(t *testing.T) {
 	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
 	var hasFinding bool
 	for _, f := range got {
-		if f.Code == "fsm-history-consistent" && f.Subcode == "illegal-transition" && f.EntityID == "E-0001" {
+		if f.Code == CodeFSMHistoryConsistent && f.Subcode == "illegal-transition" && f.EntityID == "E-0001" {
 			hasFinding = true
 		}
 	}
@@ -100,7 +100,7 @@ func TestFSMHistoryConsistent_AC2_AcknowledgmentScopedToTarget(t *testing.T) {
 	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
 	var exemptStillFires, otherFires bool
 	for _, f := range got {
-		if f.Code != "fsm-history-consistent" || f.Subcode != "illegal-transition" {
+		if f.Code != CodeFSMHistoryConsistent || f.Subcode != "illegal-transition" {
 			continue
 		}
 		if strings.Contains(f.Message, exemptSHA[:8]) {
