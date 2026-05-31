@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Embedded-vs-on-disk drift detected and reported
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Container detected with project scope nudges --scope user
       status: open
