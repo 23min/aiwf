@@ -19,7 +19,7 @@ acs:
     - id: AC-3
       title: Consent-gated write creates .bak and inserts statusLine
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Pre-existing statusLine key blocks write with merge guidance
       status: open
