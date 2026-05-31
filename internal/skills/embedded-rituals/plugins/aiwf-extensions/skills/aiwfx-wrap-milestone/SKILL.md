@@ -101,9 +101,16 @@ Show the user:
 
 ### 9. After commit approval
 
+The wrap commit touches a milestone entity file (`work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md`), so it carries the three required trailers — `aiwf-verb: wrap-milestone`, `aiwf-entity: M-NNNN`, `aiwf-actor: human/<id>`. Skipping any one of them trips the kernel's `provenance-untrailered-entity-commit` finding on the file touch. Parallel shape to `aiwfx-wrap-epic`'s trailered merge + wrap-artefact commits:
+
 ```bash
-git commit -m "<approved-message>"
+git commit -m "<approved-message>" \
+  --trailer "aiwf-verb: wrap-milestone" \
+  --trailer "aiwf-entity: M-NNNN" \
+  --trailer "aiwf-actor: human/<id>"
 ```
+
+The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy.
 
 ### 10. 🛑 Push gate
 

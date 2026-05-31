@@ -49,7 +49,7 @@ const CodeTrailerVerbUnknown = "trailer-verb-unknown"
 // `add`/`promote`/etc. verbs still resolve via registeredVerbs.
 //
 // Closes G-0150.
-func RunTrailerVerbUnknown(commits []scope.Commit, registeredVerbs map[string]struct{}, ritualVerbs map[string]struct{}) []Finding {
+func RunTrailerVerbUnknown(commits []scope.Commit, registeredVerbs, ritualVerbs map[string]struct{}) []Finding {
 	if len(commits) == 0 || len(registeredVerbs) == 0 {
 		return nil
 	}

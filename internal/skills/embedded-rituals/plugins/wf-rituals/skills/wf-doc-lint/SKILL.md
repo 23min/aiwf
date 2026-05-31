@@ -1,6 +1,6 @@
 ---
 name: wf-doc-lint
-description: Mechanical checks over the project's narrative documentation tree (`docs/`). Reports broken code references, removed-feature docs, orphan files, and documentation TODOs. Reports only — never rewrites prose. Use before opening a PR that touches code with documentation impact, or as a periodic doc-hygiene pass.
+description: Mechanical checks over the project's narrative documentation tree (`docs/`). Reports broken code references, removed-feature docs, orphan files, and documentation TODOs. Reports only — never rewrites prose. Use before proposing a change for merge that touches code with documentation impact, or as a periodic doc-hygiene pass.
 ---
 
 # wf-doc-lint
@@ -11,7 +11,7 @@ This skill is intentionally narrow: structural correctness of narrative document
 
 ## When to use
 
-- Before opening a PR that touches code referenced from docs.
+- Before proposing a change for merge that touches code referenced from docs.
 - After a refactor that renamed or deleted symbols.
 - As a periodic doc-hygiene pass on a slow week.
 - Inside a heavier wrap ritual that wants a doc check before declaring done.
@@ -94,7 +94,7 @@ When this skill runs as advisory ritual, point the operator at their `.gitleaks.
 1. Identify the docs root. Default: `docs/`. Some projects use `documentation/`, `book/`, or a flat top-level. Read `README.md` or look for the obvious folder.
 2. Decide on scope:
    - **Full** — every doc under the docs root.
-   - **Scoped** — docs that intersect with a given change-set (a list of changed source files). Faster, useful inside a PR.
+   - **Scoped** — docs that intersect with a given change-set (a list of changed source files). Faster, useful inside a focused review.
 3. Run each of the four checks above.
 4. Emit the report (see Output below).
 5. **Stop.** Don't fix anything. Don't append to a log file. Don't update an index.

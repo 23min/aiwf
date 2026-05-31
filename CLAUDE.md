@@ -167,17 +167,15 @@ History: G-0147 introduced the `make diag-aiwf` target as the recommended chokep
 
 ---
 
-## Cross-repo plugin testing
+## Ritual content authoring
 
-The rituals (`aiwfx-*` / `wf-*` skills, agents, templates) are authored upstream at [`https://github.com/23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals) and **vendored into this repo as a pinned snapshot** under `internal/skills/embedded-rituals/` (pinned in `rituals.lock`, refreshed by `make sync-rituals`), then embedded via `go:embed` and materialized by `aiwf init` / `aiwf update` (ADR-0014, E-0038). The snapshot — not a marketplace install — is canonical in the consumer.
+The rituals (`aiwfx-*` / `wf-*` skills, agents, templates) are **authored directly** at `internal/skills/embedded-rituals/plugins/<plugin>/skills/<skill>/SKILL.md`, embedded via `go:embed`, and materialized into the consumer's `.claude/` by `aiwf init` / `aiwf update` (ADR-0014, E-0038). A ritual edit is one commit in this repo — no cross-repo coordination.
 
-The authoritative drift guard is **`internal/policies/rituals_drift_test.go` (`TestRituals_VendoredMatchesUpstream`, M-0148)**: it fetches the upstream repo at the `rituals.lock` ref and byte-compares the vendored snapshot, skipping under `-short`/offline. That is the embed-era replacement for the retired marketplace-cache comparison.
+The upstream repo [`23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals) is **archived** (read-only). It was the authoring channel before ADR-0016 ratified the retirement; the git history there is preserved for archaeology. The embedded snapshot at `internal/skills/embedded-rituals/` IS the single source of truth (ADR-0016).
 
-When a milestone's deliverable is ritual `SKILL.md` content, the **authoring location is a fixture in this repo** at `internal/policies/testdata/<skill-name>/SKILL.md`; AC tests under `internal/policies/` assert content claims against the fixture (red→green TDD against it). At wrap, the content lands upstream and is re-vendored into `embedded-rituals/`.
+When a milestone's deliverable is ritual `SKILL.md` content, the **authoring location is the embedded snapshot itself**; AC tests under `internal/policies/` assert content claims against the embedded bytes via the path constants (`aiwfxWhiteboardFixturePath`, etc. — each points at the embedded snapshot path per G-0182).
 
-> **Retired (E-0038 / M-0152):** the old fixture-vs-marketplace-cache drift tests (`Test*_DriftAgainstCache` / `*_CacheComparison`, comparing the fixture against `~/.claude/plugins/cache/…`) were removed when the marketplace channel was retired. They tested a dead channel and were machine-cache-dependent (a plugin-cache shift could block any commit). The canonical drift check is now `TestRituals_VendoredMatchesUpstream`. The testdata fixtures still back the per-AC *content* assertions; consolidating them onto the embedded snapshot to eliminate the duplication is tracked as a follow-up gap.
-
-Subtree and submodule are wrong for vendoring: the rituals repo is the upstream, and a submodule embeds as an empty dir through the Go module proxy (ADR-0014). **No tests live in the rituals repo** — it stays pure markdown.
+> **Retired (G-0193 / ADR-0016):** `rituals.lock`, `scripts/sync-rituals.sh`, the `sync-rituals` Make target, and `TestRituals_VendoredMatchesUpstream` were removed when the upstream authoring channel was retired. They policed a drift class that no longer exists (there is no upstream to drift from). The earlier E-0038 / M-0152 retirement of the marketplace-cache drift tests (`Test*_DriftAgainstCache` / `*_CacheComparison`) was the first step on the same simplification arc.
 
 ---
 

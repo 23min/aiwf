@@ -15,14 +15,10 @@ import "testing"
 // Update the expected set when an intentional ritual-stamp change
 // lands. Pre-G-0190 the kernel held a hand-maintained map containing
 // both `wrap-epic` and `wrap-milestone`; the latter was a defensive
-// future-proofing entry not actually stamped by any embedded skill
-// (aiwfx-wrap-milestone's step-9 wrap commit emits no aiwf-* trailers
-// today; the moment of closure is captured by step-5's `aiwf promote`
-// stamp). G-0190 drops the defensive padding; a follow-up to retire
-// the upstream-rituals authoring channel will let the wrap-milestone
-// stamp land cleanly on the embedded snapshot in one commit (no
-// cross-repo coordination), at which point the want{} set extends to
-// include "wrap-milestone".
+// future-proofing entry not actually stamped by any embedded skill.
+// G-0193 retired the upstream authoring channel and landed the
+// wrap-milestone trailer stamp on the embedded snapshot in the same
+// patch, so `wrap-milestone` joins `wrap-epic` in the expected set.
 func TestRitualTrailerVerbs_DerivedFromEmbedded(t *testing.T) {
 	t.Parallel()
 	got, err := RitualTrailerVerbs()
@@ -30,7 +26,8 @@ func TestRitualTrailerVerbs_DerivedFromEmbedded(t *testing.T) {
 		t.Fatalf("RitualTrailerVerbs(): %v", err)
 	}
 	want := map[string]struct{}{
-		"wrap-epic": {},
+		"wrap-epic":      {},
+		"wrap-milestone": {},
 	}
 	if len(got) != len(want) {
 		t.Errorf("RitualTrailerVerbs set size = %d, want %d (got=%v want=%v)", len(got), len(want), sortedKeys(got), sortedKeys(want))
