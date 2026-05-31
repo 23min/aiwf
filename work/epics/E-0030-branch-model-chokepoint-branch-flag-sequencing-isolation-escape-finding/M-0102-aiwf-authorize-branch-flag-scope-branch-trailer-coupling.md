@@ -1,7 +1,7 @@
 ---
 id: M-0102
 title: aiwf authorize --branch flag + scope-branch trailer coupling
-status: draft
+status: in_progress
 parent: E-0030
 tdd: required
 acs:
