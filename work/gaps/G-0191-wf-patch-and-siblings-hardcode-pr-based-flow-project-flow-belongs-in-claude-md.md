@@ -35,24 +35,31 @@ The current `wf-patch` collapses these into one prescriptive recipe. That's the 
 
 ## Resolution shape
 
-Edit the three offending skills in the embedded rituals snapshot at `internal/skills/embedded-rituals/plugins/wf-rituals/skills/wf-patch/SKILL.md` (and the matching testdata fixture at `internal/policies/testdata/wf-patch/SKILL.md`), plus the `wf-review-code` and `wf-doc-lint` counterparts:
+Edit the three offending skills in place at the **canonical embedded-rituals snapshot** (post-E-0038 / ADR-0014):
 
-1. **`wf-patch`** — replace step 8's "PR gate" with a project-flow-agnostic *"Merge gate. Confirm with the user before merging the patch back to mainline. The mechanism — open a PR, fast-forward merge to main, rebase-and-push, etc. — follows the project's `CLAUDE.md` §"Working in this repo" policy."* Replace the *"every patch goes through a branch and PR"* anti-pattern with *"every patch goes through a branch and an explicit merge — the branch is the audit trail; the merge mechanism is project-specific."* Update the description to drop the *"PR ritual"* framing.
+- **Primary edit location:** `internal/skills/embedded-rituals/plugins/wf-rituals/skills/<skill>/SKILL.md` — the embedded copy that `aiwf init` / `aiwf update` materializes into the consumer's `.claude/skills/`. This is what actually ships.
+- **Paired edit (until G-0182 lands):** `internal/policies/testdata/<skill>/SKILL.md` — the per-AC content-assertion fixture. Edits must land in the same commit per CLAUDE.md §"Cross-repo plugin testing" until G-0182 collapses this duplication onto the embedded snapshot.
+- **Upstream sync:** `rituals.lock`-pinned `23min/ai-workflow-rituals` upstream — refresh via `make sync-rituals` after the matching upstream commit lands. `TestRituals_VendoredMatchesUpstream` will block the local commit if the embedded snapshot diverges from the pinned ref. For pure-prose edits like this one, the upstream commit and the in-repo commit are typically authored together.
 
-2. **`wf-review-code`** — change the trigger language from *"before a PR is opened"* / *"A PR is open"* to *"before the change is proposed for merge"* / *"A change is ready for review (in PR form, on a branch, or in any other shape the project uses)."*. The actual review checklist is already flow-agnostic.
+### Specific edits
+
+1. **`wf-patch`** — replace step 8's "PR gate" with a project-flow-agnostic *"Merge gate. Confirm with the user before merging the patch back to mainline. The mechanism — open a PR, fast-forward main to the patch branch, cherry-pick onto main, etc. — follows the project's `CLAUDE.md` §"Working in this repo" policy."* Replace the *"every patch goes through a branch and PR"* anti-pattern with *"every patch goes through a branch and an explicit merge — the branch is the audit trail; the merge mechanism is project-specific."* Update the description to drop the *"branch-and-PR ritual"* framing.
+
+2. **`wf-review-code`** — change the trigger language from *"before a PR is opened"* / *"A PR is open"* to *"before the change is proposed for merge"* / *"A change is ready for review (in PR form, on a branch, or in any other shape the project uses)."* The actual review checklist is already flow-agnostic.
 
 3. **`wf-doc-lint`** — change *"Use before opening a PR..."* to *"Use before proposing a change for merge..."* — keeps the trigger meaningful without binding to a mechanism.
 
-After each edit, refresh the embedded snapshot via `make sync-rituals` against the upstream `ai-workflow-rituals` repo, with both the testdata fixture and the embedded copy landing in the same commit per the cross-repo edit pattern.
+### Validation
 
-Validation: each edited skill, parsed structurally, contains no prescriptive *"PR"* / *"pull request"* references except (a) conditional mentions of the form *"if the project's flow is PR-driven"*, or (b) framing-only mentions clearly marked as one shape among others. A drift policy under `internal/policies/` could enforce this if the gap class recurs.
+Each edited skill, parsed structurally, contains no prescriptive *"PR"* / *"pull request"* references except (a) conditional mentions of the form *"if the project's flow is PR-driven"*, or (b) framing-only mentions clearly marked as one shape among others. A drift policy under `internal/policies/` (akin to `PolicyFindingCodeAdoption` in shape) could enforce this if the gap class recurs.
 
 ## References
 
 - `CLAUDE.md` §"Working in this repo" — *"Trunk-based development on `main` for maintainers"* — the project policy this repo holds.
 - `aiwfx-wrap-milestone` — the existing correct pattern (*"Open the PR if the project's flow is PR-driven"*).
 - `aiwfx-start-milestone` — same conditional shape.
-- ADR-0014 — embed-and-materialize rituals (the edit-shape this resolution follows).
+- [ADR-0014](../../docs/adr/ADR-0014-embed-and-materialize-rituals-distribution-retire-claude-marketplace.md) — embed-and-materialize rituals (E-0038, done); the edit-shape this resolution follows.
 - CLAUDE.md §"Cross-repo plugin testing" — the testdata-fixture-plus-embedded-snapshot edit pattern.
+- [G-0182](./G-0182-consolidate-testdata-ritual-fixtures-onto-the-embedded-snapshot-dedupe.md) — when this lands, the testdata-side edit in step 1 above goes away and only the embedded snapshot needs editing.
 
 Discovered during the G-0129 wf-patch session (2026-05-31): the skill's step 8 PR gate prescription conflicted with the project's documented trunk-based policy.
