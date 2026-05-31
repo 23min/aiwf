@@ -1,8 +1,10 @@
 ---
 id: G-0182
 title: Consolidate testdata ritual fixtures onto the embedded snapshot (dedupe)
-status: open
+status: addressed
 discovered_in: E-0038
+addressed_by_commit:
+    - 39c329e6
 ---
 ## What
 
