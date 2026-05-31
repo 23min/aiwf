@@ -6,6 +6,11 @@ parent: E-0039
 depends_on:
     - M-0155
 tdd: required
+acs:
+    - id: AC-1
+      title: Statusline block emitted only when the script is installed
+      status: open
+      tdd_phase: red
 ---
 # M-0157 — aiwf doctor statusline block
 
@@ -81,3 +86,6 @@ increments `problems`. Each branch has a fixture that traverses it.
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — Statusline block emitted only when the script is installed
+
