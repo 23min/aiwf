@@ -23,7 +23,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: internal/branchparse/ package extracted from worktrees.go
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: --branch completion returns ritual-shape local branches
