@@ -129,7 +129,7 @@ The shape of this session is set by the design constraint that aiwf must be a cl
   - [x] `--dry-run`, `--on-collision={fail,skip,update}` flags.
   - [x] Single-mode commits use `aiwf-verb: import`; per-entity-mode commits match the per-entity `add` trailers.
   - [x] Synthetic-tree fixtures inline in tests covering: clean import, id collision (all three modes), ref-resolution across manifest entries, mixed explicit + `auto`, dry-run.
-- [x] ~~`wf-track` skill — describes the convention of maintaining a tracking document alongside an in-progress milestone.~~ **Removed during the prefix rename (poc/aiwf-rename-skills) — the tracking-doc convention moves to `aiwfx-track` in the companion rituals plugin (see [`rituals-plugin-plan.md`](../plans/rituals-plugin-plan.md)).** aiwf core stays narrow: tracking docs are not entities, not validated, and not aiwf's concern.
+- [x] ~~`wf-track` skill — describes the convention of maintaining a tracking document alongside an in-progress milestone.~~ **Removed during the prefix rename (poc/aiwf-rename-skills) — the tracking-doc convention moves to `aiwfx-track` in the companion rituals plugin (see [`rituals-plugin-plan.md`](rituals-plugin-plan.md)).** aiwf core stays narrow: tracking docs are not entities, not validated, and not aiwf's concern.
 - [x] Roadmap `## Candidates` rendering — `aiwf render roadmap` includes the verbatim contents of any `## Candidates` (or `## Backlog`) section it finds in `ROADMAP.md`. The section is human-curated, free-form, and not parsed as entities. Promoting a candidate is an explicit `aiwf add epic` step.
 - [x] `docs/pocv3/migration/from-prior-systems.md` — a generic migration guide. Frames migration as a two-stage producer-side job (tidy source data; project to manifest), then `aiwf import`. References no specific prior system.
 
@@ -218,7 +218,7 @@ The eleven build steps (steps 1–10 shipped; step 11 is an I3 handoff placehold
 
 ## Companion repo — Rituals plugin
 
-**Goal:** opinionated engineering rituals (TDD cycles, code review, doc lint, patch workflows) that layer on top of `aiwf`, distributed as a separate Claude Code plugin marketplace. Full architecture in [`rituals-plugin-plan.md`](../plans/rituals-plugin-plan.md). Lives in the companion repo `../ai-workflow-rituals` — *not* in the aiwf kernel tree.
+**Goal:** opinionated engineering rituals (TDD cycles, code review, doc lint, patch workflows) that layer on top of `aiwf`, distributed as a separate Claude Code plugin marketplace. Full architecture in [`rituals-plugin-plan.md`](rituals-plugin-plan.md). Lives in the companion repo `../ai-workflow-rituals` — *not* in the aiwf kernel tree.
 
 **Status:** shipped. The marketplace + two plugins (`wf-rituals`, `aiwf-extensions`) are pushed and `/plugin marketplace add` validated. The aiwf kernel surfaces the plugin as the recommended next step (commit `92326aa`); install / verify via `aiwf rituals` (`cmd/aiwf/rituals.go`).
 

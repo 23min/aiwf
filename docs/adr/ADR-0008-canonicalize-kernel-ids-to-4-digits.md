@@ -96,7 +96,7 @@ The chokepoint is `internal/check/`, not the allocator alone — defense in dept
 - **Old filenames stay narrow until the consumer runs `aiwf rewidth --apply`** (transient one-shot per consumer). During that window, `ls work/epics/` shows `E-22-foo.md` while `aiwf show E-22` renders `E-0022`.
 - **The `aiwf rewidth` verb adds permanent CLI surface for a one-shot ritual.** Mitigation: idempotent, self-documenting via `--help`, sunset path is "remove in a future major version once all known consumers have migrated" — cheap to keep otherwise.
 - **Path-form refs in archived bodies stay pointing at narrow filenames forever.** Resolved by **not** renaming files in `<kind>/archive/` — narrow widths in archives are preserved per the forget-by-default principle, and active-tree refs only point at active-tree files (which all migrate at once). G-0091's preventive check rule gives long-term protection.
-- **One trailing minor detail to coordinate** — the rituals plugin's embedded skills mention narrow forms in 5 files (27 mentions total). The implementing epic's final milestone refreshes these and records the cross-repo SHA per CLAUDE.md "Cross-repo plugin testing".
+- **One trailing minor detail to coordinate** — the embedded ritual skills mention narrow forms in 5 files (27 mentions total). The implementing epic's final milestone refreshes these in the embedded snapshot.
 
 ## Alternatives considered
 

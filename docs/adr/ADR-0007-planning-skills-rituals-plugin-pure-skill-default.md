@@ -4,6 +4,8 @@ title: 'Planning-conversation skills: rituals-plugin placement, pure-skill defau
 status: accepted
 ---
 
+> **See also: [ADR-0014](./ADR-0014-embed-and-materialize-rituals-distribution-retire-claude-marketplace.md)** — Embed-and-materialize rituals distribution retires this ADR's marketplace-channel assumption while preserving the placement/authoring layering described below. The rituals still live in `aiwfx-*` / `wf-*` skills and still follow this ADR's "pure-skill default" decision; only the *delivery mechanism* changed (from marketplace plugin to binary-embedded snapshot).
+
 ## Context
 
 E-0021 plans a planning-conversation skill (`aiwfx-whiteboard`) that synthesises the open-work landscape into a tiered view, a recommended sequence, and a Q&A-gated walk through pending decisions. Three placement-and-shape decisions surfaced during milestone planning on 2026-05-08 and were locked there:

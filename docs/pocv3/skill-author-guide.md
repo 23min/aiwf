@@ -228,7 +228,7 @@ or surfaced an existing issue.>
 
 ## Common scaffolder mistakes
 
-These are real classes of bugs that have shipped in real skills, each closed in either aiwf or the rituals plugin. The list is short on purpose — most other mistakes are caught by `aiwf check`.
+These are real classes of bugs that have shipped in real skills, each closed in either aiwf core or the embedded rituals snapshot. The list is short on purpose — most other mistakes are caught by `aiwf check`.
 
 - **Adding an unknown frontmatter field** (e.g. `completed: 2026-04-30` on an epic, or `decided_by: <person>` on a decision). aiwf's schema is strict; the field is rejected and the file fails to parse. Fixed in aiwf via [G14](archive/gaps-pre-migration.md) (parse failures no longer cascade) and [G15](archive/gaps-pre-migration.md) (`aiwf schema` published). Avoid by following Rule 2.
 - **Writing a commit by hand without trailers.** `aiwf history` then comes up empty for that entity; the moment becomes invisible. Avoid by following Rule 4 — call a verb.

@@ -16,7 +16,7 @@ aiwf is a kernel that pins planning-tree invariants through a small set of mutat
 - `internal/policies/` carries mechanical invariants enforced as Go tests.
 - `internal/check/` carries the runtime check rules that surface as findings.
 
-Plus prose-only sources: ADRs, `docs/pocv3/design/design-decisions.md`, `CLAUDE.md`, skills in `.claude/skills/` and the rituals plugin, and `aiwf <verb> --help` output. No source today expresses the **closed-set frontier between legal and illegal verb sequences** as a single machine-readable table. The verbs work, the FSM is right *as far as we know*, but there is no chokepoint that catches the failure mode "the implementation silently permits a workflow it shouldn't" or "the implementation silently rejects one it should permit."
+Plus prose-only sources: ADRs, `docs/pocv3/design/design-decisions.md`, `CLAUDE.md`, skills in `.claude/skills/` (both kernel-embedded and ritual), and `aiwf <verb> --help` output. No source today expresses the **closed-set frontier between legal and illegal verb sequences** as a single machine-readable table. The verbs work, the FSM is right *as far as we know*, but there is no chokepoint that catches the failure mode "the implementation silently permits a workflow it shouldn't" or "the implementation silently rejects one it should permit."
 
 E-0033 commits to closing that gap with a canonical spec and per-cell tests. Before any catalog or test-writing work begins, this ADR pins the **methodology** for how the spec is built and maintained — independently of what the spec ends up saying.
 

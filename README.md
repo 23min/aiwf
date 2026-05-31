@@ -139,7 +139,7 @@ All three rows are advisory — doctor never refuses to run on a version mismatc
 
 ## Quick start
 
-aiwf adoption is two steps: install the binary and install the companion rituals plugin.
+aiwf adoption is one step: install the binary. The rituals ship embedded.
 
 ### 1. Install aiwf core
 

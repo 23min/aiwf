@@ -1,4 +1,6 @@
-# Rituals plugin plan
+# Rituals plugin plan (archived)
+
+> **Superseded by [ADR-0014](../../adr/ADR-0014-embed-and-materialize-rituals-distribution-retire-claude-marketplace.md) (2026-05):** marketplace channel retired; rituals now embed-and-materialize. See [E-0038](../../../work/epics/archive/E-0038-agent-agnostic-rituals-distribution-via-embed-and-materialize/epic.md) and CLAUDE.md §"Operator setup" for the current model. [ADR-0016](../../adr/ADR-0016-retire-ai-workflow-rituals-upstream-channel-embedded-snapshot-canonical.md) (proposed) further retires the upstream authoring channel.
 
 A companion repository, distributed as a Claude Code plugin marketplace, that layers opinionated engineering rituals on top of `aiwf`. Drafted 2026-04-28 during dogfooding of session-4-complete aiwf; not yet started.
 
