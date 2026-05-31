@@ -6,6 +6,35 @@ parent: E-0030
 depends_on:
     - M-0102
 tdd: required
+acs:
+    - id: AC-1
+      title: AI-actor authorize on main without --branch refuses (branch-context-required)
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: AI-actor authorize with --branch <missing> refuses (branch-not-found)
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: AI-actor authorize from ritual-shape checkout (no --branch) accepts
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: AI-actor authorize with --branch <existing> accepts
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: --force --reason bypasses preflight (override path)
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: --force without --reason refuses (regression guard)
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: Human-actor authorize is unaffected by the preflight
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -56,3 +85,18 @@ Per E-0030 §"Design decisions":
 
 Note: AC-7 is the kernel-correctness guard — the chokepoint must not regress the existing legitimate human-driven AI-delegation path that doesn't pass --branch (because there isn't one yet today). Once M-0104/M-0105 land, no real-world ritual flow leaves --branch unset; this AC documents the back-compat seam during the migration window.
 -->
+
+### AC-1 — AI-actor authorize on main without --branch refuses (branch-context-required)
+
+### AC-2 — AI-actor authorize with --branch <missing> refuses (branch-not-found)
+
+### AC-3 — AI-actor authorize from ritual-shape checkout (no --branch) accepts
+
+### AC-4 — AI-actor authorize with --branch <existing> accepts
+
+### AC-5 — --force --reason bypasses preflight (override path)
+
+### AC-6 — --force without --reason refuses (regression guard)
+
+### AC-7 — Human-actor authorize is unaffected by the preflight
+
