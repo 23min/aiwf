@@ -1,7 +1,9 @@
 ---
 id: G-0193
 title: 'Implement ADR-0016: retire upstream rituals authoring channel'
-status: open
+status: addressed
+addressed_by_commit:
+    - 1e529e5f
 ---
 ## What's missing
 
