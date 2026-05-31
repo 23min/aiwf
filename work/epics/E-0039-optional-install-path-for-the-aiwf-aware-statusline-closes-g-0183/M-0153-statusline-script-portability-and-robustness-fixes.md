@@ -1,9 +1,19 @@
 ---
 id: M-0153
 title: Statusline script portability and robustness fixes
-status: draft
+status: done
 parent: E-0039
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Transcript walk works on macOS and Linux (tail -r with tac fallback)
+      status: met
+    - id: AC-2
+      title: Ahead/behind parse survives editor tab→space reflow (default-IFS split)
+      status: met
+    - id: AC-3
+      title: Read-only git calls skip the optional index lock (GIT_OPTIONAL_LOCKS=0)
+      status: met
 ---
 # M-0153 — Statusline script portability and robustness fixes
 
@@ -92,7 +102,30 @@ behavior-preserving on Linux.
 
 ## Work log
 
-- (pending)
+### AC-1 — Transcript walk works on macOS and Linux
+
+`.claude/statusline.sh` now reads via the brace-grouped fallback
+`$({ tail -r "$transcript" 2>/dev/null || tac "$transcript" 2>/dev/null; } | jq …)`;
+`internal/policies/statusline_content_test.go::TestStatusline_M0153_AC1_TranscriptWalkPortable`
+pins the chain (presence regex) and the bare `$(tac` form's absence.
+Tests 1/1. Closed in d7080a63.
+
+### AC-2 — Ahead/behind parse survives editor tab→space reflow
+
+`.claude/statusline.sh` now parses via `read -r ahead behind <<<"$counts"`;
+`TestStatusline_M0153_AC2_AheadBehindParseRobust` pins the `read` form's
+presence and both literal-tab parameter expansions' absence (regex with a
+real tab character). Tests 1/1. Closed in 3f1dd571.
+
+### AC-3 — Read-only git calls skip the optional index lock
+
+`.claude/statusline.sh` exports `GIT_OPTIONAL_LOCKS=0` right after `set -u`,
+ahead of all read-only git invocations. `TestStatusline_M0153_AC3_GitIndexLockHardened`
+pins the export's presence and its position before the first non-comment
+`git ` call; branch-coverage helper `statuslineExportAndFirstGitIdx` is
+unit-tested across five synthetic inputs (canonical, position-failure,
+missing-export, missing-git, git-in-comment-only) via
+`TestStatuslineExportAndFirstGitIdx_BranchCoverage`. Tests 1+5/6. Closed in 17d0436e.
 
 ## Decisions made during implementation
 
@@ -100,12 +133,56 @@ behavior-preserving on Linux.
 
 ## Validation
 
-- (pending)
+- Tests: 4 functions in `internal/policies/statusline_content_test.go`
+  (3 AC tests + 5-subtest branch-coverage helper); all pass.
+- Full module: `go test ./...` clean; `go test -race ./...` clean.
+- Build: `go build ./cmd/aiwf` clean.
+- Lint: `golangci-lint run` 0 issues (gofumpt applied mid-cycle).
+- `aiwf check`: 0 errors. 3 × `acs-tdd-audit` warnings on M-0153 are the
+  expected outcome of `tdd: advisory` + the deliberate decision to skip
+  retroactive `--phase done` promotions; the mechanical-evidence obligation
+  per CLAUDE.md is satisfied by the three content-assertion tests.
+- Smoke render: stub stdin → `● Opus 4.8 ▸ 0 …`; real-fixture transcript
+  → `● Opus 4.8 ▸ 3k …`. Both render with the M-0153 / E-0039 entity badges
+  lit on the milestone branch.
+- Doc-lint: N/A (no `docs/` files touched).
 
 ## Deferrals
 
-- (none)
+- [G-0187](../../gaps/G-0187-statusline-rendering-has-no-end-to-end-behavioral-test.md)
+  — *Statusline rendering has no end-to-end behavioral test.* The
+  content assertions pin structural form but cannot detect the
+  bash-precedence bug pattern caught at the smoke phase. Best landed as a
+  follow-up after M-0157.
 
 ## Reviewer notes
 
-- (none)
+- The brace-group `{ tail -r … || tac …; } | jq …` (AC-1) is structurally
+  load-bearing — `|` binds tighter than `||`, so the bare `||` chain would
+  route a successful `tail -r` past `jq` entirely and yield the raw
+  transcript as a "token count". The presence regex would accept the broken
+  form (both `tail -r` and `|| tac` appear on the same line); the manual
+  smoke render against a fixture stdin is what caught the bug mid-cycle.
+  G-0187 captures the deferral to close that gap structurally.
+- `tdd: advisory` is the deliberate policy for this milestone — it fixes a
+  shell script, not red-green Go code. The three `acs-tdd-audit` warnings
+  ("`met` under `advisory` without recorded `tdd_phase: done`") are the
+  audit's advisory-mode signal; clearing them with retroactive `--phase done`
+  promotions would be bookkeeping rather than recorded discipline, so left
+  as-is per the wrap decision.
+- The new helper `statuslineExportAndFirstGitIdx` lives in a `_test.go`
+  file (test-only visibility within the policies package). AC-3's
+  position-check failure side ("export landing *after* the first git call")
+  is not reachable from the live file's current state, so it is exercised
+  via the helper's branch-coverage subtests with synthetic inputs — the
+  hard-rule branch-coverage requirement met by factoring the assertion
+  logic out of the AC test into a unit-testable helper.
+- The `.claude/statusline.sh` shipped by this milestone becomes the embed
+  source for M-0155's `--statusline` scaffold per the epic plan.
+
+### AC-1 — Transcript walk works on macOS and Linux (tail -r with tac fallback)
+
+### AC-2 — Ahead/behind parse survives editor tab→space reflow (default-IFS split)
+
+### AC-3 — Read-only git calls skip the optional index lock (GIT_OPTIONAL_LOCKS=0)
+

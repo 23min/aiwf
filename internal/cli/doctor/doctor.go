@@ -243,6 +243,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	lines, problems = appendRenderReport(lines, problems, rootDir)
 	lines = appendMaterializedRitualsReport(lines, rootDir)
 	lines = appendMarketplaceOverlapReport(lines, rootDir)
+	lines = appendStatuslineReport(lines, rootDir)
 
 	return lines, problems
 }
@@ -284,10 +285,14 @@ func appendMaterializedRitualsReport(in []string, rootDir string) []string {
 // when the consumer has a rituals marketplace plugin enabled in
 // `.claude/settings.json` AND the rituals are materialized under
 // `.claude/`, the same skill `name:` is exposed twice. The guard
-// detects the overlap and instructs the operator to disable the
-// plugin — it never edits settings.json itself (quiet mutation of user
-// settings is more invasive than the marker-managed posture allows).
-// Soft (advisory): it does not increment the problem count.
+// detects the overlap and instructs the operator to disable the plugin —
+// the marketplace-plugin scenario is not consent-eligible (quiet
+// mutation of user settings is more invasive than the marker-managed
+// posture allows). The narrow exception aiwf does take on is the
+// statusline opt-in (`--wire-settings` / TTY `[y/N]`), gated by explicit
+// per-invocation consent per ADR-0015; this de-dupe guard does not
+// participate in that flow. Soft (advisory): it does not increment the
+// problem count.
 func appendMarketplaceOverlapReport(in []string, rootDir string) []string {
 	enabled, err := loadEnabledPlugins(rootDir)
 	if err != nil {
@@ -312,7 +317,7 @@ func appendMarketplaceOverlapReport(in []string, rootDir string) []string {
 	out := in
 	out = append(out, fmt.Sprintf("%smarketplace-rituals-overlap: rituals materialized AND %d marketplace plugin(s) enabled — disable the plugin(s) to avoid duplicate skills", label("plugins:"), len(enabledRituals)))
 	for _, id := range enabledRituals {
-		out = append(out, fmt.Sprintf("%s- %s (disable via the `/plugin` menu; aiwf will not edit your settings.json)", subIndent, id))
+		out = append(out, fmt.Sprintf("%s- %s (disable via the `/plugin` menu; aiwf does not edit your settings.json without explicit per-invocation consent — see ADR-0015 — and the marketplace-overlap scenario is not consent-eligible)", subIndent, id))
 	}
 	return out
 }

@@ -7,6 +7,17 @@ import (
 	"golang.org/x/term"
 )
 
+// IsTTY reports whether f is connected to an interactive terminal.
+// Used by M-0156's consent flow to decide whether an interactive
+// [y/N] prompt is appropriate.
+func IsTTY(f *os.File) bool {
+	if f == nil {
+		return false
+	}
+	fd := int(f.Fd()) //nolint:gosec // fd fits in int; see TerminalWidth
+	return term.IsTerminal(fd)
+}
+
 // TerminalWidth returns the column width of f when f is a terminal, or
 // 0 when it is not (piped, redirected to a file, run under `go test`,
 // etc.). Callers gate truncation on the non-zero result so the same
@@ -15,9 +26,9 @@ import (
 //
 // The "not a terminal" path is the silent default: any error from the
 // underlying syscall (closed fd, unsupported platform, etc.) collapses
-// to the same zero return. A separate IsTerminal predicate would let
-// callers distinguish "no TTY" from "TTY but width-detection failed",
-// but no current call site cares.
+// to the same zero return. The companion IsTTY predicate lets callers
+// distinguish "no TTY" from "TTY but width-detection failed" when the
+// distinction matters (M-0156's consent flow uses IsTTY directly).
 func TerminalWidth(f *os.File) int {
 	if f == nil {
 		return 0

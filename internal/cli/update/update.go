@@ -13,6 +13,7 @@ import (
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/skills"
 )
 
 // NewCmd builds `aiwf update`: refreshes every marker-managed
@@ -32,25 +33,46 @@ import (
 // in the per-step ledger and surface a remediation block, mirroring
 // `aiwf init`'s conflict path.
 func NewCmd() *cobra.Command {
-	var root string
+	var (
+		root         string
+		statusline   bool
+		scope        string
+		wireSettings bool
+	)
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Refresh marker-managed framework artifacts (skills, hooks)",
 		Example: `  # Refresh skills + hooks against the current binary version
-  aiwf update`,
+  aiwf update
+
+  # Refresh as above plus scaffold the aiwf-aware statusline if absent
+  # (never clobbers an existing copy)
+  aiwf update --statusline
+  aiwf update --statusline --scope user`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root))
+			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (writes only if absent; never clobbers an existing copy)")
+	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeProject), "where --statusline writes the script: project (<repo>/.claude) or user (~/.claude)")
+	_ = cmd.RegisterFlagCompletionFunc("scope", cobra.FixedCompletions(
+		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},
+		cobra.ShellCompDirectiveNoFileComp,
+	))
+	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
 	return cmd
 }
 
 // Run executes `aiwf update`. Returns one of the cliutil.Exit* codes.
-func Run(root string) int {
+// When `statusline` is true, also runs the shared statusline scaffold
+// (scope-appropriate destination, scaffold-if-absent — never clobbers
+// a pre-existing copy). The scaffold action runs after the artifact
+// refresh succeeds.
+func Run(root string, statusline bool, scope string, wireSettings bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
@@ -106,5 +128,15 @@ func Run(root string) int {
 	}
 
 	fmt.Println("\naiwf update: done.")
+
+	if statusline {
+		if rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
+			RootDir:      rootDir,
+			Scope:        scope,
+			WireSettings: wireSettings,
+		}); rc != cliutil.ExitOK {
+			return rc
+		}
+	}
 	return cliutil.ExitOK
 }
