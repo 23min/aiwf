@@ -27,8 +27,14 @@ const (
 	TrailerOnBehalfOf   = "aiwf-on-behalf-of"
 	TrailerAuthorizedBy = "aiwf-authorized-by"
 	TrailerScope        = "aiwf-scope"
-	TrailerScopeEnds    = "aiwf-scope-ends"
-	TrailerReason       = "aiwf-reason"
+	// TrailerBranch (M-0102) records the ritual branch a scope is bound
+	// to on an `aiwf authorize` commit (per ADR-0010). Emitted only when
+	// the operator passes `--branch <name>`; absent flag = absent trailer
+	// (backward compatible). M-0103's preflight enforces the requirement
+	// for AI-actor scopes; this trailer is the metadata it leaves behind.
+	TrailerBranch    = "aiwf-branch"
+	TrailerScopeEnds = "aiwf-scope-ends"
+	TrailerReason    = "aiwf-reason"
 
 	// I2.5 audit-only recovery (G24, plan step 5b).
 	TrailerAuditOnly = "aiwf-audit-only"
@@ -60,6 +66,7 @@ var trailerOrder = []string{
 	TrailerOnBehalfOf,
 	TrailerAuthorizedBy,
 	TrailerScope,
+	TrailerBranch,
 	TrailerScopeEnds,
 	TrailerReason,
 	TrailerAuditOnly,
@@ -116,6 +123,15 @@ var roleIDPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 // produces and what aiwf-authorized-by / aiwf-scope-ends reference.
 var shaPattern = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
 
+// branchRefPattern matches a permissive subset of git's refname grammar
+// sufficient for the aiwf-branch trailer: one or more characters from
+// [A-Za-z0-9._/-]. The full git rule (man git-check-ref-format) is
+// broader, but the additional constraints (no leading slash, no
+// embedded "..") are checked separately so the error messages are
+// targeted. Empty values are rejected by the `+` quantifier here, not
+// by the extra checks.
+var branchRefPattern = regexp.MustCompile(`^[A-Za-z0-9._/-]+$`)
+
 // scopeEvents is the closed set of values aiwf-scope may carry on
 // authorize commits. opened/paused/resumed map to the scope FSM
 // transitions; there is no "ended" — scope termination is recorded
@@ -162,6 +178,16 @@ func ValidateTrailer(key, value string) error {
 	case TrailerScope:
 		if _, ok := scopeEvents[value]; !ok {
 			return fmt.Errorf("%s: %q must be one of opened|paused|resumed", key, value)
+		}
+	case TrailerBranch:
+		if !branchRefPattern.MatchString(value) {
+			return fmt.Errorf("%s: %q must match git-ref shape [A-Za-z0-9._/-]+ (non-empty, no whitespace, no special chars)", key, value)
+		}
+		if strings.HasPrefix(value, "/") {
+			return fmt.Errorf("%s: %q must not start with /", key, value)
+		}
+		if strings.Contains(value, "..") {
+			return fmt.Errorf("%s: %q contains forbidden substring %q", key, value, "..")
 		}
 	case TrailerReason, TrailerForce, TrailerAuditOnly:
 		if strings.TrimSpace(value) == "" {

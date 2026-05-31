@@ -63,7 +63,7 @@ The principal/agent split below captures this without inflating tool use into au
 
 ## Trailer set
 
-Five new trailers, layered on the existing set:
+New trailers, layered on the existing set:
 
 | Trailer | Meaning | When written |
 |---|---|---|
@@ -72,6 +72,7 @@ Five new trailers, layered on the existing set:
 | `aiwf-on-behalf-of:` | The principal whose authorized scope this commit is acting under. Equal to or attributable-to a principal of an `aiwf-verb: authorize` commit. | Only inside an authorized scope. Required-with `aiwf-authorized-by:`. |
 | `aiwf-authorized-by:` | Git SHA of the `aiwf-verb: authorize` commit that opened the scope. | Only inside an authorized scope. Required-with `aiwf-on-behalf-of:`. |
 | `aiwf-scope:` | Scope state event marker on the authorize verb itself. Closed-set: `opened \| paused \| resumed`. (No `ended` — see "Scope termination.") | Only on `aiwf-verb: authorize` commits. |
+| `aiwf-branch:` | Ritual branch the scope is bound to (ADR-0010, M-0102). The kernel finding `isolation-escape` (M-0106) reads this value when checking whether an AI-actor commit drifted off the recorded branch. | Optional on `aiwf-verb: authorize` commits; emitted only when the operator passes `--branch <name>` (backward-compatible no-op when absent). |
 | `aiwf-scope-ends:` | Lists the SHAs of authorize commits whose scope this commit is auto-ending. Repeatable (one trailer per ended scope). | On any commit that promotes the scope-entity of one or more active scopes to a terminal status. |
 | `aiwf-reason:` | Free-text rationale for verbs that require one. Non-empty after trim. | Required on `aiwf authorize --pause` and `--resume`; optional on `aiwf authorize --to`. Distinct from `aiwf-force:` (sovereign override) and `aiwf-audit-only:` (G24 backfill rationale) — each reason-bearing trailer carries its own semantic. |
 
@@ -103,6 +104,7 @@ Validated at write time by the verb (refuse on shape mismatch):
 | `aiwf-on-behalf-of:` | Same regex. Role must start with `human/`. |
 | `aiwf-authorized-by:` | 7–40 hex characters (matches `git rev-parse` output). |
 | `aiwf-scope:` | Closed set: `opened`, `paused`, `resumed`. |
+| `aiwf-branch:` | `^[A-Za-z0-9._/-]+$` plus no leading slash and no embedded `..` (M-0102). Permissive subset of git's refname grammar; the additional constraints are checked separately so the error messages are targeted. |
 | `aiwf-scope-ends:` | Same shape as `aiwf-authorized-by:` — 7–40 hex. |
 
 **SHA-points-to-real-authorize-commit is verified at read time, not write time.** Reasons:

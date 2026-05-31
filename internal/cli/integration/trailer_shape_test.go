@@ -75,6 +75,7 @@ var canonicalTrailerKeys = map[string]bool{
 	gitops.TrailerOnBehalfOf:   true,
 	gitops.TrailerAuthorizedBy: true,
 	gitops.TrailerScope:        true,
+	gitops.TrailerBranch:       true,
 	gitops.TrailerScopeEnds:    true,
 	gitops.TrailerReason:       true,
 	gitops.TrailerAuditOnly:    true,

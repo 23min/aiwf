@@ -53,6 +53,20 @@ func TestValidateTrailer_KnownKeys(t *testing.T) {
 		{"scope active rejected", TrailerScope, "active", true},
 		{"scope empty rejected", TrailerScope, "", true},
 
+		// aiwf-branch (M-0102/AC-2): git-ref-shape — non-empty, only
+		// [A-Za-z0-9._/-], no leading slash, no embedded "..".
+		{"branch ritual epic shape", TrailerBranch, "epic/E-0010-cobra", false},
+		{"branch ritual milestone shape", TrailerBranch, "milestone/M-0007-cache", false},
+		{"branch ritual patch shape", TrailerBranch, "patch/g-0099-iso", false},
+		{"branch plain name ok", TrailerBranch, "main", false},
+		{"branch with dots ok", TrailerBranch, "release-1.2.3", false},
+		{"branch empty rejected", TrailerBranch, "", true},
+		{"branch whitespace rejected", TrailerBranch, " main", true},
+		{"branch leading slash rejected", TrailerBranch, "/epic/E-0010", true},
+		{"branch embedded double-dot rejected", TrailerBranch, "epic/E-..-bad", true},
+		{"branch tilde rejected", TrailerBranch, "epic/E-0010~1", true},
+		{"branch colon rejected", TrailerBranch, "epic:E-0010", true},
+
 		// aiwf-reason / aiwf-force / aiwf-audit-only: non-empty after trim.
 		{"reason ok", TrailerReason, "blocked by E-09 fixture work", false},
 		{"reason whitespace only", TrailerReason, "   ", true},
@@ -106,6 +120,40 @@ func TestSortedTrailers_CanonicalOrder(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("SortedTrailers mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestSortedTrailers_BranchPositionBetweenScopeAndScopeEnds (M-0102/AC-4):
+// aiwf-branch sorts immediately after aiwf-scope and immediately before
+// aiwf-scope-ends in the canonical write order. Both fixed positions
+// matter: aiwf-branch is metadata about the scope opening (so it follows
+// aiwf-scope), and aiwf-scope-ends references a different commit so it
+// belongs after the opening metadata.
+func TestSortedTrailers_BranchPositionBetweenScopeAndScopeEnds(t *testing.T) {
+	t.Parallel()
+	in := []Trailer{
+		{Key: TrailerScopeEnds, Value: "abc1234"},
+		{Key: TrailerBranch, Value: "epic/E-0010-cobra"},
+		{Key: TrailerScope, Value: "opened"},
+		{Key: TrailerReason, Value: "delegated cobra epic"},
+		{Key: TrailerActor, Value: "human/peter"},
+		{Key: TrailerVerb, Value: "authorize"},
+		{Key: TrailerEntity, Value: "E-0010"},
+		{Key: TrailerTo, Value: "ai/claude"},
+	}
+	got := SortedTrailers(in)
+	want := []Trailer{
+		{Key: TrailerVerb, Value: "authorize"},
+		{Key: TrailerEntity, Value: "E-0010"},
+		{Key: TrailerActor, Value: "human/peter"},
+		{Key: TrailerTo, Value: "ai/claude"},
+		{Key: TrailerScope, Value: "opened"},
+		{Key: TrailerBranch, Value: "epic/E-0010-cobra"},
+		{Key: TrailerScopeEnds, Value: "abc1234"},
+		{Key: TrailerReason, Value: "delegated cobra epic"},
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("SortedTrailers branch-position mismatch (-want +got):\n%s", diff)
 	}
 }
 
