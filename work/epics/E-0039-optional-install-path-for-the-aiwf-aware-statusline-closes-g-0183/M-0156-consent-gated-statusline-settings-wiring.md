@@ -18,7 +18,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Consent-gated write creates .bak and inserts statusLine
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Pre-existing statusLine key blocks write with merge guidance
