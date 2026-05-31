@@ -7,6 +7,59 @@ depends_on:
     - M-0102
     - M-0103
 tdd: required
+acs:
+    - id: AC-1
+      title: AI commit on main while scope binds epic/X fires isolation-escape
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: AI commit on epic/Y while scope binds epic/X fires isolation-escape
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: AI commit on worktree-vs-branch mismatch fires isolation-escape
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: AI commit on epic/X while scope binds epic/X stays silent
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: AI commit on epic/X while scope is paused stays silent
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: Human cherry-pick (committer != actor + marker) stays silent
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: Human merge of epic/X into main (first-parent) stays silent
+      status: open
+      tdd_phase: red
+    - id: AC-8
+      title: Violating commit amended with aiwf-force + human/ actor stays silent
+      status: open
+      tdd_phase: red
+    - id: AC-9
+      title: AI commit on entity with no opened scope stays silent
+      status: open
+      tdd_phase: red
+    - id: AC-10
+      title: Per-commit firing — one finding per violating commit
+      status: open
+      tdd_phase: red
+    - id: AC-11
+      title: Warning severity; check exits 0 with findings reported
+      status: open
+      tdd_phase: red
+    - id: AC-12
+      title: Finding hint text names both override paths
+      status: open
+      tdd_phase: red
+    - id: AC-13
+      title: Typed Code descriptor lands in internal/check/ per G-0129 pattern
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -78,3 +131,30 @@ Mechanical:
 
 These ACs cover the catalog rows 4–12 from the epic body; rows 1–3 are M-0103's territory.
 -->
+
+### AC-1 — AI commit on main while scope binds epic/X fires isolation-escape
+
+### AC-2 — AI commit on epic/Y while scope binds epic/X fires isolation-escape
+
+### AC-3 — AI commit on worktree-vs-branch mismatch fires isolation-escape
+
+### AC-4 — AI commit on epic/X while scope binds epic/X stays silent
+
+### AC-5 — AI commit on epic/X while scope is paused stays silent
+
+### AC-6 — Human cherry-pick (committer != actor + marker) stays silent
+
+### AC-7 — Human merge of epic/X into main (first-parent) stays silent
+
+### AC-8 — Violating commit amended with aiwf-force + human/ actor stays silent
+
+### AC-9 — AI commit on entity with no opened scope stays silent
+
+### AC-10 — Per-commit firing — one finding per violating commit
+
+### AC-11 — Warning severity; check exits 0 with findings reported
+
+### AC-12 — Finding hint text names both override paths
+
+### AC-13 — Typed Code descriptor lands in internal/check/ per G-0129 pattern
+
