@@ -10,6 +10,39 @@ depends_on:
     - M-0105
     - M-0106
 tdd: required
+acs:
+    - id: AC-1
+      title: internal/workflows/spec/branch/ exists with Rules and AntiRules registered
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Each epic corner-case (1-12) represented as named cell branch-cell-N
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Each override-surface row represented as a named override cell
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: All cells satisfy schema invariants (Outcome, RejectionLayer, Sources)
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: 'Meta-test: every cell has matching test under internal/policies/'
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: 'Drift policy: new verb or branch finding without cell fails CI'
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: Rules/AntiRules catalogs deterministically ordered (sorted by cell id)
+      status: open
+      tdd_phase: red
+    - id: AC-8
+      title: Package doc explains layer-4 carve-out and cites ADR-0011
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -61,3 +94,20 @@ Per E-0030 §"Design decisions" (the spec-table package layout is local to this 
 
 These ACs do not test branch behavior end-to-end — that's done by the prior milestones' tests. M-0158's tests are about the spec table's completeness and the drift-policy's vigilance.
 -->
+
+### AC-1 — internal/workflows/spec/branch/ exists with Rules and AntiRules registered
+
+### AC-2 — Each epic corner-case (1-12) represented as named cell branch-cell-N
+
+### AC-3 — Each override-surface row represented as a named override cell
+
+### AC-4 — All cells satisfy schema invariants (Outcome, RejectionLayer, Sources)
+
+### AC-5 — Meta-test: every cell has matching test under internal/policies/
+
+### AC-6 — Drift policy: new verb or branch finding without cell fails CI
+
+### AC-7 — Rules/AntiRules catalogs deterministically ordered (sorted by cell id)
+
+### AC-8 — Package doc explains layer-4 carve-out and cites ADR-0011
+
