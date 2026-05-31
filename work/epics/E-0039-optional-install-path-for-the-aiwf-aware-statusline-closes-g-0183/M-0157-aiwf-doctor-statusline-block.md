@@ -19,6 +19,10 @@ acs:
       title: Installed-but-not-wired state prints activation snippet
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: Embedded-vs-on-disk drift detected and reported
+      status: open
+      tdd_phase: red
 ---
 # M-0157 — aiwf doctor statusline block
 
@@ -100,4 +104,6 @@ increments `problems`. Each branch has a fixture that traverses it.
 ### AC-2 — Missing jq/gh reported with platform-branched install hints
 
 ### AC-3 — Installed-but-not-wired state prints activation snippet
+
+### AC-4 — Embedded-vs-on-disk drift detected and reported
 
