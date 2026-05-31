@@ -4,6 +4,39 @@ title: aiwf authorize --branch flag + scope-branch trailer coupling
 status: draft
 parent: E-0030
 tdd: required
+acs:
+    - id: AC-1
+      title: --branch flag wired on aiwf authorize with Cobra completion
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: aiwf-branch trailer constant plus git-ref-shape ValidateTrailer rule
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: aiwf-branch trailer emitted iff --branch passed (backward-compatible)
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: aiwf-branch sorts between aiwf-scope and aiwf-scope-ends in trailerOrder
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: internal/branchparse/ package extracted from worktrees.go
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: --branch completion returns ritual-shape local branches
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: completion_drift_test passes on new flag without allowlist entry
+      status: open
+      tdd_phase: red
+    - id: AC-8
+      title: --branch against non-existent branch not refused at this milestone
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -50,3 +83,20 @@ None — foundational.
 7. `cmd/aiwf/completion_drift_test.go` recognizes the new flag without an allowlist entry.
 8. `--branch <name>` against a non-existent branch is *not* refused at this milestone — that's M-0103's job. This milestone's behavior is "record whatever name was passed, validated only against trailer-shape rules."
 -->
+
+### AC-1 — --branch flag wired on aiwf authorize with Cobra completion
+
+### AC-2 — aiwf-branch trailer constant plus git-ref-shape ValidateTrailer rule
+
+### AC-3 — aiwf-branch trailer emitted iff --branch passed (backward-compatible)
+
+### AC-4 — aiwf-branch sorts between aiwf-scope and aiwf-scope-ends in trailerOrder
+
+### AC-5 — internal/branchparse/ package extracted from worktrees.go
+
+### AC-6 — --branch completion returns ritual-shape local branches
+
+### AC-7 — completion_drift_test passes on new flag without allowlist entry
+
+### AC-8 — --branch against non-existent branch not refused at this milestone
+
