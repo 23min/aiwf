@@ -64,7 +64,7 @@ Per E-0030 §"Design decisions":
 - Auto-creating the branch if absent — default is "require the named branch already exists" per ADR-0010's promote-then-cut sequencing rule. Deferred unless friction surfaces.
 - Updates to `aiwfx-start-epic` / `aiwfx-start-milestone` rituals (M-0104 / M-0105).
 - Kernel finding for post-hoc detection (M-0106).
-- Spec-cell registration in `internal/workflows/spec/branch/` — that's M-0107's consolidation.
+- Spec-cell registration in `internal/workflows/spec/branch/` — that's M-0158's consolidation.
 - Changes to human-actor `aiwf authorize` flows (sovereignty preserved).
 
 ## Dependencies
@@ -80,7 +80,7 @@ None — foundational.
 4. Trailer ordering: `aiwf-branch:` sorts between `aiwf-scope:` and `aiwf-scope-ends:` per `trailerOrder`.
 5. `internal/branchparse/` package exists; `parseEntityFromBranch` and the ritual-shape regexes are lifted from `internal/cli/status/worktrees.go:485`; `worktrees.go` consumes from the new package.
 6. The flag's completion returns local branches matching ritual-shape regexes from `internal/branchparse/`.
-7. `cmd/aiwf/completion_drift_test.go` recognizes the new flag without an allowlist entry.
+7. `internal/cli/integration/completion_drift_test.go` recognizes the new flag without an allowlist entry.
 8. `--branch <name>` against a non-existent branch is *not* refused at this milestone — that's M-0103's job. This milestone's behavior is "record whatever name was passed, validated only against trailer-shape rules."
 -->
 
