@@ -8,7 +8,6 @@ depends_on:
     - M-0103
 tdd: required
 ---
-
 ## Goal
 
 Reorder `aiwfx-start-epic` so the sovereign promote (`aiwf promote E-NNNN active`) and authorize (`aiwf authorize E-NNNN --to ai/<id> --branch epic/E-NNNN-<slug>`) commits fire on `main` *before* the worktree/branch is cut. Retire the stale "G-0059 frames the open question of which branch-model convention aiwf should bless" paragraph at step 6 — ADR-0010 is the answer. Closes [G-0116](../../gaps/G-0116-aiwfx-start-epic-creates-worktree-before-promote-authorize-on-trunk-based-repos.md).
@@ -19,12 +18,11 @@ G-0116 documented the sequencing inversion in today's `aiwfx-start-epic`: step 5
 
 This milestone fixes the ordering so the ritual works with the chokepoint. It also implements [ADR-0010](../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md)'s sequencing rule for opening an epic: state-announcement commits on main, *then* branch cut, *then* implementation work on the branch.
 
-Cross-repo edits land at **both** authoring locations per CLAUDE.md §"Cross-repo plugin testing" and the embed-and-materialize landing ([ADR-0014](../../../docs/adr/ADR-0014-embed-and-materialize-rituals-distribution-retire-claude-marketplace.md), E-0038):
+Ritual content edits land at the canonical authoring location per [ADR-0014](../../../docs/adr/ADR-0014-embed-and-materialize-rituals-distribution-retire-claude-marketplace.md) and [ADR-0016](../../../docs/adr/ADR-0016-retire-ai-workflow-rituals-upstream-channel-embedded-snapshot-canonical.md):
 
-- `internal/policies/testdata/aiwfx-start-epic/SKILL.md` — the AC fixture, the canonical authoring location for content claims tested by `internal/policies/`.
-- `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-epic/SKILL.md` — the embedded snapshot that `aiwf init` / `aiwf update` materializes into the consumer repo's `.claude/skills/`.
+- `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-epic/SKILL.md` — the embedded snapshot that `aiwf init` / `aiwf update` materializes into the consumer repo's `.claude/skills/`. Per [G-0182](../../gaps/archive/G-0182-consolidate-testdata-ritual-fixtures-onto-the-embedded-snapshot-dedupe.md), this is also the path the per-AC content-assertion tests read (via `aiwfxStartEpicFixturePath` in `internal/policies/aiwfx_start_epic_test.go`).
 
-Both edits land in the same commit. `TestRituals_VendoredMatchesUpstream` (M-0148) validates the embedded snapshot against the upstream `ai-workflow-rituals` repo at the pinned `rituals.lock` ref; the per-AC fixture test validates the content claim. After the milestone commits, the upstream `ai-workflow-rituals` repo is updated to match, the lock is refreshed via `make sync-rituals`, and that update commit's SHA is recorded in the milestone's Validation section.
+One edit in one commit. The upstream `ai-workflow-rituals` repo was archived under ADR-0016 — no cross-repo coordination, no `make sync-rituals`, no `rituals.lock` to refresh.
 
 ## Pre-decided design
 
@@ -53,11 +51,9 @@ Both edits land in the same commit. `TestRituals_VendoredMatchesUpstream` (M-014
 ## Acceptance criteria
 
 <!-- Drafted at `aiwfx-start-milestone M-0104` time. AC seed set:
-1. The testdata fixture at `internal/policies/testdata/aiwfx-start-epic/SKILL.md` reflects the new step ordering: preflight → delegation prompt → sovereign promote → sovereign authorize (if delegating) → worktree placement → hand-off.
-2. The embedded snapshot at `internal/skills/embedded-rituals/.../aiwfx-start-epic/SKILL.md` matches the testdata fixture byte-for-byte modulo the embedded-rituals-specific frontmatter.
-3. The stale "G-0059 frames the open question" paragraph at the original step 6 is removed; the replacement names ADR-0010 explicitly.
-4. The testdata fixture's "## Workflow" section's headings, parsed structurally (per CLAUDE.md §"Substring assertions are not structural assertions"), appear in the order specified above. A flat substring match is not sufficient — the assertion is structural.
-5. M-0103's preflight accepts `aiwf authorize E-NNNN --to ai/<id> --branch epic/E-NNNN-<slug>` from a checkout on `main` even when the named branch doesn't yet exist, provided `--branch` parses as a valid ref name. This is the "future branch" refinement; the cell is registered in the consolidation milestone.
-6. The skill's "Workflow" prose names the override path (`--force --reason "..."`) at the appropriate step so an operator reading the skill body sees it.
-7. The `make sync-rituals` step is documented in the milestone's Validation section once the upstream commit lands; the resulting `rituals.lock` SHA matches the embedded snapshot.
+1. The embedded snapshot at `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-epic/SKILL.md` reflects the new step ordering: preflight → delegation prompt → sovereign promote → sovereign authorize (if delegating) → worktree placement → hand-off.
+2. The stale "G-0059 frames the open question" paragraph at the original step 6 is removed; the replacement names ADR-0010 explicitly.
+3. The skill's `## Workflow` section's headings, parsed structurally (per CLAUDE.md §"Substring assertions are not structural assertions"), appear in the order specified above. A flat substring match is not sufficient — the assertion is structural.
+4. M-0103's preflight accepts `aiwf authorize E-NNNN --to ai/<id> --branch epic/E-NNNN-<slug>` from a checkout on `main` even when the named branch doesn't yet exist, provided `--branch` parses as a valid ref name. This is the "future branch" refinement; the cell is registered in the consolidation milestone.
+5. The skill's "Workflow" prose names the override path (`--force --reason "..."`) at the appropriate step so an operator reading the skill body sees it.
 -->
