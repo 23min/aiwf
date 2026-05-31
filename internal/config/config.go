@@ -294,12 +294,8 @@ func Load(root string) (*Config, error) {
 // load fine; the legacy value is captured into LegacyAiwfVersion and
 // stripped on `aiwf update` via StripLegacyAiwfVersion.
 //
-// There are currently no cross-field constraints — the former
-// `doctor.recommended_plugins` shape/format checks were removed when
-// the marketplace channel was retired (M-0152, D-0016). The method is
-// retained as the validation entry point for future rules; an unknown
-// `doctor.recommended_plugins` key in an old consumer yaml is silently
-// ignored by the lax decode.
+// There are currently no cross-field constraints. The method is
+// retained as the validation entry point for future rules.
 func (c *Config) Validate() error {
 	return nil
 }

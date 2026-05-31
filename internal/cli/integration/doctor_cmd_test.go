@@ -179,12 +179,8 @@ func TestRun_DoctorSelfCheck_Passes(t *testing.T) {
 		"ok    update (status_md.auto_update: true → reinstates post-commit)",
 		"ok    check",
 		"ok    doctor",
-		// M-0152: the marketplace recommendation is retired; doctor now
-		// verifies the materialized rituals and runs a de-dupe guard.
-		// These labels keep the seam test honest about what the
-		// production self-check actually exercises.
+		// M-0152: doctor verifies the materialized rituals.
 		"ok    doctor verifies rituals materialized (ADR-0014 §5)",
-		"ok    doctor de-dupe guard: enabled marketplace plugin overlaps materialized rituals",
 	} {
 		if !strings.Contains(out, label) {
 			t.Errorf("output missing %q:\n%s", label, out)
@@ -706,12 +702,6 @@ contracts:
 		t.Errorf("missing validator should NOT increment problems in default mode; got %d\n%s", problems, joined)
 	}
 }
-
-// The recommended-plugins doctor tests (M-070 / G-0138 / M-0133) were
-// removed in M-0152 when the marketplace channel was retired (ADR-0014
-// §5, D-0016). Doctor now verifies the materialized rituals and runs a
-// de-dupe guard; that behavior is covered by doctor_rituals_test.go and
-// the same-package edge tests in internal/cli/doctor/internal_test.go.
 
 // TestDoctorReport_ValidatorAvailability_StrictIncrementsProblems:
 // strict_validators=true makes a missing validator a hard problem

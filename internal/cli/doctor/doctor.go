@@ -10,7 +10,6 @@ package doctor
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -242,18 +241,10 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	lines, problems = appendPostCommitHookReport(lines, problems, rootDir)
 	lines, problems = appendRenderReport(lines, problems, rootDir)
 	lines = appendMaterializedRitualsReport(lines, rootDir)
-	lines = appendMarketplaceOverlapReport(lines, rootDir)
 	lines = appendStatuslineReport(lines, rootDir)
 
 	return lines, problems
 }
-
-// ritualsMarketplaceSuffix is the `@<marketplace>` suffix of a rituals
-// plugin id as it appears in `.claude/settings.json` enabledPlugins
-// (e.g. `aiwf-extensions@ai-workflow-rituals`). Used by the de-dupe
-// guard to recognize an enabled marketplace plugin that overlaps with
-// the materialized rituals.
-const ritualsMarketplaceSuffix = "@ai-workflow-rituals"
 
 // appendMaterializedRitualsReport verifies the embedded ritual
 // artifacts (skills, agents, templates) are materialized under the
@@ -279,73 +270,6 @@ func appendMaterializedRitualsReport(in []string, rootDir string) []string {
 		fmt.Sprintf("%sok (%d artifacts materialized)", label("rituals:"), len(present)),
 		subIndent+"managed by aiwf (skills aiwf-*/aiwfx-*/wf-*, agents, templates); `aiwf update` refreshes — do not hand-edit (see .claude/skills/README.md)",
 	)
-}
-
-// appendMarketplaceOverlapReport is the de-dupe guard (ADR-0014 §5):
-// when the consumer has a rituals marketplace plugin enabled in
-// `.claude/settings.json` AND the rituals are materialized under
-// `.claude/`, the same skill `name:` is exposed twice. The guard
-// detects the overlap and instructs the operator to disable the plugin —
-// the marketplace-plugin scenario is not consent-eligible (quiet
-// mutation of user settings is more invasive than the marker-managed
-// posture allows). The narrow exception aiwf does take on is the
-// statusline opt-in (`--wire-settings` / TTY `[y/N]`), gated by explicit
-// per-invocation consent per ADR-0015; this de-dupe guard does not
-// participate in that flow. Soft (advisory): it does not increment the
-// problem count.
-func appendMarketplaceOverlapReport(in []string, rootDir string) []string {
-	enabled, err := loadEnabledPlugins(rootDir)
-	if err != nil {
-		return append(in, label("plugins:")+err.Error())
-	}
-	var enabledRituals []string
-	for id, on := range enabled {
-		if on && strings.HasSuffix(id, ritualsMarketplaceSuffix) {
-			enabledRituals = append(enabledRituals, id)
-		}
-	}
-	if len(enabledRituals) == 0 {
-		return in
-	}
-	present, _, mErr := skills.MaterializedRituals(rootDir, skills.ClaudeTarget)
-	if mErr != nil || len(present) == 0 {
-		// No materialized rituals → no duplication hazard (or the
-		// materialized-rituals report above already surfaced mErr).
-		return in
-	}
-	sort.Strings(enabledRituals)
-	out := in
-	out = append(out, fmt.Sprintf("%smarketplace-rituals-overlap: rituals materialized AND %d marketplace plugin(s) enabled — disable the plugin(s) to avoid duplicate skills", label("plugins:"), len(enabledRituals)))
-	for _, id := range enabledRituals {
-		out = append(out, fmt.Sprintf("%s- %s (disable via the `/plugin` menu; aiwf does not edit your settings.json without explicit per-invocation consent — see ADR-0015 — and the marketplace-overlap scenario is not consent-eligible)", subIndent, id))
-	}
-	return out
-}
-
-// loadEnabledPlugins reads the project's `.claude/settings.json` and
-// returns its `enabledPlugins` map. The map key is `name@marketplace`;
-// the value is true when the project declares the plugin enabled.
-//
-// Missing file returns an empty map (no plugins declared) without
-// error; malformed JSON returns a wrapped error so doctor can surface
-// it as a configuration issue rather than silently treating it as
-// "no plugins enabled."
-func loadEnabledPlugins(rootDir string) (map[string]bool, error) {
-	path := filepath.Join(rootDir, ".claude", "settings.json")
-	raw, err := os.ReadFile(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return map[string]bool{}, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("reading .claude/settings.json: %w", err)
-	}
-	var doc struct {
-		EnabledPlugins map[string]bool `json:"enabledPlugins"`
-	}
-	if err := json.Unmarshal(raw, &doc); err != nil {
-		return nil, fmt.Errorf("parsing .claude/settings.json: %w", err)
-	}
-	return doc.EnabledPlugins, nil
 }
 
 // appendRenderReport surfaces the consumer's HTML render

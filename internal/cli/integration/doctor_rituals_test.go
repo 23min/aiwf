@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,89 +60,6 @@ func TestDoctorReport_RitualsMissing_WarnsSoft(t *testing.T) {
 	}
 	if after != before {
 		t.Errorf("missing rituals must be a soft warning (problems unchanged): before=%d after=%d", before, after)
-	}
-}
-
-// writeEnabledPlugins writes a .claude/settings.json declaring the given
-// plugin enabled. Returns the file path.
-func writeEnabledPlugins(t *testing.T, root, plugin string, enabled bool) string {
-	t.Helper()
-	dir := filepath.Join(root, ".claude")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(dir, "settings.json")
-	val := "false"
-	if enabled {
-		val = "true"
-	}
-	body := []byte(`{"enabledPlugins":{"` + plugin + `":` + val + `}}`)
-	if err := os.WriteFile(path, body, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	return path
-}
-
-// TestDoctorReport_MarketplaceOverlap_WarnsNoSettingsEdit covers M-0152
-// AC-2: with rituals materialized AND a marketplace plugin enabled,
-// doctor warns to disable the plugin and does NOT modify settings.json.
-func TestDoctorReport_MarketplaceOverlap_WarnsNoSettingsEdit(t *testing.T) {
-	root := initForDoctor(t)
-	settingsPath := writeEnabledPlugins(t, root, "aiwf-extensions@ai-workflow-rituals", true)
-	before, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "marketplace-rituals-overlap") {
-		t.Errorf("expected marketplace-rituals-overlap warning; got:\n%s", joined)
-	}
-	if !strings.Contains(joined, "aiwf-extensions@ai-workflow-rituals") {
-		t.Errorf("overlap warning should name the enabled plugin; got:\n%s", joined)
-	}
-	if !strings.Contains(joined, "disable") {
-		t.Errorf("overlap warning should instruct disable; got:\n%s", joined)
-	}
-	after, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(before, after) {
-		t.Errorf("doctor must not edit settings.json (ADR-0014 §5); before=%q after=%q", before, after)
-	}
-}
-
-// TestDoctorReport_NoOverlap_WhenPluginDisabled covers AC-2's negative:
-// plugin present but disabled → no overlap warning.
-func TestDoctorReport_NoOverlap_WhenPluginDisabled(t *testing.T) {
-	root := initForDoctor(t)
-	writeEnabledPlugins(t, root, "aiwf-extensions@ai-workflow-rituals", false)
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	if strings.Contains(strings.Join(lines, "\n"), "marketplace-rituals-overlap") {
-		t.Errorf("disabled plugin must not trigger overlap warning:\n%s", strings.Join(lines, "\n"))
-	}
-}
-
-// TestDoctorReport_NoOverlap_WhenNotMaterialized covers AC-2's other
-// negative: plugin enabled but rituals not materialized → no overlap
-// (only one side of the duplication present).
-func TestDoctorReport_NoOverlap_WhenNotMaterialized(t *testing.T) {
-	root := initForDoctor(t)
-	writeEnabledPlugins(t, root, "aiwf-extensions@ai-workflow-rituals", true)
-	// Remove all materialized ritual artifacts.
-	if err := os.RemoveAll(filepath.Join(root, ".claude", "agents")); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.RemoveAll(filepath.Join(root, ".claude", "templates")); err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range []string{"aiwfx-plan-epic", "aiwfx-start-milestone", "aiwfx-wrap-epic", "aiwfx-plan-milestones", "aiwfx-start-epic", "aiwfx-wrap-milestone", "aiwfx-record-decision", "aiwfx-release", "aiwfx-whiteboard", "wf-tdd-cycle", "wf-review-code", "wf-doc-lint", "wf-patch"} {
-		_ = os.RemoveAll(filepath.Join(root, ".claude", "skills", name))
-	}
-	lines, _ := doctor.DoctorReport(root, doctor.DoctorOptions{})
-	if strings.Contains(strings.Join(lines, "\n"), "marketplace-rituals-overlap") {
-		t.Errorf("no overlap expected when rituals are not materialized:\n%s", strings.Join(lines, "\n"))
 	}
 }
 

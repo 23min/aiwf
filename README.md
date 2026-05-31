@@ -180,8 +180,6 @@ All are gitignored and marker-managed; your own user-authored skills/agents are 
 
 Run `aiwf doctor` to confirm: the `rituals:` line reports the artifacts materialized. To verify end-to-end, `aiwf doctor --self-check` spins up a throwaway repo, drives every verb, and reports pass/fail per step.
 
-> **Migrating from the marketplace plugin?** If you previously installed `ai-workflow-rituals` via `/plugin`, `aiwf doctor` flags a `marketplace-rituals-overlap` (the same skills would be exposed twice). Disable the plugin via the `/plugin` menu — aiwf will not edit your `.claude/settings.json`.
-
 ### Sample of `aiwf check` output
 
 When validation finds something, output is one finding per line in linter form: `path:line: severity code: message — hint: <action>`.

@@ -887,27 +887,3 @@ func TestWrite_OmitsArchiveByDefault(t *testing.T) {
 		t.Errorf("archive present in default-Write output: %q", got)
 	}
 }
-
-// TestLoad_LegacyDoctorBlockIgnored: after the marketplace retirement
-// (M-0152, D-0016) the `doctor.recommended_plugins` field is removed
-// from the Config struct. An old consumer yaml that still declares the
-// block must still load cleanly — the lax `yaml.Unmarshal` decode
-// ignores the now-unknown key, so no consumer breaks on upgrade.
-func TestLoad_LegacyDoctorBlockIgnored(t *testing.T) {
-	t.Parallel()
-	root := t.TempDir()
-	body := "hosts: [claude-code]\ndoctor:\n  recommended_plugins:\n    - aiwf-extensions@ai-workflow-rituals\n    - wf-rituals@ai-workflow-rituals\n"
-	if err := os.WriteFile(filepath.Join(root, FileName), []byte(body), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	cfg, err := Load(root)
-	if err != nil {
-		t.Fatalf("Load with legacy doctor.recommended_plugins block: %v", err)
-	}
-	if cfg == nil {
-		t.Fatal("Load returned nil cfg for a shape-valid legacy yaml")
-	}
-	if len(cfg.Hosts) != 1 || cfg.Hosts[0] != "claude-code" {
-		t.Errorf("the rest of the config must still decode; Hosts = %v", cfg.Hosts)
-	}
-}

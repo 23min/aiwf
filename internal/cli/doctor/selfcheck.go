@@ -232,19 +232,6 @@ func runSelfCheck() int {
 				return nil
 			},
 		},
-		{
-			label: "doctor de-dupe guard: enabled marketplace plugin overlaps materialized rituals",
-			setup: func() error {
-				return writeEnabledPluginsForSelfCheck(tmp, "aiwf-extensions@ai-workflow-rituals")
-			},
-			args: []string{"doctor", "--root", tmp},
-			verifyOutput: func(out string) error {
-				if !strings.Contains(out, "marketplace-rituals-overlap") {
-					return fmt.Errorf("an enabled marketplace plugin alongside materialized rituals should trigger the de-dupe guard; got:\n%s", out)
-				}
-				return nil
-			},
-		},
 	}
 
 	fmt.Printf("self-check repo: %s\n\n", tmp)
@@ -289,22 +276,6 @@ func runSelfCheck() int {
 	}
 	fmt.Printf("\nself-check passed (%d steps).\n", len(steps))
 	return cliutil.ExitOK
-}
-
-// writeEnabledPluginsForSelfCheck writes <repo>/.claude/settings.json
-// declaring `plugin` enabled, so the doctor's de-dupe guard
-// (ADR-0014 §5) sees an enabled marketplace plugin overlapping the
-// materialized rituals.
-func writeEnabledPluginsForSelfCheck(repo, plugin string) error {
-	dir := filepath.Join(repo, ".claude")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("mkdir %s: %w", dir, err)
-	}
-	body := fmt.Sprintf(`{%q: {%q: true}}`, "enabledPlugins", plugin)
-	if err := os.WriteFile(filepath.Join(dir, "settings.json"), []byte(body), 0o644); err != nil {
-		return fmt.Errorf("writing settings.json: %w", err)
-	}
-	return nil
 }
 
 // rewriteAiwfYAMLAutoUpdate rewrites <repo>/aiwf.yaml so that

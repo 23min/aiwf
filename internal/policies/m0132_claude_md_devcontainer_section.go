@@ -9,16 +9,15 @@ import (
 
 // PolicyM0132ClaudeMdDevcontainerSection asserts that CLAUDE.md's
 // `## Operator setup` section contains a `### Devcontainer`
-// subsection whose body cites the claude-code#31388 URL and names
-// the "shadow-mount" concept.
+// subsection with non-empty body content. G-0194 retired the
+// marketplace-plugin transitional machinery; the shadow-mount /
+// plugin-index workaround (claude-code#31388) was removed from this
+// subsection because the plugin-index infrastructure is no longer
+// relevant for rituals. The policy now pins only the presence of the
+// subsection and its non-emptiness — the specific content is the
+// devcontainer materialization description.
 //
-// Per CLAUDE.md's "substring assertions are not structural
-// assertions" rule, the URL and concept literals must appear inside
-// the subsection's body — not anywhere else in CLAUDE.md. A
-// future change that puts the URL in some other section while
-// removing the subsection-scoped reference still fires this check.
-//
-// Pins M-0132/AC-6.
+// Pins M-0132/AC-6 (narrowed post-G-0194).
 func PolicyM0132ClaudeMdDevcontainerSection(root string) ([]Violation, error) {
 	const relPath = "CLAUDE.md"
 	abs := filepath.Join(root, relPath)
@@ -103,15 +102,9 @@ func PolicyM0132ClaudeMdDevcontainerSection(root string) ([]Violation, error) {
 		report("`### Devcontainer` subsection has no body content (header without prose; readers can't pick up the workaround context)")
 	}
 
-	const wantURL = "https://github.com/anthropics/claude-code/issues/31388"
-	if !strings.Contains(body, wantURL) {
-		report(fmt.Sprintf("`### Devcontainer` subsection body missing %s (URL must appear in the subsection, not elsewhere in CLAUDE.md)", wantURL))
-	}
-
-	const wantConcept1 = "shadow-mount"
-	const wantConcept2 = "plugin index shadow"
-	if !strings.Contains(body, wantConcept1) && !strings.Contains(body, wantConcept2) {
-		report(fmt.Sprintf("`### Devcontainer` subsection body missing the concept name (%q or %q) — readers shouldn't need to chase the upstream issue to understand what the workaround is", wantConcept1, wantConcept2))
+	const wantMaterialize = "materialize"
+	if !strings.Contains(strings.ToLower(body), wantMaterialize) {
+		report("`### Devcontainer` subsection body should describe the ritualmaterialization mechanism (`aiwf init` / `aiwf update`) — the subsection's purpose post-G-0194 is confirming no separate install is needed inside the container")
 	}
 
 	return vs, nil
