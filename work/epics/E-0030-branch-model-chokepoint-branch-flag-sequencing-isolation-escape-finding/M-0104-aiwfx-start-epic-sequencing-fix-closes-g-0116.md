@@ -7,6 +7,27 @@ depends_on:
     - M-0102
     - M-0103
 tdd: required
+acs:
+    - id: AC-1
+      title: Embedded snapshot reflects new step ordering
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Stale G-0059 paragraph removed; replacement names ADR-0010
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Workflow headings structurally appear in new order
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Preflight accepts --branch <future> from main (future-branch refinement)
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: Skill body names --force --reason override at appropriate step
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -57,3 +78,14 @@ One edit in one commit. The upstream `ai-workflow-rituals` repo was archived und
 4. M-0103's preflight accepts `aiwf authorize E-NNNN --to ai/<id> --branch epic/E-NNNN-<slug>` from a checkout on `main` even when the named branch doesn't yet exist, provided `--branch` parses as a valid ref name. This is the "future branch" refinement; the cell is registered in the consolidation milestone.
 5. The skill's "Workflow" prose names the override path (`--force --reason "..."`) at the appropriate step so an operator reading the skill body sees it.
 -->
+
+### AC-1 — Embedded snapshot reflects new step ordering
+
+### AC-2 — Stale G-0059 paragraph removed; replacement names ADR-0010
+
+### AC-3 — Workflow headings structurally appear in new order
+
+### AC-4 — Preflight accepts --branch <future> from main (future-branch refinement)
+
+### AC-5 — Skill body names --force --reason override at appropriate step
+
