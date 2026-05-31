@@ -84,7 +84,7 @@ func ScaffoldStatuslineWithHome(root, home string, scope StatuslineScope) (Statu
 
 	res := StatuslineScaffoldResult{
 		Path:    dest,
-		Snippet: formatStatuslineSnippet(snippetCmd),
+		Snippet: FormatStatuslineSnippet(snippetCmd),
 	}
 
 	// Skip if a copy already exists — the scaffold-once invariant.
@@ -139,9 +139,9 @@ func statuslineDest(root, home string, scope StatuslineScope) (dest, snippetCmd 
 	}
 }
 
-// formatStatuslineSnippet renders the JSON-ish activation snippet
+// FormatStatuslineSnippet renders the JSON-ish activation snippet
 // for the operator's Claude Code settings file.
-func formatStatuslineSnippet(cmdPath string) string {
+func FormatStatuslineSnippet(cmdPath string) string {
 	return fmt.Sprintf(`  "statusLine": {
     "type": "command",
     "command": "%s"
