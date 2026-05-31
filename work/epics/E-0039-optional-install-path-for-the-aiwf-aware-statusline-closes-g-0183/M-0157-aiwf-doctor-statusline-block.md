@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Container detected with project scope nudges --scope user
-      status: open
+      status: met
       tdd_phase: done
 ---
 # M-0157 — aiwf doctor statusline block
