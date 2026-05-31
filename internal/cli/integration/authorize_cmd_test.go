@@ -89,6 +89,85 @@ func TestRunAuthorize_OpenPauseResumeRoundTrip(t *testing.T) {
 	hasTrailer(t, tr, "aiwf-reason", "back to it")
 }
 
+// TestRunAuthorize_BranchCompletion_ReturnsRitualBranches
+// (M-0102/AC-6, cobra-adapter seam): drive `aiwf __complete authorize
+// <id> --branch ""` through the built binary in a test git repo
+// carrying both ritual and non-ritual local branches. The hidden
+// __complete invocation is cobra's standard plumbing that the shell
+// scripts use to query a flag's completion func. Asserting that
+// only ritual-shaped branches surface end-to-end pins the
+// completeBranchFlag adapter's wiring (cwd = ".", directive =
+// NoFileComp) in addition to the helper's filter, which the unit
+// tests in internal/cli/authorize/ cover.
+func TestRunAuthorize_BranchCompletion_ReturnsRitualBranches(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunGit(root, "commit", "--allow-empty", "-m", "init"); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+	for _, b := range []string{
+		"epic/E-0010-cobra",
+		"milestone/M-0007-cache",
+		"patch/g-0099-iso",
+		"fix/some-bug",
+		"chore/dep-bump",
+	} {
+		if out, err := testutil.RunGit(root, "branch", b); err != nil {
+			t.Fatalf("git branch %s: %v\n%s", b, err, out)
+		}
+	}
+
+	// __complete returns one candidate per line followed by a `:<N>`
+	// directive line and a trailing comment. We don't care about exit
+	// code (cobra exits with the directive value); we care about which
+	// candidates surface.
+	out, _ := testutil.RunBin(t, root, binDir, nil,
+		"__complete", "authorize", "E-0001", "--branch", "")
+	wantPresent := []string{
+		"epic/E-0010-cobra",
+		"milestone/M-0007-cache",
+		"patch/g-0099-iso",
+	}
+	wantAbsent := []string{"fix/some-bug", "chore/dep-bump", "main"}
+	for _, b := range wantPresent {
+		if !strings.Contains(out, b) {
+			t.Errorf("__complete output missing ritual branch %q\noutput:\n%s", b, out)
+		}
+	}
+	for _, b := range wantAbsent {
+		// Be specific: the candidate must not appear as a standalone
+		// completion line. A bare strings.Contains check would false-fire
+		// if the branch name is a substring of an unrelated cobra line.
+		for _, line := range strings.Split(out, "\n") {
+			if strings.TrimSpace(line) == b {
+				t.Errorf("__complete output includes non-ritual branch %q\noutput:\n%s", b, out)
+			}
+		}
+	}
+	// Pin the directive code (4 = ShellCompDirectiveNoFileComp). A
+	// future refactor that drops the directive or swaps it for
+	// ShellCompDirectiveDefault would re-enable shell-level file
+	// completion as a silent fallback — a UX regression the candidate
+	// assertions above wouldn't catch.
+	if !strings.Contains(out, "\n:4\n") {
+		t.Errorf("__complete output missing directive :4 (NoFileComp); shell would fall back to file completion\noutput:\n%s", out)
+	}
+}
+
 // TestRunAuthorize_WithBranch_EmitsTrailer (M-0102/AC-3, cli-layer seam):
 // drive `aiwf authorize <id> --to <agent> --branch <name>` through the
 // built binary and assert the resulting authorize commit carries an

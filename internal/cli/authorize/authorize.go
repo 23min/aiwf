@@ -6,10 +6,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/branchparse"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
@@ -72,12 +74,46 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason)")
 	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
-	// M-0102 / AC-1: --branch is wired with a completion function so the
-	// drift test recognizes it as covered. The placeholder returns no
-	// suggestions and skips file completion; M-0102 / AC-6 replaces it
-	// with the ritual-shape-from-branchparse function.
-	_ = cmd.RegisterFlagCompletionFunc("branch", cobra.NoFileCompletions)
+	// M-0102 / AC-6: --branch completion returns local branch names
+	// matching the ADR-0010 ritual shape — epic/E-NNNN-..., milestone/
+	// M-NNNN-..., patch/[Gg]-NNNN-... — filtered via
+	// branchparse.ParseEntityFromBranch. Non-ritual branches (main,
+	// fix/*, chore/*, etc.) are deliberately omitted so completion is
+	// the discoverability surface for the convention itself.
+	_ = cmd.RegisterFlagCompletionFunc("branch", completeBranchFlag)
 	return cmd
+}
+
+// completeBranchFlag is the cobra completion function for --branch.
+// Runs against the user's current working directory at completion
+// time. Best-effort: any git failure collapses to an empty list so
+// the shell falls through to its default (no suggestions).
+func completeBranchFlag(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return ritualLocalBranches("."), cobra.ShellCompDirectiveNoFileComp
+}
+
+// ritualLocalBranches returns local branch names from rootDir whose
+// shape matches the ADR-0010 ritual grammar via
+// branchparse.ParseEntityFromBranch. Returns nil on git failure or
+// when the repo has no matching branches.
+func ritualLocalBranches(rootDir string) []string {
+	cmd := exec.Command("git", "for-each-ref", "refs/heads/", "--format=%(refname:short)")
+	cmd.Dir = rootDir
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	var ritual []string
+	for _, line := range strings.Split(string(out), "\n") {
+		name := strings.TrimSpace(line)
+		if name == "" {
+			continue
+		}
+		if branchparse.ParseEntityFromBranch(name) != "" {
+			ritual = append(ritual, name)
+		}
+	}
+	return ritual
 }
 
 // Run executes `aiwf authorize`. Returns one of the cliutil.Exit* codes.
