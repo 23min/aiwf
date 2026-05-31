@@ -7,6 +7,11 @@ depends_on:
     - M-0154
     - M-0155
 tdd: required
+acs:
+    - id: AC-1
+      title: render.IsTTY predicate wraps term.IsTerminal
+      status: open
+      tdd_phase: red
 ---
 # M-0156 — Consent-gated statusline settings wiring
 
@@ -101,3 +106,6 @@ flag is wired through shell completion (completion-drift test).
 ## Reviewer notes
 
 - (none)
+
+### AC-1 — render.IsTTY predicate wraps term.IsTerminal
+
