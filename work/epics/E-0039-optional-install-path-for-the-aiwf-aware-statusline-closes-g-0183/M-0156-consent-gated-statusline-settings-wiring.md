@@ -12,6 +12,10 @@ acs:
       title: render.IsTTY predicate wraps term.IsTerminal
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: --wire-settings flag on init and update with completion
+      status: open
+      tdd_phase: red
 ---
 # M-0156 — Consent-gated statusline settings wiring
 
@@ -108,4 +112,6 @@ flag is wired through shell completion (completion-drift test).
 - (none)
 
 ### AC-1 — render.IsTTY predicate wraps term.IsTerminal
+
+### AC-2 — --wire-settings flag on init and update with completion
 
