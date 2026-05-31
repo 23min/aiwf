@@ -68,9 +68,20 @@ const (
 // source of truth for the most-recently-opened-active /
 // most-recently-paused selection.
 type AuthorizeOptions struct {
-	Mode   AuthorizeMode
-	Agent  string
+	Mode AuthorizeMode
+	// Agent is the role/<id> the scope authorizes (e.g. "ai/claude").
+	Agent string
+	// Reason is the rationale; required for pause/resume, optional for
+	// open (required when Force is set).
 	Reason string
+	// Branch (M-0102 / ADR-0010) is the ritual branch a scope is bound
+	// to. Optional at this milestone: when empty, no aiwf-branch:
+	// trailer is emitted (backward-compatible no-op). M-0103 will refuse
+	// AuthorizeOpen on an ai/<id> agent if Branch is empty *and* the
+	// current checkout doesn't match a ritual shape; that preflight
+	// lives in the cmd layer, not here. Validated against the git-ref
+	// shape rule in gitops.ValidateTrailer at trailer-assembly time.
+	Branch string
 	Force  bool
 	Scopes []*scope.Scope
 }
@@ -156,6 +167,14 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 		{Key: gitops.TrailerActor, Value: actor},
 		{Key: gitops.TrailerTo, Value: agent},
 		{Key: gitops.TrailerScope, Value: "opened"},
+	}
+	// M-0102 / AC-3: aiwf-branch trailer is emitted iff --branch was
+	// passed; empty Branch keeps the trailer absent (backward-compatible).
+	// validateAuthorizeTrailers below catches shape violations via the
+	// AC-2 git-ref rule, so a malformed Branch fails the verb before any
+	// commit lands.
+	if b := strings.TrimSpace(opts.Branch); b != "" {
+		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerBranch, Value: b})
 	}
 	if r := strings.TrimSpace(opts.Reason); r != "" {
 		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerReason, Value: r})

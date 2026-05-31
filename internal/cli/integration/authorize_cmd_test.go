@@ -89,6 +89,62 @@ func TestRunAuthorize_OpenPauseResumeRoundTrip(t *testing.T) {
 	hasTrailer(t, tr, "aiwf-reason", "back to it")
 }
 
+// TestRunAuthorize_WithBranch_EmitsTrailer (M-0102/AC-3, cli-layer seam):
+// drive `aiwf authorize <id> --to <agent> --branch <name>` through the
+// built binary and assert the resulting authorize commit carries an
+// aiwf-branch: trailer with the passed value. This is the load-bearing
+// end-to-end check on the cli's flag → opts.Branch → verb → trailer
+// propagation; a typo on the cli's `opts.Branch = branch` line would
+// pass the verb-layer test but fail here.
+func TestRunAuthorize_WithBranch_EmitsTrailer(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001",
+		"--to", "ai/claude",
+		"--branch", "epic/E-0001-engine",
+		"--reason", "implement E-01",
+	); err != nil {
+		t.Fatalf("aiwf authorize --to --branch: %v\n%s", err, out)
+	}
+
+	tr, err := gitops.HeadTrailers(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasTrailer(t, tr, "aiwf-verb", "authorize")
+	hasTrailer(t, tr, "aiwf-to", "ai/claude")
+	hasTrailer(t, tr, "aiwf-scope", "opened")
+	// The load-bearing assertion: the cli's --branch flag landed as an
+	// aiwf-branch: trailer on the authorize commit. Pins the cli → verb
+	// → commit propagation path end-to-end.
+	hasTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
+}
+
 // TestRunAuthorize_RefusesNonHumanActor: --actor ai/claude is rejected
 // before any state is touched — only humans authorize.
 func TestRunAuthorize_RefusesNonHumanActor(t *testing.T) {

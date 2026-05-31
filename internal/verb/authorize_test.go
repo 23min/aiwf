@@ -82,6 +82,126 @@ func TestAuthorize_Open_NoReason(t *testing.T) {
 	}
 }
 
+// TestAuthorize_Open_WithBranch_EmitsTrailer (M-0102/AC-3): when
+// AuthorizeOpen carries a non-empty Branch, the resulting commit
+// stamps an aiwf-branch: trailer with that value.
+func TestAuthorize_Open_WithBranch_EmitsTrailer(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:   verb.AuthorizeOpen,
+		Agent:  "ai/claude",
+		Branch: "epic/E-0001-engine",
+	})
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
+}
+
+// TestAuthorize_Open_NoBranch_NoTrailer (M-0102/AC-3): when Branch is
+// empty (the default), no aiwf-branch: trailer is emitted —
+// backward-compatible with the pre-M-0102 trailer set.
+func TestAuthorize_Open_NoBranch_NoTrailer(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:  verb.AuthorizeOpen,
+		Agent: "ai/claude",
+	})
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+	for _, tr := range res.Plan.Trailers {
+		if tr.Key == "aiwf-branch" {
+			t.Errorf("aiwf-branch trailer present without Branch option: %q", tr.Value)
+		}
+	}
+}
+
+// TestAuthorize_Open_WithBranch_NonExistentBranchAccepted (M-0102/AC-8):
+// the verb does not refuse a Branch value whose named branch doesn't
+// exist in the repo at the time of the call. Per the M-0102 design
+// decision, branch-existence checking is M-0103's job (the preflight),
+// not this milestone's. M-0102 records whatever name was passed,
+// validated only against trailer-shape rules from AC-2.
+func TestAuthorize_Open_WithBranch_NonExistentBranchAccepted(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	// The test repo never creates any branch matching this name; the
+	// verb must still succeed.
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:   verb.AuthorizeOpen,
+		Agent:  "ai/claude",
+		Branch: "epic/E-9999-not-a-real-branch",
+	})
+	if err != nil {
+		t.Fatalf("Authorize refused non-existent branch (should not at M-0102): %v", err)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-branch", "epic/E-9999-not-a-real-branch")
+}
+
+// TestAuthorize_Open_WithBranch_InvalidShapeRefused: defensive — when
+// the Branch value violates trailer-shape rules from AC-2 (embedded
+// whitespace, leading slash, embedded ".."), the verb refuses via the
+// same validateAuthorizeTrailers pass that gates aiwf-actor / aiwf-to.
+// Pins the seam between AC-2's shape rule and AC-3's emission.
+func TestAuthorize_Open_WithBranch_InvalidShapeRefused(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, branch string
+	}{
+		{"whitespace", "epic/with whitespace"},
+		{"leading slash", "/epic/E-0001"},
+		{"embedded double-dot", "epic/E-..-bad"},
+		{"colon", "epic:E-0001"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := newRunner(t)
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+			r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+			_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+				Mode:   verb.AuthorizeOpen,
+				Agent:  "ai/claude",
+				Branch: tc.branch,
+			})
+			if err == nil {
+				t.Fatalf("expected shape-validation refusal for %q; got nil", tc.branch)
+			}
+			if !strings.Contains(err.Error(), "aiwf-branch") {
+				t.Errorf("error %q does not mention aiwf-branch", err.Error())
+			}
+		})
+	}
+}
+
 // TestAuthorize_Open_RefusesNonHumanActor: only human/... actors may
 // authorize. An ai/... or bot/... actor is refused at the verb gate.
 func TestAuthorize_Open_RefusesNonHumanActor(t *testing.T) {

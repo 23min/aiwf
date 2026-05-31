@@ -40,6 +40,7 @@ func NewCmd() *cobra.Command {
 		pause  string
 		resume string
 		reason string
+		branch string
 		force  bool
 		out    *cliutil.OutputFormat
 	)
@@ -58,7 +59,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], actor, root, to, pause, resume, reason, force, *out))
+			return cliutil.WrapExitCode(Run(args[0], actor, root, to, pause, resume, reason, branch, force, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (default: derived from git config user.email; must be human/...)")
@@ -67,14 +68,20 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&pause, "pause", "", "pause the most-recently-opened active scope on <id>; the argument is the reason")
 	cmd.Flags().StringVar(&resume, "resume", "", "resume the most-recently-paused scope on <id>; the argument is the reason")
 	cmd.Flags().StringVar(&reason, "reason", "", "rationale text for --to (optional) / --force (required); ignored by --pause and --resume (their argument is the reason)")
+	cmd.Flags().StringVar(&branch, "branch", "", "ritual branch the scope is bound to (ADR-0010); when set, the authorize commit carries an aiwf-branch: trailer with this value")
 	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason)")
 	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
+	// M-0102 / AC-1: --branch is wired with a completion function so the
+	// drift test recognizes it as covered. The placeholder returns no
+	// suggestions and skips file completion; M-0102 / AC-6 replaces it
+	// with the ritual-shape-from-branchparse function.
+	_ = cmd.RegisterFlagCompletionFunc("branch", cobra.NoFileCompletions)
 	return cmd
 }
 
 // Run executes `aiwf authorize`. Returns one of the cliutil.Exit* codes.
-func Run(id, actor, root, to, pause, resume, reason string, force bool, out cliutil.OutputFormat) int {
+func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, out cliutil.OutputFormat) int {
 	modes := 0
 	if to != "" {
 		modes++
@@ -98,6 +105,15 @@ func Run(id, actor, root, to, pause, resume, reason string, force bool, out cliu
 	}
 	if force && to == "" {
 		fmt.Fprintln(os.Stderr, "aiwf authorize: --force is only meaningful with --to (overrides terminal-scope-entity refusal)")
+		return cliutil.ExitUsage
+	}
+	// M-0102: --branch binds a fresh scope to a ritual branch; reusing
+	// an existing scope (--pause / --resume) inherits the original
+	// binding. Silently ignoring --branch in those modes is a usability
+	// footgun, so refuse the combination upfront — matches the
+	// existing --reason + --pause/--resume gate above.
+	if (pause != "" || resume != "") && branch != "" {
+		fmt.Fprintln(os.Stderr, "aiwf authorize: --branch is only meaningful with --to (binds a fresh scope to a ritual branch); --pause / --resume reuse the opening scope's branch")
 		return cliutil.ExitUsage
 	}
 	if force && strings.TrimSpace(reason) == "" {
@@ -135,6 +151,7 @@ func Run(id, actor, root, to, pause, resume, reason string, force bool, out cliu
 		opts.Mode = verb.AuthorizeOpen
 		opts.Agent = to
 		opts.Reason = reason
+		opts.Branch = branch
 		opts.Force = force
 	case pause != "":
 		opts.Mode = verb.AuthorizePause
