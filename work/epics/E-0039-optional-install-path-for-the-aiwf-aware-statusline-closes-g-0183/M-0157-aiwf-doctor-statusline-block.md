@@ -23,6 +23,10 @@ acs:
       title: Embedded-vs-on-disk drift detected and reported
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: Container detected with project scope nudges --scope user
+      status: open
+      tdd_phase: red
 ---
 # M-0157 — aiwf doctor statusline block
 
@@ -106,4 +110,6 @@ increments `problems`. Each branch has a fixture that traverses it.
 ### AC-3 — Installed-but-not-wired state prints activation snippet
 
 ### AC-4 — Embedded-vs-on-disk drift detected and reported
+
+### AC-5 — Container detected with project scope nudges --scope user
 
