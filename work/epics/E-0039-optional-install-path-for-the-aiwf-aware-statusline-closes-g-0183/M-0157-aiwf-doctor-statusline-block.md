@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Missing jq/gh reported with platform-branched install hints
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Installed-but-not-wired state prints activation snippet
       status: open
