@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: --branch completion returns ritual-shape local branches
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: completion_drift_test passes on new flag without allowlist entry
       status: open
