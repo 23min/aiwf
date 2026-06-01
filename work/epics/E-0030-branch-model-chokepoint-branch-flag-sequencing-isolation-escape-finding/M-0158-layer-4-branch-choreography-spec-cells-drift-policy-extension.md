@@ -13,7 +13,7 @@ tdd: required
 acs:
     - id: AC-1
       title: internal/workflows/spec/branch/ exists with Rules and AntiRules registered
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Each epic corner-case (1-12) represented as named cell branch-cell-N
