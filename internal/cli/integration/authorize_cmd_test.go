@@ -288,19 +288,21 @@ func TestRunAuthorize_AITarget_OnNonRitualBranch_NoBranch_Refuses(t *testing.T) 
 }
 
 // TestRunAuthorize_AITarget_BranchMissing_Refuses (M-0103/AC-2,
-// narrowed by M-0104/AC-4; cli-layer seam): drive `aiwf authorize
-// <id> --to ai/<agent> --branch <typo>` through the binary against
-// a repo that has no branch by that name. Asserts the CLI's
-// `git show-ref --verify` gather flows through to the preflight,
-// which refuses with branch-not-found. Pins the --branch +
-// branchExists → opts.BranchExists → preflight propagation.
+// narrowed by M-0104/AC-4 then again by M-0105/AC-6; cli-layer
+// seam): drive `aiwf authorize <id> --to ai/<agent> --branch <typo>`
+// through the binary against a repo that has no branch by that name.
+// Asserts the CLI's `git show-ref --verify` gather flows through to
+// the preflight, which refuses with branch-not-found. Pins the
+// --branch + branchExists → opts.BranchExists → preflight propagation.
 //
-// Post-M-0104/AC-4 the carve-out (CurrentBranch=="main" + ritual
-// --branch shape → accept) would change this test's outcome if the
-// fixture happened to land on main. Explicit checkout to a ritual
-// non-main branch keeps the missing-branch refusal deterministic
-// across git init.defaultBranch variations (master here, main on
-// some envs) and pins the AC-2 case outside the AC-4 carve-out.
+// Two carve-outs narrow the AC-2 refusal scope:
+//   - M-0104/AC-4: main + ritual --branch → accept.
+//   - M-0105/AC-6: ritual current + ritual --branch → accept.
+//
+// To keep this AC-2 test pinning the general refusal outside both
+// carve-outs, explicitly check out a non-main, non-ritual feature
+// branch. The missing-branch refusal stands deterministically
+// regardless of git init.defaultBranch.
 func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)
@@ -327,10 +329,11 @@ func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote: %v\n%s", err, out)
 	}
-	// Pin CurrentBranch to a ritual non-main shape; the M-0104/AC-4
-	// carve-out is main-only, so the missing-branch refusal stands.
-	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
-		t.Fatalf("git checkout -b epic/E-0001-engine: %v\n%s", err, out)
+	// Pin CurrentBranch to a non-main, non-ritual feature shape so
+	// neither M-0104/AC-4 (main + ritual) nor M-0105/AC-6 (ritual
+	// + ritual) carve-out applies; the missing-branch refusal stands.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "feature/test-fixture"); err != nil {
+		t.Fatalf("git checkout -b feature/test-fixture: %v\n%s", err, out)
 	}
 
 	out, err := testutil.RunBin(t, root, binDir, nil,
@@ -421,6 +424,88 @@ func TestRunAuthorize_AITarget_MainPlusRitualFutureBranch_Accepts(t *testing.T) 
 		t.Fatalf("git symbolic-ref --short HEAD: %v\n%s", err, out)
 	} else if got := strings.TrimSpace(out); got != "main" {
 		t.Errorf("expected HEAD on main; got %q", got)
+	}
+}
+
+// TestRunAuthorize_AITarget_RitualCurrentPlusMilestoneFutureBranch_Accepts
+// (M-0105/AC-6, cli-layer seam): drive `aiwf authorize <id> --to
+// ai/<agent> --branch milestone/M-NNNN-<slug>` through the binary
+// from a checkout on a ritual non-main epic branch where the named
+// milestone branch does not yet exist. This is the well-formed
+// step-4 pattern of aiwfx-start-milestone (sovereign authorize on
+// parent epic branch BEFORE the step-5 milestone-branch cut).
+//
+// Pins the end-to-end seam for the M-0105/AC-6 extension of the
+// carve-out: CLI gathers CurrentBranch via `git symbolic-ref` and
+// BranchExists=false via `git show-ref --verify`; the verb's
+// preflight carve-out accepts; the apply stamps aiwf-branch with
+// the future milestone ref. The commit lands on the parent epic
+// branch (the carve-out by design does not change checkout — step 5
+// does that).
+func TestRunAuthorize_AITarget_RitualCurrentPlusMilestoneFutureBranch_Accepts(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
+		t.Fatalf("git init -b main: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add epic: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"add", "milestone", "--title", "Cache", "--epic", "E-0001", "--tdd", "required"); err != nil {
+		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
+	}
+
+	// Simulate the aiwfx-start-epic preface: the epic branch
+	// exists locally and is the operator's current checkout.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b epic/E-0001-engine: %v\n%s", err, out)
+	}
+
+	// The step-4 invocation: from the parent epic branch, name the
+	// future milestone branch (cut at step 5 of aiwfx-start-milestone).
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "M-0001",
+		"--to", "ai/claude",
+		"--branch", "milestone/M-0001-cache",
+		"--reason", "step-4 sovereign authorize",
+	); err != nil {
+		t.Fatalf("aiwf authorize (epic-current+future milestone branch): %v\n%s", err, out)
+	}
+
+	// Trailer pins: aiwf-branch carries the future MILESTONE ref
+	// even though it doesn't resolve yet.
+	tr, err := gitops.HeadTrailers(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasTrailer(t, tr, "aiwf-verb", "authorize")
+	hasTrailer(t, tr, "aiwf-to", "ai/claude")
+	hasTrailer(t, tr, "aiwf-branch", "milestone/M-0001-cache")
+
+	// The commit landed on the parent epic branch (carve-out does
+	// not move the operator off it — step 5 cuts the milestone branch).
+	if out, err := testutil.RunGit(root, "symbolic-ref", "--short", "HEAD"); err != nil {
+		t.Fatalf("git symbolic-ref --short HEAD: %v\n%s", err, out)
+	} else if got := strings.TrimSpace(out); got != "epic/E-0001-engine" {
+		t.Errorf("expected HEAD on epic/E-0001-engine; got %q", got)
 	}
 }
 

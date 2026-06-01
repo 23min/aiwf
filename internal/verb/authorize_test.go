@@ -273,19 +273,24 @@ func TestAuthorize_Open_AITarget_NoBranch_NoRitualCurrent_Refuses(t *testing.T) 
 }
 
 // TestAuthorize_Open_AITarget_BranchMissing_Refuses (M-0103/AC-2,
-// narrowed by M-0104/AC-4): opening a scope on ai/<agent> with
-// --branch <name> where the named branch does not exist locally
-// (BranchExists=false) refuses with PreflightBranchNotFoundError.
-// The error carries the branch-not-found code; the message names
-// --force --reason as the override.
+// narrowed by M-0104/AC-4 then again by M-0105/AC-6): opening a
+// scope on ai/<agent> with --branch <name> where the named branch
+// does not exist locally (BranchExists=false) refuses with
+// PreflightBranchNotFoundError. The error carries the
+// branch-not-found code; the message names --force --reason as the
+// override.
 //
-// M-0104/AC-4 carves out one case from this rule: when CurrentBranch
-// == "main" AND --branch parses as a ritual shape, the gate accepts
-// (the well-formed step-4 pattern of aiwfx-start-epic; the branch
-// will be cut at step 5). To keep this AC-2 test pinning the general
-// "missing → refuse" rule outside that carve-out, CurrentBranch is
-// pinned to a ritual non-main shape; the missing-branch refusal
-// stands because the carve-out only triggers from main.
+// Two carve-outs have narrowed the refusal scope:
+//   - M-0104/AC-4: CurrentBranch=="main" + ritual --branch → accept
+//     (the step-7 sovereign authorize of aiwfx-start-epic).
+//   - M-0105/AC-6: ritual CurrentBranch + ritual --branch → accept
+//     (the step-4 sovereign authorize of aiwfx-start-milestone, on
+//     the parent epic branch with a future milestone --branch).
+//
+// To keep this AC-2 test pinning the general "missing → refuse"
+// rule OUTSIDE both carve-outs, CurrentBranch is pinned to a
+// non-main, non-ritual shape (a plain feature branch). The
+// missing-branch refusal stands regardless of --branch's shape.
 func TestAuthorize_Open_AITarget_BranchMissing_Refuses(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -300,10 +305,11 @@ func TestAuthorize_Open_AITarget_BranchMissing_Refuses(t *testing.T) {
 		// show-ref --verify would have set it true; this fixture
 		// simulates the typo / missing-branch case.
 		//
-		// CurrentBranch is a ritual non-main shape so M-0104/AC-4's
-		// main-only carve-out does not apply — the missing-branch
+		// CurrentBranch is a non-main, non-ritual feature branch so
+		// neither M-0104/AC-4 (main + ritual) nor M-0105/AC-6
+		// (ritual + ritual) carve-out applies — the missing-branch
 		// refusal stands regardless of --branch's shape.
-		CurrentBranch: "epic/E-0001-engine",
+		CurrentBranch: "feature/test-fixture",
 	})
 	if err == nil {
 		t.Fatalf("expected refusal for ai/* target with missing --branch; got plan=%+v", res.Plan)
@@ -427,6 +433,84 @@ func TestAuthorize_Open_AITarget_MainPlusRitualFutureBranch_Accepts(t *testing.T
 		t.Fatal(err)
 	}
 	mustHaveTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
+}
+
+// TestAuthorize_Open_AITarget_RitualCurrentPlusRitualFutureBranch_Accepts
+// (M-0105/AC-6): symmetric to M-0104/AC-4 one level down. From a
+// ritual non-main current (e.g., the parent epic branch), an
+// explicit --branch naming a ritual-shape ref that does NOT yet
+// exist (BranchExists=false) accepts. This is the step-4 pattern
+// of aiwfx-start-milestone: the operator is on epic/E-NN-<slug>,
+// sovereign-authorizes the AI agent with --branch milestone/M-NN-<slug>,
+// then cuts the milestone branch at step 5.
+//
+// The carve-out's union with M-0104/AC-4 (main OR ritual current)
+// keeps the chokepoint useful — non-ritual non-main current still
+// refuses missing --branch.
+//
+// Pins: the extended carve-out's ritual-current arm, and the
+// trailer-emission promotes opts.Branch to the milestone future ref.
+func TestAuthorize_Open_AITarget_RitualCurrentPlusRitualFutureBranch_Accepts(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache", testActor, verb.AddOptions{
+		EpicID: "E-0001",
+		TDD:    "required",
+	}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "M-0001", testActor, verb.AuthorizeOptions{
+		Mode:   verb.AuthorizeOpen,
+		Agent:  "ai/claude",
+		Branch: "milestone/M-0001-cache",
+		// BranchExists deliberately false: the ritual's step-4
+		// authorize fires BEFORE step 5's branch cut.
+		BranchExists:  false,
+		CurrentBranch: "epic/E-0001-engine",
+	})
+	if err != nil {
+		t.Fatalf("Authorize refused ritual-current+ritual-future-branch: %v", err)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-branch", "milestone/M-0001-cache")
+}
+
+// TestAuthorize_Open_AITarget_NonRitualNonMainCurrent_BranchMissing_Refuses
+// (M-0105/AC-6 carve-out guard, lower bound): the M-0105 extension
+// of the carve-out covers `main OR ritual` for CurrentBranch. The
+// bottom bound — a non-ritual, non-main current (e.g., a plain
+// `feature/x` branch) — must STILL refuse missing --branch, or the
+// gate is a no-op for every branch.
+//
+// This guard is independent of the ritual-shape requirement on
+// --branch (which is the M-0104 guard); it pins the CurrentBranch
+// half of the carve-out.
+func TestAuthorize_Open_AITarget_NonRitualNonMainCurrent_BranchMissing_Refuses(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:          verb.AuthorizeOpen,
+		Agent:         "ai/claude",
+		Branch:        "epic/E-9999-future",
+		BranchExists:  false,
+		CurrentBranch: "feature/scratch",
+	})
+	if err == nil {
+		t.Fatalf("expected refusal for non-ritual non-main current + missing --branch; got plan=%+v", res.Plan)
+	}
+	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightBranchNotFound.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightBranchNotFound.ID)
+	}
 }
 
 // TestAuthorize_Open_AITarget_MainPlusNonRitualMissingBranch_Refuses

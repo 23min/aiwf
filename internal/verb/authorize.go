@@ -92,7 +92,7 @@ type PreflightBranchNotFoundError struct {
 // Error implements error.
 func (e *PreflightBranchNotFoundError) Error() string {
 	return fmt.Sprintf(
-		"aiwf authorize: --branch %q refers to a non-existent local branch (%s). Pass a name that resolves under refs/heads/, or omit --branch to use the current checkout (which must already be on a ritual-shape branch). From a checkout on `main`, naming a ritual-shape future branch is accepted (the step-7 pattern of aiwfx-start-epic — see M-0104/AC-4). To override this preflight as a sovereign act, use `--force --reason \"...\"`.",
+		"aiwf authorize: --branch %q refers to a non-existent local branch (%s). Pass a name that resolves under refs/heads/, or omit --branch to use the current checkout (which must already be on a ritual-shape branch). From `main` or a ritual-shape current branch (epic/milestone/patch), naming a ritual-shape future --branch is accepted (the step-7 pattern of aiwfx-start-epic per M-0104/AC-4 — or step-4 of aiwfx-start-milestone per M-0105/AC-6). To override this preflight as a sovereign act, use `--force --reason \"...\"`.",
 		e.Branch, CodePreflightBranchNotFound.ID,
 	)
 }
@@ -282,24 +282,51 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 		branchExplicit := strings.TrimSpace(opts.Branch)
 		if branchExplicit != "" {
 			if !opts.BranchExists {
-				// M-0104/AC-4 future-branch carve-out: from
-				// CurrentBranch=="main", an explicit --branch naming
-				// a ritual-shape ref (per branchparse) is the step-4
-				// pattern of aiwfx-start-epic. The branch will be
-				// cut at step 5; at the moment of authorize it does
-				// not yet exist. Accept without the existence check.
+				// Future-branch carve-out (M-0104/AC-4 + M-0105/AC-6):
+				// an explicit --branch naming a ritual-shape ref is
+				// accepted even when the branch does not yet exist,
+				// provided the operator's current checkout is a
+				// valid "place from which to cut the future ritual
+				// branch". Two such places are recognized:
 				//
-				// The carve-out is intentionally narrow:
-				//   - main only (the trunk-naming convention this
-				//     repo uses; trunk-name configurability is
-				//     deferred per YAGNI — operators on master/
-				//     other-trunk can use the implicit-ritual-
-				//     current path or --force --reason).
+				//   - main (M-0104/AC-4 — the step-7 pattern of
+				//     aiwfx-start-epic; the epic branch is cut at
+				//     step 8).
+				//   - any ritual shape per branchparse (M-0105/AC-6
+				//     — the step-4 pattern of aiwfx-start-milestone,
+				//     where the operator is on the parent epic
+				//     branch and --branch names the future milestone
+				//     branch; the milestone branch is cut at step 5).
+				//
+				// The carve-out is intentionally tight:
+				//   - main-or-ritual-current only (a plain feature
+				//     branch is not a "place from which to cut a
+				//     ritual"; the implicit-ritual-current path or
+				//     --force --reason cover legitimate exceptions;
+				//     trunk-name configurability beyond "main" is
+				//     deferred per G-0200).
 				//   - ritual-shape --branch only (otherwise the gate
-				//     becomes a no-op for any string from main).
-				mainAndRitualFuture := opts.CurrentBranch == "main" &&
+				//     becomes a no-op — any string under --branch
+				//     would authorize from any qualifying current).
+				//
+				// The carve-out does NOT enforce hierarchical
+				// consistency between CurrentBranch and the --branch
+				// shape (e.g., "current=epic/X-7 implies --branch
+				// must be milestone/<child of X-7>"). YAGNI: the
+				// looser check covers every legitimate ritual
+				// invocation and refuses the loudest mistakes; a
+				// hierarchical check would be more code for a
+				// narrower window. Cross-rung mismatches (different
+				// epic, up-the-tree, epic→patch skipping milestone)
+				// syntactically accept; the trailer records the
+				// operator's stated intent. Parked as G-0201
+				// pending evidence the looseness becomes an incident
+				// class.
+				currentIsRitualContext := opts.CurrentBranch == "main" ||
+					branchparse.ParseEntityFromBranch(opts.CurrentBranch) != ""
+				futureBindingAccepted := currentIsRitualContext &&
 					branchparse.ParseEntityFromBranch(branchExplicit) != ""
-				if !mainAndRitualFuture {
+				if !futureBindingAccepted {
 					return nil, &PreflightBranchNotFoundError{Branch: branchExplicit}
 				}
 			}
