@@ -7,18 +7,153 @@ import (
 )
 
 // Rules returns the layer-4 branch-choreography cells, sorted by cell
-// id for deterministic output. The closed set is the 12 corner cases
-// from E-0030 §"Corner cases" plus the 4 override-surface rows from
-// §"Sovereign override surface" — Cycle 1 (this commit) lands the
-// scaffold returning an empty slice; Cycles 2 + 3 populate the
-// catalog.
+// id for deterministic output (M-0158/AC-7). The closed set comprises:
 //
-// Top-level integration: aggregated into spec.Rules() via
-// `out = append(out, branch.Rules()...)` so per-cell consumers
-// (m0124/m0125 coverage drivers, schema-invariants drift test,
-// key-uniqueness) iterate the union seamlessly.
+//   - 12 corner-case cells `branch-cell-1` through `branch-cell-12`
+//     from E-0030 §"Corner cases" (Cycle 2).
+//   - 4 override-surface cells `branch-cell-override-<mechanism>`
+//     from E-0030 §"Sovereign override surface" (Cycle 3).
+//
+// Top-level integration: consumers union with `spec.Rules()` at the
+// call site (the parent package cannot import this sub-package without
+// a cycle; see package doc).
 func Rules() []spec.Rule {
-	out := []spec.Rule{}
+	out := []spec.Rule{
+		// branch-cell-1 — Corner case 1: AI-actor authorize on main,
+		// no --branch. Preflight refuses with branch-context-required.
+		// Tests: TestAuthorize_Open_AITarget_NoBranch_NoRitualCurrent_Refuses
+		// (verb), TestRunAuthorize_AITarget_OnNonRitualBranch_NoBranch_Refuses
+		// (CLI seam).
+		{
+			ID:                "branch-cell-1",
+			Verb:              "authorize",
+			Preconditions:     []spec.Predicate{{Subject: "target-agent-role", Op: "==", Value: "ai"}, {Subject: "ritual-branch-context-present", Op: "==", Value: "false"}, {Subject: "force", Op: "==", Value: "false"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "branch-context-required",
+			RejectionLayer:    spec.RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-2 — Corner case 2: AI authorize --branch <typo>.
+		// Preflight refuses with branch-not-found. Test:
+		// TestAuthorize_Open_AITarget_BranchMissing_Refuses + CLI seam.
+		{
+			ID:                "branch-cell-2",
+			Verb:              "authorize",
+			Preconditions:     []spec.Predicate{{Subject: "target-agent-role", Op: "==", Value: "ai"}, {Subject: "branch-flag-resolves", Op: "==", Value: "false"}, {Subject: "force", Op: "==", Value: "false"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "branch-not-found",
+			RejectionLayer:    spec.RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-3 — Corner case 3: AI authorize on epic/E-NN-X
+		// without --branch, ritual shape matches. Preflight accepts;
+		// trailer records current branch. Test:
+		// TestAuthorize_Open_AITarget_ImplicitFromCurrent_AcceptsAndEmitsTrailer.
+		{
+			ID:            "branch-cell-3",
+			Verb:          "authorize",
+			Preconditions: []spec.Predicate{{Subject: "target-agent-role", Op: "==", Value: "ai"}, {Subject: "ritual-branch-context-present", Op: "==", Value: "true"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-4 — Corner case 4: AI commit on main while
+		// scope binds epic/E-NN-X. Finding fires (check-time,
+		// isolation-escape). Tests: TestIsolationEscape_AC1_AICommitOnMainFires
+		// + TestRunProvenanceCheck_IsolationEscape_FiresOnViolatingCommit.
+		{
+			ID:                "branch-cell-4",
+			Preconditions:     []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "scope-binding-branch", Op: "!=", Value: "commit-branch"}, {Subject: "commit-branch", Op: "==", Value: "main"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "isolation-escape",
+			RejectionLayer:    spec.RejectionLayerCheckTime,
+			BlockingStrict:    false, // warning severity at first land (M-0106 spec)
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-5 — Corner case 5: AI commit on bound branch.
+		// Finding silent. Test: TestIsolationEscape_AC4_AICommitOnBoundBranchSilent
+		// + TestRunProvenanceCheck_IsolationEscape_SilentOnBoundBranchCommit.
+		{
+			ID:            "branch-cell-5",
+			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "scope-binding-branch", Op: "==", Value: "commit-branch"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-6 — Corner case 6: AI commit on bound branch
+		// while scope paused. Finding silent (paused doesn't change
+		// binding). Test: TestIsolationEscape_AC5_AICommitOnBoundBranchPausedScopeSilent.
+		{
+			ID:            "branch-cell-6",
+			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "scope-state", Op: "==", Value: "paused"}, {Subject: "scope-binding-branch", Op: "==", Value: "commit-branch"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-7 — Corner case 7: AI commit on epic/E-NN-Y
+		// while bound to epic/E-NN-X. Different epic branch → fires.
+		// Test: TestIsolationEscape_AC2_AICommitOnDifferentRitualBranchFires.
+		{
+			ID:                "branch-cell-7",
+			Preconditions:     []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "scope-binding-branch", Op: "!=", Value: "commit-branch"}, {Subject: "commit-branch-shape", Op: "==", Value: "ritual"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "isolation-escape",
+			RejectionLayer:    spec.RejectionLayerCheckTime,
+			BlockingStrict:    false,
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-8 — Corner case 8: Human cherry-pick of ai/X
+		// commit. Finding silent (committer ≠ actor + marker = sovereign
+		// re-author). Test: TestIsolationEscape_AC6_CherryPickReAuthorSilent.
+		{
+			ID:            "branch-cell-8",
+			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "committer-differs-from-actor", Op: "==", Value: "true"}, {Subject: "cherry-pick-marker-present", Op: "==", Value: "true"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-9 — Corner case 9: Human merge of epic/E-NN-X
+		// into main via --no-ff. Finding silent on the merge (merge
+		// commit is human-actor; AI commits behind merge are still
+		// reachable from epic branch first-parent, not main's).
+		// Test: TestIsolationEscape_AC7_HumanMergeFirstParentSilent.
+		{
+			ID:            "branch-cell-9",
+			Preconditions: []spec.Predicate{{Subject: "commit-verb", Op: "==", Value: "merge"}, {Subject: "commit-actor-role", Op: "==", Value: "human"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-10 — Corner case 10: Sovereign --force amend.
+		// Finding silent (aiwf-force trailer + human actor = gated
+		// override). Test: TestIsolationEscape_AC8_ForceAmendedCommitSilent.
+		{
+			ID:            "branch-cell-10",
+			Preconditions: []spec.Predicate{{Subject: "aiwf-force-trailer-present", Op: "==", Value: "true"}, {Subject: "commit-actor-role", Op: "==", Value: "human"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-11 — Corner case 11: AI commit on entity with
+		// no scope opened. Finding silent (no scope, no binding).
+		// Test: TestIsolationEscape_AC9_NoScopeOpenedSilent.
+		{
+			ID:            "branch-cell-11",
+			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "active-scope-on-entity", Op: "==", Value: "false"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-12 — Corner case 12: Worktree-vs-branch mismatch
+		// (subagent did git checkout main from inside its assigned
+		// worktree). Finding fires — same code path as branch-cell-4
+		// because the rule's detection is branch-identity, not path-
+		// based. Test: TestIsolationEscape_AC3_WorktreeBranchMismatchFires.
+		{
+			ID:                "branch-cell-12",
+			Preconditions:     []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "scope-binding-branch", Op: "!=", Value: "commit-branch"}, {Subject: "worktree-path-mismatches-branch", Op: "==", Value: "true"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "isolation-escape",
+			RejectionLayer:    spec.RejectionLayerCheckTime,
+			BlockingStrict:    false,
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
+	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID
 	})
