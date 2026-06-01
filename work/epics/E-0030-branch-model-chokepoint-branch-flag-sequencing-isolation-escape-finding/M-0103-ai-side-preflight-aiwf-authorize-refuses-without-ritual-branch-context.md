@@ -32,7 +32,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-7
-      title: Human-actor authorize is unaffected by the preflight
+      title: Non-AI authorize is unaffected by the preflight
       status: open
       tdd_phase: red
 ---
@@ -98,5 +98,5 @@ Note: AC-7 is the kernel-correctness guard — the chokepoint must not regress t
 
 ### AC-6 — --force without --reason refuses (regression guard)
 
-### AC-7 — Human-actor authorize is unaffected by the preflight
+### AC-7 — Non-AI authorize is unaffected by the preflight
 
