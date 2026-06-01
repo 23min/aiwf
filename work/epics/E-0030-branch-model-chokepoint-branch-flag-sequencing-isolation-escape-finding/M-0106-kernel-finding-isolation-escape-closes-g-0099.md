@@ -35,7 +35,7 @@ acs:
     - id: AC-7
       title: Human merge of epic/X into main (first-parent) stays silent
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-8
       title: Violating commit amended with aiwf-force + human/ actor stays silent
       status: open
