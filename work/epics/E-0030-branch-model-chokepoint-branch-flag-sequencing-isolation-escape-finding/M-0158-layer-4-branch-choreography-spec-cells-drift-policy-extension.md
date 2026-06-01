@@ -37,7 +37,7 @@ acs:
       tdd_phase: red
     - id: AC-7
       title: Rules/AntiRules catalogs deterministically ordered (sorted by cell id)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-8
       title: Package doc explains layer-4 carve-out and cites ADR-0011
