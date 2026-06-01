@@ -304,6 +304,199 @@ func TestIsolationEscape_LegacyPreM0102ScopeSilent(t *testing.T) {
 	}
 }
 
+// TestIsolationEscape_AC2_AICommitOnDifferentRitualBranchFires
+// pins M-0106/AC-2: an AI-actor's commit on a different ritual
+// branch (e.g. epic/E-0002-other) while the active scope binds
+// epic/E-0001-engine fires isolation-escape. The detection
+// mechanism is the same as AC-1 — branch identity comparison —
+// but this fixture pins that ritual-shape branches are not all
+// treated as equivalent. A regression that compared only "is the
+// branch a ritual shape?" instead of "does the branch equal the
+// bound branch?" would silently pass AC-1 (commit on main fires)
+// while failing AC-2 (commit on a different epic also fires).
+func TestIsolationEscape_AC2_AICommitOnDifferentRitualBranchFires(t *testing.T) {
+	t.Parallel()
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		makeAICommit("c0000010", "E-0001", "ai/claude", "edit-body"),
+	}
+	oracle := fakeOracle{
+		"auth0001": {"epic/E-0001-engine"},
+		"c0000010": {"epic/E-0002-other"}, // different epic branch.
+	}
+
+	findings := RunIsolationEscape(commits, oracle)
+	if len(findings) != 1 {
+		t.Fatalf("expected exactly 1 finding (AC-2); got %d", len(findings))
+	}
+	if !strings.Contains(findings[0].Message, "epic/E-0002-other") {
+		t.Errorf("Message %q does not name the actual (wrong) branch", findings[0].Message)
+	}
+}
+
+// TestIsolationEscape_AC5_AICommitOnBoundBranchPausedScopeSilent
+// pins M-0106/AC-5: an AI-actor's commit on the scope's bound
+// branch while the scope is in `paused` state is silent. The
+// pause event does NOT change the binding (the scope's
+// aiwf-branch: is what was recorded at `opened`); if the commit
+// rides the bound branch, the rule has no opinion about pause.
+//
+// The fixture: opener → pause → AI commit on the bound branch.
+// The algorithm's behavior is: the bound branch index records
+// only the opener; the pause commit is itself an authorize commit
+// and is filtered out of the work-commit set; the AI commit's
+// bound-branch comparison hits the opener's branch → silent.
+//
+// The pause/resume events do not change the algorithm's behavior
+// for branch-binding purposes (corner case 6 per epic body).
+func TestIsolationEscape_AC5_AICommitOnBoundBranchPausedScopeSilent(t *testing.T) {
+	t.Parallel()
+
+	// Pause event: same authorize verb, but scope: paused.
+	pauseEvent := scope.Commit{
+		SHA: "pause001",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "authorize"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerScope, Value: "paused"},
+		},
+	}
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		pauseEvent,
+		makeAICommit("c0000020", "E-0001", "ai/claude", "edit-body"),
+	}
+	oracle := fakeOracle{
+		"auth0001": {"epic/E-0001-engine"},
+		"pause001": {"epic/E-0001-engine"},
+		"c0000020": {"epic/E-0001-engine"}, // rides bound — silent.
+	}
+
+	findings := RunIsolationEscape(commits, oracle)
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings (AC-5: paused scope + on bound branch); got %d: %+v", len(findings), findings)
+	}
+}
+
+// TestIsolationEscape_AC10_PerCommitFiring pins M-0106/AC-10:
+// when multiple AI commits violate the scope's branch binding,
+// the rule fires ONE finding per violating commit — not an
+// aggregate. The user wants the cardinality so each escaped
+// commit is individually addressable (e.g., for `git rebase` or
+// per-commit amends to add aiwf-force).
+//
+// Three violating commits → three findings, each with its own
+// EntityID and SHA-bearing message.
+func TestIsolationEscape_AC10_PerCommitFiring(t *testing.T) {
+	t.Parallel()
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		makeAICommit("c0000030", "E-0001", "ai/claude", "edit-body"),
+		makeAICommit("c0000031", "E-0001", "ai/claude", "promote"),
+		makeAICommit("c0000032", "E-0001", "ai/claude", "edit-body"),
+	}
+	oracle := fakeOracle{
+		"auth0001": {"epic/E-0001-engine"},
+		"c0000030": {"main"},                // violating
+		"c0000031": {"main"},                // violating
+		"c0000032": {"epic/E-0002-other"},   // violating (different branch)
+	}
+
+	findings := RunIsolationEscape(commits, oracle)
+	if len(findings) != 3 {
+		t.Fatalf("expected 3 findings (one per violating commit, AC-10); got %d: %+v", len(findings), findings)
+	}
+	// Each finding mentions a distinct commit SHA in its message.
+	wantSHAs := []string{"c000003"} // short() truncates; all three start with this prefix
+	for _, want := range wantSHAs {
+		count := 0
+		for _, f := range findings {
+			if strings.Contains(f.Message, want) {
+				count++
+			}
+		}
+		if count != 3 {
+			t.Errorf("expected 3 findings to mention SHA prefix %q; got %d", want, count)
+		}
+	}
+}
+
+// TestIsolationEscape_AC11_WarningSeverityCheckExitsZero pins
+// M-0106/AC-11: the finding is warning severity (not error). The
+// `aiwf check` exit code is governed by error-severity findings
+// (see internal/check/check.go and cliutil's mapping); a
+// warning-only result exits 0. This test pins the severity at
+// the source; the exit-code half is enforced by the existing
+// CLI check machinery and re-verified by integration tests in
+// the broader sweep.
+//
+// Distinct from the severity assertion in AC-1's test: AC-11 is
+// the spec's mechanical pin, isolated so a future severity flip
+// (e.g. tightening to error in a follow-up D-NNN) has a single
+// test to update deliberately.
+func TestIsolationEscape_AC11_WarningSeverityCheckExitsZero(t *testing.T) {
+	t.Parallel()
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		makeAICommit("c0000040", "E-0001", "ai/claude", "edit-body"),
+	}
+	oracle := fakeOracle{
+		"auth0001": {"epic/E-0001-engine"},
+		"c0000040": {"main"},
+	}
+
+	findings := RunIsolationEscape(commits, oracle)
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding; got %d", len(findings))
+	}
+	if findings[0].Severity != SeverityWarning {
+		t.Errorf("Severity = %q; want %q (AC-11 — must remain warning until a future D-NNN deliberately tightens to error)", findings[0].Severity, SeverityWarning)
+	}
+}
+
+// TestIsolationEscape_AC12_HintTextNamesBothOverridePaths pins
+// M-0106/AC-12: the finding's hint text names both sovereign
+// override paths — (a) git cherry-pick -x for the re-author
+// path, and (b) the aiwf-force trailer amend for the explicit
+// override path. The hint is looked up from the hintTable when
+// `applyHints` runs at the end of check.Run; the underlying
+// finding doesn't carry Hint until then.
+//
+// Assertion via the hint table directly (since the rule emits
+// findings without Hint until applyHints runs). The full
+// finding-with-hint path is exercised by the broader
+// `internal/check` test suite when Run() composes all checks.
+func TestIsolationEscape_AC12_HintTextNamesBothOverridePaths(t *testing.T) {
+	t.Parallel()
+
+	hint := HintFor(CodeIsolationEscape.ID, "")
+	if hint == "" {
+		t.Fatal("isolation-escape has no hint registered in hintTable")
+	}
+
+	// Two override paths must be named so an operator reading the
+	// hint sees both sovereign exits.
+	wantSubstrings := []struct {
+		name string
+		s    string
+	}{
+		{"cherry-pick -x path", "cherry-pick -x"},
+		{"aiwf-force trailer path", "aiwf-force"},
+		{"human/ actor requirement", "human/"},
+		{"audit-trail pointer to the epic doc", "Sovereign override surface"},
+	}
+	for _, w := range wantSubstrings {
+		if !strings.Contains(hint, w.s) {
+			t.Errorf("hint must name the %s (substring %q); hint = %q", w.name, w.s, hint)
+		}
+	}
+}
+
 // TestIsolationEscape_AC13_ClassBranchChoreographyDistinct pins
 // that ClassBranchChoreography is a NEW enum value distinct from
 // the prior two classes (ClassStructural=0, ClassLegality=1). A

@@ -154,6 +154,13 @@ var hintTable = map[string]string{
 	// variant but cannot pick between two, so the renderer leaves this
 	// advisory for the operator to resolve.
 	"roadmap-case-collision": "remove one case-variant of the roadmap file (`git rm`) so a single canonical ROADMAP.md (or the lowercase convention the repo already uses) remains at the repo root",
+
+	// M-0106: isolation-escape — AI-actor commit on a branch that
+	// doesn't match the active scope's recorded aiwf-branch:. Two
+	// sovereign override paths leave a clean audit trail; the hint
+	// names both so an operator who hits the finding sees a single
+	// place that lists the legitimate ways out.
+	"isolation-escape": "the AI-actor commit landed on a branch that doesn't match the active scope's recorded `aiwf-branch:`. Override paths: (a) re-author via `git cherry-pick -x <sha>` — preserves the marker and changes the committer to a human, suppressing the finding; (b) amend the violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` and an `aiwf-actor: human/<id>` trailer to record the sovereign override. See E-0030 epic body §\"Sovereign override surface\" for the audit trail each path produces.",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.
