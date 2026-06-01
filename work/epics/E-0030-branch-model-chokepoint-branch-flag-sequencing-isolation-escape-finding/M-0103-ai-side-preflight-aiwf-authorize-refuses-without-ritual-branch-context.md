@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: --force without --reason refuses (regression guard)
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-7
       title: Non-AI authorize is unaffected by the preflight
       status: open
