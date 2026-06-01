@@ -26,7 +26,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: AI commit on epic/X while scope is paused stays silent
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Human cherry-pick (committer != actor + marker) stays silent
