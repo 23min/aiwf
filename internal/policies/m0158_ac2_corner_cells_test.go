@@ -108,14 +108,16 @@ func TestM0158_AC2_IllegalCellsCarryExpectedErrorCode(t *testing.T) {
 func indexBranchRulesByID(t *testing.T) map[string]spec.Rule {
 	t.Helper()
 	out := map[string]spec.Rule{}
-	for _, r := range branch.Rules() {
+	rules := branch.Rules()
+	for i := range rules {
+		r := &rules[i]
 		if r.ID == "" {
 			t.Fatalf("branch.Rules() contains entry with empty ID: %+v", r)
 		}
 		if _, dup := out[r.ID]; dup {
 			t.Fatalf("branch.Rules() contains duplicate ID %q", r.ID)
 		}
-		out[r.ID] = r
+		out[r.ID] = *r
 	}
 	return out
 }
