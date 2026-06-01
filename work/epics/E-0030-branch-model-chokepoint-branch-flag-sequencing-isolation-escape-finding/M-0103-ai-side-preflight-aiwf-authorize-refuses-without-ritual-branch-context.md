@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: AI-actor authorize from ritual-shape checkout (no --branch) accepts
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: AI-actor authorize with --branch <existing> accepts
