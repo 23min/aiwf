@@ -1,7 +1,7 @@
 ---
 id: M-0105
 title: aiwfx-start-milestone sequencing alignment
-status: draft
+status: in_progress
 parent: E-0030
 depends_on:
     - M-0102
