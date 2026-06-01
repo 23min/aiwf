@@ -51,7 +51,7 @@ acs:
     - id: AC-11
       title: Warning severity; check exits 0 with findings reported
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-12
       title: Finding hint text names both override paths
       status: open
