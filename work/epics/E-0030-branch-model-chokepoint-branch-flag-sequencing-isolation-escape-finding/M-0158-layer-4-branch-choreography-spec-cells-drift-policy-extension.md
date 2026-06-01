@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: 'Meta-test: every cell has matching test under internal/policies/'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: 'Drift policy: new verb or branch finding without cell fails CI'
