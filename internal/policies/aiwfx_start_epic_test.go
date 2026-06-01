@@ -32,14 +32,21 @@ func loadAiwfxStartEpicFixture(t *testing.T) string {
 	return string(data)
 }
 
-// TestAiwfxStartEpic_AC1_FixtureAndWorkflow pins M-0096/AC-1: the
-// fixture SKILL.md exists at the canonical authoring location with
-// frontmatter declaring `name: aiwfx-start-epic` plus a non-empty
-// `description:`, and the body contains a `## Workflow` section
-// holding the 10 named orchestration steps from E-0028's scope.
+// TestAiwfxStartEpic_AC1_FixtureAndWorkflow pins M-0096/AC-1
+// (updated by M-0104/AC-1): the fixture SKILL.md exists at the
+// canonical authoring location with frontmatter declaring
+// `name: aiwfx-start-epic` plus a non-empty `description:`, and the
+// body contains a `## Workflow` section holding the named orchestration
+// steps.
 //
-// The 10-step count is asserted structurally — exactly the integers
-// 1..10 appear as `### N.` subheadings under `## Workflow`, with no
+// M-0104 reduced the step count from 10 to 9 by merging the old
+// worktree-placement (step 5) and branch-shape (step 6) Q&A steps
+// into a single worktree-placement-and-branch-creation step at the
+// new step 8 — the branch shape is now settled by ADR-0010 and no
+// longer surfaced as a separate prompt.
+//
+// The 9-step count is asserted structurally — exactly the integers
+// 1..9 appear as `### N.` subheadings under `## Workflow`, with no
 // gaps and no extras. A flat substring search for the word "Workflow"
 // would pass even if the steps were renumbered or missing; the
 // numbered-heading enumeration ensures the structural promise holds.
@@ -65,7 +72,7 @@ func TestAiwfxStartEpic_AC1_FixtureAndWorkflow(t *testing.T) {
 	for _, m := range matches {
 		seen[m[1]] = true
 	}
-	want := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
+	want := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}
 	for _, n := range want {
 		if !seen[n] {
 			t.Errorf("AC-1: `## Workflow` must contain a `### %s.` step heading", n)
@@ -195,16 +202,18 @@ func TestAiwfxStartEpic_AC3_SovereignPromotionStep(t *testing.T) {
 	}
 }
 
-// findBranchPromptSection locates the branch-shape prompt's
-// subsection inside `## Workflow`. The locator is heading-content
-// driven (case-insensitive match on "branch") and deliberately
-// EXCLUDES the worktree section, whose heading may itself contain
-// "branch" as part of the path literal `<branch>` (e.g. "Worktree
-// placement (`.claude/worktrees/<branch>/` …)"). The exclusion
-// matches on a leading "worktree" token in the heading.
+// findSovereignAuthorizeSection locates the sovereign-authorize
+// subsection inside `## Workflow`. Mirrors findSovereignPromotionSection's
+// shape — heading-content driven (case-insensitive match on both
+// "sovereign" and "authoriz") so a future reshuffle that moves the
+// step to a different number does not silently break the structural
+// check.
+//
+// Distinct from the sovereign-promotion locator because the heading
+// for the authorize step is a peer, not a sub-step.
 //
 // Returns the section body, or "" if no matching heading is found.
-func findBranchPromptSection(body string) string {
+func findSovereignAuthorizeSection(body string) string {
 	workflow := extractMarkdownSection(body, 2, "Workflow")
 	if workflow == "" {
 		return ""
@@ -215,23 +224,17 @@ func findBranchPromptSection(body string) string {
 		}
 		text := strings.TrimPrefix(line, "### ")
 		lower := strings.ToLower(text)
-		if !strings.Contains(lower, "branch") {
-			continue
+		if strings.Contains(lower, "sovereign") && strings.Contains(lower, "authoriz") {
+			return extractMarkdownSection(body, 3, text)
 		}
-		// Skip the worktree heading if it happens to mention "branch"
-		// (the worktree options surface `<branch>` as a path literal).
-		if strings.Contains(lower, "worktree") {
-			continue
-		}
-		return extractMarkdownSection(body, 3, text)
 	}
 	return ""
 }
 
-// TestFindBranchPromptSection_BranchCoverage covers the defensive
-// return arms plus the worktree-skip arm (a `### …worktree…branch…`
-// heading must not match the branch-prompt locator).
-func TestFindBranchPromptSection_BranchCoverage(t *testing.T) {
+// TestFindSovereignAuthorizeSection_BranchCoverage covers the
+// defensive return arms of findSovereignAuthorizeSection that the
+// happy-path fixture test does not reach.
+func TestFindSovereignAuthorizeSection_BranchCoverage(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name string
@@ -239,62 +242,151 @@ func TestFindBranchPromptSection_BranchCoverage(t *testing.T) {
 		want string
 	}{
 		{"missing-workflow", "prose only", ""},
-		{"workflow-without-branch-heading", "## Workflow\n\n### 1. Other\n\nbody\n", ""},
+		{"workflow-without-authorize-heading", "## Workflow\n\n### 1. Some other step\n\nbody\n", ""},
 		{
-			name: "only-worktree-heading-mentioning-branch",
-			body: "## Workflow\n\n### 5. Worktree (`<branch>/`)\n\nbody\n",
+			// Heading mentions "sovereign" but not "authoriz" — the
+			// promotion step's heading; locator must not match.
+			name: "only-sovereign-promotion-heading",
+			body: "## Workflow\n\n### 6. Sovereign promotion\n\nbody\n",
 			want: "",
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := findBranchPromptSection(tc.body); got != tc.want {
-				t.Errorf("findBranchPromptSection(%q) = %q; want %q", tc.name, got, tc.want)
+			if got := findSovereignAuthorizeSection(tc.body); got != tc.want {
+				t.Errorf("findSovereignAuthorizeSection(%q) = %q; want %q", tc.name, got, tc.want)
 			}
 		})
 	}
 }
 
-// TestAiwfxStartEpic_AC4_BranchPromptDefersToG0059 pins M-0096/AC-4:
-// the branch-shape prompt is a heading-scoped Q&A with two named
-// options (stay on current / create new) plus an explicit reference
-// to G-0059 — the open gap framing the branch-model convention. The
-// G-0059 reference documents in-skill that the prompt is a *placeholder*
-// pending the gap's resolution; a future skill update can tighten
-// the default when G-0059 lands. Heading-scoped per CLAUDE.md
-// §"Substring assertions are not structural assertions".
+// TestAiwfxStartEpic_M0104_AC2_G0059Removed_ADR0010Referenced pins
+// M-0104/AC-2: the stale "G-0059 frames the open question of which
+// branch-model convention aiwf should bless" paragraph at the
+// original step 6 is removed; the replacement names ADR-0010
+// explicitly.
 //
-// The G-0059 literal is the right kind of marker to assert: it is
-// unique enough that it cannot drift to an unrelated section, and
-// its presence is the load-bearing signal that "this prompt is a
-// placeholder, not a settled convention."
-func TestAiwfxStartEpic_AC4_BranchPromptDefersToG0059(t *testing.T) {
+// Two-sided assertion. G-0059 absence is checked over the WHOLE
+// fixture body (substring is unambiguous and the only legitimate
+// reason it would re-appear is precisely the regression this test
+// catches). ADR-0010 presence is asserted under `## Workflow` to
+// scope it to the orchestration prose — the marker most worth pinning
+// is the workflow-side commitment, not a stray frontmatter or
+// constraints-section mention.
+func TestAiwfxStartEpic_M0104_AC2_G0059Removed_ADR0010Referenced(t *testing.T) {
 	t.Parallel()
 	body := loadAiwfxStartEpicFixture(t)
 
-	section := findBranchPromptSection(body)
+	if strings.Contains(body, "G-0059") {
+		t.Error("M-0104/AC-2: fixture body must not contain `G-0059` — the deferral paragraph was retired per ADR-0010")
+	}
+
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("M-0104/AC-2: body must contain a `## Workflow` section")
+	}
+	if !strings.Contains(workflow, "ADR-0010") {
+		t.Error("M-0104/AC-2: `## Workflow` must reference `ADR-0010` (the branch-model decision that replaced the G-0059 deferral)")
+	}
+}
+
+// TestAiwfxStartEpic_M0104_AC3_WorkflowHeadingsInNewOrder pins
+// M-0104/AC-3: the workflow headings, parsed structurally, appear
+// in the new order — preflight → delegation prompt → sovereign
+// promote → sovereign authorize → worktree placement → hand-off
+// (with the 4 preflight items unfolded as steps 1..4 each).
+//
+// Heading-content driven per CLAUDE.md §"Substring assertions are
+// not structural assertions": each expected step asserts that the
+// i-th `### N.` heading under `## Workflow` contains a distinctive
+// lowercase token. The order is what's pinned; the exact wording
+// is allowed to evolve so long as the conceptual sequence holds.
+//
+// A regression that reorders steps (e.g., moves "worktree" before
+// "sovereign promote", regressing the M-0103-driven sequencing
+// invariant) fires this test on the misplaced step's token mismatch.
+func TestAiwfxStartEpic_M0104_AC3_WorkflowHeadingsInNewOrder(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxStartEpicFixture(t)
+
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("M-0104/AC-3: body must contain a `## Workflow` section")
+	}
+
+	// Extract the ordered list of `### N. <heading text>` headings.
+	stepHeading := regexp.MustCompile(`(?m)^### \d+\.\s+(.+)$`)
+	matches := stepHeading.FindAllStringSubmatch(workflow, -1)
+	gotHeadings := make([]string, 0, len(matches))
+	for _, m := range matches {
+		gotHeadings = append(gotHeadings, strings.ToLower(strings.TrimSpace(m[1])))
+	}
+
+	// The expected ordering — distinctive tokens per step. Pinning
+	// the token rather than the full heading text leaves room for
+	// small wording polish without test churn while still catching
+	// any reorder.
+	wantOrderTokens := []string{
+		"preflight",        // step 1
+		"drafted-milestone", // step 2
+		"aiwf check",       // step 3
+		"tests/build",      // step 4
+		"delegation",       // step 5 — new (was step 7)
+		"sovereign promot", // step 6 — was step 8
+		"sovereign authoriz", // step 7 — was step 9
+		"worktree",         // step 8 — was step 5 (now merged with branch)
+		"hand-off",         // step 9 — was step 10
+	}
+	if len(gotHeadings) != len(wantOrderTokens) {
+		t.Fatalf("M-0104/AC-3: expected %d workflow steps in the new ordering; got %d (headings: %q)",
+			len(wantOrderTokens), len(gotHeadings), gotHeadings)
+	}
+	for i, tok := range wantOrderTokens {
+		if !strings.Contains(gotHeadings[i], tok) {
+			t.Errorf("M-0104/AC-3: step %d heading %q does not contain expected token %q (full ordering: %q)",
+				i+1, gotHeadings[i], tok, gotHeadings)
+		}
+	}
+}
+
+// TestAiwfxStartEpic_M0104_AC5_SovereignAuthorizeStepNamesOverride
+// pins M-0104/AC-5: the new sovereign-authorize step (the one
+// introduced by ADR-0010's sequencing) names `--force --reason` as
+// the override path. The promotion step (step 6) already pins this
+// via TestAiwfxStartEpic_AC3_SovereignPromotionStep; this test pins
+// the same discipline on the authorize step (step 7) — both are
+// sovereign acts on `main`, both must surface the override.
+//
+// Heading-scoped per CLAUDE.md §"Substring assertions are not
+// structural assertions": the override hint must live INSIDE the
+// authorize step, not float somewhere else in the body where a
+// reader looking at step 7 in isolation would miss it.
+//
+// The section must also name the M-0104/AC-4 carve-out's two
+// preconditions — main + ritual `--branch` — so a reader who hits
+// step 7 understands why the verb does not refuse despite the
+// future-branch shape.
+func TestAiwfxStartEpic_M0104_AC5_SovereignAuthorizeStepNamesOverride(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxStartEpicFixture(t)
+
+	section := findSovereignAuthorizeSection(body)
 	if section == "" {
-		t.Fatal("AC-4: `## Workflow` must contain a `### …branch…` subsection (distinct from the worktree section) for the branch-shape Q&A")
+		t.Fatal("M-0104/AC-5: `## Workflow` must contain a `### …sovereign…authoriz…` subsection that holds the delegation verb (step 7)")
 	}
 
 	wantContent := []struct {
-		name     string
-		marker   string
-		caseFold bool
+		name   string
+		marker string
 	}{
-		{"stay-on-current option", "stay on", true},
-		{"create-new-branch option", "create", true},
-		{"G-0059 deferral note", "G-0059", false},
+		{"the delegation verb", "aiwf authorize"},
+		{"--force --reason override path", "--force --reason"},
+		{"--branch flag (the future-binding the carve-out permits)", "--branch"},
+		{"main checkout precondition (operator on main)", "main"},
 	}
 	for _, w := range wantContent {
-		hay := section
-		needle := w.marker
-		if w.caseFold {
-			hay = strings.ToLower(hay)
-			needle = strings.ToLower(needle)
-		}
-		if !strings.Contains(hay, needle) {
-			t.Errorf("AC-4: branch-prompt subsection must name %s (substring %q)", w.name, w.marker)
+		if !strings.Contains(section, w.marker) {
+			t.Errorf("M-0104/AC-5: sovereign-authorize subsection must name %s (substring %q)", w.name, w.marker)
 		}
 	}
 }

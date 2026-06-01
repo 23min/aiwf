@@ -70,7 +70,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&pause, "pause", "", "pause the most-recently-opened active scope on <id>; the argument is the reason")
 	cmd.Flags().StringVar(&resume, "resume", "", "resume the most-recently-paused scope on <id>; the argument is the reason")
 	cmd.Flags().StringVar(&reason, "reason", "", "rationale text for --to (optional) / --force (required); ignored by --pause and --resume (their argument is the reason)")
-	cmd.Flags().StringVar(&branch, "branch", "", "ritual branch the scope is bound to (ADR-0010); when set, the authorize commit carries an aiwf-branch: trailer with this value")
+	cmd.Flags().StringVar(&branch, "branch", "", "ritual branch the scope is bound to (ADR-0010); when set, the authorize commit carries an aiwf-branch: trailer with this value. From a checkout on `main`, naming a ritual-shape future branch is accepted (the step-7 pattern of aiwfx-start-epic per M-0104/AC-4 — the named branch will be cut at step 8 of the ritual).")
 	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason)")
 	out = cliutil.AddFormatFlags(cmd)
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)

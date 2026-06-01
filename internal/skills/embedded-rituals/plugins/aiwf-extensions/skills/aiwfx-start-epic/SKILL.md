@@ -10,8 +10,9 @@ Activates an epic. Activation is a sovereign moment — the kernel treats `aiwf 
 ## Principles
 
 - **Activation is sovereign.** The kernel refuses `aiwf promote E-NN active` from a non-`human/` actor unless `--force --reason "..."` is used. The skill's promotion step runs as the human; an AI assistant orchestrating the conversation hands the verb off to the operator.
+- **Sovereign acts on `main`; branch cut afterwards.** Per [ADR-0010](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md), state-announcement commits (the promote at step 6 and, if delegating, the authorize at step 7) land on `main` BEFORE the epic branch is cut at step 8. The chokepoint behind this sequencing is M-0103's AI-target preflight on `aiwf authorize` — without ritual branch context the preflight refuses. The M-0104/AC-4 carve-out makes the `--branch epic/E-NN-<slug>` future-binding from `main` accept (the named branch is cut at step 8).
 - **Preflight uses kernel signals.** Body completeness, drafted-milestone presence, and `aiwf check` cleanliness all surface through existing kernel rules (`entity-body-empty`, `epic-active-no-drafted-milestones`, the standard refusal-severity findings). The skill reads — it does not duplicate the rule.
-- **Worktree placement and branch shape are deliberate choices.** Each is its own Q&A step. Defaults that hide either choice paper over a decision the operator should make consciously.
+- **Worktree placement is a deliberate choice.** Each option has different tradeoffs for parallel work, IDE state, and `aiwf check` blast radius. The skill surfaces it as a prompt rather than picking on the operator's behalf.
 - **The promotion commit and any authorize commit are separate.** One verb = one commit. The skill orchestrates both in sequence; it never bundles them.
 
 ## Precondition
@@ -48,35 +49,18 @@ Run the project's tests and build. This step is advisory — a red baseline does
 
 Report the result. If red, ask the operator whether to proceed or to fix the baseline first.
 
-### 5. Worktree placement (Q&A)
+### 5. Delegation prompt (Q&A)
 
-Ask the operator where the work will live. The choice matters — each option has different tradeoffs for parallel work, IDE state, and `aiwf check` blast radius — so the skill surfaces it as a deliberate prompt rather than picking on the operator's behalf.
+Ask the operator whether the work proceeds in-loop (the operator drives every milestone) or delegated (an `aiwf authorize` scope is opened to a named `ai/<id>` agent). The answer determines whether step 7 runs.
 
-1. **No worktree, work on `main` directly.** Suitable for short, focused epics where milestone branches stay merged-back-quickly. The operator commits straight on `main` (or the epic branch if one is created in step 6); no extra checkout state to manage. Trade-off: no isolated playground if the epic gets contentious.
-2. **`.claude/worktrees/<branch>/` (in-repo worktree).** A worktree under the repo's own `.claude/` tree. Survives `git checkout` on the main worktree; gitignored. Trade-off: lives inside the repo path so editor sessions rooted at the repo see it.
-3. **`../aiwf-<branch>/` (sibling-directory worktree).** A worktree as a sibling of the repo root. Fully isolated path; editor sessions rooted at the sibling have a clean view. Trade-off: requires a deliberate `cd` to enter, and `find`-based tools rooted at the original repo do not see it.
+- **In-loop** — no scope opened. Step 7 is skipped.
+- **Delegate to `ai/<id>`** — step 7 runs `aiwf authorize E-NN --to ai/<id> --branch epic/E-NN-<slug>`. The operator names the agent and the future epic branch (typically `epic/E-NN-<slug>` derived from the epic id and slug).
 
-Record the operator's choice. If they choose a worktree (options 2 or 3), the skill creates it as part of step 6 (branch creation), since the worktree and the branch land together.
+The delegation choice is asked BEFORE the sovereign acts because the authorize trailer (if delegating) binds the scope to a named branch, and the epic-branch name should be known when the authorize commit lands on `main`. Per ADR-0010, the authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 8.
 
-### 6. Branch shape (Q&A)
+### 6. Sovereign promotion
 
-Ask the operator which branch the work lands on. This is **deliberately a prompt, not a default** — G-0059 frames the open question of which branch-model convention aiwf should bless (per-epic integration branch / per-milestone branch / direct-to-`main` / something else), and the answer has not landed yet. Until G-0059 resolves, the skill surfaces the choice rather than presuming.
-
-1. **Stay on the current branch.** Suitable if the current branch is the right landing point (e.g. you're already on `main` for a small epic, or already on an `epic/<slug>` branch from a prior session).
-2. **Create branch `<name>` and switch to it.** The operator names the branch. Common shapes today are `epic/E-NN-<slug>` (integration branch covering all milestones) or `wf/<task>` (per-task) — neither is canonical pending G-0059. If step 5 chose a worktree, the branch is created in that worktree's path; otherwise it's a plain `git checkout -b`.
-
-Record the operator's choice and execute the branch creation if option 2 was picked. The branch operation does not produce an aiwf commit; it is plain git plumbing.
-
-When G-0059 resolves, this step's default can tighten and the prompt can shrink (or disappear). Until then the explicit Q&A is the right shape.
-
-### 7. Delegation prompt (Q&A)
-
-Ask the operator whether the work proceeds in-loop (the operator drives every milestone) or delegated (an `aiwf authorize` scope is opened to a named `ai/<id>` agent).
-
-- **In-loop** — no scope opened. Step 9 is skipped.
-- **Delegate to `ai/<id>`** — step 9 runs `aiwf authorize E-NN --to ai/<id>`. The operator names the agent.
-
-### 8. Sovereign promotion
+Confirm with the operator that the epic is on `main` (or the parent branch the sovereign acts will land on). Per ADR-0010, both this step and step 7 (if delegating) run with the operator's HEAD on `main` — the epic branch is cut afterwards at step 8.
 
 Activation is the sovereign moment. The operator runs:
 
@@ -94,32 +78,55 @@ aiwf promote E-NN active --force --reason "<one-sentence justification>"
 
 The standard provenance-coherence rule still requires the `--force` invocation itself to come from a `human/` actor, so the override remains human-sovereign by construction. Use it sparingly; the default path is the right one.
 
-This is **commit 1** — the verb writes exactly one commit with the standard `aiwf-verb: promote`, `aiwf-entity: E-NN`, `aiwf-actor: human/<id>` trailers.
+This is **commit 1** — the verb writes exactly one commit on `main` with the standard `aiwf-verb: promote`, `aiwf-entity: E-NN`, `aiwf-actor: human/<id>` trailers.
 
-### 9. Optional `aiwf authorize` (only if delegating)
+### 7. Sovereign authorize (only if delegating)
 
-If step 7 chose delegation:
+If step 5 chose delegation, the operator runs (still on `main`):
 
 ```bash
-aiwf authorize E-NN --to ai/<id>
+aiwf authorize E-NN --to ai/<id> --branch epic/E-NN-<slug> --reason "<one-sentence rationale>"
 ```
 
-This is a *separate* commit from step 8. The scope is `active` from this commit forward; the agent operates within it until the epic reaches a terminal status or the operator pauses the scope.
+The `--branch` flag names the *future* epic branch — the one step 8 will cut. The branch does not yet exist when this verb runs. The M-0103 AI-target preflight permits this combination via the M-0104/AC-4 carve-out: from a checkout on `main`, an explicit `--branch` whose value matches the ritual shape (`epic/`/`milestone/`/`patch/` per `internal/branchparse/`) accepts even when the named branch does not yet exist. The commit's `aiwf-branch:` trailer carries the future ref; step 8's branch cut closes the binding.
 
-If step 7 chose in-loop, skip.
+This is a *separate* commit from step 6. The scope is `active` from this commit forward; the agent operates within it until the epic reaches a terminal status or the operator pauses the scope.
 
-### 10. Hand-off
+If the operator is NOT on `main` when this step runs (e.g. they jumped to a feature branch first), M-0103's preflight refuses with `branch-context-required` or `branch-not-found`. The override path is the same sovereign-act shape:
 
-The epic is now `active`. The natural next step is `aiwfx-start-milestone <first-M>` (typically the lowest-numbered `draft` milestone under this epic).
+```bash
+aiwf authorize E-NN --to ai/<id> --branch epic/E-NN-<slug> --force --reason "<one-sentence justification>"
+```
 
-If a delegation scope was opened in step 9, the hand-off is to the named agent (the subagent-spawn mechanics are Claude Code surface, outside this skill's scope). The operator names the receiving agent and transmits the milestone id; the agent then enters `aiwfx-start-milestone` itself.
+The `--force` invocation requires a `human/` actor, so the override remains human-sovereign by construction. The default path (operator on `main`, no `--force`) is the right one.
+
+If step 5 chose in-loop, skip.
+
+### 8. Worktree placement and branch creation (Q&A)
+
+Ask the operator where the work will live. The choice matters — each option has different tradeoffs for parallel work, IDE state, and `aiwf check` blast radius — so the skill surfaces it as a deliberate prompt rather than picking on the operator's behalf.
+
+1. **No worktree, work directly on the epic branch in the main checkout.** The operator's existing checkout switches to `epic/E-NN-<slug>` via `git checkout -b`. Simplest; no extra checkout state to manage. Trade-off: no isolated playground if the epic gets contentious.
+2. **`.claude/worktrees/<branch>/` (in-repo worktree).** A worktree under the repo's own `.claude/` tree. Survives `git checkout` on the main worktree; gitignored. Trade-off: lives inside the repo path so editor sessions rooted at the repo see it.
+3. **`../aiwf-<branch>/` (sibling-directory worktree).** A worktree as a sibling of the repo root. Fully isolated path; editor sessions rooted at the sibling have a clean view. Trade-off: requires a deliberate `cd` to enter, and `find`-based tools rooted at the original repo do not see it.
+
+The branch shape is settled by ADR-0010: ritualized work on `epic/E-NN-<slug>`. If step 7's authorize commit was produced (delegated case), the branch name is already in the trailer — this step cuts that exact ref. If step 5 chose in-loop, the operator still cuts `epic/E-NN-<slug>` (the same naming convention; no `aiwf-branch:` trailer was emitted upstream, but the convention is the same).
+
+Execute the branch cut against the chosen worktree (or in the main checkout for option 1). The branch operation does not produce an aiwf commit; it is plain git plumbing.
+
+### 9. Hand-off
+
+The epic is now `active`, the branch is cut, and the operator's HEAD is on `epic/E-NN-<slug>` (in the chosen worktree). The natural next step is `aiwfx-start-milestone <first-M>` (typically the lowest-numbered `draft` milestone under this epic).
+
+If a delegation scope was opened in step 7, the hand-off is to the named agent (the subagent-spawn mechanics are Claude Code surface, outside this skill's scope). The operator names the receiving agent and transmits the milestone id; the agent then enters `aiwfx-start-milestone` itself.
 
 ## Constraints
 
-- 🛑 **Never commit or push without explicit human approval.** Step 8's promotion and step 9's authorize each require human confirmation.
+- 🛑 **Never commit or push without explicit human approval.** Step 6's promotion and step 7's authorize each require human confirmation.
 - 🛑 **Sovereign promotion requires a `human/` actor.** Per M-0095, `aiwf promote E-NN active` from a non-human actor is refused unless `--force --reason "..."` is used. An AI assistant orchestrating the conversation does not run the verb itself.
+- 🛑 **Sovereign acts land on `main` before the branch cut.** Per ADR-0010, steps 6 and 7 run with HEAD on `main`; step 8 cuts the epic branch afterwards. The M-0103 preflight enforces this for the authorize commit (the M-0104/AC-4 carve-out allows the `--branch <future>` form from `main`).
 - The promotion commit and any authorize commit are separate. One verb = one commit.
-- Worktree placement and branch shape are deliberate Q&A choices, not defaults the skill picks on the operator's behalf.
+- Worktree placement is a deliberate Q&A choice, not a default the skill picks on the operator's behalf. The branch shape is settled by ADR-0010 — `epic/E-NN-<slug>` — and is not surfaced as a prompt.
 
 ## Anti-patterns
 

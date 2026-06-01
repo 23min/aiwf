@@ -92,7 +92,7 @@ type PreflightBranchNotFoundError struct {
 // Error implements error.
 func (e *PreflightBranchNotFoundError) Error() string {
 	return fmt.Sprintf(
-		"aiwf authorize: --branch %q refers to a non-existent local branch (%s). Pass a name that resolves under refs/heads/, or omit --branch to use the current checkout (which must already be on a ritual-shape branch). To override this preflight as a sovereign act, use `--force --reason \"...\"`.",
+		"aiwf authorize: --branch %q refers to a non-existent local branch (%s). Pass a name that resolves under refs/heads/, or omit --branch to use the current checkout (which must already be on a ritual-shape branch). From a checkout on `main`, naming a ritual-shape future branch is accepted (the step-7 pattern of aiwfx-start-epic — see M-0104/AC-4). To override this preflight as a sovereign act, use `--force --reason \"...\"`.",
 		e.Branch, CodePreflightBranchNotFound.ID,
 	)
 }
