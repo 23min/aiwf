@@ -50,7 +50,7 @@ acs:
       tdd_phase: done
     - id: AC-11
       title: Warning severity; check exits 0 with findings reported
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-12
       title: Finding hint text names both override paths
