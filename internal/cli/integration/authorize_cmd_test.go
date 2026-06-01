@@ -444,6 +444,52 @@ func TestRunAuthorize_AITarget_ForceReasonBypassesPreflight(t *testing.T) {
 	hasTrailer(t, tr, "aiwf-reason", reason)
 }
 
+// TestRunAuthorize_AITarget_ForceWithoutReason_RefusesWithReasonError
+// (M-0103/AC-6, cli-layer seam): drive `aiwf authorize <id> --to
+// ai/<agent> --force` through the binary on a repo whose HEAD is on
+// master (non-ritual) — i.e., the preflight would also refuse. The
+// error must name "--reason" (not branch-context-required), pinning
+// the gate-ordering invariant end-to-end.
+func TestRunAuthorize_AITarget_ForceWithoutReason_RefusesWithReasonError(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+
+	out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001", "--to", "ai/claude", "--force")
+	if err == nil {
+		t.Fatalf("expected non-zero exit; output:\n%s", out)
+	}
+	if !strings.Contains(out, "--reason") {
+		t.Errorf("expected --reason in error; got:\n%s", out)
+	}
+	if strings.Contains(out, "branch-context-required") {
+		t.Errorf("error names branch-context-required — gate-ordering inverted (preflight fired before force-requires-reason):\n%s", out)
+	}
+}
+
 // TestRunAuthorize_RefusesNonHumanActor: --actor ai/claude is rejected
 // before any state is touched — only humans authorize.
 func TestRunAuthorize_RefusesNonHumanActor(t *testing.T) {

@@ -558,21 +558,78 @@ func TestAuthorize_Open_ForceOverridesTerminal(t *testing.T) {
 }
 
 // TestAuthorize_Open_ForceRequiresReason: --force without --reason
-// (or with whitespace-only reason) is refused.
+// (or with whitespace-only reason) is refused. The terminal-entity
+// shape exercises the existing rule's interaction with the terminal
+// gate; the non-terminal + no-ritual-branch shape below
+// (TestAuthorize_Open_AITarget_ForceWithoutReason_RefusesWithReasonError)
+// pins AC-6's ordering invariant — the force-requires-reason check
+// fires BEFORE the M-0103 preflight.
 func TestAuthorize_Open_ForceRequiresReason(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		reason string
+	}{
+		{"empty-reason", ""},
+		{"whitespace-only-reason", "   \t  "},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := newRunner(t)
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+			r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+			r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "ship", false, verb.PromoteOptions{}))
+
+			_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+				Mode:   verb.AuthorizeOpen,
+				Agent:  "ai/claude",
+				Reason: tc.reason,
+				Force:  true,
+			})
+			if err == nil || !strings.Contains(err.Error(), "--reason") {
+				t.Errorf("expected --reason refusal; got %v", err)
+			}
+		})
+	}
+}
+
+// TestAuthorize_Open_AITarget_ForceWithoutReason_RefusesWithReasonError
+// (M-0103/AC-6): on an ai/* target with --force but no --reason, the
+// force-requires-reason rule refuses BEFORE the M-0103 preflight runs.
+// The error message names "--reason" (not branch-context-required) even
+// though the current branch is non-ritual and the preflight would
+// otherwise fire.
+//
+// Pins the gate-ordering invariant documented at authorize.go's
+// preflight site: terminal-status → force-requires-reason → preflight.
+// A refactor that reordered these to put the preflight first would
+// silently invert the UX (operator told to fix branch context before
+// being told their --reason is missing) without breaking AC-1 or AC-5.
+func TestAuthorize_Open_AITarget_ForceWithoutReason_RefusesWithReasonError(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "ship", false, verb.PromoteOptions{}))
 
 	_, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:  verb.AuthorizeOpen,
 		Agent: "ai/claude",
-		Force: true,
+		// Reason deliberately empty. CurrentBranch non-ritual; --branch
+		// empty. The preflight would refuse with branch-context-required
+		// if it ran first; the assertion that --reason is named in the
+		// error is what pins ordering.
+		Force:         true,
+		CurrentBranch: "main",
 	})
-	if err == nil || !strings.Contains(err.Error(), "--reason") {
-		t.Errorf("expected --reason refusal; got %v", err)
+	if err == nil {
+		t.Fatal("expected refusal for --force without --reason; got nil")
+	}
+	if !strings.Contains(err.Error(), "--reason") {
+		t.Errorf("error %q does not name --reason — gate-ordering may be inverted (preflight fired before force-requires-reason)", err.Error())
+	}
+	if strings.Contains(err.Error(), "branch-context-required") {
+		t.Errorf("error %q names branch-context-required — preflight fired before force-requires-reason check (gate-ordering inverted)", err.Error())
 	}
 }
 
