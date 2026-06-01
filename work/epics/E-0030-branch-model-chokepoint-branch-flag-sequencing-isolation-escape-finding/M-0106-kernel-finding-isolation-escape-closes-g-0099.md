@@ -47,7 +47,7 @@ acs:
     - id: AC-10
       title: Per-commit firing — one finding per violating commit
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-11
       title: Warning severity; check exits 0 with findings reported
       status: open
