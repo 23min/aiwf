@@ -23,7 +23,7 @@ acs:
     - id: AC-4
       title: AI commit on epic/X while scope binds epic/X stays silent
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: AI commit on epic/X while scope is paused stays silent
       status: open
