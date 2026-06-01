@@ -116,6 +116,33 @@ func ritualLocalBranches(rootDir string) []string {
 	return ritual
 }
 
+// currentBranch returns the short name of the currently-checked-out
+// branch in rootDir, or empty if HEAD is detached, not a branch, or
+// git fails. Used by the M-0103 AI-target preflight in verb.Authorize
+// to detect implicit ritual-branch context.
+func currentBranch(rootDir string) string {
+	cmd := exec.Command("git", "symbolic-ref", "--short", "HEAD")
+	cmd.Dir = rootDir
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// branchExists reports whether refs/heads/<branch> resolves in
+// rootDir's repo. Used by the M-0103 AI-target preflight to
+// distinguish "no --branch passed" from "--branch <name> typo'd".
+// Empty branch always reports false (no name to check).
+func branchExists(rootDir, branch string) bool {
+	if strings.TrimSpace(branch) == "" {
+		return false
+	}
+	cmd := exec.Command("git", "show-ref", "--verify", "--quiet", "refs/heads/"+branch)
+	cmd.Dir = rootDir
+	return cmd.Run() == nil
+}
+
 // Run executes `aiwf authorize`. Returns one of the cliutil.Exit* codes.
 func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, out cliutil.OutputFormat) int {
 	modes := 0
@@ -189,6 +216,14 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 		opts.Reason = reason
 		opts.Branch = branch
 		opts.Force = force
+		// M-0103 preflight inputs: only the AuthorizeOpen path on an
+		// ai/* target consumes them; --pause / --resume modes ignore
+		// them entirely. Computed once per invocation; if git fails
+		// the verb interprets the empty CurrentBranch + false
+		// BranchExists as "no ritual context detected" and refuses
+		// when the gate fires.
+		opts.CurrentBranch = currentBranch(rootDir)
+		opts.BranchExists = branchExists(rootDir, branch)
 	case pause != "":
 		opts.Mode = verb.AuthorizePause
 		opts.Reason = pause

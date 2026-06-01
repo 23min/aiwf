@@ -15,6 +15,10 @@ import (
 // trailer set: aiwf-verb=authorize, aiwf-entity=E-01, aiwf-actor=human/...,
 // aiwf-to=ai/claude, aiwf-scope=opened, plus the reason in the body
 // and an aiwf-reason: trailer.
+//
+// CurrentBranch satisfies M-0103's preflight (ritual shape recognized by
+// internal/branchparse/); the existing happy-path remains green once the
+// preflight lands.
 func TestAuthorize_Open_HappyPath(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -22,9 +26,10 @@ func TestAuthorize_Open_HappyPath(t *testing.T) {
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
 	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
-		Mode:   verb.AuthorizeOpen,
-		Agent:  "ai/claude",
-		Reason: "implement E-01",
+		Mode:          verb.AuthorizeOpen,
+		Agent:         "ai/claude",
+		Reason:        "implement E-01",
+		CurrentBranch: "epic/E-0001-engine",
 	})
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
@@ -62,6 +67,7 @@ func TestAuthorize_Open_HappyPath(t *testing.T) {
 
 // TestAuthorize_Open_NoReason: --reason is optional for --to. The
 // commit lands without an aiwf-reason: trailer when none is supplied.
+// CurrentBranch satisfies M-0103's preflight.
 func TestAuthorize_Open_NoReason(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -69,8 +75,9 @@ func TestAuthorize_Open_NoReason(t *testing.T) {
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
 	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
-		Mode:  verb.AuthorizeOpen,
-		Agent: "ai/claude",
+		Mode:          verb.AuthorizeOpen,
+		Agent:         "ai/claude",
+		CurrentBranch: "epic/E-0001-engine",
 	})
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
@@ -84,7 +91,9 @@ func TestAuthorize_Open_NoReason(t *testing.T) {
 
 // TestAuthorize_Open_WithBranch_EmitsTrailer (M-0102/AC-3): when
 // AuthorizeOpen carries a non-empty Branch, the resulting commit
-// stamps an aiwf-branch: trailer with that value.
+// stamps an aiwf-branch: trailer with that value. BranchExists=true
+// satisfies M-0103's preflight (the explicit Branch resolves under
+// refs/heads/).
 func TestAuthorize_Open_WithBranch_EmitsTrailer(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -92,9 +101,10 @@ func TestAuthorize_Open_WithBranch_EmitsTrailer(t *testing.T) {
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
 	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
-		Mode:   verb.AuthorizeOpen,
-		Agent:  "ai/claude",
-		Branch: "epic/E-0001-engine",
+		Mode:         verb.AuthorizeOpen,
+		Agent:        "ai/claude",
+		Branch:       "epic/E-0001-engine",
+		BranchExists: true,
 	})
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
@@ -109,10 +119,13 @@ func TestAuthorize_Open_WithBranch_EmitsTrailer(t *testing.T) {
 	mustHaveTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
 }
 
-// TestAuthorize_Open_NoBranch_NoTrailer (M-0102/AC-3): when Branch is
-// empty (the default), no aiwf-branch: trailer is emitted —
-// backward-compatible with the pre-M-0102 trailer set.
-func TestAuthorize_Open_NoBranch_NoTrailer(t *testing.T) {
+// TestAuthorize_Open_NonAITarget_NoBranch_NoTrailer (M-0102/AC-3,
+// preserved through M-0103): for non-ai/* targets, an empty Branch
+// continues to emit no aiwf-branch: trailer — backward-compatible with
+// the pre-M-0102 trailer set. M-0103's preflight does not fire on
+// non-ai/* targets, so the implicit-from-current resolution is also
+// gated to ai/*.
+func TestAuthorize_Open_NonAITarget_NoBranch_NoTrailer(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
@@ -120,39 +133,47 @@ func TestAuthorize_Open_NoBranch_NoTrailer(t *testing.T) {
 
 	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:  verb.AuthorizeOpen,
-		Agent: "ai/claude",
+		Agent: "bot/dependabot",
+		// CurrentBranch is intentionally ritual-shape — assertion is
+		// that the preflight does NOT fire (and so does not promote
+		// CurrentBranch into opts.Branch) when the target is non-ai/*.
+		CurrentBranch: "epic/E-0001-engine",
 	})
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
 	for _, tr := range res.Plan.Trailers {
 		if tr.Key == "aiwf-branch" {
-			t.Errorf("aiwf-branch trailer present without Branch option: %q", tr.Value)
+			t.Errorf("aiwf-branch trailer present without Branch option (non-ai target): %q", tr.Value)
 		}
 	}
 }
 
-// TestAuthorize_Open_WithBranch_NonExistentBranchAccepted (M-0102/AC-8):
-// the verb does not refuse a Branch value whose named branch doesn't
-// exist in the repo at the time of the call. Per the M-0102 design
-// decision, branch-existence checking is M-0103's job (the preflight),
-// not this milestone's. M-0102 records whatever name was passed,
-// validated only against trailer-shape rules from AC-2.
-func TestAuthorize_Open_WithBranch_NonExistentBranchAccepted(t *testing.T) {
+// TestAuthorize_Open_NonAITarget_BranchMissing_Accepted (M-0102/AC-8,
+// preserved through M-0103): for non-ai/* targets, the M-0103 preflight
+// does NOT fire — so --branch <name> with a non-existent local branch
+// (BranchExists=false) is still accepted, and the trailer carries the
+// passed name verbatim. Pins the M-0102 invariant that the preflight
+// did NOT take over for non-AI agents; a regression that lifted the
+// existence check out of the ai/*-gated block (or that wrapped the
+// preflight in a non-AI gate) would silently break the M-0102 contract.
+func TestAuthorize_Open_NonAITarget_BranchMissing_Accepted(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
-	// The test repo never creates any branch matching this name; the
-	// verb must still succeed.
 	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
 		Mode:   verb.AuthorizeOpen,
-		Agent:  "ai/claude",
+		Agent:  "bot/dependabot",
 		Branch: "epic/E-9999-not-a-real-branch",
+		// BranchExists deliberately false — the preflight would refuse
+		// for an ai/* target, but for bot/* it must not fire.
+		BranchExists:  false,
+		CurrentBranch: "main",
 	})
 	if err != nil {
-		t.Fatalf("Authorize refused non-existent branch (should not at M-0102): %v", err)
+		t.Fatalf("Authorize refused non-AI target with missing branch (M-0103 preflight leaked outside ai/* gate): %v", err)
 	}
 	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
@@ -162,6 +183,137 @@ func TestAuthorize_Open_WithBranch_NonExistentBranchAccepted(t *testing.T) {
 		t.Fatal(err)
 	}
 	mustHaveTrailer(t, tr, "aiwf-branch", "epic/E-9999-not-a-real-branch")
+	mustHaveTrailer(t, tr, "aiwf-to", "bot/dependabot")
+}
+
+// TestAuthorize_Open_AITarget_NoBranch_NoRitualCurrent_Refuses
+// (M-0103/AC-1): opening a scope on ai/<agent> with no --branch and
+// a current checkout that does not match a ritual shape refuses with
+// PreflightBranchContextRequiredError. The error carries the
+// branch-context-required code (entity.Coded), the message names the
+// override path (--force --reason), and no commit is planned.
+func TestAuthorize_Open_AITarget_NoBranch_NoRitualCurrent_Refuses(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:          verb.AuthorizeOpen,
+		Agent:         "ai/claude",
+		CurrentBranch: "main",
+	})
+	if err == nil {
+		t.Fatalf("expected refusal for ai/* target on non-ritual branch; got plan=%+v", res.Plan)
+	}
+	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightBranchContextRequired.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightBranchContextRequired.ID)
+	}
+	if !strings.Contains(err.Error(), "branch-context-required") {
+		t.Errorf("error %q does not name the code", err.Error())
+	}
+	if !strings.Contains(err.Error(), "--force --reason") {
+		t.Errorf("error %q does not name the override path (--force --reason)", err.Error())
+	}
+}
+
+// TestAuthorize_Open_AITarget_BranchMissing_Refuses (M-0103/AC-2):
+// opening a scope on ai/<agent> with --branch <name> where the named
+// branch does not exist locally (BranchExists=false) refuses with
+// PreflightBranchNotFoundError. The error carries the branch-not-found
+// code; the message names --force --reason as the override.
+func TestAuthorize_Open_AITarget_BranchMissing_Refuses(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:   verb.AuthorizeOpen,
+		Agent:  "ai/claude",
+		Branch: "epic/E-9999-typo",
+		// BranchExists deliberately left false: the CLI's git
+		// show-ref --verify would have set it true; this fixture
+		// simulates the typo / missing-branch case.
+		CurrentBranch: "main",
+	})
+	if err == nil {
+		t.Fatalf("expected refusal for ai/* target with missing --branch; got plan=%+v", res.Plan)
+	}
+	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightBranchNotFound.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightBranchNotFound.ID)
+	}
+	if !strings.Contains(err.Error(), "branch-not-found") {
+		t.Errorf("error %q does not name the code", err.Error())
+	}
+	if !strings.Contains(err.Error(), "epic/E-9999-typo") {
+		t.Errorf("error %q does not quote the missing branch", err.Error())
+	}
+	if !strings.Contains(err.Error(), "--force --reason") {
+		t.Errorf("error %q does not name the override path (--force --reason)", err.Error())
+	}
+}
+
+// TestAuthorize_Open_AITarget_ImplicitFromCurrent_AcceptsAndEmitsTrailer
+// (M-0103/AC-3): opening a scope on ai/<agent> with no --branch but on
+// a ritual-shape current checkout accepts. The trailer-emission
+// promotes the implicit binding to explicit by stamping aiwf-branch:
+// with the current branch name.
+func TestAuthorize_Open_AITarget_ImplicitFromCurrent_AcceptsAndEmitsTrailer(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:          verb.AuthorizeOpen,
+		Agent:         "ai/claude",
+		CurrentBranch: "epic/E-0001-engine",
+	})
+	if err != nil {
+		t.Fatalf("Authorize refused implicit ritual current-branch: %v", err)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
+}
+
+// TestAuthorize_Open_AITarget_ExplicitBranchExists_AcceptsAndEmitsTrailer
+// (M-0103/AC-4): opening a scope on ai/<agent> with --branch <name>
+// where the named branch exists locally (BranchExists=true) accepts,
+// regardless of the current checkout. Trailer carries the explicit
+// --branch value.
+func TestAuthorize_Open_AITarget_ExplicitBranchExists_AcceptsAndEmitsTrailer(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:         verb.AuthorizeOpen,
+		Agent:        "ai/claude",
+		Branch:       "epic/E-0001-engine",
+		BranchExists: true,
+		// Current checkout deliberately non-ritual: the explicit
+		// signal (Branch + BranchExists) is sufficient.
+		CurrentBranch: "main",
+	})
+	if err != nil {
+		t.Fatalf("Authorize refused explicit existing branch: %v", err)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
 }
 
 // TestAuthorize_Open_WithBranch_InvalidShapeRefused: defensive — when
@@ -191,6 +343,13 @@ func TestAuthorize_Open_WithBranch_InvalidShapeRefused(t *testing.T) {
 				Mode:   verb.AuthorizeOpen,
 				Agent:  "ai/claude",
 				Branch: tc.branch,
+				// BranchExists=true bypasses the M-0103 preflight's
+				// branch-not-found path so we exercise the
+				// trailer-shape rule under test (the rule's raison
+				// d'être). In real usage `git show-ref --verify`
+				// would refuse the malformed names too, so this
+				// path is shape-rule-as-defense-in-depth.
+				BranchExists: true,
 			})
 			if err == nil {
 				t.Fatalf("expected shape-validation refusal for %q; got nil", tc.branch)
@@ -580,11 +739,12 @@ func TestAuthorize_Open_PauseResumeCycleE2E(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
 
-	// Open.
+	// Open. CurrentBranch satisfies M-0103's preflight.
 	open, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
-		Mode:   verb.AuthorizeOpen,
-		Agent:  "ai/claude",
-		Reason: "implement E-01",
+		Mode:          verb.AuthorizeOpen,
+		Agent:         "ai/claude",
+		Reason:        "implement E-01",
+		CurrentBranch: "epic/E-0001-engine",
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -80,6 +80,10 @@ func TestShow_CompositeIdWithScopes(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "warmup works"); err != nil {
 		t.Fatalf("aiwf add ac: %v\n%s", err, out)
 	}
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
@@ -153,6 +157,10 @@ func TestShow_AncestorScopeNotInheritedWithoutAct(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Cache"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	// Open scope on E-01 but NEVER act on M-001 under it.
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
@@ -221,6 +229,12 @@ func TestShow_MultipleScopesSorted(t *testing.T) {
 	// surprise (the kernel allows multiple parallel scopes on one
 	// entity, but pausing makes the test's observed behavior
 	// unambiguous).
+	// M-0103: ritual branch satisfies the AI-target preflight on the
+	// first --to ai/claude open. The second --to bot/ci does not trigger
+	// the preflight (non-ai/* target).
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize 1: %v\n%s", err, out)
 	}

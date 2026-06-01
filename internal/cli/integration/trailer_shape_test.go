@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -99,6 +100,15 @@ func TestTrailerShapePerMutatingVerb(t *testing.T) {
 
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
+	}
+
+	// M-0103: the authorize-step cases below open a scope on ai/claude;
+	// the preflight refuses without a ritual branch context. Move HEAD
+	// to a ritual-shape branch so the implicit-current signal passes.
+	// The subsequent verbs do not care which branch they commit on, so
+	// every later step rides this branch transparently.
+	if out, err := exec.Command("git", "-C", root, "checkout", "-b", "epic/E-0002-engine").CombinedOutput(); err != nil {
+		t.Fatalf("git checkout -b epic/E-0002-engine: %v\n%s", err, out)
 	}
 
 	bodyFile := filepath.Join(root, "fixtures-edit-body.md")

@@ -41,13 +41,24 @@ func Rules() []Rule {
 // per-rule exclusion. Only the code-oriented AC-5 drift arms union
 // Rules() and GlobalRules().
 //
-// Today there is exactly one global rule: the scope-reach rule — an
-// authorized agent's verb is refused when the target is out of scope
-// (D-0006). The scope-reach predicate returns reachability (M-0145), so
-// the out-of-scope violation is expressed as `scope-reach == false`. The
-// coordinate fields are intentionally zero; this rule has no cell
-// position. It mirrors the M-0141 runtime gate into the spec's
-// bidirectional drift net and changes no runtime behavior.
+// Today the global rules are:
+//   - scope-reach (D-0006): an authorized agent's verb is refused when
+//     the target is out of scope.
+//   - branch-context-required (E-0030 / M-0103 / ADR-0010): aiwf
+//     authorize refuses opening a scope on an ai/* agent when no ritual
+//     branch context is in play — neither --branch was supplied nor is
+//     the current checkout a recognized ritual shape. The precondition
+//     names "target-agent-role" (the role part of --to <role>/<id>) and
+//     "ritual-branch-context-present" (true when either signal is set).
+//   - branch-not-found (E-0030 / M-0103): aiwf authorize refuses when
+//     --branch <name> was supplied but no local branch by that name
+//     resolves under refs/heads/.
+//
+// The two M-0103 entries are scaffold-quality: they pin the codes into
+// the bidirectional drift net so M-0123/AC-5's legality-codes-referenced
+// arm is satisfied. The layer-4 consolidation milestone (M-0158)
+// elaborates them into the full branch-choreography cell set per
+// ADR-0011 §"Scope".
 func GlobalRules() []Rule {
 	return []Rule{
 		{
@@ -57,6 +68,32 @@ func GlobalRules() []Rule {
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{Decision: "D-0006"},
+		},
+		{
+			Verb: "authorize",
+			Preconditions: []Predicate{
+				{Subject: "target-agent-role", Op: "==", Value: "ai"},
+				{Subject: "ritual-branch-context-present", Op: "==", Value: "false"},
+				{Subject: "force", Op: "==", Value: "false"},
+			},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "branch-context-required",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Decision: "ADR-0010"},
+		},
+		{
+			Verb: "authorize",
+			Preconditions: []Predicate{
+				{Subject: "target-agent-role", Op: "==", Value: "ai"},
+				{Subject: "branch-flag-resolves", Op: "==", Value: "false"},
+				{Subject: "force", Op: "==", Value: "false"},
+			},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "branch-not-found",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Decision: "ADR-0010"},
 		},
 	}
 }

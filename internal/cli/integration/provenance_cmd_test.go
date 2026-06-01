@@ -47,6 +47,10 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
 
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	// Open a scope on E-01 for ai/claude.
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-01 end-to-end"); err != nil {
@@ -126,6 +130,10 @@ func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "Out-of-scope", "--epic", "E-0002"); err != nil {
 		t.Fatalf("aiwf add milestone under E-02: %v\n%s", err, out)
 	}
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	// Authorize the agent on E-01 only.
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"authorize", "E-0001", "--to", "ai/claude", "--reason", "scoped to E-01"); err != nil {
@@ -181,6 +189,10 @@ func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
 	}
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "First", "--epic", "E-0001"); err != nil {
 		t.Fatalf("aiwf add M-001: %v\n%s", err, out)
+	}
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "milestone/M-0001-cache"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
 	// Authorize the agent on M-001.
 	if out, err := testutil.RunBin(t, root, binDir, nil,
@@ -262,6 +274,10 @@ func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01: %v\n%s", err, out)
 	}
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"authorize", "E-0001", "--to", "ai/claude", "--reason", "scoped to E-01"); err != nil {
 		t.Fatalf("aiwf authorize: %v\n%s", err, out)
@@ -316,6 +332,10 @@ func TestProvenance_TerminalPromoteEmitsScopeEnds(t *testing.T) {
 	}
 	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote E-01 active: %v\n%s", err, out)
+	}
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-01"); err != nil {

@@ -134,6 +134,92 @@ func TestRitualLocalBranches_EmptyRepoReturnsNil(t *testing.T) {
 	}
 }
 
+// TestCurrentBranch_ReturnsCheckedOutBranch (M-0103/AC-3): the helper
+// returns the short name of the current checkout. Used by the verb's
+// preflight to detect implicit ritual-branch context.
+func TestCurrentBranch_ReturnsCheckedOutBranch(t *testing.T) {
+	t.Parallel()
+	root := mustNewGitRepo(t)
+	mustGit(t, root, "commit", "--allow-empty", "-m", "init")
+	mustGit(t, root, "checkout", "-b", "epic/E-0001-engine")
+	got := authorize.CurrentBranchForTest(root)
+	if got != "epic/E-0001-engine" {
+		t.Errorf("CurrentBranchForTest = %q, want %q", got, "epic/E-0001-engine")
+	}
+}
+
+// TestCurrentBranch_NonGitDirReturnsEmpty: best-effort behavior — a
+// non-git directory yields an empty string, so the verb's preflight
+// interprets it as "no ritual context detected" and refuses when the
+// gate fires. No panic, no error surfacing to the shell.
+func TestCurrentBranch_NonGitDirReturnsEmpty(t *testing.T) {
+	t.Parallel()
+	if got := authorize.CurrentBranchForTest(t.TempDir()); got != "" {
+		t.Errorf("CurrentBranchForTest non-git: got %q, want empty", got)
+	}
+}
+
+// TestCurrentBranch_DetachedHEADReturnsEmpty: when HEAD is detached
+// (no symbolic-ref), the helper returns empty. The verb interprets
+// this the same way as a non-git directory — no ritual context.
+func TestCurrentBranch_DetachedHEADReturnsEmpty(t *testing.T) {
+	t.Parallel()
+	root := mustNewGitRepo(t)
+	mustGit(t, root, "commit", "--allow-empty", "-m", "init")
+	mustGit(t, root, "commit", "--allow-empty", "-m", "second")
+	// Detach HEAD by checking out the previous commit.
+	mustGit(t, root, "checkout", "HEAD^")
+	if got := authorize.CurrentBranchForTest(root); got != "" {
+		t.Errorf("CurrentBranchForTest detached: got %q, want empty", got)
+	}
+}
+
+// TestBranchExists_True (M-0103/AC-4): the helper returns true when
+// refs/heads/<branch> resolves.
+func TestBranchExists_True(t *testing.T) {
+	t.Parallel()
+	root := mustNewGitRepo(t)
+	mustGit(t, root, "commit", "--allow-empty", "-m", "init")
+	mustGit(t, root, "branch", "epic/E-0001-engine")
+	if !authorize.BranchExistsForTest(root, "epic/E-0001-engine") {
+		t.Error("BranchExistsForTest on existing branch returned false")
+	}
+}
+
+// TestBranchExists_False (M-0103/AC-2): the helper returns false for
+// a name that doesn't resolve under refs/heads/ — the verb refuses
+// with branch-not-found.
+func TestBranchExists_False(t *testing.T) {
+	t.Parallel()
+	root := mustNewGitRepo(t)
+	mustGit(t, root, "commit", "--allow-empty", "-m", "init")
+	// No branch by that name was created.
+	if authorize.BranchExistsForTest(root, "epic/E-9999-typo") {
+		t.Error("BranchExistsForTest on missing branch returned true")
+	}
+}
+
+// TestBranchExists_EmptyName: when --branch wasn't passed, branch is
+// empty; the helper short-circuits to false so the verb's preflight
+// takes the implicit-current-branch path instead of branch-not-found.
+func TestBranchExists_EmptyName(t *testing.T) {
+	t.Parallel()
+	root := mustNewGitRepo(t)
+	mustGit(t, root, "commit", "--allow-empty", "-m", "init")
+	if authorize.BranchExistsForTest(root, "") {
+		t.Error("BranchExistsForTest on empty name returned true")
+	}
+}
+
+// TestBranchExists_NonGitDir: best-effort behavior — a non-git dir
+// yields false.
+func TestBranchExists_NonGitDir(t *testing.T) {
+	t.Parallel()
+	if authorize.BranchExistsForTest(t.TempDir(), "main") {
+		t.Error("BranchExistsForTest non-git returned true")
+	}
+}
+
 // mustNewGitRepo initializes a fresh git repo under a fresh TempDir
 // and returns its root. Identity is set so commit operations succeed.
 func mustNewGitRepo(t *testing.T) string {

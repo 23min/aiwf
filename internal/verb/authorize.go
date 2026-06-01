@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/23min/aiwf/internal/branchparse"
 	"github.com/23min/aiwf/internal/codes"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
@@ -36,6 +37,70 @@ func (e *AuthorizeKindError) Error() string {
 
 // Code returns CodeAuthorizeKindNotAllowed's ID, satisfying [entity.Coded].
 func (e *AuthorizeKindError) Code() string { return CodeAuthorizeKindNotAllowed.ID }
+
+// CodePreflightBranchContextRequired is the typed kernel-code descriptor
+// carried by [PreflightBranchContextRequiredError] when aiwf authorize
+// refuses opening a scope on an ai/* agent because neither --branch was
+// passed nor the current checkout matches a ritual shape (M-0103 /
+// ADR-0010). Class is [codes.ClassLegality].
+var CodePreflightBranchContextRequired = codes.Code{ID: "branch-context-required", Class: codes.ClassLegality}
+
+// CodePreflightBranchNotFound is the typed kernel-code descriptor
+// carried by [PreflightBranchNotFoundError] when aiwf authorize refuses
+// opening a scope on an ai/* agent because --branch <name> was passed
+// but no local branch by that name exists (M-0103 / ADR-0010). Class is
+// [codes.ClassLegality].
+var CodePreflightBranchNotFound = codes.Code{ID: "branch-not-found", Class: codes.ClassLegality}
+
+// PreflightBranchContextRequiredError reports an aiwf authorize refused
+// because the AI-target preflight (M-0103) found no ritual branch
+// context in play — neither was --branch supplied, nor does the current
+// checkout match a ritual shape recognized by internal/branchparse/.
+// Implements [entity.Coded] via Code; carries
+// CodePreflightBranchContextRequired.
+type PreflightBranchContextRequiredError struct {
+	// Agent is the --to ai/<id> value that triggered the preflight.
+	Agent string
+	// CurrentBranch is whatever the caller reported as the current
+	// checkout (empty when HEAD is detached or git failed); included
+	// in the message so the operator can see what was checked.
+	CurrentBranch string
+}
+
+// Error implements error.
+func (e *PreflightBranchContextRequiredError) Error() string {
+	return fmt.Sprintf(
+		"aiwf authorize: opening a scope on %q requires a ritual branch context (%s); current checkout %q does not match a ritual shape. Run `aiwfx-start-epic` / `aiwfx-start-milestone` to land on a recognized ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug> / patch/g-NNNN-<slug>), or pass `--branch <name>` naming an existing branch. To override this preflight as a sovereign act, use `--force --reason \"<one-sentence justification>\"`.",
+		e.Agent, CodePreflightBranchContextRequired.ID, e.CurrentBranch,
+	)
+}
+
+// Code returns CodePreflightBranchContextRequired's ID, satisfying [entity.Coded].
+func (e *PreflightBranchContextRequiredError) Code() string {
+	return CodePreflightBranchContextRequired.ID
+}
+
+// PreflightBranchNotFoundError reports an aiwf authorize refused
+// because the AI-target preflight (M-0103) was given --branch <name>
+// but the named branch does not exist locally. Implements [entity.Coded]
+// via Code; carries CodePreflightBranchNotFound.
+type PreflightBranchNotFoundError struct {
+	// Branch is the --branch value that did not resolve under refs/heads/.
+	Branch string
+}
+
+// Error implements error.
+func (e *PreflightBranchNotFoundError) Error() string {
+	return fmt.Sprintf(
+		"aiwf authorize: --branch %q refers to a non-existent local branch (%s). Pass a name that resolves under refs/heads/, or omit --branch to use the current checkout (which must already be on a ritual-shape branch). To override this preflight as a sovereign act, use `--force --reason \"...\"`.",
+		e.Branch, CodePreflightBranchNotFound.ID,
+	)
+}
+
+// Code returns CodePreflightBranchNotFound's ID, satisfying [entity.Coded].
+func (e *PreflightBranchNotFoundError) Code() string {
+	return CodePreflightBranchNotFound.ID
+}
 
 // AuthorizeMode picks one of the three sub-verbs of `aiwf authorize`.
 // Each mode produces exactly one commit; mixing modes is a usage error
@@ -75,15 +140,33 @@ type AuthorizeOptions struct {
 	// open (required when Force is set).
 	Reason string
 	// Branch (M-0102 / ADR-0010) is the ritual branch a scope is bound
-	// to. Optional at this milestone: when empty, no aiwf-branch:
-	// trailer is emitted (backward-compatible no-op). M-0103 will refuse
-	// AuthorizeOpen on an ai/<id> agent if Branch is empty *and* the
-	// current checkout doesn't match a ritual shape; that preflight
-	// lives in the cmd layer, not here. Validated against the git-ref
-	// shape rule in gitops.ValidateTrailer at trailer-assembly time.
+	// to. Optional: when empty *and* the target agent is non-ai/*, no
+	// aiwf-branch: trailer is emitted (backward-compatible). For ai/*
+	// targets, the M-0103 preflight resolves an empty Branch from
+	// CurrentBranch when the current checkout is a ritual shape, and
+	// refuses with PreflightBranchContextRequiredError when it is not.
+	// Validated against the git-ref shape rule in gitops.ValidateTrailer
+	// at trailer-assembly time.
 	Branch string
-	Force  bool
-	Scopes []*scope.Scope
+	// CurrentBranch (M-0103) is the short name of the consumer's
+	// currently-checked-out branch at verb-call time, as the CLI layer
+	// resolves it via `git symbolic-ref --short HEAD`. Empty when HEAD
+	// is detached, when the CLI's git invocation fails, or when this
+	// package is exercised by a verb-level test that does not set it.
+	// Read by the M-0103 preflight only when the target agent is ai/*
+	// and --force is not set; in every other code path the field is
+	// ignored, so leaving it empty in unrelated tests is harmless.
+	CurrentBranch string
+	// BranchExists (M-0103) reports whether Branch refers to a local
+	// branch that resolves under refs/heads/<Branch>, as the CLI layer
+	// determines via `git show-ref --verify`. The CLI sets this iff
+	// Branch is non-empty (when Branch is empty there is nothing to
+	// check). Read by the M-0103 preflight only when the target agent
+	// is ai/* and --force is not set; in every other code path the
+	// field is ignored.
+	BranchExists bool
+	Force        bool
+	Scopes       []*scope.Scope
 }
 
 // Authorize runs the `aiwf authorize` verb. Refusal rules per
@@ -158,6 +241,56 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 	}
 	if opts.Force && strings.TrimSpace(opts.Reason) == "" {
 		return nil, fmt.Errorf("aiwf authorize --force requires --reason \"...\" (non-empty after trim)")
+	}
+
+	// Gate-ordering invariant: terminal-status (line above) → force-
+	// requires-reason → M-0103 preflight (below). The preflight is the
+	// LAST refusal layer, so an operator running into both "entity is
+	// terminal" AND "no ritual branch" gets the terminal error first
+	// (closer to root cause). Reordering would silently invert the UX
+	// without breaking any AC test today; preserve the order on refactor.
+	//
+	// M-0103: AI-target preflight. Per ADR-0010 the branch model treats
+	// AI multi-commit work as bound to a ritual branch context; opening
+	// a scope on an ai/* agent without that context defeats the
+	// chokepoint that M-0106 (post-hoc finding) and the rituals
+	// (M-0104 / M-0105) rely on. Two signals satisfy the gate:
+	//
+	//   - opts.Branch is set and opts.BranchExists is true (the caller
+	//     explicitly named an existing local branch), OR
+	//   - opts.Branch is empty and opts.CurrentBranch matches a ritual
+	//     shape per internal/branchparse/ (the current checkout is
+	//     already a ritual branch).
+	//
+	// When the implicit-current-branch signal succeeds, opts.Branch is
+	// promoted to the current branch's name so the trailer-emission
+	// code below stamps aiwf-branch: with that value — making the
+	// implicit binding explicit in the commit record (per AC-3).
+	//
+	// Force + Reason path bypasses the preflight as a sovereign act.
+	// The trailer-coherence rules already forbid Force for non-human
+	// actors (see internal/verb/coherence.go), so the override is
+	// structurally human-sovereign — no new gate needed here.
+	if strings.HasPrefix(agent, "ai/") && !opts.Force {
+		branchExplicit := strings.TrimSpace(opts.Branch)
+		if branchExplicit != "" {
+			if !opts.BranchExists {
+				return nil, &PreflightBranchNotFoundError{Branch: branchExplicit}
+			}
+		} else {
+			if branchparse.ParseEntityFromBranch(opts.CurrentBranch) == "" {
+				return nil, &PreflightBranchContextRequiredError{
+					Agent:         agent,
+					CurrentBranch: opts.CurrentBranch,
+				}
+			}
+			// Safe: opts is passed by value into authorizeOpen (signature
+			// at line 226), so this write is local to this call. If opts
+			// is ever migrated to a pointer for unrelated reasons, the
+			// mutation would leak back to the CLI caller — replace with
+			// a local `effectiveBranch` and use that downstream.
+			opts.Branch = opts.CurrentBranch
+		}
 	}
 
 	trailers := []gitops.Trailer{

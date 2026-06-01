@@ -45,6 +45,14 @@ func TestRunAuthorize_OpenPauseResumeRoundTrip(t *testing.T) {
 		t.Fatalf("aiwf promote E-01 active: %v\n%s", err, out)
 	}
 
+	// M-0103: open requires a ritual branch context. Move HEAD to a
+	// ritual-shape branch so the preflight's implicit signal passes.
+	// `aiwf init` makes an initial commit, so the branch is non-empty
+	// and `git checkout -b` can fork off it.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b epic/E-0001-engine: %v\n%s", err, out)
+	}
+
 	// Open a scope.
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-01"); err != nil {
@@ -202,6 +210,13 @@ func TestRunAuthorize_WithBranch_EmitsTrailer(t *testing.T) {
 		t.Fatalf("aiwf promote: %v\n%s", err, out)
 	}
 
+	// M-0103: --branch refers to a named local branch; the preflight
+	// requires it to exist. Cut it (without checking it out — we stay
+	// on master to prove the explicit signal is enough on its own).
+	if out, err := testutil.RunGit(root, "branch", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git branch epic/E-0001-engine: %v\n%s", err, out)
+	}
+
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"authorize", "E-0001",
 		"--to", "ai/claude",
@@ -221,6 +236,156 @@ func TestRunAuthorize_WithBranch_EmitsTrailer(t *testing.T) {
 	// The load-bearing assertion: the cli's --branch flag landed as an
 	// aiwf-branch: trailer on the authorize commit. Pins the cli → verb
 	// → commit propagation path end-to-end.
+	hasTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
+}
+
+// TestRunAuthorize_AITarget_OnNonRitualBranch_NoBranch_Refuses
+// (M-0103/AC-1, cli-layer seam): drive `aiwf authorize <id> --to
+// ai/<agent>` through the built binary on a fresh repo whose initial
+// branch is master/main (non-ritual). Asserts the CLI's gather of
+// CurrentBranch via `git symbolic-ref` flows through to the verb's
+// preflight, which refuses with branch-context-required. Pins the
+// end-to-end seam from --to + current-branch-state → opts.CurrentBranch
+// → preflight refusal → non-zero exit.
+func TestRunAuthorize_AITarget_OnNonRitualBranch_NoBranch_Refuses(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+
+	out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001", "--to", "ai/claude", "--reason", "test")
+	if err == nil {
+		t.Fatalf("expected non-zero exit; output:\n%s", out)
+	}
+	if !strings.Contains(out, "branch-context-required") {
+		t.Errorf("expected branch-context-required code; got:\n%s", out)
+	}
+	if !strings.Contains(out, "--force --reason") {
+		t.Errorf("expected --force --reason override hint; got:\n%s", out)
+	}
+}
+
+// TestRunAuthorize_AITarget_BranchMissing_Refuses (M-0103/AC-2,
+// cli-layer seam): drive `aiwf authorize <id> --to ai/<agent>
+// --branch <typo>` through the binary against a repo that has no
+// branch by that name. Asserts the CLI's `git show-ref --verify`
+// gather flows through to the preflight, which refuses with
+// branch-not-found. Pins the --branch + branchExists → opts.BranchExists
+// → preflight propagation.
+func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+
+	out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001",
+		"--to", "ai/claude",
+		"--branch", "epic/E-9999-typo",
+		"--reason", "test",
+	)
+	if err == nil {
+		t.Fatalf("expected non-zero exit; output:\n%s", out)
+	}
+	if !strings.Contains(out, "branch-not-found") {
+		t.Errorf("expected branch-not-found code; got:\n%s", out)
+	}
+	if !strings.Contains(out, "epic/E-9999-typo") {
+		t.Errorf("expected the typo'd branch name quoted in error; got:\n%s", out)
+	}
+}
+
+// TestRunAuthorize_AITarget_ImplicitRitualBranch_AcceptsAndRecords
+// (M-0103/AC-3, cli-layer seam): from a checkout on a ritual-shape
+// branch, `aiwf authorize <id> --to ai/<agent>` (no --branch) accepts
+// AND emits aiwf-branch: trailer with the current branch name. Pins
+// the implicit-current → opts.CurrentBranch → verb-promotes-to-explicit
+// → trailer end-to-end.
+func TestRunAuthorize_AITarget_ImplicitRitualBranch_AcceptsAndRecords(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b epic/E-0001-engine: %v\n%s", err, out)
+	}
+
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implicit ritual"); err != nil {
+		t.Fatalf("aiwf authorize: %v\n%s", err, out)
+	}
+
+	tr, err := gitops.HeadTrailers(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasTrailer(t, tr, "aiwf-verb", "authorize")
+	hasTrailer(t, tr, "aiwf-to", "ai/claude")
+	// Implicit-from-current promoted to explicit aiwf-branch trailer.
 	hasTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
 }
 

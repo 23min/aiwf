@@ -257,6 +257,10 @@ func TestRender_ProvenanceTabShowsAuthorizeScope(t *testing.T) {
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "M", "--actor", "human/test", "--root", root)
+	// M-0103: ritual branch satisfies the AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "milestone/M-0001-m"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	mustRun(t, "authorize", "--root", root, "--actor", "human/test", "M-0001", "--to", "ai/claude")
 
 	out := filepath.Join(t.TempDir(), "site")

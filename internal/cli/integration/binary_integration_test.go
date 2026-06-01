@@ -453,11 +453,17 @@ func TestBinary_RenderHTML_EndToEnd(t *testing.T) {
 			"promote", "--root", repo, "--actor", "human/test", "M-0001/AC-1", "--phase", "green",
 			"--tests", "pass=12 fail=0 skip=1",
 		},
-		{"authorize", "--root", repo, "--actor", "human/test", "M-0001", "--to", "ai/claude"},
 	} {
 		if out, err := testutil.RunBinary(bin, args...); err != nil {
 			t.Fatalf("aiwf %s: %v\n%s", strings.Join(args, " "), err, out)
 		}
+	}
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := exec.Command("git", "-C", repo, "checkout", "-b", "milestone/M-0001-schema-parser").CombinedOutput(); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBinary(bin, "authorize", "--root", repo, "--actor", "human/test", "M-0001", "--to", "ai/claude"); err != nil {
+		t.Fatalf("aiwf authorize: %v\n%s", err, out)
 	}
 
 	siteDir := filepath.Join(tmp, "site")

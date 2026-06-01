@@ -25,6 +25,13 @@ func (f *CellFixture) AuthorizeScope(t *testing.T, entityID, agent string) *scop
 		Mode:   verb.AuthorizeOpen,
 		Agent:  agent,
 		Reason: "cellcoverage authorized-scope fixture",
+		// M-0103: cellcoverage fixtures don't run git ops; satisfy the
+		// AI-target preflight by stamping a plausible ritual current-
+		// branch. The trailer that lands records this value as the
+		// scope's branch binding — fine for cell-coverage purposes,
+		// since the verb's preflight is what's being satisfied, not
+		// the binding semantics.
+		CurrentBranch: "epic/" + entityID + "-cellcoverage-fixture",
 	}))
 
 	scopes, err := cliutil.LoadEntityScopes(f.ctx, f.Root, entityID)

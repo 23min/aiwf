@@ -39,11 +39,20 @@ func setupTwoEpicScopeRepo(t *testing.T) (root, bin string) {
 		{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "In scope"},
 		{"add", "epic", "--title", "Billing"},
 		{"add", "milestone", "--epic", "E-0002", "--tdd", "none", "--title", "Out of scope"},
-		{"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-0001"},
 	} {
 		if out, err := testutil.RunBin(t, root, binDir, nil, args...); err != nil {
 			t.Fatalf("aiwf %v: %v\n%s", args, err, out)
 		}
+	}
+	// M-0103: move HEAD to a ritual-shape branch so the AI-target
+	// preflight's implicit-current signal passes when opening the
+	// E-0001 scope below.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-platform"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-0001"); err != nil {
+		t.Fatalf("aiwf authorize E-0001: %v\n%s", err, out)
 	}
 	return root, bin
 }
@@ -138,11 +147,18 @@ func TestScopeReach_DiscoveredInFriction_AC3(t *testing.T) {
 		{"init"},
 		{"add", "epic", "--title", "Platform"},
 		{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Cache"},
-		{"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-0001"},
 	} {
 		if out, err := testutil.RunBin(t, root, binDir, nil, args...); err != nil {
 			t.Fatalf("aiwf %v: %v\n%s", args, err, out)
 		}
+	}
+	// M-0103: ritual branch satisfies the AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-platform"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001", "--to", "ai/claude", "--reason", "implement E-0001"); err != nil {
+		t.Fatalf("aiwf authorize: %v\n%s", err, out)
 	}
 
 	// Agent files a gap discovered_in M-0001 — a creation act whose ref
