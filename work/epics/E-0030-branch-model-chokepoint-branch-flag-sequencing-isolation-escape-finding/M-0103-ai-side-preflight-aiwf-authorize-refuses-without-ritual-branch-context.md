@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: AI-actor authorize on main without --branch refuses (branch-context-required)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: AI-actor authorize with --branch <missing> refuses (branch-not-found)
       status: open
