@@ -1,11 +1,19 @@
 package check
 
 import (
+	"context"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // TestRunProvenanceCheck_AC13_IsolationEscapeWired pins M-0106/AC-13's
@@ -78,5 +86,214 @@ func TestRunProvenanceCheck_AC13_IsolationEscapeWired(t *testing.T) {
 
 	if !found {
 		t.Error("RunProvenanceCheck must contain a call to check.RunIsolationEscape — the wire-up that hooks M-0106's isolation-escape rule into the pre-push pipeline (AC-13)")
+	}
+}
+
+// TestRunProvenanceCheck_IsolationEscape_FiresOnViolatingCommit
+// pins M-0106/F-1 + F-8: the end-to-end seam from production
+// `RunProvenanceCheck` through the git-backed BranchOracle into
+// the rule's fire path. Without this test the AST-level wire-up
+// assertion at TestRunProvenanceCheck_AC13_IsolationEscapeWired is
+// the only seam pin — and it would pass even if the call were
+// invoked with nil/garbage inputs that produced zero findings (the
+// shipped-disabled failure mode F-1 caught the milestone in).
+//
+// Setup: a fresh git repo with `main` + an `epic/E-0001-engine`
+// branch. Two commits land:
+//
+//  1. An authorize-opens-scope commit on main carrying
+//     aiwf-branch: epic/E-0001-engine — the binding the rule will
+//     compare against.
+//  2. A SECOND commit on main carrying aiwf-actor: ai/claude +
+//     aiwf-entity: E-0001 — an AI work commit landing on main
+//     instead of the bound epic branch. Per AC-1, the rule must fire.
+//
+// The fixture would silently pass an AC-1 assertion if the oracle
+// were nil — F-1 — so the test asserts the finding fires through
+// the full chain.
+func TestRunProvenanceCheck_IsolationEscape_FiresOnViolatingCommit(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ctx := context.Background()
+
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	// git init defaults to master in some envs; force main so the
+	// rule's bound-vs-actual comparison is deterministic.
+	if out, err := exec.CommandContext(ctx, "git", "-C", root, "branch", "-M", "main").CombinedOutput(); err != nil {
+		t.Fatalf("git branch -M main: %v\n%s", err, out)
+	}
+
+	// C0: baseline (no aiwf trailers). Anchors --since so the
+	// untrailered audit window is empty; we want only the M-0106
+	// pass to run findings.
+	seed := filepath.Join(root, "seed.md")
+	if err := os.WriteFile(seed, []byte("seed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "seed.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "baseline", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	c0 := headSHA(t, root)
+
+	// C1: authorize-opens-scope on main, bound to epic/E-0001-engine.
+	if err := os.WriteFile(filepath.Join(root, "auth.md"), []byte("auth\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "auth.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "aiwf authorize E-0001 --to ai/claude --branch epic/E-0001-engine", "",
+		[]gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "authorize"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerTo, Value: "ai/claude"},
+			{Key: gitops.TrailerScope, Value: "opened"},
+			{Key: gitops.TrailerBranch, Value: "epic/E-0001-engine"},
+		}); err != nil {
+		t.Fatalf("authorize commit: %v", err)
+	}
+
+	// Create the epic branch from this point so the oracle can
+	// distinguish "the bound branch exists" from "the AI commit
+	// landed somewhere else". The epic branch will share C0 + C1
+	// initially; the AI commit at C2 lands ONLY on main.
+	if out, err := exec.CommandContext(ctx, "git", "-C", root, "branch", "epic/E-0001-engine").CombinedOutput(); err != nil {
+		t.Fatalf("git branch epic/E-0001-engine: %v\n%s", err, out)
+	}
+
+	// C2: AI-actor work commit on main — the escape.
+	if err := os.WriteFile(filepath.Join(root, "work.md"), []byte("work\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "work.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "aiwf edit-body M-0001 (escaped)", "",
+		[]gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "edit-body"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "ai/claude"},
+		}); err != nil {
+		t.Fatalf("ai work commit: %v", err)
+	}
+
+	registered := map[string]struct{}{
+		"authorize": {},
+		"edit-body": {},
+	}
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered)
+	if err != nil {
+		t.Fatalf("RunProvenanceCheck: %v", err)
+	}
+
+	var found *check.Finding
+	for i := range findings {
+		if findings[i].Code == check.CodeIsolationEscape.ID {
+			found = &findings[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatalf("isolation-escape finding did not fire end-to-end (F-1: oracle wire-up missing?); got %d findings: %+v", len(findings), findings)
+	}
+	if found.Severity != check.SeverityWarning {
+		t.Errorf("isolation-escape Severity = %q; want %q (F-4: AC-11 — warning, not error)", found.Severity, check.SeverityWarning)
+	}
+	if found.EntityID != "E-0001" {
+		t.Errorf("isolation-escape EntityID = %q; want %q", found.EntityID, "E-0001")
+	}
+	if !strings.Contains(found.Message, "main") {
+		t.Errorf("isolation-escape Message %q does not name the actual branch (main)", found.Message)
+	}
+	if !strings.Contains(found.Message, "epic/E-0001-engine") {
+		t.Errorf("isolation-escape Message %q does not name the bound branch", found.Message)
+	}
+}
+
+// TestRunProvenanceCheck_IsolationEscape_SilentOnBoundBranchCommit
+// is the symmetric seam for F-1 + AC-4: when the AI commit rides
+// the bound branch, the rule must NOT fire through the full chain.
+// Without this test, a regression that always fires would surface
+// only at the firing-test level — false positives would never get
+// caught by the seam.
+func TestRunProvenanceCheck_IsolationEscape_SilentOnBoundBranchCommit(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ctx := context.Background()
+
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	if out, err := exec.CommandContext(ctx, "git", "-C", root, "branch", "-M", "main").CombinedOutput(); err != nil {
+		t.Fatalf("git branch -M main: %v\n%s", err, out)
+	}
+
+	seed := filepath.Join(root, "seed.md")
+	if err := os.WriteFile(seed, []byte("seed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "seed.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "baseline", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	c0 := headSHA(t, root)
+
+	// C1: authorize-opens on main with bound branch.
+	if err := os.WriteFile(filepath.Join(root, "auth.md"), []byte("auth\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "auth.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "aiwf authorize E-0001", "",
+		[]gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "authorize"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerTo, Value: "ai/claude"},
+			{Key: gitops.TrailerScope, Value: "opened"},
+			{Key: gitops.TrailerBranch, Value: "epic/E-0001-engine"},
+		}); err != nil {
+		t.Fatalf("authorize commit: %v", err)
+	}
+
+	// Cut + switch to the bound branch; the AI work commit lands here.
+	if out, err := exec.CommandContext(ctx, "git", "-C", root, "checkout", "-b", "epic/E-0001-engine").CombinedOutput(); err != nil {
+		t.Fatalf("git checkout -b epic/E-0001-engine: %v\n%s", err, out)
+	}
+
+	if err := os.WriteFile(filepath.Join(root, "work.md"), []byte("work\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "work.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "aiwf edit-body M-0001 (on bound)", "",
+		[]gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "edit-body"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "ai/claude"},
+		}); err != nil {
+		t.Fatalf("ai work commit: %v", err)
+	}
+
+	registered := map[string]struct{}{"authorize": {}, "edit-body": {}}
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered)
+	if err != nil {
+		t.Fatalf("RunProvenanceCheck: %v", err)
+	}
+
+	for _, f := range findings {
+		if f.Code == check.CodeIsolationEscape.ID {
+			t.Errorf("isolation-escape fired on bound-branch commit (false positive at the seam): %+v", f)
+		}
 	}
 }

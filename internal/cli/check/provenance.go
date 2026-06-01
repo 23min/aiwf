@@ -44,13 +44,20 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		return nil, err
 	}
 	findings := check.RunProvenance(commits, t)
-	// M-0106: isolation-escape rule. Cycle 1 wires the rule through
-	// with a nil oracle — the algorithm lands in Cycle 2 alongside
-	// the git-backed FirstParentBranches implementation. With a nil
-	// oracle the rule returns silently, so the wire-up here is
-	// structural (proves the integration point) without changing
-	// observable behavior.
-	findings = append(findings, check.RunIsolationEscape(commits, nil, nil)...)
+	// M-0106: isolation-escape rule. Wire the git-backed BranchOracle
+	// (built once per check invocation across the ritual-branch set)
+	// to the kernel rule. An oracle-construction error is non-fatal —
+	// the rule degrades to "unknown branch, silent" rather than
+	// blocking the entire check pass, because branch-policing is one
+	// rule among many and a failure here should not mask the others.
+	// The cherry-pick gather-side is parked at G-0202; nil for now
+	// means cherry-picks are NOT yet suppressed against real git
+	// history (the rule-side suppression works, but the gather-side
+	// derivation of committer-vs-actor + body marker is not
+	// implemented yet — see G-0202 for the design notes).
+	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
+		findings = append(findings, check.RunIsolationEscape(commits, oracle, nil)...)
+	}
 
 	rangeArg, advisory, rErr := ResolveUntrailedRange(ctx, root, since)
 	if rErr != nil {
