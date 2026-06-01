@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
+	clicontract "github.com/23min/aiwf/internal/cli/contract"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -192,16 +193,24 @@ func TestRunProvenanceCheck_IsolationEscape_FiresOnViolatingCommit(t *testing.T)
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
 
-	var found *check.Finding
-	for i := range findings {
-		if findings[i].Code == check.CodeIsolationEscape.ID {
-			found = &findings[i]
-			break
+	// T-7 (third-pass review): assert EXACTLY ONE isolation-escape
+	// finding, not "at least one." A regression that caused per-
+	// commit firing to double-count would silently pass the
+	// "first match wins" loop the original test used. Filter to
+	// isolation-escape findings (other rules also fire on this
+	// fixture — provenance-no-active-scope etc.) and pin
+	// cardinality. Mirrors the WarningDoesNotMarkErrors filter
+	// idiom for consistency across seam tests.
+	var iso []check.Finding
+	for _, f := range findings {
+		if f.Code == check.CodeIsolationEscape.ID {
+			iso = append(iso, f)
 		}
 	}
-	if found == nil {
-		t.Fatalf("isolation-escape finding did not fire end-to-end (F-1: oracle wire-up missing?); got %d findings: %+v", len(findings), findings)
+	if len(iso) != 1 {
+		t.Fatalf("isolation-escape finding count = %d; want exactly 1 (F-1: oracle wire-up + AC-10: per-commit firing); all findings: %+v", len(iso), findings)
 	}
+	found := &iso[0]
 	if found.Severity != check.SeverityWarning {
 		t.Errorf("isolation-escape Severity = %q; want %q (F-4: AC-11 — warning, not error)", found.Severity, check.SeverityWarning)
 	}
@@ -295,6 +304,118 @@ func TestRunProvenanceCheck_IsolationEscape_SilentOnBoundBranchCommit(t *testing
 		if f.Code == check.CodeIsolationEscape.ID {
 			t.Errorf("isolation-escape fired on bound-branch commit (false positive at the seam): %+v", f)
 		}
+	}
+}
+
+// TestRunProvenanceCheck_IsolationEscape_FindingCarriesHint pins
+// M-0106/T-1 from the third-pass retrospective: a future regression
+// that broke the hint-application chain (e.g., a refactor that
+// moved `contract.ApplyHintsLikeRun` to a position where the
+// provenance findings slice didn't flow through it, or a code
+// re-organization that detached the isolation-escape rule from the
+// post-processing pass) would silently ship findings without
+// hints — readable when the operator hits one in CI but missing
+// the override-path suggestion the AC-12 hint provides.
+//
+// The unit-level TestIsolationEscape_AC12_HintTextNamesBothOverridePaths
+// pins the hintTable content; this test pins that the same hint
+// reaches a real finding through the production composition.
+// Together they cover the full hint surface.
+//
+// Note on test layering: `RunProvenanceCheck` itself does NOT call
+// ApplyHintsLikeRun; the outer `Run` (which composes provenance +
+// other rules) does. To test the seam through `Run`'s chain we
+// invoke `contract.ApplyHintsLikeRun` manually on the
+// RunProvenanceCheck output — mirroring exactly what the `Run`
+// orchestrator does (see internal/cli/check/check.go:158, 224).
+// The cleaner shape would be a full `Run`-driven integration test
+// fixture, but those exist elsewhere and inflating that surface
+// here is YAGNI.
+func TestRunProvenanceCheck_IsolationEscape_FindingCarriesHint(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ctx := context.Background()
+
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	if out, err := exec.CommandContext(ctx, "git", "-C", root, "branch", "-M", "main").CombinedOutput(); err != nil {
+		t.Fatalf("git branch -M main: %v\n%s", err, out)
+	}
+	seed := filepath.Join(root, "seed.md")
+	if err := os.WriteFile(seed, []byte("seed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "seed.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "baseline", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	c0 := headSHA(t, root)
+
+	if err := os.WriteFile(filepath.Join(root, "auth.md"), []byte("auth\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "auth.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "aiwf authorize E-0001 --to ai/claude --branch epic/E-0001-engine", "",
+		[]gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "authorize"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerTo, Value: "ai/claude"},
+			{Key: gitops.TrailerScope, Value: "opened"},
+			{Key: gitops.TrailerBranch, Value: "epic/E-0001-engine"},
+		}); err != nil {
+		t.Fatalf("authorize commit: %v", err)
+	}
+	if out, err := exec.CommandContext(ctx, "git", "-C", root, "branch", "epic/E-0001-engine").CombinedOutput(); err != nil {
+		t.Fatalf("git branch epic/E-0001-engine: %v\n%s", err, out)
+	}
+	if err := os.WriteFile(filepath.Join(root, "work.md"), []byte("work\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "work.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "aiwf edit-body M-0001 (escaped)", "",
+		[]gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "edit-body"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "ai/claude"},
+		}); err != nil {
+		t.Fatalf("ai work commit: %v", err)
+	}
+
+	registered := map[string]struct{}{"authorize": {}, "edit-body": {}}
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered)
+	if err != nil {
+		t.Fatalf("RunProvenanceCheck: %v", err)
+	}
+
+	// Apply hints exactly as the outer `Run` does.
+	clicontract.ApplyHintsLikeRun(findings)
+
+	var iso *check.Finding
+	for i := range findings {
+		if findings[i].Code == check.CodeIsolationEscape.ID {
+			iso = &findings[i]
+			break
+		}
+	}
+	if iso == nil {
+		t.Fatalf("isolation-escape finding not present; cannot pin hint-flow")
+	}
+	if iso.Hint == "" {
+		t.Fatal("isolation-escape finding has empty Hint after ApplyHintsLikeRun — hint-table-to-finding flow broken")
+	}
+	if !strings.Contains(iso.Hint, "cherry-pick -x") {
+		t.Errorf("isolation-escape Hint %q does not include cherry-pick override (AC-12 anchor)", iso.Hint)
+	}
+	if !strings.Contains(iso.Hint, "aiwf-force") {
+		t.Errorf("isolation-escape Hint %q does not include aiwf-force override (AC-12 anchor)", iso.Hint)
 	}
 }
 

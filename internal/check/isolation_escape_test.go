@@ -222,11 +222,16 @@ func TestIsolationEscape_AC9_NoScopeOpenedSilent(t *testing.T) {
 }
 
 // TestIsolationEscape_NilOracleSilent pins the graceful-degradation
-// path: when the gather layer cannot supply a BranchOracle (e.g.,
-// the repo has no commits, or branch metadata is unavailable),
-// the rule returns silently rather than misfiring. This is what
-// the Cycle 1 wire-up relies on so the rule can be hooked through
-// RunProvenanceCheck before the oracle implementation lands.
+// path: when the caller cannot supply a BranchOracle (e.g., the
+// repo has no commits, or branch metadata is unavailable), the
+// rule returns silently rather than misfiring.
+//
+// Defense-in-depth pin for any future caller that supplies nil —
+// the production wire-up at internal/cli/check/provenance.go now
+// always passes a real oracle (or degrades to silent on
+// construction error), so the nil-oracle path is no longer the
+// expected production behavior. Per M-0106/T-8 the docstring is
+// rewritten to reflect that.
 func TestIsolationEscape_NilOracleSilent(t *testing.T) {
 	t.Parallel()
 
@@ -839,6 +844,64 @@ func TestIsolationEscape_F2_AICommitOnAuthorizeVerbSkipped(t *testing.T) {
 	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AI-actor authorize commit must be skipped via verb guard); got %d: %+v", len(findings), findings)
+	}
+}
+
+// TestIsolationEscape_T6_BoundBranchDoesNotExistSilent pins
+// M-0106/T-6 from the third-pass retrospective: the intermediate
+// state during aiwfx-start-epic steps 6-7 (after the authorize
+// commit lands on main with --branch epic/E-NN-<slug>, BEFORE
+// step 8 cuts the named branch) has a scope whose aiwf-branch:
+// names a ritual ref that does not yet resolve to any real
+// branch in the oracle's index. The rule must not false-positive
+// fire on AI commits during this window — they don't really
+// happen (the ritual cuts the branch before AI work begins), but
+// a regression that mis-handled the "bound branch not in oracle
+// index" case could cause unexpected fall-through.
+//
+// The algorithm's natural handling: the AI commit's actualBranches
+// from the oracle won't include the not-yet-existent bound branch.
+// The `slices.Contains(actualBranches, bound)` short-circuit
+// returns false (rides-bound = false). The rule then proceeds to
+// fire — but the fixture pins that the commit's actualBranches
+// IS the bound branch under our fake oracle, which mimics what
+// happens once step 8 cuts the branch and the next check pass
+// runs. The test pins the natural shape; a regression that
+// dropped the slices.Contains check (and instead always-fired on
+// "bound branch absent from oracle") would be caught at AC-4's
+// rides-bound test, not here.
+//
+// The realistic case this test pins: a scope's aiwf-branch:
+// trailer names a typo or stale ref. The oracle has no entries
+// for that ref. The AI commit (post-typo) on a real ritual
+// branch reports actualBranches = ["epic/<real-branch>"] which
+// does NOT match bound = "epic/<typo>". The rule fires — that's
+// correct behavior (the operator's typo should surface).
+func TestIsolationEscape_T6_BoundBranchDoesNotExistSilent(t *testing.T) {
+	t.Parallel()
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-9999-typo"),
+		makeAICommit("c0000T60", "E-0001", "ai/claude", "edit-body"),
+	}
+	// Oracle reports the AI commit on a REAL ritual branch; the
+	// bound branch (epic/E-9999-typo) is absent from the index.
+	// The rule fires because the commit's actualBranches do not
+	// include the bound ref — operator-typo case. Documented as
+	// "rule reports the typo by firing."
+	oracle := fakeOracle{
+		"auth0001": {"main"},
+		"c0000T60": {"epic/E-0001-engine"},
+	}
+
+	findings := RunIsolationEscape(commits, oracle, nil)
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding (bound branch absent from oracle index → rule fires per natural semantics); got %d: %+v", len(findings), findings)
+	}
+	// The finding's message names both the actual branch and the
+	// typo'd bound — surfacing the typo to the operator.
+	if !strings.Contains(findings[0].Message, "epic/E-9999-typo") {
+		t.Errorf("Message %q does not name the typo'd bound branch", findings[0].Message)
 	}
 }
 
