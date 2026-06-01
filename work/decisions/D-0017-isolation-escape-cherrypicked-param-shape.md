@@ -30,7 +30,7 @@ Option 3 (separate `cherryPicked map[string]bool` parameter on
 
 ## Honest rationale (the wrap-body was not honest)
 
-The wrap-body M-0106 spec at line 257 claimed:
+The original M-0106 wrap-body's Decisions section claimed (subsequently amended via aiwf edit-body so the verbatim quote no longer survives at a stable line; the rationalization itself remains the subject of this decision):
 
 > *"the cherry-pick info is rule-specific; extending
 > `scope.Commit` would touch every consuming rule, and
