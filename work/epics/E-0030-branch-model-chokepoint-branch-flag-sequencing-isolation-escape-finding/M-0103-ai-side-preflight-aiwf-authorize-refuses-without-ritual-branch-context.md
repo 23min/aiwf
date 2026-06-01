@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: --force without --reason refuses (regression guard)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-7
       title: Non-AI authorize is unaffected by the preflight
