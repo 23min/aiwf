@@ -26,7 +26,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Skill body names --force --reason override at appropriate step
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Milestone scope aiwf-branch trailer records milestone branch
