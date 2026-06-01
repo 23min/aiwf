@@ -42,7 +42,7 @@ acs:
     - id: AC-8
       title: Package doc explains layer-4 carve-out and cites ADR-0011
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
