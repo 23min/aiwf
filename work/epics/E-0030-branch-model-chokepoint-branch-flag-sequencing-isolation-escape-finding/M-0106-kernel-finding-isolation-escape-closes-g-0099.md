@@ -39,7 +39,7 @@ acs:
     - id: AC-8
       title: Violating commit amended with aiwf-force + human/ actor stays silent
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-9
       title: AI commit on entity with no opened scope stays silent
       status: met
