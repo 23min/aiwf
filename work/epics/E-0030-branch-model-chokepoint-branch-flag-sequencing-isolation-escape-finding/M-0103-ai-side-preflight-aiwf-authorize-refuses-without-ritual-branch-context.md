@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: AI-actor authorize with --branch <missing> refuses (branch-not-found)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: AI-actor authorize from ritual-shape checkout (no --branch) accepts
       status: open
