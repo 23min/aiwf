@@ -11,7 +11,7 @@ acs:
     - id: AC-1
       title: Embedded snapshot reflects new step ordering
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Skill asserts tightened parent-epic-branch precondition
       status: open
