@@ -30,7 +30,7 @@ acs:
       tdd_phase: red
     - id: AC-6
       title: Milestone scope aiwf-branch trailer records milestone branch
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
