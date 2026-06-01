@@ -64,6 +64,19 @@ type BranchOracle interface {
 // gather layer cannot determine commit branches (e.g., a bare repo
 // fragment in a test fixture without ref history).
 //
+// cherryPicked is the set of commit SHAs the gather layer identified
+// as `git cherry-pick -x` re-authors of upstream commits: both
+// (a) committer email differs from the original actor's encoded
+// email AND (b) the commit body carries the
+// `(cherry picked from commit <sha>)` marker that `git cherry-pick -x`
+// writes by default. When a commit's SHA is in this set the rule
+// treats it as a sovereign human re-author (corner case 8 / AC-6)
+// and suppresses any isolation-escape finding against it; the audit
+// trail lives in the committer-vs-author identity gap and the marker
+// itself. A nil/empty map means "no cherry-pick info available";
+// the rule then polices as usual (no false negatives — only
+// known-cherry-picks are suppressed).
+//
 // Per-commit firing: each violating commit produces its own
 // finding. No aggregation, no per-entity summary — the user wants
 // the cardinality so each escaped commit is individually
@@ -88,7 +101,7 @@ type BranchOracle interface {
 //  6. Otherwise fire isolation-escape with the commit's SHA, the
 //     entity id, the bound branch, and the actual branch list as
 //     evidence.
-func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle) []Finding {
+func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicked map[string]bool) []Finding {
 	if oracle == nil {
 		return nil
 	}
@@ -167,6 +180,18 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle) []Finding {
 		}
 		if slices.Contains(actualBranches, bound) {
 			continue // AC-4 — commit rides the bound branch.
+		}
+
+		// AC-6 — sovereign cherry-pick re-author. When a human runs
+		// `git cherry-pick -x <ai-sha>` to land the AI's commit on a
+		// different branch, the resulting commit carries the original
+		// AI's trailers (so it looks like an escape) but the committer
+		// has flipped to the human and the body carries the
+		// `(cherry picked from commit <sha>)` marker. The gather layer
+		// records both signals; the rule suppresses the finding so
+		// the cherry-pick path is not penalized.
+		if cherryPicked[c.SHA] {
+			continue
 		}
 
 		// AC-1 / AC-2 / AC-3 — commit landed on a branch other than

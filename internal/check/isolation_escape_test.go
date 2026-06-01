@@ -102,7 +102,7 @@ func TestIsolationEscape_AC1_AICommitOnMainFires(t *testing.T) {
 		"c0000001": {"main"}, // AI commit landed on main — escape.
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected exactly 1 finding (AC-10: per-commit firing); got %d", len(findings))
 	}
@@ -153,7 +153,7 @@ func TestIsolationEscape_AC3_WorktreeBranchMismatchFires(t *testing.T) {
 		"c0000002": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected exactly 1 finding for worktree-branch mismatch; got %d", len(findings))
 	}
@@ -179,7 +179,7 @@ func TestIsolationEscape_AC4_AICommitOnBoundBranchSilent(t *testing.T) {
 		"c0000003": {"epic/E-0001-engine"}, // rides bound branch — silent.
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AC-4: commit rides bound branch); got %d: %+v", len(findings), findings)
 	}
@@ -203,7 +203,7 @@ func TestIsolationEscape_AC9_NoScopeOpenedSilent(t *testing.T) {
 		"c0000004": {"epic/E-0002-other"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AC-9: no scope on entity); got %d: %+v", len(findings), findings)
 	}
@@ -223,7 +223,7 @@ func TestIsolationEscape_NilOracleSilent(t *testing.T) {
 		makeAICommit("c0000005", "E-0001", "ai/claude", "edit-body"),
 	}
 
-	findings := RunIsolationEscape(commits, nil)
+	findings := RunIsolationEscape(commits, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings with nil oracle (graceful degradation); got %d", len(findings))
 	}
@@ -250,7 +250,7 @@ func TestIsolationEscape_UnknownBranchSilent(t *testing.T) {
 		// c0000006 deliberately absent — oracle returns nil for it.
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for unknown-branch commit; got %d", len(findings))
 	}
@@ -274,7 +274,7 @@ func TestIsolationEscape_HumanCommitSilent(t *testing.T) {
 		"c0000007": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for human-actor commit; got %d: %+v", len(findings), findings)
 	}
@@ -298,7 +298,7 @@ func TestIsolationEscape_LegacyPreM0102ScopeSilent(t *testing.T) {
 		"c0000008": {"main"}, // even on main, legacy scope means silent.
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for legacy pre-M-0102 scope; got %d: %+v", len(findings), findings)
 	}
@@ -326,7 +326,7 @@ func TestIsolationEscape_AC2_AICommitOnDifferentRitualBranchFires(t *testing.T) 
 		"c0000010": {"epic/E-0002-other"}, // different epic branch.
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected exactly 1 finding (AC-2); got %d", len(findings))
 	}
@@ -375,7 +375,7 @@ func TestIsolationEscape_AC5_AICommitOnBoundBranchPausedScopeSilent(t *testing.T
 		"c0000020": {"epic/E-0001-engine"}, // rides bound — silent.
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AC-5: paused scope + on bound branch); got %d: %+v", len(findings), findings)
 	}
@@ -406,7 +406,7 @@ func TestIsolationEscape_AC10_PerCommitFiring(t *testing.T) {
 		"c0000032": {"epic/E-0002-other"},   // violating (different branch)
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 3 {
 		t.Fatalf("expected 3 findings (one per violating commit, AC-10); got %d: %+v", len(findings), findings)
 	}
@@ -450,7 +450,7 @@ func TestIsolationEscape_AC11_WarningSeverityCheckExitsZero(t *testing.T) {
 		"c0000040": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle)
+	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected 1 finding; got %d", len(findings))
 	}
@@ -494,6 +494,139 @@ func TestIsolationEscape_AC12_HintTextNamesBothOverridePaths(t *testing.T) {
 		if !strings.Contains(hint, w.s) {
 			t.Errorf("hint must name the %s (substring %q); hint = %q", w.name, w.s, hint)
 		}
+	}
+}
+
+// TestIsolationEscape_AC6_CherryPickReAuthorSilent pins
+// M-0106/AC-6: a `git cherry-pick -x` re-author is suppressed.
+// The gather layer identifies cherry-picks (committer email
+// differs from the AI actor's encoded email AND body carries
+// `(cherry picked from commit <sha>)` marker) and feeds the SHAs
+// to the rule via the `cherryPicked` parameter. The rule sees an
+// AI-actor commit on a non-bound branch (looks like an escape
+// from the trailer perspective) but skips firing because the
+// SHA is flagged.
+//
+// The audit trail lives in the committer-vs-author identity gap
+// and the cherry-pick marker — both are observable on the commit
+// itself; the rule doesn't need to record additional state.
+func TestIsolationEscape_AC6_CherryPickReAuthorSilent(t *testing.T) {
+	t.Parallel()
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		makeAICommit("cp000060", "E-0001", "ai/claude", "edit-body"),
+	}
+	oracle := fakeOracle{
+		"auth0001": {"epic/E-0001-engine"},
+		"cp000060": {"main"},
+	}
+	cherryPicked := map[string]bool{
+		"cp000060": true,
+	}
+
+	findings := RunIsolationEscape(commits, oracle, cherryPicked)
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings for cherry-pick re-author (AC-6); got %d: %+v", len(findings), findings)
+	}
+}
+
+// TestIsolationEscape_AC6_NonCherryPickStillFires pins the
+// suppression's lower bound: a commit that looks LIKE a cherry-
+// pick but is NOT flagged by the gather layer still fires. The
+// suppression depends on positive identification by the gather
+// layer; the rule does not infer cherry-pick status itself.
+//
+// Without this guard, a regression that silently treated
+// "missing cherry-pick info" as "is a cherry-pick" would suppress
+// every commit when the gather layer is absent — converting the
+// rule to a no-op.
+func TestIsolationEscape_AC6_NonCherryPickStillFires(t *testing.T) {
+	t.Parallel()
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		makeAICommit("c0000061", "E-0001", "ai/claude", "edit-body"),
+	}
+	oracle := fakeOracle{
+		"auth0001": {"epic/E-0001-engine"},
+		"c0000061": {"main"},
+	}
+	for _, cp := range []map[string]bool{nil, {}} {
+		findings := RunIsolationEscape(commits, oracle, cp)
+		if len(findings) != 1 {
+			t.Errorf("with cherryPicked=%v: expected 1 finding (not a cherry-pick); got %d", cp, len(findings))
+		}
+	}
+}
+
+// TestIsolationEscape_AC7_HumanMergeFirstParentSilent pins
+// M-0106/AC-7: when a human merges epic/X into main via
+// `git merge --no-ff epic/X`, the merge commit is human-actor
+// (filtered by the rule's ai/ prefix check) and the AI commits
+// behind the merge are still reachable from epic/X first-parent
+// (not from main's first-parent line). Both kinds of commits
+// stay silent — the merge by the actor filter, the AI commits by
+// the bound-branch match.
+func TestIsolationEscape_AC7_HumanMergeFirstParentSilent(t *testing.T) {
+	t.Parallel()
+
+	mergeCommit := scope.Commit{
+		SHA: "merge001",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "merge"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+		},
+	}
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		makeAICommit("c0000070", "E-0001", "ai/claude", "edit-body"),
+		mergeCommit,
+	}
+	oracle := fakeOracle{
+		"auth0001": {"epic/E-0001-engine"},
+		"c0000070": {"epic/E-0001-engine"},
+		"merge001": {"main"},
+	}
+
+	findings := RunIsolationEscape(commits, oracle, nil)
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings for human-merge + AI commits behind merge (AC-7); got %d: %+v", len(findings), findings)
+	}
+}
+
+// TestIsolationEscape_AC8_ForceAmendedCommitSilent pins
+// M-0106/AC-8: when an operator amends a violating commit with
+// `aiwf-force: <reason>` + `aiwf-actor: human/<id>` (the spec's
+// sovereign override), the rule is silent. The natural mechanism:
+// after the amend the commit's aiwf-actor: trailer is
+// `human/<id>` (not `ai/...`), so the rule's ai/ prefix filter
+// skips it.
+func TestIsolationEscape_AC8_ForceAmendedCommitSilent(t *testing.T) {
+	t.Parallel()
+
+	amendedCommit := scope.Commit{
+		SHA: "amended0",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "edit-body"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerForce, Value: "manual cherry-pick acknowledgment"},
+		},
+	}
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		amendedCommit,
+	}
+	oracle := fakeOracle{
+		"auth0001": {"epic/E-0001-engine"},
+		"amended0": {"main"},
+	}
+
+	findings := RunIsolationEscape(commits, oracle, nil)
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings for force-amended commit (AC-8); got %d: %+v", len(findings), findings)
 	}
 }
 

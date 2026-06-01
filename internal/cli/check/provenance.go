@@ -50,7 +50,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// oracle the rule returns silently, so the wire-up here is
 	// structural (proves the integration point) without changing
 	// observable behavior.
-	findings = append(findings, check.RunIsolationEscape(commits, nil)...)
+	findings = append(findings, check.RunIsolationEscape(commits, nil, nil)...)
 
 	rangeArg, advisory, rErr := ResolveUntrailedRange(ctx, root, since)
 	if rErr != nil {
