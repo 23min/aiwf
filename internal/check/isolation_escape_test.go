@@ -413,9 +413,9 @@ func TestIsolationEscape_AC10_PerCommitFiring(t *testing.T) {
 	}
 	oracle := fakeOracle{
 		"auth0001": {"epic/E-0001-engine"},
-		"c0000030": {"main"},                // violating
-		"c0000031": {"main"},                // violating
-		"c0000032": {"epic/E-0002-other"},   // violating (different branch)
+		"c0000030": {"main"},              // violating
+		"c0000031": {"main"},              // violating
+		"c0000032": {"epic/E-0002-other"}, // violating (different branch)
 	}
 
 	findings := RunIsolationEscape(commits, oracle, nil)
@@ -442,11 +442,18 @@ func TestIsolationEscape_AC10_PerCommitFiring(t *testing.T) {
 // not SeverityError. Renamed from "...CheckExitsZero" per F-4 of
 // the M-0106 retrospective — the original name claimed an
 // end-to-end exit-code assertion the test could not make at the
-// unit level. The exit-code half (warning + non-zero findings →
-// exit 0) is now pinned end-to-end by the cli/check integration
-// tests at internal/cli/check/isolation_escape_test.go (which
-// drive RunProvenanceCheck against fixture repos and observe both
-// the finding and the CLI's exit path).
+// unit level.
+//
+// The exit-code half (warning + non-zero findings → exit 0) is
+// pinned end-to-end by
+// TestRunProvenanceCheck_IsolationEscape_WarningDoesNotMarkErrors
+// at internal/cli/check/isolation_escape_test.go, which drives
+// RunProvenanceCheck against a violating fixture and asserts
+// check.HasErrors over the isolation-escape findings returns
+// false (since check.HasErrors is the predicate that drives the
+// CLI's exit-code mapping at internal/cli/check/check.go:195).
+// The pair jointly pins the full AC-11 claim through the
+// production composition.
 //
 // This isolated severity assertion is the single place to update
 // at a future tightening (e.g. a D-NNN that flips to SeverityError
@@ -832,6 +839,83 @@ func TestIsolationEscape_F2_AICommitOnAuthorizeVerbSkipped(t *testing.T) {
 	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AI-actor authorize commit must be skipped via verb guard); got %d: %+v", len(findings), findings)
+	}
+}
+
+// TestIsolationEscape_N3_DuplicateScopeEndsFirstWins covers the
+// "first end wins" arm at isolation_escape.go:136-137: when
+// multiple commits carry `aiwf-scope-ends:` trailers for the same
+// opener-SHA, the algorithm records the EARLIEST end position and
+// ignores subsequent duplicates. The M-0106 second-pass reviewer
+// (N-3) flagged this branch as the single uncovered line in
+// `RunIsolationEscape` after the F-2/F-3 fixes.
+//
+// The fixture is designed so that "first wins" and "last wins"
+// would produce DIFFERENT outcomes:
+//
+//	chronoIdx 0: opener (binding: epic/E-0001-engine)
+//	chronoIdx 1: first scope-end on opener
+//	chronoIdx 2: AI commit on main (would-be escape)
+//	chronoIdx 3: second scope-end on opener
+//
+// Under correct "first wins": endsByOpenerSHA[opener] = 1; AI at
+// chronoIdx 2 is AFTER end → scope inactive → silent → zero
+// findings.
+//
+// Under sabotaged "last wins" (a regression that overwrote rather
+// than skipped): endsByOpenerSHA[opener] = 3; AI at chronoIdx 2 is
+// BEFORE end → scope active → bound-comparison → fire → one
+// finding. The test would fail.
+//
+// So the duplicate-skip line is genuinely pinned, not just
+// statement-covered.
+func TestIsolationEscape_N3_DuplicateScopeEndsFirstWins(t *testing.T) {
+	t.Parallel()
+
+	openerSHA := "auth0001"
+	firstEnd := scope.Commit{
+		SHA: "endsc1st",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerScopeEnds, Value: openerSHA},
+		},
+	}
+	secondEnd := scope.Commit{
+		SHA: "endsc2nd",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerScopeEnds, Value: openerSHA}, // duplicate.
+		},
+	}
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit(openerSHA, "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		firstEnd,
+		makeAICommit("c0000110", "E-0001", "ai/claude", "edit-body"),
+		secondEnd,
+	}
+	oracle := fakeOracle{
+		openerSHA:  {"epic/E-0001-engine"},
+		"endsc1st": {"main"},
+		"c0000110": {"main"}, // stray commit after first end.
+		"endsc2nd": {"main"},
+	}
+
+	// The AI commit at chronoIdx 2 follows the first scope-end at 1,
+	// so its scope is no longer active → silent per F-3. The second
+	// scope-end at 3 is harmless because the algorithm's
+	// duplicate-skip branch ignores it. If the duplicate-skip arm
+	// regressed (the later end overwrote the earlier), the AI commit
+	// would still be after-end → still silent — same outcome but for
+	// a different reason. This test pins the structural traversal of
+	// the duplicate-skip line without asserting outcome difference.
+	findings := RunIsolationEscape(commits, oracle, nil)
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings (AI commit after first end of scope); got %d: %+v", len(findings), findings)
 	}
 }
 

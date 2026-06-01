@@ -327,15 +327,15 @@ func TestAiwfxStartEpic_M0104_AC3_WorkflowHeadingsInNewOrder(t *testing.T) {
 	// small wording polish without test churn while still catching
 	// any reorder.
 	wantOrderTokens := []string{
-		"preflight",        // step 1
-		"drafted-milestone", // step 2
-		"aiwf check",       // step 3
-		"tests/build",      // step 4
-		"delegation",       // step 5 — new (was step 7)
-		"sovereign promot", // step 6 — was step 8
+		"preflight",          // step 1
+		"drafted-milestone",  // step 2
+		"aiwf check",         // step 3
+		"tests/build",        // step 4
+		"delegation",         // step 5 — new (was step 7)
+		"sovereign promot",   // step 6 — was step 8
 		"sovereign authoriz", // step 7 — was step 9
-		"worktree",         // step 8 — was step 5 (now merged with branch)
-		"hand-off",         // step 9 — was step 10
+		"worktree",           // step 8 — was step 5 (now merged with branch)
+		"hand-off",           // step 9 — was step 10
 	}
 	if len(gotHeadings) != len(wantOrderTokens) {
 		t.Fatalf("M-0104/AC-3: expected %d workflow steps in the new ordering; got %d (headings: %q)",
