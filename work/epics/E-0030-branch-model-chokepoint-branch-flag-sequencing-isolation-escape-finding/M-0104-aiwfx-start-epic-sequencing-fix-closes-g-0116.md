@@ -51,7 +51,7 @@ One edit in one commit. The upstream `ai-workflow-rituals` repo was archived und
   1. Preflight (existing steps 1–4).
   2. Delegation prompt (Q&A — promoted earlier so the operator's choice is known *before* the sovereign acts).
   3. Sovereign promote on `main` (or parent branch): `aiwf promote E-NNNN active`.
-  4. *(if delegating)* Sovereign authorize on `main`: `aiwf authorize E-NNNN --to ai/<id> --branch epic/E-NNNN-<slug>`. The branch flag is required by M-0103's preflight; the named branch does not yet exist at this point — it is allowed because preflight's "branch exists" check applies to the operator's *current* checkout's ritual shape, not to the `--branch`-named target (when both signals are present, `--branch` names the *future* binding and is validated against `git check-ref-format` rather than existence). Implementation note: M-0103's preflight will need a small refinement here — when `--branch` is supplied AND the current checkout is `main`, the named branch is allowed to be future (will be cut at step 5). The cell for this is added to the consolidation milestone.
+  4. *(if delegating)* Sovereign authorize on `main`: `aiwf authorize E-NNNN --to ai/<id> --branch epic/E-NNNN-<slug>`. The branch flag is required by M-0103's preflight; the named branch does not yet exist at this point — it is allowed because preflight's "branch exists" check is suppressed when both (a) the current checkout is `main` AND (b) the `--branch` value parses as a ritual shape per `internal/branchparse/` (`epic/`/`milestone/`/`patch/` + a canonical id). Implementation note: M-0103's preflight is refined here — see the carve-out at `internal/verb/authorize.go`. Ritual-shape (not arbitrary "valid ref name") is the stricter test the implementation adopted; without it the gate would become a no-op for any string under `--branch` from `main`. The cell for this is added to the consolidation milestone (M-0158); the carve-out's guard against the looser reading is `TestAuthorize_Open_AITarget_MainPlusNonRitualMissingBranch_Refuses`.
   5. Worktree placement + branch creation (Q&A). The operator picks an in-repo or sibling worktree, the branch is cut against the existing authorize trailer's binding.
   6. Hand-off.
 - **Retire the G-0059 paragraph at the original step 6** — replace with a one-line *"per ADR-0010 §"Decision", the operator stays on `main` for the sovereign acts (steps 3–4) and the epic branch is cut afterwards at step 5."*.
@@ -67,7 +67,7 @@ One edit in one commit. The upstream `ai-workflow-rituals` repo was archived und
 ## Dependencies
 
 - **M-0102** — the `--branch` flag and `internal/branchparse/` the new ordering invokes.
-- **M-0103** — the preflight that makes the ordering necessary. M-0103's "branch exists OR --branch names a syntactically-valid future ref AND current checkout is on `main`" refinement is *part of* this milestone's deliverable, not a separate prerequisite (the refinement is small enough to land alongside the ritual edit; cell coverage lives in the consolidation milestone).
+- **M-0103** — the preflight that makes the ordering necessary. M-0103's "branch exists OR --branch parses as a ritual shape AND current checkout is on `main`" refinement is *part of* this milestone's deliverable, not a separate prerequisite (the refinement is small enough to land alongside the ritual edit; cell coverage lives in the consolidation milestone).
 
 ## Acceptance criteria
 
@@ -75,7 +75,7 @@ One edit in one commit. The upstream `ai-workflow-rituals` repo was archived und
 1. The embedded snapshot at `internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-epic/SKILL.md` reflects the new step ordering: preflight → delegation prompt → sovereign promote → sovereign authorize (if delegating) → worktree placement → hand-off.
 2. The stale "G-0059 frames the open question" paragraph at the original step 6 is removed; the replacement names ADR-0010 explicitly.
 3. The skill's `## Workflow` section's headings, parsed structurally (per CLAUDE.md §"Substring assertions are not structural assertions"), appear in the order specified above. A flat substring match is not sufficient — the assertion is structural.
-4. M-0103's preflight accepts `aiwf authorize E-NNNN --to ai/<id> --branch epic/E-NNNN-<slug>` from a checkout on `main` even when the named branch doesn't yet exist, provided `--branch` parses as a valid ref name. This is the "future branch" refinement; the cell is registered in the consolidation milestone.
+4. M-0103's preflight accepts `aiwf authorize E-NNNN --to ai/<id> --branch epic/E-NNNN-<slug>` from a checkout on `main` even when the named branch doesn't yet exist, provided `--branch` parses as a ritual shape per `internal/branchparse/`. This is the "future branch" refinement; the cell is registered in the consolidation milestone. (The implementation tightened "valid ref name" from the seed wording to "ritual shape" to keep the gate from becoming a no-op for any string from main; rationale and guard test recorded in pre-decided-design point 4 above.)
 5. The skill's "Workflow" prose names the override path (`--force --reason "..."`) at the appropriate step so an operator reading the skill body sees it.
 -->
 
