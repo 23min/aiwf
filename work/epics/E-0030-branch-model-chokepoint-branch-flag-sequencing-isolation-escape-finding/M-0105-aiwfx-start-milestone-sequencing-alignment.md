@@ -23,7 +23,7 @@ acs:
     - id: AC-4
       title: Workflow headings structurally appear in new order
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Skill body names --force --reason override at appropriate step
       status: open
