@@ -1,7 +1,7 @@
 ---
 id: M-0106
 title: Kernel finding isolation-escape (closes G-0099)
-status: draft
+status: in_progress
 parent: E-0030
 depends_on:
     - M-0102
