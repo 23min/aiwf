@@ -447,10 +447,77 @@ func TestRunAuthorize_AITarget_ForceReasonBypassesPreflight(t *testing.T) {
 // TestRunAuthorize_AITarget_ForceWithoutReason_RefusesWithReasonError
 // (M-0103/AC-6, cli-layer seam): drive `aiwf authorize <id> --to
 // ai/<agent> --force` through the binary on a repo whose HEAD is on
-// master (non-ritual) — i.e., the preflight would also refuse. The
-// error must name "--reason" (not branch-context-required), pinning
-// the gate-ordering invariant end-to-end.
+// master (non-ritual) — i.e., the preflight would also refuse. Pins
+// three things end-to-end:
+//
+//   - the error names "--reason" (the force-reason refusal reached
+//     the operator);
+//   - the error does NOT name "branch-context-required" (the preflight
+//     did not fire first);
+//   - the exit code is cliutil.ExitUsage — protects against a refactor
+//     that accidentally promotes the error to a higher-severity exit
+//     (ExitInternal etc.).
+//
+// Note on layer-attribution: both the CLI-side force-reason gate
+// (internal/cli/authorize/authorize.go) and the verb-side gate
+// (internal/verb/authorize.go) currently produce ExitUsage with
+// messages that contain "--reason", so this test does NOT distinguish
+// which gate fired — only that SOME gate refused with the right
+// shape. Dropping the CLI-side gate keeps the test passing because
+// the verb-side gate produces the same exit code via cliutil.FinishVerb.
+// The verb-level test TestAuthorize_Open_AITarget_ForceWithoutReason_RefusesWithReasonError
+// pins the verb-side gate independently.
 func TestRunAuthorize_AITarget_ForceWithoutReason_RefusesWithReasonError(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	binDir := filepath.Dir(bin)
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+
+	stdout, stderr, code := runSplit(t, root, bin,
+		"authorize", "E-0001", "--to", "ai/claude", "--force")
+	combined := stdout + stderr
+	if code != cliutil.ExitUsage {
+		t.Errorf("exit code = %d, want cliutil.ExitUsage (%d) — the CLI-layer force-reason gate should fire before the verb is invoked\nstdout:\n%s\nstderr:\n%s",
+			code, cliutil.ExitUsage, stdout, stderr)
+	}
+	if !strings.Contains(combined, "--reason") {
+		t.Errorf("expected --reason in error; got:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+	}
+	if strings.Contains(combined, "branch-context-required") {
+		t.Errorf("error names branch-context-required — preflight fired before force-requires-reason:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+	}
+}
+
+// TestRunAuthorize_PauseResume_NonRitualBranch_Accepts
+// (M-0103/AC-7, cli-layer seam): on a repo whose HEAD is on master
+// (non-ritual), drive `aiwf authorize <id> --pause "..."` and
+// `aiwf authorize <id> --resume "..."` through the binary. Neither
+// triggers the M-0103 preflight; both succeed. The setup uses
+// `--force --reason` on the initial open so the test repo can stay
+// on master throughout — exercising the assertion that the preflight
+// is structurally Open-only at the cli layer as well as the verb.
+func TestRunAuthorize_PauseResume_NonRitualBranch_Accepts(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)
 	binDir := filepath.Dir(bin)
@@ -477,17 +544,35 @@ func TestRunAuthorize_AITarget_ForceWithoutReason_RefusesWithReasonError(t *test
 		t.Fatalf("aiwf promote: %v\n%s", err, out)
 	}
 
-	out, err := testutil.RunBin(t, root, binDir, nil,
-		"authorize", "E-0001", "--to", "ai/claude", "--force")
-	if err == nil {
-		t.Fatalf("expected non-zero exit; output:\n%s", out)
+	// Open via the sovereign-override path so we stay on master for
+	// the rest of the test.
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001", "--to", "ai/claude",
+		"--force", "--reason", "test setup: open under override so pause/resume run on non-ritual branch"); err != nil {
+		t.Fatalf("aiwf authorize --force --reason: %v\n%s", err, out)
 	}
-	if !strings.Contains(out, "--reason") {
-		t.Errorf("expected --reason in error; got:\n%s", out)
+
+	// Pause on master (no --branch, current checkout non-ritual).
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001", "--pause", "blocked by E-09"); err != nil {
+		t.Fatalf("aiwf authorize --pause refused on non-ritual branch (preflight may have leaked to non-Open modes): %v\n%s", err, out)
 	}
-	if strings.Contains(out, "branch-context-required") {
-		t.Errorf("error names branch-context-required — gate-ordering inverted (preflight fired before force-requires-reason):\n%s", out)
+
+	// Resume on master.
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001", "--resume", "review unblocked"); err != nil {
+		t.Fatalf("aiwf authorize --resume refused on non-ritual branch (preflight may have leaked to non-Open modes): %v\n%s", err, out)
 	}
+
+	// HEAD trailer set carries the resume — pinning that the verb
+	// reached its commit-emission path (not refused upstream).
+	tr, err := gitops.HeadTrailers(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasTrailer(t, tr, "aiwf-verb", "authorize")
+	hasTrailer(t, tr, "aiwf-scope", "resumed")
+	hasTrailer(t, tr, "aiwf-reason", "review unblocked")
 }
 
 // TestRunAuthorize_RefusesNonHumanActor: --actor ai/claude is rejected

@@ -596,16 +596,20 @@ func TestAuthorize_Open_ForceRequiresReason(t *testing.T) {
 
 // TestAuthorize_Open_AITarget_ForceWithoutReason_RefusesWithReasonError
 // (M-0103/AC-6): on an ai/* target with --force but no --reason, the
-// force-requires-reason rule refuses BEFORE the M-0103 preflight runs.
-// The error message names "--reason" (not branch-context-required) even
+// error message names "--reason" (not branch-context-required) even
 // though the current branch is non-ritual and the preflight would
 // otherwise fire.
 //
-// Pins the gate-ordering invariant documented at authorize.go's
-// preflight site: terminal-status → force-requires-reason → preflight.
-// A refactor that reordered these to put the preflight first would
-// silently invert the UX (operator told to fix branch context before
-// being told their --reason is missing) without breaking AC-1 or AC-5.
+// Pins the error-message-identity invariant for the operator-visible
+// surface: when (Force=true, Reason=""), the user sees the --reason
+// error, not branch-context-required. The preflight's `!opts.Force`
+// short-circuit (verb/authorize.go around the preflight gate)
+// guarantees this regardless of literal source order between the
+// force-requires-reason check and the preflight — a reorder that
+// preserved `!opts.Force` would NOT break this test. What WOULD break
+// it: dropping the `!opts.Force` clause from the preflight (the
+// preflight then fires for ai/* + non-ritual branch and the operator
+// sees branch-context-required instead of --reason).
 func TestAuthorize_Open_AITarget_ForceWithoutReason_RefusesWithReasonError(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -680,6 +684,98 @@ func TestAuthorize_Pause_RefusesWithoutActiveScope(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "no active scope") {
 		t.Errorf("expected no-active-scope refusal; got %v", err)
+	}
+}
+
+// TestAuthorize_PauseResume_DoNotTriggerPreflight (M-0103/AC-7):
+// the AI-target preflight is structurally gated to AuthorizeOpen — it
+// lives inside authorizeOpen, not at the verb's top-level entry. Pause
+// and resume modes route through authorizeTransition and never consume
+// opts.CurrentBranch / opts.BranchExists, so a non-ritual current
+// branch with no --branch passed does NOT refuse on those modes.
+//
+// Pins the structural separation: a future refactor that moved the
+// preflight to a shared helper called by all modes (or to the top of
+// verb.Authorize before the mode switch) would silently break this
+// test on the pause+non-ritual-branch arm. The test sets opts.Force
+// to false and CurrentBranch to a non-ritual name; under those
+// conditions an AuthorizeOpen on ai/* would refuse.
+func TestAuthorize_PauseResume_DoNotTriggerPreflight(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name        string
+		mode        verb.AuthorizeMode
+		wantSubject string
+		wantScope   string
+		sourceState scope.State
+	}{
+		{
+			name:        "pause-on-non-ritual-branch",
+			mode:        verb.AuthorizePause,
+			wantSubject: "aiwf authorize E-0001 --pause",
+			wantScope:   "paused",
+			sourceState: scope.StateActive,
+		},
+		{
+			name:        "resume-on-non-ritual-branch",
+			mode:        verb.AuthorizeResume,
+			wantSubject: "aiwf authorize E-0001 --resume",
+			wantScope:   "resumed",
+			sourceState: scope.StatePaused,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := newRunner(t)
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+			r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+			scopes := []*scope.Scope{
+				{AuthSHA: "deadbee", Entity: "E-0001", Agent: "ai/claude", Principal: testActor, State: tc.sourceState},
+			}
+			res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+				Mode:   tc.mode,
+				Reason: "preflight-irrelevant on " + tc.name,
+				Scopes: scopes,
+				// These three would refuse with branch-context-required
+				// if the preflight applied to non-Open modes. The
+				// assertion is the verb succeeds — proving the gate is
+				// Open-only.
+				CurrentBranch: "main",
+				BranchExists:  false,
+				Force:         false,
+			})
+			if err != nil {
+				t.Fatalf("Authorize %s refused on non-ritual branch — preflight may have leaked outside AuthorizeOpen: %v", tc.name, err)
+			}
+			if got := res.Plan.Subject; got != tc.wantSubject {
+				t.Errorf("Subject = %q, want %q", got, tc.wantSubject)
+			}
+			var sawScope bool
+			for _, e := range res.Plan.Trailers {
+				if e.Key == "aiwf-scope" {
+					sawScope = true
+					if e.Value != tc.wantScope {
+						t.Errorf("aiwf-scope = %q, want %q", e.Value, tc.wantScope)
+					}
+				}
+				if e.Key == "aiwf-branch" {
+					t.Errorf("aiwf-branch trailer present on %s commit — preflight's implicit-to-explicit promotion may have leaked: %q", tc.name, e.Value)
+				}
+				// Belt-and-suspenders: pause/resume never read opts.Force
+				// (authorizeTransition's emission path doesn't add the
+				// trailer), so aiwf-force should be absent. A refactor
+				// that leaked Force into pause/resume's emission path
+				// would surface here.
+				if e.Key == "aiwf-force" {
+					t.Errorf("aiwf-force trailer present on %s commit — pause/resume emission may have leaked Force: %q", tc.name, e.Value)
+				}
+			}
+			if !sawScope {
+				t.Errorf("aiwf-scope trailer missing; trailers = %+v", res.Plan.Trailers)
+			}
+		})
 	}
 }
 

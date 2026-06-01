@@ -243,12 +243,19 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 		return nil, fmt.Errorf("aiwf authorize --force requires --reason \"...\" (non-empty after trim)")
 	}
 
-	// Gate-ordering invariant: terminal-status (line above) → force-
-	// requires-reason → M-0103 preflight (below). The preflight is the
-	// LAST refusal layer, so an operator running into both "entity is
-	// terminal" AND "no ritual branch" gets the terminal error first
-	// (closer to root cause). Reordering would silently invert the UX
-	// without breaking any AC test today; preserve the order on refactor.
+	// Refusal-ordering: terminal-status (line above) → force-requires-
+	// reason → M-0103 preflight (below). The preflight is the LAST
+	// refusal layer so an operator hitting both "entity is terminal"
+	// AND "no ritual branch" gets the terminal error first (closer to
+	// root cause). The AC-6 test pins the *error-message-identity*
+	// invariant — operators with (Force=true, Reason="") see the
+	// --reason error rather than branch-context-required — which the
+	// preflight's `!opts.Force` short-circuit (below) guarantees
+	// independent of literal source order. A reorder that preserves
+	// `!opts.Force` therefore does NOT regress the user-observable
+	// contract. The order is preserved here for *readability* (the
+	// gates are ordered cheapest-cause-first); refactor freely as
+	// long as the `!opts.Force` clause stays on the preflight.
 	//
 	// M-0103: AI-target preflight. Per ADR-0010 the branch model treats
 	// AI multi-commit work as bound to a ritual branch context; opening

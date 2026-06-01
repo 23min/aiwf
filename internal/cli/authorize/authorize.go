@@ -209,6 +209,17 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	}
 
 	opts := verb.AuthorizeOptions{}
+	// M-0103 structural invariant: opts.Agent is populated ONLY in the
+	// `case to != ""` arm (i.e., only for AuthorizeOpen). Pause and
+	// resume modes never carry an Agent value here, which is the second
+	// of the two gates protecting pause/resume from the AI-target
+	// preflight (the first being the preflight's location inside
+	// authorizeOpen). A refactor that filled opts.Agent for pause/
+	// resume — e.g., to thread scope context into transitional
+	// commits — would, in combination with a verb-side leak of the
+	// preflight to non-Open modes, regress AC-7. The combined
+	// regression is caught by the AC-7 cli-seam test
+	// (TestRunAuthorize_PauseResume_NonRitualBranch_Accepts).
 	switch {
 	case to != "":
 		opts.Mode = verb.AuthorizeOpen
