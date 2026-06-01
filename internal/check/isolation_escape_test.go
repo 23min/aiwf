@@ -125,18 +125,30 @@ func TestIsolationEscape_AC1_AICommitOnMainFires(t *testing.T) {
 }
 
 // TestIsolationEscape_AC3_WorktreeBranchMismatchFires pins
-// M-0106/AC-3. The "worktree-vs-branch mismatch" scenario from
-// G-0099: a subagent dispatched into worktree epic/E-0001-engine
-// runs `git checkout main` (or `git -C ../other-path`) from
-// inside the worktree, so the commit's first-parent path now
-// reaches a different branch. The rule's detection is purely
-// branch-based — it doesn't read filesystem paths or worktree
-// metadata — so the worktree dimension is a fixture variation of
-// AC-1, not a separate code path.
+// M-0106/AC-3.
 //
-// The fixture pins this explicitly so a future reader sees the
-// connection to G-0099's worktree-escape failure mode rather
-// than assuming the rule somehow validates filesystem paths.
+// IMPORTANT: this AC is a DOCUMENTATION PIN, not a separate
+// code-path assertion. Algorithmic coverage for the "AI commit
+// landed on the wrong branch" scenario comes from
+// TestIsolationEscape_AC1_AICommitOnMainFires; the M-0106 rule
+// does not — and by design cannot — distinguish a worktree-
+// induced escape from a `git checkout main`-induced escape.
+// They are the same branch-identity mismatch.
+//
+// Why keep AC-3 as a separate test despite that: the
+// "worktree-vs-branch mismatch" scenario from G-0099 is the
+// failure mode the milestone is closing. A reader auditing the
+// test set for G-0099 coverage should find a named fixture that
+// pins it; without one, the connection to G-0099 lives only in
+// the spec body, which is brittle. Per M-0106 retrospective F-5:
+// the dedicated test is documentation-as-test, deliberate and
+// acceptable, but should not be read as evidence of a distinct
+// code path.
+//
+// A future refactor that merges AC-1 + AC-3 fixtures into a
+// table-driven test would be cleaner, but the AC numbering in the
+// spec is the source of truth; merging would require renumbering.
+// Left as-is.
 func TestIsolationEscape_AC3_WorktreeBranchMismatchFires(t *testing.T) {
 	t.Parallel()
 
@@ -425,20 +437,22 @@ func TestIsolationEscape_AC10_PerCommitFiring(t *testing.T) {
 	}
 }
 
-// TestIsolationEscape_AC11_WarningSeverityCheckExitsZero pins
-// M-0106/AC-11: the finding is warning severity (not error). The
-// `aiwf check` exit code is governed by error-severity findings
-// (see internal/check/check.go and cliutil's mapping); a
-// warning-only result exits 0. This test pins the severity at
-// the source; the exit-code half is enforced by the existing
-// CLI check machinery and re-verified by integration tests in
-// the broader sweep.
+// TestIsolationEscape_AC11_SeverityIsWarning pins M-0106/AC-11's
+// rule-side half: the finding's Severity field is SeverityWarning,
+// not SeverityError. Renamed from "...CheckExitsZero" per F-4 of
+// the M-0106 retrospective — the original name claimed an
+// end-to-end exit-code assertion the test could not make at the
+// unit level. The exit-code half (warning + non-zero findings →
+// exit 0) is now pinned end-to-end by the cli/check integration
+// tests at internal/cli/check/isolation_escape_test.go (which
+// drive RunProvenanceCheck against fixture repos and observe both
+// the finding and the CLI's exit path).
 //
-// Distinct from the severity assertion in AC-1's test: AC-11 is
-// the spec's mechanical pin, isolated so a future severity flip
-// (e.g. tightening to error in a follow-up D-NNN) has a single
-// test to update deliberately.
-func TestIsolationEscape_AC11_WarningSeverityCheckExitsZero(t *testing.T) {
+// This isolated severity assertion is the single place to update
+// at a future tightening (e.g. a D-NNN that flips to SeverityError
+// after the false-positive rate is known); changing it should be
+// deliberate, not accidental.
+func TestIsolationEscape_AC11_SeverityIsWarning(t *testing.T) {
 	t.Parallel()
 
 	commits := []scope.Commit{
@@ -471,6 +485,18 @@ func TestIsolationEscape_AC11_WarningSeverityCheckExitsZero(t *testing.T) {
 // findings without Hint until applyHints runs). The full
 // finding-with-hint path is exercised by the broader
 // `internal/check` test suite when Run() composes all checks.
+//
+// CAVEAT (F-7 from M-0106 retrospective): this test is a
+// circular tautology — the author of the hint also authored the
+// substring assertions and the sabotage probe. It catches the
+// "someone removed the hint entirely" regression class but does
+// not catch "the hint's wording drifts from what an LLM agent
+// parses for remediation." When the hint text contents become
+// load-bearing for downstream parsing (e.g. an LLM agent reads
+// the hint to choose between override paths), tighten this to a
+// structural assertion — either split the hint into named
+// fragments via a struct, or maintain a golden file. Until then,
+// the circular shape is acceptable.
 func TestIsolationEscape_AC12_HintTextNamesBothOverridePaths(t *testing.T) {
 	t.Parallel()
 
@@ -627,6 +653,215 @@ func TestIsolationEscape_AC8_ForceAmendedCommitSilent(t *testing.T) {
 	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for force-amended commit (AC-8); got %d: %+v", len(findings), findings)
+	}
+}
+
+// TestIsolationEscape_F3_AICommitAfterScopeEndedSilent pins
+// M-0106/F-3 (post-retrospective fix): an AI-actor commit landing
+// AFTER the scope it would have been bound by reaches its
+// `aiwf-scope-ends:` event is silent. The pre-fix algorithm tracked
+// only opener events; a scope-ended commit followed by a stray AI
+// commit on the wrong branch would have false-positive-fired. With
+// scope-end tracking the rule correctly reports "no active scope"
+// (the binding is gone) and stays silent.
+//
+// Spec line 86: "find the most recent ... opened a scope that was
+// *active* at C's time" — active = opened before C AND (never
+// ended OR ended after C). This test pins the AND clause.
+func TestIsolationEscape_F3_AICommitAfterScopeEndedSilent(t *testing.T) {
+	t.Parallel()
+
+	openerSHA := "auth0001"
+
+	// End-of-scope commit carrying aiwf-scope-ends: <opener-sha>.
+	// Typically the milestone-promote-to-done; the actor is human/.
+	scopeEndCommit := scope.Commit{
+		SHA: "endsc001",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerScopeEnds, Value: openerSHA},
+		},
+	}
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit(openerSHA, "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		scopeEndCommit,
+		// Stray AI commit AFTER the scope ended — used to fire as
+		// isolation-escape under the broken pre-F-3 algorithm.
+		makeAICommit("c0000080", "E-0001", "ai/claude", "edit-body"),
+	}
+	oracle := fakeOracle{
+		openerSHA:  {"main"},
+		"endsc001": {"main"},
+		"c0000080": {"main"}, // stray AI commit on main — would have fired pre-F-3.
+	}
+
+	findings := RunIsolationEscape(commits, oracle, nil)
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings for AI commit after scope ended (F-3); got %d: %+v", len(findings), findings)
+	}
+}
+
+// TestIsolationEscape_F3_AICommitBeforeScopeEndedFires pins the
+// symmetric guard: an AI-actor commit that lands BEFORE the
+// scope-end event is still policed normally. Without this guard,
+// an over-eager F-3 fix could silently suppress every AI commit
+// on any entity that ever has a scope-end (i.e., every closed
+// entity ever).
+//
+// The fixture orders: opener → AI commit on wrong branch → scope-end.
+// The AI commit's chronoIdx (1) is BEFORE the scope-end's
+// chronoIdx (2), so the scope is still active at the AI commit's
+// time → fire.
+func TestIsolationEscape_F3_AICommitBeforeScopeEndedFires(t *testing.T) {
+	t.Parallel()
+
+	openerSHA := "auth0001"
+
+	scopeEndCommit := scope.Commit{
+		SHA: "endsc002",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerScopeEnds, Value: openerSHA},
+		},
+	}
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit(openerSHA, "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		makeAICommit("c0000081", "E-0001", "ai/claude", "edit-body"),
+		scopeEndCommit,
+	}
+	oracle := fakeOracle{
+		openerSHA:  {"epic/E-0001-engine"},
+		"c0000081": {"main"}, // on wrong branch, BEFORE scope end → fire.
+		"endsc002": {"main"},
+	}
+
+	findings := RunIsolationEscape(commits, oracle, nil)
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding (AI commit before scope-end → fires); got %d", len(findings))
+	}
+}
+
+// TestIsolationEscape_F2_EmptyEntityOpenerSkipped covers F-2 arm 1:
+// an authorize+opened commit with an empty aiwf-entity: trailer
+// (malformed but structurally valid for the trailer-shape rule)
+// is skipped at the opener-index build. Without the test, a
+// regression that dropped the `entity == ""` guard would crash
+// (writing to empty map key) OR silently mis-attribute the
+// opener to entity "" — both bad.
+func TestIsolationEscape_F2_EmptyEntityOpenerSkipped(t *testing.T) {
+	t.Parallel()
+
+	malformedOpener := scope.Commit{
+		SHA: "malf0001",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "authorize"},
+			// aiwf-entity deliberately ABSENT.
+			{Key: gitops.TrailerActor, Value: "human/peter"},
+			{Key: gitops.TrailerTo, Value: "ai/claude"},
+			{Key: gitops.TrailerScope, Value: "opened"},
+			{Key: gitops.TrailerBranch, Value: "epic/E-0001-engine"},
+		},
+	}
+
+	commits := []scope.Commit{
+		malformedOpener,
+		makeAICommit("c0000090", "E-0001", "ai/claude", "edit-body"),
+	}
+	oracle := fakeOracle{
+		"malf0001": {"epic/E-0001-engine"},
+		"c0000090": {"main"},
+	}
+
+	// The malformed opener is NOT indexed (entity == ""); the AI
+	// commit on entity E-0001 sees no opener → silent per AC-9
+	// path. If the guard regressed and the opener got attributed
+	// to entity "", the AI commit on E-0001 would still see no
+	// opener → silent, but a fixture with an AI commit on entity
+	// "" would surface the mis-attribution; we don't construct
+	// that fixture since the trailer-shape rule forbids it. The
+	// guard exists as defense in depth; the test pins it stays
+	// alive.
+	findings := RunIsolationEscape(commits, oracle, nil)
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings (malformed opener skipped + AI commit on unrelated entity has no scope); got %d: %+v", len(findings), findings)
+	}
+}
+
+// TestIsolationEscape_F2_AICommitOnAuthorizeVerbSkipped covers F-2
+// arm 2: when an ai-actor commit ITSELF carries aiwf-verb:
+// authorize (e.g. an authorize-paused commit emitted by an
+// AI-driven verb), the rule's AI-commit pass skips it via the
+// `verb == "authorize"` guard. Without this guard the rule would
+// try to police the authorize commit's branch against its own
+// scope binding — a tautology that would mis-classify the
+// scope-management event as a work commit.
+func TestIsolationEscape_F2_AICommitOnAuthorizeVerbSkipped(t *testing.T) {
+	t.Parallel()
+
+	// Pause event whose actor is hypothetically ai/<id>. The
+	// kernel's trailer-shape rule allows this today (only force
+	// trailers require human actor); the M-0106 rule must skip
+	// authorize-verb commits regardless of actor.
+	aiPause := scope.Commit{
+		SHA: "pauseAI0",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "authorize"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "ai/claude"},
+			{Key: gitops.TrailerScope, Value: "paused"},
+		},
+	}
+
+	commits := []scope.Commit{
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+		aiPause,
+	}
+	oracle := fakeOracle{
+		"auth0001": {"epic/E-0001-engine"},
+		// Pause event lands on main (escape if not skipped) — but the
+		// authorize-verb guard skips it.
+		"pauseAI0": {"main"},
+	}
+
+	findings := RunIsolationEscape(commits, oracle, nil)
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings (AI-actor authorize commit must be skipped via verb guard); got %d: %+v", len(findings), findings)
+	}
+}
+
+// TestIsolationEscape_F2_AICommitPredatesOpenerSilent covers F-2
+// arm 3: an AI-actor commit whose chronoIdx is BEFORE every
+// opener on the same entity (e.g., the gather window starts
+// mid-flow) is silent. The "no opener precedes this commit"
+// arm was previously misclaimed as covered in the M-0106 wrap
+// (line 281); the actual coverage was missing.
+//
+// Without this guard, a regression that hit the bound-comparison
+// path with an uninitialized bound would behave undefinedly.
+func TestIsolationEscape_F2_AICommitPredatesOpenerSilent(t *testing.T) {
+	t.Parallel()
+
+	// Commit order: AI work commit FIRST (chronoIdx 0), then the
+	// opener (chronoIdx 1). The AI commit predates every opener
+	// on the entity → no binding → silent.
+	commits := []scope.Commit{
+		makeAICommit("c0000100", "E-0001", "ai/claude", "edit-body"),
+		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
+	}
+	oracle := fakeOracle{
+		"c0000100": {"main"}, // would be an escape if a binding existed.
+		"auth0001": {"epic/E-0001-engine"},
+	}
+
+	findings := RunIsolationEscape(commits, oracle, nil)
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings (AI commit predates every opener); got %d: %+v", len(findings), findings)
 	}
 }
 

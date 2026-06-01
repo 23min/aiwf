@@ -108,14 +108,39 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 
 	// Per-entity index of opened-scope commits, oldest-first. Built
 	// in one pass so per-commit lookup is O(scopes-on-entity), not
-	// O(commits). The Cycle 3 extension will track scope-end events
-	// (paused/ended) on the same shape.
+	// O(commits). The endedAt slot tracks the chrono position of
+	// the first aiwf-scope-ends: <opener-sha> trailer for the
+	// opener; -1 sentinel means "still open through the inspected
+	// window." Per the spec line 86: a scope is "active at C's
+	// time" only if its opener precedes C AND its end (if any)
+	// follows C. Without this tracking the rule false-positives on
+	// AI commits made after the scope-entity reached terminal
+	// status (F-3 from the M-0106 retrospective review).
 	type openerRecord struct {
 		chronoIdx int
+		endedAt   int // chrono position of aiwf-scope-ends; -1 = never ended
 		branch    string
 	}
-	openersByEntity := map[string][]openerRecord{}
 
+	// First sub-pass: index `aiwf-scope-ends: <opener-sha>` trailers
+	// keyed on opener SHA. The "first" termination wins — a sequence
+	// of scope-ends on the same opener is unusual but the kernel
+	// treats the earliest as the binding-loss event. Same pattern as
+	// provenance.go's buildEndedAtIndex.
+	endsByOpenerSHA := map[string]int{}
+	for i := range commits {
+		for _, tr := range commits[i].Trailers {
+			if tr.Key != gitops.TrailerScopeEnds {
+				continue
+			}
+			if _, already := endsByOpenerSHA[tr.Value]; already {
+				continue
+			}
+			endsByOpenerSHA[tr.Value] = i
+		}
+	}
+
+	openersByEntity := map[string][]openerRecord{}
 	for i := range commits {
 		c := &commits[i]
 		idx := indexCommitTrailersForProvenance(c.Trailers)
@@ -127,8 +152,13 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 			continue
 		}
 		branch := idx[gitops.TrailerBranch]
+		endedAt := -1
+		if pos, ok := endsByOpenerSHA[c.SHA]; ok {
+			endedAt = pos
+		}
 		openersByEntity[entity] = append(openersByEntity[entity], openerRecord{
 			chronoIdx: i,
+			endedAt:   endedAt,
 			branch:    branch,
 		})
 	}
@@ -156,19 +186,29 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 			continue // AC-9 — no scope opened on this entity, no policing.
 		}
 
-		// Find the most recent opener that precedes (or equals) this
-		// commit chronologically. Walk back from the newest.
+		// Find the most recent opener that precedes this commit AND
+		// whose scope is still active at this commit's time. Per
+		// spec line 86 "active at C's time" = opened before C AND
+		// (never ended OR ended after C). When the most-recent-
+		// preceding opener has already ended, the binding is gone
+		// → silent (F-3 — no false positives on commits after
+		// scope-entity reaches terminal status).
 		var bound string
 		var found bool
 		for j := len(openers) - 1; j >= 0; j-- {
-			if openers[j].chronoIdx <= i {
-				bound = openers[j].branch
-				found = true
+			rec := openers[j]
+			if rec.chronoIdx > i {
+				continue // opener follows this commit; not yet in scope.
+			}
+			if rec.endedAt >= 0 && rec.endedAt <= i {
 				break
 			}
+			bound = rec.branch
+			found = true
+			break
 		}
 		if !found {
-			continue // commit predates every opener — no scope to escape from.
+			continue // commit predates every opener, or the most-recent-preceding scope ended before C.
 		}
 		if bound == "" {
 			continue // pre-M-0102 scope without aiwf-branch: trailer; non-retroactive.
