@@ -34,7 +34,7 @@ acs:
     - id: AC-7
       title: Non-AI authorize is unaffected by the preflight
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
