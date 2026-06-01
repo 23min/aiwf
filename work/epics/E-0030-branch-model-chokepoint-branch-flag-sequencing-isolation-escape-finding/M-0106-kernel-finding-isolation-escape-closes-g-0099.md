@@ -30,7 +30,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Human cherry-pick (committer != actor + marker) stays silent
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-7
       title: Human merge of epic/X into main (first-parent) stays silent
