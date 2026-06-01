@@ -14,7 +14,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Skill asserts tightened parent-epic-branch precondition
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Silent fallthrough to checkout -b epic/<slug> if missing removed
