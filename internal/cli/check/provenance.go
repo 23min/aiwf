@@ -44,6 +44,13 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		return nil, err
 	}
 	findings := check.RunProvenance(commits, t)
+	// M-0106: isolation-escape rule. Cycle 1 wires the rule through
+	// with a nil oracle — the algorithm lands in Cycle 2 alongside
+	// the git-backed FirstParentBranches implementation. With a nil
+	// oracle the rule returns silently, so the wire-up here is
+	// structural (proves the integration point) without changing
+	// observable behavior.
+	findings = append(findings, check.RunIsolationEscape(commits, nil)...)
 
 	rangeArg, advisory, rErr := ResolveUntrailedRange(ctx, root, since)
 	if rErr != nil {
