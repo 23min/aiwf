@@ -23,7 +23,7 @@ acs:
     - id: AC-4
       title: Preflight accepts --branch <future> from main (future-branch refinement)
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Skill body names --force --reason override at appropriate step
       status: open
