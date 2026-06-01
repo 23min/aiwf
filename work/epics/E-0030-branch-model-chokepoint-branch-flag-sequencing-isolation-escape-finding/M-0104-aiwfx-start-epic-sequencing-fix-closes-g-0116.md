@@ -27,7 +27,7 @@ acs:
     - id: AC-5
       title: Skill body names --force --reason override at appropriate step
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
