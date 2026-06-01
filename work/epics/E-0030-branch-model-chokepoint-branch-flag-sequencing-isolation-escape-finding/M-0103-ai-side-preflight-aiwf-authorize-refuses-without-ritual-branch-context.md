@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: AI-actor authorize with --branch <existing> accepts
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: --force --reason bypasses preflight (override path)
       status: open
