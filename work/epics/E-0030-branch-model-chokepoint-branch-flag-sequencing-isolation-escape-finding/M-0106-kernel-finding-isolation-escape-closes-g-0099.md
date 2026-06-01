@@ -1,7 +1,7 @@
 ---
 id: M-0106
 title: Kernel finding isolation-escape (closes G-0099)
-status: in_progress
+status: done
 parent: E-0030
 depends_on:
     - M-0102
@@ -134,27 +134,150 @@ These ACs cover the catalog rows 4–12 from the epic body; rows 1–3 are M-010
 
 ### AC-1 — AI commit on main while scope binds epic/X fires isolation-escape
 
+An AI-actor work commit on `main` while the active scope's `aiwf-branch:` trailer names a ritual epic branch (e.g. `epic/E-0001-engine`) fires `isolation-escape`. The detection: per-commit, walk back to the most recent `aiwf-scope: opened` commit on the same entity, read its `aiwf-branch:`, and compare to the commit's actual branch via the [`BranchOracle.FirstParentBranches`](../../../internal/check/isolation_escape.go) call.
+
+**Pinned by:** [`TestIsolationEscape_AC1_AICommitOnMainFires`](../../../internal/check/isolation_escape_test.go) — asserts exactly 1 finding with `Code = CodeIsolationEscape.ID`, `Severity = SeverityWarning`, `EntityID = E-0001`, and a `Message` naming both the actual branch (`main`) and the bound branch (`epic/E-0001-engine`). Sabotage-verified by inverting the silent-condition — test fires on every regression that flips the comparison.
+
 ### AC-2 — AI commit on epic/Y while scope binds epic/X fires isolation-escape
+
+The detection is "equals bound branch", not "is a ritual shape" — landing on a different epic branch (`epic/E-0002-other`) while bound to `epic/E-0001-engine` fires. This guards against a regression that treated all ritual shapes as equivalent and only fired on commits to `main`.
+
+**Pinned by:** [`TestIsolationEscape_AC2_AICommitOnDifferentRitualBranchFires`](../../../internal/check/isolation_escape_test.go) — asserts the wrong branch name (`epic/E-0002-other`) appears in the finding's message.
 
 ### AC-3 — AI commit on worktree-vs-branch mismatch fires isolation-escape
 
+The G-0099 "subagent did `git checkout main` from inside its assigned worktree" scenario is detected via the same branch-identity comparison as AC-1. The rule does NOT validate filesystem paths or worktree metadata — only branch identity. The worktree dimension is a fixture variation of AC-1, documented explicitly so a future reader connects this rule's coverage to G-0099's original failure mode.
+
+**Pinned by:** [`TestIsolationEscape_AC3_WorktreeBranchMismatchFires`](../../../internal/check/isolation_escape_test.go) — fixture mirrors AC-1 but explicitly comments the worktree-escape scenario.
+
 ### AC-4 — AI commit on epic/X while scope binds epic/X stays silent
+
+The base "no escape" case: when the oracle confirms the commit rides the bound branch, no finding. The `slices.Contains(actualBranches, bound)` guard short-circuits before the fire path.
+
+**Pinned by:** [`TestIsolationEscape_AC4_AICommitOnBoundBranchSilent`](../../../internal/check/isolation_escape_test.go) — asserts zero findings.
 
 ### AC-5 — AI commit on epic/X while scope is paused stays silent
 
+The pause event does NOT change the binding — `aiwf-branch:` is recorded at `opened` and remains the scope's bound ref through pause/resume cycles. A commit on the bound branch during the paused phase is silent (corner case 6 from the epic body). The algorithm naturally handles this: the bound-branch index keys only on `aiwf-scope: opened` events, so pause/resume commits don't shift the binding; the existing "rides bound branch" check applies as for AC-4.
+
+**Pinned by:** [`TestIsolationEscape_AC5_AICommitOnBoundBranchPausedScopeSilent`](../../../internal/check/isolation_escape_test.go) — fixture: open → pause → AI commit on bound branch → zero findings.
+
 ### AC-6 — Human cherry-pick (committer != actor + marker) stays silent
+
+When a human runs `git cherry-pick -x <ai-sha>` to land the AI's commit on a different branch, the resulting commit carries the original AI's trailers (so it looks like an escape) but the committer flipped to the human and the body carries the `(cherry picked from commit <sha>)` marker. Both signals together = sovereign re-author; the rule suppresses the finding.
+
+The rule receives the cherry-pick set via the `cherryPicked map[string]bool` parameter on `RunIsolationEscape`. The gather layer is responsible for identifying cherry-picks; the rule trusts the gather signal.
+
+**Pinned by:**
+- [`TestIsolationEscape_AC6_CherryPickReAuthorSilent`](../../../internal/check/isolation_escape_test.go) — fixture: AI commit on `main` (would normally fire) is flagged via `cherryPicked` → zero findings.
+- [`TestIsolationEscape_AC6_NonCherryPickStillFires`](../../../internal/check/isolation_escape_test.go) — lower-bound guard: nil/empty `cherryPicked` does NOT silently suppress everything. A regression that treated missing info as "is a cherry-pick" would convert the rule to a no-op; this guard catches that class.
+
+Sabotage-verified by dropping the suppression block — the AC-6 cherry-pick test fires.
+
+**Limitation:** the gather-side implementation (CLI: parse `git log --format=%ce/%B`, compare committer vs. expected actor email, regex-check the body for the cherry-pick marker) is NOT in this milestone. The rule-side seam is fully tested; the CLI seam passes `nil` for `cherryPicked` from `RunProvenanceCheck`. AC-6 suppression therefore fires under test fixtures but not against real git history yet. Filed as [G-0202](../../gaps/G-0202-isolation-escape-cherry-pick-gather-side-implement-cli-detection.md) — a follow-up that completes the end-to-end seam.
 
 ### AC-7 — Human merge of epic/X into main (first-parent) stays silent
 
+When a human merges `epic/E-0001-engine` into `main` via `git merge --no-ff`, two kinds of commits land:
+
+- The **merge commit** itself is human-actor — the rule's `strings.HasPrefix(actor, "ai/")` filter skips it.
+- The **AI commits behind the merge** are reachable from `epic/E-0001-engine` via first-parent, not from `main` via first-parent (that's the `--no-ff` semantic). The oracle returns `epic/E-0001-engine` for them; they match the bound branch → silent.
+
+Both paths handled by the existing algorithm; no new code for AC-7.
+
+**Pinned by:** [`TestIsolationEscape_AC7_HumanMergeFirstParentSilent`](../../../internal/check/isolation_escape_test.go) — multi-commit fixture with the merge commit + AI work commits, oracle reflects first-parent semantics, zero findings.
+
 ### AC-8 — Violating commit amended with aiwf-force + human/ actor stays silent
+
+When the operator amends a violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` AND flips `aiwf-actor:` to `human/<id>`, the rule's `ai/` prefix filter skips it. The aiwf-force trailer is the audit signal that records the sovereign override; the rule does not need to inspect it because the actor filter already excludes the commit from consideration. The companion provenance rule `provenance-force-non-human` independently enforces that `aiwf-force:` requires a `human/` actor, so a tampered amend (keep `ai/` + add force) would surface there, not as a false-negative here.
+
+**Pinned by:** [`TestIsolationEscape_AC8_ForceAmendedCommitSilent`](../../../internal/check/isolation_escape_test.go) — fixture: amended commit on `main` (would be an escape) carries `human/peter` + `aiwf-force` → zero findings.
 
 ### AC-9 — AI commit on entity with no opened scope stays silent
 
+When an AI-actor commit is made on an entity that has no `aiwf-scope: opened` event in the inspected commit window, the rule is silent. This handles the bootstrap case (the entity has no scope ever opened) and the post-merge case (the gather window doesn't include the opener). The rule polices branch-binding violations, not "AI commit without authorization" — the companion provenance rule `provenance-no-active-scope` handles the latter.
+
+**Pinned by:** [`TestIsolationEscape_AC9_NoScopeOpenedSilent`](../../../internal/check/isolation_escape_test.go) — fixture: AI commit on an entity (E-0002) with no opener in the commit list → zero findings.
+
 ### AC-10 — Per-commit firing — one finding per violating commit
+
+When multiple AI commits violate the binding, the rule fires ONE finding per commit — not an aggregate per entity. The user wants the cardinality so each escaped commit is individually addressable (e.g. `git rebase -i` per-commit amends to add `aiwf-force`).
+
+**Pinned by:**
+- [`TestIsolationEscape_AC10_PerCommitFiring`](../../../internal/check/isolation_escape_test.go) — three violating commits → three findings, each mentioning its own SHA in the message.
+- Implicit anchor in [`TestIsolationEscape_AC1_AICommitOnMainFires`](../../../internal/check/isolation_escape_test.go) — `len(findings) != 1` would fail if the algorithm aggregated.
 
 ### AC-11 — Warning severity; check exits 0 with findings reported
 
+The finding is `SeverityWarning` (not `SeverityError`). `aiwf check`'s exit-code mapping (see `internal/check/check.go` and the CLI layer) exits 0 when only warnings are present; the warning surfaces in stdout/JSON but does not block pre-push. A future tightening to error severity is a D-NNN decision after one epic of usage; this milestone does not pre-commit the timing.
+
+**Pinned by:** [`TestIsolationEscape_AC11_WarningSeverityCheckExitsZero`](../../../internal/check/isolation_escape_test.go) — explicit `Severity == SeverityWarning` assertion. The single anchor point for a future severity flip; updating it (when the flip happens) is deliberate.
+
 ### AC-12 — Finding hint text names both override paths
 
+The hint text in [`internal/check/hint.go`](../../../internal/check/hint.go) names both sovereign override paths an operator can take when they hit `isolation-escape`:
+
+1. **Cherry-pick re-author** — `git cherry-pick -x <sha>` preserves the marker and changes the committer; the rule then suppresses (AC-6).
+2. **Force amend** — `git commit --amend --trailer 'aiwf-force: <reason>'` plus `aiwf-actor: human/<id>` records the sovereign override; the rule then suppresses (AC-8).
+
+The hint also points at the epic body's "Sovereign override surface" section so an operator following the hint lands on a single place that documents the audit trail each path produces.
+
+**Pinned by:** [`TestIsolationEscape_AC12_HintTextNamesBothOverridePaths`](../../../internal/check/isolation_escape_test.go) — asserts 4 markers in the hint (`cherry-pick -x`, `aiwf-force`, `human/`, `Sovereign override surface`). Sabotage-verified by replacing the hint with a placeholder — all 4 markers missing → test fires on each.
+
 ### AC-13 — Typed Code descriptor lands in internal/check/ per G-0129 pattern
+
+The finding's `CodeIsolationEscape` descriptor lives at [`internal/check/isolation_escape.go`](../../../internal/check/isolation_escape.go) as a typed `codes.Code` value with `ID: "isolation-escape"` and the new `Class: codespkg.ClassBranchChoreography`. The class is added to [`internal/codes/codes.go`](../../../internal/codes/codes.go) as a third enum value (distinct from `ClassStructural` and `ClassLegality`) — the layer-4 carve-out per ADR-0011 that lets consumers enumerate branch-policing findings independently of structural integrity / legality codes. M-0106 is the first member of the new class; future branch-choreography findings declare themselves the same way.
+
+**Pinned by:**
+- [`TestIsolationEscape_AC13_TypedCodeDescriptor`](../../../internal/check/isolation_escape_test.go) — asserts `CodeIsolationEscape.ID == "isolation-escape"` and `Class == ClassBranchChoreography`. Sabotage-verified by flipping Class to `ClassStructural` → test fires.
+- [`TestIsolationEscape_AC13_ClassBranchChoreographyDistinct`](../../../internal/check/isolation_escape_test.go) — asserts pairwise distinctness of the three Class enum values; a regression that collides them fires the test. Sabotage-verified by explicit collision (`ClassBranchChoreography Class = ClassStructural`) → test fires.
+- [`TestRunProvenanceCheck_AC13_IsolationEscapeWired`](../../../internal/cli/check/isolation_escape_test.go) — AST-level assertion that `RunProvenanceCheck` contains a call to `check.RunIsolationEscape`. Sabotage-verified by dropping the wire-up → test fires.
+
+## Work log
+
+### Cycle 1 — AC-13 scaffold
+
+Implementation landed at commit `ffa5c76f`. Added `ClassBranchChoreography` enum value to `internal/codes/codes.go`; created `internal/check/isolation_escape.go` with the typed `CodeIsolationEscape` descriptor, the `BranchOracle` interface, and a skeleton `RunIsolationEscape` that returns nil. Wired `RunIsolationEscape` through `RunProvenanceCheck` at `internal/cli/check/provenance.go` with a nil oracle (structural wire-up; algorithm follows in Cycle 2). 3 tests pin AC-13: typed-Code descriptor, distinct-class enum, AST-level wire-up assertion. Sabotage probes: wrong class, dropped wire-up, explicit class collision — all 3 caught.
+
+### Cycle 2 — AC-1 + AC-3 + AC-4 + AC-9 (core algorithm)
+
+Implementation landed at commit `5a51530c`. Built the per-commit algorithm: filter to AI commits with entity trailers, walk back through chronologically-prior commits to find the most recent `aiwf-scope: opened` event on the same entity, read its `aiwf-branch:`, compare to the oracle's reported branch set. Skip if no scope (AC-9), if scope has no `aiwf-branch:` (legacy pre-M-0102), if oracle returns unknown, or if commit rides bound branch (AC-4). Otherwise fire one finding with the commit's SHA, the entity id, and both branches in the message (AC-1, AC-3 — same code path, different fixture). 8 tests: 4 ACs + 4 belt-and-braces (nil oracle, unknown branch, human commit, legacy scope). Sabotage probes: invert silent-condition, drop `ai/` filter, drop empty-bound skip — all 3 caught.
+
+### Cycle 3 — AC-2 + AC-5 + AC-10 + AC-11 + AC-12 (variants + mechanical + hint)
+
+Implementation landed at commit `03ceea8b`. The existing algorithm satisfies AC-2 (different ritual branch) and AC-5 (paused scope) without code change; the tests document the behavior structurally. AC-10 (per-commit firing) is pinned by a 3-violation fixture. AC-11 (warning severity) is anchored with an isolated test for future flip discipline. AC-12 (hint text) added the canonical hint to `internal/check/hint.go` naming both override paths + the epic body's audit-trail section. Sabotage probe: replace hint with placeholder → 4 marker assertions fire.
+
+### Cycle 4 — AC-6 + AC-7 + AC-8 (suppression cases)
+
+Implementation landed at commit `b9d35376`. AC-7 and AC-8 are natural-behavior pins (no code change — the `ai/` actor filter already excludes human-merge commits and force-amended commits). AC-6 adds a new `cherryPicked map[string]bool` parameter to `RunIsolationEscape`; commits with SHAs in the set are suppressed before the fire path. Plus a lower-bound guard test that nil/empty `cherryPicked` does NOT silently suppress everything. Sabotage probe: drop AC-6 suppression line → cherry-pick test fires.
+
+## Decisions made during implementation
+
+- **`ClassBranchChoreography` as a new enum value** (per pre-implementation Q&A). Distinct from `ClassStructural` and `ClassLegality` so consumers can enumerate branch-policing findings as their own kernel layer (ADR-0011 layer-4 carve-out). Spec-cell elaboration is parked at M-0158.
+- **Separate `cherryPicked` parameter** (not extending `scope.Commit`, not extending `BranchOracle`). Rationale: the cherry-pick info is rule-specific; extending `scope.Commit` would touch every consuming rule, and extending `BranchOracle` couples re-author detection with branch reachability. The parameter shape matches the rule's actual need (a per-SHA boolean) and the gather layer's natural output (a derived set).
+- **AC-6 gather-side deferred to G-0202**. The rule-side seam is complete; the CLI seam wires `nil` for now. AC-6 suppression fires under test fixtures but not against real git history — known limitation, filed as G-0202 with the design notes the follow-up needs.
+- **Per-commit firing, not aggregated** (AC-10). The user wants each escaped commit individually addressable for `git rebase -i` per-commit amends.
+- **Severity = warning, not error** (AC-11). First land. Tightening to error is a D-NNN decision after one epic of usage. The single test at the anchor point makes the future flip a deliberate edit.
+- **The rule polices AI-actor commits only**. Per the ADR-0010 sovereignty principle — human commits, including manual cherry-picks between branches, are not policed by this rule. They're subject to other provenance rules.
+
+## Validation
+
+- `go test -race -parallel 8 ./...` — green across all packages.
+- `go build ./...` — green.
+- `aiwf check` — 0 errors, 13 warnings (all `entity-body-empty` on AC body sections pre-wrap; this commit fills them).
+- Sabotage probes (Cycle 1–4 combined): 7 single-line regressions, each caught by at least one test.
+- `wf-doc-lint` scoped to the changeset: clean.
+- Trailer hygiene: no `aiwf-verb: feat` on implementation commits.
+
+## Deferrals
+
+- [G-0202](../../gaps/G-0202-isolation-escape-cherry-pick-gather-side-implement-cli-detection.md) — the gather-side implementation for AC-6 (committer-vs-actor email comparison + body marker regex check). The rule-side logic is complete; without the gather-side, AC-6 suppression fires only in tests, not against real git history. Filed during Cycle 4 wrap as the known limitation; the gap carries the design notes the follow-up needs.
+
+## Reviewer notes
+
+- 4 cycles, no formal subagent reviewer passes this milestone (the user's pre-cycle Q&A explicitly approved the plan + design choices, and each cycle's sabotage probes were exhaustive — 7 total). A retrospective spot-check would be the only thing to add.
+- The CLI-seam test at `internal/cli/check/isolation_escape_test.go` is AST-level — a future regression that comments out the wire-up call, or renames it, fires the test immediately. Without this test, M-0106's rule could ship complete but unhooked.
+- The `cherryPicked` parameter is positioned third on `RunIsolationEscape` so a future addition (e.g. a `mergedInto` map for richer merge handling) can extend the signature cleanly.
+- Branch-coverage hard rule satisfied: every reachable arm of `RunIsolationEscape` is exercised — nil oracle (graceful), no opener (AC-9), opener before commit (happy), opener after commit (predates), empty bound (legacy), unknown branch (graceful), rides bound (AC-4), cherry-pick suppressed (AC-6), violates (AC-1/2/3/10).
+- E-0030 epic-wrap will pull this milestone's `CodeIsolationEscape` into the closure summary; the typed-code shape (per G-0129) means a future audit catalog can enumerate `ClassBranchChoreography` findings without source grepping.
 
