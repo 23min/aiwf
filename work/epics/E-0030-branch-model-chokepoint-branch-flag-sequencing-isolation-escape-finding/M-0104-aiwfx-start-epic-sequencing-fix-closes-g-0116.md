@@ -10,7 +10,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Embedded snapshot reflects new step ordering
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Stale G-0059 paragraph removed; replacement names ADR-0010
