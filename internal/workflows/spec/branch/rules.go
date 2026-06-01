@@ -153,6 +153,71 @@ func Rules() []spec.Rule {
 			BlockingStrict:    false,
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
+
+		// Override cells per E-0030 §"Sovereign override surface".
+		// Each names a kernel-readable override mechanism that
+		// suppresses the otherwise-illegal cell's outcome. All are
+		// Legal cells in the spec table — the override IS the
+		// gated, audited acceptance.
+
+		// branch-cell-override-preflight — M-0103 preflight override:
+		// `aiwf authorize <id> --to ai/<x> --force --reason "..."`
+		// bypasses the branch-context-required and branch-not-found
+		// refusals. Gated by the trailer-shape rule (--force requires
+		// human/ actor + non-empty --reason). Test:
+		// TestAuthorize_Open_AITarget_ForceReasonBypassesPreflight +
+		// CLI seam.
+		{
+			ID:            "branch-cell-override-preflight",
+			Verb:          "authorize",
+			Preconditions: []spec.Predicate{{Subject: "target-agent-role", Op: "==", Value: "ai"}, {Subject: "force", Op: "==", Value: "true"}, {Subject: "actor-role", Op: "==", Value: "human"}, {Subject: "reason", Op: "non-empty", Value: ""}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-override-cherry-pick — M-0106 cherry-pick
+		// suppression: a `git cherry-pick -x` re-author by a human
+		// (committer ≠ original ai actor + cherry-pick marker in
+		// body) is recognized as sovereign re-author; the
+		// isolation-escape finding is silent. Test:
+		// TestIsolationEscape_AC6_CherryPickReAuthorSilent.
+		// Same shape as branch-cell-8 (the corner case) but registered
+		// here as the explicit override-surface entry per the spec body.
+		{
+			ID:            "branch-cell-override-cherry-pick",
+			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "committer-differs-from-actor", Op: "==", Value: "true"}, {Subject: "cherry-pick-marker-present", Op: "==", Value: "true"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-override-force-amend — M-0106 aiwf-force
+		// amend override: amending the violating commit with
+		// aiwf-force: <reason> trailer + flipped human/ actor
+		// suppresses the isolation-escape finding. Gated by the
+		// existing trailer-shape rule (aiwf-force requires human/
+		// actor). Test: TestIsolationEscape_AC8_ForceAmendedCommitSilent.
+		// Same shape as branch-cell-10 (corner case) registered here
+		// as the explicit override entry per the spec body.
+		{
+			ID:            "branch-cell-override-force-amend",
+			Preconditions: []spec.Predicate{{Subject: "aiwf-force-trailer-present", Op: "==", Value: "true"}, {Subject: "commit-actor-role", Op: "==", Value: "human"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
+		// branch-cell-override-f-nnnn-waiver — At-check F-NNNN waiver
+		// per ADR-0003: `aiwf promote F-NNNN waived --force --reason
+		// "..."` records a finding-waiver as a sovereign act. The
+		// waiver itself is the override. Gated by the F-NNNN
+		// AC-closure rule and the standard trailer-shape rule.
+		// Behavioral tests live in the F-NNNN milestone family
+		// (outside E-0030 scope); this cell registers the override
+		// surface in the spec table for catalog completeness.
+		{
+			ID:            "branch-cell-override-f-nnnn-waiver",
+			Kind:          "gap", // F-NNNN is registered under the gap kind
+			Verb:          "promote",
+			Preconditions: []spec.Predicate{{Subject: "self.status", Op: "==", Value: "waived"}, {Subject: "force", Op: "==", Value: "true"}, {Subject: "actor-role", Op: "==", Value: "human"}, {Subject: "reason", Op: "non-empty", Value: ""}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0003"},
+		},
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID
