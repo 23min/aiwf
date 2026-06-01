@@ -54,7 +54,7 @@ acs:
       tdd_phase: done
     - id: AC-12
       title: Finding hint text names both override paths
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-13
       title: Typed Code descriptor lands in internal/check/ per G-0129 pattern
