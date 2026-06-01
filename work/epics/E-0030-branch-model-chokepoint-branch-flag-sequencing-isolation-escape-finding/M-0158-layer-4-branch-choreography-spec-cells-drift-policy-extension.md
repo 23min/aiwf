@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Each override-surface row represented as a named override cell
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: All cells satisfy schema invariants (Outcome, RejectionLayer, Sources)
