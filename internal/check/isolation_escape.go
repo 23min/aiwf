@@ -1,7 +1,12 @@
 package check
 
 import (
+	"fmt"
+	"slices"
+	"strings"
+
 	codespkg "github.com/23min/aiwf/internal/codes"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
 )
 
@@ -62,13 +67,119 @@ type BranchOracle interface {
 // Per-commit firing: each violating commit produces its own
 // finding. No aggregation, no per-entity summary — the user wants
 // the cardinality so each escaped commit is individually
-// addressable. AC-10.
+// addressable (AC-10).
 //
-// This is the Cycle 1 scaffold. The detection logic lands in
-// Cycle 2; for now the function returns nil so the rule wires
-// through Run() without raising findings.
+// Algorithm (per commit, in chronological order):
+//
+//  1. Skip if the commit is not an AI commit on an entity (must
+//     carry both aiwf-actor: ai/... and aiwf-entity: <id>).
+//  2. Find the most recent opened-scope commit on the same entity
+//     in the preceding commits. If none, skip (AC-9 — no scope,
+//     no policing). Cycle 3 will further filter on the scope's
+//     current state (paused → silent per AC-5).
+//  3. Read the scope's aiwf-branch: trailer. If absent — legacy
+//     pre-M-0102 scope — skip (non-retroactive per epic
+//     §"Out of scope").
+//  4. Ask the oracle for the commit's branch set. If empty —
+//     "unknown branch" — skip (do not fire on commits the kernel
+//     cannot confidently classify).
+//  5. If the bound branch is in the commit's branch set, silent
+//     (AC-4 — commit rides bound branch).
+//  6. Otherwise fire isolation-escape with the commit's SHA, the
+//     entity id, the bound branch, and the actual branch list as
+//     evidence.
 func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle) []Finding {
-	_ = commits
-	_ = oracle
-	return nil
+	if oracle == nil {
+		return nil
+	}
+
+	// Per-entity index of opened-scope commits, oldest-first. Built
+	// in one pass so per-commit lookup is O(scopes-on-entity), not
+	// O(commits). The Cycle 3 extension will track scope-end events
+	// (paused/ended) on the same shape.
+	type openerRecord struct {
+		chronoIdx int
+		branch    string
+	}
+	openersByEntity := map[string][]openerRecord{}
+
+	for i := range commits {
+		c := &commits[i]
+		idx := indexCommitTrailersForProvenance(c.Trailers)
+		if idx[gitops.TrailerVerb] != "authorize" || idx[gitops.TrailerScope] != "opened" {
+			continue
+		}
+		entity := idx[gitops.TrailerEntity]
+		if entity == "" {
+			continue
+		}
+		branch := idx[gitops.TrailerBranch]
+		openersByEntity[entity] = append(openersByEntity[entity], openerRecord{
+			chronoIdx: i,
+			branch:    branch,
+		})
+	}
+
+	var findings []Finding
+	for i := range commits {
+		c := &commits[i]
+		idx := indexCommitTrailersForProvenance(c.Trailers)
+
+		actor := idx[gitops.TrailerActor]
+		entity := idx[gitops.TrailerEntity]
+		if !strings.HasPrefix(actor, "ai/") || entity == "" {
+			continue
+		}
+		// Don't police the scope-opening / pausing / resuming commits
+		// themselves — those land on the parent ritual branch by ritual
+		// design and the rule's algorithm would mis-classify them. Only
+		// post-scope-open work commits are in scope.
+		if idx[gitops.TrailerVerb] == "authorize" {
+			continue
+		}
+
+		openers := openersByEntity[entity]
+		if len(openers) == 0 {
+			continue // AC-9 — no scope opened on this entity, no policing.
+		}
+
+		// Find the most recent opener that precedes (or equals) this
+		// commit chronologically. Walk back from the newest.
+		var bound string
+		var found bool
+		for j := len(openers) - 1; j >= 0; j-- {
+			if openers[j].chronoIdx <= i {
+				bound = openers[j].branch
+				found = true
+				break
+			}
+		}
+		if !found {
+			continue // commit predates every opener — no scope to escape from.
+		}
+		if bound == "" {
+			continue // pre-M-0102 scope without aiwf-branch: trailer; non-retroactive.
+		}
+
+		actualBranches := oracle.FirstParentBranches(c.SHA)
+		if len(actualBranches) == 0 {
+			continue // unknown branch — do not fire on a commit the oracle can't classify.
+		}
+		if slices.Contains(actualBranches, bound) {
+			continue // AC-4 — commit rides the bound branch.
+		}
+
+		// AC-1 / AC-2 / AC-3 — commit landed on a branch other than
+		// the bound one. Fire one finding per violating commit (AC-10).
+		findings = append(findings, Finding{
+			Code:     CodeIsolationEscape.ID,
+			Severity: SeverityWarning,
+			Message: fmt.Sprintf(
+				"commit %s: aiwf-actor: %q on %q escapes the active scope's bound branch %q",
+				short(c.SHA), actor, strings.Join(actualBranches, ","), bound,
+			),
+			EntityID: entity,
+		})
+	}
+	return findings
 }
