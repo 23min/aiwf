@@ -126,7 +126,16 @@ type RuleSource struct {
 // separate accessor — they are deliberately absent from [Rules] so every
 // per-cell consumer iterates cells only, with no per-rule exclusion. Only
 // the code-oriented AC-5 drift arms union the two.
+//
+// ID (optional, added by M-0158) carries an explicit string identifier for
+// cells that live outside the (Kind, FromState, Verb) keyspace — layer-4
+// branch-choreography cells (e.g. `branch-cell-1`, `branch-cell-override-
+// preflight`). Layers 1–3 leave ID empty and continue to be keyed by the
+// natural tuple; their tests and meta-policies are unaffected. The ID is
+// the consumer-facing name when an explicit cell-id-to-test-name
+// convention is required (M-0158/AC-2, AC-3, AC-5).
 type Rule struct {
+	ID                string
 	Kind              entity.Kind
 	FromState         string
 	Verb              string

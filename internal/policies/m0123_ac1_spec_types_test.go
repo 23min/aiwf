@@ -15,10 +15,17 @@ import (
 func TestM0123_AC1_SpecRuleStructShape(t *testing.T) {
 	t.Parallel()
 
+	// Field 0 (ID) was added by M-0158 for layer-4 branch-choreography
+	// cells that live outside the (Kind, FromState, Verb) keyspace.
+	// Layers 1–3 leave ID empty (zero-value) and continue to use the
+	// natural tuple; only layer-4 cells in branch.Rules() populate it.
+	// The shape extension is the deliberate kernel change M-0158
+	// makes; this test is updated to match.
 	expected := []struct {
 		name string
 		typ  reflect.Type
 	}{
+		{"ID", reflect.TypeOf("")},
 		{"Kind", reflect.TypeOf(entity.Kind(""))},
 		{"FromState", reflect.TypeOf("")},
 		{"Verb", reflect.TypeOf("")},
