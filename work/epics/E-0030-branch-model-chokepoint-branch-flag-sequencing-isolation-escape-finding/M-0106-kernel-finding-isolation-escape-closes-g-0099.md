@@ -11,7 +11,7 @@ acs:
     - id: AC-1
       title: AI commit on main while scope binds epic/X fires isolation-escape
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: AI commit on epic/Y while scope binds epic/X fires isolation-escape
       status: open
