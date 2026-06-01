@@ -14,7 +14,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Stale G-0059 paragraph removed; replacement names ADR-0010
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Workflow headings structurally appear in new order
