@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: AI-actor authorize with --branch <existing> accepts
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: --force --reason bypasses preflight (override path)
