@@ -389,6 +389,61 @@ func TestRunAuthorize_AITarget_ImplicitRitualBranch_AcceptsAndRecords(t *testing
 	hasTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
 }
 
+// TestRunAuthorize_AITarget_ForceReasonBypassesPreflight
+// (M-0103/AC-5, cli-layer seam): drive `aiwf authorize <id> --to
+// ai/<agent> --force --reason "..."` through the binary on a repo
+// whose HEAD is on master (non-ritual). The preflight would normally
+// refuse with branch-context-required; --force bypasses it as a
+// sovereign act, and the resulting commit carries aiwf-force: with
+// the reason text. Pins the override path end-to-end.
+func TestRunAuthorize_AITarget_ForceReasonBypassesPreflight(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+
+	const reason = "sovereign override: out-of-ritual delegation"
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001",
+		"--to", "ai/claude",
+		"--force",
+		"--reason", reason,
+	); err != nil {
+		t.Fatalf("aiwf authorize --force --reason: %v\n%s", err, out)
+	}
+
+	tr, err := gitops.HeadTrailers(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasTrailer(t, tr, "aiwf-verb", "authorize")
+	hasTrailer(t, tr, "aiwf-to", "ai/claude")
+	hasTrailer(t, tr, "aiwf-scope", "opened")
+	hasTrailer(t, tr, "aiwf-force", reason)
+	hasTrailer(t, tr, "aiwf-reason", reason)
+}
+
 // TestRunAuthorize_RefusesNonHumanActor: --actor ai/claude is rejected
 // before any state is touched — only humans authorize.
 func TestRunAuthorize_RefusesNonHumanActor(t *testing.T) {

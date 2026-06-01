@@ -186,6 +186,61 @@ func TestAuthorize_Open_NonAITarget_BranchMissing_Accepted(t *testing.T) {
 	mustHaveTrailer(t, tr, "aiwf-to", "bot/dependabot")
 }
 
+// TestAuthorize_Open_AITarget_ForceReasonBypassesPreflight
+// (M-0103/AC-5): --force --reason "..." bypasses the AI-target
+// preflight on a non-terminal scope-entity with no ritual branch
+// context. The authorize commit lands and carries aiwf-force: with the
+// reason text — the sovereign-override paper trail per ADR-0010 and
+// docs/pocv3/design/provenance-model.md. Distinct from the existing
+// TestAuthorize_Open_ForceOverridesTerminal: that test exercises Force
+// against a terminal scope-entity (the terminal-status refusal); this
+// one exercises Force against an active entity that would refuse on
+// the preflight alone. Without the `!opts.Force` short-circuit on the
+// preflight gate, this test would fail with branch-context-required.
+func TestAuthorize_Open_AITarget_ForceReasonBypassesPreflight(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	const reason = "sovereign override: ad-hoc delegation outside ritual flow"
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:   verb.AuthorizeOpen,
+		Agent:  "ai/claude",
+		Reason: reason,
+		Force:  true,
+		// CurrentBranch deliberately non-ritual; --branch deliberately
+		// empty. The preflight would refuse with branch-context-required
+		// without Force. With Force=true + non-empty Reason, the gate
+		// is short-circuited and the verb proceeds.
+		CurrentBranch: "main",
+	})
+	if err != nil {
+		t.Fatalf("Authorize refused under --force --reason override: %v", err)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-force", reason)
+	mustHaveTrailer(t, tr, "aiwf-reason", reason)
+	mustHaveTrailer(t, tr, "aiwf-to", "ai/claude")
+	// The bypass does NOT promote CurrentBranch into an aiwf-branch
+	// trailer — the preflight's implicit-to-explicit promotion is
+	// inside the gate that Force skips. An explicit --branch would
+	// still land its trailer (covered by AC-4 + AC-5 composition would
+	// land later as part of M-0158); this test pins the no-trailer
+	// shape of the override path.
+	for _, e := range res.Plan.Trailers {
+		if e.Key == "aiwf-branch" {
+			t.Errorf("aiwf-branch trailer present under --force without --branch: %q (override path should not synthesize a branch binding)", e.Value)
+		}
+	}
+}
+
 // TestAuthorize_Open_AITarget_NoBranch_NoRitualCurrent_Refuses
 // (M-0103/AC-1): opening a scope on ai/<agent> with no --branch and
 // a current checkout that does not match a ritual shape refuses with
