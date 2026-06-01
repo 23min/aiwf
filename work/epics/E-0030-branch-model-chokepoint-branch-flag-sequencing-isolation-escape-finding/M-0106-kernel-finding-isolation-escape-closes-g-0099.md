@@ -15,7 +15,7 @@ acs:
     - id: AC-2
       title: AI commit on epic/Y while scope binds epic/X fires isolation-escape
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: AI commit on worktree-vs-branch mismatch fires isolation-escape
       status: met
