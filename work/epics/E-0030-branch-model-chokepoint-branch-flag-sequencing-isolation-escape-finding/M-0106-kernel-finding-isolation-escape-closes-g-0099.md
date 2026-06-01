@@ -43,7 +43,7 @@ acs:
     - id: AC-9
       title: AI commit on entity with no opened scope stays silent
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-10
       title: Per-commit firing — one finding per violating commit
       status: open
