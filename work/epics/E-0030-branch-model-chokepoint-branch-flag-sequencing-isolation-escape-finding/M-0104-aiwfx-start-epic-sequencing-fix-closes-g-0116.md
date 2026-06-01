@@ -18,7 +18,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Workflow headings structurally appear in new order
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Preflight accepts --branch <future> from main (future-branch refinement)
