@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: AI-actor authorize with --branch <missing> refuses (branch-not-found)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: AI-actor authorize from ritual-shape checkout (no --branch) accepts
