@@ -319,6 +319,20 @@ Filed **G-0203** ([`work/gaps/G-0203-...md`](../../gaps/G-0203-branchoracle-firs
 
 **Retrospective review (subagent, post-initial-wrap):** 10 findings — 5 blocking (F-1, F-2, F-3, F-4, F-10), 4 fix-in-place / track-for-later (F-5, F-6, F-7, F-8), 1 gap-worthy (F-9). The milestone was reopened, the 5 blocking findings were fixed in-milestone (Cycles 5–7), the 2 architectural concerns were captured as D-0017 (F-6) and G-0203 (F-9), and the tracking-only findings (F-5, F-7) became code-comment caveats on the relevant tests. F-8 was effectively dual-resolved — the AST-level wire-up test stays as defense in depth, AND the real end-to-end seam test landed in Cycle 5.
 
+**Third-pass retrospective review (subagent, max-effort opus pass post-N-fixes):** the user requested a third pass with max effort to find what the prior reviewers missed. The reviewer ran empirical measurements (coverage, lint, integration tests) and probed real-world environments (sparse checkouts, worktrees, packed-refs, force-pushes, etc.). Verdict: **APPROVE-WITH-FOLLOW-UPS** — 8 new findings T-1..T-8, **none blocking**. The pattern shifted from substantive defects (first two passes) to minor doc-tightening and test-completeness items.
+
+Disposition of T-1..T-8 (all addressed at commit `d2014aa8`):
+
+- **T-1**: Added `TestRunProvenanceCheck_IsolationEscape_FindingCarriesHint` pinning the AC-12 hint flow through the production `Run` → `ApplyHintsLikeRun` composition (asserts non-empty Hint plus both override-path markers).
+- **T-2**: D-0017's brittle "line 257" reference replaced with structural section name.
+- **T-4**: `aiwfx-start-milestone` SKILL.md "once M-0106 ships" updated to present tense.
+- **T-5**: `aiwfx-start-epic` SKILL.md gained a symmetric one-line mention of M-0106's post-hoc finding in the Principles section.
+- **T-6**: Added `TestIsolationEscape_T6_BoundBranchDoesNotExistSilent` documenting the natural-semantic behavior on bound-branch-typo case.
+- **T-7**: `TestRunProvenanceCheck_IsolationEscape_FiresOnViolatingCommit` tightened from "at least one finding" to "exactly one finding" via filter-then-count idiom matching `WarningDoesNotMarkErrors`.
+- **T-8**: `TestIsolationEscape_NilOracleSilent` docstring rewritten to reflect post-F-1 production behavior.
+
+The reviewer's verdict explicitly noted that the milestone "can stay `done` as-is" — none of T-1..T-8 was blocking. The choice to address all 8 reflects the operator's watertight standard rather than reviewer demand.
+
 **Second-pass retrospective review (subagent, post-fix-wrap):** to verify the fixes hold, a second reviewer pass ran against the fix range (`a44999fb..afc19709`). Verdict: 10 of 10 original findings genuinely closed. One CI-blocking issue surfaced (N-1: gofumpt violation in the new fixture) plus three follow-ups:
 
 - **N-1** (gofumpt blocker) — fixed in this round; `internal/check/isolation_escape_test.go` and a pre-existing `internal/policies/aiwfx_start_epic_test.go` violation both cleaned. `golangci-lint run ./...` now reports 0 issues.
