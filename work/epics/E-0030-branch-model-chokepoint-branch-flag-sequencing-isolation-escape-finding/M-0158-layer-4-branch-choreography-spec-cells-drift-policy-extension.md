@@ -18,7 +18,7 @@ acs:
     - id: AC-2
       title: Each epic corner-case (1-12) represented as named cell branch-cell-N
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Each override-surface row represented as a named override cell
       status: open
