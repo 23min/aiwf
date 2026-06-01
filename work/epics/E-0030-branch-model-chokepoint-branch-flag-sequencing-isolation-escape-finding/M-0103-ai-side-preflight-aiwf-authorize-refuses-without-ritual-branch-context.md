@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: --force --reason bypasses preflight (override path)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: --force without --reason refuses (regression guard)
       status: open
