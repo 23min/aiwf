@@ -1,7 +1,7 @@
 ---
 id: M-0158
 title: Layer-4 branch-choreography spec cells + drift-policy extension
-status: draft
+status: in_progress
 parent: E-0030
 depends_on:
     - M-0102
