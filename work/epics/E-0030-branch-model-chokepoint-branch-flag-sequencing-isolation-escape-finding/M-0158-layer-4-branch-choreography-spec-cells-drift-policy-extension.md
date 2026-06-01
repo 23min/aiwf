@@ -26,7 +26,7 @@ acs:
     - id: AC-4
       title: All cells satisfy schema invariants (Outcome, RejectionLayer, Sources)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: 'Meta-test: every cell has matching test under internal/policies/'
       status: open
