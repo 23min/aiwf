@@ -19,7 +19,7 @@ acs:
     - id: AC-3
       title: Silent fallthrough to checkout -b epic/<slug> if missing removed
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Workflow headings structurally appear in new order
       status: open
