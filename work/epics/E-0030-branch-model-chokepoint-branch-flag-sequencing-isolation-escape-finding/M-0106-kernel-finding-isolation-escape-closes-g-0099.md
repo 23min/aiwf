@@ -46,7 +46,7 @@ acs:
       tdd_phase: done
     - id: AC-10
       title: Per-commit firing — one finding per violating commit
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-11
       title: Warning severity; check exits 0 with findings reported
