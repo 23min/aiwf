@@ -69,8 +69,33 @@ When any of:
 - M-0158's spec-cell consolidation surfaces a richer
   branch-reachability semantic that demands typed errors.
 
+## Sub-concern (added post-M-0106 second-pass review, N-4)
+
+The current `newGitBranchOracle` at
+[`internal/cli/check/isolation_escape_oracle.go`](../../internal/cli/check/isolation_escape_oracle.go)
+is **fail-shut at the whole-oracle level**: if `firstParentSHAs`
+errors on any single ritual branch (deleted ref mid-check,
+packed-refs corruption on one ref, etc.), the entire
+`newGitBranchOracle` returns the error. `RunProvenanceCheck` at
+[`internal/cli/check/provenance.go`](../../internal/cli/check/provenance.go)
+then silently skips the M-0106 rule for the whole check pass.
+One stale ref → rule disabled for the entire repo, regardless of
+how many branches' first-parent indices were successfully built.
+
+A more resilient shape: skip individual failed refs (recording
+each as a future `isolation-escape-oracle-failure` advisory under
+the typed-error split this gap proposes), proceed with the rest.
+
+The current behavior is at least fail-shut on the side of
+correctness (no false positives from partial info), but it
+amplifies the impact of any single ref failure. Address as part
+of the typed-error split, or earlier if the failure mode
+surfaces in practice.
+
 ## Out of scope
 
 The fail-shut vs fail-open question is the bigger design
 decision. This gap names the surface; the choice between (a) and
-(b) above lives in a subsequent ADR or D-NNN.
+(b) above lives in a subsequent ADR or D-NNN. The sub-concern
+above narrows the question for the gather-side fault-tolerance
+axis specifically.
