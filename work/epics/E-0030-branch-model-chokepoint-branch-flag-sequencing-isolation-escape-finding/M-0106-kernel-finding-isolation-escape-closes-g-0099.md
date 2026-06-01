@@ -58,7 +58,7 @@ acs:
       tdd_phase: red
     - id: AC-13
       title: Typed Code descriptor lands in internal/check/ per G-0129 pattern
-      status: open
+      status: met
       tdd_phase: done
 ---
 
