@@ -282,7 +282,26 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 		branchExplicit := strings.TrimSpace(opts.Branch)
 		if branchExplicit != "" {
 			if !opts.BranchExists {
-				return nil, &PreflightBranchNotFoundError{Branch: branchExplicit}
+				// M-0104/AC-4 future-branch carve-out: from
+				// CurrentBranch=="main", an explicit --branch naming
+				// a ritual-shape ref (per branchparse) is the step-4
+				// pattern of aiwfx-start-epic. The branch will be
+				// cut at step 5; at the moment of authorize it does
+				// not yet exist. Accept without the existence check.
+				//
+				// The carve-out is intentionally narrow:
+				//   - main only (the trunk-naming convention this
+				//     repo uses; trunk-name configurability is
+				//     deferred per YAGNI — operators on master/
+				//     other-trunk can use the implicit-ritual-
+				//     current path or --force --reason).
+				//   - ritual-shape --branch only (otherwise the gate
+				//     becomes a no-op for any string from main).
+				mainAndRitualFuture := opts.CurrentBranch == "main" &&
+					branchparse.ParseEntityFromBranch(branchExplicit) != ""
+				if !mainAndRitualFuture {
+					return nil, &PreflightBranchNotFoundError{Branch: branchExplicit}
+				}
 			}
 		} else {
 			if branchparse.ParseEntityFromBranch(opts.CurrentBranch) == "" {

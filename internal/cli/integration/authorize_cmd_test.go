@@ -288,12 +288,19 @@ func TestRunAuthorize_AITarget_OnNonRitualBranch_NoBranch_Refuses(t *testing.T) 
 }
 
 // TestRunAuthorize_AITarget_BranchMissing_Refuses (M-0103/AC-2,
-// cli-layer seam): drive `aiwf authorize <id> --to ai/<agent>
-// --branch <typo>` through the binary against a repo that has no
-// branch by that name. Asserts the CLI's `git show-ref --verify`
-// gather flows through to the preflight, which refuses with
-// branch-not-found. Pins the --branch + branchExists → opts.BranchExists
-// → preflight propagation.
+// narrowed by M-0104/AC-4; cli-layer seam): drive `aiwf authorize
+// <id> --to ai/<agent> --branch <typo>` through the binary against
+// a repo that has no branch by that name. Asserts the CLI's
+// `git show-ref --verify` gather flows through to the preflight,
+// which refuses with branch-not-found. Pins the --branch +
+// branchExists → opts.BranchExists → preflight propagation.
+//
+// Post-M-0104/AC-4 the carve-out (CurrentBranch=="main" + ritual
+// --branch shape → accept) would change this test's outcome if the
+// fixture happened to land on main. Explicit checkout to a ritual
+// non-main branch keeps the missing-branch refusal deterministic
+// across git init.defaultBranch variations (master here, main on
+// some envs) and pins the AC-2 case outside the AC-4 carve-out.
 func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)
@@ -320,6 +327,11 @@ func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("aiwf promote: %v\n%s", err, out)
 	}
+	// Pin CurrentBranch to a ritual non-main shape; the M-0104/AC-4
+	// carve-out is main-only, so the missing-branch refusal stands.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b epic/E-0001-engine: %v\n%s", err, out)
+	}
 
 	out, err := testutil.RunBin(t, root, binDir, nil,
 		"authorize", "E-0001",
@@ -335,6 +347,80 @@ func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
 	}
 	if !strings.Contains(out, "epic/E-9999-typo") {
 		t.Errorf("expected the typo'd branch name quoted in error; got:\n%s", out)
+	}
+}
+
+// TestRunAuthorize_AITarget_MainPlusRitualFutureBranch_Accepts
+// (M-0104/AC-4, cli-layer seam): drive `aiwf authorize <id> --to
+// ai/<agent> --branch epic/E-NNNN-<slug>` through the binary from
+// a checkout on `main`, where the named branch does not yet exist.
+// This is the well-formed step-4 pattern of aiwfx-start-epic
+// (sovereign authorize on main BEFORE the step-5 branch cut).
+//
+// Pins the end-to-end seam: CLI gathers CurrentBranch=="main" via
+// `git symbolic-ref` and BranchExists=false via `git show-ref
+// --verify`; the verb's preflight carve-out accepts; the apply
+// stamps aiwf-branch with the future ref. The commit itself lands
+// on main (the carve-out by design does not change the operator's
+// checkout — step 5 of the ritual does that).
+func TestRunAuthorize_AITarget_MainPlusRitualFutureBranch_Accepts(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	root := t.TempDir()
+	// Use git init -b main so CurrentBranch is deterministically
+	// "main" regardless of the host's init.defaultBranch (some
+	// envs default to master). The carve-out is hardcoded to "main"
+	// per the M-0104 spec; this is the configured trunk name.
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
+		t.Fatalf("git init -b main: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+
+	// The step-4 invocation: from main, name a future epic branch
+	// that does not yet exist (cut at step 5 of aiwfx-start-epic).
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001",
+		"--to", "ai/claude",
+		"--branch", "epic/E-0001-engine",
+		"--reason", "step-4 sovereign authorize",
+	); err != nil {
+		t.Fatalf("aiwf authorize (main+future ritual branch): %v\n%s", err, out)
+	}
+
+	// Trailer pins: aiwf-branch carries the future ref even though
+	// it doesn't resolve yet (the binding is forward-stated).
+	tr, err := gitops.HeadTrailers(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasTrailer(t, tr, "aiwf-verb", "authorize")
+	hasTrailer(t, tr, "aiwf-to", "ai/claude")
+	hasTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
+
+	// The commit landed on main (carve-out does not move the
+	// operator off the trunk — step 5 does that).
+	if out, err := testutil.RunGit(root, "symbolic-ref", "--short", "HEAD"); err != nil {
+		t.Fatalf("git symbolic-ref --short HEAD: %v\n%s", err, out)
+	} else if got := strings.TrimSpace(out); got != "main" {
+		t.Errorf("expected HEAD on main; got %q", got)
 	}
 }
 

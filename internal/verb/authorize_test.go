@@ -272,11 +272,20 @@ func TestAuthorize_Open_AITarget_NoBranch_NoRitualCurrent_Refuses(t *testing.T) 
 	}
 }
 
-// TestAuthorize_Open_AITarget_BranchMissing_Refuses (M-0103/AC-2):
-// opening a scope on ai/<agent> with --branch <name> where the named
-// branch does not exist locally (BranchExists=false) refuses with
-// PreflightBranchNotFoundError. The error carries the branch-not-found
-// code; the message names --force --reason as the override.
+// TestAuthorize_Open_AITarget_BranchMissing_Refuses (M-0103/AC-2,
+// narrowed by M-0104/AC-4): opening a scope on ai/<agent> with
+// --branch <name> where the named branch does not exist locally
+// (BranchExists=false) refuses with PreflightBranchNotFoundError.
+// The error carries the branch-not-found code; the message names
+// --force --reason as the override.
+//
+// M-0104/AC-4 carves out one case from this rule: when CurrentBranch
+// == "main" AND --branch parses as a ritual shape, the gate accepts
+// (the well-formed step-4 pattern of aiwfx-start-epic; the branch
+// will be cut at step 5). To keep this AC-2 test pinning the general
+// "missing → refuse" rule outside that carve-out, CurrentBranch is
+// pinned to a ritual non-main shape; the missing-branch refusal
+// stands because the carve-out only triggers from main.
 func TestAuthorize_Open_AITarget_BranchMissing_Refuses(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -290,7 +299,11 @@ func TestAuthorize_Open_AITarget_BranchMissing_Refuses(t *testing.T) {
 		// BranchExists deliberately left false: the CLI's git
 		// show-ref --verify would have set it true; this fixture
 		// simulates the typo / missing-branch case.
-		CurrentBranch: "main",
+		//
+		// CurrentBranch is a ritual non-main shape so M-0104/AC-4's
+		// main-only carve-out does not apply — the missing-branch
+		// refusal stands regardless of --branch's shape.
+		CurrentBranch: "epic/E-0001-engine",
 	})
 	if err == nil {
 		t.Fatalf("expected refusal for ai/* target with missing --branch; got plan=%+v", res.Plan)
@@ -369,6 +382,82 @@ func TestAuthorize_Open_AITarget_ExplicitBranchExists_AcceptsAndEmitsTrailer(t *
 		t.Fatal(err)
 	}
 	mustHaveTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
+}
+
+// TestAuthorize_Open_AITarget_MainPlusRitualFutureBranch_Accepts
+// (M-0104/AC-4): from CurrentBranch=="main", an explicit --branch
+// naming a ritual-shape ref that does NOT yet exist
+// (BranchExists=false) accepts. This is the well-formed step-4
+// pattern of aiwfx-start-epic: the human stays on main, sovereign-
+// authorizes the AI agent with --branch epic/E-NNNN-<slug>, then
+// the branch is cut at step 5. The carve-out is narrow — only main
+// (the trunk-naming convention this repo uses) is treated as the
+// pre-cut staging ground; non-main current branches still refuse
+// for missing --branch.
+//
+// Pins: preflight's main-only future-binding carve-out and the
+// trailer-emission promotes opts.Branch to the future ref (the
+// commit record carries the binding even though the ref doesn't
+// resolve yet — the ritual cuts it at step 5).
+func TestAuthorize_Open_AITarget_MainPlusRitualFutureBranch_Accepts(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:   verb.AuthorizeOpen,
+		Agent:  "ai/claude",
+		Branch: "epic/E-0001-engine",
+		// BranchExists deliberately false: the ritual's step-4
+		// authorize fires BEFORE step 5's branch cut, so at the
+		// moment of authorize the named branch genuinely does not
+		// exist yet. The carve-out must accept anyway.
+		BranchExists:  false,
+		CurrentBranch: "main",
+	})
+	if err != nil {
+		t.Fatalf("Authorize refused main+ritual-future-branch: %v", err)
+	}
+	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-branch", "epic/E-0001-engine")
+}
+
+// TestAuthorize_Open_AITarget_MainPlusNonRitualMissingBranch_Refuses
+// (M-0104/AC-4 carve-out guard): the M-0104/AC-4 carve-out is tight
+// to ritual-shape --branch values. From CurrentBranch=="main" with
+// an explicit --branch that does NOT parse as a ritual shape (i.e.,
+// branchparse.ParseEntityFromBranch returns ""), the missing-branch
+// refusal still fires. Without this guard the carve-out would be a
+// gate-bypass — any string under --branch would authorize from main.
+func TestAuthorize_Open_AITarget_MainPlusNonRitualMissingBranch_Refuses(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:          verb.AuthorizeOpen,
+		Agent:         "ai/claude",
+		Branch:        "feature/scratch",
+		BranchExists:  false,
+		CurrentBranch: "main",
+	})
+	if err == nil {
+		t.Fatalf("expected refusal for main+non-ritual-missing-branch; got plan=%+v", res.Plan)
+	}
+	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightBranchNotFound.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightBranchNotFound.ID)
+	}
+	if !strings.Contains(err.Error(), "feature/scratch") {
+		t.Errorf("error %q does not quote the missing branch", err.Error())
+	}
 }
 
 // TestAuthorize_Open_WithBranch_InvalidShapeRefused: defensive — when
