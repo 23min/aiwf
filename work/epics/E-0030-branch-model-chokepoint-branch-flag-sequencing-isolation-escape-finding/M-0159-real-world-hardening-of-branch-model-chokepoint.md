@@ -39,7 +39,7 @@ acs:
     - id: AC-7
       title: Cellcoverage fixture aiwf-branch values resolve or are exempted
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-8
       title: branch-cell-override-f-nnnn-waiver Kind corrected to finding
       status: open
