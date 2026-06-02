@@ -83,6 +83,24 @@ type Expectation struct {
 	// produce EXACTLY N findings (not aggregate, not duplicated).
 	// Zero value (default) skips the count check.
 	FindingCount int
+
+	// FindingSubcode further constrains FindingPresent /
+	// NoFindingWithCode by the finding's subcode field — required
+	// for rules that bundle multiple subcodes under a single Code
+	// (e.g., fsm-history-consistent emits illegal-transition,
+	// forced-untrailered, manual-edit, and history-walk-error all
+	// under one Code). Without this distinction, a scenario
+	// asserting "no forced-untrailered finding" would spuriously
+	// pass when illegal-transition fires under the same Code.
+	//
+	// When set alongside FindingPresent: at least one finding must
+	// match BOTH Code and Subcode.
+	// When set alongside NoFindingWithCode: no finding with the
+	// Code may also have this Subcode (a different-subcode finding
+	// under the same Code is allowed).
+	// Empty string skips the subcode constraint (default behavior
+	// matches Code only).
+	FindingSubcode string
 }
 
 // ScenarioEnv is the per-scenario real-git state: a fresh temp
@@ -188,6 +206,7 @@ func assertExpectation(t *testing.T, env *ScenarioEnv, expect Expectation) {
 			Code     string `json:"code"`
 			Severity string `json:"severity"`
 			Message  string `json:"message"`
+			Subcode  string `json:"subcode"`
 			Hint     string `json:"hint"`
 		} `json:"findings"`
 	}
@@ -195,11 +214,32 @@ func assertExpectation(t *testing.T, env *ScenarioEnv, expect Expectation) {
 		t.Fatalf("parse check envelope: %v\nenvelope bytes:\n%s", jErr, out)
 	}
 
+	// subcodeLabel produces a human-readable form for diagnostics
+	// — "<code>" or "<code>/<subcode>" — so a test failure on an
+	// over-broad match reports the discriminating field clearly.
+	subcodeLabel := func(code, subcode string) string {
+		if subcode == "" {
+			return code
+		}
+		return code + "/" + subcode
+	}
+
 	if expect.NoFindingWithCode != "" {
 		for _, f := range envelope.Findings {
-			if f.Code == expect.NoFindingWithCode {
-				t.Errorf("expected NO finding with code %q; got %+v\nenvelope:\n%s", expect.NoFindingWithCode, f, out)
+			if f.Code != expect.NoFindingWithCode {
+				continue
 			}
+			// When FindingSubcode is set, a different-subcode
+			// finding under the same Code is allowed (M-0159/AC-4
+			// case: a forced-untrailered scenario asserting "no
+			// forced-untrailered finding" must NOT spuriously
+			// fail when an unrelated illegal-transition under
+			// fsm-history-consistent fires on the same fixture).
+			if expect.FindingSubcode != "" && f.Subcode != expect.FindingSubcode {
+				continue
+			}
+			t.Errorf("expected NO finding with code %q; got %+v\nenvelope:\n%s",
+				subcodeLabel(expect.NoFindingWithCode, expect.FindingSubcode), f, out)
 		}
 	}
 	if expect.FindingPresent != "" {
@@ -208,41 +248,51 @@ func assertExpectation(t *testing.T, env *ScenarioEnv, expect Expectation) {
 			Code     string `json:"code"`
 			Severity string `json:"severity"`
 			Message  string `json:"message"`
+			Subcode  string `json:"subcode"`
 			Hint     string `json:"hint"`
 		}
 		hintSeen := false
 		for i := range envelope.Findings {
 			f := &envelope.Findings[i]
-			if f.Code == expect.FindingPresent {
-				count++
-				if firstHit == nil {
-					firstHit = f
-				}
-				if expect.FindingSeverity != "" && f.Severity != expect.FindingSeverity {
-					t.Errorf("finding %q: severity = %q; want %q\nenvelope:\n%s", f.Code, f.Severity, expect.FindingSeverity, out)
-				}
-				if len(expect.FindingHintContainsAll) > 0 {
-					allFound := true
-					for _, sub := range expect.FindingHintContainsAll {
-						if !strings.Contains(f.Hint, sub) {
-							allFound = false
-							break
-						}
+			if f.Code != expect.FindingPresent {
+				continue
+			}
+			// FindingSubcode (when set) constrains the match.
+			if expect.FindingSubcode != "" && f.Subcode != expect.FindingSubcode {
+				continue
+			}
+			count++
+			if firstHit == nil {
+				firstHit = f
+			}
+			if expect.FindingSeverity != "" && f.Severity != expect.FindingSeverity {
+				t.Errorf("finding %q: severity = %q; want %q\nenvelope:\n%s",
+					subcodeLabel(f.Code, f.Subcode), f.Severity, expect.FindingSeverity, out)
+			}
+			if len(expect.FindingHintContainsAll) > 0 {
+				allFound := true
+				for _, sub := range expect.FindingHintContainsAll {
+					if !strings.Contains(f.Hint, sub) {
+						allFound = false
+						break
 					}
-					if allFound {
-						hintSeen = true
-					}
+				}
+				if allFound {
+					hintSeen = true
 				}
 			}
 		}
 		if count == 0 {
-			t.Errorf("expected finding with code %q; envelope had no such finding\nenvelope:\n%s", expect.FindingPresent, out)
+			t.Errorf("expected finding with code %q; envelope had no such finding\nenvelope:\n%s",
+				subcodeLabel(expect.FindingPresent, expect.FindingSubcode), out)
 		}
 		if expect.FindingCount != 0 && count != expect.FindingCount {
-			t.Errorf("finding %q count = %d; want %d\nenvelope:\n%s", expect.FindingPresent, count, expect.FindingCount, out)
+			t.Errorf("finding %q count = %d; want %d\nenvelope:\n%s",
+				subcodeLabel(expect.FindingPresent, expect.FindingSubcode), count, expect.FindingCount, out)
 		}
 		if len(expect.FindingHintContainsAll) > 0 && !hintSeen {
-			t.Errorf("no finding with code %q has hint containing ALL of %v\nenvelope:\n%s", expect.FindingPresent, expect.FindingHintContainsAll, out)
+			t.Errorf("no finding with code %q has hint containing ALL of %v\nenvelope:\n%s",
+				subcodeLabel(expect.FindingPresent, expect.FindingSubcode), expect.FindingHintContainsAll, out)
 		}
 	}
 }
@@ -548,5 +598,87 @@ func HumanCommit(t *testing.T, env *ScenarioEnv, entityID, bodyText string) stri
 	if err != nil {
 		t.Fatalf("aiwf edit-body %s (human): %v\n%s", entityID, err, out)
 	}
+	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+}
+
+// SimulateForcedUntrailedActivate constructs a raw git commit
+// that promotes the named epic from `proposed` to `active`
+// (the kernel's canonical sovereign-act-shape transition) by
+// hand-editing the frontmatter status field and committing
+// with aiwf-actor: ai/claude — but WITHOUT an aiwf-force
+// trailer. This is exactly the shape that fires
+// fsm-history-consistent's forced-untrailered subcode: a
+// sovereign-act-shape transition by a non-human actor without
+// the override trailer.
+//
+// The verb path (aiwf promote) would refuse this shape per the
+// M-0095 verb-time gate ("requireHumanActorForSovereignAct" or
+// --force --reason). Only a raw-git fabrication can reach the
+// rule's predicate end-to-end; this helper produces that
+// fabrication for AC-4's forced-untrailered scenarios.
+//
+// Returns the commit SHA. The entity must already exist at
+// status=proposed (call env.MustRunBin("add", "epic", ...)
+// first); only epics today (matching findEntityBodyPath's
+// kind support).
+func SimulateForcedUntrailedActivate(t *testing.T, env *ScenarioEnv, entityID string) string {
+	t.Helper()
+	bodyPath := findEntityBodyPath(t, env, entityID)
+	abs := filepath.Join(env.Root, bodyPath)
+	content, err := os.ReadFile(abs)
+	if err != nil {
+		t.Fatalf("read %s: %v", abs, err)
+	}
+	// Replace "status: proposed" with "status: active" in the
+	// YAML frontmatter. A more elaborate parser is overkill;
+	// the kernel's writer emits the canonical
+	// "status: <value>" shape and the fixture's add-verb
+	// invocation just wrote it.
+	updated := strings.Replace(string(content), "status: proposed", "status: active", 1)
+	if updated == string(content) {
+		t.Fatalf("SimulateForcedUntrailedActivate: %s did not contain `status: proposed`; cannot fabricate the activate transition", bodyPath)
+	}
+	if err := os.WriteFile(abs, []byte(updated), 0o644); err != nil {
+		t.Fatalf("write %s: %v", abs, err)
+	}
+	if out, err := testutil.RunGit(env.Root, "add", bodyPath); err != nil {
+		t.Fatalf("git add %s: %v\n%s", bodyPath, err, out)
+	}
+	msg := fmt.Sprintf("simulate AI promote %s without aiwf-force (M-0159/AC-4 fixture)\n\naiwf-verb: promote\naiwf-entity: %s\naiwf-actor: ai/claude\n",
+		entityID, entityID)
+	if out, err := testutil.RunGit(env.Root, "commit", "-m", msg); err != nil {
+		t.Fatalf("simulate forced-untrailered activate (raw git commit): %v\n%s", err, out)
+	}
+	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+}
+
+// AcknowledgeIllegal runs `aiwf acknowledge-illegal <targetSHA>
+// --reason <reason>` which produces a current-day empty commit
+// carrying:
+//
+//	aiwf-verb: acknowledge-illegal
+//	aiwf-force-for: <targetSHA>
+//	aiwf-actor: human/peter (from git config)
+//	aiwf-reason: <reason>
+//
+// The gather layer in internal/cli/check walks HEAD's reachable
+// history for `aiwf-force-for` trailers (via the M-0159/AC-3
+// lifted helper WalkAcknowledgedSHAs) and passes the resulting
+// SHA set to all three consumer rules. The acknowledged commit's
+// SHA appears in that set, so the consuming rule's per-SHA check
+// silences any finding against it.
+//
+// Returns the acknowledgment commit's SHA. The original target
+// commit's history is NOT rewritten — the original's author,
+// trailers, and SHA are all preserved per M-0136's
+// no-history-rewrite principle.
+//
+// AC-4 uses this helper to set up the real-git E2E for the
+// silencing path: acknowledge an isolation-escape or
+// forced-untrailered commit, then re-run `aiwf check` and
+// verify the previously-firing finding is now silent.
+func AcknowledgeIllegal(t *testing.T, env *ScenarioEnv, targetSHA, reason string) string {
+	t.Helper()
+	env.MustRunBin("acknowledge-illegal", targetSHA, "--reason", reason)
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
 }
