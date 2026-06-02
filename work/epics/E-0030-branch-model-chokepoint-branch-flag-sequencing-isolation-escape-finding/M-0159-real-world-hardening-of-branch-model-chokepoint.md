@@ -26,7 +26,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: acknowledge-illegal silences isolation-escape and forced-untrailered
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: trailer-verb-unknown rule consumes ackedSHAs via shared helper
