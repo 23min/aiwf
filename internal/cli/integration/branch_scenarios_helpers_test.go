@@ -630,6 +630,87 @@ func HumanCommit(t *testing.T, env *ScenarioEnv, entityID, bodyText string) stri
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
 }
 
+// CherryPick runs `git cherry-pick` on sourceSHA from the current
+// HEAD. The four shapes the helper supports — combinations of
+// "with marker" / "without marker" and "distinct committer" /
+// "same committer" — are the four discriminating fixtures
+// M-0159/AC-6 needs to exercise the rule's both-signals-required
+// suppression contract.
+//
+// If withMarker is true, the cherry-pick is `cherry-pick -x` so
+// git writes the canonical `(cherry picked from commit <sha>)`
+// body marker. If false, plain `cherry-pick` is used (no marker
+// emitted by git).
+//
+// If committerEmail is non-empty, the cherry-pick subprocess
+// inherits GIT_COMMITTER_EMAIL / GIT_COMMITTER_NAME env-var
+// overrides (NOT `-c user.email=` config — see the inline comment
+// in the body for why config-via-`-c` is silently ignored here),
+// so the resulting commit's committer identity is distinct from
+// the source's preserved author identity (the author identity is
+// the source commit's author, which `git cherry-pick` preserves
+// by default). When committerEmail is empty, the cherry-pick uses
+// the test process's default GIT_COMMITTER_EMAIL (set by
+// setup_test.go::TestMain to "test@example.com"), which equals
+// the source's author email, so committer == author and no gap
+// exists.
+//
+// Returns the cherry-pick commit's SHA.
+//
+// AC-6's gather-side recognizes a commit as a cherry-pick to
+// suppress (under the M-0106 isolation-escape rule) only when
+// BOTH signals are present:
+//
+//	(a) `(cherry picked from commit <sha>)` body marker
+//	(b) committer email differs from author email
+//
+// Both signals together are what `git cherry-pick -x` mechanically
+// produces when a human re-authors an AI's commit. The two
+// negative-control scenarios (marker-only and gap-only) each lack
+// one signal and therefore still fire — proving neither alone is
+// sufficient. The four-arm helper makes constructing those
+// scenarios mechanically explicit.
+func CherryPick(t *testing.T, env *ScenarioEnv, sourceSHA, committerEmail, committerName string, withMarker bool) string {
+	t.Helper()
+	args := []string{"cherry-pick"}
+	if withMarker {
+		args = append(args, "-x")
+	}
+	args = append(args, sourceSHA)
+	var extraEnv []string
+	if committerEmail != "" {
+		// Per-call committer identity override. MUST go through
+		// env vars (not `-c user.email=`) because the
+		// integration-test setup_test.go's TestMain sets
+		// GIT_COMMITTER_NAME / GIT_COMMITTER_EMAIL process-wide
+		// for deterministic identity. Git evaluates GIT_*_EMAIL
+		// env vars with higher precedence than `-c` config
+		// overrides — `-c` is silently ignored when env vars are
+		// set. Only extraEnv passed through testutil's
+		// RunGitWithExtraEnv (which appends LAST so the new
+		// entries win over the defaults via the last-wins
+		// duplicate-key rule in exec.Command's Env handling)
+		// actually flips the committer identity.
+		//
+		// Both NAME and EMAIL must be set together — overriding
+		// just EMAIL leaves the previous NAME in effect, which
+		// is harmless for the rule's gap check (only email is
+		// compared) but cosmetically weird in `git log`.
+		name := committerName
+		if name == "" {
+			name = "Cherry Picker"
+		}
+		extraEnv = []string{
+			"GIT_COMMITTER_EMAIL=" + committerEmail,
+			"GIT_COMMITTER_NAME=" + name,
+		}
+	}
+	if out, err := testutil.RunGitWithExtraEnv(env.Root, extraEnv, args...); err != nil {
+		t.Fatalf("git cherry-pick %v (extraEnv=%v): %v\n%s", args, extraEnv, err, out)
+	}
+	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+}
+
 // SimulateForcedUntrailedActivate constructs a raw git commit
 // that promotes the named epic from `proposed` to `active`
 // (the kernel's canonical sovereign-act-shape transition) by

@@ -17,6 +17,25 @@ import (
 // command runs with a fixed deterministic identity (GIT_AUTHOR_*
 // env vars) so tests don't depend on the developer's git config.
 func RunGit(workdir string, args ...string) (string, error) {
+	return RunGitWithExtraEnv(workdir, nil, args...)
+}
+
+// RunGitWithExtraEnv is RunGit plus a slice of additional env
+// entries appended AFTER the fixed identity defaults. Since
+// exec processes env entries last-wins for duplicate keys, an
+// extraEnv entry like "GIT_COMMITTER_EMAIL=human@example.com"
+// overrides the default test identity for THIS subprocess only.
+//
+// Used by integration tests that need to vary committer identity
+// per-call (e.g., M-0159/AC-6 cherry-pick scenarios that need
+// committer != author to exercise the rule's gap-detection
+// suppression contract). The default RunGit's "-c user.email=X"
+// override would NOT achieve this — git evaluates GIT_*_EMAIL
+// env vars with higher precedence than -c config overrides, so
+// the env-var path is the only way to actually flip the
+// committer identity inside a subprocess whose parent sets
+// GIT_COMMITTER_EMAIL.
+func RunGitWithExtraEnv(workdir string, extraEnv []string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = workdir
 	cmd.Env = append(os.Environ(),
@@ -25,6 +44,7 @@ func RunGit(workdir string, args ...string) (string, error) {
 		"GIT_COMMITTER_NAME=aiwf-test",
 		"GIT_COMMITTER_EMAIL=test@example.com",
 	)
+	cmd.Env = append(cmd.Env, extraEnv...)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
