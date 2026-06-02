@@ -505,7 +505,8 @@ func ForceAmendHEAD(t *testing.T, env *ScenarioEnv, reason string) string {
 // suddenly matter.
 func PauseScope(t *testing.T, env *ScenarioEnv, entityID, reason string) string {
 	t.Helper()
-	panic("not implemented (M-0159/AC-2 red phase)")
+	env.MustRunBin("authorize", entityID, "--pause", reason)
+	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
 }
 
 // EndScope ends the most-recently-opened active scope on
@@ -521,7 +522,20 @@ func PauseScope(t *testing.T, env *ScenarioEnv, entityID, reason string) string 
 // done; etc.); the helper picks the simplest valid terminal.
 func EndScope(t *testing.T, env *ScenarioEnv, entityID string) string {
 	t.Helper()
-	panic("not implemented (M-0159/AC-2 red phase)")
+	// Today only the epic kind is supported (matches AC-2's
+	// scope: F-3 scenarios target epic-bound scopes). Per the
+	// findEntityBodyPath precedent, other kinds Fatal loudly
+	// until the AC that needs them extends this switch.
+	if !strings.HasPrefix(entityID, "E-") {
+		t.Fatalf("EndScope: entity kind for %q not supported by M-0159/AC-2 scope (only epics today; further kinds as their ACs need them)", entityID)
+	}
+	// Epic FSM: proposed → active → done. The terminal-promote
+	// to `done` is the commit that carries the aiwf-scope-ends:
+	// trailer (kernel writes it automatically on terminal
+	// promote — verified via internal/cli/cliutil/provenance.go).
+	env.MustRunBin("promote", entityID, "active")
+	env.MustRunBin("promote", entityID, "done")
+	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
 }
 
 // HumanCommit runs `aiwf edit-body <entityID> --body-file -` with
@@ -541,5 +555,18 @@ func EndScope(t *testing.T, env *ScenarioEnv, entityID string) string {
 // M-0103. So this helper works on any branch.
 func HumanCommit(t *testing.T, env *ScenarioEnv, entityID, bodyText string) string {
 	t.Helper()
-	panic("not implemented (M-0159/AC-2 red phase)")
+	// No --actor / --principal flags: the verb derives actor from
+	// git config user.email. The scenario env is initialized via
+	// initRepoFor(t, "peter@example.com") so the resolved actor
+	// is "human/peter". The human-actor path is not subject to
+	// M-0103 preflight refusal, so this works on any branch.
+	out, err := testutil.RunBinStdin(t, env.Root, env.BinDir,
+		strings.NewReader(bodyText),
+		"edit-body", entityID,
+		"--body-file", "-",
+		"--reason", "Human work commit on scoped entity (M-0159/AC-2 scenario)")
+	if err != nil {
+		t.Fatalf("aiwf edit-body %s (human): %v\n%s", entityID, err, out)
+	}
+	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
 }

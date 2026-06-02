@@ -144,16 +144,21 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
 				env.MustRunGit("checkout", "-b", "epic/E-0001-engine")
-				// Use the on-bound-branch authorize shape (no
-				// --branch promotion); per the corrected
-				// OpenBoundScope docstring the verb still stamps
-				// aiwf-branch: trailer.
 				OpenBoundScope(t, env, "E-0001", "epic/E-0001-engine")
 				PauseScope(t, env, "E-0001", "blocked on design decision")
-				// AI commits on the BOUND branch — silent via
-				// bound-match (the unit test's actual silence
-				// path; pause is structurally irrelevant).
-				AICommit(t, env, "E-0001", "## Goal\n\nAI body update on bound branch during paused scope.\n")
+				// Raw-git commit on the BOUND branch — the
+				// VERB path (AICommit) refuses during paused
+				// scope per the M-0103-era preflight enforcement
+				// of "no active scope → refuse" (paused ≠
+				// active). For the rule's AC-5 silence claim to
+				// be testable end-to-end, we need an AI-trailer
+				// commit to actually exist in history during the
+				// paused window — only raw-git bypass produces
+				// it. The commit's bound (from trailer) matches
+				// its actual branch (oracle index) → rule silent
+				// via bound-match, with the pause event present
+				// but structurally invisible.
+				SimulateAIEscape(t, env, "E-0001", "raw-git AI body edit on bound branch during paused scope")
 			},
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
