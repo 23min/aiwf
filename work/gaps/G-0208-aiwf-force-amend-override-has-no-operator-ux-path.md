@@ -1,8 +1,10 @@
 ---
 id: G-0208
 title: aiwf-force amend override has no operator UX path
-status: open
+status: addressed
 discovered_in: M-0158
+addressed_by:
+    - M-0159
 ---
 M-0106/AC-8 pins that a violating commit amended with
 `aiwf-force: <reason>` trailer + `aiwf-actor: human/...` trailer
