@@ -16,11 +16,13 @@ import (
 // Closes G-0202 (the parked gather-side that left
 // `internal/cli/check/provenance.go:67` passing `nil` for
 // cherryPicked under RunIsolationEscape). With nil, the M-0106
-// isolation-escape rule's suppression arm at
-// internal/check/isolation_escape.go:258 could not fire end-to-end;
-// sovereign human re-authors via `git cherry-pick -x` of an AI
-// commit landed on a non-bound branch were spuriously flagged as
-// escapes.
+// isolation-escape rule's cherry-pick suppression arm at
+// internal/check/isolation_escape.go:269 (the
+// `if cherryPicked[c.SHA]` block — distinct from the M-0136/AC-3
+// ackedSHAs arm immediately above it at line 257) could not fire
+// end-to-end; sovereign human re-authors via `git cherry-pick -x`
+// of an AI commit landed on a non-bound branch were spuriously
+// flagged as escapes.
 
 // cherryPickedMarkerRE matches the canonical
 // `(cherry picked from commit <sha>)` line that `git cherry-pick
@@ -33,32 +35,30 @@ import (
 var cherryPickedMarkerRE = regexp.MustCompile(`\(cherry picked from commit [0-9a-fA-F]{4,}\)`)
 
 // WalkCherryPicks walks HEAD's reachable history for commits that
-// are sovereign-human cherry-pick re-authors per M-0106/AC-6 +
-// M-0159/AC-6. Returns the set of cherry-pick commit SHAs that
-// the isolation-escape rule should exempt from its firing path.
+// are sovereign-human cherry-pick re-authors per the both-signals
+// contract pinned in the RunIsolationEscape docstring at
+// internal/check/isolation_escape.go:67-89 (the canonical contract;
+// keep edits there, not duplicated here). This helper is the
+// gather-side derivation that produces the cherryPicked map the
+// rule consumes; the contract is rule-side.
 //
-// A commit qualifies under the both-signals contract:
+// Derivation steps (one `git log` subprocess + an in-memory filter):
 //
-//	(a) the commit body carries a `(cherry picked from commit <sha>)`
-//	    marker line that `git cherry-pick -x` writes by default
-//	(b) the commit's git committer email differs from its git
-//	    author email (the identity gap that `git cherry-pick`
-//	    produces when a different identity re-authors)
-//
-// Both signals together are what a sovereign human re-author
-// actually looks like. Either alone is insufficient: a fabricated
-// marker (no real cherry-pick) lacks the gap; an amended commit
-// (gap without -x) lacks the marker. The rule's docstring at
-// internal/check/isolation_escape.go records the both-signals
-// contract; this helper is the gather-side that produces the
-// derived map.
+//  1. `git log --pretty=format:%H<US>%ae<US>%ce<US>%B<RS> HEAD`
+//     emits one record per HEAD-reachable commit (SHA, author email,
+//     committer email, full body), null-byte-free, separated by
+//     ASCII unit (US) and record (RS) control chars.
+//  2. For each record, the commit qualifies iff author email AND
+//     committer email AND author email != committer email (the
+//     identity gap) AND the body matches cherryPickedMarkerRE (the
+//     `(cherry picked from commit <sha>)` marker line). Both
+//     signals required — see rule docstring for the rationale.
+//  3. Qualifying SHAs land in the returned map.
 //
 // Returns nil for non-git directories and empty histories; the
 // rule treats nil and an empty map identically (no exemptions).
-//
-// Reads via one `git log` subprocess. Performance:
-// O(reachable-commits) once per check invocation; for
-// kernel-tree-sized repos under a second.
+// Performance: one git subprocess, O(reachable-commits) parse;
+// for kernel-tree-sized repos under a second.
 //
 // AC-6 caller convention: the CLI gather layer at
 // internal/cli/check/provenance.go::RunProvenanceCheck calls this
