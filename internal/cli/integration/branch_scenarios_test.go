@@ -48,9 +48,18 @@ func TestBranchScenarios_AC1_FrameworkExercise(t *testing.T) {
 			Name: "AI commit on bound branch is silent (M-0106 AC-4)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
+				// aiwfx-start-epic step 7 pattern: authorize
+				// from main with --branch naming the future
+				// epic ritual. The opener lands on main with the
+				// aiwf-branch: trailer pointing at the future ref.
 				env.MustRunBin("add", "epic", "--title", "Engine")
+				OpenBoundScope(t, env, "E-0001", "epic/E-0001-engine")
+				// Step 8: cut the named branch from main's HEAD
+				// (which is now the opener commit). The AI then
+				// works on that branch — the verb's preflight
+				// accepts since current ref matches the bound
+				// ref.
 				env.MustRunGit("checkout", "-b", "epic/E-0001-engine")
-				OpenBoundScope(t, env, "E-0001")
 				AICommit(t, env, "E-0001", "## Goal\n\nAI-attributed body update on the bound branch.\n")
 			},
 			Expect: Expectation{
@@ -62,12 +71,18 @@ func TestBranchScenarios_AC1_FrameworkExercise(t *testing.T) {
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
-				env.MustRunGit("checkout", "-b", "epic/E-0001-engine")
-				OpenBoundScope(t, env, "E-0001")
-				// Escape: switch back to main, then have the AI
-				// commit work on the still-scoped entity.
-				env.MustRunGit("checkout", "main")
-				AICommit(t, env, "E-0001", "## Goal\n\nAI-attributed body update on the WRONG branch.\n")
+				// Same step-7 pattern: opener on main, bound to
+				// future epic/E-0001-engine.
+				OpenBoundScope(t, env, "E-0001", "epic/E-0001-engine")
+				// Real-world escape: AI subagent confused about
+				// which branch it's on (G-0099 founding incident
+				// shape) ran raw git on main — never cut the
+				// ritual branch. AICommit-via-verb would be
+				// refused by the M-0103-era preflight; the raw-
+				// git path bypasses the verb entirely and lands
+				// on main, which the isolation-escape rule
+				// (M-0106) is the defense-in-depth for.
+				SimulateAIEscape(t, env, "E-0001", "AI subagent body edit (raw git, on wrong branch)")
 			},
 			Expect: Expectation{
 				FindingPresent: "isolation-escape",
@@ -78,13 +93,13 @@ func TestBranchScenarios_AC1_FrameworkExercise(t *testing.T) {
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
-				env.MustRunGit("checkout", "-b", "epic/E-0001-engine")
-				OpenBoundScope(t, env, "E-0001")
-				env.MustRunGit("checkout", "main")
-				AICommit(t, env, "E-0001", "## Goal\n\nAI body update; will be sovereign-amended.\n")
-				// Legacy override: amend the violating commit so
-				// the actor is human/ and a force-reason is
-				// recorded. The rule's ai/ prefix filter skips it.
+				OpenBoundScope(t, env, "E-0001", "epic/E-0001-engine")
+				// Same raw-git escape as the fires scenario.
+				SimulateAIEscape(t, env, "E-0001", "AI subagent body edit (raw git, on wrong branch)")
+				// Legacy override: operator amends the violating
+				// commit so the actor is human/ and a force
+				// reason is recorded. The rule's ai/ prefix
+				// filter then skips the amended commit.
 				ForceAmendHEAD(t, env, "manual sovereign override per M-0106 AC-8 legacy path")
 			},
 			Expect: Expectation{
