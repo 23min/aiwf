@@ -14,84 +14,95 @@ tdd: required
 ---
 ## Goal
 
-Address the real-world failure modes the M-0158 honest-scope audit
-surfaced. The E-0030 epic's existing milestones (M-0102 through
-M-0106 and M-0158) build the branch-model chokepoint against the
-synthetic-fixture test set; this milestone brings the chokepoint
-from "watertight against fixtures" to "robust against real-world
-multi-branch workflows."
+Land the **combinatorial real-git E2E test framework** for the branch-choreography surface, then use it to ship the override-convergence work (G-0208 + G-0214 / G-0196 + G-0202 + G-0213 sequencing constraint). After this milestone the kernel's branch-policing surface is system-pinned, not just unit-pinned; the override surface is symmetric across the three concrete consumers (`fsm-history-consistent`, `isolation-escape`, `trailer-verb-unknown`); and any future operator hitting one of these scenarios discovers a working override path through `aiwf --help` + tab-completion + skill.
+
+This is **Tier 1 evidence-backed work** per the history-mining audit (June 2026):
+
+- M-0106 itself shipped with the kernel finding effectively disabled for 4 cycles (F-1: CLI passed `nil` for the oracle). The seam-vs-layer gap is documented historical evidence.
+- `aiwf-force` trailer has been used 12+ times in production (real overrides, not test fixtures). Operators hand-crafting trailers is documented friction; G-0208's UX gap is grounded.
+- G-0214 / G-0196: one real consumer already caught by the `acknowledge-illegal` / `forced-untrailered` asymmetry.
+- G-0213: the cellcoverage fictional-branch landmine is a sequencing constraint — must be addressed in the same commit set as any branch-resolution rule that M-0159 introduces.
 
 ## Context
 
-The M-0158 wrap discussion (the user's third-pass review of the
-spec-table milestone) surfaced that significant real-world failure
-modes are not covered by the existing milestones. The user's
-explicit guidance: *"This is a super important epic and we cannot
-[afford] to have corner cases. ... Creating and editing entities
-when we have multiple branches needs to be rigorously correct
-because friction is super costly."*
+The M-0158 honest-scope audit surfaced 11 real-world failure modes catalogued as G-0200 through G-0210. The user's directive during M-0159 planning ("third iteration"):
 
-The gaps catalog this milestone consumes:
+> *This is so critical to get correct ... I want all thinkable scenarios and realistic combinations to be tested, ie combinatorial. What if. It can happen. Verbs can be composed in any way for any reason ... in the worst case, data loss.*
 
-- [G-0200](../../gaps/G-0200-preflight-main-only-carve-out-generalize-to-trunk-name-from-aiwf-yaml.md) — hardcoded `"main"` in the carve-out
-- [G-0201](../../gaps/G-0201-authorize-preflight-carve-out-accepts-cross-rung-ritual-mismatches.md) — cross-rung carve-out mismatches
-- [G-0202](../../gaps/G-0202-isolation-escape-cherry-pick-gather-side-implement-cli-detection.md) — cherry-pick gather-side not implemented
-- [G-0203](../../gaps/G-0203-branchoracle-firstparentbranches-conflates-lookup-failed-with-no-branches.md) — oracle typed-error distinction + fail-shut sub-concern
-- [G-0204](../../gaps/G-0204-branchoracle-silent-on-shallow-clones-ci-fetch-depth-1.md) — shallow-clone silent escape
-- [G-0205](../../gaps/G-0205-branchoracle-silent-on-force-pushed-away-violating-commits.md) — force-push silent escape
-- [G-0206](../../gaps/G-0206-branchoracle-false-positive-on-branch-renames-after-authorize.md) — branch-rename false positive
-- [G-0207](../../gaps/G-0207-detached-head-handling-untested-in-preflight-and-oracle.md) — detached-HEAD untested
-- [G-0208](../../gaps/G-0208-aiwf-force-amend-override-has-no-operator-ux-path.md) — `aiwf-force` amend has no UX
-- [G-0209](../../gaps/G-0209-ritual-step-ordering-is-advisory-only-no-kernel-enforcement.md) — SKILL.md ritual ordering is advisory only
-- [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — M-0158 over-specification refactor
+A confidence-audit workflow (June 2026) then surfaced six test-integrity issues across M-0102..M-0106 + M-0158 (one tautological sabotage, one name/assertion contradiction, one SHA-distinctness fake, one acknowledged-tautological, one self-contradictory docstring, one cross-cell match-bleed). Those landed pre-M-0159 in commit `d43c1f27`.
 
-These 11 gaps together are the work that, when complete, lets
-E-0030 ship with a chokepoint that holds against real-world
-git workflows.
+A history-mining subagent investigation then reframed M-0159 priority from "imagination-driven completeness" to "evidence-driven sequencing":
+
+- **Real evidence in history** (squash-merge override `f4ea7329`/`fdc539b8`, 12+ production `aiwf-force` uses, 26 reallocate commits, G-0167/G-0170 incidents) drives this milestone (M-0159) and M-0160.
+- **No in-repo evidence** for G-0200/G-0201/G-0203/G-0204/G-0205/G-0206/G-0207/G-0209 — but per the user's "if we can imagine it, it will happen" principle, these are not dropped; they sequence into M-0161 (Tier 3 imagination-driven hardening) so other operators with different workflows still get coverage.
+
+## Scope split (E-0030 hardening epic — three milestones)
+
+This milestone is **M-0159 (Tier 1)**:
+
+- The combinatorial real-git E2E test framework (closes G-0211).
+- Override convergence: extend `acknowledge-illegal` to silence isolation-escape via shared helper-lift, with the same lift covering `forced-untrailered` asymmetry (closes G-0208 + G-0214 + G-0196).
+- Cherry-pick gather-side CLI implementation (closes G-0202).
+- `trailer-verb-unknown` wires to the shared ack-walk helper (third concrete consumer per the audit).
+- Cellcoverage fixture branch-resolution fix (closes G-0213 — sequencing constraint).
+- M-0158 spec-table Kind="finding" correctness fix (the rules.go uncommitted patch from M-0158).
+
+**M-0160 (Tier 2 evidence-backed operational pain)** covers:
+
+- Reallocate-stress combinatorial test (26 historical incidents).
+- G-0167-class trunk-collision regression test (rename detection).
+- G-0170-class apply-rollback data-preservation test.
+
+**M-0161 (Tier 3 imagination-driven hardening)** covers:
+
+- G-0200 (trunk config), G-0201 (cross-rung carve-out), G-0203 (BranchOracle typed errors), G-0204 (shallow clones), G-0205 (force-push), G-0206 (branch rename), G-0207 (detached HEAD), G-0209 (ritual step ordering), G-0210 (M-0158 cell catalog full refactor).
+- All require combinatorial E2E coverage via the M-0159 framework.
+- "If we can imagine it, it will happen" — different operators have different risk tolerances; coverage is mandatory even without in-repo evidence.
 
 ## Pre-decided design
 
-The milestone is gap-consuming: each AC is shaped around closing
-one or more of G-0200 through G-0210 with mechanical evidence.
-The exact ACs are drafted as part of the `aiwfx-start-milestone`
-ritual when this milestone is started; the AC seed set is below.
+**Test discipline (load-bearing).** Every M-0159 AC requires at least one real-git integration test under `internal/cli/integration/`. The test builds aiwf via `buildAiwfBinary`, sets up a real git repo via `tempRepo`, runs verbs as subprocess invocations, and asserts stdout/stderr/exit-code/trailers/envelope output. Rule-level unit tests stay as cheap regression catches but are NEVER substitutes. **No stubs anywhere.** A test body that doesn't exercise its named claim either gets reframed to match what it actually pins, or rewritten to pin the claim — never deleted, never left as a placeholder.
+
+**G-0208 architecture (Path B with modifications, per confidence-audit workflow).** Lift `walkAcknowledgedSHAs` from `fsm_history_consistent.go` into a shared helper at `internal/check/acks.go` (or equivalent). Three concrete consumers: `fsm-history-consistent` (existing), `isolation-escape` (new), `trailer-verb-unknown` (the third user, currently named-but-not-wired in `trailer_verb_unknown.go:25-29`). The CLI gather layer computes the acked-SHA set once and passes it to all three rules. No `--code` flag, no new `aiwf-force-for-code` trailer, no Cobra rename — the rule does the per-rule SHA matching.
+
+**G-0213 cellcoverage fix (sequencing-load-bearing).** Before landing any rule that reads `aiwf-branch:` against a "must resolve" check, the cellcoverage fixture's fictional branch value must be addressed. Per G-0213, three options: create the branch in the fixture setup, sentinel-trailer the fixture for rule exemption, or have the rule fail-open on empty BranchOracle. Decision lands in M-0159 itself (within the rule-adoption AC).
 
 ## Out of scope
 
-- New behavioral surface: M-0102 through M-0106 already deliver
-  the verb-time and check-time chokepoints. This milestone
-  hardens them; it does not add a new chokepoint.
-- M-0158's spec-table refactor is in scope (G-0210); registering
-  new cells is not (no new cells are needed once the
-  documentation-only ones are removed).
-- Master/dev/develop trunk-name configuration is in scope (G-0200);
-  generalizing beyond named trunks (e.g., arbitrary "current ref
-  is parent") is not.
+- M-0160 and M-0161 work (their gaps remain in their respective milestones).
+- New verb addition for G-0208 — Path B keeps the surface to one verb (`acknowledge-illegal`); no new verb shipped this milestone.
+- Branch-resolution rule (e.g., "aiwf-branch must point to a real ref") — that's M-0161 work, deliberately gated behind the cellcoverage landmine fix landing first.
+- Generalized retroactive override for arbitrary kernel codes — only the three concrete consumers above. The architectural primitive (shared walk + per-rule recognition) supports future expansion but no speculative scaffolding lands now.
 
 ## Dependencies
 
-- **M-0102 through M-0106 and M-0158** — this milestone hardens
-  the chokepoints those milestones deliver. All five are `done`
-  (M-0158 wraps before this one starts per the sequential plan).
+- **M-0102 through M-0106 + M-0158** — all `done`. M-0159 hardens what they delivered.
+- **Commit `d43c1f27`** — pre-M-0159 patch round (6 test-integrity fixes) landed before this milestone starts.
+- **G-0211, G-0213, G-0214 + existing G-0196, G-0202, G-0208** — gaps consumed by this milestone.
 
 ## Acceptance criteria
 
 <!--
-AC seed set (to be drafted with `aiwf add ac` at start-milestone time):
+AC seed set (to be allocated via `aiwf add ac` at start-milestone time, after the AC framing is confirmed with the user):
 
-1. BranchOracle handles shallow clones without silent escape (closes G-0204)
-2. BranchOracle handles force-pushed history without silent escape (closes G-0205)
-3. BranchOracle handles branch renames (closes G-0206)
-4. Detached-HEAD handling explicitly tested in preflight + oracle (closes G-0207)
-5. Cherry-pick gather-side implemented end-to-end (closes G-0202)
-6. aiwf-force amend has operator-discoverable UX path — verb or skill (closes G-0208)
-7. M-0158 cell catalog refactored to mechanical-weight-only set (closes G-0210)
-8. Hardcoded "main" generalized to aiwf.yaml.allocate.trunk short name (closes G-0200)
-9. Cross-rung carve-out mismatches addressed via hierarchical predicate or documented exception (closes G-0201)
-10. BranchOracle typed-error distinction (closes G-0203)
-11. SKILL.md ritual ordering: either kernel enforcement OR documented limitation (closes G-0209)
+1. Combinatorial real-git E2E test framework under internal/cli/integration/branch_scenarios_test.go: scenario-table driver, tempRepo helpers (shallow, rename, force-push, detached-HEAD, cherry-pick, amend, merge setups), envelope assertions. (G-0211)
 
-These are the seed set; the start-milestone ritual will refine and
-allocate them.
+2. M-0106 paths covered by real-git E2E: every existing M-0106 unit-tested scenario gets a parallel integration test that builds the binary, drives subprocess verbs, asserts envelope output. Closes the "shipped disabled" class.
+
+3. walkAcknowledgedSHAs lifted to internal/check/acks.go; consumed by fsm-history-consistent, isolation-escape, and trailer-verb-unknown rules through a single ackedSHAs map[string]bool parameter populated by the CLI gather layer.
+
+4. acknowledge-illegal extended to cover isolation-escape AND forced-untrailered subcodes via the shared helper. Real-git E2E: AI escape → aiwf acknowledge-illegal <sha> --reason → aiwf check silent; AI authorship preserved on original commit. (G-0208 + G-0214 + G-0196)
+
+5. trailer-verb-unknown wired to consume ackedSHAs through the lifted helper. Real-git E2E: historical stray commit acked → check silent. Converts the docstring promise at trailer_verb_unknown.go:25-29 into mechanical truth.
+
+6. Cherry-pick gather-side implemented in the CLI: real (cherry picked from commit <sha>) markers in commit bodies populate the cherryPicked map. Real-git E2E: git cherry-pick -x of an isolation-escape commit → check silent. (G-0202)
+
+7. Cellcoverage fixture branch-resolution decision landed in the same commit set as any new branch-reading rule. (G-0213)
+
+8. M-0158 spec-table Kind="finding" correctness fix (the uncommitted rules.go change addressing the M-0158 wrap miss).
+
+9. internal/check/hint.go updated to name aiwf acknowledge-illegal as the canonical override invocation for isolation-escape findings; substring-tested at integration level.
+
+These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 -->
 
