@@ -61,6 +61,28 @@ type Expectation struct {
 	// has this code. Used for "fires" paths (the escape, the
 	// worktree mismatch).
 	FindingPresent string
+
+	// FindingSeverity asserts that EVERY finding with code
+	// FindingPresent has this severity ("error" or "warning").
+	// Pins M-0106/AC-11's severity claim and prevents a future
+	// regression that flipped warning→error without an explicit
+	// decision. Empty string skips the severity check.
+	FindingSeverity string
+
+	// FindingHintContainsAll asserts that at least one finding with
+	// code FindingPresent has a hint that contains EVERY substring
+	// in this slice. Pins M-0106/AC-12's "hint names both override
+	// paths" claim — both "cherry-pick" and "force" must appear in
+	// the same hint — without requiring exact-text equality. Empty
+	// slice skips the hint check.
+	FindingHintContainsAll []string
+
+	// FindingCount asserts the count of findings with code
+	// FindingPresent equals this value. Used by M-0106/AC-10's
+	// per-commit-firing scenario, where N violating commits must
+	// produce EXACTLY N findings (not aggregate, not duplicated).
+	// Zero value (default) skips the count check.
+	FindingCount int
 }
 
 // ScenarioEnv is the per-scenario real-git state: a fresh temp
@@ -186,6 +208,7 @@ func assertExpectation(t *testing.T, env *ScenarioEnv, expect Expectation) {
 			Code     string `json:"code"`
 			Severity string `json:"severity"`
 			Message  string `json:"message"`
+			Hint     string `json:"hint"`
 		} `json:"findings"`
 	}
 	if jErr := json.Unmarshal([]byte(out), &envelope); jErr != nil {
@@ -200,15 +223,46 @@ func assertExpectation(t *testing.T, env *ScenarioEnv, expect Expectation) {
 		}
 	}
 	if expect.FindingPresent != "" {
-		found := false
-		for _, f := range envelope.Findings {
+		count := 0
+		var firstHit *struct {
+			Code     string `json:"code"`
+			Severity string `json:"severity"`
+			Message  string `json:"message"`
+			Hint     string `json:"hint"`
+		}
+		hintSeen := false
+		for i := range envelope.Findings {
+			f := &envelope.Findings[i]
 			if f.Code == expect.FindingPresent {
-				found = true
-				break
+				count++
+				if firstHit == nil {
+					firstHit = f
+				}
+				if expect.FindingSeverity != "" && f.Severity != expect.FindingSeverity {
+					t.Errorf("finding %q: severity = %q; want %q\nenvelope:\n%s", f.Code, f.Severity, expect.FindingSeverity, out)
+				}
+				if len(expect.FindingHintContainsAll) > 0 {
+					allFound := true
+					for _, sub := range expect.FindingHintContainsAll {
+						if !strings.Contains(f.Hint, sub) {
+							allFound = false
+							break
+						}
+					}
+					if allFound {
+						hintSeen = true
+					}
+				}
 			}
 		}
-		if !found {
+		if count == 0 {
 			t.Errorf("expected finding with code %q; envelope had no such finding\nenvelope:\n%s", expect.FindingPresent, out)
+		}
+		if expect.FindingCount != 0 && count != expect.FindingCount {
+			t.Errorf("finding %q count = %d; want %d\nenvelope:\n%s", expect.FindingPresent, count, expect.FindingCount, out)
+		}
+		if len(expect.FindingHintContainsAll) > 0 && !hintSeen {
+			t.Errorf("no finding with code %q has hint containing ALL of %v\nenvelope:\n%s", expect.FindingPresent, expect.FindingHintContainsAll, out)
 		}
 	}
 }
@@ -219,13 +273,6 @@ func assertExpectation(t *testing.T, env *ScenarioEnv, expect Expectation) {
 // --branch <boundBranch>`, opening a scope explicitly bound to
 // boundBranch. Returns the authorize commit's SHA.
 //
-// Per M-0102/AC-3 the `aiwf-branch:` trailer is emitted ONLY when
-// `--branch` is supplied — the M-0102 implicit-from-current path
-// accepts the verb in preflight but does NOT stamp the trailer.
-// The isolation-escape rule (M-0106) reads the bound branch off
-// that trailer; absent the trailer the rule has no bound ref to
-// compare against and stays silent.
-//
 // The boundBranch argument is the *target* ritual branch — it can
 // be the current branch (the aiwfx-start-milestone pattern, where
 // HEAD is already on the ritual ref) OR a future branch that
@@ -233,6 +280,19 @@ func assertExpectation(t *testing.T, env *ScenarioEnv, expect Expectation) {
 // the opener lands on main with --branch naming the future epic
 // ritual; the branch is cut in a later step). Both patterns are
 // covered by M-0104/AC-4 and M-0105/AC-6 carve-outs.
+//
+// Trailer-emission behavior (verified against verb source at
+// internal/verb/authorize.go:281-347): when --branch is supplied
+// (the helper always supplies it), the verb stamps the
+// aiwf-branch: trailer with that value. When --branch is OMITTED
+// for an ai/* target from a ritual-shape current branch, the verb
+// still stamps the trailer — it promotes opts.Branch to the
+// current branch's name at authorize.go:345 ("making the implicit
+// binding explicit in the commit record"). So post-M-0102, ai/*-
+// targeted authorize commits ALWAYS carry aiwf-branch: when the
+// preflight accepts. The only post-M-0102 shape without the
+// trailer is a sovereign-override `--force --reason` that bypasses
+// preflight entirely.
 func OpenBoundScope(t *testing.T, env *ScenarioEnv, entityID, boundBranch string) string {
 	t.Helper()
 	env.MustRunBin("authorize", entityID, "--to", "ai/claude", "--branch", boundBranch)
@@ -414,4 +474,72 @@ func ForceAmendHEAD(t *testing.T, env *ScenarioEnv, reason string) string {
 		t.Fatalf("git commit --amend: %v\n%s", err, out)
 	}
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+}
+
+// AC-2 helpers — stubs in red phase, implemented in green.
+
+// PauseScope runs `aiwf authorize <entityID> --pause "<reason>"`,
+// transitioning the most-recently-opened active scope on entityID
+// to paused. Returns the pause commit SHA.
+//
+// The reason is required by the verb's contract and ends up in
+// the commit's aiwf-reason: trailer.
+//
+// HONEST SCOPE — pinned against the M-0106 algorithm at
+// internal/check/isolation_escape.go:104-249. The rule has NO
+// paused-state code path; the pause event is structurally
+// invisible to it:
+//   - The opener-index build (line 144-164) requires
+//     aiwf-scope == "opened"; pause's "paused" value is skipped.
+//   - The ends-index build (line 130-141) requires the
+//     aiwf-scope-ends: trailer; pause has none.
+//   - The per-commit walk (line 180-182) skips every commit
+//     whose aiwf-verb == "authorize"; pause IS an authorize verb.
+//
+// So PauseScope's commit exists in chronological history but is
+// behaviorally a no-op for the isolation-escape rule. Scenarios
+// using this helper pin "the pause event is correctly ignored"
+// rather than any pause-state suppression — a future buggy
+// addition like "fire on AI commits during paused scope" would
+// break those scenarios because the pause's presence would
+// suddenly matter.
+func PauseScope(t *testing.T, env *ScenarioEnv, entityID, reason string) string {
+	t.Helper()
+	panic("not implemented (M-0159/AC-2 red phase)")
+}
+
+// EndScope ends the most-recently-opened active scope on
+// entityID by promoting its parent (or itself, if a top-level
+// entity) to a terminal status. The kernel writes an
+// `aiwf-scope-ends: <opener-sha>` trailer on the terminal-promote
+// commit. After this, M-0106/F-3's "AI commit after scope ended
+// silent" path applies: AI commits with chronoIdx after the
+// scope-end commit have no active scope to bind against.
+//
+// Returns the terminal-promote commit SHA. The chosen terminal
+// status depends on entityID's kind (epic → done; milestone →
+// done; etc.); the helper picks the simplest valid terminal.
+func EndScope(t *testing.T, env *ScenarioEnv, entityID string) string {
+	t.Helper()
+	panic("not implemented (M-0159/AC-2 red phase)")
+}
+
+// HumanCommit runs `aiwf edit-body <entityID> --body-file -` with
+// the default actor (derived from git config user.email; in test
+// envs this is "test@example.com" → human/test). Replaces the
+// entity's body with bodyText. Returns the commit SHA.
+//
+// Used by the M-0106/AC-1-followup scenario that pins the rule's
+// actor-prefix filter specificity: a human-actor commit on the
+// wrong branch is silent because the filter looks for `ai/`, not
+// "anyone with a role." Distinct from AICommit (which forces
+// ai/claude) — pinning the prefix specificity needs an actor that
+// is structurally similar but doesn't match the filter.
+//
+// The verb's preflight does NOT refuse human-actor commits off the
+// bound branch — that refusal is specific to ai/* targets per
+// M-0103. So this helper works on any branch.
+func HumanCommit(t *testing.T, env *ScenarioEnv, entityID, bodyText string) string {
+	t.Helper()
+	panic("not implemented (M-0159/AC-2 red phase)")
 }
