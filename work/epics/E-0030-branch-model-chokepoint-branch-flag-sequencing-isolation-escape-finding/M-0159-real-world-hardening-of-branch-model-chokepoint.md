@@ -1,7 +1,7 @@
 ---
 id: M-0159
 title: Real-world hardening of branch-model chokepoint
-status: draft
+status: in_progress
 parent: E-0030
 depends_on:
     - M-0102
