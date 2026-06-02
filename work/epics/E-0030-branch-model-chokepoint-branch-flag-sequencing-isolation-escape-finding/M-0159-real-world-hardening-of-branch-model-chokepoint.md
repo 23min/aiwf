@@ -23,7 +23,7 @@ acs:
     - id: AC-3
       title: walkAcknowledgedSHAs lifted to shared helper, three rules consume it
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-4
       title: acknowledge-illegal silences isolation-escape and forced-untrailered
       status: open
