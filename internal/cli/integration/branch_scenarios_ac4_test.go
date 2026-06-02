@@ -199,20 +199,36 @@ func TestBranchScenarios_AC4_AckSilencing(t *testing.T) {
 				escapeSHA := SimulateAIEscape(t, env, "E-0001", "AI body edit escaping the bound branch")
 				AcknowledgeIllegal(t, env, escapeSHA, "pre-rule era escape")
 				// Verify the original escape commit's
-				// aiwf-actor trailer still reads "ai/claude".
-				// The verb must not have rewritten it; a
-				// regression that did would fail here.
-				original := env.MustRunGit("show", "--format=fuller", "--no-patch", escapeSHA)
-				if !strings.Contains(original, "aiwf-actor: ai/claude") {
-					t.Errorf("original escape commit %s no longer carries `aiwf-actor: ai/claude` after acknowledgment — history rewrite is forbidden\nfull show output:\n%s",
-						escapeSHA, original)
+				// aiwf-actor trailer still reads exactly
+				// "ai/claude". Structural query via
+				// `git log -1 --pretty=%(trailers:...)` —
+				// catches both REMOVAL (trailer absent) and
+				// OVERRIDE (verb appended a duplicate
+				// `aiwf-actor: human/X` trailer leaving the
+				// original line in place — would still
+				// substring-match `aiwf-actor: ai/claude`
+				// but the OPERATIONAL actor is now the
+				// override). Per first-reviewer N1 / M-0159/AC-4
+				// refactor task #73.
+				//
+				// `valueonly=true,unfold=true` returns one
+				// value per matching trailer separated by
+				// newlines; we want exactly one line equal
+				// to "ai/claude".
+				actorValues := env.MustRunGit("log", "-1",
+					"--pretty=%(trailers:key=aiwf-actor,valueonly=true,unfold=true)",
+					escapeSHA)
+				gotActor := strings.TrimSpace(actorValues)
+				if gotActor != "ai/claude" {
+					t.Errorf("original escape commit %s aiwf-actor trailer value = %q; want exactly %q (single line) — a removal, addition, or override of the aiwf-actor trailer is a history-rewrite regression",
+						escapeSHA, gotActor, "ai/claude")
 				}
 				// Also pin that the original commit's SHA
 				// is still resolvable (object exists). The
-				// `git show` above would have failed if the
-				// SHA was unreachable, so this is implicit;
-				// but an explicit `cat-file -t` documents
-				// the intent.
+				// `git log -1` above would have failed if
+				// the SHA was unreachable, so this is
+				// implicit; but an explicit `cat-file -t`
+				// documents the intent.
 				typeOut, _ := testutil.RunGit(env.Root, "cat-file", "-t", escapeSHA)
 				if strings.TrimSpace(typeOut) != "commit" {
 					t.Errorf("original escape commit %s is not a reachable commit object after acknowledgment; type = %q (history rewrite)",

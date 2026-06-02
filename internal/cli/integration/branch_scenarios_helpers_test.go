@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -629,16 +630,23 @@ func SimulateForcedUntrailedActivate(t *testing.T, env *ScenarioEnv, entityID st
 	if err != nil {
 		t.Fatalf("read %s: %v", abs, err)
 	}
-	// Replace "status: proposed" with "status: active" in the
-	// YAML frontmatter. A more elaborate parser is overkill;
-	// the kernel's writer emits the canonical
-	// "status: <value>" shape and the fixture's add-verb
-	// invocation just wrote it.
-	updated := strings.Replace(string(content), "status: proposed", "status: active", 1)
-	if updated == string(content) {
-		t.Fatalf("SimulateForcedUntrailedActivate: %s did not contain `status: proposed`; cannot fabricate the activate transition", bodyPath)
+	// Replace `status: proposed` with `status: active` SCOPED
+	// to the YAML frontmatter block. A naive
+	// strings.Replace on the full file body would silently
+	// mutate the wrong line if a future scenario seeded body
+	// content containing the literal "status: proposed" (e.g.
+	// in a code fence or quoted example). Per M-0159/AC-4
+	// refactor #74 (first/second reviewer note N2).
+	//
+	// Frontmatter shape per internal/entity/serialize.go: starts
+	// with `---\n` (or `---\r\n`); ends at the next `\n---` line
+	// boundary. Same recognition logic the kernel's
+	// parseStatusFromFrontmatter uses.
+	updated, err := replaceStatusInFrontmatter(content, "proposed", "active")
+	if err != nil {
+		t.Fatalf("SimulateForcedUntrailedActivate(%s): %v", bodyPath, err)
 	}
-	if err := os.WriteFile(abs, []byte(updated), 0o644); err != nil {
+	if err := os.WriteFile(abs, updated, 0o644); err != nil {
 		t.Fatalf("write %s: %v", abs, err)
 	}
 	if out, err := testutil.RunGit(env.Root, "add", bodyPath); err != nil {
@@ -650,6 +658,67 @@ func SimulateForcedUntrailedActivate(t *testing.T, env *ScenarioEnv, entityID st
 		t.Fatalf("simulate forced-untrailered activate (raw git commit): %v\n%s", err, out)
 	}
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+}
+
+// replaceStatusInFrontmatter returns content with the
+// `status: <prior>` line inside the YAML frontmatter
+// (delimited by `---` boundaries at the file start and at the
+// next `\n---` line) replaced by `status: <next>`. The
+// frontmatter slice is determined first, then the replacement
+// is applied inside that slice ONLY — so any literal
+// `status: <prior>` appearing in body prose is left untouched.
+//
+// Returns an error if (a) the file doesn't start with the
+// frontmatter opening marker, (b) no closing marker is found,
+// or (c) the frontmatter doesn't contain a `status: <prior>`
+// line. All three are fixture-shape errors at fabrication
+// time, not legitimate edge cases the helper should swallow.
+func replaceStatusInFrontmatter(content []byte, prior, next string) ([]byte, error) {
+	const opener = "---\n"
+	const openerCRLF = "---\r\n"
+	const closer = "\n---"
+
+	rest := content
+	openerLen := 0
+	switch {
+	case bytes.HasPrefix(content, []byte(opener)):
+		rest = content[len(opener):]
+		openerLen = len(opener)
+	case bytes.HasPrefix(content, []byte(openerCRLF)):
+		rest = content[len(openerCRLF):]
+		openerLen = len(openerCRLF)
+	default:
+		return nil, fmt.Errorf("file does not start with YAML frontmatter opener `---` (got %q...)", firstNBytes(content, 16))
+	}
+	end := bytes.Index(rest, []byte(closer))
+	if end < 0 {
+		return nil, fmt.Errorf("frontmatter opener present but no closing `\\n---` found in file")
+	}
+	frontmatter := rest[:end] // bytes BETWEEN the opener and closer, exclusive
+	body := rest[end:]        // bytes from `\n---` onwards, inclusive
+
+	target := []byte("status: " + prior)
+	if !bytes.Contains(frontmatter, target) {
+		return nil, fmt.Errorf("frontmatter does not contain %q; cannot fabricate the %s -> %s transition", string(target), prior, next)
+	}
+	mutated := bytes.Replace(frontmatter, target, []byte("status: "+next), 1)
+
+	// Reassemble: original opener + mutated frontmatter + body.
+	out := make([]byte, 0, openerLen+len(mutated)+len(body))
+	out = append(out, content[:openerLen]...)
+	out = append(out, mutated...)
+	out = append(out, body...)
+	return out, nil
+}
+
+// firstNBytes returns the first n bytes of b, or all of b if
+// shorter. Used for diagnostic context in error messages so a
+// fixture-shape error names what the file actually started with.
+func firstNBytes(b []byte, n int) []byte {
+	if len(b) < n {
+		return b
+	}
+	return b[:n]
 }
 
 // AcknowledgeIllegal runs `aiwf acknowledge-illegal <targetSHA>
