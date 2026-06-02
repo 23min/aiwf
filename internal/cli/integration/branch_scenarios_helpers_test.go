@@ -156,7 +156,7 @@ func RunScenarios(t *testing.T, scenarios []Scenario) {
 
 // newScenarioEnv builds a fresh real-git fixture for one scenario:
 // temp repo + bare upstream + `aiwf init` + a normalized "main"
-// branch.
+// branch tracking origin/main.
 //
 // Trunk name is hardcoded to "main" here, matching the kernel's
 // current default. G-0200 covers generalizing this to
@@ -164,6 +164,23 @@ func RunScenarios(t *testing.T, scenarios []Scenario) {
 // "develop" get the same coverage. M-0161/AC-1 lands the trunk-
 // config rework, at which point this helper will read the configured
 // trunk name instead of hardcoding "main".
+//
+// Upstream-tracking discipline: SetupGitRepoWithUpstream pushes
+// `HEAD:main` to origin so origin/main exists; on hosts where
+// `git init` defaults to `master` (the devcontainer's git default),
+// HEAD's branch is `master` and tracking is set on `master`. The
+// `checkout -B main` below then creates a SEPARATE local `main`
+// branch with NO upstream — `git rev-parse @{u}` fails silently on
+// the new branch, which makes `aiwf check` emit the
+// `provenance-untrailered-scope-undefined` advisory and SKIP the
+// entire untrailered audit (including the trailer-verb-unknown
+// rule). Latent bug for M-0159/AC-2..AC-4 (which test
+// fsm-history-consistent and isolation-escape — both called
+// BEFORE the untrailered short-circuit), discovered when AC-5's
+// trailer-verb-unknown scenarios surfaced it. The explicit
+// `--set-upstream-to=origin/main` after the normalization closes
+// the loop so `@{u}` resolves to `origin/main` consistently across
+// all hosts regardless of init.defaultBranch.
 func newScenarioEnv(t *testing.T) *ScenarioEnv {
 	t.Helper()
 	root, binDir := initRepoFor(t, "peter@example.com")
@@ -173,6 +190,16 @@ func newScenarioEnv(t *testing.T) *ScenarioEnv {
 	// "main" ref to current HEAD whether or not it already exists.
 	if out, err := testutil.RunGit(root, "checkout", "-B", "main"); err != nil {
 		t.Fatalf("normalize to main branch: %v\n%s", err, out)
+	}
+	// Restore upstream tracking the `checkout -B` may have severed
+	// (it severs when init.defaultBranch != "main" — the original
+	// HEAD branch was, say, `master`, and `-B main` created a
+	// brand-new local `main` ref with no tracking). The
+	// remote-tracking ref origin/main exists locally because
+	// SetupGitRepoWithUpstream pushed `HEAD:main` with `-u`; we
+	// only need to re-bind this branch to it.
+	if out, err := testutil.RunGit(root, "branch", "--set-upstream-to=origin/main", "main"); err != nil {
+		t.Fatalf("set main upstream to origin/main: %v\n%s", err, out)
 	}
 	return &ScenarioEnv{T: t, Root: root, BinDir: binDir}
 }
@@ -719,6 +746,88 @@ func firstNBytes(b []byte, n int) []byte {
 		return b
 	}
 	return b[:n]
+}
+
+// SimulateStrayVerbCommit constructs a raw git commit on the
+// current branch whose `aiwf-verb:` trailer carries a fabricated
+// value — i.e., one not in the running binary's Cobra command
+// tree nor in the embedded ritual snapshot's verb set. This is
+// the canonical G-0150 shape: an LLM session synthesizing a
+// trailer like `aiwf-verb: implement` on a hand-rolled
+// Conventional-Commits code commit.
+//
+// The fabricated commit touches a fresh non-entity file at the
+// repo root (`notes-<subjectText-derived>.md`) so the diff is
+// real (mirroring G-0150's "hand-rolled code commit" shape, not
+// `--allow-empty` synthetic emptiness) WITHOUT also tripping the
+// entity-untrailered audit — that audit fires on commits that
+// touch entity files without canonical trailers, and would
+// otherwise add a competing finding under a different code that
+// scenarios would have to filter around. Keeping the touch
+// non-entity isolates the trailer-verb-unknown signal.
+//
+// The trailer set is intentionally minimal: only `aiwf-verb:
+// <fabricated>`. No aiwf-entity, no aiwf-actor — the trailer-
+// verb-unknown rule's input is the `aiwf-verb:` value alone, and
+// real G-0150 fabrications were similarly sparse.
+//
+// Returns the commit SHA. Used by AC-5's real-git E2E to convert
+// the docstring promise at trailer_verb_unknown.go:25-29
+// ("Promotion to error is contingent on cleaning history first
+// — potentially via `aiwf acknowledge-illegal`") into mechanical
+// truth: stray commit + acknowledge-illegal → check silent.
+func SimulateStrayVerbCommit(t *testing.T, env *ScenarioEnv, fabricatedVerb, subjectText string) string {
+	t.Helper()
+	// Per-commit filename derives from the subject text so
+	// multiple stray commits in one scenario don't collide on
+	// identical file content (which would re-trigger "nothing to
+	// commit"). A simple suffix is enough; the file is throw-
+	// away fixture content.
+	relPath := "notes-" + sanitizeForFilename(subjectText) + ".md"
+	abs := filepath.Join(env.Root, relPath)
+	body := fmt.Sprintf("# %s\n\nfabricated stray-verb fixture (M-0159/AC-5)\n", subjectText)
+	if err := os.WriteFile(abs, []byte(body), 0o644); err != nil {
+		t.Fatalf("write %s: %v", abs, err)
+	}
+	if out, err := testutil.RunGit(env.Root, "add", relPath); err != nil {
+		t.Fatalf("git add %s: %v\n%s", relPath, err, out)
+	}
+	msg := fmt.Sprintf("%s\n\naiwf-verb: %s\n", subjectText, fabricatedVerb)
+	if out, err := testutil.RunGit(env.Root, "commit", "-m", msg); err != nil {
+		t.Fatalf("simulate stray-verb commit (raw git): %v\n%s", err, out)
+	}
+	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+}
+
+// sanitizeForFilename produces a short, filesystem-safe slug from
+// a free-form subject string. Used by SimulateStrayVerbCommit to
+// derive per-commit fixture filenames. Lowercase alnum + dash,
+// truncated to a short cap so scenarios don't accidentally
+// generate path lengths near system limits.
+func sanitizeForFilename(s string) string {
+	const maxLen = 40
+	var b strings.Builder
+	prevDash := false
+	for _, r := range strings.ToLower(s) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			prevDash = false
+		default:
+			if !prevDash && b.Len() > 0 {
+				b.WriteByte('-')
+				prevDash = true
+			}
+		}
+		if b.Len() >= maxLen {
+			break
+		}
+	}
+	out := strings.TrimRight(b.String(), "-")
+	if out == "" {
+		out = "stray"
+	}
+	return out
 }
 
 // AcknowledgeIllegal runs `aiwf acknowledge-illegal <targetSHA>
