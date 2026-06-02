@@ -14,7 +14,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Combinatorial real-git E2E test framework under internal/cli/integration
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: M-0106 isolation-escape paths covered by real-git E2E integration tests
