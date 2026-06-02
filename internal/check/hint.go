@@ -155,12 +155,19 @@ var hintTable = map[string]string{
 	// advisory for the operator to resolve.
 	"roadmap-case-collision": "remove one case-variant of the roadmap file (`git rm`) so a single canonical ROADMAP.md (or the lowercase convention the repo already uses) remains at the repo root",
 
-	// M-0106: isolation-escape — AI-actor commit on a branch that
-	// doesn't match the active scope's recorded aiwf-branch:. Two
-	// sovereign override paths leave a clean audit trail; the hint
-	// names both so an operator who hits the finding sees a single
-	// place that lists the legitimate ways out.
-	"isolation-escape": "the AI-actor commit landed on a branch that doesn't match the active scope's recorded `aiwf-branch:`. Override paths: (a) re-author via `git cherry-pick -x <sha>` — preserves the marker and changes the committer to a human, suppressing the finding; (b) amend the violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` and an `aiwf-actor: human/<id>` trailer to record the sovereign override. See E-0030 epic body §\"Sovereign override surface\" for the audit trail each path produces.",
+	// isolation-escape — AI-actor commit on a branch that doesn't
+	// match the active scope's recorded aiwf-branch:. Three sovereign
+	// override paths leave a clean audit trail; the hint names all
+	// three so an operator who hits the finding sees a single place
+	// that lists every legitimate way out. acknowledge-illegal is
+	// listed first as the canonical kernel-native path — separate
+	// empty commit, no history rewrite, traces via `aiwf history`
+	// through the aiwf-force-for trailer; the cherry-pick and amend
+	// paths remain documented for the cases where a human re-author
+	// or in-place sovereign override is the right shape. Lineage via
+	// `aiwf history` covers M-0106 (original 2-path hint) and
+	// M-0159/AC-9 (acknowledge-illegal addition).
+	"isolation-escape": "the AI-actor commit landed on a branch that doesn't match the active scope's recorded `aiwf-branch:`. Override paths: (a) canonical: run `aiwf acknowledge-illegal <sha> --reason \"<text>\"` as a human actor — records a separate audit-trail commit (aiwf-verb: acknowledge-illegal + aiwf-force-for: <sha>) that silences the finding without rewriting the original commit; (b) re-author via `git cherry-pick -x <sha>` — preserves the marker and changes the committer to a human, suppressing the finding; (c) amend the violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` and an `aiwf-actor: human/<id>` trailer to record the sovereign override. See E-0030 epic body §\"Sovereign override surface\" for the audit trail each path produces.",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.

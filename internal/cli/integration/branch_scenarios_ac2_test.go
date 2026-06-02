@@ -246,11 +246,12 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// legitimate ways out. The substrings "cherry-pick" and
 		// "force" must BOTH appear in the same hint — pinned via
 		// FindingHintContainsAll. The unit test
-		// TestIsolationEscape_AC12_HintTextNamesBothOverridePaths
-		// pins the strict anchor set ("cherry-pick -x", "aiwf-force",
-		// "human/", "Sovereign override surface"); this E2E scenario
-		// is intentionally weaker — pins presence-in-envelope, not
-		// exact wording. The strict text remains pinned by the unit.
+		// TestIsolationEscape_AC12_HintTextNamesAllOverridePaths
+		// pins the strict anchor set (originally 4 markers;
+		// M-0159/AC-9 added `aiwf acknowledge-illegal` for 5 total);
+		// this E2E scenario is intentionally weaker — pins
+		// presence-in-envelope, not exact wording. The strict text
+		// remains pinned by the unit.
 		{
 			Name: "isolation-escape hint names cherry-pick AND force override paths (M-0106 AC-12)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {

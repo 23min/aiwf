@@ -222,7 +222,9 @@ The hint text in [`internal/check/hint.go`](../../../internal/check/hint.go) nam
 
 The hint also points at the epic body's "Sovereign override surface" section so an operator following the hint lands on a single place that documents the audit trail each path produces.
 
-**Pinned by:** [`TestIsolationEscape_AC12_HintTextNamesBothOverridePaths`](../../../internal/check/isolation_escape_test.go) — asserts 4 markers in the hint (`cherry-pick -x`, `aiwf-force`, `human/`, `Sovereign override surface`). Sabotage-verified by replacing the hint with a placeholder — all 4 markers missing → test fires on each.
+**Pinned by:** [`TestIsolationEscape_AC12_HintTextNamesAllOverridePaths`](../../../internal/check/isolation_escape_test.go) — originally asserted 4 markers (`cherry-pick -x`, `aiwf-force`, `human/`, `Sovereign override surface`); after M-0159/AC-9's extension the assertion covers 5 markers, with `aiwf acknowledge-illegal` added as the canonical kernel-native path. Sabotage-verified at M-0106 by replacing the hint with a placeholder; re-sabotage-verified at M-0159/AC-9 by stripping the acknowledge-illegal substring. Test name was renamed `Both → All` at M-0159/AC-9 in step with the third path landing.
+
+**Extended by:** M-0159/AC-9 — see [`M-0159` §AC-9](../../../work/epics/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0159-real-world-hardening-of-branch-model-chokepoint.md). The third override path (`aiwf acknowledge-illegal`) was authored once the verb's silencing surface covered isolation-escape (via the AC-3 ack-helper lift + AC-4 wiring); the hint surface now lists it as path (a) "canonical" with the AC-12 paths re-lettered to (b) and (c).
 
 ### AC-13 — Typed Code descriptor lands in internal/check/ per G-0129 pattern
 

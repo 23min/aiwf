@@ -493,31 +493,40 @@ func TestIsolationEscape_AC11_SeverityIsWarning(t *testing.T) {
 	}
 }
 
-// TestIsolationEscape_AC12_HintTextNamesBothOverridePaths pins
-// M-0106/AC-12: the finding's hint text names both sovereign
-// override paths — (a) git cherry-pick -x for the re-author
-// path, and (b) the aiwf-force trailer amend for the explicit
-// override path. The hint is looked up from the hintTable when
-// `applyHints` runs at the end of check.Run; the underlying
-// finding doesn't carry Hint until then.
+// TestIsolationEscape_AC12_HintTextNamesAllOverridePaths pins
+// M-0106/AC-12 + M-0159/AC-9: the finding's hint text names the
+// sovereign override paths — (a) `aiwf acknowledge-illegal` (the
+// canonical kernel-native invocation, added by M-0159/AC-9 once
+// the verb's silencing surface covered isolation-escape via the
+// AC-3 ack-helper lift + AC-4 wiring), (b) `git cherry-pick -x`
+// for the re-author path, and (c) the aiwf-force trailer amend
+// for the explicit override path. The hint is looked up from the
+// hintTable when `applyHints` runs at the end of check.Run; the
+// underlying finding doesn't carry Hint until then.
+//
+// Test name was renamed `Both → All` at M-0159/AC-9 in step with
+// the third path landing. The pre-rename name pinned 2 paths and
+// 4 markers; the post-rename name pins 3 paths and 5 markers.
+// The third-pass caveat about circular tautology (below) extends
+// to the AC-9 substring identically.
 //
 // Assertion via the hint table directly (since the rule emits
 // findings without Hint until applyHints runs). The full
 // finding-with-hint path is exercised by the broader
 // `internal/check` test suite when Run() composes all checks.
 //
-// CAVEAT (F-7 from M-0106 retrospective): this test is a
-// circular tautology — the author of the hint also authored the
-// substring assertions and the sabotage probe. It catches the
-// "someone removed the hint entirely" regression class but does
-// not catch "the hint's wording drifts from what an LLM agent
-// parses for remediation." When the hint text contents become
-// load-bearing for downstream parsing (e.g. an LLM agent reads
-// the hint to choose between override paths), tighten this to a
-// structural assertion — either split the hint into named
-// fragments via a struct, or maintain a golden file. Until then,
-// the circular shape is acceptable.
-func TestIsolationEscape_AC12_HintTextNamesBothOverridePaths(t *testing.T) {
+// CAVEAT (F-7 from M-0106 retrospective, extended at M-0159/AC-9):
+// this test is a circular tautology — the author of the hint also
+// authored the substring assertions and the sabotage probe. It
+// catches the "someone removed the hint entirely" regression
+// class but does not catch "the hint's wording drifts from what
+// an LLM agent parses for remediation." When the hint text
+// contents become load-bearing for downstream parsing (e.g. an
+// LLM agent reads the hint to choose between override paths),
+// tighten this to a structural assertion — either split the
+// hint into named fragments via a struct, or maintain a golden
+// file. Until then, the circular shape is acceptable.
+func TestIsolationEscape_AC12_HintTextNamesAllOverridePaths(t *testing.T) {
 	t.Parallel()
 
 	hint := HintFor(CodeIsolationEscape.ID, "")
@@ -525,12 +534,17 @@ func TestIsolationEscape_AC12_HintTextNamesBothOverridePaths(t *testing.T) {
 		t.Fatal("isolation-escape has no hint registered in hintTable")
 	}
 
-	// Two override paths must be named so an operator reading the
-	// hint sees both sovereign exits.
+	// All sovereign override paths must be named so an operator
+	// reading the hint sees every legitimate exit. The
+	// acknowledge-illegal entry is M-0159/AC-9's deliverable: the
+	// kernel-native canonical path (separate empty commit, no
+	// history rewrite, traces via `aiwf history` through the
+	// aiwf-force-for trailer).
 	wantSubstrings := []struct {
 		name string
 		s    string
 	}{
+		{"acknowledge-illegal canonical path (M-0159/AC-9)", "aiwf acknowledge-illegal"},
 		{"cherry-pick -x path", "cherry-pick -x"},
 		{"aiwf-force trailer path", "aiwf-force"},
 		{"human/ actor requirement", "human/"},

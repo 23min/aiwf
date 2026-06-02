@@ -308,19 +308,30 @@ func TestRunProvenanceCheck_IsolationEscape_SilentOnBoundBranchCommit(t *testing
 }
 
 // TestRunProvenanceCheck_IsolationEscape_FindingCarriesHint pins
-// M-0106/T-1 from the third-pass retrospective: a future regression
-// that broke the hint-application chain (e.g., a refactor that
-// moved `contract.ApplyHintsLikeRun` to a position where the
-// provenance findings slice didn't flow through it, or a code
-// re-organization that detached the isolation-escape rule from the
-// post-processing pass) would silently ship findings without
-// hints — readable when the operator hits one in CI but missing
-// the override-path suggestion the AC-12 hint provides.
+// M-0106/T-1 from the third-pass retrospective AND M-0159/AC-9's
+// integration-level substring assertion that the rendered isolation-
+// escape hint names `aiwf acknowledge-illegal` as a canonical
+// override path. A future regression that broke the hint-application
+// chain (e.g., a refactor that moved `contract.ApplyHintsLikeRun` to
+// a position where the provenance findings slice didn't flow through
+// it, or a code re-organization that detached the isolation-escape
+// rule from the post-processing pass) would silently ship findings
+// without hints — readable when the operator hits one in CI but
+// missing the override-path suggestions the M-0106/AC-12 +
+// M-0159/AC-9 hints provide.
 //
-// The unit-level TestIsolationEscape_AC12_HintTextNamesBothOverridePaths
+// The unit-level TestIsolationEscape_AC12_HintTextNamesAllOverridePaths
 // pins the hintTable content; this test pins that the same hint
 // reaches a real finding through the production composition.
 // Together they cover the full hint surface.
+//
+// M-0159/AC-9 added the `aiwf acknowledge-illegal` substring
+// assertion: now that the verb's silencing surface covers
+// isolation-escape (via the AC-3 ack-helper lift + AC-4 wiring),
+// the hint must surface it alongside the two pre-existing paths
+// (cherry-pick -x re-author, aiwf-force amend) so an operator
+// reading the finding sees the kernel-native canonical path
+// without having to cross-reference acknowledge-illegal's --help.
 //
 // Note on test layering: `RunProvenanceCheck` itself does NOT call
 // ApplyHintsLikeRun; the outer `Run` (which composes provenance +
@@ -416,6 +427,18 @@ func TestRunProvenanceCheck_IsolationEscape_FindingCarriesHint(t *testing.T) {
 	}
 	if !strings.Contains(iso.Hint, "aiwf-force") {
 		t.Errorf("isolation-escape Hint %q does not include aiwf-force override (AC-12 anchor)", iso.Hint)
+	}
+	// M-0159/AC-9: the canonical kernel-native override (separate
+	// empty commit, no history rewrite, traces to `aiwf history` via
+	// the aiwf-force-for trailer) must be named so an operator
+	// reading the rendered hint sees the verb path without cross-
+	// referencing `aiwf acknowledge-illegal --help`. The verb's
+	// silencing surface covers isolation-escape via the AC-3 ack-
+	// helper lift + AC-4 wiring; the hint must surface it alongside
+	// the two pre-existing override paths. Integration-level
+	// substring assertion per AC-9's claim.
+	if !strings.Contains(iso.Hint, "aiwf acknowledge-illegal") {
+		t.Errorf("isolation-escape Hint %q missing `aiwf acknowledge-illegal` (M-0159/AC-9: canonical kernel-native override path)", iso.Hint)
 	}
 }
 
