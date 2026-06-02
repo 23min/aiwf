@@ -140,6 +140,13 @@ func TestBranchScenarios_AC5_TrailerVerbUnknownAckSilencing(t *testing.T) {
 			Name: "trailer-verb-unknown NOT acknowledged on its own SHA still fires (M-0159/AC-5: per-SHA scoping E2E)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
+				// strayedSHA is deliberately NOT used in the ack
+				// below — the whole point of this scenario is
+				// that the stray's SHA is left OUT of the
+				// ackedSHAs map. The capture-and-discard makes
+				// the omission explicit to a reader: the SHA
+				// exists, we just chose not to ack it. Per
+				// reviewer R3 / refactor-phase note.
 				strayedSHA := SimulateStrayVerbCommit(t, env, "implement",
 					"hand-rolled feat commit with fabricated aiwf-verb")
 				_ = strayedSHA
@@ -183,6 +190,19 @@ func TestBranchScenarios_AC5_TrailerVerbUnknownAckSilencing(t *testing.T) {
 		// different). Per M-0159/AC-4 refactor task #73's
 		// structural-assertion discipline.
 		//
+		// The trailer-preservation check alone has a gap: a
+		// hypothetical branch-rewrite-with-replacement (the verb
+		// rewriting the branch to drop the original commit and
+		// add a "fixed" version with the same content but
+		// different trailers) would leave the original object in
+		// the DB, so `git log -1 <strayedSHA>` still succeeds and
+		// shows the original's trailers — silently passing the
+		// preservation query even though the BRANCH state shifted.
+		// The reachability assertion below closes that gap: the
+		// stray's SHA must still be an ancestor of HEAD.
+		// `merge-base --is-ancestor` exits 0 if ancestor / 1 if
+		// not; MustRunGit Fatals on non-zero exit. Per reviewer T1.
+		//
 		// The Expect on this row asserts the silencing also
 		// holds (same as group 2), so the row covers both the
 		// silencing AND the trailer-preservation claim end-to-
@@ -207,6 +227,16 @@ func TestBranchScenarios_AC5_TrailerVerbUnknownAckSilencing(t *testing.T) {
 					t.Errorf("original stray commit %s aiwf-verb trailer value = %q; want exactly %q (single line) — a removal, addition, or override of the aiwf-verb trailer is a history-rewrite regression",
 						strayedSHA, gotVerb, "implement")
 				}
+				// Reachability: the original stray must still be
+				// an ancestor of HEAD. If a hypothetical buggy
+				// verb rewrote the branch to drop the original
+				// (object stays in the DB but no ref points at
+				// its line of history), the trailer query above
+				// would spuriously pass while the BRANCH state
+				// silently shifted. MustRunGit Fatals on non-zero
+				// exit, so a non-ancestor result fails the test
+				// loudly. Per reviewer T1.
+				env.MustRunGit("merge-base", "--is-ancestor", strayedSHA, "HEAD")
 			},
 			Expect: Expectation{NoFindingWithCode: "trailer-verb-unknown"},
 		},

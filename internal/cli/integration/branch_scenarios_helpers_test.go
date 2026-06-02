@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // branch_scenarios_helpers_test.go — M-0159/AC-1 framework: types,
@@ -769,7 +770,12 @@ func firstNBytes(b []byte, n int) []byte {
 // The trailer set is intentionally minimal: only `aiwf-verb:
 // <fabricated>`. No aiwf-entity, no aiwf-actor — the trailer-
 // verb-unknown rule's input is the `aiwf-verb:` value alone, and
-// real G-0150 fabrications were similarly sparse.
+// the fixture matches the canonical G-0150 shape (a fabricated
+// `aiwf-verb:` line on a hand-rolled code commit). Adding
+// non-load-bearing trailers would over-fit the fixture and
+// conflate this scenario with rules that fire on actor/entity
+// trailers — exactly what the per-rule isolation argument in the
+// AC-5 file header guards against.
 //
 // Returns the commit SHA. Used by AC-5's real-git E2E to convert
 // the docstring promise at trailer_verb_unknown.go:25-29
@@ -801,33 +807,42 @@ func SimulateStrayVerbCommit(t *testing.T, env *ScenarioEnv, fabricatedVerb, sub
 
 // sanitizeForFilename produces a short, filesystem-safe slug from
 // a free-form subject string. Used by SimulateStrayVerbCommit to
-// derive per-commit fixture filenames. Lowercase alnum + dash,
-// truncated to a short cap so scenarios don't accidentally
-// generate path lengths near system limits.
+// derive per-commit fixture filenames.
+//
+// Delegates the lowercase-alnum-dash-collapse alphabet to
+// entity.Slugify (the kernel's canonical slug producer at
+// internal/entity/serialize.go) so drift between the test-helper
+// alphabet and production slug rules cannot accumulate silently.
+// The fixture-specific concerns layered on top:
+//
+//  1. 40-char cap so fixture filenames stay short and don't push
+//     scenario paths near system limits. The cap belongs at the
+//     test-helper layer — entity.Slugify intentionally does not
+//     cap because real-entity slugs cap at the configured
+//     entities.title_max_length (default 80) via a different
+//     write-time chokepoint, and pushing a 40-char cap into the
+//     kernel would couple frontmatter slug derivation to
+//     filesystem path-length anxiety.
+//
+//  2. Empty-input fallback to "stray". entity.Slugify returns
+//     empty on empty input; real-entity callers reject empties
+//     upstream via the title-validation chokepoint, but test
+//     fixtures have no such upstream, so the fallback lives here.
+//
+// The trim-after-cap is explicit: slicing [:maxLen] may land on
+// a trailing `-` (entity.Slugify's collapse leaves single-hyphen
+// separators), and a trailing hyphen would otherwise read as
+// `notes-foo-.md` which is filesystem-safe but ugly.
 func sanitizeForFilename(s string) string {
 	const maxLen = 40
-	var b strings.Builder
-	prevDash := false
-	for _, r := range strings.ToLower(s) {
-		switch {
-		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
-			b.WriteRune(r)
-			prevDash = false
-		default:
-			if !prevDash && b.Len() > 0 {
-				b.WriteByte('-')
-				prevDash = true
-			}
-		}
-		if b.Len() >= maxLen {
-			break
-		}
+	slug := entity.Slugify(s)
+	if len(slug) > maxLen {
+		slug = strings.TrimRight(slug[:maxLen], "-")
 	}
-	out := strings.TrimRight(b.String(), "-")
-	if out == "" {
-		out = "stray"
+	if slug == "" {
+		return "stray"
 	}
-	return out
+	return slug
 }
 
 // AcknowledgeIllegal runs `aiwf acknowledge-illegal <targetSHA>
