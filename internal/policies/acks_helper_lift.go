@@ -78,6 +78,21 @@ import (
 //     this consumer. Closes the "uninitialized identifier of the
 //     right name" sabotage.
 //
+//     4d. A consumer rule's function body does not reference
+//     `ackedSHAs` in a consuming context — either an IndexExpr
+//     `ackedSHAs[X]` (the per-SHA lookup pattern the rules
+//     actually use) OR a CallExpr argument (the forward-to-helper
+//     pattern, e.g., FSMHistoryConsistent forwards to
+//     fsmHistoryConsistentWithDeps which then performs the
+//     lookup). A green-phase regression that adds the parameter
+//     to the signature but ignores it in the body — or silences
+//     it via `_ = ackedSHAs` — would otherwise pass classes 1-4c.
+//     The gather-layer's value never reaches the rule's silencing
+//     logic; AC-3's behavioral promise breaks silently. Closes
+//     the "consumer ignores parameter" sabotage at the policy
+//     layer (the M-0136 behavioral tests also catch it; this is
+//     the structural backstop).
+//
 // The policy is intentionally narrow — file locations, symbol
 // names, call shape, identifier provenance at known paths. A
 // future refactor that legitimately moves the helper or renames
@@ -506,6 +521,113 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 				Detail: "M-0159/AC-3 requires check." + name + " to receive ackedSHAs as one of its arguments (convention-driven match: an *ast.Ident named 'ackedSHAs'); this call site does not pass it — the gather-layer single-compute does not flow into this consumer",
 			})
 		}
+	}
+
+	// (4d) Each named consumer's function body must actually USE
+	// the ackedSHAs parameter. Closes the N1 sabotage class
+	// surfaced in AC-3 GREEN-phase dual review: a regression that
+	// adds the parameter to the signature but ignores it in the
+	// body — or silences "unused" via `_ = ackedSHAs` — would pass
+	// classes 1-4c. Two consuming contexts are accepted:
+	//
+	//   - IndexExpr: `ackedSHAs[X]` — the per-SHA lookup pattern
+	//     the rules use directly (RunIsolationEscape and
+	//     RunTrailerVerbUnknown).
+	//
+	//   - CallExpr argument: `helper(..., ackedSHAs, ...)` — the
+	//     forward-to-helper pattern (FSMHistoryConsistent forwards
+	//     to fsmHistoryConsistentWithDeps which then performs the
+	//     lookup via illegalTransitionFindings).
+	//
+	// Both shapes are present in the green-phase implementation;
+	// either alone satisfies the policy. The check scans the
+	// internal/check/ production files (non-test) for the three
+	// named consumer FuncDecls and asserts the body has at least
+	// one consuming reference. A FuncDecl whose body is missing
+	// (interface method, nil body) is skipped — the AC's three
+	// consumers all have concrete bodies, so a nil body would be
+	// an unrelated regression already caught elsewhere.
+	consumerFiles := map[string]*FileEntry{}
+	for _, f := range checkInternalProd {
+		consumerFiles[f.Path] = f
+	}
+	// fsm_history_consistent.go IS in checkInternalProd; the other
+	// consumers' files are also there. Walk the slice.
+	type bodyHit struct {
+		name string
+		file string
+		line int
+	}
+	consumerBodySeen := map[string]bool{
+		"FSMHistoryConsistent":  false,
+		"RunIsolationEscape":    false,
+		"RunTrailerVerbUnknown": false,
+	}
+	consumerBodyDecl := map[string]bodyHit{}
+	for _, f := range checkInternalProd {
+		fset := token.NewFileSet()
+		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
+		if perr != nil {
+			return nil, perr
+		}
+		for _, decl := range astFile.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil {
+				continue
+			}
+			name := fn.Name.Name
+			if _, tracked := consumerBodySeen[name]; !tracked {
+				continue
+			}
+			consumerBodyDecl[name] = bodyHit{
+				name: name,
+				file: f.Path,
+				line: fset.Position(fn.Pos()).Line,
+			}
+			if fn.Body == nil {
+				continue
+			}
+			ast.Inspect(fn.Body, func(n ast.Node) bool {
+				switch x := n.(type) {
+				case *ast.IndexExpr:
+					// `ackedSHAs[<expr>]` — the per-SHA lookup
+					// pattern.
+					if id, ok := x.X.(*ast.Ident); ok && id.Name == "ackedSHAs" {
+						consumerBodySeen[name] = true
+						return false
+					}
+				case *ast.CallExpr:
+					// `helper(..., ackedSHAs, ...)` — forward
+					// pattern.
+					for _, arg := range x.Args {
+						if id, ok := arg.(*ast.Ident); ok && id.Name == "ackedSHAs" {
+							consumerBodySeen[name] = true
+							return false
+						}
+					}
+				}
+				return true
+			})
+		}
+	}
+	for _, name := range []string{"FSMHistoryConsistent", "RunIsolationEscape", "RunTrailerVerbUnknown"} {
+		if consumerBodySeen[name] {
+			continue
+		}
+		hit, declared := consumerBodyDecl[name]
+		if !declared {
+			// The consumer doesn't have a FuncDecl in
+			// internal/check/. Either renamed or missing — class
+			// (4a) already flags this surface from the gather
+			// side; don't duplicate.
+			continue
+		}
+		out = append(out, Violation{
+			Policy: "acks-helper-lift",
+			File:   hit.file,
+			Line:   hit.line,
+			Detail: "M-0159/AC-3: check." + name + " has the `ackedSHAs` parameter on its signature but the body never reads it through a consuming pattern (no IndexExpr `ackedSHAs[X]`, no CallExpr passing it as an argument); the gather-layer-computed value is dropped on the floor and the rule's silencing logic is unreachable — close the N1 sabotage by adding the per-SHA lookup or forwarding the parameter to the function that performs the lookup",
+		})
 	}
 
 	return out, nil
