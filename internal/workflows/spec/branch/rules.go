@@ -210,9 +210,19 @@ func Rules() []spec.Rule {
 		// Behavioral tests live in the F-NNNN milestone family
 		// (outside E-0030 scope); this cell registers the override
 		// surface in the spec table for catalog completeness.
+		//
+		// Kind is `finding` per ADR-0003 §"Decision" — the ADR
+		// declares finding as the seventh entity kind, stored at
+		// work/findings/F-NNNN-*.md. The entity kind itself isn't
+		// implemented in the PoC yet (entity.AllKinds returns only
+		// the six existing kinds); this cell forward-declares the
+		// correct surface name so consumers reading the spec table
+		// see the right Kind value without needing the entity-side
+		// implementation. Pinned by
+		// internal/policies/m0159_ac8_kind_correction_test.go.
 		{
 			ID:            "branch-cell-override-f-nnnn-waiver",
-			Kind:          "gap", // F-NNNN is registered under the gap kind
+			Kind:          "finding",
 			Verb:          "promote",
 			Preconditions: []spec.Predicate{{Subject: "self.status", Op: "==", Value: "waived"}, {Subject: "force", Op: "==", Value: "true"}, {Subject: "actor-role", Op: "==", Value: "human"}, {Subject: "reason", Op: "non-empty", Value: ""}},
 			Outcome:       spec.OutcomeLegal,

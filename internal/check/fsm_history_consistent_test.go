@@ -34,7 +34,7 @@ func TestFSMHistoryConsistent_NilGuards(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := FSMHistoryConsistent(context.Background(), c.root, c.tr)
+			got := FSMHistoryConsistent(context.Background(), c.root, c.tr, nil)
 			if got != nil {
 				t.Errorf("expected nil findings, got %+v", got)
 			}
@@ -124,7 +124,7 @@ func TestFSMHistoryConsistent_FiresOnIllegalTransition(t *testing.T) {
 	r.commitEntity("E-0001", entity.KindEpic, entity.StatusDone, "skip-ahead illegal") // proposed -> done is FSM-illegal
 
 	tr := r.tree()
-	got := FSMHistoryConsistent(context.Background(), r.root, tr)
+	got := FSMHistoryConsistent(context.Background(), r.root, tr, nil)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}

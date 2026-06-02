@@ -35,9 +35,14 @@ func NewCmd() *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "acknowledge-illegal <sha>",
-		Short: "Record a sovereign override for a historical FSM-illegal commit",
-		Long: `Records an acknowledgment commit for a historical FSM-illegal commit that the
-fsm-history-consistent rule's illegal-transition predicate would otherwise flag.
+		Short: "Acknowledge a historical commit so kernel audit rules silence its findings",
+		Long: `Records an acknowledgment commit for a historical commit that one of the
+kernel's audit rules would otherwise flag. As of M-0159, the verb covers three
+silencing targets, all silenced through the same aiwf-force-for trailer:
+
+    - fsm-history-consistent / illegal-transition (M-0136/AC-2)
+    - fsm-history-consistent / forced-untrailered  (M-0159/AC-4)
+    - isolation-escape                             (M-0159/AC-4 via AC-3 lift)
 
 The acknowledgment is a separate, current-day empty commit carrying:
 
@@ -46,11 +51,16 @@ The acknowledgment is a separate, current-day empty commit carrying:
     aiwf-actor: human/<name>
     aiwf-reason: <text>
 
-The fsm-history-consistent rule walks HEAD's reachable history for
-aiwf-force-for trailers and exempts any illegal-transition finding
-whose offending commit appears as a target. The acknowledgment lives
-in git (queryable via aiwf history); it does NOT pollute aiwf.yaml and
-does NOT rewrite the offending commit's history.
+The CLI gather layer at internal/cli/check/check.go walks HEAD's reachable
+history for aiwf-force-for trailers once per check invocation (the M-0159/AC-3
+lift) and threads the resulting SHA set to all three rules above; each rule
+exempts findings whose offending commit appears in the set. The acknowledgment
+lives in git (queryable via aiwf history); it does NOT pollute aiwf.yaml and
+does NOT rewrite the offending commit's history — the original author,
+trailers, and SHA are preserved per M-0136's no-history-rewrite principle.
+
+Per-SHA closed-set scoping: an acknowledgment for one SHA exempts only that
+SHA. There is no "exempt everything" knob.
 
 Both --reason (non-empty after trim) and a human/... actor are required
 — sovereign acts trace to a named human with written rationale.`,

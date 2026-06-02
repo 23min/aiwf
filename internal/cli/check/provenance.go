@@ -35,7 +35,15 @@ import (
 // Untrailered commits are handled by the separate step-7b audit pass,
 // which uses a different filter (range scoped per ResolveUntrailedRange,
 // no trailer grep).
-func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}) ([]check.Finding, error) {
+//
+// M-0159/AC-3: ackedSHAs is the gather-layer-computed map of
+// retroactively-acknowledged commit SHAs (via
+// check.WalkAcknowledgedSHAs called once at check.go::Run).
+// Passed through to both rules that consume it from this gather
+// (check.RunIsolationEscape, check.RunTrailerVerbUnknown); the
+// third consumer (check.FSMHistoryConsistent) is called directly
+// from check.go::Run with the same map.
+func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}, ackedSHAs map[string]bool) ([]check.Finding, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -50,13 +58,19 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// the rule degrades to "unknown branch, silent" rather than
 	// blocking the entire check pass, because branch-policing is one
 	// rule among many and a failure here should not mask the others.
-	// The cherry-pick gather-side is parked at G-0202; nil for now
-	// means cherry-picks are NOT yet suppressed against real git
-	// history (the rule-side suppression works, but the gather-side
-	// derivation of committer-vs-actor + body marker is not
-	// implemented yet — see G-0202 for the design notes).
+	//
+	// M-0159/AC-6: cherry-pick gather-side wired via
+	// check.WalkCherryPicks. Closes G-0202 — the parked gather that
+	// left this call passing nil. The walker walks HEAD's reachable
+	// history once per check invocation, applies the both-signals
+	// contract (marker AND committer-vs-author email gap), and
+	// returns the set of sovereign-human cherry-pick re-author SHAs
+	// the rule should exempt. The rule's docstring at
+	// internal/check/isolation_escape.go:67-78 pins the contract;
+	// the walker is the gather-side derivation.
 	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
-		findings = append(findings, check.RunIsolationEscape(commits, oracle, nil)...)
+		cherryPicked := check.WalkCherryPicks(ctx, root)
+		findings = append(findings, check.RunIsolationEscape(commits, oracle, cherryPicked, ackedSHAs)...)
 	}
 
 	rangeArg, advisory, rErr := ResolveUntrailedRange(ctx, root, since)
@@ -89,7 +103,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// stamps as unknown, which is preferable to silently allowing
 	// arbitrary values.
 	ritualVerbs, _ := skills.RitualTrailerVerbs()
-	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs, ritualVerbs)...)
+	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs, ritualVerbs, ackedSHAs)...)
 	return findings, nil
 }
 

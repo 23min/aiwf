@@ -48,13 +48,27 @@ const CodeTrailerVerbUnknown = "trailer-verb-unknown"
 // stamp. A nil ritualVerbs is treated as the empty set; the kernel
 // `add`/`promote`/etc. verbs still resolve via registeredVerbs.
 //
+// M-0159/AC-3: ackedSHAs carries the set of commit SHAs that have
+// been retroactively acknowledged via `aiwf acknowledge-illegal`.
+// The CLI gather layer computes the map once per check invocation
+// (via WalkAcknowledgedSHAs in acks.go) and passes it here so
+// historical stray commits with `aiwf-verb: <fabricated>` trailers
+// can be quieted without rewriting history. Per-SHA closed-set
+// scoping; nil or empty map is "no acknowledgments."
+//
 // Closes G-0150.
-func RunTrailerVerbUnknown(commits []scope.Commit, registeredVerbs, ritualVerbs map[string]struct{}) []Finding {
+func RunTrailerVerbUnknown(commits []scope.Commit, registeredVerbs, ritualVerbs map[string]struct{}, ackedSHAs map[string]bool) []Finding {
 	if len(commits) == 0 || len(registeredVerbs) == 0 {
 		return nil
 	}
 	var out []Finding
 	for _, c := range commits {
+		if ackedSHAs[c.SHA] {
+			// M-0159/AC-3 — retroactive acknowledgment exempts this
+			// commit. Same per-SHA closed-set semantics as the other
+			// two ack-consuming rules.
+			continue
+		}
 		for _, tr := range c.Trailers {
 			if tr.Key != gitops.TrailerVerb {
 				continue

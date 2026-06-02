@@ -65,7 +65,7 @@ func TestRunProvenanceCheck_TrailerVerbUnknown_FiresOnUnpushedFabrication(t *tes
 		"promote": {},
 		// "implement" deliberately absent
 	}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -130,7 +130,7 @@ func TestRunProvenanceCheck_TrailerVerbUnknown_SilentOnRegisteredVerb(t *testing
 		"add":     {},
 		"promote": {},
 	}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -211,7 +211,7 @@ func TestAsScopeCommits_CopiesSHAAndTrailers(t *testing.T) {
 // without erroring on the absent git log.
 func TestRunProvenanceCheck_EmptyRepoIsNoop(t *testing.T) {
 	t.Parallel()
-	findings, err := RunProvenanceCheck(context.Background(), t.TempDir(), &tree.Tree{}, "", nil)
+	findings, err := RunProvenanceCheck(context.Background(), t.TempDir(), &tree.Tree{}, "", nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}

@@ -66,16 +66,27 @@ type BranchOracle interface {
 //
 // cherryPicked is the set of commit SHAs the gather layer identified
 // as `git cherry-pick -x` re-authors of upstream commits: both
-// (a) committer email differs from the original actor's encoded
-// email AND (b) the commit body carries the
-// `(cherry picked from commit <sha>)` marker that `git cherry-pick -x`
-// writes by default. When a commit's SHA is in this set the rule
-// treats it as a sovereign human re-author (corner case 8 / AC-6)
-// and suppresses any isolation-escape finding against it; the audit
-// trail lives in the committer-vs-author identity gap and the marker
-// itself. A nil/empty map means "no cherry-pick info available";
-// the rule then polices as usual (no false negatives — only
-// known-cherry-picks are suppressed).
+// (a) the commit body carries the `(cherry picked from commit <sha>)`
+// marker line that `git cherry-pick -x` writes by default AND
+// (b) the commit's git committer email differs from its git author
+// email (the identity gap that `git cherry-pick` produces by default
+// when a different identity re-authors the original — committer
+// becomes the current user, author preserved from source). When a
+// commit's SHA is in this set the rule treats it as a sovereign
+// human re-author (corner case 8 / AC-6) and suppresses any
+// isolation-escape finding against it; the audit trail lives in
+// the committer-vs-author identity gap and the marker itself.
+// A nil/empty map means "no cherry-pick info available"; the rule
+// then polices as usual (no false negatives — only known-cherry-picks
+// are suppressed).
+//
+// The both-signals contract is the gather-side's per-commit
+// derivation, implemented by check.WalkCherryPicks in
+// internal/check/cherry_picks.go (M-0159/AC-6 / G-0202). Either
+// signal alone is insufficient: a fabricated marker (no real
+// cherry-pick) lacks the gap; an amended commit (gap without -x)
+// lacks the marker. Real-git E2E coverage lives in
+// internal/cli/integration/branch_scenarios_ac6_test.go.
 //
 // Per-commit firing: each violating commit produces its own
 // finding. No aggregation, no per-entity summary — the user wants
@@ -101,7 +112,18 @@ type BranchOracle interface {
 //  6. Otherwise fire isolation-escape with the commit's SHA, the
 //     entity id, the bound branch, and the actual branch list as
 //     evidence.
-func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicked map[string]bool) []Finding {
+//
+// M-0159/AC-3: ackedSHAs carries the set of commit SHAs that have
+// been retroactively acknowledged via `aiwf acknowledge-illegal`.
+// The CLI gather layer computes the map once per check invocation
+// (via WalkAcknowledgedSHAs in acks.go) and passes it to all
+// three rules that consume it; rule-internal recompute is
+// forbidden. A commit whose SHA appears in ackedSHAs is exempted
+// from this rule's finding even when it would otherwise fire
+// (same per-SHA closed-set scoping the M-0136/AC-2
+// illegal-transition exemption uses). Nil or empty map means "no
+// acknowledgments" and the rule polices as usual.
+func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicked, ackedSHAs map[string]bool) []Finding {
 	if oracle == nil {
 		return nil
 	}
@@ -220,6 +242,20 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 		}
 		if slices.Contains(actualBranches, bound) {
 			continue // AC-4 — commit rides the bound branch.
+		}
+
+		// M-0159/AC-3 — retroactive acknowledgment. When an operator
+		// runs `aiwf acknowledge-illegal <escape-sha> --reason "..."`
+		// after the escape has landed, the new commit carries an
+		// aiwf-force-for: <escape-sha> trailer. The CLI gather layer
+		// pre-computed the set of acknowledged SHAs (see
+		// WalkAcknowledgedSHAs in acks.go) and passes the map here;
+		// commits in the set are exempted with the same closed-set
+		// per-SHA scoping the M-0136/AC-2 illegal-transition
+		// exemption uses. A nil/empty map means "no acknowledgments"
+		// and the rule polices as usual.
+		if ackedSHAs[c.SHA] {
+			continue
 		}
 
 		// AC-6 — sovereign cherry-pick re-author. When a human runs

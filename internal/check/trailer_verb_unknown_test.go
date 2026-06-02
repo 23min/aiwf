@@ -36,7 +36,7 @@ func TestRunTrailerVerbUnknown_FiresOnFabricatedVerb(t *testing.T) {
 	commits := []scope.Commit{
 		commitWithVerb("aaa1111", "implement"), // fabricated
 	}
-	got := RunTrailerVerbUnknown(commits, registered, nil)
+	got := RunTrailerVerbUnknown(commits, registered, nil, nil)
 	if len(got) != 1 {
 		t.Fatalf("findings = %d, want 1", len(got))
 	}
@@ -71,7 +71,7 @@ func TestRunTrailerVerbUnknown_SilentOnRegisteredVerbs(t *testing.T) {
 		commitWithVerb("aaa4", "milestone-depends-on"),
 		commitWithVerb("aaa5", "render-roadmap"),
 	}
-	if got := RunTrailerVerbUnknown(commits, registered, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, registered, nil, nil); len(got) != 0 {
 		for i := range got {
 			t.Logf("unexpected: %s — %s", got[i].Code, got[i].Message)
 		}
@@ -91,7 +91,7 @@ func TestRunTrailerVerbUnknown_SkipsCommitsWithoutAiwfVerb(t *testing.T) {
 		}},
 		{SHA: "plain"}, // no trailers at all
 	}
-	if got := RunTrailerVerbUnknown(commits, registered, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, registered, nil, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (no aiwf-verb trailer present)", len(got))
 	}
 }
@@ -107,7 +107,7 @@ func TestRunTrailerVerbUnknown_EmptyValueIsSilent(t *testing.T) {
 			{Key: gitops.TrailerVerb, Value: ""},
 		}},
 	}
-	if got := RunTrailerVerbUnknown(commits, registered, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, registered, nil, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (empty value is a different rule's domain)", len(got))
 	}
 }
@@ -122,10 +122,10 @@ func TestRunTrailerVerbUnknown_EmptyValueIsSilent(t *testing.T) {
 func TestRunTrailerVerbUnknown_EmptyRegisteredSetIsSilent(t *testing.T) {
 	t.Parallel()
 	commits := []scope.Commit{commitWithVerb("aaa", "implement")}
-	if got := RunTrailerVerbUnknown(commits, nil, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, nil, nil, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (empty registry → skip rather than flood)", len(got))
 	}
-	if got := RunTrailerVerbUnknown(commits, map[string]struct{}{}, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, map[string]struct{}{}, nil, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (empty registry → skip rather than flood)", len(got))
 	}
 }
@@ -142,7 +142,7 @@ func TestRunTrailerVerbUnknown_MultipleCommitsOneFindingEach(t *testing.T) {
 		commitWithVerb("ccc", "add"), // valid; not counted
 		commitWithVerb("ddd", "test"),
 	}
-	got := RunTrailerVerbUnknown(commits, registered, nil)
+	got := RunTrailerVerbUnknown(commits, registered, nil, nil)
 	if len(got) != 3 {
 		t.Fatalf("findings = %d, want 3 (implement, feat, test)", len(got))
 	}
@@ -183,7 +183,7 @@ func TestRunTrailerVerbUnknown_SilentOnRitualVerbs(t *testing.T) {
 		commitWithVerb("kvb1", "promote"),   // kernel verb
 		commitWithVerb("bad1", "implement"), // fabricated — must still fire
 	}
-	got := RunTrailerVerbUnknown(commits, registered, rituals)
+	got := RunTrailerVerbUnknown(commits, registered, rituals, nil)
 	if len(got) != 1 {
 		for i := range got {
 			t.Logf("finding: %s", got[i].Message)
