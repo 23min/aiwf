@@ -2,8 +2,10 @@ package integration
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -95,6 +97,26 @@ func (e *ScenarioEnv) MustRunGit(args ...string) string {
 	return out
 }
 
+// TryRunBin is the non-fatal sibling of MustRunBin: returns
+// (combined output, error) without fatal'ing. Used by scenarios
+// that assert a verb's refusal — capturing the error envelope or
+// exit code is the assertion target, not a failure of the test
+// fixture. Example: pinning M-0103's preflight refusal of an AI
+// authorize without ritual branch context.
+func (e *ScenarioEnv) TryRunBin(args ...string) (string, error) {
+	e.T.Helper()
+	return testutil.RunBin(e.T, e.Root, e.BinDir, nil, args...)
+}
+
+// TryRunGit is the non-fatal sibling of MustRunGit: returns
+// (stdout, error). Used by scenarios that exercise git operations
+// expected to fail (force-push refused on a protected branch,
+// merge conflict, etc.).
+func (e *ScenarioEnv) TryRunGit(args ...string) (string, error) {
+	e.T.Helper()
+	return testutil.RunGit(e.Root, args...)
+}
+
 // RunScenarios is the table driver. Each row runs as a t.Run
 // subtest with t.Parallel; the driver builds a fresh ScenarioEnv
 // per row, calls Setup, then runs `aiwf check --format=json` and
@@ -113,9 +135,14 @@ func RunScenarios(t *testing.T, scenarios []Scenario) {
 
 // newScenarioEnv builds a fresh real-git fixture for one scenario:
 // temp repo + bare upstream + `aiwf init` + a normalized "main"
-// branch (per the G-0200 reminder — even today's hardcoded "main"
-// path needs a consistent local name; default git config may
-// produce "master" or "main").
+// branch.
+//
+// Trunk name is hardcoded to "main" here, matching the kernel's
+// current default. G-0200 covers generalizing this to
+// aiwf.yaml.allocate.trunk so consumers using "master", "dev", or
+// "develop" get the same coverage. M-0161/AC-1 lands the trunk-
+// config rework, at which point this helper will read the configured
+// trunk name instead of hardcoding "main".
 func newScenarioEnv(t *testing.T) *ScenarioEnv {
 	t.Helper()
 	root, binDir := initRepoFor(t, "peter@example.com")
@@ -130,14 +157,28 @@ func newScenarioEnv(t *testing.T) *ScenarioEnv {
 }
 
 // assertExpectation runs `aiwf check --format=json` and asserts
-// the envelope against Expect. Tolerant of non-zero exit codes
-// (findings → exit 1) since the assertions are on the envelope's
-// content, not the exit code.
+// the envelope against Expect. The exit-code contract per
+// cmd/aiwf/main.go: 0 = ok, 1 = findings (envelope on stdout), 2 =
+// usage error, 3 = internal error. We accept 0 and 1 (both produce
+// a valid envelope to assert against); 2 and 3 indicate the test
+// fixture or the binary is broken in a way that should fail the
+// test immediately, not silently parse-and-assert against partial
+// output.
 func assertExpectation(t *testing.T, env *ScenarioEnv, expect Expectation) {
 	t.Helper()
-	// aiwf check exits 1 when findings are present; the envelope
-	// JSON is still on stdout. We tolerate err here.
-	out, _ := testutil.RunBin(t, env.Root, env.BinDir, nil, "check", "--format=json")
+	out, err := testutil.RunBin(t, env.Root, env.BinDir, nil, "check", "--format=json")
+	if err != nil {
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			t.Fatalf("aiwf check failed to invoke: %v\nstdout+stderr:\n%s", err, out)
+		}
+		// findings → exit 1 is the legitimate non-zero exit. Anything
+		// else (2 usage, 3 internal, signal-kill, ...) is a fixture
+		// or binary bug; surface it loudly.
+		if code := exitErr.ExitCode(); code != 1 {
+			t.Fatalf("aiwf check exited %d (expected 0 or 1; 2 = usage error, 3 = internal error per cmd/aiwf/main.go)\nstdout+stderr:\n%s", code, out)
+		}
+	}
 
 	var envelope struct {
 		Status   string `json:"status"`
@@ -273,10 +314,16 @@ func SimulateAIEscape(t *testing.T, env *ScenarioEnv, entityID, subjectText stri
 }
 
 // findEntityBodyPath returns the repo-relative path to the
-// entity's markdown body. For E-NNNN: work/epics/E-NNNN-<slug>/epic.md.
-// For M-NNNN (under epic E-PPPP): work/epics/E-PPPP-<pslug>/M-NNNN-<slug>.md.
-// Fatals if no matching file is found — the entity must exist before
-// SimulateAIEscape can fabricate a commit against it.
+// entity's markdown body. Today only the epic kind (E-NNNN) is
+// supported — M-0159/AC-1's scenarios all target epics. Other
+// kinds (M-NNNN milestones, G-NNNN gaps, D-NNNN decisions, etc.)
+// Fatal with a clear message naming the unsupported kind.
+//
+// Scope extension happens AC-by-AC: M-0159/AC-2 will exercise
+// M-0106 paths against milestones (so it will extend this helper
+// to the milestone kind in the same commit set). Each extension
+// keeps the discrimination explicit so a typo'd entity id surfaces
+// loudly instead of silently no-op'ing.
 func findEntityBodyPath(t *testing.T, env *ScenarioEnv, entityID string) string {
 	t.Helper()
 	switch {
@@ -293,7 +340,7 @@ func findEntityBodyPath(t *testing.T, env *ScenarioEnv, entityID string) string 
 		}
 		t.Fatalf("no epic directory found for %s under work/epics/", entityID)
 	default:
-		t.Fatalf("SimulateAIEscape: entity kind for %q not yet supported (only epics today; extend findEntityBodyPath as needed)", entityID)
+		t.Fatalf("findEntityBodyPath: entity kind for %q not supported by M-0159/AC-1 scope (only epics today; M-0159/AC-2 extends to milestones; further kinds as their ACs need them)", entityID)
 	}
 	return ""
 }
