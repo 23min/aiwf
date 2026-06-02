@@ -22,7 +22,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: walkAcknowledgedSHAs lifted to shared helper, three rules consume it
-      status: met
+      status: open
       tdd_phase: done
     - id: AC-4
       title: acknowledge-illegal silences isolation-escape and forced-untrailered
