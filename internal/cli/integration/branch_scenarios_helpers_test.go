@@ -119,26 +119,6 @@ func (e *ScenarioEnv) MustRunGit(args ...string) string {
 	return out
 }
 
-// TryRunBin is the non-fatal sibling of MustRunBin: returns
-// (combined output, error) without fatal'ing. Used by scenarios
-// that assert a verb's refusal — capturing the error envelope or
-// exit code is the assertion target, not a failure of the test
-// fixture. Example: pinning M-0103's preflight refusal of an AI
-// authorize without ritual branch context.
-func (e *ScenarioEnv) TryRunBin(args ...string) (string, error) {
-	e.T.Helper()
-	return testutil.RunBin(e.T, e.Root, e.BinDir, nil, args...)
-}
-
-// TryRunGit is the non-fatal sibling of MustRunGit: returns
-// (stdout, error). Used by scenarios that exercise git operations
-// expected to fail (force-push refused on a protected branch,
-// merge conflict, etc.).
-func (e *ScenarioEnv) TryRunGit(args ...string) (string, error) {
-	e.T.Helper()
-	return testutil.RunGit(e.Root, args...)
-}
-
 // RunScenarios is the table driver. Each row runs as a t.Run
 // subtest with t.Parallel; the driver builds a fresh ScenarioEnv
 // per row, calls Setup, then runs `aiwf check --format=json` and
