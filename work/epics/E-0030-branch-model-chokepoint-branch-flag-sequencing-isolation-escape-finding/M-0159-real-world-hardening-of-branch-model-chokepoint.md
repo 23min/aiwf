@@ -11,6 +11,43 @@ depends_on:
     - M-0106
     - M-0158
 tdd: required
+acs:
+    - id: AC-1
+      title: Combinatorial real-git E2E test framework under internal/cli/integration
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: M-0106 isolation-escape paths covered by real-git E2E integration tests
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: walkAcknowledgedSHAs lifted to shared helper, three rules consume it
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: acknowledge-illegal silences isolation-escape and forced-untrailered
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: trailer-verb-unknown rule consumes ackedSHAs via shared helper
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: Cherry-pick gather-side detects cherry picked from commit markers
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: Cellcoverage fixture aiwf-branch values resolve or are exempted
+      status: open
+      tdd_phase: red
+    - id: AC-8
+      title: branch-cell-override-f-nnnn-waiver Kind corrected to finding
+      status: open
+      tdd_phase: red
+    - id: AC-9
+      title: internal/check/hint.go names canonical override for isolation-escape
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -105,4 +142,22 @@ AC seed set (to be allocated via `aiwf add ac` at start-milestone time, after th
 
 These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 -->
+
+### AC-1 — Combinatorial real-git E2E test framework under internal/cli/integration
+
+### AC-2 — M-0106 isolation-escape paths covered by real-git E2E integration tests
+
+### AC-3 — walkAcknowledgedSHAs lifted to shared helper, three rules consume it
+
+### AC-4 — acknowledge-illegal silences isolation-escape and forced-untrailered
+
+### AC-5 — trailer-verb-unknown rule consumes ackedSHAs via shared helper
+
+### AC-6 — Cherry-pick gather-side detects cherry picked from commit markers
+
+### AC-7 — Cellcoverage fixture aiwf-branch values resolve or are exempted
+
+### AC-8 — branch-cell-override-f-nnnn-waiver Kind corrected to finding
+
+### AC-9 — internal/check/hint.go names canonical override for isolation-escape
 
