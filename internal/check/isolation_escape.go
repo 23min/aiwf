@@ -101,7 +101,18 @@ type BranchOracle interface {
 //  6. Otherwise fire isolation-escape with the commit's SHA, the
 //     entity id, the bound branch, and the actual branch list as
 //     evidence.
-func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicked map[string]bool) []Finding {
+//
+// M-0159/AC-3: ackedSHAs carries the set of commit SHAs that have
+// been retroactively acknowledged via `aiwf acknowledge-illegal`.
+// The CLI gather layer computes the map once per check invocation
+// (via WalkAcknowledgedSHAs in acks.go) and passes it to all
+// three rules that consume it; rule-internal recompute is
+// forbidden. A commit whose SHA appears in ackedSHAs is exempted
+// from this rule's finding even when it would otherwise fire
+// (same per-SHA closed-set scoping the M-0136/AC-2
+// illegal-transition exemption uses). Nil or empty map means "no
+// acknowledgments" and the rule polices as usual.
+func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicked, ackedSHAs map[string]bool) []Finding {
 	if oracle == nil {
 		return nil
 	}
@@ -220,6 +231,20 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 		}
 		if slices.Contains(actualBranches, bound) {
 			continue // AC-4 — commit rides the bound branch.
+		}
+
+		// M-0159/AC-3 — retroactive acknowledgment. When an operator
+		// runs `aiwf acknowledge-illegal <escape-sha> --reason "..."`
+		// after the escape has landed, the new commit carries an
+		// aiwf-force-for: <escape-sha> trailer. The CLI gather layer
+		// pre-computed the set of acknowledged SHAs (see
+		// WalkAcknowledgedSHAs in acks.go) and passes the map here;
+		// commits in the set are exempted with the same closed-set
+		// per-SHA scoping the M-0136/AC-2 illegal-transition
+		// exemption uses. A nil/empty map means "no acknowledgments"
+		// and the rule polices as usual.
+		if ackedSHAs[c.SHA] {
+			continue
 		}
 
 		// AC-6 — sovereign cherry-pick re-author. When a human runs

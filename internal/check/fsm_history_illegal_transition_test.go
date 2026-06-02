@@ -296,7 +296,7 @@ func TestFSMHistoryConsistent_IllegalOnBranchPlusMergeFiresOnlyOnOriginal_PerD00
 	r.gitCheckout("main")
 	r.gitMerge("branch-bad", "merge branch-bad into main")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	// D-0010: expect 1 finding — only the original branch-bad commit.
 	// The merge integration is silent.
 	if len(got) != 1 {
@@ -346,7 +346,7 @@ func TestFSMHistoryConsistent_LegalFeatureBranchMergeNoFire_PerD0010(t *testing.
 	r.gitCheckout("main")
 	r.gitMerge("feature-branch", "merge feature-branch into main")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	// D-0010: every per-commit observation on the branch is legal
 	// (draft -> in_progress, in_progress -> done) with aiwf-verb
 	// trailers; the merge integration is skipped. Total: 0 findings.
@@ -381,7 +381,7 @@ func TestFSMHistoryConsistent_MergeResolvingToLegalNoFire(t *testing.T) {
 	r.gitCheckout("main")
 	r.gitMerge("branch-good", "merge branch-good into main")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings (legal non-sovereign transition with verb trailer, integrated via merge); got %d: %+v", len(got), got)
 	}
@@ -414,7 +414,7 @@ func TestFSMHistoryConsistent_LegalUntraileredFeatureBranchMerge_OnlyAC4Fires(t 
 	r.gitCheckout("main")
 	r.gitMerge("branch-untrailered", "merge branch-untrailered into main")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	// Expected: AC-4 fires on the two branch commits; the merge
 	// integration is silent per D-0010; no AC-2 or AC-3 findings.
 	if len(got) != 2 {

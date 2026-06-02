@@ -428,7 +428,7 @@ func TestFSMHistoryConsistent_FiresForcedUntrailered_OnEpicActivateWithoutForce(
 			// notably: no aiwf-force
 		})
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}
@@ -470,7 +470,7 @@ func TestFSMHistoryConsistent_NoForcedUntrailered_WhenForceTrailerPresent(t *tes
 			"aiwf-force":  "ai/claude session — operator override per kernel doc",
 		})
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings (force-trailer exempts AC-3); got %d: %+v", len(got), got)
 	}
@@ -494,7 +494,7 @@ func TestFSMHistoryConsistent_ForcedUntrailered_MergeIntegrationSilent(t *testin
 	r.gitCheckout("main")
 	r.gitMerge("branch-activate", "merge branch-activate into main")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding (original commit only; merge skipped per D-0010), got %d: %+v", len(got), got)
 	}

@@ -102,7 +102,7 @@ func TestIsolationEscape_AC1_AICommitOnMainFires(t *testing.T) {
 		"c0000001": {"main"}, // AI commit landed on main — escape.
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected exactly 1 finding (AC-10: per-commit firing); got %d", len(findings))
 	}
@@ -165,7 +165,7 @@ func TestIsolationEscape_AC3_WorktreeBranchMismatchFires(t *testing.T) {
 		"c0000002": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected exactly 1 finding for worktree-branch mismatch; got %d", len(findings))
 	}
@@ -191,7 +191,7 @@ func TestIsolationEscape_AC4_AICommitOnBoundBranchSilent(t *testing.T) {
 		"c0000003": {"epic/E-0001-engine"}, // rides bound branch — silent.
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AC-4: commit rides bound branch); got %d: %+v", len(findings), findings)
 	}
@@ -215,7 +215,7 @@ func TestIsolationEscape_AC9_NoScopeOpenedSilent(t *testing.T) {
 		"c0000004": {"epic/E-0002-other"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AC-9: no scope on entity); got %d: %+v", len(findings), findings)
 	}
@@ -240,7 +240,7 @@ func TestIsolationEscape_NilOracleSilent(t *testing.T) {
 		makeAICommit("c0000005", "E-0001", "ai/claude", "edit-body"),
 	}
 
-	findings := RunIsolationEscape(commits, nil, nil)
+	findings := RunIsolationEscape(commits, nil, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings with nil oracle (graceful degradation); got %d", len(findings))
 	}
@@ -267,7 +267,7 @@ func TestIsolationEscape_UnknownBranchSilent(t *testing.T) {
 		// c0000006 deliberately absent — oracle returns nil for it.
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for unknown-branch commit; got %d", len(findings))
 	}
@@ -291,7 +291,7 @@ func TestIsolationEscape_HumanCommitSilent(t *testing.T) {
 		"c0000007": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for human-actor commit; got %d: %+v", len(findings), findings)
 	}
@@ -315,7 +315,7 @@ func TestIsolationEscape_LegacyPreM0102ScopeSilent(t *testing.T) {
 		"c0000008": {"main"}, // even on main, legacy scope means silent.
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for legacy pre-M-0102 scope; got %d: %+v", len(findings), findings)
 	}
@@ -343,7 +343,7 @@ func TestIsolationEscape_AC2_AICommitOnDifferentRitualBranchFires(t *testing.T) 
 		"c0000010": {"epic/E-0002-other"}, // different epic branch.
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected exactly 1 finding (AC-2); got %d", len(findings))
 	}
@@ -392,7 +392,7 @@ func TestIsolationEscape_AC5_AICommitOnBoundBranchPausedScopeSilent(t *testing.T
 		"c0000020": {"epic/E-0001-engine"}, // rides bound — silent.
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AC-5: paused scope + on bound branch); got %d: %+v", len(findings), findings)
 	}
@@ -430,7 +430,7 @@ func TestIsolationEscape_AC10_PerCommitFiring(t *testing.T) {
 		"cccc032c": {"epic/E-0002-other"}, // violating (different branch)
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 3 {
 		t.Fatalf("expected 3 findings (one per violating commit, AC-10); got %d: %+v", len(findings), findings)
 	}
@@ -484,7 +484,7 @@ func TestIsolationEscape_AC11_SeverityIsWarning(t *testing.T) {
 		"c0000040": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected 1 finding; got %d", len(findings))
 	}
@@ -571,7 +571,7 @@ func TestIsolationEscape_AC6_CherryPickReAuthorSilent(t *testing.T) {
 		"cp000060": true,
 	}
 
-	findings := RunIsolationEscape(commits, oracle, cherryPicked)
+	findings := RunIsolationEscape(commits, oracle, cherryPicked, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for cherry-pick re-author (AC-6); got %d: %+v", len(findings), findings)
 	}
@@ -599,7 +599,7 @@ func TestIsolationEscape_AC6_NonCherryPickStillFires(t *testing.T) {
 		"c0000061": {"main"},
 	}
 	for _, cp := range []map[string]bool{nil, {}} {
-		findings := RunIsolationEscape(commits, oracle, cp)
+		findings := RunIsolationEscape(commits, oracle, cp, nil)
 		if len(findings) != 1 {
 			t.Errorf("with cherryPicked=%v: expected 1 finding (not a cherry-pick); got %d", cp, len(findings))
 		}
@@ -636,7 +636,7 @@ func TestIsolationEscape_AC7_HumanMergeFirstParentSilent(t *testing.T) {
 		"merge001": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for human-merge + AI commits behind merge (AC-7); got %d: %+v", len(findings), findings)
 	}
@@ -670,7 +670,7 @@ func TestIsolationEscape_AC8_ForceAmendedCommitSilent(t *testing.T) {
 		"amended0": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for force-amended commit (AC-8); got %d: %+v", len(findings), findings)
 	}
@@ -718,7 +718,7 @@ func TestIsolationEscape_F3_AICommitAfterScopeEndedSilent(t *testing.T) {
 		"c0000080": {"main"}, // stray AI commit on main — would have fired pre-F-3.
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings for AI commit after scope ended (F-3); got %d: %+v", len(findings), findings)
 	}
@@ -761,7 +761,7 @@ func TestIsolationEscape_F3_AICommitBeforeScopeEndedFires(t *testing.T) {
 		"endsc002": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected 1 finding (AI commit before scope-end → fires); got %d", len(findings))
 	}
@@ -820,7 +820,7 @@ func TestIsolationEscape_F2_MalformedOpenerDoesNotFalseFire(t *testing.T) {
 		"c0000090": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (malformed opener input does not false-positive fire on unrelated AI commit); got %d: %+v", len(findings), findings)
 	}
@@ -862,7 +862,7 @@ func TestIsolationEscape_F2_AICommitOnAuthorizeVerbSkipped(t *testing.T) {
 		"pauseAI0": {"main"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AI-actor authorize commit must be skipped via verb guard); got %d: %+v", len(findings), findings)
 	}
@@ -910,7 +910,7 @@ func TestIsolationEscape_T6_BoundBranchAbsentFromOracleFires(t *testing.T) {
 		"c0000T60": {"epic/E-0001-engine"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 1 {
 		t.Fatalf("expected 1 finding (bound branch absent from oracle index → rule fires per natural semantics); got %d: %+v", len(findings), findings)
 	}
@@ -1002,7 +1002,7 @@ func TestIsolationEscape_N3_DuplicateScopeEndsFirstWins(t *testing.T) {
 	// the docstring after the confidence-audit workflow flagged the
 	// self-contradiction. The fixture and assertion were sound from
 	// day one; only the closing prose lied.)
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AI commit after first scope-end; duplicate-skip preserves first-wins); got %d: %+v", len(findings), findings)
 	}
@@ -1032,7 +1032,7 @@ func TestIsolationEscape_F2_AICommitPredatesOpenerSilent(t *testing.T) {
 		"auth0001": {"epic/E-0001-engine"},
 	}
 
-	findings := RunIsolationEscape(commits, oracle, nil)
+	findings := RunIsolationEscape(commits, oracle, nil, nil)
 	if len(findings) != 0 {
 		t.Fatalf("expected zero findings (AI commit predates every opener); got %d: %+v", len(findings), findings)
 	}

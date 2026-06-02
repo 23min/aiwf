@@ -163,6 +163,11 @@ func TestPolicy_ClosedSetStatusViaConstants(t *testing.T) {
 	runPolicy(t, PolicyClosedSetStatusViaConstants)
 }
 
+func TestPolicy_AcksHelperLift(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyAcksHelperLift)
+}
+
 func TestPolicy_NoSilentFallbacks(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyNoSilentFallbacks)

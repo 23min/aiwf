@@ -425,7 +425,7 @@ func TestFSMHistoryConsistent_FiresManualEdit_OnLegalUntraileredCommit(t *testin
 	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDraft, "add milestone")
 	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "hand-edit status; no verb trailer")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}
@@ -467,7 +467,7 @@ func TestFSMHistoryConsistent_NoManualEdit_WhenVerbTrailerPresent(t *testing.T) 
 			gitops.TrailerActor:  "human/peter",
 		})
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings (verb-trailer exempts AC-4); got %d: %+v", len(got), got)
 	}
@@ -497,7 +497,7 @@ func TestFSMHistoryConsistent_ManualEditClearedByLaterAuditOnlyCommit(t *testing
 	// Manual flip without aiwf-verb trailer — fires AC-4 absent ack.
 	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "hand-edit; no aiwf-verb trailer")
 
-	pre := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	pre := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(pre) != 1 || pre[0].Subcode != "manual-edit" {
 		t.Fatalf("pre-ack: expected 1 manual-edit finding; got %+v", pre)
 	}
@@ -513,7 +513,7 @@ func TestFSMHistoryConsistent_ManualEditClearedByLaterAuditOnlyCommit(t *testing
 			gitops.TrailerTo:        entity.StatusInProgress,
 		})
 
-	post := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	post := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(post) != 0 {
 		t.Errorf("post-ack: expected 0 findings (manual-edit cleared by audit-only ack); got %d: %+v", len(post), post)
 	}
@@ -541,7 +541,7 @@ func TestFSMHistoryConsistent_AuditOnlyDoesNotClearIllegalTransition(t *testing.
 			gitops.TrailerAuditOnly: "post-hoc acknowledgment (test fixture; should not actually clear illegal-transition)",
 		})
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding (illegal-transition still fires; audit-only doesn't apply per D-0008); got %d: %+v", len(got), got)
 	}
@@ -759,7 +759,7 @@ func TestFSMHistoryConsistent_ManualEdit_MergeIntegrationSilent(t *testing.T) {
 	r.gitCheckout("main")
 	r.gitMerge("branch-handedit", "merge branch-handedit into main")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding (original commit only; merge skipped per D-0010), got %d: %+v", len(got), got)
 	}

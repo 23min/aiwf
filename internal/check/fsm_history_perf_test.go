@@ -64,7 +64,7 @@ func TestFSMHistoryConsistent_PerfBudget(t *testing.T) {
 	tr := r.tree()
 
 	start := time.Now()
-	findings := FSMHistoryConsistent(context.Background(), r.root, tr)
+	findings := FSMHistoryConsistent(context.Background(), r.root, tr, nil)
 	elapsed := time.Since(start)
 
 	if elapsed > budget {

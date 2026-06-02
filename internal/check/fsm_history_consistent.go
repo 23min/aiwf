@@ -70,7 +70,15 @@ const CodeFSMHistoryConsistent = "fsm-history-consistent"
 // corresponds to no real edit. Per-parent comparison eliminates the
 // phantom by structurally restricting comparisons to actual parent-
 // child edges in the DAG.
-func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Finding {
+//
+// M-0159/AC-3: ackedSHAs is the gather-layer-computed map of
+// retroactively-acknowledged commit SHAs (per WalkAcknowledgedSHAs
+// in acks.go). The rule consumes it directly rather than
+// recomputing internally — the CLI gather layer computes it once
+// per check invocation and passes the result to all three rules
+// that consume it. A nil/empty map is "no acknowledgments" (the
+// rule polices normally).
+func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree, ackedSHAs map[string]bool) []Finding {
 	if t == nil || root == "" {
 		return nil
 	}
@@ -103,7 +111,7 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree) []Find
 		}}
 	}
 	defer func() { _ = br.Close() }()
-	return fsmHistoryConsistentWithDeps(ctx, root, t, br)
+	return fsmHistoryConsistentWithDeps(ctx, root, t, ackedSHAs, br)
 }
 
 // isRepoPath reports whether root is a git repo via the .git
@@ -147,7 +155,12 @@ type blobReader interface {
 // flagged).
 //
 // Kept unexported; tests live in package check (internal).
-func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree, br blobReader) []Finding {
+//
+// M-0159/AC-3: ackedSHAs is the gather-layer-computed map of
+// retroactively-acknowledged commit SHAs. Consumed directly
+// instead of computed internally — see FSMHistoryConsistent's
+// docstring for rationale.
+func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree, ackedSHAs map[string]bool, br blobReader) []Finding {
 	if t == nil || root == "" {
 		return nil
 	}
@@ -171,7 +184,10 @@ func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree
 
 	acksByEntity := walkAuditOnlyAcksByEntity(ctx, root)
 	ackedObs := computeAckedObservations(ctx, root, observations, acksByEntity)
-	ackedSHAs := walkAcknowledgedSHAs(ctx, root)
+	// M-0159/AC-3: ackedSHAs comes in as a parameter (computed
+	// once by the CLI gather layer in internal/cli/check/) rather
+	// than via a rule-internal walkAcknowledgedSHAs call. The
+	// pre-lift line was: ackedSHAs := walkAcknowledgedSHAs(ctx, root)
 	findings = append(findings, illegalTransitionFindings(observations, ackedSHAs)...)
 	findings = append(findings, forcedUntraileredFindings(observations)...)
 	findings = append(findings, manualEditFindings(observations, ackedObs)...)
@@ -362,88 +378,6 @@ func illegalTransitionFindings(observations []statusChange, ackedSHAs map[string
 		})
 	}
 	return out
-}
-
-// walkAcknowledgedSHAs walks HEAD's reachable history for commits
-// carrying an `aiwf-force-for: <sha>` trailer (per M-0136) and
-// returns the set of target SHAs. The set is consumed by
-// illegalTransitionFindings to exempt acknowledged illegal-transition
-// observations.
-//
-// Returns nil for non-git directories and empty histories; the
-// consumer treats nil and an empty map identically (no exemptions).
-//
-// The walk is HEAD-reachable (not --all) because the exemption is
-// DAG-scoped: a cherry-picked acknowledgment on a branch that
-// doesn't include the original violation must not exempt findings
-// on this branch. HEAD's reachable set is precisely the set of
-// commits this branch sees, so the exemption only applies when the
-// acknowledgment's history actually contains the offending commit.
-//
-// Reads via one `git log` subprocess + the gitops.ParseTrailers
-// helper. Performance: O(reachable-commits) once per check
-// invocation; for kernel-tree-sized repos under a second.
-func walkAcknowledgedSHAs(ctx context.Context, root string) map[string]bool {
-	if root == "" || !hasGitCommits(ctx, root) {
-		return nil
-	}
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"--pretty=format:%H%x00%(trailers:unfold=true)%x00",
-		"HEAD")
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		return nil
-	}
-	acked := map[string]bool{}
-	parts := strings.Split(string(out), "\x00")
-	for i := 0; i+1 < len(parts); i += 2 {
-		// parts[i] is the commit SHA (one acknowledged each); parts[i+1]
-		// is its trailer block.
-		trailerBlock := parts[i+1]
-		if trailerBlock == "" {
-			continue
-		}
-		parsed := gitops.ParseTrailers(trailerBlock)
-		for _, tr := range parsed {
-			if tr.Key != gitops.TrailerForceFor {
-				continue
-			}
-			sha := strings.TrimSpace(tr.Value)
-			if sha == "" {
-				continue
-			}
-			// Expand short SHAs to full SHAs so map lookups against
-			// observation.Commit (always 40 hex) match. `git rev-parse
-			// --verify <sha>` returns the canonical 40-char form; if
-			// the lookup fails (acknowledgment targets a SHA not in
-			// the local object database), the entry is dropped — the
-			// predicate then falls through and fires normally, which
-			// is the safe behavior.
-			fullSHA := resolveFullSHA(ctx, root, sha)
-			if fullSHA == "" {
-				continue
-			}
-			acked[fullSHA] = true
-		}
-	}
-	return acked
-}
-
-// resolveFullSHA expands a short SHA (7-39 hex) to its full 40-char
-// form via `git rev-parse --verify <sha>`. Returns the input unchanged
-// when already 40 chars; returns "" when git can't resolve the SHA.
-func resolveFullSHA(ctx context.Context, root, sha string) string {
-	if len(sha) == 40 {
-		return sha
-	}
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", sha+"^{commit}")
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
 }
 
 // isLegalTransition reports whether (prior → next) is an edge in

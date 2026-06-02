@@ -35,7 +35,15 @@ import (
 // Untrailered commits are handled by the separate step-7b audit pass,
 // which uses a different filter (range scoped per ResolveUntrailedRange,
 // no trailer grep).
-func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}) ([]check.Finding, error) {
+//
+// M-0159/AC-3: ackedSHAs is the gather-layer-computed map of
+// retroactively-acknowledged commit SHAs (via
+// check.WalkAcknowledgedSHAs called once at check.go::Run).
+// Passed through to both rules that consume it from this gather
+// (check.RunIsolationEscape, check.RunTrailerVerbUnknown); the
+// third consumer (check.FSMHistoryConsistent) is called directly
+// from check.go::Run with the same map.
+func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}, ackedSHAs map[string]bool) ([]check.Finding, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -56,7 +64,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// derivation of committer-vs-actor + body marker is not
 	// implemented yet — see G-0202 for the design notes).
 	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
-		findings = append(findings, check.RunIsolationEscape(commits, oracle, nil)...)
+		findings = append(findings, check.RunIsolationEscape(commits, oracle, nil, ackedSHAs)...)
 	}
 
 	rangeArg, advisory, rErr := ResolveUntrailedRange(ctx, root, since)
@@ -89,7 +97,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// stamps as unknown, which is preferable to silently allowing
 	// arbitrary values.
 	ritualVerbs, _ := skills.RitualTrailerVerbs()
-	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs, ritualVerbs)...)
+	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs, ritualVerbs, ackedSHAs)...)
 	return findings, nil
 }
 

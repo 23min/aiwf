@@ -36,7 +36,12 @@ func TestFSMHistoryConsistent_AC2_AcknowledgmentExemptsIllegalTransition(t *test
 	writeAcknowledgmentCommit(t, r.root, illegalSHA,
 		"pre-rule era; intermediate transition lost to a squash")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	// M-0159/AC-3: the rule no longer recomputes ackedSHAs
+	// internally; the caller (CLI gather layer in production)
+	// computes it once and passes it in. Test mirrors that shape
+	// by calling WalkAcknowledgedSHAs and passing the result.
+	ackedSHAs := WalkAcknowledgedSHAs(context.Background(), r.root)
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), ackedSHAs)
 	for _, f := range got {
 		if f.Code == CodeFSMHistoryConsistent && f.Subcode == "illegal-transition" && f.EntityID == "E-0001" {
 			t.Errorf("expected no illegal-transition for E-0001 (acknowledged via aiwf-force-for: %s); got finding %+v",
@@ -61,7 +66,12 @@ func TestFSMHistoryConsistent_AC3_NoAcknowledgmentStillFires(t *testing.T) {
 	r.commitEntity("E-0001", entity.KindEpic, entity.StatusDone,
 		"skip-ahead proposed->done (FSM-illegal, NOT acknowledged)")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	// M-0159/AC-3: the rule no longer recomputes ackedSHAs
+	// internally; the caller (CLI gather layer in production)
+	// computes it once and passes it in. Test mirrors that shape
+	// by calling WalkAcknowledgedSHAs and passing the result.
+	ackedSHAs := WalkAcknowledgedSHAs(context.Background(), r.root)
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), ackedSHAs)
 	var hasFinding bool
 	for _, f := range got {
 		if f.Code == CodeFSMHistoryConsistent && f.Subcode == "illegal-transition" && f.EntityID == "E-0001" {
@@ -97,7 +107,12 @@ func TestFSMHistoryConsistent_AC2_AcknowledgmentScopedToTarget(t *testing.T) {
 
 	writeAcknowledgmentCommit(t, r.root, exemptSHA, "acknowledged first skip only")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree())
+	// M-0159/AC-3: the rule no longer recomputes ackedSHAs
+	// internally; the caller (CLI gather layer in production)
+	// computes it once and passes it in. Test mirrors that shape
+	// by calling WalkAcknowledgedSHAs and passing the result.
+	ackedSHAs := WalkAcknowledgedSHAs(context.Background(), r.root)
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), ackedSHAs)
 	var exemptStillFires, otherFires bool
 	for _, f := range got {
 		if f.Code != CodeFSMHistoryConsistent || f.Subcode != "illegal-transition" {

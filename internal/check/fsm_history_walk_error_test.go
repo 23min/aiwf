@@ -53,7 +53,7 @@ func TestFSMHistoryConsistent_AC4_CancelledContext_EmitsWalkError(t *testing.T) 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // pre-cancel: every subprocess call sees ctx.Err() immediately
 
-	got := FSMHistoryConsistent(ctx, r.root, r.tree())
+	got := FSMHistoryConsistent(ctx, r.root, r.tree(), nil)
 
 	var hasWalkError bool
 	for _, f := range got {
@@ -117,7 +117,7 @@ func TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFindings(t *testin
 		readErr:         errors.New("synthetic blob read failure"),
 	}
 
-	got := fsmHistoryConsistentWithDeps(context.Background(), r.root, tr, fake)
+	got := fsmHistoryConsistentWithDeps(context.Background(), r.root, tr, nil, fake)
 
 	var hasIllegalE0001, hasWalkErrorE0002 bool
 	for _, f := range got {
