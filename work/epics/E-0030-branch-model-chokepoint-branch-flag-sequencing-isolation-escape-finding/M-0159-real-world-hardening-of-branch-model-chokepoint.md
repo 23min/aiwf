@@ -46,7 +46,7 @@ acs:
       tdd_phase: done
     - id: AC-9
       title: internal/check/hint.go names canonical override for isolation-escape
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
