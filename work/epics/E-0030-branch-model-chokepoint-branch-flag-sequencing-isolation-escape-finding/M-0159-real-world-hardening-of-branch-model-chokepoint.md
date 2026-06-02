@@ -19,7 +19,7 @@ acs:
     - id: AC-2
       title: M-0106 isolation-escape paths covered by real-git E2E integration tests
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: walkAcknowledgedSHAs lifted to shared helper, three rules consume it
       status: open
