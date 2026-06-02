@@ -12,7 +12,7 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: internal/workflows/spec/branch/ exists with Rules and AntiRules registered
+      title: internal/workflows/spec/branch/ exists with Rules and AntiRules exported
       status: met
       tdd_phase: done
     - id: AC-2
@@ -95,7 +95,7 @@ Per E-0030 §"Design decisions" (the spec-table package layout is local to this 
 These ACs do not test branch behavior end-to-end — that's done by the prior milestones' tests. M-0158's tests are about the spec table's completeness and the drift-policy's vigilance.
 -->
 
-### AC-1 — internal/workflows/spec/branch/ exists with Rules and AntiRules registered
+### AC-1 — internal/workflows/spec/branch/ exists with Rules and AntiRules exported
 
 ### AC-2 — Each epic corner-case (1-12) represented as named cell branch-cell-N
 
