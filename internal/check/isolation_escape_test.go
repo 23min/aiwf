@@ -410,25 +410,33 @@ func TestIsolationEscape_AC5_AICommitOnBoundBranchPausedScopeSilent(t *testing.T
 func TestIsolationEscape_AC10_PerCommitFiring(t *testing.T) {
 	t.Parallel()
 
+	// Fixture SHAs deliberately differ in their first 7 characters
+	// (the prefix `short()` keeps — see provenance.go:811). A prior
+	// shape used `c0000030`/`c0000031`/`c0000032`, which all
+	// collapse to `c000003` under short(): a duplicate-fire
+	// regression (one SHA appearing in three findings) would have
+	// passed the "3 findings mention `c000003`" assertion. The new
+	// shape pins per-SHA cardinality.
 	commits := []scope.Commit{
 		makeAuthorizeOpenCommit("auth0001", "E-0001", "human/peter", "ai/claude", "epic/E-0001-engine"),
-		makeAICommit("c0000030", "E-0001", "ai/claude", "edit-body"),
-		makeAICommit("c0000031", "E-0001", "ai/claude", "promote"),
-		makeAICommit("c0000032", "E-0001", "ai/claude", "edit-body"),
+		makeAICommit("aaaa030c", "E-0001", "ai/claude", "edit-body"),
+		makeAICommit("bbbb031c", "E-0001", "ai/claude", "promote"),
+		makeAICommit("cccc032c", "E-0001", "ai/claude", "edit-body"),
 	}
 	oracle := fakeOracle{
 		"auth0001": {"epic/E-0001-engine"},
-		"c0000030": {"main"},              // violating
-		"c0000031": {"main"},              // violating
-		"c0000032": {"epic/E-0002-other"}, // violating (different branch)
+		"aaaa030c": {"main"},              // violating
+		"bbbb031c": {"main"},              // violating
+		"cccc032c": {"epic/E-0002-other"}, // violating (different branch)
 	}
 
 	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 3 {
 		t.Fatalf("expected 3 findings (one per violating commit, AC-10); got %d: %+v", len(findings), findings)
 	}
-	// Each finding mentions a distinct commit SHA in its message.
-	wantSHAs := []string{"c000003"} // short() truncates; all three start with this prefix
+	// Each violating SHA must appear in EXACTLY ONE finding — pins
+	// per-commit cardinality, not just total count.
+	wantSHAs := []string{"aaaa030", "bbbb031", "cccc032"}
 	for _, want := range wantSHAs {
 		count := 0
 		for _, f := range findings {
@@ -436,8 +444,8 @@ func TestIsolationEscape_AC10_PerCommitFiring(t *testing.T) {
 				count++
 			}
 		}
-		if count != 3 {
-			t.Errorf("expected 3 findings to mention SHA prefix %q; got %d", want, count)
+		if count != 1 {
+			t.Errorf("expected exactly 1 finding to mention SHA prefix %q; got %d", want, count)
 		}
 	}
 }
@@ -759,14 +767,36 @@ func TestIsolationEscape_F3_AICommitBeforeScopeEndedFires(t *testing.T) {
 	}
 }
 
-// TestIsolationEscape_F2_EmptyEntityOpenerSkipped covers F-2 arm 1:
-// an authorize+opened commit with an empty aiwf-entity: trailer
-// (malformed but structurally valid for the trailer-shape rule)
-// is skipped at the opener-index build. Without the test, a
-// regression that dropped the `entity == ""` guard would crash
-// (writing to empty map key) OR silently mis-attribute the
-// opener to entity "" — both bad.
-func TestIsolationEscape_F2_EmptyEntityOpenerSkipped(t *testing.T) {
+// TestIsolationEscape_F2_MalformedOpenerDoesNotFalseFire pins the
+// honest claim from F-2 arm 1: when an authorize+opened commit has
+// an empty aiwf-entity: trailer (structurally accepted by the
+// trailer-shape rule today, but malformed for this rule's purpose),
+// the rule does NOT false-positive fire on an unrelated AI work
+// commit on a real entity. The malformed opener is silently dropped
+// at the opener-index build (the `entity == ""` guard at
+// isolation_escape.go:151).
+//
+// HONEST SCOPE: this test does NOT prove the guard at line 151 is
+// load-bearing. Removing that guard would index the malformed
+// opener under entity "" — but the AI commit's entity is "E-0001",
+// so the lookup `openersByEntity["E-0001"]` still returns no opener
+// and the rule still stays silent (same outcome via a different
+// path). The fixture we'd need to truly pin the guard — an AI
+// commit ALSO carrying empty aiwf-entity — is rejected by the
+// kernel's trailer-shape rule and thus unreachable through public
+// input.
+//
+// What the test DOES pin: the malformed-opener input does not
+// crash, does not panic, and does not cause adjacent AI work
+// commits to false-fire. That's defense-in-depth against
+// trailer-shape-rule regressions or fixture-builder mistakes — a
+// real claim, just narrower than the original name suggested.
+//
+// (Renamed from `..._EmptyEntityOpenerSkipped` per the M-0159 pre-fix
+// patch round addressing the F-2 name-vs-evidence overclaim
+// surfaced by the confidence-audit workflow. No stub: the test
+// pins what it can; the name now matches the evidence.)
+func TestIsolationEscape_F2_MalformedOpenerDoesNotFalseFire(t *testing.T) {
 	t.Parallel()
 
 	malformedOpener := scope.Commit{
@@ -790,18 +820,9 @@ func TestIsolationEscape_F2_EmptyEntityOpenerSkipped(t *testing.T) {
 		"c0000090": {"main"},
 	}
 
-	// The malformed opener is NOT indexed (entity == ""); the AI
-	// commit on entity E-0001 sees no opener → silent per AC-9
-	// path. If the guard regressed and the opener got attributed
-	// to entity "", the AI commit on E-0001 would still see no
-	// opener → silent, but a fixture with an AI commit on entity
-	// "" would surface the mis-attribution; we don't construct
-	// that fixture since the trailer-shape rule forbids it. The
-	// guard exists as defense in depth; the test pins it stays
-	// alive.
 	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
-		t.Fatalf("expected zero findings (malformed opener skipped + AI commit on unrelated entity has no scope); got %d: %+v", len(findings), findings)
+		t.Fatalf("expected zero findings (malformed opener input does not false-positive fire on unrelated AI commit); got %d: %+v", len(findings), findings)
 	}
 }
 
@@ -847,37 +868,32 @@ func TestIsolationEscape_F2_AICommitOnAuthorizeVerbSkipped(t *testing.T) {
 	}
 }
 
-// TestIsolationEscape_T6_BoundBranchDoesNotExistSilent pins
-// M-0106/T-6 from the third-pass retrospective: the intermediate
-// state during aiwfx-start-epic steps 6-7 (after the authorize
-// commit lands on main with --branch epic/E-NN-<slug>, BEFORE
-// step 8 cuts the named branch) has a scope whose aiwf-branch:
-// names a ritual ref that does not yet resolve to any real
-// branch in the oracle's index. The rule must not false-positive
-// fire on AI commits during this window — they don't really
-// happen (the ritual cuts the branch before AI work begins), but
-// a regression that mis-handled the "bound branch not in oracle
-// index" case could cause unexpected fall-through.
+// TestIsolationEscape_T6_BoundBranchAbsentFromOracleFires pins
+// M-0106/T-6 from the third-pass retrospective: when a scope's
+// aiwf-branch: trailer names a ref that does not appear in the
+// oracle's index (because it doesn't exist yet, was renamed, or
+// the operator typo'd), the rule FIRES on AI commits landing on a
+// different real branch — the operator gets a surfaced "your
+// scope's bound branch does not match where the commit landed"
+// finding.
 //
 // The algorithm's natural handling: the AI commit's actualBranches
-// from the oracle won't include the not-yet-existent bound branch.
-// The `slices.Contains(actualBranches, bound)` short-circuit
-// returns false (rides-bound = false). The rule then proceeds to
-// fire — but the fixture pins that the commit's actualBranches
-// IS the bound branch under our fake oracle, which mimics what
-// happens once step 8 cuts the branch and the next check pass
-// runs. The test pins the natural shape; a regression that
-// dropped the slices.Contains check (and instead always-fired on
-// "bound branch absent from oracle") would be caught at AC-4's
-// rides-bound test, not here.
+// from the oracle won't include the not-in-oracle bound branch, so
+// the `slices.Contains(actualBranches, bound)` short-circuit
+// returns false (rides-bound = false). The rule proceeds to fire.
 //
-// The realistic case this test pins: a scope's aiwf-branch:
-// trailer names a typo or stale ref. The oracle has no entries
-// for that ref. The AI commit (post-typo) on a real ritual
-// branch reports actualBranches = ["epic/<real-branch>"] which
-// does NOT match bound = "epic/<typo>". The rule fires — that's
-// correct behavior (the operator's typo should surface).
-func TestIsolationEscape_T6_BoundBranchDoesNotExistSilent(t *testing.T) {
+// The fixture pins the typo/stale-ref case (bound = "epic/E-9999-typo",
+// commit lands on "epic/E-0001-engine"). The finding's message
+// surfaces both the actual branch list AND the typo'd bound ref
+// so the operator sees both sides.
+//
+// (Renamed from `..._BoundBranchDoesNotExistSilent` per the M-0159
+// pre-fix patch round addressing the T-6 name-vs-assertion
+// contradiction surfaced by the confidence-audit workflow — the
+// old name's `..._Silent` suffix contradicted the `len(findings)
+// != 1` assertion. The test pinned FIRING from day one; only the
+// name lied.)
+func TestIsolationEscape_T6_BoundBranchAbsentFromOracleFires(t *testing.T) {
 	t.Parallel()
 
 	commits := []scope.Commit{
@@ -968,17 +984,27 @@ func TestIsolationEscape_N3_DuplicateScopeEndsFirstWins(t *testing.T) {
 		"endsc2nd": {"main"},
 	}
 
-	// The AI commit at chronoIdx 2 follows the first scope-end at 1,
-	// so its scope is no longer active → silent per F-3. The second
-	// scope-end at 3 is harmless because the algorithm's
-	// duplicate-skip branch ignores it. If the duplicate-skip arm
-	// regressed (the later end overwrote the earlier), the AI commit
-	// would still be after-end → still silent — same outcome but for
-	// a different reason. This test pins the structural traversal of
-	// the duplicate-skip line without asserting outcome difference.
+	// Under correct "first wins": endsByOpenerSHA[opener] = 1; AI
+	// at chronoIdx 2 is AFTER end → scope inactive → silent → zero
+	// findings (this test's assertion).
+	//
+	// Under sabotaged "last wins" (a regression that OVERWROTE
+	// rather than skipped the duplicate at chronoIdx 3):
+	// endsByOpenerSHA[opener] = 3; AI at chronoIdx 2 is BEFORE end
+	// → scope active → bound-comparison → fire → one finding. This
+	// test's `len(findings) == 0` assertion would FAIL.
+	//
+	// The two arms produce distinguishable outcomes; the
+	// duplicate-skip branch is genuinely pinned by the
+	// `len(findings) == 0` line below. (An earlier closing comment
+	// here mis-claimed "same outcome but for a different reason" —
+	// that text was wrong; the M-0159 pre-fix patch round corrected
+	// the docstring after the confidence-audit workflow flagged the
+	// self-contradiction. The fixture and assertion were sound from
+	// day one; only the closing prose lied.)
 	findings := RunIsolationEscape(commits, oracle, nil)
 	if len(findings) != 0 {
-		t.Fatalf("expected zero findings (AI commit after first end of scope); got %d: %+v", len(findings), findings)
+		t.Fatalf("expected zero findings (AI commit after first scope-end; duplicate-skip preserves first-wins); got %d: %+v", len(findings), findings)
 	}
 }
 

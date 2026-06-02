@@ -50,7 +50,14 @@ func TestM0158_AC5_EveryBranchCellHasMatchingTest(t *testing.T) {
 	// second list is per-cell-id curated keywords — the test set
 	// is matched if it contains ANY of the cell's keywords.
 	keywords := map[string][]string{
-		"branch-cell-1":                      {"AICommitOnMain", "NoBranch_NoRitualCurrent", "OnNonRitualBranch_NoBranch"},
+		// "AICommitOnMain" intentionally NOT listed: it substring-
+		// matches cell-4's TestIsolationEscape_AC1_AICommitOnMainFires,
+		// which would let one test name satisfy two cells. Per the
+		// M-0159 pre-fix patch round addressing the cross-cell
+		// match-bleed flagged by the confidence-audit workflow. The
+		// two remaining keywords (cell-1 specific) are the canonical
+		// authorize-preflight test names from authorize_cmd_test.go.
+		"branch-cell-1":                      {"NoBranch_NoRitualCurrent", "OnNonRitualBranch_NoBranch"},
 		"branch-cell-2":                      {"BranchMissing_Refuses"},
 		"branch-cell-3":                      {"ImplicitFromCurrent_AcceptsAndEmitsTrailer", "ImplicitRitualBranch_AcceptsAndRecords"},
 		"branch-cell-4":                      {"AICommitOnMainFires", "FiresOnViolatingCommit"},

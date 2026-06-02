@@ -45,63 +45,68 @@ func TestM0158_AC6_EveryClassBranchChoreographyCodeReferencedByCell(t *testing.T
 		t.Fatal("M-0158/AC-6: no ClassBranchChoreography codes found by AST scan — either the kernel has none yet (then this test should be marked WIP) or the scanner is broken")
 	}
 
-	referenced := map[string]bool{}
-	for _, r := range branch.Rules() {
-		if r.ExpectedErrorCode != "" {
-			referenced[r.ExpectedErrorCode] = true
-		}
-	}
+	referenced := referencedCodes()
 
-	for codeID := range declared {
-		if !referenced[codeID] {
-			t.Errorf("M-0158/AC-6: ClassBranchChoreography code %q is not referenced by any branch.Rules() Illegal cell\n  add a cell with ExpectedErrorCode=%q citing the corresponding corner-case row or filed gap", codeID, codeID)
-		}
+	for _, codeID := range driftGaps(declared, referenced) {
+		t.Errorf("M-0158/AC-6: ClassBranchChoreography code %q is not referenced by any branch.Rules() Illegal cell\n  add a cell with ExpectedErrorCode=%q citing the corresponding corner-case row or filed gap", codeID, codeID)
 	}
 }
 
-// TestM0158_AC6_DriftFiresOnFabricatedCode is the sabotage-
-// counterpart of the above: feed the drift-check helper a
-// fabricated ClassBranchChoreography code that is NOT referenced
-// by any cell. Assert the helper reports the gap. Without this
-// guard, a regression that silently returned "all good" on
-// missing-cell drift would shield the rule against future
-// regressions.
-//
-// Implemented as a self-contained mini-driver that doesn't depend
-// on adding/removing real codes in the kernel (which would
-// require modifying production code mid-test).
-func TestM0158_AC6_DriftFiresOnFabricatedCode(t *testing.T) {
-	t.Parallel()
-
-	// Build the referenced-codes set from the live spec table.
-	referenced := map[string]bool{}
-	for _, r := range branch.Rules() {
-		if r.ExpectedErrorCode != "" {
-			referenced[r.ExpectedErrorCode] = true
-		}
-	}
-
-	// Fabricate a code id that is definitionally NOT in the
-	// referenced set (sentinel prefix that no production code
-	// would adopt).
-	fabricated := "isolation-escape-FABRICATED-SENTINEL-MUST-NOT-EXIST"
-	if referenced[fabricated] {
-		t.Fatalf("test corruption: fabricated sentinel %q is somehow in the referenced set", fabricated)
-	}
-
-	// The drift check (inline body of the production policy):
-	// if any declared code is not in referenced, the check fires.
-	// Here we simulate that the fabricated code IS declared
-	// (pretending the AST scan returned it).
-	declared := map[string]bool{fabricated: true}
+// driftGaps returns the ids in `declared` not present in `referenced`.
+// Shared by the production drift assertion above and the sabotage
+// counterpart below — extracting the predicate means the sabotage
+// test actually exercises the same code path the production test
+// uses, instead of inlining its own (tautological) copy. Per the
+// M-0159 pre-fix patch round addressing the m0158_ac6 sabotage
+// tautology surfaced by the confidence-audit workflow.
+func driftGaps(declared, referenced map[string]bool) []string {
 	var gaps []string
 	for codeID := range declared {
 		if !referenced[codeID] {
 			gaps = append(gaps, codeID)
 		}
 	}
+	return gaps
+}
+
+// referencedCodes builds the set of ExpectedErrorCode values from
+// the live branch.Rules() spec table. Extracted so both the
+// production and sabotage tests build the set the same way.
+func referencedCodes() map[string]bool {
+	referenced := map[string]bool{}
+	rules := branch.Rules()
+	for i := range rules {
+		if rules[i].ExpectedErrorCode != "" {
+			referenced[rules[i].ExpectedErrorCode] = true
+		}
+	}
+	return referenced
+}
+
+// TestM0158_AC6_DriftFiresOnFabricatedCode is the sabotage-
+// counterpart of TestM0158_AC6_EveryClassBranchChoreographyCodeReferencedByCell.
+// Feed `driftGaps` (the SAME helper the production test consumes) a
+// fabricated ClassBranchChoreography code that is NOT in the
+// referenced set; assert the helper reports the gap. If a future
+// refactor changes driftGaps to silently return nil on
+// missing-cell drift, this test fails — and the production test
+// stops catching real drift at the same time. The shared helper is
+// the load-bearing surface; both tests exercise it.
+func TestM0158_AC6_DriftFiresOnFabricatedCode(t *testing.T) {
+	t.Parallel()
+
+	referenced := referencedCodes()
+
+	fabricated := "isolation-escape-FABRICATED-SENTINEL-MUST-NOT-EXIST"
+	if referenced[fabricated] {
+		t.Fatalf("test corruption: fabricated sentinel %q is somehow in the referenced set", fabricated)
+	}
+
+	// Exercise the shared helper the production test uses — NOT an
+	// inlined copy. A regression in driftGaps surfaces here.
+	gaps := driftGaps(map[string]bool{fabricated: true}, referenced)
 	if len(gaps) == 0 {
-		t.Error("drift check did not fire on a fabricated unreferenced code — the policy is silently passing")
+		t.Error("driftGaps returned empty on a fabricated unreferenced code — the shared drift helper is silently passing; production test TestM0158_AC6_Every... is also broken")
 	}
 }
 
