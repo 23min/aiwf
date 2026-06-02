@@ -30,7 +30,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: trailer-verb-unknown rule consumes ackedSHAs via shared helper
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Cherry-pick gather-side detects cherry picked from commit markers
