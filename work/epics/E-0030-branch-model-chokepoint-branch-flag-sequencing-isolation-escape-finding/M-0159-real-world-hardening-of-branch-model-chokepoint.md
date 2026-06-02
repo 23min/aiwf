@@ -43,7 +43,7 @@ acs:
     - id: AC-8
       title: branch-cell-override-f-nnnn-waiver Kind corrected to finding
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-9
       title: internal/check/hint.go names canonical override for isolation-escape
       status: open
