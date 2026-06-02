@@ -35,7 +35,7 @@ acs:
     - id: AC-6
       title: Cherry-pick gather-side detects cherry picked from commit markers
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-7
       title: Cellcoverage fixture aiwf-branch values resolve or are exempted
       status: open
