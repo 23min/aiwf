@@ -1,8 +1,10 @@
 ---
 id: G-0196
 title: acknowledge-illegal does not cover forced-untrailered subcode
-status: open
+status: addressed
 discovered_in: E-0030
+addressed_by:
+    - M-0159
 ---
 ## What's missing
 
