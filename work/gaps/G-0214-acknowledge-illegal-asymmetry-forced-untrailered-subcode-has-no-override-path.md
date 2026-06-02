@@ -1,8 +1,10 @@
 ---
 id: G-0214
 title: 'acknowledge-illegal asymmetry: forced-untrailered subcode has no override path'
-status: open
+status: addressed
 discovered_in: M-0159
+addressed_by:
+    - M-0159
 ---
 ## What's missing
 
