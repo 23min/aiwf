@@ -40,9 +40,15 @@ func (f *CellFixture) AuthorizeScope(t *testing.T, entityID, agent string) *scop
 
 	// Create the branch ref so a downstream branch-resolution rule
 	// can verify the trailer value points at a real ref. `git
-	// branch <name>` defaults to HEAD — at this point the fixture
-	// has at least one commit (`aiwf init` produced one), so HEAD
-	// is a real commit and the new branch resolves immediately.
+	// branch <name>` defaults to HEAD — every caller of
+	// AuthorizeScope has already run verb.Add + verb.Promote on the
+	// scope entity (the verb sequence requires a non-terminal
+	// entity at active or later, both of which produce commits), so
+	// HEAD points at a real commit and the new branch resolves
+	// immediately. `initrepo.Init` itself never commits (its
+	// docstring is explicit: "writes/scaffolds and reports back"),
+	// so the structural dependency a future caller must preserve is
+	// the prior verb.Add + verb.Promote on the entity.
 	cmd := exec.CommandContext(f.ctx, "git", "branch", branchName)
 	cmd.Dir = f.Root
 	if out, err := cmd.CombinedOutput(); err != nil {
