@@ -39,7 +39,7 @@ func TestForcedUntraileredFindings_FiresOnSovereignActByNonHumanWithoutForce(t *
 			Trailers:   map[string]string{"aiwf-verb": "promote", gitops.TrailerActor: "ai/claude"},
 		},
 	}
-	got := forcedUntraileredFindings(obs)
+	got := forcedUntraileredFindings(obs, nil)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}
@@ -104,7 +104,7 @@ func TestForcedUntraileredFindings_HumanActorExempts(t *testing.T) {
 					},
 				},
 			}
-			got := forcedUntraileredFindings(obs)
+			got := forcedUntraileredFindings(obs, nil)
 			if len(got) != 0 {
 				t.Errorf("expected 0 findings (human-actor exempts), got %+v", got)
 			}
@@ -145,7 +145,7 @@ func TestForcedUntraileredFindings_NonHumanActors_AllFire(t *testing.T) {
 					Trailers:   trailers,
 				},
 			}
-			got := forcedUntraileredFindings(obs)
+			got := forcedUntraileredFindings(obs, nil)
 			if len(got) != 1 {
 				t.Errorf("expected 1 finding (non-human actor without force), got %d: %+v", len(got), got)
 			}
@@ -169,7 +169,7 @@ func TestForcedUntraileredFindings_NoFireOnNonSovereignActShape(t *testing.T) {
 			Trailers:   nil,
 		},
 	}
-	got := forcedUntraileredFindings(obs)
+	got := forcedUntraileredFindings(obs, nil)
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings (non-sovereign transition), got %+v", got)
 	}
@@ -197,7 +197,7 @@ func TestForcedUntraileredFindings_NoFireOnIllegalTransition(t *testing.T) {
 			Trailers:   nil,
 		},
 	}
-	got := forcedUntraileredFindings(obs)
+	got := forcedUntraileredFindings(obs, nil)
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings (illegal transition belongs to AC-2); got %+v", got)
 	}
@@ -235,7 +235,7 @@ func TestForcedUntraileredFindings_ForceTrailerExempts(t *testing.T) {
 					Trailers:   c.trailers,
 				},
 			}
-			got := forcedUntraileredFindings(obs)
+			got := forcedUntraileredFindings(obs, nil)
 			if len(got) != 0 {
 				t.Errorf("expected 0 findings (force-trailer exempts), got %+v", got)
 			}
@@ -262,7 +262,7 @@ func TestForcedUntraileredFindings_MergeSkippedPerD0010(t *testing.T) {
 			IsMergeCommit: true,
 		},
 	}
-	got := forcedUntraileredFindings(obs)
+	got := forcedUntraileredFindings(obs, nil)
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings on merge observation (D-0010); got %+v", got)
 	}
@@ -292,7 +292,7 @@ func TestForcedUntraileredFindings_VerbTrailerDoesNotExempt(t *testing.T) {
 			},
 		},
 	}
-	got := forcedUntraileredFindings(obs)
+	got := forcedUntraileredFindings(obs, nil)
 	if len(got) != 1 {
 		t.Errorf("expected 1 finding (aiwf-verb does not exempt; only aiwf-force does); got %d: %+v", len(got), got)
 	}
@@ -337,7 +337,7 @@ func TestForcedUntraileredFindings_MultipleObservations(t *testing.T) {
 			Next:       entity.StatusInProgress, // not sovereign
 		},
 	}
-	got := forcedUntraileredFindings(obs)
+	got := forcedUntraileredFindings(obs, nil)
 	if len(got) != 2 {
 		t.Fatalf("expected 2 findings (E-0001 and E-0002; E-0003 force-exempt, M-0001 non-sovereign), got %d: %+v", len(got), got)
 	}
@@ -354,11 +354,11 @@ func TestForcedUntraileredFindings_MultipleObservations(t *testing.T) {
 // inputs produce nil findings (matches AC-2's predicate behavior).
 func TestForcedUntraileredFindings_EmptyInput(t *testing.T) {
 	t.Parallel()
-	got := forcedUntraileredFindings(nil)
+	got := forcedUntraileredFindings(nil, nil)
 	if got != nil {
 		t.Errorf("expected nil findings on nil input, got %+v", got)
 	}
-	got = forcedUntraileredFindings([]statusChange{})
+	got = forcedUntraileredFindings([]statusChange{}, nil)
 	if got != nil {
 		t.Errorf("expected nil findings on empty slice, got %+v", got)
 	}
@@ -398,7 +398,7 @@ func TestForcedUntraileredAndIllegal_DisjointPerD0008(t *testing.T) {
 				},
 			}
 			illegal := illegalTransitionFindings(obs, nil)
-			forced := forcedUntraileredFindings(obs)
+			forced := forcedUntraileredFindings(obs, nil)
 			if len(illegal) != 0 {
 				t.Errorf("sovereign-act-shape %s %s->%s should be FSM-legal (no illegal-transition finding); got %+v",
 					s.Kind, s.From, s.To, illegal)

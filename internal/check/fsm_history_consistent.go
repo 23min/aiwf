@@ -189,7 +189,7 @@ func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree
 	// than via a rule-internal walkAcknowledgedSHAs call. The
 	// pre-lift line was: ackedSHAs := walkAcknowledgedSHAs(ctx, root)
 	findings = append(findings, illegalTransitionFindings(observations, ackedSHAs)...)
-	findings = append(findings, forcedUntraileredFindings(observations)...)
+	findings = append(findings, forcedUntraileredFindings(observations, ackedSHAs)...)
 	findings = append(findings, manualEditFindings(observations, ackedObs)...)
 	return findings
 }
@@ -672,7 +672,21 @@ func revListAncestors(ctx context.Context, root, sha string) map[string]bool {
 // relies on the transparent git-log audit trail as backstop. The
 // predicate's job is surfacing visible discipline gaps, not blocking
 // adversarial behavior.
-func forcedUntraileredFindings(observations []statusChange) []Finding {
+//
+// M-0159/AC-4: ackedSHAs carries the set of commit SHAs that have
+// been retroactively acknowledged via `aiwf acknowledge-illegal`
+// (the same map illegalTransitionFindings consumes — the CLI
+// gather layer at internal/cli/check/check.go::Run computes it
+// once via WalkAcknowledgedSHAs and threads it through
+// FSMHistoryConsistent / fsmHistoryConsistentWithDeps to both
+// predicates). Observations whose Commit appears in ackedSHAs are
+// exempted — closes the G-0214 / G-0208 / G-0196 asymmetry where
+// acknowledge-illegal silenced illegal-transition but not
+// forced-untrailered despite the verb's --help promising it
+// covered both override-needing subcodes. Per-SHA closed-set
+// scoping: an acknowledgment for one SHA does NOT exempt other
+// forced-untrailered observations.
+func forcedUntraileredFindings(observations []statusChange, ackedSHAs map[string]bool) []Finding {
 	var out []Finding
 	for i := range observations {
 		o := &observations[i]
@@ -686,6 +700,9 @@ func forcedUntraileredFindings(observations []statusChange) []Finding {
 			continue
 		}
 		if strings.HasPrefix(o.Trailers[gitops.TrailerActor], "human/") {
+			continue
+		}
+		if ackedSHAs[o.Commit] {
 			continue
 		}
 		out = append(out, Finding{

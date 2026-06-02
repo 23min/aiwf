@@ -35,7 +35,7 @@ import (
 // which exercise the new signatures directly and fail with compile
 // errors if the lift hasn't happened.
 //
-// Six violation classes are surfaced:
+// Ten violation classes are surfaced (grouped 1, 2, 3a-3c, 4a-4e):
 //
 //  1. internal/check/acks.go does not exist OR exists but does not
 //     declare WalkAcknowledgedSHAs as a top-level FuncDecl. Without
@@ -78,7 +78,7 @@ import (
 //     this consumer. Closes the "uninitialized identifier of the
 //     right name" sabotage.
 //
-//     4d. A consumer rule's function body does not reference
+//     4d. A consumer's function body does not reference
 //     `ackedSHAs` in a consuming context — either an IndexExpr
 //     `ackedSHAs[X]` (the per-SHA lookup pattern the rules
 //     actually use) OR a CallExpr argument (the forward-to-helper
@@ -88,10 +88,34 @@ import (
 //     to the signature but ignores it in the body — or silences
 //     it via `_ = ackedSHAs` — would otherwise pass classes 1-4c.
 //     The gather-layer's value never reaches the rule's silencing
-//     logic; AC-3's behavioral promise breaks silently. Closes
-//     the "consumer ignores parameter" sabotage at the policy
-//     layer (the M-0136 behavioral tests also catch it; this is
+//     logic; AC-3/AC-4's behavioral promise breaks silently.
+//     Closes the "consumer ignores parameter" sabotage at the
+//     policy layer (the behavioral tests also catch it; this is
 //     the structural backstop).
+//
+//     Consumers covered: the three named public consumers
+//     (FSMHistoryConsistent, RunIsolationEscape,
+//     RunTrailerVerbUnknown) PLUS the two FSMHistoryConsistent-
+//     internal predicate helpers that perform the per-observation
+//     check (illegalTransitionFindings, forcedUntraileredFindings).
+//
+//     4e. A call to one of the leaf predicate helpers
+//     (illegalTransitionFindings or forcedUntraileredFindings)
+//     does NOT pass an `ackedSHAs` identifier as the ackedSHAs
+//     argument — the call site passes `nil`, a CompositeLit
+//     (`map[string]bool{}`), a CallExpr, or any other non-Ident
+//     shape. The body-level class 4d guarantees the predicate
+//     READS its parameter; 4e guarantees the FORWARDER actually
+//     PASSES the gather-layer value through. Without 4e, the
+//     sabotage `forcedUntraileredFindings(observations, nil)` at
+//     the call site in fsmHistoryConsistentWithDeves leaves
+//     class 4d satisfied (body still has IndexExpr `ackedSHAs[X]`,
+//     just reading from the nil-map's always-false return) and
+//     the silencing is mechanically broken. The behavioral tests
+//     would catch this; class 4e closes the gap at the policy
+//     layer too. The convention-driven match (must be an
+//     *ast.Ident named "ackedSHAs") mirrors class 4b's gather-
+//     side seam-contract on the three public consumers.
 //
 // The policy is intentionally narrow — file locations, symbol
 // names, call shape, identifier provenance at known paths. A
@@ -558,10 +582,18 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		file string
 		line int
 	}
+	// Three named PUBLIC consumers + two internal predicate
+	// helpers that perform the per-observation per-SHA lookup
+	// at the leaf of FSMHistoryConsistent's call chain. Anchoring
+	// the lookup at the predicates (not just the top-level
+	// public surface) closes the "fsmHistoryConsistentWithDeps
+	// drops the value before reaching the predicate" sabotage.
 	consumerBodySeen := map[string]bool{
-		"FSMHistoryConsistent":  false,
-		"RunIsolationEscape":    false,
-		"RunTrailerVerbUnknown": false,
+		"FSMHistoryConsistent":      false,
+		"RunIsolationEscape":        false,
+		"RunTrailerVerbUnknown":     false,
+		"illegalTransitionFindings": false,
+		"forcedUntraileredFindings": false,
 	}
 	consumerBodyDecl := map[string]bodyHit{}
 	for _, f := range checkInternalProd {
@@ -610,23 +642,82 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 			})
 		}
 	}
-	for _, name := range []string{"FSMHistoryConsistent", "RunIsolationEscape", "RunTrailerVerbUnknown"} {
+	for _, name := range []string{
+		"FSMHistoryConsistent",
+		"RunIsolationEscape",
+		"RunTrailerVerbUnknown",
+		"illegalTransitionFindings",
+		"forcedUntraileredFindings",
+	} {
 		if consumerBodySeen[name] {
 			continue
 		}
 		hit, declared := consumerBodyDecl[name]
 		if !declared {
 			// The consumer doesn't have a FuncDecl in
-			// internal/check/. Either renamed or missing — class
-			// (4a) already flags this surface from the gather
-			// side; don't duplicate.
+			// internal/check/. Either renamed or missing —
+			// class (4a) already flags the three public
+			// surfaces from the gather side; for the two
+			// internal predicate helpers a missing FuncDecl
+			// is unusual but not a separate AC-policed
+			// concern, so don't duplicate.
 			continue
 		}
 		out = append(out, Violation{
 			Policy: "acks-helper-lift",
 			File:   hit.file,
 			Line:   hit.line,
-			Detail: "M-0159/AC-3: check." + name + " has the `ackedSHAs` parameter on its signature but the body never reads it through a consuming pattern (no IndexExpr `ackedSHAs[X]`, no CallExpr passing it as an argument); the gather-layer-computed value is dropped on the floor and the rule's silencing logic is unreachable — close the N1 sabotage by adding the per-SHA lookup or forwarding the parameter to the function that performs the lookup",
+			Detail: "M-0159/AC-3/AC-4: " + name + " has the `ackedSHAs` parameter on its signature but the body never reads it through a consuming pattern (no IndexExpr `ackedSHAs[X]`, no CallExpr passing it as an argument); the gather-layer-computed value is dropped on the floor and the rule's silencing logic is unreachable — close the sabotage by adding the per-SHA lookup or forwarding the parameter to the function that performs the lookup",
+		})
+	}
+
+	// (4e) For each call to one of the leaf predicate helpers
+	// (illegalTransitionFindings, forcedUntraileredFindings) in
+	// internal/check/ non-test files, the ackedSHAs arg position
+	// must be an *ast.Ident named "ackedSHAs". A nil literal, a
+	// CompositeLit `map[string]bool{}`, a CallExpr, or any
+	// non-Ident shape fires. Closes the "call-site drops the
+	// parameter" sabotage at the forwarder seam (the body-level
+	// 4d guarantees the predicate reads its parameter; this
+	// guarantees the forwarder actually passes a real one).
+	predicateArgPositions := map[string]int{
+		"illegalTransitionFindings": 1, // (observations, ackedSHAs)
+		"forcedUntraileredFindings": 1, // (observations, ackedSHAs)
+	}
+	for _, f := range checkInternalProd {
+		fset := token.NewFileSet()
+		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
+		if perr != nil {
+			return nil, perr
+		}
+		ast.Inspect(astFile, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			id, ok := call.Fun.(*ast.Ident)
+			if !ok {
+				return true
+			}
+			argPos, tracked := predicateArgPositions[id.Name]
+			if !tracked {
+				return true
+			}
+			if argPos >= len(call.Args) {
+				return true
+			}
+			arg := call.Args[argPos]
+			argIdent, isIdent := arg.(*ast.Ident)
+			if isIdent && argIdent.Name == "ackedSHAs" {
+				return true
+			}
+			out = append(out, Violation{
+				Policy: "acks-helper-lift",
+				File:   f.Path,
+				Line:   fset.Position(call.Pos()).Line,
+				Detail: "M-0159/AC-4: call to " + id.Name + " at this site does not pass `ackedSHAs` as the ackedSHAs argument — the forwarder dropped the gather-layer-computed value before reaching the predicate, breaking silencing while leaving class 4d (body reads the parameter) spuriously satisfied (the predicate now reads from a nil/empty map and silently fails to silence)",
+			})
+			return true
 		})
 	}
 
