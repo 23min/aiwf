@@ -66,16 +66,27 @@ type BranchOracle interface {
 //
 // cherryPicked is the set of commit SHAs the gather layer identified
 // as `git cherry-pick -x` re-authors of upstream commits: both
-// (a) committer email differs from the original actor's encoded
-// email AND (b) the commit body carries the
-// `(cherry picked from commit <sha>)` marker that `git cherry-pick -x`
-// writes by default. When a commit's SHA is in this set the rule
-// treats it as a sovereign human re-author (corner case 8 / AC-6)
-// and suppresses any isolation-escape finding against it; the audit
-// trail lives in the committer-vs-author identity gap and the marker
-// itself. A nil/empty map means "no cherry-pick info available";
-// the rule then polices as usual (no false negatives — only
-// known-cherry-picks are suppressed).
+// (a) the commit body carries the `(cherry picked from commit <sha>)`
+// marker line that `git cherry-pick -x` writes by default AND
+// (b) the commit's git committer email differs from its git author
+// email (the identity gap that `git cherry-pick` produces by default
+// when a different identity re-authors the original — committer
+// becomes the current user, author preserved from source). When a
+// commit's SHA is in this set the rule treats it as a sovereign
+// human re-author (corner case 8 / AC-6) and suppresses any
+// isolation-escape finding against it; the audit trail lives in
+// the committer-vs-author identity gap and the marker itself.
+// A nil/empty map means "no cherry-pick info available"; the rule
+// then polices as usual (no false negatives — only known-cherry-picks
+// are suppressed).
+//
+// The both-signals contract is the gather-side's per-commit
+// derivation, implemented by check.WalkCherryPicks in
+// internal/check/cherry_picks.go (M-0159/AC-6 / G-0202). Either
+// signal alone is insufficient: a fabricated marker (no real
+// cherry-pick) lacks the gap; an amended commit (gap without -x)
+// lacks the marker. Real-git E2E coverage lives in
+// internal/cli/integration/branch_scenarios_ac6_test.go.
 //
 // Per-commit firing: each violating commit produces its own
 // finding. No aggregation, no per-entity summary — the user wants

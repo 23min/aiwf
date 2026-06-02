@@ -58,13 +58,19 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// the rule degrades to "unknown branch, silent" rather than
 	// blocking the entire check pass, because branch-policing is one
 	// rule among many and a failure here should not mask the others.
-	// The cherry-pick gather-side is parked at G-0202; nil for now
-	// means cherry-picks are NOT yet suppressed against real git
-	// history (the rule-side suppression works, but the gather-side
-	// derivation of committer-vs-actor + body marker is not
-	// implemented yet — see G-0202 for the design notes).
+	//
+	// M-0159/AC-6: cherry-pick gather-side wired via
+	// check.WalkCherryPicks. Closes G-0202 — the parked gather that
+	// left this call passing nil. The walker walks HEAD's reachable
+	// history once per check invocation, applies the both-signals
+	// contract (marker AND committer-vs-author email gap), and
+	// returns the set of sovereign-human cherry-pick re-author SHAs
+	// the rule should exempt. The rule's docstring at
+	// internal/check/isolation_escape.go:67-78 pins the contract;
+	// the walker is the gather-side derivation.
 	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
-		findings = append(findings, check.RunIsolationEscape(commits, oracle, nil, ackedSHAs)...)
+		cherryPicked := check.WalkCherryPicks(ctx, root)
+		findings = append(findings, check.RunIsolationEscape(commits, oracle, cherryPicked, ackedSHAs)...)
 	}
 
 	rangeArg, advisory, rErr := ResolveUntrailedRange(ctx, root, since)
