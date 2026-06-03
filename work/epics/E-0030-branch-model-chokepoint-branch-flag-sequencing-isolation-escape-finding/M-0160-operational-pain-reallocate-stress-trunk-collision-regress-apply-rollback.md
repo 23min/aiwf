@@ -4,6 +4,11 @@ title: Operational pain — reallocate stress, trunk-collision regress, apply ro
 status: draft
 parent: E-0030
 tdd: required
+acs:
+    - id: AC-1
+      title: Reallocate combinatorial real-git E2E coverage
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -42,4 +47,6 @@ AC seed set (to be allocated via `aiwf add ac` at start-milestone time):
 
 These three are the seed set; aiwfx-start-milestone refines and allocates them.
 -->
+
+### AC-1 — Reallocate combinatorial real-git E2E coverage
 
