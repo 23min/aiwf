@@ -13,12 +13,18 @@ import (
 // canonical name (WalkAcknowledgedSHAs, exported because the CLI
 // gather layer in internal/cli/check/ consumes it across the
 // package boundary), is called from a sanctioned site exactly ONCE,
-// and the resulting ackedSHAs value flows to all three named
-// consumers (fsm-history-consistent, isolation-escape, and
-// trailer-verb-unknown) through identifier provenance — each call
-// site's argument identifier must trace either to the local
-// WalkAcknowledgedSHAs assignment or to a function parameter named
-// ackedSHAs (parameter pass-through).
+// and the resulting ackedSHAs value flows to all four named
+// consumers (fsm-history-consistent, isolation-escape,
+// trailer-verb-unknown, and id-rename-untrailered) through
+// identifier provenance — each call site's argument identifier
+// must trace either to the local WalkAcknowledgedSHAs assignment
+// or to a function parameter named ackedSHAs (parameter
+// pass-through).
+//
+// M-0159/AC-3 introduced the policy with three consumers (fsm-
+// history-consistent, isolation-escape, trailer-verb-unknown).
+// M-0160/AC-4 added id-rename-untrailered as the fourth consumer;
+// the policy's closed-set map and iteration list cover all four.
 //
 // The AC's load-bearing language: "walkAcknowledgedSHAs lifted to
 // internal/check/acks.go; consumed by fsm-history-consistent,
@@ -26,20 +32,22 @@ import (
 // ackedSHAs map[string]bool parameter populated by the CLI gather
 // layer." Both halves of the claim — structural (file location,
 // identifier presence, no-duplicate, no-recompute) and
-// architectural (single-compute, three-consumer wiring with
+// architectural (single-compute, four-consumer wiring with
 // traced provenance) — are policed here as one chokepoint.
 //
-// The signature half (the three rules' surfaces accept ackedSHAs
-// map[string]bool) is policed by sibling behavioral unit tests
-// in internal/check/{isolation_escape,trailer_verb_unknown,fsm_history_consistent}_ack_test.go
-// which exercise the new signatures directly and fail with compile
-// errors if the lift hasn't happened.
+// The signature half (the consuming rules' surfaces accept
+// ackedSHAs map[string]bool) is policed by sibling behavioral
+// unit tests in
+// internal/check/{isolation_escape,trailer_verb_unknown,fsm_history_consistent}_ack_test.go
+// (M-0159) and internal/check/id_rename_untrailered_test.go
+// (M-0160/AC-4) which exercise the new signatures directly and
+// fail with compile errors if the lift hasn't happened.
 //
 // Ten violation classes are surfaced (grouped 1, 2, 3a-3c, 4a-4e):
 //
 //  1. internal/check/acks.go does not exist OR exists but does not
 //     declare WalkAcknowledgedSHAs as a top-level FuncDecl. Without
-//     this the lift never landed and the three consumers cannot
+//     this the lift never landed and the four consumers cannot
 //     reach the helper as a package-shared symbol.
 //
 //  2. internal/check/fsm_history_consistent.go still declares
@@ -62,7 +70,7 @@ import (
 //
 //     4a. A named consumer (FSMHistoryConsistent, RunIsolationEscape,
 //     RunTrailerVerbUnknown) is not called from internal/cli/check/
-//     at all. The three-consumer wiring is incomplete.
+//     at all. The four-consumer wiring is incomplete.
 //
 //     4b. A consumer call site does not receive an `ackedSHAs`
 //     identifier as one of its arguments. The convention-driven
@@ -93,9 +101,10 @@ import (
 //     policy layer (the behavioral tests also catch it; this is
 //     the structural backstop).
 //
-//     Consumers covered: the three named public consumers
+//     Consumers covered: the four named public consumers
 //     (FSMHistoryConsistent, RunIsolationEscape,
-//     RunTrailerVerbUnknown) PLUS the two FSMHistoryConsistent-
+//     RunTrailerVerbUnknown, RunIDRenameUntrailered) PLUS the two
+//     FSMHistoryConsistent-
 //     internal predicate helpers that perform the per-observation
 //     check (illegalTransitionFindings, forcedUntraileredFindings).
 //
@@ -115,7 +124,7 @@ import (
 //     would catch this; class 4e closes the gap at the policy
 //     layer too. The convention-driven match (must be an
 //     *ast.Ident named "ackedSHAs") mirrors class 4b's gather-
-//     side seam-contract on the three public consumers.
+//     side seam-contract on the four public consumers.
 //
 // The policy is intentionally narrow — file locations, symbol
 // names, call shape, identifier provenance at known paths. A
@@ -214,7 +223,7 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		}
 	}
 
-	// (3) + (4) Gather-layer single-compute + three-consumer wiring.
+	// (3) + (4) Gather-layer single-compute + four-consumer wiring.
 	if !hasCliCheck {
 		out = append(out, Violation{
 			Policy: "acks-helper-lift",
@@ -268,6 +277,10 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		"FSMHistoryConsistent":  nil,
 		"RunIsolationEscape":    nil,
 		"RunTrailerVerbUnknown": nil,
+		// M-0160/AC-4: id-rename-untrailered is the fourth consumer
+		// of the ackedSHAs map. Per-SHA closed-set scoping consistent
+		// with the M-0159/AC-3 contract.
+		"RunIDRenameUntrailered": nil,
 	}
 
 	for _, f := range cliCheckProdFiles {
@@ -476,7 +489,7 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		out = append(out, Violation{
 			Policy: "acks-helper-lift",
 			File:   "internal/cli/check/",
-			Detail: "M-0159/AC-3 requires the CLI gather layer to call check.WalkAcknowledgedSHAs exactly once; found zero call sites — the gather never computes ackedSHAs and the three rules have nothing to consume",
+			Detail: "M-0159/AC-3 requires the CLI gather layer to call check.WalkAcknowledgedSHAs exactly once; found zero call sites — the gather never computes ackedSHAs and the four consuming rules (M-0159/AC-3 + M-0160/AC-4) have nothing to consume",
 		})
 	case 1:
 		// happy path
@@ -494,13 +507,13 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 	// (4a/4b/4c) Each consumer must (a) be called from the gather
 	// layer, (b) receive an ackedSHAs arg, (c) have provenance for
 	// that arg within the enclosing function.
-	for _, name := range []string{"FSMHistoryConsistent", "RunIsolationEscape", "RunTrailerVerbUnknown"} {
+	for _, name := range []string{"FSMHistoryConsistent", "RunIsolationEscape", "RunTrailerVerbUnknown", "RunIDRenameUntrailered"} {
 		hits := consumerHits[name]
 		if len(hits) == 0 {
 			out = append(out, Violation{
 				Policy: "acks-helper-lift",
 				File:   "internal/cli/check/",
-				Detail: "M-0159/AC-3 requires the CLI gather layer to call check." + name + " with ackedSHAs; no call site for this consumer was found in internal/cli/check/ — the AC's three-consumer wiring is incomplete",
+				Detail: "M-0159/AC-3 (extended at M-0160/AC-4) requires the CLI gather layer to call check." + name + " with ackedSHAs; no call site for this consumer was found in internal/cli/check/ — the AC's four-consumer wiring is incomplete",
 			})
 			continue
 		}
@@ -565,10 +578,10 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 	//
 	// Both shapes are present in the green-phase implementation;
 	// either alone satisfies the policy. The check scans the
-	// internal/check/ production files (non-test) for the three
+	// internal/check/ production files (non-test) for the four
 	// named consumer FuncDecls and asserts the body has at least
 	// one consuming reference. A FuncDecl whose body is missing
-	// (interface method, nil body) is skipped — the AC's three
+	// (interface method, nil body) is skipped — the AC's four
 	// consumers all have concrete bodies, so a nil body would be
 	// an unrelated regression already caught elsewhere.
 	consumerFiles := map[string]*FileEntry{}
@@ -656,7 +669,7 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		if !declared {
 			// The consumer doesn't have a FuncDecl in
 			// internal/check/. Either renamed or missing —
-			// class (4a) already flags the three public
+			// class (4a) already flags the four public
 			// surfaces from the gather side; for the two
 			// internal predicate helpers a missing FuncDecl
 			// is unusual but not a separate AC-policed

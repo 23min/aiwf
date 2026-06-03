@@ -14,8 +14,9 @@ import (
 // illegalTransitionFindings; now exposed as an exported package
 // symbol so the CLI gather layer in internal/cli/check/ can call
 // it once per check invocation and pass the resulting map to all
-// three rules that consume it (fsm-history-consistent,
-// isolation-escape, trailer-verb-unknown).
+// four rules that consume it (fsm-history-consistent,
+// isolation-escape, trailer-verb-unknown, id-rename-untrailered;
+// the fourth added at M-0160/AC-4).
 //
 // The single-compute invariant is policed by
 // internal/policies/acks_helper_lift.go.
@@ -23,9 +24,10 @@ import (
 // WalkAcknowledgedSHAs walks HEAD's reachable history for commits
 // carrying an `aiwf-force-for: <sha>` trailer (per M-0136) and
 // returns the set of target SHAs. The set is consumed by
-// illegalTransitionFindings, RunIsolationEscape, and
-// RunTrailerVerbUnknown to exempt commits that have been
-// retroactively acknowledged via `aiwf acknowledge-illegal`.
+// illegalTransitionFindings, RunIsolationEscape,
+// RunTrailerVerbUnknown, and RunIDRenameUntrailered (M-0160/AC-4)
+// to exempt commits that have been retroactively acknowledged via
+// `aiwf acknowledge-illegal`.
 //
 // Returns nil for non-git directories and empty histories; the
 // consumers treat nil and an empty map identically (no
@@ -47,9 +49,11 @@ import (
 //
 // AC-3 caller convention: the CLI gather layer at
 // internal/cli/check/check.go::Run calls this exactly once and
-// passes the result to all three downstream rules through a
-// uniformly-named ackedSHAs parameter. Rule-internal recomputes
-// are forbidden by PolicyAcksHelperLift (violation class 3c).
+// passes the result to all four downstream rules through a
+// uniformly-named ackedSHAs parameter (id-rename-untrailered
+// added at M-0160/AC-4 as the fourth consumer). Rule-internal
+// recomputes are forbidden by PolicyAcksHelperLift (violation
+// class 3c).
 func WalkAcknowledgedSHAs(ctx context.Context, root string) map[string]bool {
 	if root == "" || !hasGitCommits(ctx, root) {
 		return nil

@@ -228,6 +228,27 @@ func Rules() []spec.Rule {
 			Outcome:       spec.OutcomeLegal,
 			Sources:       spec.RuleSource{Decision: "ADR-0003"},
 		},
+		// branch-cell-id-rename-untrailered — M-0160/AC-4: an
+		// inline `git mv` rename of an id-bearing entity file (the
+		// CLAUDE.md §"Id-collision resolution at merge time"
+		// operator-discipline failure mode) commits without an
+		// `aiwf-verb` trailer in the rename-class closed set
+		// (retitle / rename / reallocate / archive / move). The
+		// kernel rule id-rename-untrailered fires at check time.
+		// Tests:
+		// TestIDRenameUntrailered_TypedCodeClassIsBranchChoreography
+		// (unit) +
+		// TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding
+		// (integration via the M-0159 RunScenarios framework).
+		{
+			ID:                "branch-cell-id-rename-untrailered",
+			Preconditions:     []spec.Predicate{{Subject: "rename-class-verb-trailer", Op: "==", Value: "absent"}, {Subject: "renamed-file", Op: "==", Value: "id-bearing-entity"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "id-rename-untrailered",
+			RejectionLayer:    spec.RejectionLayerCheckTime,
+			BlockingStrict:    false, // warning severity at first land (M-0160/AC-4 design)
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID

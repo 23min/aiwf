@@ -42,19 +42,19 @@ import (
 // `aiwf reallocate <id-or-path>`.
 //
 // Setup:
-//  - Trunk-side: aiwf add gap creates G-0001 with one slug;
-//    push origin/main.
-//  - Feature branch: git mv renames the file to a different slug,
-//    commit with conventional-commits subject + no aiwf-verb
-//    trailer.
+//   - Trunk-side: aiwf add gap creates G-0001 with one slug;
+//     push origin/main.
+//   - Feature branch: git mv renames the file to a different slug,
+//     commit with conventional-commits subject + no aiwf-verb
+//     trailer.
 //
 // Expected envelope:
-//  - id-rename-untrailered finding fires (warning severity, per
-//    the M-0106 / G-0150 precedent for chokepoint rules — error
-//    tightening deferred to a future D-NNN).
-//  - ids-unique/trunk-collision does NOT fire (the inline git mv
-//    is cleanly paired by gitops.RenamesFromRef's cumulative
-//    -M50 fallback; G-0109's pre-existing behavior).
+//   - id-rename-untrailered finding fires (warning severity, per
+//     the M-0106 / G-0150 precedent for chokepoint rules — error
+//     tightening deferred to a future D-NNN).
+//   - ids-unique/trunk-collision does NOT fire (the inline git mv
+//     is cleanly paired by gitops.RenamesFromRef's cumulative
+//     -M50 fallback; G-0109's pre-existing behavior).
 func TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding(t *testing.T) {
 	t.Parallel()
 	RunScenarios(t, []Scenario{
