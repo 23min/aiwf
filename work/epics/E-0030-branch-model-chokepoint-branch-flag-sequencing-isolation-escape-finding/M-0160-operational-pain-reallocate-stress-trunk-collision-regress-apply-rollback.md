@@ -1,7 +1,7 @@
 ---
 id: M-0160
 title: Operational pain — reallocate stress, trunk-collision regress, apply rollback
-status: draft
+status: in_progress
 parent: E-0030
 tdd: required
 acs:
