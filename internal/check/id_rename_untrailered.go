@@ -71,20 +71,11 @@ type UntrailedIDRename struct {
 	NewID   string
 }
 
-// renameClassVerbs mirrors internal/gitops/refs.go::renameVerbs
-// by value. The two sets are kept in sync at the code-review
-// level (the gitops set is unexported, so importing here is not
-// an option — the typical aiwf pattern is for the closed set to
-// live next to its consumer). A drift-prevention policy would be
-// the right structural chokepoint if this pattern recurs (see
-// M-0160 wrap notes).
-var renameClassVerbs = map[string]bool{
-	"retitle":    true, // changes slug + frontmatter title
-	"rename":     true, // changes slug only
-	"reallocate": true, // changes id + slug (entity renumber)
-	"archive":    true, // sweeps to per-kind archive/ subdir
-	"move":       true, // milestone changes parent epic
-}
+// The rename-class verb membership lives at gitops.IsRenameVerb
+// (the M-0160/AC-4 REFACTOR export of internal/gitops/refs.go::
+// renameVerbs). commitHasRenameClassVerb below consumes it. Before
+// the export, this file carried a duplicated map by value — the
+// reviewer N-2 drift hazard that the gitops export closed.
 
 // RunIDRenameUntrailered emits one warning finding per record in
 // renames, minus those whose SHA appears in ackedSHAs.
@@ -202,26 +193,31 @@ func WalkUntrailedIDRenames(ctx context.Context, root, ref string) []UntrailedID
 		if commitHasRenameClassVerb(trailers) {
 			continue
 		}
-		// Get this commit's file renames via `git show -M
-		// --diff-filter=R`. Per-commit subprocess failure is
-		// silenced consistently with the outer walker's
-		// fail-shut shape — one transient hiccup in one commit
-		// shouldn't lose all records from the range.
-		commitRenames := renamesInCommitForRule(ctx, root, sha)
-		for _, mv := range commitRenames {
+		// Get this commit's file renames via gitops.RenamesInCommit
+		// (the M-0160/AC-4 REFACTOR export — replaces the duplicated
+		// renamesInCommitForRule helper that mirrored the gitops
+		// internal). Per-commit subprocess failure is silenced
+		// consistently with the outer walker's fail-shut shape —
+		// one transient hiccup in one commit shouldn't lose all
+		// records from the range.
+		commitRenames, rErr := gitops.RenamesInCommit(ctx, root, sha)
+		if rErr != nil {
+			continue
+		}
+		for oldPath, newPath := range commitRenames {
 			// Filter to id-bearing entity files only. The rule's
 			// claim is specifically about kernel entities; a
 			// non-entity file rename (e.g., README.md -> DOCS.md)
 			// is operator concern, not kernel concern.
-			oldID, oldOK := entityIDFromPath(mv.OldPath)
-			newID, newOK := entityIDFromPath(mv.NewPath)
+			oldID, oldOK := entityIDFromPath(oldPath)
+			newID, newOK := entityIDFromPath(newPath)
 			if !oldOK && !newOK {
 				continue
 			}
 			out = append(out, UntrailedIDRename{
 				SHA:     sha,
-				OldPath: mv.OldPath,
-				NewPath: mv.NewPath,
+				OldPath: oldPath,
+				NewPath: newPath,
 				OldID:   oldID,
 				NewID:   newID,
 			})
@@ -231,63 +227,20 @@ func WalkUntrailedIDRenames(ctx context.Context, root, ref string) []UntrailedID
 }
 
 // commitHasRenameClassVerb returns true when the trailer set
-// includes an `aiwf-verb:` entry whose value is in the rename-class
-// closed set.
+// includes an `aiwf-verb:` entry whose value is in the
+// rename-class closed set (gitops.IsRenameVerb). The closed-set
+// authority lives in gitops; this helper just composes the
+// trailer-key filter on top.
 func commitHasRenameClassVerb(trailers []gitops.Trailer) bool {
 	for _, tr := range trailers {
 		if tr.Key != gitops.TrailerVerb {
 			continue
 		}
-		if renameClassVerbs[tr.Value] {
+		if gitops.IsRenameVerb(tr.Value) {
 			return true
 		}
 	}
 	return false
-}
-
-// commitRename is the internal per-commit rename record used by
-// WalkUntrailedIDRenames. Keeps the surface here (the rule) rather
-// than coupling to gitops' similar-shape internals — the two
-// surfaces share the underlying `git show -M --diff-filter=R`
-// invocation but diverge in what they filter and emit.
-type commitRename struct {
-	OldPath string
-	NewPath string
-}
-
-// renamesInCommitForRule runs `git show -M --diff-filter=R
-// --name-status -z` for a single commit and returns its file
-// renames. Mirrors internal/gitops/refs.go::renamesInCommit
-// (unexported there); duplicated here to avoid a cross-package
-// export of an internal helper. The two surfaces sharing the
-// same git command shape is the operator-intent invariant.
-//
-// Returns nil on any subprocess failure (consistent with the
-// outer WalkUntrailedIDRenames fail-shut shape). A transient
-// hiccup on one commit shouldn't lose the whole range's records.
-func renamesInCommitForRule(ctx context.Context, workdir, sha string) []commitRename {
-	cmd := exec.CommandContext(ctx, "git", "show", "-M", "--diff-filter=R",
-		"--name-status", "-z", "--format=", sha)
-	cmd.Dir = workdir
-	out, err := cmd.Output()
-	if err != nil || len(out) == 0 {
-		return nil
-	}
-	var renames []commitRename
-	fields := strings.Split(strings.TrimRight(string(out), "\x00"), "\x00")
-	for i := 0; i+2 < len(fields); i += 3 {
-		status := fields[i]
-		if status == "" || status[0] != 'R' {
-			continue
-		}
-		oldPath := fields[i+1]
-		newPath := fields[i+2]
-		if oldPath == "" || newPath == "" {
-			continue
-		}
-		renames = append(renames, commitRename{OldPath: oldPath, NewPath: newPath})
-	}
-	return renames
 }
 
 // entityIDFromPath returns the kernel id for an id-bearing path,

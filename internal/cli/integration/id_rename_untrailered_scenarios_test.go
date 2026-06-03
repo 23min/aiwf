@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
@@ -142,6 +143,65 @@ func TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding(t *testing.T) {
 				// rename. The rule's trailer check skips it.
 				env.MustRunBin("rename", "G-0001", "renamed-via-aiwf-verb")
 			},
+			Expect: Expectation{
+				NoFindingWithCode: "id-rename-untrailered",
+			},
+		},
+	})
+}
+
+// TestIDRenameUntrailered_AC4_AcknowledgeIllegalSilences pins
+// the M-0159/AC-3 ack-helper-lift integration for the new rule:
+// driving `aiwf acknowledge-illegal <sha> --reason "..."` against
+// the violating commit silences the rule's finding without
+// rewriting history. The unit-level pin lives at
+// TestIDRenameUntrailered_AckedSHAExempted; this binary-level
+// scenario exercises the gather → ackedSHAs map → rule wiring
+// end-to-end through the live `aiwf check` envelope.
+//
+// REFACTOR-phase deliverable (RED-phase reviewer N7).
+func TestIDRenameUntrailered_AC4_AcknowledgeIllegalSilences(t *testing.T) {
+	t.Parallel()
+	RunScenarios(t, []Scenario{
+		{
+			Name: "aiwf acknowledge-illegal silences id-rename-untrailered for the specific SHA (M-0160/AC-4: ack-helper-lift integration)",
+			Setup: func(t *testing.T, env *ScenarioEnv) {
+				t.Helper()
+
+				// Trunk-side: gap with one slug + push.
+				env.MustRunBin("add", "gap", "--title", "Trunk gap original slug")
+				env.MustRunGit("push", "origin", "main")
+
+				// Feature branch + inline git mv with no trailer
+				// — the rule fires on this commit.
+				env.MustRunGit("checkout", "-b", "feature/ack-silenced-rename")
+				oldRel := findEntityFile(t, env, "G-0001")
+				if oldRel == "" {
+					t.Fatal("G-0001 not found after `aiwf add gap`")
+				}
+				newRel := "work/gaps/G-0001-renamed-for-ack-fixture.md"
+				env.MustRunGit("mv", oldRel, newRel)
+				env.MustRunGit("commit", "-m", "chore: rename G-0001 slug (will be acked)")
+
+				// Capture the violating commit's SHA — this is the
+				// argument `aiwf acknowledge-illegal` consumes.
+				violatingSHA := strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+
+				// Sovereign-human acknowledgment via the kernel verb.
+				// AcknowledgeIllegal (the M-0159 helper at
+				// branch_scenarios_helpers_test.go:954) wraps
+				// `aiwf acknowledge-illegal <sha> --reason "..."`
+				// — same shape M-0159/AC-4 established for the
+				// three pre-existing ack-consuming rules.
+				AcknowledgeIllegal(t, env, violatingSHA,
+					"M-0160/AC-4 REFACTOR fixture: silencing the inline-git-mv rename for the specific SHA")
+			},
+			// The rule must be silent on the violating commit
+			// after the acknowledgment lands. The framework's
+			// `NoFindingWithCode` asserts no finding with code
+			// id-rename-untrailered remains in the envelope —
+			// the per-SHA closed-set scoping the M-0159/AC-3
+			// helper-lift guarantees.
 			Expect: Expectation{
 				NoFindingWithCode: "id-rename-untrailered",
 			},

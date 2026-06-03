@@ -296,18 +296,58 @@ func RenamesFromRef(ctx context.Context, workdir, ref string) (map[string]string
 
 // renameVerbs is the closed set of aiwf-verb trailer values whose
 // commits move entity files. Used by renamesFromAiwfVerbTrailers to
-// scope the trailer walk. The values are checked against the literal
-// strings emitted by the corresponding verbs in internal/verb/.
+// scope the trailer walk and by IsRenameVerb for cross-package
+// consumers (e.g., internal/check/id_rename_untrailered.go uses
+// this set as the trailer-class authority for the
+// id-rename-untrailered rule). The values are checked against the
+// literal strings emitted by the corresponding verbs in
+// internal/verb/.
 //
 // Closed set intentionally — adding a new rename-shaped verb to the
 // kernel without adding it here would silently regress G-0167's
-// trailer-driven detection for that verb's renames.
+// trailer-driven detection for that verb's renames AND M-0160/AC-4's
+// id-rename-untrailered chokepoint (the rule would let the new verb's
+// renames slip through as untrailered).
 var renameVerbs = map[string]bool{
 	"retitle":    true, // changes slug + frontmatter title
 	"rename":     true, // changes slug only
 	"reallocate": true, // changes id + slug (entity renumber)
 	"archive":    true, // sweeps to per-kind archive/ subdir
 	"move":       true, // milestone changes parent epic
+}
+
+// IsRenameVerb returns true when value is an aiwf-verb trailer
+// value whose commit semantics include moving an entity file.
+// Mirrors the closed set in renameVerbs above. The getter shape
+// (rather than exporting the map) preserves the closed-set
+// invariant — cross-package callers cannot mutate the membership.
+//
+// M-0160/AC-4 adoption: internal/check/id_rename_untrailered.go's
+// gather-side walker calls IsRenameVerb to decide whether a commit's
+// rename is canonical-path (skip) or untrailered (emit a finding).
+// Before this export, the consumer carried a duplicated map by value;
+// the export eliminates the drift hazard reviewer N-2 flagged at
+// M-0160/AC-4 GREEN.
+func IsRenameVerb(value string) bool {
+	return renameVerbs[value]
+}
+
+// RenamesInCommit returns the file renames recorded by a single
+// commit. Uses git's per-commit `-M` similarity at the default
+// threshold; per-commit diffs are typically very high-similarity
+// (the kernel verbs that move files don't simultaneously rewrite
+// the body), so the default threshold reliably catches them.
+//
+// Returns the rename map as old-path → new-path. Caller-owned
+// error semantics: any subprocess failure propagates.
+//
+// M-0160/AC-4 export: the unexported renamesInCommit had a
+// duplicate at internal/check/id_rename_untrailered.go (per the
+// same N-2 finding); RenamesInCommit is the shared surface both
+// the gitops walker (renamesFromAiwfVerbTrailers) and the check
+// rule's walker (WalkUntrailedIDRenames) consume.
+func RenamesInCommit(ctx context.Context, workdir, sha string) (map[string]string, error) {
+	return renamesInCommit(ctx, workdir, sha)
 }
 
 // renamesFromAiwfVerbTrailers walks commits on mergeBase..HEAD and
