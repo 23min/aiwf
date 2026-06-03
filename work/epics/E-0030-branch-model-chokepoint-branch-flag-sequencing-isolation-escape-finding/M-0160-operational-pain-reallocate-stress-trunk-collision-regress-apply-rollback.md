@@ -9,6 +9,10 @@ acs:
       title: Reallocate combinatorial real-git E2E coverage
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: G-0167 trunk-collision regression binary-level E2E
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -49,4 +53,6 @@ These three are the seed set; aiwfx-start-milestone refines and allocates them.
 -->
 
 ### AC-1 — Reallocate combinatorial real-git E2E coverage
+
+### AC-2 — G-0167 trunk-collision regression binary-level E2E
 
