@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: G-0167 trunk-collision regression binary-level E2E
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: G-0170 apply-rollback data-preservation binary-level E2E
       status: open
