@@ -336,7 +336,7 @@ Make [ADR-0010](docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-autho
 | M-0106 | Kernel finding isolation-escape (closes G-0099) | done |
 | M-0158 | Layer-4 branch-choreography spec cells + drift-policy extension | done |
 | M-0159 | Real-world hardening of branch-model chokepoint | done |
-| M-0160 | Operational pain — reallocate stress, trunk-collision regress, apply rollback | draft |
+| M-0160 | Operational pain — reallocate stress, trunk-collision regress, apply rollback | done |
 | M-0161 | Imagination-driven hardening: shallow, force-push, rename, detached, trunk | draft |
 
 ## E-0031 — Pin legal workflows, composition, and branch choreography mechanically (cancelled)
