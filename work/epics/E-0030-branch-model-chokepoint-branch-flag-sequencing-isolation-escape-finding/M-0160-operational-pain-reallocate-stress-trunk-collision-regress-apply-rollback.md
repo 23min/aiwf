@@ -17,6 +17,10 @@ acs:
       title: G-0170 apply-rollback data-preservation binary-level E2E
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: 'Kernel chokepoint: id-rename without reallocate trailer'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -61,4 +65,6 @@ These three are the seed set; aiwfx-start-milestone refines and allocates them.
 ### AC-2 — G-0167 trunk-collision regression binary-level E2E
 
 ### AC-3 — G-0170 apply-rollback data-preservation binary-level E2E
+
+### AC-4 — Kernel chokepoint: id-rename without reallocate trailer
 
