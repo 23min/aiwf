@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -955,4 +956,99 @@ func AcknowledgeIllegal(t *testing.T, env *ScenarioEnv, targetSHA, reason string
 	t.Helper()
 	env.MustRunBin("acknowledge-illegal", targetSHA, "--reason", reason)
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+}
+
+// --- Frontmatter / filesystem inspection helpers ---------------
+//
+// Authored at M-0160/AC-1 for reallocate scenarios; lifted from
+// reallocate_scenarios_test.go to this shared file at M-0160/AC-3
+// once the second caller (apply_rollback_g0170_test.go) appeared,
+// per the AC-1-time docstring promise to lift on the second
+// caller.
+
+// findEntityFile returns the repo-relative path of the entity
+// matching `entityID` (frontmatter `id:` match), searching under
+// work/. Returns "" when not found. Used to locate files whose
+// slug may differ from the id (any post-rename, any post-
+// retitle). Walks both the active tree AND archive subdirs so
+// post-archive entities are still discoverable.
+func findEntityFile(t *testing.T, env *ScenarioEnv, entityID string) string {
+	t.Helper()
+	root := filepath.Join(env.Root, "work")
+	var result string
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !strings.HasSuffix(path, ".md") {
+			return nil
+		}
+		body, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+		// Cheap check on the first 512 bytes — frontmatter only.
+		head := body
+		if len(head) > 512 {
+			head = head[:512]
+		}
+		idRE := regexp.MustCompile(`(?m)^id:\s*` + regexp.QuoteMeta(entityID) + `\s*$`)
+		if idRE.Match(head) {
+			rel, err := filepath.Rel(env.Root, path)
+			if err == nil {
+				result = filepath.ToSlash(rel)
+			}
+			return filepath.SkipAll
+		}
+		return nil
+	})
+	if err != nil {
+		// SkipAll returns nil from WalkDir; anything else is a real
+		// walk problem worth logging.
+		t.Logf("findEntityFile walk: %v", err)
+	}
+	return result
+}
+
+// fileExists returns true when an entity with the given id is
+// present in the active tree (or archive subdir). Distinguished
+// from findEntityFile when the test wants a boolean rather than
+// the path.
+func fileExists(t *testing.T, env *ScenarioEnv, entityID string) bool {
+	t.Helper()
+	return findEntityFile(t, env, entityID) != ""
+}
+
+// readFrontmatter returns the YAML frontmatter block of an entity
+// file (the content between the first two `---` delimiters),
+// without the delimiters. Returns "" on read failure or malformed
+// frontmatter. The test caller asserts substring presence (e.g.,
+// `id: G-0002`, `G-0001` in prior_ids) against the returned
+// string.
+//
+// Assumes LF line endings (devcontainer / CI Linux). The closer
+// detection `strings.Index(rest, "\n---")` is not CRLF-aware
+// — on Windows, `\r\n---` would not match and the helper would
+// return "". M-0160 runs in the devcontainer per CLAUDE.md; if
+// host-side Windows testing is later in scope, port the splitter
+// from replaceStatusInFrontmatter above in this file.
+func readFrontmatter(t *testing.T, absPath string) string {
+	t.Helper()
+	body, err := os.ReadFile(absPath)
+	if err != nil {
+		t.Fatalf("readFrontmatter %s: %v", absPath, err)
+	}
+	s := string(body)
+	if !strings.HasPrefix(s, "---") {
+		return ""
+	}
+	rest := s[3:]
+	end := strings.Index(rest, "\n---")
+	if end < 0 {
+		return ""
+	}
+	return strings.TrimSpace(rest[:end])
 }
