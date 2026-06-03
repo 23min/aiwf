@@ -73,6 +73,7 @@ func TestM0158_AC5_EveryBranchCellHasMatchingTest(t *testing.T) {
 		"branch-cell-override-cherry-pick":   {"CherryPickReAuthorSilent"},
 		"branch-cell-override-force-amend":   {"ForceAmendedCommitSilent"},
 		"branch-cell-override-f-nnnn-waiver": {}, // documented exception below
+		"branch-cell-id-rename-untrailered":  {"IDRenameUntrailered"},
 	}
 
 	for _, cell := range branch.Rules() {

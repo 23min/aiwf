@@ -140,6 +140,18 @@ var hintTable = map[string]string{
 	// allowlisted (G-0180) and do not fire.
 	"trailer-verb-unknown": "the commit's `aiwf-verb:` value is not a registered top-level verb or subverb, nor a recognized ritual verb; if it's a typo (or an LLM fabrication), amend the commit and drop the trailer — plain `feat(...)` / `fix(...)` commits don't need an `aiwf-verb:` line; if it's a new ritual verb, add it to the ritualVerbs allowlist in internal/check/trailer_verb_unknown.go",
 
+	// M-0160/AC-4: id-rename-untrailered fires when a commit between
+	// merge-base(HEAD, trunk) and HEAD renames an id-bearing entity
+	// file without an aiwf-verb trailer in the rename-class closed
+	// set. The canonical resolution is `aiwf reallocate` — it
+	// rewrites the frontmatter, walks the tree to rewrite every
+	// cross-reference to the old id, and stamps the proper
+	// `aiwf-verb: reallocate` + `aiwf-prior-entity:` trailers so
+	// `aiwf history` bridges old→new. Sovereign-human override via
+	// `aiwf acknowledge-illegal` is the post-hoc silencing path for
+	// renames that were deliberate.
+	"id-rename-untrailered": "the commit renamed an id-bearing entity file without an `aiwf-verb` trailer in the rename-class set (retitle/rename/reallocate/archive/move). Canonical resolution: run `aiwf reallocate <new-id-or-path>` to record the renumber with the proper trailer set — that rewrites cross-references and bridges `aiwf history` from the old id; alternatively, if the original rename was deliberate sovereign-human work, run `aiwf acknowledge-illegal <sha> --reason \"<text>\"` to silence this specific commit's finding without rewriting history. See CLAUDE.md §\"Id-collision resolution at merge time\".",
+
 	// Verb-emitted findings (from internal/verb/).
 	"unexpected-tree-file": "remove the file or move it outside `work/`; if it genuinely belongs there, add a glob to `tree.allow_paths` in aiwf.yaml — but tree-shape changes (new entities, renames, status transitions) go through `aiwf <verb>`, not direct writes",
 

@@ -39,10 +39,11 @@ import (
 // M-0159/AC-3: ackedSHAs is the gather-layer-computed map of
 // retroactively-acknowledged commit SHAs (via
 // check.WalkAcknowledgedSHAs called once at check.go::Run).
-// Passed through to both rules that consume it from this gather
-// (check.RunIsolationEscape, check.RunTrailerVerbUnknown); the
-// third consumer (check.FSMHistoryConsistent) is called directly
-// from check.go::Run with the same map.
+// Passed through to three rules that consume it from this gather
+// (check.RunIsolationEscape, check.RunTrailerVerbUnknown,
+// check.RunIDRenameUntrailered — the third added at M-0160/AC-4);
+// the fourth consumer (check.FSMHistoryConsistent) is called
+// directly from check.go::Run with the same map.
 func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}, ackedSHAs map[string]bool) ([]check.Finding, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
@@ -71,6 +72,31 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
 		cherryPicked := check.WalkCherryPicks(ctx, root)
 		findings = append(findings, check.RunIsolationEscape(commits, oracle, cherryPicked, ackedSHAs)...)
+	}
+
+	// M-0160/AC-4: id-rename-untrailered rule. Walk
+	// merge-base(HEAD, trunk)..HEAD for commits that rename
+	// id-bearing entity files without an aiwf-verb trailer in the
+	// rename-class closed set (retitle/rename/reallocate/archive/
+	// move). Catches the CLAUDE.md §"Id-collision resolution at
+	// merge time" failure mode where an operator used inline
+	// `git mv` instead of `aiwf reallocate`. ackedSHAs (M-0159/AC-3
+	// helper-lift) exempts retroactively acknowledged commits.
+	//
+	// Wired BEFORE the untrailered-range resolution because this
+	// rule is independent of the untrailered-audit scope — it uses
+	// the trunk ref directly (same as the trunk-collision rule),
+	// not @{u}..HEAD. Putting it after would mean it gets
+	// short-circuited by the `provenance-untrailered-scope-undefined`
+	// advisory on feature branches with no upstream.
+	//
+	// A nil/missing TrunkRef means the trunk-view computation was
+	// skipped (no remotes configured, or trunk ref unresolved); the
+	// rule degrades to "no cross-tree view, silent" just as the
+	// trunk-collision rule does.
+	if t != nil && t.TrunkRef != "" {
+		renames := check.WalkUntrailedIDRenames(ctx, root, t.TrunkRef)
+		findings = append(findings, check.RunIDRenameUntrailered(renames, ackedSHAs)...)
 	}
 
 	rangeArg, advisory, rErr := ResolveUntrailedRange(ctx, root, since)

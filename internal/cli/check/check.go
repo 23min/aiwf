@@ -102,9 +102,10 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// once per check invocation, then pass it to every rule that
 	// consumes it. The single-compute invariant is policed by
 	// internal/policies/acks_helper_lift.go; rule-internal recompute
-	// is forbidden (violation class 3c). The three consumers below
-	// are RunProvenanceCheck (which forwards to RunIsolationEscape
-	// and RunTrailerVerbUnknown) and FSMHistoryConsistent.
+	// is forbidden (violation class 3c). The four consumers below
+	// are RunProvenanceCheck (which forwards to RunIsolationEscape,
+	// RunTrailerVerbUnknown, and RunIDRenameUntrailered — the
+	// fourth added at M-0160/AC-4) and FSMHistoryConsistent.
 	ackedSHAs := check.WalkAcknowledgedSHAs(ctx, resolved)
 
 	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs)
