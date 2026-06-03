@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: 'Kernel chokepoint: id-rename without reallocate trailer'
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
