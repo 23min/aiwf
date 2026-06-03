@@ -170,3 +170,75 @@ Wired in [`internal/cli/check/provenance.go`](../../../internal/cli/check/proven
 - ADR-0011 layer-4 branch-choreography carve-out
 - Pinned by: 5 unit tests (`TestIDRenameUntrailered_*`) + 3 integration scenarios (`TestIDRenameUntrailered_AC4_*`) + 1 hint-flow test (`TestRunProvenanceCheck_IDRenameUntrailered_FindingCarriesHint`) + 6 walker unit tests (`TestWalkUntrailedIDRenames_*`) + `TestEntityIDFromPath` + `TestCommitHasRenameClassVerb`
 
+## Work log
+
+### Cycle 1 — AC-1 (reallocate combinatorial E2E)
+
+Commit `d5d7d558`. 7 scenarios authored against the M-0159 framework covering the 19 historical `aiwf-verb: reallocate` invocations' representative shapes. Sabotage-verified scenarios 2/4/5 (prior_ids append, prose rewrite, aiwf-prior-entity trailer). Reviewer subagent caught 1 strong (subcode pin on first-pass check in scenario 3) + 4 nits (dead-code guard in scenario 7, parent: rewrite assertion in scenario 6, filepath.SkipAll over sentinel string, CRLF docstring honesty); all addressed. Closed-set policy adoption (`check.CodeIDsUnique` over the `"ids-unique"` literal). Three local helpers (`findEntityFile`, `fileExists`, `readFrontmatter`) added.
+
+### Cycle 2 — AC-2 (G-0167 binary-level E2E)
+
+Commit `5f6d2bb0`. Single scenario reconstructing the M-0125/G-0139 retitle + body-enrichment failure shape. Fixture-tuning iteration: initial `aiwf add gap` default body produced per-commit similarity of 48% — below the kernel's per-commit `-M50` threshold; diagnosed via `git show -M01` debug; fixed by seeding a moderate-size initial body. Per-commit similarity then 91%, cumulative D+A pair (no rename). Sabotage-verified by reverting `RenamesFromRef` pass 1. Reviewer caught 1 blocker (`revive: var-naming` on `seedBody_AC2` / `longEnrichedBody_AC2` constants) + 1 strong (AC-promotion evidence anchor comment) + nit. Bonus cleanup of two pre-existing lint findings (`err`-shadow in AC-1, `entity`-import-shadow from M-0159).
+
+### Cycle 3 — AC-3 (G-0170 binary-level E2E)
+
+Commit `38052ad1`. Free-form binary-level test (no `RunScenarios`) — the M-0159 framework's `Expectation` is designed for `aiwf check` envelope assertions; AC-3's load-bearing assertions are filesystem + git state. Three load-bearing assertions: HEAD SHA, worktree bytes (pre-Apply dirty preserved), error envelope (no misleading "no changes to commit"). Empty-identity commit-failure trigger matches the unit-test pattern. Sabotage-verified by gutting `applyTx.rollback` step 2. Reviewer: 0 blockers, 0 strong, 1 nit (`handEditFixtureAC3` const extraction). **Refactor follow-up bundled**: lifted `findEntityFile` / `fileExists` / `readFrontmatter` from `reallocate_scenarios_test.go` to shared `branch_scenarios_helpers_test.go` (AC-1's "lift on second caller" promise triggered).
+
+### Cycle 4 — AC-4 (id-rename-untrailered kernel chokepoint)
+
+Real TDD cycle, three commits:
+
+- **RED** `19ceb508`: failing unit tests pinning the rule's API shape (typed `Code{ID, Class=ClassBranchChoreography}` per RED-phase reviewer S1, `ackedSHAs` parameter shape, per-record firing contract) + failing integration scenarios (primary fire path with inline trunk-collision discrimination per S3; positive control via `aiwf rename`; non-entity guard).
+- **GREEN** `bb2888c5`: rule implementation + walker + provenance wire-up + hint + SKILL.md + M-0158 cell + PolicyAcksHelperLift extension (reviewer S2) + "four consumers" prose sweep + WalkCherryPicks fail-shut alignment (reviewer S-1). Wire-up was initially placed AFTER `ResolveUntrailedRange`, short-circuited by `provenance-untrailered-scope-undefined` on feature branches; diagnosed and reordered.
+- **REFACTOR** `fb4d558f`: walker unit tests (90%+ coverage on the rule surface), hint-flow pin (M-0106/AC-12 + M-0159/AC-9 pattern), ack-illegal E2E silencing scenario, gitops dedup via `IsRenameVerb` + `RenamesInCommit` exports (reviewer N-2).
+
+### Post-cycle — discipline observation
+
+During REFACTOR prep, surfaced that all four M-0160 AC body subsections had been empty throughout RED/GREEN/REFACTOR. The contract-first AC discipline was vigilance-dependent rather than mechanical — a kernel-correctness rule violation per CLAUDE.md ("framework correctness must not depend on the LLM's behavior"). Three follow-up commits:
+
+- `c80e5a26` + `ce19bb14`: G-0216 filed proposing the kernel rule (verb-time refusal on `draft → in_progress` with empty AC bodies + check-time finding).
+- `78cd7569`: M-0160 AC body subsections back-filled with explicit "back-filled post-hoc per G-0216" disclosure header. The bodies describe the implementations that already landed; they are NOT lock contracts written ahead of time. M-0159 + M-0160 grandfathered against G-0216's proposed rule.
+
+## Decisions made during implementation
+
+- **Free-form test for AC-3** (no `RunScenarios`). The M-0159 framework's `Expectation` only models `aiwf check --format=json` envelope assertions; AC-3's assertions are filesystem state (worktree bytes) and git state (HEAD SHA) on a verb other than `check`. Extending `Expectation` with new fields would be the YAGNI trap — abstract on the third caller. The test calls `newScenarioEnv(t)` directly to inherit the real-git fixture + worktree-built binary discipline.
+
+- **Helper lift on second caller** (AC-1 → AC-3 trigger). AC-1 introduced `findEntityFile` / `fileExists` / `readFrontmatter` as local-scoped helpers with an explicit docstring promise to lift on the second caller. AC-3 became that second caller; the lift to `branch_scenarios_helpers_test.go` landed in AC-3's commit. Self-discipline of "lift when triggered" worked.
+
+- **AC-4 wire-up placement BEFORE `ResolveUntrailedRange`**. The new rule is independent of the untrailered-audit scope (it uses the trunk ref, not `@{u}..HEAD`). Initial GREEN placed the wire-up at the end of `RunProvenanceCheck`, where it was short-circuited by the `provenance-untrailered-scope-undefined` advisory on feature branches with no upstream. Reorder is the canonical fix; documented in the provenance.go wire-up comment.
+
+- **gitops export at REFACTOR over drift policy**. AC-4 REFACTOR removed the duplicated `renameClassVerbs` map + `renamesInCommitForRule` helper by exporting `gitops.IsRenameVerb` (getter shape preserves the closed-set invariant) + `gitops.RenamesInCommit`. The alternative (AST drift policy verifying two sets are byte-identical) was rejected — exports are minimum-friction and eliminate the duplication at the source.
+
+- **AC body back-fill with disclosure header**, not silent fill. The discipline failure (contract-first AC discipline was vigilance-dependent) is recorded openly in the spec body itself with the disclosure header and the G-0216 cross-reference. Future readers cannot mistake the back-filled bodies for lock contracts written ahead of time.
+
+- **Walker error-handling fail-shut over surface-error.** Walker returns single value (no error), silences subprocess failures consistent with `WalkCherryPicks` precedent. Reviewer S-1: pick one shape and pin it. Chokepoint is one rule among many; a transient git hiccup shouldn't block the check pass.
+
+## Validation
+
+- `go test -race ./...` — 57 packages green, 0 fail, race-detector clean.
+- `golangci-lint run ./...` — 0 issues.
+- `aiwf check` — 0 errors, advisory warnings only (4× terminal-entity-not-archived for the M-0159 closed gaps + 1× archive-sweep-pending aggregate + 1× provenance-untrailered-scope-undefined).
+- Coverage on AC-4 rule surface: RunIDRenameUntrailered 90.9%, WalkUntrailedIDRenames 87.5%, commitHasRenameClassVerb 100%, entityIDFromPath 85.7% (up from 0% at GREEN).
+- Sabotage discrimination confirmed end-to-end on all four ACs at the load-bearing inline assertions; reviewer-before-commit pattern applied at every cycle.
+- 5 reviewer subagent passes total (AC-1, AC-2, AC-3, AC-4 RED, AC-4 GREEN) — multiple substantive findings caught and addressed.
+
+## Deferrals
+
+- **[G-0216](../../gaps/G-0216-empty-ac-body-blocks-milestone-draft-to-in-progress-promote.md)** — Empty AC body should block milestone `draft → in_progress` promote. Filed during M-0160 REFACTOR observation. The kernel rule is NOT implemented in this milestone — only the gap is filed. A future milestone implements the verb-time refusal + check-time finding. M-0159 + M-0160 are grandfathered against the proposed rule.
+
+No M-0160 AC scope was deferred; all four ACs reached `met`.
+
+## Reviewer notes
+
+**Contract-first AC discipline failure recorded openly.** M-0160 was started with four ACs whose body subsections were empty. The implementation tracked the verbal Q&A planning + the AC titles, not a written lock contract. The honest record is the disclosure header in the spec body's `## Acceptance criteria` section plus G-0216's gap body. This was the substantive lesson of M-0160 wrap, more valuable than any of the four ACs' technical deliverables: the kernel chokepoint that would have prevented the failure (G-0216) is now a filed proposal, and M-0161 will apply the contract-first discipline correctly (AC body prose written BEFORE `aiwf promote M-0161 in_progress`).
+
+**Reviewer-before-commit discipline established for substantive work.** Every cycle's load-bearing commit (AC-1, AC-2, AC-3, AC-4 RED, AC-4 GREEN) ran a reviewer subagent pass before the commit landed. Findings ranged from 0 blockers / 0 strong (AC-3) to 1 blocker (AC-2 `revive: var-naming` on body constants). The pattern caught: lint debt the lint sweep would have surfaced anyway, structural improvements (`fmt.Errorf("stop")` → `filepath.SkipAll`), discoverability improvements (anchor comments above load-bearing assertions), and the M-0160-specific scope-creep guards. Worth keeping for future milestones.
+
+**M-0159 framework's expressive power validated against a real corpus.** AC-1 demonstrated that the `Scenario`/`Expectation`/`RunScenarios` framework scales to non-branch-choreography scenarios (reallocate verb mutation) with three new local helpers (lifted on second-caller). AC-2 used the framework for a single regression-pin scenario with two inline fixture-sanity-check `t.Fatalf` calls; AC-3 deliberately stepped outside the framework because the `Expectation` shape didn't fit verb-rollback assertions. AC-4 used the framework for three scenarios (primary fire, positive control, non-entity guard) plus a free-form ack-silencing scenario via direct `newScenarioEnv` + helper call. The four ACs together cover the framework's range: scenario-table, free-form, and mixed.
+
+**G-0216 follow-up (M-0161 onwards).** Until G-0216 lands, the discipline is operator vigilance: fill AC body subsections at `aiwfx-start-milestone` time, BEFORE running `aiwf promote M-NNN in_progress`. The `aiwfx-start-milestone` skill should mention this as the pre-promote lock step. (Skill update is itself a follow-up; not in M-0160 scope.)
+
+**G37 trunk-aware allocator's normal-path behavior pinned.** AC-1 scenario 7 (positive baseline: feature branch's `aiwf add gap` skips trunk-side ids) complements the collision scenario 3 (cross-branch merge collision). The two together establish that the collision shape is anomalous (parallel un-pushed branches), not the steady state — useful framing for any future kernel rule that might assume otherwise.
+
+**M-0160's six-commit AC-4 cycle is the M-0159/AC-4 pattern repeated cleanly.** RED + GREEN + REFACTOR (the canonical TDD shape) for new chokepoint rules. AC-1/AC-2/AC-3 used RED+GREEN one-shot for regression-pin work. Future milestones can use the AC-4 shape as the template for new-rule introductions.
+
