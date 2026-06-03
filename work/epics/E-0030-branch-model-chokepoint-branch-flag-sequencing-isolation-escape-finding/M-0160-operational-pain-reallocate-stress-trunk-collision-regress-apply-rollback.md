@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: 'Kernel chokepoint: id-rename without reallocate trailer'
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
