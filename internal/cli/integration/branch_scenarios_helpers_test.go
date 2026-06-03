@@ -510,13 +510,13 @@ func ForceAmendHEAD(t *testing.T, env *ScenarioEnv, reason string) string {
 	subject := strings.TrimSpace(env.MustRunGit("log", "-1", "--pretty=%s"))
 	verb := strings.TrimSpace(env.MustRunGit("log", "-1",
 		"--pretty=%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"))
-	entity := strings.TrimSpace(env.MustRunGit("log", "-1",
+	entityID := strings.TrimSpace(env.MustRunGit("log", "-1",
 		"--pretty=%(trailers:key=aiwf-entity,valueonly=true,unfold=true)"))
 
 	if verb == "" {
 		t.Fatalf("ForceAmendHEAD: HEAD commit has no aiwf-verb trailer; cannot construct amend message")
 	}
-	if entity == "" {
+	if entityID == "" {
 		t.Fatalf("ForceAmendHEAD: HEAD commit has no aiwf-entity trailer; cannot construct amend message")
 	}
 
@@ -527,7 +527,7 @@ func ForceAmendHEAD(t *testing.T, env *ScenarioEnv, reason string) string {
 	// intentionally omitted — the actor flip makes them
 	// inappropriate.
 	newMsg := fmt.Sprintf("%s\n\naiwf-verb: %s\naiwf-entity: %s\naiwf-actor: human/peter\naiwf-force: %s\n",
-		subject, verb, entity, reason)
+		subject, verb, entityID, reason)
 
 	if out, err := testutil.RunGit(env.Root, "commit", "--amend", "-m", newMsg); err != nil {
 		t.Fatalf("git commit --amend: %v\n%s", err, out)

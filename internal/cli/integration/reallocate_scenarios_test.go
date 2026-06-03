@@ -269,8 +269,8 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 					t.Fatalf("read G-0001 body: %v", err)
 				}
 				updated := string(current) + "\n## Cross-reference\n\nThis gap depends on G-0002 to land first; see G-0002 for the upstream.\n"
-				if err := os.WriteFile(bodyPath, []byte(updated), 0o644); err != nil {
-					t.Fatalf("write G-0001 body: %v", err)
+				if werr := os.WriteFile(bodyPath, []byte(updated), 0o644); werr != nil {
+					t.Fatalf("write G-0001 body: %v", werr)
 				}
 				env.MustRunBin("edit-body", "G-0001", "--reason", "add cross-reference to G-0002 (AC-1 S-4 fixture)")
 
