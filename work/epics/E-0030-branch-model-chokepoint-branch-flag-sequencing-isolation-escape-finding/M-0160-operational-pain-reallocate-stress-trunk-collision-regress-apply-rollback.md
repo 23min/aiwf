@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Reallocate combinatorial real-git E2E coverage
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: G-0167 trunk-collision regression binary-level E2E
