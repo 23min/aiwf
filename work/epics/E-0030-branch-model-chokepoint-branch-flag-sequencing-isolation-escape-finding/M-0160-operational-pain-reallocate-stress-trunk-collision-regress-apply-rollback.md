@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: G-0170 apply-rollback data-preservation binary-level E2E
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: 'Kernel chokepoint: id-rename without reallocate trailer'
       status: open
