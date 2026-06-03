@@ -19,9 +19,16 @@ Net effect: an operator can write a fabricated trailer, commit it, push it, and 
 
 ## Why it matters
 
-Per CLAUDE.md "Framework correctness must not depend on the LLM's behavior" — the kernel's role is to refuse bad shapes mechanically, not to inform after the fact. The `aiwf-verb:` namespace is a closed set sourced from the running binary's Cobra command tree. Any value outside that set IS by construction a fabrication (operator typo, LLM hallucination, or category confusion such as treating `git merge` as if it were an aiwf verb). The kernel knows the closed set at composition time; failing to refuse at composition time is a kernel-discipline gap.
+Per CLAUDE.md "Framework correctness must not depend on the LLM's behavior" — the kernel's role is to refuse bad shapes mechanically, not to inform after the fact. The `aiwf-verb:` namespace is two closed sets unioned:
 
-Concrete instance surfaced during M-0160 epic-merge prep: an operator (me, in this case) drafted `git merge --no-ff` commit messages for both M-0159 (yesterday, commit `e1dc6dc6`) and M-0160 (today, commit `734dca4b`) that carried `aiwf-verb: merge`. `merge` is a git concept, not an aiwf verb — there is no `aiwf merge` command in the Cobra tree. The trailer was a category confusion: the operator was expressing the kernel-relevant intent of the merge ("this commit transitions M-0NNN's work into the epic") in the trailer namespace, which is reserved for verb-emitted structural shape.
+- **Cobra verb registry** — `promote`, `edit-body`, `check`, `acknowledge-illegal`, etc. The kernel's own verbs emit these trailers themselves; the operator never types them in normal use.
+- **ritualVerbs allowlist** — `wrap-milestone`, `wrap-epic` (sourced from the embedded ritual snapshot per G-0190). These name *rituals* that produce kernel-meaningful commits; the operator (or skill instructions) types them explicitly per the prescribed skill-step shape (e.g. `aiwfx-wrap-epic` prescribes `aiwf-verb: wrap-epic` on the epic merge commit).
+
+Any value outside these two sets IS by construction a fabrication (operator typo, LLM hallucination, or category confusion). The kernel knows the closed sets at composition time; failing to refuse at composition time is a kernel-discipline gap.
+
+Concrete instance surfaced during M-0160 epic-merge prep: an operator (me, in this case) drafted `git merge --no-ff` commit messages for both M-0159 (yesterday, commit `e1dc6dc6`) and M-0160 (today, commit `734dca4b`) that carried `aiwf-verb: merge`. `merge` is a git concept — not a Cobra verb AND not an allowlisted ritual value. The trailer was a category confusion: the operator was expressing the kernel-relevant intent of the merge ("this commit transitions M-0NNN's work into the epic") in the trailer namespace, but reaching for the *git* operation name (`merge`) rather than the *ritual* name (`wrap-milestone`, which IS in the allowlist).
+
+The correct trailer for an `aiwfx-wrap-milestone`-driven epic-merge commit is `aiwf-verb: wrap-milestone`, mirroring `aiwfx-wrap-epic`'s `aiwf-verb: wrap-epic` at the equivalent step. The `aiwfx-wrap-milestone` skill previously did not prescribe this — surfaced and fixed at commit `5cf007f5` in the same wrap cycle that produced this gap.
 
 The error happened twice — the M-0160 merge repeated the M-0159 mistake. **Repeated operator error is the canonical signal that a chokepoint is missing**, per CLAUDE.md's standard hint ("if you see this happen more than once").
 
@@ -29,13 +36,19 @@ Worse: the rule's post-hoc detection at push time doesn't help the operator catc
 
 ## Proposed fix shape
 
-**Primary: a `commit-msg` git hook** managed by aiwf, materialized into `.git/hooks/commit-msg` with the same `# aiwf:commit-msg` marker pattern as the existing pre-commit and pre-push hooks. The hook receives the in-progress commit-message file path as `$1`; parses any `aiwf-verb:` trailer values from it; refuses (exits non-zero) when any value is outside the registered Cobra command tree AND not in the ritualVerbs allowlist (the same closed sets `trailer-verb-unknown` reads). Composition gate: the operator's commit attempt is refused with a clear message naming the offending value and the closed set.
+**Primary chokepoint: `commit-msg` git hook.** This is the right hook for the job by git's hook semantics:
 
-Composition-time check is fast: regex-match the in-progress message against the closed set; no history walk required. Same closed-set sources as the existing rule, just consulted earlier.
+- `pre-commit` runs BEFORE the message exists — can't see trailer values; wrong hook.
+- `commit-msg` runs AFTER the message is composed (editor closed, or `-m` value finalized) but BEFORE the commit object is created — has the message file as `$1`, can refuse by exiting non-zero. **This is the composition-time gate.**
+- `pre-push` already runs the post-hoc check; tightening severity there is secondary.
 
-**Secondary: rule-side severity tightening.** With the commit-msg hook in place, the `trailer-verb-unknown` rule's post-hoc warning becomes structurally redundant for new commits (they can't land with bad trailers). Promoting the rule from warning to error severity for new commits (perhaps via a `--since` window or a "post-hook-landed-at" marker) closes the loop. Historical fabricated trailers remain at warning to avoid retroactive breakage; the rule fires error-severity only on commits authored after the hook landed.
+Managed by aiwf, materialized into `.git/hooks/commit-msg` with the same `# aiwf:commit-msg` marker pattern as the existing pre-commit and pre-push hooks (per CLAUDE.md §"What aiwf commits to" guarantee 5). The hook parses any `aiwf-verb:` trailer values from the message file and refuses when any value is outside the registered Cobra command tree AND not in the ritualVerbs allowlist (the same closed sets `trailer-verb-unknown` reads at check time).
 
-**Tertiary: discipline pin** in `aiwfx-wrap-milestone` SKILL.md (and CLAUDE.md in this repo) — "plain git operations DO NOT get aiwf-* trailers." The discipline is documented for human + LLM operators until the structural fix lands; after the fix, the documentation can simplify to "the kernel will refuse." Operators reaching for `aiwf-verb: <something>` in a hand-typed commit message should stop — that's a fabrication.
+Composition-time check is fast: regex-match against the two closed sets; no history walk, no Tree load. The operator sees the refusal at commit time with a clear message naming the offending value and the closed sets.
+
+**Secondary: rule-side severity tightening.** With the commit-msg hook in place, the `trailer-verb-unknown` rule's post-hoc warning becomes structurally redundant for new commits (they can't land with bad trailers). Promoting the rule from warning to error severity for commits authored after the hook lands closes the loop; historical fabricated trailers stay at warning to avoid retroactive breakage.
+
+**Tertiary: skill alignment** — the `aiwfx-wrap-milestone` skill's step 11 was missing the explicit trailer prescription that `aiwfx-wrap-epic` carries at the equivalent step. Fixed in commit `5cf007f5`: step 11 now prescribes `--trailer "aiwf-verb: wrap-milestone"` (with aiwf-entity, aiwf-actor) on the merge commit, mirroring the wrap-epic pattern. This eliminates the asymmetry that made the fabrication possible — a skill-following operator now writes the correct trailer, not a hand-derived guess. Once the commit-msg hook lands, the skill text can drop the "do NOT use aiwf-verb: merge" anti-pattern note (the kernel will refuse).
 
 ## Test surface
 
@@ -50,13 +63,14 @@ Once the commit-msg hook lands:
 
 ## Workaround
 
-Until the structural fix lands, the discipline is operator awareness:
+Until the commit-msg hook lands, the discipline is operator awareness:
 
-- **Plain git operations DO NOT get aiwf-* trailers.** No `aiwf-verb:`, no `aiwf-entity:`, no `aiwf-actor:` in hand-typed `git commit`, `git merge`, `git rebase` messages. The git committer identity already records who did the operation; the merge commit's tree already records what got merged; nothing the aiwf trailer namespace adds is missing.
-- **The aiwf-verb trailer is reserved for aiwf verb invocations.** If your fingers reach for `aiwf-verb:` outside of an `aiwf <verb>` invocation, stop — it's a fabrication.
-- Pre-push surfaces the fabrication post-hoc via `trailer-verb-unknown`; treat the warning as a real signal to amend before next push (where possible) or acknowledge-illegal (where amend is blocked by the trunk-aware push model).
+- **Trailer values must come from the two closed sets**: the Cobra verb registry (`promote`, `edit-body`, etc. — emitted by kernel verbs themselves) OR the ritualVerbs allowlist (`wrap-milestone`, `wrap-epic` — prescribed by the corresponding skill's step). Any other value is a fabrication.
+- **For epic-integration merges** specifically: follow the `aiwfx-wrap-milestone` skill's step 11 — the trailer is `aiwf-verb: wrap-milestone` (not `merge`, not nothing). Mirror `aiwfx-wrap-epic`'s pattern.
+- **For other plain git operations** (`git commit` on code changes, `git rebase`, etc.) that aren't ritual-driven and have no corresponding aiwf verb: no aiwf-* trailers at all. The git committer identity records who; the commit's tree records what; nothing the aiwf trailer namespace adds is needed.
+- Pre-push surfaces the fabrication post-hoc via `trailer-verb-unknown`; treat the warning as a real signal to amend before next push (where possible) or `aiwf acknowledge-illegal <sha>` (where amend is blocked by the trunk-aware push model).
 
-The discipline is documented in `aiwfx-wrap-milestone` SKILL.md and CLAUDE.md until the commit-msg hook lands.
+The discipline is documented in `aiwfx-wrap-milestone` SKILL.md (fixed at commit `5cf007f5`) until the commit-msg hook lands.
 
 ## Closing this gap
 
