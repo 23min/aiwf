@@ -78,6 +78,7 @@ func TestM0158_AC5_EveryBranchCellHasMatchingTest(t *testing.T) {
 		"branch-cell-isolation-escape-shallow-clone":      {"AC4_ShallowClone", "AC4_ShallowDetection"},
 		"branch-cell-isolation-escape-orphaned-ai-commit": {"AC5_Matrix", "ForcePushOrphan_AC5"},
 		"branch-cell-isolation-escape-rename-survival":    {"AC6_RenameResolution", "BranchOracle_AC6"},
+		"branch-cell-detached-head-preflight":             {"DetachedHEAD_AC7"},
 	}
 
 	for _, cell := range branch.Rules() {

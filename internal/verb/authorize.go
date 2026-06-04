@@ -76,7 +76,21 @@ type PreflightBranchContextRequiredError struct {
 }
 
 // Error implements error.
+//
+// M-0161/AC-7: when CurrentBranch is empty (the CLI reports
+// empty on detached HEAD or when git fails), the message
+// names "detached HEAD has no ritual context" explicitly so
+// the operator sees the exact state rather than just "current
+// checkout ” does not match". The override path (--force
+// --reason) and the ritual-branch landing options are listed
+// the same way for both cases.
 func (e *PreflightBranchContextRequiredError) Error() string {
+	if e.CurrentBranch == "" {
+		return fmt.Sprintf(
+			"aiwf authorize: opening a scope on %q requires a ritual branch context (%s); detached HEAD has no ritual context. Checkout a ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug> / patch/g-NNNN-<slug>) and rerun, or use `--force --reason \"<one-sentence justification>\"` to override.",
+			e.Agent, CodePreflightBranchContextRequired.ID,
+		)
+	}
 	return fmt.Sprintf(
 		"aiwf authorize: opening a scope on %q requires a ritual branch context (%s); current checkout %q does not match a ritual shape. Run `aiwfx-start-epic` / `aiwfx-start-milestone` to land on a recognized ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug> / patch/g-NNNN-<slug>), or pass `--branch <name>` naming an existing branch. To override this preflight as a sovereign act, use `--force --reason \"<one-sentence justification>\"`.",
 		e.Agent, CodePreflightBranchContextRequired.ID, e.CurrentBranch,
@@ -137,6 +151,19 @@ func (e *PreflightRungPairError) Error() string {
 	targ := e.TargetRung
 	if targ == "" {
 		targ = "non-ritual"
+	}
+	// M-0161/AC-7: when CurrentBranch is empty, HEAD is detached
+	// (or git failed to resolve a symbolic ref). The general
+	// rung-pair message reads as `current branch "" (rung:
+	// non-ritual)` — accurate but obscure. Surface the detached-
+	// HEAD state explicitly so the operator sees what to fix.
+	// The canonical substring "detached HEAD has no ritual
+	// context" is the AC-7 discrimination signal.
+	if e.CurrentBranch == "" {
+		return fmt.Sprintf(
+			"aiwf authorize: detached HEAD has no ritual context (%s) — cannot authorize work targeting %q (rung: %s) without a ritual branch checkout. Checkout a ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug> / patch/g-NNNN-<slug>) and rerun, or use `--force --reason \"<one-sentence justification>\"` to override.",
+			CodePreflightRungPair.ID, e.TargetBranch, targ,
+		)
 	}
 	return fmt.Sprintf(
 		"aiwf authorize: (%s, %s) is not a legal ritual rung pair (%s) — current branch %q (rung: %s) cannot authorize work targeting %q (rung: %s). Legal rung pairs: (trunk, epic), (epic, milestone), (milestone, patch), (epic, patch) — see ADR-0010. To override this preflight as a sovereign act, use `--force --reason \"<one-sentence justification>\"`.",

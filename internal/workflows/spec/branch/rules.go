@@ -384,6 +384,42 @@ func Rules() []spec.Rule {
 			Outcome:       spec.OutcomeLegal,
 			Sources:       spec.RuleSource{Decision: "ADR-0010"},
 		},
+		// branch-cell-detached-head-preflight — M-0161/AC-7
+		// (G-0207): the authorize verb refines its rung-pair /
+		// branch-context refusal text to explicitly name
+		// "detached HEAD has no ritual context" when the current
+		// checkout is detached. No new code introduced; the
+		// existing `rung-pair-illegal` (current=non-ritual,
+		// target=epic|milestone|patch) and `branch-context-
+		// required` refusal paths continue but with refined text.
+		// The doctor verb additionally surfaces a `head:
+		// detached-head: advisory ...` line on detached HEAD so
+		// operators discover the state proactively.
+		//
+		// Tests:
+		// TestDetachedHEAD_AC7_PreflightRefusesWithRefinedMessage
+		// (integration; substring match on stderr per AC-7 body
+		// line 498 substring-exception),
+		// TestDetachedHEAD_AC7_PreflightForceReasonBypasses,
+		// TestDetachedHEAD_AC7_CheckSucceedsNoFalseFindings,
+		// TestDetachedHEAD_AC7_DoctorSurfacesAdvisory,
+		// TestDetachedHEAD_AC7_DoctorSilentOnAttachedHEAD.
+		//
+		// The cell registers as an Illegal cell pointing at
+		// rung-pair-illegal (the code that actually fires for
+		// detached HEAD on the typical AI-target path). The
+		// refined message text is what AC-7 ships; the code
+		// identity is unchanged.
+		{
+			ID:                "branch-cell-detached-head-preflight",
+			Verb:              "authorize",
+			Preconditions:     []spec.Predicate{{Subject: "target-agent-role", Op: "==", Value: "ai"}, {Subject: "head-detached", Op: "==", Value: "true"}, {Subject: "force", Op: "==", Value: "false"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "rung-pair-illegal",
+			RejectionLayer:    spec.RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID
