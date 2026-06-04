@@ -1,7 +1,7 @@
 ---
 id: M-0162
 title: 'Layer-4 spec-catalog refactor: 76-cell bijection + Pin registry'
-status: draft
+status: in_progress
 parent: E-0030
 tdd: required
 acs:
