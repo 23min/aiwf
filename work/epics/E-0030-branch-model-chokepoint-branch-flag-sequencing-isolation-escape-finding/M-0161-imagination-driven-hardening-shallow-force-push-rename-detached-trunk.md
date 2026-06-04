@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Authorize preflight enforces ritual rung hierarchy
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: BranchOracle typed errors with per-ref fault tolerance
