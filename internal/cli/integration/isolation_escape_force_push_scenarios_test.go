@@ -137,6 +137,41 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 		// so when the verb extension lands, the exemption is
 		// already proven load-bearing.
 
+		// ----- Cell 6: Reflog entry expired ----- DEFERRED
+		// AC-5 body line 363 calls out: "Force-push orphans AI
+		// commit, reflog entry expired via `git reflog expire
+		// --expire-unreachable=now` → silent (no audit trail
+		// to walk)".
+		//
+		// The scenario is straightforward to describe but
+		// non-trivial to make deterministic in a test. `git
+		// reflog expire --expire-unreachable=now` is a
+		// time-sensitive operation; under some git versions on
+		// some platforms it requires the orphan to already
+		// pass certain unreachable-age thresholds (gc.reflogExpire
+		// /gc.reflogExpireUnreachable defaults: 90d / 30d) or
+		// it silently keeps the entry. Reliable reproduction
+		// would require shimming git's clock or precise
+		// `--expire=<date>` syntax that's git-version-dependent.
+		//
+		// The kernel-side behavior is trivially silent: with no
+		// reflog entries to walk, WalkOrphanedAICommits finds
+		// no orphans and the rule does not fire. The unit-level
+		// equivalent (empty orphan slice → nil findings) IS
+		// covered at internal/check/reflog_walk_test.go::
+		// TestRunOrphanedAICommits_AC5_EmptyOrphans, which
+		// pins the rule's silent-on-no-orphans contract
+		// independent of how the orphans came to be missing
+		// (expired, never recorded, or
+		// core.logAllRefUpdates=false).
+		//
+		// Deferred to future test-infrastructure work (likely
+		// AC-9 catalog consolidation or a separate
+		// time-shim helper) when test-time control over git
+		// clock becomes available. The AC-5 body matrix row
+		// stays as-is; the silent-good behavior IS guaranteed
+		// by the unit test cited above.
+
 		// ----- Cell 7: Reflog disabled, force-push happens -----
 		// Composes with AC-3: no reflog → no orphan walk; AC-3
 		// emits isolation-escape-oracle-failure advisory with
