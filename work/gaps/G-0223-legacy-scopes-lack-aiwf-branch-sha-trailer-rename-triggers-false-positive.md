@@ -1,7 +1,9 @@
 ---
-id: G-0221
+id: G-0223
 title: Legacy scopes lack aiwf-branch-sha trailer; rename triggers false positive
 status: open
+prior_ids:
+    - G-0221
 discovered_in: M-0161
 ---
 ## What's missing
@@ -82,4 +84,4 @@ When the verb lands:
 
 ## Discovered in
 
-M-0161 — during AC-6 contract review (reviewer pass on M-0161 9-AC body set, pre-implementation). The legacy-scope false-positive class was a known consequence of choosing path (a) over path (c); G-0221 captures the architectural completion path the deferred path (c) names.
+M-0161 — during AC-6 contract review (reviewer pass on M-0161 9-AC body set, pre-implementation). The legacy-scope false-positive class was a known consequence of choosing path (a) over path (c); G-0223 captures the architectural completion path the deferred path (c) names.

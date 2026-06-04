@@ -388,7 +388,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
 
 ### AC-6 — BranchOracle resolves renamed branches via SHA fallback
 
-**Scope of closure (honest).** This AC **closes G-0206 for post-AC-6 authorize scopes** — every authorize commit emitted after AC-6 lands carries the `aiwf-branch-sha:` trailer and benefits from rename transparency. **Pre-AC-6 ("legacy") authorize scopes are a documented carve-out**: they lack the SHA trailer; if their bound branch is renamed AND the old name no longer resolves AND there are AI commits on the renamed branch, the rule false-positives via the original G-0206 failure mode. This residual class is not closed here; the architectural completion path (`aiwf scope rebind` verb that records a follow-up SHA trailer on existing scopes) is tracked under **[G-0221](../../gaps/G-0221-legacy-scopes-lack-aiwf-branch-sha-trailer-rename-triggers-false-positive.md)**. Until that verb ships, legacy-scope operators have two workarounds (end-and-re-authorize, or per-commit `aiwf acknowledge-illegal`), documented inline in G-0221.
+**Scope of closure (honest).** This AC **closes G-0206 for post-AC-6 authorize scopes** — every authorize commit emitted after AC-6 lands carries the `aiwf-branch-sha:` trailer and benefits from rename transparency. **Pre-AC-6 ("legacy") authorize scopes are a documented carve-out**: they lack the SHA trailer; if their bound branch is renamed AND the old name no longer resolves AND there are AI commits on the renamed branch, the rule false-positives via the original G-0206 failure mode. This residual class is not closed here; the architectural completion path (`aiwf scope rebind` verb that records a follow-up SHA trailer on existing scopes) is tracked under **[G-0223](../../gaps/G-0223-legacy-scopes-lack-aiwf-branch-sha-trailer-rename-triggers-false-positive.md)**. Until that verb ships, legacy-scope operators have two workarounds (end-and-re-authorize, or per-commit `aiwf acknowledge-illegal`), documented inline in G-0223.
 
 **Observable behavior.** The `aiwf authorize --branch <name>` verb is extended to record TWO trailers on the authorize commit:
 
@@ -424,7 +424,7 @@ The `isolation-escape` rule's scope-branch resolution becomes:
    | Branch deleted entirely (SHA orphaned) | silent + `isolation-escape-oracle-failure` advisory (AC-3 composition) |
    | Squat collision: rename `foo → bar`; create new `foo` from unrelated SHA; AI commit on `bar` | silent (SHA wins; resolves to `bar`) |
    | Legacy authorize commit (no `aiwf-branch-sha:` trailer), no rename, AI on correct branch | silent (name-only path; backwards-compatible) |
-   | Legacy authorize commit, branch renamed | fires (error — **documented legacy carve-out**: pre-AC-6 scopes don't benefit from rename transparency; tracked as [G-0221](../../gaps/G-0221-legacy-scopes-lack-aiwf-branch-sha-trailer-rename-triggers-false-positive.md) for future `aiwf scope rebind` verb) |
+   | Legacy authorize commit, branch renamed | fires (error — **documented legacy carve-out**: pre-AC-6 scopes don't benefit from rename transparency; tracked as [G-0223](../../gaps/G-0223-legacy-scopes-lack-aiwf-branch-sha-trailer-rename-triggers-false-positive.md) for future `aiwf scope rebind` verb) |
 
 2. **Sovereign-override path stays clean.** Existing `aiwf acknowledge-illegal <sha>` silences any remaining false positives (e.g., legacy authorize + rename case); no new override needed.
 
@@ -444,7 +444,7 @@ The `isolation-escape` rule's scope-branch resolution becomes:
 **References.**
 
 - [G-0206](../../gaps/G-0206-branchoracle-false-positive-on-branch-renames-after-authorize.md) — the gap; closes here **for post-AC-6 scopes**
-- [G-0221](../../gaps/G-0221-legacy-scopes-lack-aiwf-branch-sha-trailer-rename-triggers-false-positive.md) — legacy-scope carve-out; future `aiwf scope rebind` verb
+- [G-0223](../../gaps/G-0223-legacy-scopes-lack-aiwf-branch-sha-trailer-rename-triggers-false-positive.md) — legacy-scope carve-out; future `aiwf scope rebind` verb
 - [`internal/verb/authorize.go`](../../../internal/verb/authorize.go) — extends with `aiwf-branch-sha:` trailer + write-time SHA-shape validation
 - [`internal/check/isolation_escape.go`](../../../internal/check/isolation_escape.go) — scope-branch resolution extended
 - [`internal/cli/check/isolation_escape_oracle.go`](../../../internal/cli/check/isolation_escape_oracle.go) — adds `BranchOfSHA(sha)` query
