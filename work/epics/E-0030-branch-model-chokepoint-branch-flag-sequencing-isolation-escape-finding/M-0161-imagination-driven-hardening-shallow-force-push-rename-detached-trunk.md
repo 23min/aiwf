@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: BranchOracle detects shallow clones; isolation-escape-shallow-clone fires
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-5
       title: Reflog-walk detects orphaned AI commits from force-push
       status: open
