@@ -1,7 +1,9 @@
 ---
-id: G-0222
+id: G-0224
 title: aiwfx-start-epic/start-milestone SKILL.md cites retired branch-not-found code
 status: open
+prior_ids:
+    - G-0222
 discovered_in: M-0161
 ---
 ## What's stale
@@ -45,4 +47,4 @@ When the skill bodies are updated and verified against the live verb code paths:
 
 1. The two SKILL.md mentions of `branch-not-found` are either replaced with `rung-pair-illegal` or rewritten with the broader rung-pair framing.
 2. A structural test under `internal/policies/` (per CLAUDE.md "Ritual content authoring" + G-0220's discipline note) pins the new wording in the relevant skill body section.
-3. Promote G-0222 to `addressed --by M-NNNN` referencing the cleanup commit / milestone.
+3. Promote G-0224 to `addressed --by M-NNNN` referencing the cleanup commit / milestone.
