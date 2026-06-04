@@ -576,6 +576,8 @@ The `isolation-escape` rule's scope-branch resolution becomes:
 
 ### AC-9 — Layer-4 spec-table refactor: mechanical-weight catalog + bijection enforcement
 
+> **DEFERRED in its entirety to a follow-up milestone per [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md).** AC-9 stays open as the named M-0161 residual; the milestone wraps at 8/9 ACs met. The follow-up milestone will scope the four-part refactor (M-0158 cell drop, M-0161 cell expansion to 76 total, `branchcell.Pin` registry under `//go:build testpins`, bijection meta-test replacing the keyword-set approach) with its own AC matrix. Until then: the existing 1-cell-per-AC catalog satisfies the M-0158/AC-6 ClassBranchChoreography drift invariant, and `internal/policies/m0158_ac5_meta_coverage_test.go` continues to enforce the keyword-set ≥1 paired-test claim. The body text below is preserved as the inherited spec for the follow-up.
+
 **Observable behavior.** The layer-4 branch-choreography spec catalog under [`internal/workflows/spec/branch/`](../../../internal/workflows/spec/branch/) is refactored to a mechanical-weight-only set with bijection enforcement between cells and tests.
 
 **Part 1 — M-0158 catalog refactor:**
@@ -693,4 +695,5 @@ The existing M-0158 drift policy is extended to read from the `branchcell.Pin` r
 - [D-0019](../../decisions/D-0019-oracle-partial-coverage-fail-shut-correctness-fail-open-coverage.md) — oracle partial-coverage: fail-shut on rule correctness, fail-open on rule coverage (AC-3 cycle start, pre-RED)
 - [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md) — AC-5 cell-5 orphan acknowledgment deferred to verb extension (AC-5 reviewer pass; routes to [G-0226](../../gaps/G-0226-aiwf-acknowledge-illegal-hard-requires-sha-reachable-from-head.md))
 - [D-0021](../../decisions/D-0021-m-0161-ac-7-doctor-json-envelope-deferred-substring-match-ships-now.md) — AC-7 doctor JSON envelope deferred; substring-match-on-stdout ships now; full structural envelope deferred to a future doctor-shape milestone
+- [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md) — AC-9 (catalog refactor) deferred to a follow-up milestone in its entirety; M-0161 wraps 8/9 ACs met; AC-9 is the named residual; the keyword-set meta-coverage approach stays in place until the bijection registry lands in the follow-up
 
