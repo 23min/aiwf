@@ -32,7 +32,7 @@ acs:
     - id: AC-7
       title: Detached HEAD behavior pinned across preflight, oracle, check, doctor
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-8
       title: Kernel finding promote-on-wrong-branch enforces ADR-0010 ritual ordering
       status: open
