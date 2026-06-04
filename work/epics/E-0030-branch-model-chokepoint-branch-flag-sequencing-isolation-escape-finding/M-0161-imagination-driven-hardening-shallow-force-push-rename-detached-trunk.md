@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: BranchOracle typed errors with per-ref fault tolerance
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-4
       title: BranchOracle detects shallow clones; isolation-escape-shallow-clone fires
       status: open
