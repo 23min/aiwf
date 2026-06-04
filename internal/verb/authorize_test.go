@@ -578,6 +578,66 @@ func TestAuthorize_Open_AITarget_MainPlusNonRitualMissingBranch_Refuses(t *testi
 	}
 }
 
+// TestValidateAuthorizeTrailers_AiwfBranchShape pins the verb-layer
+// seam between validateAuthorizeTrailers and gitops.ValidateTrailer
+// for the aiwf-branch trailer specifically (M-0161/AC-2 reviewer
+// S-2 follow-up). Pre-AC-2, TestAuthorize_Open_WithBranch_InvalidShapeRefused
+// exercised this seam end-to-end via the verb (with BranchExists=true
+// to bypass the missing-branch carve-out). Post-AC-2, that test now
+// asserts rung-pair-illegal because the rung-pair check fires first
+// for any malformed value (RungOf returns "" for non-ritual shapes).
+//
+// This unit test pins the seam DIRECTLY: it builds a trailer set
+// containing a malformed aiwf-branch value and calls
+// validateAuthorizeTrailers, asserting the gitops.ValidateTrailer
+// shape rule fires through this seam (the error mentions
+// "aiwf-branch", proving the trailer name reached validation). Pure
+// unit-level, no entity/tree state needed.
+//
+// Without this test the seam between validateAuthorizeTrailers and
+// gitops.ValidateTrailer is only covered by the gitops-layer
+// trailers_test.go — that's the rule itself, but the verb wrapping
+// (does Authorize correctly route every emitted trailer through
+// validation?) is undocumented after the rung-pair predicate took
+// over the integration path.
+func TestValidateAuthorizeTrailers_AiwfBranchShape(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, branch string
+	}{
+		{"whitespace", "epic/with whitespace"},
+		{"leading slash", "/epic/E-0001"},
+		{"embedded double-dot", "epic/E-..-bad"},
+		{"colon", "epic:E-0001"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			// Build the minimal trailer set the verb emits for an
+			// ai-target authorize; substitute the malformed value
+			// at aiwf-branch. validateAuthorizeTrailers should
+			// route the value through gitops.ValidateTrailer and
+			// the shape rule should refuse — the resulting error
+			// must name aiwf-branch so a downstream operator can
+			// diagnose.
+			trailers := []gitops.Trailer{
+				{Key: "aiwf-verb", Value: "authorize"},
+				{Key: "aiwf-entity", Value: "E-0001"},
+				{Key: "aiwf-to", Value: "ai/claude"},
+				{Key: "aiwf-branch", Value: tc.branch},
+			}
+			err := verb.ValidateAuthorizeTrailersForTest(trailers)
+			if err == nil {
+				t.Fatalf("expected shape-validation refusal for malformed aiwf-branch %q; got nil", tc.branch)
+			}
+			if !strings.Contains(err.Error(), "aiwf-branch") {
+				t.Errorf("error %q does not mention aiwf-branch (seam not exercised correctly)", err.Error())
+			}
+		})
+	}
+}
+
 // TestAuthorize_Open_WithBranch_InvalidShapeRefused: defensive — when
 // the Branch value violates ritual-shape rules (embedded whitespace,
 // leading slash, embedded ".."), the verb refuses. The pre-M-0161/AC-2
@@ -586,6 +646,8 @@ func TestAuthorize_Open_AITarget_MainPlusNonRitualMissingBranch_Refuses(t *testi
 // RungOf classifies malformed values as "" (no valid id segment) →
 // (trunk, "") is not legal → PreflightRungPairError. The intent is
 // preserved (malformed Branch refuses); the code path is finer.
+// (The validateAuthorizeTrailers seam is now pinned directly by
+// TestValidateAuthorizeTrailers_AiwfBranchShape above.)
 func TestAuthorize_Open_WithBranch_InvalidShapeRefused(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

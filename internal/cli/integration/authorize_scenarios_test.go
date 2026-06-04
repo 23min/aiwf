@@ -244,10 +244,14 @@ func TestAuthorize_AC1_NonMainTrunkNames_Accept(t *testing.T) {
 //     same as GREEN).
 // Net: 12 fail, 5 pass.
 //
-// Per AC-2 §"Two refusal layers compose" — the 4 (X, trunk) rows
-// where --branch IS the configured trunk's local branch require the
-// rung-pair check to run even on BranchExists=true (production code
-// change in GREEN). Per the body, this is what AC-2 commits to.
+// Per AC-2 §"Single rung-pair check refuses every illegal cell" —
+// the predicate applies regardless of BranchExists. The 4 (X, trunk)
+// rows where --branch IS the configured trunk's local branch refuse
+// via the same rung-pair check that catches the 8 ritual-target
+// illegal cells; no separate upstream layer. Per the body, the
+// single-check semantic is what AC-2 commits to (the earlier
+// "two refusal layers" framing was wrong and dropped in commit
+// 2fd84dd4).
 func TestAuthorize_AC2_RungPair_Matrix(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)
