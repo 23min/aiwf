@@ -14,7 +14,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-3
-      title: branchcell.Pin registry under //go:build testpins + branchtest sub-package
+      title: 'M-0161 cell expansion: organic count via bijection invariants'
       status: open
       tdd_phase: red
     - id: AC-4
@@ -157,7 +157,7 @@ Each subtest gets exactly one Pin call to exactly one cell. AC-3 (Pin registry) 
 - AC-4 (this milestone) — the bijection meta-test that validates AC-2's expansion correctness
 - `internal/cli/integration/branch_scenarios_*.go` + sibling files — the E2E surface AC-2 references
 
-### AC-3 — branchcell.Pin registry under //go:build testpins + branchtest sub-package
+### AC-3 — M-0161 cell expansion: organic count via bijection invariants
 
 **Observable behavior.** A new test-only package `internal/workflows/spec/branch/branchtest` introduces a `Pin(cellID, testFunctionName string)` registry callable from any test under the `//go:build testpins` build tag. The registry accumulates pins for later inspection by AC-4's bijection meta-test.
 
