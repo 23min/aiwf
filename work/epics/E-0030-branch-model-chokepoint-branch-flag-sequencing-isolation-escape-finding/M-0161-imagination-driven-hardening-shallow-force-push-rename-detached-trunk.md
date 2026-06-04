@@ -167,9 +167,23 @@ These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 | patch | milestone | ❌ | up-the-tree |
 | patch | epic | ❌ | up-the-tree, skipping milestone |
 
-**Two refusal layers compose.** The 4 illegal `(X, trunk)` rows above pass `--branch <trunk-short-name>` (e.g., `--branch main`). These are refused by the existing M-0103/M-0105 **upstream ritual-shape check** (`--branch` value must match `^(epic|milestone|patch)/`) — not by this AC's new rung-pair predicate. Tests for those 4 cells pin the upstream refusal; reverting the rung-check leaves them firing on the upstream layer.
+**Single rung-pair check refuses every illegal cell.** This AC's predicate runs whenever `--branch` is non-empty, **regardless of `BranchExists`**:
 
-The 8 other illegal rows (cross-rung typos + up-the-tree shapes) have ritual-shaped `--branch` targets; the upstream check accepts them; the new rung-pair predicate refuses them. The sabotage assertion below covers these 8 specifically.
+```go
+currentRung := branchparse.RungOf(opts.CurrentBranch, opts.TrunkShort)
+targetRung  := branchparse.RungOf(opts.Branch,        opts.TrunkShort)
+if !branchparse.LegalRungPair(currentRung, targetRung) {
+    return refusal // names both rungs + override path
+}
+```
+
+That single check covers ALL 12 illegal cells uniformly:
+
+- The 4 `(X, trunk)` rows refuse because `LegalRungPair(_, "trunk")` is false for every `X` (no legal pair has trunk as its target — AI work on trunk is verboten per ADR-0010).
+- The 8 cross-rung-typo / up-the-tree rows refuse because each (current, target) pair is not in the legal set `{(trunk, epic), (epic, milestone), (milestone, patch), (epic, patch)}`.
+- The 4 legal pairs accept because their rung-pair IS in the legal set.
+
+**Why "regardless of BranchExists":** the pre-AC-2 verb-layer carve-out only ran when the named `--branch` did not exist locally (`BranchExists=false`); when the trunk's local branch existed and the operator passed `--branch <trunk>`, the verb silently accepted AI work targeting trunk. AC-2 closes that escape by running the rung-pair check on `--branch` whenever it's non-empty.
 
 **Mechanical assertions:**
 
@@ -179,7 +193,7 @@ The 8 other illegal rows (cross-rung typos + up-the-tree shapes) have ritual-sha
 
 2. **One sovereign-override E2E.** A single additional scenario exercises an illegal pair (e.g., epic → epic) plus `--force --reason "cross-epic intentional"` → exit 0; the authorize commit carries both `aiwf-branch:` (the target) AND `aiwf-force:` (the reason). Pins the sovereign-override surface for this AC's gate, per the epic's "override gated, audited, last-resort" commitment.
 
-3. **Sabotage-verifiable.** Reverting the rung-check at the carve-out site restores flat-union acceptance for the **8 ritual-target illegal pairs**. The 4 `(X, trunk)` rows continue to refuse via the upstream ritual-shape check (their refusal is layer-orthogonal to this AC's predicate); sabotage on those rows would require reverting the upstream check, which lives outside AC-2's scope.
+3. **Sabotage-verifiable.** Reverting the rung-pair check at the carve-out site makes **all 12 illegal cells fire** on "accepted but should refuse" — the pre-AC-2 production accepts (a) the 8 ritual-target illegal cells via the loose "current is ritual + target is ritual" carve-out, and (b) the 4 `(X, trunk)` cells via the `BranchExists=true` bypass that skips the carve-out entirely. Both classes pass-pre-revert and fail-post-revert — single-revert test discrimination.
 
 4. **Branch-spec cell registration.** Each of the 16 rung-pair scenarios registers as a named cell (4 positive + 12 negative) in `internal/workflows/spec/branch/`, plus 1 override cell = 17 cells. AC-9 (G-0210) consolidates the catalog; the cell-coverage drift policy then enforces that each cell has its paired E2E scenario.
 
@@ -188,7 +202,7 @@ The 8 other illegal rows (cross-rung typos + up-the-tree shapes) have ritual-sha
 **Edge cases:**
 
 - Trunk-name composition with AC-1: the trunk rung is derived from `Config.TrunkBranchShortName()` per AC-1's helper. So `master` (or any other configured trunk name) maps to the `"trunk"` rung. This AC builds on AC-1; AC-1 must land first.
-- Unparseable `--branch` (not matching any ritual shape) → existing rule refuses with the original `branch-not-found` / "must be a ritual branch" error. This AC does not collapse that path.
+- Unparseable `--branch` (not matching any ritual shape AND not equal to the configured trunk's short name) → `RungOf` returns `""` → `LegalRungPair(_, "")` is false → rung-pair refusal fires. Replaces the old `branch-not-found` carve-out semantics for non-ritual `--branch` values; the rung-pair predicate subsumes the prior check uniformly.
 - Detached HEAD → out of scope (AC-7 / G-0207 owns it). The current-rung check here is gated on a parseable symbolic-ref result.
 - `--force --reason "..."` bypasses the rung-pair check; the authorize commit then carries `aiwf-force:` per the existing kernel pattern.
 - The `(epic, patch)` legal pair encodes the deliberate "patch on epic" shape (a wf-patch cut from the epic branch without an intermediate milestone). The `(milestone, patch)` pair encodes "patch on milestone". Both are legal because both are operator-intentional; neither is a typo class.
