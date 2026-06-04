@@ -344,6 +344,46 @@ func Rules() []spec.Rule {
 			BlockingStrict:    false, // warning severity per AC-5 body / M-0125 ratchet
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
+		// branch-cell-isolation-escape-rename-survival —
+		// M-0161/AC-6 (G-0206): the SHA-based scope-branch
+		// resolution. `aiwf authorize --branch <name>` records
+		// `aiwf-branch-sha: <sha>` (the bound branch's tip SHA
+		// at scope-open). BranchOracle.BranchOfSHA(sha) resolves
+		// the current ritual branch where the SHA appears
+		// closest to the tip, preferring ritual-shape branches
+		// over trunk. A `git branch -m` rename is transparent
+		// to the rule.
+		//
+		// Closure scope (honest): POST-AC-6 authorize scopes
+		// only. Pre-AC-6 ("legacy") authorize commits lack the
+		// SHA trailer and continue to use name-only resolution
+		// per the documented carve-out at G-0225 (future
+		// `aiwf scope rebind` verb).
+		//
+		// Tests: TestBranchOracle_AC6_RenameResolution_Matrix
+		// (integration; 9 cells covering rename, squat collision
+		// via orphan lineage, branch deletion, legacy carve-out).
+		//
+		// AC-9 (G-0210) consolidates the matrix; this single
+		// cell satisfies M-0158/AC-6 ClassBranchChoreography
+		// drift in the interim.
+		//
+		// Note: this cell registers a LEGAL outcome (silent on
+		// the rename-survival path) — distinct from the other
+		// AC-3/4/5 cells which register illegal+finding-code.
+		// AC-6 doesn't introduce a new code; the closure is via
+		// avoiding a false-positive on the existing
+		// isolation-escape code. The drift policy
+		// (M-0158/AC-6) checks ClassBranchChoreography codes
+		// against ExpectedErrorCode references; isolation-escape
+		// already has a cell (branch-cell-4), so this cell
+		// stays Legal and documents the SHA-survival contract.
+		{
+			ID:            "branch-cell-isolation-escape-rename-survival",
+			Preconditions: []spec.Predicate{{Subject: "aiwf-branch-sha-trailer-present", Op: "==", Value: "true"}, {Subject: "branch-renamed-since-scope-open", Op: "==", Value: "true"}, {Subject: "sha-resolves-via-oracle", Op: "==", Value: "true"}},
+			Outcome:       spec.OutcomeLegal,
+			Sources:       spec.RuleSource{Decision: "ADR-0010"},
+		},
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID

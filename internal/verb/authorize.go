@@ -212,6 +212,18 @@ type AuthorizeOptions struct {
 	// is ai/* and --force is not set; in every other code path the
 	// field is ignored.
 	BranchExists bool
+	// BranchSHA (M-0161/AC-6, G-0206) is the bound branch's tip
+	// SHA at scope-open time, populated by the CLI layer when
+	// Branch exists locally (via `git rev-parse <branch>`). Empty
+	// when the branch doesn't yet exist (future-branch carve-out
+	// per M-0103 / M-0105) or when the CLI's git invocation
+	// fails. The verb emits `aiwf-branch-sha:` iff non-empty,
+	// keeping the trailer absent for the future-branch case so
+	// the rule falls back to name-only resolution there. The
+	// value is validated against the canonical 40-char lowercase
+	// hex shape by validateAuthorizeTrailers below (gitops
+	// shape rule for TrailerBranchSHA).
+	BranchSHA string
 	// TrunkShort (M-0161/AC-1, G-0200) is the consumer's configured
 	// trunk short-name as derived from `aiwf.yaml.allocate.trunk` via
 	// `Config.TrunkBranchShortName()`. Used by the AI-target
@@ -412,6 +424,19 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 	// commit lands.
 	if b := strings.TrimSpace(opts.Branch); b != "" {
 		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerBranch, Value: b})
+		// M-0161/AC-6 / G-0206: record the branch's tip SHA at
+		// scope-open time so the isolation-escape rule can
+		// survive a future `git branch -m` rename via SHA-based
+		// resolution (BranchOracle.BranchOfSHA). Emitted iff the
+		// CLI resolved a tip SHA (Branch exists locally); empty
+		// BranchSHA keeps the trailer absent so future-branch
+		// carve-outs (M-0103 / M-0105) stay backwards-compatible
+		// with name-only resolution. validateAuthorizeTrailers
+		// below catches malformed SHA shapes via the
+		// TrailerBranchSHA validator (40-char lowercase hex).
+		if sha := strings.TrimSpace(opts.BranchSHA); sha != "" {
+			trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerBranchSHA, Value: sha})
+		}
 	}
 	if r := strings.TrimSpace(opts.Reason); r != "" {
 		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerReason, Value: r})

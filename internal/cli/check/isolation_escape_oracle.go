@@ -40,6 +40,16 @@ type gitBranchOracle struct {
 	// (or main) local branches that reach it via first-parent. nil
 	// for SHAs not seen during construction.
 	branchesBySHA map[string][]string
+	// distanceFromTip maps (branch, SHA) → position in branch's
+	// first-parent chain (0 = tip, growing toward root). Used by
+	// BranchOfSHA (M-0161/AC-6) to disambiguate the "SHA appears
+	// on multiple branches" case: the branch where the SHA is
+	// CLOSEST to the tip is the canonical owner. This is the
+	// rename-invariant: a renamed branch's tip is the same as
+	// (or a descendant of) the pre-rename tip; sibling branches
+	// cut from the same trunk ancestor have the SHA deeper in
+	// their first-parent chain.
+	distanceFromTip map[string]map[string]int
 	// errs accumulates per-ref failures from oracle construction
 	// (M-0161/AC-3 / G-0203 / D-0019). Empty slice ↔ every
 	// enumerated ref's first-parent index built cleanly. Non-empty
@@ -124,6 +134,7 @@ func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, err
 		return nil, err
 	}
 	idx := map[string][]string{}
+	dist := map[string]map[string]int{}
 	var perRefErrs []check.OracleErr
 	for _, b := range branches {
 		shas, err := firstParentSHAs(ctx, root, b)
@@ -135,8 +146,17 @@ func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, err
 			})
 			continue
 		}
-		for _, sha := range shas {
+		// Build per-branch distance-from-tip index. shas[0] is the
+		// tip (distance 0); shas[1] is the parent (distance 1);
+		// etc. The distance lets BranchOfSHA prefer the branch
+		// where the recorded SHA is closest to the tip (M-0161/
+		// AC-6 rename-invariant).
+		dist[b] = map[string]int{}
+		for i, sha := range shas {
 			idx[sha] = append(idx[sha], b)
+			if _, already := dist[b][sha]; !already {
+				dist[b][sha] = i
+			}
 		}
 	}
 	// Concatenate reflog-disabled (whole-repo) and per-ref
@@ -144,7 +164,7 @@ func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, err
 	// single OracleErrors() slice (D-0019 fail-shut /
 	// fail-open contract).
 	reflogDisabledErr = append(reflogDisabledErr, perRefErrs...)
-	return &gitBranchOracle{branchesBySHA: idx, errs: reflogDisabledErr}, nil
+	return &gitBranchOracle{branchesBySHA: idx, distanceFromTip: dist, errs: reflogDisabledErr}, nil
 }
 
 // isReflogDisabled returns whether `core.logAllRefUpdates` is
@@ -197,6 +217,68 @@ func (o *gitBranchOracle) FirstParentBranches(sha string) []string {
 // OracleErrors implements [check.BranchOracle].
 func (o *gitBranchOracle) OracleErrors() []check.OracleErr {
 	return o.errs
+}
+
+// BranchOfSHA implements [check.BranchOracle] (M-0161/AC-6) —
+// returns the ritual branch where sha is CLOSEST TO THE TIP in
+// the branch's first-parent chain. Empty return ↔ SHA is
+// unknown to the oracle (orphaned, on a non-ritual branch, or
+// repo-shallow-truncated past the SHA).
+//
+// The rename-invariant: a `git branch -m foo bar` rename
+// preserves the branch's tip SHA — so the recorded SHA is at
+// position 0 (tip) on the renamed-to branch. Sibling branches
+// cut from a shared ancestor (or main itself) have the SHA at
+// some deeper position. Preferring the smallest distance gives
+// us the genuine "this is the same branch, just renamed"
+// identification.
+//
+// Ties (two branches with the same minimum distance) are
+// resolved by preferring the first ritual-shape entry over
+// trunk, then by alphabetical order — same deterministic
+// behavior the oracle's first-parent index already exhibits.
+func (o *gitBranchOracle) BranchOfSHA(sha string) string {
+	branches := o.branchesBySHA[sha]
+	if len(branches) == 0 {
+		return ""
+	}
+	// First pass: filter to ritual-shape candidates. The bound
+	// branch is by definition a ritual branch (per ADR-0010 +
+	// the M-0102 authorize verb's branch-shape requirement);
+	// trunk (main) is excluded so a SHA shared between trunk
+	// and a newly-cut ritual sibling resolves to the ritual
+	// owner. If NO ritual candidate exists (legacy / off-shape
+	// fixture), fall back to the full candidate set.
+	var candidates []string
+	for _, b := range branches {
+		if b != "main" {
+			candidates = append(candidates, b)
+		}
+	}
+	if len(candidates) == 0 {
+		candidates = branches
+	}
+	// Second pass: pick the candidate where the recorded SHA
+	// is closest to the tip (smallest distance). The rename
+	// invariant: a renamed branch's tip preserves the SHA
+	// (distance 0) or advances FROM it (distance grows with
+	// new commits). Sibling branches cut from a shared
+	// ancestor have the SHA at the shared-ancestor distance
+	// — typically deeper than the renamed branch's distance
+	// to a recently-recorded SHA.
+	bestBranch := ""
+	bestDist := -1
+	for _, b := range candidates {
+		d, ok := o.distanceFromTip[b][sha]
+		if !ok {
+			continue
+		}
+		if bestBranch == "" || d < bestDist || (d == bestDist && b < bestBranch) {
+			bestBranch = b
+			bestDist = d
+		}
+	}
+	return bestBranch
 }
 
 // Compile-time check: gitBranchOracle satisfies check.BranchOracle.

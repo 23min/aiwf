@@ -27,6 +27,23 @@ func (f fakeOracle) OracleErrors() []OracleErr {
 	return nil
 }
 
+// BranchOfSHA implements [BranchOracle] (M-0161/AC-6) — reverses
+// the SHA→branches map by walking entries and returning the first
+// branch the SHA appears under. Matches the production oracle's
+// "first listed wins" semantic. Returns empty for SHAs not in
+// the fixture (KNOWN-GOOD-empty per the interface doc).
+func (f fakeOracle) BranchOfSHA(sha string) string {
+	for shaKey, branches := range f {
+		if shaKey != sha {
+			continue
+		}
+		if len(branches) > 0 {
+			return branches[0]
+		}
+	}
+	return ""
+}
+
 // makeAuthorizeOpenCommit constructs an authorize-opens-scope
 // fixture commit. The scope is opened on `entity` by `actor`,
 // authorizing `agent`, bound to ritual branch `branch`. SHA is

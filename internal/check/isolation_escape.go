@@ -151,6 +151,31 @@ type OracleErr struct {
 type BranchOracle interface {
 	FirstParentBranches(sha string) []string
 	OracleErrors() []OracleErr
+	// BranchOfSHA returns the current ritual-shape branch (or
+	// "main") whose first-parent index contains sha. An empty
+	// return means the SHA is not on any branch the oracle
+	// knows about — either the branch was deleted, the SHA is
+	// orphaned, or the SHA was never on a ritual ref.
+	//
+	// Used by M-0161/AC-6's rename-survival path:
+	// `aiwf-branch-sha:` trailer values from authorize commits
+	// resolve to whatever branch currently reaches that SHA,
+	// regardless of how the branch has been renamed. A returned
+	// empty string composes with AC-3's fail-shut-on-correctness
+	// contract — the rule does not fire (no false positive when
+	// binding is lost); the partial-coverage state surfaces via
+	// the existing isolation-escape-oracle-failure advisory
+	// when configured.
+	//
+	// Resolution is deterministic but order-dependent on the
+	// underlying branchesBySHA index: when the SHA appears on
+	// multiple branches, the first-listed entry wins. The
+	// production gitBranchOracle iterates ritual refs in
+	// for-each-ref order; tests using fakeOracle should not
+	// rely on a particular branch being first when the SHA
+	// has multiple owners (use single-owner fixtures or
+	// extend the fake).
+	BranchOfSHA(sha string) string
 }
 
 // RunIsolationEscape applies the M-0106 branch-choreography rule
@@ -245,6 +270,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 		chronoIdx int
 		endedAt   int // chrono position of aiwf-scope-ends; -1 = never ended
 		branch    string
+		branchSHA string // M-0161/AC-6: aiwf-branch-sha trailer value (40-char hex); empty for legacy authorize commits without the trailer
 	}
 
 	// First sub-pass: index `aiwf-scope-ends: <opener-sha>` trailers
@@ -277,6 +303,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 			continue
 		}
 		branch := idx[gitops.TrailerBranch]
+		branchSHA := idx[gitops.TrailerBranchSHA]
 		endedAt := -1
 		if pos, ok := endsByOpenerSHA[c.SHA]; ok {
 			endedAt = pos
@@ -285,6 +312,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 			chronoIdx: i,
 			endedAt:   endedAt,
 			branch:    branch,
+			branchSHA: branchSHA,
 		})
 	}
 
@@ -319,6 +347,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 		// → silent (F-3 — no false positives on commits after
 		// scope-entity reaches terminal status).
 		var bound string
+		var boundSHA string
 		var found bool
 		for j := len(openers) - 1; j >= 0; j-- {
 			rec := openers[j]
@@ -329,6 +358,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 				break
 			}
 			bound = rec.branch
+			boundSHA = rec.branchSHA
 			found = true
 			break
 		}
@@ -339,12 +369,39 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 			continue // pre-M-0102 scope without aiwf-branch: trailer; non-retroactive.
 		}
 
+		// M-0161/AC-6: SHA-first resolution. When the opener
+		// recorded aiwf-branch-sha, resolve to whatever branch
+		// currently reaches that SHA — surviving renames
+		// transparently. Empty resolution + no SHA-trailer
+		// available falls through to the legacy name-only path
+		// (backwards-compatible for pre-AC-6 authorize commits;
+		// G-0225 documents the legacy carve-out).
+		resolved := bound
+		if boundSHA != "" {
+			if shaResolved := oracle.BranchOfSHA(boundSHA); shaResolved != "" {
+				resolved = shaResolved
+			}
+			// If the SHA doesn't resolve (branch deleted, SHA
+			// orphaned by reflog GC, repo shallow), keep `resolved`
+			// at the name-based bound. The actualBranches check
+			// below stays fail-shut: if the AI commit's branch
+			// list doesn't include `resolved`, we'd fire — but the
+			// caller (RunProvenanceCheck) is also surfacing an
+			// AC-3 oracle-failure advisory naming the unreachable
+			// binding, so the operator has both signals. The
+			// fail-shut-on-correctness for this case is the
+			// existing "actualBranches empty → silent" check
+			// below; deletion of the SHA-bound branch typically
+			// also drops the AI commits from any first-parent
+			// index, leaving actualBranches empty.
+		}
+
 		actualBranches := oracle.FirstParentBranches(c.SHA)
 		if len(actualBranches) == 0 {
 			continue // unknown branch — do not fire on a commit the oracle can't classify.
 		}
-		if slices.Contains(actualBranches, bound) {
-			continue // AC-4 — commit rides the bound branch.
+		if slices.Contains(actualBranches, resolved) {
+			continue // AC-4 — commit rides the bound branch (post-SHA-resolution).
 		}
 
 		// M-0159/AC-3 — retroactive acknowledgment. When an operator
@@ -375,12 +432,15 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 
 		// AC-1 / AC-2 / AC-3 — commit landed on a branch other than
 		// the bound one. Fire one finding per violating commit (AC-10).
+		// M-0161/AC-6: the message names the post-rename `resolved`
+		// branch (what the binding currently resolves to via SHA);
+		// when the scope was bound by name only, `resolved == bound`.
 		findings = append(findings, Finding{
 			Code:     CodeIsolationEscape.ID,
 			Severity: SeverityWarning,
 			Message: fmt.Sprintf(
 				"commit %s: aiwf-actor: %q on %q escapes the active scope's bound branch %q",
-				short(c.SHA), actor, strings.Join(actualBranches, ","), bound,
+				short(c.SHA), actor, strings.Join(actualBranches, ","), resolved,
 			),
 			EntityID: entity,
 		})
