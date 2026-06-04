@@ -18,6 +18,15 @@ func (f fakeOracle) FirstParentBranches(sha string) []string {
 	return f[sha]
 }
 
+// OracleErrors implements [BranchOracle]; the fake has no
+// per-ref failure modes to surface (M-0161/AC-3). Returns
+// nil so every existing test continues to exercise the
+// "all refs healthy" path while satisfying the extended
+// interface.
+func (f fakeOracle) OracleErrors() []OracleErr {
+	return nil
+}
+
 // makeAuthorizeOpenCommit constructs an authorize-opens-scope
 // fixture commit. The scope is opened on `entity` by `actor`,
 // authorizing `agent`, bound to ritual branch `branch`. SHA is

@@ -40,41 +40,70 @@ type gitBranchOracle struct {
 	// (or main) local branches that reach it via first-parent. nil
 	// for SHAs not seen during construction.
 	branchesBySHA map[string][]string
+	// errs accumulates per-ref failures from oracle construction
+	// (M-0161/AC-3 / G-0203 / D-0019). Empty slice ↔ every
+	// enumerated ref's first-parent index built cleanly. Non-empty
+	// slice surfaces as one isolation-escape-oracle-failure
+	// advisory per entry via RunProvenanceCheck.
+	errs []check.OracleErr
 }
 
 // newGitBranchOracle reads the local-branch set via
 // `git for-each-ref refs/heads/`, filters to main + ritual shapes,
 // and indexes per-branch first-parent reachability via `git
-// rev-list --first-parent <branch>` per branch. Returns nil and the
-// error if any git invocation fails; the caller (RunProvenanceCheck)
-// can decide whether to skip the rule or surface the error.
+// rev-list --first-parent <branch>` per branch.
+//
+// Per-ref fault tolerance (M-0161/AC-3 / D-0019):
+//   - Whole-enumeration failures (corrupted packed-refs, permission
+//     errors on .git/refs) abort construction and return (nil, err)
+//     — there are no refs to name and the rule degrades to the
+//     existing silent-skip path at provenance.go.
+//   - Per-ref walk failures (`rev-list --first-parent <ref>`
+//     errors on one ref while others succeed) accumulate into
+//     `errs` and DO NOT abort construction. Healthy refs continue
+//     to populate branchesBySHA so the [check.RunIsolationEscape]
+//     rule runs against them; the failed refs surface as
+//     [check.OracleErr] entries via [OracleErrors] for the
+//     provenance layer to render as isolation-escape-oracle-
+//     failure advisory findings.
 //
 // Empty-repo guard: a repo with zero local branches (e.g. a fresh
 // init with no commits) returns a non-nil oracle whose
-// FirstParentBranches always returns nil. This matches the rule's
-// "unknown branch, silent" contract — no false positives on the
-// startup edge.
+// FirstParentBranches always returns nil and OracleErrors is
+// empty. This matches the rule's "unknown branch, silent"
+// contract — no false positives on the startup edge.
 func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, error) {
 	branches, err := listRitualBranches(ctx, root)
 	if err != nil {
 		return nil, err
 	}
 	idx := map[string][]string{}
+	var perRefErrs []check.OracleErr
 	for _, b := range branches {
 		shas, err := firstParentSHAs(ctx, root, b)
 		if err != nil {
-			return nil, fmt.Errorf("indexing first-parent of %q: %w", b, err)
+			perRefErrs = append(perRefErrs, check.OracleErr{
+				Ref:        b,
+				Capability: "ref-resolution-failed",
+				Err:        err,
+			})
+			continue
 		}
 		for _, sha := range shas {
 			idx[sha] = append(idx[sha], b)
 		}
 	}
-	return &gitBranchOracle{branchesBySHA: idx}, nil
+	return &gitBranchOracle{branchesBySHA: idx, errs: perRefErrs}, nil
 }
 
 // FirstParentBranches implements [check.BranchOracle].
 func (o *gitBranchOracle) FirstParentBranches(sha string) []string {
 	return o.branchesBySHA[sha]
+}
+
+// OracleErrors implements [check.BranchOracle].
+func (o *gitBranchOracle) OracleErrors() []check.OracleErr {
+	return o.errs
 }
 
 // Compile-time check: gitBranchOracle satisfies check.BranchOracle.

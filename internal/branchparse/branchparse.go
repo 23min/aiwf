@@ -86,21 +86,21 @@ func RungOf(branch, trunkShort string) string {
 // Per ADR-0010:
 //
 //   - trunk → epic       — aiwfx-start-epic (sovereign promote +
-//                          authorize on trunk; epic branch cut next).
+//     authorize on trunk; epic branch cut next).
 //   - epic → milestone   — aiwfx-start-milestone from parent epic.
 //   - milestone → patch  — wf-patch under a milestone.
 //   - epic → patch       — wf-patch directly under an epic, skipping
-//                          an intermediate milestone (operator-intent;
-//                          not a typo).
+//     an intermediate milestone (operator-intent;
+//     not a typo).
 //
 // All other (rung, rung) combinations are typos (same-rung, cross-rung),
 // up-the-tree shapes (milestone → epic, etc.), or trunk-targeting
 // shapes (anything → trunk; AI work on trunk is verboten per ADR-0010).
 var legalRungPairs = map[[2]string]bool{
-	{"trunk", "epic"}:       true,
-	{"epic", "milestone"}:   true,
-	{"milestone", "patch"}:  true,
-	{"epic", "patch"}:       true,
+	{"trunk", "epic"}:      true,
+	{"epic", "milestone"}:  true,
+	{"milestone", "patch"}: true,
+	{"epic", "patch"}:      true,
 }
 
 // LegalRungPair returns true iff the (currentRung, targetRung) pair is

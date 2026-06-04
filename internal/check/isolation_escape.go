@@ -34,6 +34,53 @@ import (
 // "commits ended up on the wrong branch" failure mode.
 var CodeIsolationEscape = codespkg.Code{ID: "isolation-escape", Class: codespkg.ClassBranchChoreography}
 
+// CodeIsolationEscapeOracleFailure is the advisory finding code
+// surfacing oracle partial-coverage states (M-0161/AC-3 / G-0203 /
+// D-0019). One finding fires per per-ref failure accumulated
+// during [BranchOracle] construction, naming the ref and the
+// underlying failure mode (ref-resolution-failed today;
+// shallow-clone and reflog-disabled added by AC-4 and AC-5).
+//
+// Severity is warning at first land per the M-0125 ratchet
+// pattern: surface advisory at first, tighten to error after one
+// epic of usage if the false-positive rate stays low. The
+// contract is fail-shut on rule correctness — the
+// [isolation-escape] rule does NOT fire on commits whose branch
+// resolution was lost to a failed ref, so the advisory exists
+// for operator visibility, not as a blocker. See D-0019 for the
+// fail-shut-on-correctness / fail-open-on-coverage contract.
+var CodeIsolationEscapeOracleFailure = codespkg.Code{ID: "isolation-escape-oracle-failure", Class: codespkg.ClassBranchChoreography}
+
+// OracleErr is a per-ref or repo-wide oracle-construction failure
+// surfaced by [BranchOracle.OracleErrors]. The Capability tag
+// names what coverage was lost; the underlying Err is preserved
+// for diagnostic surface in the
+// isolation-escape-oracle-failure advisory's hint text.
+//
+// Ref is the ritual ref the failure pertains to (e.g.
+// "epic/E-0001-engine"). Ref MAY be empty for repo-wide failures
+// (corrupted packed-refs at enumeration time); per D-0019 point
+// 4, that case is handled at the construction-error path rather
+// than via OracleErrors, but the field shape leaves room for a
+// future repo-wide kind.
+//
+// Capability classes (M-0161/AC-3..AC-5):
+//
+//   - "ref-resolution-failed" (AC-3) — `git rev-list
+//     --first-parent <ref>` failed on a single ritual ref while
+//     `for-each-ref` enumerated cleanly. The ref's first-parent
+//     index could not be built.
+//   - "shallow-clone" (AC-4) — the ref's first-parent walk hit
+//     the shallow-depth horizon. Reserved.
+//   - "reflog-disabled" (AC-5) — `core.logAllRefUpdates=false`
+//     detected at gather time; AC-5's reflog-walk extension
+//     cannot fire on the affected ref. Reserved.
+type OracleErr struct {
+	Ref        string
+	Capability string
+	Err        error
+}
+
 // BranchOracle answers per-commit branch-reachability questions the
 // isolation-escape rule needs but that scope.Commit does not carry.
 // Implementations are supplied by the CLI gather layer (which has
@@ -46,8 +93,20 @@ var CodeIsolationEscape = codespkg.Code{ID: "isolation-escape", Class: codespkg.
 // knows about (treat as "unknown" — the rule does not fire on
 // unknown-branch commits, since the kernel cannot confidently
 // classify them as escaped).
+//
+// OracleErrors returns per-ref construction failures accumulated
+// at gather time (M-0161/AC-3 / G-0203). Empty slice ↔ every
+// enumerated ref's first-parent index built cleanly; non-empty
+// slice ↔ at least one ref failed and the rule's coverage is
+// incomplete for those refs. Consumers (RunProvenanceCheck)
+// surface one [CodeIsolationEscapeOracleFailure] finding per
+// entry, naming the ref and the underlying error in the hint —
+// see D-0019 for the fail-shut-on-correctness /
+// fail-open-on-coverage contract that orders OracleErrors with
+// FirstParentBranches.
 type BranchOracle interface {
 	FirstParentBranches(sha string) []string
+	OracleErrors() []OracleErr
 }
 
 // RunIsolationEscape applies the M-0106 branch-choreography rule

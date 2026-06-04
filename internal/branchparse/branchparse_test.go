@@ -59,10 +59,10 @@ func TestParseEntityFromBranch(t *testing.T) {
 func TestRungOf(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name        string
-		branch      string
-		trunkShort  string
-		wantRung    string
+		name       string
+		branch     string
+		trunkShort string
+		wantRung   string
 	}{
 		// Trunk shapes — config-driven match.
 		{"trunk-main-on-main-repo", "main", "main", "trunk"},
@@ -120,12 +120,12 @@ func TestRungOf(t *testing.T) {
 //
 // The legal pairs encode the ritual flows ADR-0010 names:
 //   - trunk → epic        — aiwfx-start-epic (sovereign promote +
-//                           authorize on trunk; epic branch cut next)
+//     authorize on trunk; epic branch cut next)
 //   - epic → milestone    — aiwfx-start-milestone from parent epic
 //   - milestone → patch   — wf-patch under a milestone
 //   - epic → patch        — wf-patch directly under an epic, skipping
-//                           an intermediate milestone (deliberate
-//                           operator-intent; not a typo)
+//     an intermediate milestone (deliberate
+//     operator-intent; not a typo)
 //
 // All other combinations are typos (same-rung, cross-rung) or
 // up-the-tree shapes (milestone→epic, patch→milestone, etc.) and
@@ -136,10 +136,10 @@ func TestLegalRungPair(t *testing.T) {
 	t.Parallel()
 	rungs := []string{"trunk", "epic", "milestone", "patch", ""}
 	legalSet := map[[2]string]bool{
-		{"trunk", "epic"}:        true,
-		{"epic", "milestone"}:    true,
-		{"milestone", "patch"}:   true,
-		{"epic", "patch"}:        true,
+		{"trunk", "epic"}:      true,
+		{"epic", "milestone"}:  true,
+		{"milestone", "patch"}: true,
+		{"epic", "patch"}:      true,
 	}
 	for _, current := range rungs {
 		for _, target := range rungs {
@@ -150,7 +150,7 @@ func TestLegalRungPair(t *testing.T) {
 				name = "current=EMPTY/target=" + target
 			}
 			if target == "" {
-				name = name + "_targetEMPTY"
+				name += "_targetEMPTY"
 			}
 			t.Run(name, func(t *testing.T) {
 				t.Parallel()

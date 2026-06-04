@@ -181,7 +181,8 @@ func TestAuthorize_AC1_NonMainTrunkNames_Accept(t *testing.T) {
 			// future regression made the carve-out fail and an
 			// implicit force-override kicked in, the silent
 			// `aiwf-force:` trailer would catch it.
-			if out, err := testutil.RunBin(t, root, binDir, nil,
+			if out, err := testutil.RunBin(
+				t, root, binDir, nil,
 				"authorize", "E-0001",
 				"--to", "ai/alice",
 				"--branch", "epic/E-0001-engine",
@@ -242,6 +243,7 @@ func TestAuthorize_AC1_NonMainTrunkNames_Accept(t *testing.T) {
 //     accepts → expected refuse).
 //   - 1 sovereign-override PASSES RED (--force bypasses preflight,
 //     same as GREEN).
+//
 // Net: 12 fail, 5 pass.
 //
 // Per AC-2 §"Single rung-pair check refuses every illegal cell" —
@@ -276,10 +278,10 @@ func TestAuthorize_AC2_RungPair_Matrix(t *testing.T) {
 	// The 4 legal pairs per AC-2's body matrix. Every other (rung,
 	// rung) pair is illegal.
 	legalSet := map[[2]string]bool{
-		{"trunk", "epic"}:       true,
-		{"epic", "milestone"}:   true,
-		{"milestone", "patch"}:  true,
-		{"epic", "patch"}:       true,
+		{"trunk", "epic"}:      true,
+		{"epic", "milestone"}:  true,
+		{"milestone", "patch"}: true,
+		{"epic", "patch"}:      true,
 	}
 	rungs := []string{"trunk", "epic", "milestone", "patch"}
 
@@ -301,7 +303,8 @@ func TestAuthorize_AC2_RungPair_Matrix(t *testing.T) {
 		name := c.currentRung + "_to_" + c.targetRung
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			runAC2RungPairCell(t, bin, binDir,
+			runAC2RungPairCell(
+				t, bin, binDir,
 				currentBranchByRung[c.currentRung],
 				targetBranchByRung[c.targetRung],
 				legal,
@@ -316,7 +319,8 @@ func TestAuthorize_AC2_RungPair_Matrix(t *testing.T) {
 	// trailers — pinning the override surface for AC-2's gate.
 	t.Run("sovereign_override_force_reason_bypasses_rung_check", func(t *testing.T) {
 		t.Parallel()
-		runAC2OverrideCell(t, bin, binDir,
+		runAC2OverrideCell(
+			t, bin, binDir,
 			currentBranchByRung["epic"],
 			targetBranchByRung["epic"],
 		)

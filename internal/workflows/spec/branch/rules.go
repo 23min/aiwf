@@ -249,6 +249,36 @@ func Rules() []spec.Rule {
 			BlockingStrict:    false, // warning severity at first land (M-0160/AC-4 design)
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
+		// branch-cell-isolation-escape-oracle-failure — M-0161/AC-3
+		// (G-0203) + D-0019: the BranchOracle accumulates per-ref
+		// construction failures (a single ritual ref's first-parent
+		// walk fails while sibling refs succeed) and surfaces them
+		// as isolation-escape-oracle-failure advisory findings. The
+		// fail-shut-on-correctness contract means the
+		// isolation-escape rule does NOT fire on commits whose
+		// branch resolution lost coverage through the failed ref;
+		// the advisory exists so operators see partial-coverage
+		// mechanically.
+		//
+		// Tests:
+		// TestNewGitBranchOracle_AC3_PerRefTolerance_OneCorruptedRef
+		// (unit, internal/cli/check/) +
+		// TestBranchOracle_AC3_OracleErrors_Matrix
+		// (integration, internal/cli/integration/).
+		//
+		// AC-9 (G-0210) consolidates the 7-scenario matrix from the
+		// AC-3 body into a fuller cell set; this single cell satisfies
+		// the M-0158/AC-6 ClassBranchChoreography drift bidirectional
+		// invariant in the interim.
+		{
+			ID:                "branch-cell-isolation-escape-oracle-failure",
+			Preconditions:     []spec.Predicate{{Subject: "oracle-per-ref-resolution-failed", Op: "==", Value: "true"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "isolation-escape-oracle-failure",
+			RejectionLayer:    spec.RejectionLayerCheckTime,
+			BlockingStrict:    false, // advisory severity per AC-3 body / M-0125 ratchet
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID

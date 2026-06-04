@@ -72,6 +72,32 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
 		cherryPicked := check.WalkCherryPicks(ctx, root)
 		findings = append(findings, check.RunIsolationEscape(commits, oracle, cherryPicked, ackedSHAs)...)
+		// M-0161/AC-3 / G-0203 / D-0019: surface oracle
+		// partial-coverage states. Per-ref failures accumulated
+		// during oracle construction emit one
+		// isolation-escape-oracle-failure advisory finding each,
+		// naming the ref and quoting the underlying error in the
+		// hint so the operator can name the specific remediation
+		// (delete the stale ref, repack the loose objects,
+		// re-fetch from a remote with the missing object, etc.).
+		// Severity is warning per the M-0125 ratchet pattern;
+		// fail-shut on correctness means partial coverage cannot
+		// silently miss escapes, so the advisory exists for
+		// visibility, not as a blocker.
+		for _, oe := range oracle.OracleErrors() {
+			findings = append(findings, check.Finding{
+				Code:     check.CodeIsolationEscapeOracleFailure.ID,
+				Severity: check.SeverityWarning,
+				Message: fmt.Sprintf(
+					"branch oracle could not index ritual ref %q (%s); isolation-escape coverage is incomplete for commits reachable only via this ref",
+					oe.Ref, oe.Capability,
+				),
+				Hint: fmt.Sprintf(
+					"investigate ref %q: %v; the isolation-escape rule still polices every healthy ref",
+					oe.Ref, oe.Err,
+				),
+			})
+		}
 	}
 
 	// M-0160/AC-4: id-rename-untrailered rule. Walk
