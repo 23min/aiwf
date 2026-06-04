@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: aiwf authorize preflight respects configured trunk name
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-2
       title: Authorize preflight enforces ritual rung hierarchy
       status: open
