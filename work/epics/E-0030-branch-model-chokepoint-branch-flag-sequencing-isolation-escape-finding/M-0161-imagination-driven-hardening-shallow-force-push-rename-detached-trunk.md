@@ -39,7 +39,7 @@ acs:
       tdd_phase: done
     - id: AC-9
       title: 'Layer-4 spec-table refactor: mechanical-weight catalog + bijection enforcement'
-      status: open
+      status: cancelled
       tdd_phase: red
 ---
 ## Goal
