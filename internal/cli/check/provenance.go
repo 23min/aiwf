@@ -72,31 +72,37 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
 		cherryPicked := check.WalkCherryPicks(ctx, root)
 		findings = append(findings, check.RunIsolationEscape(commits, oracle, cherryPicked, ackedSHAs)...)
-		// M-0161/AC-3 / G-0203 / D-0019: surface oracle
-		// partial-coverage states. Per-ref failures accumulated
-		// during oracle construction emit one
-		// isolation-escape-oracle-failure advisory finding each,
-		// naming the ref and quoting the underlying error in the
-		// hint so the operator can name the specific remediation
-		// (delete the stale ref, repack the loose objects,
-		// re-fetch from a remote with the missing object, etc.).
-		// Severity is warning per the M-0125 ratchet pattern;
-		// fail-shut on correctness means partial coverage cannot
-		// silently miss escapes, so the advisory exists for
-		// visibility, not as a blocker.
+		// M-0161/AC-3 + AC-4 / D-0019: surface oracle coverage
+		// gaps. Per-ref failures emit isolation-escape-oracle-
+		// failure (advisory; AC-3); the shallow-clone capability
+		// emits the separate isolation-escape-shallow-clone
+		// warning (AC-4) with remediation hint naming
+		// `git fetch --unshallow`. Both ride fail-shut on
+		// correctness — the isolation-escape rule does not fire
+		// on commits whose branch resolution lost coverage.
 		for _, oe := range oracle.OracleErrors() {
-			findings = append(findings, check.Finding{
-				Code:     check.CodeIsolationEscapeOracleFailure.ID,
-				Severity: check.SeverityWarning,
-				Message: fmt.Sprintf(
-					"branch oracle could not index ritual ref %q (%s); isolation-escape coverage is incomplete for commits reachable only via this ref",
-					oe.Ref, oe.Capability,
-				),
-				Hint: fmt.Sprintf(
-					"investigate ref %q: %v; the isolation-escape rule still polices every healthy ref",
-					oe.Ref, oe.Err,
-				),
-			})
+			switch oe.Capability {
+			case "shallow-clone":
+				findings = append(findings, check.Finding{
+					Code:     check.CodeIsolationEscapeShallowClone.ID,
+					Severity: check.SeverityWarning,
+					Message:  "isolation-escape coverage is incomplete: this repository is a shallow clone (rev-list returns commits only within the shallow boundary).",
+					Hint:     "unshallow with `git fetch --unshallow`, or in CI use `actions/checkout@vN` with `fetch-depth: 0`; after unshallowing, re-run `aiwf check`.",
+				})
+			default:
+				findings = append(findings, check.Finding{
+					Code:     check.CodeIsolationEscapeOracleFailure.ID,
+					Severity: check.SeverityWarning,
+					Message: fmt.Sprintf(
+						"branch oracle could not index ritual ref %q (%s); isolation-escape coverage is incomplete for commits reachable only via this ref",
+						oe.Ref, oe.Capability,
+					),
+					Hint: fmt.Sprintf(
+						"investigate ref %q: %v; the isolation-escape rule still polices every healthy ref",
+						oe.Ref, oe.Err,
+					),
+				})
+			}
 		}
 	}
 

@@ -75,6 +75,7 @@ func TestM0158_AC5_EveryBranchCellHasMatchingTest(t *testing.T) {
 		"branch-cell-override-f-nnnn-waiver":          {}, // documented exception below
 		"branch-cell-id-rename-untrailered":           {"IDRenameUntrailered"},
 		"branch-cell-isolation-escape-oracle-failure": {"AC3_OracleErrors", "AC3_PerRefTolerance"},
+		"branch-cell-isolation-escape-shallow-clone":  {"AC4_ShallowClone", "AC4_ShallowDetection"},
 	}
 
 	for _, cell := range branch.Rules() {

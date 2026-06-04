@@ -279,6 +279,38 @@ func Rules() []spec.Rule {
 			BlockingStrict:    false, // advisory severity per AC-3 body / M-0125 ratchet
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
+		// branch-cell-isolation-escape-shallow-clone — M-0161/AC-4
+		// (G-0204): the oracle detects shallow state at construction
+		// time via `git rev-parse --is-shallow-repository`. On
+		// shallow the per-SHA map is left EMPTY (fail-shut on
+		// correctness — a half-walked first-parent index would
+		// produce silent false-negatives for commits beyond the
+		// shallow boundary) and a typed OracleErr with
+		// Capability="shallow-clone" surfaces as the
+		// isolation-escape-shallow-clone warning, hint naming
+		// `git fetch --unshallow` as the remediation. Separate code
+		// (not the AC-3 isolation-escape-oracle-failure advisory)
+		// per AC-4 body line 292 — total-coverage failure is louder
+		// than per-ref partial.
+		//
+		// Tests:
+		// TestNewGitBranchOracle_AC4_ShallowDetection_EmptyMapPlusTypedError
+		// (unit) +
+		// TestBranchOracle_AC4_ShallowClone_Matrix
+		// (integration; 6 cells + sovereign override).
+		//
+		// AC-9 (G-0210) consolidates the matrix into a fuller cell
+		// set; this single cell satisfies the M-0158/AC-6 drift
+		// invariant in the interim.
+		{
+			ID:                "branch-cell-isolation-escape-shallow-clone",
+			Preconditions:     []spec.Predicate{{Subject: "repository-is-shallow", Op: "==", Value: "true"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "isolation-escape-shallow-clone",
+			RejectionLayer:    spec.RejectionLayerCheckTime,
+			BlockingStrict:    false, // warning severity per AC-4 body / M-0125 ratchet
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID

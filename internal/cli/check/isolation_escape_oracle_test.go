@@ -217,3 +217,127 @@ func writeFile(t *testing.T, root, rel, content string) {
 		t.Fatalf("write %s: %v", full, err)
 	}
 }
+
+// AC-4 (G-0204) unit tests — shallow-clone detection.
+//
+// AC-4 contract (per body): newGitBranchOracle detects shallow
+// state via `git rev-parse --is-shallow-repository`; on shallow
+// the per-SHA map is left empty (no false positives from
+// half-walked first-parent indexes) and a typed OracleErr with
+// Capability="shallow-clone" surfaces so the consumer
+// (RunProvenanceCheck) emits isolation-escape-shallow-clone at
+// warning severity. Composes with AC-3's typed-error contract.
+//
+// Fixture mechanic: write any valid SHA into .git/shallow; git
+// treats the presence of a non-empty .git/shallow file as making
+// the repo shallow. Faster + more deterministic than spinning up
+// a `git clone --depth=N` from a richer source.
+
+// TestNewGitBranchOracle_AC4_ShallowDetection_EmptyMapPlusTypedError
+// pins the AC-4 load-bearing claim: when the repo is shallow,
+// the oracle leaves branchesBySHA empty AND surfaces a typed
+// OracleErr with Capability="shallow-clone".
+//
+// RED: newGitBranchOracle does not check is-shallow-repository
+// today; it walks rev-list normally and populates the index from
+// whatever the shallow boundary lets it see. Tests fail because
+// (a) no shallow-clone OracleErr is emitted and (b) the per-SHA
+// map is populated from the truncated walk.
+func TestNewGitBranchOracle_AC4_ShallowDetection_EmptyMapPlusTypedError(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := setupAC4ShallowRepo(t)
+
+	oracle, err := newGitBranchOracle(ctx, root)
+	if err != nil {
+		t.Fatalf("newGitBranchOracle returned error %q; AC-4 contract: shallow detection accumulates a typed OracleErr and construction succeeds", err)
+	}
+	if oracle == nil {
+		t.Fatal("newGitBranchOracle returned nil; AC-4 contract: non-nil oracle even on shallow repos")
+	}
+
+	// The per-SHA map must be empty — shallow truncation would
+	// otherwise yield silently-incomplete classifications.
+	if len(oracle.branchesBySHA) != 0 {
+		t.Errorf("AC-4: branchesBySHA has %d entries on shallow repo; want 0 (fail-shut on shallow per AC-4 body)", len(oracle.branchesBySHA))
+	}
+
+	errs := oracle.OracleErrors()
+	if len(errs) == 0 {
+		t.Fatal("AC-4: OracleErrors() empty on shallow repo; want >= 1 entry with Capability=\"shallow-clone\"")
+	}
+	var foundShallow bool
+	for _, e := range errs {
+		if e.Capability == "shallow-clone" {
+			foundShallow = true
+			if e.Err == nil {
+				t.Errorf("AC-4: shallow-clone OracleErr has nil Err; want non-nil for diagnostic surface")
+			}
+		}
+	}
+	if !foundShallow {
+		t.Errorf("AC-4: OracleErrors() does not contain entry with Capability=\"shallow-clone\"\nentries: %+v", errs)
+	}
+}
+
+// TestNewGitBranchOracle_AC4_NonShallow_NoShallowEntry pins the
+// symmetric path: a non-shallow repo produces NO shallow-clone
+// OracleErr regardless of other state.
+func TestNewGitBranchOracle_AC4_NonShallow_NoShallowEntry(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := setupAC3RepoAllHealthy(t)
+
+	oracle, err := newGitBranchOracle(ctx, root)
+	if err != nil {
+		t.Fatalf("newGitBranchOracle: %v", err)
+	}
+	if oracle == nil {
+		t.Fatal("oracle is nil")
+	}
+	for _, e := range oracle.OracleErrors() {
+		if e.Capability == "shallow-clone" {
+			t.Errorf("AC-4: shallow-clone OracleErr appeared on non-shallow repo (entry: %+v)", e)
+		}
+	}
+}
+
+// setupAC4ShallowRepo builds a healthy repo (main + one ritual
+// branch with commits) then forces shallow state by writing the
+// HEAD SHA into .git/shallow. Returns root.
+//
+// Git's contract for shallow detection: .git/shallow is a list
+// of SHAs marking the "shallow boundary" — commits beyond these
+// are excluded from the local object store. The presence of a
+// non-empty .git/shallow file is what
+// `git rev-parse --is-shallow-repository` reports on. The
+// content's exact correctness doesn't matter for the test
+// (we're not exercising shallow rev-list logic, just the
+// is-shallow boolean).
+func setupAC4ShallowRepo(t *testing.T) string {
+	t.Helper()
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	gitRun(t, root, "branch", "-M", "main")
+
+	writeFile(t, root, "seed.md", "seed\n")
+	gitRun(t, root, "add", ".")
+	gitRun(t, root, "commit", "-m", "baseline")
+
+	gitRun(t, root, "checkout", "-b", "epic/E-0001-engine")
+	writeFile(t, root, "epic.md", "epic\n")
+	gitRun(t, root, "add", ".")
+	gitRun(t, root, "commit", "-m", "epic work")
+
+	headSHA := gitOutput(t, root, "rev-parse", "HEAD")
+	gitRun(t, root, "checkout", "main")
+
+	shallowPath := filepath.Join(root, ".git", "shallow")
+	if err := os.WriteFile(shallowPath, []byte(headSHA+"\n"), 0o644); err != nil {
+		t.Fatalf("write %s: %v", shallowPath, err)
+	}
+	return root
+}

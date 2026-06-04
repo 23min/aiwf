@@ -51,6 +51,29 @@ var CodeIsolationEscape = codespkg.Code{ID: "isolation-escape", Class: codespkg.
 // fail-shut-on-correctness / fail-open-on-coverage contract.
 var CodeIsolationEscapeOracleFailure = codespkg.Code{ID: "isolation-escape-oracle-failure", Class: codespkg.ClassBranchChoreography}
 
+// CodeIsolationEscapeShallowClone is the warning finding code
+// surfacing shallow-clone-induced total-coverage failure
+// (M-0161/AC-4 / G-0204). One finding fires when the repository
+// is shallow per `git rev-parse --is-shallow-repository`, naming
+// the remediation directly: unshallow with `git fetch
+// --unshallow` (or in CI, `actions/checkout@vN` with
+// `fetch-depth: 0`).
+//
+// Severity is warning, NOT advisory — a shallow clone is a
+// total-coverage failure (not a per-ref partial failure as
+// AC-3's isolation-escape-oracle-failure tracks), so the
+// operator-visibility weight is higher. The deliberate exception
+// to D-0019 Alternative D's "ride the typed slice" rule per the
+// AC-4 body line 292.
+//
+// Per the AC-4 fail-shut-on-correctness contract: on shallow,
+// the per-SHA branch map is left EMPTY (no false positives from
+// half-walked first-parent indexes), so the isolation-escape
+// rule stays silent regardless of what the shallow window would
+// otherwise expose. The new code's job is to make that coverage
+// gap mechanically visible.
+var CodeIsolationEscapeShallowClone = codespkg.Code{ID: "isolation-escape-shallow-clone", Class: codespkg.ClassBranchChoreography}
+
 // OracleErr is a per-ref or repo-wide oracle-construction failure
 // surfaced by [BranchOracle.OracleErrors]. The Capability tag
 // names what coverage was lost; the underlying Err is preserved

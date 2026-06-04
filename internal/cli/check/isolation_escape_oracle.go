@@ -67,12 +67,43 @@ type gitBranchOracle struct {
 //     provenance layer to render as isolation-escape-oracle-
 //     failure advisory findings.
 //
+// Shallow-clone fail-shut (M-0161/AC-4 / G-0204):
+//   - When `git rev-parse --is-shallow-repository` reports true,
+//     the oracle leaves branchesBySHA EMPTY (no half-walked index)
+//     and accumulates a single typed OracleErr with Capability
+//     "shallow-clone". The isolation-escape rule sees no branch
+//     data and stays silent for every commit (fail-shut on
+//     correctness); RunProvenanceCheck emits the new
+//     isolation-escape-shallow-clone warning so the coverage gap
+//     is mechanically visible to the operator.
+//
 // Empty-repo guard: a repo with zero local branches (e.g. a fresh
 // init with no commits) returns a non-nil oracle whose
 // FirstParentBranches always returns nil and OracleErrors is
 // empty. This matches the rule's "unknown branch, silent"
 // contract — no false positives on the startup edge.
 func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, error) {
+	// M-0161/AC-4 — shallow detection first. A shallow repo
+	// short-circuits the index build because any partial index
+	// would produce silent false-negatives for commits beyond
+	// the shallow boundary.
+	if shallow, sErr := isShallowRepository(ctx, root); sErr != nil {
+		// Treat detection failure as not-shallow — the existing
+		// per-ref walk continues. The detection command is a
+		// trivial git plumbing call; a failure here typically
+		// means a deeper repo problem the per-ref tolerance will
+		// surface anyway.
+		_ = sErr
+	} else if shallow {
+		return &gitBranchOracle{
+			branchesBySHA: map[string][]string{},
+			errs: []check.OracleErr{{
+				Capability: "shallow-clone",
+				Err:        errors.New("repository is shallow per `git rev-parse --is-shallow-repository`; unshallow with `git fetch --unshallow` (or in CI: `actions/checkout@vN` with `fetch-depth: 0`) to restore isolation-escape coverage"),
+			}},
+		}, nil
+	}
+
 	branches, err := listRitualBranches(ctx, root)
 	if err != nil {
 		return nil, err
@@ -94,6 +125,28 @@ func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, err
 		}
 	}
 	return &gitBranchOracle{branchesBySHA: idx, errs: perRefErrs}, nil
+}
+
+// isShallowRepository runs `git rev-parse --is-shallow-repository`
+// in root and reports whether the repository is shallow. Git
+// emits "true"/"false" on stdout for this plumbing query.
+//
+// AC-4 fixture-aware: any depth-N clone (or a manually-written
+// .git/shallow file) flips this to true. The detection is
+// repo-level, not per-ref, so a single shallow boundary disables
+// the whole rule per the fail-shut contract.
+func isShallowRepository(ctx context.Context, root string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--is-shallow-repository")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return false, fmt.Errorf("git rev-parse --is-shallow-repository: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
+		}
+		return false, fmt.Errorf("git rev-parse --is-shallow-repository: %w", err)
+	}
+	return strings.TrimSpace(string(out)) == "true", nil
 }
 
 // FirstParentBranches implements [check.BranchOracle].
