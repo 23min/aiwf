@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: BranchOracle typed errors with per-ref fault tolerance
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: BranchOracle detects shallow clones; isolation-escape-shallow-clone fires
