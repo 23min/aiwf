@@ -105,6 +105,14 @@ func TestAuthorize_Open_WithBranch_EmitsTrailer(t *testing.T) {
 		Agent:        "ai/claude",
 		Branch:       "epic/E-0001-engine",
 		BranchExists: true,
+		// M-0161/AC-2 (G-0201): the rung-pair predicate requires
+		// (current, target) ∈ legal set. Set CurrentBranch + TrunkShort
+		// so RungOf("main", "main")="trunk" + RungOf("epic/E-0001-engine", _)="epic"
+		// → (trunk, epic) is legal. Without these the test ran on
+		// pre-AC-2's loose BranchExists=true bypass; post-AC-2 the
+		// rung-pair check applies regardless of BranchExists.
+		CurrentBranch: "main",
+		TrunkShort:    "main",
 	})
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
@@ -291,6 +299,13 @@ func TestAuthorize_Open_AITarget_NoBranch_NoRitualCurrent_Refuses(t *testing.T) 
 // rule OUTSIDE both carve-outs, CurrentBranch is pinned to a
 // non-main, non-ritual shape (a plain feature branch). The
 // missing-branch refusal stands regardless of --branch's shape.
+//
+// M-0161/AC-2 (G-0201) replaced the pre-AC-2 PreflightBranchNotFoundError
+// refusal with PreflightRungPairError — the (non-ritual feature
+// branch, epic) pair is now refused as ("", "epic") rung-pair-illegal,
+// not as branch-not-found. The semantic is the same (verb refuses,
+// names the override path, names the branches involved); the failure
+// classification is finer.
 func TestAuthorize_Open_AITarget_BranchMissing_Refuses(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -306,22 +321,26 @@ func TestAuthorize_Open_AITarget_BranchMissing_Refuses(t *testing.T) {
 		// simulates the typo / missing-branch case.
 		//
 		// CurrentBranch is a non-main, non-ritual feature branch so
-		// neither M-0104/AC-4 (main + ritual) nor M-0105/AC-6
-		// (ritual + ritual) carve-out applies — the missing-branch
-		// refusal stands regardless of --branch's shape.
+		// (RungOf("feature/test-fixture", _), RungOf("epic/E-9999-typo", _))
+		// = ("", "epic") which is not in the legal set → AC-2's
+		// rung-pair check refuses.
 		CurrentBranch: "feature/test-fixture",
+		TrunkShort:    "main",
 	})
 	if err == nil {
-		t.Fatalf("expected refusal for ai/* target with missing --branch; got plan=%+v", res.Plan)
+		t.Fatalf("expected refusal for ai/* target with non-ritual current + ritual target; got plan=%+v", res.Plan)
 	}
-	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightBranchNotFound.ID {
-		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightBranchNotFound.ID)
+	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightRungPair.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightRungPair.ID)
 	}
-	if !strings.Contains(err.Error(), "branch-not-found") {
+	if !strings.Contains(err.Error(), "rung-pair-illegal") {
 		t.Errorf("error %q does not name the code", err.Error())
 	}
 	if !strings.Contains(err.Error(), "epic/E-9999-typo") {
-		t.Errorf("error %q does not quote the missing branch", err.Error())
+		t.Errorf("error %q does not quote the target branch", err.Error())
+	}
+	if !strings.Contains(err.Error(), "feature/test-fixture") {
+		t.Errorf("error %q does not quote the current branch", err.Error())
 	}
 	if !strings.Contains(err.Error(), "--force --reason") {
 		t.Errorf("error %q does not name the override path (--force --reason)", err.Error())
@@ -373,9 +392,11 @@ func TestAuthorize_Open_AITarget_ExplicitBranchExists_AcceptsAndEmitsTrailer(t *
 		Agent:        "ai/claude",
 		Branch:       "epic/E-0001-engine",
 		BranchExists: true,
-		// Current checkout deliberately non-ritual: the explicit
-		// signal (Branch + BranchExists) is sufficient.
+		// M-0161/AC-2: trunk-classification requires TrunkShort.
+		// CurrentBranch="main" + TrunkShort="main" → (trunk, epic)
+		// is legal; the rung-pair check accepts.
 		CurrentBranch: "main",
+		TrunkShort:    "main",
 	})
 	if err != nil {
 		t.Fatalf("Authorize refused explicit existing branch: %v", err)
@@ -511,12 +532,15 @@ func TestAuthorize_Open_AITarget_NonRitualNonMainCurrent_BranchMissing_Refuses(t
 		Branch:        "epic/E-9999-future",
 		BranchExists:  false,
 		CurrentBranch: "feature/scratch",
+		TrunkShort:    "main",
 	})
 	if err == nil {
-		t.Fatalf("expected refusal for non-ritual non-main current + missing --branch; got plan=%+v", res.Plan)
+		t.Fatalf("expected refusal for non-ritual non-main current + ritual target; got plan=%+v", res.Plan)
 	}
-	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightBranchNotFound.ID {
-		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightBranchNotFound.ID)
+	// M-0161/AC-2: ("", "epic") is not legal; rung-pair-illegal
+	// fires (subsumes the prior branch-not-found semantics).
+	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightRungPair.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightRungPair.ID)
 	}
 }
 
@@ -539,23 +563,29 @@ func TestAuthorize_Open_AITarget_MainPlusNonRitualMissingBranch_Refuses(t *testi
 		Branch:        "feature/scratch",
 		BranchExists:  false,
 		CurrentBranch: "main",
+		TrunkShort:    "main",
 	})
 	if err == nil {
-		t.Fatalf("expected refusal for main+non-ritual-missing-branch; got plan=%+v", res.Plan)
+		t.Fatalf("expected refusal for main+non-ritual-target; got plan=%+v", res.Plan)
 	}
-	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightBranchNotFound.ID {
-		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightBranchNotFound.ID)
+	// M-0161/AC-2: ("trunk", "") is not legal; rung-pair-illegal
+	// fires. Subsumes the prior branch-not-found semantics.
+	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightRungPair.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, verb.CodePreflightRungPair.ID)
 	}
 	if !strings.Contains(err.Error(), "feature/scratch") {
-		t.Errorf("error %q does not quote the missing branch", err.Error())
+		t.Errorf("error %q does not quote the target branch", err.Error())
 	}
 }
 
 // TestAuthorize_Open_WithBranch_InvalidShapeRefused: defensive — when
-// the Branch value violates trailer-shape rules from AC-2 (embedded
-// whitespace, leading slash, embedded ".."), the verb refuses via the
-// same validateAuthorizeTrailers pass that gates aiwf-actor / aiwf-to.
-// Pins the seam between AC-2's shape rule and AC-3's emission.
+// the Branch value violates ritual-shape rules (embedded whitespace,
+// leading slash, embedded ".."), the verb refuses. The pre-M-0161/AC-2
+// path landed at the trailer-shape validation pass (aiwf-branch
+// mention); post-AC-2 the rung-pair check fires first because
+// RungOf classifies malformed values as "" (no valid id segment) →
+// (trunk, "") is not legal → PreflightRungPairError. The intent is
+// preserved (malformed Branch refuses); the code path is finer.
 func TestAuthorize_Open_WithBranch_InvalidShapeRefused(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -578,19 +608,20 @@ func TestAuthorize_Open_WithBranch_InvalidShapeRefused(t *testing.T) {
 				Mode:   verb.AuthorizeOpen,
 				Agent:  "ai/claude",
 				Branch: tc.branch,
-				// BranchExists=true bypasses the M-0103 preflight's
-				// branch-not-found path so we exercise the
-				// trailer-shape rule under test (the rule's raison
-				// d'être). In real usage `git show-ref --verify`
-				// would refuse the malformed names too, so this
-				// path is shape-rule-as-defense-in-depth.
-				BranchExists: true,
+				// BranchExists=true (immaterial post-AC-2; the
+				// rung-pair check runs regardless of BranchExists).
+				BranchExists:  true,
+				CurrentBranch: "main",
+				TrunkShort:    "main",
 			})
 			if err == nil {
-				t.Fatalf("expected shape-validation refusal for %q; got nil", tc.branch)
+				t.Fatalf("expected refusal for malformed branch %q; got nil", tc.branch)
 			}
-			if !strings.Contains(err.Error(), "aiwf-branch") {
-				t.Errorf("error %q does not mention aiwf-branch", err.Error())
+			// AC-2: malformed --branch classifies as targetRung=""
+			// → (trunk, "") is not in the legal set → rung-pair-illegal.
+			if code, ok := entity.Code(err); !ok || code != verb.CodePreflightRungPair.ID {
+				t.Errorf("entity.Code(err) = (%q, %v), want (%q, true) for malformed branch %q",
+					code, ok, verb.CodePreflightRungPair.ID, tc.branch)
 			}
 		})
 	}

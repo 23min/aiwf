@@ -355,7 +355,23 @@ func assertExpectation(t *testing.T, env *ScenarioEnv, expect Expectation) {
 // preflight entirely.
 func OpenBoundScope(t *testing.T, env *ScenarioEnv, entityID, boundBranch string) string {
 	t.Helper()
-	env.MustRunBin("authorize", entityID, "--to", "ai/claude", "--branch", boundBranch)
+	// M-0161/AC-2: many M-0106 scenarios checkout the bound branch
+	// BEFORE opening the scope (e.g., on epic/E-0001-engine, then
+	// OpenBoundScope(t, env, "E-0001", "epic/E-0001-engine")). That's
+	// a (epic, epic) rung pair which AC-2's predicate refuses. The
+	// scenarios test post-authorize behavior (isolation-escape rule
+	// firing on subsequent AI commits) — not the authorize preflight
+	// itself — so the test-helper uses the sovereign-override path
+	// (--force --reason) to bypass the AC-2 predicate cleanly.
+	// Production callers would either authorize from the parent
+	// branch first per ADR-0010 or pass --force --reason explicitly;
+	// the M-0106 scenario fixture chooses the latter for shape
+	// orthogonality.
+	env.MustRunBin("authorize", entityID,
+		"--to", "ai/claude",
+		"--branch", boundBranch,
+		"--force",
+		"--reason", "test fixture: scope-on-bound-branch (M-0106 scenario)")
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
 }
 

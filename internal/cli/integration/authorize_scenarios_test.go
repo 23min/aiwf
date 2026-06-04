@@ -216,3 +216,251 @@ func TestAuthorize_AC1_NonMainTrunkNames_Accept(t *testing.T) {
 		})
 	}
 }
+
+// TestAuthorize_AC2_RungPair_Matrix — M-0161/AC-2 (G-0201).
+//
+// The 16-cell (CurrentBranch rung × --branch rung) matrix per the
+// AC-2 body's table. 4 legal pairs accept; 12 illegal pairs refuse.
+// Plus 1 sovereign-override scenario exercising --force --reason on
+// an illegal pair.
+//
+// Pre-AC-2 production state: the verb-layer authorize carve-out
+// accepts any (ritual or trunk current, ritual target) when
+// BranchExists=false (M-0104/AC-4 + M-0105/AC-6's loose union), and
+// any --branch value when BranchExists=true (skipping the carve-out
+// entirely). AC-2 tightens this with `branchparse.LegalRungPair`
+// applied to (RungOf(current, trunk), RungOf(target, trunk))
+// regardless of BranchExists — so cross-rung typos, up-the-tree
+// shapes, and `--branch <trunk>` all refuse, while the 4 legitimate
+// ritual flows accept.
+//
+// RED-state discrimination:
+//   - 4 legal pairs PASS RED (existing carve-out accepts).
+//   - 4 (X, trunk) illegal pairs FAIL RED (BranchExists=true bypass
+//     → verb accepts → expected refuse).
+//   - 8 illegal ritual-target pairs FAIL RED (existing loose carve-out
+//     accepts → expected refuse).
+//   - 1 sovereign-override PASSES RED (--force bypasses preflight,
+//     same as GREEN).
+// Net: 12 fail, 5 pass.
+//
+// Per AC-2 §"Two refusal layers compose" — the 4 (X, trunk) rows
+// where --branch IS the configured trunk's local branch require the
+// rung-pair check to run even on BranchExists=true (production code
+// change in GREEN). Per the body, this is what AC-2 commits to.
+func TestAuthorize_AC2_RungPair_Matrix(t *testing.T) {
+	t.Parallel()
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+
+	// Branch names per rung. The "current" set is what the operator
+	// is on; the "target" set is the --branch value (deliberately
+	// different from "current" so same-rung typo cells are
+	// distinguishable from same-name cells).
+	currentBranchByRung := map[string]string{
+		"trunk":     "main",
+		"epic":      "epic/E-0001-current",
+		"milestone": "milestone/M-0007-current",
+		"patch":     "patch/g-0099-current",
+	}
+	targetBranchByRung := map[string]string{
+		"trunk":     "main",
+		"epic":      "epic/E-0002-target",
+		"milestone": "milestone/M-0008-target",
+		"patch":     "patch/g-0100-target",
+	}
+	// The 4 legal pairs per AC-2's body matrix. Every other (rung,
+	// rung) pair is illegal.
+	legalSet := map[[2]string]bool{
+		{"trunk", "epic"}:       true,
+		{"epic", "milestone"}:   true,
+		{"milestone", "patch"}:  true,
+		{"epic", "patch"}:       true,
+	}
+	rungs := []string{"trunk", "epic", "milestone", "patch"}
+
+	// Build the 16-cell scenario list.
+	type cell struct {
+		currentRung string
+		targetRung  string
+	}
+	var cells []cell
+	for _, c := range rungs {
+		for _, ta := range rungs {
+			cells = append(cells, cell{currentRung: c, targetRung: ta})
+		}
+	}
+
+	for _, c := range cells {
+		c := c
+		legal := legalSet[[2]string{c.currentRung, c.targetRung}]
+		name := c.currentRung + "_to_" + c.targetRung
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			runAC2RungPairCell(t, bin, binDir,
+				currentBranchByRung[c.currentRung],
+				targetBranchByRung[c.targetRung],
+				legal,
+			)
+		})
+	}
+
+	// Sovereign-override scenario: an illegal pair (epic→epic
+	// cross-epic-typo) + --force --reason "cross-epic intentional"
+	// should accept regardless of rung-pair predicate. The
+	// authorize commit must carry BOTH aiwf-branch: AND aiwf-force:
+	// trailers — pinning the override surface for AC-2's gate.
+	t.Run("sovereign_override_force_reason_bypasses_rung_check", func(t *testing.T) {
+		t.Parallel()
+		runAC2OverrideCell(t, bin, binDir,
+			currentBranchByRung["epic"],
+			targetBranchByRung["epic"],
+		)
+	})
+}
+
+// runAC2RungPairCell drives one (currentBranch, targetBranch) cell
+// against the worktree-built binary and asserts accept (legal=true)
+// or refuse (legal=false). The fixture bootstraps a fresh temp repo,
+// sets allocate.trunk to refs/heads/main, makes a baseline commit,
+// cuts the current-rung branch (and switches to it), then runs
+// `aiwf authorize E-0001 --to ai/alice --branch <target>`. The
+// target branch is NOT cut unless it IS the trunk (in which case it
+// already exists from `git init -b main`).
+func runAC2RungPairCell(t *testing.T, bin, binDir, currentBranch, targetBranch string, legal bool) {
+	t.Helper()
+	root := setupAC2RungPairFixture(t, bin, binDir, currentBranch)
+
+	args := []string{
+		"authorize", "E-0001",
+		"--to", "ai/alice",
+		"--branch", targetBranch,
+	}
+	out, err := testutil.RunBin(t, root, binDir, nil, args...)
+	if legal {
+		if err != nil {
+			t.Fatalf("legal pair (current=%q, target=%q) refused but should accept: %v\n%s",
+				currentBranch, targetBranch, err, out)
+		}
+		// Trailer pins: aiwf-branch records the target; no
+		// aiwf-force trailer (the carve-out is the load-bearing
+		// accept, not a silent override).
+		tr, terr := gitops.HeadTrailers(context.Background(), root)
+		if terr != nil {
+			t.Fatal(terr)
+		}
+		hasTrailer(t, tr, "aiwf-verb", "authorize")
+		hasTrailer(t, tr, "aiwf-to", "ai/alice")
+		hasTrailer(t, tr, "aiwf-branch", targetBranch)
+		noTrailer(t, tr, "aiwf-force")
+		return
+	}
+	// Illegal: expect non-zero exit.
+	if err == nil {
+		t.Fatalf("illegal pair (current=%q, target=%q) accepted but should refuse; output:\n%s",
+			currentBranch, targetBranch, out)
+	}
+	// Stderr quality check: the refusal message should name BOTH
+	// rungs (the operator can see which pair is rejected) and the
+	// sovereign-override path (--force --reason). Substring scoped
+	// to the error context, per CLAUDE.md "Substring assertions"
+	// — verb-time errors don't carry structured codes today.
+	stderr := out
+	if !strings.Contains(stderr, "--force") {
+		t.Errorf("refusal stderr should name --force override path; got:\n%s", stderr)
+	}
+}
+
+// runAC2OverrideCell exercises the sovereign-override scenario:
+// an illegal rung pair + --force --reason → accepts with
+// aiwf-force: trailer recorded.
+func runAC2OverrideCell(t *testing.T, bin, binDir, currentBranch, targetBranch string) {
+	t.Helper()
+	root := setupAC2RungPairFixture(t, bin, binDir, currentBranch)
+
+	args := []string{
+		"authorize", "E-0001",
+		"--to", "ai/alice",
+		"--branch", targetBranch,
+		"--force",
+		"--reason", "cross-epic intentional",
+	}
+	out, err := testutil.RunBin(t, root, binDir, nil, args...)
+	if err != nil {
+		t.Fatalf("sovereign override refused but should accept: %v\n%s", err, out)
+	}
+	tr, terr := gitops.HeadTrailers(context.Background(), root)
+	if terr != nil {
+		t.Fatal(terr)
+	}
+	hasTrailer(t, tr, "aiwf-verb", "authorize")
+	hasTrailer(t, tr, "aiwf-to", "ai/alice")
+	hasTrailer(t, tr, "aiwf-branch", targetBranch)
+	// The load-bearing override-surface pin: the commit carries
+	// aiwf-force with the operator's reason.
+	hasTrailer(t, tr, "aiwf-force", "cross-epic intentional")
+}
+
+// setupAC2RungPairFixture builds the per-scenario temp repo:
+//   - git init -b main + git config
+//   - aiwf init
+//   - baseline commit (births refs/heads/main so allocate.trunk
+//     resolves)
+//   - amend aiwf.yaml with allocate.trunk: refs/heads/main
+//   - aiwf add epic E-0001 Engine + promote E-0001 active
+//   - if currentBranch != "main": cut currentBranch + checkout
+//
+// Returns the repo root path.
+func setupAC2RungPairFixture(t *testing.T, bin, binDir, currentBranch string) string {
+	t.Helper()
+	root := t.TempDir()
+
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
+		t.Fatalf("git init -b main: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
+		t.Fatalf("aiwf init: %v\n%s", err, out)
+	}
+	// Baseline commit to birth refs/heads/main so allocate.trunk
+	// resolves (per AC-1 fixture pattern).
+	if out, err := testutil.RunGit(root, "add", "-A"); err != nil {
+		t.Fatalf("git add: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunGit(root, "commit", "-q", "-m", "aiwf init"); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+	// Configure allocate.trunk so the verb's TrunkShort resolves
+	// to "main".
+	cfgPath := filepath.Join(root, "aiwf.yaml")
+	cfgBytes, readErr := os.ReadFile(cfgPath)
+	if readErr != nil {
+		t.Fatalf("read aiwf.yaml: %v", readErr)
+	}
+	amended := append(cfgBytes, []byte("\nallocate:\n  trunk: refs/heads/main\n")...)
+	if writeErr := os.WriteFile(cfgPath, amended, 0o644); writeErr != nil {
+		t.Fatalf("rewrite aiwf.yaml: %v", writeErr)
+	}
+	// Create the epic entity + activate (so authorize has a target).
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
+		t.Fatalf("aiwf add epic: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
+		t.Fatalf("aiwf promote: %v\n%s", err, out)
+	}
+	// If the operator's current-rung branch isn't main, cut it and
+	// check it out.
+	if currentBranch != "main" {
+		if out, err := testutil.RunGit(root, "checkout", "-b", currentBranch); err != nil {
+			t.Fatalf("git checkout -b %s: %v\n%s", currentBranch, err, out)
+		}
+	}
+	return root
+}
