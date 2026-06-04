@@ -280,6 +280,75 @@ func TestAuthorize_Open_AITarget_NoBranch_NoRitualCurrent_Refuses(t *testing.T) 
 	}
 }
 
+// TestAuthorize_Open_AITarget_DetachedHEAD_NoBranch_Refuses
+// (M-0161/AC-7 / G-0207): opening a scope on ai/<agent> with
+// no --branch from detached HEAD refuses via
+// PreflightBranchContextRequiredError; the refined error text
+// names "detached HEAD has no ritual context" so operators see
+// the exact state. This unit test pins the
+// CurrentBranch == "" branch of the error renderer at
+// internal/verb/authorize.go:87-93 — without it, the refinement
+// is dead-letter code (M-0161/AC-7 reviewer B1).
+func TestAuthorize_Open_AITarget_DetachedHEAD_NoBranch_Refuses(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:          verb.AuthorizeOpen,
+		Agent:         "ai/claude",
+		CurrentBranch: "", // detached HEAD signal from the CLI
+	})
+	if err == nil {
+		t.Fatalf("expected refusal on detached HEAD; got plan=%+v", res.Plan)
+	}
+	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightBranchContextRequired.ID {
+		t.Errorf("entity.Code(err) = (%q, %v); want (%q, true)", code, ok, verb.CodePreflightBranchContextRequired.ID)
+	}
+	if !strings.Contains(err.Error(), "detached HEAD has no ritual context") {
+		t.Errorf("error %q does not name detached-HEAD state (M-0161/AC-7 refinement)", err.Error())
+	}
+	if !strings.Contains(err.Error(), "--force --reason") {
+		t.Errorf("error %q does not name the override path (--force --reason)", err.Error())
+	}
+}
+
+// TestAuthorize_Open_AITarget_DetachedHEAD_RitualBranch_RungPairError
+// (M-0161/AC-7 / G-0207): opening a scope on ai/<agent> with
+// --branch <ritual> from detached HEAD refuses via
+// PreflightRungPairError; the refined text names "detached HEAD
+// has no ritual context" rather than the generic
+// "(non-ritual, epic) is not a legal rung pair" message. Pins
+// the CurrentBranch == "" branch of PreflightRungPairError.Error()
+// at internal/verb/authorize.go:163-167.
+func TestAuthorize_Open_AITarget_DetachedHEAD_RitualBranch_RungPairError(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "begin", false, verb.PromoteOptions{}))
+
+	res, err := verb.Authorize(r.ctx, r.tree(), "E-0001", testActor, verb.AuthorizeOptions{
+		Mode:          verb.AuthorizeOpen,
+		Agent:         "ai/claude",
+		Branch:        "epic/E-0001-engine",
+		BranchExists:  false, // not yet created — future-branch carve-out
+		CurrentBranch: "",    // detached HEAD signal
+	})
+	if err == nil {
+		t.Fatalf("expected refusal on detached HEAD with ritual --branch; got plan=%+v", res.Plan)
+	}
+	if code, ok := entity.Code(err); !ok || code != verb.CodePreflightRungPair.ID {
+		t.Errorf("entity.Code(err) = (%q, %v); want (%q, true)", code, ok, verb.CodePreflightRungPair.ID)
+	}
+	if !strings.Contains(err.Error(), "detached HEAD has no ritual context") {
+		t.Errorf("error %q does not name detached-HEAD state (M-0161/AC-7 refinement)", err.Error())
+	}
+	if !strings.Contains(err.Error(), "--force --reason") {
+		t.Errorf("error %q does not name the override path", err.Error())
+	}
+}
+
 // TestAuthorize_Open_AITarget_BranchMissing_Refuses (M-0103/AC-2,
 // narrowed by M-0104/AC-4 then again by M-0105/AC-6): opening a
 // scope on ai/<agent> with --branch <name> where the named branch

@@ -66,6 +66,40 @@ func TestDetachedHEAD_AC7_PreflightRefusesWithRefinedMessage(t *testing.T) {
 	}
 }
 
+// TestDetachedHEAD_AC7_PreflightNoBranchRefuses pins AC-7
+// matrix row 2: detached HEAD + `aiwf authorize --to ai/...`
+// (NO --branch) hits PreflightBranchContextRequiredError's
+// refined text (the rung-pair check is gated on --branch; with
+// no --branch we drop into the legacy AI-target preflight at
+// internal/verb/authorize.go:391-395 which emits
+// PreflightBranchContextRequiredError when CurrentBranch is
+// non-ritual). The detached-HEAD refinement at
+// internal/verb/authorize.go:87-93 is the load-bearing branch
+// here — without this test it is dead-letter code (M-0161/
+// AC-7 reviewer B1).
+func TestDetachedHEAD_AC7_PreflightNoBranchRefuses(t *testing.T) {
+	t.Parallel()
+	env := newScenarioEnv(t)
+	env.MustRunBin("add", "epic", "--title", "Engine")
+	mainSHA := strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+	env.MustRunGit("checkout", mainSHA)
+
+	out, err := testutil.RunBin(t, env.Root, env.BinDir, nil,
+		"authorize", "E-0001",
+		"--to", "ai/claude",
+		// no --branch — hits the branch-context-required path
+	)
+	if err == nil {
+		t.Fatalf("expected aiwf authorize to fail on detached HEAD without --branch; got success\n%s", out)
+	}
+	if !strings.Contains(out, "detached HEAD has no ritual context") {
+		t.Errorf("expected stderr to contain %q; got:\n%s", "detached HEAD has no ritual context", out)
+	}
+	if !strings.Contains(out, "branch-context-required") {
+		t.Errorf("expected stderr to name the branch-context-required code (the AC-7-refined error path); got:\n%s", out)
+	}
+}
+
 // TestDetachedHEAD_AC7_PreflightForceReasonBypasses pins
 // the override path (AC-7 matrix row 3): detached HEAD +
 // `--force --reason "..."` succeeds and the commit carries
