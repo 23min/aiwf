@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Authorize preflight enforces ritual rung hierarchy
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-3
       title: BranchOracle typed errors with per-ref fault tolerance
       status: open
