@@ -420,6 +420,41 @@ func Rules() []spec.Rule {
 			BlockingStrict:    true,
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
+		// branch-cell-promote-on-wrong-branch — M-0161/AC-8
+		// (G-0209 partial-close): the new check-time finding
+		// fires when an activating-promote commit (epic→active,
+		// milestone→in_progress) lands on a branch other than
+		// the entity's expected parent branch per ADR-0010.
+		// Composes with AC-1 (trunk name), AC-3 (BranchOracle
+		// + fail-shut), and acknowledge-illegal / aiwf-force
+		// per-commit overrides.
+		//
+		// Honest closure scope: partially closes G-0209 — only
+		// the promote-side ordering. The authorize-side
+		// implicit-current path (operator on epic/E-NN
+		// authorizes E-NN scope WITHOUT --branch) rides
+		// M-0103/M-0105's existing carve-outs that are
+		// load-bearing for legitimate ritual flows; AC-8
+		// deliberately leaves that residual case as operator-
+		// discipline per the AC-8 body line 524-526.
+		//
+		// Tests:
+		// TestPromoteOnWrongBranch_AC8_Matrix
+		// (integration; 9 cells: 2 silent baselines, 4 firing
+		// cases, 1 non-activating silent, 2 sovereign overrides).
+		// Plus unit-level coverage at
+		// internal/check/promote_on_wrong_branch_test.go.
+		//
+		// AC-9 (G-0210) consolidates the matrix.
+		{
+			ID:                "branch-cell-promote-on-wrong-branch",
+			Preconditions:     []spec.Predicate{{Subject: "activating-promote-on-wrong-branch", Op: "==", Value: "true"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "promote-on-wrong-branch",
+			RejectionLayer:    spec.RejectionLayerCheckTime,
+			BlockingStrict:    false, // warning severity per AC-8 body / M-0125 ratchet
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID

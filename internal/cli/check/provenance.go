@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
 	"github.com/23min/aiwf/internal/skills"
@@ -80,6 +82,15 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		// ackedSHAs map.
 		orphans := check.WalkOrphanedAICommits(ctx, root)
 		findings = append(findings, check.RunOrphanedAICommits(orphans, ackedSHAs)...)
+		// M-0161/AC-8 (G-0209): promote-on-wrong-branch detection.
+		// Activating-promote commits (epic → active, milestone →
+		// in_progress) must land on the parent branch per ADR-0010.
+		// Build the expected-branch map from the loaded tree +
+		// the configured trunk short-name (AC-1 composition);
+		// missing parents stay out of the map → rule silent
+		// (fail-shut on correctness).
+		expectedBranches := expectedParentBranchesForPromote(t, cliutil.ConfiguredTrunkBranchShortName(root))
+		findings = append(findings, check.RunPromoteOnWrongBranch(commits, expectedBranches, oracle, ackedSHAs)...)
 		// M-0161/AC-3 + AC-4 + AC-5 / D-0019: surface oracle
 		// coverage gaps. Per-ref failures emit isolation-escape
 		// -oracle-failure (advisory; AC-3); the shallow-clone
@@ -368,4 +379,55 @@ func readProvenanceCommits(ctx context.Context, root string) ([]scope.Commit, er
 		})
 	}
 	return commits, nil
+}
+
+// expectedParentBranchesForPromote builds the AC-8 map of
+// entity id → expected parent branch name for the activating
+// promote rule (M-0161/AC-8 / G-0209).
+//
+//   - Epics: expected branch is trunk (trunkShort, from
+//     Config.TrunkBranchShortName() per AC-1).
+//   - Milestones: expected branch is the parent epic's
+//     ritual branch (epic/<parent-dir>); derived from the
+//     entity's on-disk path which already carries the
+//     E-NNNN-<slug> shape.
+//   - Other kinds: not in the map → rule treats as "no
+//     expectation, silent" (fail-shut per D-0019).
+//
+// Missing trunk name (empty trunkShort) means the trunk
+// expectation is unresolvable; epic entries stay out of the
+// map → epic-side promote-on-wrong-branch detection is
+// silent. Same fail-shut posture as AC-1's empty-trunk
+// path.
+func expectedParentBranchesForPromote(t *tree.Tree, trunkShort string) map[string]string {
+	if t == nil {
+		return nil
+	}
+	expected := map[string]string{}
+	if trunkShort != "" {
+		for _, e := range t.ByKind(entity.KindEpic) {
+			expected[e.ID] = trunkShort
+		}
+	}
+	for _, m := range t.ByKind(entity.KindMilestone) {
+		if m.Parent == "" {
+			continue
+		}
+		parent := t.ByID(m.Parent)
+		if parent == nil || parent.Kind != entity.KindEpic {
+			continue // parent lookup failed → silent (fail-shut)
+		}
+		// Branch name follows the parent epic's on-disk dirname
+		// (work/epics/E-NNNN-<slug>/epic.md → dirname
+		// "E-NNNN-<slug>" → branch "epic/E-NNNN-<slug>"). Derive
+		// from the parent's Path to honor whatever slug the
+		// operator chose at creation time without recomputing
+		// from title.
+		parentDir := filepath.Base(filepath.Dir(parent.Path))
+		if parentDir == "" || parentDir == "." {
+			continue
+		}
+		expected[m.ID] = "epic/" + parentDir
+	}
+	return expected
 }
