@@ -1,7 +1,7 @@
 ---
 id: M-0161
 title: 'Imagination-driven hardening: shallow, force-push, rename, detached, trunk'
-status: in_progress
+status: done
 parent: E-0030
 tdd: required
 acs:
