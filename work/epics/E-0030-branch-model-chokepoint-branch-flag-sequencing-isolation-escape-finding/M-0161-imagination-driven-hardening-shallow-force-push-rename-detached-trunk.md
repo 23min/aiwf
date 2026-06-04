@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Reflog-walk detects orphaned AI commits from force-push
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: BranchOracle resolves renamed branches via SHA fallback
       status: open
