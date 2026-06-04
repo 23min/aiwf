@@ -421,6 +421,13 @@ func TestAuthorize_Open_AITarget_MainPlusRitualFutureBranch_Accepts(t *testing.T
 		// exist yet. The carve-out must accept anyway.
 		BranchExists:  false,
 		CurrentBranch: "main",
+		// M-0161/AC-1 (G-0200): the carve-out compares CurrentBranch
+		// against the configured trunk short-name via opts.TrunkShort,
+		// not the literal "main". Verb-level test populates TrunkShort
+		// directly with "main" (the kernel default this test stages).
+		// The CLI layer derives this value via
+		// cliutil.ConfiguredTrunkBranchShortName under live usage.
+		TrunkShort: "main",
 	})
 	if err != nil {
 		t.Fatalf("Authorize refused main+ritual-future-branch: %v", err)

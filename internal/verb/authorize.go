@@ -165,8 +165,20 @@ type AuthorizeOptions struct {
 	// is ai/* and --force is not set; in every other code path the
 	// field is ignored.
 	BranchExists bool
-	Force        bool
-	Scopes       []*scope.Scope
+	// TrunkShort (M-0161/AC-1, G-0200) is the consumer's configured
+	// trunk short-name as derived from `aiwf.yaml.allocate.trunk` via
+	// `Config.TrunkBranchShortName()`. Used by the AI-target
+	// preflight's "trunk + ritual --branch" carve-out so the predicate
+	// honors the operator's configured trunk rather than the literal
+	// `"main"`. Populated by the CLI layer via
+	// `cliutil.ConfiguredTrunkBranchShortName`; empty (e.g., from a
+	// verb-level test that doesn't set it) is treated as "no
+	// resolvable trunk; do not match" — the carve-out's left arm
+	// fails and preflight falls through to the implicit-ritual-
+	// current path.
+	TrunkShort string
+	Force      bool
+	Scopes     []*scope.Scope
 }
 
 // Authorize runs the `aiwf authorize` verb. Refusal rules per
@@ -299,12 +311,21 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 				//     branch; the milestone branch is cut at step 5).
 				//
 				// The carve-out is intentionally tight:
-				//   - main-or-ritual-current only (a plain feature
+				//   - trunk-or-ritual-current only (a plain feature
 				//     branch is not a "place from which to cut a
 				//     ritual"; the implicit-ritual-current path or
-				//     --force --reason cover legitimate exceptions;
-				//     trunk-name configurability beyond "main" is
-				//     deferred per G-0200).
+				//     --force --reason cover legitimate exceptions).
+				//     M-0161/AC-1 (G-0200) generalized "main" to
+				//     opts.TrunkShort (sourced from
+				//     aiwf.yaml.allocate.trunk via
+				//     Config.TrunkBranchShortName()), so
+				//     `master`/`dev`/operator-chosen trunks all
+				//     work uniformly. Empty TrunkShort (e.g., a
+				//     verb-level test that doesn't populate it, or
+				//     a malformed config that produces no
+				//     parseable short-name) is treated as "no
+				//     trunk match"; the carve-out's left arm fails
+				//     and preflight falls through.
 				//   - ritual-shape --branch only (otherwise the gate
 				//     becomes a no-op — any string under --branch
 				//     would authorize from any qualifying current).
@@ -322,7 +343,7 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 				// operator's stated intent. Parked as G-0201
 				// pending evidence the looseness becomes an incident
 				// class.
-				currentIsRitualContext := opts.CurrentBranch == "main" ||
+				currentIsRitualContext := (opts.TrunkShort != "" && opts.CurrentBranch == opts.TrunkShort) ||
 					branchparse.ParseEntityFromBranch(opts.CurrentBranch) != ""
 				futureBindingAccepted := currentIsRitualContext &&
 					branchparse.ParseEntityFromBranch(branchExplicit) != ""

@@ -871,3 +871,20 @@ func hasTrailer(t *testing.T, trailers []gitops.Trailer, key, value string) {
 	}
 	t.Errorf("trailer %s=%q not found in %+v", key, value, trailers)
 }
+
+// noTrailer asserts that NO trailer with the given key appears in the
+// trailer set. Used to pin negative claims (e.g., M-0161/AC-1: the
+// carve-out path must NOT silently fall through to an aiwf-force:
+// override; the test discriminates "succeeds via carve-out" from
+// "succeeds via silent force-override"). Mirrors hasTrailer's
+// t.Helper + structural assertion shape — no substring matching.
+func noTrailer(t *testing.T, trailers []gitops.Trailer, key string) {
+	t.Helper()
+	for _, tr := range trailers {
+		if tr.Key == key {
+			t.Errorf("expected NO trailer with key %q; found %s=%q in %+v",
+				key, tr.Key, tr.Value, trailers)
+			return
+		}
+	}
+}

@@ -55,6 +55,96 @@ func TestAllocateTrunkRef_ExplicitlyConfigured(t *testing.T) {
 	}
 }
 
+// TestTrunkBranchShortName pins the M-0161/AC-1 (G-0200) auxiliary
+// helper: derive the local-branch short name from the configured trunk
+// ref. Drives the verb-layer carve-out at internal/verb/authorize.go's
+// "main + ritual --branch" predicate so it honors aiwf.yaml.allocate.trunk
+// rather than the hardcoded literal "main".
+//
+// The helper is intentionally a pure derivation on Config (no git
+// access): it parses the trunk ref's last path segment. Two canonical
+// shapes are supported:
+//
+//   - refs/remotes/<remote>/<name>  →  <name>  (tracking-ref form)
+//   - refs/heads/<name>             →  <name>  (local-only form)
+//
+// Degenerate / unparseable inputs (empty, non-ref-shaped) return ""
+// — the carve-out's caller treats "" as "fall through to ritual-current
+// path", so no false positive on malformed config.
+//
+// Per AC-1 §"Auxiliary unit test": this table is diagnostic, not the
+// load-bearing evidence. The E2E suite under
+// internal/cli/integration/authorize_scenarios_test.go pins behavioral
+// correctness end-to-end against the worktree-built binary.
+func TestTrunkBranchShortName(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		cfg  *Config
+		want string
+	}{
+		{
+			name: "default-main",
+			cfg:  &Config{Allocate: Allocate{Trunk: "refs/remotes/origin/main"}},
+			want: "main",
+		},
+		{
+			name: "github-classic-master",
+			cfg:  &Config{Allocate: Allocate{Trunk: "refs/remotes/origin/master"}},
+			want: "master",
+		},
+		{
+			name: "operator-chosen-dev",
+			cfg:  &Config{Allocate: Allocate{Trunk: "refs/remotes/origin/dev"}},
+			want: "dev",
+		},
+		{
+			name: "bare-heads-trunk",
+			cfg:  &Config{Allocate: Allocate{Trunk: "refs/heads/trunk"}},
+			want: "trunk",
+		},
+		{
+			name: "alternate-remote-upstream",
+			cfg:  &Config{Allocate: Allocate{Trunk: "refs/remotes/upstream/main"}},
+			want: "main",
+		},
+		{
+			name: "unset-falls-through-to-default",
+			cfg:  &Config{},
+			want: "main", // default refs/remotes/origin/main → main
+		},
+		{
+			name: "nil-receiver",
+			cfg:  nil,
+			want: "main", // default refs/remotes/origin/main → main
+		},
+		{
+			name: "explicit-empty",
+			cfg:  &Config{Allocate: Allocate{Trunk: ""}},
+			want: "main", // default refs/remotes/origin/main → main
+		},
+		{
+			name: "malformed-no-slash",
+			cfg:  &Config{Allocate: Allocate{Trunk: "garbage"}},
+			want: "", // unparseable → "" (caller falls through to ritual-current)
+		},
+		{
+			name: "malformed-trailing-slash",
+			cfg:  &Config{Allocate: Allocate{Trunk: "refs/heads/"}},
+			want: "", // empty segment after last slash → ""
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := tc.cfg.TrunkBranchShortName()
+			if got != tc.want {
+				t.Errorf("TrunkBranchShortName() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestLoad_TreeBlockRoundTrip(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

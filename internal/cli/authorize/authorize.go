@@ -235,6 +235,12 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 		// when the gate fires.
 		opts.CurrentBranch = currentBranch(rootDir)
 		opts.BranchExists = branchExists(rootDir, branch)
+		// M-0161/AC-1 (G-0200): plumb the configured trunk
+		// short-name into the verb so the carve-out's "trunk +
+		// ritual --branch" predicate honors the configured trunk
+		// rather than the literal "main". cliutil reads aiwf.yaml
+		// and derives via Config.TrunkBranchShortName().
+		opts.TrunkShort = cliutil.ConfiguredTrunkBranchShortName(rootDir)
 	case pause != "":
 		opts.Mode = verb.AuthorizePause
 		opts.Reason = pause

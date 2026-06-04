@@ -109,16 +109,18 @@ These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 
 1. **Combinatorial real-git E2E.** A scenario fan-out under [`internal/cli/integration/authorize_scenarios_test.go`](../../../internal/cli/integration/authorize_scenarios_test.go) via the M-0159 framework exercises 4 trunk-name shapes:
 
-   | Trunk shape | `allocate.trunk` value | Local trunk branch |
+   | Trunk shape | `allocate.trunk` (E2E) ¹ | Local trunk branch |
    |---|---|---|
-   | Default | `refs/remotes/origin/main` | `main` |
-   | GitHub-classic | `refs/remotes/origin/master` | `master` |
-   | Operator-chosen | `refs/remotes/origin/dev` | `dev` |
-   | Bare-heads | `refs/heads/trunk` | `trunk` |
+   | Default | `refs/heads/main` | `main` |
+   | GitHub-classic | `refs/heads/master` | `master` |
+   | Operator-chosen | `refs/heads/dev` | `dev` |
+   | Operator-chosen | `refs/heads/trunk` | `trunk` |
 
-   Each scenario: bootstrap temp repo with the named `aiwf.yaml` + local branch; run `aiwf authorize <epic-id> --to ai/alice --branch epic/E-NNNN-foo` from that trunk checkout against the worktree-built binary; assert exit 0 + `aiwf-branch: epic/E-NNNN-foo` trailer.
+   ¹**E2E fixture shape**: the E2E uses `refs/heads/<X>` for all 4 cells so the fixture is self-contained (no upstream remote setup needed — `git init -b <X>` births the local ref). The orthogonal `refs/remotes/<remote>/<name>` tracking-ref shape is **exhaustively covered by the auxiliary unit table** at [`internal/config/config_test.go::TestTrunkBranchShortName`](../../../internal/config/config_test.go) (10 rows including alternate-remote-upstream). The seam this E2E pins — verb-layer call site reading `cfg.TrunkBranchShortName()` against `opts.CurrentBranch` — is shape-agnostic; both ref shapes reduce to the same short-name via the helper.
 
-2. **Sabotage-verifiable.** Reverting the call-site change at `internal/verb/authorize.go:300` (restoring the literal `"main"`) makes all 4 scenarios fire for trunks named other than `main` — proving the integration test discriminates the new code path.
+   Each scenario: bootstrap temp repo with the named `aiwf.yaml` + local branch; run `aiwf authorize <epic-id> --to ai/alice --branch epic/E-NNNN-foo` from that trunk checkout against the worktree-built binary (no `--force`, no `--reason`); assert exit 0 + `aiwf-branch: epic/E-NNNN-foo` trailer + **NO `aiwf-force:` trailer** (the carve-out is the load-bearing accept, not a silent force-override).
+
+2. **Sabotage-verifiable.** Reverting the call-site change at `internal/verb/authorize.go` (restoring the literal `"main"` at the `currentIsRitualContext := opts.CurrentBranch == "main"` site) makes the 3 non-main scenarios fire `branch-not-found` (with the error text naming M-0104/AC-4 — same shape as the RED phase) — proving the integration test discriminates the new code path. The `main` cell continues to pass under sabotage (the literal matches).
 
 3. **Auxiliary unit test.** `Config.TrunkBranchShortName()` table-driven test covers the canonical shapes (`refs/remotes/<remote>/<name>` → `<name>`; `refs/heads/<name>` → `<name>`) plus degenerate / unparseable cases (empty in, empty out — no panic). Diagnostic, not load-bearing — the E2E is the test set that pins behavioral correctness end-to-end.
 
@@ -127,14 +129,15 @@ These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 **Edge cases:**
 
 - Bare-name trunk refs (`refs/heads/master`, not `refs/remotes/origin/master`) parse correctly via the same helper — single source of truth, no fork for "local trunk" vs "tracking trunk" semantics.
-- Empty / unparseable `allocate.trunk` → `TrunkBranchShortName()` returns `""` → the carve-out predicate's left arm fails → preflight falls through to the existing implicit-ritual-current path. No regression on malformed config.
+- **Empty `allocate.trunk`** → `AllocateTrunkRef()` falls through to `DefaultAllocateTrunk` (`refs/remotes/origin/main`) → `TrunkBranchShortName()` returns `"main"` (the default). This preserves backwards compatibility for repos that never configured the value.
+- **Malformed `allocate.trunk`** (no parseable last segment — e.g., `"garbage"` or `"refs/heads/"`) → helper returns `""` → carve-out's left arm fails → preflight falls through to the existing implicit-ritual-current path. No regression on malformed config; no panic.
 - Operator on a non-trunk branch (regardless of trunk name) → preflight uses the ritual-current path; this AC does not touch that arm.
 - The trunk-name short helper is a pure derivation; it does not query git. The config is the single source of truth, consistent with the rest of `internal/config/`.
 
 **References.**
 
 - [G-0200](../../gaps/G-0200-preflight-main-only-carve-out-generalize-to-trunk-name-from-aiwf-yaml.md) — the gap; closes here
-- [`internal/verb/authorize.go:300`](../../../internal/verb/authorize.go) — the hardcoded `"main"` call site
+- [`internal/verb/authorize.go`](../../../internal/verb/authorize.go) — the `currentIsRitualContext := opts.CurrentBranch == "main"` call site (line numbers drift; symbol is the durable anchor)
 - [`internal/config/config.go`](../../../internal/config/config.go) — where `AllocateTrunkRef()` already lives and where the new short-name helper lands
 - [`internal/branchparse/`](../../../internal/branchparse/) — the package the call site already consumes for ritual-branch shapes
 - [M-0104](M-0104-aiwfx-start-epic-sequencing-fix-closes-g-0116.md) — the milestone whose Cycle 1 reviewer flagged this layering smell
