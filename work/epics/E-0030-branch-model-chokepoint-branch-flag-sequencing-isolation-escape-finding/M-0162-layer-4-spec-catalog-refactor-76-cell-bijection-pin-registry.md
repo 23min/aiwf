@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: 'M-0158 cell drop: remove 9 documentation-only catalog entries'
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-2
       title: branchcell.Pin registry under //go:build testpins + branchtest sub-package
       status: open
