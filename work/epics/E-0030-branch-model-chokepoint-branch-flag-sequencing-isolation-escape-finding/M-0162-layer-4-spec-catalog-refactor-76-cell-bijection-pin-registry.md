@@ -10,7 +10,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-2
-      title: 'M-0161 cell expansion: organic count via bijection invariants'
+      title: branchcell.Pin registry under //go:build testpins + branchtest sub-package
       status: open
       tdd_phase: red
     - id: AC-3
@@ -112,7 +112,7 @@ The contract-first authoring discipline applies: AC bodies get filled before thi
 - `internal/workflows/spec/branch/rules.go` — the catalog the AC touches
 - `internal/policies/m0158_ac5_meta_coverage_test.go` — keyword-set meta-coverage that stays in place through AC-3, removed in AC-4
 
-### AC-2 — M-0161 cell expansion: organic count via bijection invariants
+### AC-2 — branchcell.Pin registry under //go:build testpins + branchtest sub-package
 
 **Observable behavior.** The branch-choreography catalog at `internal/workflows/spec/branch/rules.go` is expanded with one cell per discriminating E2E subtest across the M-0161/AC-1..AC-8 surfaces. The exact cell count is determined organically by the test surface — the deliverable is bijection-invariant correctness (every E2E subtest pins exactly one cell; every cell carries exactly one Pin), not arithmetic matching to the M-0161/AC-9 body's "66 new cells" forecast.
 
