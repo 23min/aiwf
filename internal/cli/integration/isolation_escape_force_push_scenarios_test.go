@@ -114,25 +114,28 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 		// ----- Cell 5: Force-push orphans AI commit + ack ----- DEFERRED
 		// AC-5 body line 349 assumed `aiwf acknowledge-illegal`
 		// works on the orphan "per its existing mechanism", but
-		// the verb at internal/verb/acknowledge_illegal.go
+		// the verb at internal/verb/acknowledgeillegal.go
 		// hard-requires the target SHA to be reachable from HEAD
 		// (`git merge-base --is-ancestor <sha> HEAD`). A
 		// force-push orphan is, by construction, unreachable —
 		// that's the point of force-push. The verb refuses with
 		// exit 2.
 		//
-		// Resolution paths (defer to follow-up):
-		//   (a) Extend acknowledge-illegal with
-		//       `--allow-unreachable` for the orphan case.
-		//   (b) Introduce a separate verb (`aiwf acknowledge-
-		//       orphan <sha>`) preserving the per-SHA scoping
-		//       but lifting reachability.
-		//   (c) Rewrite the AC-5 body's composition claim and
-		//       document orphan-ack as out-of-scope.
+		// Deferred per D-0020 (M-0161/AC-5 cell-5 orphan
+		// acknowledgment deferred to verb extension) at
+		// work/decisions/D-0020-*.md. Verb-side gap G-0226
+		// (aiwf acknowledge-illegal hard-requires SHA reachable
+		// from HEAD) at work/gaps/G-0226-*.md tracks the three
+		// resolution paths a future verb-design cycle will pick:
+		//   (a) `--allow-unreachable` flag on existing verb,
+		//   (b) new `aiwf acknowledge-orphan <sha>` verb, or
+		//   (c) rewrite the AC-5 composition claim.
 		//
-		// Documented via D-NNN at AC-5 wrap; tracked as
-		// gap-NNN for the verb-side extension. Until then the
-		// composition cell stays absent from the E2E matrix.
+		// The rule-side per-SHA ack exemption IS unit-tested at
+		// internal/check/reflog_walk_test.go::
+		// TestRunOrphanedAICommits_AC5_AcknowledgedSHAExempted
+		// so when the verb extension lands, the exemption is
+		// already proven load-bearing.
 
 		// ----- Cell 7: Reflog disabled, force-push happens -----
 		// Composes with AC-3: no reflog → no orphan walk; AC-3
