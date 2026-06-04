@@ -261,7 +261,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
 
 3. **Sabotage-verifiable.** Reverting the typed-error split (collapsing `OracleErrors()` back to "empty means anything") makes the "one-ref-deleted, no escape" scenario fire a missing advisory; the "one-ref-deleted, escape elsewhere" scenario silently misses the advisory while still firing `isolation-escape` (proves the new code is the load-bearing path).
 
-4. **D-NNN decision record.** A D-NNN entity recording the fail-shut-on-correctness / fail-open-on-coverage choice lands via `aiwfx-record-decision` during the AC-3 cycle. The D-NNN id is mirrored into the milestone's `## Decisions made during implementation` section per ritual.
+4. **D-0019 decision record.** [D-0019](../../decisions/D-0019-oracle-partial-coverage-fail-shut-correctness-fail-open-coverage.md) records the fail-shut-on-correctness / fail-open-on-coverage choice; allocated at AC-3 cycle start before any RED test landed. The D-0019 id is mirrored into the milestone's `## Decisions made during implementation` section per ritual.
 
 5. **Branch-spec cell registration.** Each of the 7 E2E scenarios above registers as a cell (1 silent-good baseline + 1 escape baseline + 5 oracle-state cells). AC-9 (G-0210) consolidates.
 
@@ -281,7 +281,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
 - [`internal/cli/check/provenance.go`](../../../internal/cli/check/provenance.go) — `RunProvenanceCheck` (where oracle-failure handling wires in)
 - [M-0106](M-0106-kernel-finding-isolation-escape-closes-g-0099.md) — the milestone that landed the original oracle
 - AC-4..AC-7 — the four real-git scenarios depending on this typed-error contract
-- D-NNN — fail-shut/fail-open decision record (allocated at AC-3 cycle start via `aiwfx-record-decision` before any RED test lands; id back-patched into this body and into AC-3's `## Decisions made during implementation` entry)
+- [D-0019](../../decisions/D-0019-oracle-partial-coverage-fail-shut-correctness-fail-open-coverage.md) — fail-shut/fail-open decision record (allocated at AC-3 cycle start before any RED test landed)
 
 ### AC-4 — BranchOracle detects shallow clones; isolation-escape-shallow-clone fires
 
@@ -686,4 +686,9 @@ The existing M-0158 drift policy is extended to read from the `branchcell.Pin` r
 - [`internal/workflows/spec/branch/`](../../../internal/workflows/spec/branch/) — package layout
 - [`internal/policies/m0158_ac5_meta_coverage_test.go`](../../../internal/policies/m0158_ac5_meta_coverage_test.go) — keyword-set meta-test (REMOVED by AC-9)
 - AC-1..AC-8 — sources of the 66 new cells
+
+## Decisions made during implementation
+
+- [D-0018](../../decisions/D-0018-branch-not-found-subsumed-by-rung-pair-illegal-catalog-cleanup-defers-to-ac-9.md) — branch-not-found subsumed by rung-pair-illegal; catalog cleanup defers to AC-9 (AC-2 reviewer pass S-3)
+- [D-0019](../../decisions/D-0019-oracle-partial-coverage-fail-shut-correctness-fail-open-coverage.md) — oracle partial-coverage: fail-shut on rule correctness, fail-open on rule coverage (AC-3 cycle start, pre-RED)
 
