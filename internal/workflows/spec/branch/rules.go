@@ -311,6 +311,39 @@ func Rules() []spec.Rule {
 			BlockingStrict:    false, // warning severity per AC-4 body / M-0125 ratchet
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
+		// branch-cell-isolation-escape-orphaned-ai-commit —
+		// M-0161/AC-5 (G-0205): WalkOrphanedAICommits walks
+		// each ritual ref's reflog for non-fast-forward updates
+		// (oldSHA NOT ancestor of newSHA) and surfaces AI-actor
+		// commits orphaned by the update as
+		// isolation-escape-orphaned-ai-commit warnings, hint
+		// naming `aiwf acknowledge-illegal` for deliberate
+		// sovereign cleanup. Composes with AC-3 acknowledge-
+		// illegal via the shared per-SHA ackedSHAs map.
+		//
+		// Reflog-disabled (core.logAllRefUpdates=false) is the
+		// missing-coverage mode: it surfaces via AC-3's
+		// isolation-escape-oracle-failure advisory with
+		// Capability "reflog-disabled" (no separate code per
+		// AC-5 body line 350).
+		//
+		// Tests:
+		// TestForcePushOrphan_AC5_Matrix (integration; 6 cells
+		// + reflog-disabled-AC-3-composition; cell 5 ack
+		// composition deferred — see test file comment).
+		//
+		// AC-9 (G-0210) consolidates the matrix into a fuller
+		// cell set; this single cell satisfies the M-0158/AC-6
+		// drift invariant in the interim.
+		{
+			ID:                "branch-cell-isolation-escape-orphaned-ai-commit",
+			Preconditions:     []spec.Predicate{{Subject: "force-push-orphans-ai-commit", Op: "==", Value: "true"}},
+			Outcome:           spec.OutcomeIllegal,
+			ExpectedErrorCode: "isolation-escape-orphaned-ai-commit",
+			RejectionLayer:    spec.RejectionLayerCheckTime,
+			BlockingStrict:    false, // warning severity per AC-5 body / M-0125 ratchet
+			Sources:           spec.RuleSource{Decision: "ADR-0010"},
+		},
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID

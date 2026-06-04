@@ -104,6 +104,21 @@ func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, err
 		}, nil
 	}
 
+	// M-0161/AC-5 — reflog-availability detection. When
+	// core.logAllRefUpdates is false, ref updates are not
+	// recorded and WalkOrphanedAICommits cannot find anything.
+	// Surface this via AC-3's typed-error contract with
+	// Capability "reflog-disabled" so RunProvenanceCheck emits
+	// the isolation-escape-oracle-failure advisory naming the
+	// remediation.
+	var reflogDisabledErr []check.OracleErr
+	if disabled, rErr := isReflogDisabled(ctx, root); rErr == nil && disabled {
+		reflogDisabledErr = append(reflogDisabledErr, check.OracleErr{
+			Capability: "reflog-disabled",
+			Err:        errors.New("core.logAllRefUpdates=false; the reflog is not recorded so force-push orphan detection cannot run; set core.logAllRefUpdates=true (or remove the setting) to restore isolation-escape-orphaned-ai-commit coverage"),
+		})
+	}
+
 	branches, err := listRitualBranches(ctx, root)
 	if err != nil {
 		return nil, err
@@ -124,7 +139,32 @@ func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, err
 			idx[sha] = append(idx[sha], b)
 		}
 	}
-	return &gitBranchOracle{branchesBySHA: idx, errs: perRefErrs}, nil
+	// Concatenate reflog-disabled (whole-repo) and per-ref
+	// errors so the consumer sees both classes through the
+	// single OracleErrors() slice (D-0019 fail-shut /
+	// fail-open contract).
+	reflogDisabledErr = append(reflogDisabledErr, perRefErrs...)
+	return &gitBranchOracle{branchesBySHA: idx, errs: reflogDisabledErr}, nil
+}
+
+// isReflogDisabled returns whether `core.logAllRefUpdates` is
+// configured to false. The git default is true for non-bare
+// repos. When the config is absent the value reads as empty;
+// we treat anything other than "false" as enabled.
+func isReflogDisabled(ctx context.Context, root string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "git", "config", "--get", "core.logAllRefUpdates")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		// Exit 1 means the key is not set; default (true) applies.
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return false, nil
+		}
+		return false, err
+	}
+	val := strings.TrimSpace(strings.ToLower(string(out)))
+	return val == "false", nil
 }
 
 // isShallowRepository runs `git rev-parse --is-shallow-repository`

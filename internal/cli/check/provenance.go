@@ -72,14 +72,23 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
 		cherryPicked := check.WalkCherryPicks(ctx, root)
 		findings = append(findings, check.RunIsolationEscape(commits, oracle, cherryPicked, ackedSHAs)...)
-		// M-0161/AC-3 + AC-4 / D-0019: surface oracle coverage
-		// gaps. Per-ref failures emit isolation-escape-oracle-
-		// failure (advisory; AC-3); the shallow-clone capability
-		// emits the separate isolation-escape-shallow-clone
-		// warning (AC-4) with remediation hint naming
-		// `git fetch --unshallow`. Both ride fail-shut on
-		// correctness — the isolation-escape rule does not fire
-		// on commits whose branch resolution lost coverage.
+		// M-0161/AC-5: force-push orphan detection. Walk each
+		// ritual ref's reflog for non-fast-forward updates;
+		// surface orphaned AI-actor commits as
+		// isolation-escape-orphaned-ai-commit warnings. Composes
+		// with M-0159/AC-3 acknowledge-illegal via the shared
+		// ackedSHAs map.
+		orphans := check.WalkOrphanedAICommits(ctx, root)
+		findings = append(findings, check.RunOrphanedAICommits(orphans, ackedSHAs)...)
+		// M-0161/AC-3 + AC-4 + AC-5 / D-0019: surface oracle
+		// coverage gaps. Per-ref failures emit isolation-escape
+		// -oracle-failure (advisory; AC-3); the shallow-clone
+		// capability emits the separate isolation-escape-
+		// shallow-clone warning (AC-4); the reflog-disabled
+		// capability rides AC-3's advisory per AC-5 body
+		// line 350. All ride fail-shut on correctness — the
+		// isolation-escape rule does not fire on commits whose
+		// branch resolution lost coverage.
 		for _, oe := range oracle.OracleErrors() {
 			switch oe.Capability {
 			case "shallow-clone":
@@ -88,6 +97,16 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 					Severity: check.SeverityWarning,
 					Message:  "isolation-escape coverage is incomplete: this repository is a shallow clone (rev-list returns commits only within the shallow boundary).",
 					Hint:     "unshallow with `git fetch --unshallow`, or in CI use `actions/checkout@vN` with `fetch-depth: 0`; after unshallowing, re-run `aiwf check`.",
+				})
+			case "reflog-disabled":
+				findings = append(findings, check.Finding{
+					Code:     check.CodeIsolationEscapeOracleFailure.ID,
+					Severity: check.SeverityWarning,
+					Message:  "branch oracle could not run force-push orphan detection: core.logAllRefUpdates=false (reflog disabled); isolation-escape-orphaned-ai-commit coverage is incomplete",
+					Hint: fmt.Sprintf(
+						"%v",
+						oe.Err,
+					),
 				})
 			default:
 				findings = append(findings, check.Finding{

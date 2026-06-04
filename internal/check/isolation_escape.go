@@ -74,6 +74,27 @@ var CodeIsolationEscapeOracleFailure = codespkg.Code{ID: "isolation-escape-oracl
 // gap mechanically visible.
 var CodeIsolationEscapeShallowClone = codespkg.Code{ID: "isolation-escape-shallow-clone", Class: codespkg.ClassBranchChoreography}
 
+// CodeIsolationEscapeOrphanedAICommit is the warning finding
+// code surfacing AI-actor commits orphaned by non-fast-forward
+// updates ("force-push") on ritual branches (M-0161/AC-5 /
+// G-0205). One finding fires per orphaned AI commit detected
+// via reflog walk; the kernel cannot determine from the orphan
+// alone whether it was on the correct branch at force-time
+// (the rewrite removed the audit trail), so the rule surfaces
+// the orphan for operator review with hint text pointing at
+// `aiwf acknowledge-illegal` for deliberate sovereign cleanup.
+//
+// Severity is warning per the M-0125 ratchet pattern; future
+// D-NNN may tighten to error after one full epic of usage.
+//
+// Composes with AC-3: when core.logAllRefUpdates=false the
+// reflog is absent and detection cannot run — that case rides
+// AC-3's isolation-escape-oracle-failure advisory with
+// Capability "reflog-disabled" rather than introducing a
+// separate finding code, per the D-0019 fail-shut-on-correctness
+// /fail-open-on-coverage contract.
+var CodeIsolationEscapeOrphanedAICommit = codespkg.Code{ID: "isolation-escape-orphaned-ai-commit", Class: codespkg.ClassBranchChoreography}
+
 // OracleErr is a per-ref or repo-wide oracle-construction failure
 // surfaced by [BranchOracle.OracleErrors]. The Capability tag
 // names what coverage was lost; the underlying Err is preserved
