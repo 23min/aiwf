@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: BranchOracle resolves renamed branches via SHA fallback
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-7
       title: Detached HEAD behavior pinned across preflight, oracle, check, doctor
