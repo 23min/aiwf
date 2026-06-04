@@ -24,24 +24,24 @@ acs:
 ---
 ## Goal
 
-Land the layer-4 branch-choreography spec-catalog refactor that M-0161/AC-9 was scoped to deliver before [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md) deferred it. The refactor brings the catalog under `internal/workflows/spec/branch/` from its current ~17-cell shape (M-0158 retained + 1 cell per M-0161/AC-1..AC-8) to a 76-cell mechanical-weight-only catalog, replaces the M-0158/AC-5 keyword-set meta-coverage with a strictly stronger 1:1 bijection between cells and tests, and introduces a test-only `branchcell.Pin` registry under build-tag isolation as the chokepoint.
+Land the layer-4 branch-choreography spec-catalog refactor that M-0161/AC-9 was scoped to deliver before [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md) deferred it. The refactor brings the catalog under `internal/workflows/spec/branch/` from its current ~17-cell shape (M-0158 retained + 1 cell per M-0161/AC-1..AC-8) to a mechanical-weight-only catalog with strictly stronger 1:1 bijection meta-coverage between cells and tests, replacing the M-0158/AC-5 keyword-set approach, and introduces a test-only `branchcell.Pin` registry under build-tag isolation as the chokepoint.
 
 E-0030 cannot honestly close until this milestone lands — the catalog discipline is part of the epic's branch-model-chokepoint deliverable scope per the epic body's §"What's settled".
 
 ## Context
 
-[M-0161/AC-9](M-0161-imagination-driven-hardening-shallow-force-push-rename-detached-trunk.md) scoped four parts of the catalog refactor:
+[M-0161/AC-9](M-0161-imagination-driven-hardening-shallow-force-push-rename-detached-trunk.md) scoped four parts of the catalog refactor. The original AC-9 sequencing (drop → expand → Pin → bijection) was revised at M-0162 reviewer pass to **infrastructure-first** sequencing (drop → Pin → cells-and-Pins-together → bijection) to fix the keyword-set policy gap during the cell-expansion window. The four parts now map to:
 
-1. **M-0158 cell drop** — remove 9 documentation-only / duplicate cells (branch-cells 3, 5, 6, 8, 9, 10, 11, override-cherry-pick, override-force-amend).
-2. **M-0161 cell expansion** — add 66 cells representing the full matrix shape of each of M-0161's 8 ACs (4 + 17 + 7 + 7 + 7 + 9 + 7 + 9 = 66), where M-0161 itself registered only 1 cell per AC as the M-0158/AC-6 drift-policy minimum.
-3. **Pin registry** — introduce `internal/workflows/spec/branch/pin.go` (or `pin_test_helpers.go`) under `//go:build testpins` (or `_test.go` suffix per the AC-9 body line 610's alternative shape Q&A) where every E2E scenario calls `Pin(cellID, testFunctionName)` at setup. The registry is test-only by Go convention — never compiled into production binaries.
-4. **Bijection meta-test** — replace `internal/policies/m0158_ac5_meta_coverage_test.go` (keyword-set ≥1 match) with `internal/policies/branch_cell_bijection_test.go` enforcing four invariants: every cell has ≥1 Pin, every Pin references an existing cell, no cell has 2+ Pins, no test pins 2+ cells.
+1. **AC-1: M-0158 cell drop** — remove 9 documentation-only / duplicate cells (branch-cells 3, 5, 6, 8, 9, 10, 11, override-cherry-pick, override-force-amend) plus their keyword-set entries.
+2. **AC-2: branchcell.Pin registry** under `//go:build testpins` + dedicated `branchtest` sub-package (the Q&A-locked shape). Registry exists; no cells yet require Pin calls beyond the existing M-0158 + M-0161 chokepoint set.
+3. **AC-3: cell expansion + Pin call additions in lockstep.** Each new cell ships with its Pin call from the corresponding E2E subtest in the same commit. The existing M-0159 + M-0158 + M-0161 cells already-in-catalog also gain Pin calls.
+4. **AC-4: Bijection meta-test** replaces `internal/policies/m0158_ac5_meta_coverage_test.go` (keyword-set ≥1 match) with `internal/policies/branch_cell_bijection_test.go` enforcing four invariants: every cell has ≥1 Pin, every Pin references an existing cell, no cell has 2+ Pins, no test pins 2+ cells.
 
-The current state stays load-bearing in the meantime: the existing 1-cell-per-AC catalog satisfies M-0158/AC-6's `ClassBranchChoreography` drift invariant, and `m0158_ac5_meta_coverage_test.go` continues to enforce the keyword-set ≥1 paired-test claim. No load-bearing safety property is missing — the refactor is a quality / discipline upgrade.
+The current state stays load-bearing through AC-3: the existing 1-cell-per-AC catalog satisfies M-0158/AC-6's `ClassBranchChoreography` drift invariant, and `m0158_ac5_meta_coverage_test.go` continues to enforce the keyword-set ≥1 paired-test claim until AC-4 deletes it. No load-bearing safety property is missing — the refactor is a quality / discipline upgrade.
 
 ## Scope
 
-This milestone implements all four parts of D-0022's deferred scope. The AC matrix below partitions the work for natural sequencing; each AC is independently testable + verifiable. Total estimated delivery: ~500-800 LOC test infrastructure + 57 net new spec cells + ~30 E2E test files touched for Pin call additions + 2 policy file changes (delete + add) + 3 meta-cell registrations.
+This milestone implements all four parts of D-0022's deferred scope. The AC matrix below partitions the work for natural sequencing; each AC is independently testable + verifiable. Total estimated delivery: ~500-800 LOC test infrastructure + ~57 net new spec cells + ~30 E2E test files touched for Pin call additions + 2 policy file changes (delete + add) + 3 meta-cell registrations.
 
 ## Dependencies
 
@@ -52,31 +52,13 @@ This milestone implements all four parts of D-0022's deferred scope. The AC matr
 
 - **Authorize-side ordering enforcement** (the G-0209 residual): the AC-8 carve-out for the implicit-current authorize path stays open as operator-discipline. A future kernel decision may extend the rule.
 - **Per-AC behavioral changes**: this milestone restructures the catalog and tightens the meta-coverage; the underlying rules (AC-1..AC-8) and their pass/fail behavior are unchanged.
-- **`branchcell.Pin` build-tag shape decision**: design Q&A at AC-3 of this milestone picks between `//go:build testpins` and `_test_helpers.go` suffix; both options keep the registry out of production binaries cleanly.
+- **`branchcell.Pin` build-tag shape decision** was settled at M-0162 Q&A as `//go:build testpins` + dedicated `branchtest` sub-package. The M-0161/AC-9 body's `_test_helpers.go` alternative was found incorrect (the suffix does not actually exclude files from production builds).
 
 ## Acceptance criteria
 
-(To be authored contract-first before promote to `in_progress`, per the M-0160-established discipline. Provisional AC outline:)
-
-- **AC-1** — M-0158 cell drop: 9 doc-only cells removed; catalog count drops by 9; meta-coverage approach continues to assert each remaining cell has a paired test.
-- **AC-2** — M-0161 cell expansion: 57 new cells added (66 total per-AC matrix cells, minus the 9 already registered as 1-per-AC chokepoint cells). Catalog count reaches 73 (7 retained M-0158 + 66 M-0161 expanded).
-- **AC-3** — `branchcell.Pin` registry: design Q&A picks the build-tag shape; the registry lives under that shape; runtime no-op outside test-tag builds; ~30 E2E tests call `Pin(cellID, "TestX")` at setup.
-- **AC-4** — Bijection meta-test: 4 invariants enforced via subtests; each subtest sabotage-verified by inserting fixture violations; `m0158_ac5_meta_coverage_test.go` removed; meta-cells (3) registered for the bijection invariants themselves. Catalog count reaches 76.
-
-The contract-first authoring discipline applies: AC bodies get filled before this milestone promotes to `in_progress`, sabotage-verifiable assertions explicitly named, deferral D-NNNs for any sub-scope that can't ship in this cycle.
-
-## References
-
-- M-0161 (parent epic E-0030) §"AC-9" body lines 577-694 — the inherited spec this milestone delivers.
-- [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md) — the deferral decision this milestone discharges.
-- [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap this milestone closes.
-- [M-0158](M-0158-layer-4-branch-choreography-spec-cells-drift-policy-extension.md) — the catalog whose cells this milestone drops + expands.
-- `internal/workflows/spec/branch/rules.go` — the catalog file the refactor touches.
-- `internal/policies/m0158_ac5_meta_coverage_test.go` — the keyword-set meta-test this milestone removes.
-
 ### AC-1 — M-0158 cell drop: remove 9 documentation-only catalog entries
 
-**Observable behavior.** The layer-4 branch-choreography catalog at `internal/workflows/spec/branch/rules.go` no longer contains 9 documentation-only / duplicate cells per [M-0161/AC-9 body §"Part 1"](../M-0161-imagination-driven-hardening-shallow-force-push-rename-detached-trunk.md) (lines 581-590). The remaining catalog continues to satisfy M-0158/AC-6's `ClassBranchChoreography` drift invariant and `m0158_ac5_meta_coverage_test.go` keyword-set policy through AC-1.
+**Observable behavior.** The layer-4 branch-choreography catalog at `internal/workflows/spec/branch/rules.go` no longer contains 9 documentation-only / duplicate cells per [M-0161/AC-9 body §"Part 1"](M-0161-imagination-driven-hardening-shallow-force-push-rename-detached-trunk.md) (lines 581-590). The keyword-set entries for the dropped cells at `internal/policies/m0158_ac5_meta_coverage_test.go` are removed in the same commit so the still-active meta-coverage policy stays green. The remaining catalog continues to satisfy M-0158/AC-6's `ClassBranchChoreography` drift invariant.
 
 **Cells dropped (9):**
 
@@ -95,9 +77,11 @@ The contract-first authoring discipline applies: AC bodies get filled before thi
 
 2. **Retained-set verification.** The same test asserts each of the 7 retained M-0158 cell IDs is PRESENT in `branch.Rules()`. Catches a future change that drops one of the load-bearing cells alongside cleanup.
 
-3. **Keyword-set meta-coverage continues to pass.** `m0158_ac5_meta_coverage_test.go` remains in place through AC-1, AC-2, AC-3; the keyword-set entries for the 9 dropped cells are removed alongside the drop so the meta-test stays green. AC-4 removes the keyword-set file entirely once the bijection meta-test lands.
+3. **Keyword-set meta-coverage stays green.** The 9 dropped cells' entries in `internal/policies/m0158_ac5_meta_coverage_test.go::keywords` (lines 60-77 today) are removed in the same AC-1 commit so the keyword-set policy continues to pass with the new catalog. AC-4 deletes the keyword-set file entirely.
 
-4. **Sabotage-verifiable.** Re-adding a dropped cell to `branch.Rules()` fires the absence subtest; removing a retained cell fires the presence subtest. The discriminating tests fire either way.
+4. **Sabotage-verifiable.** Re-adding a dropped cell to `branch.Rules()` fires the absence subtest; removing a retained cell fires the presence subtest; removing the keyword-set entry update fires the keyword-set policy on the dropped cell IDs. The discriminating tests fire either way.
+
+**Scope of closure (honest).** AC-1 partial-closes G-0210 only — the 9-cell drop is one of the four parts G-0210 names. G-0210 stays open until AC-2 (Pin registry), AC-3 (cell expansion + Pin lockstep), and AC-4 (bijection meta-test) all land.
 
 **Edge cases:**
 
@@ -108,60 +92,15 @@ The contract-first authoring discipline applies: AC bodies get filled before thi
 
 - M-0161/AC-9 body §"Part 1" — the inherited drop list this AC discharges
 - [M-0158](M-0158-layer-4-branch-choreography-spec-cells-drift-policy-extension.md) — the catalog whose doc-only cells this AC drops
-- [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap this AC partially addresses (closes G-0210 once AC-2..AC-4 land)
+- [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap this AC partial-addresses (closes G-0210 once AC-2..AC-4 land)
 - `internal/workflows/spec/branch/rules.go` — the catalog the AC touches
 - `internal/policies/m0158_ac5_meta_coverage_test.go` — keyword-set meta-coverage that stays in place through AC-3, removed in AC-4
 
 ### AC-2 — branchcell.Pin registry under //go:build testpins + branchtest sub-package
 
-**Observable behavior.** The branch-choreography catalog at `internal/workflows/spec/branch/rules.go` is expanded with one cell per discriminating E2E subtest across the M-0161/AC-1..AC-8 surfaces. The exact cell count is determined organically by the test surface — the deliverable is bijection-invariant correctness (every E2E subtest pins exactly one cell; every cell carries exactly one Pin), not arithmetic matching to the M-0161/AC-9 body's "66 new cells" forecast.
+**Observable behavior.** A new test-only package `internal/workflows/spec/branch/branchtest` introduces a `Pin(cellID, testFunctionName string)` registry callable from any test under the `//go:build testpins` build tag. The registry accumulates pins for later inspection by AC-4's bijection meta-test. The package + its single source file `pin.go` carry the `//go:build testpins` header so production `go build` omits both.
 
-The M-0161/AC-9 body's "76 total" estimate stays as a forecast; the actual count is reported at AC-4 wrap. AC-4's bijection meta-test asserts the invariants, not cardinality.
-
-**Cells added (organic count, ~57-77 depending on subtest discrimination):**
-
-The M-0161 AC bodies define the matrix shapes:
-
-- M-0161/AC-1 — 4 trunk-name shapes (TestAuthorize_AC1_NonMainTrunkNames_Accept subtests)
-- M-0161/AC-2 — 16 rung-pair cells + 1 override (TestAuthorize_AC2_RungPair_Matrix subtests)
-- M-0161/AC-3 — 13 oracle-state subtests (TestBranchOracle_AC3_OracleErrors_Matrix paired) + 2 sovereign-override subtests
-- M-0161/AC-4 — 11 shallow-clone subtests + 2 sovereign-override subtests
-- M-0161/AC-5 — 7 force-push-orphan subtests + 1 cell-7 reflog-disabled composition subtest (cell-5 deferred per D-0020)
-- M-0161/AC-6 — 9 rename-resolution subtests
-- M-0161/AC-7 — 7 detached-HEAD subtests (B1 follow-up included)
-- M-0161/AC-8 — 8 promote-on-wrong-branch subtests (cell-6 detached-HEAD deferred per AC-8 body)
-
-Each subtest gets exactly one Pin call to exactly one cell. AC-3 (Pin registry) provides the call surface; AC-2 wires the cell entries; AC-4 enforces the bijection.
-
-**Mechanical assertions:**
-
-1. **Cell-presence verification.** A test under `internal/policies/m0162_ac2_expanded_set_test.go` asserts each E2E test function's expected cell IDs are present in `branch.Rules()`. The test parses the E2E files for Pin call sites (per AC-3's registry) and matches them against `branch.Rules()` entries.
-
-2. **Subtest-to-cell mapping.** Every E2E subtest under `internal/cli/integration/branch_scenarios_*.go`, `isolation_escape_*.go`, `detached_head_*.go`, and `promote_wrong_branch_*.go` calls `branchtest.Pin(cellID, t.Name())` at setup (AC-3 prerequisite). AC-2's cell-set must cover every Pin call site.
-
-3. **Sabotage-verifiable.** Removing a cell that an E2E subtest references makes the cell-presence test fail naming the orphan cell; adding a cell without a Pin call from any subtest fires the AC-4 bijection invariant (post-AC-4) — AC-2's own discriminator is the AC-1 paired-test invariant inherited from M-0158/AC-5.
-
-4. **Catalog count reported, not pinned.** The wrap report records the actual cell count after expansion. The M-0161/AC-9 body's "76 total" forecast is a planning estimate, not a contract.
-
-**Edge cases:**
-
-- **AC-3 prerequisite.** AC-2's cell additions are useless without Pin call sites; AC-3 must land first (or co-land) so the Pin registry exists. Per the foundation-up sequencing (M-0162 §Scope decision), AC-2 ships its cells with Pin call additions to existing E2Es as a single AC-2 deliverable. AC-3 (Pin registry) is the AC-2 prerequisite — if AC-3 is sequenced strictly after AC-2 per the locked ordering, AC-2 ships cells WITHOUT Pin calls and AC-3 adds the Pin calls. **Decision: AC-2 ships cells only; AC-3 ships Pin registry + every E2E's Pin call addition. The bijection invariants pass at AC-4.**
-- **M-0159 framework subtests.** Some matrix-level tests (M-0159's `RunScenarios([]Scenario{...})`) produce per-row subtests via `t.Run`. The Pin call goes inside the Scenario's Setup function so each subtest pins its own cell. AC-3's API supports `Pin(cellID, t.Name())` inside the closure.
-- **M-0161/AC-5 cell 5 + M-0161/AC-8 cell 6 deferrals.** The deferred cells per D-0020 and AC-8 body's deferral are NOT expanded; their absent test functions mean no Pin call → no orphan finding. AC-4's bijection invariant tolerates the gaps because the cells genuinely don't exist (not "registered but unpinned").
-
-**References.**
-
-- M-0161/AC-9 body §"Part 2" — the inherited expansion scope this AC discharges
-- M-0161 AC bodies — the matrix shapes that determine the per-AC cell counts
-- AC-3 (this milestone) — the Pin registry prerequisite for the Pin call surface
-- AC-4 (this milestone) — the bijection meta-test that validates AC-2's expansion correctness
-- `internal/cli/integration/branch_scenarios_*.go` + sibling files — the E2E surface AC-2 references
-
-### AC-3 — M-0161 cell expansion: organic count via bijection invariants
-
-**Observable behavior.** A new test-only package `internal/workflows/spec/branch/branchtest` introduces a `Pin(cellID, testFunctionName string)` registry callable from any test under the `//go:build testpins` build tag. The registry accumulates pins for later inspection by AC-4's bijection meta-test.
-
-The package + its single source file `pin.go` carry the `//go:build testpins` header so production `go build` omits both. CI runs and the Makefile's `test-pins` target carry `-tags testpins`; bare `go test ./...` without the tag silently skips the pin-calling tests and the bijection meta-test (the latter also tagged). This is the deliberate trade-off: the registry is opt-in by tag rather than always-on; newcomers running tests locally either use the Makefile or learn the tag.
+CI runs and the Makefile's `test-pins` target carry `-tags testpins`; bare `go test ./...` without the tag silently skips the pin-calling tests and the bijection meta-test (the latter also tagged). The build-tag convention is documented in the package doc comment of `pin.go` itself — kept next to the symbol to minimize drift (per reviewer T-fix; no separate README).
 
 **Per the M-0162 Q&A decision §"Pin shape" (locked at AC-body-authoring time):** option 1 (`//go:build testpins + dedicated branchtest sub-package`) was selected over the AC-9 body's `_test_helpers.go` alternative (which was found incorrect — that suffix doesn't actually keep files out of production). The branchtest sub-package gives the test-only nature an import-path-level marker AND the build tag enforces link-time exclusion.
 
@@ -170,7 +109,23 @@ The package + its single source file `pin.go` carry the `//go:build testpins` he
 ```go
 //go:build testpins
 
+// Package branchtest provides the Pin registry used by AC-3's
+// cell-expansion E2E tests and AC-4's bijection meta-test. The
+// package and its symbols are compiled only when -tags testpins
+// is set; production `go build` omits them entirely.
+//
+// Usage:
+//   func TestX_AC3_Foo(t *testing.T) {
+//       branchtest.Pin("branch-cell-foo", t.Name())
+//       ...
+//   }
+//
+// The bijection meta-test at internal/policies/branch_cell_bijection_test.go
+// inspects the registry after every E2E test in the test-pins
+// build completes.
 package branchtest
+
+import "sync"
 
 // Pin records that a test function exercises a specific
 // branch.Rules() cell. Calls accumulate into a process-local
@@ -178,9 +133,6 @@ package branchtest
 //
 // Calls from tests inside `t.Run` should pass t.Name() so the
 // subtest's full name (TestX/sub-row) appears in the registry.
-//
-// Calls outside the testpins build tag are link-time errors;
-// the registry is never present in production binaries.
 func Pin(cellID, testName string) { ... }
 
 // Pins returns a snapshot of accumulated pins. Used by the
@@ -188,50 +140,102 @@ func Pin(cellID, testName string) { ... }
 func Pins() map[string][]string { ... }
 ```
 
-**Pin call sites added by AC-3:**
-
-Every E2E subtest under:
-- `internal/cli/integration/branch_scenarios_ac4_test.go` (M-0159/AC-4 ack scenarios)
-- `internal/cli/integration/branch_scenarios_ac5_test.go` (M-0159/AC-5 trailer-verb-unknown)
-- `internal/cli/integration/branch_scenarios_ac6_test.go` (M-0159/AC-6 cherry-pick)
-- `internal/cli/integration/isolation_escape_oracle_scenarios_test.go` (M-0161/AC-3)
-- `internal/cli/integration/isolation_escape_shallow_scenarios_test.go` (M-0161/AC-4)
-- `internal/cli/integration/isolation_escape_force_push_scenarios_test.go` (M-0161/AC-5)
-- `internal/cli/integration/isolation_escape_rename_scenarios_test.go` (M-0161/AC-6)
-- `internal/cli/integration/detached_head_scenarios_test.go` (M-0161/AC-7)
-- `internal/cli/integration/promote_wrong_branch_scenarios_test.go` (M-0161/AC-8)
-- `internal/cli/integration/authorize_scenarios_test.go` (M-0161/AC-1 + AC-2)
-
-The Pin call goes inside each Scenario's `Setup` function (for `RunScenarios` framework consumers) or inside each subtest's body (for direct `TestX` functions).
-
 **Mechanical assertions:**
 
-1. **Build-tag exclusion.** A test under `internal/policies/m0162_ac3_build_tag_test.go` builds the production `aiwf` binary without `-tags testpins` and asserts the `branchtest` package symbols are NOT present in the resulting binary (via `go tool nm` or equivalent). Sabotage-verified by removing the build-tag header.
+1. **Build-tag exclusion.** A test under `internal/policies/m0162_ac2_build_tag_test.go` builds the production `aiwf` binary without `-tags testpins` and asserts the `branchtest` package symbols are NOT present in the resulting binary. Concrete pattern: `go build -o /tmp/aiwf-no-pins ./cmd/aiwf && go tool nm /tmp/aiwf-no-pins | grep -c '/branch/branchtest/' == 0`. Sabotage-verified by removing the build-tag header on `pin.go`.
 
-2. **API existence verification.** A test under the testpins tag asserts `Pin()` accepts the two-string signature and `Pins()` returns the accumulated map shape. Catches a future refactor that changes the API.
+2. **API existence verification.** A test under the testpins tag asserts `Pin()` accepts the two-string signature and `Pins()` returns the accumulated `map[string][]string` shape. Catches a future refactor that changes the API.
 
-3. **Pin-call presence in every E2E.** A test parses every file under `internal/cli/integration/` matching the AC-3 surface list above for `branchtest.Pin(...)` call sites. Each file must have at least one Pin call (per AC-4 invariant #1 inherited). Sabotage-verified by removing a Pin from an E2E.
+3. **Package-doc presence.** A structural test asserts `pin.go`'s package doc comment contains the strings `//go:build testpins` and `branchtest.Pin(` (the usage code-fence). Ensures the build-tag convention stays AI-discoverable per CLAUDE.md "Kernel functionality must be AI-discoverable." The doc lives next to the symbol; no separate README needed.
 
-4. **Sabotage-verifiable.** Removing the build-tag header fires the build-tag exclusion test (symbols appear in production); removing a Pin from an E2E fires the presence test naming the missing call site; removing the registry's accumulation behavior fires AC-4's bijection invariants.
+4. **Sabotage-verifiable.** Removing the build-tag header fires the build-tag exclusion test (symbols appear in production); removing the API surface fires the existence test; removing the package doc fires the doc-presence test.
+
+**Note.** AC-2's deliverable is the registry infrastructure only. The Pin call sites in E2E tests are AC-3's deliverable (cell expansion + Pin calls land together — the infrastructure-first sequencing fix per the reviewer-locked B1 resolution).
 
 **Edge cases:**
 
-- **Pin call inside parallel subtests.** Subtests calling `t.Parallel()` run concurrently; the Pin registry needs a `sync.Mutex` around the accumulator to be data-race-free. The test-only nature means a sync.Mutex import in test code is acceptable.
+- **Pin call inside parallel subtests.** Subtests calling `t.Parallel()` run concurrently; the Pin registry uses a `sync.Mutex` around the accumulator to be data-race-free. The test-only nature means a sync.Mutex import in test code is acceptable.
 - **Pin call from inside `Setup` vs `t.Run` body.** Both shapes supported by passing `t.Name()` explicitly. The M-0159 RunScenarios framework calls `Setup` after entering the subtest's `t.Run` so `t.Name()` resolves to the subtest's full path.
-- **Newcomer running bare `go test`.** Without the `testpins` tag, the registry is empty and the bijection meta-test (also tagged) is skipped. CI and the Makefile carry the tag; local newcomers see no pin-related output. Documented in `internal/workflows/spec/branch/README.md` (new file at AC-3 time).
+- **Newcomer running bare `go test`.** Without the `testpins` tag, the registry is empty and the bijection meta-test (also tagged) is skipped. CI and the Makefile carry the tag; local newcomers see no pin-related output. The CI workflow change to carry `-tags testpins` ships in AC-4 alongside the bijection meta-test (since the registry alone is harmless without the test that consumes it).
 
 **References.**
 
 - M-0161/AC-9 body §"Part 3" — the inherited Pin registry scope this AC discharges
 - M-0162 Q&A §"Pin shape" — the build-tag + branchtest sub-package decision
+- M-0162 reviewer pass §B1 — the AC-2/AC-3 swap rationale (Pin registry before cell expansion so Pins and cells ship together at AC-3)
+- AC-3 (this milestone) — the cell expansion + Pin call lockstep that consumes the registry
 - AC-4 (this milestone) — the bijection meta-test that consumes the Pin registry
-- `internal/cli/integration/` — the E2E surface AC-3 wires Pin calls into
+
+### AC-3 — M-0161 cell expansion: organic count via bijection invariants
+
+**Observable behavior.** The branch-choreography catalog at `internal/workflows/spec/branch/rules.go` is expanded with one cell per discriminating E2E subtest across the full test surface (M-0158 retained + M-0159 era + M-0161 ACs 1-8). Each new cell ships **with its `branchtest.Pin(cellID, t.Name())` call from the corresponding subtest in the same commit** — the infrastructure-first sequencing locked at M-0162 reviewer pass §B1.
+
+The exact cell count is determined organically by subtest discrimination — the deliverable is bijection-invariant readiness (every E2E subtest pins exactly one cell; every new cell carries exactly one Pin), not arithmetic matching to the M-0161/AC-9 body's "66 new cells" forecast. The actual count is reported at AC-4 wrap.
+
+**Cells touched (organic count; ~57-77 expected):**
+
+The M-0161 AC bodies define the matrix shapes (these counts are the **expected upper bound** based on per-subtest discrimination; the actual deliverable is bijection readiness, not arithmetic):
+
+- M-0161/AC-1 — ~4 trunk-name shapes (TestAuthorize_AC1_NonMainTrunkNames_Accept subtests)
+- M-0161/AC-2 — ~16 rung-pair cells + 1 override (TestAuthorize_AC2_RungPair_Matrix subtests)
+- M-0161/AC-3 — ~13 oracle-state subtests + 2 sovereign-override subtests
+- M-0161/AC-4 — ~11 shallow-clone subtests + 2 sovereign-override subtests
+- M-0161/AC-5 — ~7 force-push-orphan subtests + 1 cell-7 reflog-disabled composition subtest
+- M-0161/AC-6 — ~9 rename-resolution subtests
+- M-0161/AC-7 — ~7 detached-HEAD subtests (B1 follow-up included)
+- M-0161/AC-8 — ~8 promote-on-wrong-branch subtests
+
+**Plus Pin calls added to existing M-0158 + M-0159-era E2E subtests so they reference the cells already in `branch.Rules()`** (reviewer §B4 clarification — the bijection invariants apply across the full catalog, not just M-0161 cells):
+
+- `branch_scenarios_ac4_test.go` (M-0159/AC-4 ack scenarios) → Pin to `branch-cell-id-rename-untrailered` and AC-4-era illegal cells already in `branch.Rules()`.
+- `branch_scenarios_ac5_test.go` (M-0159/AC-5 trailer-verb-unknown) → Pin to the M-0159 trailer-verb cells.
+- `branch_scenarios_ac6_test.go` (M-0159/AC-6 cherry-pick) → Pin to `branch-cell-8` / `branch-cell-override-cherry-pick` (the latter is in AC-1's drop list — after AC-1, only `branch-cell-8` remains for the cherry-pick semantics; but `branch-cell-8` is ALSO in AC-1's drop list... resolved in cycle: AC-3 may need to retain one of cells 8/10 if M-0159-era tests depend on them).
+
+**Per CLAUDE.md "Don't paper over a test failure":** if AC-3's Pin-wiring round reveals that M-0158-era tests genuinely need the dropped cells, AC-3 either (a) reverses the AC-1 drop for that cell with explicit justification, or (b) retitles the M-0159 test to reference a retained cell with equivalent semantics. The cycle's discriminating signal is "what does the test actually exercise" — pin to the cell whose mechanical claim matches the test's assertions.
+
+Each new or M-0161-era subtest gets exactly one Pin call to exactly one cell. AC-2 provides the call surface; AC-3 wires the cell entries + Pin calls together; AC-4 enforces the bijection across the full catalog.
+
+**Mechanical assertions:**
+
+1. **Cell-presence verification.** A test under `internal/policies/m0162_ac3_expanded_set_test.go` asserts each E2E test function's expected cell IDs are present in `branch.Rules()`. The test parses the E2E files for Pin call sites and matches them against `branch.Rules()` entries.
+
+2. **Pin-call structural presence.** A grep-style assertion at `internal/policies/m0162_ac3_pin_presence_test.go` (renamed from AC-2 per the swap) walks every file under `internal/cli/integration/` matching the AC-3 surface list and asserts each file has at least one `branchtest.Pin(...)` call. This is **structural coverage only**; behavioral discrimination (that the Pin call actually accumulates into the registry) ships at AC-4's bijection invariants.
+
+3. **Subtest-to-cell mapping.** Every E2E subtest under `internal/cli/integration/branch_scenarios_*.go`, `isolation_escape_*.go`, `detached_head_*.go`, and `promote_wrong_branch_*.go` calls `branchtest.Pin(cellID, t.Name())` at setup. AC-3's cell-set must cover every Pin call site.
+
+4. **Keyword-set entries added in lockstep.** AC-3 adds keyword-set entries to `m0158_ac5_meta_coverage_test.go` for every new cell — required so the still-active meta-coverage policy stays green through AC-3. This is the throwaway work per reviewer §B1: the entries get deleted at AC-4 alongside the file. **Cost ~57 entries; cheap edits to one file; required for sequencing coherence.**
+
+5. **Sabotage-verifiable.** Removing a cell that an E2E subtest references makes the cell-presence test fail naming the orphan cell; removing the Pin call from a subtest fires AC-4's bijection invariant #1 (post-AC-4); adding a cell without a Pin call fires the cell-presence assertion.
+
+**Scope of closure (honest).**
+
+- **M-0161/AC-5 cell-5 deferred** per [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md): the orphan-acknowledgment composition is unshippable until `aiwf acknowledge-illegal` extends to handle unreachable SHAs (tracked at G-0226). AC-3 does NOT add a cell for cell-5; the gap is preserved. AC-4's bijection invariants tolerate this because neither the cell nor the Pin exists.
+- **M-0161/AC-8 cell-6 (detached HEAD on promote) deferred** per the AC-8 body's in-test carve-out (no D-NNN; documented in `promote_wrong_branch_scenarios_test.go`). AC-3 may file a new D-NNN to elevate this carve-out to the same status as D-0020 (one of: file new D-0023 / leave as in-test comment / consolidate at AC-4 wrap). Default: file the D-NNN at AC-3 cycle Q&A for symmetry with D-0020.
+
+**Catalog count reported, not pinned.** The AC-4 wrap report records the actual cell count. The M-0161/AC-9 body's "76 total" forecast is a planning estimate, not a contract. If the actual count is 73 or 80, the discharge is honest.
+
+**Edge cases:**
+
+- **AC-2 prerequisite.** AC-3 depends on the Pin registry being available; per the swap, AC-2 lands first.
+- **M-0159 framework subtests.** Some matrix-level tests use `RunScenarios([]Scenario{...})` producing per-row subtests via `t.Run`. The Pin call goes inside the Scenario's Setup function so each subtest pins its own cell.
+- **Tests that exercise multiple cells.** Per AC-4 invariant #4 (no test pins 2+ cells), a single test function exercising distinct cells must split into subtests, each pinning its own cell. Reviewer T2 noted this may force migrations during AC-3 — those migrations are part of the AC-3 deliverable.
+
+**References.**
+
+- M-0161/AC-9 body §"Part 2" — the inherited expansion scope this AC discharges
+- M-0162 reviewer pass §B1 — the AC-2/AC-3 swap rationale
+- M-0162 reviewer pass §B4 — the M-0159-era cell inclusion clarification
+- M-0161 AC bodies — the matrix shapes that determine the per-AC cell counts
+- AC-2 (this milestone) — the Pin registry prerequisite
+- AC-4 (this milestone) — the bijection meta-test that validates AC-3's expansion correctness
+- [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md) — AC-5 cell-5 deferral preserved
+- `internal/cli/integration/branch_scenarios_*.go` + sibling files — the E2E surface AC-3 references
 
 ### AC-4 — Bijection meta-test replaces M-0158/AC-5 keyword-set; 4 invariants
 
 **Observable behavior.** A new bijection meta-test at `internal/policies/branch_cell_bijection_test.go` (under `//go:build testpins`) enforces four invariants between `branch.Rules()` and the `branchtest.Pins()` registry. The existing keyword-set meta-coverage at `internal/policies/m0158_ac5_meta_coverage_test.go` is removed in the same commit; the bijection meta-test pins a strictly stronger claim than the keyword-set's ≥1 match per AC-9 body lines 634-640.
 
-Three meta-cells are registered for the bijection invariants themselves so the catalog records its own enforcement chokepoints alongside the rule chokepoints.
+Three meta-cells are registered for the bijection invariants themselves so the catalog records its own enforcement chokepoints alongside the rule chokepoints. The CI workflow file at `.github/workflows/go.yml` is updated to carry `-tags testpins` on the test step so the bijection meta-test runs in CI; the existing race-mode `-parallel 8` cap from `internal/policies/race_parallel_cap.go` composes cleanly (the bijection test reads a sync.Mutex-guarded registry post-test, no parallelism interaction).
 
 **Invariants enforced (each as a separate subtest, each sabotage-verifiable):**
 
@@ -253,6 +257,7 @@ The meta-cells satisfy AC-4's own bijection requirement: each has a Pin from the
 - `internal/policies/m0158_ac5_meta_coverage_test.go` is **deleted** in the same commit as the bijection meta-test lands. The keyword-set ≥1-match invariant is subsumed by invariant #1 (every cell has ≥1 Pin, with the tightening to exactly 1).
 - M-0158/AC-5's promoted-met status remains valid because the bijection meta-test maintains and strictly strengthens every guarantee the keyword-set asserted.
 - A structural test asserts `internal/policies/m0158_ac5_meta_coverage_test.go` does NOT exist (prevents reintroduction).
+- Reviewer T2 noted that the strictly-stronger invariant tightening (from ≥1 to exactly 1) may have already forced migrations during AC-3 (a test legitimately covering two cells per the keyword-set forced to split into subtests at AC-3 cycle). The AC-3 wrap report names any such migrations; AC-4 inherits a clean bijection-ready state.
 
 **Drift policy extension:**
 
@@ -269,20 +274,30 @@ The meta-cells satisfy AC-4's own bijection requirement: each has a Pin from the
 
 4. **Sabotage discrimination.** Each of the 4 invariants has a paired sabotage test that constructs a fixture violating the invariant and asserts the production invariant test fires. The sabotage tests are themselves tagged `testpins`.
 
-5. **CI tag verification.** The CI workflow (`.github/workflows/go.yml`) is updated to add `-tags testpins` to the test step. Without it, the bijection meta-test silently skips; with it, the bijection invariants are enforced.
+5. **CI tag verification.** The CI workflow (`.github/workflows/go.yml`) is updated to add `-tags testpins` to the test step. Without it, the bijection meta-test silently skips; with it, the bijection invariants are enforced. The existing race-mode `-parallel 8` cap stays in place; the bijection test is post-parallel-tests (reads the accumulator after all tests complete via a sentinel ordering) so the cap composes cleanly.
 
 **Edge cases:**
 
-- **AC-3 prerequisite (Pin registry exists).** AC-4 cannot land without AC-3's registry being available. Per the foundation-up ordering, AC-3 lands first.
-- **AC-2 prerequisite (cells expanded).** AC-4 enforces the bijection over AC-2's expanded catalog. If AC-2 ships an under-expanded catalog (some E2E subtests without paired cells), AC-4's invariant #2 (orphan-Pin detection) fires at CI time and AC-2 returns for additional cells. This is the discipline working as designed.
+- **AC-2 + AC-3 prerequisites.** AC-4 cannot land without AC-2's registry being available + AC-3's Pin calls being wired. Per the locked AC ordering, both land first.
+- **AC-3 prerequisite (cells expanded).** AC-4 enforces the bijection over AC-3's expanded catalog. If AC-3 ships an under-expanded catalog (some E2E subtests without paired cells), AC-4's invariant #2 (orphan-Pin detection) fires at CI time and AC-3 returns for additional cells. This is the discipline working as designed.
 - **M-0161/AC-5 cell-5 + M-0161/AC-8 cell-6 deferrals.** Both have no test function (the deferred cells genuinely don't exist). AC-4's invariants tolerate the gap because neither the cell nor the Pin exists — invariant #1 doesn't fire (no cell to find unpinned); invariant #2 doesn't fire (no orphan Pin); invariants #3 and #4 don't apply. The deferrals stay deferrals; AC-4 doesn't force the deferred scope.
-- **Test-time pin accumulation race.** The Pin registry's mutex (AC-3) ensures the accumulator is data-race-free under `t.Parallel`. AC-4's meta-test reads the accumulator after all tests in the package have completed (via `TestMain` ordering or a final-stage test); reading is safe because no Pin calls are in flight.
+- **Test-time pin accumulation race.** The Pin registry's mutex (AC-2) ensures the accumulator is data-race-free under `t.Parallel`. AC-4's meta-test reads the accumulator after all tests in the package have completed (via TestMain ordering or a final-stage test); reading is safe because no Pin calls are in flight.
 
 **References.**
 
 - M-0161/AC-9 body §"Part 4" + §"Part 5" — the inherited bijection scope this AC discharges
-- AC-2 + AC-3 (this milestone) — the cell catalog + Pin registry AC-4 enforces invariants over
+- AC-2 + AC-3 (this milestone) — the Pin registry + Pinned cell catalog AC-4 enforces invariants over
 - `internal/policies/m0158_ac5_meta_coverage_test.go` — the keyword-set file AC-4 deletes
 - `internal/policies/m0158_ac6_drift_test.go` — the existing drift policy AC-4 leaves intact
+- `.github/workflows/go.yml` — the CI workflow file AC-4 updates with `-tags testpins`
 - [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap this AC closes (full closure when AC-1, AC-2, AC-3, AC-4 all land)
 
+## References
+
+- M-0161 (parent epic E-0030) §"AC-9" body lines 577-694 — the inherited spec this milestone delivers.
+- [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md) — the deferral decision this milestone discharges.
+- [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap this milestone closes.
+- [M-0158](M-0158-layer-4-branch-choreography-spec-cells-drift-policy-extension.md) — the catalog whose cells this milestone drops + expands.
+- `internal/workflows/spec/branch/rules.go` — the catalog file the refactor touches.
+- `internal/policies/m0158_ac5_meta_coverage_test.go` — the keyword-set meta-test this milestone removes.
+- M-0162 reviewer pass (subagent, 2026-06-04) — the AC-body review that fed the B1-B4 + T1-T4 fixes.
