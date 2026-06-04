@@ -36,7 +36,7 @@ acs:
     - id: AC-8
       title: Kernel finding promote-on-wrong-branch enforces ADR-0010 ritual ordering
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-9
       title: 'Layer-4 spec-table refactor: mechanical-weight catalog + bijection enforcement'
       status: open
