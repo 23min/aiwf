@@ -480,8 +480,8 @@ The `isolation-escape` rule's scope-branch resolution becomes:
    | Detached HEAD + `aiwf authorize <id> --to ai/<agent> --branch epic/... --force --reason "intentional"` | succeeds; commit carries `aiwf-force:` trailer |
    | Detached HEAD + `aiwf check` (no AI commits) | exit 0, no false findings |
    | Detached HEAD + AI commit made dangling | `isolation-escape` silent (oracle returns empty for dangling SHA per AC-3 KNOWN-GOOD path) |
-   | Detached HEAD + `aiwf doctor --format=json` | exit 0; JSON envelope's `findings[]` contains a finding with `code: "detached-head"`, `severity: "advisory"` (asserted structurally against the parsed envelope, NOT via stdout substring) |
-   | NOT detached + `aiwf doctor --format=json` | exit 0; JSON envelope's `findings[]` contains NO finding with `code: "detached-head"` (baseline) |
+   | Detached HEAD + `aiwf doctor` | exit 0; stdout contains substring `detached-head` and `advisory` (DEFERRED to substring match per [D-0021](../../decisions/D-0021-m-0161-ac-7-doctor-json-envelope-deferred-substring-match-ships-now.md): `aiwf doctor --format=json` envelope is a separate doctor-shape milestone) |
+   | NOT detached + `aiwf doctor` | exit 0; stdout does NOT contain `detached-head:` substring (DEFERRED — see D-0021) |
 
 2. **Sovereign-override path is the 3rd row.** Pinned as a positive cell.
 
@@ -692,4 +692,5 @@ The existing M-0158 drift policy is extended to read from the `branchcell.Pin` r
 - [D-0018](../../decisions/D-0018-branch-not-found-subsumed-by-rung-pair-illegal-catalog-cleanup-defers-to-ac-9.md) — branch-not-found subsumed by rung-pair-illegal; catalog cleanup defers to AC-9 (AC-2 reviewer pass S-3)
 - [D-0019](../../decisions/D-0019-oracle-partial-coverage-fail-shut-correctness-fail-open-coverage.md) — oracle partial-coverage: fail-shut on rule correctness, fail-open on rule coverage (AC-3 cycle start, pre-RED)
 - [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md) — AC-5 cell-5 orphan acknowledgment deferred to verb extension (AC-5 reviewer pass; routes to [G-0226](../../gaps/G-0226-aiwf-acknowledge-illegal-hard-requires-sha-reachable-from-head.md))
+- [D-0021](../../decisions/D-0021-m-0161-ac-7-doctor-json-envelope-deferred-substring-match-ships-now.md) — AC-7 doctor JSON envelope deferred; substring-match-on-stdout ships now; full structural envelope deferred to a future doctor-shape milestone
 
