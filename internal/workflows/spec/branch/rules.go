@@ -9,10 +9,21 @@ import (
 // Rules returns the layer-4 branch-choreography cells, sorted by cell
 // id for deterministic output (M-0158/AC-7). The closed set comprises:
 //
-//   - 12 corner-case cells `branch-cell-1` through `branch-cell-12`
-//     from E-0030 §"Corner cases" (Cycle 2).
-//   - 4 override-surface cells `branch-cell-override-<mechanism>`
-//     from E-0030 §"Sovereign override surface" (Cycle 3).
+//   - 5 illegal-outcome corner-case cells with mechanical weight
+//     (`branch-cell-1`, `-2`, `-4`, `-7`, `-12`) from E-0030
+//     §"Corner cases" (Cycle 2). Cells 3, 5, 6, 8, 9, 10, 11 were
+//     dropped per M-0162/AC-1 (M-0161/AC-9 §"Part 1"): the 5
+//     legal-non-override cells (3/5/6/9/11) carried no mechanical
+//     weight, and cells 8/10 duplicated override-surface entries.
+//   - 2 standalone override cells `branch-cell-override-preflight`
+//     and `branch-cell-override-f-nnnn-waiver` from E-0030
+//     §"Sovereign override surface" (Cycle 3). The
+//     `branch-cell-override-cherry-pick` and
+//     `branch-cell-override-force-amend` entries were dropped per
+//     M-0162/AC-1 as semantic duplicates of corner-case cells 8/10
+//     (themselves dropped); the override mechanisms remain
+//     present in the kernel — the catalog redundancy is what was
+//     redundant.
 //
 // Top-level integration: consumers union with `spec.Rules()` at the
 // call site (the parent package cannot import this sub-package without
@@ -47,17 +58,13 @@ func Rules() []spec.Rule {
 			BlockingStrict:    true,
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
-		// branch-cell-3 — Corner case 3: AI authorize on epic/E-NN-X
-		// without --branch, ritual shape matches. Preflight accepts;
-		// trailer records current branch. Test:
-		// TestAuthorize_Open_AITarget_ImplicitFromCurrent_AcceptsAndEmitsTrailer.
-		{
-			ID:            "branch-cell-3",
-			Verb:          "authorize",
-			Preconditions: []spec.Predicate{{Subject: "target-agent-role", Op: "==", Value: "ai"}, {Subject: "ritual-branch-context-present", Op: "==", Value: "true"}},
-			Outcome:       spec.OutcomeLegal,
-			Sources:       spec.RuleSource{Decision: "ADR-0010"},
-		},
+		// branch-cell-3 dropped per M-0162/AC-1 (legal-non-override,
+		// documentation-only): the implicit-from-current preflight
+		// accept path is exercised by every legitimate ritual
+		// authorize commit and pinned by branch-cell-1's negative
+		// counterpart (a refusal absent branch context implies
+		// presence of branch context is the legitimate path). The
+		// dedicated cell carried no separate mechanical assertion.
 		// branch-cell-4 — Corner case 4: AI commit on main while
 		// scope binds epic/E-NN-X. Finding fires (check-time,
 		// isolation-escape). Tests: TestIsolationEscape_AC1_AICommitOnMainFires
@@ -71,24 +78,13 @@ func Rules() []spec.Rule {
 			BlockingStrict:    false, // warning severity at first land (M-0106 spec)
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
-		// branch-cell-5 — Corner case 5: AI commit on bound branch.
-		// Finding silent. Test: TestIsolationEscape_AC4_AICommitOnBoundBranchSilent
-		// + TestRunProvenanceCheck_IsolationEscape_SilentOnBoundBranchCommit.
-		{
-			ID:            "branch-cell-5",
-			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "scope-binding-branch", Op: "==", Value: "commit-branch"}},
-			Outcome:       spec.OutcomeLegal,
-			Sources:       spec.RuleSource{Decision: "ADR-0010"},
-		},
-		// branch-cell-6 — Corner case 6: AI commit on bound branch
-		// while scope paused. Finding silent (paused doesn't change
-		// binding). Test: TestIsolationEscape_AC5_AICommitOnBoundBranchPausedScopeSilent.
-		{
-			ID:            "branch-cell-6",
-			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "scope-state", Op: "==", Value: "paused"}, {Subject: "scope-binding-branch", Op: "==", Value: "commit-branch"}},
-			Outcome:       spec.OutcomeLegal,
-			Sources:       spec.RuleSource{Decision: "ADR-0010"},
-		},
+		// branch-cell-5 and branch-cell-6 dropped per M-0162/AC-1
+		// (legal-non-override, documentation-only): the bound-
+		// branch silence path is the rule's default outcome —
+		// branch-cell-4 / branch-cell-7's illegal-outcome cells
+		// are the discriminators. A dedicated "this is silent
+		// because nothing fires" cell carried no mechanical
+		// weight.
 		// branch-cell-7 — Corner case 7: AI commit on epic/E-NN-Y
 		// while bound to epic/E-NN-X. Different epic branch → fires.
 		// Test: TestIsolationEscape_AC2_AICommitOnDifferentRitualBranchFires.
@@ -101,44 +97,29 @@ func Rules() []spec.Rule {
 			BlockingStrict:    false,
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
-		// branch-cell-8 — Corner case 8: Human cherry-pick of ai/X
-		// commit. Finding silent (committer ≠ actor + marker = sovereign
-		// re-author). Test: TestIsolationEscape_AC6_CherryPickReAuthorSilent.
-		{
-			ID:            "branch-cell-8",
-			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "committer-differs-from-actor", Op: "==", Value: "true"}, {Subject: "cherry-pick-marker-present", Op: "==", Value: "true"}},
-			Outcome:       spec.OutcomeLegal,
-			Sources:       spec.RuleSource{Decision: "ADR-0010"},
-		},
-		// branch-cell-9 — Corner case 9: Human merge of epic/E-NN-X
-		// into main via --no-ff. Finding silent on the merge (merge
-		// commit is human-actor; AI commits behind merge are still
-		// reachable from epic branch first-parent, not main's).
-		// Test: TestIsolationEscape_AC7_HumanMergeFirstParentSilent.
-		{
-			ID:            "branch-cell-9",
-			Preconditions: []spec.Predicate{{Subject: "commit-verb", Op: "==", Value: "merge"}, {Subject: "commit-actor-role", Op: "==", Value: "human"}},
-			Outcome:       spec.OutcomeLegal,
-			Sources:       spec.RuleSource{Decision: "ADR-0010"},
-		},
-		// branch-cell-10 — Corner case 10: Sovereign --force amend.
-		// Finding silent (aiwf-force trailer + human actor = gated
-		// override). Test: TestIsolationEscape_AC8_ForceAmendedCommitSilent.
-		{
-			ID:            "branch-cell-10",
-			Preconditions: []spec.Predicate{{Subject: "aiwf-force-trailer-present", Op: "==", Value: "true"}, {Subject: "commit-actor-role", Op: "==", Value: "human"}},
-			Outcome:       spec.OutcomeLegal,
-			Sources:       spec.RuleSource{Decision: "ADR-0010"},
-		},
-		// branch-cell-11 — Corner case 11: AI commit on entity with
-		// no scope opened. Finding silent (no scope, no binding).
-		// Test: TestIsolationEscape_AC9_NoScopeOpenedSilent.
-		{
-			ID:            "branch-cell-11",
-			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "active-scope-on-entity", Op: "==", Value: "false"}},
-			Outcome:       spec.OutcomeLegal,
-			Sources:       spec.RuleSource{Decision: "ADR-0010"},
-		},
+		// branch-cell-8 dropped per M-0162/AC-1 (legal-AND-override
+		// duplicate): the cherry-pick re-author silence is the same
+		// shape as branch-cell-override-cherry-pick was, registering
+		// the same preconditions twice. Both are dropped here; the
+		// kernel's cherry-pick re-author detection remains intact —
+		// only the redundant catalog entries are removed.
+		// branch-cell-9 dropped per M-0162/AC-1 (legal-non-override,
+		// documentation-only): human-actor merge commits are silent
+		// because the isolation-escape rule keys on commit-actor-
+		// role=ai. The legal outcome here is the rule's default
+		// behavior, not a discriminator. branch-cell-4 and
+		// branch-cell-7 carry the discriminating illegal outcomes
+		// the rule actually checks.
+		// branch-cell-10 dropped per M-0162/AC-1 (legal-AND-override
+		// duplicate): same shape as branch-cell-override-force-amend
+		// was, registering the same preconditions twice. Both
+		// dropped; the aiwf-force trailer override mechanism in the
+		// kernel remains intact.
+		// branch-cell-11 dropped per M-0162/AC-1 (legal-non-override,
+		// documentation-only): AI commits without an open scope are
+		// silent because the rule requires a binding to evaluate
+		// branch-mismatch. The cell encoded "no rule applies = legal"
+		// as a positive cell with no mechanical assertion.
 		// branch-cell-12 — Corner case 12: Worktree-vs-branch mismatch
 		// (subagent did git checkout main from inside its assigned
 		// worktree). Finding fires — same code path as branch-cell-4
@@ -174,34 +155,13 @@ func Rules() []spec.Rule {
 			Outcome:       spec.OutcomeLegal,
 			Sources:       spec.RuleSource{Decision: "ADR-0010"},
 		},
-		// branch-cell-override-cherry-pick — M-0106 cherry-pick
-		// suppression: a `git cherry-pick -x` re-author by a human
-		// (committer ≠ original ai actor + cherry-pick marker in
-		// body) is recognized as sovereign re-author; the
-		// isolation-escape finding is silent. Test:
-		// TestIsolationEscape_AC6_CherryPickReAuthorSilent.
-		// Same shape as branch-cell-8 (the corner case) but registered
-		// here as the explicit override-surface entry per the spec body.
-		{
-			ID:            "branch-cell-override-cherry-pick",
-			Preconditions: []spec.Predicate{{Subject: "commit-actor-role", Op: "==", Value: "ai"}, {Subject: "committer-differs-from-actor", Op: "==", Value: "true"}, {Subject: "cherry-pick-marker-present", Op: "==", Value: "true"}},
-			Outcome:       spec.OutcomeLegal,
-			Sources:       spec.RuleSource{Decision: "ADR-0010"},
-		},
-		// branch-cell-override-force-amend — M-0106 aiwf-force
-		// amend override: amending the violating commit with
-		// aiwf-force: <reason> trailer + flipped human/ actor
-		// suppresses the isolation-escape finding. Gated by the
-		// existing trailer-shape rule (aiwf-force requires human/
-		// actor). Test: TestIsolationEscape_AC8_ForceAmendedCommitSilent.
-		// Same shape as branch-cell-10 (corner case) registered here
-		// as the explicit override entry per the spec body.
-		{
-			ID:            "branch-cell-override-force-amend",
-			Preconditions: []spec.Predicate{{Subject: "aiwf-force-trailer-present", Op: "==", Value: "true"}, {Subject: "commit-actor-role", Op: "==", Value: "human"}},
-			Outcome:       spec.OutcomeLegal,
-			Sources:       spec.RuleSource{Decision: "ADR-0010"},
-		},
+		// branch-cell-override-cherry-pick and
+		// branch-cell-override-force-amend dropped per M-0162/AC-1
+		// (semantic duplicates of corner-case cells 8 and 10
+		// respectively — both also dropped in this AC). The kernel's
+		// cherry-pick suppression and aiwf-force trailer override
+		// mechanisms remain implemented in the rules engine; the
+		// catalog redundancy is what was redundant.
 		// branch-cell-override-f-nnnn-waiver — At-check F-NNNN waiver
 		// per ADR-0003: `aiwf promote F-NNNN waived --force --reason
 		// "..."` records a finding-waiver as a sovereign act. The

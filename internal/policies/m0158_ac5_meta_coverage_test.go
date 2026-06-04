@@ -57,21 +57,18 @@ func TestM0158_AC5_EveryBranchCellHasMatchingTest(t *testing.T) {
 		// match-bleed flagged by the confidence-audit workflow. The
 		// two remaining keywords (cell-1 specific) are the canonical
 		// authorize-preflight test names from authorize_cmd_test.go.
-		"branch-cell-1":                                   {"NoBranch_NoRitualCurrent", "OnNonRitualBranch_NoBranch"},
-		"branch-cell-2":                                   {"BranchMissing_Refuses"},
-		"branch-cell-3":                                   {"ImplicitFromCurrent_AcceptsAndEmitsTrailer", "ImplicitRitualBranch_AcceptsAndRecords"},
+		"branch-cell-1": {"NoBranch_NoRitualCurrent", "OnNonRitualBranch_NoBranch"},
+		"branch-cell-2": {"BranchMissing_Refuses"},
+		// branch-cell-3, -5, -6, -8, -9, -10, -11 + the
+		// branch-cell-override-cherry-pick and
+		// branch-cell-override-force-amend entries dropped per
+		// M-0162/AC-1 alongside the catalog drop; the keyword set
+		// for the retained 7 entries remains. AC-4 retires this
+		// whole file in favor of the bijection meta-test.
 		"branch-cell-4":                                   {"AICommitOnMainFires", "FiresOnViolatingCommit"},
-		"branch-cell-5":                                   {"AICommitOnBoundBranchSilent", "SilentOnBoundBranchCommit"},
-		"branch-cell-6":                                   {"PausedScopeSilent", "AICommitOnBoundBranchPaused"},
 		"branch-cell-7":                                   {"AICommitOnDifferentRitualBranchFires", "DifferentRitualBranch"},
-		"branch-cell-8":                                   {"CherryPickReAuthorSilent"},
-		"branch-cell-9":                                   {"HumanMergeFirstParentSilent"},
-		"branch-cell-10":                                  {"ForceAmendedCommitSilent"},
-		"branch-cell-11":                                  {"NoScopeOpenedSilent"},
 		"branch-cell-12":                                  {"WorktreeBranchMismatchFires", "AC3_Worktree"},
 		"branch-cell-override-preflight":                  {"ForceReasonBypassesPreflight"},
-		"branch-cell-override-cherry-pick":                {"CherryPickReAuthorSilent"},
-		"branch-cell-override-force-amend":                {"ForceAmendedCommitSilent"},
 		"branch-cell-override-f-nnnn-waiver":              {}, // documented exception below
 		"branch-cell-id-rename-untrailered":               {"IDRenameUntrailered"},
 		"branch-cell-isolation-escape-oracle-failure":     {"AC3_OracleErrors", "AC3_PerRefTolerance"},

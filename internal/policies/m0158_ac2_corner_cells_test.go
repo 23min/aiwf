@@ -8,22 +8,29 @@ import (
 	"github.com/23min/aiwf/internal/workflows/spec/branch"
 )
 
-// TestM0158_AC2_TwelveCornerCellsPresent pins M-0158/AC-2: every
-// numbered corner case from E-0030 §"Corner cases" (1..12) is
-// registered as a named cell `branch-cell-N` in `branch.Rules()`.
-// Cell ids match the corner-case numbers 1:1 for traceability.
+// TestM0158_AC2_RetainedCornerCellsPresent pins the residual
+// M-0158/AC-2 claim after the M-0162/AC-1 refinement: the 5 corner
+// cells with mechanical weight (1, 2, 4, 7, 12 — the illegal-outcome
+// cells with non-empty ExpectedErrorCode) are registered as
+// `branch-cell-N` in `branch.Rules()`.
 //
-// Per the user's pre-implementation Q&A: 1:1 mapping (not collapsed
-// groupings) so the spec body's AC-2 literal wording holds and a
-// reader can navigate from cell id to epic prose by the same number.
-func TestM0158_AC2_TwelveCornerCellsPresent(t *testing.T) {
+// M-0158/AC-2 originally claimed all 12 numbered corner cases were
+// registered with 1:1 id-to-number traceability. M-0162/AC-1 drops
+// 7 of those (3, 5, 6, 8, 9, 10, 11) as documentation-only or
+// semantic duplicates per M-0161/AC-9 §"Part 1"; the M-0158/AC-2
+// promoted-met status remains valid because the original 12-cell
+// catalog landed correctly at M-0158 wrap time. This test tracks
+// the current catalog state — the AC-1 drop list is independently
+// pinned by TestM0162_AC1_DropSet.
+func TestM0158_AC2_RetainedCornerCellsPresent(t *testing.T) {
 	t.Parallel()
 
+	retainedCornerCells := []int{1, 2, 4, 7, 12}
 	byID := indexBranchRulesByID(t)
-	for n := 1; n <= 12; n++ {
+	for _, n := range retainedCornerCells {
 		id := fmt.Sprintf("branch-cell-%d", n)
 		if _, ok := byID[id]; !ok {
-			t.Errorf("M-0158/AC-2: branch.Rules() missing %q (corner case %d from E-0030 epic body §\"Corner cases\")", id, n)
+			t.Errorf("M-0158/AC-2 + M-0162/AC-1: branch.Rules() missing %q (corner case %d, retained per M-0162/AC-1 cleanup)", id, n)
 		}
 	}
 }
@@ -42,18 +49,16 @@ func TestM0158_AC2_TwelveCornerCellsPresent(t *testing.T) {
 func TestM0158_AC2_CornerCellOutcomesMatchEpic(t *testing.T) {
 	t.Parallel()
 
+	// Post-M-0162/AC-1 retained corner cells only. Entries for cells
+	// 3, 5, 6, 8, 9, 10, 11 removed alongside their catalog entries;
+	// the original M-0158/AC-2 met-status remains valid (the
+	// outcomes-matched-epic claim landed correctly for all 12 cells
+	// at M-0158 wrap time).
 	want := map[int]spec.Outcome{
 		1:  spec.OutcomeIllegal, // AI authorize on main no --branch → refused
 		2:  spec.OutcomeIllegal, // AI authorize --branch <typo> → refused
-		3:  spec.OutcomeLegal,   // AI authorize on epic ritual → accepted
 		4:  spec.OutcomeIllegal, // AI commit on main while bound to epic → fires
-		5:  spec.OutcomeLegal,   // AI commit on bound branch → silent
-		6:  spec.OutcomeLegal,   // AI commit on bound, scope paused → silent
 		7:  spec.OutcomeIllegal, // AI commit on different epic → fires
-		8:  spec.OutcomeLegal,   // Human cherry-pick → silent
-		9:  spec.OutcomeLegal,   // Human merge → silent
-		10: spec.OutcomeLegal,   // --force amend → silent
-		11: spec.OutcomeLegal,   // AI commit with no scope → silent
 		12: spec.OutcomeIllegal, // worktree-vs-branch mismatch → fires
 	}
 
@@ -62,7 +67,7 @@ func TestM0158_AC2_CornerCellOutcomesMatchEpic(t *testing.T) {
 		id := fmt.Sprintf("branch-cell-%d", n)
 		got, ok := byID[id]
 		if !ok {
-			continue // covered by TwelveCornerCellsPresent above; don't double-report
+			continue // covered by RetainedCornerCellsPresent above; don't double-report
 		}
 		if got.Outcome != wantOutcome {
 			t.Errorf("M-0158/AC-2: %s.Outcome = %v; want %v (per E-0030 epic §\"Corner cases\" #%d)", id, got.Outcome, wantOutcome, n)
