@@ -140,6 +140,18 @@ var hintTable = map[string]string{
 	// allowlisted (G-0180) and do not fire.
 	"trailer-verb-unknown": "the commit's `aiwf-verb:` value is not a registered top-level verb or subverb, nor a recognized ritual verb; if it's a typo (or an LLM fabrication), amend the commit and drop the trailer — plain `feat(...)` / `fix(...)` commits don't need an `aiwf-verb:` line; if it's a new ritual verb, add it to the ritualVerbs allowlist in internal/check/trailer_verb_unknown.go",
 
+	// M-0160/AC-4: id-rename-untrailered fires when a commit between
+	// merge-base(HEAD, trunk) and HEAD renames an id-bearing entity
+	// file without an aiwf-verb trailer in the rename-class closed
+	// set. The canonical resolution is `aiwf reallocate` — it
+	// rewrites the frontmatter, walks the tree to rewrite every
+	// cross-reference to the old id, and stamps the proper
+	// `aiwf-verb: reallocate` + `aiwf-prior-entity:` trailers so
+	// `aiwf history` bridges old→new. Sovereign-human override via
+	// `aiwf acknowledge-illegal` is the post-hoc silencing path for
+	// renames that were deliberate.
+	"id-rename-untrailered": "the commit renamed an id-bearing entity file without an `aiwf-verb` trailer in the rename-class set (retitle/rename/reallocate/archive/move). Canonical resolution: run `aiwf reallocate <new-id-or-path>` to record the renumber with the proper trailer set — that rewrites cross-references and bridges `aiwf history` from the old id; alternatively, if the original rename was deliberate sovereign-human work, run `aiwf acknowledge-illegal <sha> --reason \"<text>\"` to silence this specific commit's finding without rewriting history. See CLAUDE.md §\"Id-collision resolution at merge time\".",
+
 	// Verb-emitted findings (from internal/verb/).
 	"unexpected-tree-file": "remove the file or move it outside `work/`; if it genuinely belongs there, add a glob to `tree.allow_paths` in aiwf.yaml — but tree-shape changes (new entities, renames, status transitions) go through `aiwf <verb>`, not direct writes",
 
@@ -154,6 +166,20 @@ var hintTable = map[string]string{
 	// variant but cannot pick between two, so the renderer leaves this
 	// advisory for the operator to resolve.
 	"roadmap-case-collision": "remove one case-variant of the roadmap file (`git rm`) so a single canonical ROADMAP.md (or the lowercase convention the repo already uses) remains at the repo root",
+
+	// isolation-escape — AI-actor commit on a branch that doesn't
+	// match the active scope's recorded aiwf-branch:. Three sovereign
+	// override paths leave a clean audit trail; the hint names all
+	// three so an operator who hits the finding sees a single place
+	// that lists every legitimate way out. acknowledge-illegal is
+	// listed first as the canonical kernel-native path — separate
+	// empty commit, no history rewrite, traces via `aiwf history`
+	// through the aiwf-force-for trailer; the cherry-pick and amend
+	// paths remain documented for the cases where a human re-author
+	// or in-place sovereign override is the right shape. Lineage via
+	// `aiwf history` covers M-0106 (original 2-path hint) and
+	// M-0159/AC-9 (acknowledge-illegal addition).
+	"isolation-escape": "the AI-actor commit landed on a branch that doesn't match the active scope's recorded `aiwf-branch:`. Override paths: (a) canonical: run `aiwf acknowledge-illegal <sha> --reason \"<text>\"` as a human actor — records a separate audit-trail commit (aiwf-verb: acknowledge-illegal + aiwf-force-for: <sha>) that silences the finding without rewriting the original commit; (b) re-author via `git cherry-pick -x <sha>` — preserves the marker and changes the committer to a human, suppressing the finding; (c) amend the violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` and an `aiwf-actor: human/<id>` trailer to record the sovereign override. See E-0030 epic body §\"Sovereign override surface\" for the audit trail each path produces.",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.

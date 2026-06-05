@@ -54,6 +54,12 @@ func TestScenario_TerminalPromoteEndsMultipleParallelScopes(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("aiwf add epic: %v\n%s", err, out)
 	}
+	// M-0103: ritual branch satisfies the AI-target preflight on the
+	// first --to ai/claude open. The second --to bot/ci does not trigger
+	// the preflight (non-ai/* target).
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize 1: %v\n%s", err, out)
 	}
@@ -139,6 +145,11 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 			t.Fatalf("setup %v: %v\n%s", args, err, out)
 		}
 	}
+	// M-0103: move HEAD to a ritual-shape branch so the implicit-current
+	// signal passes the AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b epic/E-0001-engine: %v\n%s", err, out)
+	}
 	// Open scope on E-01 and capture its SHA before any pivot.
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize E-01: %v\n%s", err, out)
@@ -156,6 +167,10 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 	// Pause E-01, open E-02 (capture E-02's auth SHA before agent acts).
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--pause", "switching focus"); err != nil {
 		t.Fatalf("pause E-01: %v\n%s", err, out)
+	}
+	// M-0103: move to E-02's ritual branch for the second open.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0002-pipeline"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0002", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize E-02: %v\n%s", err, out)
@@ -228,6 +243,10 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 		if out, err := testutil.RunBin(t, root, binDir, nil, args...); err != nil {
 			t.Fatalf("setup %v: %v\n%s", args, err, out)
 		}
+	}
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0002-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
 	// Open scope on E-02 (the soon-to-be-reallocated epic) and capture
 	// the auth SHA so we can later verify the post-reallocate commit
@@ -421,7 +440,16 @@ func TestScenario_RepeatedPauseResumeCycle(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
 	}
-	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
+	// M-0103: --force --reason bypasses the AI-target preflight without
+	// changing branch. Cutting a feature branch here would fire the
+	// unrelated provenance-untrailered-scope-undefined warning at the
+	// final `aiwf check` (no upstream + non-main branch), breaking the
+	// test's check-output substring assertion. The override path keeps
+	// the test on master so the assertion stays valid; pause/resume —
+	// what's under test — does not depend on the open commit's flags.
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"authorize", "E-0001", "--to", "ai/claude",
+		"--force", "--reason", "test fixture: bypass M-0103 preflight; pause/resume cycle is what's under test"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
 	for i, args := range [][]string{
@@ -471,6 +499,10 @@ func TestScenario_AuthorizeWithOnBehalfOfNeutralAtCheck(t *testing.T) {
 	root, binDir := initRepoFor(t, "peter@example.com")
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "epic", "--title", "Engine"); err != nil {
 		t.Fatalf("add epic: %v\n%s", err, out)
+	}
+	// M-0103: ritual branch satisfies AI-target preflight.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
 	// Open a real authorize commit so its SHA can be referenced.
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {

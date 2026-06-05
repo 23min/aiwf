@@ -321,19 +321,24 @@ Make the rendered governance site usable for current-state synthesis at a glance
 | M-0101 | In-page status hierarchy in gaps.html | cancelled |
 | M-0107 | Repair Playwright e2e suite for current kernel state | done |
 
-## E-0030 — Branch model chokepoint: --branch flag, sequencing, isolation-escape finding (proposed)
+## E-0030 — Branch model chokepoint: --branch flag, sequencing, isolation-escape finding (active)
 
 ### Goal
 
-Make [ADR-0010](docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md)'s two-tier branch model mechanically enforceable: AI-actor multi-commit work cannot escape a ritual branch context, and the rituals create branches in the right sequence so kernel state-of-the-world stays visible from main throughout the cycle.
+Make [ADR-0010](docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md)'s two-tier branch model mechanically enforceable end-to-end: AI-actor multi-commit work cannot escape a ritual branch context, the rituals create branches in the right sequence so kernel state-of-the-world stays visible from main throughout the cycle, the finding rule that catches drift is itself a cell in the layer-4 branch-choreography spec ([ADR-0011](docs/adr/ADR-0011-legal-workflow-spec-methodology.md) §"Scope"), and the human override path is gated by a typed sovereign-trailer signature.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0102 | aiwf authorize --branch flag + scope-branch trailer coupling | draft |
-| M-0103 | AI-side preflight: aiwf authorize refuses without ritual branch context | draft |
-| M-0104 | aiwfx-start-epic sequencing fix (closes G-0116) | draft |
-| M-0105 | aiwfx-start-milestone sequencing alignment | draft |
-| M-0106 | Kernel finding isolation-escape (closes G-0099) | draft |
+| M-0102 | aiwf authorize --branch flag + scope-branch trailer coupling | done |
+| M-0103 | AI-side preflight: aiwf authorize refuses without ritual branch context | done |
+| M-0104 | aiwfx-start-epic sequencing fix (closes G-0116) | done |
+| M-0105 | aiwfx-start-milestone sequencing alignment | done |
+| M-0106 | Kernel finding isolation-escape (closes G-0099) | done |
+| M-0158 | Layer-4 branch-choreography spec cells + drift-policy extension | done |
+| M-0159 | Real-world hardening of branch-model chokepoint | done |
+| M-0160 | Operational pain — reallocate stress, trunk-collision regress, apply rollback | done |
+| M-0161 | Imagination-driven hardening: shallow, force-push, rename, detached, trunk | done |
+| M-0162 | Layer-4 spec-catalog refactor: bijection + Pin registry | done |
 
 ## E-0031 — Pin legal workflows, composition, and branch choreography mechanically (cancelled)
 
@@ -464,7 +469,7 @@ Make `aiwf` itself the distribution mechanism for the rituals — vendor a pinne
 | M-0151 | Agent-target seam in the materializer (Claude writer behind the seam) | done |
 | M-0152 | Marketplace sunset: doctor flip, de-dupe guard, docs rewrite | done |
 
-## E-0039 — Optional install path for the aiwf-aware statusline (closes G-0183) (active)
+## E-0039 — Optional install path for the aiwf-aware statusline (closes G-0183) (done)
 
 ### Goal
 
@@ -478,6 +483,6 @@ editing a settings file.
 | M-0153 | Statusline script portability and robustness fixes | done |
 | M-0154 | ADR: amend settings.json stance to consent-gated | done |
 | M-0155 | Embed statusline and add --statusline scaffold with --scope | done |
-| M-0156 | Consent-gated statusline settings wiring | draft |
-| M-0157 | aiwf doctor statusline block | draft |
+| M-0156 | Consent-gated statusline settings wiring | done |
+| M-0157 | aiwf doctor statusline block | done |
 

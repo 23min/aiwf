@@ -21,6 +21,14 @@ const (
 	// ClassLegality marks verb-time FSM / precondition refusals named by
 	// illegal spec cells (e.g. an FSM transition the kind forbids).
 	ClassLegality
+	// ClassBranchChoreography marks findings that police ADR-0010's
+	// branch model: commits must ride the branch their active scope
+	// names (the scope's aiwf-branch: trailer). The class exists as
+	// a distinct kernel-layer carve-out per ADR-0011 (layer-4 branch
+	// choreography) so consumers can enumerate the branch-policing
+	// findings independently of structural integrity or legality.
+	// M-0106 introduces the first member (isolation-escape).
+	ClassBranchChoreography
 )
 
 // Code is a typed kernel-code descriptor: a stable string ID paired

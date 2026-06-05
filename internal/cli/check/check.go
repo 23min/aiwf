@@ -98,7 +98,17 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	contractFindings := contract.RunValidation(ctx, tr, resolved, contracts)
 	findings = append(findings, contractFindings...)
 
-	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs)
+	// M-0159/AC-3: compute the retroactive-acknowledgment SHA set
+	// once per check invocation, then pass it to every rule that
+	// consumes it. The single-compute invariant is policed by
+	// internal/policies/acks_helper_lift.go; rule-internal recompute
+	// is forbidden (violation class 3c). The four consumers below
+	// are RunProvenanceCheck (which forwards to RunIsolationEscape,
+	// RunTrailerVerbUnknown, and RunIDRenameUntrailered — the
+	// fourth added at M-0160/AC-4) and FSMHistoryConsistent.
+	ackedSHAs := check.WalkAcknowledgedSHAs(ctx, resolved)
+
+	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs)
 	if pErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
 		return cliutil.ExitInternal
@@ -113,7 +123,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// shape-only policy path. M-0130 lands the predicates
 	// incrementally; AC-1 wires the walker without emitting any
 	// findings yet.
-	findings = append(findings, check.FSMHistoryConsistent(ctx, resolved, tr)...)
+	findings = append(findings, check.FSMHistoryConsistent(ctx, resolved, tr, ackedSHAs)...)
 
 	requireMetrics := false
 	var treeAllow []string

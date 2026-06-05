@@ -187,6 +187,22 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 		lines = append(lines, fmt.Sprintf("%s%s (from %s)", label("actor:"), actor, source))
 	}
 
+	// M-0161/AC-7 / G-0207: detached-HEAD advisory. Detached HEAD
+	// is a state operators reach via `git checkout <sha>`,
+	// `git worktree add --detach`, or during a `git rebase`. The
+	// `aiwf authorize` preflight refuses on detached HEAD (per
+	// AC-7's preflight refinement); surfacing the state at doctor
+	// time lets operators discover it proactively rather than via
+	// a verb refusal. Advisory severity — does NOT increment
+	// problems; lines starting with `head: detached-head ...` are
+	// the canonical substring marker for AC-7 E2E discrimination
+	// (per AC-7 body line 498's documented substring-against-stderr
+	// exception, paralleled here as substring-against-stdout for
+	// the doctor surface).
+	if currentBranch(rootDir) == "" && headIsDetached(rootDir) {
+		lines = append(lines, label("head:")+"detached-head: advisory — no symbolic HEAD; checkout a ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug>) before running `aiwf authorize`, or use `--force --reason \"...\"` to override the preflight refusal.")
+	}
+
 	embedded, err := skills.List()
 	if err != nil {
 		lines = append(lines, label("skills:")+err.Error())
@@ -711,6 +727,30 @@ func renderLatestPublished(current version.Info) string {
 		return fmt.Sprintf("%s (binary at %s; skew unknown — devel or pseudo-version on either side)",
 			latest.Version, current.Version)
 	}
+}
+
+// currentBranch returns the short name of HEAD's symbolic ref
+// in rootDir, or "" when HEAD is detached or git fails. M-0161/
+// AC-7 uses the empty return as the detection signal.
+func currentBranch(rootDir string) string {
+	cmd := exec.Command("git", "symbolic-ref", "--short", "HEAD")
+	cmd.Dir = rootDir
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// headIsDetached double-checks the detached-state by verifying
+// `git rev-parse HEAD` succeeds (so HEAD points at an object,
+// just not via a symbolic ref). Distinguishes detached HEAD
+// from "no commits yet" or other git failures, both of which
+// currentBranch reports as "".
+func headIsDetached(rootDir string) bool {
+	cmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
+	cmd.Dir = rootDir
+	return cmd.Run() == nil
 }
 
 // renderBinaryVersion formats a version.Info for the doctor binary

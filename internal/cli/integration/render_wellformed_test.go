@@ -38,6 +38,10 @@ func TestRender_AllPagesAreWellFormed(t *testing.T) {
 		"--tests", "pass=8 fail=0 skip=1")
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001/AC-2", "--phase", "done")
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
+	// M-0103: ritual branch satisfies the AI-target preflight in authorize.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-adoption"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	mustRun(t, "authorize", "--root", root, "--actor", "human/test", "M-0002", "--to", "ai/claude")
 
 	out := filepath.Join(t.TempDir(), "site")

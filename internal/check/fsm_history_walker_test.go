@@ -61,7 +61,7 @@ func TestBatchedWalker_RenameChainTracking(t *testing.T) {
 		},
 	}
 
-	got := FSMHistoryConsistent(context.Background(), r.root, tr)
+	got := FSMHistoryConsistent(context.Background(), r.root, tr, nil)
 
 	// The walker must attribute the proposed → done observation to
 	// E-0001 even though the commit touched the entity's OLD path. The

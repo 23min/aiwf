@@ -13,16 +13,26 @@ import (
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
-// globalScopeReachRule returns the single global scope-reach rule from
+// globalScopeReachRule returns the scope-reach global rule from
 // spec.GlobalRules() (ADR-0013: global rules live in their own accessor,
-// not in Rules()), failing if it is absent or duplicated.
+// not in Rules()), failing if it is absent or duplicated. As of E-0030
+// the accessor holds more than one global rule (the branch-context
+// preflight cells joined the catalog), so this helper selects by the
+// rule's ExpectedErrorCode rather than by slice index.
 func globalScopeReachRule(t *testing.T) spec.Rule {
 	t.Helper()
+	const code = "provenance-authorization-out-of-scope"
 	globals := spec.GlobalRules()
-	if len(globals) != 1 {
-		t.Fatalf("expected exactly 1 rule in spec.GlobalRules(), got %d", len(globals))
+	var matchIdxs []int
+	for i := range globals {
+		if globals[i].ExpectedErrorCode == code {
+			matchIdxs = append(matchIdxs, i)
+		}
 	}
-	return globals[0]
+	if len(matchIdxs) != 1 {
+		t.Fatalf("expected exactly 1 rule in spec.GlobalRules() with ExpectedErrorCode=%q, got %d", code, len(matchIdxs))
+	}
+	return globals[matchIdxs[0]]
 }
 
 // TestM0147_AC1_GlobalRulePresent asserts the marked global scope-reach

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/23min/aiwf/internal/branchparse"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/render"
@@ -306,8 +306,9 @@ func worktreeTree(ctx context.Context, path, rootDir string, mainTree *tree.Tree
 // inference. The trailer cascade is the fallback for non-ritual
 // branches where the entity scope must be inferred from work history:
 //
-//  1. **Branch-name parse** (G-0154): if `branchEntityPattern` matches,
-//     return that entity. Ritual branch shapes are deliberate operator
+//  1. **Branch-name parse** (G-0154): if `branchparse.ParseEntityFromBranch`
+//     matches the ritual shape, return that entity. Ritual branch shapes
+//     are deliberate operator
 //     intent; honoring them avoids the post-merge mislabeling where a
 //     child milestone's promote-trailer (pulled onto the epic branch by
 //     a merge) would otherwise beat the epic's branch name.
@@ -335,7 +336,7 @@ func correlateBranchToEntity(ctx context.Context, rootDir, branch string) string
 	// declaration of intent. Honor them ahead of trailer inference so
 	// an `epic/E-NNN-...` worktree that has just merged its child
 	// milestones is still labeled as driving E-NNN.
-	if id := parseEntityFromBranch(branch); id != "" {
+	if id := branchparse.ParseEntityFromBranch(branch); id != "" {
 		return id
 	}
 	return correlateFromTrailerEvents(branchAiwfEvents(ctx, rootDir, branch))
@@ -469,28 +470,6 @@ func parentEntity(id string) string {
 	return id
 }
 
-// branchEntityPattern matches the conventional ritual-branch prefixes:
-//
-//	epic/E-NNNN-<slug>          → E-NNNN
-//	milestone/M-NNNN-<slug>     → M-NNNN
-//	patch/g-NNNN-<slug>         → G-NNNN (case-insensitive id segment)
-//
-// Other shapes (fix/*, chore/*, patch/<topic-without-id>) yield "".
-var branchEntityPattern = regexp.MustCompile(`^(?:epic|milestone|patch)/([EeMmGg]-\d+)(?:-|$)`)
-
-// parseEntityFromBranch tries to derive an entity id from the branch
-// name when the hybrid cascade's git-log walk found nothing. Honors
-// the conventional `epic/E-NNNN-...`, `milestone/M-NNNN-...`,
-// `patch/g-NNNN-...` shapes. Returns "" on no match.
-func parseEntityFromBranch(branch string) string {
-	m := branchEntityPattern.FindStringSubmatch(branch)
-	if m == nil {
-		return ""
-	}
-	id := strings.ToUpper(m[1])
-	return id
-}
-
 // trunkTreeOf returns the loaded entity tree of the `main`-branch
 // checkout among the worktrees — the authoritative "trunk" view used to
 // detect merged-but-unpruned worktrees (G-0172). git's worktree set
@@ -582,7 +561,7 @@ func epicExpansion(tr *tree.Tree, epicID string, worktrees []gitops.Worktree) (m
 			if wt.Branch == "" {
 				continue
 			}
-			otherID := parseEntityFromBranch(wt.Branch)
+			otherID := branchparse.ParseEntityFromBranch(wt.Branch)
 			if otherID == m.ID && wt.Path != "" {
 				row.DrivenByPath = wt.Path
 				break
@@ -1364,7 +1343,7 @@ func buildOtherInFlight(tr *tree.Tree, worktreeDriverIDs map[string]bool, branch
 	// not entity-bearing).
 	branchByEntity := map[string]branchAge{}
 	for _, b := range branches {
-		if id := parseEntityFromBranch(b.Name); id != "" {
+		if id := branchparse.ParseEntityFromBranch(b.Name); id != "" {
 			branchByEntity[entity.Canonicalize(id)] = b
 		}
 	}

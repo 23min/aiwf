@@ -69,6 +69,18 @@ func TestSingleCommitPerMutatingVerb_Invariant(t *testing.T) {
 		t.Fatalf("aiwf init must not produce a commit (CLAUDE.md: scaffolding writes files; user commits aiwf.yaml when ready); got %d commits at HEAD", n)
 	}
 
+	// M-0103: the authorize-step cases below open a scope on ai/claude;
+	// the preflight refuses without a ritual branch context. Move HEAD
+	// to a ritual-shape branch so the implicit-current signal passes.
+	// `git checkout -b <new>` on an unborn HEAD is a 0-commit operation,
+	// so the per-verb commit-delta invariant below is preserved.
+	if out, err := exec.Command("git", "-C", root, "checkout", "-b", "epic/E-0002-engine").CombinedOutput(); err != nil {
+		t.Fatalf("git checkout -b epic/E-0002-engine: %v\n%s", err, out)
+	}
+	if n := commitCountSafe(t, root); n != 0 {
+		t.Fatalf("git checkout -b on unborn HEAD must not produce a commit; got %d commits", n)
+	}
+
 	// A body-file for the edit-body step. Written once up front so the
 	// step itself just runs the verb.
 	bodyFile := filepath.Join(root, "fixtures-edit-body.md")

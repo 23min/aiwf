@@ -124,7 +124,32 @@ Open the PR if the project's flow is PR-driven. Reference the milestone id in th
 
 ### 11. After merge
 
-- If the project uses an epic-integration branch, merge the milestone branch into the epic branch (`--no-ff` to preserve the milestone shape).
+If the project uses an epic-integration branch, merge the milestone branch into the epic branch following the same pattern as `aiwfx-wrap-epic`'s epic-into-trunk merge: stage the merge **without committing** so the merge commit's trailer set can be attached explicitly.
+
+```bash
+git checkout epic/E-NNNN-<slug>
+git merge --no-ff --no-commit milestone/M-NNNN-<slug>
+```
+
+`--no-ff` preserves the milestone as a single merge commit (rather than fast-forwarding individual milestone commits into the epic). `--no-commit` leaves the merge staged so the commit-emitting step is the one carrying trailers — without it, git produces an untrailered merge commit and the kernel's `trailer-verb-unknown` warning fires (the operator's hand-typed `aiwf-verb: merge` is a fabrication; `merge` is a git concept, not a recognized ritual or kernel verb).
+
+Resolve the operator identity from `git config user.email` (per CLAUDE.md *Provenance model* §"Identity is runtime-derived"); do not hardcode `<id>`. Then commit with the three required trailers and a Conventional Commits subject:
+
+```bash
+git commit -m "chore(milestone): wrap M-NNNN — <milestone title>" \
+  --trailer "aiwf-verb: wrap-milestone" \
+  --trailer "aiwf-entity: M-NNNN" \
+  --trailer "aiwf-actor: human/<id>"
+```
+
+The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. The `aiwf-verb: wrap-milestone` value names the ritual that produced the commit; the kernel's `trailer-verb-unknown` rule recognizes it via the ritualVerbs allowlist (sourced from the embedded ritual snapshot per G-0190), mirroring `aiwfx-wrap-epic`'s `aiwf-verb: wrap-epic` trailer at the equivalent step.
+
+**Why an `aiwf-verb` trailer on a `git merge` commit.** The merge IS a kernel-meaningful structural transition (the milestone's work joins the epic's history); `aiwf-verb: wrap-milestone` records the *ritual* that produced it, not the underlying git operation. **Do NOT** write `aiwf-verb: merge` — `merge` is neither a Cobra verb nor an allowlisted ritual value; it's a fabrication the `trailer-verb-unknown` rule will flag at pre-push, leaving you with two cleanup paths (`aiwf acknowledge-illegal <sha>` or push the warning forward, since amend is blocked by the trunk-aware push model). The compositional gate against fabricated values is tracked under [`G-0218`](../../../../../../../work/gaps/G-0218-operator-typed-commit-messages-bypass-aiwf-verb-registry-at-composition.md) — a `commit-msg` git hook that refuses unrecognized `aiwf-verb:` values at message composition time.
+
+Record the resulting merge commit SHA wherever the project tracks merge history (the milestone's `## Work log` section is the natural place).
+
+Then:
+
 - Delete the milestone branch on origin.
 - Run `aiwf render roadmap --write` once more if the merge introduced any state aiwf would notice.
 
