@@ -1,8 +1,11 @@
 ---
 id: G-0218
 title: Operator-typed commit messages bypass aiwf-verb registry at composition
-status: open
+status: addressed
 discovered_in: M-0160
+addressed_by_commit:
+    - 0baed90b
+    - 934e59c6
 ---
 
 ## What's missing
