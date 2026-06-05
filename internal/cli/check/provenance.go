@@ -46,7 +46,19 @@ import (
 // check.RunIDRenameUntrailered — the third added at M-0160/AC-4);
 // the fourth consumer (check.FSMHistoryConsistent) is called
 // directly from check.go::Run with the same map.
-func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}, ackedSHAs map[string]bool) ([]check.Finding, error) {
+//
+// G-0218 Patch 2: postCutoffSHAs is the gather-layer-computed map of
+// commit SHAs that descend from check.HookInstallSHA (via
+// check.WalkPostCutoffSHAs called once at check.go::Run). Mirrors
+// the ackedSHAs pattern — single-compute, cascading pass-through.
+// The map drives the trailer-verb-unknown rule's severity decision
+// (post-cutoff → SeverityError; pre-cutoff or nil-map fallback →
+// SeverityWarning per the G-0150 baseline). Threaded as a parameter
+// rather than computed inside this function so seam tests can pin
+// the rule's severity transition against fixture cutoffs (the
+// production HookInstallSHA points at a specific main-branch
+// commit that fresh-fixture repos don't carry).
+func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}, ackedSHAs, postCutoffSHAs map[string]bool) ([]check.Finding, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -191,7 +203,16 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// stamps as unknown, which is preferable to silently allowing
 	// arbitrary values.
 	ritualVerbs, _ := skills.RitualTrailerVerbs()
-	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs, ritualVerbs, ackedSHAs)...)
+	// G-0218 Patch 2: postCutoffSHAs drives the trailer-verb-unknown
+	// rule's severity transition. Computed once at check.go::Run and
+	// passed through here (mirroring the ackedSHAs single-compute /
+	// cascading-pass-through pattern). Findings on commits descending
+	// from check.HookInstallSHA emit at SeverityError; pre-cutoff
+	// commits and every failure mode of the walker (cutoff
+	// unreachable, shallow clone, fork divergence) degrade to nil →
+	// all findings stay at SeverityWarning per the G-0150 baseline so
+	// existing trunk history isn't retroactively broken.
+	findings = append(findings, check.RunTrailerVerbUnknown(asScopeCommits(untrailed), registeredVerbs, ritualVerbs, ackedSHAs, postCutoffSHAs)...)
 	return findings, nil
 }
 

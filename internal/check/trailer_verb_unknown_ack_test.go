@@ -46,7 +46,7 @@ func TestRunTrailerVerbUnknown_AC3_AckedSHASilencesUnknownVerb(t *testing.T) {
 		"aaa1111": true,
 	}
 
-	got := RunTrailerVerbUnknown(commits, registered, nil, ackedSHAs)
+	got := RunTrailerVerbUnknown(commits, registered, nil, ackedSHAs, nil)
 	if len(got) != 0 {
 		t.Fatalf("expected 0 findings (ack silences the unknown-verb commit per AC-3 lift consumption); got %d: %+v", len(got), got)
 	}
@@ -71,7 +71,7 @@ func TestRunTrailerVerbUnknown_AC3_AckedMapWithoutCommitSHA_StillFires(t *testin
 		"unrelated-sha-xyz": true,
 	}
 
-	got := RunTrailerVerbUnknown(commits, registered, nil, ackedSHAs)
+	got := RunTrailerVerbUnknown(commits, registered, nil, ackedSHAs, nil)
 	if len(got) != 1 {
 		t.Fatalf("expected exactly 1 finding (per-SHA scoping: ack on unrelated SHA must not exempt aaa1111); got %d: %+v", len(got), got)
 	}

@@ -65,7 +65,7 @@ func TestRunProvenanceCheck_TrailerVerbUnknown_FiresOnUnpushedFabrication(t *tes
 		"promote": {},
 		// "implement" deliberately absent
 	}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -81,6 +81,108 @@ func TestRunProvenanceCheck_TrailerVerbUnknown_FiresOnUnpushedFabrication(t *tes
 	}
 	if !strings.Contains(found.Message, "implement") {
 		t.Errorf("finding message must name the offending value; got %q", found.Message)
+	}
+	// G-0218 Patch 2 seam: when the caller passes nil postCutoffSHAs
+	// (the fallback for "cutoff SHA unreachable from HEAD" — true
+	// of this fresh fixture which doesn't carry production
+	// HookInstallSHA), the rule must emit at SeverityWarning per the
+	// G-0150 baseline. Pinning severity here catches a future
+	// regression where the gather forgets to thread postCutoffSHAs
+	// or threads the wrong shape — without this, swapping severity
+	// would still see the test pass on its current "the finding
+	// exists" assertion.
+	if found.Severity != check.SeverityWarning {
+		t.Errorf("Severity = %q, want %q (nil postCutoffSHAs → warning baseline)", found.Severity, check.SeverityWarning)
+	}
+}
+
+// TestRunProvenanceCheck_TrailerVerbUnknown_PostCutoffEmitsError is
+// the post-cutoff seam test for G-0218 Patch 2. The fixture builds a
+// fabricated-verb commit (C1) and passes a postCutoffSHAs map that
+// includes C1 — i.e., simulates the production case where HEAD
+// descends from check.HookInstallSHA. The rule must surface the
+// finding at SeverityError, proving the gather threaded the map
+// from the caller through to RunTrailerVerbUnknown.
+//
+// Threading rather than computing postCutoffSHAs inside
+// RunProvenanceCheck (the design choice that drove the AC-3-style
+// pass-through) is what makes this test possible: production
+// HookInstallSHA points at a specific main-branch commit that fresh-
+// fixture repos don't have.
+//
+// G-0218 Patch 2.
+func TestRunProvenanceCheck_TrailerVerbUnknown_PostCutoffEmitsError(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ctx := context.Background()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	seed := filepath.Join(root, "seed.md")
+	if err := os.WriteFile(seed, []byte("seed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "seed.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "baseline", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	c0 := headSHA(t, root)
+
+	more := filepath.Join(root, "more.md")
+	if err := os.WriteFile(more, []byte("more\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "more.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "feat(check): implement something",
+		"", []gitops.Trailer{{Key: gitops.TrailerVerb, Value: "implement"}}); err != nil {
+		t.Fatal(err)
+	}
+	c1 := headSHA(t, root)
+
+	registered := map[string]struct{}{
+		"add":     {},
+		"promote": {},
+	}
+	// Simulate the gather having computed postCutoffSHAs that
+	// includes C1 — i.e., C1 descends from the (would-be) cutoff.
+	// In production, check.go::Run computes this via
+	// check.WalkPostCutoffSHAs; here the test injects directly.
+	postCutoff := map[string]bool{c1: true}
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, postCutoff)
+	if err != nil {
+		t.Fatalf("RunProvenanceCheck: %v", err)
+	}
+	var found *check.Finding
+	for i := range findings {
+		if findings[i].Code == check.CodeTrailerVerbUnknown {
+			found = &findings[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatalf("trailer-verb-unknown finding did not fire; got %d findings", len(findings))
+	}
+	if found.Severity != check.SeverityError {
+		t.Errorf("Severity = %q, want %q (post-cutoff per G-0218 Patch 2)", found.Severity, check.SeverityError)
+	}
+	if found.Hint == "" {
+		t.Fatal("post-cutoff finding must carry a remediation Hint naming the commit-msg hook")
+	}
+	// Pin Hint content (not just existence) so a future regression
+	// that replaces the inline remediation text with a different
+	// non-empty Hint surfaces here. The unit-level pin lives at
+	// internal/check/trailer_verb_unknown_test.go::TestRunTrailerVerbUnknown_PostCutoffEmitsError;
+	// asserting it here too closes the seam — the gather is what
+	// composes the value the operator actually reads.
+	if !strings.Contains(found.Hint, "commit-msg hook") {
+		t.Errorf("Hint must name the commit-msg hook; got %q", found.Hint)
+	}
+	if !strings.Contains(found.Hint, "--no-verify") {
+		t.Errorf("Hint must reference the bypass mechanism (--no-verify or plumbing); got %q", found.Hint)
 	}
 }
 
@@ -130,7 +232,7 @@ func TestRunProvenanceCheck_TrailerVerbUnknown_SilentOnRegisteredVerb(t *testing
 		"add":     {},
 		"promote": {},
 	}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -211,7 +313,7 @@ func TestAsScopeCommits_CopiesSHAAndTrailers(t *testing.T) {
 // without erroring on the absent git log.
 func TestRunProvenanceCheck_EmptyRepoIsNoop(t *testing.T) {
 	t.Parallel()
-	findings, err := RunProvenanceCheck(context.Background(), t.TempDir(), &tree.Tree{}, "", nil, nil)
+	findings, err := RunProvenanceCheck(context.Background(), t.TempDir(), &tree.Tree{}, "", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}

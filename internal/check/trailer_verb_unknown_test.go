@@ -36,7 +36,7 @@ func TestRunTrailerVerbUnknown_FiresOnFabricatedVerb(t *testing.T) {
 	commits := []scope.Commit{
 		commitWithVerb("aaa1111", "implement"), // fabricated
 	}
-	got := RunTrailerVerbUnknown(commits, registered, nil, nil)
+	got := RunTrailerVerbUnknown(commits, registered, nil, nil, nil)
 	if len(got) != 1 {
 		t.Fatalf("findings = %d, want 1", len(got))
 	}
@@ -45,7 +45,7 @@ func TestRunTrailerVerbUnknown_FiresOnFabricatedVerb(t *testing.T) {
 		t.Errorf("Code = %q, want %q", f.Code, CodeTrailerVerbUnknown)
 	}
 	if f.Severity != SeverityWarning {
-		t.Errorf("Severity = %q, want %q (advisory per gap)", f.Severity, SeverityWarning)
+		t.Errorf("Severity = %q, want %q (advisory per gap, nil postCutoffSHAs)", f.Severity, SeverityWarning)
 	}
 	if !strings.Contains(f.Message, "implement") {
 		t.Errorf("Message must name the offending value; got %q", f.Message)
@@ -71,7 +71,7 @@ func TestRunTrailerVerbUnknown_SilentOnRegisteredVerbs(t *testing.T) {
 		commitWithVerb("aaa4", "milestone-depends-on"),
 		commitWithVerb("aaa5", "render-roadmap"),
 	}
-	if got := RunTrailerVerbUnknown(commits, registered, nil, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, registered, nil, nil, nil); len(got) != 0 {
 		for i := range got {
 			t.Logf("unexpected: %s — %s", got[i].Code, got[i].Message)
 		}
@@ -91,7 +91,7 @@ func TestRunTrailerVerbUnknown_SkipsCommitsWithoutAiwfVerb(t *testing.T) {
 		}},
 		{SHA: "plain"}, // no trailers at all
 	}
-	if got := RunTrailerVerbUnknown(commits, registered, nil, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, registered, nil, nil, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (no aiwf-verb trailer present)", len(got))
 	}
 }
@@ -107,7 +107,7 @@ func TestRunTrailerVerbUnknown_EmptyValueIsSilent(t *testing.T) {
 			{Key: gitops.TrailerVerb, Value: ""},
 		}},
 	}
-	if got := RunTrailerVerbUnknown(commits, registered, nil, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, registered, nil, nil, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (empty value is a different rule's domain)", len(got))
 	}
 }
@@ -122,10 +122,10 @@ func TestRunTrailerVerbUnknown_EmptyValueIsSilent(t *testing.T) {
 func TestRunTrailerVerbUnknown_EmptyRegisteredSetIsSilent(t *testing.T) {
 	t.Parallel()
 	commits := []scope.Commit{commitWithVerb("aaa", "implement")}
-	if got := RunTrailerVerbUnknown(commits, nil, nil, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, nil, nil, nil, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (empty registry → skip rather than flood)", len(got))
 	}
-	if got := RunTrailerVerbUnknown(commits, map[string]struct{}{}, nil, nil); len(got) != 0 {
+	if got := RunTrailerVerbUnknown(commits, map[string]struct{}{}, nil, nil, nil); len(got) != 0 {
 		t.Fatalf("findings = %d, want 0 (empty registry → skip rather than flood)", len(got))
 	}
 }
@@ -142,7 +142,7 @@ func TestRunTrailerVerbUnknown_MultipleCommitsOneFindingEach(t *testing.T) {
 		commitWithVerb("ccc", "add"), // valid; not counted
 		commitWithVerb("ddd", "test"),
 	}
-	got := RunTrailerVerbUnknown(commits, registered, nil, nil)
+	got := RunTrailerVerbUnknown(commits, registered, nil, nil, nil)
 	if len(got) != 3 {
 		t.Fatalf("findings = %d, want 3 (implement, feat, test)", len(got))
 	}
@@ -183,7 +183,7 @@ func TestRunTrailerVerbUnknown_SilentOnRitualVerbs(t *testing.T) {
 		commitWithVerb("kvb1", "promote"),   // kernel verb
 		commitWithVerb("bad1", "implement"), // fabricated — must still fire
 	}
-	got := RunTrailerVerbUnknown(commits, registered, rituals, nil)
+	got := RunTrailerVerbUnknown(commits, registered, rituals, nil, nil)
 	if len(got) != 1 {
 		for i := range got {
 			t.Logf("finding: %s", got[i].Message)
@@ -192,5 +192,118 @@ func TestRunTrailerVerbUnknown_SilentOnRitualVerbs(t *testing.T) {
 	}
 	if !strings.Contains(got[0].Message, "implement") {
 		t.Errorf("the surviving finding must be the fabricated verb; got %q", got[0].Message)
+	}
+}
+
+// TestRunTrailerVerbUnknown_PostCutoffEmitsError pins G-0218 Patch 2:
+// a fabricated `aiwf-verb:` value on a commit whose SHA is in the
+// postCutoffSHAs set (i.e. descends from HookInstallSHA) emits at
+// SeverityError with a remediation hint. The commit-msg hook would
+// have refused this at composition time; landing it requires
+// `--no-verify` or git plumbing, which is a policy violation.
+func TestRunTrailerVerbUnknown_PostCutoffEmitsError(t *testing.T) {
+	t.Parallel()
+	registered := map[string]struct{}{"add": {}, "promote": {}}
+	commits := []scope.Commit{
+		commitWithVerb("postcut1", "implement"), // fabricated AND post-hook
+	}
+	postCutoff := map[string]bool{
+		"postcut1": true,
+	}
+	got := RunTrailerVerbUnknown(commits, registered, nil, nil, postCutoff)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1", len(got))
+	}
+	f := got[0]
+	if f.Code != CodeTrailerVerbUnknown {
+		t.Errorf("Code = %q, want %q", f.Code, CodeTrailerVerbUnknown)
+	}
+	if f.Severity != SeverityError {
+		t.Errorf("Severity = %q, want %q (post-cutoff per G-0218 Patch 2)", f.Severity, SeverityError)
+	}
+	if f.Hint == "" {
+		t.Error("post-cutoff finding must carry a remediation Hint naming the commit-msg hook")
+	}
+	if !strings.Contains(f.Hint, "commit-msg hook") {
+		t.Errorf("Hint must name the commit-msg hook; got %q", f.Hint)
+	}
+	if !strings.Contains(f.Hint, "--no-verify") {
+		t.Errorf("Hint must reference the bypass mechanism (--no-verify or plumbing); got %q", f.Hint)
+	}
+}
+
+// TestRunTrailerVerbUnknown_PreCutoffStaysWarning pins the
+// backward-compat half of G-0218 Patch 2: a fabricated `aiwf-verb:`
+// value on a commit whose SHA is NOT in the postCutoffSHAs set stays
+// at SeverityWarning with no Hint — same shape G-0150 shipped, so
+// pre-hook trunk history isn't retroactively broken.
+func TestRunTrailerVerbUnknown_PreCutoffStaysWarning(t *testing.T) {
+	t.Parallel()
+	registered := map[string]struct{}{"add": {}, "promote": {}}
+	commits := []scope.Commit{
+		commitWithVerb("oldsha", "implement"),
+	}
+	// Non-empty postCutoff that does NOT include the offending commit.
+	// Pins that the predicate is per-SHA, not a global on/off switch.
+	postCutoff := map[string]bool{
+		"unrelated-post-cutoff-sha": true,
+	}
+	got := RunTrailerVerbUnknown(commits, registered, nil, nil, postCutoff)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1", len(got))
+	}
+	f := got[0]
+	if f.Severity != SeverityWarning {
+		t.Errorf("Severity = %q, want %q (pre-cutoff stays at warning)", f.Severity, SeverityWarning)
+	}
+	if f.Hint != "" {
+		t.Errorf("pre-cutoff finding must NOT carry the post-cutoff Hint; got %q", f.Hint)
+	}
+}
+
+// TestRunTrailerVerbUnknown_AckedSilencesEvenPostCutoff guards the
+// composition order documented in the rule's docstring: an explicit
+// `aiwf acknowledge-illegal <sha>` silences the finding regardless
+// of post-cutoff status. The ack is sovereign; severity tightening
+// does not bypass it.
+func TestRunTrailerVerbUnknown_AckedSilencesEvenPostCutoff(t *testing.T) {
+	t.Parallel()
+	registered := map[string]struct{}{"add": {}, "promote": {}}
+	commits := []scope.Commit{
+		commitWithVerb("postcut2", "implement"),
+	}
+	ack := map[string]bool{"postcut2": true}
+	postCutoff := map[string]bool{"postcut2": true}
+	got := RunTrailerVerbUnknown(commits, registered, nil, ack, postCutoff)
+	if len(got) != 0 {
+		t.Fatalf("findings = %d, want 0 (ack overrides post-cutoff severity transition); got %+v", len(got), got)
+	}
+}
+
+// TestRunTrailerVerbUnknown_NilPostCutoffFallsBackToWarning pins the
+// graceful-degrade contract for shallow clones, forks that diverged
+// before HookInstallSHA, or any state where the gather layer's
+// `git rev-list HookInstallSHA..HEAD` returns an empty set: every
+// finding emits at SeverityWarning (the G-0150 baseline). Without
+// this fallback, every operator working with a clone where the
+// cutoff SHA is unreachable would see retroactive errors on
+// pre-existing fabrications.
+func TestRunTrailerVerbUnknown_NilPostCutoffFallsBackToWarning(t *testing.T) {
+	t.Parallel()
+	registered := map[string]struct{}{"add": {}, "promote": {}}
+	commits := []scope.Commit{
+		commitWithVerb("anysha", "implement"),
+	}
+	got := RunTrailerVerbUnknown(commits, registered, nil, nil, nil)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1", len(got))
+	}
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("Severity = %q, want %q (nil postCutoff → warning baseline)", got[0].Severity, SeverityWarning)
+	}
+	// Empty map (different from nil but same semantically) — same shape.
+	got = RunTrailerVerbUnknown(commits, registered, nil, nil, map[string]bool{})
+	if len(got) != 1 || got[0].Severity != SeverityWarning {
+		t.Errorf("empty postCutoff map should also degrade to warning; got %+v", got)
 	}
 }

@@ -113,7 +113,15 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// fourth added at M-0160/AC-4) and FSMHistoryConsistent.
 	ackedSHAs := check.WalkAcknowledgedSHAs(ctx, resolved)
 
-	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs)
+	// G-0218 Patch 2: compute the post-cutoff SHA set once per check
+	// invocation, then pass it to RunProvenanceCheck (which forwards
+	// to RunTrailerVerbUnknown). Mirrors the ackedSHAs single-compute
+	// / cascading-pass-through pattern. nil-fallback for unreachable
+	// HookInstallSHA (shallow clone, fork divergence) preserves the
+	// G-0150 baseline.
+	postCutoffSHAs := check.WalkPostCutoffSHAs(ctx, resolved)
+
+	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs, postCutoffSHAs)
 	if pErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
 		return cliutil.ExitInternal
