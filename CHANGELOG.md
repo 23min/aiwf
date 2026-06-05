@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0030: Branch model chokepoint — `--branch` flag, sequencing, isolation-escape finding
+
+Ratifies the ritualized branch model (ADR-0010): work happens on `epic/E-*` and `milestone/M-*` branches; author iteration lives on `main`. Delivers the mechanical enforcement: `aiwf authorize <id> --to ai/<x> --branch <ritual>` couples scope to branch via the `aiwf-branch` and `aiwf-branch-sha` trailers; six new kernel findings (`isolation-escape`, `isolation-escape-oracle-failure`, `isolation-escape-shallow-clone`, `isolation-escape-orphaned-ai-commit`, `id-rename-untrailered`, `promote-on-wrong-branch`) catch AI-actor commits that leave their bound branch under partial-coverage, shallow-clone, force-push, rename, and detached-HEAD conditions; new verb `aiwf acknowledge-illegal <sha> --reason "..."` provides the sovereign-override path for already-landed escapes. The layer-4 branch-choreography spec catalog (M-0158, M-0162) names 129 cells whose 1:1 correspondence to tests is mechanically enforced at CI time by a bijection meta-test split across static AST scan (invariants 1/2/3) and runtime `branchtest.Pins()` post-hook (invariant 4) per D-0024. Closes G-0099, G-0210; addresses every milestone listed in `work/epics/E-0030-*/wrap.md`. See ADRs ratified there (-0010, -0011, -0012, -0013) for the durable architecture.
+
 ## [0.11.0] — 2026-05-31
 
 ### Added — E-0039: optional install path for the aiwf-aware statusline
