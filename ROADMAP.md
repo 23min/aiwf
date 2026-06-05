@@ -321,7 +321,7 @@ Make the rendered governance site usable for current-state synthesis at a glance
 | M-0101 | In-page status hierarchy in gaps.html | cancelled |
 | M-0107 | Repair Playwright e2e suite for current kernel state | done |
 
-## E-0030 — Branch model chokepoint: --branch flag, sequencing, isolation-escape finding (active)
+## E-0030 — Branch model chokepoint: --branch flag, sequencing, isolation-escape finding (done)
 
 ### Goal
 
