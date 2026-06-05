@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: 'M-0161 cell expansion: organic count via bijection invariants'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Bijection meta-test replaces M-0158/AC-5 keyword-set; 4 invariants
