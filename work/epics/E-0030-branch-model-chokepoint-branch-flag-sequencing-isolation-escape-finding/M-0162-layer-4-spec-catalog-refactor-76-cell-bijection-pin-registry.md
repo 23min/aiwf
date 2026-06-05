@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Bijection meta-test replaces M-0158/AC-5 keyword-set; 4 invariants
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
 ---
 ## Goal
 
