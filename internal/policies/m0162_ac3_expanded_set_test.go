@@ -98,6 +98,37 @@ func TestM0162_AC3_DynamicCellsPresence(t *testing.T) {
 	}
 }
 
+// TestM0162_AC3_NoEmptySuffixCells pins the M-0162/AC-3 reviewer
+// S11 finding (dead-cell bug): a regen-script pre-fix accidentally
+// emitted two cells with bare-prefix IDs (`branch-cell-m0161-ac1-`
+// and `branch-cell-m0161-ac2-`) because the inline-pinCell regex
+// matched the literal prefix in `pinCell("branch-cell-m0161-ac1-"
+// +tc.name, ...)` without recognizing the concatenation. The cells
+// existed but no Pin call site ever referenced them (the dynamic
+// concatenation always produced ...-main, ...-trunk_to_epic, etc.),
+// violating AC-4's bijection invariant #1 ("every cell has at least
+// one Pin") silently.
+//
+// This guard scans branch.Rules() for any cell ID matching the
+// "<prefix>-" shape with an empty suffix and fires loudly. The
+// regen script at scripts/m0162-build-ac3-cells.py was fixed to
+// skip prefix-only literals (those followed by `+`), but the guard
+// remains as a structural anchor against a future regression.
+//
+// Sabotage-verifiable: edit rules_m0162_ac3.go to re-add an entry
+// with `ID: "branch-cell-m0161-ac1-"` and this test fires naming
+// the offending cell.
+func TestM0162_AC3_NoEmptySuffixCells(t *testing.T) {
+	t.Parallel()
+
+	emptySuffix := regexp.MustCompile(`^branch-cell-[a-z0-9-]+-$`)
+	for _, r := range branch.Rules() {
+		if emptySuffix.MatchString(r.ID) {
+			t.Errorf("M-0162/AC-3 (reviewer S11): cell %q has empty suffix; likely from a regen-script extraction of a `\"prefix-\"+var` shape that should have been skipped. See scripts/m0162-build-ac3-cells.py Pass 2 for the guard.", r.ID)
+		}
+	}
+}
+
 // collectE2ECellRefs walks every *_test.go in dir, parses
 // the Go AST, and extracts:
 //   - CellID: "branch-cell-..." literal in struct literals.

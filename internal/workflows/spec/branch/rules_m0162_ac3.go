@@ -3,7 +3,7 @@ package branch
 import "github.com/23min/aiwf/internal/workflows/spec"
 
 // ac3ExpandedCells returns the M-0162/AC-3 cell-expansion entries:
-// 114 cells, one per discriminating E2E subtest across the
+// 112 cells, one per discriminating E2E subtest across the
 // M-0106 / M-0159 / M-0160 / M-0161 surfaces. Generated from the
 // CellID/Name pairs stamped into internal/cli/integration/*_test.go
 // at AC-3 RED time. Each cell is a catalog-vocabulary entry:
@@ -17,10 +17,10 @@ import "github.com/23min/aiwf/internal/workflows/spec"
 //      CellIDs in Scenario literals).
 //
 // Maintenance: when a scenario is added, removed, or renamed,
-// re-stamp via /tmp/stamp-cellid.sh (M-0162/AC-3 commit body) and
-// regenerate this file. The AC-3 cell-presence test at
-// internal/policies/m0162_ac3_expanded_set_test.go pins the
-// CellID → branch.Rules() consistency.
+// re-stamp via scripts/m0162-stamp-cellid.sh and regenerate
+// this file via scripts/m0162-build-ac3-cells.py. The AC-3
+// cell-presence test at internal/policies/m0162_ac3_expanded_set_test.go
+// pins the CellID → branch.Rules() consistency.
 func ac3ExpandedCells() []spec.Rule {
 	return []spec.Rule{
 		// branch-cell-m0106-baseline-c1 — branch_scenarios: AI commit on bound branch is silent (M-0106 AC-4)
@@ -221,12 +221,6 @@ func ac3ExpandedCells() []spec.Rule {
 			Outcome: spec.OutcomeLegal,
 			Sources: spec.RuleSource{Decision: "ADR-0010"},
 		},
-		// branch-cell-m0161-ac1- — authorize_scenarios: inline pin in authorize_scenarios_test.go
-		{
-			ID:      "branch-cell-m0161-ac1-",
-			Outcome: spec.OutcomeLegal,
-			Sources: spec.RuleSource{Decision: "ADR-0010"},
-		},
 		// branch-cell-m0161-ac1-github-classic-master — authorize_scenarios: trunk shape github-classic-master
 		{
 			ID:      "branch-cell-m0161-ac1-github-classic-master",
@@ -248,12 +242,6 @@ func ac3ExpandedCells() []spec.Rule {
 		// branch-cell-m0161-ac1-operator-chosen-trunk — authorize_scenarios: trunk shape operator-chosen-trunk
 		{
 			ID:      "branch-cell-m0161-ac1-operator-chosen-trunk",
-			Outcome: spec.OutcomeLegal,
-			Sources: spec.RuleSource{Decision: "ADR-0010"},
-		},
-		// branch-cell-m0161-ac2- — authorize_scenarios: inline pin in authorize_scenarios_test.go
-		{
-			ID:      "branch-cell-m0161-ac2-",
 			Outcome: spec.OutcomeLegal,
 			Sources: spec.RuleSource{Decision: "ADR-0010"},
 		},

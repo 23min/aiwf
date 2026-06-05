@@ -123,7 +123,7 @@ func TestM0158_AC5_EveryBranchCellHasMatchingTest(t *testing.T) {
 // CellID-presence test, not by this file's keyword-fuzz mapping.
 //
 // The prefixes correspond to the AC-3 generator's enumeration
-// source (per /tmp/build-ac3-cells-file.py): one prefix per
+// source (per scripts/m0162-build-ac3-cells.py): one prefix per
 // scenario-bearing milestone+AC.
 func isM0162AC3Cell(id string) bool {
 	prefixes := []string{
