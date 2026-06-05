@@ -1,7 +1,9 @@
 ---
 id: G-0236
 title: acknowledge-illegal does not cover isolation-escape-orphaned-ai-commit
-status: open
+status: addressed
+addressed_by_commit:
+    - e2447b75
 ---
 ## What's missing
 
