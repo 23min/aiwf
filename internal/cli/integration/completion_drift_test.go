@@ -49,14 +49,15 @@ func TestPolicy_FlagsHaveCompletion(t *testing.T) {
 	// --root and --actor).
 	optOutFlags := map[flagKey]string{
 		// Path-shaped (file completion is the default Cobra behavior).
-		{flag: "root"}:                         "consumer repo path; default file completion is correct",
-		{flag: "body-file"}:                    "filesystem path with stdin sentinel '-'",
-		{flag: "out"}:                          "filesystem directory path",
-		{flag: "from"}:                         "filesystem path",
-		{flag: "validator"}:                    "validator name; closed set is not yet authoritative",
-		{flag: "schema"}:                       "filesystem path",
-		{flag: "fixtures"}:                     "filesystem directory path",
-		{cmd: "aiwf upgrade", flag: "version"}: "semver tag string; no closed set",
+		{flag: "root"}:                          "consumer repo path; default file completion is correct",
+		{flag: "body-file"}:                     "filesystem path with stdin sentinel '-'",
+		{flag: "out"}:                           "filesystem directory path",
+		{flag: "from"}:                          "filesystem path",
+		{flag: "validator"}:                     "validator name; closed set is not yet authoritative",
+		{flag: "schema"}:                        "filesystem path",
+		{flag: "fixtures"}:                      "filesystem directory path",
+		{cmd: "aiwf check", flag: "commit-msg"}: "filesystem path to a commit-message file; default file completion is correct (used by the .git/hooks/commit-msg hook — G-0218)",
+		{cmd: "aiwf upgrade", flag: "version"}:  "semver tag string; no closed set",
 
 		// Free-form text.
 		{flag: "reason"}: "free-form prose",

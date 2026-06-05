@@ -800,14 +800,14 @@ func TestInit_SkipHook(t *testing.T) {
 			t.Errorf("expected %s to exist after --skip-hook init: %v", p, sErr)
 		}
 	}
-	// Both hooks absent.
-	for _, h := range []string{"pre-push", "pre-commit"} {
+	// All hooks absent.
+	for _, h := range []string{"pre-push", "pre-commit", "commit-msg"} {
 		if _, sErr := os.Stat(filepath.Join(root, ".git", "hooks", h)); !os.IsNotExist(sErr) {
 			t.Errorf("%s hook installed despite --skip-hook (stat err=%v)", h, sErr)
 		}
 	}
-	// Both hook steps marked Skipped with a --skip-hook detail.
-	for _, what := range []string{".git/hooks/pre-push", ".git/hooks/pre-commit"} {
+	// All hook steps marked Skipped with a --skip-hook detail.
+	for _, what := range []string{".git/hooks/pre-push", ".git/hooks/pre-commit", ".git/hooks/commit-msg"} {
 		step := findStep(t, res.Steps, what)
 		if step.Action != ActionSkipped {
 			t.Errorf("%s step.Action = %q, want %q", what, step.Action, ActionSkipped)
@@ -830,13 +830,11 @@ func TestInit_DryRunWithSkipHook(t *testing.T) {
 	if !res.DryRun {
 		t.Errorf("Result.DryRun = false, want true")
 	}
-	prePushStep := findStep(t, res.Steps, ".git/hooks/pre-push")
-	if prePushStep.Action != ActionSkipped {
-		t.Errorf("pre-push step.Action = %q, want %q", prePushStep.Action, ActionSkipped)
-	}
-	preCommitStep := findStep(t, res.Steps, ".git/hooks/pre-commit")
-	if preCommitStep.Action != ActionSkipped {
-		t.Errorf("pre-commit step.Action = %q, want %q", preCommitStep.Action, ActionSkipped)
+	for _, what := range []string{".git/hooks/pre-push", ".git/hooks/pre-commit", ".git/hooks/commit-msg"} {
+		step := findStep(t, res.Steps, what)
+		if step.Action != ActionSkipped {
+			t.Errorf("%s step.Action = %q, want %q", what, step.Action, ActionSkipped)
+		}
 	}
 	if _, sErr := os.Stat(filepath.Join(root, config.FileName)); !os.IsNotExist(sErr) {
 		t.Errorf("dry-run wrote aiwf.yaml (stat err=%v)", sErr)

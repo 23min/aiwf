@@ -28,6 +28,7 @@ func NewCmd() *cobra.Command {
 		since     string
 		shapeOnly bool
 		verbose   bool
+		commitMsg string
 	)
 	cmd := &cobra.Command{
 		Use:   "check",
@@ -45,6 +46,9 @@ func NewCmd() *cobra.Command {
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
 			verbs := enumerateRegisteredVerbs(c.Root())
+			if commitMsg != "" {
+				return cliutil.WrapExitCode(runCommitMsg(commitMsg, verbs, c.ErrOrStderr()))
+			}
 			return cliutil.WrapExitCode(Run(root, format, pretty, since, shapeOnly, verbose, verbs))
 		},
 	}
@@ -54,6 +58,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
 	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless")
+	cmd.Flags().StringVar(&commitMsg, "commit-msg", "", "validate aiwf-verb trailers in the named commit-message file and exit; refuses values outside the Cobra verb tree ∪ ritualVerbs (used by the .git/hooks/commit-msg hook installed by aiwf init/update — G-0218)")
 	cliutil.RegisterFormatCompletion(cmd)
 	return cmd
 }

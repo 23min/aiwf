@@ -254,6 +254,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 
 	lines, problems = appendHookReport(lines, problems, rootDir)
 	lines, problems = appendPreCommitHookReport(lines, problems, rootDir)
+	lines, problems = appendCommitMsgHookReport(lines, problems, rootDir)
 	lines, problems = appendPostCommitHookReport(lines, problems, rootDir)
 	lines, problems = appendRenderReport(lines, problems, rootDir)
 	lines = appendMaterializedRitualsReport(lines, rootDir)
@@ -508,6 +509,45 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 		return lines, problems
 	}
 	lines = append(lines, fmt.Sprintf("%sok (%s; pre-G-0135 shape, run `aiwf update` to switch to PATH lookup)%s", label("pre-commit:"), embedded, chainSuffix))
+	return lines, problems
+}
+
+// appendCommitMsgHookReport inspects .git/hooks/commit-msg and
+// reports its state (G-0218). The hook was born post-G-0135 (PATH
+// lookup from day one), so there is no pre-G-0135 absolute-path
+// shape to check for.
+func appendCommitMsgHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+	lines = in
+	problems = problemsIn
+
+	hooksDir := resolveHooksDir(rootDir)
+	hookPath := filepath.Join(hooksDir, "commit-msg")
+	raw, err := os.ReadFile(hookPath)
+	if errors.Is(err, os.ErrNotExist) {
+		lines = append(lines, label("commit-msg:")+"missing — G-0218 fabricated-trailer chokepoint not installed; run `aiwf update`")
+		problems++
+		return lines, problems
+	}
+	if err != nil {
+		lines = append(lines, label("commit-msg:")+err.Error())
+		problems++
+		return lines, problems
+	}
+	if !strings.Contains(string(raw), "# aiwf:commit-msg") {
+		lines = append(lines, label("commit-msg:")+"present but not aiwf-managed (no `# aiwf:commit-msg` marker); G-0218 fabricated-trailer chokepoint is not enforced")
+		return lines, problems
+	}
+	found, lookErr := exec.LookPath("aiwf")
+	if lookErr != nil {
+		lines = append(lines, label("commit-msg:")+"aiwf binary not found on PATH (hook would fail at commit time); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH")
+		problems++
+		return lines, problems
+	}
+	chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "commit-msg")
+	if chainProblem {
+		problems++
+	}
+	lines = append(lines, fmt.Sprintf("%sok (resolves to %s)%s", label("commit-msg:"), found, chainSuffix))
 	return lines, problems
 }
 

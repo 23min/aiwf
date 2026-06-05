@@ -116,6 +116,12 @@ func AiwfBinary(t *testing.T) string {
 			}
 		}
 		builtPath = bin
+		// Prepend the just-built binary's dir to process PATH so the
+		// G-0218 commit-msg hook (fired by `git commit` subprocesses
+		// inside test fixtures) resolves `command -v aiwf` to *this*
+		// build, not a stale system /go/bin/aiwf. Confined to the
+		// per-package test binary's process.
+		_ = os.Setenv("PATH", filepath.Dir(bin)+string(os.PathListSeparator)+os.Getenv("PATH"))
 	})
 	if buildErr != nil {
 		t.Fatal(buildErr)

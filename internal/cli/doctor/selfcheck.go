@@ -56,6 +56,25 @@ func runSelfCheck() int {
 		}
 	}()
 
+	// Prepend the running binary's dir to PATH so the marker-managed
+	// hooks (G-0218 commit-msg + pre-push + pre-commit) resolve
+	// `command -v aiwf` to *this* binary, not a stale system one.
+	// Assumes the binary is named `aiwf`; non-canonical names (e.g.
+	// `./bin/aiwf-diag` from `make diag-aiwf`) would fail the hooks'
+	// `command -v aiwf` lookup the same way they would without this
+	// patch. Restored on defer.
+	if exe, exeErr := os.Executable(); exeErr == nil {
+		prevPath, hadPath := os.LookupEnv("PATH")
+		_ = os.Setenv("PATH", filepath.Dir(exe)+string(os.PathListSeparator)+prevPath)
+		defer func() {
+			if hadPath {
+				_ = os.Setenv("PATH", prevPath)
+			} else {
+				_ = os.Unsetenv("PATH")
+			}
+		}()
+	}
+
 	// Redirect HOME to a fresh temp dir so the recommended-plugins
 	// steps can construct a synthetic installed_plugins.json without
 	// leaking into the operator's real home dir.

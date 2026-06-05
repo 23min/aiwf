@@ -458,7 +458,12 @@ func SimulateAIEscape(t *testing.T, env *ScenarioEnv, entityID, subjectText stri
 	}
 	msg := fmt.Sprintf("%s\n\naiwf-verb: edit-body\naiwf-entity: %s\naiwf-actor: ai/claude\naiwf-principal: human/peter\n",
 		subjectText, entityID)
-	if out, err := testutil.RunGit(env.Root, "commit", "-m", msg); err != nil {
+	// --no-verify: simulators that bypass aiwf verb-time discipline
+	// must also bypass commit-time hooks for fixture consistency. The
+	// G-0218 commit-msg hook accepts `aiwf-verb: edit-body` today (it's
+	// a real verb), but future adjacency rules at the commit-msg
+	// chokepoint should not silently break this fixture's intent.
+	if out, err := testutil.RunGit(env.Root, "commit", "--no-verify", "-m", msg); err != nil {
 		t.Fatalf("simulate AI escape (raw git commit): %v\n%s", err, out)
 	}
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
@@ -795,7 +800,10 @@ func SimulateForcedUntrailedActivate(t *testing.T, env *ScenarioEnv, entityID st
 	}
 	msg := fmt.Sprintf("simulate AI promote %s without aiwf-force (M-0159/AC-4 fixture)\n\naiwf-verb: promote\naiwf-entity: %s\naiwf-actor: ai/claude\n",
 		entityID, entityID)
-	if out, err := testutil.RunGit(env.Root, "commit", "-m", msg); err != nil {
+	// --no-verify: see SimulateAIEscape — simulators that bypass
+	// aiwf verb-time discipline bypass commit-time hooks too for
+	// fixture consistency.
+	if out, err := testutil.RunGit(env.Root, "commit", "--no-verify", "-m", msg); err != nil {
 		t.Fatalf("simulate forced-untrailered activate (raw git commit): %v\n%s", err, out)
 	}
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
@@ -912,7 +920,11 @@ func SimulateStrayVerbCommit(t *testing.T, env *ScenarioEnv, fabricatedVerb, sub
 		t.Fatalf("git add %s: %v\n%s", relPath, err, out)
 	}
 	msg := fmt.Sprintf("%s\n\naiwf-verb: %s\n", subjectText, fabricatedVerb)
-	if out, err := testutil.RunGit(env.Root, "commit", "-m", msg); err != nil {
+	// --no-verify bypasses the G-0218 commit-msg hook so this fixture
+	// can still author a fabricated-trailer commit — the post-hoc
+	// trailer-verb-unknown rule is what we're exercising, the hook
+	// is bypassed deliberately to construct the historical shape.
+	if out, err := testutil.RunGit(env.Root, "commit", "--no-verify", "-m", msg); err != nil {
 		t.Fatalf("simulate stray-verb commit (raw git): %v\n%s", err, out)
 	}
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))

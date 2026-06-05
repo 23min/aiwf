@@ -765,8 +765,11 @@ func TestDoctorReport_HookOK_AiwfNotOnPATH(t *testing.T) {
 	if !strings.Contains(joined, "post-commit:  aiwf binary not found on PATH") {
 		t.Errorf("expected post-commit 'aiwf binary not found on PATH' diagnostic:\n%s", joined)
 	}
+	if !strings.Contains(joined, "commit-msg:   aiwf binary not found on PATH") {
+		t.Errorf("expected commit-msg 'aiwf binary not found on PATH' diagnostic:\n%s", joined)
+	}
 	if problems == 0 {
-		t.Errorf("not-found-on-PATH should increment problems for all three hooks; got 0:\n%s", joined)
+		t.Errorf("not-found-on-PATH should increment problems for all four hooks; got 0:\n%s", joined)
 	}
 }
 

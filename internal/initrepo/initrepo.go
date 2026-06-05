@@ -46,6 +46,14 @@ const preCommitHookMarker = "# aiwf:pre-commit"
 // post-commit hook is left untouched.
 const postCommitHookMarker = "# aiwf:post-commit"
 
+// commitMsgHookMarker tags the commit-msg hook that validates
+// `aiwf-verb:` trailers at commit-composition time (G-0218). Same
+// protective contract as the other markers — re-running init/update
+// overwrites only when the existing hook carries this marker; an
+// alien commit-msg hook (e.g. a consumer's own Conventional Commits
+// enforcer) is auto-migrated to commit-msg.local per G45.
+const commitMsgHookMarker = "# aiwf:commit-msg"
+
 // CLAUDETemplate is the boilerplate written to CLAUDE.md when no file
 // exists. Short by design — consumers customize it freely.
 const CLAUDETemplate = `# CLAUDE.md
@@ -233,6 +241,51 @@ else
     rm -f "$tmp"
 fi
 exit 0
+`
+}
+
+// commitMsgHookScript renders the body of the commit-msg hook
+// installed by init. The hook runs at commit-composition time —
+// after the message file is written but before the commit object
+// is created — and refuses commit messages whose `aiwf-verb:`
+// trailer value is outside the closed sets (Cobra verb tree ∪
+// ritualVerbs allowlist).
+//
+// Closes G-0218's primary chokepoint. The post-hoc
+// `trailer-verb-unknown` rule at push time remains as the safety
+// net for already-landed history (it can't refuse retroactively,
+// it can only flag).
+//
+// Same multi-context (`command -v aiwf`) resolution and brownfield
+// guard as the other hooks. Chains to `.git/hooks/commit-msg.local`
+// per G45 so a consumer's own commit-msg hook (e.g. a Conventional
+// Commits enforcer) composes cleanly.
+func commitMsgHookScript() string {
+	return `#!/bin/sh
+` + commitMsgHookMarker + `
+# Installed by aiwf init/update. Chains to the commit-msg.local
+# sibling first (G45) so consumer-written hooks compose rather than
+# collide.
+#
+# Refuses commit messages whose aiwf-verb: trailer carries a value
+# outside the closed sets the kernel knows about: the running
+# binary's Cobra verb tree (e.g. add, promote, edit-body) unioned
+# with the ritualVerbs allowlist (e.g. wrap-milestone, wrap-epic
+# — stamped by aiwfx-wrap-* skills). Forward-looking chokepoint
+# for G-0218; the trailer-verb-unknown rule at push time is the
+# post-hoc safety net.
+set -e
+repo_root="$(git rev-parse --show-toplevel)"
+[ -f "$repo_root/aiwf.yaml" ] || exit 0
+` + chainPrelude("commit-msg") + `
+
+AIWF="$(command -v aiwf 2>/dev/null)"
+if [ -z "$AIWF" ]; then
+    echo "aiwf commit-msg: aiwf binary not found on PATH" >&2
+    exit 1
+fi
+
+exec "$AIWF" check --commit-msg "$1"
 `
 }
 
@@ -428,10 +481,12 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 		// that isn't yet a git repo).
 		prePushReport := ".git/hooks/pre-push"
 		preCommitReport := ".git/hooks/pre-commit"
+		commitMsgReport := ".git/hooks/commit-msg"
 		postCommitReport := ".git/hooks/post-commit"
 		if hooksDir, hdErr := gitops.HooksDir(ctx, root); hdErr == nil {
 			prePushReport = hookReportPath(root, filepath.Join(hooksDir, "pre-push"))
 			preCommitReport = hookReportPath(root, filepath.Join(hooksDir, "pre-commit"))
+			commitMsgReport = hookReportPath(root, filepath.Join(hooksDir, "commit-msg"))
 			postCommitReport = hookReportPath(root, filepath.Join(hooksDir, "post-commit"))
 		}
 		steps = append(
@@ -443,6 +498,11 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 			},
 			StepResult{
 				What:   preCommitReport,
+				Action: ActionSkipped,
+				Detail: "--skip-hook flag set",
+			},
+			StepResult{
+				What:   commitMsgReport,
 				Action: ActionSkipped,
 				Detail: "--skip-hook flag set",
 			},
@@ -468,6 +528,13 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 	}
 	steps = append(steps, preCommitStep)
 	conflict = conflict || preCommitConflict
+
+	commitMsgStep, commitMsgConflict, err := ensureCommitMsgHook(ctx, root, opts.DryRun)
+	if err != nil {
+		return nil, false, err
+	}
+	steps = append(steps, commitMsgStep)
+	conflict = conflict || commitMsgConflict
 
 	postCommitStep, postCommitConflict, err := ensurePostCommitHook(ctx, root, opts.StatusMdAutoUpdate, opts.DryRun)
 	if err != nil {
@@ -1068,6 +1135,11 @@ func HookMarker() string { return preHookMarker }
 // versus a user-written one.
 func PreCommitHookMarker() string { return preCommitHookMarker }
 
+// CommitMsgHookMarker exposes the commit-msg hook's marker line for
+// tests and for `aiwf doctor` to identify a marker-managed hook
+// versus a user-written one.
+func CommitMsgHookMarker() string { return commitMsgHookMarker }
+
 // ensurePreCommitHook installs (or refreshes) the marker-protected
 // pre-commit hook. The hook always installs when aiwf is present in
 // the repo — its sole responsibility is the G41 tree-discipline
@@ -1137,6 +1209,81 @@ func ensurePreCommitHook(ctx context.Context, root string, dryRun bool) (StepRes
 	detail := "exec `command -v aiwf` check --shape-only (PATH-relative)"
 	if migrated {
 		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before `command -v aiwf` check --shape-only"
+	}
+	return StepResult{
+		What:   what,
+		Action: action,
+		Detail: detail,
+	}, false, nil
+}
+
+// ensureCommitMsgHook installs (or refreshes) the marker-protected
+// commit-msg hook. Closes G-0218's primary chokepoint: the
+// composition-time refusal of `aiwf-verb:` trailers carrying values
+// outside the closed sets (Cobra verb tree ∪ ritualVerbs allowlist).
+// Mirrors ensurePreCommitHook's marker / migration / dry-run shape
+// so the user-facing contract is the same: aiwf owns the hook when
+// the marker is present, auto-migrates an alien hook to
+// commit-msg.local per G45 (so a consumer's own commit-msg gate
+// composes rather than collides), refuses the migration with
+// conflict=true when commit-msg.local already exists.
+//
+// Like the pre-commit gate, this hook always installs when aiwf is
+// present — the chokepoint must not be opt-out-able through an
+// unrelated config knob.
+func ensureCommitMsgHook(ctx context.Context, root string, dryRun bool) (StepResult, bool, error) {
+	hooksDir, err := gitops.HooksDir(ctx, root)
+	if err != nil {
+		return StepResult{}, false, fmt.Errorf("locating hooks dir: %w", err)
+	}
+	hookPath := filepath.Join(hooksDir, "commit-msg")
+	what := hookReportPath(root, hookPath)
+	localReport := hookReportPath(root, filepath.Join(hooksDir, "commit-msg.local"))
+
+	existing, readErr := os.ReadFile(hookPath)
+	hasOurMarker := readErr == nil && strings.Contains(string(existing), commitMsgHookMarker)
+	hasAlienHook := readErr == nil && !hasOurMarker
+	migrated := false
+
+	if hasAlienHook {
+		// G45 auto-migrate to commit-msg.local.
+		localPath := filepath.Join(hooksDir, "commit-msg.local")
+		if _, statErr := os.Stat(localPath); statErr == nil {
+			return StepResult{
+				What:   what,
+				Action: ActionSkipped,
+				Detail: "existing non-aiwf hook would migrate to " + localReport + " but that file already exists; resolve manually (merge content or rename) and re-run init",
+			}, true, nil
+		}
+		if !dryRun {
+			if migrateErr := migrateHookToLocal(hookPath, localPath); migrateErr != nil {
+				return StepResult{}, false, fmt.Errorf("migrating commit-msg hook to .local: %w", migrateErr)
+			}
+		}
+		migrated = true
+	}
+
+	if !dryRun {
+		if mkErr := os.MkdirAll(hooksDir, 0o755); mkErr != nil {
+			return StepResult{}, false, fmt.Errorf("creating hooks dir: %w", mkErr)
+		}
+	}
+
+	action := ActionCreated
+	switch {
+	case migrated:
+		action = ActionMigrated
+	case hasOurMarker:
+		action = ActionUpdated
+	}
+	if !dryRun {
+		if err := os.WriteFile(hookPath, []byte(commitMsgHookScript()), 0o755); err != nil {
+			return StepResult{}, false, fmt.Errorf("writing commit-msg hook: %w", err)
+		}
+	}
+	detail := "exec `command -v aiwf` check --commit-msg \"$1\" (PATH-relative)"
+	if migrated {
+		detail = "existing hook moved to " + localReport + "; aiwf's chain-aware hook now runs it before `command -v aiwf` check --commit-msg"
 	}
 	return StepResult{
 		What:   what,
