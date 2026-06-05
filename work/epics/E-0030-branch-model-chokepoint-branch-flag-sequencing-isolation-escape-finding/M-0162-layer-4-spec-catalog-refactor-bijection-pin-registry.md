@@ -1,6 +1,6 @@
 ---
 id: M-0162
-title: 'Layer-4 spec-catalog refactor: 76-cell bijection + Pin registry'
+title: 'Layer-4 spec-catalog refactor: bijection + Pin registry'
 status: in_progress
 parent: E-0030
 tdd: required
@@ -292,12 +292,46 @@ The meta-cells satisfy AC-4's own bijection requirement: each has a Pin from the
 - `.github/workflows/go.yml` — the CI workflow file AC-4 updates with `-tags testpins`
 - [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap this AC closes (full closure when AC-1, AC-2, AC-3, AC-4 all land)
 
+## Closure notes (post-implementation reconciliation)
+
+The AC bodies were authored ahead of implementation; several body claims do not match what shipped. This section reconciles the body to the shipped code so future readers see one source of truth.
+
+**Final cell count.** Catalog totals **129 cells**: 14 named cells in `rules.go` + 112 ordinal/dynamic cells in `rules_m0162_ac3.go` + 3 meta-cells in `rules_m0162_ac4.go`. The milestone title's "76-cell" is the M-0161/AC-9 forecast (line 215 of body explicitly hedged "76 total is a planning estimate, not a contract"). The actual organic count is ~70% larger than the forecast; this is the discharge being honest about subtest discrimination. The milestone is retitled at close to drop the stale count.
+
+**AC-3 line 173 / 196 "every cell carries exactly one Pin" — scoped.** True for the 115 AC-3-era and meta cells. 14 M-0158/M-0161-era named cells (`branch-cell-1`, `-2`, `-4`, `-7`, `-12`, `-override-preflight`, `-override-f-nnnn-waiver`, `-id-rename-untrailered`, and the 6 M-0161 rule-chokepoint cells) ARE allowlisted from AC-4's bijection invariant 1 because their primary behavioral tests live outside `internal/cli/integration/` (in `internal/verb/`, `internal/check/`, `internal/cli/check/`). The allowlist at `bijectionAllowlist()` in `internal/policies/m0162_ac4_bijection_test.go` documents each entry with the primary test name and package; the allowlist is mechanically verified by `TestM0162_AC4_AllowlistClaimsResolve` (R1-T4 fix — each prose claim resolves to a real test function declaration via AST walk).
+
+**AC-3 line 202 `m0162_ac3_pin_presence_test.go` — not delivered, subsumed.** The "Pin-call structural presence" grep-style assertion was planned as a separate file but never shipped. Its claim ("every file in the surface list has at least one Pin call") is covered by AC-4's bijection invariant 1 — a cell without any Pin call site fires the bijection check, which is a stricter chokepoint than the per-file grep. No coverage loss.
+
+**AC-4 line 236 architectural deviation — see [D-0024](../../decisions/D-0024-m-0162-ac-4-bijection-split-architecture-static-ast-plus-runtime-post-hook.md).** The body specifies the bijection test at `internal/policies/branch_cell_bijection_test.go` under `//go:build testpins` reading `branchtest.Pins()`. The shipped architecture splits the four invariants across:
+
+- **Static** (`internal/policies/m0162_ac4_bijection_test.go`, NO build tag) — invariants 1, 2, 3 via AST scan of `internal/**/*_test.go` for Pin call literals. Reads source files, not `Pins()`. Build-tag agnostic.
+- **Runtime** (`internal/cli/integration/bijection_posthook_testpins_test.go` + `setup_test.go` TestMain epilogue, testpins-tagged) — invariant 4 via `branchtest.Pins()` post-`m.Run()`. Plus eager check at `bijection_runtime_testpins_test.go`.
+
+Reason: `branchtest.Pins()` is a per-process registry. A policies-package test binary cannot read pins recorded by an integration-package test binary (different processes). The static-AST mirror covers the cell-side bijection; the runtime check covers the t.Name() granularity. Both run on every CI invocation per `.github/workflows/go.yml`. D-0024 captures the decision so the deviation is recorded as an explicit engineering choice rather than silent text-vs-code disagreement.
+
+**AC-4 line 265 `m0162_ac4_drift_test.go` — not delivered as separate file.** The drift-policy intent (assert bijection holds at CI time) is delivered by `TestM0162_AC4_Bijection` in `m0162_ac4_bijection_test.go` directly. No second drift-policy file ships; the bijection check IS the drift check. The body's reference to a separate file is stale.
+
+**AC-4 invariant 4 sabotage discrimination — runtime, not subtest.** The body promised four invariants "each as a separate subtest, each sabotage-verifiable." Invariants 1/2/3 ship as static `evaluateBijection` checks driven from `TestM0162_AC4_Bijection`; sabotage tests at `m0162_ac4_sabotage_testpins_test.go` drive synthetic-data fixtures through `evaluateBijection` for each kind. Invariant 4's sabotage was verified live during the AC-4 audit by injecting a deliberate double-pin into a temp test file; the post-hook fired correctly, `os.Exit(1)`'d. The proof is documented in the audit log but is not a permanent automated test (synthetic invariant 4 fixture is hard to write portably — the test would need to spawn a sub-process under -tags testpins).
+
+**Reviewer-fix commits landed post-met.** Three rounds of reviewer-fix commits landed after each AC was promoted to met:
+- `0faeea10` — AC-3 fixes (S3, S6, S11 from AC-3 audit)
+- `e4b22935` — AC-4 fixes (S1-S6 from AC-4 audit)
+- (this commit batch) — milestone-wide fixes (B1-B4 + T-class from 3-reviewer milestone audit)
+
+Each round preserved the `met` status throughout. The honest alternative was demote → fix → re-promote per cycle, but fix-forward was chosen for ledger-clarity (the reviewer-fix commits clearly mark `aiwf-entity: M-0162/AC-N` so the audit trail is visible in `aiwf history`).
+
+**G-0210 closure.** Promoted to `addressed` at milestone wrap, addressed-by `M-0162` (handled by `aiwfx-wrap-milestone` ritual; recorded here so the wrap step has a checklist).
+
+**Intermittent ghost violation observed once.** Cross-AC reviewer R1-T3 reported a non-reproducible bijection post-hook violation in the first run of the audit, referencing a `TestSabotage_M0162_AC4_DoublePinSameTest` that did not exist in any source file. Multiple re-runs were clean. Most plausible explanation: Go test cache contaminated by R3's earlier sabotage temp file (the same audit demonstrated the post-hook fires correctly when a real sabotage is present). Recorded here as an observation; if the pattern recurs, file as a gap with the reproduction recipe.
+
 ## References
 
 - M-0161 (parent epic E-0030) §"AC-9" body lines 577-694 — the inherited spec this milestone delivers.
 - [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md) — the deferral decision this milestone discharges.
+- [D-0023](../../decisions/D-0023-m-0162-ac-3-cell-expansion-deferred-for-reallocate-scenarios-test-go.md) — AC-3 reallocate carve-out.
+- [D-0024](../../decisions/D-0024-m-0162-ac-4-bijection-split-architecture-static-ast-plus-runtime-post-hook.md) — AC-4 static-AST + runtime split architecture.
 - [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap this milestone closes.
 - [M-0158](M-0158-layer-4-branch-choreography-spec-cells-drift-policy-extension.md) — the catalog whose cells this milestone drops + expands.
 - `internal/workflows/spec/branch/rules.go` — the catalog file the refactor touches.
 - `internal/policies/m0158_ac5_meta_coverage_test.go` — the keyword-set meta-test this milestone removes.
-- M-0162 reviewer pass (subagent, 2026-06-04) — the AC-body review that fed the B1-B4 + T1-T4 fixes.
+- M-0162 reviewer passes (subagents, 2026-06-04 and 2026-06-05) — the per-AC + milestone-wide audits that fed all the B/T fixes.
