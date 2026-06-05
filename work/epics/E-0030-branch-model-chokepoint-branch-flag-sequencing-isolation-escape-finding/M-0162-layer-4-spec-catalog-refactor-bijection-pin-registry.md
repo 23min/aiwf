@@ -292,6 +292,67 @@ The meta-cells satisfy AC-4's own bijection requirement: each has a Pin from the
 - `.github/workflows/go.yml` — the CI workflow file AC-4 updates with `-tags testpins`
 - [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap this AC closes (full closure when AC-1, AC-2, AC-3, AC-4 all land)
 
+## Work log
+
+### AC-1 — M-0158 cell drop
+
+9 cells dropped (3, 5, 6, 8, 9, 10, 11, override-cherry-pick, override-force-amend); 7 retained (1, 2, 4, 7, 12, override-preflight, override-f-nnnn-waiver). M-0158 AC-2/AC-3 cardinality tests renamed to `Retained*Present` with allowlist-aware subsets. `m0162_ac1_drop_test.go` pins drop-set ABSENT + retained-set PRESENT as separate subtests. · commit `53de20af` · tests pass 2/0/0.
+
+### AC-2 — branchcell.Pin registry
+
+New `internal/workflows/spec/branch/branchtest/` sub-package with `Pin(cellID, testName string)` + `Pins() map[string][]string` under `//go:build testpins`. Mutex-guarded; deep-copy snapshot. `doc.go` stub lets `go test ./...` walk the dir untagged. Build-tag exclusion test now bidirectional (post R2-T4 fix): asserts symbols absent from untagged binary AND present in -tags testpins test binary. Makefile `test-pins` target added with `-race -count=1`. · commit `ec35074f` (plus `8bd58a11` adds `-race`; `14b52fe2` adds `-count=1` + positive control) · tests pass 4/0/0.
+
+### AC-3 — M-0161 cell expansion + Pin call sites
+
+129 cells in catalog (~70% above the original 76-cell forecast — body line 215 hedged this as a planning estimate). Framework seam: `Scenario.CellID` field + `pinCell` build-tagged helper (`pin_testpins_test.go` forwards to `branchtest.Pin`; `pin_nontestpins_test.go` no-ops). 84 stamped Scenarios + 7 detached_head standalone + 21 inline authorize subtests (matrix-row prefix concat). Static cell-presence test + dynamic-cells test + empty-suffix dead-cell guard (S11 fix). Regen scripts at `scripts/m0162-stamp-cellid.sh` + `scripts/m0162-build-ac3-cells.py`. · commit `a047d14a` (plus `0faeea10` reviewer fixes) · tests pass 3/0/0.
+
+### AC-4 — Bijection meta-test replaces M-0158/AC-5 keyword-set
+
+Split architecture (see D-0024): static AST scan in policies for invariants 1/2/3 (`m0162_ac4_bijection_test.go`) + runtime check in integration via TestMain post-hook (`bijection_posthook_testpins_test.go`) + lex-late eager peek for invariant 4 (`bijection_runtime_testpins_test.go`). 3 meta-cells registered + self-pinned by sabotage subtests. M-0158/AC-5 keyword-set file deleted; absence-guard test prevents reintroduction. CI workflow gains `-tags testpins`. Allowlist of 14 named cells with mechanically-verified prose claims (R1-T4 follow-up). Pin-call shape policy (R3-T4 follow-up) catches future scanner-coverage gaps at CI time. · commit `ead2a32d` (plus `e4b22935` reviewer fixes, `14b52fe2` mechanical follow-ups) · tests pass 8/0/0.
+
+## Decisions made during implementation
+
+- [D-0019](../../decisions/D-0019-oracle-partial-coverage-fail-shut-correctness-fail-open-coverage.md) — inherited from M-0161 carve-out, referenced by AC-3 oracle-failure cells.
+- [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md) — inherited from M-0161; the AC-5 cell-5 orphan-ack deferral that AC-3's bijection invariants tolerate.
+- [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md) — the deferral source that birthed this milestone.
+- **[D-0023](../../decisions/D-0023-m-0162-ac-3-cell-expansion-deferred-for-reallocate-scenarios-test-go.md)** — reallocate_scenarios_test.go deferred from AC-3 scope per body's enumerated file list. Filed during AC-3 reviewer S6 fix.
+- **[D-0024](../../decisions/D-0024-m-0162-ac-4-bijection-split-architecture-static-ast-plus-runtime-post-hook.md)** — static-AST + runtime post-hook split architecture for AC-4 bijection. Filed during milestone-wide reviewer audit to formalize the body/code deviation.
+
+## Validation
+
+- `go build ./...` — clean.
+- `go build -tags testpins ./...` — clean.
+- `go vet ./...` — clean.
+- `go test -count=1 ./internal/policies/...` — pass.
+- `go test -count=1 -tags testpins ./internal/policies/... ./internal/workflows/...` — pass.
+- `go test -count=1 -tags testpins ./internal/cli/integration/...` — pass (73s; TestMain post-hook fires, asserts invariant 4 holds across all parallel-wave Pin recordings).
+- `aiwf check` — 0 errors, 8 warnings (all carry-over from before M-0162: archive-sweep-pending × 4, no-upstream provenance × 1, May-2026 historical orphan × 1, the promote-on-wrong-branch finding on M-0162's own initial promote × 1 which is the AC-8 rule firing on this milestone itself — ironic but expected).
+- `gofumpt -l` on M-0162 files — clean.
+- Sabotage discrimination verified live for all 4 invariants:
+  - Invariants 1/2/3: synthetic-data sabotage in `m0162_ac4_sabotage_testpins_test.go`.
+  - Invariant 4: runtime sabotage with deliberate double-pin during AC-4 audit produced expected post-hook violation + `os.Exit(1)`.
+  - AC-2 build-tag positive control: stripping the build tag from pin.go fires the package-doc test.
+  - AC-3 dead-cell guard (S11): empty-suffix cell ID injection fires the guard.
+  - AC-4 allowlist verification (R1-T4): renaming a primary test fires the AST walk.
+  - AC-4 pin-call shape policy (R3-T4): `fmt.Sprintf(...)` first-arg fires the policy naming file:line.
+
+## Deferrals
+
+- **reallocate_scenarios_test.go** (7 scenarios) — not in AC-3's enumerated file list per body line 232. Recorded in [D-0023](../../decisions/D-0023-m-0162-ac-3-cell-expansion-deferred-for-reallocate-scenarios-test-go.md) with bounded-follow-up framing. Bijection invariants 1+2 would surface the gap mechanically if a reviewer adds reallocate scenarios with Pins but without the cells — no silent debt.
+- **M-0161/AC-5 cell-5 orphan-ack composition** — inherited from M-0161 carve-out, recorded in [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md). Awaiting `aiwf acknowledge-illegal` verb extension (G-0226). AC-4 invariants tolerate the gap because neither the cell nor the Pin exists.
+
+## Reviewer notes
+
+- **Title was retitled mid-milestone** (`8f20bc8a`). Original "Layer-4 spec-catalog refactor: 76-cell bijection + Pin registry"; final "Layer-4 spec-catalog refactor: bijection + Pin registry". Drops the stale forecast count; actual is 129.
+- **Three rounds of reviewer-fix commits landed post-met**:
+  - `0faeea10` — AC-3 fixes (S3 scripts-to-repo, S6 dead code, S11 dead cells)
+  - `e4b22935` — AC-4 fixes (S1-S6: split architecture doc, invariant 4 runtime, allowlist shrink, dead code, honesty claims, seam tests)
+  - `14b52fe2` + `8bd58a11` — milestone-wide fixes from 3-subagent audit (gofumpt, stdlib swaps, lex-order honesty, AC-2 positive control, allowlist verification, body-vs-code reconciliation, AST coverage policy, test cache mitigation)
+  The fix-forward pattern was chosen over demote-fix-repromote for ledger-clarity. Each reviewer-fix commit clearly marks `aiwf-entity: M-0162` / `M-0162/AC-N` so the audit trail is visible in `aiwf history M-0162`.
+- **Cells with allowlisted Pin coverage** (14 named cells) carry their behavioral assertions in kernel-level finding rules elsewhere (`internal/check/isolation_escape_test.go`, `internal/verb/authorize_test.go`, etc.). The allowlist documents WHERE that pinning lives; `TestM0162_AC4_AllowlistClaimsResolve` mechanically verifies the named test functions exist. The semantic linkage (test↔cell behavior) is inherently prose-trust — see allowlist verification test docstring for the honest scope.
+- **The "76-cell" forecast was off by 70%.** Body lines 173, 215 hedged this as a planning estimate not a contract; the discharge is honest about subtest discrimination. AC-3's organic count came in at 112 (plus 14 retained + 3 meta = 129 total). Future milestones in this vein should set count forecasts as ranges, not single numbers.
+- **R2-T3 (fix-forward observability)** is the one open process concern. The milestone's code surface cannot mechanically prevent it without overreach (blocking legitimate fix-forward) or scope-creep (into `aiwfx-wrap-milestone` skill discipline). Recorded honestly; the wrap-milestone ritual is the natural home for a hint if one is later wanted.
+
 ## Closure notes (post-implementation reconciliation)
 
 The AC bodies were authored ahead of implementation; several body claims do not match what shipped. This section reconciles the body to the shipped code so future readers see one source of truth.
