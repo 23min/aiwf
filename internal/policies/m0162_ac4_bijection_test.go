@@ -435,8 +435,15 @@ func collectPinReferences(t *testing.T, root string) pinReferences {
 //     prefix are credited as pinned without an allowlist entry.
 //
 // Other shapes (e.g., `fmt.Sprintf(...)`, function calls returning
-// strings) are skipped — they're rare in this codebase and would
-// be tracked by a follow-up gap if they appear.
+// strings, multi-binary `"a"+"b"+ident` concatenations, literal-on-
+// RHS forms `ident+"-suffix"`) are not currently handled. None of
+// these patterns exist in the codebase as of M-0162 close (verified
+// via grep). If they appear in a future commit, the bijection check's
+// invariants 1+2 surface the discrepancy at CI time as a cell-orphan
+// or pin-orphan finding — at which point this function should be
+// extended in-place to handle the new pattern. The doc comment
+// keeps the recognized shapes named so a future contributor sees
+// the gap immediately on opening the file.
 func handlePinArg(arg ast.Expr, base string, fset *token.FileSet, out map[string]map[string]bool, prefixes *[]prefixSite) {
 	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 		val := strings.Trim(lit.Value, `"`)
