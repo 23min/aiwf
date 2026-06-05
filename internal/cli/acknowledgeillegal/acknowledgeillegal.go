@@ -37,12 +37,17 @@ func NewCmd() *cobra.Command {
 		Use:   "acknowledge-illegal <sha>",
 		Short: "Acknowledge a historical commit so kernel audit rules silence its findings",
 		Long: `Records an acknowledgment commit for a historical commit that one of the
-kernel's audit rules would otherwise flag. As of M-0159, the verb covers three
-silencing targets, all silenced through the same aiwf-force-for trailer:
+kernel's audit rules would otherwise flag. Every rule that consumes the
+acknowledged-SHA set (via the M-0159/AC-3 lift) is silenced through the same
+aiwf-force-for trailer:
 
-    - fsm-history-consistent / illegal-transition (M-0136/AC-2)
-    - fsm-history-consistent / forced-untrailered  (M-0159/AC-4)
-    - isolation-escape                             (M-0159/AC-4 via AC-3 lift)
+    - fsm-history-consistent / illegal-transition     (M-0136/AC-2)
+    - fsm-history-consistent / forced-untrailered     (M-0159/AC-4)
+    - isolation-escape                                (M-0159/AC-4 via AC-3 lift)
+    - isolation-escape-orphaned-ai-commit             (M-0161/AC-5; G-0236)
+    - promote-on-wrong-branch                         (M-0161/AC-8)
+    - id-rename-untrailered                           (M-0160/AC-4)
+    - trailer-verb-unknown                            (G-0150 lift)
 
 The acknowledgment is a separate, current-day empty commit carrying:
 
@@ -53,11 +58,19 @@ The acknowledgment is a separate, current-day empty commit carrying:
 
 The CLI gather layer at internal/cli/check/check.go walks HEAD's reachable
 history for aiwf-force-for trailers once per check invocation (the M-0159/AC-3
-lift) and threads the resulting SHA set to all three rules above; each rule
+lift) and threads the resulting SHA set to every rule above; each rule
 exempts findings whose offending commit appears in the set. The acknowledgment
 lives in git (queryable via aiwf history); it does NOT pollute aiwf.yaml and
 does NOT rewrite the offending commit's history — the original author,
 trailers, and SHA are preserved per M-0136's no-history-rewrite principle.
+
+Target-SHA validity (M-0136/AC-4 + G-0236): the target must either be
+reachable from HEAD (the primary case — covers FSM-history rules and
+isolation-escape proper) OR present in the local object database as an
+orphan (the G-0236 fallback — covers isolation-escape-orphaned-ai-commit,
+whose offending SHAs are by construction unreachable since the reflog
+walker surfaces force-pushed-away tips). Typos and SHAs from unrelated
+repos fail both checks and are refused.
 
 Per-SHA closed-set scoping: an acknowledgment for one SHA exempts only that
 SHA. There is no "exempt everything" knob.

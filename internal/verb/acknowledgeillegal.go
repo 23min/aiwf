@@ -31,10 +31,19 @@ import (
 //   - sha must match the 7-40-hex SHA pattern (the trailer's value
 //     constraint, enforced via gitops.ValidateTrailer).
 //
-// M-0136/AC-4: sha must resolve to a commit reachable from HEAD —
-// verified via `git merge-base --is-ancestor <sha> HEAD`. Prevents
-// silent accumulation of no-op acknowledgments (typos, copy-paste
-// errors, SHAs from orphaned branches).
+// M-0136/AC-4 + G-0236: sha must resolve to a commit that is either
+// reachable from HEAD (the primary AC-4 case) OR present in the local
+// object database as an orphan (the G-0236 reflog-fallback case).
+// The fallback supports acks against `isolation-escape-orphaned-ai-
+// commit` findings, whose offending SHAs are by construction
+// unreachable from HEAD (they're force-pushed-away tips surfaced via
+// the reflog walker at internal/check/reflog_walk.go).
+//
+// Typo guard preserved: a SHA that resolves to no commit fails both
+// checks and is rejected. The per-SHA closed-set scoping (each ack
+// covers only the named SHA, and rules only fire on SHAs they
+// independently enumerated) bounds the silencing surface — accepting
+// object-DB-present SHAs doesn't widen any rule's reach.
 //
 // Returns a Result with a Plan carrying the empty commit's trailers.
 // The Apply pipeline materializes the `git commit --allow-empty` once
@@ -58,7 +67,7 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, actor, reason string) (*
 			return nil, fmt.Errorf("aiwf acknowledge-illegal: %w", err)
 		}
 	}
-	if err := shaReachableFromHEAD(ctx, root, sha); err != nil {
+	if err := shaAckable(ctx, root, sha); err != nil {
 		return nil, fmt.Errorf("aiwf acknowledge-illegal: %w", err)
 	}
 	short := sha
@@ -73,30 +82,51 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, actor, reason string) (*
 	}), nil
 }
 
-// shaReachableFromHEAD checks the SHA resolves to a commit reachable
-// from HEAD via `git merge-base --is-ancestor <sha> HEAD`. Returns
-// nil on reachable, a typed error mentioning "not reachable" on
-// unreachable / unknown SHAs, and a wrapped error for unexpected
-// subprocess failures.
+// shaAckable verifies the SHA is a valid acknowledge-illegal target.
+// Two acceptance paths:
 //
-// git merge-base --is-ancestor exit codes:
-//   - 0: ancestor (reachable)
-//   - 1: not ancestor (not reachable from HEAD)
-//   - other: command error (typically "Not a valid object name" for
-//     SHAs not in the object database)
-func shaReachableFromHEAD(ctx context.Context, root, sha string) error {
-	cmd := exec.CommandContext(ctx, "git", "merge-base", "--is-ancestor", sha, "HEAD")
-	cmd.Dir = root
-	err := cmd.Run()
+//  1. Reachable from HEAD via `git merge-base --is-ancestor <sha> HEAD`
+//     (M-0136/AC-4 primary case — covers the FSM-history rules and
+//     isolation-escape proper, whose offending SHAs live on trunk).
+//
+//  2. Present in the local object database via `git rev-parse
+//     --verify <sha>^{commit}` (G-0236 fallback — covers the
+//     isolation-escape-orphaned-ai-commit rule, whose offending SHAs
+//     are by construction unreachable from HEAD because they're
+//     force-pushed-away tips the reflog walker found).
+//
+// Returns nil on either path. Returns a typed error on neither —
+// the SHA exists in no usable form, which catches the typo /
+// copy-paste / wrong-repo failure modes the original M-0136/AC-4
+// reachability check was designed to refuse.
+//
+// Wrapping any subprocess failures preserves the operator-facing
+// signal that something IO-shaped is wrong (permissions, missing
+// git binary) vs. the policy refusal.
+func shaAckable(ctx context.Context, root, sha string) error {
+	// Primary: HEAD-reachable. Cheapest check, covers the M-0136
+	// case directly.
+	reachCmd := exec.CommandContext(ctx, "git", "merge-base", "--is-ancestor", sha, "HEAD")
+	reachCmd.Dir = root
+	if reachCmd.Run() == nil {
+		return nil
+	}
+	// Fallback: SHA exists in object DB but isn't HEAD-reachable.
+	// The G-0236 orphan case. `^{commit}` peels through tags and
+	// rejects non-commit objects (trees, blobs) so an ack against
+	// a blob SHA would still refuse.
+	verifyCmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", sha+"^{commit}")
+	verifyCmd.Dir = root
+	err := verifyCmd.Run()
 	if err == nil {
 		return nil
 	}
+	// Surface unexpected subprocess failures distinctly from
+	// the policy refusal so an operator can tell "git is
+	// broken" from "your SHA isn't ackable."
 	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		// Exit 1 = not an ancestor. Exit 128 = unknown SHA / not a
-		// valid object name. Both surface as the same operator-
-		// facing error: the SHA isn't usable.
-		return fmt.Errorf("SHA %q is not reachable from HEAD (git merge-base exit %d)", sha, exitErr.ExitCode())
+	if !errors.As(err, &exitErr) {
+		return fmt.Errorf("checking object DB for %q: %w", sha, err)
 	}
-	return fmt.Errorf("checking reachability of %q: %w", sha, err)
+	return fmt.Errorf("SHA %q is neither reachable from HEAD nor present in the local object database (typo? wrong repo? object pruned?)", sha)
 }

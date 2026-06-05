@@ -163,7 +163,75 @@ func TestAcknowledgeIllegal_AC4_RejectsOutOfHistorySHA(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for out-of-history SHA; got nil")
 	}
+	// G-0236: the error now mentions both checks (not reachable AND
+	// not in object database) since the fallback path is documented
+	// alongside the primary refusal. Preserves the "reachable"
+	// substring expectation from the M-0136/AC-4 era.
 	if !strings.Contains(err.Error(), "reachable") {
 		t.Errorf("expected error mentioning reachability for SHA %s; got %v", bogusSHA, err)
+	}
+	if !strings.Contains(err.Error(), "object database") {
+		t.Errorf("G-0236: error should reference the object-database fallback so the operator sees both refused paths; got %v", err)
+	}
+}
+
+// TestAcknowledgeIllegal_G0236_AcceptsOrphanSHA pins the G-0236
+// reflog-fallback acceptance path: a SHA that is NOT reachable from
+// HEAD but IS present in the local object database (the canonical
+// orphan shape — a commit force-pushed away from its ref but still
+// in the object DB via reflog reference) is accepted.
+//
+// Fixture shape: create commit A, create commit B, `git reset --hard A`
+// so HEAD = A and B is orphan-in-object-DB. Ack against B's SHA must
+// succeed and produce a plan; the M-0136 docstring contract (the four
+// trailers + AllowEmpty) is preserved.
+//
+// Closes G-0236.
+func TestAcknowledgeIllegal_G0236_AcceptsOrphanSHA(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	// Commit A — stays reachable from HEAD.
+	commitOne(t, r.root, "alpha.md", "alpha v1\n", "alpha")
+	headA := resolveHeadSHA(t, r.root)
+	// Commit B — will be orphaned.
+	commitOne(t, r.root, "beta.md", "beta v1\n", "beta")
+	headB := resolveHeadSHA(t, r.root)
+	if headA == headB {
+		t.Fatalf("setup error: A and B resolve to the same SHA (%s)", headA)
+	}
+	// `git reset --hard A` rewinds HEAD; B's SHA stays in the object
+	// DB (reachable via reflog) but is no longer HEAD-reachable.
+	gitReset := exec.CommandContext(r.ctx, "git", "reset", "--hard", headA)
+	gitReset.Dir = r.root
+	if out, err := gitReset.CombinedOutput(); err != nil {
+		t.Fatalf("git reset --hard A: %v\n%s", err, out)
+	}
+	// Sanity: HEAD is now A; B is in object DB.
+	if got := resolveHeadSHA(t, r.root); got != headA {
+		t.Fatalf("post-reset HEAD = %s, want %s (A)", got, headA)
+	}
+	revparse := exec.CommandContext(r.ctx, "git", "rev-parse", "--verify", headB+"^{commit}")
+	revparse.Dir = r.root
+	if err := revparse.Run(); err != nil {
+		t.Fatalf("setup: B should still be in object DB post-reset; rev-parse: %v", err)
+	}
+
+	const reason = "rebase cleanup of an AI-actor commit; the content re-landed cleanly under a different SHA"
+	res, err := verb.AcknowledgeIllegal(r.ctx, r.root, headB, testActor, reason)
+	if err != nil {
+		t.Fatalf("G-0236 fallback: ack against orphan SHA must succeed; got %v", err)
+	}
+	if res == nil || res.Plan == nil {
+		t.Fatalf("nil result or plan: %+v", res)
+	}
+	// Same four-trailer + empty-commit contract M-0136/AC-1 pins for
+	// the reachable case — the fallback path must not weaken the
+	// shape contract.
+	mustHaveTrailerInPlanList(t, res.Plan.Trailers, gitops.TrailerVerb, "acknowledge-illegal")
+	mustHaveTrailerInPlanList(t, res.Plan.Trailers, gitops.TrailerForceFor, headB)
+	mustHaveTrailerInPlanList(t, res.Plan.Trailers, gitops.TrailerActor, testActor)
+	mustHaveTrailerInPlanList(t, res.Plan.Trailers, gitops.TrailerReason, reason)
+	if !res.Plan.AllowEmpty {
+		t.Errorf("AllowEmpty = false, want true (ack commits are always empty regardless of fallback path)")
 	}
 }

@@ -41,7 +41,7 @@ The verb refuses with a typed error when:
 - `--reason` is empty or whitespace-only.
 - `--actor` is not `human/...`.
 - `<sha>` doesn't match the 7-40-hex SHA shape (verified at write time via the trailer validator).
-- (M-0136/AC-4) `<sha>` is not a commit reachable from HEAD.
+- (M-0136/AC-4 + G-0236) `<sha>` is **neither** reachable from HEAD **nor** present in the local object database. The primary path (`git merge-base --is-ancestor <sha> HEAD`) covers the FSM-history rules and isolation-escape proper, whose offending SHAs live on trunk; the G-0236 fallback (`git rev-parse --verify <sha>^{commit}`) covers `isolation-escape-orphaned-ai-commit`, whose offending SHAs are by construction unreachable from HEAD because they're force-pushed-away tips the reflog walker surfaces. A typo or wrong-repo SHA fails both checks.
 
 ## What the commit looks like
 
@@ -81,7 +81,7 @@ Properties of the exemption:
 ## What can't this verb do
 
 - **Reverse itself.** There's no companion "un-acknowledge" verb. If you regret an acknowledgment, your options are: rewrite history (destructive, hostile to shared trunks); add a counter-acknowledgment via a future verb (not designed); or live with it. The verb is one-way by deliberate design — the spec's "What verb undoes this?" answer is *"you can't, and that's deliberate."*
-- **Acknowledge a commit not reachable from HEAD.** Per M-0136/AC-4, the verb fails with a typed error rather than silently accumulating no-op acknowledgments. Reachable means: `git merge-base --is-ancestor <sha> HEAD` succeeds.
+- **Acknowledge a commit that is neither reachable from HEAD nor in the local object DB.** Per M-0136/AC-4 + G-0236, the verb fails with a typed error rather than silently accumulating no-op acknowledgments. Valid means: either `git merge-base --is-ancestor <sha> HEAD` succeeds (primary case — on-trunk commits) OR `git rev-parse --verify <sha>^{commit}` succeeds (G-0236 fallback — orphans in the local object DB, surfaced via reflog walkers).
 - **Acknowledge findings other than `illegal-transition`.** `forced-untrailered`, `manual-edit`, and `history-walk-error` each have their own resolution paths (`--force --reason` at the time of the act, `--audit-only`, and re-run / fix git store respectively).
 
 ## Related
