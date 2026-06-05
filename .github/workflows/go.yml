@@ -61,7 +61,15 @@ jobs:
       # `$(go env GOPATH)/bin` on PATH automatically.
       - name: Install aiwf to PATH (required for hooks in tests)
         run: go install ./cmd/aiwf
-      - run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -race -parallel 8 -coverprofile=coverage.out -coverpkg=./internal/... ./...
+      # M-0162/AC-4: enables the branchtest Pin
+      # registry + the bijection sabotage subtests in
+      # internal/policies/m0162_ac4_sabotage_testpins_test.go.
+      # Without the tag, the registry is a no-op and the meta-cells
+      # would surface as unpinned (caught by AC-4 static check
+      # invariant 1). With the tag, the sabotage subtests run their
+      # synthetic-data assertions per AC-4 body §"Mechanical
+      # assertions" item 4.
+      - run: go test -tags testpins -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -race -parallel 8 -coverprofile=coverage.out -coverpkg=./internal/... ./...
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -n 1
       - uses: actions/upload-artifact@v4

@@ -429,6 +429,12 @@ func Rules() []spec.Rule {
 	// era cells readable as a contiguous block.
 	out = append(out, ac3ExpandedCells()...)
 
+	// M-0162/AC-4 meta-cells: register the bijection enforcement
+	// chokepoints in the catalog itself (per AC-4 body §"Meta-cells
+	// registered"). 3 cells, each pinned by the integration-package
+	// bijection meta-test.
+	out = append(out, ac4MetaCells()...)
+
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID
 	})
