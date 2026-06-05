@@ -58,7 +58,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 		// ----- Cell 1: All refs healthy, no AI work -----
 		// Both findings silent. Baseline silent-good.
 		{
-			Name: "AC-3 cell 1: all refs healthy, no AI commits → isolation-escape silent",
+			CellID: "branch-cell-m0161-ac3-c1",
+			Name:   "AC-3 cell 1: all refs healthy, no AI commits → isolation-escape silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -68,7 +69,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
 		{
-			Name: "AC-3 cell 1 (paired): all refs healthy, no AI commits → oracle-failure silent",
+			CellID: "branch-cell-m0161-ac3-c2",
+			Name:   "AC-3 cell 1 (paired): all refs healthy, no AI commits → oracle-failure silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -80,7 +82,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 		// `isolation-escape` fires (warning per M-0106);
 		// oracle-failure stays silent.
 		{
-			Name: "AC-3 cell 2: all refs healthy + AI escape → isolation-escape fires",
+			CellID: "branch-cell-m0161-ac3-c3",
+			Name:   "AC-3 cell 2: all refs healthy + AI escape → isolation-escape fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -90,7 +93,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 			Expect: Expectation{FindingPresent: "isolation-escape", FindingSeverity: "warning"},
 		},
 		{
-			Name: "AC-3 cell 2 (paired): all refs healthy + AI escape → oracle-failure silent",
+			CellID: "branch-cell-m0161-ac3-c4",
+			Name:   "AC-3 cell 2 (paired): all refs healthy + AI escape → oracle-failure silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -104,7 +108,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 		// isolation-escape silent (no AI escape); oracle-failure
 		// fires advisory naming the corrupt ref.
 		{
-			Name: "AC-3 cell 3: one ritual ref corrupted, no AI escape → isolation-escape silent",
+			CellID: "branch-cell-m0161-ac3-c5",
+			Name:   "AC-3 cell 3: one ritual ref corrupted, no AI escape → isolation-escape silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -113,7 +118,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
 		{
-			Name: "AC-3 cell 3 (paired): one ritual ref corrupted, no AI escape → oracle-failure fires advisory",
+			CellID: "branch-cell-m0161-ac3-c6",
+			Name:   "AC-3 cell 3 (paired): one ritual ref corrupted, no AI escape → oracle-failure fires advisory",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -134,7 +140,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 		// miss of the real escape. Post-AC-3 the rule polices
 		// the healthy ref normally.
 		{
-			Name: "AC-3 cell 4: one ritual ref corrupted + escape on healthy ref → isolation-escape fires",
+			CellID: "branch-cell-m0161-ac3-c7",
+			Name:   "AC-3 cell 4: one ritual ref corrupted + escape on healthy ref → isolation-escape fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -145,7 +152,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 			Expect: Expectation{FindingPresent: "isolation-escape", FindingSeverity: "warning"},
 		},
 		{
-			Name: "AC-3 cell 4 (paired): one ritual ref corrupted + escape on healthy ref → oracle-failure fires",
+			CellID: "branch-cell-m0161-ac3-c8",
+			Name:   "AC-3 cell 4 (paired): one ritual ref corrupted + escape on healthy ref → oracle-failure fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -169,7 +177,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 		// the oracle treats specially per the existing filter
 		// at internal/cli/check/isolation_escape_oracle.go:105).
 		{
-			Name: "AC-3 cell 5: all ritual refs corrupted → isolation-escape silent",
+			CellID: "branch-cell-m0161-ac3-c9",
+			Name:   "AC-3 cell 5: all ritual refs corrupted → isolation-escape silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -178,7 +187,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
 		{
-			Name: "AC-3 cell 5 (paired): all ritual refs corrupted → oracle-failure fires advisory",
+			CellID: "branch-cell-m0161-ac3-c10",
+			Name:   "AC-3 cell 5 (paired): all ritual refs corrupted → oracle-failure fires advisory",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -195,7 +205,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 		// Non-ritual refs (`feature/foo`) are filtered before
 		// per-ref indexing; both findings silent.
 		{
-			Name: "AC-3 cell 7: repo with only non-ritual refs → isolation-escape silent",
+			CellID: "branch-cell-m0161-ac3-c11",
+			Name:   "AC-3 cell 7: repo with only non-ritual refs → isolation-escape silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunGit("branch", "feature/foo", "main")
@@ -203,7 +214,8 @@ func TestBranchOracle_AC3_OracleErrors_Matrix(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
 		{
-			Name: "AC-3 cell 7 (paired): repo with only non-ritual refs → oracle-failure silent",
+			CellID: "branch-cell-m0161-ac3-c12",
+			Name:   "AC-3 cell 7 (paired): repo with only non-ritual refs → oracle-failure silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunGit("branch", "feature/foo", "main")
@@ -226,7 +238,8 @@ func TestBranchOracle_AC3_SovereignOverride_StaysClean(t *testing.T) {
 	t.Parallel()
 	RunScenarios(t, []Scenario{
 		{
-			Name: "AC-3 sovereign: acknowledged escape silences isolation-escape + unrelated corrupt ref",
+			CellID: "branch-cell-m0161-ac3-c13",
+			Name:   "AC-3 sovereign: acknowledged escape silences isolation-escape + unrelated corrupt ref",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -238,7 +251,8 @@ func TestBranchOracle_AC3_SovereignOverride_StaysClean(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
 		{
-			Name: "AC-3 sovereign (paired): acknowledged escape + unrelated corrupt ref → oracle-failure fires",
+			CellID: "branch-cell-m0161-ac3-c14",
+			Name:   "AC-3 sovereign (paired): acknowledged escape + unrelated corrupt ref → oracle-failure fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

@@ -41,6 +41,7 @@ import (
 // refuses with stderr containing the canonical substring.
 func TestDetachedHEAD_AC7_PreflightRefusesWithRefinedMessage(t *testing.T) {
 	t.Parallel()
+	pinCell("branch-cell-m0161-ac7-c1", t.Name())
 	env := newScenarioEnv(t)
 	env.MustRunBin("add", "epic", "--title", "Engine")
 	// Detach HEAD at main's tip.
@@ -79,6 +80,7 @@ func TestDetachedHEAD_AC7_PreflightRefusesWithRefinedMessage(t *testing.T) {
 // AC-7 reviewer B1).
 func TestDetachedHEAD_AC7_PreflightNoBranchRefuses(t *testing.T) {
 	t.Parallel()
+	pinCell("branch-cell-m0161-ac7-c2", t.Name())
 	env := newScenarioEnv(t)
 	env.MustRunBin("add", "epic", "--title", "Engine")
 	mainSHA := strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
@@ -106,6 +108,7 @@ func TestDetachedHEAD_AC7_PreflightNoBranchRefuses(t *testing.T) {
 // the aiwf-force trailer.
 func TestDetachedHEAD_AC7_PreflightForceReasonBypasses(t *testing.T) {
 	t.Parallel()
+	pinCell("branch-cell-m0161-ac7-c3", t.Name())
 	env := newScenarioEnv(t)
 	env.MustRunBin("add", "epic", "--title", "Engine")
 	mainSHA := strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
@@ -132,6 +135,7 @@ func TestDetachedHEAD_AC7_PreflightForceReasonBypasses(t *testing.T) {
 // what it sees; detached state alone is not a finding.
 func TestDetachedHEAD_AC7_CheckSucceedsNoFalseFindings(t *testing.T) {
 	t.Parallel()
+	pinCell("branch-cell-m0161-ac7-c4", t.Name())
 	env := newScenarioEnv(t)
 	env.MustRunBin("add", "epic", "--title", "Engine")
 	mainSHA := strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
@@ -148,6 +152,7 @@ func TestDetachedHEAD_AC7_CheckSucceedsNoFalseFindings(t *testing.T) {
 // doctor output (deferred JSON envelope per file header).
 func TestDetachedHEAD_AC7_DoctorSurfacesAdvisory(t *testing.T) {
 	t.Parallel()
+	pinCell("branch-cell-m0161-ac7-c5", t.Name())
 	env := newScenarioEnv(t)
 	env.MustRunBin("add", "epic", "--title", "Engine")
 	mainSHA := strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
@@ -173,6 +178,7 @@ func TestDetachedHEAD_AC7_DoctorSurfacesAdvisory(t *testing.T) {
 // silent.
 func TestDetachedHEAD_AC7_DanglingAICommitSilent(t *testing.T) {
 	t.Parallel()
+	pinCell("branch-cell-m0161-ac7-c6", t.Name())
 	env := newScenarioEnv(t)
 	env.MustRunBin("add", "epic", "--title", "Engine")
 	OpenBoundScope(t, env, "E-0001", "epic/E-0001-engine")
@@ -194,6 +200,7 @@ func TestDetachedHEAD_AC7_DanglingAICommitSilent(t *testing.T) {
 // detached-head advisory does NOT appear.
 func TestDetachedHEAD_AC7_DoctorSilentOnAttachedHEAD(t *testing.T) {
 	t.Parallel()
+	pinCell("branch-cell-m0161-ac7-c7", t.Name())
 	env := newScenarioEnv(t)
 	env.MustRunBin("add", "epic", "--title", "Engine")
 	// HEAD is on main (attached state); doctor should not

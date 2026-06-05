@@ -38,6 +38,16 @@ type Scenario struct {
 	// not "happy path A").
 	Name string
 
+	// CellID names the branch-choreography catalog cell this
+	// scenario pins (per M-0162/AC-3). Must match an ID in
+	// `branch.Rules()`. RunScenarios records this in the
+	// branchtest Pin registry under -tags testpins so AC-4's
+	// bijection meta-test can verify the 1:1 mapping. Empty
+	// CellID is permitted only during incremental migration
+	// and surfaces an AC-4 bijection finding (orphan subtest)
+	// once the meta-test lands.
+	CellID string
+
 	// Setup runs the scenario's preparation: create entities, set
 	// up branches, open scopes, make commits. Mutates the env's
 	// real-git repo via env.MustRunBin / env.MustRunGit, or via
@@ -149,6 +159,11 @@ func RunScenarios(t *testing.T, scenarios []Scenario) {
 	for _, sc := range scenarios {
 		t.Run(sc.Name, func(t *testing.T) {
 			t.Parallel()
+			// Record the cell pin in the branchtest registry
+			// (no-op without -tags testpins per pinCell's
+			// build-tagged stubs). M-0162/AC-3 feeds AC-4's
+			// bijection meta-test from this single seam.
+			pinCell(sc.CellID, t.Name())
 			env := newScenarioEnv(t)
 			sc.Setup(t, env)
 			assertExpectation(t, env, sc.Expect)

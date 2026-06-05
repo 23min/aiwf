@@ -54,7 +54,8 @@ func TestBranchOracle_AC6_RenameResolution_Matrix(t *testing.T) {
 		// rename happens, but the resolution must stay backwards
 		// compatible).
 		{
-			Name: "AC-6 cell 1: no rename, AI on bound branch → silent",
+			CellID: "branch-cell-m0161-ac6-c1",
+			Name:   "AC-6 cell 1: no rename, AI on bound branch → silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -68,7 +69,8 @@ func TestBranchOracle_AC6_RenameResolution_Matrix(t *testing.T) {
 		// ----- Cell 2: No rename, AI on wrong branch -----
 		// Fires (baseline). The pre-rename escape shape.
 		{
-			Name: "AC-6 cell 2: no rename + AI escape → fires",
+			CellID: "branch-cell-m0161-ac6-c2",
+			Name:   "AC-6 cell 2: no rename + AI escape → fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -90,7 +92,8 @@ func TestBranchOracle_AC6_RenameResolution_Matrix(t *testing.T) {
 		// AI's branch is `epic/E-0001-renamed`, mismatch → fires
 		// (false positive — the G-0206 failure mode).
 		{
-			Name: "AC-6 cell 3: rename foo→bar + AI on bar (renamed-to) → silent",
+			CellID: "branch-cell-m0161-ac6-c3",
+			Name:   "AC-6 cell 3: rename foo→bar + AI on bar (renamed-to) → silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -108,7 +111,8 @@ func TestBranchOracle_AC6_RenameResolution_Matrix(t *testing.T) {
 		// Fires. SHA resolves bound to `epic/E-0001-renamed`; AI
 		// landed on `epic/E-0001-bogus`; mismatch fires.
 		{
-			Name: "AC-6 cell 4: rename foo→bar + AI on baz (cut from renamed) → fires",
+			CellID: "branch-cell-m0161-ac6-c4",
+			Name:   "AC-6 cell 4: rename foo→bar + AI on baz (cut from renamed) → fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -133,7 +137,8 @@ func TestBranchOracle_AC6_RenameResolution_Matrix(t *testing.T) {
 		// `epic/E-0001-engine` name. AI on `epic/E-0001-engine`
 		// matches.
 		{
-			Name: "AC-6 cell 5: rename foo→bar→foo + AI on foo → silent",
+			CellID: "branch-cell-m0161-ac6-c5",
+			Name:   "AC-6 cell 5: rename foo→bar→foo + AI on foo → silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -156,7 +161,8 @@ func TestBranchOracle_AC6_RenameResolution_Matrix(t *testing.T) {
 		// resolution wins: the SHA is on `epic/E-0001-renamed`,
 		// AI is on `epic/E-0001-renamed`, match → silent.
 		{
-			Name: "AC-6 cell 7: squat collision (orphan squat) → silent (SHA resolves to renamed)",
+			CellID: "branch-cell-m0161-ac6-c6",
+			Name:   "AC-6 cell 7: squat collision (orphan squat) → silent (SHA resolves to renamed)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -187,7 +193,8 @@ func TestBranchOracle_AC6_RenameResolution_Matrix(t *testing.T) {
 		// Silent. Symmetric to cell 1 but explicitly exercises
 		// the legacy path.
 		{
-			Name: "AC-6 cell 8: legacy authorize (no SHA), no rename, AI on bound branch → silent",
+			CellID: "branch-cell-m0161-ac6-c7",
+			Name:   "AC-6 cell 8: legacy authorize (no SHA), no rename, AI on bound branch → silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -206,7 +213,8 @@ func TestBranchOracle_AC6_RenameResolution_Matrix(t *testing.T) {
 		// AI commit. AC-6's closure scope is POST-AC-6
 		// authorize; legacy scopes are the carve-out.
 		{
-			Name: "AC-6 cell 9 (DOCUMENTED LEGACY CARVE-OUT): legacy authorize + rename → fires (G-0225 tracks rebind verb)",
+			CellID: "branch-cell-m0161-ac6-c8",
+			Name:   "AC-6 cell 9 (DOCUMENTED LEGACY CARVE-OUT): legacy authorize + rename → fires (G-0225 tracks rebind verb)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -239,7 +247,8 @@ func TestBranchOracle_AC6_RenameResolution_Matrix(t *testing.T) {
 		// scenario where deletion is via reflog GC of an
 		// orphaned ref (AC-5 territory).
 		{
-			Name: "AC-6 cell 6: bound branch deleted entirely → isolation-escape silent (fail-shut)",
+			CellID: "branch-cell-m0161-ac6-c9",
+			Name:   "AC-6 cell 6: bound branch deleted entirely → isolation-escape silent (fail-shut)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

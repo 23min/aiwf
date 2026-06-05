@@ -111,6 +111,11 @@ func TestAuthorize_AC1_NonMainTrunkNames_Accept(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			// M-0162/AC-3 cell pin: one cell per non-main trunk
+			// shape exercised by this matrix. Cell IDs are
+			// stable across test renames because they key
+			// off the matrix-row name.
+			pinCell("branch-cell-m0161-ac1-"+tc.name, t.Name())
 
 			root := t.TempDir()
 			// Initialize git with the configured trunk as the
@@ -303,6 +308,10 @@ func TestAuthorize_AC2_RungPair_Matrix(t *testing.T) {
 		name := c.currentRung + "_to_" + c.targetRung
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			// M-0162/AC-3 cell pin: one cell per rung-pair
+			// matrix row. 16 cells from the 4×4 rung-pair
+			// grid (current × target) — see runAC2RungPairCell.
+			pinCell("branch-cell-m0161-ac2-"+name, t.Name())
 			runAC2RungPairCell(
 				t, bin, binDir,
 				currentBranchByRung[c.currentRung],
@@ -319,6 +328,9 @@ func TestAuthorize_AC2_RungPair_Matrix(t *testing.T) {
 	// trailers — pinning the override surface for AC-2's gate.
 	t.Run("sovereign_override_force_reason_bypasses_rung_check", func(t *testing.T) {
 		t.Parallel()
+		// M-0162/AC-3 cell pin: the AC-2 sovereign-override
+		// scenario. Same name as the test subtest for traceability.
+		pinCell("branch-cell-m0161-ac2-sovereign-override", t.Name())
 		runAC2OverrideCell(
 			t, bin, binDir,
 			currentBranchByRung["epic"],

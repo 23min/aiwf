@@ -86,7 +86,8 @@ func TestBranchScenarios_AC5_TrailerVerbUnknownAckSilencing(t *testing.T) {
 		// A future PR that flipped warning→error without an
 		// explicit decision would surface here.
 		{
-			Name: "trailer-verb-unknown without acknowledgment fires as warning (M-0159/AC-5: baseline positive control)",
+			CellID: "branch-cell-m0159-ac5-c1",
+			Name:   "trailer-verb-unknown without acknowledgment fires as warning (M-0159/AC-5: baseline positive control)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				SimulateStrayVerbCommit(t, env, "implement",
@@ -109,7 +110,8 @@ func TestBranchScenarios_AC5_TrailerVerbUnknownAckSilencing(t *testing.T) {
 		// truth-conversion for the docstring promise at
 		// trailer_verb_unknown.go:25-29.
 		{
-			Name: "trailer-verb-unknown acknowledged is silent (M-0159/AC-5: docstring promise mechanical truth)",
+			CellID: "branch-cell-m0159-ac5-c2",
+			Name:   "trailer-verb-unknown acknowledged is silent (M-0159/AC-5: docstring promise mechanical truth)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				strayedSHA := SimulateStrayVerbCommit(t, env, "implement",
@@ -137,7 +139,8 @@ func TestBranchScenarios_AC5_TrailerVerbUnknownAckSilencing(t *testing.T) {
 		// meaningless but populates the ackedSHAs map with a
 		// non-empty value that doesn't cover the stray.
 		{
-			Name: "trailer-verb-unknown NOT acknowledged on its own SHA still fires (M-0159/AC-5: per-SHA scoping E2E)",
+			CellID: "branch-cell-m0159-ac5-c3",
+			Name:   "trailer-verb-unknown NOT acknowledged on its own SHA still fires (M-0159/AC-5: per-SHA scoping E2E)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				// strayedSHA is deliberately NOT used in the ack
@@ -208,7 +211,8 @@ func TestBranchScenarios_AC5_TrailerVerbUnknownAckSilencing(t *testing.T) {
 		// silencing AND the trailer-preservation claim end-to-
 		// end.
 		{
-			Name: "trailer-verb-unknown acknowledged preserves fabricated aiwf-verb trailer on original stray (M-0159/AC-5: no-history-rewrite)",
+			CellID: "branch-cell-m0159-ac5-c4",
+			Name:   "trailer-verb-unknown acknowledged preserves fabricated aiwf-verb trailer on original stray (M-0159/AC-5: no-history-rewrite)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				strayedSHA := SimulateStrayVerbCommit(t, env, "implement",

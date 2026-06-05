@@ -37,7 +37,8 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 
 		// Cell 1: epic activating promote on trunk → silent.
 		{
-			Name: "AC-8 cell 1: epic active on trunk → silent (baseline)",
+			CellID: "branch-cell-m0161-ac8-c1",
+			Name:   "AC-8 cell 1: epic active on trunk → silent (baseline)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -48,7 +49,8 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 
 		// Cell 2: milestone activating promote on parent epic → silent.
 		{
-			Name: "AC-8 cell 2: milestone in_progress on parent epic branch → silent (baseline)",
+			CellID: "branch-cell-m0161-ac8-c2",
+			Name:   "AC-8 cell 2: milestone in_progress on parent epic branch → silent (baseline)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -65,7 +67,8 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 
 		// Cell 3: epic activating promote on a ritual branch → fires.
 		{
-			Name: "AC-8 cell 3: epic active on epic/E-X branch → fires",
+			CellID: "branch-cell-m0161-ac8-c3",
+			Name:   "AC-8 cell 3: epic active on epic/E-X branch → fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -82,7 +85,8 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 
 		// Cell 4: milestone activating promote on a milestone/ branch → fires.
 		{
-			Name: "AC-8 cell 4: milestone in_progress on milestone/M-Y branch → fires",
+			CellID: "branch-cell-m0161-ac8-c4",
+			Name:   "AC-8 cell 4: milestone in_progress on milestone/M-Y branch → fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -98,7 +102,8 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 
 		// Cell 5: milestone activating promote on trunk (skipping parent) → fires.
 		{
-			Name: "AC-8 cell 5: milestone in_progress on trunk (skipped parent epic) → fires",
+			CellID: "branch-cell-m0161-ac8-c5",
+			Name:   "AC-8 cell 5: milestone in_progress on trunk (skipped parent epic) → fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -118,7 +123,8 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 
 		// Cell 7: non-activating promote on wrong branch → silent.
 		{
-			Name: "AC-8 cell 7: non-activating promote (epic active → done) on wrong branch → silent (out of domain)",
+			CellID: "branch-cell-m0161-ac8-c6",
+			Name:   "AC-8 cell 7: non-activating promote (epic active → done) on wrong branch → silent (out of domain)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -135,7 +141,8 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 
 		// Cell 8: wrong-branch promote + ack → silent.
 		{
-			Name: "AC-8 cell 8: wrong-branch promote + aiwf acknowledge-illegal → silent",
+			CellID: "branch-cell-m0161-ac8-c7",
+			Name:   "AC-8 cell 8: wrong-branch promote + aiwf acknowledge-illegal → silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -149,7 +156,8 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 
 		// Cell 9: wrong-branch promote with aiwf-force trailer → silent (per-commit override).
 		{
-			Name: "AC-8 cell 9: wrong-branch promote --force --reason → silent (per-commit override)",
+			CellID: "branch-cell-m0161-ac8-c8",
+			Name:   "AC-8 cell 9: wrong-branch promote --force --reason → silent (per-commit override)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

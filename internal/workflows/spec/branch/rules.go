@@ -416,6 +416,19 @@ func Rules() []spec.Rule {
 			Sources:           spec.RuleSource{Decision: "ADR-0010"},
 		},
 	}
+
+	// M-0162/AC-3 cell expansion: one cell per discriminating
+	// E2E subtest across the M-0106 / M-0159 / M-0160 / M-0161
+	// surfaces. Each cell carries Outcome=Legal as a catalog-
+	// vocabulary entry — the actual legal/illegal behavior is
+	// pinned by the test body's Expect assertion (silent vs
+	// FindingPresent). The cells exist to satisfy AC-4's
+	// bijection invariant: every Pin from a Scenario CellID
+	// must reference an entry here. Cells are appended below
+	// rather than inlined above to keep the M-0158-era + M-0161-
+	// era cells readable as a contiguous block.
+	out = append(out, ac3ExpandedCells()...)
+
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID
 	})

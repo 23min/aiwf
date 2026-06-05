@@ -40,7 +40,8 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 		// ----- Cell 1: Full clone, no force-push, AI escape -----
 		// isolation-escape fires; orphan finding silent.
 		{
-			Name: "AC-5 cell 1: full clone + AI escape (no force-push) → isolation-escape fires",
+			CellID: "branch-cell-m0161-ac5-c1",
+			Name:   "AC-5 cell 1: full clone + AI escape (no force-push) → isolation-escape fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -50,7 +51,8 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 			Expect: Expectation{FindingPresent: "isolation-escape", FindingSeverity: "warning"},
 		},
 		{
-			Name: "AC-5 cell 1 (paired): no force-push, AI escape → orphan finding silent",
+			CellID: "branch-cell-m0161-ac5-c2",
+			Name:   "AC-5 cell 1 (paired): no force-push, AI escape → orphan finding silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -63,7 +65,8 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 		// ----- Cell 2: Full clone, no force-push, no escape -----
 		// Both silent. Baseline.
 		{
-			Name: "AC-5 cell 2: no force-push, no escape → orphan finding silent",
+			CellID: "branch-cell-m0161-ac5-c3",
+			Name:   "AC-5 cell 2: no force-push, no escape → orphan finding silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -76,7 +79,8 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 		// unreachable from current ref tip; existing rule sees
 		// nothing); new warning fires naming SHA + branch.
 		{
-			Name: "AC-5 cell 3: force-push orphans AI commit → orphan finding fires",
+			CellID: "branch-cell-m0161-ac5-c4",
+			Name:   "AC-5 cell 3: force-push orphans AI commit → orphan finding fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -89,7 +93,8 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 			},
 		},
 		{
-			Name: "AC-5 cell 3 (paired): force-push orphans AI commit → isolation-escape silent",
+			CellID: "branch-cell-m0161-ac5-c5",
+			Name:   "AC-5 cell 3 (paired): force-push orphans AI commit → isolation-escape silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -102,7 +107,8 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 		// ----- Cell 4: Force-push orphans non-AI commit -----
 		// Both silent. The orphan exists but has no AI trailers.
 		{
-			Name: "AC-5 cell 4: force-push orphans non-AI commit → orphan finding silent",
+			CellID: "branch-cell-m0161-ac5-c6",
+			Name:   "AC-5 cell 4: force-push orphans non-AI commit → orphan finding silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -182,7 +188,8 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 		// isolation-escape-oracle-failure advisory fires (per
 		// AC-3 composition)".
 		{
-			Name: "AC-5 cell 7: reflog disabled + force-push → oracle-failure advisory fires (AC-3 composition)",
+			CellID: "branch-cell-m0161-ac5-c7",
+			Name:   "AC-5 cell 7: reflog disabled + force-push → oracle-failure advisory fires (AC-3 composition)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -196,7 +203,8 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 			},
 		},
 		{
-			Name: "AC-5 cell 7 (paired): reflog disabled + force-push → orphan finding silent (no reflog to walk)",
+			CellID: "branch-cell-m0161-ac5-c8",
+			Name:   "AC-5 cell 7 (paired): reflog disabled + force-push → orphan finding silent (no reflog to walk)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

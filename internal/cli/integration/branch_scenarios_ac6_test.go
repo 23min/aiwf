@@ -110,7 +110,8 @@ func TestBranchScenarios_AC6_CherryPickGatherSide(t *testing.T) {
 		// after gather-side WalkCherryPicks lands and provenance.go
 		// passes the real map instead of nil.
 		{
-			Name: "AI commit cherry-picked -x by human (distinct committer) to non-bound branch is silent (M-0159/AC-6: G-0202 happy path)",
+			CellID: "branch-cell-m0159-ac6-c1",
+			Name:   "AI commit cherry-picked -x by human (distinct committer) to non-bound branch is silent (M-0159/AC-6: G-0202 happy path)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -149,7 +150,8 @@ func TestBranchScenarios_AC6_CherryPickGatherSide(t *testing.T) {
 		// the gap check) would spuriously pass scenario 1 AND
 		// silently over-suppress here.
 		{
-			Name: "Cherry-pick -x by same identity (committer == author, no gap) still fires (M-0159/AC-6: marker-only negative)",
+			CellID: "branch-cell-m0159-ac6-c2",
+			Name:   "Cherry-pick -x by same identity (committer == author, no gap) still fires (M-0159/AC-6: marker-only negative)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -181,7 +183,8 @@ func TestBranchScenarios_AC6_CherryPickGatherSide(t *testing.T) {
 		// (skipping the marker check) would spuriously pass scenario
 		// 1 AND silently over-suppress here.
 		{
-			Name: "Cherry-pick WITHOUT -x by distinct committer (gap, no marker) still fires (M-0159/AC-6: gap-only negative)",
+			CellID: "branch-cell-m0159-ac6-c3",
+			Name:   "Cherry-pick WITHOUT -x by distinct committer (gap, no marker) still fires (M-0159/AC-6: gap-only negative)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -220,7 +223,8 @@ func TestBranchScenarios_AC6_CherryPickGatherSide(t *testing.T) {
 		// branch name "epic/E-0001-engine" → isolation-escape
 		// fires.
 		{
-			Name: "AI commit on non-bound branch without cherry-pick fires (M-0159/AC-6: baseline positive control)",
+			CellID: "branch-cell-m0159-ac6-c4",
+			Name:   "AI commit on non-bound branch without cherry-pick fires (M-0159/AC-6: baseline positive control)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

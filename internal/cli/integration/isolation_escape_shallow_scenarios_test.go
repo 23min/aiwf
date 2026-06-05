@@ -51,7 +51,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 		// ----- Cell 1: Full clone, no escape -----
 		// Both silent. Baseline.
 		{
-			Name: "AC-4 cell 1: full clone, no AI commits → isolation-escape silent",
+			CellID: "branch-cell-m0161-ac4-c1",
+			Name:   "AC-4 cell 1: full clone, no AI commits → isolation-escape silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -59,7 +60,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
 		{
-			Name: "AC-4 cell 1 (paired): full clone, no AI commits → shallow-clone silent",
+			CellID: "branch-cell-m0161-ac4-c2",
+			Name:   "AC-4 cell 1 (paired): full clone, no AI commits → shallow-clone silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -70,7 +72,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 		// ----- Cell 2: Full clone, escape present -----
 		// isolation-escape fires; shallow-clone silent.
 		{
-			Name: "AC-4 cell 2: full clone + AI escape → isolation-escape fires",
+			CellID: "branch-cell-m0161-ac4-c3",
+			Name:   "AC-4 cell 2: full clone + AI escape → isolation-escape fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -80,7 +83,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 			Expect: Expectation{FindingPresent: "isolation-escape", FindingSeverity: "warning"},
 		},
 		{
-			Name: "AC-4 cell 2 (paired): full clone + AI escape → shallow-clone silent",
+			CellID: "branch-cell-m0161-ac4-c4",
+			Name:   "AC-4 cell 2 (paired): full clone + AI escape → shallow-clone silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -96,7 +100,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 		// shallow window); isolation-escape-shallow-clone fires
 		// warning with the remediation hint.
 		{
-			Name: "AC-4 cell 3: shallow clone + AI escape → isolation-escape silent (fail-shut)",
+			CellID: "branch-cell-m0161-ac4-c5",
+			Name:   "AC-4 cell 3: shallow clone + AI escape → isolation-escape silent (fail-shut)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -107,7 +112,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
 		{
-			Name: "AC-4 cell 3 (paired): shallow clone + AI escape → shallow-clone fires warning",
+			CellID: "branch-cell-m0161-ac4-c6",
+			Name:   "AC-4 cell 3 (paired): shallow clone + AI escape → shallow-clone fires warning",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -128,7 +134,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 		// silent (no commit to fire on, and the rule's fail-shut
 		// would silence it anyway).
 		{
-			Name: "AC-4 cell 4: shallow clone, no AI escape → isolation-escape silent",
+			CellID: "branch-cell-m0161-ac4-c7",
+			Name:   "AC-4 cell 4: shallow clone, no AI escape → isolation-escape silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -137,7 +144,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
 		{
-			Name: "AC-4 cell 4 (paired): shallow clone, no AI escape → shallow-clone fires",
+			CellID: "branch-cell-m0161-ac4-c8",
+			Name:   "AC-4 cell 4 (paired): shallow clone, no AI escape → shallow-clone fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -158,7 +166,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 		// semantics through .git/shallow alone); the cell pins
 		// the contract behaviorally.
 		{
-			Name: "AC-4 cell 5: shallow depth=N + escape within window → isolation-escape STILL silent",
+			CellID: "branch-cell-m0161-ac4-c9",
+			Name:   "AC-4 cell 5: shallow depth=N + escape within window → isolation-escape STILL silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -176,7 +185,8 @@ func TestBranchOracle_AC4_ShallowClone_Matrix(t *testing.T) {
 		// the shallow-flag-cleared path returns to normal coverage.
 		// Symmetric to cell 2; explicit naming for catalog clarity.
 		{
-			Name: "AC-4 cell 6: unshallow → isolation-escape works again (same as full-clone path)",
+			CellID: "branch-cell-m0161-ac4-c10",
+			Name:   "AC-4 cell 6: unshallow → isolation-escape works again (same as full-clone path)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -198,7 +208,8 @@ func TestBranchOracle_AC4_SovereignOverride_ShallowFiresAnyway(t *testing.T) {
 	t.Parallel()
 	RunScenarios(t, []Scenario{
 		{
-			Name: "AC-4 sovereign: shallow + force-amended escape → isolation-escape silent",
+			CellID: "branch-cell-m0161-ac4-c11",
+			Name:   "AC-4 sovereign: shallow + force-amended escape → isolation-escape silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -210,7 +221,8 @@ func TestBranchOracle_AC4_SovereignOverride_ShallowFiresAnyway(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape"},
 		},
 		{
-			Name: "AC-4 sovereign (paired): shallow + force-amend → shallow-clone STILL fires",
+			CellID: "branch-cell-m0161-ac4-c12",
+			Name:   "AC-4 sovereign (paired): shallow + force-amend → shallow-clone STILL fires",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

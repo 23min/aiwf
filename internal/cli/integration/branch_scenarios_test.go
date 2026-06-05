@@ -45,7 +45,8 @@ func TestBranchScenarios_AC1_FrameworkExercise(t *testing.T) {
 	t.Parallel()
 	RunScenarios(t, []Scenario{
 		{
-			Name: "AI commit on bound branch is silent (M-0106 AC-4)",
+			CellID: "branch-cell-m0106-baseline-c1",
+			Name:   "AI commit on bound branch is silent (M-0106 AC-4)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				// aiwfx-start-epic step 7 pattern: authorize
@@ -67,7 +68,8 @@ func TestBranchScenarios_AC1_FrameworkExercise(t *testing.T) {
 			},
 		},
 		{
-			Name: "AI commit on main while bound to epic ritual fires isolation-escape (M-0106 AC-1)",
+			CellID: "branch-cell-m0106-baseline-c2",
+			Name:   "AI commit on main while bound to epic ritual fires isolation-escape (M-0106 AC-1)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -89,7 +91,8 @@ func TestBranchScenarios_AC1_FrameworkExercise(t *testing.T) {
 			},
 		},
 		{
-			Name: "Force-amend with human actor silences the escape (M-0106 AC-8 legacy override)",
+			CellID: "branch-cell-m0106-baseline-c3",
+			Name:   "Force-amend with human actor silences the escape (M-0106 AC-8 legacy override)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

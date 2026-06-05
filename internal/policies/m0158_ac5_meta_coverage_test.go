@@ -88,6 +88,20 @@ func TestM0158_AC5_EveryBranchCellHasMatchingTest(t *testing.T) {
 			continue
 		}
 
+		// M-0162/AC-3 cell-expansion entries (ordinal IDs like
+		// `branch-cell-m0159-ac4-c1`, the AC-1 trunk-shapes, and
+		// the AC-2 rung-pair matrix cells) use literal CellID
+		// references from E2E Scenario struct literals and inline
+		// pinCell() calls, NOT test-function-name keywords. The
+		// AC-3 cell-presence test at m0162_ac3_expanded_set_test.go
+		// covers these via static AST extraction — strictly stronger
+		// than this file's keyword-fuzz matching. AC-4 retires this
+		// whole keyword-set test in favor of the bijection meta-test
+		// (which strictly dominates both this and AC-3's static check).
+		if isM0162AC3Cell(cell.ID) {
+			continue
+		}
+
 		idDirect := hasNameContaining(testNames, cell.ID)
 		var keywordMatch bool
 		for _, kw := range keywords[cell.ID] {
@@ -101,6 +115,39 @@ func TestM0158_AC5_EveryBranchCellHasMatchingTest(t *testing.T) {
 			t.Errorf("M-0158/AC-5: no test found matching cell %q\n  expected at least one test name containing one of: %v\n  (or the literal id %q)", cell.ID, tokens, cell.ID)
 		}
 	}
+}
+
+// isM0162AC3Cell reports whether the cell ID is one of the
+// M-0162/AC-3 cell-expansion entries (ordinal IDs from
+// rules_m0162_ac3.go). These cells are covered by AC-3's static
+// CellID-presence test, not by this file's keyword-fuzz mapping.
+//
+// The prefixes correspond to the AC-3 generator's enumeration
+// source (per /tmp/build-ac3-cells-file.py): one prefix per
+// scenario-bearing milestone+AC.
+func isM0162AC3Cell(id string) bool {
+	prefixes := []string{
+		"branch-cell-m0106-baseline-",
+		"branch-cell-m0159-ac2-",
+		"branch-cell-m0159-ac4-",
+		"branch-cell-m0159-ac5-",
+		"branch-cell-m0159-ac6-",
+		"branch-cell-m0160-ac4-",
+		"branch-cell-m0161-ac1-",
+		"branch-cell-m0161-ac2-",
+		"branch-cell-m0161-ac3-c",
+		"branch-cell-m0161-ac4-c",
+		"branch-cell-m0161-ac5-c",
+		"branch-cell-m0161-ac6-c",
+		"branch-cell-m0161-ac7-c",
+		"branch-cell-m0161-ac8-c",
+	}
+	for _, p := range prefixes {
+		if strings.HasPrefix(id, p) {
+			return true
+		}
+	}
+	return false
 }
 
 // hasNameContaining reports whether any of the test names
