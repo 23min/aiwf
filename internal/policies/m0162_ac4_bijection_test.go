@@ -21,14 +21,37 @@ import (
 //
 //  1. Every cell in branch.Rules() has at least one Pin call site.
 //  2. Every Pin call site references a cell present in branch.Rules().
-//  3. No cell has 2+ Pin call sites.
+//  3. No cell has 2+ Pin call sites at distinct source positions.
 //
-// Invariant 4 (no test function pins 2+ cells) is RUNTIME-ONLY:
-// static analysis cannot resolve `t.Name()` (the load-bearing
-// per-call-site identifier at runtime). The integration package's
-// TestMain post-hook (testpins-tagged) catches invariant 4 by
-// reading `branchtest.Pins()` after all parallel waves complete.
-// See internal/cli/integration/bijection_*_test.go.
+// Invariant 4 (no test function pins 2+ cells) is enforced at
+// RUNTIME by:
+//
+//   - internal/cli/integration/bijection_runtime_testpins_test.go's
+//     TestZZZ_M0162_AC4_BijectionInvariant4_Runtime (lex-late
+//     serial test under -tags testpins).
+//   - The TestMain post-hook at integration/setup_test.go +
+//     bijection_posthook_testpins_test.go's bijectionPostHook,
+//     which reads branchtest.Pins() after all parallel waves
+//     drain.
+//
+// Static analysis cannot resolve `t.Name()` (the load-bearing
+// per-call-site identifier at runtime), so invariant 4 is
+// architecturally a runtime concern. The body's "branchtest.Pins()
+// registry" phrasing is delivered by the runtime portion of this
+// split architecture.
+//
+// Why static AST is also used (this test, NOT under -tags testpins):
+//
+// The body's location hint at `internal/policies/...` (different
+// package from where Pin calls happen) is incompatible with reading
+// a per-process Pins() registry — the policies-package test binary
+// would see an empty Pins() because its tests don't execute the
+// integration-package Pin call sites. The static AST scan over
+// internal/ *_test.go files provides the cell-side bijection
+// coverage at policies-binary CI time; the runtime check in
+// integration provides the t.Name() granularity check at
+// integration-binary CI time. Both are needed; both run on every
+// `make test-pins` and CI run.
 //
 // Static-AST scan rationale (deviation from body's "Pins() registry"):
 //
@@ -59,11 +82,38 @@ func TestM0162_AC4_Bijection(t *testing.T) {
 	t.Parallel()
 
 	root := repoRoot(t)
-	pins := collectPinCallSites(t, root)
+	refs := collectPinReferences(t, root)
 
 	cellsList := make([]string, 0)
 	for _, r := range branch.Rules() {
 		cellsList = append(cellsList, r.ID)
+	}
+
+	// Materialize prefix coverage: for each dynamic-prefix Pin
+	// call site (e.g., `pinCell("branch-cell-m0161-ac1-"+ident, ...)`),
+	// expand to every cell in branch.Rules() whose ID starts with
+	// the prefix. This dissolves what was a 20-entry allowlist in
+	// the original AC-4 closure (reviewer S3).
+	pins := make(map[string][]string, len(refs.Literals))
+	for k, v := range refs.Literals {
+		pins[k] = append([]string(nil), v...)
+	}
+	for _, ps := range refs.Prefixes {
+		for _, cellID := range cellsList {
+			if !strings.HasPrefix(cellID, ps.Prefix) || cellID == ps.Prefix {
+				continue
+			}
+			// Skip cells that already have a LITERAL pin: e.g.,
+			// `branch-cell-m0161-ac2-sovereign-override` is pinned
+			// literally by an inline pinCell elsewhere; the prefix
+			// expansion from the matrix would double-count.
+			if len(refs.Literals[cellID]) > 0 {
+				continue
+			}
+			if !containsString(pins[cellID], ps.Site) {
+				pins[cellID] = append(pins[cellID], ps.Site)
+			}
+		}
 	}
 
 	v := evaluateBijection(cellsList, pins, bijectionAllowlist())
@@ -71,6 +121,16 @@ func TestM0162_AC4_Bijection(t *testing.T) {
 	if len(v) > 0 {
 		t.Errorf("M-0162/AC-4 bijection meta-test: %d violation(s)\n%s", len(v), describeViolations(v))
 	}
+}
+
+// containsString reports whether xs contains x.
+func containsString(xs []string, x string) bool {
+	for _, v := range xs {
+		if v == x {
+			return true
+		}
+	}
+	return false
 }
 
 // bijectionAllowlist returns the set of cell IDs that may legally
@@ -122,40 +182,16 @@ func bijectionAllowlist() map[string]string {
 		"branch-cell-detached-head-preflight":             "named-rule cell paired with branch-cell-m0161-ac7-c1..c7 ordinals (which carry the inline pinCell calls); primary verb test in internal/verb/",
 		"branch-cell-promote-on-wrong-branch":             "named-rule cell paired with branch-cell-m0161-ac8-c1..c8 ordinals; primary unit test in internal/check/",
 
-		// AC-1 trunk-shape matrix cells. pinCell call site is
-		// `pinCell("branch-cell-m0161-ac1-"+tc.name, t.Name())` at
-		// internal/cli/integration/authorize_scenarios_test.go (post-
-		// M-0162/AC-3). Static AST sees the prefix string but cannot
-		// resolve the concatenation; the runtime registry sees the
-		// constructed values. AC-3's TestM0162_AC3_DynamicCellsPresence
-		// (m0162_ac3_expanded_set_test.go) verifies the constructed
-		// IDs are in branch.Rules(); AC-4's runtime invariant 4 check
-		// (integration TestMain post-hook, when -tags testpins) sees
-		// the registry pins.
-		"branch-cell-m0161-ac1-main":                   "AC-1 trunk-shape dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac1-github-classic-master":  "AC-1 trunk-shape dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac1-operator-chosen-dev":    "AC-1 trunk-shape dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac1-operator-chosen-trunk":  "AC-1 trunk-shape dynamic cell; see allowlist note above",
-
-		// AC-2 rung-pair matrix cells (4 rungs × 4 rungs = 16). Same
-		// dynamic-string rationale as AC-1 above. See the AC-3
-		// dynamic-cells presence test for the IDs↔matrix mapping.
-		"branch-cell-m0161-ac2-trunk_to_trunk":         "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-trunk_to_epic":          "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-trunk_to_milestone":     "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-trunk_to_patch":         "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-epic_to_trunk":          "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-epic_to_epic":           "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-epic_to_milestone":      "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-epic_to_patch":          "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-milestone_to_trunk":     "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-milestone_to_epic":      "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-milestone_to_milestone": "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-milestone_to_patch":     "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-patch_to_trunk":         "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-patch_to_epic":          "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-patch_to_milestone":     "AC-2 rung-pair dynamic cell; see allowlist note above",
-		"branch-cell-m0161-ac2-patch_to_patch":         "AC-2 rung-pair dynamic cell; see allowlist note above",
+		// AC-1 trunk-shape + AC-2 rung-pair dynamic cells used to
+		// require 20 allowlist entries here. Reviewer S3 finding
+		// noted this was a "trust me bro" surface. The fix: extend
+		// the AST scanner to recognize `pinCell("prefix-"+ident,
+		// ...)` and `branchtest.Pin("prefix-"+ident, ...)` as
+		// dynamic-prefix Pin sites. The bijection check then
+		// expands the prefix against branch.Rules() to credit
+		// every cell with the matching prefix as pinned. See
+		// handlePinArg() and the prefix-coverage materialization
+		// in TestM0162_AC4_Bijection.
 	}
 }
 
@@ -289,11 +325,30 @@ func describeViolations(v []bijectionViolation) string {
 // check exempts them via the allowlist (the matrix-row cells'
 // AC-1/AC-2 prefix entries above).
 //
-// Returns map[cellID][]"file:funcname" so invariants 3 and 4 can
-// be checked against call-site uniqueness.
-func collectPinCallSites(t *testing.T, root string) map[string][]string {
+// Returns pinReferences with both literal cell-ID pins and
+// dynamic-prefix pins. The caller materializes prefix coverage
+// against branch.Rules() to dissolve the original AC-4 prefix
+// allowlist (reviewer S3).
+//
+// Pattern recognized for prefixes: `pinCell("branch-cell-...-"+
+// <ident>, ...)` and `branchtest.Pin("branch-cell-...-"+<ident>,
+// ...)`. The literal portion's trailing dash signals the prefix
+// is meant to be concatenated with a matrix-row identifier; the
+// caller expands to cells with that prefix.
+type pinReferences struct {
+	Literals map[string][]string // cellID → []site
+	Prefixes []prefixSite        // dynamic "prefix-"+ident sites
+}
+
+type prefixSite struct {
+	Prefix string
+	Site   string
+}
+
+func collectPinReferences(t *testing.T, root string) pinReferences {
 	t.Helper()
 	out := make(map[string]map[string]bool)
+	var prefixes []prefixSite
 
 	scanDirs := []string{
 		filepath.Join(root, "internal"),
@@ -333,8 +388,6 @@ func collectPinCallSites(t *testing.T, root string) map[string][]string {
 		// runtime each row produces a unique t.Name() via the
 		// RunScenarios subtest dispatch.
 		ast.Inspect(f, func(n ast.Node) bool {
-			pos := fset.Position(getPinPos(n))
-			site := fmt.Sprintf("%s:%d", base, pos.Line)
 			// CellID: "..." struct literal
 			if kv, ok := n.(*ast.KeyValueExpr); ok {
 				if id, ok := kv.Key.(*ast.Ident); ok && id.Name == "CellID" {
@@ -346,29 +399,18 @@ func collectPinCallSites(t *testing.T, root string) map[string][]string {
 					}
 				}
 			}
-			// pinCell("...", ...) call
+			// pinCell("...", ...) or pinCell("prefix-"+ident, ...) call
 			if call, ok := n.(*ast.CallExpr); ok {
 				if id, ok := call.Fun.(*ast.Ident); ok && id.Name == "pinCell" && len(call.Args) > 0 {
-					if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-						val := strings.Trim(lit.Value, `"`)
-						if strings.HasPrefix(val, "branch-cell-") {
-							addPinSite(out, val, fmt.Sprintf("%s:%d", base, fset.Position(lit.Pos()).Line))
-						}
-					}
+					handlePinArg(call.Args[0], base, fset, out, &prefixes)
 				}
 				// branchtest.Pin("...", ...) call (qualified)
 				if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Pin" {
 					if x, ok := sel.X.(*ast.Ident); ok && x.Name == "branchtest" && len(call.Args) > 0 {
-						if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-							val := strings.Trim(lit.Value, `"`)
-							if strings.HasPrefix(val, "branch-cell-") {
-								addPinSite(out, val, fmt.Sprintf("%s:%d", base, fset.Position(lit.Pos()).Line))
-							}
-						}
+						handlePinArg(call.Args[0], base, fset, out, &prefixes)
 					}
 				}
 			}
-			_ = site
 			return true
 		})
 	}
@@ -383,7 +425,42 @@ func collectPinCallSites(t *testing.T, root string) map[string][]string {
 		sort.Strings(list)
 		result[cid] = list
 	}
-	return result
+	return pinReferences{Literals: result, Prefixes: prefixes}
+}
+
+// handlePinArg classifies the first argument of a pinCell or
+// branchtest.Pin call. Two shapes are recognized:
+//
+//  1. *ast.BasicLit with kind STRING — a literal cell ID. Recorded
+//     as a Pin call site for that cell.
+//  2. *ast.BinaryExpr with token.ADD, LHS literal, RHS identifier
+//     (or another non-literal) — a dynamic prefix. The literal
+//     portion ending in `-` is the prefix; recorded for later
+//     expansion against branch.Rules() so cells matching the
+//     prefix are credited as pinned without an allowlist entry.
+//
+// Other shapes (e.g., `fmt.Sprintf(...)`, function calls returning
+// strings) are skipped — they're rare in this codebase and would
+// be tracked by a follow-up gap if they appear.
+func handlePinArg(arg ast.Expr, base string, fset *token.FileSet, out map[string]map[string]bool, prefixes *[]prefixSite) {
+	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		val := strings.Trim(lit.Value, `"`)
+		if strings.HasPrefix(val, "branch-cell-") {
+			addPinSite(out, val, fmt.Sprintf("%s:%d", base, fset.Position(lit.Pos()).Line))
+		}
+		return
+	}
+	if bx, ok := arg.(*ast.BinaryExpr); ok && bx.Op == token.ADD {
+		if lit, ok := bx.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			val := strings.Trim(lit.Value, `"`)
+			if strings.HasPrefix(val, "branch-cell-") && strings.HasSuffix(val, "-") {
+				*prefixes = append(*prefixes, prefixSite{
+					Prefix: val,
+					Site:   fmt.Sprintf("%s:%d", base, fset.Position(lit.Pos()).Line),
+				})
+			}
+		}
+	}
 }
 
 func addPinSite(out map[string]map[string]bool, id, site string) {
@@ -391,13 +468,4 @@ func addPinSite(out map[string]map[string]bool, id, site string) {
 		out[id] = make(map[string]bool)
 	}
 	out[id][site] = true
-}
-
-// getPinPos returns a stable position for any AST node — used as a
-// fallback when the node-specific lookup miss isn't hit.
-func getPinPos(n ast.Node) token.Pos {
-	if n == nil {
-		return token.NoPos
-	}
-	return n.Pos()
 }

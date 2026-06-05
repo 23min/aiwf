@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
@@ -46,5 +47,19 @@ func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
 	os.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
 	os.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-	os.Exit(m.Run())
+
+	code := m.Run()
+
+	// M-0162/AC-4 invariant 4 post-hook. Under -tags testpins this
+	// reads branchtest.Pins() after all parallel + serial waves
+	// have completed and reports any test pinning 2+ cells. Without
+	// the tag the post-hook is a no-op stub. See AC-4 reviewer S2
+	// fix: bijection_posthook_{testpins,nontestpins}_test.go.
+	if code == 0 {
+		if failure, override := bijectionPostHook(); failure != "" {
+			fmt.Fprint(os.Stderr, failure)
+			code = override
+		}
+	}
+	os.Exit(code)
 }

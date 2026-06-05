@@ -15,14 +15,27 @@ import (
 // (TestM0162_AC4_Bijection) lands. Catches a confused merge
 // that re-introduces the file.
 //
-// Per AC-4 body §"M-0158/AC-5 retirement":
+// Per AC-4 body §"M-0158/AC-5 retirement", with reviewer S4 honesty
+// correction:
 //
 //   - The keyword-set ≥1-match invariant is subsumed by AC-4
-//     invariant 1 (every cell has ≥1 Pin), tightened from ≥1
-//     to exactly 1 via invariant 3 (no cell has 2+ Pins).
-//   - M-0158/AC-5's promoted-met status remains valid: the
-//     bijection meta-test maintains and strictly strengthens
-//     every guarantee the keyword-set asserted.
+//     invariant 1 (every cell has ≥1 Pin call site) for the
+//     AC-3-era cell-expansion surface, tightened via invariant 3
+//     (no cell has 2+ Pin call sites at distinct source positions).
+//   - On the M-0158/M-0161-era named cells: the keyword-set used
+//     fuzzy substring matching against test function names; AC-4
+//     uses literal cell-ID matching. For named cells whose
+//     canonical tests don't carry the literal `branch-cell-X`
+//     string, the keyword-set covered them via fuzz match while
+//     AC-4 allowlists them. This is an honest carve-out, not a
+//     strict improvement on that surface.
+//   - M-0158/AC-5's promoted-met status remains valid because the
+//     bijection meta-test STRENGTHENS coverage on the AC-3-era
+//     expansion surface (literal Pin matching, dynamic-prefix
+//     materialization, invariant 4 at runtime) while preserving
+//     equivalent-or-allowlist coverage on the named-cell surface.
+//     Net: stronger overall, weaker in one localized way that the
+//     allowlist documents.
 //
 // Sabotage-verifiable: re-add the file and this test fires.
 func TestM0162_AC4_M0158AC5KeywordSetFileAbsent(t *testing.T) {
