@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test test-race lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
+.PHONY: help build install diag-aiwf test test-race test-pins lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
@@ -20,6 +20,7 @@ help:
 	@echo "  diag-aiwf - build a worktree-scoped binary at ./bin/aiwf-diag and print its absolute path (G-0147)"
 	@echo "  test      - run unit tests"
 	@echo "  test-race - run unit tests with -race"
+	@echo "  test-pins - run unit tests with -tags testpins (exercises Pin registry + bijection meta-test; M-0162/AC-2)"
 	@echo "  lint      - run golangci-lint"
 	@echo "  fmt       - apply gofumpt formatting"
 	@echo "  vet       - run go vet"
@@ -60,6 +61,26 @@ test:
 
 test-race:
 	go test -exec=$(TEST_EXEC) -race -parallel 8 ./...
+
+# Run tests with -tags testpins enabled, which compiles in the
+# internal/workflows/spec/branch/branchtest Pin registry and
+# (post-AC-4) the bijection meta-test. Without the tag, both are
+# excluded; this target is the local-dev path to exercise the
+# pin-calling tests and the bijection invariants. CI runs are
+# expected to include this in the same shape per AC-4.
+#
+# `-count=1` forces a fresh test-binary build (bypass Go's test
+# cache). Reviewer R1-T3 observed a non-reproducible ghost
+# violation in the AC-4 post-hook where the registry contained
+# entries from a TestSabotage_* function that no longer existed in
+# any source file. Most plausible cause: the prior `go test` run
+# included a temporary sabotage test file whose binary was cached;
+# a subsequent run after the file's deletion re-executed the
+# cached binary because the cache hash hadn't invalidated. With
+# `-count=1`, every invocation rebuilds the test binary from the
+# current source tree, so deleted tests cannot ghost-replay.
+test-pins:
+	go test -exec=$(TEST_EXEC) -tags testpins -race -parallel 8 -count=1 ./...
 
 vet:
 	go vet ./...

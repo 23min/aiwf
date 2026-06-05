@@ -7,36 +7,38 @@ import (
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
-// TestM0158_AC3_FourOverrideCellsPresent pins M-0158/AC-3: every
-// override-surface row from E-0030 §"Sovereign override surface"
-// (pre-dispatch / at-dispatch / post-hoc / at-check) is registered
-// as a named cell with id `branch-cell-override-<mechanism>`.
+// TestM0158_AC3_RetainedOverrideCellsPresent pins the residual
+// M-0158/AC-3 claim after the M-0162/AC-1 refinement: the 2 standalone
+// override-surface cells (preflight, f-nnnn-waiver) are registered as
+// named cells in `branch.Rules()`.
 //
-// The 4 mechanisms map to the layered defense in depth E-0030
-// commits to:
-//
-//   - preflight    — M-0103 verb-time --force --reason override
-//   - cherry-pick  — M-0106 check-time committer-vs-actor + marker
-//   - force-amend  — M-0106 check-time aiwf-force trailer amend
-//   - f-nnnn-waiver — at-check ADR-0003 waiver pattern
+// M-0158/AC-3 originally claimed all 4 override-surface mechanisms
+// were registered. M-0162/AC-1 drops `branch-cell-override-cherry-pick`
+// and `branch-cell-override-force-amend` as semantic duplicates of
+// corner-case cells 8 and 10 (themselves also dropped); the kernel's
+// underlying cherry-pick suppression and aiwf-force trailer override
+// mechanisms remain implemented in the rules engine — only the
+// catalog redundancy is what was redundant. The M-0158/AC-3
+// promoted-met status remains valid because the original 4-cell
+// catalog landed correctly at M-0158 wrap time. This test tracks
+// the current catalog state — the AC-1 drop list is independently
+// pinned by TestM0162_AC1_DropSet.
 //
 // The pre-dispatch row (session-layer PreToolUse hook) does NOT
 // have a cell because it lives outside the kernel's reach —
 // session-layer hooks are not legality-pertinent at the kernel
 // surface, per epic §"Sovereign override surface" line 97.
-func TestM0158_AC3_FourOverrideCellsPresent(t *testing.T) {
+func TestM0158_AC3_RetainedOverrideCellsPresent(t *testing.T) {
 	t.Parallel()
 
 	want := []string{
 		"branch-cell-override-preflight",
-		"branch-cell-override-cherry-pick",
-		"branch-cell-override-force-amend",
 		"branch-cell-override-f-nnnn-waiver",
 	}
 	byID := indexBranchRulesByID(t)
 	for _, id := range want {
 		if _, ok := byID[id]; !ok {
-			t.Errorf("M-0158/AC-3: branch.Rules() missing %q (override mechanism per E-0030 epic §\"Sovereign override surface\")", id)
+			t.Errorf("M-0158/AC-3 + M-0162/AC-1: branch.Rules() missing %q (override mechanism, retained per M-0162/AC-1 cleanup)", id)
 		}
 	}
 }

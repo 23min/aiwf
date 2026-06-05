@@ -60,7 +60,8 @@ func TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding(t *testing.T) {
 	t.Parallel()
 	RunScenarios(t, []Scenario{
 		{
-			Name: "inline git mv of an id-bearing entity file with no aiwf-verb trailer fires id-rename-untrailered (M-0160/AC-4: CLAUDE.md §Id-collision)",
+			CellID: "branch-cell-m0160-ac4-c1",
+			Name:   "inline git mv of an id-bearing entity file with no aiwf-verb trailer fires id-rename-untrailered (M-0160/AC-4: CLAUDE.md §Id-collision)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 
@@ -130,7 +131,8 @@ func TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding(t *testing.T) {
 		// rename trailer), the new rule must NOT fire — proves the
 		// rule's trailer-aware suppression works end-to-end.
 		{
-			Name: "aiwf rename (with aiwf-verb: rename trailer) does NOT fire id-rename-untrailered (M-0160/AC-4: positive control)",
+			CellID: "branch-cell-m0160-ac4-c2",
+			Name:   "aiwf rename (with aiwf-verb: rename trailer) does NOT fire id-rename-untrailered (M-0160/AC-4: positive control)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 
@@ -164,7 +166,8 @@ func TestIDRenameUntrailered_AC4_AcknowledgeIllegalSilences(t *testing.T) {
 	t.Parallel()
 	RunScenarios(t, []Scenario{
 		{
-			Name: "aiwf acknowledge-illegal silences id-rename-untrailered for the specific SHA (M-0160/AC-4: ack-helper-lift integration)",
+			CellID: "branch-cell-m0160-ac4-c3",
+			Name:   "aiwf acknowledge-illegal silences id-rename-untrailered for the specific SHA (M-0160/AC-4: ack-helper-lift integration)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 
@@ -217,7 +220,8 @@ func TestIDRenameUntrailered_AC4_NonEntityFileIgnored(t *testing.T) {
 	t.Parallel()
 	RunScenarios(t, []Scenario{
 		{
-			Name: "inline git mv of a non-entity file does NOT fire id-rename-untrailered (M-0160/AC-4: non-entity exclusion)",
+			CellID: "branch-cell-m0160-ac4-c4",
+			Name:   "inline git mv of a non-entity file does NOT fire id-rename-untrailered (M-0160/AC-4: non-entity exclusion)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 

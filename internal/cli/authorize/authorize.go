@@ -143,6 +143,27 @@ func branchExists(rootDir, branch string) bool {
 	return cmd.Run() == nil
 }
 
+// branchTipSHA returns the 40-char lowercase hex SHA of the
+// branch's current tip via `git rev-parse refs/heads/<branch>`
+// (M-0161/AC-6 / G-0206). Caller MUST gate on branchExists
+// — calling with an unresolvable ref returns "" silently, but
+// the verb-side TrailerBranchSHA validator would reject any
+// malformed value, so an empty return here keeps the trailer
+// absent. The trailer staying absent is the future-branch
+// carve-out's correct behavior.
+func branchTipSHA(rootDir, branch string) string {
+	if strings.TrimSpace(branch) == "" {
+		return ""
+	}
+	cmd := exec.Command("git", "rev-parse", "refs/heads/"+branch)
+	cmd.Dir = rootDir
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
 // Run executes `aiwf authorize`. Returns one of the cliutil.Exit* codes.
 func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, out cliutil.OutputFormat) int {
 	modes := 0
@@ -235,6 +256,21 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 		// when the gate fires.
 		opts.CurrentBranch = currentBranch(rootDir)
 		opts.BranchExists = branchExists(rootDir, branch)
+		// M-0161/AC-6 (G-0206): plumb the bound branch's tip SHA
+		// so the verb can record aiwf-branch-sha:. Resolved iff
+		// Branch exists (BranchExists path); empty for the
+		// future-branch carve-out keeps the trailer absent and
+		// preserves the existing name-only behavior for that
+		// case.
+		if opts.BranchExists {
+			opts.BranchSHA = branchTipSHA(rootDir, branch)
+		}
+		// M-0161/AC-1 (G-0200): plumb the configured trunk
+		// short-name into the verb so the carve-out's "trunk +
+		// ritual --branch" predicate honors the configured trunk
+		// rather than the literal "main". cliutil reads aiwf.yaml
+		// and derives via Config.TrunkBranchShortName().
+		opts.TrunkShort = cliutil.ConfiguredTrunkBranchShortName(rootDir)
 	case pause != "":
 		opts.Mode = verb.AuthorizePause
 		opts.Reason = pause

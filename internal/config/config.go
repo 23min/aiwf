@@ -118,6 +118,45 @@ func (c *Config) AllocateTrunkRef() (ref string, explicit bool) {
 	return c.Allocate.Trunk, true
 }
 
+// TrunkBranchShortName returns the short branch name derived from the
+// configured trunk ref (`AllocateTrunkRef`). It is the pure-derivation
+// last-path-segment of the ref:
+//
+//	refs/remotes/<remote>/<name>  →  <name>
+//	refs/heads/<name>             →  <name>
+//
+// Used by the M-0161/AC-1 verb-layer authorize carve-out so the "main +
+// ritual --branch" predicate honors the operator's configured trunk
+// name rather than hardcoding the literal `"main"`. Pure: no git access,
+// no I/O — the config's value is the single source of truth.
+//
+// Returns the empty string when the configured ref does not have a
+// parseable last segment (`"garbage"` with no slash, `"refs/heads/"`
+// with trailing slash, etc.) — callers should treat empty as
+// "no resolvable trunk name; do not match" rather than `==""` against
+// an empty CurrentBranch (which would silently coincide on detached
+// HEAD).
+//
+// Empty `allocate.trunk` (or nil receiver) falls through to
+// `DefaultAllocateTrunk` (`refs/remotes/origin/main`) → returns
+// `"main"`, preserving backwards-compatibility for repos that never
+// configured the value.
+func (c *Config) TrunkBranchShortName() string {
+	ref, _ := c.AllocateTrunkRef()
+	// Pure last-path-segment derivation. Works for both
+	// refs/remotes/<remote>/<name> and refs/heads/<name> shapes
+	// without forking on the prefix — the segment after the last
+	// "/" IS the short name in either shape.
+	idx := strings.LastIndex(ref, "/")
+	if idx < 0 || idx == len(ref)-1 {
+		// No slash, or trailing slash leaves an empty segment.
+		// Return empty so the caller knows there's no resolvable
+		// short-name to match.
+		return ""
+	}
+	return ref[idx+1:]
+}
+
 // HTML holds the consumer's settings for the static-site render
 // produced by `aiwf render --format=html`. OutDir is the directory
 // the renderer writes into (relative to the repo root unless given

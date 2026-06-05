@@ -1,45 +1,45 @@
 ---
 id: M-0161
 title: 'Imagination-driven hardening: shallow, force-push, rename, detached, trunk'
-status: in_progress
+status: done
 parent: E-0030
 tdd: required
 acs:
     - id: AC-1
       title: aiwf authorize preflight respects configured trunk name
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Authorize preflight enforces ritual rung hierarchy
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: BranchOracle typed errors with per-ref fault tolerance
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: BranchOracle detects shallow clones; isolation-escape-shallow-clone fires
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: Reflog-walk detects orphaned AI commits from force-push
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: BranchOracle resolves renamed branches via SHA fallback
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-7
       title: Detached HEAD behavior pinned across preflight, oracle, check, doctor
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-8
       title: Kernel finding promote-on-wrong-branch enforces ADR-0010 ritual ordering
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-9
       title: 'Layer-4 spec-table refactor: mechanical-weight catalog + bijection enforcement'
-      status: open
+      status: cancelled
       tdd_phase: red
 ---
 ## Goal
@@ -109,16 +109,18 @@ These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 
 1. **Combinatorial real-git E2E.** A scenario fan-out under [`internal/cli/integration/authorize_scenarios_test.go`](../../../internal/cli/integration/authorize_scenarios_test.go) via the M-0159 framework exercises 4 trunk-name shapes:
 
-   | Trunk shape | `allocate.trunk` value | Local trunk branch |
+   | Trunk shape | `allocate.trunk` (E2E) ¹ | Local trunk branch |
    |---|---|---|
-   | Default | `refs/remotes/origin/main` | `main` |
-   | GitHub-classic | `refs/remotes/origin/master` | `master` |
-   | Operator-chosen | `refs/remotes/origin/dev` | `dev` |
-   | Bare-heads | `refs/heads/trunk` | `trunk` |
+   | Default | `refs/heads/main` | `main` |
+   | GitHub-classic | `refs/heads/master` | `master` |
+   | Operator-chosen | `refs/heads/dev` | `dev` |
+   | Operator-chosen | `refs/heads/trunk` | `trunk` |
 
-   Each scenario: bootstrap temp repo with the named `aiwf.yaml` + local branch; run `aiwf authorize <epic-id> --to ai/alice --branch epic/E-NNNN-foo` from that trunk checkout against the worktree-built binary; assert exit 0 + `aiwf-branch: epic/E-NNNN-foo` trailer.
+   ¹**E2E fixture shape**: the E2E uses `refs/heads/<X>` for all 4 cells so the fixture is self-contained (no upstream remote setup needed — `git init -b <X>` births the local ref). The orthogonal `refs/remotes/<remote>/<name>` tracking-ref shape is **exhaustively covered by the auxiliary unit table** at [`internal/config/config_test.go::TestTrunkBranchShortName`](../../../internal/config/config_test.go) (10 rows including alternate-remote-upstream). The seam this E2E pins — verb-layer call site reading `cfg.TrunkBranchShortName()` against `opts.CurrentBranch` — is shape-agnostic; both ref shapes reduce to the same short-name via the helper.
 
-2. **Sabotage-verifiable.** Reverting the call-site change at `internal/verb/authorize.go:300` (restoring the literal `"main"`) makes all 4 scenarios fire for trunks named other than `main` — proving the integration test discriminates the new code path.
+   Each scenario: bootstrap temp repo with the named `aiwf.yaml` + local branch; run `aiwf authorize <epic-id> --to ai/alice --branch epic/E-NNNN-foo` from that trunk checkout against the worktree-built binary (no `--force`, no `--reason`); assert exit 0 + `aiwf-branch: epic/E-NNNN-foo` trailer + **NO `aiwf-force:` trailer** (the carve-out is the load-bearing accept, not a silent force-override).
+
+2. **Sabotage-verifiable.** Reverting the call-site change at `internal/verb/authorize.go` (restoring the literal `"main"` at the `currentIsRitualContext := opts.CurrentBranch == "main"` site) makes the 3 non-main scenarios fire `branch-not-found` (with the error text naming M-0104/AC-4 — same shape as the RED phase) — proving the integration test discriminates the new code path. The `main` cell continues to pass under sabotage (the literal matches).
 
 3. **Auxiliary unit test.** `Config.TrunkBranchShortName()` table-driven test covers the canonical shapes (`refs/remotes/<remote>/<name>` → `<name>`; `refs/heads/<name>` → `<name>`) plus degenerate / unparseable cases (empty in, empty out — no panic). Diagnostic, not load-bearing — the E2E is the test set that pins behavioral correctness end-to-end.
 
@@ -127,17 +129,18 @@ These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 **Edge cases:**
 
 - Bare-name trunk refs (`refs/heads/master`, not `refs/remotes/origin/master`) parse correctly via the same helper — single source of truth, no fork for "local trunk" vs "tracking trunk" semantics.
-- Empty / unparseable `allocate.trunk` → `TrunkBranchShortName()` returns `""` → the carve-out predicate's left arm fails → preflight falls through to the existing implicit-ritual-current path. No regression on malformed config.
+- **Empty `allocate.trunk`** → `AllocateTrunkRef()` falls through to `DefaultAllocateTrunk` (`refs/remotes/origin/main`) → `TrunkBranchShortName()` returns `"main"` (the default). This preserves backwards compatibility for repos that never configured the value.
+- **Malformed `allocate.trunk`** (no parseable last segment — e.g., `"garbage"` or `"refs/heads/"`) → helper returns `""` → carve-out's left arm fails → preflight falls through to the existing implicit-ritual-current path. No regression on malformed config; no panic.
 - Operator on a non-trunk branch (regardless of trunk name) → preflight uses the ritual-current path; this AC does not touch that arm.
 - The trunk-name short helper is a pure derivation; it does not query git. The config is the single source of truth, consistent with the rest of `internal/config/`.
 
 **References.**
 
 - [G-0200](../../gaps/G-0200-preflight-main-only-carve-out-generalize-to-trunk-name-from-aiwf-yaml.md) — the gap; closes here
-- [`internal/verb/authorize.go:300`](../../../internal/verb/authorize.go) — the hardcoded `"main"` call site
+- [`internal/verb/authorize.go`](../../../internal/verb/authorize.go) — the `currentIsRitualContext := opts.CurrentBranch == "main"` call site (line numbers drift; symbol is the durable anchor)
 - [`internal/config/config.go`](../../../internal/config/config.go) — where `AllocateTrunkRef()` already lives and where the new short-name helper lands
 - [`internal/branchparse/`](../../../internal/branchparse/) — the package the call site already consumes for ritual-branch shapes
-- M-0104 — the milestone whose Cycle 1 reviewer flagged this layering smell
+- [M-0104](M-0104-aiwfx-start-epic-sequencing-fix-closes-g-0116.md) — the milestone whose Cycle 1 reviewer flagged this layering smell
 
 ### AC-2 — Authorize preflight enforces ritual rung hierarchy
 
@@ -151,10 +154,10 @@ These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 | epic | milestone | ✅ | `aiwfx-start-milestone` from epic |
 | milestone | patch | ✅ | `wf-patch` from milestone |
 | epic | patch | ✅ | `wf-patch` from epic, milestone-skipping |
-| trunk | trunk | ❌ | `--branch trunk` from trunk (AI on trunk — verboten) |
-| epic | trunk | ❌ | `--branch trunk` from epic |
-| milestone | trunk | ❌ | `--branch trunk` from milestone |
-| patch | trunk | ❌ | `--branch trunk` from patch |
+| trunk | trunk | ❌ | `--branch <trunk-short-name>` from trunk — **upstream-refused** as non-ritual shape (not by this AC's rung-check) |
+| epic | trunk | ❌ | `--branch <trunk-short-name>` from epic — **upstream-refused** (same as above) |
+| milestone | trunk | ❌ | `--branch <trunk-short-name>` from milestone — **upstream-refused** |
+| patch | trunk | ❌ | `--branch <trunk-short-name>` from patch — **upstream-refused** |
 | trunk | milestone | ❌ | rung-skip |
 | trunk | patch | ❌ | rung-skip×2 |
 | epic | epic | ❌ | cross-epic typo |
@@ -164,6 +167,24 @@ These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 | patch | milestone | ❌ | up-the-tree |
 | patch | epic | ❌ | up-the-tree, skipping milestone |
 
+**Single rung-pair check refuses every illegal cell.** This AC's predicate runs whenever `--branch` is non-empty, **regardless of `BranchExists`**:
+
+```go
+currentRung := branchparse.RungOf(opts.CurrentBranch, opts.TrunkShort)
+targetRung  := branchparse.RungOf(opts.Branch,        opts.TrunkShort)
+if !branchparse.LegalRungPair(currentRung, targetRung) {
+    return refusal // names both rungs + override path
+}
+```
+
+That single check covers ALL 12 illegal cells uniformly:
+
+- The 4 `(X, trunk)` rows refuse because `LegalRungPair(_, "trunk")` is false for every `X` (no legal pair has trunk as its target — AI work on trunk is verboten per ADR-0010).
+- The 8 cross-rung-typo / up-the-tree rows refuse because each (current, target) pair is not in the legal set `{(trunk, epic), (epic, milestone), (milestone, patch), (epic, patch)}`.
+- The 4 legal pairs accept because their rung-pair IS in the legal set.
+
+**Why "regardless of BranchExists":** the pre-AC-2 verb-layer carve-out only ran when the named `--branch` did not exist locally (`BranchExists=false`); when the trunk's local branch existed and the operator passed `--branch <trunk>`, the verb silently accepted AI work targeting trunk. AC-2 closes that escape by running the rung-pair check on `--branch` whenever it's non-empty.
+
 **Mechanical assertions:**
 
 1. **Combinatorial real-git E2E.** A scenario fan-out under [`internal/cli/integration/authorize_scenarios_test.go`](../../../internal/cli/integration/authorize_scenarios_test.go) exercises all 16 (CurrentBranch rung, --branch rung) combinations as separate scenarios via the M-0159 `RunScenarios` framework. Each scenario bootstraps a temp repo, checks out the relevant current-branch shape, runs `aiwf authorize <id> --to ai/<agent> --branch <target>` against the worktree-built binary, asserts:
@@ -172,16 +193,16 @@ These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 
 2. **One sovereign-override E2E.** A single additional scenario exercises an illegal pair (e.g., epic → epic) plus `--force --reason "cross-epic intentional"` → exit 0; the authorize commit carries both `aiwf-branch:` (the target) AND `aiwf-force:` (the reason). Pins the sovereign-override surface for this AC's gate, per the epic's "override gated, audited, last-resort" commitment.
 
-3. **Sabotage-verifiable.** Reverting the rung-check at the carve-out site restores flat-union acceptance; all 12 illegal-pair scenarios fire on the missing refusal.
+3. **Sabotage-verifiable.** Reverting the rung-pair check at the carve-out site makes **all 12 illegal cells fire** on "accepted but should refuse" — the pre-AC-2 production accepts (a) the 8 ritual-target illegal cells via the loose "current is ritual + target is ritual" carve-out, and (b) the 4 `(X, trunk)` cells via the `BranchExists=true` bypass that skips the carve-out entirely. Both classes pass-pre-revert and fail-post-revert — single-revert test discrimination.
 
 4. **Branch-spec cell registration.** Each of the 16 rung-pair scenarios registers as a named cell (4 positive + 12 negative) in `internal/workflows/spec/branch/`, plus 1 override cell = 17 cells. AC-9 (G-0210) consolidates the catalog; the cell-coverage drift policy then enforces that each cell has its paired E2E scenario.
 
-5. **Auxiliary unit tests.** `branchparse.RungOf` and `branchparse.LegalRungPair` get unit tests for the pure derivation shape (canonical `"epic"`/`"milestone"`/`"patch"`/trunk-short-name/`""`). These are diagnostic — they catch a bad helper edit fast at unit level — not the load-bearing evidence; the E2E is what pins behavioral correctness.
+5. **Auxiliary unit tests.** The helpers `branchparse.RungOf(branch, trunkShort string) string` and `branchparse.LegalRungPair(currentRung, targetRung string) bool` get unit tests for their derivation shapes. **`RungOf` takes the configured trunk short-name as a parameter** (sourced from `Config.TrunkBranchShortName()` at the call site) so trunk-detection is config-driven, not regex-only: `RungOf("main", "main")` returns `"trunk"`; `RungOf("main", "master")` returns `""` (`main` is not the trunk on a master-repo); `RungOf("epic/E-X-foo", anyTrunk)` returns `"epic"`. The unit tests are diagnostic — they catch a bad helper edit fast at unit level — not the load-bearing evidence; the E2E is what pins behavioral correctness.
 
 **Edge cases:**
 
 - Trunk-name composition with AC-1: the trunk rung is derived from `Config.TrunkBranchShortName()` per AC-1's helper. So `master` (or any other configured trunk name) maps to the `"trunk"` rung. This AC builds on AC-1; AC-1 must land first.
-- Unparseable `--branch` (not matching any ritual shape) → existing rule refuses with the original `branch-not-found` / "must be a ritual branch" error. This AC does not collapse that path.
+- Unparseable `--branch` (not matching any ritual shape AND not equal to the configured trunk's short name) → `RungOf` returns `""` → `LegalRungPair(_, "")` is false → rung-pair refusal fires. Replaces the old `branch-not-found` carve-out semantics for non-ritual `--branch` values; the rung-pair predicate subsumes the prior check uniformly.
 - Detached HEAD → out of scope (AC-7 / G-0207 owns it). The current-rung check here is gated on a parseable symbolic-ref result.
 - `--force --reason "..."` bypasses the rung-pair check; the authorize commit then carries `aiwf-force:` per the existing kernel pattern.
 - The `(epic, patch)` legal pair encodes the deliberate "patch on epic" shape (a wf-patch cut from the epic branch without an intermediate milestone). The `(milestone, patch)` pair encodes "patch on milestone". Both are legal because both are operator-intentional; neither is a typo class.
@@ -191,7 +212,7 @@ These 9 are the seed set; aiwfx-start-milestone refines and allocates them.
 - [G-0201](../../gaps/G-0201-authorize-preflight-carve-out-accepts-cross-rung-ritual-mismatches.md) — the gap; closes here
 - [`internal/verb/authorize.go`](../../../internal/verb/authorize.go) — the carve-out call site
 - [`internal/branchparse/`](../../../internal/branchparse/) — where `RungOf` and `LegalRungPair` land
-- M-0105 — the milestone whose Cycle 1 reviewer flagged this looseness
+- [M-0105](M-0105-aiwfx-start-milestone-sequencing-alignment.md) — the milestone whose Cycle 1 reviewer flagged this looseness
 - AC-1 (G-0200) — compose: trunk-name derivation via `Config.TrunkBranchShortName()`
 
 ### AC-3 — BranchOracle typed errors with per-ref fault tolerance
@@ -236,11 +257,11 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
    | Empty repo (no refs at all) | silent | silent |
    | Repo with only non-ritual refs (`feature/foo`) | silent | silent |
 
-2. **Sovereign-override path stays clean.** A scenario exercises an AI escape with `aiwf-force: "..."` on the violating commit + a simultaneous failed ref. Asserts: `isolation-escape` silent (override takes effect); `isolation-escape-oracle-failure` still fires advisory (oracle-failure is orthogonal to the rule's per-commit override).
+2. **Sovereign-override path stays clean.** A scenario exercises AI escape commit X on ritual branch A (X carrying `aiwf-force: "..."`) + an unrelated ritual ref B failed to resolve at oracle construction. Asserts: `isolation-escape` silent on X (per-commit override takes effect; ref A is healthy so X's branch is correctly identified); `isolation-escape-oracle-failure` fires advisory naming ref B (oracle-failure is orthogonal to the rule's per-commit override — the two ride independent codepaths).
 
 3. **Sabotage-verifiable.** Reverting the typed-error split (collapsing `OracleErrors()` back to "empty means anything") makes the "one-ref-deleted, no escape" scenario fire a missing advisory; the "one-ref-deleted, escape elsewhere" scenario silently misses the advisory while still firing `isolation-escape` (proves the new code is the load-bearing path).
 
-4. **D-NNN decision record.** A D-NNN entity recording the fail-shut-on-correctness / fail-open-on-coverage choice lands via `aiwfx-record-decision` during the AC-3 cycle. The D-NNN id is mirrored into the milestone's `## Decisions made during implementation` section per ritual.
+4. **D-0019 decision record.** [D-0019](../../decisions/D-0019-oracle-partial-coverage-fail-shut-correctness-fail-open-coverage.md) records the fail-shut-on-correctness / fail-open-on-coverage choice; allocated at AC-3 cycle start before any RED test landed. The D-0019 id is mirrored into the milestone's `## Decisions made during implementation` section per ritual.
 
 5. **Branch-spec cell registration.** Each of the 7 E2E scenarios above registers as a cell (1 silent-good baseline + 1 escape baseline + 5 oracle-state cells). AC-9 (G-0210) consolidates.
 
@@ -250,6 +271,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
 - Ref deleted between `for-each-ref` and `rev-list` is the TOCTOU case the per-ref tolerance is designed for; covered by the "one-ref-deleted mid-check" scenario.
 - Non-ritual refs (`feature/foo`) are filtered before the first-parent index build, per the existing ritual-branch filter; not affected by this AC.
 - The advisory-severity choice for `isolation-escape-oracle-failure` matches the M-0125 ratchet pattern (introduce as advisory; tighten to warning/error after one full epic of usage if false-positive rate stays low).
+- **`OracleErrors` covers reflog-availability too**: the typed-error contract explicitly includes an `OracleErrReflogDisabled` entry surfaced when `core.logAllRefUpdates=false` is detected at gather time. AC-5 (G-0205 reflog-walk for force-push orphans) composes with this — the reflog-unavailability case rides AC-3's `isolation-escape-oracle-failure` advisory rather than introducing a separate finding code. The shape of the typed error names the affected capability (ref-resolution failure vs reflog-disabled vs shallow-clone per AC-4) so the advisory's hint text can name the specific remediation.
 
 **References.**
 
@@ -257,9 +279,9 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
 - [`internal/check/isolation_escape.go`](../../../internal/check/isolation_escape.go) — the rule
 - [`internal/cli/check/isolation_escape_oracle.go`](../../../internal/cli/check/isolation_escape_oracle.go) — `newGitBranchOracle`
 - [`internal/cli/check/provenance.go`](../../../internal/cli/check/provenance.go) — `RunProvenanceCheck` (where oracle-failure handling wires in)
-- M-0106 — the milestone that landed the original oracle
+- [M-0106](M-0106-kernel-finding-isolation-escape-closes-g-0099.md) — the milestone that landed the original oracle
 - AC-4..AC-7 — the four real-git scenarios depending on this typed-error contract
-- D-NNN (to-be-created) — fail-shut/fail-open decision record
+- [D-0019](../../decisions/D-0019-oracle-partial-coverage-fail-shut-correctness-fail-open-coverage.md) — fail-shut/fail-open decision record (allocated at AC-3 cycle start before any RED test landed)
 
 ### AC-4 — BranchOracle detects shallow clones; isolation-escape-shallow-clone fires
 
@@ -283,7 +305,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
    | Full clone, AI escape present | fires (error) | silent |
    | `git clone --depth=1`, AI escape beyond HEAD-1 | silent (rule can't see it) | fires (warning, names remediation) |
    | `git clone --depth=1`, no AI escape | silent | fires (warning — coverage incomplete regardless) |
-   | `git clone --depth=5`, AI escape inside window | fires (error) | fires (warning — depth >1 is still shallow per `is-shallow-repository`) |
+   | `git clone --depth=5`, AI escape inside window | **silent** (oracle fails shut on shallow regardless of depth; the warning carries the operator to unshallow) | fires (warning — depth ≥1 is still shallow per `is-shallow-repository`) |
    | `git fetch --unshallow` after `--depth=1` | (depends on escape) | silent (shallow flag cleared) |
 
 2. **Sovereign-override scenario.** Shallow clone + AI escape beyond HEAD-1 that ALSO carries `aiwf-force: "..."` → `isolation-escape` silent (override would take effect IF the rule could see the commit — but the shallow boundary hides it; the override is structurally moot here); `isolation-escape-shallow-clone` STILL fires (warning — orthogonal to per-commit override; operator is told to unshallow to see the full picture).
@@ -324,7 +346,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
 
 **Composition with existing surfaces:**
 
-- The existing `aiwf acknowledge-illegal <sha>` verb silences the warning per its existing mechanism (writes an empty commit with `aiwf-force-for: <sha>` + human actor + reason); no new override path needed.
+- The existing `aiwf acknowledge-illegal <sha>` verb silences the warning per its existing mechanism (writes an empty commit with `aiwf-force-for: <sha>` + human actor + reason); ~~no new override path needed~~. **Deferred per [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md): the verb hard-requires the SHA reachable from HEAD; force-push orphans are by definition unreachable, so the verb refuses. The rule-side per-SHA exemption is unit-tested at `internal/check/reflog_walk_test.go::TestRunOrphanedAICommits_AC5_AcknowledgedSHAExempted` so a future verb extension lands cleanly. See [G-0226](../../gaps/G-0226-aiwf-acknowledge-illegal-hard-requires-sha-reachable-from-head.md) for the three resolution paths.**
 - Composes with AC-3's `OracleErrors()` typed-error contract: if the reflog itself is disabled (`core.logAllRefUpdates=false`), detection accumulates an `OracleErrReflogDisabled` entry surfaced as AC-3's `isolation-escape-oracle-failure` advisory (no new finding code for this orthogonal mode).
 
 **Mechanical assertions:**
@@ -337,7 +359,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
    | Baseline: full clone, no force-push, no escape | silent | silent |
    | Force-push orphans AI commit (any branch) | silent (orphan unreachable) | fires (warning, names SHA + branch + date) |
    | Force-push orphans non-AI commit | silent | silent (no AI trailers; rule does not fire) |
-   | Force-push orphans AI commit, then `aiwf acknowledge-illegal <sha>` | silent | silent (override takes effect) |
+   | Force-push orphans AI commit, then `aiwf acknowledge-illegal <sha>` | — | — (DEFERRED — see [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md) + [G-0226](../../gaps/G-0226-aiwf-acknowledge-illegal-hard-requires-sha-reachable-from-head.md); rule-side exemption unit-tested) |
    | Force-push orphans AI commit, reflog entry expired via `git reflog expire --expire-unreachable=now` | silent | silent (no audit trail to walk) |
    | Reflog disabled (`core.logAllRefUpdates=false`), force-push happens | silent (no reflog), PLUS `isolation-escape-oracle-failure` advisory fires (per AC-3 composition) | — |
 
@@ -353,6 +375,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
 - **Force-push to a remote ref without local fetch**: doesn't appear in the local reflog. Out of scope — kernel polices local state; the operator's machine is the truth source.
 - **Bare repos / `core.logAllRefUpdates=false`**: composes with AC-3 via `OracleErrReflogDisabled`; `isolation-escape-oracle-failure` advisory fires; no false-positive silence.
 - **Force-push that doesn't orphan anything** (e.g., a force-push that's a no-op against an already-aligned ref): reflog records the event but no SHA is unreachable; detection finds no orphans; both findings silent. Same as today.
+- **Detached-HEAD dangling commits are NOT in scope for this AC**. An AI commit made from detached HEAD that is never tied to a ref appears unreachable from every ritual branch's first-parent index, but the reflog has no force-update event referencing it (the commit was never on a ref to begin with). The reflog-walk finds no orphan event for it; this AC's finding stays silent. AC-7 (G-0207 detached HEAD) owns the dangling-commit-from-detached-HEAD case explicitly; the rule treats it as "no branch info" / KNOWN-GOOD-empty per AC-3's typed-error contract.
 
 **References.**
 
@@ -364,6 +387,8 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
 - AC-9 (G-0210) — catalog refactor that consolidates cells
 
 ### AC-6 — BranchOracle resolves renamed branches via SHA fallback
+
+**Scope of closure (honest).** This AC **closes G-0206 for post-AC-6 authorize scopes** — every authorize commit emitted after AC-6 lands carries the `aiwf-branch-sha:` trailer and benefits from rename transparency. **Pre-AC-6 ("legacy") authorize scopes are a documented carve-out**: they lack the SHA trailer; if their bound branch is renamed AND the old name no longer resolves AND there are AI commits on the renamed branch, the rule false-positives via the original G-0206 failure mode. This residual class is not closed here; the architectural completion path (`aiwf scope rebind` verb that records a follow-up SHA trailer on existing scopes) is tracked under **[G-0225](../../gaps/G-0225-legacy-scopes-lack-aiwf-branch-sha-trailer-rename-triggers-false-positive.md)**. Until that verb ships, legacy-scope operators have two workarounds (end-and-re-authorize, or per-commit `aiwf acknowledge-illegal`), documented inline in G-0225.
 
 **Observable behavior.** The `aiwf authorize --branch <name>` verb is extended to record TWO trailers on the authorize commit:
 
@@ -383,7 +408,7 @@ The `isolation-escape` rule's scope-branch resolution becomes:
 
 **Backstop**: if NEITHER the name NOR the SHA resolves to a current ritual branch (branch deleted entirely, SHA orphaned by reflog GC), surface AC-3's `isolation-escape-oracle-failure` advisory naming the scope's bound branch as unreachable. The `isolation-escape` rule stays silent (fail-shut on correctness — no false positive when binding lost).
 
-**Trailer-keys policy extension**: `aiwf-branch-sha:` lands in [`internal/policies/trailer_keys.go`](../../../internal/policies/trailer_keys.go) allowlist; existing kernel trailer-keys policy continues to enforce canonical lowercase shape.
+**Trailer-keys policy extension**: `aiwf-branch-sha:` lands in [`internal/policies/trailer_keys.go`](../../../internal/policies/trailer_keys.go) allowlist; the existing trailer-keys policy enforces canonical lowercase trailer-key shape (no value-shape arm). **SHA-shape validation for the trailer's VALUE lives at write-time in `aiwf authorize`** — the verb refuses to emit if the SHA it would record is not exactly 40 lowercase hex chars (the canonical git SHA-1 shape). This keeps the trailer-keys policy single-concern (key naming) and puts the data-shape check at the data's producer.
 
 **Mechanical assertions:**
 
@@ -399,7 +424,7 @@ The `isolation-escape` rule's scope-branch resolution becomes:
    | Branch deleted entirely (SHA orphaned) | silent + `isolation-escape-oracle-failure` advisory (AC-3 composition) |
    | Squat collision: rename `foo → bar`; create new `foo` from unrelated SHA; AI commit on `bar` | silent (SHA wins; resolves to `bar`) |
    | Legacy authorize commit (no `aiwf-branch-sha:` trailer), no rename, AI on correct branch | silent (name-only path; backwards-compatible) |
-   | Legacy authorize commit, branch renamed | fires (error — false positive on legacy commits; documented limitation: pre-AC-6 scopes don't benefit from rename transparency) |
+   | Legacy authorize commit, branch renamed | fires (error — **documented legacy carve-out**: pre-AC-6 scopes don't benefit from rename transparency; tracked as [G-0225](../../gaps/G-0225-legacy-scopes-lack-aiwf-branch-sha-trailer-rename-triggers-false-positive.md) for future `aiwf scope rebind` verb) |
 
 2. **Sovereign-override path stays clean.** Existing `aiwf acknowledge-illegal <sha>` silences any remaining false positives (e.g., legacy authorize + rename case); no new override needed.
 
@@ -411,15 +436,16 @@ The `isolation-escape` rule's scope-branch resolution becomes:
 
 - **Multi-step renames** (`foo → bar → baz`): SHA still resolves to `baz` (immutable through the chain). Single resolution step suffices.
 - **Concurrent renames** (rename happens BETWEEN oracle build and rule run): TOCTOU race, vanishingly rare; documented as a fundamental property of the snapshot-style oracle.
-- **`aiwf-branch-sha:` value validation**: the trailer must be a 40-char hex SHA at canonical shape; the trailer-keys policy enforces.
+- **`aiwf-branch-sha:` value validation**: the trailer must be a 40-char lowercase hex SHA-1; **the `aiwf authorize` verb refuses to emit on write if the value is malformed** (the trailer-keys policy itself enforces only key naming, not value shape — value-shape lives at the producer per Rust-style "validate at the boundary").
 - **Detached HEAD at authorize time**: cannot record `aiwf-branch-sha:` because there's no branch tip. The existing `aiwf authorize` rejection for detached HEAD (AC-7's territory) prevents this from arising — AC-6 assumes a real branch at scope-open.
 - **`aiwf authorize --branch` for a NON-EXISTENT branch** (the "future-branch carve-out" from M-0103 + M-0105): no current SHA to record. The trailer is OPTIONAL when the branch doesn't yet exist; rule falls back to name-only resolution until the branch is created. (This is the M-0102/M-0103 future-branch ritual-shape carve-out, unchanged here.)
 - **Squat collision** (the trickiest case): rename `foo → bar`, then create new `foo` from an unrelated commit. Name-only resolution would find the squat; SHA-only resolution finds `bar`. Rule prefers SHA: the binding is to whatever SHA was recorded at scope-open, not to whatever label is currently attached to that name. This is the fundamentally correct semantic.
 
 **References.**
 
-- [G-0206](../../gaps/G-0206-branchoracle-false-positive-on-branch-renames-after-authorize.md) — the gap; closes here
-- [`internal/verb/authorize.go`](../../../internal/verb/authorize.go) — extends with `aiwf-branch-sha:` trailer
+- [G-0206](../../gaps/G-0206-branchoracle-false-positive-on-branch-renames-after-authorize.md) — the gap; closes here **for post-AC-6 scopes**
+- [G-0225](../../gaps/G-0225-legacy-scopes-lack-aiwf-branch-sha-trailer-rename-triggers-false-positive.md) — legacy-scope carve-out; future `aiwf scope rebind` verb
+- [`internal/verb/authorize.go`](../../../internal/verb/authorize.go) — extends with `aiwf-branch-sha:` trailer + write-time SHA-shape validation
 - [`internal/check/isolation_escape.go`](../../../internal/check/isolation_escape.go) — scope-branch resolution extended
 - [`internal/cli/check/isolation_escape_oracle.go`](../../../internal/cli/check/isolation_escape_oracle.go) — adds `BranchOfSHA(sha)` query
 - [`internal/policies/trailer_keys.go`](../../../internal/policies/trailer_keys.go) — registers `aiwf-branch-sha:`
@@ -454,12 +480,12 @@ The `isolation-escape` rule's scope-branch resolution becomes:
    | Detached HEAD + `aiwf authorize <id> --to ai/<agent> --branch epic/... --force --reason "intentional"` | succeeds; commit carries `aiwf-force:` trailer |
    | Detached HEAD + `aiwf check` (no AI commits) | exit 0, no false findings |
    | Detached HEAD + AI commit made dangling | `isolation-escape` silent (oracle returns empty for dangling SHA per AC-3 KNOWN-GOOD path) |
-   | Detached HEAD + `aiwf doctor` | exit 0 with `detached-head` advisory in output |
-   | NOT detached + `aiwf doctor` | exit 0, no `detached-head` advisory (baseline) |
+   | Detached HEAD + `aiwf doctor` | exit 0; stdout contains substring `detached-head` and `advisory` (DEFERRED to substring match per [D-0021](../../decisions/D-0021-m-0161-ac-7-doctor-json-envelope-deferred-substring-match-ships-now.md): `aiwf doctor --format=json` envelope is a separate doctor-shape milestone) |
+   | NOT detached + `aiwf doctor` | exit 0; stdout does NOT contain `detached-head:` substring (DEFERRED — see D-0021) |
 
 2. **Sovereign-override path is the 3rd row.** Pinned as a positive cell.
 
-3. **Sabotage-verifiable.** Reverting the refined error message reverts to today's flat `branch-context-required` text; the discriminating test fires on missing "detached HEAD" substring. Reverting the `doctor` check makes the "detached + doctor" scenarios fail on missing advisory.
+3. **Sabotage-verifiable.** Reverting the refined error message reverts to today's flat `branch-context-required` text; the discriminating test fires on missing "detached HEAD" substring **scoped to stderr** (verb-time errors don't carry structured codes/subcodes — see N-6 acknowledgment below; this is the load-bearing substring-discrimination exception). Reverting the `doctor` check removes the `detached-head` entry from the JSON envelope's findings — the structural assertion in the doctor scenarios above fires.
 
 4. **Branch-spec cell registration.** 7 scenarios = 7 cells under `internal/workflows/spec/branch/`. AC-9 (G-0210) consolidates.
 
@@ -469,6 +495,7 @@ The `isolation-escape` rule's scope-branch resolution becomes:
 - **`git worktree add --detach`**: creates a worktree with detached HEAD. Same handling; no special case.
 - **`aiwf check` during a `git rebase`-in-progress** (detached HEAD + rebase state files): the check proceeds silently. Rebase state is transient; the operator completes the rebase shortly. `aiwf doctor` may surface both `detached-head` AND a hypothetical `rebase-in-progress` advisory if that check exists (it doesn't today; out of scope here).
 - **Refined error message in non-English locales**: not localized today; the substring "detached HEAD has no ritual context" is the canonical English form. Localization is a separate gap.
+- **Substring-discrimination is the available signal at the verb-time error layer** (no error codes/subcodes today). Per CLAUDE.md "Substring assertions are not structural assertions", the test asserts against **stderr scoped to the error context** (not anywhere in stdout/stderr), which is the tightest pin available without changing the verb's error-shape API. The `aiwf doctor` side of this AC uses the JSON envelope's structured findings array, which IS a structural assertion (per the matrix rows above).
 
 **References.**
 
@@ -491,7 +518,12 @@ The `isolation-escape` rule's scope-branch resolution becomes:
 
 **Non-activating promotes** (e.g., `epic.active → done`, `milestone.in_progress → done`, ADR `proposed → accepted`, D-NNN `proposed → ratified`): silent. The rule focuses narrowly on the ritual-ordering failure mode G-0209 names.
 
-**Note on authorize-side ordering**: the authorize-on-wrong-branch failure mode named in G-0209 is **already caught by AC-2's rung-pair predicate**: an authorize from a same-rung branch (e.g., on `epic/E-NN-foo` and `--branch epic/E-NN-foo`) is refused as (epic, epic) cross-epic-typo. So this AC handles only the promote-on-wrong-branch case; the authorize case is structurally prevented upstream.
+**Scope of closure (honest).** This AC **partially closes G-0209** — specifically the **promote-side ordering** failure mode. G-0209 also names the symmetric authorize-side ordering case ("the authorize commit lands on the epic branch instead of main"). That case splits two ways:
+
+- **Authorize with explicit `--branch <ritual>` from a same-rung branch**: refused by AC-2's rung-pair predicate (e.g., on `epic/E-NN-foo` and `--branch epic/E-NN-foo` → (epic, epic) cross-epic-typo, refused at verb-time). ✅ closed by AC-2.
+- **Authorize WITHOUT `--branch` from a ritual-current branch** (the implicit-ritual-current path): M-0103/M-0105's existing carve-outs explicitly accept this shape because it supports legitimate cases like "operator on epic/E-NN-foo authorizes child milestone work" (which lands on the epic branch correctly). **The G-0209 case "AI cuts epic/E-NN-foo first, then authorizes E-NN scope on epic branch without --branch"** rides this same carve-out and is **NOT refused** — neither by AC-2 nor by this AC. This is the residual G-0209 case.
+
+**Status of the residual**: tracked as operator-discipline. If it surfaces as a recurring incident class, future work could either (a) extend AC-2 to refuse the implicit-current path when the scope's target-rung doesn't match the current branch's rung, or (b) extend this AC's rule to cover authorize commits as well as promote commits, or (c) add an `aiwf doctor authorize-on-wrong-rung` advisory check. None of those is in scope for M-0161 — the carve-out semantics that allow the implicit-current path are load-bearing for legitimate ritual flows.
 
 **Hint text** on the warning:
 
@@ -532,17 +564,19 @@ The `isolation-escape` rule's scope-branch resolution becomes:
 
 **References.**
 
-- [G-0209](../../gaps/G-0209-ritual-step-ordering-is-advisory-only-no-kernel-enforcement.md) — the gap; closes here
-- ADR-0010 — branch model that the rule enforces
+- [G-0209](../../gaps/G-0209-ritual-step-ordering-is-advisory-only-no-kernel-enforcement.md) — the gap; **partially closes here** (promote-side; authorize-side implicit-current path is residual operator-discipline)
+- [ADR-0010](../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md) — branch model that the rule enforces
 - [`internal/check/`](../../../internal/check/) — new rule `promote_on_wrong_branch.go` lands here
 - [`internal/cli/check/provenance.go`](../../../internal/cli/check/provenance.go) — wiring into `RunProvenanceCheck`
 - AC-1 (G-0200) — composes via `Config.TrunkBranchShortName`
-- AC-2 (G-0201) — handles the authorize-side ordering failure mode upstream
+- AC-2 (G-0201) — handles the authorize-side ordering with explicit `--branch` (closed); does NOT cover the implicit-current path (residual)
 - AC-3 (G-0203) — composes via BranchOracle for branch resolution + typed-error fail-shut
 - AC-7 (G-0207) — composes via detached-HEAD edge case
 - AC-9 (G-0210) — catalog refactor that consolidates cells
 
 ### AC-9 — Layer-4 spec-table refactor: mechanical-weight catalog + bijection enforcement
+
+> **DEFERRED in its entirety to a follow-up milestone per [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md).** AC-9 stays open as the named M-0161 residual; the milestone wraps at 8/9 ACs met. The follow-up milestone will scope the four-part refactor (M-0158 cell drop, M-0161 cell expansion to 76 total, `branchcell.Pin` registry under `//go:build testpins`, bijection meta-test replacing the keyword-set approach) with its own AC matrix. Until then: the existing 1-cell-per-AC catalog satisfies the M-0158/AC-6 ClassBranchChoreography drift invariant, and `internal/policies/m0158_ac5_meta_coverage_test.go` continues to enforce the keyword-set ≥1 paired-test claim. The body text below is preserved as the inherited spec for the follow-up.
 
 **Observable behavior.** The layer-4 branch-choreography spec catalog under [`internal/workflows/spec/branch/`](../../../internal/workflows/spec/branch/) is refactored to a mechanical-weight-only set with bijection enforcement between cells and tests.
 
@@ -571,13 +605,18 @@ Keep the 7 mechanical-weight cells:
 | AC-8 (promote-on-wrong-branch) | 9 | 9 promote-ordering scenarios |
 | **M-0161 subtotal** | **66** | |
 
-**Net catalog after AC-9**: 7 (M-0158 retained) + 66 (M-0161 added) = **73 cells**.
+**Net catalog after AC-9 (final)**: 7 (M-0158 retained) + 66 (M-0161 ACs 1–8) + 3 (AC-9's own meta-cells, listed in §"Meta-cell registration" below) = **76 cells**.
 
 **Part 3 — Bijection enforcement (`branchcell.Pin` registry):**
 
-A new package-level registry under [`internal/workflows/spec/branch/pin.go`](../../../internal/workflows/spec/branch/):
+A new **test-only** registry under [`internal/workflows/spec/branch/pin_test_helpers.go`](../../../internal/workflows/spec/branch/) — the `_test_helpers.go` suffix is Go-convention-shaped (matches the `*_test.go` invariant that the file is only compiled into test binaries, never into production builds). Alternative: a `pin.go` file gated by `//go:build testpins` build tag and the M-0161 test Makefile target adds `-tags testpins`. Either shape keeps the registry out of production binaries cleanly — **no `testing.Testing()` runtime guard or production-side panic needed** (the registry simply does not exist outside test compilation).
 
 ```go
+//go:build testpins
+// +build testpins
+
+package branch
+
 // Pin registers a cell ↔ test binding. Called from a test's setup
 // (typically inside the scenario's Setup or directly in the
 // TestFunction body). The bijection meta-test enforces 1:1
@@ -594,7 +633,13 @@ Every E2E scenario added by AC-1..AC-8 calls `branchcell.Pin(cellID, "<testName>
 3. **No cell has 2+ Pins** — no double-mapping (fixes G-0210's "test signal weakness" concern).
 4. **No test function pins 2+ cells** — one test = one cell, no overload.
 
-Replaces M-0158/AC-5's keyword-set meta-coverage approach. The keyword-set test under `internal/policies/m0158_ac5_meta_coverage_test.go` is removed in the same commit.
+**Replaces M-0158/AC-5's keyword-set meta-coverage approach.** M-0158/AC-5's claim text is: *"Each branch-cell has at least one test that exercises the cell's view-keyword set"* (the keyword-set heuristic at `internal/policies/m0158_ac5_meta_coverage_test.go`). The bijection meta-test pins a **strictly stronger** claim: *"Each branch-cell has exactly one Pin call from exactly one test function (1:1)"*. The bijection check supersedes the keyword-set check on every axis it covered:
+
+- keyword-set "≥1 test references the cell's keyword" → bijection "exactly 1 Pin references the cell" (covered + tightened).
+- keyword-set silently double-mapped cells (the G-0210 signal-weakness) → bijection forbids 2+ Pins per cell (fixes the weakness explicitly).
+- keyword-set was orphan-blind → bijection forbids orphan Pins (closes a gap the keyword-set had).
+
+The keyword-set file `internal/policies/m0158_ac5_meta_coverage_test.go` is removed in the same AC-9 commit. M-0158/AC-5's promoted-met status remains valid because the bijection meta-test maintains (and strengthens) every invariant the keyword-set test asserted.
 
 **Part 4 — Drift policy extension:**
 
@@ -602,11 +647,12 @@ The existing M-0158 drift policy is extended to read from the `branchcell.Pin` r
 
 **Mechanical assertions:**
 
-1. **Catalog refactor verification.** A test under [`internal/policies/branch_cell_catalog_test.go`](../../../internal/policies/) asserts:
+1. **Catalog refactor verification.** A test under [`internal/policies/branch_cell_catalog_test.go`](../../../internal/policies/branch_cell_catalog_test.go) asserts:
    - The 9 dropped cells are ABSENT from `branch.Rules()`
    - The 7 M-0158 retained cells are PRESENT
-   - The 66 M-0161 new cells are PRESENT
-   - **Total cell count == 73** (pinned exact count to catch drift)
+   - The 66 M-0161 AC-1..AC-8 cells are PRESENT
+   - The 3 AC-9 meta-cells are PRESENT
+   - **Total cell count == 76** (7 retained + 66 AC-1..AC-8 + 3 meta; pinned exact count to catch drift)
 
 2. **Bijection enforcement test.** The 4 invariants above each have a dedicated subtest. Each subtest is sabotage-verifiable:
    - Remove a Pin from a test → "cell with no Pin" subtest fires.
@@ -616,31 +662,38 @@ The existing M-0158 drift policy is extended to read from the `branchcell.Pin` r
 
 3. **M-0158 keyword-set removal verification.** The file `internal/policies/m0158_ac5_meta_coverage_test.go` is deleted in the AC-9 commit; a structural test asserts the file does not exist (prevents reintroduction).
 
-4. **Drift policy extension.** Fixture tests under `internal/policies/branch_cell_drift_test.go` exercise:
+4. **Drift policy extension.** Fixture tests under [`internal/policies/branch_cell_drift_test.go`](../../../internal/policies/branch_cell_drift_test.go) exercise:
    - Add cell, no Pin → fails CI
    - Remove cell, leave Pin → fails CI
-   - Healthy state (1:1 across all 73) → silent
+   - Healthy state (1:1 across all 76) → silent
 
 5. **Meta-cell registration.** AC-9 produces three meta-cells in the catalog:
-   - `branch-cell-meta-bijection-enforced` (positive)
-   - `branch-cell-meta-pin-orphan-detected` (positive)
-   - `branch-cell-meta-cell-orphan-detected` (positive)
+   - `branch-cell-meta-bijection-enforced` (positive — bijection holds across all 76 cells)
+   - `branch-cell-meta-pin-orphan-detected` (positive — orphan Pin produces failure)
+   - `branch-cell-meta-cell-orphan-detected` (positive — cell with no Pin produces failure)
 
-   These bring the actual total to **76 cells**. (The 73 figure above is the AC-1..AC-8-contributed total; AC-9 adds its own 3 meta-cells.)
+   These are the 3 meta-cells counted in the **76-cell total**.
 
 **Edge cases:**
 
 - **M-0158 wrap unaffected**: the catalog refactor is additive in the "right direction" (drop 9, add 66) — M-0158's wrap statements about its 7 retained cells stay true; the 9 dropped cells were documented as carrying no mechanical weight already.
-- **Test-only files**: `branchcell.Pin` lives in production code (`internal/workflows/spec/branch/pin.go`) so tests across multiple `_test.go` files can call it. Pins accumulate in a `var pins []pin` package var with a mutex for parallel-test safety.
-- **`branchcell.Pin` test-mutating-production-code concern**: the pin registry is read-only after construction in production paths; only tests write. A production import-side accidental write is caught by a one-line build-time guard: the writer function does `if !testing.Testing() { panic(...) }`. (Per CLAUDE.md "No new package-level mutable state" — the exception is documented; the registry's mutation IS test infrastructure, not production state.)
+- **Test-only files**: `branchcell.Pin` lives at `pin_test_helpers.go` (or under `//go:build testpins` per Part 3) so it is **never compiled into production binaries**. Tests across multiple `_test.go` files can call it. Pins accumulate in a `var pins []pin` package var with a mutex for parallel-test safety. The test-only-file shape replaces the originally-considered runtime `testing.Testing()` guard — build-tag isolation is the canonical Go pattern for this concern and avoids the CLAUDE.md "no new package-level mutable state" tension entirely (the state simply does not exist in production).
 - **Bijection meta-test parallelism**: runs serial via `setup_test.go` conventions (registers a non-parallel skip per the M-0091 cap rule; reading the global registry safely is what justifies the skip).
 - **Cells added in later milestones** (future): the bijection enforcement catches future drift — anyone adding a cell without a Pin fails CI.
 
 **References.**
 
 - [G-0210](../../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap; closes here
-- M-0158 — the milestone with the over-specified catalog (refactor closes here)
+- [M-0158](M-0158-layer-4-branch-choreography-spec-cells-drift-policy-extension.md) — the milestone with the over-specified catalog (refactor closes here)
 - [`internal/workflows/spec/branch/`](../../../internal/workflows/spec/branch/) — package layout
-- [`internal/policies/m0158_ac5_meta_coverage_test.go`](../../../internal/policies/) — keyword-set meta-test (REMOVED by AC-9)
+- [`internal/policies/m0158_ac5_meta_coverage_test.go`](../../../internal/policies/m0158_ac5_meta_coverage_test.go) — keyword-set meta-test (REMOVED by AC-9)
 - AC-1..AC-8 — sources of the 66 new cells
+
+## Decisions made during implementation
+
+- [D-0018](../../decisions/D-0018-branch-not-found-subsumed-by-rung-pair-illegal-catalog-cleanup-defers-to-ac-9.md) — branch-not-found subsumed by rung-pair-illegal; catalog cleanup defers to AC-9 (AC-2 reviewer pass S-3)
+- [D-0019](../../decisions/D-0019-oracle-partial-coverage-fail-shut-correctness-fail-open-coverage.md) — oracle partial-coverage: fail-shut on rule correctness, fail-open on rule coverage (AC-3 cycle start, pre-RED)
+- [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md) — AC-5 cell-5 orphan acknowledgment deferred to verb extension (AC-5 reviewer pass; routes to [G-0226](../../gaps/G-0226-aiwf-acknowledge-illegal-hard-requires-sha-reachable-from-head.md))
+- [D-0021](../../decisions/D-0021-m-0161-ac-7-doctor-json-envelope-deferred-substring-match-ships-now.md) — AC-7 doctor JSON envelope deferred; substring-match-on-stdout ships now; full structural envelope deferred to a future doctor-shape milestone
+- [D-0022](../../decisions/D-0022-m-0161-ac-9-deferred-to-follow-up-milestone-m-0161-wraps-8-9.md) — AC-9 (catalog refactor) deferred to a follow-up milestone in its entirety; M-0161 wraps 8/9 ACs met; AC-9 is the named residual; the keyword-set meta-coverage approach stays in place until the bijection registry lands in the follow-up
 

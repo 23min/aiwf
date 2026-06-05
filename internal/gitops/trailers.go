@@ -32,7 +32,21 @@ const (
 	// the operator passes `--branch <name>`; absent flag = absent trailer
 	// (backward compatible). M-0103's preflight enforces the requirement
 	// for AI-actor scopes; this trailer is the metadata it leaves behind.
-	TrailerBranch    = "aiwf-branch"
+	TrailerBranch = "aiwf-branch"
+	// TrailerBranchSHA (M-0161/AC-6, G-0206) records the bound
+	// branch's tip SHA at scope-open time on `aiwf authorize`
+	// commits. Composes with TrailerBranch (which records the
+	// branch's short name): when a branch is renamed after scope
+	// open, name-only resolution false-positives; SHA-based
+	// resolution (via BranchOracle.BranchOfSHA) survives renames
+	// transparently. The trailer is OPTIONAL — pre-M-0161/AC-6
+	// authorize commits and future-branch carve-outs (M-0103 /
+	// M-0105 where --branch names a branch that doesn't yet
+	// exist) omit it; the rule falls back to name-only
+	// resolution in those cases. Value is the canonical
+	// 40-char lowercase hex SHA-1 shape (enforced by
+	// ValidateTrailer at write time).
+	TrailerBranchSHA = "aiwf-branch-sha"
 	TrailerScopeEnds = "aiwf-scope-ends"
 	TrailerReason    = "aiwf-reason"
 
@@ -67,6 +81,7 @@ var trailerOrder = []string{
 	TrailerAuthorizedBy,
 	TrailerScope,
 	TrailerBranch,
+	TrailerBranchSHA,
 	TrailerScopeEnds,
 	TrailerReason,
 	TrailerAuditOnly,
@@ -123,6 +138,14 @@ var roleIDPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 // produces and what aiwf-authorized-by / aiwf-scope-ends reference.
 var shaPattern = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
 
+// shaFullPattern matches the canonical 40-char lowercase hex
+// SHA-1 shape git emits from `git rev-parse <ref>`. Used by
+// TrailerBranchSHA validation per M-0161/AC-6 — the trailer is
+// recorded by the verb at write time when it controls the
+// value's shape (vs. shaPattern which accepts 7-40 chars to
+// match historical user-typed values for TrailerForceFor etc).
+var shaFullPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
 // branchRefPattern matches a permissive subset of git's refname grammar
 // sufficient for the aiwf-branch trailer: one or more characters from
 // [A-Za-z0-9._/-]. The full git rule (man git-check-ref-format) is
@@ -178,6 +201,10 @@ func ValidateTrailer(key, value string) error {
 	case TrailerScope:
 		if _, ok := scopeEvents[value]; !ok {
 			return fmt.Errorf("%s: %q must be one of opened|paused|resumed", key, value)
+		}
+	case TrailerBranchSHA:
+		if !shaFullPattern.MatchString(value) {
+			return fmt.Errorf("%s: %q must be canonical 40-char lowercase hex SHA-1 (per M-0161/AC-6)", key, value)
 		}
 	case TrailerBranch:
 		if !branchRefPattern.MatchString(value) {

@@ -34,6 +34,97 @@ import (
 // "commits ended up on the wrong branch" failure mode.
 var CodeIsolationEscape = codespkg.Code{ID: "isolation-escape", Class: codespkg.ClassBranchChoreography}
 
+// CodeIsolationEscapeOracleFailure is the advisory finding code
+// surfacing oracle partial-coverage states (M-0161/AC-3 / G-0203 /
+// D-0019). One finding fires per per-ref failure accumulated
+// during [BranchOracle] construction, naming the ref and the
+// underlying failure mode (ref-resolution-failed today;
+// shallow-clone and reflog-disabled added by AC-4 and AC-5).
+//
+// Severity is warning at first land per the M-0125 ratchet
+// pattern: surface advisory at first, tighten to error after one
+// epic of usage if the false-positive rate stays low. The
+// contract is fail-shut on rule correctness — the
+// [isolation-escape] rule does NOT fire on commits whose branch
+// resolution was lost to a failed ref, so the advisory exists
+// for operator visibility, not as a blocker. See D-0019 for the
+// fail-shut-on-correctness / fail-open-on-coverage contract.
+var CodeIsolationEscapeOracleFailure = codespkg.Code{ID: "isolation-escape-oracle-failure", Class: codespkg.ClassBranchChoreography}
+
+// CodeIsolationEscapeShallowClone is the warning finding code
+// surfacing shallow-clone-induced total-coverage failure
+// (M-0161/AC-4 / G-0204). One finding fires when the repository
+// is shallow per `git rev-parse --is-shallow-repository`, naming
+// the remediation directly: unshallow with `git fetch
+// --unshallow` (or in CI, `actions/checkout@vN` with
+// `fetch-depth: 0`).
+//
+// Severity is warning, NOT advisory — a shallow clone is a
+// total-coverage failure (not a per-ref partial failure as
+// AC-3's isolation-escape-oracle-failure tracks), so the
+// operator-visibility weight is higher. The deliberate exception
+// to D-0019 Alternative D's "ride the typed slice" rule per the
+// AC-4 body line 292.
+//
+// Per the AC-4 fail-shut-on-correctness contract: on shallow,
+// the per-SHA branch map is left EMPTY (no false positives from
+// half-walked first-parent indexes), so the isolation-escape
+// rule stays silent regardless of what the shallow window would
+// otherwise expose. The new code's job is to make that coverage
+// gap mechanically visible.
+var CodeIsolationEscapeShallowClone = codespkg.Code{ID: "isolation-escape-shallow-clone", Class: codespkg.ClassBranchChoreography}
+
+// CodeIsolationEscapeOrphanedAICommit is the warning finding
+// code surfacing AI-actor commits orphaned by non-fast-forward
+// updates ("force-push") on ritual branches (M-0161/AC-5 /
+// G-0205). One finding fires per orphaned AI commit detected
+// via reflog walk; the kernel cannot determine from the orphan
+// alone whether it was on the correct branch at force-time
+// (the rewrite removed the audit trail), so the rule surfaces
+// the orphan for operator review with hint text pointing at
+// `aiwf acknowledge-illegal` for deliberate sovereign cleanup.
+//
+// Severity is warning per the M-0125 ratchet pattern; future
+// D-NNN may tighten to error after one full epic of usage.
+//
+// Composes with AC-3: when core.logAllRefUpdates=false the
+// reflog is absent and detection cannot run — that case rides
+// AC-3's isolation-escape-oracle-failure advisory with
+// Capability "reflog-disabled" rather than introducing a
+// separate finding code, per the D-0019 fail-shut-on-correctness
+// /fail-open-on-coverage contract.
+var CodeIsolationEscapeOrphanedAICommit = codespkg.Code{ID: "isolation-escape-orphaned-ai-commit", Class: codespkg.ClassBranchChoreography}
+
+// OracleErr is a per-ref or repo-wide oracle-construction failure
+// surfaced by [BranchOracle.OracleErrors]. The Capability tag
+// names what coverage was lost; the underlying Err is preserved
+// for diagnostic surface in the
+// isolation-escape-oracle-failure advisory's hint text.
+//
+// Ref is the ritual ref the failure pertains to (e.g.
+// "epic/E-0001-engine"). Ref MAY be empty for repo-wide failures
+// (corrupted packed-refs at enumeration time); per D-0019 point
+// 4, that case is handled at the construction-error path rather
+// than via OracleErrors, but the field shape leaves room for a
+// future repo-wide kind.
+//
+// Capability classes (M-0161/AC-3..AC-5):
+//
+//   - "ref-resolution-failed" (AC-3) — `git rev-list
+//     --first-parent <ref>` failed on a single ritual ref while
+//     `for-each-ref` enumerated cleanly. The ref's first-parent
+//     index could not be built.
+//   - "shallow-clone" (AC-4) — the ref's first-parent walk hit
+//     the shallow-depth horizon. Reserved.
+//   - "reflog-disabled" (AC-5) — `core.logAllRefUpdates=false`
+//     detected at gather time; AC-5's reflog-walk extension
+//     cannot fire on the affected ref. Reserved.
+type OracleErr struct {
+	Ref        string
+	Capability string
+	Err        error
+}
+
 // BranchOracle answers per-commit branch-reachability questions the
 // isolation-escape rule needs but that scope.Commit does not carry.
 // Implementations are supplied by the CLI gather layer (which has
@@ -46,8 +137,45 @@ var CodeIsolationEscape = codespkg.Code{ID: "isolation-escape", Class: codespkg.
 // knows about (treat as "unknown" — the rule does not fire on
 // unknown-branch commits, since the kernel cannot confidently
 // classify them as escaped).
+//
+// OracleErrors returns per-ref construction failures accumulated
+// at gather time (M-0161/AC-3 / G-0203). Empty slice ↔ every
+// enumerated ref's first-parent index built cleanly; non-empty
+// slice ↔ at least one ref failed and the rule's coverage is
+// incomplete for those refs. Consumers (RunProvenanceCheck)
+// surface one [CodeIsolationEscapeOracleFailure] finding per
+// entry, naming the ref and the underlying error in the hint —
+// see D-0019 for the fail-shut-on-correctness /
+// fail-open-on-coverage contract that orders OracleErrors with
+// FirstParentBranches.
 type BranchOracle interface {
 	FirstParentBranches(sha string) []string
+	OracleErrors() []OracleErr
+	// BranchOfSHA returns the current ritual-shape branch (or
+	// "main") whose first-parent index contains sha. An empty
+	// return means the SHA is not on any branch the oracle
+	// knows about — either the branch was deleted, the SHA is
+	// orphaned, or the SHA was never on a ritual ref.
+	//
+	// Used by M-0161/AC-6's rename-survival path:
+	// `aiwf-branch-sha:` trailer values from authorize commits
+	// resolve to whatever branch currently reaches that SHA,
+	// regardless of how the branch has been renamed. A returned
+	// empty string composes with AC-3's fail-shut-on-correctness
+	// contract — the rule does not fire (no false positive when
+	// binding is lost); the partial-coverage state surfaces via
+	// the existing isolation-escape-oracle-failure advisory
+	// when configured.
+	//
+	// Resolution is deterministic but order-dependent on the
+	// underlying branchesBySHA index: when the SHA appears on
+	// multiple branches, the first-listed entry wins. The
+	// production gitBranchOracle iterates ritual refs in
+	// for-each-ref order; tests using fakeOracle should not
+	// rely on a particular branch being first when the SHA
+	// has multiple owners (use single-owner fixtures or
+	// extend the fake).
+	BranchOfSHA(sha string) string
 }
 
 // RunIsolationEscape applies the M-0106 branch-choreography rule
@@ -142,6 +270,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 		chronoIdx int
 		endedAt   int // chrono position of aiwf-scope-ends; -1 = never ended
 		branch    string
+		branchSHA string // M-0161/AC-6: aiwf-branch-sha trailer value (40-char hex); empty for legacy authorize commits without the trailer
 	}
 
 	// First sub-pass: index `aiwf-scope-ends: <opener-sha>` trailers
@@ -174,6 +303,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 			continue
 		}
 		branch := idx[gitops.TrailerBranch]
+		branchSHA := idx[gitops.TrailerBranchSHA]
 		endedAt := -1
 		if pos, ok := endsByOpenerSHA[c.SHA]; ok {
 			endedAt = pos
@@ -182,6 +312,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 			chronoIdx: i,
 			endedAt:   endedAt,
 			branch:    branch,
+			branchSHA: branchSHA,
 		})
 	}
 
@@ -216,6 +347,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 		// → silent (F-3 — no false positives on commits after
 		// scope-entity reaches terminal status).
 		var bound string
+		var boundSHA string
 		var found bool
 		for j := len(openers) - 1; j >= 0; j-- {
 			rec := openers[j]
@@ -226,6 +358,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 				break
 			}
 			bound = rec.branch
+			boundSHA = rec.branchSHA
 			found = true
 			break
 		}
@@ -236,12 +369,39 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 			continue // pre-M-0102 scope without aiwf-branch: trailer; non-retroactive.
 		}
 
+		// M-0161/AC-6: SHA-first resolution. When the opener
+		// recorded aiwf-branch-sha, resolve to whatever branch
+		// currently reaches that SHA — surviving renames
+		// transparently. Empty resolution + no SHA-trailer
+		// available falls through to the legacy name-only path
+		// (backwards-compatible for pre-AC-6 authorize commits;
+		// G-0225 documents the legacy carve-out).
+		resolved := bound
+		if boundSHA != "" {
+			if shaResolved := oracle.BranchOfSHA(boundSHA); shaResolved != "" {
+				resolved = shaResolved
+			}
+			// If the SHA doesn't resolve (branch deleted, SHA
+			// orphaned by reflog GC, repo shallow), keep `resolved`
+			// at the name-based bound. The actualBranches check
+			// below stays fail-shut: if the AI commit's branch
+			// list doesn't include `resolved`, we'd fire — but the
+			// caller (RunProvenanceCheck) is also surfacing an
+			// AC-3 oracle-failure advisory naming the unreachable
+			// binding, so the operator has both signals. The
+			// fail-shut-on-correctness for this case is the
+			// existing "actualBranches empty → silent" check
+			// below; deletion of the SHA-bound branch typically
+			// also drops the AI commits from any first-parent
+			// index, leaving actualBranches empty.
+		}
+
 		actualBranches := oracle.FirstParentBranches(c.SHA)
 		if len(actualBranches) == 0 {
 			continue // unknown branch — do not fire on a commit the oracle can't classify.
 		}
-		if slices.Contains(actualBranches, bound) {
-			continue // AC-4 — commit rides the bound branch.
+		if slices.Contains(actualBranches, resolved) {
+			continue // AC-4 — commit rides the bound branch (post-SHA-resolution).
 		}
 
 		// M-0159/AC-3 — retroactive acknowledgment. When an operator
@@ -272,12 +432,15 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 
 		// AC-1 / AC-2 / AC-3 — commit landed on a branch other than
 		// the bound one. Fire one finding per violating commit (AC-10).
+		// M-0161/AC-6: the message names the post-rename `resolved`
+		// branch (what the binding currently resolves to via SHA);
+		// when the scope was bound by name only, `resolved == bound`.
 		findings = append(findings, Finding{
 			Code:     CodeIsolationEscape.ID,
 			Severity: SeverityWarning,
 			Message: fmt.Sprintf(
 				"commit %s: aiwf-actor: %q on %q escapes the active scope's bound branch %q",
-				short(c.SHA), actor, strings.Join(actualBranches, ","), bound,
+				short(c.SHA), actor, strings.Join(actualBranches, ","), resolved,
 			),
 			EntityID: entity,
 		})

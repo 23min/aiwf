@@ -1,8 +1,10 @@
 ---
 id: G-0210
 title: M-0158 spec table contains 9 documentation-only or duplicate cells
-status: open
+status: addressed
 discovered_in: M-0158
+addressed_by:
+    - M-0162
 ---
 M-0158's AC-2 specifies: *"Each epic corner-case (1-12)
 represented as named cell branch-cell-N"*. AC-3 specifies:

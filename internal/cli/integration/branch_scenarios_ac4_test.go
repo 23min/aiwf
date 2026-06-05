@@ -68,7 +68,8 @@ func TestBranchScenarios_AC4_AckSilencing(t *testing.T) {
 		// AC-3 lift; the scenario pins it end-to-end so a
 		// regression to the gather→consumer wiring surfaces.
 		{
-			Name: "isolation-escape acknowledged is silent (M-0159/AC-4: E2E for AC-3 lift)",
+			CellID: "branch-cell-m0159-ac4-c1",
+			Name:   "isolation-escape acknowledged is silent (M-0159/AC-4: E2E for AC-3 lift)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -85,7 +86,8 @@ func TestBranchScenarios_AC4_AckSilencing(t *testing.T) {
 		// that silenced any isolation-escape when ANY
 		// acknowledgment exists would surface here.
 		{
-			Name: "isolation-escape NOT acknowledged on its own SHA still fires (M-0159/AC-4: per-SHA scoping E2E)",
+			CellID: "branch-cell-m0159-ac4-c2",
+			Name:   "isolation-escape NOT acknowledged on its own SHA still fires (M-0159/AC-4: per-SHA scoping E2E)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -121,7 +123,8 @@ func TestBranchScenarios_AC4_AckSilencing(t *testing.T) {
 		// fsm-history-consistent/forced-untrailered finding"
 		// fails today and passes after GREEN lands.
 		{
-			Name: "forced-untrailered acknowledged is silent (M-0159/AC-4: G-0214 asymmetry closed)",
+			CellID: "branch-cell-m0159-ac4-c3",
+			Name:   "forced-untrailered acknowledged is silent (M-0159/AC-4: G-0214 asymmetry closed)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -150,7 +153,8 @@ func TestBranchScenarios_AC4_AckSilencing(t *testing.T) {
 		// pass becomes the right reason: the ack on a
 		// different SHA correctly does NOT silence this one.
 		{
-			Name: "forced-untrailered NOT acknowledged on its own SHA still fires (M-0159/AC-4: per-SHA scoping E2E)",
+			CellID: "branch-cell-m0159-ac4-c4",
+			Name:   "forced-untrailered NOT acknowledged on its own SHA still fires (M-0159/AC-4: per-SHA scoping E2E)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -191,7 +195,8 @@ func TestBranchScenarios_AC4_AckSilencing(t *testing.T) {
 		// covers both the silencing AND the preservation
 		// claim end-to-end.
 		{
-			Name: "isolation-escape acknowledged preserves AI authorship on the original escape commit (M-0159/AC-4: no-history-rewrite)",
+			CellID: "branch-cell-m0159-ac4-c5",
+			Name:   "isolation-escape acknowledged preserves AI authorship on the original escape commit (M-0159/AC-4: no-history-rewrite)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

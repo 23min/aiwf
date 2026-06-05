@@ -52,6 +52,14 @@ var CodePreflightBranchContextRequired = codes.Code{ID: "branch-context-required
 // [codes.ClassLegality].
 var CodePreflightBranchNotFound = codes.Code{ID: "branch-not-found", Class: codes.ClassLegality}
 
+// CodePreflightRungPair is the typed kernel-code descriptor carried by
+// [PreflightRungPairError] when aiwf authorize refuses opening a scope
+// on an ai/* agent because the (CurrentBranch rung, --branch rung) pair
+// is not in the legal set {(trunk, epic), (epic, milestone),
+// (milestone, patch), (epic, patch)} per ADR-0010 (M-0161/AC-2 /
+// G-0201). Class is [codes.ClassLegality].
+var CodePreflightRungPair = codes.Code{ID: "rung-pair-illegal", Class: codes.ClassLegality}
+
 // PreflightBranchContextRequiredError reports an aiwf authorize refused
 // because the AI-target preflight (M-0103) found no ritual branch
 // context in play — neither was --branch supplied, nor does the current
@@ -68,7 +76,21 @@ type PreflightBranchContextRequiredError struct {
 }
 
 // Error implements error.
+//
+// M-0161/AC-7: when CurrentBranch is empty (the CLI reports
+// empty on detached HEAD or when git fails), the message
+// names "detached HEAD has no ritual context" explicitly so
+// the operator sees the exact state rather than just "current
+// checkout ” does not match". The override path (--force
+// --reason) and the ritual-branch landing options are listed
+// the same way for both cases.
 func (e *PreflightBranchContextRequiredError) Error() string {
+	if e.CurrentBranch == "" {
+		return fmt.Sprintf(
+			"aiwf authorize: opening a scope on %q requires a ritual branch context (%s); detached HEAD has no ritual context. Checkout a ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug> / patch/g-NNNN-<slug>) and rerun, or use `--force --reason \"<one-sentence justification>\"` to override.",
+			e.Agent, CodePreflightBranchContextRequired.ID,
+		)
+	}
 	return fmt.Sprintf(
 		"aiwf authorize: opening a scope on %q requires a ritual branch context (%s); current checkout %q does not match a ritual shape. Run `aiwfx-start-epic` / `aiwfx-start-milestone` to land on a recognized ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug> / patch/g-NNNN-<slug>), or pass `--branch <name>` naming an existing branch. To override this preflight as a sovereign act, use `--force --reason \"<one-sentence justification>\"`.",
 		e.Agent, CodePreflightBranchContextRequired.ID, e.CurrentBranch,
@@ -100,6 +122,58 @@ func (e *PreflightBranchNotFoundError) Error() string {
 // Code returns CodePreflightBranchNotFound's ID, satisfying [entity.Coded].
 func (e *PreflightBranchNotFoundError) Code() string {
 	return CodePreflightBranchNotFound.ID
+}
+
+// PreflightRungPairError reports an aiwf authorize refused because the
+// (CurrentBranch rung, --branch rung) pair is not in the legal set per
+// ADR-0010 (M-0161/AC-2). Carries the offending branches AND their
+// classified rungs so the operator can see exactly which pair was
+// rejected. Implements [entity.Coded] via Code; carries
+// CodePreflightRungPair.
+type PreflightRungPairError struct {
+	// CurrentBranch is the operator's current checkout.
+	CurrentBranch string
+	// CurrentRung is the rung CurrentBranch classified as
+	// (one of "trunk"/"epic"/"milestone"/"patch"/"").
+	CurrentRung string
+	// TargetBranch is the --branch value that was rejected.
+	TargetBranch string
+	// TargetRung is the rung TargetBranch classified as.
+	TargetRung string
+}
+
+// Error implements error.
+func (e *PreflightRungPairError) Error() string {
+	curr := e.CurrentRung
+	if curr == "" {
+		curr = "non-ritual"
+	}
+	targ := e.TargetRung
+	if targ == "" {
+		targ = "non-ritual"
+	}
+	// M-0161/AC-7: when CurrentBranch is empty, HEAD is detached
+	// (or git failed to resolve a symbolic ref). The general
+	// rung-pair message reads as `current branch "" (rung:
+	// non-ritual)` — accurate but obscure. Surface the detached-
+	// HEAD state explicitly so the operator sees what to fix.
+	// The canonical substring "detached HEAD has no ritual
+	// context" is the AC-7 discrimination signal.
+	if e.CurrentBranch == "" {
+		return fmt.Sprintf(
+			"aiwf authorize: detached HEAD has no ritual context (%s) — cannot authorize work targeting %q (rung: %s) without a ritual branch checkout. Checkout a ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug> / patch/g-NNNN-<slug>) and rerun, or use `--force --reason \"<one-sentence justification>\"` to override.",
+			CodePreflightRungPair.ID, e.TargetBranch, targ,
+		)
+	}
+	return fmt.Sprintf(
+		"aiwf authorize: (%s, %s) is not a legal ritual rung pair (%s) — current branch %q (rung: %s) cannot authorize work targeting %q (rung: %s). Legal rung pairs: (trunk, epic), (epic, milestone), (milestone, patch), (epic, patch) — see ADR-0010. To override this preflight as a sovereign act, use `--force --reason \"<one-sentence justification>\"`.",
+		curr, targ, CodePreflightRungPair.ID, e.CurrentBranch, curr, e.TargetBranch, targ,
+	)
+}
+
+// Code returns CodePreflightRungPair's ID, satisfying [entity.Coded].
+func (e *PreflightRungPairError) Code() string {
+	return CodePreflightRungPair.ID
 }
 
 // AuthorizeMode picks one of the three sub-verbs of `aiwf authorize`.
@@ -165,8 +239,32 @@ type AuthorizeOptions struct {
 	// is ai/* and --force is not set; in every other code path the
 	// field is ignored.
 	BranchExists bool
-	Force        bool
-	Scopes       []*scope.Scope
+	// BranchSHA (M-0161/AC-6, G-0206) is the bound branch's tip
+	// SHA at scope-open time, populated by the CLI layer when
+	// Branch exists locally (via `git rev-parse <branch>`). Empty
+	// when the branch doesn't yet exist (future-branch carve-out
+	// per M-0103 / M-0105) or when the CLI's git invocation
+	// fails. The verb emits `aiwf-branch-sha:` iff non-empty,
+	// keeping the trailer absent for the future-branch case so
+	// the rule falls back to name-only resolution there. The
+	// value is validated against the canonical 40-char lowercase
+	// hex shape by validateAuthorizeTrailers below (gitops
+	// shape rule for TrailerBranchSHA).
+	BranchSHA string
+	// TrunkShort (M-0161/AC-1, G-0200) is the consumer's configured
+	// trunk short-name as derived from `aiwf.yaml.allocate.trunk` via
+	// `Config.TrunkBranchShortName()`. Used by the AI-target
+	// preflight's "trunk + ritual --branch" carve-out so the predicate
+	// honors the operator's configured trunk rather than the literal
+	// `"main"`. Populated by the CLI layer via
+	// `cliutil.ConfiguredTrunkBranchShortName`; empty (e.g., from a
+	// verb-level test that doesn't set it) is treated as "no
+	// resolvable trunk; do not match" — the carve-out's left arm
+	// fails and preflight falls through to the implicit-ritual-
+	// current path.
+	TrunkShort string
+	Force      bool
+	Scopes     []*scope.Scope
 }
 
 // Authorize runs the `aiwf authorize` verb. Refusal rules per
@@ -281,55 +379,47 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 	if strings.HasPrefix(agent, "ai/") && !opts.Force {
 		branchExplicit := strings.TrimSpace(opts.Branch)
 		if branchExplicit != "" {
-			if !opts.BranchExists {
-				// Future-branch carve-out (M-0104/AC-4 + M-0105/AC-6):
-				// an explicit --branch naming a ritual-shape ref is
-				// accepted even when the branch does not yet exist,
-				// provided the operator's current checkout is a
-				// valid "place from which to cut the future ritual
-				// branch". Two such places are recognized:
-				//
-				//   - main (M-0104/AC-4 — the step-7 pattern of
-				//     aiwfx-start-epic; the epic branch is cut at
-				//     step 8).
-				//   - any ritual shape per branchparse (M-0105/AC-6
-				//     — the step-4 pattern of aiwfx-start-milestone,
-				//     where the operator is on the parent epic
-				//     branch and --branch names the future milestone
-				//     branch; the milestone branch is cut at step 5).
-				//
-				// The carve-out is intentionally tight:
-				//   - main-or-ritual-current only (a plain feature
-				//     branch is not a "place from which to cut a
-				//     ritual"; the implicit-ritual-current path or
-				//     --force --reason cover legitimate exceptions;
-				//     trunk-name configurability beyond "main" is
-				//     deferred per G-0200).
-				//   - ritual-shape --branch only (otherwise the gate
-				//     becomes a no-op — any string under --branch
-				//     would authorize from any qualifying current).
-				//
-				// The carve-out does NOT enforce hierarchical
-				// consistency between CurrentBranch and the --branch
-				// shape (e.g., "current=epic/X-7 implies --branch
-				// must be milestone/<child of X-7>"). YAGNI: the
-				// looser check covers every legitimate ritual
-				// invocation and refuses the loudest mistakes; a
-				// hierarchical check would be more code for a
-				// narrower window. Cross-rung mismatches (different
-				// epic, up-the-tree, epic→patch skipping milestone)
-				// syntactically accept; the trailer records the
-				// operator's stated intent. Parked as G-0201
-				// pending evidence the looseness becomes an incident
-				// class.
-				currentIsRitualContext := opts.CurrentBranch == "main" ||
-					branchparse.ParseEntityFromBranch(opts.CurrentBranch) != ""
-				futureBindingAccepted := currentIsRitualContext &&
-					branchparse.ParseEntityFromBranch(branchExplicit) != ""
-				if !futureBindingAccepted {
-					return nil, &PreflightBranchNotFoundError{Branch: branchExplicit}
+			// M-0161/AC-2 (G-0201): single rung-pair check replaces
+			// the loose pre-AC-2 future-binding carve-out (which
+			// accepted any "current is ritual or trunk + target is
+			// ritual" combination when BranchExists=false, and
+			// silently accepted everything when BranchExists=true).
+			// The new predicate runs REGARDLESS of BranchExists so
+			// (X, trunk) cells where --branch IS the trunk's local
+			// branch refuse correctly (AI work targeting trunk is
+			// verboten per ADR-0010).
+			//
+			// LegalRungPair recognizes the 4 legitimate ritual
+			// flows: trunk→epic (aiwfx-start-epic), epic→milestone
+			// (aiwfx-start-milestone), milestone→patch and
+			// epic→patch (wf-patch under either parent rung). All
+			// other pairs — same-rung typos, up-the-tree shapes,
+			// trunk-target shapes, non-ritual current, non-ritual
+			// target — refuse.
+			//
+			// Subsumes the prior PreflightBranchNotFoundError path:
+			// a non-existent + non-ritual --branch (e.g.,
+			// --branch garbage) classifies as targetRung="" → not
+			// in the legal set → PreflightRungPairError fires.
+			currentRung := branchparse.RungOf(opts.CurrentBranch, opts.TrunkShort)
+			targetRung := branchparse.RungOf(branchExplicit, opts.TrunkShort)
+			if !branchparse.LegalRungPair(currentRung, targetRung) {
+				return nil, &PreflightRungPairError{
+					CurrentBranch: opts.CurrentBranch,
+					CurrentRung:   currentRung,
+					TargetBranch:  branchExplicit,
+					TargetRung:    targetRung,
 				}
 			}
+			// The pre-AC-2 "branch must exist locally" check is
+			// retained for legal rung pairs: if the operator is on
+			// a legitimate ritual current AND named a legitimate
+			// ritual target, but the target doesn't exist yet,
+			// that's the future-binding carve-out (aiwfx-start-epic
+			// step 7 / aiwfx-start-milestone step 4) — accept and
+			// stamp the trailer. The trailer-emission code below
+			// already handles this. Nothing more to do.
+			_ = opts.BranchExists
 		} else {
 			if branchparse.ParseEntityFromBranch(opts.CurrentBranch) == "" {
 				return nil, &PreflightBranchContextRequiredError{
@@ -361,6 +451,19 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 	// commit lands.
 	if b := strings.TrimSpace(opts.Branch); b != "" {
 		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerBranch, Value: b})
+		// M-0161/AC-6 / G-0206: record the branch's tip SHA at
+		// scope-open time so the isolation-escape rule can
+		// survive a future `git branch -m` rename via SHA-based
+		// resolution (BranchOracle.BranchOfSHA). Emitted iff the
+		// CLI resolved a tip SHA (Branch exists locally); empty
+		// BranchSHA keeps the trailer absent so future-branch
+		// carve-outs (M-0103 / M-0105) stay backwards-compatible
+		// with name-only resolution. validateAuthorizeTrailers
+		// below catches malformed SHA shapes via the
+		// TrailerBranchSHA validator (40-char lowercase hex).
+		if sha := strings.TrimSpace(opts.BranchSHA); sha != "" {
+			trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerBranchSHA, Value: sha})
+		}
 	}
 	if r := strings.TrimSpace(opts.Reason); r != "" {
 		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerReason, Value: r})

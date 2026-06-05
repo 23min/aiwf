@@ -118,7 +118,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// shape (where the actual is the trunk) — here the operator
 		// genuinely cut a ritual branch but the wrong one.
 		{
-			Name: "AI commit on different ritual branch fires (M-0106 AC-2)",
+			CellID: "branch-cell-m0159-ac2-c1",
+			Name:   "AI commit on different ritual branch fires (M-0106 AC-2)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -139,7 +140,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// addition like "fire on every AI commit during paused
 		// scope" would break this scenario.
 		{
-			Name: "AI commit on bound branch with paused scope interposed is silent (M-0106 AC-5 revised — pause is a no-op for bound-match)",
+			CellID: "branch-cell-m0159-ac2-c2",
+			Name:   "AI commit on bound branch with paused scope interposed is silent (M-0106 AC-5 revised — pause is a no-op for bound-match)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -171,7 +173,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// `git merge --no-ff` keeps the merge commit explicit so
 		// first-parent semantics are observable.
 		{
-			Name: "Human merge bringing AI commits via second-parent is silent (M-0106 AC-7)",
+			CellID: "branch-cell-m0159-ac2-c3",
+			Name:   "Human merge bringing AI commits via second-parent is silent (M-0106 AC-7)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -189,7 +192,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// Important to pin: a regression that fired on any AI
 		// commit (regardless of scope) would surface here.
 		{
-			Name: "AI commit with no scope opened is silent (M-0106 AC-9)",
+			CellID: "branch-cell-m0159-ac2-c4",
+			Name:   "AI commit with no scope opened is silent (M-0106 AC-9)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -205,7 +209,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// Expectation; the per-commit cardinality is the AC's
 		// load-bearing claim.
 		{
-			Name: "Three violating AI commits produce three isolation-escape findings (M-0106 AC-10)",
+			CellID: "branch-cell-m0159-ac2-c5",
+			Name:   "Three violating AI commits produce three isolation-escape findings (M-0106 AC-10)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -227,7 +232,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// to be deliberate; this assertion is the single place that
 		// breaks at that decision.
 		{
-			Name: "isolation-escape finding has severity warning (M-0106 AC-11)",
+			CellID: "branch-cell-m0159-ac2-c6",
+			Name:   "isolation-escape finding has severity warning (M-0106 AC-11)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -253,7 +259,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// presence-in-envelope, not exact wording. The strict text
 		// remains pinned by the unit.
 		{
-			Name: "isolation-escape hint names cherry-pick AND force override paths (M-0106 AC-12)",
+			CellID: "branch-cell-m0159-ac2-c7",
+			Name:   "isolation-escape hint names cherry-pick AND force override paths (M-0106 AC-12)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -274,7 +281,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// chronoIdx beyond the end. Pins the F-3 retrospective fix
 		// from M-0106 cycle 3.
 		{
-			Name: "AI commit after scope-ended is silent (M-0106 F-3 negative arm)",
+			CellID: "branch-cell-m0159-ac2-c8",
+			Name:   "AI commit after scope-ended is silent (M-0106 F-3 negative arm)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -291,7 +299,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// guard against an F-3 fix that silently suppresses
 		// regardless of timing.
 		{
-			Name: "AI commit before scope-ended still fires (M-0106 F-3 positive arm)",
+			CellID: "branch-cell-m0159-ac2-c9",
+			Name:   "AI commit before scope-ended still fires (M-0106 F-3 positive arm)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -312,7 +321,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// eventually opened; the rule must still respect commit
 		// ordering.
 		{
-			Name: "AI commit predating opener is silent (M-0106 F-2 ordering)",
+			CellID: "branch-cell-m0159-ac2-c10",
+			Name:   "AI commit predating opener is silent (M-0106 F-2 ordering)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -337,7 +347,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// pattern); the trailer is stamped even when the ref doesn't
 		// resolve at authorize-time.
 		{
-			Name: "Bound branch absent from oracle (operator typo) fires (M-0106 T-6)",
+			CellID: "branch-cell-m0159-ac2-c11",
+			Name:   "Bound branch absent from oracle (operator typo) fires (M-0106 T-6)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -357,7 +368,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// `human/` or removing the filter entirely would not be
 		// caught by any other AC-2 row.
 		{
-			Name: "Human-actor commit on wrong branch is silent (M-0106 filter specificity #58)",
+			CellID: "branch-cell-m0159-ac2-c12",
+			Name:   "Human-actor commit on wrong branch is silent (M-0106 filter specificity #58)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
@@ -373,7 +385,8 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// silent — the kernel cannot confidently police what it
 		// can't classify.
 		{
-			Name: "AI commit on non-ritual branch is silent (oracle unknown) (M-0106 UnknownBranch)",
+			CellID: "branch-cell-m0159-ac2-c13",
+			Name:   "AI commit on non-ritual branch is silent (oracle unknown) (M-0106 UnknownBranch)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

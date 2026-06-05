@@ -95,6 +95,26 @@ func GlobalRules() []Rule {
 			BlockingStrict:    true,
 			Sources:           RuleSource{Decision: "ADR-0010"},
 		},
+		// M-0161/AC-2 (G-0201): aiwf authorize refuses opening a scope
+		// on an ai/* agent when the (CurrentBranch rung, --branch rung)
+		// pair is not in the legal set {(trunk, epic), (epic, milestone),
+		// (milestone, patch), (epic, patch)} per ADR-0010. The single
+		// rung-pair check applies regardless of whether --branch
+		// references an existing local branch. Sovereign override:
+		// --force --reason "...".
+		{
+			Verb: "authorize",
+			Preconditions: []Predicate{
+				{Subject: "target-agent-role", Op: "==", Value: "ai"},
+				{Subject: "rung-pair-legal", Op: "==", Value: "false"},
+				{Subject: "force", Op: "==", Value: "false"},
+			},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "rung-pair-illegal",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+			Sources:           RuleSource{Decision: "ADR-0010"},
+		},
 	}
 }
 

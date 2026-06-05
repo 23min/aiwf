@@ -37,3 +37,129 @@ func TestParseEntityFromBranch(t *testing.T) {
 		})
 	}
 }
+
+// TestRungOf pins the M-0161/AC-2 (G-0201) rung classifier. The helper
+// maps a branch name to its ritual rung — "trunk", "epic", "milestone",
+// "patch", or "" (no match). The trunk-rung detection is config-driven,
+// not regex-only: the caller passes the configured trunk short-name
+// (sourced from Config.TrunkBranchShortName() per AC-1) so a repo using
+// `master` (or any other operator-chosen trunk) gets the right
+// classification.
+//
+// The verb-layer authorize carve-out uses (RungOf(current, trunk),
+// RungOf(target, trunk)) as the input to LegalRungPair so the rung-pair
+// predicate refuses cross-rung typos and up-the-tree shapes (12 illegal
+// cells) while accepting the 4 legitimate ritual flows (trunk→epic,
+// epic→milestone, milestone→patch, epic→patch).
+//
+// Per AC-2 §"Auxiliary unit tests": diagnostic, not load-bearing — the
+// 17-cell E2E table at
+// internal/cli/integration/authorize_scenarios_test.go is the
+// behavioral-correctness pin.
+func TestRungOf(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name       string
+		branch     string
+		trunkShort string
+		wantRung   string
+	}{
+		// Trunk shapes — config-driven match.
+		{"trunk-main-on-main-repo", "main", "main", "trunk"},
+		{"trunk-master-on-master-repo", "master", "master", "trunk"},
+		{"trunk-dev-on-dev-repo", "dev", "dev", "trunk"},
+		{"main-on-master-repo-not-trunk", "main", "master", ""},
+		{"master-on-main-repo-not-trunk", "master", "main", ""},
+
+		// Ritual shapes — rung detected regardless of trunkShort.
+		{"epic-slug", "epic/E-0001-engine", "main", "epic"},
+		{"epic-id-only", "epic/E-0001", "main", "epic"},
+		{"milestone-slug", "milestone/M-0007-cache", "main", "milestone"},
+		{"milestone-id-only", "milestone/M-0007", "main", "milestone"},
+		{"patch-lowercase-id", "patch/g-0099-fix", "main", "patch"},
+		{"patch-uppercase-id", "patch/G-0099-fix", "main", "patch"},
+
+		// Ritual rung is INDEPENDENT of trunk-short-name (i.e. a
+		// `master`-repo still sees `epic/E-X` as "epic").
+		{"epic-on-master-repo", "epic/E-0001-engine", "master", "epic"},
+
+		// Non-ritual and degenerate inputs → "".
+		{"empty-branch", "", "main", ""},
+		{"empty-branch-empty-trunk", "", "", ""},
+		{"feature-prefix", "feature/foo", "main", ""},
+		{"fix-prefix", "fix/typo", "main", ""},
+		{"chore-prefix", "chore/lint", "main", ""},
+		{"patch-without-id", "patch/some-topic", "main", ""},
+		{"epic-without-id", "epic/no-id", "main", ""},
+
+		// Empty trunkShort: no branch can be classified as trunk
+		// (the empty-guard prevents silent coincidence with an
+		// empty-CurrentBranch detached-HEAD state).
+		{"main-with-empty-trunk", "main", "", ""},
+		{"epic-with-empty-trunk-still-epic", "epic/E-0001-engine", "", "epic"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := RungOf(tc.branch, tc.trunkShort)
+			if got != tc.wantRung {
+				t.Errorf("RungOf(%q, trunk=%q) = %q, want %q",
+					tc.branch, tc.trunkShort, got, tc.wantRung)
+			}
+		})
+	}
+}
+
+// TestLegalRungPair pins the M-0161/AC-2 (G-0201) closed legal set:
+//
+//	{(trunk, epic), (epic, milestone), (milestone, patch), (epic, patch)}
+//
+// Every other (rung, rung) pair refuses. Exhaustive 5×5 = 25-cell
+// enumeration (4 ritual rungs + "") catches drift if anyone widens
+// the legal set without thinking it through.
+//
+// The legal pairs encode the ritual flows ADR-0010 names:
+//   - trunk → epic        — aiwfx-start-epic (sovereign promote +
+//     authorize on trunk; epic branch cut next)
+//   - epic → milestone    — aiwfx-start-milestone from parent epic
+//   - milestone → patch   — wf-patch under a milestone
+//   - epic → patch        — wf-patch directly under an epic, skipping
+//     an intermediate milestone (deliberate
+//     operator-intent; not a typo)
+//
+// All other combinations are typos (same-rung, cross-rung) or
+// up-the-tree shapes (milestone→epic, patch→milestone, etc.) and
+// refuse. The empty-rung pair-set (anything involving "") also
+// refuses — the rung predicate is only meaningful when both sides
+// classify.
+func TestLegalRungPair(t *testing.T) {
+	t.Parallel()
+	rungs := []string{"trunk", "epic", "milestone", "patch", ""}
+	legalSet := map[[2]string]bool{
+		{"trunk", "epic"}:      true,
+		{"epic", "milestone"}:  true,
+		{"milestone", "patch"}: true,
+		{"epic", "patch"}:      true,
+	}
+	for _, current := range rungs {
+		for _, target := range rungs {
+			pair := [2]string{current, target}
+			want := legalSet[pair]
+			name := "current=" + current + "/target=" + target
+			if current == "" {
+				name = "current=EMPTY/target=" + target
+			}
+			if target == "" {
+				name += "_targetEMPTY"
+			}
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+				got := LegalRungPair(current, target)
+				if got != want {
+					t.Errorf("LegalRungPair(%q, %q) = %v, want %v",
+						current, target, got, want)
+				}
+			})
+		}
+	}
+}

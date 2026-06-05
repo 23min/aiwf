@@ -189,8 +189,14 @@ func TestRunAuthorize_WithBranch_EmitsTrailer(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
-		t.Fatalf("git init: %v\n%s", err, out)
+	// M-0161/AC-2: the rung-pair check requires CurrentBranch to
+	// classify as a legal current-rung. Use `git init -b main` so the
+	// operator starts on `main` (which matches the default trunk
+	// short-name), giving (trunk, epic) as the rung pair — legal.
+	// Pre-AC-2 this test used the devcontainer's `master` default,
+	// which silently rode the BranchExists=true loose-bypass path.
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
+		t.Fatalf("git init -b main: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
 		{"config", "user.email", "peter@example.com"},
@@ -210,9 +216,9 @@ func TestRunAuthorize_WithBranch_EmitsTrailer(t *testing.T) {
 		t.Fatalf("aiwf promote: %v\n%s", err, out)
 	}
 
-	// M-0103: --branch refers to a named local branch; the preflight
-	// requires it to exist. Cut it (without checking it out — we stay
-	// on master to prove the explicit signal is enough on its own).
+	// M-0103: --branch refers to a named local branch; cut it
+	// (without checking it out — operator stays on main to prove
+	// the explicit signal is enough on its own).
 	if out, err := testutil.RunGit(root, "branch", "epic/E-0001-engine"); err != nil {
 		t.Fatalf("git branch epic/E-0001-engine: %v\n%s", err, out)
 	}
@@ -345,11 +351,14 @@ func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected non-zero exit; output:\n%s", out)
 	}
-	if !strings.Contains(out, "branch-not-found") {
-		t.Errorf("expected branch-not-found code; got:\n%s", out)
+	// M-0161/AC-2: ("", "epic") is not in the legal rung-pair set
+	// → rung-pair-illegal. Subsumes the prior branch-not-found
+	// semantics for the (non-ritual current, ritual target) case.
+	if !strings.Contains(out, "rung-pair-illegal") {
+		t.Errorf("expected rung-pair-illegal code; got:\n%s", out)
 	}
 	if !strings.Contains(out, "epic/E-9999-typo") {
-		t.Errorf("expected the typo'd branch name quoted in error; got:\n%s", out)
+		t.Errorf("expected the target branch name quoted in error; got:\n%s", out)
 	}
 }
 
@@ -870,4 +879,21 @@ func hasTrailer(t *testing.T, trailers []gitops.Trailer, key, value string) {
 		}
 	}
 	t.Errorf("trailer %s=%q not found in %+v", key, value, trailers)
+}
+
+// noTrailer asserts that NO trailer with the given key appears in the
+// trailer set. Used to pin negative claims (e.g., M-0161/AC-1: the
+// carve-out path must NOT silently fall through to an aiwf-force:
+// override; the test discriminates "succeeds via carve-out" from
+// "succeeds via silent force-override"). Mirrors hasTrailer's
+// t.Helper + structural assertion shape — no substring matching.
+func noTrailer(t *testing.T, trailers []gitops.Trailer, key string) {
+	t.Helper()
+	for _, tr := range trailers {
+		if tr.Key == key {
+			t.Errorf("expected NO trailer with key %q; found %s=%q in %+v",
+				key, tr.Key, tr.Value, trailers)
+			return
+		}
+	}
 }

@@ -70,3 +70,24 @@ func ConfiguredTitleMaxLength(rootDir string) int {
 	}
 	return cfg.EntityTitleMaxLength()
 }
+
+// ConfiguredTrunkBranchShortName returns the consumer's trunk short
+// name derived from `aiwf.yaml.allocate.trunk` via
+// `Config.TrunkBranchShortName()`. Used by `aiwf authorize`'s
+// AI-target preflight (M-0161/AC-1, G-0200) so the "main + ritual
+// --branch" carve-out honors the configured trunk rather than the
+// literal `"main"`. Tolerant of a missing aiwf.yaml — falls back to
+// the kernel default trunk ref (`refs/remotes/origin/main`) →
+// returns `"main"`, preserving backwards-compatibility for repos
+// that never configured the value.
+//
+// Mirrors ConfiguredTitleMaxLength's shape: the CLI dispatcher calls
+// this unconditionally and passes the value through as a verb-options
+// primitive; the verb does not depend on config.Config directly.
+func ConfiguredTrunkBranchShortName(rootDir string) string {
+	cfg, err := config.Load(rootDir)
+	if err != nil || cfg == nil {
+		return (&config.Config{}).TrunkBranchShortName()
+	}
+	return cfg.TrunkBranchShortName()
+}
