@@ -58,6 +58,32 @@ func TestM0162_AC2_BuildTagExclusion(t *testing.T) {
 		t.Errorf("M-0162/AC-2: %d symbol(s) from %q leaked into production binary\n  build tag may be missing or a non-tagged file imports branchtest\n  examples:\n    %s",
 			count, marker, strings.Join(lines, "\n    "))
 	}
+
+	// Positive control (reviewer R2-T4 fix): the negative assertion
+	// above passes vacuously because production code never imports
+	// branchtest. To prove the build-tag mechanism actually works,
+	// compile the branchtest package's test binary with -tags
+	// testpins and assert the Pin/Pins symbols DO appear. If the
+	// build tag were silently broken (e.g., a typo making the
+	// constraint `testpin` instead of `testpins`), the test binary
+	// would be empty AND production stays clean — the negative
+	// assertion would mislead us into thinking the tag works. The
+	// positive control catches that failure mode.
+	testBinary := filepath.Join(t.TempDir(), "branchtest-test")
+	testBuild := exec.Command("go", "test", "-tags", "testpins", "-c", "-o", testBinary, "./internal/workflows/spec/branch/branchtest")
+	testBuild.Dir = root
+	testBuild.Env = append(os.Environ(), "CGO_ENABLED=0")
+	if out, err := testBuild.CombinedOutput(); err != nil {
+		t.Fatalf("go test -tags testpins -c (positive control) failed: %v\n%s", err, out)
+	}
+	nmPos := exec.Command("go", "tool", "nm", testBinary)
+	posOut, err := nmPos.CombinedOutput()
+	if err != nil {
+		t.Fatalf("go tool nm (positive control): %v\n%s", err, posOut)
+	}
+	if !strings.Contains(string(posOut), marker+".Pin") || !strings.Contains(string(posOut), marker+".Pins") {
+		t.Errorf("M-0162/AC-2 positive control: testpins-tagged test binary missing %q.Pin and/or .Pins symbols — build tag mechanism may be silently broken\n  (negative assertion above could pass vacuously if positive symbols never compile in)", marker)
+	}
 }
 
 // TestM0162_AC2_PackageDocPresence pins M-0162/AC-2's

@@ -11,10 +11,10 @@ import "github.com/23min/aiwf/internal/workflows/spec"
 // behavioral pin; this cell exists for the AC-4 bijection mapping."
 //
 // The bijection invariant at AC-4 will assert:
-//   1. Every cell here has at least one Pin (every scenario has a
-//      CellID referencing it).
-//   2. Every Pin references an ID present in this list (no orphan
-//      CellIDs in Scenario literals).
+//  1. Every cell here has at least one Pin (every scenario has a
+//     CellID referencing it).
+//  2. Every Pin references an ID present in this list (no orphan
+//     CellIDs in Scenario literals).
 //
 // Maintenance: when a scenario is added, removed, or renamed,
 // re-stamp via scripts/m0162-stamp-cellid.sh and regenerate

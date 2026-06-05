@@ -9,41 +9,37 @@ import (
 	"github.com/23min/aiwf/internal/workflows/spec/branch/branchtest"
 )
 
-// TestZZZ_M0162_AC4_BijectionInvariant4_Runtime closes the
-// runtime side of the M-0162/AC-4 bijection contract by enforcing
+// TestZZZ_M0162_AC4_BijectionInvariant4_Runtime is the EAGER
+// best-effort check for the M-0162/AC-4 bijection contract's
 // invariant 4 — "no test function pins 2+ cells" — at the
-// branchtest.Pins() registry granularity per the AC body line
-// 245. The check fires AFTER the bulk of parallel scenario
-// subtests have completed (TestZZZ_ prefix → lex-last serial
-// wave; the bijection scan is safe because the registry is
-// mutex-guarded per AC-2 and no Pin call is in flight from a
-// non-parallel test once this lex-last test starts).
+// branchtest.Pins() registry granularity.
+//
+// Sequencing note (R3-T1 reviewer honesty correction): an earlier
+// version of this docstring claimed lex-last ordering by virtue
+// of the TestZZZ_ prefix. That premise is wrong. Go's test runner
+// uses SOURCE-DECLARATION order for top-level tests, not
+// alphabetical-by-name. This test runs whenever it appears in the
+// build's file/decl order — not necessarily after other serial
+// tests. Live sabotage during the AC-4 milestone audit confirmed
+// this test did NOT catch a deliberate double-pin violation; the
+// TestMain post-hook did.
+//
+// The load-bearing runtime defense for invariant 4 is the
+// TestMain post-hook (bijection_posthook_testpins_test.go +
+// setup_test.go's TestMain epilogue). The post-hook reads
+// branchtest.Pins() AFTER m.Run() returns — at which point all
+// serial AND parallel waves have completed and every Pin call has
+// been recorded. This eager check exists as belt-and-braces for
+// rapid-feedback: when violations exist at the moment this test
+// runs, it surfaces them sooner than the end-of-suite hook.
 //
 // Why this exists separately from the static AC-4 check in
 // internal/policies/m0162_ac4_bijection_test.go: static AST
 // cannot resolve t.Name() (the load-bearing per-call-site
 // identifier at runtime). The reviewer of AC-4's initial closure
-// (S2 finding) called out the silent-defer of invariant 4. This
-// file delivers it.
-//
-// Sequencing note: this test does NOT call t.Parallel. By Go's
-// test scheduling, t.Parallel-tagged subtests pause at their
-// t.Parallel call and resume in the parallel wave AFTER all
-// serial tests complete. A serial test named TestZZZ_* runs in
-// the serial wave too, but late within it (lex-late). At the
-// moment this body executes, every Pin call from Scenario
-// matrices has already been recorded (RunScenarios's parent
-// functions ran serially, dispatched subtests via t.Run+Parallel,
-// and returned; subtests have queued their Pin calls — they
-// don't fire until the parallel wave). So this lex-late serial
-// test sees pins from RunScenarios-using parents but NOT from
-// their not-yet-resumed subtests.
-//
-// To compensate, the registry is read AGAIN inside the TestMain
-// epilogue at setup_test.go (the BijectionPostHook pattern; see
-// that file). The TestZZZ_ test below is the eager defense; the
-// TestMain hook is the comprehensive defense after the parallel
-// wave drains.
+// (S2 finding) called out the silent-defer of invariant 4. The
+// runtime portion is what closes it; the post-hook is the
+// comprehensive read site, this test is the eager peek.
 func TestZZZ_M0162_AC4_BijectionInvariant4_Runtime(t *testing.T) {
 	// No t.Parallel — runs in serial wave.
 	violations := checkBijectionInvariant4(branchtest.Pins())

@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"io/fs"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -110,7 +111,7 @@ func TestM0162_AC4_Bijection(t *testing.T) {
 			if len(refs.Literals[cellID]) > 0 {
 				continue
 			}
-			if !containsString(pins[cellID], ps.Site) {
+			if !slices.Contains(pins[cellID], ps.Site) {
 				pins[cellID] = append(pins[cellID], ps.Site)
 			}
 		}
@@ -121,16 +122,6 @@ func TestM0162_AC4_Bijection(t *testing.T) {
 	if len(v) > 0 {
 		t.Errorf("M-0162/AC-4 bijection meta-test: %d violation(s)\n%s", len(v), describeViolations(v))
 	}
-}
-
-// containsString reports whether xs contains x.
-func containsString(xs []string, x string) bool {
-	for _, v := range xs {
-		if v == x {
-			return true
-		}
-	}
-	return false
 }
 
 // bijectionAllowlist returns the set of cell IDs that may legally
@@ -155,17 +146,19 @@ func containsString(xs []string, x string) bool {
 func bijectionAllowlist() map[string]string {
 	return map[string]string{
 		// M-0158 retained corner-case cells. Each has a primary
-		// behavioral test under internal/verb/ or
-		// internal/cli/{authorize,check}/ — none of which currently
-		// import branchtest under -tags testpins.
-		"branch-cell-1":  "primary test TestAuthorize_..._NoBranch_NoRitualCurrent in internal/cli/authorize/",
-		"branch-cell-2":  "primary test TestAuthorize_..._BranchMissing_Refuses in internal/cli/authorize/",
+		// behavioral test under internal/verb/ or internal/check/.
+		// The allowlist prose is mechanically verified by
+		// TestM0162_AC4_AllowlistClaimsResolve (each "primary test
+		// TestX in internal/<dir>/" claim resolves to a real
+		// function declaration via AST walk).
+		"branch-cell-1":  "primary test TestAuthorize_Open_AITarget_NoBranch_NoRitualCurrent_Refuses in internal/verb/",
+		"branch-cell-2":  "primary test TestAuthorize_Open_AITarget_BranchMissing_Refuses in internal/verb/",
 		"branch-cell-4":  "primary test TestIsolationEscape_AC1_AICommitOnMainFires in internal/check/",
 		"branch-cell-7":  "primary test TestIsolationEscape_AC2_AICommitOnDifferentRitualBranchFires in internal/check/",
 		"branch-cell-12": "primary test TestIsolationEscape_AC3_WorktreeBranchMismatchFires in internal/check/",
 
 		// M-0158 retained override cells.
-		"branch-cell-override-preflight":     "primary test TestAuthorize_..._ForceReasonBypassesPreflight in internal/cli/authorize/",
+		"branch-cell-override-preflight":     "primary test TestAuthorize_Open_AITarget_ForceReasonBypassesPreflight in internal/verb/",
 		"branch-cell-override-f-nnnn-waiver": "behavioral tests live in the F-NNNN milestone family per ADR-0003; outside E-0030 scope (documented exception inherited from M-0158/AC-5)",
 
 		// M-0160/AC-4 named cell.
@@ -174,13 +167,15 @@ func bijectionAllowlist() map[string]string {
 		// M-0161-era rule chokepoint cells. The named cells carry
 		// the kernel rule code (load-bearing for M-0158/AC-6 drift
 		// policy); their AC-3 ordinal counterparts (c1..cN) carry
-		// the Pin call sites under RunScenarios.
-		"branch-cell-isolation-escape-oracle-failure":     "named-rule cell paired with branch-cell-m0161-ac3-c1..c14 ordinals (which carry the Pin calls); primary unit test in internal/cli/check/",
-		"branch-cell-isolation-escape-shallow-clone":      "named-rule cell paired with branch-cell-m0161-ac4-c1..c12 ordinals; primary unit test in internal/cli/check/",
-		"branch-cell-isolation-escape-orphaned-ai-commit": "named-rule cell paired with branch-cell-m0161-ac5-c1..c8 ordinals; primary unit test in internal/check/",
-		"branch-cell-isolation-escape-rename-survival":    "named-rule cell paired with branch-cell-m0161-ac6-c1..c9 ordinals; primary unit test in internal/cli/check/",
-		"branch-cell-detached-head-preflight":             "named-rule cell paired with branch-cell-m0161-ac7-c1..c7 ordinals (which carry the inline pinCell calls); primary verb test in internal/verb/",
-		"branch-cell-promote-on-wrong-branch":             "named-rule cell paired with branch-cell-m0161-ac8-c1..c8 ordinals; primary unit test in internal/check/",
+		// the Pin call sites under RunScenarios. The "primary test"
+		// claim names the unit-level chokepoint for the rule code;
+		// the integration ordinals carry the matrix coverage.
+		"branch-cell-isolation-escape-oracle-failure":     "primary test TestNewGitBranchOracle_AC3_PerRefTolerance_OneCorruptedRef in internal/cli/check/",
+		"branch-cell-isolation-escape-shallow-clone":      "primary test TestNewGitBranchOracle_AC4_ShallowDetection_EmptyMapPlusTypedError in internal/cli/check/",
+		"branch-cell-isolation-escape-orphaned-ai-commit": "primary test TestForcePushOrphan_AC5_Matrix in internal/cli/integration/",
+		"branch-cell-isolation-escape-rename-survival":    "primary test TestBranchOracle_AC6_RenameResolution_Matrix in internal/cli/integration/",
+		"branch-cell-detached-head-preflight":             "primary test TestDetachedHEAD_AC7_PreflightRefusesWithRefinedMessage in internal/cli/integration/",
+		"branch-cell-promote-on-wrong-branch":             "primary test TestPromoteOnWrongBranch_AC8_Matrix in internal/cli/integration/",
 
 		// AC-1 trunk-shape + AC-2 rung-pair dynamic cells used to
 		// require 20 allowlist entries here. Reviewer S3 finding

@@ -3,6 +3,7 @@ package policies
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/workflows/spec/branch"
@@ -72,10 +73,9 @@ func TestM0162_AC4_CITestpinsTagWired(t *testing.T) {
 	// The test step is identifiable by `go test`. Required substring
 	// guard: `-tags testpins` must appear on the same line as `go test`.
 	src := string(contents)
-	lines := splitLines(src)
 	var testLines []string
-	for _, line := range lines {
-		if containsAll(line, "go test", "-coverprofile") {
+	for _, line := range strings.Split(src, "\n") {
+		if strings.Contains(line, "go test") && strings.Contains(line, "-coverprofile") {
 			testLines = append(testLines, line)
 		}
 	}
@@ -83,41 +83,10 @@ func TestM0162_AC4_CITestpinsTagWired(t *testing.T) {
 		t.Fatalf("M-0162/AC-4: no `go test ... -coverprofile` step found in %s — CI workflow shape changed?", path)
 	}
 	for _, line := range testLines {
-		if !containsAll(line, "-tags testpins") {
+		if !strings.Contains(line, "-tags testpins") {
 			t.Errorf("M-0162/AC-4: CI test step missing `-tags testpins`\n  line: %s\n  see AC-4 body §\"Mechanical assertions\" item 5", line)
 		}
 	}
-}
-
-func splitLines(s string) []string {
-	var out []string
-	start := 0
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			out = append(out, s[start:i])
-			start = i + 1
-		}
-	}
-	if start < len(s) {
-		out = append(out, s[start:])
-	}
-	return out
-}
-
-func containsAll(s string, subs ...string) bool {
-	for _, sub := range subs {
-		found := false
-		for i := 0; i+len(sub) <= len(s); i++ {
-			if s[i:i+len(sub)] == sub {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
 }
 
 // TestM0162_AC4_MetaCellsRegistered pins the 3 meta-cells per
