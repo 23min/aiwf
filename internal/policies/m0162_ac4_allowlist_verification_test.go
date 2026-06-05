@@ -46,11 +46,33 @@ import (
 //   - "primary unit test in internal/<dir>/" → assert at least
 //     one test exists in that dir (cell-family claim)
 //
-// This test enforces the discoverability claim, not behavioral
-// correctness — the named test could be wholly unrelated to the
-// cell. Verifying the test↔cell semantic link would require
-// reading the test's source for cell-ID literals (also covered
-// by AC-4's bijection invariant 2, indirectly).
+// **Scope of mechanical guarantee.** This test enforces
+// EXISTENCE — the named test function declaration is present
+// in the named package. This catches the rename/delete failure
+// mode that the reviewer R1-T4 finding called out as the
+// concrete concern: *"if a future contributor renames or
+// deletes one of the listed primary tests, the allowlist entry
+// rots silently."*
+//
+// What this test does NOT enforce: the SEMANTIC LINK between
+// the test and the cell. A future contributor could entirely
+// rewrite the test body while keeping the function declaration
+// intact; this test still passes. The semantic linkage is
+// inherently non-structural — verifying it would require
+// behavioral analysis of whether the test's runtime path
+// actually triggers the cell's predicate. That is outside the
+// scope of any reasonable static check.
+//
+// The honest trade-off: this test catches the high-frequency
+// failure mode (rename/delete/move) mechanically; the
+// low-frequency failure mode (wholesale rewrite without name
+// change) remains prose-trust. The cells' behavioral assertions
+// continue to be pinned by their own kernel-level finding rules
+// (e.g., `branch-cell-isolation-escape-oracle-failure` is pinned
+// by `isolation-escape-oracle-failure` finding emission, which
+// has its own unit tests in `internal/cli/check/`); the
+// allowlist's job is only to document where that pinning lives,
+// not to re-pin it.
 func TestM0162_AC4_AllowlistClaimsResolve(t *testing.T) {
 	t.Parallel()
 

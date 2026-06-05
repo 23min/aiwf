@@ -68,8 +68,19 @@ test-race:
 # excluded; this target is the local-dev path to exercise the
 # pin-calling tests and the bijection invariants. CI runs are
 # expected to include this in the same shape per AC-4.
+#
+# `-count=1` forces a fresh test-binary build (bypass Go's test
+# cache). Reviewer R1-T3 observed a non-reproducible ghost
+# violation in the AC-4 post-hook where the registry contained
+# entries from a TestSabotage_* function that no longer existed in
+# any source file. Most plausible cause: the prior `go test` run
+# included a temporary sabotage test file whose binary was cached;
+# a subsequent run after the file's deletion re-executed the
+# cached binary because the cache hash hadn't invalidated. With
+# `-count=1`, every invocation rebuilds the test binary from the
+# current source tree, so deleted tests cannot ghost-replay.
 test-pins:
-	go test -exec=$(TEST_EXEC) -tags testpins -race -parallel 8 ./...
+	go test -exec=$(TEST_EXEC) -tags testpins -race -parallel 8 -count=1 ./...
 
 vet:
 	go vet ./...
