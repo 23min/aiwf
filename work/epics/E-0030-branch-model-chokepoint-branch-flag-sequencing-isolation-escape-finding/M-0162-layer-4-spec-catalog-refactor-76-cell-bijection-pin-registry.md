@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: branchcell.Pin registry under //go:build testpins + branchtest sub-package
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-3
       title: 'M-0161 cell expansion: organic count via bijection invariants'
       status: open
