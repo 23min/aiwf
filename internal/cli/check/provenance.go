@@ -289,9 +289,24 @@ func ResolveUntrailedRange(ctx context.Context, root, since string) (string, *ch
 // branch's). Without `-m` the default is "show no diff for merge
 // commits," which silently bypassed the audit for merges that
 // absorbed entity-file changes from a feature branch.
+//
+// G-0231 item 3 shifts where the merge-vs-direct-edit decision
+// lives: the reader still emits the data (the merge commit's
+// touched paths, its parent SHAs), and RunUntrailedAudit decides
+// to SKIP ordinary `--no-ff` merges based on len(ParentSHAs) > 1
+// + non-squash subject. The reader stays dumb; the rule decides.
+// Squash-merge commits keep firing because GitHub strips trailers
+// and the squash IS the only audit-trail event on the integration
+// branch. See `internal/check/provenance.go` RunUntrailedAudit
+// for the carveout's predicate and rationale.
 func ReadUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.UntrailedCommit, error) {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e"
+	// %P (parent SHAs, space-separated) is included so RunUntrailedAudit
+	// can identify and skip ordinary `--no-ff` merge commits (G-0231
+	// item 3). Field order is SHA → parents → subject → trailers →
+	// paths; ParseUntrailedCommits is the only consumer and is
+	// updated in lockstep.
 	args := []string{
 		"log",
 		"--reverse",
@@ -299,7 +314,7 @@ func ReadUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.U
 		"--first-parent",
 		rangeArg,
 		"--name-only",
-		"--pretty=tformat:" + recSep + "%H" + fieldSep + "%s" + fieldSep + "%(trailers:only=true,unfold=true)" + fieldSep,
+		"--pretty=tformat:" + recSep + "%H" + fieldSep + "%P" + fieldSep + "%s" + fieldSep + "%(trailers:only=true,unfold=true)" + fieldSep,
 	}
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = root
@@ -317,15 +332,17 @@ func ReadUntrailedCommits(ctx context.Context, root, rangeArg string) ([]check.U
 // ParseUntrailedCommits unpacks the multi-record stream produced by
 // ReadUntrailedCommits. The format is:
 //
-//	<RS>{SHA}<US>{subject}<US>{trailers}<US>
+//	<RS>{SHA}<US>{parent SHAs, space-separated}<US>{subject}<US>{trailers}<US>
 //	{file1}
 //	{file2}
 //	...
 //	<RS>{SHA}<US>...
 //
-// Trailers and file lists are both newline-delimited. Subject is
-// the commit's first line, used for the squash-merge specialization
-// (G31). Empty input (no unpushed commits) returns nil.
+// Parents, trailers, and file lists are all whitespace- or newline-
+// delimited. Subject is the commit's first line, used for the
+// squash-merge specialization (G31); parent SHAs feed the merge-
+// commit carveout (G-0231 item 3). Empty input (no unpushed
+// commits) returns nil.
 func ParseUntrailedCommits(s string) []check.UntrailedCommit {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e"
@@ -335,23 +352,31 @@ func ParseUntrailedCommits(s string) []check.UntrailedCommit {
 		if rec == "" {
 			continue
 		}
-		parts := strings.SplitN(rec, fieldSep, 4)
-		if len(parts) < 4 {
+		parts := strings.SplitN(rec, fieldSep, 5)
+		if len(parts) < 5 {
 			continue
 		}
 		var paths []string
-		for _, line := range strings.Split(parts[3], "\n") {
+		for _, line := range strings.Split(parts[4], "\n") {
 			line = strings.TrimSpace(line)
 			if line == "" {
 				continue
 			}
 			paths = append(paths, line)
 		}
+		var parents []string
+		for _, p := range strings.Fields(parts[1]) {
+			if p == "" {
+				continue
+			}
+			parents = append(parents, p)
+		}
 		out = append(out, check.UntrailedCommit{
-			SHA:      strings.TrimSpace(parts[0]),
-			Subject:  strings.TrimSpace(parts[1]),
-			Trailers: gitops.ParseTrailers(parts[2]),
-			Paths:    paths,
+			SHA:        strings.TrimSpace(parts[0]),
+			ParentSHAs: parents,
+			Subject:    strings.TrimSpace(parts[2]),
+			Trailers:   gitops.ParseTrailers(parts[3]),
+			Paths:      paths,
 		})
 	}
 	return out

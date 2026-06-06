@@ -382,18 +382,30 @@ func resolveViaPriorIDs(id string, t *tree.Tree) string {
 
 // UntrailedCommit is the input shape for RunUntrailedAudit: the
 // commit's SHA, its subject (first line of the message), its
-// trailer set, and the relative paths it touched (as reported by
-// `git diff-tree`).
+// trailer set, the relative paths it touched (as reported by
+// `git diff-tree`), and its parent SHAs (from `git log %P`).
 //
 // The Subject is consulted to specialize the warning when the
 // commit looks like a GitHub squash-merge ("…(#NNN)" suffix) —
 // see G31. It can be left empty by callers that don't need that
 // specialization; the bare warning still fires.
+//
+// ParentSHAs distinguishes ordinary `--no-ff` merges (multi-parent,
+// no squash-merge subject) from direct edits and squash merges
+// (G-0231 item 3). `len(ParentSHAs) > 1` means a real merge whose
+// content traces back to feature-branch commits already reachable
+// via the second parent — those commits carry their own
+// `aiwf-verb:` trailers, so the merge commit's first-parent diff
+// is redundant audit material and is skipped by RunUntrailedAudit.
+// Callers that don't populate ParentSHAs (zero-length) get the
+// pre-G-0231 behavior — every commit is audited regardless of
+// merge shape.
 type UntrailedCommit struct {
-	SHA      string
-	Subject  string
-	Trailers []gitops.Trailer
-	Paths    []string
+	SHA        string
+	Subject    string
+	Trailers   []gitops.Trailer
+	Paths      []string
+	ParentSHAs []string
 }
 
 // RunUntrailedAudit returns
@@ -413,14 +425,16 @@ type UntrailedCommit struct {
 // individual lines short even when commits touch many entity
 // files (matters for squash, merge, and bulk-import commits).
 //
-// The finding is a WARNING. The intended user response is `aiwf
-// <verb> --audit-only --reason "..."` (step 5b), which records the
-// transition without rewriting history; an error severity here would
-// block pushes for state that is already correct.
+// The finding is an ERROR (G-0231 item 3, bumped from WARNING after
+// the merge-commit carveout cleared the historical noise and the
+// remaining direct-edit findings were audit-only backfilled). The
+// intended user response is `aiwf <verb> --audit-only --reason "..."`
+// (step 5b), which records the transition without rewriting history
+// and clears the finding on the next push.
 //
 // Coverage by audit-only: when a later commit in the same range
 // carries `aiwf-audit-only:` and its `aiwf-entity:` matches the
-// entity id, the warning for that (commit, entity) pair is
+// entity id, the finding for that (commit, entity) pair is
 // suppressed. Composite ids on audit-only commits roll up to the
 // parent milestone for matching, mirroring how composite ids on
 // manual commits resolve to the parent file.
@@ -459,6 +473,26 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 		if idx[gitops.TrailerVerb] != "" {
 			continue
 		}
+		// G-0231 item 3 carveout: skip ordinary `--no-ff` merge commits.
+		// A multi-parent commit whose subject doesn't look like a
+		// GitHub squash-merge ("…(#NNN)") is a real `git merge` whose
+		// content traces back to the feature-branch commits reachable
+		// via the second parent — those carry their own `aiwf-verb:`
+		// trailers and are audited by the feature branch's own pre-push
+		// hook before the merge can land. Surfacing the merge commit on
+		// first-parent ancestry produces redundant findings (~86% of
+		// the trunk window's noise prior to the carveout). Squash
+		// merges DO still fire: GitHub strips trailers, so the squash
+		// commit is the only audit-trail event the integration branch
+		// has for the collapsed work.
+		//
+		// Callers that leave ParentSHAs empty (the legacy shape) get
+		// pre-G-0231 behavior — every commit is audited regardless of
+		// merge shape — so existing tests continue to pin their
+		// previous expectations without modification.
+		if len(c.ParentSHAs) > 1 && !squashMergeSubjectRE.MatchString(c.Subject) {
+			continue
+		}
 		var unresolvedPaths []string
 		idSeen := map[string]bool{}
 		var touchedIDs []string
@@ -495,7 +529,7 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 			findings = append(findings, Finding{
 				Code:     CodeProvenanceUntrailedEntityCommit,
 				Subcode:  subcode,
-				Severity: SeverityWarning,
+				Severity: SeverityError,
 				EntityID: canonID,
 				Message: fmt.Sprintf("commit %s touched %s with no aiwf-verb: trailer",
 					short(c.SHA), canonID),
@@ -507,7 +541,7 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 		for _, p := range unresolvedPaths {
 			findings = append(findings, Finding{
 				Code:     CodeProvenanceUntrailedEntityCommit,
-				Severity: SeverityWarning,
+				Severity: SeverityError,
 				Message: fmt.Sprintf("commit %s touched entity-shaped path %q with no resolvable id and no aiwf-verb: trailer",
 					short(c.SHA), p),
 			})

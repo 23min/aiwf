@@ -101,12 +101,16 @@ func TestProvenanceCheck_UntrailedEntityCommit(t *testing.T) {
 	if !strings.Contains(out, "provenance-untrailered-entity-commit") {
 		t.Fatalf("expected provenance-untrailered-entity-commit; got:\n%s", out)
 	}
-	// Severity is warning, not error — the exit code stays 0 unless
-	// other rules fired errors. The render line is shaped
-	// `<code> (<severity>) × N — <detail>`, so the severity
-	// follows the code in parens.
-	if !strings.Contains(out, "provenance-untrailered-entity-commit (warning)") {
-		t.Errorf("expected warning severity; got:\n%s", out)
+	// Severity is error since G-0231 item 3 (was warning before the
+	// merge-commit carveout + audit-only backfill of the 5 direct-edit
+	// findings cleared the historical noise). Errors render
+	// per-instance with the severity as a prefix word:
+	// `error <code>: <detail>` — distinct from the collapsed warning
+	// shape `<code> (warning) × N — <detail>`. Assert the prefix form
+	// so the check is structural, not a substring that could match
+	// either shape.
+	if !strings.Contains(out, "error provenance-untrailered-entity-commit:") {
+		t.Errorf("expected error severity; got:\n%s", out)
 	}
 }
 

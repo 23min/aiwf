@@ -120,6 +120,15 @@ func runSelfCheck() int {
 		setup        func() error
 		verify       func() error
 		verifyOutput func(string) error
+		// wantRC overrides the default cliutil.ExitOK rc check for
+		// steps that deliberately produce a non-OK exit (e.g., the
+		// audit-only fixture's check call after G-0231 item 3 bumped
+		// provenance-untrailered-entity-commit to error severity:
+		// the synthetic untrailered flip is *expected* to make
+		// `aiwf check` exit cliutil.ExitFindings, and the
+		// verifyOutput hook is what confirms the right finding
+		// fired). Zero value means "expect cliutil.ExitOK".
+		wantRC int
 	}{
 		{label: "init", args: []string{"init", "--root", tmp, "--actor", actor}},
 		{label: "whoami", args: []string{"whoami", "--root", tmp}},
@@ -205,12 +214,17 @@ func runSelfCheck() int {
 				return synthesizeUntrailedFlip(ctx, tmp, "G-002", "wontfix")
 			},
 			args: []string{"check", "--root", tmp, "--since", "HEAD~2"},
+			// G-0231 item 3: provenance-untrailered-entity-commit
+			// is now an error, so `aiwf check` exits ExitFindings
+			// here. The verifyOutput hook confirms the right
+			// finding fired; the rc is no longer the signal.
+			wantRC: cliutil.ExitFindings,
 			verifyOutput: func(out string) error {
 				if !strings.Contains(out, "provenance-untrailered-entity-commit") {
 					return fmt.Errorf("expected provenance-untrailered-entity-commit to fire after manual flip; got:\n%s", out)
 				}
 				if !strings.Contains(out, "G-0002") {
-					return fmt.Errorf("warning should name G-0002 as the affected entity; got:\n%s", out)
+					return fmt.Errorf("finding should name G-0002 as the affected entity; got:\n%s", out)
 				}
 				return nil
 			},
@@ -265,8 +279,12 @@ func runSelfCheck() int {
 			}
 		}
 		rc, captured := runCaptured(s.args)
-		if rc != cliutil.ExitOK {
-			fmt.Printf("  FAIL  %s (rc=%d)\n", s.label, rc)
+		// s.wantRC zero-value (== cliutil.ExitOK) is the default
+		// expectation; non-zero overrides for steps that deliberately
+		// produce findings (e.g. the audit-only fixture's check call
+		// after the G-0231 item 3 severity bump).
+		if rc != s.wantRC {
+			fmt.Printf("  FAIL  %s (rc=%d, want=%d)\n", s.label, rc, s.wantRC)
 			if captured != "" {
 				fmt.Println(indent(captured, "        "))
 			}

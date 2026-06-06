@@ -411,8 +411,10 @@ func TestReadUntrailedCommits_MergeCommitSurface(t *testing.T) {
 }
 
 // TestParseUntrailedCommits_Malformed: records that don't have the
-// expected four-field shape (SHA, subject, trailers, paths) are
-// silently skipped. Drives the defensive parsing branch.
+// expected five-field shape (SHA, parents, subject, trailers, paths)
+// are silently skipped. Drives the defensive parsing branch.
+// Field shape extended for G-0231 item 3 — the merge-commit
+// carveout consumes %P parents from the git log stream.
 func TestParseUntrailedCommits_Malformed(t *testing.T) {
 	t.Parallel()
 	const sep = "\x1f"
@@ -426,17 +428,17 @@ func TestParseUntrailedCommits_Malformed(t *testing.T) {
 		{"only whitespace", "   \n\n  ", 0},
 		{
 			"one well-formed",
-			rec + "abc1234" + sep + "feat: thing" + sep + "" + sep + "work/gaps/G-001-x.md",
+			rec + "abc1234" + sep + "ppp1111" + sep + "feat: thing" + sep + "" + sep + "work/gaps/G-001-x.md",
 			1,
 		},
 		{
-			"one record missing field separator (truncated)",
-			rec + "abc1234" + sep + "only-three-fields" + sep + "trailers",
+			"one record missing field separator (truncated to legacy 4-field shape)",
+			rec + "abc1234" + sep + "feat: thing" + sep + "" + sep + "work/gaps/G-001-x.md",
 			0,
 		},
 		{
 			"two records, second malformed",
-			rec + "aaa1111" + sep + "feat: a" + sep + "" + sep + "work/gaps/G-001.md" +
+			rec + "aaa1111" + sep + "ppp1" + sep + "feat: a" + sep + "" + sep + "work/gaps/G-001.md" +
 				rec + "bbb2222-no-seps",
 			1,
 		},

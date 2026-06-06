@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli"
@@ -62,7 +63,14 @@ import (
 // `trailerOrder` slice in `internal/gitops/trailers.go`. When a new
 // trailer is added there, this slice gets a row; when one is
 // removed (deprecation), this slice loses one. Drift is the
-// regression we want to catch.
+// regression we want to catch — see G-0195 for the mirror-validity
+// guard that would mechanize this drift detection.
+//
+// G-0231 item 4: TrailerBranchSHA and TrailerForceFor are mirrored
+// here so the trailer-shape test covers `aiwf authorize --branch`
+// (M-0161/AC-6) and `aiwf acknowledge-illegal` respectively. They
+// were missing pre-G-0231 because no case in this test exercised
+// the verbs that emit them.
 var canonicalTrailerKeys = map[string]bool{
 	gitops.TrailerVerb:         true,
 	gitops.TrailerEntity:       true,
@@ -77,9 +85,11 @@ var canonicalTrailerKeys = map[string]bool{
 	gitops.TrailerAuthorizedBy: true,
 	gitops.TrailerScope:        true,
 	gitops.TrailerBranch:       true,
+	gitops.TrailerBranchSHA:    true,
 	gitops.TrailerScopeEnds:    true,
 	gitops.TrailerReason:       true,
 	gitops.TrailerAuditOnly:    true,
+	gitops.TrailerForceFor:     true,
 }
 
 // entityIDPattern matches the `aiwf-entity` trailer values aiwf
@@ -213,6 +223,93 @@ entities:
 			assertTrailerShape(t, root, s.wantVerb, s.wantEntities)
 		})
 	}
+
+	// G-0231 item 4 — coverage expansion. The verbs below were
+	// missing from the original test scope. Run after the bindSteps
+	// block so each can rely on its specific setup (or a small
+	// targeted addition below) without disrupting the existing
+	// verb-sequence narrative.
+	//
+	// Add two extra milestones under E-0001 first so
+	// `milestone-depends-on` has a non-terminal target (the
+	// original flow's M-0001 was cancelled by step 17).
+	prepSteps := []step{
+		{"add milestone M-002 (depends-on source)", []string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Cache 2", "--actor", "human/test", "--root", root}, "add", 1},
+		{"add milestone M-003 (depends-on target)", []string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Cache 3", "--actor", "human/test", "--root", root}, "add", 1},
+	}
+	for _, s := range prepSteps {
+		t.Run(s.name, func(t *testing.T) {
+			if rc := cli.Execute(s.args); rc != cliutil.ExitOK {
+				t.Fatalf("verb %v rc = %d (want cliutil.ExitOK)", s.args, rc)
+			}
+			assertTrailerShape(t, root, s.wantVerb, s.wantEntities)
+		})
+	}
+
+	newVerbs := []step{
+		// render-roadmap: emits aiwf-verb: render-roadmap, no
+		// aiwf-entity (roadmap is a global view, not per-entity).
+		// Routes through verb.Apply per G-0231 item 2.
+		{"render roadmap --write", []string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}, "render-roadmap", 0},
+		// milestone-depends-on writes aiwf-entity for the source
+		// milestone whose depends_on list was rewritten.
+		{"milestone depends-on M-002 → M-003", []string{"milestone", "depends-on", "M-0002", "--on", "M-0003", "--actor", "human/test", "--root", root}, "milestone-depends-on", 1},
+		// promote G-0001 → wontfix sets up the archive sweep + audit-only.
+		{"promote G-001 → wontfix", []string{"promote", "G-0001", "wontfix", "--actor", "human/test", "--root", root}, "promote", 1},
+		// archive --apply commits aiwf-verb: archive with no aiwf-
+		// entity (the swept ids appear in the commit body, not the
+		// trailers).
+		{"archive --apply", []string{"archive", "--apply", "--actor", "human/test", "--root", root}, "archive", 0},
+		// audit-only via `promote --audit-only` records the wontfix
+		// transition retroactively (entity must already be at the
+		// requested status). Trailers: aiwf-verb=promote, aiwf-entity,
+		// aiwf-actor, aiwf-to=wontfix, aiwf-audit-only=<reason>.
+		{"promote G-001 wontfix --audit-only", []string{"promote", "G-0001", "wontfix", "--audit-only", "--reason", "trailer-shape test backfill", "--actor", "human/test", "--root", root}, "promote", 1},
+	}
+	for _, s := range newVerbs {
+		t.Run(s.name, func(t *testing.T) {
+			if rc := cli.Execute(s.args); rc != cliutil.ExitOK {
+				t.Fatalf("verb %v rc = %d (want cliutil.ExitOK)", s.args, rc)
+			}
+			assertTrailerShape(t, root, s.wantVerb, s.wantEntities)
+		})
+	}
+
+	// acknowledge-illegal: needs an existing SHA. Use HEAD at this
+	// point (the audit-only commit just landed). Trailers include
+	// aiwf-force-for + aiwf-reason; both are mirrored into
+	// canonicalTrailerKeys above per G-0231 item 4.
+	headSHA, err := exec.Command("git", "-C", root, "rev-parse", "HEAD").Output()
+	if err != nil {
+		t.Fatalf("git rev-parse HEAD: %v", err)
+	}
+	ackSHA := strings.TrimSpace(string(headSHA))
+	ackSteps := []step{
+		{"acknowledge-illegal HEAD", []string{"acknowledge-illegal", ackSHA, "--reason", "trailer-shape test", "--actor", "human/test", "--root", root}, "acknowledge-illegal", 0},
+	}
+	for _, s := range ackSteps {
+		t.Run(s.name, func(t *testing.T) {
+			if rc := cli.Execute(s.args); rc != cliutil.ExitOK {
+				t.Fatalf("verb %v rc = %d (want cliutil.ExitOK)", s.args, rc)
+			}
+			assertTrailerShape(t, root, s.wantVerb, s.wantEntities)
+		})
+	}
+
+	// `aiwf rewidth` is intentionally NOT covered here. The verb
+	// no-ops on a canonical-width tree (which this fixture is, by
+	// construction — every other verb in the test emits at canonical
+	// width), and exercising it requires planting a narrow-id entity
+	// via direct file write + a fixture git commit whose message
+	// must carry full aiwf-* trailers (otherwise the now-error
+	// `provenance-untrailered-entity-commit` finding fires in
+	// rewidth's pre-apply check). That setup pulls real kernel
+	// fixture-discipline into a single test step and starts looking
+	// like its own helper. Tracked as a follow-up — a separate
+	// `TestTrailerShape_Rewidth` with the dedicated narrow-id
+	// fixture is the right shape, and any future rewidth-trailer
+	// regression also surfaces via the `aiwf rewidth` verb's own
+	// integration tests under internal/verb/rewidth_*_test.go.
 }
 
 // assertTrailerShape reads HEAD's trailers and asserts the shape:

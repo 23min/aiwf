@@ -1,6 +1,9 @@
 package policies
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"regexp"
 	"strconv"
 	"strings"
@@ -20,6 +23,20 @@ import (
 // would be noise. The set of "names that are trailers" is
 // authoritatively the gitops constants; we read it at scan time.
 //
+// Why an AST walk (not a regex over file bytes)? A regex over text
+// can't track lexical state — it pairs the closing `"` of one
+// string with the opening `"` of the next, silently skipping the
+// real literals in between. Pre-G-0231 the regex `"([^"\\]*)"`
+// produced zero violations on a file that literally contained
+// `"aiwf-verb"` and `"aiwf-actor"`. Parsing with go/parser and
+// filtering on `*ast.BasicLit` of kind STRING is the correct shape
+// and is what every other string-literal-scanning policy in this
+// package does (enum_literal_adoption, finding_code_adoption, …).
+// The positive-control test
+// `TestPolicy_TrailerKeysViaConstants_PositiveControl` synthesizes
+// a known violation and asserts the policy reports it, so the next
+// regression is caught immediately.
+//
 // Test files are exempt: tests legitimately synthesize commit
 // messages from literal trailer names.
 func PolicyTrailerKeysViaConstants(root string) ([]Violation, error) {
@@ -38,34 +55,42 @@ func PolicyTrailerKeysViaConstants(root string) ([]Violation, error) {
 		}}, nil
 	}
 	var out []Violation
+	fset := token.NewFileSet()
 	for _, f := range files {
 		if strings.HasPrefix(f.Path, "internal/gitops/") {
 			continue
 		}
-		// Walk every string literal in the file; flag those whose
-		// content is in trailerNames.
-		matches := stringLiteralPattern.FindAllSubmatchIndex(f.Contents, -1)
-		for _, m := range matches {
-			lit := string(f.Contents[m[2]:m[3]])
-			if _, ok := trailerNames[lit]; !ok {
-				continue
+		astFile, perr := parser.ParseFile(fset, f.Path, f.Contents, parser.SkipObjectResolution)
+		if perr != nil {
+			// Unparseable source: skip rather than fail. Build CI
+			// catches compile errors; this policy is correctness for
+			// well-formed sources only.
+			continue
+		}
+		ast.Inspect(astFile, func(n ast.Node) bool {
+			lit, ok := n.(*ast.BasicLit)
+			if !ok || lit.Kind != token.STRING {
+				return true
+			}
+			val, uerr := strconv.Unquote(lit.Value)
+			if uerr != nil {
+				return true
+			}
+			if _, hit := trailerNames[val]; !hit {
+				return true
 			}
 			out = append(out, Violation{
 				Policy: "trailer-keys-via-constants",
 				File:   f.Path,
-				Line:   LineOf(f.Contents, m[0]),
-				Detail: "literal \"" + lit +
+				Line:   fset.Position(lit.Pos()).Line,
+				Detail: "literal \"" + val +
 					"\" — reference the gitops.Trailer* constant instead",
 			})
-		}
+			return true
+		})
 	}
 	return out, nil
 }
-
-// stringLiteralPattern matches a Go double-quoted string literal
-// without trying to handle escape sequences perfectly — good
-// enough for the kebab-case trailer names we care about.
-var stringLiteralPattern = regexp.MustCompile(`"([^"\\]*)"`)
 
 // trailerConstPattern matches `Trailer<Name> = "<value>"` lines in
 // the gitops package's const blocks.

@@ -22,6 +22,7 @@ import (
 	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/roadmap"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/verb"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -223,14 +224,15 @@ func RunRoadmap(root string, write bool, actor string) int {
 	}
 	defer release()
 
-	// G34: isolate the user's pre-existing staged changes from the
-	// render-roadmap commit. If the user has staged the roadmap file
-	// themselves (manual edit), refuse — we can't pick between their
-	// content and the regenerated content. The comparison is
-	// case-insensitive (G-0185) so a divergent staged variant (e.g.
-	// `roadmap.md` when we resolved to `ROADMAP.md`, or vice versa) is
-	// also caught. Other staged paths are pushed onto the stash for the
-	// duration of the commit and popped after.
+	// Case-insensitive pre-check (G-0185): if the user has staged a
+	// roadmap-shaped path under a different casing than the one we
+	// resolved to (e.g. user staged `roadmap.md`, we resolved to
+	// `ROADMAP.md` because the case-sensitive FS lookup missed),
+	// verb.Apply's exact-match conflict guard would let the verb
+	// proceed and create a divergent second file. Catch it here with
+	// EqualFold before handing off to Apply. The verb.Apply path
+	// then handles the normal stash/conflict/rollback envelope for
+	// every other pre-staged path.
 	staged, err := gitops.StagedPaths(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: checking pre-staged changes: %v\n", err)
@@ -245,39 +247,24 @@ func RunRoadmap(root string, write bool, actor string) int {
 			return cliutil.ExitUsage
 		}
 	}
-	stashed := false
-	if len(staged) > 0 {
-		if err := gitops.StashStaged(ctx, rootDir, "aiwf pre-verb stash: render roadmap"); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf render roadmap: stashing pre-staged changes: %v\n", err)
-			return cliutil.ExitInternal
-		}
-		stashed = true
-	}
-	defer func() {
-		if stashed {
-			if popErr := gitops.StashPop(ctx, rootDir); popErr != nil {
-				fmt.Fprintf(os.Stderr,
-					"aiwf render roadmap: restoring your pre-staged changes failed: %v\n"+
-						"  your work is safe in `git stash list`; run `git stash pop` to restore it\n",
-					popErr)
-			}
-		}
-	}()
 
-	if err := os.WriteFile(dest, content, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
-		return cliutil.ExitInternal
-	}
-	if err := gitops.Add(ctx, rootDir, resolvedName); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
-		return cliutil.ExitInternal
-	}
+	// Route the write+stage+commit through verb.Apply (G-0231 item 2).
+	// This restores the verb-validate-then-write chokepoint, gives the
+	// commit the kernel's rollback envelope under partial failure, and
+	// keeps the trailer keys behind gitops constants so the
+	// trailer-keys-via-constants policy applies uniformly.
 	subject := "aiwf render roadmap"
-	trailers := []gitops.Trailer{
-		{Key: "aiwf-verb", Value: "render-roadmap"},
-		{Key: "aiwf-actor", Value: actorStr},
+	plan := &verb.Plan{
+		Subject: subject,
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "render-roadmap"},
+			{Key: gitops.TrailerActor, Value: actorStr},
+		},
+		Ops: []verb.FileOp{
+			{Type: verb.OpWrite, Path: resolvedName, Content: content},
+		},
 	}
-	if err := gitops.Commit(ctx, rootDir, subject, "", trailers); err != nil {
+	if err := verb.Apply(ctx, rootDir, plan); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return cliutil.ExitInternal
 	}

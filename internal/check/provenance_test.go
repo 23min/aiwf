@@ -505,6 +505,84 @@ func TestRunUntrailedAudit_AuditOnlyOnDifferentEntityDoesNotCover(t *testing.T) 
 	}
 }
 
+// TestRunUntrailedAudit_NoFFMergeCommitSkipped is the carveout
+// for G-0231 item 3. An ordinary `git merge` (non-squash, multi-
+// parent) is skipped — its content traces back to feature-branch
+// commits reachable via the second parent that carry their own
+// `aiwf-verb:` trailers and were audited by the feature branch's
+// own pre-push hook. Auditing the merge on first-parent ancestry
+// just double-counts those events; the trunk window was
+// ~86% merge-commit noise before this carveout landed.
+//
+// Three orthogonal flavors are checked: a real `--no-ff` merge
+// (no finding), a squash-merge whose subject ends in `(#NNN)`
+// (still fires — GitHub strips trailers, so the squash commit is
+// the only audit-trail event the integration branch holds), and
+// a single-parent direct edit (still fires).
+func TestRunUntrailedAudit_NoFFMergeCommitSkipped(t *testing.T) {
+	t.Parallel()
+	commits := []UntrailedCommit{
+		{
+			SHA:        "merge001",
+			ParentSHAs: []string{"main001", "feat001"},
+			Subject:    "merge: bring M-0091 onto main",
+			Paths:      []string{"work/epics/E-0001/M-0091-x.md"},
+		},
+		{
+			SHA:        "sqsh002",
+			ParentSHAs: []string{"main002", "feat002"},
+			Subject:    "feat(api): add caching (#42)",
+			Paths:      []string{"work/gaps/G-0002-y.md"},
+		},
+		{
+			SHA:        "direct3",
+			ParentSHAs: []string{"main003"},
+			Subject:    "manual: flip G-003 wontfix",
+			Paths:      []string{"work/gaps/G-0003-z.md"},
+		},
+	}
+	got := RunUntrailedAudit(commits)
+	// Expect exactly two findings: the squash and the direct edit.
+	// Merge commit must NOT appear.
+	if len(got) != 2 {
+		t.Fatalf("findings = %d, want 2 (squash + direct, merge skipped); got %+v", len(got), got)
+	}
+	wantSHAs := map[string]string{"sqsh002": "squash-merge", "direct3": ""}
+	for _, f := range got {
+		want, ok := wantSHAs[shaFromMessage(f.Message)]
+		if !ok {
+			t.Errorf("unexpected finding from %s (Subcode=%q): %s", shaFromMessage(f.Message), f.Subcode, f.Message)
+			continue
+		}
+		if f.Subcode != want {
+			t.Errorf("finding from %s: subcode = %q, want %q", shaFromMessage(f.Message), f.Subcode, want)
+		}
+	}
+	// Defensive: explicitly assert the merge commit's SHA does not appear.
+	for _, f := range got {
+		if strings.Contains(f.Message, "merge00") {
+			t.Errorf("merge commit must not produce a finding; got %q", f.Message)
+		}
+	}
+}
+
+// shaFromMessage extracts the 7-char short SHA the finding embeds
+// in its Message ("commit <short> touched <id>..."). Returns "" on
+// shape mismatch; tests using this helper assert via map lookup so
+// "" never collides with a real SHA prefix.
+func shaFromMessage(msg string) string {
+	const tag = "commit "
+	i := strings.Index(msg, tag)
+	if i < 0 {
+		return ""
+	}
+	rest := msg[i+len(tag):]
+	if len(rest) < 7 {
+		return ""
+	}
+	return rest[:7]
+}
+
 // TestRunUntrailedAudit_SquashMergeSubcode covers G31: when the
 // offending untrailered commit's subject matches GitHub's default
 // squash-merge pattern (ends in ` (#NNN)`), the finding fires
@@ -705,8 +783,8 @@ func TestRunUntrailedAudit(t *testing.T) {
 			if tt.wantCount == 1 && got[0].Code != CodeProvenanceUntrailedEntityCommit {
 				t.Errorf("finding code = %q, want %q", got[0].Code, CodeProvenanceUntrailedEntityCommit)
 			}
-			if tt.wantCount == 1 && got[0].Severity != SeverityWarning {
-				t.Errorf("severity = %q, want %q", got[0].Severity, SeverityWarning)
+			if tt.wantCount == 1 && got[0].Severity != SeverityError {
+				t.Errorf("severity = %q, want %q (G-0231 item 3 bumped this from warning)", got[0].Severity, SeverityError)
 			}
 		})
 	}
