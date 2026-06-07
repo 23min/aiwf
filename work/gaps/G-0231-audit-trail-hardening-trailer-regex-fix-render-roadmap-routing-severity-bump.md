@@ -1,7 +1,10 @@
 ---
 id: G-0231
 title: 'Audit-trail hardening: trailer-regex fix, render-roadmap routing, severity bump'
-status: open
+status: addressed
+addressed_by_commit:
+    - f78370b7
+    - 96d954b4
 ---
 ## What's missing
 
