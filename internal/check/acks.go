@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -97,6 +98,77 @@ func WalkAcknowledgedSHAs(ctx context.Context, root string) map[string]bool {
 			}
 			acked[fullSHA] = true
 		}
+	}
+	return acked
+}
+
+// WalkAcknowledgedSHAEntities is the per-(SHA, entity) variant of
+// WalkAcknowledgedSHAs, added by G-0231 item 3 to feed
+// RunUntrailedAudit's per-(commit, entity) finding shape with a
+// matching per-(commit, entity) ack shape. Returns
+// map[fullSHA]map[canonicalEntityID]bool.
+//
+// Only ack commits carrying BOTH `aiwf-force-for: <sha>` AND
+// `aiwf-entity: <id>` count. SHA-only acks (the legacy seven
+// rules' blanket shape via WalkAcknowledgedSHAs) do NOT suppress
+// findings here — the per-(commit, entity) shape requires both
+// sides. The verb's `git diff-tree` write-time check is what
+// gives the (SHA, entity) pair its kernel-attested binding.
+//
+// Returns nil for non-git directories and empty histories; the
+// consumer treats nil and an empty map identically (no
+// exemptions).
+func WalkAcknowledgedSHAEntities(ctx context.Context, root string) map[string]map[string]bool {
+	if root == "" || !hasGitCommits(ctx, root) {
+		return nil
+	}
+	cmd := exec.CommandContext(ctx, "git", "log",
+		"--pretty=format:%H%x00%(trailers:unfold=true)%x00",
+		"HEAD")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	acked := map[string]map[string]bool{}
+	parts := strings.Split(string(out), "\x00")
+	for i := 0; i+1 < len(parts); i += 2 {
+		trailerBlock := parts[i+1]
+		if trailerBlock == "" {
+			continue
+		}
+		parsed := gitops.ParseTrailers(trailerBlock)
+		var forceFor, entityID string
+		for _, tr := range parsed {
+			switch tr.Key {
+			case gitops.TrailerForceFor:
+				forceFor = strings.TrimSpace(tr.Value)
+			case gitops.TrailerEntity:
+				entityID = strings.TrimSpace(tr.Value)
+			}
+		}
+		if forceFor == "" || entityID == "" {
+			// Either missing — this isn't a per-(SHA, entity) ack.
+			// The bare per-SHA case is covered by
+			// WalkAcknowledgedSHAs, not by this walker.
+			continue
+		}
+		fullSHA := resolveFullSHA(ctx, root, forceFor)
+		if fullSHA == "" {
+			continue
+		}
+		// Canonicalize at ingest so a narrow-legacy trailer
+		// (`aiwf-entity: G-1`) and a canonical-width finding lookup
+		// (`G-0001`) match. The verb emits at canonical width
+		// (entity.Canonicalize before write) but hand-rolled ack
+		// commits or forward-compat shapes can write narrower
+		// trailer values; reading them through Canonicalize here
+		// closes the silent-miss failure mode.
+		canonID := entity.Canonicalize(entityID)
+		if acked[fullSHA] == nil {
+			acked[fullSHA] = map[string]bool{}
+		}
+		acked[fullSHA][canonID] = true
 	}
 	return acked
 }

@@ -188,7 +188,7 @@ func TestRunProvenanceCheck_IsolationEscape_FiresOnViolatingCommit(t *testing.T)
 		"authorize": {},
 		"edit-body": {},
 	}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -295,7 +295,7 @@ func TestRunProvenanceCheck_IsolationEscape_SilentOnBoundBranchCommit(t *testing
 	}
 
 	registered := map[string]struct{}{"authorize": {}, "edit-body": {}}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -401,7 +401,7 @@ func TestRunProvenanceCheck_IsolationEscape_FindingCarriesHint(t *testing.T) {
 	}
 
 	registered := map[string]struct{}{"authorize": {}, "edit-body": {}}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -521,7 +521,7 @@ func TestRunProvenanceCheck_IsolationEscape_WarningDoesNotMarkErrors(t *testing.
 	}
 
 	registered := map[string]struct{}{"authorize": {}, "edit-body": {}}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}

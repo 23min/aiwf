@@ -2,7 +2,6 @@ package policies
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -274,64 +273,28 @@ func TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle(t *testing.T) {
 	}
 }
 
-// TestAiwfxWrapEpic_AC5_KernelRuleUnchanged asserts M-0090 AC-5 /
-// spec AC-6: this milestone does not modify the kernel's untrailered
-// -entity audit or its supporting rule files. The principle is that
-// the chokepoint stays strict — the ritual aligns with the rule,
-// the rule does not relax for the ritual. If a future PR
-// accidentally bundles a rule-loosening edit, this test fires.
+// TestAiwfxWrapEpic_AC5_KernelRuleUnchanged was M-0090's
+// implementation-window self-discipline: during M-0090's
+// implementation, no commit may touch trailer_keys.go or
+// principal_write_sites.go. M-0090 is `status: done` and archived
+// under `work/epics/archive/E-0027-.../M-0090-...md` (milestones
+// reach `done`; ACs reach `met`). AC-5 itself is `status: met,
+// tdd_phase: done`. The implementation-window scope the AC defended
+// lapsed by design when the milestone closed.
 //
-// Mechanism: shell out to `git diff` against the milestone's base
-// commit (the merge-base with `main`) and assert no lines under the
-// kernel rule files are touched. Skips cleanly when the env doesn't
-// expose a base ref (e.g. a worktree without `main` reachable).
-func TestAiwfxWrapEpic_AC5_KernelRuleUnchanged(t *testing.T) {
-	t.Parallel()
-	root := repoRoot(t)
-	// Files this milestone must not touch. The kernel's
-	// `provenance-untrailered-entity-commit` finding is rendered
-	// through the trailer-keys policy and the principal-write-sites
-	// policy; either file growing a special-case here would imply
-	// loosening the chokepoint.
-	guarded := []string{
-		"internal/policies/trailer_keys.go",
-		"internal/policies/principal_write_sites.go",
-	}
-
-	// Resolve the merge base with origin/main if available, else
-	// main. If neither exists in this worktree, skip — we can't
-	// derive an authoritative base ref and a false-positive diff
-	// (e.g., from a recently rebased main) would defeat the test.
-	baseRef := ""
-	for _, candidate := range []string{"origin/main", "main"} {
-		cmd := exec.Command("git", "-C", root, "rev-parse", "--verify", candidate)
-		if err := cmd.Run(); err == nil {
-			baseRef = candidate
-			break
-		}
-	}
-	if baseRef == "" {
-		t.Skip("AC-5 skip: no `main` ref reachable from this worktree; cannot derive milestone base for diff")
-	}
-
-	cmd := exec.Command("git", "-C", root, "diff", "--name-only", baseRef+"...HEAD")
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("AC-5: `git diff --name-only %s...HEAD` failed: %v", baseRef, err)
-	}
-	changed := strings.Split(strings.TrimSpace(string(out)), "\n")
-	changedSet := map[string]bool{}
-	for _, f := range changed {
-		if f != "" {
-			changedSet[f] = true
-		}
-	}
-	for _, f := range guarded {
-		if changedSet[f] {
-			t.Errorf("AC-5: kernel rule file %q must not be touched by this milestone — the chokepoint stays strict; align the ritual, do not relax the rule", f)
-		}
-	}
-}
+// Retired here so that future scope-bounded discipline tests don't
+// silently outlive their milestone's window. Later wrap-epic
+// milestones assert their own scope discipline if needed; an
+// unbounded "kernel rule files never change" invariant would be
+// stronger than any AC actually claimed.
+//
+// Kept as a comment so future readers (and `git log -S`-style
+// searches for the test name) find the retirement rationale rather
+// than a silent deletion.
+//
+// Original mechanism (for reference): shell out to
+// `git diff --name-only <base>...HEAD` and assert no kernel rule
+// files appear in the changed set.
 
 // TestAiwfxWrapEpic_AC4_RitualsRepoSHARecordedAtWrap asserts M-0090
 // AC-4 / spec AC-5: at wrap, the rituals-repo commit SHA that

@@ -113,6 +113,14 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// fourth added at M-0160/AC-4) and FSMHistoryConsistent.
 	ackedSHAs := check.WalkAcknowledgedSHAs(ctx, resolved)
 
+	// G-0231 item 3: per-(SHA, entity) ack set, consumed only by
+	// RunUntrailedAudit (the seventh ack consumer, added in this
+	// item). Distinct from the per-SHA blanket set above because
+	// the rule's findings are per-(commit, entity) — requiring a
+	// per-pair ack rather than a SHA-only blanket. Same
+	// single-compute / cascading-pass-through pattern.
+	ackedSHAEntities := check.WalkAcknowledgedSHAEntities(ctx, resolved)
+
 	// G-0218 Patch 2: compute the post-cutoff SHA set once per check
 	// invocation, then pass it to RunProvenanceCheck (which forwards
 	// to RunTrailerVerbUnknown). Mirrors the ackedSHAs single-compute
@@ -121,7 +129,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// G-0150 baseline.
 	postCutoffSHAs := check.WalkPostCutoffSHAs(ctx, resolved)
 
-	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs, postCutoffSHAs)
+	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs, ackedSHAEntities, postCutoffSHAs)
 	if pErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
 		return cliutil.ExitInternal

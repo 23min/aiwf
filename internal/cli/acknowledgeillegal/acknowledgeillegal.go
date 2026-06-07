@@ -26,12 +26,19 @@ import (
 // acknowledgment is an empty commit carrying aiwf-force-for: <sha>
 // alongside the standard aiwf-verb / aiwf-actor / aiwf-reason
 // trailers — no aiwf.yaml entry, no history rewrite.
+//
+// G-0231 item 3: an optional `--for-entity <id>` flag binds the ack
+// to a specific (SHA, entity) pair. The verb verifies at write time
+// that <sha>'s diff actually touches <id>'s file; if not, the ack
+// is refused. Required when acking against
+// provenance-untrailered-entity-commit.
 func NewCmd() *cobra.Command {
 	var (
-		actor  string
-		root   string
-		reason string
-		out    *cliutil.OutputFormat
+		actor     string
+		root      string
+		reason    string
+		forEntity string
+		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "acknowledge-illegal <sha>",
@@ -48,6 +55,7 @@ aiwf-force-for trailer:
     - promote-on-wrong-branch                         (M-0161/AC-8)
     - id-rename-untrailered                           (M-0160/AC-4)
     - trailer-verb-unknown                            (G-0150 lift)
+    - provenance-untrailered-entity-commit            (G-0231 item 3; --for-entity required)
 
 The acknowledgment is a separate, current-day empty commit carrying:
 
@@ -55,6 +63,7 @@ The acknowledgment is a separate, current-day empty commit carrying:
     aiwf-force-for: <historical-sha>
     aiwf-actor: human/<name>
     aiwf-reason: <text>
+    aiwf-entity: <id>           (only when --for-entity is supplied)
 
 The CLI gather layer at internal/cli/check/check.go walks HEAD's reachable
 history for aiwf-force-for trailers once per check invocation (the M-0159/AC-3
@@ -72,6 +81,15 @@ whose offending SHAs are by construction unreachable since the reflog
 walker surfaces force-pushed-away tips). Typos and SHAs from unrelated
 repos fail both checks and are refused.
 
+--for-entity verification (G-0231 item 3): when --for-entity <id> is supplied,
+the verb runs git diff-tree against <sha> and refuses the ack unless one of
+the diff's paths resolves to <id>. This is what makes the per-(SHA, entity)
+ack tamper-resistant against operator-attested bindings (LLM or human writing
+the wrong entity id with a real SHA): the kernel walks the actual git diff
+and refuses if <sha> doesn't touch <id>. Required for
+provenance-untrailered-entity-commit acks; optional for the other seven
+rules (which use the per-SHA blanket shape).
+
 Per-SHA closed-set scoping: an acknowledgment for one SHA exempts only that
 SHA. There is no "exempt everything" knob.
 
@@ -79,17 +97,25 @@ Both --reason (non-empty after trim) and a human/... actor are required
 — sovereign acts trace to a named human with written rationale.`,
 		Example: `  # Acknowledge a squash-merge commit whose intermediate FSM steps were lost
   aiwf acknowledge-illegal f4ea7329 \
-    --reason "pre-AC-2 era squash; legal feature-branch progression existed but was collapsed"`,
+    --reason "pre-AC-2 era squash; legal feature-branch progression existed but was collapsed"
+
+  # Acknowledge an untrailered entity-edit commit (per-(SHA, entity) ack)
+  aiwf acknowledge-illegal 6a1e70cc --for-entity ADR-0007 \
+    --reason "post-E-0038 terminology refresh landed inline; should have used aiwf edit-body"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], actor, root, reason, *out))
+			return cliutil.WrapExitCode(Run(args[0], actor, root, reason, forEntity, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (must be human/...; derived from git config if unset)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining the acknowledgment; required, non-empty after trim")
+	cmd.Flags().StringVar(&forEntity, "for-entity", "", "bind the ack to a specific entity id; the verb verifies the SHA's diff touches that entity (required for provenance-untrailered-entity-commit acks)")
+	// Dynamic entity-id completion: any kind is valid (the verb checks
+	// that the SHA's diff touches the named entity regardless of kind).
+	_ = cmd.RegisterFlagCompletionFunc("for-entity", cliutil.CompleteEntityIDFlag(""))
 	out = cliutil.AddFormatFlags(cmd)
 	return cmd
 }
@@ -98,7 +124,7 @@ Both --reason (non-empty after trim) and a human/... actor are required
 // cliutil.Exit* codes; the caller (RunE in NewCmd) wraps the int in
 // cliutil.WrapExitCode so Cobra's RunE channel preserves the exit code
 // through the run() dispatcher.
-func Run(sha, actor, root, reason string, out cliutil.OutputFormat) int {
+func Run(sha, actor, root, reason, forEntity string, out cliutil.OutputFormat) int {
 	if strings.TrimSpace(reason) == "" {
 		fmt.Fprintln(os.Stderr, "aiwf acknowledge-illegal: --reason \"...\" is required (non-empty after trim)")
 		return cliutil.ExitUsage
@@ -119,6 +145,6 @@ func Run(sha, actor, root, reason string, out cliutil.OutputFormat) int {
 	}
 	defer release()
 	ctx := context.Background()
-	result, vErr := verb.AcknowledgeIllegal(ctx, rootDir, sha, actorStr, reason)
+	result, vErr := verb.AcknowledgeIllegal(ctx, rootDir, sha, forEntity, actorStr, reason)
 	return cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge-illegal", result, vErr, out)
 }

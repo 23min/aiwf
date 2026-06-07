@@ -449,7 +449,7 @@ func TestRunUntrailedAudit_AuditOnlyClearsWarning(t *testing.T) {
 			},
 		},
 	}
-	got := RunUntrailedAudit(commits)
+	got := RunUntrailedAudit(commits, nil)
 	if len(got) != 0 {
 		t.Errorf("warning should clear after audit-only on G-001; got %v", findingCodes(got))
 	}
@@ -474,7 +474,7 @@ func TestRunUntrailedAudit_AuditOnlyBeforeManualStillFires(t *testing.T) {
 			Paths: []string{"work/gaps/G-001-leak.md"},
 		},
 	}
-	got := RunUntrailedAudit(commits)
+	got := RunUntrailedAudit(commits, nil)
 	if !hasFinding(got, CodeProvenanceUntrailedEntityCommit) {
 		t.Errorf("manual commit AFTER audit-only must still fire; got %v", findingCodes(got))
 	}
@@ -499,10 +499,63 @@ func TestRunUntrailedAudit_AuditOnlyOnDifferentEntityDoesNotCover(t *testing.T) 
 			},
 		},
 	}
-	got := RunUntrailedAudit(commits)
+	got := RunUntrailedAudit(commits, nil)
 	if !hasFinding(got, CodeProvenanceUntrailedEntityCommit) {
 		t.Errorf("audit-only on G-001 must not cover G-002; got %v", findingCodes(got))
 	}
+}
+
+// TestRunUntrailedAudit_G0231_PerSHAEntityAckSuppresses is the
+// per-(SHA, entity) ack consumer test added by G-0231 item 3.
+// When the audit sees a (commit, entity) finding for which the
+// ackedSHAEntities map carries an entry, the finding is
+// suppressed. SHA-only acks (the legacy per-SHA blanket via
+// WalkAcknowledgedSHAs) do NOT suppress this rule — the suppression
+// requires the BOTH-trailers shape (aiwf-force-for + aiwf-entity)
+// that WalkAcknowledgedSHAEntities builds.
+//
+// Three flavors:
+//   - per-(SHA, entity) ack present → finding suppressed.
+//   - per-(SHA, entity) ack present for a DIFFERENT entity → finding fires.
+//   - nil/empty ack map → finding fires (the unsuppressed baseline).
+func TestRunUntrailedAudit_G0231_PerSHAEntityAckSuppresses(t *testing.T) {
+	t.Parallel()
+	manualCommit := UntrailedCommit{
+		SHA:        "abcdef1234567890abcdef1234567890abcdef12",
+		ParentSHAs: []string{"baseparent00000000000000000000000000000000"},
+		Subject:    "manual: edit G-001",
+		Paths:      []string{"work/gaps/G-0001-leak.md"},
+	}
+
+	t.Run("ack for the right entity suppresses the finding", func(t *testing.T) {
+		t.Parallel()
+		acked := map[string]map[string]bool{
+			manualCommit.SHA: {"G-0001": true},
+		}
+		got := RunUntrailedAudit([]UntrailedCommit{manualCommit}, acked)
+		if len(got) != 0 {
+			t.Errorf("per-(SHA, entity) ack must suppress the (SHA, entity) finding; got %v", got)
+		}
+	})
+
+	t.Run("ack for a different entity does not suppress", func(t *testing.T) {
+		t.Parallel()
+		acked := map[string]map[string]bool{
+			manualCommit.SHA: {"G-0002": true}, // wrong entity
+		}
+		got := RunUntrailedAudit([]UntrailedCommit{manualCommit}, acked)
+		if len(got) != 1 {
+			t.Errorf("ack for wrong entity must not suppress; got %d findings (%v)", len(got), got)
+		}
+	})
+
+	t.Run("nil ack map leaves the finding firing", func(t *testing.T) {
+		t.Parallel()
+		got := RunUntrailedAudit([]UntrailedCommit{manualCommit}, nil)
+		if len(got) != 1 {
+			t.Errorf("nil ack map must leave the finding intact; got %d findings (%v)", len(got), got)
+		}
+	})
 }
 
 // TestRunUntrailedAudit_NoFFMergeCommitSkipped is the carveout
@@ -541,7 +594,7 @@ func TestRunUntrailedAudit_NoFFMergeCommitSkipped(t *testing.T) {
 			Paths:      []string{"work/gaps/G-0003-z.md"},
 		},
 	}
-	got := RunUntrailedAudit(commits)
+	got := RunUntrailedAudit(commits, nil)
 	// Expect exactly two findings: the squash and the direct edit.
 	// Merge commit must NOT appear.
 	if len(got) != 2 {
@@ -609,7 +662,7 @@ func TestRunUntrailedAudit_SquashMergeSubcode(t *testing.T) {
 					Subject: tt.subject,
 					Paths:   []string{"work/gaps/G-001-leak.md"},
 				},
-			})
+			}, nil)
 			if len(got) != 1 {
 				t.Fatalf("findings = %d, want 1; got %v", len(got), got)
 			}
@@ -639,7 +692,7 @@ func TestRunUntrailedAudit_PerEntityFindings(t *testing.T) {
 			},
 		},
 	}
-	got := RunUntrailedAudit(commits)
+	got := RunUntrailedAudit(commits, nil)
 	if len(got) != 3 {
 		t.Fatalf("findings = %d, want 3 (one per entity); got %v", len(got), got)
 	}
@@ -682,7 +735,7 @@ func TestRunUntrailedAudit_AuditOnlyClearsPerEntity(t *testing.T) {
 			},
 		},
 	}
-	got := RunUntrailedAudit(commits)
+	got := RunUntrailedAudit(commits, nil)
 	if len(got) != 1 {
 		t.Fatalf("findings = %d, want 1 (only uncovered entity); got %v", len(got), got)
 	}
@@ -711,7 +764,7 @@ func TestRunUntrailedAudit_CompositeAuditCoversParentManual(t *testing.T) {
 			},
 		},
 	}
-	got := RunUntrailedAudit(commits)
+	got := RunUntrailedAudit(commits, nil)
 	if len(got) != 0 {
 		t.Errorf("composite-id audit-only on M-001/AC-1 should cover manual on M-001; got %v", findingCodes(got))
 	}
@@ -776,7 +829,7 @@ func TestRunUntrailedAudit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := RunUntrailedAudit(tt.commits)
+			got := RunUntrailedAudit(tt.commits, nil)
 			if len(got) != tt.wantCount {
 				t.Fatalf("findings = %d (%v), want %d", len(got), findingCodes(got), tt.wantCount)
 			}

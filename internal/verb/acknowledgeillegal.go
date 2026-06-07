@@ -7,29 +7,48 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
 // AcknowledgeIllegal records a retroactive sovereign override for a
-// historical FSM-illegal commit that fsm-history-consistent flags. The
+// historical commit that one of the kernel's audit rules flags. The
 // acknowledgment lives as a current-day empty commit carrying:
 //
 //	aiwf-verb: acknowledge-illegal
 //	aiwf-force-for: <sha>
 //	aiwf-actor: human/<name>
 //	aiwf-reason: <free-form text>
+//	aiwf-entity: <id>       (only when forEntity is non-empty)
 //
 // The fsm-history-consistent rule (M-0136/AC-2) walks HEAD's reachable
 // history for `aiwf-force-for` trailers and exempts illegal-transition
-// findings whose offending commit appears as a target.
+// findings whose offending commit appears as a target. Six other rules
+// consume the same SHA set via the M-0159/AC-3 lift.
 //
-// Constraints (M-0136/AC-1):
+// G-0231 item 3: a SEVENTH consumer rule —
+// `provenance-untrailered-entity-commit` — was added with TIGHTER
+// scope. Its findings are per-(commit, entity) pairs, so it requires
+// per-(SHA, entity) acks: the ack commit must carry BOTH `aiwf-force-
+// for: <sha>` AND `aiwf-entity: <id>`, and the verb verifies at write
+// time that <sha>'s diff actually touches <id>'s file. The
+// kernel-integrity property this adds: even if the operator (human or
+// LLM) writes the wrong entity id with the right SHA, the verb
+// refuses before the ack lands. SHA existence was already verified
+// pre-G-0231 by shaAckable; entity binding is the new check.
+//
+// Constraints (M-0136/AC-1, extended by G-0231 item 3):
 //   - reason must be non-empty after trim (sovereign acts require a
 //     written rationale).
 //   - actor must be `human/...` (sovereign acts trace to a named
 //     human; no LLM / bot ack).
 //   - sha must match the 7-40-hex SHA pattern (the trailer's value
 //     constraint, enforced via gitops.ValidateTrailer).
+//   - forEntity is OPTIONAL. When empty, the ack is per-SHA blanket
+//     (the legacy shape covering the first six rules). When set, the
+//     verb verifies <sha>'s diff touches <id>'s file and emits
+//     `aiwf-entity: <id>` in the ack commit (the per-(SHA, entity)
+//     shape required by provenance-untrailered-entity-commit).
 //
 // M-0136/AC-4 + G-0236: sha must resolve to a commit that is either
 // reachable from HEAD (the primary AC-4 case) OR present in the local
@@ -48,7 +67,7 @@ import (
 // Returns a Result with a Plan carrying the empty commit's trailers.
 // The Apply pipeline materializes the `git commit --allow-empty` once
 // the human gate clears.
-func AcknowledgeIllegal(ctx context.Context, root, sha, actor, reason string) (*Result, error) {
+func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason string) (*Result, error) {
 	if strings.TrimSpace(reason) == "" {
 		return nil, fmt.Errorf("aiwf acknowledge-illegal: --reason is required (non-empty after trim)")
 	}
@@ -56,11 +75,18 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, actor, reason string) (*
 		return nil, fmt.Errorf("aiwf acknowledge-illegal: --actor must be human/<name> (got %q; sovereign acts trace to a named human)", actor)
 	}
 	cleanedReason := strings.TrimSpace(reason)
+	cleanedEntity := strings.TrimSpace(forEntity)
 	trailers := []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "acknowledge-illegal"},
 		{Key: gitops.TrailerForceFor, Value: sha},
 		{Key: gitops.TrailerActor, Value: actor},
 		{Key: gitops.TrailerReason, Value: cleanedReason},
+	}
+	if cleanedEntity != "" {
+		trailers = append(trailers, gitops.Trailer{
+			Key:   gitops.TrailerEntity,
+			Value: entity.Canonicalize(cleanedEntity),
+		})
 	}
 	for _, tr := range trailers {
 		if err := gitops.ValidateTrailer(tr.Key, tr.Value); err != nil {
@@ -69,6 +95,11 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, actor, reason string) (*
 	}
 	if err := shaAckable(ctx, root, sha); err != nil {
 		return nil, fmt.Errorf("aiwf acknowledge-illegal: %w", err)
+	}
+	if cleanedEntity != "" {
+		if err := verifySHATouchesEntity(ctx, root, sha, cleanedEntity); err != nil {
+			return nil, fmt.Errorf("aiwf acknowledge-illegal: %w", err)
+		}
 	}
 	short := sha
 	if len(short) > 8 {
@@ -80,6 +111,49 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, actor, reason string) (*
 		Trailers:   trailers,
 		AllowEmpty: true,
 	}), nil
+}
+
+// verifySHATouchesEntity runs `git diff-tree --no-commit-id
+// --name-only -r --root <sha>` and walks the diff's path list.
+// Returns nil when one of the paths resolves to an entity id (via
+// PathKind + IDFromPath) whose canonical form matches the canonical
+// form of forEntity. Returns a typed error when no path resolves to
+// that entity (i.e., the SHA didn't touch the claimed entity — the
+// LLM-invented-binding case G-0231 item 3 is built to refuse).
+//
+// `--root` is load-bearing: without it, root commits (no parent)
+// produce an empty diff and the verification would refuse acks
+// against the very first commit (which often introduces entity
+// files in a fresh repo). Merge commits' first-parent diff is the
+// same view RunUntrailedAudit audits, so the verification is
+// consistent with what the rule sees.
+func verifySHATouchesEntity(ctx context.Context, root, sha, forEntity string) error {
+	cmd := exec.CommandContext(ctx, "git", "diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("diff-tree for %s: %w", sha, err)
+	}
+	want := entity.Canonicalize(forEntity)
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		path := strings.TrimSpace(line)
+		if path == "" {
+			continue
+		}
+		kind, ok := entity.PathKind(path)
+		if !ok {
+			continue
+		}
+		id, ok := entity.IDFromPath(path, kind)
+		if !ok {
+			continue
+		}
+		if entity.Canonicalize(id) == want {
+			return nil
+		}
+	}
+	return fmt.Errorf("SHA %s does not touch entity %s (its diff names no file resolving to %s; refusing operator-attested binding without mechanical evidence — G-0231 item 3)",
+		sha, want, want)
 }
 
 // shaAckable verifies the SHA is a valid acknowledge-illegal target.

@@ -58,7 +58,7 @@ import (
 // the rule's severity transition against fixture cutoffs (the
 // production HookInstallSHA points at a specific main-branch
 // commit that fresh-fixture repos don't carry).
-func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}, ackedSHAs, postCutoffSHAs map[string]bool) ([]check.Finding, error) {
+func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}, ackedSHAs map[string]bool, ackedSHAEntities map[string]map[string]bool, postCutoffSHAs map[string]bool) ([]check.Finding, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -185,7 +185,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	if uErr != nil {
 		return nil, uErr
 	}
-	findings = append(findings, check.RunUntrailedAudit(untrailed)...)
+	findings = append(findings, check.RunUntrailedAudit(untrailed, ackedSHAEntities)...)
 	// G-0150: warn on any `aiwf-verb:` trailer whose value is not in
 	// the running binary's Cobra command tree, scoped to the same
 	// `@{u}..HEAD` window as the untrailered audit. The chokepoint

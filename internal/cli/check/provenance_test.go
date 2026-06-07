@@ -65,7 +65,7 @@ func TestRunProvenanceCheck_TrailerVerbUnknown_FiresOnUnpushedFabrication(t *tes
 		"promote": {},
 		// "implement" deliberately absent
 	}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestRunProvenanceCheck_TrailerVerbUnknown_PostCutoffEmitsError(t *testing.T
 	// In production, check.go::Run computes this via
 	// check.WalkPostCutoffSHAs; here the test injects directly.
 	postCutoff := map[string]bool{c1: true}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, postCutoff)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil, postCutoff)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestRunProvenanceCheck_TrailerVerbUnknown_SilentOnRegisteredVerb(t *testing
 		"add":     {},
 		"promote": {},
 	}
-	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil)
+	findings, err := RunProvenanceCheck(ctx, root, &tree.Tree{}, c0, registered, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
@@ -313,7 +313,7 @@ func TestAsScopeCommits_CopiesSHAAndTrailers(t *testing.T) {
 // without erroring on the absent git log.
 func TestRunProvenanceCheck_EmptyRepoIsNoop(t *testing.T) {
 	t.Parallel()
-	findings, err := RunProvenanceCheck(context.Background(), t.TempDir(), &tree.Tree{}, "", nil, nil, nil)
+	findings, err := RunProvenanceCheck(context.Background(), t.TempDir(), &tree.Tree{}, "", nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}

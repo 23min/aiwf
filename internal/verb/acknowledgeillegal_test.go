@@ -23,7 +23,7 @@ func TestAcknowledgeIllegal_CommitShape(t *testing.T) {
 	historicalSHA := commitOne(t, r.root, "alpha.md", "alpha v1\n", "historical illegal flip")
 
 	const reason = "squash-merge from pre-AC-2 era; intermediate FSM steps lost to the squash"
-	res, err := verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, testActor, reason)
+	res, err := verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, "", testActor, reason)
 	if err != nil {
 		t.Fatalf("AcknowledgeIllegal: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestAcknowledgeIllegal_RequiresReason(t *testing.T) {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, testActor, c.reason)
+			_, err := verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, "", testActor, c.reason)
 			if err == nil || !strings.Contains(err.Error(), "reason") {
 				t.Errorf("expected error mentioning --reason for reason=%q; got %v", c.reason, err)
 			}
@@ -87,7 +87,7 @@ func TestAcknowledgeIllegal_RequiresHumanActor(t *testing.T) {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, c.actor, "squash-merge fixup")
+			_, err := verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, "", c.actor, "squash-merge fixup")
 			if err == nil || !strings.Contains(err.Error(), "human/") {
 				t.Errorf("expected error mentioning human/ requirement for actor=%q; got %v", c.actor, err)
 			}
@@ -159,7 +159,7 @@ func TestAcknowledgeIllegal_AC4_RejectsOutOfHistorySHA(t *testing.T) {
 	// 40-hex SHA with the right shape but not in HEAD's history.
 	const bogusSHA = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 
-	_, err := verb.AcknowledgeIllegal(r.ctx, r.root, bogusSHA, testActor, "typo in the SHA")
+	_, err := verb.AcknowledgeIllegal(r.ctx, r.root, bogusSHA, "", testActor, "typo in the SHA")
 	if err == nil {
 		t.Fatal("expected error for out-of-history SHA; got nil")
 	}
@@ -217,7 +217,7 @@ func TestAcknowledgeIllegal_G0236_AcceptsOrphanSHA(t *testing.T) {
 	}
 
 	const reason = "rebase cleanup of an AI-actor commit; the content re-landed cleanly under a different SHA"
-	res, err := verb.AcknowledgeIllegal(r.ctx, r.root, headB, testActor, reason)
+	res, err := verb.AcknowledgeIllegal(r.ctx, r.root, headB, "", testActor, reason)
 	if err != nil {
 		t.Fatalf("G-0236 fallback: ack against orphan SHA must succeed; got %v", err)
 	}
@@ -234,4 +234,84 @@ func TestAcknowledgeIllegal_G0236_AcceptsOrphanSHA(t *testing.T) {
 	if !res.Plan.AllowEmpty {
 		t.Errorf("AllowEmpty = false, want true (ack commits are always empty regardless of fallback path)")
 	}
+}
+
+// TestAcknowledgeIllegal_G0231_ForEntityVerifiesSHATouchesEntity is
+// the kernel-integrity guard added by G-0231 item 3. The verb
+// refuses an ack whose claimed (SHA, entity) binding is wrong —
+// the SHA exists, but its diff doesn't touch the named entity.
+//
+// Threat model: an operator (human or LLM) writes a real SHA with
+// the wrong entity id. Pre-G-0231 the verb would land the ack
+// because it only verified SHA existence; the (SHA, entity)
+// binding was operator-attested prose. Post-G-0231 the verb walks
+// `git diff-tree --no-commit-id --name-only -r --root <sha>` and
+// refuses if no path resolves to the claimed entity. The integrity
+// property: the ack commit's `aiwf-entity:` trailer is always
+// kernel-verified, never operator-attested.
+//
+// Setup: commit one entity (G-0001-leak.md). Try to ack the
+// resulting SHA for entity G-0002 (a different entity that the
+// SHA does NOT touch). The verb refuses.
+//
+// The positive-control half also exercises the `--root` branch of
+// verifySHATouchesEntity: the historical SHA is the repo's root
+// commit (commitOne is the only commit on the test branch). Without
+// `--root` on the `git diff-tree` invocation, root commits return
+// no diff and the verification would refuse — including this test's
+// own positive control. So this test is the implicit coverage that
+// `--root` stays wired.
+func TestAcknowledgeIllegal_G0231_ForEntityVerifiesSHATouchesEntity(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	// Set up the work/gaps subtree so PathKind + IDFromPath can
+	// resolve the path.
+	gapsDir := filepath.Join(r.root, "work", "gaps")
+	if err := os.MkdirAll(gapsDir, 0o755); err != nil {
+		t.Fatalf("mkdir gaps: %v", err)
+	}
+	// Commit G-0001's file.
+	gapPath := filepath.Join("work", "gaps", "G-0001-leak.md")
+	historicalSHA := commitOne(t, r.root, gapPath, "---\nid: G-0001\nstatus: open\n---\n", "manual edit of G-0001")
+
+	// Positive control: ack for the entity the SHA actually touched.
+	_, err := verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, "G-0001", testActor, "verified binding")
+	if err != nil {
+		t.Errorf("ack with correct entity binding must succeed; got %v", err)
+	}
+
+	// Negative control: ack for an entity the SHA did NOT touch.
+	_, err = verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, "G-0002", testActor, "wrong binding")
+	if err == nil {
+		t.Fatal("ack with wrong entity binding must be refused; got nil error (SHA touched G-0001, not G-0002)")
+	}
+	if !strings.Contains(err.Error(), "does not touch entity") {
+		t.Errorf("error should mention 'does not touch entity'; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "G-0002") {
+		t.Errorf("error should name the claimed entity G-0002; got %v", err)
+	}
+}
+
+// TestAcknowledgeIllegal_G0231_ForEntityEmitsEntityTrailer pins
+// the trailer-shape contract for G-0231 item 3: when --for-entity
+// is supplied and verification passes, the ack commit carries an
+// aiwf-entity trailer with the canonicalized entity id. This is
+// what WalkAcknowledgedSHAEntities keys on when building the
+// per-(SHA, entity) set RunUntrailedAudit consumes.
+func TestAcknowledgeIllegal_G0231_ForEntityEmitsEntityTrailer(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	gapsDir := filepath.Join(r.root, "work", "gaps")
+	if err := os.MkdirAll(gapsDir, 0o755); err != nil {
+		t.Fatalf("mkdir gaps: %v", err)
+	}
+	gapPath := filepath.Join("work", "gaps", "G-0001-leak.md")
+	historicalSHA := commitOne(t, r.root, gapPath, "---\nid: G-0001\nstatus: open\n---\n", "manual edit of G-0001")
+
+	res, err := verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, "G-0001", testActor, "test")
+	if err != nil {
+		t.Fatalf("ack: %v", err)
+	}
+	mustHaveTrailerInPlanList(t, res.Plan.Trailers, gitops.TrailerEntity, "G-0001")
 }

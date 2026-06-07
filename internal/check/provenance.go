@@ -427,24 +427,41 @@ type UntrailedCommit struct {
 //
 // The finding is an ERROR (G-0231 item 3, bumped from WARNING after
 // the merge-commit carveout cleared the historical noise and the
-// remaining direct-edit findings were audit-only backfilled). The
-// intended user response is `aiwf <verb> --audit-only --reason "..."`
-// (step 5b), which records the transition without rewriting history
-// and clears the finding on the next push.
+// remaining direct-edit findings were SHA-verified-acked via
+// `aiwf acknowledge-illegal --for-entity`).
 //
-// Coverage by audit-only: when a later commit in the same range
-// carries `aiwf-audit-only:` and its `aiwf-entity:` matches the
-// entity id, the finding for that (commit, entity) pair is
-// suppressed. Composite ids on audit-only commits roll up to the
-// parent milestone for matching, mirroring how composite ids on
-// manual commits resolve to the parent file.
+// Two coverage mechanisms suppress findings:
+//
+//  1. audit-only — when a later commit in the same range carries
+//     `aiwf-audit-only:` and its `aiwf-entity:` matches the entity id,
+//     the finding for that (commit, entity) pair is suppressed.
+//     Composite ids on audit-only commits roll up to the parent
+//     milestone for matching, mirroring how composite ids on manual
+//     commits resolve to the parent file. Per-entity blanket — clears
+//     ALL prior untrailered findings for the entity. Operator-attested
+//     reason; no SHA binding. Intended for entity status flips that
+//     bypassed `aiwf promote`.
+//
+//  2. acknowledge-illegal --for-entity (G-0231 item 3) — when an ack
+//     commit carries BOTH `aiwf-force-for: <sha>` AND
+//     `aiwf-entity: <id>` trailers, the finding for that exact
+//     (sha, id) pair is suppressed. Per-(SHA, entity) precision; the
+//     verb verifies at WRITE time that <sha>'s diff actually touches
+//     <id>'s file (kernel walks git diff-tree; operator-attested
+//     bindings are refused without mechanical evidence). Intended for
+//     historical body edits where the SHA is real but the kernel
+//     should still be able to verify the binding.
+//
+// Mechanism 2 is the tighter mechanism. The audit-only path remains
+// for the per-entity blanket case (status flips); the
+// acknowledge-illegal path is the SHA-verified case (body edits).
 //
 // Defensive fallback: if a commit touched paths that PathKind
 // recognizes but IDFromPath cannot parse to an id (a bug in the
 // path scheme would be the only realistic cause), one
 // path-tagged finding fires per such path. EntityID is empty in
 // that branch.
-func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
+func RunUntrailedAudit(commits []UntrailedCommit, ackedSHAEntities map[string]map[string]bool) []Finding {
 	// Build entityID → latest chrono index of an audit-only commit
 	// that backfills it. Composite ids roll up to the parent so the
 	// match works against manual commits that touch the parent file.
@@ -526,6 +543,17 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 				continue
 			}
 			canonID := entity.Canonicalize(id)
+			// G-0231 item 3 — per-(SHA, entity) ack via
+			// `aiwf acknowledge-illegal --for-entity`. SHA + entity
+			// both verified by the verb at write time (the verb
+			// walks git diff-tree to confirm the SHA touches the
+			// entity); the rule trusts that write-time check by
+			// keying off the ack-commit trailers here. SHA-only
+			// acks (without `aiwf-entity`) do NOT suppress this
+			// rule — they cover only the legacy seven rules.
+			if isShaEntityAcked(c.SHA, canonID, ackedSHAEntities) {
+				continue
+			}
 			findings = append(findings, Finding{
 				Code:     CodeProvenanceUntrailedEntityCommit,
 				Subcode:  subcode,
@@ -561,6 +589,29 @@ func RunUntrailedAudit(commits []UntrailedCommit) []Finding {
 func isEntityCoveredByLaterAudit(id string, manualIdx int, auditAt map[string]int) bool {
 	laterIdx, ok := auditAt[entity.Canonicalize(compositeRoot(id))]
 	return ok && laterIdx > manualIdx
+}
+
+// isShaEntityAcked reports whether a finding for (commitSHA, entityID)
+// is suppressed by a per-(SHA, entity) ack from
+// `aiwf acknowledge-illegal --for-entity` (G-0231 item 3).
+//
+// commitSHA is always a full 40-char hex from %H (ParseUntrailedCommits
+// populates UntrailedCommit.SHA from `git log %H`). The walker also
+// stores full SHAs (resolveFullSHA expands narrow trailer values at
+// ingest). Exact-string match is sufficient on the SHA side.
+//
+// entityID is canonicalized + composite-rolled-up so a query at one
+// kernel id width matches a stored ack at another, mirroring
+// isEntityCoveredByLaterAudit's canonical-lookup discipline.
+func isShaEntityAcked(commitSHA, entityID string, acked map[string]map[string]bool) bool {
+	if len(acked) == 0 {
+		return false
+	}
+	inner, ok := acked[commitSHA]
+	if !ok {
+		return false
+	}
+	return inner[entity.Canonicalize(compositeRoot(entityID))]
 }
 
 // buildAuthOpenerIndex maps every authorize-opener commit's SHA to a

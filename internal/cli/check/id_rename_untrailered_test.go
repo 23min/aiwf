@@ -90,7 +90,7 @@ func TestRunProvenanceCheck_IDRenameUntrailered_FindingCarriesHint(t *testing.T)
 	// this field; an empty TrunkRef short-circuits the walker.
 	tr := &tree.Tree{TrunkRef: "refs/heads/trunk-ref"}
 	registered := map[string]struct{}{}
-	findings, err := RunProvenanceCheck(ctx, root, tr, "", registered, nil, nil)
+	findings, err := RunProvenanceCheck(ctx, root, tr, "", registered, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RunProvenanceCheck: %v", err)
 	}
