@@ -315,3 +315,46 @@ func TestAcknowledgeIllegal_G0231_ForEntityEmitsEntityTrailer(t *testing.T) {
 	}
 	mustHaveTrailerInPlanList(t, res.Plan.Trailers, gitops.TrailerEntity, "G-0001")
 }
+
+// TestAcknowledgeIllegal_G0226_OrphanAckPreservesSovereignGate is
+// a belt-and-braces guard against a future refactor that splits
+// orphan-ack into a parallel code path bypassing the sovereign gate.
+//
+// Today the gate (reason + human/ actor) runs before shaAckable in
+// the single AcknowledgeIllegal entry point — RequiresReason /
+// RequiresHumanActor already cover the gate under that structure.
+// This test adds the orphan-SHA variant so a future refactor that
+// adds a separate orphan entry point sees an explicit named
+// regression instead of relying on reviewer vigilance to notice the
+// gate got duplicated wrong. Same A→B→reset-A setup as
+// G0236_AcceptsOrphanSHA: B is orphan-in-object-DB.
+func TestAcknowledgeIllegal_G0226_OrphanAckPreservesSovereignGate(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	commitOne(t, r.root, "alpha.md", "alpha v1\n", "alpha")
+	headA := resolveHeadSHA(t, r.root)
+	commitOne(t, r.root, "beta.md", "beta v1\n", "beta")
+	headB := resolveHeadSHA(t, r.root)
+	gitReset := exec.CommandContext(r.ctx, "git", "reset", "--hard", headA)
+	gitReset.Dir = r.root
+	if out, err := gitReset.CombinedOutput(); err != nil {
+		t.Fatalf("git reset --hard A: %v\n%s", err, out)
+	}
+
+	// Empty reason against orphan SHA — gate fires before shaAckable.
+	if _, err := verb.AcknowledgeIllegal(r.ctx, r.root, headB, "", testActor, ""); err == nil || !strings.Contains(err.Error(), "reason") {
+		t.Errorf("orphan ack with empty --reason must refuse with reason-gate error; got %v", err)
+	}
+	// Whitespace-only reason against orphan SHA.
+	if _, err := verb.AcknowledgeIllegal(r.ctx, r.root, headB, "", testActor, "   \t\n"); err == nil || !strings.Contains(err.Error(), "reason") {
+		t.Errorf("orphan ack with whitespace-only --reason must refuse with reason-gate error; got %v", err)
+	}
+	// Non-human actor against orphan SHA.
+	if _, err := verb.AcknowledgeIllegal(r.ctx, r.root, headB, "", "ai/claude", "rebase cleanup"); err == nil || !strings.Contains(err.Error(), "human/") {
+		t.Errorf("orphan ack with non-human actor must refuse with human/ gate error; got %v", err)
+	}
+	// Empty actor against orphan SHA.
+	if _, err := verb.AcknowledgeIllegal(r.ctx, r.root, headB, "", "", "rebase cleanup"); err == nil || !strings.Contains(err.Error(), "human/") {
+		t.Errorf("orphan ack with empty actor must refuse with human/ gate error; got %v", err)
+	}
+}

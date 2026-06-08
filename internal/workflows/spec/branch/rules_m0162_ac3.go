@@ -551,6 +551,12 @@ func ac3ExpandedCells() []spec.Rule {
 			Outcome: spec.OutcomeLegal,
 			Sources: spec.RuleSource{Decision: "ADR-0010"},
 		},
+		// branch-cell-m0161-ac5-c9 — isolation_escape_force_push_scenarios: AC-5 cell 5: force-push orphans AI commit + ack → orphan finding silent (G-0226 + G-0236)
+		{
+			ID:      "branch-cell-m0161-ac5-c9",
+			Outcome: spec.OutcomeLegal,
+			Sources: spec.RuleSource{Decision: "ADR-0010"},
+		},
 		// branch-cell-m0161-ac6-c1 — isolation_escape_rename_scenarios: AC-6 cell 1: no rename, AI on bound branch → silent
 		{
 			ID:      "branch-cell-m0161-ac6-c1",

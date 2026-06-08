@@ -117,31 +117,27 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 			Expect: Expectation{NoFindingWithCode: "isolation-escape-orphaned-ai-commit"},
 		},
 
-		// ----- Cell 5: Force-push orphans AI commit + ack ----- DEFERRED
-		// AC-5 body line 349 assumed `aiwf acknowledge-illegal`
-		// works on the orphan "per its existing mechanism", but
-		// the verb at internal/verb/acknowledgeillegal.go
-		// hard-requires the target SHA to be reachable from HEAD
-		// (`git merge-base --is-ancestor <sha> HEAD`). A
-		// force-push orphan is, by construction, unreachable —
-		// that's the point of force-push. The verb refuses with
-		// exit 2.
-		//
-		// Deferred per D-0020 (M-0161/AC-5 cell-5 orphan
-		// acknowledgment deferred to verb extension) at
-		// work/decisions/D-0020-*.md. Verb-side gap G-0226
-		// (aiwf acknowledge-illegal hard-requires SHA reachable
-		// from HEAD) at work/gaps/G-0226-*.md tracks the three
-		// resolution paths a future verb-design cycle will pick:
-		//   (a) `--allow-unreachable` flag on existing verb,
-		//   (b) new `aiwf acknowledge-orphan <sha>` verb, or
-		//   (c) rewrite the AC-5 composition claim.
-		//
-		// The rule-side per-SHA ack exemption IS unit-tested at
-		// internal/check/reflog_walk_test.go::
-		// TestRunOrphanedAICommits_AC5_AcknowledgedSHAExempted
-		// so when the verb extension lands, the exemption is
-		// already proven load-bearing.
+		// ----- Cell 5: Force-push orphans AI commit + ack -----
+		// AC-5 body line 349's composition claim: orphan ack
+		// silences the warning per the existing aiwf-force-for
+		// mechanism. G-0226 + G-0236 closed the verb-side gap
+		// (e2447b75: object-DB fallback in shaAckable) so the
+		// verb now accepts orphan SHAs. This cell pins the live
+		// composition end-to-end through the binary.
+		{
+			CellID: "branch-cell-m0161-ac5-c9",
+			Name:   "AC-5 cell 5: force-push orphans AI commit + ack → orphan finding silent",
+			Setup: func(t *testing.T, env *ScenarioEnv) {
+				t.Helper()
+				env.MustRunBin("add", "epic", "--title", "Engine")
+				OpenBoundScope(t, env, "E-0001", "epic/E-0001-engine")
+				orphanSHA := orphanAIOnBoundBranch(t, env, "E-0001", "epic/E-0001-engine")
+				env.MustRunBin("acknowledge-illegal", orphanSHA,
+					"--reason", "G-0226 test: rebase cleanup of an AI-actor commit; benign orphan",
+				)
+			},
+			Expect: Expectation{NoFindingWithCode: "isolation-escape-orphaned-ai-commit"},
+		},
 
 		// ----- Cell 6: Reflog entry expired ----- DEFERRED
 		// AC-5 body line 363 calls out: "Force-push orphans AI
