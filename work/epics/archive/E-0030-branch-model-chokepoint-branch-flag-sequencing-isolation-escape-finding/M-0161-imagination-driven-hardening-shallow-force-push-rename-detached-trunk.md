@@ -346,7 +346,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
 
 **Composition with existing surfaces:**
 
-- The existing `aiwf acknowledge-illegal <sha>` verb silences the warning per its existing mechanism (writes an empty commit with `aiwf-force-for: <sha>` + human actor + reason); ~~no new override path needed~~. **Deferred per [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md): the verb hard-requires the SHA reachable from HEAD; force-push orphans are by definition unreachable, so the verb refuses. The rule-side per-SHA exemption is unit-tested at `internal/check/reflog_walk_test.go::TestRunOrphanedAICommits_AC5_AcknowledgedSHAExempted` so a future verb extension lands cleanly. See [G-0226](../../gaps/G-0226-aiwf-acknowledge-illegal-hard-requires-sha-reachable-from-head.md) for the three resolution paths.**
+- The existing `aiwf acknowledge-illegal <sha>` verb silences the warning per its existing mechanism (writes an empty commit with `aiwf-force-for: <sha>` + human actor + reason); no new override path needed. *Historical: deferred at AC-5 wrap per [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md) (verb then hard-required HEAD-reachability, which force-push orphans lack); [G-0236](../../gaps/archive/G-0236-acknowledge-illegal-does-not-cover-isolation-escape-orphaned-ai-commit.md) closed the verb side via an object-DB fallback (commit `e2447b75`), [G-0226](../../gaps/G-0226-aiwf-acknowledge-illegal-hard-requires-sha-reachable-from-head.md) closed the test/docs side by re-introducing the cell-5 E2E scenario.*
 - Composes with AC-3's `OracleErrors()` typed-error contract: if the reflog itself is disabled (`core.logAllRefUpdates=false`), detection accumulates an `OracleErrReflogDisabled` entry surfaced as AC-3's `isolation-escape-oracle-failure` advisory (no new finding code for this orthogonal mode).
 
 **Mechanical assertions:**
@@ -359,7 +359,7 @@ OracleErrors() []OracleErr   // typed; each carries Ref + underlying error
    | Baseline: full clone, no force-push, no escape | silent | silent |
    | Force-push orphans AI commit (any branch) | silent (orphan unreachable) | fires (warning, names SHA + branch + date) |
    | Force-push orphans non-AI commit | silent | silent (no AI trailers; rule does not fire) |
-   | Force-push orphans AI commit, then `aiwf acknowledge-illegal <sha>` | — | — (DEFERRED — see [D-0020](../../decisions/D-0020-m-0161-ac-5-cell-5-orphan-acknowledgment-deferred-to-verb-extension.md) + [G-0226](../../gaps/G-0226-aiwf-acknowledge-illegal-hard-requires-sha-reachable-from-head.md); rule-side exemption unit-tested) |
+   | Force-push orphans AI commit, then `aiwf acknowledge-illegal <sha>` | silent | silent (orphan SHA in ack-set; per-SHA exemption fires — G-0226 / G-0236) |
    | Force-push orphans AI commit, reflog entry expired via `git reflog expire --expire-unreachable=now` | silent | silent (no audit trail to walk) |
    | Reflog disabled (`core.logAllRefUpdates=false`), force-push happens | silent (no reflog), PLUS `isolation-escape-oracle-failure` advisory fires (per AC-3 composition) | — |
 
