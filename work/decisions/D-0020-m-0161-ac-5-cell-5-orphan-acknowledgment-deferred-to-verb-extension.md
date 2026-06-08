@@ -1,7 +1,7 @@
 ---
 id: D-0020
 title: M-0161/AC-5 cell-5 orphan acknowledgment deferred to verb extension
-status: accepted
+status: superseded
 relates_to:
     - M-0161
     - G-0205
