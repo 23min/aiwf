@@ -1,8 +1,11 @@
 ---
 id: G-0226
 title: aiwf acknowledge-illegal hard-requires SHA reachable from HEAD
-status: open
+status: addressed
 discovered_in: M-0161
+addressed_by_commit:
+    - 7e3d3627
+    - e73dc9bb
 ---
 ## Problem
 
