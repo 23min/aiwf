@@ -1,8 +1,10 @@
 ---
 id: G-0195
 title: canonicalTrailerKeys drifts from trailerOrder; no mirror-validity guard
-status: open
+status: addressed
 discovered_in: M-0102
+addressed_by_commit:
+    - 3b84fa30
 ---
 ## Problem
 
