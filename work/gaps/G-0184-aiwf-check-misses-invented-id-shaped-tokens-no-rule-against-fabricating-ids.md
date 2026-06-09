@@ -1,7 +1,9 @@
 ---
 id: G-0184
 title: aiwf check misses invented id-shaped tokens; no rule against fabricating ids
-status: open
+status: addressed
+addressed_by_commit:
+    - 92e4ebaf
 ---
 ## What's missing
 
