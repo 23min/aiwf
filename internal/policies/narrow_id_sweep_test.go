@@ -141,6 +141,12 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// leak case the rule catches. Same shape as the entity-grammar
 		// tests above.
 		"internal/check/body_prose_id_test.go": "G-0184 body-prose-id rule: narrow-numeric ids are the malformed-shape input space",
+
+		// G-0184 follow-through: widenEntityID's input space is bare-id
+		// shapes at every width including below-grammar narrow forms
+		// (E-1, M-77, G-9, etc.). Same shape as the entity-grammar
+		// tests above.
+		"internal/verb/widen_entity_id_test.go": "G-0184 follow-through: widenEntityID bare-id contract; narrow inputs are the verb's widening input space",
 	}
 
 	// Run grep from the repo root. Pipe stderr alongside stdout so

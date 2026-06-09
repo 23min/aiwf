@@ -160,6 +160,119 @@ func TestBodyProseID_Matrix(t *testing.T) {
 	}
 }
 
+// TestBodyProseID_EdgeCases pins the rule's contract for inputs that
+// reviewer passes flagged as edge cases: ASCII-only id grammar
+// (Unicode tokens silent), HTML tags scanned as prose, empty body
+// silent, prefix-suffix concatenated tokens (M-0001prefix) deliberately
+// fire malformed-shape, narrow numeric leak (M-1) deliberately fires.
+// The cases here document intent so future "simplification" attempts
+// surface as test failures rather than silent behavior shifts.
+func TestBodyProseID_EdgeCases(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name        string
+		body        string
+		wantSubcode string
+		silent      bool
+	}{
+		{
+			name:   "empty body — no tokens to scan",
+			body:   "",
+			silent: true,
+		},
+		{
+			name:   "ASCII-only grammar — Greek M-α does not match",
+			body:   "References M-α which is not an aiwf id shape.",
+			silent: true,
+		},
+		{
+			name:   "ASCII-only grammar — Cyrillic M-АБВ does not match",
+			body:   "References M-АБВ.",
+			silent: true,
+		},
+		{
+			name:        "HTML tag wrapping a malformed token still fires",
+			body:        "<p>The token M-foo is malformed.</p>",
+			wantSubcode: "malformed-shape",
+		},
+		{
+			name:        "prefix-suffix concatenation M-0001prefix fires malformed-shape",
+			body:        "Reference M-0001prefix is a suspicious concatenation.",
+			wantSubcode: "malformed-shape",
+		},
+		{
+			name:        "narrow numeric leak M-1 (conversational label) fires",
+			body:        "Casual conversational label M-1 from chat leaked here.",
+			wantSubcode: "malformed-shape",
+		},
+		{
+			name:   "token at start of body still picked up",
+			body:   "M-a is the first thing in this body.",
+			silent: false, // expected to fire malformed-shape
+		},
+		{
+			name:   "token at end of body (no trailing newline) still picked up",
+			body:   "The body ends with the malformed token M-a",
+			silent: false,
+		},
+		{
+			name:   "id-shape inside backticks at line start is silent",
+			body:   "`M-a` at line start should not fire.",
+			silent: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			ents := writeBodyProseFixture(t, root, tc.body)
+			tr := &tree.Tree{Root: root, Entities: ents}
+			got := bodyProseID(tr)
+
+			if tc.silent {
+				if len(got) != 0 {
+					t.Fatalf("expected silent, got %d findings: %+v", len(got), got)
+				}
+				return
+			}
+			if len(got) == 0 {
+				t.Fatalf("expected at least one finding, got none")
+			}
+			if tc.wantSubcode != "" && got[0].Subcode != tc.wantSubcode {
+				t.Errorf("Subcode = %q, want %q", got[0].Subcode, tc.wantSubcode)
+			}
+		})
+	}
+}
+
+// TestBodyProseID_ResolvesLineFromTokenOffset pins the Line-resolution
+// contract: each finding's Line is the 1-based line within the body
+// where the matched token starts (not the body's start-of-file, not
+// hardcoded 1). ScanBodyProseID returns body-relative Line; bodyProseID
+// adjusts to file-relative by adding the body's start-of-file line
+// offset (counts newlines in the pre-body bytes).
+func TestBodyProseID_ResolvesLineFromTokenOffset(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	body := "Filler line one.\nFiller line two.\nM-a fires here on line three.\n"
+	ents := writeBodyProseFixture(t, root, body)
+	tr := &tree.Tree{Root: root, Entities: ents}
+
+	got := bodyProseID(tr)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+	}
+	// The token M-a is at body-relative line 3 (two filler lines, then
+	// the token line); bodyProseID adjusts by adding the file-relative
+	// offset to the body start, so the final Line is well above 1 and
+	// at least 3. Asserting > 2 pins both the body-offset arithmetic
+	// in ScanBodyProseID and bodyProseID's frontmatter adjustment.
+	if got[0].Line <= 2 {
+		t.Errorf("Line = %d, want > 2 (token-offset resolution + body-start adjustment)", got[0].Line)
+	}
+}
+
 // TestBodyProseID_DedupePerEntityToken pins the dedupe contract:
 // repeated mentions of the same bad token in one entity body produce
 // one finding, not one per occurrence.

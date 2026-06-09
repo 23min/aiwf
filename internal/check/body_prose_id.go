@@ -35,10 +35,12 @@ package check
 // frontmatter references are already covered by refsResolve.
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
@@ -100,7 +102,17 @@ func bodyProseID(t *tree.Tree) []Finding {
 		if !ok {
 			continue
 		}
-		findings = append(findings, ScanBodyProseID(body, e.ID, e.Path, idx)...)
+		scanned := ScanBodyProseID(body, e.ID, e.Path, idx)
+		// Adjust body-relative Line to file-relative. The body starts
+		// after the frontmatter delimiter; count newlines in the
+		// pre-body bytes and add to each finding.
+		if offset := bytes.Index(raw, body); offset > 0 {
+			preBody := bytes.Count(raw[:offset], []byte{'\n'})
+			for i := range scanned {
+				scanned[i].Line += preBody
+			}
+		}
+		findings = append(findings, scanned...)
 	}
 	return findings
 }
@@ -142,22 +154,27 @@ func BodyProseIDIndex(t *tree.Tree) map[string]*entity.Entity {
 // content (the tree-walking bodyProseID rule) or against planned-
 // write bytes that don't yet exist on disk (verb-time pre-flight).
 //
-// Code spans (`...`) and fenced blocks (``` and ~~~) are stripped
-// before scanning, so prose discussing id syntax does not self-trip.
-// Caller is responsible for handling whether to invoke this at all
-// (archive scoping, terminal-status gating) — the helper just scans.
+// Code spans (`...`) and fenced blocks (``` and ~~~) are masked (not
+// stripped) before scanning, so byte offsets in the input remain
+// stable across the masking step. Finding.Line is set to the 1-based
+// line number within body where the matched token starts; callers
+// that want file-relative Line (the bodyProseID tree-walk rule) add
+// the body's start-of-file line offset themselves.
 //
 // The idx parameter is the resolution index from BodyProseIDIndex;
 // callers that scan multiple bodies should build it once and reuse.
 func ScanBodyProseID(body []byte, entityID, path string, idx map[string]*entity.Entity) []Finding {
-	stripped := backtickFencePattern.ReplaceAllString(string(body), "")
-	stripped = tildeFencePattern.ReplaceAllString(stripped, "")
-	stripped = codeSpanPattern.ReplaceAllString(stripped, "")
+	// Mask code spans and fences with same-length runs of spaces so the
+	// regex doesn't match tokens inside them but byte offsets stay
+	// aligned with the original body for line-number resolution.
+	masked := maskSameLength(backtickFencePattern, string(body))
+	masked = maskSameLength(tildeFencePattern, masked)
+	masked = maskSameLength(codeSpanPattern, masked)
 
 	var findings []Finding
 	seen := map[string]bool{}
-	for _, m := range idTokenPattern.FindAllStringIndex(stripped, -1) {
-		tok := stripped[m[0]:m[1]]
+	for _, m := range idTokenPattern.FindAllStringIndex(masked, -1) {
+		tok := masked[m[0]:m[1]]
 		subcode, msg := classifyBodyToken(tok, idx)
 		if subcode == "" {
 			continue
@@ -167,17 +184,29 @@ func ScanBodyProseID(body []byte, entityID, path string, idx map[string]*entity.
 			continue
 		}
 		seen[key] = true
+		line := 1 + bytes.Count(body[:m[0]], []byte{'\n'})
 		findings = append(findings, Finding{
 			Code:     CodeBodyProseID,
 			Severity: SeverityError,
 			Subcode:  subcode,
 			Message:  fmt.Sprintf("%s body prose contains %s", entityID, msg),
 			Path:     path,
+			Line:     line,
 			EntityID: entityID,
 			Field:    "body",
 		})
 	}
 	return findings
+}
+
+// maskSameLength replaces every match of re in s with a run of spaces
+// of the same length as the match. Used by ScanBodyProseID so byte
+// offsets in the input stay aligned after code-span and code-fence
+// suppression — line-number resolution depends on the alignment.
+func maskSameLength(re *regexp.Regexp, s string) string {
+	return re.ReplaceAllStringFunc(s, func(m string) string {
+		return strings.Repeat(" ", len(m))
+	})
 }
 
 // classifyBodyToken returns the finding subcode and detail message for

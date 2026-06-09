@@ -8,6 +8,7 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/manifest"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -193,6 +194,96 @@ func TestRewidth_AllowsNarrowToCanonicalBodyRefs(t *testing.T) {
 	}
 	if res.Plan == nil {
 		t.Errorf("expected Plan; narrow→canonical rewidth should produce a plan")
+	}
+}
+
+// TestImport_RefusesMalformedIDInManifestBody pins the import verb-
+// time gate: a manifest entry whose body: field contains a malformed
+// id-shaped token produces findings and no plans; no file is written.
+// EntityID on the finding must be the manifest's id, not a path.
+func TestImport_RefusesMalformedIDInManifestBody(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	src := `version: 1
+entities:
+  - kind: gap
+    id: G-0001
+    frontmatter: {title: "Bad body gap", status: open}
+    body: |
+      ## What's missing
+      Depends on M-foo which is malformed.
+      ## Why it matters
+      It matters.
+`
+	m, err := manifest.Parse([]byte(src), "yaml")
+	if err != nil {
+		t.Fatalf("manifest parse: %v", err)
+	}
+
+	res, err := verb.Import(r.ctx, r.tree(), m, testActor, verb.ImportOptions{})
+	if err != nil {
+		t.Fatalf("verb error: %v", err)
+	}
+	if len(res.Plans) != 0 {
+		t.Errorf("expected no Plans; import should have refused with findings")
+	}
+	if !findingsContainSubcode(res.Findings, check.CodeBodyProseID, "malformed-shape") {
+		t.Fatalf("expected body-prose-id/malformed-shape finding; got %+v", res.Findings)
+	}
+	for i := range res.Findings {
+		f := &res.Findings[i]
+		if f.Code != check.CodeBodyProseID {
+			continue
+		}
+		if f.EntityID != "G-0001" {
+			t.Errorf("finding.EntityID = %q, want %q", f.EntityID, "G-0001")
+		}
+	}
+}
+
+// TestReallocate_RefusesMalformedIDInProseRewrite pins the reallocate
+// verb-time gate. The verb's prose-rewrite step touches every entity
+// whose body references the renumbered id; if one of those bodies
+// also carries an unrelated malformed token, the verb-time scan must
+// catch it in the planned-write bytes. EntityID on the finding must be
+// the affected entity's id (parsed from op.Content), not the file path.
+func TestReallocate_RefusesMalformedIDInProseRewrite(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Target", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Other", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+
+	// Inject a malformed token into M-0002's body alongside the
+	// reference to M-0001 that triggers the prose rewrite.
+	m2Path := filepath.Join(r.root, "work", "epics", "E-0001-platform", "M-0002-other.md")
+	raw, err := os.ReadFile(m2Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tainted := string(raw) + "\nDepends on M-0001 and M-foo (malformed).\n"
+	if writeErr := os.WriteFile(m2Path, []byte(tainted), 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+
+	res, err := verb.Reallocate(r.ctx, r.tree(), "M-0001", testActor)
+	if err != nil {
+		t.Fatalf("verb error: %v", err)
+	}
+	if res.Plan != nil {
+		t.Errorf("expected no Plan; reallocate should have refused on malformed body token")
+	}
+	if !findingsContainSubcode(res.Findings, check.CodeBodyProseID, "malformed-shape") {
+		t.Fatalf("expected body-prose-id/malformed-shape finding; got %+v", res.Findings)
+	}
+	for i := range res.Findings {
+		f := &res.Findings[i]
+		if f.Code != check.CodeBodyProseID {
+			continue
+		}
+		if f.EntityID != "M-0002" {
+			t.Errorf("finding.EntityID = %q, want %q (parsed from op.Content frontmatter)", f.EntityID, "M-0002")
+		}
 	}
 }
 

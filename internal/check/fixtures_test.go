@@ -70,6 +70,12 @@ func TestFixture_Messy(t *testing.T) {
 		check.CodeADRSupersessionMutual,
 		check.CodeGapAddressedHasResolver,
 		check.CodeEpicActiveNoDraftedMilestones,
+		// G-0184 follow-through: pin body-prose-id coverage by the
+		// messy fixture. G-001's body carries an `M-foo` (malformed
+		// shape) and a `G-9999` (well-formed but unallocated) token,
+		// each firing one of the two error subcodes.
+		"body-prose-id/malformed-shape",
+		"body-prose-id/unresolved",
 	}
 	var missing []string
 	for _, code := range expected {

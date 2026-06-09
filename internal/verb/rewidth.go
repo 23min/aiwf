@@ -146,10 +146,18 @@ func projectRewidthTree(tr *tree.Tree) *tree.Tree {
 // Composite ids and unrecognized shapes fall through unchanged.
 var widenIDExtractor = regexp.MustCompile(`^(E|M|G|D|C|F|ADR)-(\d+)$`)
 
-// widenEntityID returns the canonical-width form of id, handling the
-// below-grammar narrow case (`M-77` → `M-0077`) that entity.Canonicalize
-// passes through unchanged. Inputs that don't match the bare id shape
-// (composite ids, non-id strings) are returned verbatim.
+// widenEntityID returns the canonical-width form of a BARE entity id,
+// handling the below-grammar narrow case (`M-77` → `M-0077`) that
+// entity.Canonicalize passes through unchanged. Inputs that don't
+// match the bare id shape — composite ids (`M-77/AC-1`), empty
+// strings, non-id strings, unknown prefixes — are returned verbatim.
+//
+// BARE-ONLY contract: composite ids pass through unchanged because the
+// helper is consumed by projectRewidthTree to rebuild the resolution
+// index, and the index is keyed by bare ids only (the strict-composite
+// resolver derives the parent at lookup time). Callers that need a
+// composite-aware widener should compose: `widenEntityID(parent) + "/"
+// + sub` after splitting via entity.ParseCompositeID.
 func widenEntityID(id string) string {
 	m := widenIDExtractor.FindStringSubmatch(id)
 	if m == nil {

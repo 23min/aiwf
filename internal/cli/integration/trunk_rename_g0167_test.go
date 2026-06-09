@@ -233,7 +233,20 @@ enrichment to drop the cumulative diff below 50%.
 // add when an initial gap stub is elaborated post-retitle.
 // Synthetic content per testdata discipline; not anonymized from
 // any real entity.
-const longEnrichedBodyAC2 = `
+// longEnrichedBodyAC2 is a synthetic post-retitle body for the
+// G-0167 regression fixture. Documentary references to real-world
+// entity ids (M-0125, G-0139, G-0109, G-0167, E-0033, M-0160/AC-2)
+// are interpolated via the [BT...BT] placeholder pattern at template-
+// render time so the const stays a clean raw string and the renderer
+// supplies the backticks (required by G-0184 body-prose-id since the
+// referenced ids don't exist in the test's tree).
+var longEnrichedBodyAC2 = bt(longEnrichedBodyAC2Template)
+
+// bt rewrites [BT...BT] placeholders into backtick-quoted spans.
+// Trivial helper kept local; the only caller is longEnrichedBodyAC2.
+func bt(s string) string { return strings.ReplaceAll(strings.ReplaceAll(s, "[BT", "`"), "BT]", "`") }
+
+const longEnrichedBodyAC2Template = `
 ## Problem
 
 The original gap stub was a placeholder; the elaboration here
@@ -282,7 +295,7 @@ the same branch.
 Both unit and binary-level coverage land alongside the fix:
 
   - Unit: TestRenamesFromRef_DetectsTrailerDrivenRenameAcrossBodyEdits
-    constructs the ` + "`M-0125`/`G-0139`" + ` shape against the live git
+    constructs the [BTM-0125BT]/[BTG-0139BT] shape against the live git
     helper and asserts the rename is detected.
   - Unit: TestRenamesFromRef_ChainsForwardThroughMultipleRetitles
     pins the chain-forward property across two retitles in the
@@ -290,26 +303,26 @@ Both unit and binary-level coverage land alongside the fix:
   - Unit: TestRenamesFromRef_IgnoresUncommittedRename pins the
     negative case (un-committed rename does not register).
   - Unit: TestRenamesFromRef_IgnoresParallelClonesG37Case pins
-    the ` + "`G-0109`" + ` / G37 case where two parallel clones each created
+    the [BTG-0109BT] / G37 case where two parallel clones each created
     a fresh entity at the same id; git's rename detection must
     NOT pair them (different bodies, different intent).
   - Binary E2E: this scenario.
 
 ## History
 
-The failure mode was first surfaced on the epic/` + "`E-0033`" + ` push
-during ` + "`M-0125`" + ` wrap. The operator workaround at the time was
+The failure mode was first surfaced on the epic/[BTE-0033BT] push
+during [BTM-0125BT] wrap. The operator workaround at the time was
 git push --no-verify, which bypasses the pre-push hook and
 defeats the framework's correctness guarantees. The fix landed
-shortly after as commit 8b56ba1c, closing ` + "`G-0167`" + `. The binary-
-level regression pin (this scenario) lands at ` + "`M-0160/AC-2`" + ` as
+shortly after as commit 8b56ba1c, closing [BTG-0167BT]. The binary-
+level regression pin (this scenario) lands at [BTM-0160/AC-2BT] as
 part of the operational-pain regression milestone.
 
 ## Workaround (historical)
 
 Pre-fix, operators encountering this pushed their work with
 git push --no-verify (explicit human approval per CLAUDE.md).
-The first epic/` + "`E-0033`" + ` push to origin used this workaround.
+The first epic/[BTE-0033BT] push to origin used this workaround.
 Post-fix, the workaround is no longer needed; the kernel
 detects the rename via the operator-intent trailer.
 
@@ -328,6 +341,6 @@ right remediation).
 This body is intentionally long to push the file's content
 several multiples beyond the original stub. The diff against
 origin/main is dominated by added prose, not by the slug
-rename — exactly the ` + "`M-0125`/`G-0139`" + ` shape that defeats default
+rename — exactly the [BTM-0125BT]/[BTG-0139BT] shape that defeats default
 git rename detection.
 `

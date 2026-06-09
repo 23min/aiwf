@@ -163,9 +163,13 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	summaries := parseSummaryLines(t, out)
 	errorPerInstance := parseErrorPerInstanceLines(out)
 
-	// AC-2: 10 per-instance error lines (the fixture's error count).
-	if len(errorPerInstance) != 10 {
-		t.Errorf("want 10 per-instance error lines, got %d", len(errorPerInstance))
+	// AC-2: 12 per-instance error lines (the fixture's error count).
+	// The G-0184 follow-through patch added body-prose-id coverage to
+	// the messy fixture (G-001 body carries an `M-foo` malformed token
+	// and a `G-9999` unallocated reference), adding 2 errors over the
+	// pre-follow-through baseline of 10.
+	if len(errorPerInstance) != 12 {
+		t.Errorf("want 12 per-instance error lines, got %d", len(errorPerInstance))
 	}
 
 	// AC-1: warning-code summary count for the messy fixture is 6.
@@ -224,8 +228,9 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	}
 
 	// Footer: instance counts shift by +1 warning with M-0094's
-	// fixture addition (E-02-no-drafts) — 10 errors + 9 warnings = 19.
-	if !strings.Contains(out, "19 findings (10 errors, 9 warnings)") {
+	// fixture addition (E-02-no-drafts), +2 errors with the G-0184
+	// follow-through body-prose-id coverage → 12 errors + 9 warnings = 21.
+	if !strings.Contains(out, "21 findings (12 errors, 9 warnings)") {
 		t.Errorf("default-mode footer missing or wrong:\n%s", out)
 	}
 }

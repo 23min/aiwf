@@ -4,6 +4,26 @@
   "status": "findings",
   "findings": [
     {
+      "code": "body-prose-id",
+      "severity": "error",
+      "message": "G-001 body prose contains id-shaped token \"M-foo\" that does not match the kind's strict id pattern (wrap in backticks if discussing id syntax)",
+      "path": "work/gaps/G-001-addressed-no-resolver.md",
+      "line": 9,
+      "entity_id": "G-001",
+      "subcode": "malformed-shape",
+      "hint": "the body prose contains an id-shaped token that is not a valid id (letter suffix, uppercase placeholder, or narrow-numeric form). If it references a real entity, use the canonical id (`M-0001`, not `M-1` or `M-NNNN`); if it is discussing id syntax, wrap it in backticks. Conversational sequential labels (`M-1`, `M-2`) belong in chat, not committed prose — replace with the allocator-assigned canonical id once the entity exists."
+    },
+    {
+      "code": "body-prose-id",
+      "severity": "error",
+      "message": "G-001 body prose contains unknown id \"G-9999\" (no entity allocated at this id)",
+      "path": "work/gaps/G-001-addressed-no-resolver.md",
+      "line": 10,
+      "entity_id": "G-001",
+      "subcode": "unresolved",
+      "hint": "the body prose references a well-formed id that resolves to no entity; check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference"
+    },
+    {
       "code": "frontmatter-shape",
       "severity": "error",
       "message": "milestone missing required field: parent",
@@ -181,7 +201,7 @@
   "metadata": {
     "bindings": 0,
     "entities": 13,
-    "findings": 19,
-    "root": "/var/folders/r8/472bv5fx4vz_jxbx6jfc_q5w0000gn/T/tmp.7u1EiKcG9x"
+    "findings": 21,
+    "root": "/tmp/messy-regen"
   }
 }

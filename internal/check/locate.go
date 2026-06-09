@@ -23,6 +23,11 @@ func resolveLines(root string, findings []Finding) {
 		if f.Path == "" {
 			continue
 		}
+		// Findings that pre-set Line (e.g., body-prose-id resolves
+		// from the matched-token's byte offset) keep their value.
+		if f.Line > 0 {
+			continue
+		}
 		idx, ok := cache[f.Path]
 		if !ok {
 			idx = scanFieldLines(filepath.Join(root, f.Path))
